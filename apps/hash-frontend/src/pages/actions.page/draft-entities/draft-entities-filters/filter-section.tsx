@@ -1,3 +1,4 @@
+import type { FunctionComponent, ReactNode } from "react";
 import {
   Box,
   Checkbox,
@@ -11,7 +12,6 @@ import {
   switchClasses,
   Typography,
 } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
 
 import type {
   FilterSectionDefinition,
@@ -24,6 +24,7 @@ const CheckboxFilter: FunctionComponent<{
   onChange: (checked: boolean) => void;
 }> = ({ label, checked, onChange }) => (
   <FormControlLabel
+    label={label}
     sx={{
       borderRadius: 16,
       color: ({ palette }) =>
@@ -49,17 +50,16 @@ const CheckboxFilter: FunctionComponent<{
         color: ({ palette }) => palette.gray[90],
       },
     }}
-    label={label}
     control={
       <Checkbox
+        checked={checked}
         sx={{
           svg: {
             width: 18,
             height: 18,
           },
         }}
-        checked={checked}
-        onChange={({ target }) => onChange(target.checked)}
+        onChange={({ target }) => { onChange(target.checked); }}
       />
     }
   />
@@ -84,11 +84,11 @@ const FilterOptionLabel: FunctionComponent<{
     {icon}
     {label}
     <Box
+      component={"span"}
       sx={{
         marginLeft: 1,
         color: ({ palette }) => palette.gray[selected ? 60 : 40],
       }}
-      component="span"
     >
       {count}
     </Box>
@@ -110,6 +110,7 @@ const calculateSwitchTranslateDistance = (params: {
   gutter: number;
 }) => {
   const { width, thumbSize, gutter } = params;
+
   return width - thumbSize - 2 * gutter;
 };
 
@@ -142,6 +143,7 @@ const MultipleChoiceOptions: FunctionComponent<{
   return (
     <>
       <FormControlLabel
+        label={"Show All"}
         sx={{
           marginX: 0,
           gap: 2,
@@ -149,23 +151,23 @@ const MultipleChoiceOptions: FunctionComponent<{
         }}
         control={
           <SelectAllSwitch
-            size="small"
+            size={"small"}
             checked={filterSection.options.every(({ checked }) => checked)}
             onChange={() =>
-              filterSection.onChange(
+              { filterSection.onChange(
                 allOptionsAreChecked
                   ? []
                   : filterSection.options.map(({ value }) => value),
-              )
+              ); }
             }
           />
         }
-        label="Show All"
       />
-      <Box display="flex" flexDirection="column">
+      <Box display={"flex"} flexDirection={"column"}>
         {filterSection.options.map(({ icon, label, value, checked, count }) => (
           <CheckboxFilter
             key={value}
+            checked={checked}
             label={
               <FilterOptionLabel
                 icon={icon}
@@ -174,7 +176,6 @@ const MultipleChoiceOptions: FunctionComponent<{
                 count={count}
               />
             }
-            checked={checked}
             onChange={(updatedChecked) => {
               const previousCheckedValues = filterSection.options
                 .filter((option) => option.checked)
@@ -206,7 +207,7 @@ export const FilterSection: FunctionComponent<{
       <FormControl>
         <RadioGroup
           value={filterSection.value}
-          onChange={(event) => filterSection.onChange(event.target.value)}
+          onChange={(event) => { filterSection.onChange(event.target.value); }}
         >
           {filterSection.options.map(({ icon, value, label, count }) => {
             const selected = filterSection.value === value;

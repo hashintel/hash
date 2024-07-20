@@ -1,21 +1,20 @@
-import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import { useRouter } from "next/router";
-import type { FunctionComponent, ReactNode } from "react";
-import { createContext, useContext, useMemo } from "react";
+import type { createContext, FunctionComponent, ReactNode , useContext, useMemo } from "react";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 
-type RoutePageInfo = {
+interface RoutePageInfo {
   routePageEntityUuid: EntityUuid;
-};
+}
 
 const RoutePageInfoContext = createContext<RoutePageInfo | undefined>(
   undefined,
 );
 
-type PageParsedUrlQuery = {
+interface PageParsedUrlQuery {
   shortname: string;
   "page-slug": string;
-};
+}
 
 export const isPageParsedUrlQuery = (
   queryParams: NextParsedUrlQuery,
@@ -31,9 +30,9 @@ export const parsePageUrlQueryParams = (params: PageParsedUrlQuery) => {
   return { workspaceShortname, pageEntityUuid };
 };
 /**
- * @todo we currently pull the pageEntityId from the url and that works for now
+ * @todo We currently pull the pageEntityId from the url and that works for now
  * although this wouldn't work when we switch to using slugs instead of pageEntityIds in the url.
- * When that happens the pageEntityId should be pulled properly in this component
+ * When that happens the pageEntityId should be pulled properly in this component.
  */
 export const RoutePageInfoProvider: FunctionComponent<{
   children?: ReactNode;
@@ -44,6 +43,7 @@ export const RoutePageInfoProvider: FunctionComponent<{
     if (isPageParsedUrlQuery(router.query)) {
       return parsePageUrlQueryParams(router.query).pageEntityUuid;
     }
+
     return undefined;
   }, [router]);
 

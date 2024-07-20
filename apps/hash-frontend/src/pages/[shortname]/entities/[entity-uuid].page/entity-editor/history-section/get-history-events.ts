@@ -13,6 +13,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 
 import type { EntityDiff } from "../../../../../../graphql/api-types.gen";
+
 import type { HistoryEvent } from "./shared/types";
 
 export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
@@ -56,7 +57,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
     }
 
     /**
-     * The original edition is not included in the diffs, so the 0-based index needs +2 to get the nth edition with base 1
+     * The original edition is not included in the diffs, so the 0-based index needs +2 to get the nth edition with base 1.
      */
     const editionNumber = changedEntityIndex + 2;
 
@@ -103,6 +104,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
               extractBaseUrl(entityTypeIdDiff.removed as VersionedUrl) ===
                 baseUrl,
           );
+
           if (removedOldVersion) {
             upgradedFromEntityTypeIds.push(
               removedOldVersion.removed as VersionedUrl,
@@ -127,6 +129,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
           });
         } else {
           const removed = entityTypeDiff.removed as VersionedUrl;
+
           if (upgradedFromEntityTypeIds.includes(removed)) {
             // we already captured this as an 'upgrade' event
             continue;
@@ -155,9 +158,10 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
         )?.provenance;
 
         /**
-         * @todo H-2775 – handle property objects and changes to array contents
+         * @todo H-2775 – handle property objects and changes to array contents.
          */
         const propertyBaseUrl = propertyDiff.path[0] as BaseUrl;
+
         try {
           const propertyTypeWithMetadata = getPropertyTypeForEntity(
             subgraph,
@@ -179,7 +183,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
             type: "property-update",
             diff: propertyDiff,
           });
-        } catch (err) {
+        } catch (error) {
           throw new Error(
             `Could not find property type with baseUrl ${propertyBaseUrl} for entity type with id ${firstEntityEdition.metadata.entityTypeId} in subgraph`,
           );
@@ -189,6 +193,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
 
     if (diffData.diff.draftState !== undefined) {
       const newDraftState = diffData.diff.draftState;
+
       events.push({
         number: `${editionNumber}.${subChangeNumber++}`,
         provenance: {
@@ -205,7 +210,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
     firstEntityEdition.properties,
   ).entries()) {
     /**
-     * @todo H-2775 – handle property objects and changes to array contents
+     * @todo H-2775 – handle property objects and changes to array contents.
      */
     const propertyProvenance = firstEntityEdition.propertyMetadata([
       key,
@@ -230,7 +235,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
         diff: {
           op: "added",
           /**
-           * @todo H-2775 – handle property objects and changes to array contents
+           * @todo H-2775 – handle property objects and changes to array contents.
            */
           path: [key],
           added: value,

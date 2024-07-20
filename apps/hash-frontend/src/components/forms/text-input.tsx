@@ -1,12 +1,11 @@
-import type { ChangeEvent, CSSProperties, HTMLProps } from "react";
-import { forwardRef } from "react";
+import type { ChangeEvent, CSSProperties, forwardRef,HTMLProps  } from "react";
 
 import { InputLabelWrapper } from "./input-label-wrapper";
 
 type TextInputProps = {
   disallowRegExp?: RegExp;
   label?: string;
-  onChange?: (evt: ChangeEvent<HTMLInputElement>) => void;
+  onChange?: (event: ChangeEvent<HTMLInputElement>) => void;
   onChangeText?: (newText: string) => void;
   value?: string;
   transparent?: boolean;
@@ -28,15 +27,15 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
     },
     ref,
   ) => {
-    const _onChange = (evt: ChangeEvent<HTMLInputElement>) => {
+    const _onChange = (event: ChangeEvent<HTMLInputElement>) => {
       if (onChangeText) {
         onChangeText(
           disallowRegExp
-            ? evt.target.value.replace(disallowRegExp, "")
-            : evt.target.value,
+            ? event.target.value.replace(disallowRegExp, "")
+            : event.target.value,
         );
       } else {
-        onChange?.(evt);
+        onChange?.(event);
       }
     };
 
@@ -44,6 +43,7 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
       <input
         type={type}
         {...props}
+        ref={ref}
         style={{
           ...(transparent ? {} : { backgroundColor: "#F3F4F6" }),
           borderRadius: "0.5rem",
@@ -56,7 +56,6 @@ export const TextInput = forwardRef<HTMLInputElement, TextInputProps>(
           ...inputStyle,
         }}
         onChange={_onChange}
-        ref={ref}
         {...(value !== undefined ? { value } : {})}
       />
     );

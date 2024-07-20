@@ -12,19 +12,19 @@ export const BooleanInput = ({
 }: { showChange: boolean } & CellInputProps<boolean>) => {
   return (
     <Box
+      className={chipClasses.deleteIconMedium}
       sx={{
         position: "relative",
         zIndex: 1,
         cursor: "pointer",
       }}
-      className={chipClasses.deleteIconMedium}
-      onClick={() => onChange(!value)}
+      onClick={() => { onChange(!value); }}
     >
       <Chip
         sx={{ cursor: "pointer !important" }}
         label={value ? "True" : "False"}
         icon={
-          <Tooltip title="Boolean" placement="top">
+          <Tooltip title={"Boolean"} placement={"top"}>
             <FontAwesomeIcon
               icon={value ? faSquareCheck : faSquare}
               sx={{ zIndex: 1 }}
@@ -58,7 +58,7 @@ export const BooleanInput = ({
         >
           <Typography
             sx={{ fontSize: 11 }}
-            variant="smallCaps"
+            variant={"smallCaps"}
             fontWeight={700}
           >
             Change

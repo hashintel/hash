@@ -5,8 +5,7 @@ import "prismjs/components/prism-json";
 import "prismjs/components/prism-json5";
 
 import { Box, GlobalStyles } from "@mui/material";
-import type { ChangeEvent, KeyboardEvent } from "react";
-import { useCallback, useEffect, useRef } from "react";
+import type { ChangeEvent, KeyboardEvent , useCallback, useEffect, useRef } from "react";
 
 interface JsonEditorProps {
   value: string;
@@ -28,7 +27,7 @@ export const JsonEditor = ({ onChange, value, height }: JsonEditorProps) => {
 
   /**
    * This ensures the code block scrolls with
-   * the textarea
+   * the textarea.
    */
   const handleTextAreaScroll = useCallback(() => {
     if (!highlightedElementRef.current || !textAreaRef.current) {
@@ -40,34 +39,34 @@ export const JsonEditor = ({ onChange, value, height }: JsonEditorProps) => {
   }, []);
 
   const handleKeyDown = useCallback(
-    (evt: KeyboardEvent<HTMLTextAreaElement>) => {
+    (event: KeyboardEvent<HTMLTextAreaElement>) => {
       if (!textAreaRef.current) {
         return;
       }
 
-      evt.stopPropagation();
+      event.stopPropagation();
 
-      if (evt.key === "Tab") {
-        evt.preventDefault();
+      if (event.key === "Tab") {
+        event.preventDefault();
 
-        const { selectionStart } = evt.currentTarget;
+        const { selectionStart } = event.currentTarget;
         let newCursorPos;
         let newText;
 
-        if (evt.shiftKey) {
+        if (event.shiftKey) {
           // The previous character has to be a tab
           if (value.substring(selectionStart - 1, selectionStart) !== "\t") {
             return;
           }
 
-          newText = `${value.substring(0, selectionStart - 1)}${value.substring(
-            selectionStart,
+          newText = `${value.slice(0, Math.max(0, selectionStart - 1))}${value.slice(
+            Math.max(0, selectionStart),
           )}`;
 
           newCursorPos = selectionStart - 1;
         } else {
-          newText = `${value.substring(0, selectionStart)}\t${value.substring(
-            selectionStart,
+          newText = `${value.slice(0, Math.max(0, selectionStart))}\t${value.slice(
+            Math.max(0, selectionStart),
           )}`;
           newCursorPos = selectionStart + 1;
         }
@@ -86,8 +85,8 @@ export const JsonEditor = ({ onChange, value, height }: JsonEditorProps) => {
   );
 
   const handleChange = useCallback(
-    (evt: ChangeEvent<HTMLTextAreaElement>) => {
-      onChange(evt.target.value);
+    (event: ChangeEvent<HTMLTextAreaElement>) => {
+      onChange(event.target.value);
     },
     [onChange],
   );
@@ -112,6 +111,7 @@ export const JsonEditor = ({ onChange, value, height }: JsonEditorProps) => {
       })}
     >
       <pre
+        ref={highlightedElementRef}
         style={{
           borderRadius: 0,
           outline: "none",
@@ -121,21 +121,26 @@ export const JsonEditor = ({ onChange, value, height }: JsonEditorProps) => {
           margin: "0",
           marginLeft: "16px",
         }}
-        ref={highlightedElementRef}
       >
-        <code style={{ tabSize: 2 }} className="language-json">
+        <code style={{ tabSize: 2 }} className={"language-json"}>
           {value}
         </code>
       </pre>
       <Box
+        autoFocus
+        wrap={"off"}
+        component={"textarea"}
+        ref={textAreaRef}
+        value={value}
+        spellCheck={"false"}
         sx={(theme) => ({
           position: "absolute",
           inset: 0,
           border: "none",
           /**
-           * firefox does not work with inset:0 to adjust the width of `textarea` element width `position: absolute`
+           * Firefox does not work with inset:0 to adjust the width of `textarea` element width `position: absolute`
            * and we cannot use `100%` as `width`, because that does not respect to horizontal margin
-           * `-moz-available` works as expected on firefox
+           * `-moz-available` works as expected on firefox.
            */
           width: "-moz-available",
           height: "100%",
@@ -153,15 +158,9 @@ export const JsonEditor = ({ onChange, value, height }: JsonEditorProps) => {
           fontFamily: `Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace`,
           fontSize: "1em",
         })}
-        autoFocus
-        wrap="off"
-        component="textarea"
-        ref={textAreaRef}
         onChange={handleChange}
-        value={value}
         onKeyDown={handleKeyDown}
         onScroll={handleTextAreaScroll}
-        spellCheck="false"
       />
       <GlobalStyles
         styles={`

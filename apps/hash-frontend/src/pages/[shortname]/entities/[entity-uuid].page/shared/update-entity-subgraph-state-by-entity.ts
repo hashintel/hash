@@ -1,11 +1,10 @@
-import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
-import { Entity } from "@local/hash-graph-sdk/entity";
+import type { Dispatch, SetStateAction } from "react";
+import type { Entity,SerializedEntity  } from "@local/hash-graph-sdk/entity";
 import type {
   EntityRevisionId,
   EntityRootType,
   Subgraph,
 } from "@local/hash-subgraph";
-import type { Dispatch, SetStateAction } from "react";
 
 export const updateEntitySubgraphStateByEntity = (
   entity: Entity,
@@ -13,7 +12,7 @@ export const updateEntitySubgraphStateByEntity = (
     SetStateAction<Subgraph<EntityRootType> | undefined>
   >,
 ) =>
-  setStateAction((subgraph) => {
+  { setStateAction((subgraph) => {
     /**
      * @todo - This is a problem, subgraphs should probably be immutable, there will be a new identifier
      *   for the updated entity. This version will not match the one returned by the data store.
@@ -22,6 +21,7 @@ export const updateEntitySubgraphStateByEntity = (
      */
     const metadata = JSON.parse(JSON.stringify(entity.metadata));
     const newEntityRevisionId = new Date().toISOString() as EntityRevisionId;
+
     metadata.temporalVersioning.decisionTime.start.limit = newEntityRevisionId;
     metadata.temporalVersioning.transactionTime.start.limit =
       newEntityRevisionId;
@@ -51,4 +51,4 @@ export const updateEntitySubgraphStateByEntity = (
           },
         }
       : undefined;
-  });
+  }); };

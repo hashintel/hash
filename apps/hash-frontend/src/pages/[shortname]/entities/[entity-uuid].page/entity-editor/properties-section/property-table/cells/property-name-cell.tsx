@@ -1,5 +1,4 @@
-import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
-import { GridCellKind } from "@glideapps/glide-data-grid";
+import type { CustomCell, CustomRenderer , GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
 
 import {
@@ -48,7 +47,8 @@ export const createRenderPropertyNameCell = (
       const textLeft = rect.x + columnPadding + indentWidth;
 
       // prepare to fill text
-      const shouldBeLightColor = depth && !children.length;
+      const shouldBeLightColor = depth && children.length === 0;
+
       ctx.fillStyle = shouldBeLightColor
         ? customColors.gray[50]
         : theme.textHeader;
@@ -79,8 +79,8 @@ export const createRenderPropertyNameCell = (
       if (depth) {
         let hLineLeft = textLeft - indentMultiplier;
 
-        if (children.length) {
-          hLineLeft -= indentMultiplier;
+        if (children.length > 0) {
+          hLineLeft = hLineLeft - indentMultiplier;
         }
 
         const hLineRight = hLineLeft + indentMultiplier / 2;
@@ -92,9 +92,8 @@ export const createRenderPropertyNameCell = (
       }
 
       // draw vertical indentation lines for each indentation level
-      if (depth || children.length) {
-        for (let i = 0; i < verticalLinesForEachIndent.length; i++) {
-          const dir = verticalLinesForEachIndent[i];
+      if (depth || children.length > 0) {
+        for (const [i, dir] of verticalLinesForEachIndent.entries()) {
 
           if (dir) {
             const indentationLevel = i;
@@ -109,7 +108,7 @@ export const createRenderPropertyNameCell = (
       }
 
       // draw chevron icon
-      if (children.length) {
+      if (children.length > 0) {
         ctx.fillStyle = "white";
         const iconSize = 10;
         const iconCenter = textLeft - indentMultiplier;
@@ -136,7 +135,7 @@ export const createRenderPropertyNameCell = (
     onClick: (args) => {
       const { children, rowId } = args.cell.data.propertyRow;
 
-      if (children.length) {
+      if (children.length > 0) {
         togglePropertyExpand(rowId);
       }
 

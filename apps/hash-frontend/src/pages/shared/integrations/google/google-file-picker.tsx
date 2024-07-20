@@ -1,10 +1,10 @@
 import Script from "next/script";
 import { useEffect, useState } from "react";
 
-type GoogleFilePickerProps = {
+interface GoogleFilePickerProps {
   accessToken: string;
   onUserChoice: (selectedFile: google.picker.DocumentObject | null) => void;
-};
+}
 
 export const GoogleFilePicker = ({
   accessToken,
@@ -24,12 +24,14 @@ export const GoogleFilePicker = ({
               !response.docs[0]
             ) {
               onUserChoice(null);
+
               return;
             }
 
             onUserChoice(response.docs[0]);
           })
           .build();
+
         picker.setVisible(true);
       });
     }
@@ -39,8 +41,8 @@ export const GoogleFilePicker = ({
     <Script
       async
       defer
-      src="https://apis.google.com/js/api.js"
-      onReady={() => setReady(true)}
+      src={"https://apis.google.com/js/api.js"}
+      onReady={() => { setReady(true); }}
     />
   );
 };

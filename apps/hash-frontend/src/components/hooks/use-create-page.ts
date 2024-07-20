@@ -1,17 +1,16 @@
+import { useRouter } from "next/router";
+import { useCallback } from "react";
 import { useMutation } from "@apollo/client";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
-import { useRouter } from "next/router";
-import { useCallback } from "react";
 
 import type {
   CreatePageMutation,
   CreatePageMutationVariables,
-} from "../../graphql/api-types.gen";
-import { PageType } from "../../graphql/api-types.gen";
+ PageType } from "../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { createPage } from "../../graphql/queries/page.queries";
 import { constructPageRelativeUrl } from "../../lib/routes";
@@ -47,7 +46,7 @@ export const useCreatePage = ({
   });
 
   const createUntitledPage = useCallback(
-    async (prevFractionalIndex: string | null, type: "canvas" | "document") => {
+    async (previousFractionalIndex: string | null, type: "canvas" | "document") => {
       if (!ownedById) {
         throw new Error("No ownedById provided to useCreatePage");
       }
@@ -57,7 +56,7 @@ export const useCreatePage = ({
           ownedById,
           properties: {
             title: "",
-            prevFractionalIndex,
+            prevFractionalIndex: previousFractionalIndex,
             type: type === "canvas" ? PageType.Canvas : PageType.Document,
           },
         },
@@ -67,6 +66,7 @@ export const useCreatePage = ({
 
       if (pageEntityId && shortname) {
         const pageEntityUuid = extractEntityUuidFromEntityId(pageEntityId);
+
         return router.push(
           constructPageRelativeUrl({
             workspaceShortname: shortname,

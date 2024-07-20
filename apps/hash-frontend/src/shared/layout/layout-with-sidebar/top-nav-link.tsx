@@ -1,16 +1,15 @@
-import type { BoxProps } from "@mui/material";
-import {
-  Box,
+import type { FunctionComponent, ReactNode } from "react";
+import type {   Box,
+BoxProps ,
   Fade,
   Tooltip,
   Typography,
   typographyClasses,
 } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
 
 import { Link } from "../../ui";
 
-type NavLinkProps = {
+interface NavLinkProps {
   title: string;
   href: string;
   icon?: ReactNode;
@@ -18,7 +17,7 @@ type NavLinkProps = {
   active?: boolean;
   tooltipTitle: string;
   sx?: BoxProps["sx"];
-};
+}
 
 export const TopNavLink: FunctionComponent<NavLinkProps> = ({
   icon,
@@ -32,8 +31,8 @@ export const TopNavLink: FunctionComponent<NavLinkProps> = ({
   return (
     <Tooltip title={tooltipTitle}>
       <Link
-        href={href}
         noLinkStyle
+        href={href}
         sx={[
           ({ palette, transitions, spacing }) => ({
             display: "flex",
@@ -96,14 +95,14 @@ export const TopNavLink: FunctionComponent<NavLinkProps> = ({
         >
           {icon}
         </Box>
-        <Typography variant="smallTextLabels" fontWeight={500}>
+        <Typography variant={"smallTextLabels"} fontWeight={500}>
           {title}
         </Typography>
         <Fade in={typeof count !== "undefined"}>
           <Typography
-            variant="smallTextLabels"
+            variant={"smallTextLabels"}
             fontWeight={500}
-            className="count"
+            className={"count"}
             sx={{ marginLeft: 1.25 }}
           >
             {count}

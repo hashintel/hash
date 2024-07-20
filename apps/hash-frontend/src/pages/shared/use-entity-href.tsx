@@ -1,6 +1,6 @@
+import { useMemo } from "react";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
-import { useMemo } from "react";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 

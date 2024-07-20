@@ -5,7 +5,7 @@ import { createRoot } from "react-dom/client";
 
 import { FramedBlock } from "./framed-block";
 
-createRoot(document.getElementById("root")!).render(
+createRoot(document.querySelector("#root")!).render(
   <StrictMode>
     <FramedBlock />
   </StrictMode>,

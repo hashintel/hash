@@ -1,15 +1,14 @@
-import { Box, Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import type { PropsWithChildren, ReactElement } from "react";
-import { useMemo } from "react";
+import type { PropsWithChildren, ReactElement , useMemo } from "react";
+import { Box, Container, Typography } from "@mui/material";
 
 import type { Org } from "../../lib/user-and-org";
 import { PeopleGroupIcon } from "../../shared/icons/people-group-icon";
 import { PlugSolidIcon } from "../../shared/icons/plug-solid-icon";
 import { LayoutWithSidebar } from "../../shared/layout/layout-with-sidebar";
+
 import { useAuthenticatedUser } from "./auth-info-context";
-import type { SidebarItemData } from "./settings-layout/settings-sidebar";
-import { SettingsSidebar } from "./settings-layout/settings-sidebar";
+import type { SettingsSidebar,SidebarItemData  } from "./settings-layout/settings-sidebar";
 import { TopContextBar } from "./top-context-bar";
 
 const generateMenuLinks = (
@@ -17,7 +16,7 @@ const generateMenuLinks = (
 ): SidebarItemData[] => {
   const organizationItems: SidebarItemData[] = organizations
     .sort(({ org: a }, { org: b }) => a.name.localeCompare(b.name))
-    .map(({ org }) => [
+    .flatMap(({ org }) => [
       {
         label: org.name,
         href: `/settings/organizations/${org.shortname}/general`,
@@ -34,8 +33,7 @@ const generateMenuLinks = (
         href: `/settings/organizations/${org.shortname}/members`,
         parentHref: `/settings/organizations/${org.shortname}`,
       },
-    ])
-    .flat();
+    ]);
 
   const menuItems: SidebarItemData[] = [
     // { label: "Personal info", href: "/settings/personal" },
@@ -91,7 +89,7 @@ const SettingsLayout = ({ children }: PropsWithChildren) => {
 
       do {
         const currentPage = menuItems.find(
-          // eslint-disable-next-line no-loop-func
+           
           (item) =>
             item.href === href ||
             (item.activeIfPathStartsWith &&
@@ -123,6 +121,7 @@ const SettingsLayout = ({ children }: PropsWithChildren) => {
 
   if (!user.authenticatedUser.accountSignupComplete) {
     void router.push("/signin");
+
     return null;
   }
 
@@ -134,13 +133,13 @@ const SettingsLayout = ({ children }: PropsWithChildren) => {
         scrollToTop={() => {}}
       />
       <Box sx={({ palette }) => ({ background: palette.common.white, py: 3 })}>
-        <Typography variant="h4" sx={{ ...containerSx }}>
+        <Typography variant={"h4"} sx={{ ...containerSx }}>
           Settings
         </Typography>
       </Box>
       <Container sx={{ ...containerSx, py: 6 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-          <SettingsSidebar heading="Account" menuItems={menuItems} />
+          <SettingsSidebar heading={"Account"} menuItems={menuItems} />
           <Box sx={{ flex: 1 }}>{children}</Box>
         </Box>
       </Container>

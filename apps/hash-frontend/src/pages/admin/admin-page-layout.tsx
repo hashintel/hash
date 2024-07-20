@@ -1,6 +1,3 @@
-import { faPerson } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
-import { Box, Container, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import {
   type PropsWithChildren,
@@ -8,11 +5,13 @@ import {
   useEffect,
   useMemo,
 } from "react";
+import { faPerson } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/design-system";
+import { Box, Container, Typography } from "@mui/material";
 
 import { LayoutWithSidebar } from "../../shared/layout/layout-with-sidebar";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
-import type { SidebarItemData } from "../shared/settings-layout/settings-sidebar";
-import { SettingsSidebar } from "../shared/settings-layout/settings-sidebar";
+import type { SettingsSidebar,SidebarItemData  } from "../shared/settings-layout/settings-sidebar";
 import { TopContextBar } from "../shared/top-context-bar";
 
 const containerSx = {
@@ -49,7 +48,7 @@ const AdminLayout = ({ children }: PropsWithChildren) => {
 
   useEffect(() => {
     /**
-     * Redirect non instance admins away from `/admin` pages
+     * Redirect non instance admins away from `/admin` pages.
      */
     if (isInstanceAdmin === false) {
       void router.push("/");
@@ -75,7 +74,7 @@ const AdminLayout = ({ children }: PropsWithChildren) => {
         ].flat()}
       />
       <Box sx={({ palette }) => ({ background: palette.common.white, py: 3 })}>
-        <Typography variant="h4" sx={{ ...containerSx }}>
+        <Typography variant={"h4"} sx={{ ...containerSx }}>
           {currentMenuItem
             ? (currentMenuItem.pageTitle ?? currentMenuItem.label)
             : "Instance Administration"}
@@ -83,7 +82,7 @@ const AdminLayout = ({ children }: PropsWithChildren) => {
       </Box>
       <Container sx={{ ...containerSx, py: 6 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-          <SettingsSidebar heading="Instance" menuItems={menuItems} />
+          <SettingsSidebar heading={"Instance"} menuItems={menuItems} />
           <Box sx={{ flex: 1 }}>{children}</Box>
         </Box>
       </Container>

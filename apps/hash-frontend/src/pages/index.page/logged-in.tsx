@@ -3,6 +3,7 @@ import { Box } from "@mui/material";
 
 import { EnvelopeRegularIcon } from "../../shared/icons/envelope-regular-icon";
 import { Button } from "../../shared/ui/button";
+
 import { GuideCard } from "./shared/guide-card";
 import { HomepageCard } from "./shared/homepage-card";
 import { HomepageGrid } from "./shared/homepage-grid";
@@ -16,7 +17,7 @@ export const LoggedIn = () => {
         <HomepageBigText>
           Get{" "}
           <Box
-            component="span"
+            component={"span"}
             sx={{ color: ({ palette }) => palette.purple[70] }}
           >
             support
@@ -24,9 +25,9 @@ export const LoggedIn = () => {
         </HomepageBigText>
         <HomepageMediumText>1:1 help with HASH</HomepageMediumText>
         <Button
-          href="https://hash.ai/contact?topic=support"
-          variant="white_cta"
-          size="small"
+          href={"https://hash.ai/contact?topic=support"}
+          variant={"white_cta"}
+          size={"small"}
         >
           Send a message
           <EnvelopeRegularIcon
@@ -42,7 +43,7 @@ export const LoggedIn = () => {
         <HomepageBigText>
           Request{" "}
           <Box
-            component="span"
+            component={"span"}
             sx={{ color: ({ palette }) => palette.teal[70] }}
           >
             a feature
@@ -50,13 +51,13 @@ export const LoggedIn = () => {
         </HomepageBigText>
         <HomepageMediumText>or suggest a change</HomepageMediumText>
         <Button
-          href="https://hash.ai/contact?topic=support&category=suggest_improvement"
-          variant="white_cta"
-          size="small"
+          href={"https://hash.ai/contact?topic=support&category=suggest_improvement"}
+          variant={"white_cta"}
+          size={"small"}
         >
           Make
           <Box
-            component="span"
+            component={"span"}
             sx={{ color: ({ palette }) => palette.teal[70], ml: 0.6 }}
           >
             a suggestion
@@ -74,7 +75,7 @@ export const LoggedIn = () => {
         <HomepageBigText>
           Report{" "}
           <Box
-            component="span"
+            component={"span"}
             sx={{ color: ({ palette }) => palette.pink[80] }}
           >
             a bug
@@ -82,9 +83,9 @@ export const LoggedIn = () => {
         </HomepageBigText>
         <HomepageMediumText>or unexpected behavior</HomepageMediumText>
         <Button
-          href="https://hash.ai/contact?topic=support&category=report_an_issue"
-          variant="white_cta"
-          size="small"
+          href={"https://hash.ai/contact?topic=support&category=report_an_issue"}
+          variant={"white_cta"}
+          size={"small"}
         >
           Let us know
           <BugIcon

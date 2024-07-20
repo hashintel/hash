@@ -1,13 +1,13 @@
+import { useMemo } from "react";
 import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
+import type { EntityRootType, extractDraftIdFromEntityId,Subgraph  } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { useMemo } from "react";
 
 import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../../../entity-editor-context";
 import type { LinkedWithCell } from "../linked-with-cell";
+
 import {
   createDraftLinkEntity,
   LinkedEntityListEditor,
@@ -43,7 +43,9 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
 
     // if clicked on the same entity, do nothing
     if (sameEntity) {
-      return onFinishedEditing();
+      onFinishedEditing();
+
+ return;
     }
 
     // if there is an existing link, archive it
@@ -64,7 +66,7 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
       sourceSubgraph,
     };
 
-    setDraftLinksToCreate((prev) => [...prev, newLinkAndTargetEntity]);
+    setDraftLinksToCreate((previous) => [...previous, newLinkAndTargetEntity]);
 
     onFinishedEditing(undefined);
   };
@@ -80,14 +82,14 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
 
     return (
       <LinkedEntitySelector
-        includeDrafts={
-          !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)
-        }
-        onSelect={onSelectForSingleLink}
-        onFinishedEditing={onCancel}
         expectedEntityTypes={expectedEntityTypes}
         entityIdsToFilterOut={linkedEntityId && [linkedEntityId]}
         linkEntityTypeId={linkEntityTypeId}
+        includeDrafts={
+          Boolean(extractDraftIdFromEntityId(entity.metadata.recordId.entityId))
+        }
+        onSelect={onSelectForSingleLink}
+        onFinishedEditing={onCancel}
       />
     );
   }

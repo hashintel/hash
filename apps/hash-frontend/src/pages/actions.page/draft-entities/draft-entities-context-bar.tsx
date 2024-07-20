@@ -1,8 +1,7 @@
+import type { Dispatch, FunctionComponent, SetStateAction , useCallback } from "react";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { Box, Checkbox, styled, Typography } from "@mui/material";
-import type { Dispatch, FunctionComponent, SetStateAction } from "react";
-import { useCallback } from "react";
 
 import { CheckRegularIcon } from "../../../shared/icons/check-regular-icon";
 import { Button } from "../../../shared/ui";
@@ -38,7 +37,7 @@ export const DraftEntitiesContextBar: FunctionComponent<{
   setSelectedDraftEntityIds,
 }) => {
   const hasSelectedAllDisplayedDraftEntities =
-    !!displayedDraftEntities &&
+    Boolean(displayedDraftEntities) &&
     displayedDraftEntities.filter((displayedEntity) =>
       selectedDraftEntityIds.includes(
         displayedEntity.metadata.recordId.entityId,
@@ -46,7 +45,7 @@ export const DraftEntitiesContextBar: FunctionComponent<{
     ).length === displayedDraftEntities.length;
 
   const hasSelectedAllMatchingDraftEntities =
-    !!matchingDraftEntities &&
+    Boolean(matchingDraftEntities) &&
     matchingDraftEntities.filter((matchingEntity) =>
       selectedDraftEntityIds.includes(
         matchingEntity.metadata.recordId.entityId,
@@ -55,12 +54,12 @@ export const DraftEntitiesContextBar: FunctionComponent<{
 
   const hasPartiallySelectedDisplayedDraftEntities =
     selectedDraftEntityIds.length > 0 &&
-    !!displayedDraftEntities &&
+    Boolean(displayedDraftEntities) &&
     selectedDraftEntityIds.length < displayedDraftEntities.length;
 
   const hasPartiallySelectedMatchingDraftEntities =
     selectedDraftEntityIds.length > 0 &&
-    !!matchingDraftEntities &&
+    Boolean(matchingDraftEntities) &&
     selectedDraftEntityIds.length !== matchingDraftEntities.length;
 
   const isDisplayingAllDraftEntities =
@@ -106,8 +105,8 @@ export const DraftEntitiesContextBar: FunctionComponent<{
   }, [matchingDraftEntities, setSelectedDraftEntityIds]);
 
   return (
-    <Box display="flex" justifyContent="space-between" marginBottom={1.5}>
-      <Box display="flex" alignItems="center" columnGap={1}>
+    <Box display={"flex"} justifyContent={"space-between"} marginBottom={1.5}>
+      <Box display={"flex"} alignItems={"center"} columnGap={1}>
         <Checkbox
           checked={
             hasSelectedAllDisplayedDraftEntities ||
@@ -118,13 +117,13 @@ export const DraftEntitiesContextBar: FunctionComponent<{
             (!hasSelectedAllDisplayedDraftEntities &&
               hasPartiallySelectedMatchingDraftEntities)
           }
-          onClick={handleCheckboxClick}
           sx={{
             svg: {
               width: 18,
               height: 18,
             },
           }}
+          onClick={handleCheckboxClick}
         />
         <Typography
           sx={{
@@ -137,7 +136,7 @@ export const DraftEntitiesContextBar: FunctionComponent<{
         >
           {selectedDraftEntityIds.length} items{" "}
           <Box
-            component="span"
+            component={"span"}
             sx={{
               color: ({ palette }) => palette.gray[70],
             }}
@@ -151,17 +150,17 @@ export const DraftEntitiesContextBar: FunctionComponent<{
         </Typography>
         {hasPartiallySelectedDisplayedDraftEntities ? (
           <SelectAdditionalButton
-            variant="secondary_quiet"
-            onClick={handleSelectAllDisplayedDraftEntitiesClick}
+            variant={"secondary_quiet"}
             endIcon={<CheckRegularIcon />}
+            onClick={handleSelectAllDisplayedDraftEntitiesClick}
           >
             Select all {displayedDraftEntities.length} on this page
           </SelectAdditionalButton>
         ) : hasPartiallySelectedMatchingDraftEntities ? (
           <SelectAdditionalButton
-            variant="secondary_quiet"
-            onClick={handleSelectAllMatchingDraftEntitiesClick}
+            variant={"secondary_quiet"}
             endIcon={<CheckRegularIcon />}
+            onClick={handleSelectAllMatchingDraftEntitiesClick}
           >
             Select all {matchingDraftEntities.length}{" "}
             {isDefaultFilterState ? "items" : "matching current filters"}

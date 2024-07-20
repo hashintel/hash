@@ -1,5 +1,5 @@
-import { Box, Fade } from "@mui/material";
 import { useEffect, useState } from "react";
+import { Box, Fade } from "@mui/material";
 
 import { useBlockLoadedContext } from "../../../blocks/on-block-loaded";
 import { getBlockDomId } from "../../../shared/get-block-dom-id";
@@ -11,7 +11,7 @@ interface HighlightProps {
 const Highlight = ({ onAnimationComplete }: HighlightProps) => {
   const [visible, setVisible] = useState(true);
 
-  useEffect(() => setVisible(false), []);
+  useEffect(() => { setVisible(false); }, []);
 
   return (
     <Fade
@@ -48,6 +48,6 @@ export const BlockHighlight = ({ blockEntityId }: BlockHighlightProps) => {
   }
 
   return (
-    <Highlight onAnimationComplete={() => setHighlightedBlockId(undefined)} />
+    <Highlight onAnimationComplete={() => { setHighlightedBlockId(undefined); }} />
   );
 };

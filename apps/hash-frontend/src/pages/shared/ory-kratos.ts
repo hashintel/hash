@@ -1,6 +1,6 @@
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import type {
-  LoginFlow,
+ Configuration, FrontendApi,  LoginFlow,
   RecoveryFlow,
   RegistrationFlow,
   SettingsFlow,
@@ -11,9 +11,7 @@ import type {
   UpdateSettingsFlowBody,
   UpdateSettingsFlowWithPasswordMethod,
   UpdateVerificationFlowBody,
-  VerificationFlow,
-} from "@ory/client";
-import { Configuration, FrontendApi } from "@ory/client";
+  VerificationFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 
 export const oryKratosClient = new FrontendApi(
@@ -26,20 +24,20 @@ export const oryKratosClient = new FrontendApi(
 );
 
 /**
- * A helper type representing the traits defined by the kratos identity schema at `apps/hash-external-services/kratos/identity.schema.json`
+ * A helper type representing the traits defined by the kratos identity schema at `apps/hash-external-services/kratos/identity.schema.json`.
  */
-export type IdentityTraits = {
+export interface IdentityTraits {
   emails: string[];
-};
+}
 
-export type Flows = {
+export interface Flows {
   login: [LoginFlow, UpdateLoginFlowBody];
   recovery: [RecoveryFlow, UpdateRecoveryFlowBody];
   registration: [RegistrationFlow, UpdateRegistrationFlowBody];
   settings: [SettingsFlow, UpdateSettingsFlowBody];
   settingsWithPassword: [SettingsFlow, UpdateSettingsFlowWithPasswordMethod];
   verification: [VerificationFlow, UpdateVerificationFlowBody];
-};
+}
 
 export type FlowNames = keyof Flows;
 export type FlowValues = Flows[FlowNames][0];
@@ -49,22 +47,23 @@ export const gatherUiNodeValuesFromFlow = <T extends FlowNames>(
 ): Flows[T][1] =>
   flow.ui.nodes
     .map(({ attributes }) => attributes)
-    .filter((attrs): attrs is UiNodeInputAttributes =>
-      isUiNodeInputAttributes(attrs),
+    .filter((attributes): attributes is UiNodeInputAttributes =>
+      isUiNodeInputAttributes(attributes),
     )
-    .reduce(
-      (acc, attributes) => {
+    .reduce<Flows[T][1]>(
+      (accumulator, attributes) => {
         const { name, value } = attributes;
-        return { ...acc, [name]: value };
+
+        return { ...accumulator, [name]: value };
       },
-      {} as Flows[T][1],
+      {},
     );
 
 const maybeGetCsrfTokenFromFlow = (flow: FlowValues) =>
   flow.ui.nodes
     .map(({ attributes }) => attributes)
-    .filter((attrs): attrs is UiNodeInputAttributes =>
-      isUiNodeInputAttributes(attrs),
+    .filter((attributes): attributes is UiNodeInputAttributes =>
+      isUiNodeInputAttributes(attributes),
     )
     .find(({ name }) => name === "csrf_token")?.value;
 

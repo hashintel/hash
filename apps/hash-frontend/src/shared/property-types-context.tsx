@@ -1,16 +1,15 @@
+import type { createContext, FunctionComponent, PropsWithChildren , useContext, useMemo } from "react";
 import type { BaseUrl } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { PropertyTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { FunctionComponent, PropsWithChildren } from "react";
-import { createContext, useContext, useMemo } from "react";
 
 import { isTypeArchived } from "./is-archived";
 import { usePropertyTypesContextValue } from "./latest-property-types-context/use-property-types-context-value";
 
-export type PropertyTypesContextValues = {
+export interface PropertyTypesContextValues {
   propertyTypes: Record<VersionedUrl, PropertyTypeWithMetadata> | null;
   refetch: () => Promise<void>;
-};
+}
 
 export const PropertyTypesContext =
   createContext<null | PropertyTypesContextValues>(null);
@@ -31,6 +30,7 @@ export const usePropertyTypes = (params?: {
       BaseUrl,
       PropertyTypeWithMetadata[]
     > = {};
+
     for (const propertyType of Object.values(
       propertyTypesContext.propertyTypes ?? [],
     )) {
@@ -47,6 +47,7 @@ export const usePropertyTypes = (params?: {
       if (latestOnly) {
         const firstVersionHeld =
           filteredPropertyTypeVersionsByBaseUrl[baseUrl]?.[0];
+
         if (
           firstVersionHeld &&
           firstVersionHeld.metadata.recordId.version > version
@@ -61,6 +62,7 @@ export const usePropertyTypes = (params?: {
     }
 
     const propertyTypes: PropertyTypesContextValues["propertyTypes"] = {};
+
     for (const propertyTypeVersions of Object.values(
       filteredPropertyTypeVersionsByBaseUrl,
     )) {

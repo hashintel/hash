@@ -1,9 +1,7 @@
+import { useState } from "react";
 import { faSmile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
-import { useEntityTypeFormState } from "@hashintel/type-editor";
-import { useState } from "react";
-
+import type { EntityTypeEditorFormData , useEntityTypeFormState } from "@hashintel/type-editor";
 import { PencilSimpleLine } from "../../../shared/icons/svg";
 import type { ButtonProps } from "../../../shared/ui/button";
 import {
@@ -49,8 +47,8 @@ export const EditBarTypeEditor = ({
         {frozenVersion === 0 ? (
           <EditBarContents
             icon={<FontAwesomeIcon icon={faSmile} sx={{ fontSize: 14 }} />}
-            title="Currently editing"
-            label="- this type has not yet been created"
+            title={"Currently editing"}
+            label={"- this type has not yet been created"}
             discardButtonProps={{
               children: "Discard this type",
               disabled: frozenSubmitting,
@@ -65,7 +63,7 @@ export const EditBarTypeEditor = ({
         ) : (
           <EditBarContents
             icon={<PencilSimpleLine />}
-            title="Currently editing"
+            title={"Currently editing"}
             label={`Version ${frozenVersion} -> ${frozenVersion + 1}`}
             discardButtonProps={{
               children: "Discard changes",

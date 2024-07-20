@@ -1,6 +1,4 @@
-interface MemoizableFetchFunction<T> {
-  (url: string, signal?: AbortSignal): Promise<T>;
-}
+type MemoizableFetchFunction<T> = (url: string, signal?: AbortSignal) => Promise<T>;
 
 /**
  * Memoize a fetch function by its URL.
@@ -35,6 +33,6 @@ export function memoizeFetchFunction<T>(
       cache[url] = promise;
     }
 
-    return await cache[url];
+    return cache[url];
   };
 }

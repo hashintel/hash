@@ -1,7 +1,6 @@
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
-import { systemTypeWebShortnames } from "@local/hash-isomorphic-utils/ontology-types";
+import type { SystemTypeWebShortname , systemTypeWebShortnames } from "@local/hash-isomorphic-utils/ontology-types";
 
 export const getEntityTypeBaseUrl = (
   slug: string,

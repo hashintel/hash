@@ -1,3 +1,4 @@
+import type { FunctionComponent , useMemo } from "react";
 import {
   ArrowUpRegularIcon,
   AsteriskRegularIcon,
@@ -6,8 +7,6 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
 import { Box, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useMemo } from "react";
 
 import { PlusRegularIcon } from "../../../shared/icons/plus-regular";
 
@@ -31,10 +30,10 @@ export const DraftEntityType: FunctionComponent<{
   }, [entity, subgraph]);
 
   const isUpdate =
-    !!entity.metadata.provenance.firstNonDraftCreatedAtDecisionTime;
+    Boolean(entity.metadata.provenance.firstNonDraftCreatedAtDecisionTime);
 
   return (
-    <Box display="flex" alignItems="stretch" flexShrink={0}>
+    <Box display={"flex"} alignItems={"stretch"} flexShrink={0}>
       <Box
         sx={{
           borderTopLeftRadius: 13,

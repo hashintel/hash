@@ -1,3 +1,10 @@
+import type {
+  Dispatch,
+  FunctionComponent,
+  MutableRefObject,
+  ReactNode,
+  SetStateAction,
+ useCallback, useMemo, useState } from "react";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import {
   CheckIcon,
@@ -14,44 +21,33 @@ import type {
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
-  PropertyTypeWithMetadata,
-} from "@local/hash-graph-types/ontology";
-import { isBaseUrl } from "@local/hash-graph-types/ontology";
+ isBaseUrl,  PropertyTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import {
   extractOwnedByIdFromEntityId,
   isExternalOntologyElementMetadata,
 } from "@local/hash-subgraph";
-import type { SxProps, Theme, TooltipProps } from "@mui/material";
-import {
-  Box,
+import type {   Box,
   Checkbox,
   chipClasses,
   FormControlLabel,
   formControlLabelClasses,
   styled,
-  Tooltip,
+SxProps, Theme,   Tooltip,
   tooltipClasses,
+TooltipProps ,
 } from "@mui/material";
-import type {
-  Dispatch,
-  FunctionComponent,
-  MutableRefObject,
-  ReactNode,
-  SetStateAction,
-} from "react";
-import { useCallback, useMemo, useState } from "react";
 
 import type { Row } from "../components/grid/utils/rows";
 import type { MinimalUser } from "../lib/user-and-org";
 import type { TypeEntitiesRow } from "../pages/shared/entities-table/use-entities-table";
 import type { TypesTableRow } from "../pages/types/[[...type-kind]].page/types-table";
+
 import { EarthAmericasRegularIcon } from "./icons/earth-americas-regular";
 import { FilterListIcon } from "./icons/filter-list-icon";
 import { HouseRegularIcon } from "./icons/house-regular-icon";
 import { MagnifyingGlassRegularIcon } from "./icons/magnifying-glass-regular-icon";
 import { BulkActionsDropdown } from "./table-header/bulk-actions-dropdown";
-import type { GenerateCsvFileFunction } from "./table-header/export-to-csv-button";
-import { ExportToCsvButton } from "./table-header/export-to-csv-button";
+import type { ExportToCsvButton,GenerateCsvFileFunction  } from "./table-header/export-to-csv-button";
 import { TableHeaderButton } from "./table-header/table-header-button";
 
 export const tableHeaderHeight = 50;
@@ -62,6 +58,7 @@ const CheckboxFilter: FunctionComponent<{
   onChange: (checked: boolean) => void;
 }> = ({ label, checked, onChange }) => (
   <FormControlLabel
+    label={label}
     sx={{
       borderRadius: 16,
       color: ({ palette }) => palette.gray[70],
@@ -82,17 +79,16 @@ const CheckboxFilter: FunctionComponent<{
         color: ({ palette }) => palette.gray[90],
       },
     }}
-    label={label}
     control={
       <Checkbox
+        checked={checked}
         sx={{
           svg: {
             width: 12,
             height: 12,
           },
         }}
-        checked={checked}
-        onChange={({ target }) => onChange(target.checked)}
+        onChange={({ target }) => { onChange(target.checked); }}
       />
     }
   />
@@ -106,17 +102,17 @@ const NoMaxWidthTooltip = styled(({ className, ...props }: TooltipProps) => (
   },
 });
 
-export type FilterState = {
+export interface FilterState {
   includeArchived?: boolean;
   includeGlobal: boolean;
-};
+}
 
 export type GetAdditionalCsvDataFunction = () => Promise<{
   prependedData: string[][];
   appendedData: string[][];
 } | null>;
 
-type TableHeaderProps = {
+interface TableHeaderProps {
   internalWebIds: (AccountId | AccountGroupId)[];
   itemLabelPlural: "entities" | "pages" | "types";
   items?: (
@@ -140,7 +136,7 @@ type TableHeaderProps = {
   setFilterState: Dispatch<SetStateAction<FilterState>>;
   toggleSearch?: () => void;
   onBulkActionCompleted?: () => void;
-};
+}
 
 const commonChipSx = {
   border: ({ palette }) => palette.gray[30],
@@ -188,6 +184,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
 
   const generateCsvFile = useCallback<GenerateCsvFileFunction>(async () => {
     const currentlyDisplayedRows = currentlyDisplayedRowsRef.current;
+
     if (!currentlyDisplayedRows) {
       return null;
     }
@@ -206,7 +203,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
 
     // Entity metadata columns (i.e. what's already being displayed in the entities table)
 
-    const columnRowKeys = columns.map(({ id }) => id).flat();
+    const columnRowKeys = columns.flatMap(({ id }) => id);
 
     const tableContentColumnTitles = columns.map((column) =>
       /**
@@ -230,17 +227,17 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
 
           if (typeof value === "string") {
             return value;
-          } else if (key === "lastEditedBy") {
+          } if (key === "lastEditedBy") {
             const user = value as MinimalUser | undefined;
 
             return user?.displayName ?? "";
-          } else if (isBaseUrl(key)) {
+          } if (isBaseUrl(key)) {
             /**
              * If the key is a base URL, then the value needs to be obtained
              * from the nested `properties` field on the row.
              */
             return (row as TypeEntitiesRow).properties?.[key] ?? "";
-          } else if (key === "archived") {
+          } if (key === "archived") {
             return (row as TypesTableRow).archived ? "Yes" : "No";
           }
 
@@ -263,9 +260,9 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
 
   return (
     <Box
-      display="flex"
-      alignItems="center"
-      justifyContent="space-between"
+      display={"flex"}
+      alignItems={"center"}
+      justifyContent={"space-between"}
       sx={{
         background: ({ palette }) => palette.gray[20],
         borderWidth: 1,
@@ -278,8 +275,8 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
         gap: 1.5,
       }}
     >
-      <Box display="flex" gap={1.5} alignItems="center">
-        {selectedItems && selectedItems.length ? (
+      <Box display={"flex"} gap={1.5} alignItems={"center"}>
+        {selectedItems?.length ? (
           <BulkActionsDropdown
             selectedItems={selectedItems}
             onBulkActionCompleted={onBulkActionCompleted}
@@ -287,10 +284,11 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
         ) : (
           <>
             <NoMaxWidthTooltip
-              title="Visible to you inside your personal web and organizations you belong to"
-              placement="top"
+              title={"Visible to you inside your personal web and organizations you belong to"}
+              placement={"top"}
             >
               <Chip
+                label={`${numberOfUserWebItems ?? "–"} in your webs`}
                 icon={
                   <HouseRegularIcon
                     sx={{
@@ -298,7 +296,6 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
                     }}
                   />
                 }
-                label={`${numberOfUserWebItems ?? "–"} in your webs`}
                 sx={{
                   ...commonChipSx,
                   [`.${chipClasses.label}`]: {
@@ -309,21 +306,13 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
               />
             </NoMaxWidthTooltip>
             <NoMaxWidthTooltip
+              placement={"top"}
               title={`${
                 filterState.includeGlobal ? "Hide" : "Show"
               } public ${itemLabelPlural} from outside of your webs`}
-              placement="top"
             >
               <Chip
-                onMouseEnter={() => setPublicFilterHovered(true)}
-                onMouseLeave={() => setPublicFilterHovered(false)}
-                onClick={() => {
-                  setDisplayFilters(true);
-                  setFilterState((prev) => ({
-                    ...prev,
-                    includeGlobal: !prev.includeGlobal,
-                  }));
-                }}
+                label={`${numberOfGlobalItems ?? "–"} others`}
                 icon={
                   filterState.includeGlobal ? (
                     publicFilterHovered ? (
@@ -343,7 +332,6 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
                     <EarthAmericasRegularIcon />
                   )
                 }
-                label={`${numberOfGlobalItems ?? "–"} others`}
                 sx={({ palette }) => ({
                   ...commonChipSx,
                   [`.${chipClasses.label}`]: {
@@ -355,6 +343,15 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
                     border: palette.common.white,
                   },
                 })}
+                onMouseEnter={() => { setPublicFilterHovered(true); }}
+                onMouseLeave={() => { setPublicFilterHovered(false); }}
+                onClick={() => {
+                  setDisplayFilters(true);
+                  setFilterState((previous) => ({
+                    ...previous,
+                    includeGlobal: !previous.includeGlobal,
+                  }));
+                }}
               />
             </NoMaxWidthTooltip>
           </>
@@ -366,14 +363,14 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
           </IconButton>
         ) : null}
       </Box>
-      <Box display="flex" alignItems="center" columnGap={1}>
+      <Box display={"flex"} alignItems={"center"} columnGap={1}>
         <Box
           sx={{
             display: "flex",
             justifyContent: "flex-end",
             background: ({ palette }) =>
               displayFilters ||
-              Object.values(filterState).some((value) => value)
+              Object.values(filterState).some(Boolean)
                 ? palette.common.white
                 : "transparent",
             transition: ({ transitions }) => transitions.create("background"),
@@ -381,9 +378,9 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
           }}
         >
           <TableHeaderButton
-            variant="tertiary_quiet"
-            onClick={() => setDisplayFilters(!displayFilters)}
+            variant={"tertiary_quiet"}
             startIcon={<FilterListIcon />}
+            onClick={() => { setDisplayFilters(!displayFilters); }}
           >
             Filter
           </TableHeaderButton>
@@ -395,32 +392,32 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
             }}
           >
             <Box
-              display="flex"
-              flexWrap="nowrap"
-              alignItems="center"
-              height="100%"
+              display={"flex"}
+              flexWrap={"nowrap"}
+              alignItems={"center"}
+              height={"100%"}
               paddingRight={2}
             >
               {filterState.includeArchived !== undefined ? (
                 <CheckboxFilter
-                  label="Include archived"
+                  label={"Include archived"}
                   checked={filterState.includeArchived}
                   onChange={(checked) =>
-                    setFilterState((prev) => ({
-                      ...prev,
+                    { setFilterState((previous) => ({
+                      ...previous,
                       includeArchived: checked,
-                    }))
+                    })); }
                   }
                 />
               ) : null}
               <CheckboxFilter
-                label="Include external"
+                label={"Include external"}
                 checked={filterState.includeGlobal}
                 onChange={(checked) =>
-                  setFilterState((prev) => ({
-                    ...prev,
+                  { setFilterState((previous) => ({
+                    ...previous,
                     includeGlobal: checked,
-                  }))
+                  })); }
                 }
               />
             </Box>

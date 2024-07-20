@@ -1,10 +1,10 @@
+import { useRouter } from "next/router";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLazyQuery, useMutation } from "@apollo/client";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import { Box, Container, Typography } from "@mui/material";
-import { useRouter } from "next/router";
-import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type {
   GetLinearOrganizationQuery,
@@ -20,8 +20,8 @@ import type { NextPageWithLayout } from "../../../../shared/layout";
 import { Button } from "../../../../shared/ui";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../../shared/settings-layout";
-import type { LinearOrganizationTeamsWithWorkspaces } from "./select-linear-teams-table";
-import {
+
+import type { LinearOrganizationTeamsWithWorkspaces ,
   mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces,
   mapLinearOrganizationToSyncWithWorkspacesInputVariable,
   SelectLinearTeamsTable,
@@ -67,6 +67,7 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
 
       if (!linearIntegration) {
         void router.push("/settings/integrations");
+
         return;
       }
 
@@ -132,7 +133,7 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
 
   return (
     <Container>
-      <Typography variant="h1" mt={10} mb={4} fontWeight="bold">
+      <Typography variant={"h1"} mt={10} mb={4} fontWeight={"bold"}>
         Linear
       </Typography>
       <Typography>Connecting to Linear</Typography>
@@ -141,13 +142,13 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
           <SelectLinearTeamsTable
             linearOrganizations={[linearOrganization]}
             setLinearOrganizations={(update) =>
-              typeof update === "function"
-                ? setLinearOrganization((prev) => update([prev!])[0])
-                : setLinearOrganization(update[0])
+              { typeof update === "function"
+                ? setLinearOrganization((previous) => update([previous!])[0])
+                : setLinearOrganization(update[0]); }
             }
           />
-          <Box display="flex" justifyContent="flex-end" columnGap={2}>
-            <Button variant="tertiary">Exit without granting access</Button>
+          <Box display={"flex"} justifyContent={"flex-end"} columnGap={2}>
+            <Button variant={"tertiary"}>Exit without granting access</Button>
             <Button
               disabled={loadingSyncLinearIntegrationWithWorkspaces}
               onClick={handleSaveAndContinue}

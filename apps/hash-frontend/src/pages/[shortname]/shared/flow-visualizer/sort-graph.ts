@@ -38,7 +38,7 @@ export const sortStepsTopologically = (
       step.kind === "action"
         ? step.inputSources
         : /**
-           * This is a parallel group, which has a single input source to parallelize
+           * This is a parallel group, which has a single input source to parallelize.
            */
           [step.inputSourceToParallelizeOn];
 
@@ -72,7 +72,7 @@ export const sortStepsTopologically = (
         (input) => {
           if (input.kind === "parallel-group-input") {
             /**
-             * A 'parallel-group-input' is satisfied by the readyStep if the readyStep is its parent
+             * A 'parallel-group-input' is satisfied by the readyStep if the readyStep is its parent.
              */
             return (
               readyStep.kind === "parallel-group" &&
@@ -131,6 +131,7 @@ export const sortStepsTopologically = (
 
         const newCount =
           currentCount - numberOfDependenciesSatisfiedByReadyStep;
+
         dependencyCountByStepId.set(possiblyDependentStep.stepId, newCount);
 
         if (newCount === 0) {
@@ -144,6 +145,7 @@ export const sortStepsTopologically = (
   }
 
   const stepsWithCycles: string[] = [];
+
   for (const [stepId, count] of dependencyCountByStepId.entries()) {
     if (count > 0) {
       stepsWithCycles.push(stepId);
@@ -180,8 +182,8 @@ export const groupStepsByDependencyLayer = (
   for (const step of sortedAndFlattenedSteps) {
     let stepPlacedInLayer = false;
 
-    for (let index = 0; index < layers.length; index++) {
-      const layer = layers[index]!;
+    for (const [index, layer_] of layers.entries()) {
+      const layer = layer_;
 
       const inputSources =
         step.kind === "action"
@@ -214,6 +216,7 @@ export const groupStepsByDependencyLayer = (
         const inputStep = sortedAndFlattenedSteps.find(
           (stp) => stp.stepId === inputSourceStepId,
         );
+
         if (!inputStep) {
           throw new Error(
             `Could not find input source step with stepId ${inputSourceStepId}`,
@@ -243,7 +246,7 @@ export const groupStepsByDependencyLayer = (
           }
 
           /**
-           * The input source is from a step that is in a previous layer
+           * The input source is from a step that is in a previous layer.
            */
           return inputGroupIndex < index;
         });

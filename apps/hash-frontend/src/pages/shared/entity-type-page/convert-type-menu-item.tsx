@@ -1,6 +1,6 @@
+import { useState } from "react";
 import { AlertModal, LinkIcon } from "@hashintel/design-system";
 import { ListItemIcon, ListItemText, Tooltip } from "@mui/material";
-import { useState } from "react";
 
 import { MenuItem } from "../../../shared/ui/menu-item";
 import { useContextBarActionsContext } from "../top-context-bar";
@@ -35,9 +35,9 @@ export const ConvertTypeMenuItem = ({
         {/* Tooltips don't work placed directly on MenuItems, a wrapping div is required */}
         <div>
           <MenuItem
-            onClick={() => setShowConvertTypeConfirmationModal(true)}
             disabled={disabled}
-            title="Test"
+            title={"Test"}
+            onClick={() => { setShowConvertTypeConfirmationModal(true); }}
           >
             <ListItemIcon>
               <LinkIcon sx={{ fontSize: 16 }} />
@@ -48,6 +48,7 @@ export const ConvertTypeMenuItem = ({
       </Tooltip>
       {showConvertTypeConfirmationModal && (
         <AlertModal
+          type={"info"}
           callback={() => {
             convertToLinkType();
             closeContextMenu();
@@ -63,7 +64,6 @@ export const ConvertTypeMenuItem = ({
               Convert <strong>{typeTitle}</strong> to link type
             </>
           }
-          type="info"
         />
       )}
     </>

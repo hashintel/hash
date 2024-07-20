@@ -12,13 +12,15 @@ export const useMarkLinkEntityToArchive = () => {
     );
 
     if (foundIndex !== -1) {
-      setDraftLinksToCreate((prev) => {
-        const clone = [...prev];
+      setDraftLinksToCreate((previous) => {
+        const clone = [...previous];
+
         clone.splice(foundIndex, 1);
+
         return clone;
       });
     } else {
-      setDraftLinksToArchive((prev) => [...prev, linkEntityId]);
+      setDraftLinksToArchive((previous) => [...previous, linkEntityId]);
     }
   };
 

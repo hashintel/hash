@@ -1,8 +1,8 @@
 import { useCallback, useMemo } from "react";
 
-import type { ColumnSort } from "../../../../../../../components/grid/utils/sorting";
-import { defaultSortRows } from "../../../../../../../components/grid/utils/sorting";
+import type { ColumnSort , defaultSortRows } from "../../../../../../../components/grid/utils/sorting";
 import { useEntityEditor } from "../../entity-editor-context";
+
 import { fillRowIndentCalculations } from "./fill-row-indent-calculations";
 import { flattenExpandedItemsOfTree } from "./flatten";
 import type { PropertyRow } from "./types";

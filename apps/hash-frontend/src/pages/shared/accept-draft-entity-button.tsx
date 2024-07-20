@@ -1,14 +1,11 @@
+import type { FunctionComponent , useCallback, useMemo, useState } from "react";
 import { useMutation } from "@apollo/client";
 import { AlertModal, FeatherRegularIcon } from "@hashintel/design-system";
 import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
+import type { EntityRootType, extractDraftIdFromEntityId,Subgraph  } from "@local/hash-subgraph";
 import { getEntityRevision } from "@local/hash-subgraph/stdlib";
-import type { BoxProps } from "@mui/material";
-import { Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo, useState } from "react";
+import type { BoxProps , Typography } from "@mui/material";
 
 import type {
   UpdateEntityMutation,
@@ -18,8 +15,8 @@ import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.que
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { CheckRegularIcon } from "../../shared/icons/check-regular-icon";
 import { useNotificationEntities } from "../../shared/notification-entities-context";
-import type { ButtonProps } from "../../shared/ui";
-import { Button } from "../../shared/ui";
+import type { Button,ButtonProps  } from "../../shared/ui";
+
 import { LinkLabelWithSourceAndDestination } from "./link-label-with-source-and-destination";
 import { useNotificationsWithLinks } from "./notifications-with-links-context";
 
@@ -121,7 +118,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
   }, [draftEntity, draftEntitySubgraph]);
 
   const isUpdate =
-    !!draftEntity.metadata.provenance.firstNonDraftCreatedAtDecisionTime;
+    Boolean(draftEntity.metadata.provenance.firstNonDraftCreatedAtDecisionTime);
 
   /**
    * Links cannot be made live without live left && right entities, so if this is a draft update to a live link
@@ -129,7 +126,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
    * those at the same time – they may be unwanted.
    */
   const hasLeftOrRightDraftEntityThatMustBeUndrafted =
-    !isUpdate && (!!draftLeftEntity || !!draftRightEntity);
+    !isUpdate && (Boolean(draftLeftEntity) || Boolean(draftRightEntity));
 
   const [updateEntity] = useMutation<
     UpdateEntityMutation,
@@ -198,6 +195,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
       setShowDraftLinkEntityWithDraftLeftOrRightEntityWarning(true);
     } else {
       const acceptedEntity = await acceptDraftEntity({ draftEntity });
+
       onAcceptedEntity?.(acceptedEntity);
     }
   }, [
@@ -232,6 +230,7 @@ export const AcceptDraftEntityButton: FunctionComponent<
       {showDraftLinkEntityWithDraftLeftOrRightEntityWarning && (
         <AlertModal
           callback={handleAcceptDraftLinkEntityWithDraftLeftOrRightEntities}
+          type={"info"}
           calloutMessage={
             <>
               This <strong>{label}</strong> link establishes a relationship{" "}
@@ -243,14 +242,13 @@ export const AcceptDraftEntityButton: FunctionComponent<
             </>
           }
           close={() =>
-            setShowDraftLinkEntityWithDraftLeftOrRightEntityWarning(false)
+            { setShowDraftLinkEntityWithDraftLeftOrRightEntityWarning(false); }
           }
           header={
             <>
               Accept draft link: <strong>{label}</strong>
             </>
           }
-          type="info"
           contentStyle={{
             width: {
               sm: "90%",
@@ -259,25 +257,25 @@ export const AcceptDraftEntityButton: FunctionComponent<
           }}
         >
           <LinkLabelWithSourceAndDestination
+            openInNew
+            displayLabels
+            linkEntity={new LinkEntity(draftEntity)}
+            subgraph={draftEntitySubgraph}
             sx={{
               maxWidth: "100%",
             }}
-            openInNew
-            linkEntity={new LinkEntity(draftEntity)}
-            subgraph={draftEntitySubgraph}
             leftEntityEndAdornment={
-              <LeftOrRightEntityEndAdornment isDraft={!!draftLeftEntity} />
+              <LeftOrRightEntityEndAdornment isDraft={Boolean(draftLeftEntity)} />
             }
             rightEntityEndAdornment={
-              <LeftOrRightEntityEndAdornment isDraft={!!draftRightEntity} />
+              <LeftOrRightEntityEndAdornment isDraft={Boolean(draftRightEntity)} />
             }
             leftEntitySx={getRightOrLeftEntitySx({
-              isDraft: !!draftLeftEntity,
+              isDraft: Boolean(draftLeftEntity),
             })}
             rightEntitySx={getRightOrLeftEntitySx({
-              isDraft: !!draftRightEntity,
+              isDraft: Boolean(draftRightEntity),
             })}
-            displayLabels
           />
         </AlertModal>
       )}

@@ -1,15 +1,14 @@
-import type { Item } from "@glideapps/glide-data-grid";
-import { GridCellKind } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
+import type { GridCellKind,Item  } from "@glideapps/glide-data-grid";
 
-import type { BlankCell } from "../../../../../../../components/grid/utils";
-import { blankCell } from "../../../../../../../components/grid/utils";
+import type { BlankCell , blankCell } from "../../../../../../../components/grid/utils";
 import type { UseGridTooltipResponse } from "../../../../../../../components/grid/utils/use-grid-tooltip/types";
 import type { ChipCell } from "../../../../../../shared/chip-cell";
 import { useEntityEditor } from "../../entity-editor-context";
 import type { SummaryChipCell } from "../../shared/summary-chip-cell";
 import { getPropertyCountSummary } from "../get-property-count-summary";
 import { isValueEmpty } from "../is-value-empty";
+
 import type { ChangeTypeCell } from "./cells/change-type-cell";
 import type { PropertyNameCell } from "./cells/property-name-cell";
 import { getEditorSpecs } from "./cells/value-cell/editor-specs";
@@ -39,7 +38,7 @@ export const useCreateGetCellContent = (
         | BlankCell => {
         const row = rows[rowIndex];
 
-        const hasChild = !!row?.children.length;
+        const hasChild = Boolean(row?.children.length);
 
         if (!row) {
           throw new Error("property not found");
@@ -83,7 +82,7 @@ export const useCreateGetCellContent = (
           !readonly;
 
         switch (columnKey) {
-          case "title":
+          case "title": {
             return {
               kind: GridCellKind.Custom,
               allowOverlay: false,
@@ -94,8 +93,9 @@ export const useCreateGetCellContent = (
                 propertyRow: row,
               },
             };
+          }
 
-          case "value":
+          case "value": {
             if (hasChild) {
               const { totalCount, notEmptyCount } = getPropertyCountSummary(
                 row.children,
@@ -117,8 +117,9 @@ export const useCreateGetCellContent = (
             }
 
             return valueCell;
+          }
 
-          case "expectedTypes":
+          case "expectedTypes": {
             if (hasChild) {
               return blankCell;
             }
@@ -127,6 +128,7 @@ export const useCreateGetCellContent = (
               const currentType = row.expectedTypes.find(
                 (opt) => opt.type === guessedType,
               );
+
               if (!currentType) {
                 throw new Error(
                   `dataType for guessed type ${guessedType} not found`,
@@ -169,6 +171,7 @@ export const useCreateGetCellContent = (
                 }),
               },
             };
+          }
         }
       },
     [showTooltip, hideTooltip, readonly],

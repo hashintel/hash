@@ -2,8 +2,7 @@ import type { NextPage } from "next";
 import type { ReactElement, ReactNode } from "react";
 
 import { LayoutWithHeader } from "./layout/layout-with-header";
-import type { LayoutWithSidebarProps } from "./layout/layout-with-sidebar";
-import { LayoutWithSidebar } from "./layout/layout-with-sidebar";
+import type { LayoutWithSidebar,LayoutWithSidebarProps  } from "./layout/layout-with-sidebar";
 import { PlainLayout } from "./layout/plain-layout";
 
 export type NextPageWithLayout<

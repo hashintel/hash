@@ -1,3 +1,4 @@
+import { memo, useMemo, useState } from "react";
 import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 import type { EntityType } from "@blockprotocol/type-system/slim";
 import { Entity } from "@local/hash-graph-sdk/entity";
@@ -20,22 +21,17 @@ import {
   getPropertyTypesForEntityType,
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import type { SxProps, Theme } from "@mui/material";
-import { Box, Stack, TableCell, Typography } from "@mui/material";
-import { memo, useMemo, useState } from "react";
+import type { Box, Stack, SxProps, TableCell, Theme , Typography } from "@mui/material";
 
 import { ValueChip } from "../../../../shared/value-chip";
 import type {
   CreateVirtualizedRowContentFn,
-  VirtualizedTableColumn,
-  VirtualizedTableRow,
-  VirtualizedTableSort,
-} from "../../../../shared/virtualized-table";
-import {
   defaultCellSx,
-  VirtualizedTable,
-} from "../../../../shared/virtualized-table";
+  VirtualizedTable,  VirtualizedTableColumn,
+  VirtualizedTableRow,
+  VirtualizedTableSort} from "../../../../shared/virtualized-table";
 import type { ProposedEntityOutput } from "../shared/types";
+
 import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
@@ -48,11 +44,11 @@ const isFixedField = (fieldId: string): fieldId is FixedFieldId =>
   fixedFieldIds.includes(fieldId as FixedFieldId);
 
 /**
- * The columns are either the fixed fields or properties of the type(s) in the table
+ * The columns are either the fixed fields or properties of the type(s) in the table.
  */
 type FieldId = FixedFieldId | VersionedUrl;
 
-type EntityColumnMetadata = { appliesToEntityTypeIds: VersionedUrl[] };
+interface EntityColumnMetadata { appliesToEntityTypeIds: VersionedUrl[] }
 
 const generateColumns = (
   entityTypes: EntityType[],
@@ -114,7 +110,7 @@ const generateColumns = (
   ];
 };
 
-type EntityResultRow = {
+interface EntityResultRow {
   entityLabel: string;
   entityTypeId: VersionedUrl;
   entityType: EntityType;
@@ -124,7 +120,7 @@ type EntityResultRow = {
   properties: PropertyObject;
   researchOngoing: boolean;
   status: "Proposed" | "Created" | "Updated";
-};
+}
 
 const typographySx = {
   color: ({ palette }) => palette.common.black,
@@ -166,9 +162,9 @@ const TableRow = memo(
           }}
         >
           <Box
-            component="button"
-            onClick={() => row.onEntityTypeClick(row.entityTypeId)}
+            component={"button"}
             sx={{ background: "none", border: "none", p: 0 }}
+            onClick={() => { row.onEntityTypeClick(row.entityTypeId); }}
           >
             <ValueChip
               type
@@ -192,8 +188,7 @@ const TableRow = memo(
         >
           {row.persistedEntity ? (
             <Box
-              component="button"
-              onClick={() => row.onEntityClick(row.persistedEntity!)}
+              component={"button"}
               sx={{
                 background: "none",
                 border: "none",
@@ -202,6 +197,7 @@ const TableRow = memo(
                 p: 0,
                 textAlign: "left",
               }}
+              onClick={() => { row.onEntityClick(row.persistedEntity!); }}
             >
               <ValueChip
                 sx={{
@@ -217,19 +213,19 @@ const TableRow = memo(
           )}
         </TableCell>
         {columns.slice(fixedFieldIds.length).map((column) => {
-          const appliesToEntity = column.metadata?.appliesToEntityTypeIds.some(
-            (id) => id === row.entityTypeId,
+          const appliesToEntity = column.metadata?.appliesToEntityTypeIds.includes(
+            row.entityTypeId,
           );
 
           if (!appliesToEntity) {
             return (
               <TableCell
+                key={column.id}
                 sx={({ palette }) => ({
                   ...cellSx,
                   background: palette.gray[5],
                   color: palette.gray[50],
                 })}
-                key={column.id}
               >
                 Does not apply
               </TableCell>
@@ -250,7 +246,7 @@ const TableRow = memo(
                     color: palette.blue[70],
                   })}
                 >
-                  <Stack direction="row" alignItems="center">
+                  <Stack direction={"row"} alignItems={"center"}>
                     <Box
                       sx={{
                         background: ({ palette }) => palette.blue[70],
@@ -265,6 +261,7 @@ const TableRow = memo(
                 </TableCell>
               );
             }
+
             return (
               <TableCell
                 key={column.id}
@@ -279,7 +276,7 @@ const TableRow = memo(
 
           return (
             <TableCell key={column.id} sx={cellSx}>
-              {!!value.length && (
+              {value.length > 0 && (
                 <Typography
                   sx={{
                     ...typographySx,
@@ -309,14 +306,14 @@ const createRowContent: CreateVirtualizedRowContentFn<
   <TableRow columns={context.columns} row={row.data} />
 );
 
-type EntityResultTableProps = {
+interface EntityResultTableProps {
   onEntityClick: (entity: Entity) => void;
   onEntityTypeClick: (entityTypeId: VersionedUrl) => void;
   persistedEntities: PersistedEntity[];
   persistedEntitiesSubgraph?: Subgraph<EntityRootType>;
   proposedEntities: ProposedEntityOutput[];
   proposedEntitiesTypesSubgraph?: Subgraph<EntityTypeRootType>;
-};
+}
 
 export const EntityResultTable = ({
   onEntityClick,
@@ -331,7 +328,7 @@ export const EntityResultTable = ({
     direction: "asc",
   });
 
-  const hasData = !!(persistedEntities.length || proposedEntities.length);
+  const hasData = Boolean(persistedEntities.length > 0 || proposedEntities.length > 0);
 
   const {
     rows,
@@ -343,7 +340,7 @@ export const EntityResultTable = ({
     const rowData: VirtualizedTableRow<EntityResultRow>[] = [];
     const entityTypesById: Record<VersionedUrl, EntityType> = {};
 
-    for (const record of persistedEntities.length
+    for (const record of persistedEntities.length > 0
       ? persistedEntities
       : proposedEntities) {
       const isProposed = "localEntityId" in record;
@@ -391,6 +388,7 @@ export const EntityResultTable = ({
       }
 
       let entityType = entityTypesById[entityTypeId];
+
       if (!entityType) {
         const entityTypeWithMetadata = getEntityTypeById(
           subgraph,
@@ -430,12 +428,12 @@ export const EntityResultTable = ({
     return {
       entityTypes: Object.values(entityTypesById),
       rows: rowData.sort((a, b) => {
-        const field = sort.field;
+        const {field} = sort;
         const direction = sort.direction === "asc" ? 1 : -1;
 
         if (!isFixedField(field)) {
           /**
-           * This is a property field, so we need to compare the values of the properties
+           * This is a property field, so we need to compare the values of the properties.
            */
           const baseUrl = extractBaseUrl(field);
 
@@ -502,7 +500,7 @@ export const EntityResultTable = ({
       ) : (
         <EmptyOutputBox
           Icon={outputIcons.table}
-          label="Entities proposed and affected by this flow will appear in a table here"
+          label={"Entities proposed and affected by this flow will appear in a table here"}
         />
       )}
     </OutputContainer>

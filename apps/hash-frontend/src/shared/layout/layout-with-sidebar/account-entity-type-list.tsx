@@ -1,28 +1,27 @@
+import { orderBy } from "lodash";
+import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
+import type { FunctionComponent , useMemo, useState } from "react";
+import { TransitionGroup } from "react-transition-group";
 import { IconButton } from "@hashintel/design-system";
 import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
 import { Box, Collapse, Fade, Tooltip } from "@mui/material";
-import { orderBy } from "lodash";
-import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
-import { useMemo, useState } from "react";
-import { TransitionGroup } from "react-transition-group";
 
 import { useLatestEntityTypesOptional } from "../../entity-types-context/hooks";
 import { ArrowDownAZRegularIcon } from "../../icons/arrow-down-a-z-regular-icon";
 import { ArrowUpZARegularIcon } from "../../icons/arrow-up-a-z-regular-icon";
 import { PlusRegularIcon } from "../../icons/plus-regular";
 import { Link } from "../../ui";
+
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
 import { SearchInput } from "./account-entity-type-list/search-input";
-import type { SortType } from "./account-entity-type-list/sort-actions-dropdown";
-import { SortActionsDropdown } from "./account-entity-type-list/sort-actions-dropdown";
+import type { SortActionsDropdown,SortType  } from "./account-entity-type-list/sort-actions-dropdown";
 import { NavLink } from "./nav-link";
 import { LoadingSkeleton } from "./shared/loading-skeleton";
 import { ViewAllLink } from "./view-all-link";
 
-type AccountEntityTypeListProps = {
+interface AccountEntityTypeListProps {
   ownedById: string;
-};
+}
 
 export const AccountEntityTypeList: FunctionComponent<
   AccountEntityTypeListProps
@@ -57,6 +56,7 @@ export const AccountEntityTypeList: FunctionComponent<
 
     if (searchQuery) {
       const lowerQuery = searchQuery.toLowerCase();
+
       entityTypes =
         entityTypes?.filter((root) => {
           return root.schema.title.toLowerCase().includes(lowerQuery);
@@ -74,17 +74,17 @@ export const AccountEntityTypeList: FunctionComponent<
     <Box>
       <NavLink
         expanded={expanded}
-        toggleExpanded={() => setExpanded((prev) => !prev)}
-        title="Types"
+        toggleExpanded={() => { setExpanded((previous) => !previous); }}
+        title={"Types"}
         endAdornment={
-          <Box display="flex" gap={1}>
+          <Box display={"flex"} gap={1}>
             <Fade in={expanded}>
-              <Tooltip title="Sort types" placement="top">
+              <Tooltip title={"Sort types"} placement={"top"}>
                 <IconButton
                   {...bindTrigger(sortActionsPopupState)}
-                  size="small"
                   unpadded
                   rounded
+                  size={"small"}
                   sx={({ palette }) => ({
                     color: palette.gray[80],
                     ...(sortActionsPopupState.isOpen && {
@@ -108,14 +108,14 @@ export const AccountEntityTypeList: FunctionComponent<
               setSortType={setSortType}
               activeSortType={sortType}
             />
-            <Link tabIndex={-1} href="/new/types/entity-type" noLinkStyle>
-              <Tooltip title="Create new entity type" sx={{ left: 5 }}>
+            <Link noLinkStyle tabIndex={-1} href={"/new/types/entity-type"}>
+              <Tooltip title={"Create new entity type"} sx={{ left: 5 }}>
                 <IconButton
-                  data-testid="create-entity-type-btn"
-                  size="small"
                   unpadded
                   rounded
-                  className="end-adornment-button"
+                  data-testid={"create-entity-type-btn"}
+                  size={"small"}
+                  className={"end-adornment-button"}
                   sx={({ palette }) => ({
                     color: palette.gray[80],
                   })}
@@ -127,21 +127,21 @@ export const AccountEntityTypeList: FunctionComponent<
           </Box>
         }
       >
-        <Box component="ul">
+        <Box component={"ul"}>
           {loading && filteredEntityTypes.length === 0 ? (
             <LoadingSkeleton />
           ) : (
             <TransitionGroup>
               {filteredEntityTypes.map((root) => (
                 <Collapse key={root.schema.$id}>
-                  <EntityTypeItem entityType={root} variant="entity-type" />
+                  <EntityTypeItem entityType={root} variant={"entity-type"} />
                 </Collapse>
               ))}
             </TransitionGroup>
           )}
           <Box
             tabIndex={0}
-            component="li"
+            component={"li"}
             sx={({ palette }) => ({
               display: "flex",
               alignItems: "center",
@@ -160,15 +160,15 @@ export const AccountEntityTypeList: FunctionComponent<
             })}
           >
             <Box
-              display="flex"
-              alignItems="center"
+              display={"flex"}
+              alignItems={"center"}
               flex={1}
               mr={0.25}
               pl={2}
-              position="relative"
+              position={"relative"}
             >
               <ViewAllLink
-                href="/types"
+                href={"/types"}
                 sx={{
                   mr: "auto",
                   marginLeft: -1.5,
@@ -182,12 +182,12 @@ export const AccountEntityTypeList: FunctionComponent<
               </ViewAllLink>
               <SearchInput
                 searchVisible={searchVisible}
-                showSearchInput={() => setSearchVisible(true)}
+                showSearchInput={() => { setSearchVisible(true); }}
                 hideSearchInput={() => {
                   setSearchQuery("");
                   setSearchVisible(false);
                 }}
-                onChangeText={(query) => setSearchQuery(query)}
+                onChangeText={(query) => { setSearchQuery(query); }}
               />
             </Box>
           </Box>

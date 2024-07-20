@@ -1,6 +1,5 @@
+import type { createContext, ReactNode , useContext, useMemo, useState } from "react";
 import { Box } from "@mui/material";
-import type { ReactNode } from "react";
-import { createContext, useContext, useMemo, useState } from "react";
 
 const EditBarContext = createContext<{
   page: HTMLElement;

@@ -1,5 +1,5 @@
-import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { useState } from "react";
+import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 
 import { DRAFT_ROW_KEY } from "../array-editor";
 import { getEditorSpecs } from "../editor-specs";
@@ -9,6 +9,7 @@ import {
   guessEditorTypeFromExpectedType,
   isBlankStringOrNullish,
 } from "../utils";
+
 import { SortableRow } from "./sortable-row";
 
 interface DraftRowProps {
@@ -56,21 +57,23 @@ export const DraftRow = ({
   return (
     <SortableRow
       editing
+      expectedTypes={expectedTypes}
       item={{
         id: DRAFT_ROW_KEY,
         index: existingItemCount,
         value: undefined,
         overriddenEditorType: editorType,
       }}
+      onDiscardChanges={onDraftDiscarded}
       onSaveChanges={(_, value) => {
         if (isBlankStringOrNullish(value)) {
-          return onDraftDiscarded();
+          onDraftDiscarded();
+
+ return;
         }
 
         onDraftSaved(value);
       }}
-      onDiscardChanges={onDraftDiscarded}
-      expectedTypes={expectedTypes}
     />
   );
 };

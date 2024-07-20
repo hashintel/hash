@@ -1,10 +1,10 @@
+import type { FunctionComponent, ReactNode } from "react";
 import {
   Box,
   svgIconClasses,
   Typography,
   typographyClasses,
 } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
 
 import { HeaderIconButton } from "./header-icon-button";
 
@@ -12,7 +12,7 @@ export const HeaderIconButtonWithCount: FunctionComponent<{
   count?: number;
   icon: ReactNode;
 }> = ({ count, icon }) => {
-  const isDisplayingCount = !!count;
+  const isDisplayingCount = Boolean(count);
 
   return (
     <HeaderIconButton
@@ -65,18 +65,18 @@ export const HeaderIconButtonWithCount: FunctionComponent<{
       {isDisplayingCount && (
         <>
           <Typography
+            ml={0.75}
             sx={(theme) => ({
               fontSize: 14,
               fontWeight: 600,
               lineHeight: theme.spacing(2),
               color: "purple",
             })}
-            ml={0.75}
           >
             {count}
           </Typography>
           <Box
-            className="circle"
+            className={"circle"}
             sx={(theme) => ({
               position: "absolute",
               backgroundColor: theme.palette.blue[70],

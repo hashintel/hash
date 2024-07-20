@@ -1,7 +1,5 @@
-import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
-import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
-import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
-import { GridCellKind } from "@glideapps/glide-data-grid";
+import type { faAsterisk,IconDefinition  } from "@fortawesome/free-solid-svg-icons";
+import type { CustomCell, CustomRenderer , GridCellKind } from "@glideapps/glide-data-grid";
 import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
 import { customColors } from "@hashintel/design-system/theme";
 import { Box } from "@mui/material";
@@ -36,30 +34,34 @@ export const getChipColors = (
   iconColor: string;
 } => {
   const isOutlined = variant === "outlined";
+
   switch (color) {
-    case "blue":
+    case "blue": {
       return {
         textColor: customColors.blue[70],
         bgColor: isOutlined ? customColors.blue[10] : customColors.blue[20],
         borderColor: isOutlined ? customColors.blue[30] : customColors.blue[20],
         iconColor: customColors.blue[70],
       };
+    }
 
-    case "gray":
+    case "gray": {
       return {
         textColor: customColors.gray[70],
         bgColor: customColors.gray[10],
         borderColor: customColors.gray[20],
         iconColor: customColors.gray[70],
       };
+    }
 
-    default:
+    default: {
       return {
         textColor: customColors.gray[80],
         bgColor: customColors.white,
         borderColor: customColors.gray[20],
         iconColor: customColors.blue[70],
       };
+    }
   }
 };
 
@@ -75,8 +77,8 @@ export const renderChipCell: CustomRenderer<ChipCell> = {
     const chipGap = 8;
     let chipLeft = rect.x + theme.cellHorizontalPadding;
 
-    for (let i = 0; i < chips.length; i++) {
-      const { icon, text = "" } = chips[i] ?? {};
+    for (const chip of chips) {
+      const { icon, text = "" } = chip ?? {};
       const chipWidth = drawChipWithIcon({
         args,
         color,
@@ -86,7 +88,7 @@ export const renderChipCell: CustomRenderer<ChipCell> = {
         variant,
       });
 
-      chipLeft += chipWidth + chipGap;
+      chipLeft = chipLeft + (chipWidth + chipGap);
     }
 
     drawCellFadeOutGradient(args);

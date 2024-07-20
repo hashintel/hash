@@ -1,14 +1,12 @@
 import type { UrlObject } from "node:url";
 
-import type { ButtonProps as BaseButtonProps } from "@hashintel/design-system";
-import {
-  // eslint-disable-next-line no-restricted-imports
-  Button as BaseButton,
-} from "@hashintel/design-system";
 // eslint-disable-next-line no-restricted-imports
 import Link from "next/link";
-import type { ReactNode } from "react";
-import { forwardRef, useMemo } from "react";
+import type { forwardRef, ReactNode , useMemo } from "react";
+import type {   // eslint-disable-next-line no-restricted-imports
+  Button as BaseButton,
+ButtonProps as BaseButtonProps ,
+} from "@hashintel/design-system";
 
 import { generateLinkParameters } from "../generate-link-parameters";
 
@@ -42,7 +40,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
     if (href && !(openInNewTab || (openInNewTab !== false && isExternal))) {
       return (
-        <Link href={href} passHref legacyBehavior>
+        <Link passHref legacyBehavior href={href}>
           {Component}
         </Link>
       );

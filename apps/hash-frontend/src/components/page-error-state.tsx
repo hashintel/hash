@@ -7,7 +7,7 @@ import { Link } from "../shared/ui";
 export const PageErrorState = () => {
   return (
     <Container>
-      <Typography pt={10} variant="h1">
+      <Typography pt={10} variant={"h1"}>
         Error loading page
       </Typography>
 
@@ -17,7 +17,7 @@ export const PageErrorState = () => {
 
       <Link
         noLinkStyle
-        href="/"
+        href={"/"}
         sx={{
           mt: 4,
           display: "flex",

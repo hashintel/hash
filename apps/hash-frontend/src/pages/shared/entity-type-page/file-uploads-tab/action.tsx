@@ -4,8 +4,7 @@ import {
   DashIcon,
 } from "@hashintel/design-system";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
-import type { SxProps, Theme } from "@mui/material";
-import { Box, Stack, Tooltip } from "@mui/material";
+import type { Box, Stack, SxProps, Theme , Tooltip } from "@mui/material";
 
 import { useUserOrOrgShortnameByOwnedById } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import type { FileUpload } from "../../../../shared/file-upload-context";
@@ -34,9 +33,9 @@ export const Action = ({
   });
 
   switch (upload.status) {
-    case "complete":
+    case "complete": {
       return (
-        <Tooltip title="View entity">
+        <Tooltip title={"View entity"}>
           <Link
             href={
               shortname
@@ -59,12 +58,12 @@ export const Action = ({
           </Link>
         </Tooltip>
       );
-    case "error":
+    }
+    case "error": {
       return (
-        <Tooltip title="Retry upload">
+        <Tooltip title={"Retry upload"}>
           <Box
-            component="button"
-            onClick={onRetry}
+            component={"button"}
             sx={{
               background: "none",
               border: "none",
@@ -72,22 +71,25 @@ export const Action = ({
               p: 1,
               height: actionHeight,
             }}
+            onClick={onRetry}
           >
             <ArrowRotateLeftIcon sx={buttonSx} />
           </Box>
         </Tooltip>
       );
-    default:
+    }
+    default: {
       return (
         <Stack
-          alignItems="center"
+          alignItems={"center"}
           height={actionHeight}
-          justifyContent="center"
+          justifyContent={"center"}
         >
           <DashIcon
             sx={{ fontSize: 14, fill: ({ palette }) => palette.gray[50] }}
           />
         </Stack>
       );
+    }
   }
 };

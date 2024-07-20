@@ -12,12 +12,12 @@ export const AddAnotherButton = ({
 }) => {
   return (
     <Button
-      onClick={onClick}
-      size="small"
-      variant="tertiary_quiet"
       fullWidth
+      size={"small"}
+      variant={"tertiary_quiet"}
       startIcon={<FontAwesomeIcon icon={faPlus} />}
       sx={{ justifyContent: "flex-start", borderRadius: 0 }}
+      onClick={onClick}
     >
       {title}
     </Button>

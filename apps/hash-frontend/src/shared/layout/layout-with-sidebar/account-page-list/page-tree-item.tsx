@@ -1,17 +1,16 @@
+import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
+import type { CSSProperties, forwardRef, MouseEvent , useState } from "react";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { DraggableAttributes } from "@dnd-kit/core";
 import { faChevronRight, faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { PopoverPosition } from "@mui/material";
-import { Box, Tooltip, Typography } from "@mui/material";
-import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import type { CSSProperties, MouseEvent } from "react";
-import { forwardRef, useState } from "react";
+import type { Box, PopoverPosition , Tooltip, Typography } from "@mui/material";
 
 import { PAGE_TITLE_PLACEHOLDER } from "../../../../pages/shared/block-collection/page-title/page-title";
 import { PageIconButton } from "../../../page-icon-button";
 import { Link } from "../../../ui";
+
 import { PageMenu } from "./page-menu";
 
 interface DragProps {
@@ -20,7 +19,7 @@ interface DragProps {
   // eslint-disable-next-line @typescript-eslint/ban-types -- this matches the library type we get listeners from
   listeners?: Record<string, Function>;
   style?: CSSProperties;
-  wrapperRef?(this: void, node: HTMLLIElement): void;
+  wrapperRef?: (this: void, node: HTMLLIElement) => void;
 }
 export interface PageTreeItemProps {
   pageEntityId: EntityId;
@@ -85,11 +84,16 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
     return collapsed && isSorting ? null : (
       <Box
         ref={wrapperRef}
+        onMouseEnter={() => { setHoveredState(true); }}
+        onMouseLeave={() => { setHoveredState(false); }}
         onContextMenu={(event) => {
           event.preventDefault();
           if (popupState.isOpen) {
             setAnchorPosition(undefined);
-            return popupState.close();
+
+            popupState.close();
+
+ return;
           }
           setAnchorPosition({
             left: event.clientX + 2,
@@ -97,13 +101,12 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
           });
           popupState.open(event);
         }}
-        onMouseEnter={() => setHoveredState(true)}
-        onMouseLeave={() => setHoveredState(false)}
       >
         <Link
           noLinkStyle
           href={pagePath}
           tabIndex={0}
+          ref={ref}
           sx={({ palette, transitions }) => ({
             ...style,
             display: "flex",
@@ -121,24 +124,23 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
                 ? palette.gray[20]
                 : "none",
           })}
-          ref={ref}
           {...listeners}
           {...attributes}
         >
           <IconButton
-            data-testid="page-tree-item-expand-button"
-            onClick={(event) => {
-              stopEvent(event);
-              onCollapse?.();
-            }}
-            size="xs"
             unpadded
             rounded
+            data-testid={"page-tree-item-expand-button"}
+            size={"xs"}
             sx={({ transitions }) => ({
               mr: 0.5,
               transform: expanded ? `rotate(90deg)` : "none",
               transition: transitions.create("transform", { duration: 300 }),
             })}
+            onClick={(event) => {
+              stopEvent(event);
+              onCollapse?.();
+            }}
           >
             <FontAwesomeIcon icon={faChevronRight} />
           </IconButton>
@@ -148,15 +150,15 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
             entityId={pageEntityId}
             pageEntityTypeId={pageEntityTypeId}
             icon={icon}
-            size="small"
-            onClick={stopEvent}
+            size={"small"}
             popoverProps={{ onClick: stopEvent }}
+            onClick={stopEvent}
           />
 
           <Tooltip
-            title={title || PAGE_TITLE_PLACEHOLDER}
-            placement="right"
             disableInteractive
+            title={title || PAGE_TITLE_PLACEHOLDER}
+            placement={"right"}
             enterDelay={500}
             enterNextDelay={300}
             componentsProps={{
@@ -166,7 +168,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
             }}
           >
             <Typography
-              variant="smallTextLabels"
+              variant={"smallTextLabels"}
               sx={({ palette }) => ({
                 display: "block",
                 fontWeight: 500,
@@ -183,16 +185,12 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
             </Typography>
           </Tooltip>
 
-          <Tooltip title="Options">
+          <Tooltip title={"Options"}>
             <Box>
               <IconButton
                 {...trigger}
-                onClick={(event) => {
-                  stopEvent(event);
-                  trigger.onClick(event);
-                }}
-                size="medium"
                 unpadded
+                size={"medium"}
                 sx={({ palette }) => ({
                   marginLeft: "auto",
                   opacity: selected || hovered ? 1 : 0,
@@ -202,6 +200,10 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
                     color: palette.gray[selected ? 50 : 40],
                   },
                 })}
+                onClick={(event) => {
+                  stopEvent(event);
+                  trigger.onClick(event);
+                }}
               >
                 <FontAwesomeIcon icon={faEllipsis} />
               </IconButton>
@@ -211,14 +213,14 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
             entityId={pageEntityId}
             popupState={popupState}
             createSubPage={createSubPage}
-            archivePage={archivePage}
-            /**
-             * we reset anchor position on close because,
-             * maybe next time user can open via clicking the `more` icon instead of right-clicking again
-             */
-            onClose={() => setAnchorPosition(undefined)}
             anchorPosition={anchorPosition}
             pagePath={pagePath}
+            archivePage={archivePage}
+            /**
+             * We reset anchor position on close because,
+             * maybe next time user can open via clicking the `more` icon instead of right-clicking again.
+             */
+            onClose={() => { setAnchorPosition(undefined); }}
           />
         </Link>
       </Box>

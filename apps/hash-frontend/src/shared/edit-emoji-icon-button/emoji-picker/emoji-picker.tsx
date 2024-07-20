@@ -1,9 +1,7 @@
-import Picker from "@emoji-mart/react";
-import type { PopoverProps } from "@mui/material";
-import { Popover } from "@mui/material";
 import type { BaseEmoji } from "emoji-mart";
-import type { PopupState } from "material-ui-popup-state/hooks";
-import { bindPopover } from "material-ui-popup-state/hooks";
+import type { bindPopover,PopupState  } from "material-ui-popup-state/hooks";
+import Picker from "@emoji-mart/react";
+import type { Popover,PopoverProps  } from "@mui/material";
 
 export type EmojiPickerPopoverProps = Omit<
   PopoverProps,
@@ -28,6 +26,8 @@ export const EmojiPicker = ({
   return (
     <Popover
       {...bindPopover(popupState)}
+      elevation={4}
+      sx={{ mt: 1 }}
       anchorOrigin={{
         vertical: "bottom",
         horizontal: "left",
@@ -36,18 +36,16 @@ export const EmojiPicker = ({
         vertical: "top",
         horizontal: "left",
       }}
-      elevation={4}
-      sx={{ mt: 1 }}
       {...(popoverProps ?? {})}
     >
       <Picker
         autoFocus
-        theme="light"
+        theme={"light"}
         onEmojiSelect={(emoji) => {
           popupState.close();
           /**
            * We cast `EmojiData` to `BaseEmoji` here, because we don't support `CustomEmoji` yet.
-           * So we can safely say `emoji` is `BaseEmoji` for now
+           * So we can safely say `emoji` is `BaseEmoji` for now.
            */
           onEmojiSelect(emoji as BaseEmoji);
         }}

@@ -3,12 +3,8 @@ import type {
   ProviderContext,
   SnackbarKey,
   SnackbarMessage,
-  VariantType,
-} from "notistack";
-import {
   // eslint-disable-next-line no-restricted-imports
-  useSnackbar as useLibSnackbar,
-} from "notistack";
+  useSnackbar as useLibrarySnackbar,  VariantType} from "notistack";
 import { useMemo } from "react";
 
 type EnqueueWithoutVariant = (
@@ -30,9 +26,9 @@ const generateSnackbarVariants = (
   enqueueSnackbar: ProviderContext["enqueueSnackbar"],
 ) => {
   /**
-   * we map a `EnqueueWithoutVariant` function to each variant,
-   * which is `enqueueSnackbar`, but with a pre-defined `variant`
-   * */
+   * We map a `EnqueueWithoutVariant` function to each variant,
+   * which is `enqueueSnackbar`, but with a pre-defined `variant`.
+    */
   const entries = variantTypes.map(
     (variant) =>
       [
@@ -41,18 +37,18 @@ const generateSnackbarVariants = (
       ] as [VariantType, EnqueueWithoutVariant],
   );
 
-  /** we use entries to generate the object with `EnqueueWithoutVariant` function of each variant
+  /** We use entries to generate the object with `EnqueueWithoutVariant` function of each variant
    * so it's really easy-to-use  */
   return Object.fromEntries(entries) as SnackbarVariants;
 };
 
-export type SnackbarManager = {
+export interface SnackbarManager {
   closeSnackbar: (key: string) => void;
   triggerSnackbar: SnackbarVariants;
-};
+}
 
 export const useSnackbar = (): SnackbarManager => {
-  const { closeSnackbar, enqueueSnackbar } = useLibSnackbar();
+  const { closeSnackbar, enqueueSnackbar } = useLibrarySnackbar();
 
   const triggerSnackbar = useMemo(
     () => generateSnackbarVariants(enqueueSnackbar),

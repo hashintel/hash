@@ -1,7 +1,9 @@
-import type { DragEndEvent } from "@dnd-kit/core";
-import {
-  closestCenter,
+import produce from "immer";
+import { isNumber } from "lodash";
+import { useMemo, useRef, useState } from "react";
+import type {   closestCenter,
   DndContext,
+DragEndEvent ,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -14,11 +16,9 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { Box, styled } from "@mui/material";
-import produce from "immer";
-import { isNumber } from "lodash";
-import { useMemo, useRef, useState } from "react";
 
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
+
 import { AddAnotherButton } from "./array-editor/add-another-button";
 import { DraftRow } from "./array-editor/draft-row";
 import { ItemLimitInfo } from "./array-editor/item-limit-info";
@@ -70,7 +70,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   const [selectedRow, setSelectedRow] = useState("");
   const [editingRow, setEditingRow] = useState(() => {
     // if there is no item, start in add item state
-    if (items.length) {
+    if (items.length > 0) {
       return "";
     }
 
@@ -86,7 +86,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
   });
 
   const toggleSelectedRow = (id: string) => {
-    setSelectedRow((prevId) => (id === prevId ? "" : id));
+    setSelectedRow((previousId) => (id === previousId ? "" : id));
   };
 
   const addItem = (value: unknown) => {
@@ -98,6 +98,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
         value,
       ];
     });
+
     onChange(newCell);
 
     // using setImmediate, so scroll happens after item is rendered
@@ -114,6 +115,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
         .filter((_, index) => indexToRemove !== index)
         .map(({ value }) => value);
     });
+
     onChange(newCell);
   };
 
@@ -125,6 +127,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
         indexToUpdate === index ? value : item.value,
       );
     });
+
     onChange(newCell);
   };
 
@@ -136,6 +139,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
 
       draftCell.data.propertyRow.value = newItems.map(({ value }) => value);
     });
+
     onChange(newCell);
   };
 
@@ -152,6 +156,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     if (active.id !== over?.id) {
       const oldIndex = items.findIndex(({ id }) => id === active.id);
       const newIndex = items.findIndex(({ id }) => id === over?.id);
+
       moveItem(oldIndex, newIndex);
     }
   };
@@ -167,7 +172,9 @@ export const ArrayEditor: ValueCellEditorComponent = ({
 
     // add the value on click instead of showing draftRow
     if (onlyOneExpectedType && noEditMode) {
-      return addItem(editorSpec.defaultValue);
+      addItem(editorSpec.defaultValue);
+
+ return;
     }
 
     setEditingRow(DRAFT_ROW_KEY);
@@ -175,7 +182,9 @@ export const ArrayEditor: ValueCellEditorComponent = ({
 
   const handleSaveChanges = (index: number, value: unknown) => {
     if (isBlankStringOrNullish(value)) {
-      return removeItem(index);
+      removeItem(index);
+
+ return;
     }
 
     updateItem(index, value);
@@ -188,7 +197,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     <GridEditorWrapper>
       <ListWrapper
         ref={listWrapperRef}
-        display={items.length ? "initial" : "none"}
+        display={items.length > 0 ? "initial" : "none"}
       >
         <DndContext
           sensors={sensors}
@@ -200,14 +209,14 @@ export const ArrayEditor: ValueCellEditorComponent = ({
               <SortableRow
                 key={item.id}
                 item={item}
-                onRemove={removeItem}
-                onEditClicked={(id) => setEditingRow(id)}
-                onSaveChanges={handleSaveChanges}
-                onDiscardChanges={() => setEditingRow("")}
                 editing={editingRow === item.id}
                 selected={selectedRow === item.id}
-                onSelect={toggleSelectedRow}
                 expectedTypes={expectedTypes}
+                onRemove={removeItem}
+                onEditClicked={(id) => { setEditingRow(id); }}
+                onSaveChanges={handleSaveChanges}
+                onDiscardChanges={() => { setEditingRow(""); }}
+                onSelect={toggleSelectedRow}
               />
             ))}
           </SortableContext>
@@ -216,7 +225,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
 
       {canAddMore && !isAddingDraft && (
         <AddAnotherButton
-          title={items.length ? "Add Another Value" : "Add Value"}
+          title={items.length > 0 ? "Add Another Value" : "Add Value"}
           onClick={handleAddAnotherClick}
         />
       )}
@@ -226,7 +235,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
           existingItemCount={items.length}
           expectedTypes={expectedTypes}
           onDraftSaved={addItem}
-          onDraftDiscarded={() => setEditingRow("")}
+          onDraftDiscarded={() => { setEditingRow(""); }}
         />
       )}
 

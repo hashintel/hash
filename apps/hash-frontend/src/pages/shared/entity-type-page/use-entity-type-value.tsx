@@ -1,3 +1,12 @@
+import { useRouter } from "next/router";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useMutation } from "@apollo/client";
 import type { EntityType, VersionedUrl } from "@blockprotocol/type-system";
 import type { AccountId } from "@local/hash-graph-types/account";
@@ -13,15 +22,6 @@ import {
   getPropertyTypesForEntityType,
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { useRouter } from "next/router";
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
 
 import type {
   CreateEntityTypeMutation,
@@ -98,8 +98,8 @@ export const useEntityTypeValue = (
             contextEntityType: relevantEntityTypes[indexOfRequestedVersion]!,
             latestVersion: maxVersion,
           };
-        } else {
-          // eslint-disable-next-line no-console -- intentional debugging logging
+        } 
+           
           console.warn(
             `Requested version ${requestedVersion} not found – redirecting to latest.`,
           );
@@ -109,11 +109,12 @@ export const useEntityTypeValue = (
               `/v/${maxVersion}`,
             ),
           );
-        }
+        
       }
 
       // Otherwise, return the latest version
       const relevantVersionIndex = availableVersions.indexOf(maxVersion);
+
       return {
         contextEntityType: relevantEntityTypes[relevantVersionIndex]!,
         latestVersion: maxVersion,
@@ -135,8 +136,8 @@ export const useEntityTypeValue = (
   /**
    * Update the state entity type from the one from the entity types context if
    * the two values are different, and one of the following is true:
-   *   a. we're on a draft, new entity type (in which case there's nothing from context)
-   *   b. we have a context entity type
+   *   a. We're on a draft, new entity type (in which case there's nothing from context)
+   *   b. We have a context entity type.
    */
   if (stateEntityType !== contextEntityType && (isDraft || contextEntityType)) {
     setStateEntityType(contextEntityType);
@@ -159,6 +160,7 @@ export const useEntityTypeValue = (
   }, [stateEntityType, entityTypesSubgraph]);
 
   const stateEntityTypeRef = useRef(stateEntityType);
+
   useLayoutEffect(() => {
     stateEntityTypeRef.current = stateEntityType;
   });
@@ -239,7 +241,7 @@ export const useEntityTypeValue = (
         },
       });
 
-      if (!!res.errors?.length || !res.data) {
+      if (Boolean(res.errors?.length) || !res.data) {
         throw new Error("Could not publish changes");
       }
 

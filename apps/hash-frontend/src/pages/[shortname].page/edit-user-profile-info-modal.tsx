@@ -1,9 +1,9 @@
-import { Modal } from "@hashintel/design-system";
-import type { ModalProps } from "@mui/material";
-import { Box } from "@mui/material";
 import type { FunctionComponent } from "react";
+import { Modal } from "@hashintel/design-system";
+import type { Box,ModalProps  } from "@mui/material";
 
 import type { User } from "../../lib/user-and-org";
+
 import { UserProfileInfoForm } from "./edit-user-profile-info-modal/user-profile-info-form";
 import { UserProfileInfoModalHeader } from "./edit-user-profile-info-modal/user-profile-info-modal-header";
 
@@ -28,8 +28,8 @@ export const EditUserProfileInfoModal: FunctionComponent<
       <Box>
         <UserProfileInfoModalHeader
           userProfile={userProfile}
-          onClose={onClose}
           refetchUserProfile={refetchUserProfile}
+          onClose={onClose}
         />
         <Box sx={{ padding: 3 }}>
           <UserProfileInfoForm

@@ -1,12 +1,12 @@
-import createEmotionServer from "@emotion/server/create-instance";
-import { createEmotionCache } from "@hashintel/design-system/theme";
 import NextDocument, { Head, Html, Main, NextScript } from "next/document";
 import { Children } from "react";
+import createEmotionServer from "@emotion/server/create-instance";
+import { createEmotionCache } from "@hashintel/design-system/theme";
 
 class Document extends NextDocument {
   render() {
     return (
-      <Html lang="en">
+      <Html lang={"en"}>
         <Head />
         <body>
           <Main />

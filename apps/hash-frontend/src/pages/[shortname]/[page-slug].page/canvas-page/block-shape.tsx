@@ -7,12 +7,11 @@ import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/grap
 import type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { toDomPrecision } from "@tldraw/primitives";
-import type { TLBaseShape, TLOpacityType } from "@tldraw/tldraw";
-import {
-  defineShape,
+import type {   defineShape,
   HTMLContainer,
-  TLBoxTool,
+TLBaseShape,   TLBoxTool,
   TLBoxUtil,
+TLOpacityType ,
 } from "@tldraw/tldraw";
 
 import { BlockLoader } from "../../../../components/block-loader/block-loader";
@@ -21,8 +20,8 @@ import { apolloClient } from "../../../../lib/apollo-client";
 import { BlockContextProvider } from "../../../shared/block-collection/block-context";
 import { getBlockCollectionContentsStructuralQueryVariables } from "../../../shared/block-collection-contents";
 import { BlockCollectionContext } from "../../../shared/block-collection-context";
-import type { JsonSerializableBlockLoaderProps } from "./shared";
-import { defaultBlockHeight, defaultBlockWidth } from "./shared";
+
+import type { defaultBlockHeight, defaultBlockWidth,JsonSerializableBlockLoaderProps  } from "./shared";
 
 // Defines the string id and the 'props' available on our custom TLDraw shape
 export type BlockShape = TLBaseShape<
@@ -123,13 +122,13 @@ export class BlockUtil extends TLBoxUtil<BlockShape> {
       w: defaultBlockWidth,
       h: defaultBlockHeight,
       /**
-       * we want blockLoaderProps to have required properties in the BlockShape definition, for type safety elsewhere.
-       * we pass them when creating a BlockShape, so this default is never actually used
+       * We want blockLoaderProps to have required properties in the BlockShape definition, for type safety elsewhere.
+       * We pass them when creating a BlockShape, so this default is never actually used.
        */
       blockLoaderProps: {} as JsonSerializableBlockLoaderProps,
       /**
        * These are intentionally dummy strings that should never be used,
-       * because we supply them when creating a BlockShape
+       * because we supply them when creating a BlockShape.
        */
       pageEntityId: "placeholder-123" as EntityId,
       linkEntityId: "placeholder-123" as EntityId,
@@ -165,15 +164,15 @@ export class BlockUtil extends TLBoxUtil<BlockShape> {
             {(collectionContext) => (
               <BlockLoader
                 {...blockLoaderProps}
+                readonly
+                editableRef={null}
                 blockCollectionSubgraph={
                   collectionContext!.blockCollectionSubgraph
                 }
-                editableRef={null}
-                onBlockLoaded={() => null}
-                readonly
                 userPermissionsOnEntities={
                   collectionContext!.userPermissionsOnEntities
                 }
+                onBlockLoaded={() => null}
               />
             )}
           </BlockCollectionContext.Consumer>

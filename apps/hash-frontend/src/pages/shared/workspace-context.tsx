@@ -1,26 +1,26 @@
-import type { OwnedById } from "@local/hash-graph-types/web";
-import type { FunctionComponent, ReactElement } from "react";
-import {
-  createContext,
+import type {   createContext,
+FunctionComponent, ReactElement ,
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
 } from "react";
+import type { OwnedById } from "@local/hash-graph-types/web";
 
 import { localStorageKeys } from "../../lib/config";
 import type { MinimalUser, Org } from "../../lib/user-and-org";
+
 import { useAuthInfo } from "./auth-info-context";
 
-export type WorkspaceContextValue = {
+export interface WorkspaceContextValue {
   activeWorkspace?: MinimalUser | Org;
   activeWorkspaceOwnedById?: OwnedById;
   updateActiveWorkspaceOwnedById: (
     updatedActiveWorkspaceAccountId: OwnedById,
   ) => void;
   refetchActiveWorkspace: () => Promise<void>;
-};
+}
 
 const defaultWorkspaceContextValue: WorkspaceContextValue = {
   updateActiveWorkspaceOwnedById: (_updateActiveWorkspaceOwnedById: string) =>
@@ -59,7 +59,7 @@ export const WorkspaceContextProvider: FunctionComponent<{
     if (!activeWorkspaceOwnedById) {
       /**
        * Initialize the `activeWorkspaceOwnedById` with what has been persisted
-       * in `localStorage` (if anything)
+       * in `localStorage` (if anything).
        */
       const localStorageInitialValue = localStorage.getItem(
         localStorageKeys.workspaceOwnedById,
@@ -70,7 +70,7 @@ export const WorkspaceContextProvider: FunctionComponent<{
       } else if (authenticatedUser) {
         /**
          * Initialize the `activeWorkspaceOwnedById` to the account ID of the
-         * currently authenticated user
+         * currently authenticated user.
          */
         updateActiveWorkspaceOwnedById(
           authenticatedUser.accountId as OwnedById,
@@ -96,7 +96,7 @@ export const WorkspaceContextProvider: FunctionComponent<{
     /**
      * If there is an `activeWorkspaceOwnedById` and an `authenticatedUser`, but
      * `activeWorkspace` is not defined, reset `activeWorkspaceOwnedById` to the
-     * authenticated user's account ID
+     * authenticated user's account ID.
      */
     if (activeWorkspaceOwnedById && authenticatedUser && !activeWorkspace) {
       updateActiveWorkspaceOwnedById(authenticatedUser.accountId as OwnedById);

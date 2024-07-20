@@ -1,14 +1,12 @@
+import type { createContext, PropsWithChildren , useCallback, useContext, useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import type { JsonValue } from "@blockprotocol/core";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedValues } from "@local/advanced-types/typed-entries";
 import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { FormattedValuePart } from "@local/hash-isomorphic-utils/data-types";
-import { formatDataValue } from "@local/hash-isomorphic-utils/data-types";
+import type { formatDataValue,FormattedValuePart  } from "@local/hash-isomorphic-utils/data-types";
 import type { OntologyTypeRevisionId } from "@local/hash-subgraph";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
-import type { PropsWithChildren } from "react";
-import { createContext, useCallback, useContext, useMemo } from "react";
 
 import type {
   QueryDataTypesQuery,
@@ -16,13 +14,13 @@ import type {
 } from "../../graphql/api-types.gen";
 import { queryDataTypesQuery } from "../../graphql/queries/ontology/data-type.queries";
 
-export type DataTypesContextValue = {
+export interface DataTypesContextValue {
   dataTypes: Record<VersionedUrl, DataTypeWithMetadata> | null;
   formatDataTypeValue: (args: {
     dataTypeId: VersionedUrl;
     value: JsonValue;
   }) => FormattedValuePart[] | null;
-};
+}
 
 export const DataTypesContext = createContext<null | DataTypesContextValue>(
   null,
@@ -47,6 +45,7 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
 
     for (const vertex of Object.values(data.queryDataTypes.vertices)) {
       const latestVersion = typedValues(vertex)[0];
+
       if (latestVersion?.kind === "dataType") {
         allDataTypes[latestVersion.inner.schema.$id] = latestVersion.inner;
       }

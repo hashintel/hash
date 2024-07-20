@@ -1,15 +1,14 @@
+import type { FunctionComponent, KeyboardEvent , useRef } from "react";
 import { Box } from "@mui/material";
-import type { FunctionComponent, KeyboardEvent } from "react";
-import { useRef } from "react";
 
-type TagsInputProps = {
+interface TagsInputProps {
   minHeight?: number;
   tags: string[];
   setTags: (tags: string[]) => void;
   placeholder: string;
   isValid?: (text: string) => boolean;
   delimiters?: string[];
-};
+}
 
 export const TagsInput: FunctionComponent<TagsInputProps> = ({
   minHeight,
@@ -21,14 +20,14 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const handleKeyDown = (evt: KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (!inputRef.current) {
       return;
     }
     const text = inputRef.current.value;
 
-    if ([...delimiters, "Enter"].includes(evt.key)) {
-      evt.preventDefault();
+    if ([...delimiters, "Enter"].includes(event.key)) {
+      event.preventDefault();
       if (
         text &&
         (isValid === undefined || isValid(text)) &&
@@ -37,10 +36,11 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
         setTags([...tags, text]);
         inputRef.current.value = "";
       }
-    } else if (evt.key === "Backspace" || evt.key === "Delete") {
+    } else if (event.key === "Backspace" || event.key === "Delete") {
       if (inputRef.current.value === "" && tags.length > 0) {
-        evt.preventDefault();
+        event.preventDefault();
         const tagToRemove = tags[tags.length - 1]!;
+
         setTags(tags.slice(0, -1));
         inputRef.current.value = tagToRemove;
       }
@@ -52,6 +52,7 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
       return;
     }
     const inputValue = inputRef.current.value;
+
     if (
       inputValue &&
       !tags.includes(inputValue) &&
@@ -64,11 +65,14 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
 
   const handleRemove = (tagToRemove: string) => {
     const newTags = tags.filter((tag) => tag !== tagToRemove);
+
     setTags(newTags);
   };
 
   return (
     <Box
+      role={"button"}
+      tabIndex={0}
       sx={{
         alignItems: "flex-start",
         backgroundColor: "#ffffff",
@@ -88,13 +92,11 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
         },
       }}
       onClick={() => inputRef.current?.focus()}
-      onKeyDown={(evt) => {
-        if (evt.key === "Enter") {
+      onKeyDown={(event) => {
+        if (event.key === "Enter") {
           inputRef.current?.focus();
         }
       }}
-      role="button"
-      tabIndex={0}
     >
       <ul
         style={{
@@ -124,9 +126,8 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
           >
             {tag}{" "}
             <Box
-              component="button"
-              type="button"
-              onClick={() => handleRemove(tag)}
+              component={"button"}
+              type={"button"}
               sx={{
                 backgroundColor: "transparent",
                 borderStyle: "none",
@@ -142,6 +143,7 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
                   outline: "none",
                 },
               }}
+              onClick={() => { handleRemove(tag); }}
             >
               &times;
             </Box>
@@ -149,9 +151,10 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
         ))}
       </ul>
       <Box
-        component="input"
-        type="text"
+        component={"input"}
+        type={"text"}
         ref={inputRef}
+        placeholder={placeholder}
         sx={{
           backgroundColor: "transparent",
           borderStyle: "none",
@@ -167,7 +170,6 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
             outline: "none",
           },
         }}
-        placeholder={placeholder}
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
       />

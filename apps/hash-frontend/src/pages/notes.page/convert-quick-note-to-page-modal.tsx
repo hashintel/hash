@@ -1,3 +1,6 @@
+import { generateKeyBetween } from "fractional-indexing";
+import type { FunctionComponent , useCallback, useMemo } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { useMutation } from "@apollo/client";
 import { Autocomplete, TextField } from "@hashintel/design-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
@@ -12,21 +15,15 @@ import type {
   PageProperties,
   TitlePropertyValueWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/page";
-import type { ModalProps } from "@mui/material";
-import {
-  autocompleteClasses,
+import type {   autocompleteClasses,
   Box,
+ModalProps ,
   outlinedInputClasses,
   Typography,
 } from "@mui/material";
-import { generateKeyBetween } from "fractional-indexing";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo } from "react";
-import { Controller, useForm } from "react-hook-form";
 
 import { useBlockProtocolCreateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
-import type { SimplePage } from "../../components/hooks/use-account-pages";
-import { useAccountPages } from "../../components/hooks/use-account-pages";
+import type { SimplePage , useAccountPages } from "../../components/hooks/use-account-pages";
 import { PageIcon } from "../../components/page-icon";
 import type {
   UpdateEntityMutation,
@@ -40,10 +37,10 @@ export type PageWithParentLink = SimplePage & {
   parentLinkEntity?: Entity;
 };
 
-type ConvertToPageFormData = {
+interface ConvertToPageFormData {
   title?: string;
   parentPage?: SimplePage;
-};
+}
 
 export const ConvertQuickNoteToPageModal: FunctionComponent<
   Omit<ModalProps, "children" | "onClose"> & {
@@ -82,7 +79,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
 
     const title = !data.title ? defaultTitle : data.title;
 
-    const prevFractionalIndex =
+    const previousFractionalIndex =
       pages
         .filter((potentialSiblingPage) =>
           parentPage
@@ -95,7 +92,7 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
         .sort()
         .slice(-1)[0] ?? null;
 
-    const fractionalIndex = generateKeyBetween(prevFractionalIndex, null);
+    const fractionalIndex = generateKeyBetween(previousFractionalIndex, null);
 
     const { data: pageEntityData, errors } = await updateEntity({
       variables: {
@@ -185,50 +182,47 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
     >
       <Box>
         <Box
-          component="form"
-          onSubmit={innerSubmit}
+          component={"form"}
           sx={{
             display: "flex",
             flexDirection: "column",
             rowGap: 3,
             padding: 3,
           }}
+          onSubmit={innerSubmit}
         >
           <TextField
-            placeholder={defaultTitle}
             fullWidth
-            label="Page title"
+            placeholder={defaultTitle}
+            label={"Page title"}
             {...register("title")}
           />
           <Controller
             control={control}
-            name="parentPage"
+            name={"parentPage"}
             render={({ field }) => (
               <Autocomplete<SimplePage, false, false>
                 value={field.value}
+                options={pages}
+                getOptionLabel={(page) => page.title}
+                inputLabel={"Parent page"}
+                inputPlaceholder={"Set a parent page..."}
+                autoFocus={false}
+                inputHeight={48}
                 isOptionEqualToValue={(option, value) =>
                   option.metadata.recordId.entityId ===
                   value.metadata.recordId.entityId
                 }
-                options={pages}
-                getOptionLabel={(page) => page.title}
-                inputLabel="Parent page"
-                inputPlaceholder="Set a parent page..."
-                onChange={(_, page) =>
-                  setValue("parentPage", page ?? undefined)
-                }
-                autoFocus={false}
                 renderOption={(props, page) => (
-                  <Box component="li" {...props}>
+                  <Box component={"li"} {...props}>
                     <PageIcon
-                      size="small"
+                      size={"small"}
                       icon={page.icon}
                       sx={{ marginRight: 1 }}
                     />
                     <Typography>{page.title}</Typography>
                   </Box>
                 )}
-                inputHeight={48}
                 sx={{
                   [`&.${autocompleteClasses.hasClearIcon} .${outlinedInputClasses.root}`]:
                     {
@@ -245,12 +239,15 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
                     },
                   },
                 }}
+                onChange={(_, page) =>
+                  { setValue("parentPage", page ?? undefined); }
+                }
               />
             )}
           />
-          <Box display="flex" columnGap={1.25}>
-            <Button type="submit">Convert to page</Button>
-            <Button variant="tertiary" onClick={handleDiscard}>
+          <Box display={"flex"} columnGap={1.25}>
+            <Button type={"submit"}>Convert to page</Button>
+            <Button variant={"tertiary"} onClick={handleDiscard}>
               Cancel
             </Button>
           </Box>

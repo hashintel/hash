@@ -1,12 +1,12 @@
-import { useQuery } from "@apollo/client";
-import { Stack } from "@mui/material";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
+import { useQuery } from "@apollo/client";
+import { Stack } from "@mui/material";
 
 import type { HasAccessToHashQuery } from "../graphql/api-types.gen";
 import { hasAccessToHashQuery } from "../graphql/queries/user.queries";
-import type { NextPageWithLayout } from "../shared/layout";
-import { getLayoutWithSidebar } from "../shared/layout";
+import type { getLayoutWithSidebar,NextPageWithLayout  } from "../shared/layout";
+
 import { LoggedIn } from "./index.page/logged-in";
 import { LoggedOut } from "./index.page/logged-out";
 import { Waitlisted } from "./index.page/waitlisted";
@@ -24,26 +24,28 @@ const Page: NextPageWithLayout = () => {
   const hasAccessToHash = useMemo(() => {
     if (authenticatedUser?.accountSignupComplete) {
       return true;
-    } else {
-      return hasAccessToHashResponse?.hasAccessToHash;
     }
+ 
+      return hasAccessToHashResponse?.hasAccessToHash;
+    
   }, [authenticatedUser, hasAccessToHashResponse]);
 
   if (!authenticatedUser?.accountSignupComplete) {
     if (hasAccessToHash) {
       void push("/signup");
+
       return null;
     }
 
     return (
-      <Stack alignItems="center">
+      <Stack alignItems={"center"}>
         {authenticatedUser ? <Waitlisted /> : <LoggedOut />}
       </Stack>
     );
   }
 
   return (
-    <Stack alignItems="center">
+    <Stack alignItems={"center"}>
       <LoggedIn />
     </Stack>
   );

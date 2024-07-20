@@ -1,5 +1,5 @@
-import { Box } from "@mui/material";
 import { useRouter } from "next/router";
+import { Box } from "@mui/material";
 
 import { TabLink } from "../../../../../shared/ui/tab-link";
 import { Tabs } from "../../../../../shared/ui/tabs";
@@ -33,18 +33,18 @@ export const EntityEditorTabs = () => {
   const currentTab = useEntityEditorTab();
 
   return (
-    <Box display="flex">
+    <Box display={"flex"}>
       <Tabs value={currentTab}>
         <TabLink
-          value="overview"
+          value={"overview"}
           href={getTabUrl("overview")}
-          label="Overview"
+          label={"Overview"}
           active={currentTab === "overview"}
         />
         <TabLink
-          value="history"
+          value={"history"}
           href={getTabUrl("history")}
-          label="History"
+          label={"History"}
           active={currentTab === "history"}
         />
       </Tabs>

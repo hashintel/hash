@@ -1,10 +1,9 @@
-import { useTheme } from "@mui/material";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import type { DefaultSeoProps } from "next-seo";
-import { DefaultSeo } from "next-seo";
+import type { DefaultSeo,DefaultSeoProps  } from "next-seo";
 import NextNProgress from "nextjs-progressbar";
 import type { FunctionComponent, ReactNode } from "react";
+import { useTheme } from "@mui/material";
 
 import { isProduction } from "../../lib/config";
 import { useAuthInfo } from "../../pages/shared/auth-info-context";
@@ -39,7 +38,7 @@ export const PlainLayout: FunctionComponent<{
   return (
     <>
       <Head>
-        {!isProduction ? <meta name="robots" content="noindex" /> : null}
+        {!isProduction ? <meta name={"robots"} content={"noindex"} /> : null}
       </Head>
       <DefaultSeo
         {...defaultSeoProps}
@@ -51,10 +50,10 @@ export const PlainLayout: FunctionComponent<{
         ]}
       />
       <NextNProgress
+        showOnShallow
         color={palette.primary.main}
         height={2}
         options={{ showSpinner: false }}
-        showOnShallow
       />
       {authenticatedUser?.accountSignupComplete ? <CommandBar /> : null}
       {children}

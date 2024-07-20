@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
   EditorOntologyFunctions,
@@ -12,7 +13,6 @@ import {
   getEntityTypeById,
   getPropertyTypeById,
 } from "@local/hash-subgraph/stdlib";
-import { useCallback } from "react";
 
 import { useBlockProtocolCreateEntityType } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
 import { useBlockProtocolCreatePropertyType } from "../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-property-type";
@@ -53,6 +53,7 @@ export const useEditorOntologyFunctions = (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return createEntityType(args as any).then(async (res) => {
         await refetchEntityTypes();
+
         return res;
       });
     },
@@ -66,6 +67,7 @@ export const useEditorOntologyFunctions = (
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return updateEntityType(args as any).then(async (res) => {
         await refetchEntityTypes();
+
         return res;
       });
     },
@@ -78,6 +80,7 @@ export const useEditorOntologyFunctions = (
     (args) => {
       return createPropertyType(args).then(async (res) => {
         await refetchPropertyTypes();
+
         return res;
       });
     },
@@ -90,6 +93,7 @@ export const useEditorOntologyFunctions = (
     (args) => {
       return updatePropertyType(args).then(async (res) => {
         await refetchPropertyTypes();
+
         return res;
       });
     },

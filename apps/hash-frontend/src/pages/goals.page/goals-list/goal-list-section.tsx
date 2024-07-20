@@ -1,7 +1,6 @@
 import { Box, Skeleton, Stack, Typography } from "@mui/material";
 
-import type { GoalSummary } from "./goal-list-section/goal-row";
-import { GoalRow, goalRowSx } from "./goal-list-section/goal-row";
+import type { GoalRow, goalRowSx,GoalSummary  } from "./goal-list-section/goal-row";
 
 export const GoalListSection = ({
   loading,
@@ -13,14 +12,14 @@ export const GoalListSection = ({
   type: "active" | "archived";
 }) => {
   const totalOpenQuestions = rows.reduce(
-    (acc, row) => acc + row.openInputRequests,
+    (accumulator, row) => accumulator + row.openInputRequests,
     0,
   );
 
   if (loading) {
     return (
       <Stack
-        direction="row"
+        direction={"row"}
         gap={10}
         sx={{ "*": { transform: "none !important" } }}
       >
@@ -28,14 +27,14 @@ export const GoalListSection = ({
           <Skeleton width={140} height={150} />
         </Box>
         <Box sx={{ width: "100%" }}>
-          <Skeleton width="100%" height={200} />
+          <Skeleton width={"100%"} height={200} />
         </Box>
       </Stack>
     );
   }
 
   return (
-    <Stack direction="row" gap={2}>
+    <Stack direction={"row"} gap={2}>
       <Box sx={{ width: 250 }}>
         <Typography
           sx={{ fontSize: 42, fontWeight: 600, mt: 2, lineHeight: 1 }}

@@ -1,5 +1,5 @@
-import { Box, Skeleton } from "@mui/material";
 import type { FunctionComponent } from "react";
+import { Box, Skeleton } from "@mui/material";
 
 import { GridViewItemWrapper } from "./grid-view-item-wrapper";
 
@@ -29,8 +29,8 @@ export const GridViewItemSkeleton: FunctionComponent<{
         }}
       />
     </Box>
-    <Box display="flex" justifyContent="center">
-      <Skeleton width="75%" />
+    <Box display={"flex"} justifyContent={"center"}>
+      <Skeleton width={"75%"} />
     </Box>
   </GridViewItemWrapper>
 );

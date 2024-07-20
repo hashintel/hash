@@ -1,6 +1,3 @@
-import { faHome } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
-import { Box, Collapse, Drawer } from "@mui/material";
 import { useRouter } from "next/router";
 import {
   Fragment,
@@ -8,6 +5,9 @@ import {
   type ReactNode,
   useMemo,
 } from "react";
+import { faHome } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import { Box, Collapse, Drawer } from "@mui/material";
 
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
@@ -21,6 +21,7 @@ import { InboxIcon } from "../../icons/inbox-icon";
 import { NoteIcon } from "../../icons/note-icon";
 import { useNotificationEntities } from "../../notification-entities-context";
 import { useRoutePageInfo } from "../../routing";
+
 import { AccountEntitiesList } from "./account-entities-list";
 import { AccountEntityTypeList } from "./account-entity-type-list";
 import { AccountPageList } from "./account-page-list/account-page-list";
@@ -30,7 +31,7 @@ import { WorkspaceSwitcher } from "./workspace-switcher";
 
 export const SIDEBAR_WIDTH = 260;
 
-type NavLinkDefinition = {
+interface NavLinkDefinition {
   title: string;
   path: string;
   activeIfPathMatches?: RegExp;
@@ -38,7 +39,7 @@ type NavLinkDefinition = {
   tooltipTitle?: string;
   count?: number;
   children?: Omit<NavLinkDefinition, "children" | "icon">[];
-};
+}
 
 const isNavLinkActive = ({
   definition,
@@ -49,10 +50,10 @@ const isNavLinkActive = ({
 }): boolean =>
   definition.path === currentPath ||
   (definition.activeIfPathMatches &&
-    !!currentPath.match(definition.activeIfPathMatches)) ||
-  !!definition.children?.some((child) =>
+    Boolean(currentPath.match(definition.activeIfPathMatches))) ||
+  Boolean(definition.children?.some((child) =>
     isNavLinkActive({ definition: child, currentPath }),
-  );
+  ));
 
 export const PageSidebar: FunctionComponent = () => {
   const router = useRouter();
@@ -168,9 +169,10 @@ export const PageSidebar: FunctionComponent = () => {
 
   return (
     <Drawer
-      variant="persistent"
-      anchor="left"
+      variant={"persistent"}
+      anchor={"left"}
       open={sidebarOpen}
+      data-testid={"page-sidebar"}
       sx={{
         zIndex: 0,
         width: SIDEBAR_WIDTH,
@@ -184,7 +186,6 @@ export const PageSidebar: FunctionComponent = () => {
           borderRight: `1px solid ${theme.palette.gray[20]}`,
         }),
       }}
-      data-testid="page-sidebar"
     >
       <Box
         sx={{
@@ -198,7 +199,7 @@ export const PageSidebar: FunctionComponent = () => {
         <Box sx={{ flex: 1 }}>
           <WorkspaceSwitcher />
         </Box>
-        <IconButton aria-hidden size="medium" onClick={closeSidebar}>
+        <IconButton aria-hidden size={"medium"} onClick={closeSidebar}>
           <SidebarToggleIcon />
         </IconButton>
       </Box>

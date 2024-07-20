@@ -35,8 +35,8 @@ export const LinkedEntityListRow = ({
       <ValueChip imageSrc={imageSrc} selected={false} title={title} />
 
       <Box
-        className="actions"
-        display="flex"
+        className={"actions"}
+        display={"flex"}
         sx={{
           visibility: "hidden",
           position: "absolute",
@@ -50,7 +50,7 @@ export const LinkedEntityListRow = ({
         }}
       >
         <Box sx={{ display: "flex", background: "white" }}>
-          <RowAction tooltip="Delete" icon={faTrash} onClick={onDelete} />
+          <RowAction tooltip={"Delete"} icon={faTrash} onClick={onDelete} />
         </Box>
       </Box>
     </Box>

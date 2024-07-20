@@ -1,6 +1,7 @@
 import type { CustomCell, DrawArgs } from "@glideapps/glide-data-grid";
 
 import { getYCenter } from "../utils";
+
 import type { CustomIcon } from "./custom-grid-icons";
 
 interface DrawTextWithIconParams {
@@ -31,6 +32,7 @@ export const drawTextWithIcon = ({
   const textLeft = iconSize + gap + iconLeft;
 
   const fgIconHeader = iconColor ?? theme.textHeader;
+
   args.spriteManager.drawSprite(
     icon,
     "normal",

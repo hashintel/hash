@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import {
@@ -13,19 +14,14 @@ import {
 import type {
   AggregatedUsageByTask,
   AggregatedUsageRecord,
-} from "@local/hash-isomorphic-utils/service-usage";
-import {
   getAggregateUsageRecordsByServiceFeature,
-  getAggregateUsageRecordsByTask,
-} from "@local/hash-isomorphic-utils/service-usage";
+  getAggregateUsageRecordsByTask} from "@local/hash-isomorphic-utils/service-usage";
 import type { UsageRecord } from "@local/hash-isomorphic-utils/system-types/usagerecord";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type { EntityRootType , extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { useMemo } from "react";
 
 import { useHashInstance } from "../../components/hooks/use-hash-instance";
 import type {
@@ -34,13 +30,13 @@ import type {
 } from "../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 
-type UsageByFlowRunId = {
+interface UsageByFlowRunId {
   [flowRunId: EntityUuid]: {
     recordsByTask: AggregatedUsageByTask[];
     recordsByServiceFeature: AggregatedUsageRecord[];
     total: number;
   };
-};
+}
 
 export const useFlowRunsUsage = ({
   flowRunIds,
@@ -53,7 +49,7 @@ export const useFlowRunsUsage = ({
 } => {
   const { isUserAdmin } = useHashInstance();
 
-  const available = !!(process.env.NEXT_PUBLIC_SHOW_WORKER_COST ?? isUserAdmin);
+  const available = Boolean(process.env.NEXT_PUBLIC_SHOW_WORKER_COST ?? isUserAdmin);
 
   const { data, loading } = useQuery<
     GetEntitySubgraphQuery,
@@ -152,8 +148,9 @@ export const useFlowRunsUsage = ({
       });
 
       let total = 0;
+
       for (const aggregatedUsageRecordForFlowRun of aggregatedUsageRecordsForFlowRun) {
-        total += aggregatedUsageRecordForFlowRun.totalCostInUsd;
+        total = total + aggregatedUsageRecordForFlowRun.totalCostInUsd;
       }
 
       usageByFlowRunId[flowRunId] = {

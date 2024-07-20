@@ -1,3 +1,6 @@
+import { useRouter } from "next/router";
+import { NextSeo } from "next-seo";
+import { useRef } from "react";
 import { useMutation } from "@apollo/client";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { PropertyPatchOperation } from "@local/hash-graph-types/entity";
@@ -5,9 +8,6 @@ import {
   blockProtocolPropertyTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { useRouter } from "next/router";
-import { NextSeo } from "next-seo";
-import { useRef } from "react";
 
 import { useOrgs } from "../../../../components/hooks/use-orgs";
 import type {
@@ -20,8 +20,7 @@ import { useUserPermissionsOnEntity } from "../../../../shared/use-user-permissi
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../../shared/settings-layout";
 import { SettingsPageContainer } from "../../shared/settings-page-container";
-import type { OrgFormData } from "../shared/org-form";
-import { OrgForm } from "../shared/org-form";
+import type { OrgForm,OrgFormData  } from "../shared/org-form";
 
 const OrgGeneralSettingsPage: NextPageWithLayout = () => {
   const router = useRouter();
@@ -47,12 +46,14 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
   if (!org) {
     // @todo show a 404 page
     void router.push("/");
+
     return null;
   }
 
   const updateOrg = async (orgData: OrgFormData) => {
     const propertyPatches: PropertyPatchOperation[] = [];
     const { description, location, name, websiteUrl } = orgData;
+
     for (const [key, value] of typedEntries({
       description,
       location,
@@ -99,15 +100,15 @@ const OrgGeneralSettingsPage: NextPageWithLayout = () => {
 
       <SettingsPageContainer
         heading={org.name}
-        sectionLabel="General"
+        sectionLabel={"General"}
         ref={topRef}
       >
         <OrgForm
           key={org.entity.metadata.recordId.entityId}
           org={org}
-          onSubmit={updateOrg}
           readonly={!userPermissions?.edit}
-          submitLabel="Update organization profile"
+          submitLabel={"Update organization profile"}
+          onSubmit={updateOrg}
         />
       </SettingsPageContainer>
     </>

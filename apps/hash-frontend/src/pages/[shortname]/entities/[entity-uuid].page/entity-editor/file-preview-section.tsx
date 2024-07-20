@@ -1,3 +1,4 @@
+import type { PropsWithChildren , useState } from "react";
 import {
   ArrowLeftIcon,
   DownloadIconRegular,
@@ -17,8 +18,6 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import type { PropsWithChildren } from "react";
-import { useState } from "react";
 
 import {
   useFileUploads,
@@ -29,13 +28,14 @@ import { useAuthInfo } from "../../../../shared/auth-info-context";
 import { getFileProperties } from "../../../../shared/get-file-properties";
 import { GrayToBlueIconButton } from "../../../../shared/gray-to-blue-icon-button";
 import { SectionWrapper } from "../../../shared/section-wrapper";
+
 import { useEntityEditor } from "./entity-editor-context";
 
 const previewHeight = 250;
 
 const ActionButtonsContainer = ({ children }: PropsWithChildren) => (
   <Stack
-    direction="row"
+    direction={"row"}
     spacing={1}
     sx={{
       position: "absolute",
@@ -99,6 +99,7 @@ const ReplaceFile = ({
         const {
           createdEntities: { fileEntity },
         } = response;
+
         onEntityUpdated?.(fileEntity);
       }
     } finally {
@@ -117,7 +118,7 @@ const ReplaceFile = ({
         <CircularProgress
           color={upload?.status === "error" ? "error" : "primary"}
           size={72}
-          variant="determinate"
+          variant={"determinate"}
           value={progress}
         />
         <Box
@@ -133,7 +134,7 @@ const ReplaceFile = ({
           }}
         >
           <Typography
-            variant="smallTextLabels"
+            variant={"smallTextLabels"}
             sx={{ fontWeight: 500, mb: 1 }}
           >{`${(progress ?? 0).toFixed(0)}%`}</Typography>
         </Box>
@@ -145,7 +146,7 @@ const ReplaceFile = ({
     <>
       <FileUploadDropzone image={isImage} onFileProvided={onFileProvided} />
       <ActionButtonsContainer>
-        <Tooltip title="Cancel">
+        <Tooltip title={"Cancel"}>
           <Box>
             <GrayToBlueIconButton onClick={close}>
               <ArrowLeftIcon sx={{ width: 13, height: 13 }} />
@@ -179,7 +180,7 @@ export const FilePreviewSection = () => {
   const alt = description ?? title;
 
   return (
-    <SectionWrapper title="File Preview">
+    <SectionWrapper title={"File Preview"}>
       <Stack
         sx={({ boxShadows }) => ({
           alignItems: "center",
@@ -192,16 +193,16 @@ export const FilePreviewSection = () => {
       >
         {replacing ? (
           <ReplaceFile
-            close={() => setReplacing(false)}
+            close={() => { setReplacing(false); }}
             description={description}
             displayName={displayName}
-            isImage={!!isImage}
+            isImage={Boolean(isImage)}
           />
         ) : (
           <>
             <ActionButtonsContainer>
               <Tooltip
-                placement="top"
+                placement={"top"}
                 title={
                   isDirty
                     ? "Save or discard your changes to replace the file"
@@ -211,18 +212,18 @@ export const FilePreviewSection = () => {
                 <Box>
                   <GrayToBlueIconButton
                     disabled={isDirty}
-                    onClick={() => setReplacing(true)}
+                    onClick={() => { setReplacing(true); }}
                   >
                     <RotateIconRegular sx={{ width: 13, height: 13 }} />
                   </GrayToBlueIconButton>
                 </Box>
               </Tooltip>
-              <Tooltip placement="top" title="Download">
+              <Tooltip placement={"top"} title={"Download"}>
                 <Box
-                  component="a"
+                  component={"a"}
                   href={fileUrl}
-                  target="_blank"
-                  rel="nofollow noopener noreferrer"
+                  target={"_blank"}
+                  rel={"nofollow noopener noreferrer"}
                 >
                   <GrayToBlueIconButton>
                     <DownloadIconRegular sx={{ width: 13, height: 13 }} />
@@ -237,7 +238,7 @@ export const FilePreviewSection = () => {
                 sx={{ height: previewHeight }}
               />
             ) : (
-              <Stack alignItems="center" spacing={2}>
+              <Stack alignItems={"center"} spacing={2}>
                 <FileIconRegular
                   sx={{
                     color: ({ palette }) => palette.gray[50],

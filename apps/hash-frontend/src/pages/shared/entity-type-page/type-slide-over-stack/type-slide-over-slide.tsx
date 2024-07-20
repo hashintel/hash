@@ -1,3 +1,4 @@
+import type { FunctionComponent , useCallback, useMemo, useState } from "react";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   ArrowLeftIcon,
@@ -9,9 +10,8 @@ import {
   OntologyChip,
   parseUrlForOntologyChip,
 } from "@hashintel/design-system";
-import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
-import {
-  EntityTypeEditor,
+import type {   EntityTypeEditor,
+EntityTypeEditorFormData ,
   EntityTypeFormProvider,
   getFormDataFromEntityType,
   useEntityTypeForm,
@@ -19,8 +19,6 @@ import {
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, ButtonBase, Slide, Tooltip } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo, useState } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { Link } from "../../../../shared/ui";
@@ -57,11 +55,11 @@ const CopyableOntologyChip: FunctionComponent<{
   }, [entityType]);
 
   return (
-    <Box display="flex" alignItems="center" columnGap={1}>
+    <Box display={"flex"} alignItems={"center"} columnGap={1}>
       <Tooltip
         open={copyTooltipIsOpen}
         title={tooltipTitle}
-        placement="top"
+        placement={"top"}
         slotProps={{
           tooltip: {
             sx: {
@@ -73,13 +71,13 @@ const CopyableOntologyChip: FunctionComponent<{
       >
         <ButtonBase
           onClick={handleCopyEntityTypeUrl}
-          onMouseEnter={() => setCopyTooltipIsOpen(true)}
-          onMouseLeave={() => setCopyTooltipIsOpen(false)}
+          onMouseEnter={() => { setCopyTooltipIsOpen(true); }}
+          onMouseLeave={() => { setCopyTooltipIsOpen(false); }}
         >
           <OntologyChip {...ontology} />
         </ButtonBase>
       </Tooltip>
-      <Link href={entityType.schema.$id} target="_blank">
+      <Link href={entityType.schema.$id} target={"_blank"}>
         <IconButton
           sx={{
             padding: 0,
@@ -174,6 +172,7 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
     if (!dataTypes) {
       return null;
     }
+
     return Object.fromEntries(
       Object.entries(dataTypes).map(([key, value]) => [key, value.schema]),
     );
@@ -186,8 +185,8 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
   return (
     <Slide
       in={open && !animateOut}
-      direction="left"
-      onClick={(event) => event.stopPropagation()}
+      direction={"left"}
+      onClick={(event) => { event.stopPropagation(); }}
     >
       <Box
         sx={{
@@ -204,26 +203,26 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
         <Box
           paddingX={4}
           paddingY={2}
-          display="flex"
-          justifyContent="space-between"
+          display={"flex"}
+          justifyContent={"space-between"}
         >
-          <Box display="flex" justifyContent="space-between" gap={1}>
+          <Box display={"flex"} justifyContent={"space-between"} gap={1}>
             {(onBack ?? onForward) ? (
-              <Tooltip title="Back" placement="bottom">
+              <Tooltip title={"Back"} placement={"bottom"}>
                 <IconButton disabled={!onBack} onClick={handleBackClick}>
                   <ArrowLeftIcon />
                 </IconButton>
               </Tooltip>
             ) : null}
             {onForward ? (
-              <Tooltip title="Forward" placement="bottom">
+              <Tooltip title={"Forward"} placement={"bottom"}>
                 <IconButton onClick={onForward}>
                   <ArrowRightIconRegular />
                 </IconButton>
               </Tooltip>
             ) : null}
           </Box>
-          <Tooltip title="Close" placement="bottom">
+          <Tooltip title={"Close"} placement={"bottom"}>
             <IconButton onClick={onClose}>
               <CloseIcon />
             </IconButton>
@@ -247,27 +246,27 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
             <EntityTypeFormProvider {...formMethods}>
               <EntityTypeContext.Provider value={remoteEntityType.schema}>
                 <EntityTypeHeader
-                  isDraft={false}
                   isPreviewSlide
+                  isReadonly
+                  isDraft={false}
+                  entityTypeSchema={remoteEntityType.schema}
                   isLink={
-                    !!entityTypesContext.isSpecialEntityTypeLookup?.[
+                    Boolean(entityTypesContext.isSpecialEntityTypeLookup?.[
                       remoteEntityType.schema.$id
-                    ]?.isFile
+                    ]?.isFile)
                   }
                   ontologyChip={
                     <CopyableOntologyChip entityType={remoteEntityType} />
                   }
-                  entityTypeSchema={remoteEntityType.schema}
-                  isReadonly
                 />
                 <EntityTypeEditor
+                  readonly
                   customization={{ onNavigateToType }}
                   dataTypeOptions={dataTypeOptions}
                   entityType={remoteEntityType}
                   entityTypeOptions={entityTypeOptions}
                   ontologyFunctions={null}
                   propertyTypeOptions={remotePropertyTypes}
-                  readonly
                 />
               </EntityTypeContext.Provider>
             </EntityTypeFormProvider>

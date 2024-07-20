@@ -1,9 +1,8 @@
+import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type { Simplified } from "@local/hash-isomorphic-utils/simplify-properties";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import type { Simplified , simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { HASHInstance } from "@local/hash-isomorphic-utils/system-types/hashinstance";
-import { useMemo } from "react";
 
 import type {
   GetHashInstanceSettingsQueryQuery,
@@ -48,6 +47,6 @@ export const useHashInstance = (): {
   return {
     loading,
     hashInstance,
-    isUserAdmin: !!hashInstanceSettings?.isUserAdmin,
+    isUserAdmin: Boolean(hashInstanceSettings?.isUserAdmin),
   };
 };

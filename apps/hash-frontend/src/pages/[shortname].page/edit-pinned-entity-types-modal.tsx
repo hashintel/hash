@@ -1,3 +1,11 @@
+import type { FunctionComponent, ReactElement , useCallback, useEffect, useRef, useState } from "react";
+import type {
+ DragDropContext, Draggable,   DraggableProvided,
+  DraggingStyle,
+Droppable,  NotDraggingStyle,
+  OnDragEndResponder } from "react-beautiful-dnd";
+import { createPortal } from "react-dom";
+import { useFieldArray, useForm } from "react-hook-form";
 import { useMutation } from "@apollo/client";
 import { AsteriskRegularIcon, IconButton } from "@hashintel/design-system";
 import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
@@ -7,19 +15,7 @@ import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { ModalProps } from "@mui/material";
-import { Box, Typography, typographyClasses } from "@mui/material";
-import type { FunctionComponent, ReactElement } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import type {
-  DraggableProvided,
-  DraggingStyle,
-  NotDraggingStyle,
-  OnDragEndResponder,
-} from "react-beautiful-dnd";
-import { DragDropContext, Draggable, Droppable } from "react-beautiful-dnd";
-import { createPortal } from "react-dom";
-import { useFieldArray, useForm } from "react-hook-form";
+import type { Box, ModalProps , Typography, typographyClasses } from "@mui/material";
 
 import { useBlockProtocolCreateEntityType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
 import type {
@@ -71,13 +67,14 @@ const useDraggableInPortal = () => {
       if ("position" in style) {
         return createPortal(result, element);
       }
+
       return result;
     };
 };
 
-type PinnedEntityTypesFormData = {
+interface PinnedEntityTypesFormData {
   pinnedEntityTypes: EntityTypeWithMetadata[];
-};
+}
 
 export const EditPinnedEntityTypesModal: FunctionComponent<
   Omit<ModalProps, "children" | "onClose"> & {
@@ -178,7 +175,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
         return;
       }
 
-      const items = Array.from(fields);
+      const items = [...fields];
       const [reorderedItem] = items.splice(result.source.index, 1);
 
       if (!reorderedItem) {
@@ -243,15 +240,15 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
     >
       <Box>
         <Box
-          id="test-pinned-entity-types"
-          component="form"
-          onSubmit={innerSubmit}
+          id={"test-pinned-entity-types"}
+          component={"form"}
           padding={3}
           paddingTop={2.25}
+          onSubmit={innerSubmit}
         >
           <ProfileSectionHeading>Types</ProfileSectionHeading>
           <DragDropContext onDragEnd={handleOnDragEnd}>
-            <Droppable droppableId="pinnedEntityTypes">
+            <Droppable droppableId={"pinnedEntityTypes"}>
               {(providedDroppable) => (
                 <Box
                   {...providedDroppable.droppableProps}
@@ -273,8 +270,8 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                       {renderDraggable((provided) => (
                         <Box
                           ref={provided.innerRef}
-                          display="flex"
-                          alignItems="center"
+                          display={"flex"}
+                          alignItems={"center"}
                           {...provided.draggableProps}
                         >
                           <Box
@@ -293,13 +290,13 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                           </Box>
                           <Link
                             noLinkStyle
-                            target="_blank"
+                            target={"_blank"}
                             href={generateLinkParameters(field.schema.$id).href}
                             sx={{ flexGrow: 1, marginLeft: 1 }}
                           >
                             <Box
-                              display="flex"
-                              alignItems="center"
+                              display={"flex"}
+                              alignItems={"center"}
                               columnGap={1.5}
                               sx={{
                                 display: "flex",
@@ -353,7 +350,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                               <ArrowUpRightRegularIcon sx={{ fontSize: 14 }} />
                             </Box>
                           </Link>
-                          <IconButton onClick={() => remove(index)}>
+                          <IconButton onClick={() => { remove(index); }}>
                             <XMarkRegularIcon />
                           </IconButton>
                         </Box>
@@ -366,38 +363,38 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
             </Droppable>
             {displayEntityTypesSearch ? (
               <EntityTypeSelector
+                disableCreateNewEmpty
                 excludeEntityTypeIds={[
                   ...fields.map(({ schema }) => schema.$id),
                   systemEntityTypes.page.entityTypeId,
                 ]}
-                disableCreateNewEmpty
+                sx={{
+                  maxWidth: "unset",
+                }}
+                onCancel={() => { setDisplayEntityTypesSearch(false); }}
+                onCreateNew={handleCreateNewEntityType}
                 onSelect={(entityType) => {
                   append(entityType);
                   setDisplayEntityTypesSearch(false);
                 }}
-                onCancel={() => setDisplayEntityTypesSearch(false)}
-                onCreateNew={handleCreateNewEntityType}
-                sx={{
-                  maxWidth: "unset",
-                }}
               />
             ) : (
               <Button
-                onClick={() => setDisplayEntityTypesSearch(true)}
-                variant="tertiary"
-                size="xs"
+                variant={"tertiary"}
+                size={"xs"}
                 startIcon={<PlusRegularIcon />}
                 disabled={fields.length >= 5}
+                onClick={() => { setDisplayEntityTypesSearch(true); }}
               >
                 Add {fields.length === 0 ? "type" : "another"}
               </Button>
             )}
           </DragDropContext>
-          <Box display="flex" columnGap={1.25} marginTop={3}>
-            <Button type="submit" loading={loading} disabled={isSubmitDisabled}>
+          <Box display={"flex"} columnGap={1.25} marginTop={3}>
+            <Button type={"submit"} loading={loading} disabled={isSubmitDisabled}>
               Save changes
             </Button>
-            <Button variant="tertiary" onClick={handleDiscard}>
+            <Button variant={"tertiary"} onClick={handleDiscard}>
               {Object.keys(formState.dirtyFields).length === 0
                 ? "Cancel"
                 : "Discard"}

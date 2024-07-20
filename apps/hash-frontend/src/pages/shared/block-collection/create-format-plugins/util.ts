@@ -1,13 +1,12 @@
-import { isComponentNode } from "@local/hash-isomorphic-utils/prosemirror";
 import { InputRule } from "prosemirror-inputrules";
 import type { Mark, Node } from "prosemirror-model";
-import type { EditorState } from "prosemirror-state";
-import { TextSelection } from "prosemirror-state";
+import type { EditorState , TextSelection } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 import urlRegexSafe from "url-regex-safe";
+import { isComponentNode } from "@local/hash-isomorphic-utils/prosemirror";
 
 export const selectionContainsText = (state: EditorState) => {
-  const content = state.selection.content().content;
+  const {content} = state.selection.content();
   let containsText = false;
 
   content.descendants((node) => {
@@ -25,6 +24,7 @@ export const selectionContainsText = (state: EditorState) => {
           containsText = true;
         }
       });
+
       return false;
     }
 
@@ -40,6 +40,7 @@ export function isValidLink(text: string) {
 
 export function getActiveMarksWithAttrs(editorState: EditorState) {
   const activeMarks: { name: string; attrs?: Record<string, string> }[] = [];
+
   editorState.selection.content().content.descendants((node: Node) => {
     for (const mark of node.marks) {
       activeMarks.push({
@@ -115,8 +116,8 @@ export function removeLink(editorView: EditorView) {
 
       let targetMark: Mark | null = null;
 
-      for (let idx = nodesBefore.length - 1; idx >= 0; idx--) {
-        const [pos, node] = nodesBefore[idx]!;
+      for (let index = nodesBefore.length - 1; index >= 0; index--) {
+        const [pos, node] = nodesBefore[index]!;
 
         let linkMark: Mark | null;
 
@@ -136,8 +137,8 @@ export function removeLink(editorView: EditorView) {
         }
       }
 
-      for (let idx = 0; idx < nodesAfter.length; idx++) {
-        const [pos, node] = nodesAfter[idx]!;
+      for (const element of nodesAfter) {
+        const [pos, node] = element;
 
         let linkMark: Mark | null;
 
@@ -156,8 +157,8 @@ export function removeLink(editorView: EditorView) {
         }
       }
 
-      startPosition += $cursor.start($cursor.depth);
-      endPosition += $cursor.start($cursor.depth);
+      startPosition = startPosition + $cursor.start($cursor.depth);
+      endPosition = endPosition + $cursor.start($cursor.depth);
 
       tr.removeMark(startPosition, endPosition, linkMarkType);
     } else {
@@ -173,13 +174,14 @@ export function linkInputRule() {
   return new InputRule(
     new RegExp(`${urlRegexSafe({ returnString: true })}\\s$`),
     (state, match, start, end) => {
-      const attrs = { href: match[0].slice(0, -1) };
-      const tr = state.tr;
+      const attributes = { href: match[0].slice(0, -1) };
+      const {tr} = state;
       let newEnd = end;
 
       if (match[1]) {
         const textStart = start + match[0].indexOf(match[1]);
         const textEnd = textStart + match[1].length;
+
         if (textEnd < newEnd) {
           tr.delete(textEnd, newEnd);
         }
@@ -189,9 +191,10 @@ export function linkInputRule() {
         newEnd = start + match[1].length;
       }
 
-      tr.addMark(start, newEnd, state.schema.marks.link!.create(attrs));
+      tr.addMark(start, newEnd, state.schema.marks.link!.create(attributes));
       // insert space at the end
       tr.insertText(" ", newEnd);
+
       return tr;
     },
   );

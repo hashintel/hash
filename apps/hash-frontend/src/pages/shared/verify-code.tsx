@@ -1,17 +1,16 @@
-import { Box } from "@mui/material";
 import type {
   ClipboardEventHandler,
   FormEvent,
   FunctionComponent,
-} from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
+ useCallback, useEffect, useRef, useState } from "react";
+import { Box } from "@mui/material";
 
 import { KeyboardReturnIcon } from "../../shared/icons";
-import type { InvitationInfo } from "./auth-utils";
-import { SYNTHETIC_LOADING_TIME_MS } from "./auth-utils";
+
+import type { InvitationInfo , SYNTHETIC_LOADING_TIME_MS } from "./auth-utils";
 import { InviteHeader } from "./invite-header";
 
-type VerifyCodeProps = {
+interface VerifyCodeProps {
   defaultCode?: string;
   goBack: () => void;
   loading: boolean;
@@ -21,15 +20,16 @@ type VerifyCodeProps = {
   requestCode: () => void | Promise<void>;
   requestCodeLoading: boolean;
   invitationInfo: InvitationInfo | null;
-};
+}
 
 const isShortname = (identifier: string) => !identifier.includes("@");
 
 const parseVerificationCodeInput = (inputCode: string) =>
-  inputCode.replace(/\s/g, "");
+  inputCode.replaceAll(/\s/g, "");
 
 const doesVerificationCodeLookValid = (code: string) => {
   const units = code.split("-");
+
   return units.length >= 4 && units[3]!.length > 0;
 };
 
@@ -54,8 +54,8 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
 
   const updateState = useCallback((newState: Partial<typeof state>) => {
-    setState((prevState) => ({
-      ...prevState,
+    setState((previousState) => ({
+      ...previousState,
       ...newState,
     }));
   }, []);
@@ -69,8 +69,8 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
     [text],
   );
 
-  const onSubmit = (evt: FormEvent) => {
-    evt.preventDefault();
+  const onSubmit = (event: FormEvent) => {
+    event.preventDefault();
     handleSubmit(text);
   };
 
@@ -81,8 +81,8 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
       try {
         await requestCode();
         updateState({ emailResent: true, syntheticLoading: false });
-        setTimeout(() => updateState({ emailResent: false }), 5000);
-      } catch (err) {
+        setTimeout(() => { updateState({ emailResent: false }); }, 5000);
+      } catch (error) {
         updateState({ syntheticLoading: false });
       }
     }, SYNTHETIC_LOADING_TIME_MS);
@@ -99,11 +99,13 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
 
     setImmediate(() => {
       const valueAfterPasting = currentTarget.value;
+
       if (!valueAfterPasting || originalValue === valueAfterPasting) {
         return;
       }
 
       const pastedCode = parseVerificationCodeInput(valueAfterPasting);
+
       if (doesVerificationCodeLookValid(pastedCode)) {
         handleSubmit(pastedCode, true);
       }
@@ -118,8 +120,8 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
           backgroundColor: "#ffffff",
           borderRadius: "1rem",
           /**
-           * @todo use shadows from MUI theme
            * @see https://linear.app/hash/issue/H-2999
+           * @todo Use shadows from MUI theme.
            */
           boxShadow:
             "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)",
@@ -131,7 +133,7 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
         }}
       >
         <div style={{ width: "66.666667%" }}>
-          {!!invitationInfo && <InviteHeader invitationInfo={invitationInfo} />}
+          {Boolean(invitationInfo) && <InviteHeader invitationInfo={invitationInfo} />}
           <p style={{ fontWeight: "700" }}>
             A verification code has been sent to{" "}
             <span>
@@ -146,7 +148,10 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
           </p>
           <form style={{ position: "relative" }} onSubmit={onSubmit}>
             <Box
-              component="input"
+              component={"input"}
+              value={text}
+              ref={inputRef}
+              data-testid={"verify-code-input"}
               sx={{
                 borderColor: "#D1D5DB",
                 borderStyle: "solid",
@@ -167,17 +172,15 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
                   borderColor: "#3B82F6",
                 },
               }}
-              onChange={({ target }) =>
-                updateState({ text: parseVerificationCodeInput(target.value) })
-              }
               onPaste={handleInputPaste}
-              value={text}
-              ref={inputRef}
-              data-testid="verify-code-input"
+              onChange={({ target }) =>
+                { updateState({ text: parseVerificationCodeInput(target.value) }); }
+              }
             />
             <Box
-              component="button"
-              type="submit"
+              component={"button"}
+              type={"submit"}
+              disabled={!isInputValid() || loading}
               sx={{
                 alignItems: "center",
                 backgroundColor: "transparent",
@@ -211,7 +214,6 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
                   color: "#2563EB",
                 },
               }}
-              disabled={!isInputValid() || loading}
             >
               {loading ? (
                 <span style={{ marginRight: "0.25rem" }}>Loading</span>
@@ -238,8 +240,8 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
       </div>
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <Box
-          component="button"
-          type="button"
+          component={"button"}
+          type={"button"}
           sx={{
             backgroundColor: "transparent",
             borderColor: "transparent",
@@ -269,8 +271,9 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
           <div style={{ display: "flex", alignItems: "center" }}>
             <span style={{ marginRight: "0.25rem" }}>No email yet?</span>
             <Box
-              component="button"
-              type="button"
+              component={"button"}
+              type={"button"}
+              disabled={requestCodeLoading || syntheticLoading}
               sx={{
                 alignItems: "center",
                 backgroundColor: "transparent",
@@ -290,7 +293,6 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
                 },
               }}
               onClick={handleResendCode}
-              disabled={requestCodeLoading || syntheticLoading}
             >
               <span>Resend email</span>
             </Box>

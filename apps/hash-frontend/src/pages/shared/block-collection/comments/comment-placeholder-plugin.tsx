@@ -1,13 +1,13 @@
-import { Typography } from "@mui/material";
 import { Plugin, PluginKey } from "prosemirror-state";
 import { Decoration, DecorationSet } from "prosemirror-view";
+import { Typography } from "@mui/material";
 
 import type { RenderPortal } from "../block-portals";
 
-export type CommentPlaceholderAction = {
+export interface CommentPlaceholderAction {
   type: "replacePlaceholder";
   payload: { placeholder: string };
-};
+}
 
 interface CommentPlaceholderState {
   placeholder: string;
@@ -26,14 +26,15 @@ export const commentPlaceholderPlugin = (renderPortal: RenderPortal) =>
           placeholder: "",
         };
       },
-      apply(tr, state, _prevEditorState) {
+      apply(tr, state, _previousEditorState) {
         const action: CommentPlaceholderAction | undefined = tr.getMeta(
           commentPlaceholderPluginkey,
         );
 
         switch (action?.type) {
-          case "replacePlaceholder":
+          case "replacePlaceholder": {
             return { ...state, placeholder: action.payload.placeholder };
+          }
         }
 
         return state;
@@ -41,7 +42,7 @@ export const commentPlaceholderPlugin = (renderPortal: RenderPortal) =>
     },
     props: {
       decorations(state) {
-        const doc = state.doc;
+        const {doc} = state;
 
         if (doc.content.size === 0) {
           const placeholder =
@@ -54,7 +55,7 @@ export const commentPlaceholderPlugin = (renderPortal: RenderPortal) =>
 
               renderPortal(
                 <Typography
-                  component="span"
+                  component={"span"}
                   sx={{
                     fontSize: "inherit",
                     color: ({ palette }) => palette.gray[70],
@@ -68,9 +69,9 @@ export const commentPlaceholderPlugin = (renderPortal: RenderPortal) =>
               return mountNode;
             },
             /**
-             * passing a key prevents a focus related bug, by preventing re-creation of the dom node
-             * the placeholder is included inside the key so the node is re-created when it changes
-             * */
+             * Passing a key prevents a focus related bug, by preventing re-creation of the dom node
+             * the placeholder is included inside the key so the node is re-created when it changes.
+              */
             {
               key: `comment-placeholder-${placeholder}`,
               destroy: (node) => {

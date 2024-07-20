@@ -1,3 +1,4 @@
+import { useCallback, useMemo, useState } from "react";
 import { useMutation } from "@apollo/client";
 import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
 import {
@@ -6,11 +7,9 @@ import {
 } from "@local/hash-graph-sdk/entity";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import type { EntityRootType, extractOwnedByIdFromEntityId,Subgraph  } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Drawer, Stack, Typography } from "@mui/material";
-import { useCallback, useMemo, useState } from "react";
 
 import { useUserOrOrgShortnameByOwnedById } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import type {
@@ -19,6 +18,7 @@ import type {
 } from "../../../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
 import { Button, Link } from "../../../../shared/ui";
+
 import { EntityEditor } from "./entity-editor";
 import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
 import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-entity-changes";
@@ -33,7 +33,7 @@ interface EditEntitySlideOverProps {
 }
 
 /**
- * @todo move this to a shared location (it's also used in the Flows output and draft entities views)
+ * @todo Move this to a shared location (it's also used in the Flows output and draft entities views).
  */
 export const EditEntitySlideOver = ({
   open,
@@ -48,10 +48,10 @@ export const EditEntitySlideOver = ({
   const [savingChanges, setSavingChanges] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
-  const [prevOpen, setPrevOpen] = useState(open);
+  const [previousOpen, setPreviousOpen] = useState(open);
 
-  if (prevOpen !== open) {
-    setPrevOpen(open);
+  if (previousOpen !== open) {
+    setPreviousOpen(open);
 
     // reset state before opening modal
     if (open) {
@@ -125,7 +125,7 @@ export const EditEntitySlideOver = ({
         draftLinksToArchive,
       );
 
-      /** @todo add validation here */
+      /** @todo Add validation here */
       const updateEntityResponse = await updateEntity({
         variables: {
           entityUpdate: {
@@ -148,7 +148,7 @@ export const EditEntitySlideOver = ({
 
       resetEntityEditor();
       onSubmit();
-    } catch (err) {
+    } catch (error) {
       setSavingChanges(false);
     }
   }, [
@@ -163,13 +163,12 @@ export const EditEntitySlideOver = ({
   ]);
 
   const submitDisabled =
-    !isDirty && !draftLinksToCreate.length && !draftLinksToArchive.length;
+    !isDirty && draftLinksToCreate.length === 0 && draftLinksToArchive.length === 0;
 
   return (
     <Drawer
       open={open}
-      onClose={onClose}
-      anchor="right"
+      anchor={"right"}
       PaperProps={{
         sx: (theme) => ({
           p: 5,
@@ -181,19 +180,20 @@ export const EditEntitySlideOver = ({
           },
         }),
       }}
+      onClose={onClose}
     >
-      <Stack alignItems="center" direction="row">
-        <Typography variant="h2" color="gray.90" fontWeight="bold">
+      <Stack alignItems={"center"} direction={"row"}>
+        <Typography variant={"h2"} color={"gray.90"} fontWeight={"bold"}>
           {entityLabel}
         </Typography>
         {entityOwningShortname && (
           <Link
+            target={"_blank"}
             href={generateEntityPath({
               shortname: entityOwningShortname,
               entityId: entity.metadata.recordId.entityId,
               includeDraftId: true,
             })}
-            target="_blank"
           >
             <ArrowUpRightRegularIcon
               sx={{
@@ -208,41 +208,41 @@ export const EditEntitySlideOver = ({
 
       <EntityEditor
         readonly={readonly}
-        onEntityUpdated={null}
         entitySubgraph={localEntitySubgraph}
-        setEntity={(newEntity) => {
-          setIsDirty(true);
-          updateEntitySubgraphStateByEntity(
-            newEntity,
-            (updatedEntitySubgraphOrFunction) => {
-              setLocalEntitySubgraph((prev) => {
-                const updatedEntitySubgraph =
-                  typeof updatedEntitySubgraphOrFunction === "function"
-                    ? updatedEntitySubgraphOrFunction(prev)
-                    : updatedEntitySubgraphOrFunction;
-
-                return updatedEntitySubgraph ?? prev;
-              });
-            },
-          );
-        }}
         isDirty={isDirty}
         draftLinksToCreate={draftLinksToCreate}
         setDraftLinksToCreate={setDraftLinksToCreate}
         draftLinksToArchive={draftLinksToArchive}
         setDraftLinksToArchive={setDraftLinksToArchive}
+        setEntity={(newEntity) => {
+          setIsDirty(true);
+          updateEntitySubgraphStateByEntity(
+            newEntity,
+            (updatedEntitySubgraphOrFunction) => {
+              setLocalEntitySubgraph((previous) => {
+                const updatedEntitySubgraph =
+                  typeof updatedEntitySubgraphOrFunction === "function"
+                    ? updatedEntitySubgraphOrFunction(previous)
+                    : updatedEntitySubgraphOrFunction;
+
+                return updatedEntitySubgraph ?? previous;
+              });
+            },
+          );
+        }}
+        onEntityUpdated={null}
       />
 
       {!readonly && (
-        <Stack direction="row" gap={3}>
+        <Stack direction={"row"} gap={3}>
           <Button
-            onClick={handleSaveChanges}
             loading={savingChanges}
             disabled={submitDisabled}
+            onClick={handleSaveChanges}
           >
             Save Changes
           </Button>
-          <Button onClick={handleCancel} variant="tertiary">
+          <Button variant={"tertiary"} onClick={handleCancel}>
             Cancel
           </Button>
         </Stack>

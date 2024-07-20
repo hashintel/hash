@@ -1,3 +1,5 @@
+import produce from "immer";
+import { useMemo, useState } from "react";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
 import { Entity } from "@local/hash-graph-sdk/entity";
@@ -12,12 +14,9 @@ import type {
   Timestamp,
 } from "@local/hash-graph-types/temporal-versioning";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
+import type { EntityRootType, extractDraftIdFromEntityId,Subgraph  } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
-import produce from "immer";
-import { useMemo, useState } from "react";
 
 import { getImageUrlFromEntityProperties } from "../../../../../../../../shared/get-file-properties";
 import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
@@ -26,6 +25,7 @@ import { AddAnotherButton } from "../../../../properties-section/property-table/
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
 import type { LinkedWithCell } from "../linked-with-cell";
 import { sortLinkAndTargetEntities } from "../sort-link-and-target-entities";
+
 import { LinkedEntityListRow } from "./linked-entity-list-editor/linked-entity-list-row";
 import { MaxItemsReached } from "./linked-entity-list-editor/max-items-reached";
 import { LinkedEntitySelector } from "./linked-entity-selector";
@@ -34,7 +34,7 @@ import { LinkedEntitySelector } from "./linked-entity-selector";
  * @todo - This is unsafe, and should be refactored to return a new type `DraftEntity`, so that we aren't
  *   breaking invariants and constraints. Having a disjoint type will let us rely on `tsc` properly and avoid casts
  *   and empty placeholder values below
- *   see https://linear.app/hash/issue/H-1083/draft-entities
+ *   see https://linear.app/hash/issue/H-1083/draft-entities.
  */
 export const createDraftLinkEntity = ({
   rightEntityId,
@@ -95,7 +95,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
     maxItems,
   } = cell.data.linkRow;
 
-  const [addingLink, setAddingLink] = useState(!linkAndTargetEntities.length);
+  const [addingLink, setAddingLink] = useState(linkAndTargetEntities.length === 0);
 
   const entity = useMemo(() => getRoots(entitySubgraph)[0]!, [entitySubgraph]);
 
@@ -111,7 +111,9 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
 
     // if same entity is already linked, do nothing
     if (alreadyLinked) {
-      return setAddingLink(false);
+      setAddingLink(false);
+
+ return;
     }
 
     const leftEntityId = entity.metadata.recordId.entityId;
@@ -129,13 +131,13 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
       sourceSubgraph,
     };
 
-    setDraftLinksToCreate((prev) => [...prev, newLinkAndTargetEntity]);
+    setDraftLinksToCreate((previous) => [...previous, newLinkAndTargetEntity]);
 
     setAddingLink(false);
 
     const newCell = produce(cell, (draftCell) => {
       /** @see https://github.com/immerjs/immer/issues/839 for ts-ignore reason */
-      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+       
       // @ts-ignore
       draftCell.data.linkRow.linkAndTargetEntities.push(newLinkAndTargetEntity);
     });
@@ -165,13 +167,14 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
         {sortedLinkAndTargetEntities.map(
           ({ rightEntity, linkEntity, sourceSubgraph }) => {
             const linkEntityId = linkEntity.metadata.recordId.entityId;
+
             return (
               <LinkedEntityListRow
                 key={linkEntityId}
+                title={generateEntityLabel(sourceSubgraph, rightEntity)}
                 imageSrc={getImageUrlFromEntityProperties(
                   rightEntity.properties,
                 )}
-                title={generateEntityLabel(sourceSubgraph, rightEntity)}
                 onDelete={() => {
                   const newCell = produce(cell, (draftCell) => {
                     draftCell.data.linkRow.linkAndTargetEntities =
@@ -195,18 +198,18 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
       {canAddMore &&
         (addingLink ? (
           <LinkedEntitySelector
-            includeDrafts={
-              !!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)
-            }
-            onSelect={onSelect}
-            onFinishedEditing={onFinishedEditing}
             expectedEntityTypes={expectedEntityTypes}
             entityIdsToFilterOut={linkedEntityIds}
             linkEntityTypeId={linkEntityTypeId}
+            includeDrafts={
+              Boolean(extractDraftIdFromEntityId(entity.metadata.recordId.entityId))
+            }
+            onSelect={onSelect}
+            onFinishedEditing={onFinishedEditing}
           />
         ) : (
           <AddAnotherButton
-            title="Add Another Link"
+            title={"Add Another Link"}
             onClick={() => {
               setAddingLink(true);
             }}

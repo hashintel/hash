@@ -1,7 +1,7 @@
-import { createComponent } from "@lit-labs/react";
-import type { FunctionComponent } from "react";
-// eslint-disable-next-line unicorn/import-style
+import React, type { FunctionComponent } from "react";
+ 
 import React, { useLayoutEffect, useRef, useState } from "react";
+import { createComponent } from "@lit-labs/react";
 
 import type { CustomElementDefinition } from "../util";
 
@@ -28,15 +28,16 @@ export const CustomElementLoader: FunctionComponent<
       return;
     }
     let existingCustomElement = customElements.get(tagName);
+
     if (!existingCustomElement) {
       try {
         customElements.define(tagName, elementClass);
-      } catch (err) {
-        // eslint-disable-next-line no-console -- TODO: consider using logger
+      } catch (error) {
+         
         console.error(
-          `Error defining custom element: ${(err as Error).message}`,
+          `Error defining custom element: ${(error as Error).message}`,
         );
-        throw err;
+        throw error;
       }
     } else if (existingCustomElement !== elementClass) {
       /**
@@ -45,18 +46,19 @@ export const CustomElementLoader: FunctionComponent<
        * This may break elements that rely on being defined with a specific name.
        */
       let i = 0;
+
       do {
         existingCustomElement = customElements.get(`${tagName}${i}`);
         i++;
       } while (existingCustomElement);
       try {
         customElements.define(`${tagName}${i}`, elementClass);
-      } catch (err) {
-        // eslint-disable-next-line no-console -- TODO: consider using logger
+      } catch (error) {
+         
         console.error(
-          `Error defining custom element: ${(err as Error).message}`,
+          `Error defining custom element: ${(error as Error).message}`,
         );
-        throw err;
+        throw error;
       }
     }
 

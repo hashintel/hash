@@ -1,3 +1,4 @@
+import type { FunctionComponent , useCallback, useEffect, useRef } from "react";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import {
@@ -8,8 +9,6 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useCallback, useEffect, useRef } from "react";
 
 import { SearchIcon } from "../../../icons";
 import {
@@ -33,8 +32,8 @@ const ClearSearchIcon: FunctionComponent<{
         marginRight: 1,
       }}
     >
-      <Tooltip title="Clear search" placement="right">
-        <IconButton size="small" unpadded onClick={clearSearch}>
+      <Tooltip title={"Clear search"} placement={"right"}>
+        <IconButton unpadded size={"small"} onClick={clearSearch}>
           <FontAwesomeIcon icon={faXmark} />
         </IconButton>
       </Tooltip>
@@ -69,7 +68,7 @@ const ShortcutIcon = () => {
         })}
       >
         <Typography
-          variant="microText"
+          variant={"microText"}
           sx={({ palette }) => ({
             color: palette.gray[60],
             fontWeight: 500,
@@ -134,15 +133,10 @@ export const SearchInput: FunctionComponent<{
 
   return (
     <OutlinedInput
-      placeholder="Search for anything"
+      placeholder={"Search for anything"}
       inputRef={inputRef}
-      type="text"
+      type={"text"}
       value={displayedQuery}
-      onFocus={() => setResultListVisible(true)}
-      onChange={(event) => {
-        setResultListVisible(true);
-        setQueryText(event.target.value);
-      }}
       sx={{
         boxShadow: "none",
         width: isMobile ? "100%" : "385px",
@@ -162,7 +156,7 @@ export const SearchInput: FunctionComponent<{
         },
       }}
       startAdornment={
-        <InputAdornment position="start">
+        <InputAdornment position={"start"}>
           <Box
             sx={{
               height: "100%",
@@ -178,7 +172,7 @@ export const SearchInput: FunctionComponent<{
       }
       endAdornment={
         !isMobile ? (
-          <InputAdornment position="end">
+          <InputAdornment position={"end"}>
             {displayedQuery ? (
               <ClearSearchIcon clearSearch={clearSearch} />
             ) : (
@@ -187,6 +181,11 @@ export const SearchInput: FunctionComponent<{
           </InputAdornment>
         ) : null
       }
+      onFocus={() => { setResultListVisible(true); }}
+      onChange={(event) => {
+        setResultListVisible(true);
+        setQueryText(event.target.value);
+      }}
     />
   );
 };

@@ -1,12 +1,11 @@
+import type { createContext, PropsWithChildren , useContext, useMemo } from "react";
 import type { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import type { PropsWithChildren } from "react";
-import { createContext, useContext, useMemo } from "react";
 
-export type BlockCollectionContextType = {
+export interface BlockCollectionContextType {
   blockCollectionSubgraph?: Subgraph<EntityRootType>;
   userPermissionsOnEntities?: UserPermissionsOnEntities;
-};
+}
 
 export const BlockCollectionContext =
   createContext<BlockCollectionContextType | null>(null);

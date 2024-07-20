@@ -1,5 +1,4 @@
-import type { TableProps } from "@mui/material";
-import { Table } from "@mui/material";
+import type { Table,TableProps  } from "@mui/material";
 
 export const OrgTable = ({ sx, ...props }: TableProps) => (
   <Table

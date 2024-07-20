@@ -1,6 +1,5 @@
-import type { SvgIconProps } from "@mui/material";
-import { Stack, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
+import type { Stack, SvgIconProps , Typography } from "@mui/material";
 
 export const EmptyOutputBox = ({
   label,
@@ -10,8 +9,8 @@ export const EmptyOutputBox = ({
   Icon: FunctionComponent<SvgIconProps>;
 }) => (
   <Stack
-    alignItems="center"
-    justifyContent="center"
+    alignItems={"center"}
+    justifyContent={"center"}
     sx={{ height: "100%", p: 3 }}
   >
     <Icon

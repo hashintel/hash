@@ -1,17 +1,14 @@
+import type { bindMenu,PopupState  } from "material-ui-popup-state/hooks";
+import type { FunctionComponent , useMemo, useState } from "react";
 import { faFileAlt } from "@fortawesome/free-regular-svg-icons";
 import { faArchive, faLink } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { PopoverPosition } from "@mui/material";
-import { ListItemIcon, ListItemText, Menu } from "@mui/material";
-import type { PopupState } from "material-ui-popup-state/hooks";
-import { bindMenu } from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
-import { useMemo, useState } from "react";
+import type { ListItemIcon, ListItemText, Menu,PopoverPosition  } from "@mui/material";
 
 import { MenuItem } from "../../../ui";
 
-type PageMenuProps = {
+interface PageMenuProps {
   popupState: PopupState;
   entityId: EntityId;
   createSubPage: () => Promise<void>;
@@ -19,7 +16,7 @@ type PageMenuProps = {
   onClose: () => void;
   anchorPosition?: PopoverPosition;
   pagePath: string;
-};
+}
 
 export const PageMenu: FunctionComponent<PageMenuProps> = ({
   popupState,
@@ -48,9 +45,9 @@ export const PageMenu: FunctionComponent<PageMenuProps> = ({
           try {
             // @todo handle loading/error states properly
             await createSubPage();
-          } catch (err) {
+          } catch (error) {
             // eslint-disable-next-line no-console -- TODO: consider using logger
-            console.log("err ==> ", err);
+            console.log("err ==> ", error);
           } finally {
             popupState.close();
           }
@@ -77,9 +74,9 @@ export const PageMenu: FunctionComponent<PageMenuProps> = ({
           try {
             // @todo handle loading/error states properly
             await archivePage(entityId);
-          } catch (err) {
+          } catch (error) {
             // eslint-disable-next-line no-console -- TODO: consider using logger
-            console.log("Error archiving page: ", err);
+            console.log("Error archiving page: ", error);
           } finally {
             popupState.close();
           }
@@ -121,7 +118,8 @@ export const PageMenu: FunctionComponent<PageMenuProps> = ({
       onClose={() => {
         // run custom handler before handler of `bindMenu`
         onClose();
-        return bindMenuProps.onClose();
+
+        bindMenuProps.onClose();
       }}
       onClick={(event) => {
         event.stopPropagation();

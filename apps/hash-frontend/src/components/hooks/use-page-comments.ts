@@ -17,18 +17,18 @@ export type PageThread = PageComment & {
   replies: PageComment[];
 };
 
-export type PageComment = {
-  hasText: Array<TextToken>;
+export interface PageComment {
+  hasText: TextToken[];
   textUpdatedAt: EntityTemporalVersioningMetadata;
   author: Entity;
   parent: Entity;
   metadata: EntityMetadata;
-};
+}
 
-export type PageCommentsInfo = {
+export interface PageCommentsInfo {
   data: PageThread[];
   loading: boolean;
-};
+}
 
 const emptyComments: PageThread[] = [];
 
@@ -43,6 +43,7 @@ export const usePageComments = (pageEntityId?: EntityId): PageCommentsInfo => {
   });
 
   const pageComments = data?.pageComments;
+
   return {
     data: pageComments
       ? pageComments.map((comment) => ({

@@ -1,5 +1,4 @@
-import type { Dispatch, SetStateAction } from "react";
-import { useCallback, useState } from "react";
+import type { Dispatch, SetStateAction , useCallback, useState } from "react";
 import { useLocalstorageState } from "rooks";
 
 export const useDefaultState = <
@@ -22,12 +21,12 @@ export const useDefaultState = <
   }
 
   const setState = useCallback((value: SetStateAction<T>) => {
-    setNextValue((prevValue) => {
+    setNextValue((previousValue) => {
       const nextValue =
-        typeof value === "function" ? value(prevValue.currentValue) : value;
+        typeof value === "function" ? value(previousValue.currentValue) : value;
 
       return {
-        ...prevValue,
+        ...previousValue,
         currentValue: nextValue,
       };
     });
@@ -63,12 +62,12 @@ export const useCachedDefaultState = <
 
   const setState = useCallback(
     (value: SetStateAction<T>) => {
-      setNextValue((prevValue) => {
+      setNextValue((previousValue) => {
         const nextValue =
-          typeof value === "function" ? value(prevValue.currentValue) : value;
+          typeof value === "function" ? value(previousValue.currentValue) : value;
 
         return {
-          ...prevValue,
+          ...previousValue,
           currentValue: nextValue,
         };
       });

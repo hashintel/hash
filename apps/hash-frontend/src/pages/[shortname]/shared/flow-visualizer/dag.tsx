@@ -1,9 +1,10 @@
-import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
-import { Stack, Typography } from "@mui/material";
 import { format } from "date-fns";
 import { ReactFlowProvider } from "reactflow";
+import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
+import { Stack, Typography } from "@mui/material";
 
 import { useFlowRunsContext } from "../../../shared/flow-runs-context";
+
 import { flowSectionBorderRadius, transitionOptions } from "./shared/styles";
 import type {
   GroupWithEdgesAndNodes,
@@ -43,7 +44,7 @@ export const DAG = ({
       })}
     >
       <Stack
-        direction="row"
+        direction={"row"}
         sx={{
           borderBottom: ({ palette }) => `1px solid ${palette.gray[20]}`,
           p: 3,
@@ -51,7 +52,7 @@ export const DAG = ({
       >
         {selectedFlowRun ? (
           <Typography
-            variant="smallTextParagraphs"
+            variant={"smallTextParagraphs"}
             sx={{ color: ({ palette }) => palette.gray[60] }}
           >
             Started <strong>manually</strong> when triggered on{" "}
@@ -63,12 +64,12 @@ export const DAG = ({
         ) : (
           <>
             <Typography
-              component="span"
+              component={"span"}
               sx={{ fontSize: 14, fontWeight: 600, mr: 2 }}
             >
               {selectedFlowDefinition.name}
             </Typography>
-            <Typography component="span" sx={{ fontSize: 14, fontWeight: 400 }}>
+            <Typography component={"span"} sx={{ fontSize: 14, fontWeight: 400 }}>
               {selectedFlowDefinition.description}
             </Typography>
           </>

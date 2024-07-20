@@ -23,15 +23,15 @@ export const LinkTable = ({ showSearch, onSearchClose }: LinkTableProps) => {
       createGetCellContent={createGetCellContent}
       dataLoading={false}
       showSearch={showSearch}
-      onSearchClose={onSearchClose}
-      // define max height if there are lots of rows
-      height={rows.length > 10 ? 500 : undefined}
       customRenderers={[
         renderLinkCell,
         renderLinkedWithCell,
         renderSummaryChipCell,
         renderChipCell,
       ]}
+      onSearchClose={onSearchClose}
+      // define max height if there are lots of rows
+      height={rows.length > 10 ? 500 : undefined}
     />
   );
 };

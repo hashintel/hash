@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useLazyQuery } from "@apollo/client";
 import type { Entity as EntityBp } from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
@@ -12,7 +13,6 @@ import type {
   KnowledgeGraphVertices,
   Subgraph,
 } from "@local/hash-subgraph";
-import { useCallback } from "react";
 
 import type {
   GetEntityQuery,
@@ -175,10 +175,10 @@ export const useFetchBlockSubgraph = (): ((
               data.getEntity.userPermissionsOnEntities!,
           } satisfies SubgraphAndPermissions;
         })
-        .catch((err) => {
-          // eslint-disable-next-line no-console -- intentional debug log until we have better user-facing errors
-          console.error(err);
-          throw err;
+        .catch((error) => {
+           
+          console.error(error);
+          throw error;
         });
     },
     [getEntity],

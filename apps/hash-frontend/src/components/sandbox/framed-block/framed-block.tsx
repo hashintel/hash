@@ -1,12 +1,10 @@
 import "iframe-resizer/js/iframeResizer.contentWindow";
-
+import type { FunctionComponent , useCallback, useEffect, useState } from "react";
 import type {
   Entity,
   GraphEmbedderMessageCallbacks,
 } from "@blockprotocol/graph";
 import type * as Sentry from "@sentry/react";
-import type { FunctionComponent } from "react";
-import { useCallback, useEffect, useState } from "react";
 
 import type { FetchEmbedCodeFn } from "../../block-loader/fetch-embed-code";
 // import { ErrorBlock } from "../../error-block/error-block";
@@ -15,6 +13,7 @@ import {
   // RemoteBlock,
 } from "../../remote-block/remote-block";
 import type { MessageFromBlockFramer } from "../types";
+
 import { sendMessage, settlePromiseFromResponse } from "./util";
 
 const params = new URL(window.location.href).searchParams;
@@ -40,19 +39,22 @@ export const FramedBlock: FunctionComponent = () => {
   );
 
   useEffect(() => {
-    const msgHandler = ({ data }: MessageEvent<MessageFromBlockFramer>) => {
+    const messageHandler = ({ data }: MessageEvent<MessageFromBlockFramer>) => {
       switch (data.type) {
-        case "newData":
+        case "newData": {
           setBlockProperties(data.payload as Entity);
           break;
-        case "response":
+        }
+        case "response": {
           settlePromiseFromResponse(data);
           break;
+        }
       }
     };
-    window.addEventListener("message", msgHandler);
 
-    return () => window.removeEventListener("message", msgHandler);
+    window.addEventListener("message", messageHandler);
+
+    return () => { window.removeEventListener("message", messageHandler); };
   }, []);
 
   if (!sourceUrl) {
@@ -61,15 +63,15 @@ export const FramedBlock: FunctionComponent = () => {
 
   if (!blockProperties) {
     /**
-     * if we have _no_ properties object then they are being sent by message instead.
-     * we can't load the block until we have them, as it might crash without.
-     * */
+     * If we have _no_ properties object then they are being sent by message instead.
+     * We can't load the block until we have them, as it might crash without.
+      */
     return <BlockLoadingIndicator />;
   }
 
   /**
-   * @todo set loading / error states based on promise status and pass into block.
-   *    in order to provide aggregateLoading, aggregateError, etc
+   * @todo Set loading / error states based on promise status and pass into block.
+   *    in order to provide aggregateLoading, aggregateError, etc.
    */
   const queryEntities: GraphEmbedderMessageCallbacks["queryEntities"] = (
     ...payload
@@ -103,7 +105,7 @@ export const FramedBlock: FunctionComponent = () => {
     sendMessage({ payload, type: "getEmbedBlock" });
 
   if (typeof blockProperties.metadata.recordId.entityId !== "string") {
-    throw new Error("No entityId present in block properties.");
+    throw new TypeError("No entityId present in block properties.");
   }
 
   const _blockFunctions = {

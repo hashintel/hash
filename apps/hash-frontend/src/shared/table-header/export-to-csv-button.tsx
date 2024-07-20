@@ -1,13 +1,11 @@
 import { unparse } from "papaparse";
-import type { FunctionComponent } from "react";
-import { useCallback } from "react";
-
+import type { FunctionComponent , useCallback } from "react";
 import { TableHeaderButton } from "./table-header-button";
 
-type CsvFile = {
+interface CsvFile {
   title: string;
   content: string[][];
-};
+}
 
 export type GenerateCsvFileFunction = () => Promise<CsvFile | null>;
 
@@ -32,6 +30,7 @@ export const ExportToCsvButton: FunctionComponent<{
 
     // Create a temporary anchor element to trigger the download
     const link = document.createElement("a");
+
     link.href = URL.createObjectURL(blob);
     link.setAttribute("download", `${title}.csv`);
     document.body.appendChild(link);

@@ -1,11 +1,12 @@
+import { useRouter } from "next/router";
+import type { FunctionComponent, ReactNode , useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   Entity as BpEntity,
   EntityRootType as BpEntityRootType,
   Subgraph as BpSubgraph,
 } from "@blockprotocol/graph";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import type { CustomCell, Item, TextCell } from "@glideapps/glide-data-grid";
-import { GridCellKind } from "@glideapps/glide-data-grid";
+import type { CustomCell, GridCellKind,Item, TextCell  } from "@glideapps/glide-data-grid";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
 import { ListRegularIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -28,17 +29,13 @@ import {
   Tooltip,
   useTheme,
 } from "@mui/material";
-import { useRouter } from "next/router";
-import type { FunctionComponent, ReactNode } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   Grid,
   gridHeaderHeightWithBorder,
   gridHorizontalScrollbarHeight,
 } from "../../components/grid/grid";
-import type { BlankCell } from "../../components/grid/utils";
-import { blankCell } from "../../components/grid/utils";
+import type { BlankCell , blankCell } from "../../components/grid/utils";
 import type { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
 import type { ColumnFilter } from "../../components/grid/utils/filtering";
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
@@ -47,17 +44,15 @@ import { useEntityTypesContextRequired } from "../../shared/entity-types-context
 import { ChartNetworkRegularIcon } from "../../shared/icons/chart-network-regular-icon";
 import { GridSolidIcon } from "../../shared/icons/grid-solid-icon";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
-import type { FilterState } from "../../shared/table-header";
-import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
+import type { FilterState , TableHeader, tableHeaderHeight } from "../../shared/table-header";
 import { isAiMachineActor } from "../../shared/use-actors";
 import { useEntityTypeEntities } from "../../shared/use-entity-type-entities";
+
 import { useAuthenticatedUser } from "./auth-info-context";
 import { renderChipCell } from "./chip-cell";
 import { GridView } from "./entities-table/grid-view";
-import type { TextIconCell } from "./entities-table/text-icon-cell";
-import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
-import type { TypeEntitiesRow } from "./entities-table/use-entities-table";
-import { useEntitiesTable } from "./entities-table/use-entities-table";
+import type { createRenderTextIconCell,TextIconCell  } from "./entities-table/text-icon-cell";
+import type { TypeEntitiesRow , useEntitiesTable } from "./entities-table/use-entities-table";
 import { useGetEntitiesTableAdditionalCsvData } from "./entities-table/use-get-entities-table-additional-csv-data";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 
@@ -186,7 +181,7 @@ export const EntitiesTable: FunctionComponent<{
 
   useEffect(() => {
     if (isViewingPages && filterState.includeArchived === undefined) {
-      setFilterState((prev) => ({ ...prev, includeArchived: false }));
+      setFilterState((previous) => ({ ...previous, includeArchived: false }));
     }
   }, [isViewingPages, filterState]);
 
@@ -236,6 +231,7 @@ export const EntitiesTable: FunctionComponent<{
         | BlankCell
         | CustomCell => {
         const columnId = columns[colIndex]?.id;
+
         if (columnId) {
           const row = entityRows[rowIndex];
 
@@ -279,8 +275,9 @@ export const EntitiesTable: FunctionComponent<{
                   ),
               },
             };
-          } else if (["namespace", "entityTypeVersion"].includes(columnId)) {
+          } if (["namespace", "entityTypeVersion"].includes(columnId)) {
             const cellValue = row[columnId];
+
             return {
               kind: GridCellKind.Text,
               allowOverlay: true,
@@ -288,8 +285,9 @@ export const EntitiesTable: FunctionComponent<{
               displayData: String(cellValue),
               data: cellValue,
             };
-          } else if (columnId === "archived") {
+          } if (columnId === "archived") {
             const value = row.archived ? "Yes" : "No";
+
             return {
               kind: GridCellKind.Text,
               readonly: true,
@@ -297,7 +295,7 @@ export const EntitiesTable: FunctionComponent<{
               displayData: String(value),
               data: value,
             };
-          } else if (columnId === "lastEdited") {
+          } if (columnId === "lastEdited") {
             return {
               kind: GridCellKind.Text,
               readonly: true,
@@ -305,7 +303,7 @@ export const EntitiesTable: FunctionComponent<{
               displayData: String(row.lastEdited),
               data: row.lastEdited,
             };
-          } else if (columnId === "lastEditedBy") {
+          } if (columnId === "lastEditedBy") {
             const { lastEditedBy } = row;
             const lastEditedByName = lastEditedBy
               ? lastEditedBy.displayName
@@ -478,9 +476,9 @@ export const EntitiesTable: FunctionComponent<{
         ],
         selectedFilterItemIds: selectedArchivedStatus,
         setSelectedFilterItemIds: (filterItemIds) =>
-          setSelectedArchivedStatus(
+          { setSelectedArchivedStatus(
             filterItemIds as ("archived" | "not-archived")[],
-          ),
+          ); },
         isRowFiltered: (row) =>
           row.archived
             ? !selectedArchivedStatus.includes("archived")
@@ -532,6 +530,13 @@ export const EntitiesTable: FunctionComponent<{
         internalWebIds={internalWebIds}
         itemLabelPlural={isViewingPages ? "pages" : "entities"}
         items={entities}
+        title={"Entities"}
+        columns={columns}
+        currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+        getAdditionalCsvData={getEntitiesTableAdditionalCsvData}
+        filterState={filterState}
+        setFilterState={setFilterState}
+        toggleSearch={view === "Table" ? () => { setShowSearch(true); } : undefined}
         selectedItems={
           entities?.filter((entity) =>
             selectedRows.some(
@@ -539,21 +544,12 @@ export const EntitiesTable: FunctionComponent<{
             ),
           ) ?? []
         }
-        title="Entities"
-        columns={columns}
-        currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-        getAdditionalCsvData={getEntitiesTableAdditionalCsvData}
         endAdornment={
           <ToggleButtonGroup
-            value={view}
             exclusive
-            onChange={(_, updatedView) => {
-              if (updatedView) {
-                setView(updatedView);
-              }
-            }}
-            aria-label="view"
-            size="small"
+            value={view}
+            aria-label={"view"}
+            size={"small"}
             sx={{
               [`.${toggleButtonClasses.root}`]: {
                 backgroundColor: ({ palette }) => palette.common.white,
@@ -580,6 +576,11 @@ export const EntitiesTable: FunctionComponent<{
                 },
               },
             }}
+            onChange={(_, updatedView) => {
+              if (updatedView) {
+                setView(updatedView);
+              }
+            }}
           >
             {(
               [
@@ -589,12 +590,12 @@ export const EntitiesTable: FunctionComponent<{
               ] satisfies EntityTableView[]
             ).map((viewName) => (
               <ToggleButton
-                key={viewName}
                 disableRipple
+                key={viewName}
                 value={viewName}
                 aria-label={viewName}
               >
-                <Tooltip title={`${viewName} view`} placement="top">
+                <Tooltip title={`${viewName} view`} placement={"top"}>
                   <Box sx={{ lineHeight: 0 }}>
                     {entitiesTableViewIcons[viewName]}
                   </Box>
@@ -603,14 +604,12 @@ export const EntitiesTable: FunctionComponent<{
             ))}
           </ToggleButtonGroup>
         }
-        filterState={filterState}
-        setFilterState={setFilterState}
-        toggleSearch={view === "Table" ? () => setShowSearch(true) : undefined}
-        onBulkActionCompleted={() => setSelectedRows([])}
+        onBulkActionCompleted={() => { setSelectedRows([]); }}
       />
       {view === "Graph" ? (
         <EntitiesGraphChart
           entities={entities}
+          subgraph={subgraph as unknown as BpSubgraph<BpEntityRootType>}
           isPrimaryEntity={(entity) =>
             entityTypeBaseUrl
               ? extractBaseUrl(entity.metadata.entityTypeId) ===
@@ -628,7 +627,6 @@ export const EntitiesTable: FunctionComponent<{
                   ),
                 )
           }
-          onEntityClick={handleEntityClick}
           sx={{
             background: ({ palette }) => palette.common.white,
             height: `calc(100vh - (${
@@ -637,24 +635,23 @@ export const EntitiesTable: FunctionComponent<{
             borderBottomRightRadius: 6,
             borderBottomLeftRadius: 6,
           }}
-          subgraph={subgraph as unknown as BpSubgraph<BpEntityRootType>}
+          onEntityClick={handleEntityClick}
         />
       ) : view === "Grid" ? (
         <GridView entities={entities} />
       ) : (
         <Grid
+          enableCheckboxSelection
           showSearch={showSearch}
-          onSearchClose={() => setShowSearch(false)}
           columns={columns}
           columnFilters={columnFilters}
           dataLoading={loading}
           rows={rows}
-          enableCheckboxSelection
           selectedRows={selectedRows}
-          onSelectedRowsChange={(updatedSelectedRows) =>
-            setSelectedRows(updatedSelectedRows)
-          }
           firstColumnLeftPadding={16}
+          createGetCellContent={createGetCellContent}
+          freezeColumns={1}
+          currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
           height={`
                min(
                  calc(100vh - (${
@@ -668,13 +665,14 @@ export const EntitiesTable: FunctionComponent<{
                  (${rows ? rows.length : 1} * ${gridRowHeight}px) +
                  ${gridHorizontalScrollbarHeight}px)
                )`}
-          createGetCellContent={createGetCellContent}
           customRenderers={[
             createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
             renderChipCell,
           ]}
-          freezeColumns={1}
-          currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+          onSearchClose={() => { setShowSearch(false); }}
+          onSelectedRowsChange={(updatedSelectedRows) =>
+            { setSelectedRows(updatedSelectedRows); }
+          }
         />
       )}
     </Box>

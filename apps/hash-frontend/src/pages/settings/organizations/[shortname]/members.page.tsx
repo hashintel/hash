@@ -1,3 +1,6 @@
+import { useRouter } from "next/router";
+import { NextSeo } from "next-seo";
+import { useEffect, useRef, useState } from "react";
 import {
   styled,
   TableBody,
@@ -7,9 +10,6 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import { useRouter } from "next/router";
-import { NextSeo } from "next-seo";
-import { useEffect, useRef, useState } from "react";
 
 import type { NextPageWithLayout } from "../../../../shared/layout";
 import { useUserPermissionsOnEntity } from "../../../../shared/use-user-permissions-on-entity";
@@ -18,6 +18,7 @@ import { getSettingsLayout } from "../../../shared/settings-layout";
 import { SettingsPageContainer } from "../../shared/settings-page-container";
 import { Cell } from "../shared/cell";
 import { OrgTable } from "../shared/org-table";
+
 import { AddMemberForm } from "./members.page/add-member-form";
 import { MemberRow } from "./members.page/member-row";
 
@@ -58,6 +59,7 @@ const OrgMembersPage: NextPageWithLayout = () => {
   if (!org) {
     // @todo show a 404 page
     void router.push("/settings/organizations");
+
     return null;
   }
 
@@ -67,13 +69,13 @@ const OrgMembersPage: NextPageWithLayout = () => {
 
       <SettingsPageContainer
         heading={org.name}
-        sectionLabel="Members"
+        sectionLabel={"Members"}
         ref={topRef}
       >
         <OrgTable>
           <TableHead>
             <TableRow>
-              <Cell width="70%">Name</Cell>
+              <Cell width={"70%"}>Name</Cell>
               <Cell>Username</Cell>
               <Cell />
             </TableRow>
@@ -89,10 +91,10 @@ const OrgMembersPage: NextPageWithLayout = () => {
                   accountGroupId={org.accountGroupId}
                   key={membership.linkEntity.metadata.recordId.entityId}
                   membership={membership}
+                  readonly={readonly}
                   self={
                     membership.user.accountId === authenticatedUser.accountId
                   }
-                  readonly={readonly}
                 />
               ))}
           </TableBody>
@@ -105,16 +107,16 @@ const OrgMembersPage: NextPageWithLayout = () => {
                   !readonly && (
                     <InviteNewButton>
                       <Typography
-                        variant="smallTextLabels"
-                        color="gray.60"
+                        variant={"smallTextLabels"}
+                        color={"gray.60"}
                         fontWeight={600}
-                        onClick={() => setShowAddMemberForm(true)}
                         sx={({ transitions }) => ({
                           "&:hover": {
                             color: "black",
                           },
                           transition: transitions.create("color"),
                         })}
+                        onClick={() => { setShowAddMemberForm(true); }}
                       >
                         Invite new member...
                       </Typography>

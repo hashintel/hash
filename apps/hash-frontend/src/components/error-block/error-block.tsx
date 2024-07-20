@@ -1,12 +1,12 @@
-import type { FallbackRender } from "@sentry/react";
 import type { FunctionComponent } from "react";
+import type { FallbackRender } from "@sentry/react";
 
 import { Button } from "../../shared/ui";
 
 type FallbackRenderProps = Parameters<FallbackRender>[0];
 
 export interface ErrorBlockProps extends FallbackRenderProps {
-  onRetry(): void;
+  onRetry: () => void;
 }
 
 export const ErrorBlock: FunctionComponent<ErrorBlockProps> = ({
@@ -14,6 +14,7 @@ export const ErrorBlock: FunctionComponent<ErrorBlockProps> = ({
   onRetry,
 }) => (
   <div
+    contentEditable={"false"}
     style={{
       alignItems: "baseline",
       borderColor: "#FCA5A5",
@@ -26,7 +27,6 @@ export const ErrorBlock: FunctionComponent<ErrorBlockProps> = ({
       paddingRight: "0.75rem",
       paddingTop: "0.5rem",
     }}
-    contentEditable="false"
   >
     Error:{" "}
     <span

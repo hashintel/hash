@@ -1,7 +1,6 @@
-import type { TextFieldProps } from "@hashintel/design-system";
-import { TextField } from "@hashintel/design-system";
-import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { format, formatISO, parseISO } from "date-fns";
+import type { TextField,TextFieldProps  } from "@hashintel/design-system";
+import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 
 import type { CellInputProps } from "./types";
 
@@ -82,37 +81,51 @@ export const NumberOrTextInput = ({
 
   let inputType: TextFieldProps["type"] = isNumber ? "number" : "text";
   let value = uncheckedValue;
+
   switch (jsonStringFormat) {
-    case "date-time":
+    case "date-time": {
       inputType = "datetime-local";
       if (typeof value === "string" && value) {
         const datetime = parseISO(value);
+
         // reformat the date to match the datetime-local input type
         value = format(datetime, "yyyy-MM-dd'T'HH:mm:ss.SSS");
       }
       break;
-    case "date":
+    }
+    case "date": {
       inputType = "date";
       break;
-    case "time":
+    }
+    case "time": {
       inputType = "time";
       if (typeof value === "string" && value) {
         // drop the offset from the end of the time to match the input type
-        value = value.split(/([Z+-])/)[0];
+        value = value.split(/([+Z-])/)[0];
       }
       break;
-    case "email":
+    }
+    case "email": {
       inputType = "email";
       break;
-    case "uri":
+    }
+    case "uri": {
       inputType = "url";
       break;
+    }
   }
 
   return (
     <TextField
+      autoFocus
       sx={{ width: "100%" }}
-      variant="standard"
+      variant={"standard"}
+      multiline={inputType === "text"}
+      minRows={1}
+      value={value}
+      type={inputType}
+      inputMode={isNumber ? "numeric" : "text"}
+      placeholder={"Start typing..."}
       InputProps={{
         disableUnderline: true,
         inputProps: {
@@ -123,13 +136,6 @@ export const NumberOrTextInput = ({
           step,
         },
       }}
-      autoFocus
-      multiline={inputType === "text"}
-      minRows={1}
-      value={value}
-      type={inputType}
-      inputMode={isNumber ? "numeric" : "text"}
-      placeholder="Start typing..."
       onBlur={onBlur}
       onChange={({ target }) => {
         const isEmptyString = target.value === "";
@@ -140,8 +146,8 @@ export const NumberOrTextInput = ({
         if (newValue && jsonStringFormat === "date-time") {
           newValue = convertDateTimeToLocalRFC3339(target.value);
         } else if (newValue && jsonStringFormat === "time") {
-          newValue += ":00"; // add seconds
-          newValue += getCurrentUtcOffsetString();
+          newValue = `${newValue  }:00`; // add seconds
+          newValue = newValue + getCurrentUtcOffsetString();
         }
 
         // Unset the value if it's empty

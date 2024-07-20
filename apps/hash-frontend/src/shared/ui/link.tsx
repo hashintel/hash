@@ -1,9 +1,3 @@
-import type { LinkProps as MuiLinkProps } from "@mui/material";
-import {
-  // eslint-disable-next-line no-restricted-imports
-  Link as MuiLink,
-  styled,
-} from "@mui/material";
 import clsx from "clsx";
 // eslint-disable-next-line no-restricted-imports
 import type { LinkProps as NextLinkProps } from "next/link";
@@ -11,12 +5,18 @@ import type { LinkProps as NextLinkProps } from "next/link";
 import NextLink from "next/link";
 import { useRouter } from "next/router";
 import { forwardRef, isValidElement } from "react";
+import type {   // eslint-disable-next-line no-restricted-imports
+  Link as MuiLink,
+LinkProps as MuiLinkProps ,
+  styled,
+} from "@mui/material";
 
 import { generateLinkParameters } from "../generate-link-parameters";
+
 import { Button } from "./button";
 
 /**
- * This component is based on https://github.com/mui-org/material-ui/blob/a5c92dfd84dfe5888a8b383a9b5fe5701a934564/examples/nextjs/src/Link.js
+ * This component is based on https://github.com/mui-org/material-ui/blob/a5c92dfd84dfe5888a8b383a9b5fe5701a934564/examples/nextjs/src/Link.js.
  */
 
 // Add support for the sx prop for consistency with the other branches.
@@ -38,15 +38,15 @@ export const NextLinkComposed = forwardRef<
 
   return (
     <NextLink
+      passHref
+      legacyBehavior
       href={to}
       prefetch={prefetch}
       as={as}
       replace={replace}
       scroll={scroll}
       shallow={shallow}
-      passHref
       locale={locale}
-      legacyBehavior
     >
       <Anchor ref={ref} {...other} />
     </NextLink>
@@ -88,7 +88,8 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(
     });
 
     if (process.env.NODE_ENV !== "production") {
-      const children = other.children;
+      const {children} = other;
+
       if (isValidElement(children) && children.type === Button) {
         throw new Error(
           "Please use <Button href='' /> instead of <Link><Button /></Link>",
@@ -114,14 +115,14 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(
     if (noLinkStyle) {
       return (
         <NextLinkComposed
+          className={className}
+          ref={ref}
+          to={href}
           sx={{
             ":focus-visible": {
               outlineColor: ({ palette }) => palette.blue["70"],
             },
           }}
-          className={className}
-          ref={ref}
-          to={href}
           {...other}
         />
       );

@@ -1,3 +1,4 @@
+import type { ReactNode , useMemo } from "react";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { AsteriskRegularIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -7,8 +8,6 @@ import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-typ
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Box } from "@mui/material";
-import type { ReactNode } from "react";
-import { useMemo } from "react";
 
 import { FileRegularIcon } from "./icons/file-regular-icon";
 import { UserIcon } from "./icons/user-icon";
@@ -31,13 +30,14 @@ export const useEntityIcon = (params: {
   pageIcon?: JSX.Element;
 }) => {
   const { entity, entityType, pageIcon } = params;
+
   return useMemo(() => {
     if (entity) {
       /**
-       * @todo do we need this check for page? and the same below
+       * @todo Do we need this check for page? And the same below
        * we could let people set an icon on any entity and use it
        * if we do so we may wish to check if the icon is a URL, and show an image if it is
-       * consider as part of H-783
+       * consider as part of H-783.
        */
       if (isPageEntityTypeId(entity.metadata.entityTypeId)) {
         const { icon: customPageIcon } = simplifyProperties(
@@ -46,12 +46,13 @@ export const useEntityIcon = (params: {
 
         if (typeof customPageIcon === "string") {
           return (
-            <Box component="span" sx={{ fontSize: 14 }}>
+            <Box component={"span"} sx={{ fontSize: 14 }}>
               {customPageIcon}
             </Box>
           );
         }
       }
+
       /**
        * @todo: use the entity type icon
        * @see https://linear.app/hash/issue/H-783/implement-entity-type-icons

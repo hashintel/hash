@@ -1,3 +1,5 @@
+import { useRouter } from "next/router";
+import type { FormEvent, FunctionComponent, PropsWithChildren , useMemo, useState } from "react";
 import { useApolloClient, useMutation } from "@apollo/client";
 import {
   ArrowRightIconRegular,
@@ -22,9 +24,7 @@ import type {
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { getFlowRunsQuery } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
-import type { SvgIconProps, SxProps, Theme } from "@mui/material";
-import {
-  autocompleteClasses,
+import type {   autocompleteClasses,
   Box,
   Container,
   FormControlLabel,
@@ -32,11 +32,9 @@ import {
   Radio,
   RadioGroup,
   Stack,
+SvgIconProps, SxProps, Theme ,
   Typography,
 } from "@mui/material";
-import { useRouter } from "next/router";
-import type { FormEvent, FunctionComponent, PropsWithChildren } from "react";
-import { useMemo, useState } from "react";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 import type {
@@ -46,17 +44,15 @@ import type {
 import { startFlowMutation } from "../../graphql/queries/knowledge/flow.queries";
 import { FilesRegularIcon } from "../../shared/icons/files-regular-icon";
 import { GlobeRegularIcon } from "../../shared/icons/globe-regular-icon";
-import type { NextPageWithLayout } from "../../shared/layout";
-import { getLayoutWithSidebar } from "../../shared/layout";
+import type { getLayoutWithSidebar,NextPageWithLayout  } from "../../shared/layout";
 import { Button } from "../../shared/ui/button";
 import { WorkersHeader } from "../../shared/workers-header";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { EntityTypeSelector } from "../shared/entity-type-selector";
 import { WebSelector } from "../shared/web-selector";
-import type { DeliverableSettingsState } from "./new.page/deliverable-settings";
-import { DeliverableSettings } from "./new.page/deliverable-settings";
-import type { FileSettingsState } from "./new.page/file-settings";
-import { FileSettings } from "./new.page/file-settings";
+
+import type { DeliverableSettings,DeliverableSettingsState  } from "./new.page/deliverable-settings";
+import type { FileSettings,FileSettingsState  } from "./new.page/file-settings";
 import {
   defaultBrowserPluginDomains,
   InternetSettings,
@@ -76,7 +72,7 @@ const Question = ({
     <Box sx={{ mb: 1.8 }}>
       <Typography sx={{ fontSize: 17, fontWeight: 600 }}>
         <Typography
-          component="span"
+          component={"span"}
           sx={{
             color: ({ palette }) => palette.gray[50],
             fontSize: 17,
@@ -88,7 +84,7 @@ const Question = ({
         </Typography>
         {text}
       </Typography>
-      <Typography component="p" variant="smallTextParagraphs" mt={0.8}>
+      <Typography component={"p"} variant={"smallTextParagraphs"} mt={0.8}>
         {description}
       </Typography>
     </Box>
@@ -104,7 +100,7 @@ const Setting = ({
   <Box mb={2.5}>
     {header && (
       <Typography
-        component="label"
+        component={"label"}
         htmlFor={inputId}
         sx={{ display: "block", fontSize: 14, fontWeight: 500, mb: 1 }}
       >
@@ -126,7 +122,7 @@ const SettingCard = ({ children }: PropsWithChildren) => (
     })}
   >
     <Stack
-      direction="row"
+      direction={"row"}
       gap={{ xs: 2, lg: 5 }}
       sx={{ flexWrap: { xs: "wrap", lg: "nowrap" } }}
     >
@@ -142,16 +138,16 @@ const SettingCardSectionHeader = ({
   Icon?: FunctionComponent<SvgIconProps>;
   text: string;
 }) => (
-  <Stack direction="row" alignItems="center" mb={2}>
+  <Stack direction={"row"} alignItems={"center"} mb={2}>
     {Icon && (
       <Icon
         sx={{ color: ({ palette }) => palette.gray[50], fontSize: 12, mr: 0.9 }}
       />
     )}
     <Typography
-      component="h4"
+      component={"h4"}
       sx={{ color: ({ palette }) => palette.gray[50] }}
-      variant="smallCaps"
+      variant={"smallCaps"}
     >
       {text}
     </Typography>
@@ -204,7 +200,7 @@ const NewGoalPageContent = () => {
   >(startFlowMutation);
 
   const submittable = useMemo(() => {
-    if (called || !goal.trim() || !entityTypes.length) {
+    if (called || !goal.trim() || entityTypes.length === 0) {
       return false;
     }
 
@@ -220,7 +216,7 @@ const NewGoalPageContent = () => {
       return false;
     }
 
-    if (!internetSettings.enabled && !fileSettings.fileEntities.length) {
+    if (!internetSettings.enabled && fileSettings.fileEntities.length === 0) {
       return false;
     }
 
@@ -267,6 +263,7 @@ const NewGoalPageContent = () => {
     ];
 
     let flowDefinition: FlowDefinition = goalFlowDefinition;
+
     if (deliverablesSettings.document && deliverablesSettings.spreadsheet) {
       if (
         !deliverablesSettings.document.brief ||
@@ -357,6 +354,7 @@ const NewGoalPageContent = () => {
     });
 
     const flowRunId = data?.startFlow;
+
     if (!flowRunId) {
       throw new Error("Failed to start flow");
     }
@@ -373,6 +371,7 @@ const NewGoalPageContent = () => {
   return (
     <Box>
       <WorkersHeader
+        sideTitle={"New research goal"}
         crumbs={[
           {
             href: "/goals",
@@ -386,7 +385,6 @@ const NewGoalPageContent = () => {
             title: "New",
           },
         ]}
-        sideTitle="New research goal"
         title={{
           text: "Goals",
           Icon: BullseyeLightIcon,
@@ -394,7 +392,7 @@ const NewGoalPageContent = () => {
         }}
       />
       <Container
-        component="form"
+        component={"form"}
         onSubmit={(event) => {
           if (submittable) {
             void createGoal(event);
@@ -412,27 +410,27 @@ const NewGoalPageContent = () => {
           })}
         >
           <Question
-            description="Information uploaded and created while performing this task will be added to this web"
+            description={"Information uploaded and created while performing this task will be added to this web"}
             number={1}
-            text="Choose a web"
+            text={"Choose a web"}
           >
             <WebSelector
               avatarSize={18}
               inputHeight={30}
-              inputId="web-selector"
-              setSelectedWebOwnedById={(ownedById) => setWebId(ownedById)}
+              inputId={"web-selector"}
+              setSelectedWebOwnedById={(ownedById) => { setWebId(ownedById); }}
               selectedWebOwnedById={webId}
             />
           </Question>
           <Question
-            description="Your web will be populated with entities matching your research goal."
+            description={"Your web will be populated with entities matching your research goal."}
             number={2}
-            text="What do you want to research?"
+            text={"What do you want to research?"}
           >
             <TextField
               inputProps={{}}
-              onChange={(event) => setGoal(event.target.value)}
-              placeholder="Enter your goal"
+              placeholder={"Enter your goal"}
+              value={goal}
               sx={{
                 [`.${outlinedInputClasses.root}`]: {
                   boxShadow: "none",
@@ -444,21 +442,21 @@ const NewGoalPageContent = () => {
                 },
                 width: inputWidth,
               }}
-              value={goal}
+              onChange={(event) => { setGoal(event.target.value); }}
             />
           </Question>
           <Question
-            description="The research task will look for entities that match these types."
+            description={"The research task will look for entities that match these types."}
             number={3}
-            text="What types of entities are you looking for?"
+            text={"What types of entities are you looking for?"}
           >
             <Box mb={1}>
               <EntityTypeSelector
-                autoFocus={false}
                 disableCreate
-                inputHeight={52}
                 multiple
-                onSelect={(newEntityTypes) => setEntityTypes(newEntityTypes)}
+                autoFocus={false}
+                inputHeight={52}
+                value={entityTypes}
                 sx={{
                   height: 52,
                   width: inputWidth,
@@ -468,20 +466,20 @@ const NewGoalPageContent = () => {
                       pl: 2,
                     },
                 }}
-                value={entityTypes}
+                onSelect={(newEntityTypes) => { setEntityTypes(newEntityTypes); }}
               />
             </Box>
           </Question>
           <Question
-            description="Entities will be created from the information sources you provide access to."
+            description={"Entities will be created from the information sources you provide access to."}
             number={4}
-            text="What sources do you want to use?"
+            text={"What sources do you want to use?"}
           >
             <SettingCard>
               <Box>
                 <SettingCardSectionHeader
                   Icon={GlobeRegularIcon}
-                  text="Internet"
+                  text={"Internet"}
                 />
                 <InternetSettings
                   settings={internetSettings}
@@ -491,7 +489,7 @@ const NewGoalPageContent = () => {
               <Box flexGrow={1}>
                 <SettingCardSectionHeader
                   Icon={FilesRegularIcon}
-                  text="Files"
+                  text={"Files"}
                 />
                 <FileSettings
                   settings={fileSettings}
@@ -502,39 +500,39 @@ const NewGoalPageContent = () => {
             </SettingCard>
           </Question>
           <Question
-            description="Select how outputs of this research goal should be created."
+            description={"Select how outputs of this research goal should be created."}
             number={5}
-            text="What do you want to output?"
+            text={"What do you want to output?"}
           >
             <SettingCard>
               <Box>
-                <SettingCardSectionHeader text="Entities" />
-                <Setting header="Create as..." inputId="draft-option">
+                <SettingCardSectionHeader text={"Entities"} />
+                <Setting header={"Create as..."} inputId={"draft-option"}>
                   <RadioGroup
-                    aria-labelledby="draft-option"
-                    name="radio-buttons-group"
-                    onChange={(event) =>
-                      setCreateAsDraft(event.target.value === "draft")
-                    }
+                    aria-labelledby={"draft-option"}
+                    name={"radio-buttons-group"}
                     value={createAsDraft ? "draft" : "live"}
+                    onChange={(event) =>
+                      { setCreateAsDraft(event.target.value === "draft"); }
+                    }
                   >
                     <FormControlLabel
-                      value="draft"
+                      value={"draft"}
                       control={<Radio sx={{ mr: 1 }} />}
-                      label="Draft entities that require review"
+                      label={"Draft entities that require review"}
                       sx={createRadioItemSx(createAsDraft)}
                     />
                     <FormControlLabel
-                      value="live"
+                      value={"live"}
                       control={<Radio sx={{ mr: 1 }} />}
-                      label="Actual entities directly in the web"
+                      label={"Actual entities directly in the web"}
                       sx={createRadioItemSx(!createAsDraft)}
                     />
                   </RadioGroup>
                 </Setting>
               </Box>
               <Box>
-                <SettingCardSectionHeader text="Deliverables" />
+                <SettingCardSectionHeader text={"Deliverables"} />
                 <Box>
                   <DeliverableSettings
                     settings={deliverablesSettings}
@@ -553,9 +551,9 @@ const NewGoalPageContent = () => {
           >
             <Button
               disabled={!submittable}
+              size={"medium"}
+              type={"submit"}
               onClick={createGoal}
-              size="medium"
-              type="submit"
             >
               {called ? (
                 "Starting..."

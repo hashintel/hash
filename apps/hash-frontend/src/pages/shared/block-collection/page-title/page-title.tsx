@@ -1,15 +1,15 @@
-import type { EntityId } from "@local/hash-graph-types/entity";
-import { styled, TextareaAutosize } from "@mui/material";
 import type {
   ChangeEventHandler,
   FocusEventHandler,
   FunctionComponent,
   KeyboardEventHandler,
-} from "react";
-import { useEffect, useState } from "react";
+ useEffect, useState } from "react";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import { styled, TextareaAutosize } from "@mui/material";
 
 import { useUpdatePageTitle } from "../../../../components/hooks/use-update-page-title";
 import { usePageContext } from "../page-context";
+
 import { cleanUpTitle, focusEditorBeginning } from "./utils";
 
 export const PAGE_TITLE_FONT_SIZE = "var(--step-4)";
@@ -39,11 +39,11 @@ const StyledTextarea = styled(TextareaAutosize)(({ theme }) =>
   }),
 );
 
-type PageTitleProps = {
+interface PageTitleProps {
   pageEntityId: EntityId;
   value: string;
   readonly: boolean;
-};
+}
 
 export const PAGE_TITLE_PLACEHOLDER = "Untitled";
 
@@ -56,7 +56,7 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
 
   const [updatePageTitle, { updatePageTitleLoading }] = useUpdatePageTitle();
 
-  const [prevValue, setPrevValue] = useState(value);
+  const [previousValue, setPreviousValue] = useState(value);
   const [inputValue, setInputValue] = useState(value);
 
   const { editorContext, pageTitleRef } = usePageContext();
@@ -71,6 +71,7 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
     event,
   ) => {
     const { currentTarget, key, shiftKey } = event;
+
     if (key === "Escape") {
       currentTarget.blur();
     }
@@ -97,6 +98,7 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
 
   const handleInputBlur: FocusEventHandler<HTMLTextAreaElement> = () => {
     const valueToSave = cleanUpTitle(inputValue);
+
     if (valueToSave === value) {
       return;
     }
@@ -104,8 +106,8 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
     void updatePageTitle(valueToSave, pageEntityId);
   };
 
-  if (value !== prevValue) {
-    setPrevValue(value);
+  if (value !== previousValue) {
+    setPreviousValue(value);
     setInputValue(value);
   }
 
@@ -121,10 +123,10 @@ export const PageTitle: FunctionComponent<PageTitleProps> = ({
       ref={pageTitleRef}
       placeholder={PAGE_TITLE_PLACEHOLDER}
       disabled={updatePageTitleLoading || readonly}
+      value={inputValue}
       onChange={handleInputChange}
       onKeyDown={handleInputKeyDown}
       onBlur={handleInputBlur}
-      value={inputValue}
     />
   );
 };

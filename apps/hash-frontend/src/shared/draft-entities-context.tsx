@@ -1,3 +1,4 @@
+import type { createContext, FunctionComponent, PropsWithChildren , useContext, useMemo, useState } from "react";
 import { useQuery } from "@apollo/client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
@@ -7,8 +8,6 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import type { FunctionComponent, PropsWithChildren } from "react";
-import { createContext, useContext, useMemo, useState } from "react";
 
 import type {
   GetEntitySubgraphQuery,
@@ -16,14 +15,15 @@ import type {
 } from "../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
+
 import { pollInterval } from "./poll-interval";
 
-export type DraftEntitiesContextValue = {
+export interface DraftEntitiesContextValue {
   draftEntities?: Entity[];
   draftEntitiesSubgraph?: Subgraph<EntityRootType>;
   loading: boolean;
   refetch: () => Promise<void>;
-};
+}
 
 export const DraftEntitiesContext =
   createContext<null | DraftEntitiesContextValue>(null);
@@ -75,7 +75,7 @@ export const DraftEntitiesContextProvider: FunctionComponent<
         },
         includePermissions: false,
       },
-      onCompleted: (data) => setPreviouslyFetchedDraftEntitiesData(data),
+      onCompleted: (data) => { setPreviouslyFetchedDraftEntitiesData(data); },
       pollInterval,
       fetchPolicy: "network-only",
       skip: !authenticatedUser,

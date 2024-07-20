@@ -1,5 +1,4 @@
-import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
-import { GridCellKind } from "@glideapps/glide-data-grid";
+import type { CustomCell, CustomRenderer , GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
 
 import { getYCenter } from "../../../../../../components/grid/utils";
@@ -21,6 +20,7 @@ export const renderSummaryChipCell: CustomRenderer<SummaryChipCell> = {
     (cell.data as any).kind === "summary-chip-cell",
   draw: (args, cell) => {
     const { ctx, rect, theme } = args;
+
     ctx.font = theme.baseFontStyle;
 
     const yCenter = getYCenter(args);

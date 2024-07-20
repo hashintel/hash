@@ -1,15 +1,14 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
-import type { Account as GoogleAccount } from "@local/hash-isomorphic-utils/system-types/google/account";
 import Script from "next/script";
-import type { PropsWithChildren } from "react";
-import {
-  createContext,
+import type {   createContext,
+PropsWithChildren ,
   useCallback,
   useContext,
   useMemo,
   useState,
 } from "react";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
+import type { Account as GoogleAccount } from "@local/hash-isomorphic-utils/system-types/google/account";
 
 import { useGoogleAccounts } from "./google-auth-context/use-google-accounts";
 
@@ -50,7 +49,7 @@ export const GoogleAuthProvider = ({ children }: PropsWithChildren) => {
     }: {
       googleAccountId: string;
     }): Promise<{ accessToken: string }> => {
-      return await fetch(`${apiOrigin}/oauth/google/token`, {
+      return fetch(`${apiOrigin}/oauth/google/token`, {
         method: "POST",
         credentials: "include",
         headers: {
@@ -62,6 +61,7 @@ export const GoogleAuthProvider = ({ children }: PropsWithChildren) => {
           return resp.json();
         }
         const error = await resp.json();
+
         throw new Error(error.error);
       });
     },
@@ -98,14 +98,14 @@ export const GoogleAuthProvider = ({ children }: PropsWithChildren) => {
          * Scopes required:
          * drive.file in order to create new files or to read/update/delete existing files that the user picks
          * userinfo.email in order to know which Google account the token is associated with, in case the user has
-         * multiple
+         * multiple.
          */
         "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email",
       ux_mode: "popup",
       callback: async (response) => {
         if (response.error === "access_denied") {
           return null;
-        } else if (response.error) {
+        } if (response.error) {
           throw new Error(`Google OAuth error: ${response.error}`);
         }
 
@@ -138,11 +138,12 @@ export const GoogleAuthProvider = ({ children }: PropsWithChildren) => {
         getAccessToken,
         loading: false,
       };
-    } else {
+    }
+ 
       return {
         loading: true,
       };
-    }
+    
   }, [
     accounts,
     accountsLoading,
@@ -154,7 +155,7 @@ export const GoogleAuthProvider = ({ children }: PropsWithChildren) => {
   return (
     <GoogleAuthContext.Provider value={value}>
       <Script
-        src="https://accounts.google.com/gsi/client"
+        src={"https://accounts.google.com/gsi/client"}
         onReady={loadOAuthClient}
       />
       {children}

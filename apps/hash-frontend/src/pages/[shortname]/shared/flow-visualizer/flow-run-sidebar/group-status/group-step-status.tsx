@@ -24,7 +24,7 @@ const iconSx = {
   },
 } as const;
 
-type IconProps = { statusFor: StatusFor };
+interface IconProps { statusFor: StatusFor }
 
 export const SuccessIcon = ({ statusFor }: IconProps) => (
   <CheckRegularIcon
@@ -58,7 +58,7 @@ export const InProgressIcon = ({ statusFor }: IconProps) =>
       disableShrink
       size={iconSx.group.fontSize}
       sx={{ fill: ({ palette }) => palette.blue[70] }}
-      variant="indeterminate"
+      variant={"indeterminate"}
     />
   ) : (
     <ArrowRightIconRegular
@@ -86,18 +86,18 @@ export const GroupStepStatus = ({
     : null;
 
   return (
-    <Stack direction="row" ml={2} mb={1}>
+    <Stack direction={"row"} ml={2} mb={1}>
       <Box>
         {!simpleStatus ||
         simpleStatus === "Waiting" ||
         simpleStatus === "Information Required" ? (
-          <WaitingIcon statusFor="step" />
+          <WaitingIcon statusFor={"step"} />
         ) : simpleStatus === "In Progress" ? (
-          <InProgressIcon statusFor="step" />
+          <InProgressIcon statusFor={"step"} />
         ) : simpleStatus === "Complete" ? (
-          <SuccessIcon statusFor="step" />
+          <SuccessIcon statusFor={"step"} />
         ) : (
-          <ErrorIcon statusFor="step" />
+          <ErrorIcon statusFor={"step"} />
         )}
       </Box>
       <Typography sx={{ fontSize: 14, ml: 1, mt: 0.2 }}>{label}</Typography>

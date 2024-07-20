@@ -1,7 +1,6 @@
+import type { Dispatch, SetStateAction , useState } from "react";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import type { Dispatch, SetStateAction } from "react";
-import { useState } from "react";
 
 import type { LinkAndTargetEntity } from "../entity-editor/links-section/link-table/types";
 

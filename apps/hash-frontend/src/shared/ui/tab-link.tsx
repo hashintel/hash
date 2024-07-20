@@ -1,13 +1,12 @@
-import { LoadingSpinner } from "@hashintel/design-system";
-import { theme } from "@hashintel/design-system/theme";
-import type { SxProps, Theme } from "@mui/material";
-import { Box, Tab, Typography } from "@mui/material";
 import millify from "millify";
 import type { FunctionComponent, ReactElement, ReactNode } from "react";
+import { LoadingSpinner } from "@hashintel/design-system";
+import { theme } from "@hashintel/design-system/theme";
+import type { Box, SxProps, Tab, Theme , Typography } from "@mui/material";
 
 import { Link } from "./link";
 
-export type TabLinkProps = {
+export interface TabLinkProps {
   label: ReactNode;
   href: string;
   value: string;
@@ -16,7 +15,7 @@ export type TabLinkProps = {
   loading?: boolean;
   active?: boolean;
   sx?: SxProps<Theme>;
-};
+}
 
 export const TabLink: FunctionComponent<TabLinkProps> = ({
   label,
@@ -34,9 +33,10 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
     value={value}
     href={href}
     component={Link}
+    iconPosition={"end"}
     label={
       <Typography
-        variant="smallTextLabels"
+        variant={"smallTextLabels"}
         fontWeight={500}
         sx={{
           paddingY: 0.25,
@@ -58,15 +58,15 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
         >
           {loading ? (
             <LoadingSpinner
+              size={14}
+              thickness={6}
               color={
                 active ? theme.palette.primary.main : theme.palette.gray[60]
               }
-              size={14}
-              thickness={6}
             />
           ) : (
             <Typography
-              variant="microText"
+              variant={"microText"}
               sx={({ palette }) => ({
                 fontWeight: 500,
                 color: active ? palette.primary.main : palette.gray[80],
@@ -80,6 +80,5 @@ export const TabLink: FunctionComponent<TabLinkProps> = ({
         (icon ?? undefined)
       )
     }
-    iconPosition="end"
   />
 );

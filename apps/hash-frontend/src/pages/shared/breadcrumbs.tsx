@@ -1,3 +1,10 @@
+import {
+  bindMenu,
+  bindTrigger,
+  usePopupState,
+} from "material-ui-popup-state/hooks";
+import { useRouter } from "next/router";
+import type { ReactNode } from "react";
 import { faAngleRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import {
@@ -7,28 +14,22 @@ import {
   ListItemText,
   Menu,
 } from "@mui/material";
-import {
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
-import { useRouter } from "next/router";
-import type { ReactNode } from "react";
 
 import { Button, MenuItem } from "../../shared/ui";
+
 import { PAGE_TITLE_PLACEHOLDER } from "./block-collection/page-title/page-title";
 
-export type Breadcrumb = {
+export interface Breadcrumb {
   title: string;
   href?: string;
   icon?: ReactNode | null;
   id: string;
-};
+}
 
-type SubMenuProps = {
+interface SubMenuProps {
   items: Breadcrumb[];
   defaultIcon: ReactNode;
-};
+}
 
 const SubMenu = ({ items, defaultIcon }: SubMenuProps) => {
   const popupState = usePopupState({
@@ -38,7 +39,7 @@ const SubMenu = ({ items, defaultIcon }: SubMenuProps) => {
 
   return (
     <>
-      <IconButton size="small" unpadded {...bindTrigger(popupState)}>
+      <IconButton unpadded size={"small"} {...bindTrigger(popupState)}>
         …
       </IconButton>
       <Menu
@@ -59,11 +60,11 @@ const SubMenu = ({ items, defaultIcon }: SubMenuProps) => {
   );
 };
 
-export type BreadcrumbsProps = {
+export interface BreadcrumbsProps {
   crumbs: Breadcrumb[];
   defaultIcon?: ReactNode;
   scrollToTop: () => void;
-};
+}
 
 export const Breadcrumbs = ({
   crumbs,
@@ -109,6 +110,7 @@ export const Breadcrumbs = ({
         }
 
         let maxLength = 18;
+
         if (items.length === 1 || index !== 0) {
           maxLength = 36;
         }
@@ -117,16 +119,11 @@ export const Breadcrumbs = ({
           <Box key={item.title}>
             <Button
               disabled={!item.href}
-              variant="tertiary_quiet"
+              variant={"tertiary_quiet"}
               // don't attach href if it's the current page
               {...(item.href &&
                 !item.href.includes(router.asPath) && { href: item.href })}
-              onClick={() => {
-                if (item.href?.includes(router.asPath)) {
-                  scrollToTop();
-                }
-              }}
-              size="xs"
+              size={"xs"}
               startIcon={
                 item.icon === null ? undefined : (item.icon ?? defaultIcon)
               }
@@ -139,9 +136,14 @@ export const Breadcrumbs = ({
                 },
                 px: 1,
               }}
+              onClick={() => {
+                if (item.href?.includes(router.asPath)) {
+                  scrollToTop();
+                }
+              }}
             >
               <Box
-                component="span"
+                component={"span"}
                 sx={{
                   maxWidth: `${maxLength}ch`,
                   whiteSpace: "nowrap",

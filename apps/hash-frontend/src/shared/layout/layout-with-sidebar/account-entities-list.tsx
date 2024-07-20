@@ -1,3 +1,7 @@
+import { orderBy } from "lodash";
+import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
+import type { FunctionComponent , useMemo, useState } from "react";
+import { TransitionGroup } from "react-transition-group";
 import { IconButton } from "@hashintel/design-system";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { blockProtocolHubOrigin } from "@local/hash-isomorphic-utils/blocks";
@@ -5,11 +9,6 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Collapse, Fade, Tooltip } from "@mui/material";
-import { orderBy } from "lodash";
-import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
-import { useMemo, useState } from "react";
-import { TransitionGroup } from "react-transition-group";
 
 import { hiddenEntityTypeIds } from "../../../pages/shared/hidden-types";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
@@ -19,16 +18,16 @@ import { ArrowUpZARegularIcon } from "../../icons/arrow-up-a-z-regular-icon";
 import { PlusRegularIcon } from "../../icons/plus-regular";
 import { Link } from "../../ui";
 import { useEntityTypeEntities } from "../../use-entity-type-entities";
+
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
-import type { SortType } from "./account-entity-type-list/sort-actions-dropdown";
-import { SortActionsDropdown } from "./account-entity-type-list/sort-actions-dropdown";
+import type { SortActionsDropdown,SortType  } from "./account-entity-type-list/sort-actions-dropdown";
 import { NavLink } from "./nav-link";
 import { LoadingSkeleton } from "./shared/loading-skeleton";
 import { ViewAllLink } from "./view-all-link";
 
-type AccountEntitiesListProps = {
+interface AccountEntitiesListProps {
   ownedById: OwnedById;
-};
+}
 
 export const AccountEntitiesList: FunctionComponent<
   AccountEntitiesListProps
@@ -96,17 +95,17 @@ export const AccountEntitiesList: FunctionComponent<
     <Box>
       <NavLink
         expanded={expanded}
-        toggleExpanded={() => setExpanded((prev) => !prev)}
-        title="Entities"
+        toggleExpanded={() => { setExpanded((previous) => !previous); }}
+        title={"Entities"}
         endAdornment={
-          <Box display="flex" gap={1}>
+          <Box display={"flex"} gap={1}>
             <Fade in={expanded}>
-              <Tooltip title="Sort types" placement="top">
+              <Tooltip title={"Sort types"} placement={"top"}>
                 <IconButton
                   {...bindTrigger(sortActionsPopupState)}
-                  size="small"
                   unpadded
                   rounded
+                  size={"small"}
                   sx={({ palette }) => ({
                     color: palette.gray[80],
                     ...(sortActionsPopupState.isOpen && {
@@ -130,14 +129,14 @@ export const AccountEntitiesList: FunctionComponent<
               setSortType={setSortType}
               activeSortType={sortType}
             />
-            <Link tabIndex={-1} href="/new/entity" noLinkStyle>
-              <Tooltip title="Create new entity " sx={{ left: 5 }}>
+            <Link noLinkStyle tabIndex={-1} href={"/new/entity"}>
+              <Tooltip title={"Create new entity "} sx={{ left: 5 }}>
                 <IconButton
-                  data-testid="create-entity-btn"
-                  size="small"
                   unpadded
                   rounded
-                  className="end-adornment-button"
+                  data-testid={"create-entity-btn"}
+                  size={"small"}
+                  className={"end-adornment-button"}
                   sx={({ palette }) => ({
                     color: palette.gray[80],
                   })}
@@ -149,7 +148,7 @@ export const AccountEntitiesList: FunctionComponent<
           </Box>
         }
       >
-        <Box component="ul">
+        <Box component={"ul"}>
           {loading && sortedEntityTypes.length === 0 ? (
             <LoadingSkeleton />
           ) : (
@@ -158,10 +157,10 @@ export const AccountEntitiesList: FunctionComponent<
                 <Collapse key={root.schema.$id}>
                   <EntityTypeItem
                     entityType={root}
+                    variant={"entity"}
                     href={`/entities?entityTypeIdOrBaseUrl=${extractBaseUrl(
                       root.schema.$id,
                     )}`}
-                    variant="entity"
                   />
                 </Collapse>
               ))}
@@ -169,7 +168,7 @@ export const AccountEntitiesList: FunctionComponent<
           )}
 
           <Box marginLeft={1} marginTop={0.5}>
-            <ViewAllLink href="/entities">View all entities</ViewAllLink>
+            <ViewAllLink href={"/entities"}>View all entities</ViewAllLink>
           </Box>
         </Box>
       </NavLink>

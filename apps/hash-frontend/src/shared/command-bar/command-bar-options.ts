@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-export type CommandBarOptionCommand = {
+export interface CommandBarOptionCommand {
   href?: string;
   // Used to render a custom screen inside the popup when the option is selected
   renderCustomScreen?: (option: CommandBarOption) => ReactNode;
@@ -10,7 +10,7 @@ export type CommandBarOptionCommand = {
   command?: (option: CommandBarOption) => void;
 
   asyncCommand?: (input: string) => Promise<CommandBarOption | null>;
-};
+}
 
 export class CommandBarOption {
   private command: CommandBarOptionCommand | null = null;
@@ -55,7 +55,7 @@ export class CommandBarOption {
   }
 
   isActive() {
-    return !!this.command && this.active;
+    return Boolean(this.command) && this.active;
   }
 
   getCommand() {

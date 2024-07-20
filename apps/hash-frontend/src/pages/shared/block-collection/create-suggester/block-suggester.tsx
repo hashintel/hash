@@ -1,25 +1,24 @@
+import type { FunctionComponent , useMemo } from "react";
 import type { BlockVariant } from "@blockprotocol/core";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
-import type { SxProps, Theme } from "@mui/material";
-import { Box, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useMemo } from "react";
+import type { Box, SxProps, Theme , Typography } from "@mui/material";
 
 import { useUserBlocks } from "../../../../blocks/user-blocks";
 import { WarnIcon } from "../../../../shared/icons";
 import { useFilteredBlocks } from "../shared/use-filtered-blocks";
+
 import { Suggester } from "./suggester";
 
 export interface BlockSuggesterProps {
   search?: string;
-  onChange(variant: BlockVariant, blockMeta: HashBlockMeta): void;
+  onChange: (variant: BlockVariant, blockMeta: HashBlockMeta) => void;
   sx?: SxProps<Theme>;
 }
 
 /**
- * used to present list of blocks to choose from to the user
+ * Used to present list of blocks to choose from to the user.
  *
- * @todo highlight variant of the prosemirror-node this suggester is attached to.
+ * @todo Highlight variant of the prosemirror-node this suggester is attached to.
  */
 export const BlockSuggester: FunctionComponent<BlockSuggesterProps> = ({
   search = "",
@@ -29,7 +28,7 @@ export const BlockSuggester: FunctionComponent<BlockSuggesterProps> = ({
   const { value: blocksMap, blockFetchFailed } = useUserBlocks();
 
   const blocksArray = useMemo(
-    () => Array.from(Object.values(blocksMap)),
+    () => Object.values(blocksMap),
     [blocksMap],
   );
   const filteredBlocks = useFilteredBlocks(search, blocksArray);
@@ -37,6 +36,8 @@ export const BlockSuggester: FunctionComponent<BlockSuggesterProps> = ({
   return (
     <Suggester
       options={filteredBlocks}
+      itemKey={({ meta, variant }) => `${meta.componentId}/${variant.name}`}
+      sx={sx}
       renderItem={(option) => (
         <>
           <div
@@ -49,12 +50,12 @@ export const BlockSuggester: FunctionComponent<BlockSuggesterProps> = ({
           >
             {option.variant.icon && (
               <img
+                alt={option.variant.name}
+                src={option.variant.icon ?? "/format-font.svg"}
                 style={{
                   height: "1.5rem",
                   width: "1.5rem",
                 }}
-                alt={option.variant.name}
-                src={option.variant.icon ?? "/format-font.svg"}
               />
             )}
           </div>
@@ -116,7 +117,7 @@ export const BlockSuggester: FunctionComponent<BlockSuggesterProps> = ({
             </Box>
             <Box sx={{ px: 1, py: 0.5 }}>
               <Typography
-                variant="smallTextLabels"
+                variant={"smallTextLabels"}
                 sx={({ palette }) => ({
                   fontWeight: 500,
                   color: palette.gray[70],
@@ -130,11 +131,9 @@ export const BlockSuggester: FunctionComponent<BlockSuggesterProps> = ({
           </Box>
         ) : null
       }
-      itemKey={({ meta, variant }) => `${meta.componentId}/${variant.name}`}
       onChange={(option) => {
         onChange(option.variant, option.meta);
       }}
-      sx={sx}
     />
   );
 };

@@ -1,3 +1,4 @@
+import type { FunctionComponent, ReactNode , useMemo } from "react";
 import type { EntityPropertyValue } from "@blockprotocol/graph";
 import { extractVersion } from "@blockprotocol/type-system";
 import {
@@ -8,8 +9,7 @@ import {
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type { EntityRootType, extractEntityUuidFromEntityId,Subgraph  } from "@local/hash-subgraph";
 import {
   getEntityRevision,
   getEntityTypeById,
@@ -17,17 +17,14 @@ import {
   getPropertyTypeById,
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import type { BoxProps } from "@mui/material";
-import {
-  Box,
+import type {   Box,
+BoxProps ,
   chipClasses,
   styled,
   Tooltip,
   Typography,
   typographyClasses,
 } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
-import { useMemo } from "react";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
@@ -47,13 +44,14 @@ const ContentTypography = styled(Typography)(({ theme }) => ({
 const stringifyEntityPropertyValue = (value: EntityPropertyValue): string => {
   if (Array.isArray(value)) {
     return value.map(stringifyEntityPropertyValue).join(", ");
-  } else if (typeof value === "boolean") {
+  } if (typeof value === "boolean") {
     return value ? "True" : "False";
-  } else if (typeof value === "undefined") {
+  } if (typeof value === "undefined") {
     return "Undefined";
-  } else {
-    return String(value);
   }
+ 
+    return String(value);
+  
 };
 
 const LeftOrRightEntity: FunctionComponent<{
@@ -93,8 +91,8 @@ const LeftOrRightEntity: FunctionComponent<{
 
   const content = (
     <Box
-      display="flex"
-      alignItems="center"
+      display={"flex"}
+      alignItems={"center"}
       columnGap={1}
       paddingX={1.5}
       paddingY={0.75}
@@ -131,9 +129,9 @@ const LeftOrRightEntity: FunctionComponent<{
 
   const contentWithLink = href ? (
     <Link
+      noLinkStyle
       openInNew={openInNew}
       href={href}
-      noLinkStyle
       sx={{
         "&:hover": {
           [`.${typographyClasses.root}, svg`]: {
@@ -154,7 +152,7 @@ const LeftOrRightEntity: FunctionComponent<{
     }
 
     return Object.entries(entity.properties)
-      .map(([baseUrl, propertyValue]) => {
+      .flatMap(([baseUrl, propertyValue]) => {
         const propertyTypeId = Object.values(entityType.schema.properties)
           .map((value) => ("items" in value ? value.items.$ref : value.$ref))
           .find((id) => extractBaseUrl(id) === baseUrl);
@@ -176,8 +174,7 @@ const LeftOrRightEntity: FunctionComponent<{
           propertyType,
           stringifiedPropertyValue,
         };
-      })
-      .flat();
+      });
   }, [entity, subgraph, entityType]);
 
   const outgoingLinksByLinkEntityType = useMemo(() => {
@@ -195,7 +192,7 @@ const LeftOrRightEntity: FunctionComponent<{
       }[]
     >(
       (
-        prev,
+        previous,
         {
           linkEntity: linkEntityRevisions,
           /**
@@ -209,39 +206,39 @@ const LeftOrRightEntity: FunctionComponent<{
         const rightEntity = rightEntityRevisions[0];
 
         if (!linkEntity || !rightEntity) {
-          return prev;
+          return previous;
         }
 
         const linkEntityTypeId = linkEntity.metadata.entityTypeId;
         const linkEntityType = getEntityTypeById(subgraph, linkEntityTypeId);
 
         if (!linkEntityType) {
-          return prev;
+          return previous;
         }
 
-        const linkEntityTypeIndex = prev.findIndex(
+        const linkEntityTypeIndex = previous.findIndex(
           (grouping) =>
             grouping.linkEntityType.schema.$id === linkEntityType.schema.$id,
         );
 
         return linkEntityTypeIndex < 0
           ? [
-              ...prev,
+              ...previous,
               {
                 linkEntityType,
                 rightEntities: [rightEntity],
               },
             ]
           : [
-              ...prev.slice(0, linkEntityTypeIndex),
+              ...previous.slice(0, linkEntityTypeIndex),
               {
                 linkEntityType,
                 rightEntities: [
-                  ...prev[linkEntityTypeIndex]!.rightEntities,
+                  ...previous[linkEntityTypeIndex]!.rightEntities,
                   rightEntity,
                 ],
               },
-              ...prev.slice(linkEntityTypeIndex + 1),
+              ...previous.slice(linkEntityTypeIndex + 1),
             ];
       },
       [],
@@ -315,7 +312,7 @@ const LeftOrRightEntity: FunctionComponent<{
     ) : null;
 
   const contentWithLinkAndTooltip = tooltipContent ? (
-    <Tooltip title={tooltipContent} placement="bottom-start">
+    <Tooltip title={tooltipContent} placement={"bottom-start"}>
       {contentWithLink}
     </Tooltip>
   ) : (
@@ -324,8 +321,8 @@ const LeftOrRightEntity: FunctionComponent<{
 
   return (
     <Box
-      display="flex"
-      flexDirection="column"
+      display={"flex"}
+      flexDirection={"column"}
       sx={{
         minWidth: 0,
         "&:first-of-type > a > div, &:first-of-type > div": {
@@ -416,9 +413,9 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
         sx={leftEntitySx}
       />
       <Link
+        noLinkStyle
         openInNew={openInNew}
         href={generateLinkParameters(linkEntityType.schema.$id).href}
-        noLinkStyle
         sx={{
           "&:hover": {
             [`.${typographyClasses.root}, svg`]: {
@@ -443,7 +440,7 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
             borderRightWidth: 0,
           }}
         >
-          <Box display="flex">
+          <Box display={"flex"}>
             {linkEntityType.metadata.icon ?? (
               <LinkRegularIcon
                 sx={{
@@ -457,7 +454,7 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
           <ContentTypography>
             {linkEntityType.schema.title}{" "}
             <Box
-              component="span"
+              component={"span"}
               sx={{
                 color: ({ palette }) => palette.gray[50],
                 fontSize: 11,

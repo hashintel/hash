@@ -1,9 +1,9 @@
-export const isValueEmpty = (val: unknown) => {
-  if (val === "" || val === undefined) {
+export const isValueEmpty = (value: unknown) => {
+  if (value === "" || value === undefined) {
     return true;
   }
 
-  if (Array.isArray(val) && !val.length) {
+  if (Array.isArray(value) && value.length === 0) {
     return true;
   }
 

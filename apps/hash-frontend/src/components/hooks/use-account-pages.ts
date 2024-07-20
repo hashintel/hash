@@ -1,5 +1,5 @@
-import type { ApolloQueryResult } from "@apollo/client";
-import { useQuery } from "@apollo/client";
+import { useMemo } from "react";
+import type { ApolloQueryResult , useQuery } from "@apollo/client";
 import type { EntityMetadata } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
@@ -7,8 +7,7 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import type { SimpleProperties , simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { EntityRootType } from "@local/hash-subgraph";
@@ -16,7 +15,6 @@ import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { useMemo } from "react";
 
 import type {
   GetEntitySubgraphQuery,
@@ -24,6 +22,7 @@ import type {
 } from "../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { getAccountPagesVariables } from "../../shared/account-pages-variables";
+
 import { useHashInstance } from "./use-hash-instance";
 
 export type SimplePage = SimpleProperties<PageProperties> & {
@@ -32,12 +31,12 @@ export type SimplePage = SimpleProperties<PageProperties> & {
   type: "canvas" | "document";
 };
 
-export type AccountPagesInfo = {
+export interface AccountPagesInfo {
   data: SimplePage[];
   lastRootPageIndex: string | null;
   loading: boolean;
   refetch: () => Promise<ApolloQueryResult<GetEntitySubgraphQuery>>;
-};
+}
 
 export const useAccountPages = (
   ownedById?: OwnedById,

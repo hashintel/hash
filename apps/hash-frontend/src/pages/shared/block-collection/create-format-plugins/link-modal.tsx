@@ -1,17 +1,16 @@
+import type { FormEvent, FunctionComponent , useRef, useState } from "react";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LanguageIcon from "@mui/icons-material/Language";
 import LinkIcon from "@mui/icons-material/LinkOutlined";
 import { Box } from "@mui/material";
-import type { FormEvent, FunctionComponent } from "react";
-import { useRef, useState } from "react";
 
 import { isValidLink } from "./util";
 
-type LinkModalProps = {
+interface LinkModalProps {
   savedLinkMarkHref?: string;
   updateLink: (href: string) => void;
   removeLink: () => void;
-};
+}
 
 export const LinkModal: FunctionComponent<LinkModalProps> = ({
   savedLinkMarkHref,
@@ -22,8 +21,8 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
   const linkModalRef = useRef<HTMLDivElement>(null);
   const linkInputRef = useRef<HTMLInputElement>(null);
 
-  const handleUpdateLink = (evt: FormEvent) => {
-    evt.preventDefault();
+  const handleUpdateLink = (event: FormEvent) => {
+    event.preventDefault();
     updateLink(newLinkHref);
   };
 
@@ -33,12 +32,13 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
 
   return (
     <div
+      ref={linkModalRef}
       style={{
         backgroundColor: "#ffffff",
         borderRadius: "0.375rem",
         /**
-         * @todo use shadows from MUI theme
          * @see https://linear.app/hash/issue/H-2999
+         * @todo Use shadows from MUI theme.
          */
         boxShadow:
           "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
@@ -49,7 +49,6 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
         width: "20rem",
         zIndex: "10",
       }}
-      ref={linkModalRef}
     >
       <form
         style={{
@@ -62,6 +61,10 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
         onSubmit={handleUpdateLink}
       >
         <input
+          type={"text"}
+          value={newLinkHref}
+          ref={linkInputRef}
+          placeholder={savedLinkMarkHref ? "Edit link" : "Paste link"}
           style={{
             borderColor: "#D1D5DB",
             borderRadius: "0.125rem",
@@ -76,20 +79,15 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
             paddingTop: "0.25rem",
             width: "100%",
           }}
-          type="text"
-          onChange={(evt) => setNewLinkHref(evt.target.value)}
-          value={newLinkHref}
-          ref={linkInputRef}
-          placeholder={savedLinkMarkHref ? "Edit link" : "Paste link"}
+          onChange={(event) => { setNewLinkHref(event.target.value); }}
         />
       </form>
 
       <div style={{ color: "#374151" }}>
         {!savedLinkMarkHref && isValidLink(newLinkHref) && (
           <Box
-            component="button"
-            onClick={() => updateLink(newLinkHref)}
-            type="button"
+            component={"button"}
+            type={"button"}
             sx={{
               alignItems: "center",
               backgroundColor: "#E5E7EB",
@@ -110,6 +108,7 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
                 backgroundColor: "#E5E7EB",
               },
             }}
+            onClick={() => { updateLink(newLinkHref); }}
           >
             <LinkIcon style={{ marginRight: "0.25rem" }} />
             <span>Add Link</span>
@@ -136,7 +135,8 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
               {/* @todo discuss if this is better off as a link tag since that allows user to do extra
               stuff like "open in new window", "copy link" */}
               <Box
-                component="button"
+                component={"button"}
+                type={"button"}
                 sx={{
                   display: "flex",
                   paddingTop: "0.375rem",
@@ -154,7 +154,6 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
                   },
                 }}
                 onClick={openUrl}
-                type="button"
               >
                 <LanguageIcon
                   style={{
@@ -204,7 +203,8 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
               {isValidLink(newLinkHref) && (
                 <li style={{ listStyle: "none" }}>
                   <Box
-                    component="button"
+                    component={"button"}
+                    type={"button"}
                     sx={{
                       alignItems: "center",
                       backgroundColor: "transparent",
@@ -226,8 +226,7 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
                         backgroundColor: "#E5E7EB",
                       },
                     }}
-                    onClick={() => updateLink(newLinkHref)}
-                    type="button"
+                    onClick={() => { updateLink(newLinkHref); }}
                   >
                     <LinkIcon
                       style={{
@@ -240,7 +239,8 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
               )}
               <li style={{ listStyle: "none" }}>
                 <Box
-                  component="button"
+                  component={"button"}
+                  type={"button"}
                   sx={{
                     alignItems: "center",
                     backgroundColor: "transparent",
@@ -259,7 +259,6 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
                     },
                   }}
                   onClick={removeLink}
-                  type="button"
                 >
                   <DeleteIcon
                     style={{

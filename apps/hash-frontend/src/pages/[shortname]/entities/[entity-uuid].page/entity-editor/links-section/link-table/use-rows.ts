@@ -1,3 +1,5 @@
+import { useRouter } from "next/router";
+import { useCallback, useMemo } from "react";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
@@ -10,14 +12,13 @@ import {
   getRoots,
   intervalCompareWithInterval,
 } from "@local/hash-subgraph/stdlib";
-import { useRouter } from "next/router";
-import { useCallback, useMemo } from "react";
 
 import { useGetOwnerForEntity } from "../../../../../../../components/hooks/use-get-owner-for-entity";
 import { useEntityTypesContextRequired } from "../../../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { useFileUploads } from "../../../../../../../shared/file-upload-context";
 import { useMarkLinkEntityToArchive } from "../../../shared/use-mark-link-entity-to-archive";
 import { useEntityEditor } from "../../entity-editor-context";
+
 import type { LinkRow } from "./types";
 
 export const useRows = () => {
@@ -39,9 +40,9 @@ export const useRows = () => {
         generateEntityPath({
           shortname,
           entityId: entity.metadata.recordId.entityId,
-          includeDraftId: !!extractDraftIdFromEntityId(
+          includeDraftId: Boolean(extractDraftIdFromEntityId(
             entity.metadata.recordId.entityId,
-          ),
+          )),
         }),
       );
     },
@@ -91,7 +92,7 @@ export const useRows = () => {
           );
 
           const isLoading =
-            !!relevantUpload &&
+            Boolean(relevantUpload) &&
             relevantUpload.status !== "complete" &&
             relevantUpload.status !== "error";
 
@@ -124,6 +125,7 @@ export const useRows = () => {
 
           for (const entities of outgoingLinkAndTargetEntities) {
             const linkEntityRevisions = [...entities.linkEntity];
+
             linkEntityRevisions.sort((entityA, entityB) =>
               intervalCompareWithInterval(
                 entityA.metadata.temporalVersioning[variableAxis],
@@ -140,6 +142,7 @@ export const useRows = () => {
             }
 
             const targetEntityRevisions = [...entities.rightEntity];
+
             targetEntityRevisions.sort((entityA, entityB) =>
               intervalCompareWithInterval(
                 entityA.metadata.temporalVersioning[variableAxis],
@@ -159,8 +162,8 @@ export const useRows = () => {
               latestLinkEntityRevision.metadata;
 
             const isMatching = entityTypeId === linkEntityTypeId;
-            const isMarkedToArchive = draftLinksToArchive.some(
-              (markedLinkId) => markedLinkId === recordId.entityId,
+            const isMarkedToArchive = draftLinksToArchive.includes(
+              recordId.entityId,
             );
 
             if (isMatching && !isMarkedToArchive) {
@@ -175,7 +178,7 @@ export const useRows = () => {
           linkAndTargetEntities.push(...additions);
 
           const expectedEntityTypeTitles = expectedEntityTypes.map(
-            (val) => val.schema.title,
+            (value) => value.schema.title,
           );
 
           const isFile = expectedEntityTypes.some(

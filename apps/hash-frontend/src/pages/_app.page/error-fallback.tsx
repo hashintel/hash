@@ -1,6 +1,6 @@
+import { useState } from "react";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
 import type { FallbackRender } from "@sentry/react";
-import { useState } from "react";
 
 import { Button } from "../../shared/ui/button";
 import { Link } from "../../shared/ui/link";
@@ -12,17 +12,7 @@ const CopyableMonospace = ({ text }: { text: string }) => {
     <Box>
       <Tooltip title={tooltipTitle}>
         <Button
-          onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(text);
-              setTooltipTitle("Copied!");
-            } catch {
-              setTooltipTitle("Not allowed to copy to clipboard");
-            } finally {
-              setTimeout(() => setTooltipTitle("Copy to clipboard"), 3_000);
-            }
-          }}
-          variant="tertiary"
+          variant={"tertiary"}
           sx={({ palette }) => ({
             background: palette.gray[20],
             border: `1px solid ${palette.gray[50]}`,
@@ -34,9 +24,19 @@ const CopyableMonospace = ({ text }: { text: string }) => {
               background: palette.gray[40],
             },
           })}
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(text);
+              setTooltipTitle("Copied!");
+            } catch {
+              setTooltipTitle("Not allowed to copy to clipboard");
+            } finally {
+              setTimeout(() => { setTooltipTitle("Copy to clipboard"); }, 3_000);
+            }
+          }}
         >
           <Typography
-            component="span"
+            component={"span"}
             sx={({ palette }) => ({
               color: palette.gray[90],
               fontFamily: "monospace",
@@ -71,7 +71,7 @@ export const ErrorFallback: FallbackRender = ({
         borderRadius: 2,
       })}
     >
-      <Typography variant="h3" mb={2}>
+      <Typography variant={"h3"} mb={2}>
         Something went wrong...
       </Typography>
       <Typography mb={2}>
@@ -79,34 +79,34 @@ export const ErrorFallback: FallbackRender = ({
         to reset the page to its initial state.
       </Typography>
       <Box sx={{ textAlign: "center" }}>
-        <Button onClick={resetError} size="small">
+        <Button size={"small"} onClick={resetError}>
           Reset the page
         </Button>
       </Box>
       <Typography mt={2}>
-        You can also <Link href="https://hash.ai/contact">contact us</Link>. If
+        You can also <Link href={"https://hash.ai/contact"}>contact us</Link>. If
         you do, please include the details below.
       </Typography>
       <Button
-        onClick={() => setShowMessage(!showMessage)}
-        variant="tertiary"
-        size="xs"
+        variant={"tertiary"}
+        size={"xs"}
         sx={{ mt: 2 }}
+        onClick={() => { setShowMessage(!showMessage); }}
       >
         {showMessage ? "Hide details" : "Show details"}
       </Button>
       <Collapse in={showMessage}>
         <Box sx={{ mt: 2 }}>
           <Box>
-            <Typography variant="smallCaps">Event ID</Typography>
+            <Typography variant={"smallCaps"}>Event ID</Typography>
             <CopyableMonospace text={eventId} />
           </Box>
           <Box mt={2}>
-            <Typography variant="smallCaps">Error message</Typography>
+            <Typography variant={"smallCaps"}>Error message</Typography>
             <CopyableMonospace text={error.message} />
           </Box>
           <Box mt={2}>
-            <Typography variant="smallCaps">Stack trace</Typography>
+            <Typography variant={"smallCaps"}>Stack trace</Typography>
             <CopyableMonospace text={error.stack ?? ""} />
           </Box>
         </Box>

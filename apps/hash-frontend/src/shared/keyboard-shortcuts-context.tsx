@@ -1,6 +1,5 @@
-import type { FunctionComponent, PropsWithChildren } from "react";
-import {
-  createContext,
+import type {   createContext,
+FunctionComponent, PropsWithChildren ,
   useCallback,
   useContext,
   useEffect,
@@ -8,10 +7,10 @@ import {
   useState,
 } from "react";
 
-export type KeyboardShortcut = {
+export interface KeyboardShortcut {
   keys: string[];
   callback: (event: KeyboardEvent) => void;
-};
+}
 
 type SetKeyboardShortcutsFunction = (shortcuts: KeyboardShortcut[]) => void;
 
@@ -19,15 +18,15 @@ type UnsetKeyboardShortcutsFunction = (
   shortcutsToUnset: { keys: string[] }[],
 ) => void;
 
-type KeyboardShortcutsContextValue = {
+interface KeyboardShortcutsContextValue {
   setKeyboardShortcuts: SetKeyboardShortcutsFunction;
   unsetKeyboardShortcuts: UnsetKeyboardShortcutsFunction;
-};
+}
 
 export const KeyboardShortcutsContext =
   createContext<null | KeyboardShortcutsContextValue>(null);
 
-const modKeyToKeyboardEventProperty: Record<string, keyof KeyboardEvent> = {
+const moduleKeyToKeyboardEventProperty: Record<string, keyof KeyboardEvent> = {
   Alt: "altKey",
   Meta: "metaKey",
   Control: "ctrlKey",
@@ -37,11 +36,11 @@ const modKeyToKeyboardEventProperty: Record<string, keyof KeyboardEvent> = {
 /**
  * We detect which keys are pressed based on a single KeyboardEvent.
  *
- * See limitations described on {@link useSetKeyboardShortcuts}
+ * See limitations described on {@link useSetKeyboardShortcuts}.
  */
 const areAllKeysPressed = (event: KeyboardEvent, keys: string[]) => {
   for (const key of keys) {
-    const modifierProperty = modKeyToKeyboardEventProperty[key];
+    const modifierProperty = moduleKeyToKeyboardEventProperty[key];
 
     if (event.key !== key && (!modifierProperty || !event[modifierProperty])) {
       return false;
@@ -117,7 +116,7 @@ export const KeyboardShortcutsContextProvider: FunctionComponent<
 
     document.addEventListener("keydown", handleKeyDown);
 
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    return () => { document.removeEventListener("keydown", handleKeyDown); };
   }, [keyboardShortcutsState]);
 
   const value = useMemo(
@@ -137,7 +136,7 @@ export const KeyboardShortcutsContextProvider: FunctionComponent<
  *
  * This is limited by the information available on a single KeyboardEvent, and therefore
  * - CANNOT distinguish between left/right modifier keys. Pass 'Meta', 'Control', 'Alt', 'Shift', NOT 'MetaLeft' etc
- * - CANNOT handle shortcuts which involve multiple non-modifier keys being pressed (e.g. K + P, W + 1, I + ;)
+ * - CANNOT handle shortcuts which involve multiple non-modifier keys being pressed (e.g. K + P, W + 1, I + ;).
  *
  * An alternative approach would be to maintain a manual mapping of which keys have been held down or released,
  * which could distinguish between modifier keys, but OS shortcuts / actions can take window focus without triggering

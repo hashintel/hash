@@ -1,3 +1,4 @@
+import type { FunctionComponent , useMemo, useRef, useState } from "react";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -14,8 +15,6 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Popover, styled, Tooltip, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useMemo, useRef, useState } from "react";
 
 import { useEntityById } from "../../../../components/hooks/use-entity-by-id";
 import { constructPageRelativeUrl } from "../../../../lib/routes";
@@ -86,6 +85,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   const entityOwnerShortname = useMemo(() => {
     if (owner) {
       const { shortname } = simplifyProperties(owner.properties);
+
       return shortname ?? "incomplete-user-profile";
     }
   }, [owner]);
@@ -109,7 +109,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
       mention.kind === "user"
     ) {
       return entityLabel;
-    } else if (mention.kind === "outgoing-link") {
+    } if (mention.kind === "outgoing-link") {
       const outgoingLinkAndTargetEntities = getOutgoingLinkAndTargetEntities(
         entitySubgraph,
         entityId,
@@ -127,13 +127,13 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
         : inaccessibleTargetEntityLabel;
 
       return targetEntityLabel;
-    } else {
-      const propertyTypeBaseUrl = mention.propertyTypeBaseUrl;
+    } 
+      const {propertyTypeBaseUrl} = mention;
 
       const propertyValue = entity?.properties[propertyTypeBaseUrl];
 
       return propertyValue?.toString();
-    }
+    
   }, [mention, entityId, entitySubgraph, entity, entityLabel]);
 
   const title =
@@ -151,10 +151,12 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
           const { shortname } = simplifyProperties(
             entity.properties as UserProperties,
           );
+
           return `/@${shortname}`;
         }
+
         return entityHref;
-      } else if (mention.kind === "page" && entityOwnerShortname) {
+      } if (mention.kind === "page" && entityOwnerShortname) {
         const pageEntityUuid = extractEntityUuidFromEntityId(entityId);
 
         return constructPageRelativeUrl({
@@ -214,8 +216,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
   const chip = (
     <Box
       ref={contentRef}
-      component="span"
-      onClick={hasPopover ? () => setPopoverOpen(true) : undefined}
+      component={"span"}
       sx={{
         borderRadius: "8px",
         background: ({ palette }) =>
@@ -236,13 +237,14 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
             }
           : {}),
       }}
+      onClick={hasPopover ? () => { setPopoverOpen(true); } : undefined}
     >
       {loading ? (
         "Loading..."
       ) : (
         <>
           {["user", "page", "entity"].includes(mention.kind) ? (
-            <Box component="span" marginRight={0.5}>
+            <Box component={"span"} marginRight={0.5}>
               {entityIcon}
             </Box>
           ) : null}
@@ -272,6 +274,8 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
     <>
       {hasTooltip ? (
         <Tooltip
+          title={tooltip}
+          placement={"bottom-start"}
           PopperProps={{
             modifiers: [
               {
@@ -282,8 +286,6 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
               },
             ],
           }}
-          title={tooltip}
-          placement="bottom-start"
         >
           {chip}
         </Tooltip>
@@ -294,7 +296,6 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
         <Popover
           anchorEl={contentRef.current}
           open={popoverOpen}
-          onClose={() => setPopoverOpen(false)}
           anchorOrigin={{
             vertical: "bottom",
             horizontal: "left",
@@ -313,6 +314,7 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
               borderWidth: 1,
             },
           }}
+          onClose={() => { setPopoverOpen(false); }}
         >
           <Link
             href={entityType?.schema.$id ?? "#"}

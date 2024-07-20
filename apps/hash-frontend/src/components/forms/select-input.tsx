@@ -1,7 +1,6 @@
-import { Box } from "@mui/material";
 import { uniqueId } from "lodash";
-import type { ChangeEvent, HTMLProps } from "react";
-import { forwardRef, useCallback, useState } from "react";
+import type { ChangeEvent, forwardRef, HTMLProps , useCallback, useState } from "react";
+import { Box } from "@mui/material";
 
 type SelectInputProps = {
   label?: string;
@@ -30,11 +29,11 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
     const [inputId, _] = useState(() => id ?? uniqueId());
 
     const _onChange = useCallback(
-      (evt: ChangeEvent<HTMLSelectElement>) => {
+      (event: ChangeEvent<HTMLSelectElement>) => {
         if (onChangeValue) {
-          onChangeValue(evt.target.value);
+          onChangeValue(event.target.value);
         } else {
-          onChange?.(evt);
+          onChange?.(event);
         }
       },
       [onChange, onChangeValue],
@@ -91,7 +90,7 @@ export const SelectInput = forwardRef<HTMLSelectElement, SelectInputProps>(
           {...props}
         >
           {placeholder && (
-            <option value="" disabled style={{ display: "none" }}>
+            <option disabled value={""} style={{ display: "none" }}>
               {placeholder}
             </option>
           )}

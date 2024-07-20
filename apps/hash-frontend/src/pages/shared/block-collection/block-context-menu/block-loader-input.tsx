@@ -1,19 +1,18 @@
+import type { FormEvent, FunctionComponent , useRef, useState } from "react";
+import { unstable_batchedUpdates } from "react-dom";
 import { TextField } from "@hashintel/design-system";
 import { Box, Collapse } from "@mui/material";
-import type { FormEvent, FunctionComponent } from "react";
-import { useRef, useState } from "react";
-import { unstable_batchedUpdates } from "react-dom";
 
 import { useUserBlocks } from "../../../../blocks/user-blocks";
 import { Button } from "../../../../shared/ui";
 import { useBlockView } from "../block-view";
 
-/** trim whitespace and remove trailing slash */
+/** Trim whitespace and remove trailing slash */
 const createNormalizedBlockUrl = (url: string) => url.trim().replace(/\/$/, "");
 
-type BlockLoaderInputProps = {
+interface BlockLoaderInputProps {
   onLoad: () => void;
-};
+}
 
 export const BlockLoaderInput: FunctionComponent<BlockLoaderInputProps> = ({
   onLoad,
@@ -25,7 +24,7 @@ export const BlockLoaderInput: FunctionComponent<BlockLoaderInputProps> = ({
   const [blockUrl, setBlockUrl] = useState("");
   const blockUrlRef = useRef<HTMLInputElement | null>(null);
 
-  const isDefinedBlock = !!userBlocks[createNormalizedBlockUrl(blockUrl)];
+  const isDefinedBlock = Boolean(userBlocks[createNormalizedBlockUrl(blockUrl)]);
   const isValidBlockUrl = Boolean(blockUrlRef.current?.validity.valid);
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
@@ -47,63 +46,64 @@ export const BlockLoaderInput: FunctionComponent<BlockLoaderInputProps> = ({
       .then((block) => {
         unstable_batchedUpdates(() => {
           setError(null);
-          setUserBlocks((prevUserBlocks) => ({
-            ...prevUserBlocks,
+          setUserBlocks((previousUserBlocks) => ({
+            ...previousUserBlocks,
             [normalizedUrl]: block,
           }));
         });
         const renderedBlock = blockView.manager.renderBlock(normalizedUrl);
+
         blockView.editorView.dispatch(
           blockView.editorView.state.tr.insert(pos, renderedBlock),
         );
         onLoad();
       })
-      .catch((err) => {
-        // eslint-disable-next-line no-console -- requires individual debugging
+      .catch((error_) => {
+         
         console.error(
           "could not load block from url:",
           normalizedUrl,
           "\n",
-          err,
+          error_,
         );
 
         // clear the error after short delay to enable retries (re-enable load button)
-        setError(err);
-        setTimeout(() => setError(null), 2000);
+        setError(error_);
+        setTimeout(() => { setError(null); }, 2000);
       });
   };
 
   return (
     <Box
-      component="form"
-      display="flex"
-      flexDirection="column"
+      component={"form"}
+      display={"flex"}
+      flexDirection={"column"}
       onSubmit={loadBlockFromUrl}
     >
       <TextField
-        size="xs"
-        type="url"
-        placeholder="Load block from URL..."
         required
+        size={"xs"}
+        type={"url"}
+        placeholder={"Load block from URL..."}
         value={blockUrl}
         sx={{ flex: 1 }}
         InputProps={{
           inputRef: blockUrlRef,
         }}
-        onChange={(event) => setBlockUrl(event.target.value)}
-        onKeyDown={(evt) => {
-          evt.stopPropagation();
+        onChange={(event) => { setBlockUrl(event.target.value); }}
+        onKeyDown={(event) => {
+          event.stopPropagation();
         }}
       />
-      <Collapse in={!!blockUrl}>
+      <Collapse in={Boolean(blockUrl)}>
         <Button
-          size="xs"
+          size={"xs"}
+          disabled={inputDisabled}
+          type={"submit"}
           sx={{
             mt: 1,
             width: "100%",
           }}
-          disabled={inputDisabled}
-          type="submit"
         >
           {isDefinedBlock
             ? "Re-load block"

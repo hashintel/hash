@@ -8,6 +8,7 @@ const parseIntFromPixelWidth = (pixelWidth: string) =>
  */
 const getScrollbarSizeOfDocument = () => {
   const documentWidth = document.documentElement.clientWidth;
+
   return Math.abs(window.innerWidth - documentWidth);
 };
 
@@ -50,9 +51,10 @@ const removeStylesFromElement = (element: HTMLElement) => {
 
 /**
  * This function does the same thing as MUI's scroll-lock mechanism, but in a hook.
- * So we can use the same scroll-lock at custom components
- * @param active is locked
- * @param elementToLock an HTML element to lock it's scroll. Locks `document.body` if it's left empty
+ * So we can use the same scroll-lock at custom components.
+ *
+ * @param active - Is locked.
+ * @param elementToLock - An HTML element to lock it's scroll. Locks `document.body` if it's left empty.
  */
 export const useScrollLock = (
   active: boolean,
@@ -68,6 +70,6 @@ export const useScrollLock = (
       removeStylesFromElement(elementToLock);
     }
 
-    return () => removeStylesFromElement(elementToLock);
+    return () => { removeStylesFromElement(elementToLock); };
   }, [active, scrollbarSize, elementToLock]);
 };

@@ -1,18 +1,17 @@
 import { iframeResizer as iFrameResizer } from "iframe-resizer";
-import type { DetailedHTMLProps, IframeHTMLAttributes } from "react";
-import { forwardRef, useEffect } from "react";
+import type { DetailedHTMLProps, forwardRef, IframeHTMLAttributes , useEffect } from "react";
 
 /**
- * @todo expose the unused functions to component consumers, or use them here,
+ * @todo Expose the unused functions to component consumers, or use them here,
  *    or remove the properties from the type.
  */
-type IFrameObject = {
+interface IFrameObject {
   close: () => void;
   moveToAnchor: (anchor: string) => void;
   resize: () => void;
   sendMessage: (message: unknown, targetOrigin?: string) => void;
   removeListeners: () => void;
-};
+}
 
 type IFrameWithResizer = HTMLIFrameElement & {
   iFrameResizer: IFrameObject;
@@ -31,16 +30,17 @@ export const ResizingIFrame = forwardRef<
 >((props, iFrameRef) => {
   useEffect(() => {
     if (typeof iFrameRef === "function") {
-      throw new Error("Ref must be an object, not a function.");
+      throw new TypeError("Ref must be an object, not a function.");
     }
 
     const iframe = iFrameRef?.current;
+
     if (!iframe) {
       throw new Error("iFrame not loaded.");
     }
 
     /**
-     * @todo see if anything else to be done about unresponsive frame warnings.
+     * @todo See if anything else to be done about unresponsive frame warnings.
      *    fix the library types to include this valid option.
      *  @todo check origin for only the sandbox origin, once we have a way of setting it
      * */
@@ -53,16 +53,16 @@ export const ResizingIFrame = forwardRef<
       iframe,
     );
 
-    return () => (iframe as IFrameWithResizer).iFrameResizer.removeListeners();
+    return () => { (iframe as IFrameWithResizer).iFrameResizer.removeListeners(); };
   }, [iFrameRef, props]);
 
   return (
     <iframe
       {...props}
       ref={iFrameRef}
-      /* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo what to do with empty title */
+       
       title={props.title || "HASH"}
-      sandbox="allow-scripts allow-top-navigation-by-user-activation"
+      sandbox={"allow-scripts allow-top-navigation-by-user-activation"}
     />
   );
 });

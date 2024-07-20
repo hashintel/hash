@@ -21,8 +21,7 @@ import "prismjs/components/prism-python";
 import "prismjs/components/prism-rust";
 import "prismjs/components/prism-typescript";
 
-import type { BoxProps } from "@mui/material";
-import { Box } from "@mui/material";
+import type { BoxProps , Box } from "@mui/material";
 import type { FunctionComponent } from "react";
 
 type SnippetProps = {
@@ -36,9 +35,10 @@ export const Snippet: FunctionComponent<SnippetProps> = ({
   ...boxProps
 }) => {
   const grammar = Prism.languages[language];
+
   if (!grammar) {
     return (
-      <Box component="code" {...boxProps}>
+      <Box component={"code"} {...boxProps}>
         {source}
       </Box>
     );
@@ -46,7 +46,7 @@ export const Snippet: FunctionComponent<SnippetProps> = ({
 
   return (
     <Box
-      component="code"
+      component={"code"}
       {...boxProps}
       // trust prism to properly escape the source
       dangerouslySetInnerHTML={{

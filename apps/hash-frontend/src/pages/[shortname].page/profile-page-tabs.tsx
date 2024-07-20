@@ -1,9 +1,10 @@
-import { Box, Skeleton } from "@mui/material";
 import type { FunctionComponent } from "react";
+import { Box, Skeleton } from "@mui/material";
 
 import type { Org, User } from "../../lib/user-and-org";
 import { TabLink } from "../../shared/ui/tab-link";
 import { Tabs } from "../../shared/ui/tabs";
+
 import type { ProfilePageTab } from "./util";
 
 export const ProfilePageTabs: FunctionComponent<{
@@ -23,13 +24,13 @@ export const ProfilePageTabs: FunctionComponent<{
           return (
             <TabLink
               active={currentTabLabel === label}
+              label={label ?? <Skeleton width={60} />}
+              value={label ?? ""}
               key={
                 tab.kind === "pinned-entity-type"
                   ? tab.entityTypeBaseUrl
                   : tab.kind
               }
-              label={label ?? <Skeleton width={60} />}
-              value={label ?? ""}
               href={`/@${profile?.shortname}${
                 tab.kind === "profile" ? "" : `?tab=${label}`
               }`}

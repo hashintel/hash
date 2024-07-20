@@ -1,3 +1,9 @@
+import {
+  bindMenu,
+  bindTrigger,
+  usePopupState,
+} from "material-ui-popup-state/hooks";
+import type { FunctionComponent , useCallback, useMemo } from "react";
 import { useMutation } from "@apollo/client";
 import { CaretDownSolidIcon, Chip } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -15,13 +21,6 @@ import {
   Menu,
   Tooltip,
 } from "@mui/material";
-import {
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo } from "react";
 
 import { useArchivePage } from "../../components/hooks/use-archive-page";
 import type {
@@ -143,6 +142,7 @@ export const BulkActionsDropdown: FunctionComponent<{
           // Page entities can be archived
           return true;
         }
+
         /** @todo: support archiving entities, including checking permissions */
         // Everything else cannot be archived
         return false;
@@ -295,17 +295,18 @@ export const BulkActionsDropdown: FunctionComponent<{
         {menuItems.map(({ label, onClick, icon, disabled, tooltipTitle }) => (
           <Tooltip key={label} title={tooltipTitle}>
             {/**
-             * We need this wrapper to display the tooltip on disabled menu items
+             * We need this wrapper to display the tooltip on disabled menu items.
+             *
              * @see https://mui.com/material-ui/react-tooltip/#disabled-elements
              */}
             <Box>
               <MenuItem
+                disabled={disabled}
                 onClick={async () => {
                   await onClick();
                   popupState.close();
                   onBulkActionCompleted?.();
                 }}
-                disabled={disabled}
               >
                 <ListItemIcon>{icon}</ListItemIcon>
                 <ListItemText primary={label} />

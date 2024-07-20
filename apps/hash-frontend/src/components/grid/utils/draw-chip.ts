@@ -1,6 +1,7 @@
 import type { CustomCell, DrawArgs } from "@glideapps/glide-data-grid";
 
 import { getYCenter } from "../utils";
+
 import { drawRoundRect } from "./draw-round-rect";
 
 export const drawChip = (

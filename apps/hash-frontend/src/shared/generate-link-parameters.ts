@@ -1,6 +1,6 @@
+import type { Url } from "next/dist/shared/lib/router/router";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { sanitizeHref } from "@local/hash-isomorphic-utils/sanitize";
-import type { Url } from "next/dist/shared/lib/router/router";
 
 import { isHrefExternal } from "./is-href-external";
 
@@ -15,7 +15,7 @@ const typeUrlRegExp =
  * For a given href to be used in a link:
  * 1. Ensures that the href is a valid http or https URL
  * 2. Rewrites external type URLs to use the internal type route
- * 3. Specifies whether the returned href points to a different site or not
+ * 3. Specifies whether the returned href points to a different site or not.
  */
 export const generateLinkParameters = (
   hrefToCheck?: string | Url | undefined,
@@ -34,6 +34,7 @@ export const generateLinkParameters = (
   }
 
   const sanitizedHref = sanitizeHref(href);
+
   if (!sanitizedHref) {
     return {
       isExternal: false,
@@ -53,6 +54,7 @@ export const generateLinkParameters = (
     if (isExternal && typeBaseUrl.includes("/entity-type/")) {
       // If it's an external entity type, use the type route for loading external types
       const base64EncodedBaseUrl = btoa(typeBaseUrl);
+
       return {
         isExternal: false, // it's an external type but we're using an internal route
         href: `/types/external/entity-type/${base64EncodedBaseUrl}${
@@ -61,7 +63,7 @@ export const generateLinkParameters = (
       };
     }
 
-    const pathname = new URL(href, frontendUrl).pathname;
+    const {pathname} = new URL(href, frontendUrl);
 
     return {
       isExternal,
@@ -69,8 +71,9 @@ export const generateLinkParameters = (
         /**
          * Until H-1172 is implemented, we need to just take the pathname of the href, because we might
          * have links with a https://hash.ai origin that need to be served from a https://app.hash.ai frontend
-         * The exceptions are the /cases, /contact, and /guide routes which actually reside at https://hash.ai
-         * @todo when implementing H-1172, just use the href here
+         * The exceptions are the /cases, /contact, and /guide routes which actually reside at https://hash.ai.
+         *
+         * @todo When implementing H-1172, just use the href here.
          */
         isExternal ||
         pathname.startsWith("/cases") ||

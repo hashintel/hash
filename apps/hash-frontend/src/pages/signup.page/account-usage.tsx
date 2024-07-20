@@ -1,15 +1,13 @@
-import type { FunctionComponent } from "react";
-import { useState } from "react";
-
+import type { FunctionComponent , useState } from "react";
 import { HumanGreetingIcon, PeopleIcon, SpinnerIcon } from "../../shared/icons";
 
 type WayToUseHash = "BY_THEMSELVES" | "WITH_A_TEAM";
 
-type AccountUsageProps = {
+interface AccountUsageProps {
   updateWayToUseHash: (usingHow: WayToUseHash) => void;
   loading: boolean;
   errorMessage: string;
-};
+}
 
 const USAGE_OPTIONS = [
   {
@@ -74,6 +72,7 @@ export const AccountUsage: FunctionComponent<AccountUsageProps> = ({
         {USAGE_OPTIONS.map(({ title, description, icon, value }, index) => (
           <button
             key={value}
+            type={"button"}
             style={{
               backgroundColor: "transparent",
               borderStyle: "none",
@@ -82,8 +81,7 @@ export const AccountUsage: FunctionComponent<AccountUsageProps> = ({
               position: "relative",
               width: "13rem",
             }}
-            onClick={() => setActiveOption(value)}
-            type="button"
+            onClick={() => { setActiveOption(value); }}
           >
             <div
               style={{
@@ -140,7 +138,8 @@ export const AccountUsage: FunctionComponent<AccountUsageProps> = ({
       </div>
       {/* @todo use Button component */}
       <button
-        type="submit"
+        type={"submit"}
+        disabled={!activeOption || loading}
         style={{
           alignItems: "center",
           backgroundColor: "#EC4899",
@@ -160,7 +159,6 @@ export const AccountUsage: FunctionComponent<AccountUsageProps> = ({
           width: "16rem",
         }}
         onClick={onSubmit}
-        disabled={!activeOption || loading}
       >
         {loading ? (
           <SpinnerIcon

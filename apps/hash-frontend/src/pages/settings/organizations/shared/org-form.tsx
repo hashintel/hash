@@ -1,3 +1,5 @@
+import type { PropsWithChildren , useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { TextField } from "@hashintel/design-system";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
@@ -5,9 +7,6 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
-import type { PropsWithChildren } from "react";
-import { useState } from "react";
-import { Controller, useForm } from "react-hook-form";
 
 import { useShortnameInput } from "../../../../components/hooks/use-shortname-input";
 import type { Org } from "../../../../lib/user-and-org";
@@ -28,17 +27,17 @@ const Label = ({
   required?: boolean;
 }) => {
   return (
-    <Stack component="label" htmlFor={htmlFor} spacing={0.5} mb={1.2}>
-      <Stack direction="row">
+    <Stack component={"label"} htmlFor={htmlFor} spacing={0.5} mb={1.2}>
+      <Stack direction={"row"}>
         <Typography
-          variant="smallTextLabels"
+          variant={"smallTextLabels"}
           sx={{ color: "gray.70", fontWeight: 500 }}
         >
           {label}
         </Typography>
         {required ? (
           <Typography
-            variant="smallTextLabels"
+            variant={"smallTextLabels"}
             sx={{
               color: "blue.70",
               ml: 0.4,
@@ -56,7 +55,7 @@ const Label = ({
       </Stack>
       {hint && (
         <Typography
-          variant="smallTextLabels"
+          variant={"smallTextLabels"}
           sx={{ color: "gray.70", fontWeight: 400 }}
         >
           {hint}
@@ -75,7 +74,7 @@ export type OrgFormData = Pick<
   "name" | "description" | "location" | "shortname" | "websiteUrl"
 >;
 
-type OrgFormProps = {
+interface OrgFormProps {
   autoFocusDisplayName?: boolean;
   onSubmit: (org: OrgFormData) => Promise<void>;
   /**
@@ -85,7 +84,7 @@ type OrgFormProps = {
   org?: Org;
   readonly: boolean;
   submitLabel: string;
-};
+}
 
 export const OrgForm = ({
   autoFocusDisplayName = false,
@@ -124,7 +123,7 @@ export const OrgForm = ({
 
   const shortnameError = getShortnameError(
     errors.shortname?.message,
-    !!touchedFields.shortname,
+    Boolean(touchedFields.shortname),
   );
 
   const nameWatcher = watch("name");
@@ -185,9 +184,9 @@ export const OrgForm = ({
     try {
       setLoading(true);
       await onSubmit(data);
-    } catch (err) {
+    } catch (error) {
       setSubmissionError(
-        typeof err === "string" ? err : (err as Error).message,
+        typeof error === "string" ? error : (error as Error).message,
       );
     } finally {
       setLoading(false);
@@ -197,59 +196,53 @@ export const OrgForm = ({
   const isSubmitEnabled = isValid && !loading && isDirty;
 
   return (
-    <Box component="form" onSubmit={innerSubmit} sx={{ px: 5, py: 4 }}>
+    <Box component={"form"} sx={{ px: 5, py: 4 }} onSubmit={innerSubmit}>
       <InputGroup>
         <Label
-          label="Display name"
-          hint="The primary name of your org, as it should appear on HASH"
-          htmlFor="name"
           required
+          label={"Display name"}
+          hint={"The primary name of your org, as it should appear on HASH"}
+          htmlFor={"name"}
         />
         <TextField
           autoFocus={autoFocusDisplayName}
           disabled={readonly}
-          error={!!nameError}
-          id="name"
+          error={Boolean(nameError)}
+          id={"name"}
           helperText={nameError}
-          placeholder="e.g. Acme Corp"
+          placeholder={"e.g. Acme Corp"}
           {...register("name", { required: true })}
           sx={{ width: 300 }}
         />
       </InputGroup>
       <InputGroup>
         <Label
-          label="Username"
-          hint="Once set, an org's username cannot be changed"
-          htmlFor="shortname"
           required
+          label={"Username"}
+          hint={"Once set, an org's username cannot be changed"}
+          htmlFor={"shortname"}
         />
         <Box style={{ position: "relative" }}>
           <Controller
             control={control}
-            name="shortname"
+            name={"shortname"}
             rules={{
               validate: initialOrg ? () => true : validateShortname,
             }}
             render={({ field }) => (
               <TextField
-                autoComplete="off"
+                autoComplete={"off"}
                 defaultValue={initialOrg?.shortname ?? ""}
-                disabled={readonly || !!initialOrg}
-                error={!!shortnameError}
+                disabled={readonly || Boolean(initialOrg)}
+                error={Boolean(shortnameError)}
                 helperText={shortnameError}
-                id="shortname"
-                onBlur={field.onBlur}
-                onChange={(evt) => {
-                  const newEvt = { ...evt };
-                  newEvt.target.value = parseShortnameInput(
-                    newEvt.target.value,
-                  );
-                  field.onChange(newEvt);
-                }}
+                id={"shortname"}
+                placeholder={"acme"}
+                sx={{ width: 300 }}
                 InputProps={{
                   startAdornment: (
                     <Box
-                      component="span"
+                      component={"span"}
                       sx={{
                         marginLeft: 2,
                         marginRight: 0.2,
@@ -276,8 +269,15 @@ export const OrgForm = ({
                     },
                   },
                 }}
-                placeholder="acme"
-                sx={{ width: 300 }}
+                onBlur={field.onBlur}
+                onChange={(event) => {
+                  const newEvent = { ...event };
+
+                  newEvent.target.value = parseShortnameInput(
+                    newEvent.target.value,
+                  );
+                  field.onChange(newEvent);
+                }}
               />
             )}
           />
@@ -286,7 +286,7 @@ export const OrgForm = ({
       {initialOrg && (
         <>
           <InputGroup>
-            <Label label="Avatar" htmlFor="" />
+            <Label label={"Avatar"} htmlFor={""} />
             <Box width={210} height={210}>
               <ImageField
                 readonly={readonly}
@@ -297,12 +297,12 @@ export const OrgForm = ({
           </InputGroup>
           <InputGroup>
             <Label
-              label="Description"
-              hint="Provide a brief description of your organization"
-              htmlFor="description"
+              label={"Description"}
+              hint={"Provide a brief description of your organization"}
+              htmlFor={"description"}
             />
             <TextField
-              id="description"
+              id={"description"}
               disabled={readonly}
               sx={{ width: 400 }}
               {...register("description", { required: false })}
@@ -312,14 +312,14 @@ export const OrgForm = ({
       )}
       <InputGroup>
         <Label
-          label="Website"
-          hint="Provide a link to help others identify your org"
-          htmlFor="websiteUrl"
+          label={"Website"}
+          hint={"Provide a link to help others identify your org"}
+          htmlFor={"websiteUrl"}
         />
         <TextField
-          id="websiteUrl"
+          id={"websiteUrl"}
           disabled={readonly}
-          placeholder="https://acme.com"
+          placeholder={"https://acme.com"}
           sx={{ width: 400 }}
           inputProps={{
             pattern: "http(s?)://.*",
@@ -333,12 +333,12 @@ export const OrgForm = ({
       {initialOrg && (
         <InputGroup>
           <Label
-            label="Location"
-            hint="Where is your organization based?"
-            htmlFor="location"
+            label={"Location"}
+            hint={"Where is your organization based?"}
+            htmlFor={"location"}
           />
           <TextField
-            id="location"
+            id={"location"}
             disabled={readonly}
             sx={{ width: 400 }}
             {...register("location", { required: false })}
@@ -347,16 +347,16 @@ export const OrgForm = ({
       )}
       {!readonly && (
         <Box mt={3}>
-          <Stack direction="row" spacing={2}>
-            <Button disabled={!isSubmitEnabled} type="submit">
+          <Stack direction={"row"} spacing={2}>
+            <Button disabled={!isSubmitEnabled} type={"submit"}>
               {submitLabel}
             </Button>
             {initialOrg && (
               <Button
                 disabled={!isDirty}
-                onClick={() => reset(initialOrg)}
-                type="button"
-                variant="tertiary"
+                type={"button"}
+                variant={"tertiary"}
+                onClick={() => { reset(initialOrg); }}
               >
                 Discard changes
               </Button>

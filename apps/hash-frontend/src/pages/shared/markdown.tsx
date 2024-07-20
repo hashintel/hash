@@ -1,3 +1,6 @@
+import type { LegacyRef } from "react";
+import ReactMarkdown, type { Components } from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   Box,
   type SxProps,
@@ -10,12 +13,9 @@ import {
   type Theme,
   Typography,
 } from "@mui/material";
-import type { LegacyRef } from "react";
-import type { Components } from "react-markdown";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 
 import { Link } from "../../shared/ui/link";
+
 import {
   BlockQuote,
   Code,
@@ -25,9 +25,9 @@ import {
   UnorderedList,
 } from "./markdown/elements";
 
-type MarkdownProps = {
+interface MarkdownProps {
   markdown: string;
-};
+}
 
 const borderRadius = "10px";
 
@@ -55,42 +55,42 @@ const components: Partial<Components> = {
   code: (props) => <Code {...omitRefFromProps(props)} />,
   h1: (props) => (
     <Typography
-      variant="h1"
+      variant={"h1"}
       {...omitRefFromProps(props)}
       sx={{ mt: 4, mb: 1.5, fontSize: 36 }}
     />
   ),
   h2: (props) => (
     <Typography
-      variant="h2"
+      variant={"h2"}
       {...omitRefFromProps(props)}
       sx={{ mt: 3.5, mb: 1.5, fontSize: 32 }}
     />
   ),
   h3: (props) => (
     <Typography
-      variant="h3"
+      variant={"h3"}
       {...omitRefFromProps(props)}
       sx={{ mt: 2.5, mb: 1.5, fontSize: 28 }}
     />
   ),
   h4: (props) => (
     <Typography
-      variant="h4"
+      variant={"h4"}
       {...omitRefFromProps(props)}
       sx={{ mt: 2.5, mb: 1.5 }}
     />
   ),
   h5: (props) => (
     <Typography
-      variant="h5"
+      variant={"h5"}
       {...omitRefFromProps(props)}
       sx={{ mt: 2.5, mb: 1.5 }}
     />
   ),
   h6: (props) => (
     <Typography
-      variant="h5"
+      variant={"h5"}
       {...omitRefFromProps(props)}
       sx={{ mt: 2.5, mb: 1.5 }}
     />
@@ -98,7 +98,7 @@ const components: Partial<Components> = {
   img: (props) => (
     <Box sx={{ width: "100%", textAlign: "center" }}>
       <Box
-        component="img"
+        component={"img"}
         {...omitRefFromProps(props)}
         alt={props.alt ?? ""}
         sx={{ maxHeight: 300 }}
@@ -145,8 +145,8 @@ export const Markdown = ({ markdown }: MarkdownProps) => {
     <Box
       sx={{
         /**
-         * we need first-child here because we only want 0 margin on the first element in the Markdown, not the first of every type
-         * the warning is related to (a) emotion injecting script tags in places (b) in SSR. it doesn't matter here
+         * We need first-child here because we only want 0 margin on the first element in the Markdown, not the first of every type
+         * the warning is related to (a) emotion injecting script tags in places (b) in SSR. It doesn't matter here.
          */
         /* emotion-disable-server-rendering-unsafe-selector-warning-please-do-not-use-this-the-warning-exists-for-a-reason */
         "& :first-child:not(style)": { mt: 0 },

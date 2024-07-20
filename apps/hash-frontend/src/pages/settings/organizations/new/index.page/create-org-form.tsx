@@ -1,5 +1,5 @@
-import { useMutation } from "@apollo/client";
 import { useRouter } from "next/router";
+import { useMutation } from "@apollo/client";
 
 import { useOrgs } from "../../../../../components/hooks/use-orgs";
 import type {
@@ -8,8 +8,7 @@ import type {
 } from "../../../../../graphql/api-types.gen";
 import { createOrgMutation } from "../../../../../graphql/queries/knowledge/org.queries";
 import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
-import type { OrgFormData } from "../../shared/org-form";
-import { OrgForm } from "../../shared/org-form";
+import type { OrgForm,OrgFormData  } from "../../shared/org-form";
 
 export const CreateOrgForm = () => {
   const router = useRouter();
@@ -26,6 +25,7 @@ export const CreateOrgForm = () => {
     const { errors } = await createOrg({
       variables: orgData,
     });
+
     if (errors?.[0]) {
       throw new Error(errors[0].message);
     }
@@ -38,10 +38,10 @@ export const CreateOrgForm = () => {
 
   return (
     <OrgForm
-      onSubmit={onSubmit}
-      submitLabel="Create organization"
       autoFocusDisplayName
+      submitLabel={"Create organization"}
       readonly={false}
+      onSubmit={onSubmit}
     />
   );
 };

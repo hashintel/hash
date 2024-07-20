@@ -1,10 +1,9 @@
+import type { FunctionComponent , useCallback, useEffect, useRef, useState } from "react";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Skeleton } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useBlockProtocolGetEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
 import { ArrowTurnDownLeftRegularIcon } from "../../shared/icons/arrow-turn-down-left-regular-icon";
@@ -15,6 +14,7 @@ import {
 import { Button } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { useCreateBlockCollection } from "../shared/use-create-block-collection";
+
 import { EditableQuickNote } from "./editable-quick-note";
 
 export const CreateQuickNote: FunctionComponent<{
@@ -36,13 +36,13 @@ export const CreateQuickNote: FunctionComponent<{
 
   useEffect(() => {
     const handleFocus = (event: FocusEvent) =>
-      setIsFocused(
-        !!wrapperRef.current &&
+      { setIsFocused(
+        Boolean(wrapperRef.current) &&
           event.target instanceof Node &&
           wrapperRef.current.contains(event.target),
-      );
+      ); };
 
-    const handleBlur = () => setIsFocused(false);
+    const handleBlur = () => { setIsFocused(false); };
 
     document.addEventListener("focus", handleFocus, true);
     document.addEventListener("blur", handleBlur, true);
@@ -134,11 +134,11 @@ export const CreateQuickNote: FunctionComponent<{
 
     setKeyboardShortcuts(shortcuts);
 
-    return () => unsetKeyboardShortcuts(shortcuts);
+    return () => { unsetKeyboardShortcuts(shortcuts); };
   }, [handleCommandEnter, setKeyboardShortcuts, unsetKeyboardShortcuts]);
 
   return (
-    <Box sx={{ width: "100%" }} onClick={handleClick} ref={wrapperRef}>
+    <Box sx={{ width: "100%" }} ref={wrapperRef} onClick={handleClick}>
       {quickNoteEntity && quickNoteSubgraph ? (
         <>
           <EditableQuickNote
@@ -148,14 +148,14 @@ export const CreateQuickNote: FunctionComponent<{
             quickNoteSubgraph={quickNoteSubgraph}
           />
           <Box
-            display="flex"
-            justifyContent="flex-end"
+            display={"flex"}
+            justifyContent={"flex-end"}
             marginBottom={1}
             onClick={handleCreateNew}
           >
             <Button
-              variant="tertiary_quiet"
-              size="xs"
+              variant={"tertiary_quiet"}
+              size={"xs"}
               endIcon={<ArrowTurnDownLeftRegularIcon />}
               disabled={creatingNewQuickNote}
             >

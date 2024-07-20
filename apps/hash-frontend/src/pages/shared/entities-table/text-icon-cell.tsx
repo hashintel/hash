@@ -1,5 +1,4 @@
-import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
-import { GridCellKind } from "@glideapps/glide-data-grid";
+import type { CustomCell, CustomRenderer , GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
 
 import { getCellHorizontalPadding } from "../../../components/grid/utils";
@@ -52,6 +51,7 @@ export const createRenderTextIconCell = (params?: {
   },
   onClick: (args) => {
     args.cell.data.onClick?.();
+
     return undefined;
   },
 });

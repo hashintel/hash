@@ -1,8 +1,8 @@
+import { useCallback } from "react";
 import { useMutation } from "@apollo/client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { File } from "@local/hash-isomorphic-utils/system-types/shared";
-import { useCallback } from "react";
 
 import type {
   CreateFileFromUrlMutation,
@@ -15,6 +15,7 @@ import {
   requestFileUpload,
 } from "../../../../graphql/queries/knowledge/file.queries";
 import { uploadFileToStorageProvider } from "../../../../shared/upload-to-storage-provider";
+
 import type { UploadFileRequestCallback } from "./knowledge-shim";
 
 export const useBlockProtocolFileUpload = (
@@ -123,7 +124,7 @@ export const useBlockProtocolFileUpload = (
       }
 
       /**
-       * Upload file with presignedPost data to storage provider
+       * Upload file with presignedPost data to storage provider.
        */
       const {
         requestFileUpload: { presignedPut, entity: uploadedFileEntity },

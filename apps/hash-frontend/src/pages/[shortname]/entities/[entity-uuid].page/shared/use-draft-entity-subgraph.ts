@@ -1,3 +1,4 @@
+import type { Dispatch, SetStateAction , useEffect, useState } from "react";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Entity as GraphApiEntity } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
@@ -7,11 +8,7 @@ import type {
   EntityRevisionId,
   EntityRootType,
   EntityVertexId,
-  Subgraph,
-} from "@local/hash-subgraph";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import type { Dispatch, SetStateAction } from "react";
-import { useEffect, useState } from "react";
+ extractOwnedByIdFromEntityId,  Subgraph } from "@local/hash-subgraph";
 
 import { useBlockProtocolGetEntityType } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
 

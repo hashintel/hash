@@ -1,8 +1,8 @@
+import type { FunctionComponent } from "react";
 import { CloseIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, buttonClasses } from "@mui/material";
-import type { FunctionComponent } from "react";
 
 import { CheckRegularIcon } from "../../../shared/icons/check-regular-icon";
 import { AcceptDraftEntityButton } from "../../shared/accept-draft-entity-button";
@@ -13,12 +13,12 @@ export const DraftEntityActionButtons: FunctionComponent<{
   subgraph: Subgraph<EntityRootType>;
 }> = ({ entity, subgraph }) => {
   return (
-    <Box marginLeft={1} display="flex" columnGap={1}>
+    <Box marginLeft={1} display={"flex"} columnGap={1}>
       <DiscardDraftEntityButton
         draftEntity={entity}
         draftEntitySubgraph={subgraph}
-        size="xs"
-        variant="tertiary"
+        size={"xs"}
+        variant={"tertiary"}
         startIcon={<CloseIcon />}
         sx={{
           background: ({ palette }) => palette.gray[20],
@@ -37,8 +37,8 @@ export const DraftEntityActionButtons: FunctionComponent<{
       <AcceptDraftEntityButton
         draftEntity={entity}
         draftEntitySubgraph={subgraph}
-        size="xs"
-        variant="primary"
+        size={"xs"}
+        variant={"primary"}
         startIcon={<CheckRegularIcon />}
         onAcceptedEntity={null}
       >

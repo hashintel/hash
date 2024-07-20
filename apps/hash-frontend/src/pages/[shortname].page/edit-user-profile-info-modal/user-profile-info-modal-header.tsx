@@ -1,3 +1,5 @@
+import Image from "next/image";
+import type { ChangeEventHandler, FunctionComponent , useCallback, useRef, useState } from "react";
 import { faImage } from "@fortawesome/free-regular-svg-icons";
 import {
   Avatar,
@@ -11,24 +13,20 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Box, buttonClasses, styled } from "@mui/material";
-import Image from "next/image";
-import type { ChangeEventHandler, FunctionComponent } from "react";
-import { useCallback, useRef, useState } from "react";
 
 import { useBlockProtocolArchiveEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
 import type { User } from "../../../lib/user-and-org";
 import { useFileUploads } from "../../../shared/file-upload-context";
 import { TrashRegularIcon } from "../../../shared/icons/trash-regular-icon";
 import { XMarkRegularIcon } from "../../../shared/icons/x-mark-regular-icon";
-import type { ButtonProps } from "../../../shared/ui";
-import { Button } from "../../../shared/ui";
+import type { Button,ButtonProps  } from "../../../shared/ui";
 import { useUpdateProfileAvatar } from "../../[shortname]/shared/use-update-profile-avatar";
 import { useAuthInfo } from "../../shared/auth-info-context";
 import { getImageUrlFromEntityProperties } from "../../shared/get-file-properties";
 import { leftColumnWidth } from "../util";
 
 const AvatarButton = styled((props: ButtonProps) => (
-  <Button variant="tertiary" {...props} />
+  <Button variant={"tertiary"} {...props} />
 ))(({ theme }) => ({
   background: "transparent",
   borderWidth: 0,
@@ -90,13 +88,13 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
   const { uploadFile } = useFileUploads();
   const { refetch: refetchUserAndOrgs } = useAuthInfo();
 
-  const coverImageSrc = userProfile.hasCoverImage
+  const coverImageSource = userProfile.hasCoverImage
     ? getImageUrlFromEntityProperties(
         userProfile.hasCoverImage.imageEntity.properties,
       )
     : undefined;
 
-  const avatarSrc = userProfile.hasAvatar
+  const avatarSource = userProfile.hasAvatar
     ? getImageUrlFromEntityProperties(
         userProfile.hasAvatar.imageEntity.properties,
       )
@@ -215,25 +213,25 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
         background: ({ palette }) => palette.gray[90],
       }}
     >
-      {coverImageSrc ? (
+      {coverImageSource ? (
         <Image
-          src={coverImageSrc}
-          alt="user-cover-image"
-          layout="fill"
-          objectFit="cover"
-          objectPosition="center"
+          src={coverImageSource}
+          alt={"user-cover-image"}
+          layout={"fill"}
+          objectFit={"cover"}
+          objectPosition={"center"}
         />
       ) : null}
       <Box
-        component="input"
-        type="file"
+        component={"input"}
+        type={"file"}
         ref={avatarImageInputRef}
-        onChange={handleAvatarImageFileUpload}
         sx={{ display: "none" }}
-        accept="image/*"
+        accept={"image/*"}
+        onChange={handleAvatarImageFileUpload}
       />
       <Avatar
-        src={avatarSrc}
+        src={avatarSource}
         title={userProfile.displayName}
         size={leftColumnWidth}
         sx={{
@@ -246,18 +244,18 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
         onEditEmojiIconButtonClick={handleChangeAvatarImage}
       />
       <Box
-        display="flex"
-        flexDirection="column"
-        justifyContent="center"
-        alignItems="flex-start"
+        display={"flex"}
+        flexDirection={"column"}
+        justifyContent={"center"}
+        alignItems={"flex-start"}
       >
         <Box
-          component="input"
-          type="file"
+          component={"input"}
+          type={"file"}
           ref={coverImageInputRef}
-          onChange={handleCoverImageFileUpload}
           sx={{ display: "none" }}
-          accept="image/*"
+          accept={"image/*"}
+          onChange={handleCoverImageFileUpload}
         />
         {userProfile.hasCoverImage ? (
           <>
@@ -289,8 +287,8 @@ export const UserProfileInfoModalHeader: FunctionComponent<{
       </Box>
       <Box>
         <CloseIconButton
-          onClick={onClose}
           sx={{ marginTop: -2, marginRight: -2 }}
+          onClick={onClose}
         >
           <XMarkRegularIcon />
         </CloseIconButton>

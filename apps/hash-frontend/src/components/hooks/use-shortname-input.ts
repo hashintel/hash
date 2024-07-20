@@ -1,5 +1,5 @@
-import { useApolloClient } from "@apollo/client";
 import { useCallback, useState } from "react";
+import { useApolloClient } from "@apollo/client";
 
 import type {
   IsShortnameTakenQuery,
@@ -15,21 +15,26 @@ type ShortnameErrorCode =
 
 const getShortnameError = (error: string | undefined, isTouched: boolean) => {
   switch (error) {
-    case "IS_EMPTY":
+    case "IS_EMPTY": {
       return isTouched ? "You must choose a username" : null;
-    case "IS_TOO_SHORT":
+    }
+    case "IS_TOO_SHORT": {
       return isTouched ? "Must be at least 4 characters" : null;
-    case "IS_TOO_LONG":
+    }
+    case "IS_TOO_LONG": {
       return "Must be shorter than 24 characters";
-    case "IS_TAKEN":
+    }
+    case "IS_TAKEN": {
       return "This user has already been taken";
-    default:
+    }
+    default: {
       return null;
+    }
   }
 };
 
 const parseShortnameInput = (input: string) =>
-  input.replaceAll(/[^a-zA-Z0-9-_]/g, "");
+  input.replaceAll(/[^\w-]/g, "");
 
 export const useShortnameInput = () => {
   const [loading, setLoading] = useState(false);
@@ -63,7 +68,8 @@ export const useShortnameInput = () => {
       }
 
       /**
-       * Reordering this because we currently have some shortnames with a length less than 4
+       * Reordering this because we currently have some shortnames with a length less than 4.
+       *
        * @see https://github.com/hashintel/dev/pull/368#discussion_r759248981
        * In the event we ban all shortnames less than 4, then we can move this check to happen
        * before isShortnameTaken query

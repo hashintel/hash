@@ -1,10 +1,10 @@
+import { useRouter } from "next/router";
+import type { FunctionComponent , useCallback, useMemo, useRef, useState } from "react";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
-  Item,
+ GridCellKind,  Item,
   SizedGridColumn,
-  TextCell,
-} from "@glideapps/glide-data-grid";
-import { GridCellKind } from "@glideapps/glide-data-grid";
+  TextCell } from "@glideapps/glide-data-grid";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -13,9 +13,6 @@ import type {
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { isExternalOntologyElementMetadata } from "@local/hash-subgraph";
 import { Box, useTheme } from "@mui/material";
-import { useRouter } from "next/router";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo, useRef, useState } from "react";
 
 import {
   Grid,
@@ -29,11 +26,9 @@ import { useEntityTypesContextRequired } from "../../../shared/entity-types-cont
 import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { isTypeArchived } from "../../../shared/is-archived";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
-import type { FilterState } from "../../../shared/table-header";
-import { TableHeader, tableHeaderHeight } from "../../../shared/table-header";
+import type { FilterState , TableHeader, tableHeaderHeight } from "../../../shared/table-header";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
-import type { TextIconCell } from "../../shared/entities-table/text-icon-cell";
-import { createRenderTextIconCell } from "../../shared/entities-table/text-icon-cell";
+import type { createRenderTextIconCell,TextIconCell  } from "../../shared/entities-table/text-icon-cell";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
 
 const typesTableColumnIds = [
@@ -49,7 +44,7 @@ type TypesTableColumn = {
   id: LinkColumnId;
 } & SizedGridColumn;
 
-export type TypesTableRow = {
+export interface TypesTableRow {
   rowId: string;
   kind: "entity-type" | "property-type" | "link-type" | "data-type";
   typeId: VersionedUrl;
@@ -57,12 +52,13 @@ export type TypesTableRow = {
   external: boolean;
   webShortname?: string;
   archived: boolean;
-};
+}
 
 const typeNamespaceFromTypeId = (typeId: VersionedUrl): string => {
   const url = new URL(typeId);
   const domain = url.hostname;
   const firstPathSegment = url.pathname.split("/")[1];
+
   return `${domain}/${firstPathSegment}`;
 };
 
@@ -212,7 +208,7 @@ export const TypesTable: FunctionComponent<{
         }
 
         switch (column.id) {
-          case "title":
+          case "title": {
             return {
               kind: GridCellKind.Custom,
               readonly: true,
@@ -227,7 +223,8 @@ export const TypesTable: FunctionComponent<{
                   router.push(generateLinkParameters(row.typeId).href),
               },
             };
-          case "kind":
+          }
+          case "kind": {
             return {
               kind: GridCellKind.Text,
               readonly: true,
@@ -235,6 +232,7 @@ export const TypesTable: FunctionComponent<{
               displayData: String(row.kind),
               data: row.kind,
             };
+          }
           case "webShortname": {
             const value = row.webShortname
               ? `@${row.webShortname}`
@@ -250,6 +248,7 @@ export const TypesTable: FunctionComponent<{
           }
           case "archived": {
             const value = row.archived ? "Yes" : "No";
+
             return {
               kind: GridCellKind.Text,
               readonly: true,
@@ -271,7 +270,7 @@ export const TypesTable: FunctionComponent<{
     <Box>
       <TableHeader
         internalWebIds={internalWebIds}
-        itemLabelPlural="types"
+        itemLabelPlural={"types"}
         items={types}
         title={typesTablesToTitle[kind]}
         columns={typesTableColumns}
@@ -281,22 +280,26 @@ export const TypesTable: FunctionComponent<{
         selectedItems={types?.filter((type) =>
           selectedRows.some(({ typeId }) => type.schema.$id === typeId),
         )}
-        onBulkActionCompleted={() => setSelectedRows([])}
+        onBulkActionCompleted={() => { setSelectedRows([]); }}
       />
       <Grid
+        enableCheckboxSelection
+        sortable
         showSearch={showSearch}
-        onSearchClose={() => setShowSearch(false)}
         columns={typesTableColumns}
         dataLoading={!types}
         rows={filteredRows}
-        enableCheckboxSelection
         selectedRows={selectedRows}
         currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+        firstColumnLeftPadding={16}
+        freezeColumns={1}
+        customRenderers={[
+          createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
+        ]}
+        onSearchClose={() => setShowSearch(false)}
         onSelectedRowsChange={(updatedSelectedRows) =>
           setSelectedRows(updatedSelectedRows)
         }
-        sortable
-        firstColumnLeftPadding={16}
         createGetCellContent={createGetCellContent}
         // define max height if there are lots of rows
         height={`
@@ -310,10 +313,6 @@ export const TypesTable: FunctionComponent<{
               ${gridHorizontalScrollbarHeight}px
             )
           )`}
-        customRenderers={[
-          createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
-        ]}
-        freezeColumns={1}
       />
     </Box>
   );

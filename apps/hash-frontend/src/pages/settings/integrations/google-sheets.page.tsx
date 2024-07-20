@@ -1,10 +1,11 @@
-import { Box, Container, Typography } from "@mui/material";
 import { useState } from "react";
+import { Box, Container, Typography } from "@mui/material";
 
 import type { NextPageWithLayout } from "../../../shared/layout";
 import { Button } from "../../../shared/ui/button";
 import { GoogleAuthProvider } from "../../shared/integrations/google/google-auth-context";
 import { getSettingsLayout } from "../../shared/settings-layout";
+
 import { CreateOrEditSheetsSync } from "./google-sheets/create-or-edit-sheets-sync";
 import { useSheetsFlows } from "./google-sheets/use-sheet-integrations";
 
@@ -22,7 +23,7 @@ const GoogleSheetsPage: NextPageWithLayout = () => {
   return (
     <GoogleAuthProvider>
       <Container>
-        <Typography variant="h1" mt={0} mb={4} fontWeight="bold">
+        <Typography variant={"h1"} mt={0} mb={4} fontWeight={"bold"}>
           WIP: Google Sheets
         </Typography>
         <Typography mb={4}>
@@ -40,7 +41,7 @@ const GoogleSheetsPage: NextPageWithLayout = () => {
           />
         ) : (
           <Box>
-            <Button onClick={() => setAddingNewIntegration(true)}>
+            <Button onClick={() => { setAddingNewIntegration(true); }}>
               Add new sync
             </Button>
           </Box>

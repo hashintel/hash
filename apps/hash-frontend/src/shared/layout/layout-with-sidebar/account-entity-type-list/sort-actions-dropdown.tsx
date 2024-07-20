@@ -1,3 +1,5 @@
+import type { bindMenu,PopupState  } from "material-ui-popup-state/hooks";
+import type { FunctionComponent, ReactNode } from "react";
 import { faQuestionCircle } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import {
@@ -8,9 +10,6 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import type { PopupState } from "material-ui-popup-state/hooks";
-import { bindMenu } from "material-ui-popup-state/hooks";
-import type { FunctionComponent, ReactNode } from "react";
 
 import { ArrowDownAZRegularIcon } from "../../../icons/arrow-down-a-z-regular-icon";
 import { ArrowUpZARegularIcon } from "../../../icons/arrow-up-a-z-regular-icon";
@@ -18,11 +17,11 @@ import { MenuItem } from "../../../ui";
 
 export type SortType = "asc" | "desc" | "recent" | "most_used" | "least_used";
 
-type SortActionsDropdownProps = {
+interface SortActionsDropdownProps {
   setSortType: (sortType: SortType) => void;
   activeSortType: SortType;
   popupState: PopupState;
-};
+}
 
 // Commented out menu items whose functionality have not been
 // implemented yet
@@ -65,15 +64,15 @@ export const SortActionsDropdown: FunctionComponent<
   return (
     <Menu {...bindMenu(popupState)}>
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="center"
+        display={"flex"}
+        justifyContent={"space-between"}
+        alignItems={"center"}
         pl={1.75}
         pr={1.25}
         py={1.25}
       >
         <Typography
-          variant="smallCaps"
+          variant={"smallCaps"}
           sx={({ palette }) => ({
             color: palette.gray[50],
             fontWeight: 600,
@@ -81,7 +80,7 @@ export const SortActionsDropdown: FunctionComponent<
         >
           Sort By
         </Typography>
-        <Tooltip title="Sort">
+        <Tooltip title={"Sort"}>
           <FontAwesomeIcon
             icon={faQuestionCircle} // @todo-mui get a free icon that matches the design closely
             sx={({ palette }) => ({
@@ -94,11 +93,11 @@ export const SortActionsDropdown: FunctionComponent<
       {menuItems.map(({ icon, title, sortType }) => (
         <MenuItem
           key={sortType}
+          selected={activeSortType === sortType}
           onClick={() => {
             setSortType(sortType);
             popupState.close();
           }}
-          selected={activeSortType === sortType}
         >
           <ListItemIcon sx={{ svg: { fontSize: 16 } }}>{icon}</ListItemIcon>
           <ListItemText primary={title} />

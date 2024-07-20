@@ -1,11 +1,17 @@
+import {
+  format,
+  formatDistanceToNowStrict,
+  isBefore,
+  subWeeks,
+} from "date-fns";
+import type { Fragment, FunctionComponent , useCallback, useMemo, useState } from "react";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type { EntityRootType, extractEntityUuidFromEntityId,Subgraph  } from "@local/hash-subgraph";
 import {
   Box,
   Divider,
@@ -14,14 +20,6 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import {
-  format,
-  formatDistanceToNowStrict,
-  isBefore,
-  subWeeks,
-} from "date-fns";
-import type { FunctionComponent } from "react";
-import { Fragment, useCallback, useMemo, useState } from "react";
 
 import { useAccountPages } from "../../components/hooks/use-account-pages";
 import { useCreatePage } from "../../components/hooks/use-create-page";
@@ -37,6 +35,7 @@ import { Button, Link, MenuItem } from "../../shared/ui";
 import { useEntityIcon } from "../../shared/use-entity-icon";
 import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
 import { InlineSelect } from "../shared/inline-select";
+
 import type { ProfilePageTab } from "./util";
 
 const EntityRow: FunctionComponent<{
@@ -74,8 +73,8 @@ const EntityRow: FunctionComponent<{
 
   return (
     <Link
-      target="_blank"
       noLinkStyle
+      target={"_blank"}
       href={href}
       sx={{
         h2: {
@@ -90,8 +89,8 @@ const EntityRow: FunctionComponent<{
     >
       <Box sx={{ padding: 3 }}>
         <Box
-          display="flex"
-          alignItems="center"
+          display={"flex"}
+          alignItems={"center"}
           columnGap={1.5}
           sx={{
             "> svg": {
@@ -100,7 +99,7 @@ const EntityRow: FunctionComponent<{
           }}
         >
           {icon}
-          <Typography component="h2" sx={{ fontWeight: 700, fontSize: 14 }}>
+          <Typography component={"h2"} sx={{ fontWeight: 700, fontSize: 14 }}>
             {label}
           </Typography>
           <Tooltip title={format(updatedAt, "MMMM do yyyy, h:mm a")}>
@@ -202,9 +201,9 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
 
   return (
     <Box mb={6}>
-      <Box display="flex" alignItems="center" columnGap={1.5} marginBottom={1}>
+      <Box display={"flex"} alignItems={"center"} columnGap={1.5} marginBottom={1}>
         <ProfileSectionHeading>{currentTab.pluralTitle}</ProfileSectionHeading>
-        <Box display="flex" alignItems="center" columnGap={1}>
+        <Box display={"flex"} alignItems={"center"} columnGap={1}>
           <Typography
             sx={{
               fontSize: 12,
@@ -215,6 +214,7 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
             Sort by
           </Typography>
           <InlineSelect
+            value={sortOrder}
             startAdornment={
               sortOrder === "alphabetical-asc" ? (
                 <ArrowDownAZRegularIcon />
@@ -232,8 +232,7 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
                 top: -1,
               },
             }}
-            value={sortOrder}
-            onChange={({ target }) => setSortOrder(target.value as SortOrder)}
+            onChange={({ target }) => { setSortOrder(target.value as SortOrder); }}
           >
             {Object.entries(sortOrderHumanReadable).map(([value, label]) => (
               <MenuItem key={value} value={value}>
@@ -243,7 +242,7 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
           </InlineSelect>
         </Box>
       </Box>
-      <Fade in={!!entities && !!entitiesSubgraph}>
+      <Fade in={Boolean(entities) && Boolean(entitiesSubgraph)}>
         <Box
           sx={{
             borderRadius: "4px",
@@ -257,9 +256,9 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
           {sortedEntities?.length === 0 ? (
             <Box
               padding={6}
-              display="flex"
-              flexDirection="column"
-              alignItems="center"
+              display={"flex"}
+              flexDirection={"column"}
+              alignItems={"center"}
             >
               <Typography
                 gutterBottom
@@ -285,7 +284,7 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
                 <Box marginTop={2}>
                   <Button
                     startIcon={<PlusRegularIcon />}
-                    size="small"
+                    size={"small"}
                     href={
                       !isPagesTab && currentTab.entityType
                         ? `/new/entity?entity-type-id=${encodeURIComponent(
@@ -315,10 +314,10 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
               );
             })
           ) : (
-            <Box sx={{ padding: 3 }} display="flex" columnGap={1.5}>
+            <Box sx={{ padding: 3 }} display={"flex"} columnGap={1.5}>
               <Skeleton sx={{ width: 15 }} />
-              <Skeleton variant="text" width={100} />
-              <Skeleton variant="text" width={60} />
+              <Skeleton variant={"text"} width={100} />
+              <Skeleton variant={"text"} width={60} />
             </Box>
           )}
         </Box>

@@ -17,6 +17,7 @@ import {
 import type { CustomDataType } from "@local/hash-graph-types/ontology";
 
 import type { CustomIcon } from "../../../../../../../../../components/grid/utils/custom-grid-icons";
+
 import type { EditorType } from "./types";
 
 interface EditorSpec {
@@ -90,9 +91,10 @@ export const getEditorSpecs = (
   dataType?: CustomDataType,
 ): EditorSpec => {
   switch (editorType) {
-    case "boolean":
+    case "boolean": {
       return editorSpecs.boolean;
-    case "number":
+    }
+    case "number": {
       if (dataType?.title && measurementTypeTitles.includes(dataType.title)) {
         return {
           ...editorSpecs.number,
@@ -100,40 +102,47 @@ export const getEditorSpecs = (
           gridIcon: "rulerRegular",
         };
       }
+
       return editorSpecs.number;
-    case "string":
+    }
+    case "string": {
       if (dataType && "format" in dataType) {
         switch (dataType.format) {
-          case "uri":
+          case "uri": {
             return {
               ...editorSpecs.string,
               icon: faInputPipeRegular,
               gridIcon: "inputPipeRegular",
             };
-          case "email":
+          }
+          case "email": {
             return {
               ...editorSpecs.string,
               icon: faAtRegular,
               gridIcon: "atRegular",
             };
-          case "date":
+          }
+          case "date": {
             return {
               ...editorSpecs.string,
               icon: faCalendarRegular,
               gridIcon: "calendarRegular",
             };
-          case "time":
+          }
+          case "time": {
             return {
               ...editorSpecs.string,
               icon: faClockRegular,
               gridIcon: "clockRegular",
             };
-          case "date-time":
+          }
+          case "date-time": {
             return {
               ...editorSpecs.string,
               icon: faCalendarClockRegular,
               gridIcon: "calendarClockRegular",
             };
+          }
         }
       }
       if (dataType?.title === "Email") {
@@ -150,16 +159,23 @@ export const getEditorSpecs = (
           gridIcon: "inputPipeRegular",
         };
       }
+
       return editorSpecs.string;
-    case "object":
+    }
+    case "object": {
       return editorSpecs.object;
-    case "emptyList":
+    }
+    case "emptyList": {
       return editorSpecs.emptyList;
-    case "null":
+    }
+    case "null": {
       return editorSpecs.null;
-    case "unknown":
+    }
+    case "unknown": {
       return editorSpecs.unknown;
-    default:
+    }
+    default: {
       throw new Error(`Unknown editor type: ${editorType}`);
+    }
   }
 };

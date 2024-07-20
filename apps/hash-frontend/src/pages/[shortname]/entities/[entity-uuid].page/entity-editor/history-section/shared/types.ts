@@ -7,10 +7,10 @@ import type {
 } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 
-type HistoryEventBase = {
+interface HistoryEventBase {
   number: string;
   timestamp: string;
-};
+}
 
 type CreationEvent = HistoryEventBase & {
   type: "created";

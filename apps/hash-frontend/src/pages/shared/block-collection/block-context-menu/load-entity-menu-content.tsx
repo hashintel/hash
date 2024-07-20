@@ -1,3 +1,5 @@
+import type { PopupState } from "material-ui-popup-state/hooks";
+import type { FunctionComponent , useCallback, useEffect, useMemo, useRef } from "react";
 import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faAsterisk, faSearch } from "@fortawesome/free-solid-svg-icons";
@@ -21,9 +23,6 @@ import {
   MenuList,
   Tooltip,
 } from "@mui/material";
-import type { PopupState } from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import type {
   QueryEntitiesQuery,
@@ -34,13 +33,13 @@ import { entityHasEntityTypeByBaseUrlFilter } from "../../../../shared/filters";
 import { MenuItem } from "../../../../shared/ui";
 import { useBlockView } from "../block-view";
 
-type LoadEntityMenuContentProps = {
+interface LoadEntityMenuContentProps {
   blockEntityId: EntityId | null;
   childEntityEntityTypeId: VersionedUrl | null;
   childEntityEntityId: EntityId | null;
   closeParentContextMenu: () => void;
   popupState?: PopupState;
-};
+}
 
 export const LoadEntityMenuContent: FunctionComponent<
   LoadEntityMenuContentProps
@@ -99,8 +98,8 @@ export const LoadEntityMenuContent: FunctionComponent<
       }
 
       /**
-       * @todo properly type this part of the DraftEntity type
        * @see https://linear.app/hash/issue/H-3000
+       * @todo Properly type this part of the DraftEntity type.
        */
       blockView.manager.replaceBlockChildEntity(
         blockEntityId,
@@ -148,25 +147,25 @@ export const LoadEntityMenuContent: FunctionComponent<
     <MenuList>
       <Box sx={{ mx: 0.75 }}>
         <TextField
-          placeholder="Search for entities"
           fullWidth
-          size="xs"
-          onKeyDown={(evt) => {
-            evt.stopPropagation();
-          }}
+          placeholder={"Search for entities"}
+          size={"xs"}
           InputProps={{
             inputRef: searchInputRef,
             startAdornment: (
-              <InputAdornment position="start">
+              <InputAdornment position={"start"}>
                 <FontAwesomeIcon icon={faSearch} />
               </InputAdornment>
             ),
 
             endAdornment: loading ? (
-              <InputAdornment position="start">
+              <InputAdornment position={"start"}>
                 <LoadingSpinner size={12} thickness={4} />
               </InputAdornment>
             ) : null,
+          }}
+          onKeyDown={(event) => {
+            event.stopPropagation();
           }}
         />
       </Box>

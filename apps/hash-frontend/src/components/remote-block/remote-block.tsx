@@ -1,3 +1,5 @@
+import type { FunctionComponent , useEffect, useMemo, useRef } from "react";
+import { v4 as uuid } from "uuid";
 import type { BlockMetadata } from "@blockprotocol/core";
 import type {
   BlockGraphProperties,
@@ -13,19 +15,16 @@ import { useHookEmbedderModule } from "@blockprotocol/hook/react";
 import { useServiceEmbedderModule } from "@blockprotocol/service/react";
 import { textualContentPropertyTypeBaseUrl } from "@local/hash-isomorphic-utils/entity-store";
 import { blockProtocolLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { SkeletonProps } from "@mui/material";
-import { Skeleton } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useEffect, useMemo, useRef } from "react";
-import { v4 as uuid } from "uuid";
+import type { Skeleton,SkeletonProps  } from "@mui/material";
 
 import { useUserBlocks } from "../../blocks/user-blocks";
+
 import { AddLinkedQueryPrompt } from "./add-linked-query-prompt";
 import { BlockRenderer } from "./block-renderer";
 import { serviceModuleCallbacks } from "./construct-service-module-callbacks";
 import { useRemoteBlock } from "./use-remote-block";
 
-export type RemoteBlockProps = {
+export interface RemoteBlockProps {
   graphCallbacks: Omit<
     /** @todo-0.3 - Add these back */
     GraphEmbedderMessageCallbacks,
@@ -59,14 +58,14 @@ export type RemoteBlockProps = {
   crossFrame?: boolean;
   editableRef: ((node: HTMLElement | null) => void) | null;
   onBlockLoaded?: () => void;
-};
+}
 
 export const BlockLoadingIndicator: FunctionComponent<{
   sx?: SkeletonProps["sx"];
 }> = ({ sx = [] }) => (
   <Skeleton
-    animation="wave"
-    variant="rectangular"
+    animation={"wave"}
+    variant={"rectangular"}
     sx={[
       { borderRadius: 1, height: "32px" },
       ...(Array.isArray(sx) ? sx : [sx]),
@@ -76,7 +75,7 @@ export const BlockLoadingIndicator: FunctionComponent<{
 
 /**
  * Loads and renders a block from a URL, instantiates the graph service handler,
- * and passes the block the provided graphProperties
+ * and passes the block the provided graphProperties.
  *
  * @see https://github.com/Paciolan/remote-component for the original inspiration
  */
@@ -90,7 +89,7 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
 }) => {
   const { value: userBlocks } = useUserBlocks();
 
-  const [loading, err, blockSource] = useRemoteBlock(
+  const [loading, error, blockSource] = useRemoteBlock(
     blockMetadata.source,
     crossFrame,
     onBlockLoaded,
@@ -132,6 +131,7 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
           editableRef(data.node);
 
           const hookId = data.hookId ?? uuid();
+
           return { data: { hookId } };
         }
 
@@ -216,8 +216,8 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
     throw new Error("Could not load and parse block from URL");
   }
 
-  if (err) {
-    throw err;
+  if (error) {
+    throw error;
   }
 
   const propsToInject: BlockGraphProperties = {

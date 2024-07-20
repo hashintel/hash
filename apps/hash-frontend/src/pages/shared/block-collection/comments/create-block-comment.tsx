@@ -1,20 +1,20 @@
+import type { FunctionComponent , useState } from "react";
 import { faComment } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import { Box } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useState } from "react";
 
 import { useCreateComment } from "../../../../components/hooks/use-create-comment";
 import { usePageContext } from "../page-context";
+
 import { CommentTextField } from "./comment-text-field";
 import styles from "./style.module.css";
 
-type CreateBlockCommentProps = {
+interface CreateBlockCommentProps {
   blockEntityId: EntityId | null;
   onClose?: () => void;
-};
+}
 
 export const CreateBlockComment: FunctionComponent<CreateBlockCommentProps> = ({
   blockEntityId,
@@ -25,7 +25,7 @@ export const CreateBlockComment: FunctionComponent<CreateBlockCommentProps> = ({
   const [inputValue, setInputValue] = useState<TextToken[]>([]);
 
   const handleCommentSubmit = async () => {
-    if (!loading && blockEntityId && inputValue.length) {
+    if (!loading && blockEntityId && inputValue.length > 0) {
       await createComment(blockEntityId, inputValue);
       onClose?.();
     }
@@ -47,7 +47,6 @@ export const CreateBlockComment: FunctionComponent<CreateBlockCommentProps> = ({
       })}
     >
       <IconButton
-        onClick={onClose}
         sx={({ palette }) => ({
           padding: 0.5,
           borderRadius: 1,
@@ -56,16 +55,17 @@ export const CreateBlockComment: FunctionComponent<CreateBlockCommentProps> = ({
           alignSelf: "flex-start",
           color: palette.gray[50],
         })}
+        onClick={onClose}
       >
         <FontAwesomeIcon icon={faComment} />
       </IconButton>
 
       <CommentTextField
-        onClose={onClose}
-        onSubmit={handleCommentSubmit}
         editable={!loading}
         loading={loading}
         className={styles.Comment__TextField_editable}
+        onClose={onClose}
+        onSubmit={handleCommentSubmit}
         onChange={setInputValue}
       />
     </Box>

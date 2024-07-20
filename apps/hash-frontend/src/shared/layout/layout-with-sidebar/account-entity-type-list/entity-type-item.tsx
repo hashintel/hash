@@ -1,3 +1,6 @@
+import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
+import { useRouter } from "next/router";
+import type { FunctionComponent , useRef } from "react";
 import {
   EntityTypeIcon,
   IconButton,
@@ -5,21 +8,17 @@ import {
 } from "@hashintel/design-system";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import type { BoxProps } from "@mui/material";
-import { Box, styled, Tooltip, Typography } from "@mui/material";
-import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import { useRouter } from "next/router";
-import type { FunctionComponent } from "react";
-import { useRef } from "react";
+import type { Box, BoxProps , styled, Tooltip, Typography } from "@mui/material";
 
 import { useEntityTypesContextRequired } from "../../../entity-types-context/hooks/use-entity-types-context-required";
 import { EllipsisRegularIcon } from "../../../icons/ellipsis-regular-icon";
 import { Link } from "../../../ui";
+
 import { EntityMenu } from "./entity-menu";
 import { EntityTypeMenu } from "./entity-type-menu";
 
 const Container = styled((props: BoxProps & { selected: boolean }) => (
-  <Box component="li" {...props} />
+  <Box component={"li"} {...props} />
 ))(({ theme, selected }) => ({
   paddingLeft: theme.spacing(2),
   paddingRight: theme.spacing(1),
@@ -82,16 +81,16 @@ export const EntityTypeItem: FunctionComponent<{
   const { isLink } = isSpecialEntityTypeLookup?.[entityTypeId] ?? {};
 
   return (
-    <Container component="li" tabIndex={0} selected={selected} minHeight={32}>
+    <Container component={"li"} tabIndex={0} selected={selected} minHeight={32}>
       <Link
+        noLinkStyle
         tabIndex={-1}
         sx={{ flex: 1 }}
-        noLinkStyle
         href={href ?? baseUrl}
         flex={1}
       >
         <Typography
-          variant="smallTextLabels"
+          variant={"smallTextLabels"}
           sx={{
             display: "block",
             color: ({ palette }) => palette.gray[70],
@@ -99,7 +98,7 @@ export const EntityTypeItem: FunctionComponent<{
           }}
         >
           <Box
-            component="span"
+            component={"span"}
             sx={{
               marginRight: 1,
               maxWidth: 18,
@@ -132,13 +131,13 @@ export const EntityTypeItem: FunctionComponent<{
         </Typography>
       </Link>
 
-      <Tooltip title="Options" sx={{ left: 5 }}>
+      <Tooltip title={"Options"} sx={{ left: 5 }}>
         <IconButton
           ref={entityMenuTriggerRef}
-          className="entity-menu-trigger"
+          className={"entity-menu-trigger"}
           {...bindTrigger(popupState)}
-          size="medium"
           unpadded
+          size={"medium"}
           sx={({ palette }) => ({
             color: [selected ? palette.gray[80] : "transparent"],
             "&:focus-visible, &:hover": {

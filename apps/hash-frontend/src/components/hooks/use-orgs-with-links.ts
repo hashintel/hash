@@ -1,5 +1,5 @@
-import type { ApolloQueryResult } from "@apollo/client";
-import { useQuery } from "@apollo/client";
+import { useMemo } from "react";
+import type { ApolloQueryResult , useQuery } from "@apollo/client";
 import type { AccountGroupId } from "@local/hash-graph-types/account";
 import {
   currentTimeInstantTemporalAxes,
@@ -9,18 +9,16 @@ import {
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { useMemo } from "react";
 
 import type {
   GetEntitySubgraphQuery,
   GetEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
-import type { Org } from "../../lib/user-and-org";
-import { constructOrg, isEntityOrgEntity } from "../../lib/user-and-org";
+import type { constructOrg, isEntityOrgEntity,Org  } from "../../lib/user-and-org";
 
 /**
- * Retrieves a specific set of organizations, with their avatars and members populated
+ * Retrieves a specific set of organizations, with their avatars and members populated.
  */
 export const useOrgsWithLinks = ({
   orgAccountGroupIds,
@@ -78,7 +76,7 @@ export const useOrgsWithLinks = ({
       },
     },
     fetchPolicy: "cache-and-network",
-    skip: !orgAccountGroupIds || !orgAccountGroupIds.length,
+    skip: !orgAccountGroupIds?.length,
   });
 
   const { getEntitySubgraph: subgraphAndPermissions } = data ?? {};
@@ -98,6 +96,7 @@ export const useOrgsWithLinks = ({
           `Entity with type ${orgEntity.metadata.entityTypeId} is not an org entity`,
         );
       }
+
       return constructOrg({ subgraph, orgEntity });
     });
   }, [subgraphAndPermissions]);

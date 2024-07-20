@@ -15,10 +15,11 @@ export const defaultSortRows = <T extends Row>(
   previousSort?: ColumnSort<string>,
 ) => {
   /**
-   * cloning the array, we want to return a new array,
-   * so React can run effects & update state properly
+   * Cloning the array, we want to return a new array,
+   * so React can run effects & update state properly.
    */
   const clone = [...rows] as T[];
+
   return clone.sort((row1, row2) => {
     // we sort only by alphabetical order for now
     const value1 = String(row1[sort.columnKey]);

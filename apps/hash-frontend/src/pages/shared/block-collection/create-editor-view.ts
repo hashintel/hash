@@ -1,8 +1,12 @@
+import debounce from "lodash/debounce";
+// import applyDevTools from "prosemirror-dev-tools";
+import { Plugin, PluginKey } from "prosemirror-state";
+import type { EditorView } from "prosemirror-view";
+import type { RefObject } from "react";
 import type { ApolloClient } from "@apollo/client";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import type { ComponentIdHashBlockMap } from "@local/hash-isomorphic-utils/blocks";
-import { paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
+import type { ComponentIdHashBlockMap , paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
 import { createProseMirrorState } from "@local/hash-isomorphic-utils/create-prose-mirror-state";
 import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import {
@@ -12,13 +16,9 @@ import {
 // import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { save } from "@local/hash-isomorphic-utils/save";
-import debounce from "lodash/debounce";
-// import applyDevTools from "prosemirror-dev-tools";
-import { Plugin, PluginKey } from "prosemirror-state";
-import type { EditorView } from "prosemirror-view";
-import type { RefObject } from "react";
 
 import type { SnackbarManager } from "../../../components/hooks/use-snackbar";
+
 import type { RenderPortal } from "./block-portals";
 import { BlockView } from "./block-view";
 import type { EditorConnection } from "./collab/editor-connection";
@@ -59,6 +59,7 @@ const createSavePlugin = (
 
         if (!view.isDestroyed) {
           const { tr } = view.state;
+
           addEntityStoreAction(view.state, tr, {
             type: "mergeNewPageContents",
             payload: {
@@ -73,8 +74,8 @@ const createSavePlugin = (
         }
 
         onSuccess();
-      } catch (err) {
-        onError(`Could not save work: ${(err as Error).message}`);
+      } catch (error) {
+        onError(`Could not save work: ${(error as Error).message}`);
       }
     });
   };
@@ -112,20 +113,22 @@ const createSavePlugin = (
     }),
     props: {
       handleDOMEvents: {
-        keydown(_, evt) {
+        keydown(_, event) {
           // Manual save for cmd+s or ctrl+s
-          if (evt.key === "s" && (evt.metaKey || evt.ctrlKey)) {
-            evt.preventDefault();
+          if (event.key === "s" && (event.metaKey || event.ctrlKey)) {
+            event.preventDefault();
             writeDebounce.cancel();
             triggerSave();
 
             return true;
           }
+
           return false;
         },
         blur() {
           writeDebounce.cancel();
           triggerSave();
+
           return false;
         },
       },
@@ -135,6 +138,7 @@ const createSavePlugin = (
 
 /**
  * An editor view manages the DOM structure that represents an editable document.
+ *
  * @see https://prosemirror.net/docs/ref/#view.EditorView
  */
 export const createEditorView = (params: {
@@ -185,7 +189,7 @@ export const createEditorView = (params: {
           pageEntityId,
           getBlocksMap,
           client,
-          () => snackbarManager.closeSnackbar(errorSnackbarKey),
+          () => { snackbarManager.closeSnackbar(errorSnackbarKey); },
           (message: string) =>
             snackbarManager.triggerSnackbar.error(message, {
               key: errorSnackbarKey,
@@ -208,8 +212,9 @@ export const createEditorView = (params: {
       nodeViews: {
         block(currentNode, currentView, getPos) {
           if (typeof getPos === "boolean") {
-            throw new Error("Invalid config for nodeview");
+            throw new TypeError("Invalid config for nodeview");
           }
+
           return new BlockView(
             currentNode,
             currentView,
@@ -235,7 +240,7 @@ export const createEditorView = (params: {
     view,
     (block) => (node, editorView, getPos) => {
       if (typeof getPos === "boolean") {
-        throw new Error("Invalid config for nodeview");
+        throw new TypeError("Invalid config for nodeview");
       }
 
       return new ComponentView(
@@ -256,20 +261,20 @@ export const createEditorView = (params: {
   });
 
   /**
-   * @todo the collab editor connection is disabled currently.
    * @see https://linear.app/hash/issue/H-3000
-
-  connection = new EditorConnection(
-    `${apiOrigin}/collab-backend/${accountId}/${pageEntityId}`,
-    view.state.schema,
-    view,
-    manager,
-    plugins,
-    accountId,
-    () => {
+   *
+  * connection = new EditorConnection(
+    * `${apiOrigin}/collab-backend/${accountId}/${pageEntityId}`,
+    * view.state.schema,
+    * view,
+    * manager,
+    * plugins,
+    * accountId,
+    * () => {
       view.dispatch(onError(view.state.tr));
     },
   );
+   * @todo the collab editor connection is disabled currently.
   */
 
   view.dom.classList.add(styles.ProseMirror!);
@@ -280,7 +285,7 @@ export const createEditorView = (params: {
   // we want this to be the paragraph node type.
   const blocksArray = Object.values(getBlocksMap());
 
-  if (blocksArray.length) {
+  if (blocksArray.length > 0) {
     const paragraphBlock = blocksArray.find(
       (block) => block.meta.componentId === paragraphBlockComponentId,
     );

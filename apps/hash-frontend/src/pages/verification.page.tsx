@@ -1,15 +1,14 @@
+import { useRouter } from "next/router";
+import type { FormEventHandler , useEffect, useState } from "react";
 import { TextField } from "@hashintel/design-system";
 import { Box, Container, Typography } from "@mui/material";
 import type { VerificationFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
-import { useRouter } from "next/router";
-import type { FormEventHandler } from "react";
-import { useEffect, useState } from "react";
 
 import { useLogoutFlow } from "../components/hooks/use-logout-flow";
-import type { NextPageWithLayout } from "../shared/layout";
-import { getPlainLayout } from "../shared/layout";
+import type { getPlainLayout,NextPageWithLayout  } from "../shared/layout";
 import { Button } from "../shared/ui";
+
 import {
   gatherUiNodeValuesFromFlow,
   oryKratosClient,
@@ -50,6 +49,7 @@ const VerificationPage: NextPageWithLayout = () => {
       ({ attributes }) =>
         isUiNodeInputAttributes(attributes) && attributes.name === "code",
     );
+
     if (uiCode?.attributes && "value" in uiCode.attributes) {
       setCode(String(uiCode.attributes.value));
     }
@@ -70,6 +70,7 @@ const VerificationPage: NextPageWithLayout = () => {
           extractFlowCodeValue(data);
         })
         .catch(handleFlowError);
+
       return;
     }
 
@@ -131,12 +132,11 @@ const VerificationPage: NextPageWithLayout = () => {
 
   return (
     <Container sx={{ pt: 10 }}>
-      <Typography variant="h1" gutterBottom>
+      <Typography gutterBottom variant={"h1"}>
         Account verification
       </Typography>
       <Box
-        component="form"
-        onSubmit={handleSubmit}
+        component={"form"}
         sx={{
           display: "flex",
           flexDirection: "column",
@@ -145,29 +145,30 @@ const VerificationPage: NextPageWithLayout = () => {
             marginTop: 1,
           },
         }}
+        onSubmit={handleSubmit}
       >
         <TextField
-          label="Verification code"
-          type="text"
-          autoComplete="off"
-          placeholder="Enter your verification code"
+          required
+          label={"Verification code"}
+          type={"text"}
+          autoComplete={"off"}
+          placeholder={"Enter your verification code"}
           value={code}
-          onChange={({ target }) => setCode(target.value)}
           error={
-            !!codeInputUiNode?.messages.find(({ type }) => type === "error")
+            Boolean(codeInputUiNode?.messages.find(({ type }) => type === "error"))
           }
           helperText={codeInputUiNode?.messages.map(({ id, text }) => (
             <Typography key={id}>{text}</Typography>
           ))}
-          required
+          onChange={({ target }) => { setCode(target.value); }}
         />
-        <Button type="submit">Verify account</Button>
+        <Button type={"submit"}>Verify account</Button>
         {flow?.ui.messages?.map(({ text, id }) => (
           <Typography key={id}>{text}</Typography>
         ))}
         {errorMessage ? <Typography>{errorMessage}</Typography> : null}
 
-        <Button variant="secondary" onClick={logout}>
+        <Button variant={"secondary"} onClick={logout}>
           Log out
         </Button>
       </Box>

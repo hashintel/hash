@@ -1,6 +1,6 @@
+import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import { useMemo } from "react";
 
 import type {
   CheckUserPermissionsOnEntityTypeQuery,

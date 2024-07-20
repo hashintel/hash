@@ -1,9 +1,5 @@
 import "reactflow/dist/style.css";
-
-import { customColors } from "@hashintel/design-system/theme";
-import { Box, Fade, Stack, Typography } from "@mui/material";
-import type { ElkNode } from "elkjs/lib/elk.bundled.js";
-import ELK from "elkjs/lib/elk.bundled.js";
+import ELK, type { ElkNode } from "elkjs/lib/elk.bundled.js";
 import { useEffect, useMemo } from "react";
 import ReactFlow, {
   Background,
@@ -13,12 +9,15 @@ import ReactFlow, {
   useNodesState,
   useReactFlow,
 } from "reactflow";
+import { customColors } from "@hashintel/design-system/theme";
+import { Box, Fade, Stack, Typography } from "@mui/material";
 
 import {
   useFlowRunsContext,
   useStatusForSteps,
 } from "../../../shared/flow-runs-context";
 import { flowRunStatusToStatusText } from "../../../shared/flow-tables";
+
 import { MarkerEnd } from "./marker-end";
 import { nodeTabHeight, parentGroupPadding } from "./shared/dimensions";
 import { transitionOptions } from "./shared/styles";
@@ -169,6 +168,7 @@ export const Swimlane = ({
         return flowRunStatus;
       }
     }
+
     return groupStatus;
   }, [groupStatus, isOnlySwimlane, selectedFlowRun]);
 
@@ -179,6 +179,7 @@ export const Swimlane = ({
   const edgesWithLatestStatus = useMemo(() => {
     return edges.map((edge) => {
       const sourceStatus = statusByStep?.[edge.source] ?? "Waiting";
+
       return {
         ...edge,
         markerEnd: edgeColor[sourceStatus],
@@ -189,7 +190,7 @@ export const Swimlane = ({
 
   return (
     <Stack
-      direction="row"
+      direction={"row"}
       sx={{
         background: ({ palette }) =>
           !selectedFlowRun
@@ -211,7 +212,7 @@ export const Swimlane = ({
       }}
     >
       <Stack
-        direction="row"
+        direction={"row"}
         sx={({ palette }) => ({
           background: !selectedFlowRun ? "white" : "inherit",
           minWidth: 170,
@@ -225,7 +226,7 @@ export const Swimlane = ({
         })}
       >
         <Typography
-          variant="smallCaps"
+          variant={"smallCaps"}
           sx={({ palette }) => ({
             color: palette.gray[50],
           })}
@@ -261,11 +262,11 @@ export const Swimlane = ({
               <Background
                 color={customColors.gray[50]}
                 gap={4}
+                variant={BackgroundVariant.Dots}
                 style={{
                   borderTopRightRadius: 10,
                   borderBottomRightRadius: 10,
                 }}
-                variant={BackgroundVariant.Dots}
               />
             </div>
           </Fade>

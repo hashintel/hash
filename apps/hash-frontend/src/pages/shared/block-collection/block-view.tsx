@@ -1,3 +1,7 @@
+import type { Node } from "prosemirror-model";
+import { NodeSelection, TextSelection } from "prosemirror-state";
+import type { EditorView, NodeView } from "prosemirror-view";
+import { createContext, createRef, useContext } from "react";
 import type { BlockVariant } from "@blockprotocol/core";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
@@ -11,12 +15,9 @@ import {
   isEntityNode,
 } from "@local/hash-isomorphic-utils/prosemirror";
 import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
-import type { Node } from "prosemirror-model";
-import { NodeSelection, TextSelection } from "prosemirror-state";
-import type { EditorView, NodeView } from "prosemirror-view";
-import { createContext, createRef, useContext } from "react";
 
 import { getBlockDomId } from "../../../shared/get-block-dom-id";
+
 import { BlockContext } from "./block-context";
 import { BlockHandle } from "./block-handle";
 import { BlockHighlight } from "./block-highlight";
@@ -26,17 +27,17 @@ import { CreateBlockCommentButton } from "./comments/create-block-comment-button
 import { InsertBlock } from "./insert-block";
 import styles from "./style.module.css";
 
-/** used to detect whether or not a context value was provided */
+/** Used to detect whether or not a context value was provided */
 const nullBlockView = {};
 
-/** used to hold the blockView instance */
+/** Used to hold the blockView instance */
 export const BlockViewContext = createContext<BlockView>(
   nullBlockView as BlockView,
 );
 
 /**
  * This is the node view that wraps every one of our blocks in order to inject
- * custom UI like the <select> to change type and the drag handles
+ * custom UI like the <select> to change type and the drag handles.
  */
 export class BlockView implements NodeView {
   dom: HTMLDivElement;
@@ -50,7 +51,7 @@ export class BlockView implements NodeView {
   dragging = false;
   hovered = false;
 
-  /** used to hide node-view specific events from prosemirror */
+  /** Used to hide node-view specific events from prosemirror */
   blockHandleRef = createRef<HTMLDivElement>();
 
   private store: EntityStore;
@@ -128,8 +129,8 @@ export class BlockView implements NodeView {
     this.insertBlockBottomContainer.contentEditable = "false";
     this.renderPortal(
       <InsertBlock
-        onBlockSuggesterChange={this.onBlockInsert(true)}
         readonly={this.readonly}
+        onBlockSuggesterChange={this.onBlockInsert(true)}
       />,
       this.insertBlockBottomContainer,
     );
@@ -155,26 +156,27 @@ export class BlockView implements NodeView {
   };
 
   /**
-   * @todo simplify this alongside the react event handling
+   * @todo Simplify this alongside the react event handling.
    */
-  stopEvent(evt: Event) {
-    if (evt.type === "dragstart" && evt.target === this.dom) {
+  stopEvent(event: Event) {
+    if (event.type === "dragstart" && event.target === this.dom) {
       if (!this.allowDragging) {
-        evt.preventDefault();
+        event.preventDefault();
+
         return true;
-      } else {
+      } 
         this.dragging = true;
         this.update(this.node);
-      }
+      
     }
 
     /**
      * We don't want Prosemirror to try to handle any of these events as
-     * they're handled by React
+     * they're handled by React.
      */
     return (
-      this.blockHandleRef.current?.contains(evt.target as globalThis.Node) ||
-      (evt.target === this.blockHandleRef.current && evt.type === "mousedown")
+      this.blockHandleRef.current?.contains(event.target as globalThis.Node) ||
+      (event.target === this.blockHandleRef.current && event.type === "mousedown")
     );
   }
 
@@ -183,16 +185,16 @@ export class BlockView implements NodeView {
    * views – this can be important because this is part of how it detects
    * changes made by users, but this can cause node views to be unnecessarily
    * destroyed and/or updated. Here we're instructing PM to ignore changes
-   * made by us
+   * made by us.
    *
-   * @todo find a more generalized alternative
+   * @todo Find a more generalized alternative.
    */
   ignoreMutation(
     record: Parameters<NonNullable<NodeView["ignoreMutation"]>>[0],
   ) {
     if (record.target === this.dom && record.type === "attributes") {
       return record.attributeName === "class" || record.attributeName === "id";
-    } else if (
+    } if (
       this.selectContainer.contains(record.target) ||
       this.insertBlockBottomContainer.contains(record.target) ||
       this.insertBlockTopContainer?.contains(record.target)
@@ -211,15 +213,15 @@ export class BlockView implements NodeView {
     this.node = blockNode;
 
     /**
-     * Ensure that a user cannot type inside the custom UI container
+     * Ensure that a user cannot type inside the custom UI container.
      *
-     * @todo see if this is necessary
+     * @todo See if this is necessary.
      */
     this.selectContainer.contentEditable = "false";
 
     /**
      * This removes the outline that prosemirror has when a node is
-     * selected whilst we are dragging it
+     * selected whilst we are dragging it.
      */
     if (this.dragging) {
       this.dom.classList.add(styles["Block--dragging"]!);
@@ -247,14 +249,15 @@ export class BlockView implements NodeView {
                 entityStore={this.store}
                 draftId={blockDraftId}
                 ref={this.blockHandleRef}
+                onClick={this.onDragEnd}
                 onMouseDown={() => {
                   /**
                    * We only want to allow dragging from the drag handle
                    * so we set a flag which we can use to indicate
-                   * whether a drag was initiated from the drag handle
+                   * whether a drag was initiated from the drag handle.
                    *
-                   * @todo we may not need this – we may be able to get
-                   *       it from the event
+                   * @todo We may not need this – we may be able to get
+                   *       it from the event.
                    */
                   this.allowDragging = true;
 
@@ -266,7 +269,7 @@ export class BlockView implements NodeView {
                   /**
                    * By triggering a selection of the node, we can ensure
                    * that the whole node is re-ordered when drag & drop
-                   * starts
+                   * starts.
                    */
                   tr.setSelection(
                     NodeSelection.create(
@@ -279,7 +282,6 @@ export class BlockView implements NodeView {
 
                   this.update(this.node);
                 }}
-                onClick={this.onDragEnd}
               />
               {!this.readonly && this.isCommentingEnabled ? (
                 <CreateBlockCommentButton
@@ -306,8 +308,8 @@ export class BlockView implements NodeView {
         this.insertBlockTopContainer.contentEditable = "false";
         this.renderPortal(
           <InsertBlock
-            onBlockSuggesterChange={this.onBlockInsert(false)}
             readonly={this.readonly}
+            onBlockSuggesterChange={this.onBlockInsert(false)}
           />,
           this.insertBlockTopContainer,
         );
@@ -330,10 +332,11 @@ export class BlockView implements NodeView {
 
   deleteBlock = () => {
     const { node, getPos } = this;
-    this.manager.deleteNode(node, getPos()).catch((err: Error) => {
-      // eslint-disable-next-line no-console -- TODO: consider using logger
+
+    this.manager.deleteNode(node, getPos()).catch((error: Error) => {
+       
       console.error(
-        `Error deleting node at position ${getPos()}: ${err.message}`,
+        `Error deleting node at position ${getPos()}: ${error.message}`,
       );
     });
   };
@@ -341,7 +344,7 @@ export class BlockView implements NodeView {
   onBlockChange = (variant: BlockVariant, meta: HashBlockMeta) => {
     const { node, editorView, getPos } = this;
 
-    const state = editorView.state;
+    const {state} = editorView;
     const child = state.doc.resolve(getPos() + 1).nodeAfter;
     const draftId = child?.attrs.draftId;
 
@@ -351,9 +354,9 @@ export class BlockView implements NodeView {
 
     this.manager
       .replaceNode(draftId, meta.componentId, variant, node, getPos())
-      .catch((err: Error) => {
-        // eslint-disable-next-line no-console -- TODO: consider using logger
-        console.error(err);
+      .catch((error: Error) => {
+         
+        console.error(error);
       });
   };
 
@@ -371,8 +374,8 @@ export class BlockView implements NodeView {
         .insertBlock(blockMeta.componentId, variant, newPosition)
         .then(({ tr }) => {
           /**
-           * calculate nextPosition to correctly focus the component inside, not the wrapper
-           * */
+           * Calculate nextPosition to correctly focus the component inside, not the wrapper.
+            */
           const $pos = tr.doc.resolve(newPosition + 1);
           const nextPosition = findComponentNode(
             $pos.node(1),
@@ -386,14 +389,14 @@ export class BlockView implements NodeView {
           editorView.focus();
           editorView.dispatch(tr);
         })
-        .catch((err) => {
-          // eslint-disable-next-line no-console -- TODO: consider using logger
-          console.error(err);
+        .catch((error) => {
+           
+          console.error(error);
         });
     };
 }
 
-/** used to access the blockView instance and ensure one has been provided */
+/** Used to access the blockView instance and ensure one has been provided */
 export const useBlockView = () => {
   const blockView = useContext(BlockViewContext);
 

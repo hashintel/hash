@@ -6,11 +6,11 @@ import { SectionWrapper } from "../../../shared/section-wrapper";
 
 export const LinksSectionEmptyState = () => {
   return (
-    <SectionWrapper title="Links" titleStartContent={<Chip label="No links" />}>
+    <SectionWrapper title={"Links"} titleStartContent={<Chip label={"No links"} />}>
       <SectionEmptyState
-        title="This entity currently has no links"
+        title={"This entity currently has no links"}
         titleIcon={<LinksIcon />}
-        description="Links contain information about connections or relationships between different entities"
+        description={"Links contain information about connections or relationships between different entities"}
       />
     </SectionWrapper>
   );

@@ -1,23 +1,21 @@
-import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
-import { ENTITY_TYPE_META_SCHEMA } from "@blockprotocol/type-system/slim";
+import { Buffer } from "buffer/";
+import { useRouter } from "next/router";
+import type { ReactNode , useContext } from "react";
+import { useForm } from "react-hook-form";
+import type { ENTITY_TYPE_META_SCHEMA,EntityType, VersionedUrl  } from "@blockprotocol/type-system/slim";
 import { Callout, TextField } from "@hashintel/design-system";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import type { SxProps, Theme } from "@mui/material";
-import {
-  Box,
+import type {   Box,
   formHelperTextClasses,
   outlinedInputClasses,
   Stack,
+SxProps, Theme ,
 } from "@mui/material";
-import { Buffer } from "buffer/";
-import { useRouter } from "next/router";
-import type { ReactNode } from "react";
-import { useContext } from "react";
-import { useForm } from "react-hook-form";
 
 import { useBlockProtocolGetEntityType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
 import { useEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import { Button } from "../../shared/ui/button";
+
 import { useAuthenticatedUser } from "./auth-info-context";
 import { useGenerateTypeUrlsForUser } from "./use-generate-type-urls-for-user";
 import { WorkspaceContext } from "./workspace-context";
@@ -32,28 +30,28 @@ const FormHelperLabel = ({
   sx?: SxProps<Theme>;
 }) => (
   <Box
-    component="span"
+    component={"span"}
     color={(theme) => theme.palette.blue[70]}
-    display="inline"
-    fontWeight="bold"
+    display={"inline"}
+    fontWeight={"bold"}
     sx={sx}
   >
     {children}
   </Box>
 );
 
-type CreateEntityTypeFormData = {
+interface CreateEntityTypeFormData {
   extendsEntityTypeId?: VersionedUrl;
   name: string;
   description: string;
-};
+}
 
-type CreateEntityTypeFormProps = {
+interface CreateEntityTypeFormProps {
   afterSubmit?: () => void;
   initialData: Partial<CreateEntityTypeFormData>;
   inModal?: boolean;
   onCancel: () => void;
-};
+}
 
 const extractNamespaceFromVersionedUrl = (versionedUrl: VersionedUrl) => {
   return new URL(versionedUrl).pathname.split("/")[1]!.replace(/@/, "");
@@ -154,17 +152,18 @@ export const CreateEntityTypeForm = ({
 
   return (
     <Box
-      component="form"
+      component={"form"}
+      data-testid={"entity-type-creation-form"}
       onSubmit={(event) => {
         // stop submission propagating in case this form is nested in another
         event.stopPropagation();
 
         void handleFormSubmit(event);
       }}
-      data-testid="entity-type-creation-form"
     >
       <Stack
-        alignItems="stretch"
+        alignItems={"stretch"}
+        spacing={3}
         sx={(theme) => ({
           ...(inModal
             ? {}
@@ -193,7 +192,6 @@ export const CreateEntityTypeForm = ({
                 },
               }),
         })}
-        spacing={3}
       >
         {parentType && parentType.schema.$id !== linkEntityTypeUrl && (
           <Callout
@@ -241,9 +239,11 @@ export const CreateEntityTypeForm = ({
           })}
           autoFocus
           required
-          label="Singular Name"
-          type="text"
-          placeholder="e.g. Stock Price"
+          label={"Singular Name"}
+          type={"text"}
+          placeholder={"e.g. Stock Price"}
+          error={Boolean(nameError)}
+          sx={{ px: inModal ? 3 : 0 }}
           helperText={
             nameError?.message ? (
               <>
@@ -262,8 +262,6 @@ export const CreateEntityTypeForm = ({
               </>
             )
           }
-          error={!!nameError}
-          sx={{ px: inModal ? 3 : 0 }}
         />
         <TextField
           {...register("description", {
@@ -271,15 +269,11 @@ export const CreateEntityTypeForm = ({
           })}
           required
           multiline
-          onKeyDown={async (evt) => {
-            if (!isSubmitting && evt.key === "Enter" && evt.metaKey) {
-              await handleFormSubmit(evt);
-            }
-          }}
           inputProps={{ minRows: 1 }}
-          label="Description"
-          type="text"
-          placeholder="Describe this entity in one or two sentences"
+          label={"Description"}
+          type={"text"}
+          placeholder={"Describe this entity in one or two sentences"}
+          sx={{ px: inModal ? 3 : 0 }}
           helperText={
             inModal ? undefined : (
               <Box pr={3.75}>
@@ -289,7 +283,11 @@ export const CreateEntityTypeForm = ({
               </Box>
             )
           }
-          sx={{ px: inModal ? 3 : 0 }}
+          onKeyDown={async (event) => {
+            if (!isSubmitting && event.key === "Enter" && event.metaKey) {
+              await handleFormSubmit(event);
+            }
+          }}
         />
         <Stack
           direction={{ xs: "column", sm: "row" }}
@@ -298,20 +296,20 @@ export const CreateEntityTypeForm = ({
           pb={inModal ? 3 : 0}
         >
           <Button
-            type="submit"
-            size="small"
-            loading={isSubmitting}
-            disabled={isSubmitting || !!nameError}
             loadingWithoutText
+            type={"submit"}
+            size={"small"}
+            loading={isSubmitting}
+            disabled={isSubmitting || Boolean(nameError)}
           >
             Create new entity type
           </Button>
           <Button
-            type="button"
-            onClick={onCancel}
-            variant="tertiary"
-            size="small"
+            type={"button"}
+            variant={"tertiary"}
+            size={"small"}
             disabled={isSubmitting}
+            onClick={onCancel}
           >
             Discard
           </Button>

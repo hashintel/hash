@@ -1,3 +1,7 @@
+import { get } from "lodash";
+import type { bindPopover,PopupState  } from "material-ui-popup-state/hooks";
+import type { ChangeEvent, ForwardedRef, FunctionComponent , useEffect, useRef, useState } from "react";
+import { useKey } from "rooks";
 import type { JsonObject, JsonValue } from "@blockprotocol/core";
 import { TextField } from "@hashintel/design-system";
 import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
@@ -9,12 +13,6 @@ import {
   Popover,
   Typography,
 } from "@mui/material";
-import { get } from "lodash";
-import type { PopupState } from "material-ui-popup-state/hooks";
-import { bindPopover } from "material-ui-popup-state/hooks";
-import type { ChangeEvent, ForwardedRef, FunctionComponent } from "react";
-import { useEffect, useRef, useState } from "react";
-import { useKey } from "rooks";
 
 import { MenuItem } from "../../../../shared/ui";
 
@@ -31,6 +29,7 @@ const resolvePropertySchema = (
 ): JsonSchema => {
   if ($ref.startsWith("#/")) {
     const deepObjectPath = $ref.split("/").slice(1).join(".");
+
     return get(rootSchema, deepObjectPath);
   }
   throw new Error(`Resolution of external schema ${$ref} not yet implemented.`);
@@ -38,7 +37,7 @@ const resolvePropertySchema = (
 
 /**
  * This is a temporary implementation of 'provide an input based on a property schema'
- * We will need a more comprehensive implementation for the full entity editor
+ * We will need a more comprehensive implementation for the full entity editor.
  */
 const ConfigurationInput: FunctionComponent<{
   name: string;
@@ -56,6 +55,7 @@ const ConfigurationInput: FunctionComponent<{
     event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
   ) => {
     const { value: newValue } = event.target;
+
     // If a type is a number or an array that accepts a number, convert to a number
     if (
       type === "number" ||
@@ -63,7 +63,7 @@ const ConfigurationInput: FunctionComponent<{
         type.includes("string") &&
         type.includes("number"))
     ) {
-      onChange(Number.isNaN(+newValue) ? newValue : Number(newValue));
+      onChange(Number.isNaN(Number(newValue)) ? newValue : Number(newValue));
     } else {
       onChange(newValue);
     }
@@ -75,6 +75,7 @@ const ConfigurationInput: FunctionComponent<{
    * Keep track of the previous externally-provided value, in case the entity is updated while the menu is open.
    */
   const previousValue = useRef<JsonValue | undefined>(undefined);
+
   useEffect(() => {
     previousValue.current = value;
   });
@@ -86,13 +87,13 @@ const ConfigurationInput: FunctionComponent<{
   if (type === "boolean") {
     return (
       <FormControlLabel
+        label={name}
         control={
           <Checkbox
-            onChange={(event) => onChange(event.target.checked)}
             checked={typeof value === "boolean" ? value : value === "true"}
+            onChange={(event) => { onChange(event.target.checked); }}
           />
         }
-        label={name}
       />
     );
   }
@@ -101,9 +102,12 @@ const ConfigurationInput: FunctionComponent<{
     if (format) {
       // @todo validate string format - should have a reusable input that does this
     }
+
     return (
       <TextField
         label={name}
+        select={Boolean(enumList)}
+        value={draftValue}
         onBlur={enumList ? undefined : updateProperty}
         onChange={(event) => {
           setDraftValue(event.target.value);
@@ -111,8 +115,6 @@ const ConfigurationInput: FunctionComponent<{
             updateProperty(event);
           }
         }}
-        select={!!enumList}
-        value={draftValue}
       >
         {(enumList ?? []).map((option: string) => (
           <MenuItem key={option} value={option}>
@@ -127,11 +129,11 @@ const ConfigurationInput: FunctionComponent<{
     return (
       <TextField
         defaultValue={value ?? ""}
-        onBlur={(event) => onChange(event.target.value)}
-        onChange={(event) => setDraftValue(event.target.value)}
-        type="number"
+        type={"number"}
         value={draftValue}
-        variant="outlined"
+        variant={"outlined"}
+        onBlur={(event) => { onChange(event.target.value); }}
+        onChange={(event) => { setDraftValue(event.target.value); }}
       />
     );
   }
@@ -144,6 +146,8 @@ const ConfigurationInput: FunctionComponent<{
     return (
       <TextField
         label={name}
+        select={Boolean(enumList)}
+        value={draftValue}
         onBlur={enumList ? undefined : updateProperty}
         onChange={(event) => {
           setDraftValue(event.target.value);
@@ -151,8 +155,6 @@ const ConfigurationInput: FunctionComponent<{
             updateProperty(event);
           }
         }}
-        select={!!enumList}
-        value={draftValue}
       >
         {(enumList ?? []).map((option: string) => (
           <MenuItem key={option} value={option}>
@@ -166,14 +168,14 @@ const ConfigurationInput: FunctionComponent<{
   throw new Error(`Property type ${type} config input not implemented`);
 };
 
-type BlockConfigMenuProps = {
+interface BlockConfigMenuProps {
   anchorRef: ForwardedRef<HTMLDivElement>;
   blockEntity: BlockEntity | null;
   blockSchema?: JsonSchema | null;
   closeMenu: () => void;
   popupState: PopupState;
   updateConfig: (propertiesToUpdate: JsonObject) => void;
-};
+}
 
 /**
  * Provides a generic UI for setting properties on the entity a block is rendering.
@@ -208,19 +210,19 @@ export const BlockConfigMenu: FunctionComponent<BlockConfigMenuProps> = ({
       anchorEl={anchorRef?.current}
       PaperProps={{ sx: { padding: 2 } }}
     >
-      <Typography variant="h5">Configure block</Typography>
+      <Typography variant={"h5"}>Configure block</Typography>
       {configProperties.map(([name, schema]) => (
         <Box key={name} sx={{ mt: 2 }}>
           <ConfigurationInput
             name={name}
-            onChange={(value) => updateConfig({ [name]: value })}
             rootSchema={blockSchema ?? {}}
             propertySchema={schema}
             value={entityData?.[name] ?? ""}
+            onChange={(value) => { updateConfig({ [name]: value }); }}
           />
         </Box>
       ))}
-      {!configProperties.length && (
+      {configProperties.length === 0 && (
         <Box sx={{ mt: 2 }}>No block config properties available.</Box>
       )}
     </Popover>

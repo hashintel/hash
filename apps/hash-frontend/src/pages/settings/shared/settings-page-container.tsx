@@ -1,6 +1,5 @@
+import type { forwardRef,PropsWithChildren, ReactNode  } from "react";
 import { Box, Stack, Typography } from "@mui/material";
-import type { PropsWithChildren, ReactNode } from "react";
-import { forwardRef } from "react";
 
 export const SettingsPageContainer = forwardRef<
   HTMLSpanElement,
@@ -27,15 +26,15 @@ export const SettingsPageContainer = forwardRef<
       <>
         <Box marginBottom={4}>
           <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
+            direction={"row"}
+            alignItems={"center"}
+            justifyContent={"space-between"}
           >
             <Typography
               ref={ref}
-              variant="h2"
+              variant={"h2"}
               mt={-1}
-              fontWeight="bold"
+              fontWeight={"bold"}
               sx={{ display: "flex", alignItems: "center" }}
             >
               {heading}
@@ -44,7 +43,7 @@ export const SettingsPageContainer = forwardRef<
           </Stack>
           {subHeading ? (
             <Typography
-              variant="h3"
+              variant={"h3"}
               sx={{
                 marginTop: 1,
                 fontSize: 24,
@@ -57,7 +56,7 @@ export const SettingsPageContainer = forwardRef<
           ) : null}
         </Box>
         {sectionLabel && (
-          <Typography component="h4" variant="mediumCaps" mb={2}>
+          <Typography component={"h4"} variant={"mediumCaps"} mb={2}>
             {sectionLabel}
           </Typography>
         )}

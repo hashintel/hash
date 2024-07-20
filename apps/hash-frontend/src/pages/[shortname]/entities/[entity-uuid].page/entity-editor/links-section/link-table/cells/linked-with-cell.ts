@@ -1,5 +1,4 @@
-import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
-import { GridCellKind } from "@glideapps/glide-data-grid";
+import type { CustomCell, CustomRenderer , GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
@@ -14,6 +13,7 @@ import { InteractableManager } from "../../../../../../../../components/grid/uti
 import type { Interactable } from "../../../../../../../../components/grid/utils/interactable-manager/types";
 import { getImageUrlFromEntityProperties } from "../../../../../../../shared/get-file-properties";
 import type { LinkRow } from "../types";
+
 import { LinkedWithCellEditor } from "./linked-with-cell/linked-with-cell-editor";
 import { sortLinkAndTargetEntities } from "./sort-link-and-target-entities";
 
@@ -52,7 +52,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     const cellPadding = getCellHorizontalPadding();
     const left = rect.x + cellPadding;
 
-    if (isUploading || isErroredUpload || !linkAndTargetEntities.length) {
+    if (isUploading || isErroredUpload || linkAndTargetEntities.length === 0) {
       ctx.fillStyle = isFile ? customColors.gray[90] : customColors.gray[50];
       ctx.font = isFile ? "14px Inter" : "italic 14px Inter";
 
@@ -72,6 +72,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       if (isErroredUpload) {
         // If we have an errored upload, draw a warning indicator
         const warningIconWidth = 14;
+
         args.spriteManager.drawSprite(
           "warning",
           "normal",
@@ -95,6 +96,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
         leftDrawPosition = leftDrawPosition + textWidth + 10;
 
         const retryIconWidth = 14;
+
         interactables.push(
           InteractableManager.createCellInteractable(args, {
             id: `${cell.data.linkRow.rowId}-retry-upload`,
@@ -123,7 +125,10 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
 
       // even if interactables is empty, we set it to clear any stale interactables saved on previous draw
       InteractableManager.setInteractablesForCell(args, interactables);
-      return drawCellFadeOutGradient(args);
+
+      drawCellFadeOutGradient(args);
+
+ return;
     }
 
     let accumulatedLeft = rect.x + cellPadding;
@@ -139,12 +144,12 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     for (const { rightEntity, sourceSubgraph } of sortedLinkedEntities) {
       const label = generateEntityLabel(sourceSubgraph, rightEntity);
 
-      const imageSrc = getImageUrlFromEntityProperties(rightEntity.properties);
+      const imageSource = getImageUrlFromEntityProperties(rightEntity.properties);
 
       const chipWidth = drawChipWithIcon({
         args,
         color: "white",
-        imageSrc,
+        imageSrc: imageSource,
         text: label,
         left: accumulatedLeft,
       });
@@ -164,7 +169,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
         }),
       );
 
-      accumulatedLeft += chipWidth + chipGap;
+      accumulatedLeft = accumulatedLeft + (chipWidth + chipGap);
     }
 
     InteractableManager.setInteractablesForCell(args, entityChipInteractables);
@@ -174,10 +179,13 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       const overflowed = accumulatedLeft > rect.x + rect.width;
 
       if (!overflowed || sortedLinkedEntities.length <= 1) {
-        return drawCellFadeOutGradient(args);
+        drawCellFadeOutGradient(args);
+
+ return;
       }
 
       const text = `SEE ALL (${sortedLinkedEntities.length})`;
+
       ctx.font = "700 14px Inter";
       const textWidth = ctx.measureText(text).width;
 
@@ -191,7 +199,9 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
 
     // do not draw delete button if readonly
     if (readonly) {
-      return drawCellFadeOutGradient(args);
+      drawCellFadeOutGradient(args);
+
+ return;
     }
 
     // draw delete button

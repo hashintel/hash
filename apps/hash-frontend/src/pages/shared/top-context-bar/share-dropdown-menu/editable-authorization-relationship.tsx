@@ -1,5 +1,10 @@
-import type { MutationHookOptions } from "@apollo/client";
-import { useMutation } from "@apollo/client";
+import {
+  bindMenu,
+  bindTrigger,
+  usePopupState,
+} from "material-ui-popup-state/hooks";
+import type { FunctionComponent , useCallback, useMemo } from "react";
+import type { MutationHookOptions , useMutation } from "@apollo/client";
 import { Avatar } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
@@ -13,13 +18,6 @@ import {
   menuItemClasses,
   Typography,
 } from "@mui/material";
-import {
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo } from "react";
 
 import type {
   AddEntityEditorMutation,
@@ -28,17 +26,13 @@ import type {
   AddEntityOwnerMutationVariables,
   AddEntityViewerMutation,
   AddEntityViewerMutationVariables,
-  RemoveEntityEditorMutation,
+  AuthorizationSubjectKind,
+  EntityAuthorizationRelation,  RemoveEntityEditorMutation,
   RemoveEntityEditorMutationVariables,
   RemoveEntityOwnerMutation,
   RemoveEntityOwnerMutationVariables,
   RemoveEntityViewerMutation,
-  RemoveEntityViewerMutationVariables,
-} from "../../../../graphql/api-types.gen";
-import {
-  AuthorizationSubjectKind,
-  EntityAuthorizationRelation,
-} from "../../../../graphql/api-types.gen";
+  RemoveEntityViewerMutationVariables} from "../../../../graphql/api-types.gen";
 import {
   addEntityEditorMutation,
   addEntityOwnerMutation,
@@ -55,6 +49,7 @@ import { isEntityPageEntity } from "../../../../shared/is-of-type";
 import { Button } from "../../../../shared/ui";
 import { useAuthenticatedUser } from "../../auth-info-context";
 import { getImageUrlFromEntityProperties } from "../../get-file-properties";
+
 import { PrivacyStatusMenuItem } from "./privacy-menu-item";
 import type { AuthorizationRelationship } from "./types";
 
@@ -79,14 +74,14 @@ export const EditableAuthorizationRelationships: FunctionComponent<{
 
   const primaryRelationship = useMemo(
     () =>
-      relationships.reduce<AuthorizationRelationship>((prev, current) => {
+      relationships.reduce<AuthorizationRelationship>((previous, current) => {
         if (
-          relationHierarchy[current.relation] > relationHierarchy[prev.relation]
+          relationHierarchy[current.relation] > relationHierarchy[previous.relation]
         ) {
           return current;
         }
 
-        return prev;
+        return previous;
       }, relationships[0]!),
     [relationships],
   );
@@ -254,7 +249,7 @@ export const EditableAuthorizationRelationships: FunctionComponent<{
     ],
   );
 
-  const avatarSrc = account?.hasAvatar
+  const avatarSource = account?.hasAvatar
     ? getImageUrlFromEntityProperties(account.hasAvatar.imageEntity.properties)
     : undefined;
 
@@ -288,17 +283,17 @@ export const EditableAuthorizationRelationships: FunctionComponent<{
   }, [objectEntity, subjectId]);
 
   return (
-    <Box display="flex" alignItems="center" paddingY={0.25}>
+    <Box display={"flex"} alignItems={"center"} paddingY={0.25}>
       <Box
         minWidth={28}
-        display="flex"
-        alignItems="center"
-        justifyContent="center"
+        display={"flex"}
+        alignItems={"center"}
+        justifyContent={"center"}
         marginRight={1}
       >
         {account ? (
           <Avatar
-            src={avatarSrc}
+            src={avatarSource}
             title={name}
             size={28}
             borderRadius={account.kind === "org" ? "4px" : undefined}
@@ -309,22 +304,22 @@ export const EditableAuthorizationRelationships: FunctionComponent<{
           />
         )}
       </Box>
-      <Box flexGrow={1} display="flex" columnGap={1}>
-        <Typography variant="microText" sx={{ fontWeight: 500, fontSize: 14 }}>
+      <Box flexGrow={1} display={"flex"} columnGap={1}>
+        <Typography variant={"microText"} sx={{ fontWeight: 500, fontSize: 14 }}>
           {name}
         </Typography>
         {account &&
         account.kind === "user" &&
         account.accountId === authenticatedUser.accountId ? (
-          <Typography variant="microText" sx={{ fontSize: 13 }}>
+          <Typography variant={"microText"} sx={{ fontSize: 13 }}>
             (You)
           </Typography>
         ) : null}
       </Box>
       <Box minWidth={125}>
         <Button
-          size="xs"
-          variant="tertiary_quiet"
+          size={"xs"}
+          variant={"tertiary_quiet"}
           endIcon={<ChevronDownRegularIcon sx={{ fontSize: 10 }} />}
           disabled={
             primaryRelationship.relation === EntityAuthorizationRelation.Owner
@@ -368,12 +363,8 @@ export const EditableAuthorizationRelationships: FunctionComponent<{
               <ListItemText primary={label} secondary={description} />
             </PrivacyStatusMenuItem>
           ))}
-          {dropdownItems.length ? <Divider /> : null}
+          {dropdownItems.length > 0 ? <Divider /> : null}
           <PrivacyStatusMenuItem
-            onClick={async () => {
-              await removeCurrentRelationships();
-              popupState.close();
-            }}
             sx={{
               [`.${listItemTextClasses.primary}`]: {
                 fontWeight: 600,
@@ -385,8 +376,12 @@ export const EditableAuthorizationRelationships: FunctionComponent<{
                 },
               },
             }}
+            onClick={async () => {
+              await removeCurrentRelationships();
+              popupState.close();
+            }}
           >
-            <ListItemText primary="Remove access" />
+            <ListItemText primary={"Remove access"} />
           </PrivacyStatusMenuItem>
         </Menu>
       </Box>

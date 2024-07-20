@@ -1,7 +1,6 @@
+import type { FunctionComponent , useContext } from "react";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { Box, Paper, Stack, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useContext } from "react";
 
 import { isProduction } from "../../lib/config";
 import { extractOwnedById } from "../../lib/user-and-org";
@@ -10,13 +9,14 @@ import { Link } from "../../shared/ui";
 import { Button } from "../../shared/ui/button";
 import { getSettingsLayout } from "../shared/settings-layout";
 import { WorkspaceContext } from "../shared/workspace-context";
+
 import { SettingsPageContainer } from "./shared/settings-page-container";
 
-type IntegrationCardProps = {
+interface IntegrationCardProps {
   href: string;
   name: string;
   description: string;
-};
+}
 
 const IntegrationCard = ({ href, name, description }: IntegrationCardProps) => {
   return (
@@ -27,11 +27,11 @@ const IntegrationCard = ({ href, name, description }: IntegrationCardProps) => {
         minWidth: 250,
       }}
     >
-      <Box display="flex" justifyContent="flex-end" mb={1}>
+      <Box display={"flex"} justifyContent={"flex-end"} mb={1}>
         <Button
           openInNewTab={false}
-          variant="tertiary"
-          size="small"
+          variant={"tertiary"}
+          size={"small"}
           href={href}
           sx={{
             padding: ({ spacing }) => spacing(1, 1.5),
@@ -58,21 +58,21 @@ const AddNewIntegrations: FunctionComponent = () => {
 
   return (
     <>
-      <Typography variant="h5" mb={2}>
+      <Typography variant={"h5"} mb={2}>
         Add new integration
       </Typography>
-      <Stack direction="row" gap={2}>
+      <Stack direction={"row"} gap={2}>
         <IntegrationCard
+          name={"Linear"}
+          description={"2-way sync Linear activity and data with HASH"}
           href={`${apiOrigin}/oauth/linear?ownedById=${extractOwnedById(
             activeWorkspace,
           )}`}
-          name="Linear"
-          description="2-way sync Linear activity and data with HASH"
         />
         <IntegrationCard
-          href="/settings/integrations/google-sheets"
-          name="Google Sheets"
-          description="Sync entity data to Google Sheets"
+          href={"/settings/integrations/google-sheets"}
+          name={"Google Sheets"}
+          description={"Sync entity data to Google Sheets"}
         />
       </Stack>
     </>
@@ -82,9 +82,9 @@ const AddNewIntegrations: FunctionComponent = () => {
 const IntegrationsPage: NextPageWithLayout = () => {
   return (
     <SettingsPageContainer
-      heading="Integrations"
-      subHeading="Connected to your user account"
       disableContentWrapper
+      heading={"Integrations"}
+      subHeading={"Connected to your user account"}
     >
       {/* @todo: add ability to setup integrations in production */}
       {isProduction ? (
@@ -93,7 +93,7 @@ const IntegrationsPage: NextPageWithLayout = () => {
             No integrations are currently available to your account.
           </Typography>
           <Typography>
-            Please <Link href="https://hash.ai/contact">contact us</Link> if
+            Please <Link href={"https://hash.ai/contact"}>contact us</Link> if
             you'd like to suggest a new integration, or request access to an
             existing one.
           </Typography>

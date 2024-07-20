@@ -1,15 +1,16 @@
+import { useEffect, useMemo, useRef } from "react";
 import { Select } from "@hashintel/design-system";
 import { outlinedInputClasses, Stack, Typography } from "@mui/material";
-import { useEffect, useMemo, useRef } from "react";
 
 import { Button } from "../../../../shared/ui/button";
 import { MenuItem } from "../../../../shared/ui/menu-item";
+
 import { useGoogleAuth } from "./google-auth-context";
 
-type GoogleAccountSelectProps = {
+interface GoogleAccountSelectProps {
   googleAccountId?: string;
   setGoogleAccountId: (googleAccountId: string) => void;
-};
+}
 
 export const GoogleAccountSelect = ({
   googleAccountId,
@@ -42,11 +43,12 @@ export const GoogleAccountSelect = ({
   }, [authContext]);
 
   const lastOptionsLength = useRef(options.length);
+
   useEffect(() => {
     if (
       /**
        * Automatically select the first Google Account if none is selected,
-       * or select the latest if a new one appears in the list
+       * or select the latest if a new one appears in the list.
        */
       (!googleAccountId || options.length > lastOptionsLength.current) &&
       options[0]
@@ -58,13 +60,13 @@ export const GoogleAccountSelect = ({
   }, [googleAccountId, setGoogleAccountId, options]);
 
   return (
-    <Stack direction="row" alignItems="center" gap={1.5}>
+    <Stack direction={"row"} alignItems={"center"} gap={1.5}>
       {options.length > 0 ? (
         <>
           <Select
             displayEmpty
-            onChange={(event) => setGoogleAccountId(event.target.value)}
-            placeholder="Select Google Account"
+            placeholder={"Select Google Account"}
+            value={googleAccountId}
             sx={{
               [`.${outlinedInputClasses.root} .${outlinedInputClasses.input}`]:
                 {
@@ -74,7 +76,7 @@ export const GoogleAccountSelect = ({
                 },
               width: 160,
             }}
-            value={googleAccountId}
+            onChange={(event) => { setGoogleAccountId(event.target.value); }}
           >
             {options.map((option) => (
               <MenuItem key={option.value} value={option.value}>
@@ -82,18 +84,18 @@ export const GoogleAccountSelect = ({
               </MenuItem>
             ))}
           </Select>
-          <Typography variant="smallTextParagraphs">or</Typography>
+          <Typography variant={"smallTextParagraphs"}>or</Typography>
         </>
       ) : null}
       <Button
         disabled={authContext.loading}
+        size={"xs"}
         onClick={() => {
           if (authContext.loading) {
             return;
           }
           authContext.addGoogleAccount();
         }}
-        size="xs"
       >
         Link a new account
       </Button>

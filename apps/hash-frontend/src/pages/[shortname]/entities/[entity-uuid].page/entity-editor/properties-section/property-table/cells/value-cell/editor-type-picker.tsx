@@ -22,7 +22,6 @@ const ExpectedTypeButton = ({
 
   return (
     <ButtonBase
-      onClick={onClick}
       disableRipple
       disableTouchRipple
       sx={{
@@ -38,11 +37,12 @@ const ExpectedTypeButton = ({
           backgroundColor: "gray.10",
         },
       }}
+      onClick={onClick}
     >
       <FontAwesomeIcon icon={{ icon: editorSpec.icon }} />
-      <Typography variant="smallTextLabels">{title}</Typography>
-      {!!description && (
-        <Typography variant="microText" color="gray.50" textAlign="start">
+      <Typography variant={"smallTextLabels"}>{title}</Typography>
+      {Boolean(description) && (
+        <Typography variant={"microText"} color={"gray.50"} textAlign={"start"}>
           {description}
         </Typography>
       )}
@@ -61,10 +61,10 @@ export const EditorTypePicker = ({
 }: EditorTypePickerProps) => {
   return (
     <Box sx={{ px: 2, py: 1.5 }}>
-      <Typography variant="smallCaps" mr={1}>
+      <Typography variant={"smallCaps"} mr={1}>
         Choose data type
       </Typography>
-      <Typography variant="smallTextLabels">
+      <Typography variant={"smallTextLabels"}>
         How are you representing this value?
       </Typography>
 
@@ -75,7 +75,7 @@ export const EditorTypePicker = ({
               expectedType={expectedType}
               key={expectedType.$id}
               onClick={() =>
-                onTypeChange(guessEditorTypeFromExpectedType(expectedType))
+                { onTypeChange(guessEditorTypeFromExpectedType(expectedType)); }
               }
             />
           );

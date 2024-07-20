@@ -1,3 +1,4 @@
+import type { FunctionComponent } from "react";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
@@ -5,16 +6,15 @@ import {
   TextField,
 } from "@hashintel/design-system";
 import { Fade, outlinedInputClasses, Tooltip } from "@mui/material";
-import type { FunctionComponent } from "react";
 
 import { MagnifyingGlassLightIcon } from "../../../icons/magnifying-glass-light";
 
-type SearchInputProps = {
+interface SearchInputProps {
   searchVisible: boolean;
   showSearchInput: () => void;
   hideSearchInput: () => void;
   onChangeText: (text: string) => void;
-};
+}
 
 export const SearchInput: FunctionComponent<SearchInputProps> = ({
   searchVisible,
@@ -23,25 +23,24 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
   onChangeText,
 }) => (
   <>
-    <Tooltip title="Search for types">
+    <Tooltip title={"Search for types"}>
       <IconButton
-        size="medium"
+        size={"medium"}
         sx={({ palette }) => ({
           color: palette.gray[50],
           svg: { fontSize: 14 },
         })}
-        onClick={() => showSearchInput()}
+        onClick={() => { showSearchInput(); }}
       >
         <MagnifyingGlassLightIcon />
       </IconButton>
     </Tooltip>
-    <Fade in={searchVisible} mountOnEnter unmountOnExit>
+    <Fade mountOnEnter unmountOnExit in={searchVisible}>
       <TextField
-        variant="outlined"
-        size="small"
         autoFocus
-        placeholder="Search for types"
-        onChange={(evt) => onChangeText(evt.target.value)}
+        variant={"outlined"}
+        size={"small"}
+        placeholder={"Search for types"}
         sx={({ palette }) => ({
           position: "absolute",
           right: 0,
@@ -77,7 +76,7 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
 
           endAdornment: (
             <Tooltip
-              title="Clear Search"
+              title={"Clear Search"}
               PopperProps={{
                 modifiers: [
                   {
@@ -87,12 +86,13 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
                 ],
               }}
             >
-              <IconButton onClick={hideSearchInput} size="small" unpadded>
+              <IconButton unpadded size={"small"} onClick={hideSearchInput}>
                 <FontAwesomeIcon icon={faXmark} />
               </IconButton>
             </Tooltip>
           ),
         }}
+        onChange={(event) => { onChangeText(event.target.value); }}
       />
     </Fade>
   </>

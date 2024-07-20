@@ -1,3 +1,5 @@
+import type { FunctionComponent, ReactNode , useCallback, useEffect, useMemo, useState } from "react";
+import { useDebounce, useKey, useOutsideClickRef } from "rooks";
 import { useQuery } from "@apollo/client";
 import type { EntityType } from "@blockprotocol/type-system";
 import { Chip, IconButton } from "@hashintel/design-system";
@@ -12,22 +14,14 @@ import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mappi
 import type {
   EntityRootType,
   EntityTypeRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
-import {
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,
-} from "@local/hash-subgraph";
+  extractOwnedByIdFromEntityId,  Subgraph} from "@local/hash-subgraph";
 import {
   getEntityTypeById,
   getRoots,
   isEntityRootedSubgraph,
 } from "@local/hash-subgraph/stdlib";
-import type { SxProps, Theme } from "@mui/material";
-import { Box, useMediaQuery, useTheme } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useDebounce, useKey, useOutsideClickRef } from "rooks";
+import type { Box, SxProps, Theme , useMediaQuery, useTheme } from "@mui/material";
 
 import { useUserOrOrgShortnameByOwnedById } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import type {
@@ -41,12 +35,14 @@ import { queryEntityTypesQuery } from "../../../graphql/queries/ontology/entity-
 import { generateLinkParameters } from "../../generate-link-parameters";
 import { SearchIcon } from "../../icons";
 import { Button, Link } from "../../ui";
+
 import { SearchInput } from "./search-bar/search-input";
 
 /**
- * finds the query's words in the result and chops it into parts at the words' boundaries
- * @todo reintroduce this for entities with textual-content – H-2258
- *    bear in mind that text may not contain the search term, given that it's semantic search
+ * Finds the query's words in the result and chops it into parts at the words' boundaries.
+ *
+ * @todo Reintroduce this for entities with textual-content – H-2258
+ *    bear in mind that text may not contain the search term, given that it's semantic search.
  */
 // const splitByMatches = (result: string, query: string) => {
 //   const separator = query
@@ -64,7 +60,7 @@ const ResultList: FunctionComponent<{
   children?: ReactNode;
 }> = ({ isMobile, ...props }) => (
   <Box
-    component="ul"
+    component={"ul"}
     sx={(theme) => ({
       position: !isMobile ? "absolute" : "unset",
       top: !isMobile ? "calc(100% + 1px)" : "unset",
@@ -89,7 +85,7 @@ const ResultItem: FunctionComponent<{
 
   return (
     <Box
-      component="li"
+      component={"li"}
       sx={[
         {
           display: "flex",
@@ -117,7 +113,7 @@ const EntityResult: FunctionComponent<{
   onClick: () => void;
   subgraph: Subgraph<EntityRootType>;
 }> = ({ entity, onClick, subgraph }) => {
-  const entityId = entity.metadata.recordId.entityId;
+  const {entityId} = entity.metadata.recordId;
 
   const ownedById = extractOwnedByIdFromEntityId(entityId);
   const { shortname: entityOwningShortname } = useUserOrOrgShortnameByOwnedById(
@@ -128,16 +124,16 @@ const EntityResult: FunctionComponent<{
 
   return (
     <Link
-      onClick={onClick}
       noLinkStyle
       href={`/@${entityOwningShortname}/entities/${extractEntityUuidFromEntityId(
         entityId,
       )}`}
+      onClick={onClick}
     >
       <ResultItem>
         {generateEntityLabel(subgraph, entity)}
         {entityType && (
-          <Chip color="teal" label={entityType.schema.title} sx={chipStyles} />
+          <Chip color={"teal"} label={entityType.schema.title} sx={chipStyles} />
         )}
       </ResultItem>
     </Link>
@@ -150,19 +146,19 @@ const EntityTypeResult: FunctionComponent<{
 }> = ({ entityType, onClick }) => {
   return (
     <Link
-      onClick={onClick}
       noLinkStyle
       href={generateLinkParameters(entityType.$id)}
+      onClick={onClick}
     >
       <ResultItem>
         {entityType.title}
-        <Chip color="aqua" label="Entity Type" sx={chipStyles} />
+        <Chip color={"aqua"} label={"Entity Type"} sx={chipStyles} />
       </ResultItem>
     </Link>
   );
 };
 
-/** extends react's useState by returning an additional value updated after a short delay (debounce) */
+/** Extends react's useState by returning an additional value updated after a short delay (debounce) */
 const useQueryText = (): [string, string, (queryText: string) => void] => {
   const [displayedQuery, setDisplayedQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
@@ -193,18 +189,19 @@ const getSearchBarResponsiveStyles = (
         top: "12px",
         px: 2,
       };
-    } else {
+    }
+ 
       return {
         mr: 1,
       };
-    }
+    
   }
 
   return {};
 };
 
 /**
- * The maximum distance between the search query and an entity's embedding for it to appear in results
+ * The maximum distance between the search query and an entity's embedding for it to appear in results.
  */
 const maximumSemanticDistance = 0.7;
 
@@ -285,7 +282,7 @@ export const SearchBar: FunctionComponent = () => {
      * Ideally we would use {@link isEntityTypeRootedSubgraph} here, but we cannot because one of the checks it makes
      * is that the root's revisionId is a stringified integer. In HASH, the revisionId for a type root is a number.
      * Either the types in @blockprotocol/graph or the value delivered by HASH needs to change
-     * H-2489
+     * H-2489.
      */
     deserializeSubgraph<EntityTypeRootType>(
       entityTypeResultData.queryEntityTypes,
@@ -295,14 +292,15 @@ export const SearchBar: FunctionComponent = () => {
     ? getRoots(entityTypeSubgraph)
     : [];
 
-  useKey(["Escape"], () => setResultListVisible(false));
+  useKey(["Escape"], () => { setResultListVisible(false); });
 
-  const [rootRef] = useOutsideClickRef(() => setResultListVisible(false));
+  const [rootRef] = useOutsideClickRef(() => { setResultListVisible(false); });
 
   const isLoading = entityTypesLoading || entitiesLoading;
 
   return (
     <Box
+      ref={rootRef}
       sx={{
         marginLeft: 0,
         [theme.breakpoints.up("md")]: {
@@ -312,11 +310,10 @@ export const SearchBar: FunctionComponent = () => {
         height: "100%",
         ...getSearchBarResponsiveStyles(isMobile, displaySearchInput),
       }}
-      ref={rootRef}
     >
       {/* If the user is in mobile view and the search icon isn't clicked, display the icon */}
       {isMobile && !displaySearchInput ? (
-        <IconButton size="medium" onClick={() => setDisplaySearchInput(true)}>
+        <IconButton size={"medium"} onClick={() => { setDisplaySearchInput(true); }}>
           <SearchIcon />
         </IconButton>
       ) : (
@@ -337,13 +334,13 @@ export const SearchBar: FunctionComponent = () => {
 
           {isMobile && (
             <Button
+              variant={"tertiary_quiet"}
+              size={"xs"}
+              sx={{ ml: 1 }}
               onClick={() => {
                 setQueryText("");
                 setDisplaySearchInput(false);
               }}
-              variant="tertiary_quiet"
-              size="xs"
-              sx={{ ml: 1 }}
             >
               Cancel
             </Button>
@@ -357,7 +354,7 @@ export const SearchBar: FunctionComponent = () => {
             <ResultItem sx={{ display: "block" }}>
               Loading results for&nbsp;<b>{submittedQuery}</b>.
             </ResultItem>
-          ) : !entityResults.length && !entityTypeResults.length ? (
+          ) : entityResults.length === 0 && entityTypeResults.length === 0 ? (
             <ResultItem sx={{ display: "block" }}>
               No results found for&nbsp;<b>{submittedQuery}</b>.
             </ResultItem>
@@ -366,19 +363,19 @@ export const SearchBar: FunctionComponent = () => {
               {entityTypeResults.map((entityType) => {
                 return (
                   <EntityTypeResult
-                    onClick={() => setResultListVisible(false)}
                     entityType={entityType.schema}
                     key={entityType.schema.$id}
+                    onClick={() => { setResultListVisible(false); }}
                   />
                 );
               })}
               {entityResults.map((entity) => {
                 return (
                   <EntityResult
-                    onClick={() => setResultListVisible(false)}
                     key={entity.metadata.recordId.entityId}
                     entity={entity}
                     subgraph={entitySubgraph!}
+                    onClick={() => { setResultListVisible(false); }}
                   />
                 );
               })}

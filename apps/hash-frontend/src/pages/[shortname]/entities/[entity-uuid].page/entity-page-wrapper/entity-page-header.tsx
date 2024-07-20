@@ -1,18 +1,17 @@
+import { useRouter } from "next/router";
+import type { ReactNode , useContext } from "react";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
+import type { EntityRootType, extractDraftIdFromEntityId,Subgraph  } from "@local/hash-subgraph";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { Container } from "@mui/system";
-import { useRouter } from "next/router";
-import type { ReactNode } from "react";
-import { useContext } from "react";
 
 import { NotificationsWithLinksContextProvider } from "../../../../shared/notifications-with-links-context";
 import { TopContextBar } from "../../../../shared/top-context-bar";
 import { WorkspaceContext } from "../../../../shared/workspace-context";
 import { EntityEditorTabs } from "../shared/entity-editor-tabs";
+
 import { DraftEntityBanner } from "./draft-entity-banner";
 
 export const EntityPageHeader = ({
@@ -52,6 +51,7 @@ export const EntityPageHeader = ({
       <TopContextBar
         defaultCrumbIcon={null}
         item={entity}
+        scrollToTop={() => {}}
         crumbs={[
           {
             title: "Entities",
@@ -65,20 +65,19 @@ export const EntityPageHeader = ({
             icon: <FontAwesomeIcon icon={faAsterisk} />,
           },
         ]}
-        scrollToTop={() => {}}
       />
 
       {entity && entitySubgraph ? (
         <NotificationsWithLinksContextProvider>
           <Collapse
-            in={!!extractDraftIdFromEntityId(entity.metadata.recordId.entityId)}
+            in={Boolean(extractDraftIdFromEntityId(entity.metadata.recordId.entityId))}
           >
             <DraftEntityBanner
               draftEntity={entity}
               draftEntitySubgraph={entitySubgraph}
               isModifyingEntity={isModifyingEntity}
-              onAcceptedEntity={onEntityUpdated}
               owningShortname={shortname}
+              onAcceptedEntity={onEntityUpdated}
             />
           </Collapse>
         </NotificationsWithLinksContextProvider>
@@ -94,13 +93,13 @@ export const EntityPageHeader = ({
         <Container>
           {chip}
           <Stack
-            direction="row"
-            alignItems="center"
+            direction={"row"}
+            alignItems={"center"}
             spacing={2}
             sx={{ color: lightTitle ? "gray.50" : "gray.90", marginTop: 2 }}
           >
             <FontAwesomeIcon icon={faAsterisk} sx={{ fontSize: 40 }} />
-            <Typography variant="h1" fontWeight="bold">
+            <Typography variant={"h1"} fontWeight={"bold"}>
               {entityLabel}
             </Typography>
           </Stack>

@@ -1,7 +1,6 @@
 import { useMutation } from "@apollo/client";
 import type { AccountGroupId } from "@local/hash-graph-types/account";
-import type { AccountEntityId } from "@local/hash-subgraph";
-import { extractAccountId } from "@local/hash-subgraph";
+import type { AccountEntityId , extractAccountId } from "@local/hash-subgraph";
 import { TableCell, TableRow, Typography } from "@mui/material";
 
 import { useBlockProtocolArchiveEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
@@ -14,6 +13,7 @@ import type { Org } from "../../../../../lib/user-and-org";
 import { Link } from "../../../../../shared/ui/link";
 import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
 import { Cell } from "../../shared/cell";
+
 import { MemberContextMenu } from "./member-row/member-context-menu";
 
 export const MemberRow = ({
@@ -68,7 +68,7 @@ export const MemberRow = ({
       </Cell>
       <TableCell>
         <Typography
-          variant="smallTextLabels"
+          variant={"smallTextLabels"}
           sx={({ palette }) => ({
             background: palette.gray[10],
             borderRadius: 10,

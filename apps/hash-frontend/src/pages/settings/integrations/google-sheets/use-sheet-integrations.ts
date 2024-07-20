@@ -1,9 +1,9 @@
+import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import {
   currentTimeInstantTemporalAxes,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import { useMemo } from "react";
 
 import type {
   GetEntitySubgraphQuery,
@@ -11,11 +11,11 @@ import type {
 } from "../../../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../../../graphql/queries/knowledge/entity.queries";
 
-export type UseSheetsFlows = {
+export interface UseSheetsFlows {
   flows: [];
   loading: boolean;
   refetch: () => void;
-};
+}
 
 export const useSheetsFlows = (): UseSheetsFlows => {
   // const { authenticatedUser } = useAuthenticatedUser();

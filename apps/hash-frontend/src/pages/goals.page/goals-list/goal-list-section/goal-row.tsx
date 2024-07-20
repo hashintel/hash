@@ -1,3 +1,5 @@
+import { formatDistance } from "date-fns";
+import { memo } from "react";
 import {
   CircleOneRegularIcon,
   LightbulbOnRegularIcon,
@@ -5,18 +7,15 @@ import {
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import { Stack, Typography } from "@mui/material";
-import { formatDistance } from "date-fns";
-import { memo } from "react";
 
 import { Link } from "../../../../shared/ui/link";
-import type { SimpleFlowRunStatus } from "../../../shared/flow-tables";
-import {
-  FlowStatusChip,
+import type {   FlowStatusChip,
   flowTableCellSx,
   FlowTableChip,
+SimpleFlowRunStatus ,
 } from "../../../shared/flow-tables";
 
-export type GoalSummary = {
+export interface GoalSummary {
   flowRunId: EntityUuid;
   openInputRequests: number;
   lastEventTimestamp: string;
@@ -27,7 +26,7 @@ export type GoalSummary = {
     name: string;
     shortname: string;
   };
-};
+}
 
 export const goalRowSx = {
   ...flowTableCellSx,
@@ -51,8 +50,8 @@ export const GoalRow = memo(({ goalSummary }: { goalSummary: GoalSummary }) => {
 
   return (
     <Stack
-      direction="row"
-      alignItems="center"
+      direction={"row"}
+      alignItems={"center"}
       sx={{
         ...goalRowSx,
         background: ({ palette }) =>

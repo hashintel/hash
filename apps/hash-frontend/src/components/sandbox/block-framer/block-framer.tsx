@@ -1,10 +1,9 @@
+import type { FunctionComponent , useCallback, useEffect, useMemo, useRef } from "react";
+import { v4 as uuid } from "uuid";
 import type {
   GraphEmbedderMessageCallbacks,
   JsonObject,
 } from "@blockprotocol/graph";
-import type { FunctionComponent } from "react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
-import { v4 as uuid } from "uuid";
 
 import { memoizeFetchFunction } from "../../../lib/memoize";
 import type { FetchEmbedCodeFn } from "../../block-loader/fetch-embed-code";
@@ -41,11 +40,13 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
       properties: JSON.stringify(blockProperties),
       sourceUrl,
     }).toString();
+
     /**
      * Check if we'll fall foul of CDN 8kB URL limits.
      * We are not supporting IE/early Edge.
+     *
      * @see https://stackoverflow.com/a/417184
-     * @todo properly account for iframe origin in calc once known
+     * @todo Properly account for iframe origin in calc once known
      *    how will users set the iframe origin? NEXT_PUBLIC_ENV?
      */
     if ((propertiesWithParams + sourceUrl).length < 7900) {
@@ -54,6 +55,7 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
         paramsIncludeProps: true,
       };
     }
+
     return {
       iframeUrlSearchParams: new URLSearchParams({ sourceUrl }).toString(),
       paramsIncludeProps: false,
@@ -94,7 +96,7 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
       args: Parameters<T>,
       requestId: string,
     ) => {
-      const responseMsg: MessageFromBlockFramer & { type: "response" } = {
+      const responseMessage: MessageFromBlockFramer & { type: "response" } = {
         payload: {},
         requestId,
         type: "response",
@@ -102,20 +104,21 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
 
       if (!fn) {
         sendMessage({
-          ...responseMsg,
+          ...responseMessage,
           payload: { error: "Function not available." },
         });
+
         return;
       }
 
       // @ts-expect-error -- Args is a tuple but the compiler doesn't know. why?
       fn(...args)
         .then((response) => {
-          sendMessage({ ...responseMsg, payload: { data: response } });
+          sendMessage({ ...responseMessage, payload: { data: response } });
         })
         .catch((error) => {
           sendMessage({
-            ...responseMsg,
+            ...responseMessage,
             payload: { error: error.message },
           });
         });
@@ -124,7 +127,7 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
   );
 
   useEffect(() => {
-    const msgHandler = ({
+    const messageHandler = ({
       data,
       source,
     }: MessageEvent<MessageFromFramedBlock>) => {
@@ -132,35 +135,41 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
         return;
       }
       /**
-       * @todo implement a permissions system whereby users are asked to grant
+       * @todo Implement a permissions system whereby users are asked to grant
        *    blocks permissions to take actions. store these permissions somewhere.
        *    this naive passing through of requests provides no security at present.
        */
       switch (data.type) {
-        case "queryEntities":
+        case "queryEntities": {
           asyncCallAndResponse(queryEntities, data.payload, data.requestId);
           break;
-        case "queryEntityTypes":
+        }
+        case "queryEntityTypes": {
           asyncCallAndResponse(queryEntityTypes, data.payload, data.requestId);
           break;
-        case "createEntity":
+        }
+        case "createEntity": {
           asyncCallAndResponse(createEntity, data.payload, data.requestId);
           break;
-        case "updateEntity":
+        }
+        case "updateEntity": {
           asyncCallAndResponse(updateEntity, data.payload, data.requestId);
           break;
-        case "getEmbedBlock":
+        }
+        case "getEmbedBlock": {
           asyncCallAndResponse(getEmbedBlock, data.payload, data.requestId);
           break;
-        case "fetchUrl":
+        }
+        case "fetchUrl": {
           asyncCallAndResponse(fetchSource, [data.payload], data.requestId);
           break;
+        }
       }
     };
 
-    window.addEventListener("message", msgHandler);
+    window.addEventListener("message", messageHandler);
 
-    return () => window.removeEventListener("message", msgHandler);
+    return () => { window.removeEventListener("message", messageHandler); };
   }, [
     queryEntities,
     getEmbedBlock,
@@ -172,17 +181,18 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
 
   const onLoad = useCallback(() => {
     onBlockLoaded();
+
     return !paramsIncludeProps ? sendBlockProperties(blockProperties) : null;
   }, [onBlockLoaded, blockProperties, paramsIncludeProps, sendBlockProperties]);
 
   return (
     <ResizingIFrame
       frameBorder={0}
-      onLoad={onLoad}
       ref={frameRef}
       src={`${framePath}${iframeUrlSearchParams}`}
       style={{ minWidth: "100%", maxWidth: "1200px" }}
-      title="HASH Sandbox"
+      title={"HASH Sandbox"}
+      onLoad={onLoad}
     />
   );
 };

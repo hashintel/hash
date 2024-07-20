@@ -1,3 +1,6 @@
+import { format } from "date-fns";
+import { useRouter } from "next/router";
+import type { memo, PropsWithChildren , useCallback, useMemo, useState } from "react";
 import {
   BullseyeLightIcon,
   InfinityLightIcon,
@@ -20,15 +23,11 @@ import {
   TableRow as MuiTableRow,
   Typography,
 } from "@mui/material";
-import { format } from "date-fns";
-import { useRouter } from "next/router";
-import type { PropsWithChildren } from "react";
-import { memo, useCallback, useMemo, useState } from "react";
 
-import type { NextPageWithLayout } from "../shared/layout";
-import { getLayoutWithSidebar } from "../shared/layout";
+import type { getLayoutWithSidebar,NextPageWithLayout  } from "../shared/layout";
 import { Link } from "../shared/ui/link";
 import { WorkersHeader } from "../shared/workers-header";
+
 import { useAuthenticatedUser } from "./shared/auth-info-context";
 import {
   FlowDefinitionsContextProvider,
@@ -38,23 +37,20 @@ import {
   FlowRunsContextProvider,
   useFlowRunsContext,
 } from "./shared/flow-runs-context";
-import type { SimpleFlowRunStatus } from "./shared/flow-tables";
-import {
-  flowRunStatusToStatusText,
+import type {   flowRunStatusToStatusText,
   FlowStatusChip,
   flowTableCellSx,
   FlowTableChip,
   flowTableRowHeight,
   FlowTableWebChip,
+SimpleFlowRunStatus ,
 } from "./shared/flow-tables";
 import { useFlowRunsUsage } from "./shared/use-flow-runs-usage";
 import type {
   CreateVirtualizedRowContentFn,
-  VirtualizedTableColumn,
+ headerHeight, VirtualizedTable,  VirtualizedTableColumn,
   VirtualizedTableRow,
-  VirtualizedTableSort,
-} from "./shared/virtualized-table";
-import { headerHeight, VirtualizedTable } from "./shared/virtualized-table";
+  VirtualizedTableSort } from "./shared/virtualized-table";
 
 type FieldId =
   | "web"
@@ -161,7 +157,7 @@ const TableRow = memo(({ workerSummary }: { workerSummary: WorkerSummary }) => {
             sx={{ fontSize: 14, fill: ({ palette }) => palette.blue[70] }}
           />
           <Typography
-            component="span"
+            component={"span"}
             sx={{
               fontSize: 12,
               fontWeight: 500,
@@ -260,8 +256,8 @@ const EmptyComponent = ({
 }) => (
   <PlaceholderContainer columnCount={columnCount}>
     <Stack
-      alignItems="center"
-      justifyContent="center"
+      alignItems={"center"}
+      justifyContent={"center"}
       sx={{ fontSize: 14, height: "100%" }}
     >
       No worker activity {filtered && "for this flow"} yet
@@ -272,7 +268,7 @@ const EmptyComponent = ({
 const LoadingComponent = ({ columnCount }: { columnCount: number }) => (
   <PlaceholderContainer columnCount={columnCount}>
     <Box sx={{ height: "100%", marginTop: -0.6 }}>
-      <Skeleton height="100%" />
+      <Skeleton height={"100%"} />
     </Box>
   </PlaceholderContainer>
 );
@@ -303,6 +299,7 @@ const WorkersPageContent = () => {
     if (flowDefinitionIds.length === 0) {
       return unfilteredFlowRuns;
     }
+
     return unfilteredFlowRuns.filter((run) =>
       flowDefinitionIds.includes(run.flowDefinitionId),
     );
@@ -353,6 +350,7 @@ const WorkersPageContent = () => {
             const org = authenticatedUser.memberOf.find(
               (memberOf) => memberOf.org.accountGroupId === webId,
             )?.org;
+
             if (!org) {
               throw new Error(`Could not find org with id ${webId}`);
             }
@@ -388,7 +386,7 @@ const WorkersPageContent = () => {
     );
 
     return rowData.sort((a, b) => {
-      const field = sort.field;
+      const {field} = sort;
       const direction = sort.direction === "asc" ? 1 : -1;
 
       if (field === "web") {
@@ -416,7 +414,7 @@ const WorkersPageContent = () => {
     600,
     headerHeight +
       2 + // borders
-      (flowRunRows.length
+      (flowRunRows.length > 0
         ? flowRunRows.length * flowTableRowHeight
         : placeholderHeight),
   );
@@ -430,7 +428,7 @@ const WorkersPageContent = () => {
     () => (
       <EmptyComponent
         columnCount={columns.length}
-        filtered={!!definitionFilterQueryParam}
+        filtered={Boolean(definitionFilterQueryParam)}
       />
     ),
     [columns, definitionFilterQueryParam],
@@ -444,6 +442,8 @@ const WorkersPageContent = () => {
   return (
     <Box>
       <WorkersHeader
+        title={{ text: "Activity Log", Icon: TerminalLightIcon }}
+        subtitle={"A complete record of all worker activity in your webs"}
         crumbs={[
           {
             icon: null,
@@ -451,8 +451,6 @@ const WorkersPageContent = () => {
             title: "Activity Log",
           },
         ]}
-        title={{ text: "Activity Log", Icon: TerminalLightIcon }}
-        subtitle="A complete record of all worker activity in your webs"
       />
       <Container sx={{ my: 4, px: 4, height: tableHeight }}>
         <VirtualizedTable

@@ -1,3 +1,6 @@
+import { useRouter } from "next/router";
+import { NextSeo } from "next-seo";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
 import { atLeastOne, extractVersion } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
@@ -6,8 +9,7 @@ import {
   LinkTypeIcon,
   OntologyChip,
 } from "@hashintel/design-system";
-import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
-import {
+import type { EntityTypeEditorFormData ,
   EntityTypeFormProvider,
   getEntityTypeFromFormData,
   getFormDataFromEntityType,
@@ -18,12 +20,8 @@ import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateLinkMapWithConsistentSelfReferences } from "@local/hash-isomorphic-utils/ontology-types";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import type { Theme } from "@mui/material";
-import { Box, Container, Typography } from "@mui/material";
+import type { Box, Container, Theme , Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
-import { useRouter } from "next/router";
-import { NextSeo } from "next-seo";
-import { useEffect, useMemo, useRef, useState } from "react";
 
 import { PageErrorState } from "../../components/page-error-state";
 import { EntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
@@ -34,6 +32,7 @@ import { isTypeArchived } from "../../shared/is-archived";
 import { isHrefExternal } from "../../shared/is-href-external";
 import { useUserPermissionsOnEntityType } from "../../shared/use-user-permissions-on-entity-type";
 import { ArchiveMenuItem } from "../[shortname]/shared/archive-menu-item";
+
 import { ConvertTypeMenuItem } from "./entity-type-page/convert-type-menu-item";
 import { DefinitionTab } from "./entity-type-page/definition-tab";
 import { EditBarTypeEditor } from "./entity-type-page/edit-bar-type-editor";
@@ -47,12 +46,12 @@ import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
 import { useEntityTypeValue } from "./entity-type-page/use-entity-type-value";
 import { TopContextBar } from "./top-context-bar";
 
-type EntityTypeProps = {
+interface EntityTypeProps {
   accountId?: AccountId | null;
   draftEntityType?: EntityTypeWithMetadata | null;
   entityTypeBaseUrl?: BaseUrl;
   requestedVersion: number | null;
-};
+}
 
 export const EntityTypePage = ({
   accountId,
@@ -116,8 +115,8 @@ export const EntityTypePage = ({
     [entityType, remotePropertyTypes],
   );
 
-  const isDirty = formMethods.formState.isDirty;
-  const isDraft = !!draftEntityType;
+  const {isDirty} = formMethods.formState;
+  const isDraft = Boolean(draftEntityType);
 
   const { userPermissions } = useUserPermissionsOnEntityType(
     entityType?.schema.$id,
@@ -153,6 +152,7 @@ export const EntityTypePage = ({
       reset(data);
     } else {
       const currentEntityTypeId = entityType?.schema.$id;
+
       if (!currentEntityTypeId) {
         throw new Error(
           "Cannot update entity type without existing entityType schema",
@@ -160,7 +160,7 @@ export const EntityTypePage = ({
       }
 
       /**
-       * If an entity type refers to itself as a link destination, e.g. a Company may have a Parent which is a Company,
+       * If an entity type refers to itself as a link destination, e.g. A Company may have a Parent which is a Company,
        * we want the version specified as the link target in the schema to be the same as the version of the entity type.
        * This rewriting of the schema ensures that by looking for self references and giving them the expected next version.
        * If we don't do this, creating a new version of Company means the new version will have a link to the previous version.
@@ -207,10 +207,10 @@ export const EntityTypePage = ({
   if (!entityType) {
     if (loadingRemoteEntityType) {
       return null;
-    } else if (isHrefExternal(entityTypeBaseUrl as string)) {
+    } if (isHrefExternal(entityTypeBaseUrl as string)) {
       return (
         <Container sx={{ mt: 8 }}>
-          <Typography variant="h2" mb={4}>
+          <Typography variant={"h2"} mb={4}>
             External type not found in database
           </Typography>
           <Typography mb={3}>
@@ -219,9 +219,10 @@ export const EntityTypePage = ({
           </Typography>
         </Container>
       );
-    } else {
-      return <PageErrorState />;
     }
+ 
+      return <PageErrorState />;
+    
   }
 
   if (!userPermissions) {
@@ -264,8 +265,12 @@ export const EntityTypePage = ({
       <EntityTypeFormProvider {...formMethods}>
         <EntityTypeContext.Provider value={entityType.schema}>
           <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
-            <Box display="contents" component="form" onSubmit={handleSubmit}>
+            <Box display={"contents"} component={"form"} onSubmit={handleSubmit}>
               <TopContextBar
+                defaultCrumbIcon={null}
+                item={remoteEntityType ?? undefined}
+                scrollToTop={() => {}}
+                sx={{ bgcolor: "white" }}
                 actionMenuItems={[
                   ...(remoteEntityType && !isTypeArchived(remoteEntityType)
                     ? [
@@ -286,8 +291,6 @@ export const EntityTypePage = ({
                       ]
                     : []),
                 ]}
-                defaultCrumbIcon={null}
-                item={remoteEntityType ?? undefined}
                 crumbs={[
                   {
                     href: "/types",
@@ -320,13 +323,12 @@ export const EntityTypePage = ({
                       )),
                   },
                 ]}
-                scrollToTop={() => {}}
-                sx={{ bgcolor: "white" }}
               />
 
               {!isReadonly && (
                 <EditBarTypeEditor
                   currentVersion={currentVersion}
+                  key={entityType.schema.$id} // reset edit bar state when the entity type changes
                   discardButtonProps={
                     // @todo confirmation of discard when draft
                     isDraft
@@ -339,7 +341,6 @@ export const EntityTypePage = ({
                           },
                         }
                   }
-                  key={entityType.schema.$id} // reset edit bar state when the entity type changes
                 />
               )}
 
@@ -355,6 +356,10 @@ export const EntityTypePage = ({
                 <Container>
                   <EntityTypeHeader
                     isDraft={isDraft}
+                    entityTypeSchema={entityType.schema}
+                    isLink={isLink}
+                    isReadonly={isReadonly}
+                    latestVersion={latestVersion}
                     ontologyChip={
                       <OntologyChip
                         domain={new URL(entityType.schema.$id).hostname}
@@ -364,10 +369,6 @@ export const EntityTypePage = ({
                         )}
                       />
                     }
-                    entityTypeSchema={entityType.schema}
-                    isLink={isLink}
-                    isReadonly={isReadonly}
-                    latestVersion={latestVersion}
                   />
 
                   <EntityTypeTabs
@@ -385,9 +386,9 @@ export const EntityTypePage = ({
                     entityTypeAndPropertyTypes ? (
                       <DefinitionTab
                         entityTypeAndPropertyTypes={entityTypeAndPropertyTypes}
-                        onNavigateToType={onNavigateToType}
                         ownedById={accountId as OwnedById | null}
                         readonly={isReadonly}
+                        onNavigateToType={onNavigateToType}
                       />
                     ) : (
                       "Loading..."
@@ -407,7 +408,7 @@ export const EntityTypePage = ({
       {previewEntityTypeUrl ? (
         <TypeSlideOverStack
           rootTypeId={previewEntityTypeUrl}
-          onClose={() => setPreviewEntityTypeUrl(null)}
+          onClose={() => { setPreviewEntityTypeUrl(null); }}
         />
       ) : null}
 

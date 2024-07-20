@@ -1,6 +1,6 @@
+import type { Dispatch, PropsWithChildren, SetStateAction } from "react";
 import type { FlowInternetAccessSettings } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, Checkbox, Stack, Tooltip, Typography } from "@mui/material";
-import type { Dispatch, PropsWithChildren, SetStateAction } from "react";
 
 import { CircleInfoIcon } from "../../../shared/icons/circle-info-icon";
 
@@ -12,8 +12,8 @@ import { CircleInfoIcon } from "../../../shared/icons/circle-info-icon";
  * which the user _does_ have access to. The best solution would be some way of knowing which
  * sites specific user(s) can access.
  *
- * @todo vary these based on knowledge about which sites users can help us with
- * @todo be able to detect other arbitrary sites which hit auth/paywalls (e.g. via looking for 401 status codes)
+ * @todo Vary these based on knowledge about which sites users can help us with.
+ * @todo Be able to detect other arbitrary sites which hit auth/paywalls (e.g. Via looking for 401 status codes).
  */
 export const defaultBrowserPluginDomains = ["linkedin.com"];
 
@@ -36,14 +36,11 @@ const InternetSetting = ({
 
   return (
     <Box mb={2}>
-      <Stack direction="row" alignItems="center">
+      <Stack direction={"row"} alignItems={"center"}>
         <Checkbox
           checked={checked}
           disabled={disabled}
           id={checkboxId}
-          onChange={() => {
-            onChangeChecked(!checked);
-          }}
           sx={{
             "& .MuiSvgIcon-root": { fontSize: 18 },
             mr: 1,
@@ -51,9 +48,12 @@ const InternetSetting = ({
               ? { fill: ({ palette }) => palette.gray[40] }
               : undefined,
           }}
+          onChange={() => {
+            onChangeChecked(!checked);
+          }}
         />
         <Box
-          component="label"
+          component={"label"}
           htmlFor={checkboxId}
           sx={{
             fontSize: 14,
@@ -64,7 +64,7 @@ const InternetSetting = ({
         >
           {label}
         </Box>
-        <Tooltip title={tooltipText} placement="top">
+        <Tooltip title={tooltipText} placement={"top"}>
           <Box
             sx={{
               display: "flex",
@@ -74,7 +74,7 @@ const InternetSetting = ({
               fontSize: 12,
             }}
           >
-            <CircleInfoIcon fontSize="inherit" />
+            <CircleInfoIcon fontSize={"inherit"} />
           </Box>
         </Tooltip>
       </Stack>
@@ -104,15 +104,15 @@ const InternetAccess = ({
   return (
     <InternetSetting
       checked={internetAccessSettings.enabled}
+      label={"Use public sites"}
+      subLabel={"on the World Wide Web"}
+      tooltipText={"Whether or not the research task can access the public internet"}
       onChangeChecked={() =>
-        setInternetAccessSettings({
+        { setInternetAccessSettings({
           ...internetAccessSettings,
           enabled: !internetAccessSettings.enabled,
-        })
+        }); }
       }
-      label="Use public sites"
-      subLabel="on the World Wide Web"
-      tooltipText="Whether or not the research task can access the public internet"
     />
   );
 };
@@ -132,23 +132,23 @@ const BrowserPlugin = ({
     <InternetSetting
       checked={browserPluginSettings.enabled}
       disabled={disabled}
+      label={"Use browser access"}
+      subLabel={"To authenticate as you"}
+      tooltipText={"Whether pages can be requested via the browser plugin, taking the content as it appears in your browser"}
       onChangeChecked={() =>
-        setBrowserPluginSettings({
+        { setBrowserPluginSettings({
           ...browserPluginSettings,
           enabled: !browserPluginSettings.enabled,
-        })
+        }); }
       }
-      label="Use browser access"
-      subLabel="To authenticate as you"
-      tooltipText="Whether pages can be requested via the browser plugin, taking the content as it appears in your browser"
     />
   );
 };
 
-type InternetSettingsProps = {
+interface InternetSettingsProps {
   settings: FlowInternetAccessSettings;
   setSettings: Dispatch<SetStateAction<FlowInternetAccessSettings>>;
-};
+}
 
 export const InternetSettings = ({
   settings,
@@ -165,10 +165,10 @@ export const InternetSettings = ({
           browserPluginSettings={settings.browserPlugin}
           disabled={!settings.enabled}
           setBrowserPluginSettings={(newBrowserPluginSettings) =>
-            setSettings((currentSettings) => ({
+            { setSettings((currentSettings) => ({
               ...currentSettings,
               browserPlugin: newBrowserPluginSettings,
-            }))
+            })); }
           }
         />
       </Box>

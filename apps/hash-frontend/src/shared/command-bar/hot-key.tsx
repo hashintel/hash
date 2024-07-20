@@ -8,14 +8,14 @@ export const HotKey = ({
   keysList?: string[];
 }) => (
   <Box
-    display="flex"
-    alignItems="center"
-    width="100%"
-    justifyContent="space-between"
+    display={"flex"}
+    alignItems={"center"}
+    width={"100%"}
+    justifyContent={"space-between"}
   >
     {label}
     {keysList ? (
-      <Box display="flex" alignItems="center" gap={0.5} flexGrow={0}>
+      <Box display={"flex"} alignItems={"center"} gap={0.5} flexGrow={0}>
         {keysList.map((key) => (
           <Box
             key={key}

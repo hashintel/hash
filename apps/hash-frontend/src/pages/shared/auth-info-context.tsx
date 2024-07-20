@@ -1,3 +1,10 @@
+import type {   createContext,
+FunctionComponent, ReactElement ,
+  useCallback,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 import { useApolloClient } from "@apollo/client";
 import { LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { AccountGroupId } from "@local/hash-graph-types/account";
@@ -6,47 +13,37 @@ import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type { EntityRootType, extractEntityUuidFromEntityId,Subgraph  } from "@local/hash-subgraph";
 import {
   getOutgoingLinksForEntity,
   getRoots,
   intervalForTimestamp,
 } from "@local/hash-subgraph/stdlib";
-import type { FunctionComponent, ReactElement } from "react";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-} from "react";
 
 import { useHashInstance } from "../../components/hooks/use-hash-instance";
 import { useOrgsWithLinks } from "../../components/hooks/use-orgs-with-links";
 import type { MeQuery } from "../../graphql/api-types.gen";
 import { meQuery } from "../../graphql/queries/user.queries";
-import type { User } from "../../lib/user-and-org";
-import { constructUser, isEntityUserEntity } from "../../lib/user-and-org";
+import type { constructUser, isEntityUserEntity,User  } from "../../lib/user-and-org";
 
 type RefetchAuthInfoFunction = () => Promise<{
   authenticatedUser?: User;
 }>;
 
-type AuthInfoContextValue = {
+interface AuthInfoContextValue {
   authenticatedUser?: User;
   isInstanceAdmin: boolean | undefined;
   refetch: RefetchAuthInfoFunction;
-};
+}
 
 export const AuthInfoContext = createContext<AuthInfoContextValue | undefined>(
   undefined,
 );
 
-type AuthInfoProviderProps = {
+interface AuthInfoProviderProps {
   initialAuthenticatedUserSubgraph?: Subgraph<EntityRootType>;
   children: ReactElement;
-};
+}
 
 export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
   initialAuthenticatedUserSubgraph,
@@ -127,7 +124,6 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
        * here. This requires upgrading the `@apollo/client` to fix issue
        * in the `useLazyQuery` hook that causes outdated data to be
        * returned if an error is encountered by the query.
-       *
        * @see https://linear.app/hash/issue/H-2182/upgrade-apolloclient-to-latest-version-to-fix-uselazyquery-behaviour
        * @see https://github.com/apollographql/apollo-client/issues/6086
        */
@@ -145,6 +141,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
 
       if (!subgraph) {
         setAuthenticatedUserSubgraph(undefined);
+
         return {};
       }
 
@@ -165,6 +162,7 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
       refetch: async () => {
         // Refetch the detail on orgs in case this refetch is following them being modified
         await refetchOrgs();
+
         return fetchAuthenticatedUser();
       },
     }),
@@ -193,8 +191,8 @@ export const useAuthInfo = (): AuthInfoContextValue => {
 /**
  * Use the currently authenticated user.
  *
- * @throws if there is no user authenticated in the application.
  * @returns `AuthInfo` where the `authenticatedUser` is always defined.
+ * @throws If there is no user authenticated in the application.
  */
 export const useAuthenticatedUser = (): AuthInfoContextValue & {
   authenticatedUser: User;

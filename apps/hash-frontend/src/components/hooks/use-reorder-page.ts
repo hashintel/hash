@@ -1,7 +1,7 @@
+import { useCallback } from "react";
 import { useMutation } from "@apollo/client";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import { useCallback } from "react";
 
 import type {
   SetParentPageMutation,
@@ -36,14 +36,14 @@ export const useReorderPage = () => {
     async (
       pageEntityId: EntityId,
       parentPageEntityId: EntityId | null,
-      prevFractionalIndex: string | null,
+      previousFractionalIndex: string | null,
       nextIndex: string | null,
     ) => {
       await setParentPageFn({
         variables: {
           parentPageEntityId,
           pageEntityId,
-          prevFractionalIndex,
+          prevFractionalIndex: previousFractionalIndex,
           nextIndex,
         },
       });

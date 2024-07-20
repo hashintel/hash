@@ -1,8 +1,7 @@
+import type { FunctionComponent , useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useMemo } from "react";
 
 import { useOrgsWithLinks } from "../../../components/hooks/use-orgs-with-links";
 import { useUsers } from "../../../components/hooks/use-users";
@@ -41,15 +40,14 @@ export const DraftEntityViewers: FunctionComponent<{
   const orgMemberViewers = useMemo(() => {
     if (orgViewers) {
       return orgViewers
-        .map(({ memberships }) => memberships.map(({ user }) => user))
-        .flat();
+        .flatMap(({ memberships }) => memberships.map(({ user }) => user));
     }
   }, [orgViewers]);
 
   const userViewers = useMemo(() => {
     if (authorizationRelationships && users) {
       return authorizationRelationships.reduce<MinimalUser[]>(
-        (prev, { subject }) => {
+        (previous, { subject }) => {
           if (subject.__typename === "AccountAuthorizationSubject") {
             const user = users.find(
               ({ accountId }) => accountId === subject.accountId,
@@ -57,13 +55,13 @@ export const DraftEntityViewers: FunctionComponent<{
 
             if (
               user &&
-              !prev.some(({ accountId }) => accountId === user.accountId)
+              !previous.some(({ accountId }) => accountId === user.accountId)
             ) {
-              return [...prev, user];
+              return [...previous, user];
             }
           }
 
-          return prev;
+          return previous;
         },
         [],
       );
@@ -84,7 +82,6 @@ export const DraftEntityViewers: FunctionComponent<{
         authorizationRelationships.length === 1 ||
         /**
          * @todo: remove this when the GQL resolver returns the correct number of authorization relationships
-         *
          * @see https://linear.app/hash/issue/H-1115/use-permission-types-from-graph-in-graphql
          */
         authorizationRelationships.length === 0

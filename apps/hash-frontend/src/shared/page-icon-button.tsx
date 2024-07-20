@@ -1,23 +1,22 @@
+import type { MouseEventHandler , useCallback } from "react";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { SxProps, Theme } from "@mui/material";
-import type { MouseEventHandler } from "react";
-import { useCallback } from "react";
 
 import { useDefaultState } from "../components/hooks/use-default-state";
-import type { SizeVariant } from "./edit-emoji-icon-button";
-import {
-  EditEmojiIconButton,
+
+import type {   EditEmojiIconButton,
   iconVariantSizes,
+SizeVariant ,
 } from "./edit-emoji-icon-button";
 import type { EmojiPickerPopoverProps } from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
 import { CanvasIcon } from "./icons/canvas-icon";
 import { useUpdatePageIcon } from "./use-update-page-icon";
 
-type PageIconButtonProps = {
+interface PageIconButtonProps {
   entityId: EntityId;
   pageEntityTypeId: VersionedUrl;
   icon?: string | null;
@@ -27,7 +26,7 @@ type PageIconButtonProps = {
   onClick?: MouseEventHandler<HTMLButtonElement>;
   popoverProps?: EmojiPickerPopoverProps;
   sx?: SxProps<Theme>;
-};
+}
 
 export const PageIconButton = ({
   entityId,
@@ -54,7 +53,6 @@ export const PageIconButton = ({
     <EditEmojiIconButton
       icon={icon}
       size={size}
-      onChange={handleChange}
       defaultIcon={
         isCanvas ? (
           <CanvasIcon
@@ -73,6 +71,7 @@ export const PageIconButton = ({
           />
         )
       }
+      onChange={handleChange}
       {...remainingProps}
     />
   );

@@ -1,14 +1,14 @@
+import { format } from "date-fns";
+import type { FunctionComponent , useMemo } from "react";
 import { WandMagicSparklesIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { Box, styled, Typography } from "@mui/material";
-import { format } from "date-fns";
-import type { FunctionComponent } from "react";
-import { useMemo } from "react";
 
 import { ClockRegularIcon } from "../../../shared/icons/clock-regular-icon";
 import { UserIcon } from "../../../shared/icons/user-icon";
 import { useActors } from "../../../shared/use-actors";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
+
 import { DraftEntityChip } from "./draft-entity-chip";
 
 const DraftEntityTypography = styled(Typography)(({ theme }) => ({
@@ -46,7 +46,7 @@ export const DraftEntityProvenance: FunctionComponent<{
   );
 
   return (
-    <Box display="flex" alignItems="center">
+    <Box display={"flex"} alignItems={"center"}>
       <DraftEntityTypography
         sx={({ breakpoints }) => ({
           [breakpoints.down(1300)]: {

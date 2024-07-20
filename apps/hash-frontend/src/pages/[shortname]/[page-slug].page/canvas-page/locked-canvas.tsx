@@ -3,6 +3,7 @@ import { Matrix2d, toDomPrecision } from "@tldraw/primitives";
 
 import { BlockLoader } from "../../../../components/block-loader/block-loader";
 import { BlockContextProvider } from "../../../shared/block-collection/block-context";
+
 import type { CanvasProps } from "./shared";
 
 /**
@@ -10,8 +11,8 @@ import type { CanvasProps } from "./shared";
  *
  * Known issues to be fixed when we develop the ability to build apps further:
  * – if the TLDraw canvas was panned, blocks will appear in a different position here.
- *   we probably will have a constrained editing canvas space that eliminates this issue
- * - rotated blocks can have click/tap targets which are inconsistent with their visual appearance
+ *   We probably will have a constrained editing canvas space that eliminates this issue
+ * - rotated blocks can have click/tap targets which are inconsistent with their visual appearance.
  */
 export const LockedCanvas = ({ blocks, contents }: CanvasProps) => {
   return (

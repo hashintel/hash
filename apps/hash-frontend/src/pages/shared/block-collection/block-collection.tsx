@@ -1,26 +1,24 @@
 import "prosemirror-view/style/prosemirror.css";
-
+import type { EditorView } from "prosemirror-view";
+import type { FunctionComponent , useLayoutEffect, useRef } from "react";
+import { useLocalstorageState } from "rooks";
 import { useApolloClient } from "@apollo/client";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
 import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
-import type { BoxProps } from "@mui/material";
-import { Box } from "@mui/material";
-import type { EditorView } from "prosemirror-view";
-import type { FunctionComponent } from "react";
-import { useLayoutEffect, useRef } from "react";
-import { useLocalstorageState } from "rooks";
+import type { Box,BoxProps  } from "@mui/material";
 
 import { useUserBlocks } from "../../../blocks/user-blocks";
 import { useSnackbar } from "../../../components/hooks/use-snackbar";
 import { Button } from "../../../shared/ui";
+
 import { usePortals } from "./block-portals";
 import type { EditorConnection } from "./collab/editor-connection";
 import { createEditorView } from "./create-editor-view";
 import { usePageContextOptional } from "./page-context";
 
-type BlockCollectionProps = {
+interface BlockCollectionProps {
   contents: BlockCollectionContentItem[];
   enableCommenting?: boolean;
   readonly: boolean;
@@ -28,13 +26,13 @@ type BlockCollectionProps = {
   ownedById: OwnedById;
   entityId: EntityId;
   sx?: BoxProps["sx"];
-};
+}
 
 /**
  * The naming of this as a "Block" is… interesting, considering it doesn't
  * really work like a Block. It would be cool to somehow detach the process of
  * rendering child blocks from this and have a renderer, but it seems tricky to
- * do that
+ * do that.
  */
 export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
   contents,
@@ -60,12 +58,14 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
   }>(null);
 
   const currentContents = useRef(contents);
+
   useLayoutEffect(() => {
     currentContents.current = contents;
   }, [contents]);
 
   const { value: newestBlocks } = useUserBlocks();
   const currentBlocks = useRef(newestBlocks);
+
   useLayoutEffect(() => {
     currentBlocks.current = newestBlocks;
   }, [newestBlocks]);
@@ -78,7 +78,7 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
 
   /**
    * This effect runs once and just sets up the prosemirror instance. It is not
-   * responsible for setting the contents of the prosemirror document
+   * responsible for setting the contents of the prosemirror document.
    */
   useLayoutEffect(() => {
     const node = root.current!;
@@ -87,7 +87,7 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
      * Lets see up prosemirror with an empty document, as another effect will
      * set its contents. Unfortunately all prosemirror documents have to
      * contain at least one child, so lets insert a special "blank" placeholder
-     * child
+     * child.
      */
     const { view, connection, manager } = createEditorView({
       autoFocus,
@@ -122,7 +122,8 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
       } catch {
         /**
          * Sometimes the Quick Note page can result in docView being null when calling view.destroy()
-         * Ideally we would figure out why we're calling view.destroy() when it's null, but this seems to fix it for now
+         * Ideally we would figure out why we're calling view.destroy() when it's null, but this seems to fix it for now.
+         *
          * @see https://discuss.prosemirror.net/t/what-could-create-a-null-docview/1830
          */
       }
@@ -147,7 +148,7 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
   return (
     <>
       <Box
-        id="root"
+        id={"root"}
         ref={root}
         sx={[
           {
@@ -193,7 +194,7 @@ export const BlockCollection: FunctionComponent<BlockCollectionProps> = ({
       />
       {portals}
       {/**
-       * @todo position this better
+       * @todo Position this better.
        */}
       {(
         typeof debugging === "boolean"

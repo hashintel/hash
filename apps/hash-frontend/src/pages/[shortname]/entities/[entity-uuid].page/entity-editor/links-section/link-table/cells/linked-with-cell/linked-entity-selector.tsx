@@ -1,13 +1,3 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import { ArrowLeftIcon, AutocompleteDropdown } from "@hashintel/design-system";
-import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
-import type { PaperProps } from "@mui/material";
-import { Stack, Typography } from "@mui/material";
 import {
   createContext,
   useCallback,
@@ -16,7 +6,15 @@ import {
   useRef,
   useState,
 } from "react";
-
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
+import { ArrowLeftIcon, AutocompleteDropdown } from "@hashintel/design-system";
+import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { getRoots } from "@local/hash-subgraph/stdlib";
+import type { PaperProps , Stack, Typography } from "@mui/material";
 import { useEntityTypesContextRequired } from "../../../../../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { useFileUploads } from "../../../../../../../../../shared/file-upload-context";
 import { Button } from "../../../../../../../../../shared/ui/button";
@@ -53,9 +51,9 @@ const FileCreationPane = (props: PaperProps) => {
     <AutocompleteDropdown {...props} className={GRID_CLICK_IGNORE_CLASS}>
       <Stack spacing={2}>
         <FileUploadDropzone image={isImage} onFileProvided={onFileProvided} />
-        <Button onClick={close} sx={{ width: "100%" }} variant="tertiary">
+        <Button sx={{ width: "100%" }} variant={"tertiary"} onClick={close}>
           <ArrowLeftIcon sx={{ fontSize: 14, color: "gray.50", mr: 0.6 }} />
-          <Typography variant="smallTextLabels" color="gray.50">
+          <Typography variant={"smallTextLabels"} color={"gray.50"}>
             Go back
           </Typography>
         </Button>
@@ -99,10 +97,11 @@ export const LinkedEntitySelector = ({
 
     if (isFileType) {
       setShowUploadFileMenu(true);
+
       return;
     }
 
-    /** @todo this should be replaced with a "new entity modal" or something else */
+    /** @todo This should be replaced with a "new entity modal" or something else */
     void window.open(
       `/new/entity?entity-type-id=${encodeURIComponent(
         expectedEntityTypes[0].schema.$id,
@@ -132,16 +131,16 @@ export const LinkedEntitySelector = ({
         },
         makePublic: false,
         onComplete: (upload) =>
-          onSelect(
+          { onSelect(
             upload.createdEntities.fileEntity as Entity,
             // the entity's subgraph should mostly contain the file's type, since we're choosing it based on the expected type
             // it will not if the expected type is File and we automatically choose a narrower type of e.g. Image based on the upload
             entitySubgraph,
-          ),
+          ); },
         ownedById: activeWorkspaceOwnedById,
         /**
          * Link creation is handled in the onSelect, since we might need to manage drafts,
-         * but we supply linkEntityTypeId so we can track which files are being loaded against which link on an entity
+         * but we supply linkEntityTypeId so we can track which files are being loaded against which link on an entity.
          */
         linkedEntityData: {
           linkedEntityId: entityId,
@@ -166,7 +165,7 @@ export const LinkedEntitySelector = ({
 
   const fileCreationContextValue = useMemo(
     () => ({
-      close: () => setShowUploadFileMenu(false),
+      close: () => { setShowUploadFileMenu(false); },
       isImage,
       onFileProvided,
     }),
@@ -178,38 +177,38 @@ export const LinkedEntitySelector = ({
   return (
     <FileCreationContext.Provider value={fileCreationContextValue}>
       <EntitySelector
+        open
         entityIdsToFilterOut={entityIdsToFilterOut}
         expectedEntityTypes={expectedEntityTypes}
         includeDrafts={includeDrafts}
         multiple={false}
-        onSelect={onSelect}
         className={GRID_CLICK_IGNORE_CLASS}
-        open
         PaperComponent={showUploadFileMenu ? FileCreationPane : undefined}
+        inputPlaceholder={isFileType ? "No file" : "No entity"}
         dropdownProps={{
           creationProps: {
             createButtonProps: {
               className: GRID_CLICK_IGNORE_CLASS,
-              onMouseDown: (evt) => {
-                evt.preventDefault();
-                evt.stopPropagation();
+              onMouseDown: (event) => {
+                event.preventDefault();
+                event.stopPropagation();
                 onCreateNew();
               },
             },
             variant: isFileType ? "file" : "entity",
           },
         }}
-        inputPlaceholder={isFileType ? "No file" : "No entity"}
+        onSelect={onSelect}
         onHighlightChange={(_, value) => {
           highlightedRef.current = value;
         }}
-        onKeyUp={(evt) => {
-          if (evt.key === "Enter" && !highlightedRef.current) {
+        onKeyUp={(event) => {
+          if (event.key === "Enter" && !highlightedRef.current) {
             onCreateNew();
           }
         }}
-        onKeyDown={(evt) => {
-          if (evt.key === "Escape") {
+        onKeyDown={(event) => {
+          if (event.key === "Escape") {
             onFinishedEditing();
           }
         }}

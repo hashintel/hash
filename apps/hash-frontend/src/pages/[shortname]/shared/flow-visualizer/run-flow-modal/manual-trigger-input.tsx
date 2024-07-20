@@ -1,11 +1,11 @@
 import { TextField } from "@hashintel/design-system";
-import type { SxProps, Theme } from "@mui/material";
-import { Switch } from "@mui/material";
+import type { Switch,SxProps, Theme  } from "@mui/material";
 
 import { EntitySelector } from "../../../../shared/entity-selector";
 import { EntityTypeSelector } from "../../../../shared/entity-type-selector";
 import { GoogleAccountSelect } from "../../../../shared/integrations/google/google-account-select";
 import { SelectOrNameGoogleSheet } from "../../../../shared/integrations/google/select-or-name-google-sheet";
+
 import { inputHeight } from "./shared/dimensions";
 import type { FormState, LocalPayload } from "./types";
 
@@ -31,62 +31,68 @@ export const ManualTriggerInput = <Payload extends LocalPayload>({
   setValue: (value: Payload["value"]) => void;
 }): JSX.Element => {
   switch (payload.kind) {
-    case "Text":
+    case "Text": {
       if (array || Array.isArray(payload.value)) {
         throw new Error("Selecting multiple texts is not supported");
       }
+
       return (
         <TextField
-          onChange={(event) => setValue(event.target.value)}
+          sx={textFieldSx}
+          value={payload.value}
           placeholder={`${
             required ? "Required" : "Optional"
           } to start the flow`}
-          sx={textFieldSx}
-          value={payload.value}
+          onChange={(event) => { setValue(event.target.value); }}
         />
       );
-    case "Number":
+    }
+    case "Number": {
       if (array || Array.isArray(payload.value)) {
         throw new Error("Selecting multiple numbers is not supported");
       }
+
       return (
         <TextField
-          onChange={(event) =>
-            setValue(
-              event.target.value !== "" ? Number(event.target.value) : "",
-            )
-          }
+          sx={textFieldSx}
+          type={"number"}
+          value={payload.value}
           placeholder={`${
             required ? "Required" : "Optional"
           } to start the flow`}
-          sx={textFieldSx}
-          type="number"
-          value={payload.value}
+          onChange={(event) =>
+            { setValue(
+              event.target.value !== "" ? Number(event.target.value) : "",
+            ); }
+          }
         />
       );
-    case "Boolean":
+    }
+    case "Boolean": {
       if (array || Array.isArray(payload.value)) {
         throw new Error("Selecting multiple booleans is not supported");
       }
+
       return (
         <Switch
-          size="medium"
+          size={"medium"}
           checked={payload.value}
-          onChange={(event) => setValue(event.target.checked)}
+          onChange={(event) => { setValue(event.target.checked); }}
         />
       );
+    }
     case "VersionedUrl": {
       return (
         <EntityTypeSelector
-          autoFocus={false}
           disableCreate
+          autoFocus={false}
           inputHeight={inputHeight}
           multiple={array}
-          onSelect={(newValue) =>
-            setValue(Array.isArray(newValue) ? newValue : newValue)
-          }
           sx={{ height: inputHeight, maxWidth: "100%" }}
           value={payload.value}
+          onSelect={(newValue) =>
+            { setValue(Array.isArray(newValue) ? newValue : newValue); }
+          }
         />
       );
     }
@@ -97,8 +103,8 @@ export const ManualTriggerInput = <Payload extends LocalPayload>({
           includeDrafts={false}
           inputHeight={inputHeight}
           multiple={array}
-          onSelect={setValue}
           value={payload.value}
+          onSelect={setValue}
         />
       );
     }
@@ -106,6 +112,7 @@ export const ManualTriggerInput = <Payload extends LocalPayload>({
       if (array || Array.isArray(payload.value)) {
         throw new Error("Selecting multiple Google accounts is not supported");
       }
+
       return (
         <GoogleAccountSelect
           googleAccountId={payload.value}
@@ -126,10 +133,10 @@ export const ManualTriggerInput = <Payload extends LocalPayload>({
       return (
         <SelectOrNameGoogleSheet
           setGoogleSheet={setValue}
+          googleSheet={payload.value}
           googleAccountId={
             typeof googleAccountId === "string" ? googleAccountId : undefined
           }
-          googleSheet={payload.value}
         />
       );
     }

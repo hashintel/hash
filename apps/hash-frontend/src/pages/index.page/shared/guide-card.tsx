@@ -1,6 +1,7 @@
 import { MemoCircleCheckRegularIcon } from "@hashintel/design-system";
 
 import { Button } from "../../../shared/ui/button";
+
 import { HomepageCard } from "./homepage-card";
 import { HomepageBigText } from "./typography";
 
@@ -11,10 +12,10 @@ export const GuideCard = () => (
       user guide
     </HomepageBigText>
     <Button
-      href="https://hash.ai/learn"
-      size="small"
-      variant="white_cta"
-      target="_blank"
+      href={"https://hash.ai/learn"}
+      size={"small"}
+      variant={"white_cta"}
+      target={"_blank"}
     >
       Read the guide
       <MemoCircleCheckRegularIcon

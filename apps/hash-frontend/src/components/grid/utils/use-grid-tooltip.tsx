@@ -1,11 +1,9 @@
-import type { DataEditorRef } from "@glideapps/glide-data-grid";
-import type { PopoverPosition } from "@mui/material";
-import { Popover, Typography } from "@mui/material";
 import { isEqual } from "lodash";
 import { bindPopover, usePopupState } from "material-ui-popup-state/hooks";
-import type { RefObject } from "react";
-import { useCallback, useState } from "react";
+import type { RefObject , useCallback, useState } from "react";
 import { useWindowEventListener } from "rooks";
+import type { DataEditorRef } from "@glideapps/glide-data-grid";
+import type { Popover, PopoverPosition , Typography } from "@mui/material";
 
 import type {
   GridTooltip,
@@ -32,7 +30,7 @@ export const useGridTooltip = (
   const showTooltip = useCallback<TooltipCellProps["showTooltip"]>(
     (newTooltip) => {
       const isEditorOpen =
-        !!document.querySelector(`div[id="portal"]`)?.children.length;
+        Boolean(document.querySelector(`div[id="portal"]`)?.children.length);
 
       if (isEditorOpen) {
         return;
@@ -56,9 +54,9 @@ export const useGridTooltip = (
       const left = bounds.x + newTooltip.iconX;
       const top = bounds.y;
 
-      setTooltipPos((prev) => {
-        if (prev?.left === left && prev.top === top) {
-          return prev;
+      setTooltipPos((previous) => {
+        if (previous?.left === left && previous.top === top) {
+          return previous;
         }
 
         return { left, top };
@@ -85,7 +83,7 @@ export const useGridTooltip = (
     tooltipElement: (
       <Popover
         {...bindPopover(popupState)}
-        anchorReference="anchorPosition"
+        anchorReference={"anchorPosition"}
         anchorPosition={tooltipPos}
         transformOrigin={{ horizontal: "center", vertical: "bottom" }}
         PaperProps={{
@@ -98,8 +96,8 @@ export const useGridTooltip = (
       >
         <Typography
           sx={{ fontSize: 13, fontWeight: 500, lineHeight: "18px" }}
-          textAlign="center"
-          color="white"
+          textAlign={"center"}
+          color={"white"}
         >
           {gridTooltip?.text}
         </Typography>

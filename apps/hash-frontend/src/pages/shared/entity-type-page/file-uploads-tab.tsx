@@ -1,14 +1,14 @@
+import type { ReactNode , useContext, useState } from "react";
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import {
   CheckIcon,
   CloseIcon,
   FontAwesomeIcon,
 } from "@hashintel/design-system";
-import type { CircularProgressProps, LinearProgressProps } from "@mui/material";
-import {
-  Box,
+import type {   Box,
   CircularProgress,
-  LinearProgress,
+CircularProgressProps,   LinearProgress,
+LinearProgressProps ,
   Stack,
   Table,
   TableBody,
@@ -18,8 +18,6 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import type { ReactNode } from "react";
-import { useContext, useState } from "react";
 
 import {
   useFileUploads,
@@ -28,13 +26,14 @@ import {
 import { SectionWrapper } from "../../[shortname]/shared/section-wrapper";
 import { FileUploadDropzone } from "../../settings/shared/file-upload-dropzone";
 import { WorkspaceContext } from "../workspace-context";
+
 import { Action } from "./file-uploads-tab/action";
 import { ShowUploadFormButton } from "./file-uploads-tab/show-upload-form-button";
 import { useEntityType } from "./shared/entity-type-context";
 
 const HeaderCell = ({ children }: { children: ReactNode }) => (
   <TableCell>
-    <Typography variant="microText" fontWeight={600}>
+    <Typography variant={"microText"} fontWeight={600}>
       {children}
     </Typography>
   </TableCell>
@@ -49,7 +48,7 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
 
   const { activeWorkspaceOwnedById } = useContext(WorkspaceContext);
 
-  const [showUploadForm, setShowUploadForm] = useState(!uploads.length);
+  const [showUploadForm, setShowUploadForm] = useState(uploads.length === 0);
 
   const onFileProvided = (file: File) => {
     void uploadFile({
@@ -67,7 +66,7 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
 
   return (
     <SectionWrapper
-      title="Upload file"
+      title={"Upload file"}
       titleTooltip={`This table lists all ‘${entityType.title}’ uploads you created during this session`}
       tooltipIcon={
         <FontAwesomeIcon icon={faCircleQuestion} sx={{ fontSize: 14 }} />
@@ -84,7 +83,7 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
           <FileUploadDropzone image={isImage} onFileProvided={onFileProvided} />
         </Box>
       )}
-      {uploads.length ? (
+      {uploads.length > 0 ? (
         <Table
           sx={({ palette }) => ({
             background: palette.white,
@@ -134,7 +133,7 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
                 <TableRow key={upload.requestId}>
                   <TableCell sx={{ maxWidth: 600 }}>
                     <Typography
-                      variant="smallTextLabels"
+                      variant={"smallTextLabels"}
                       sx={{
                         display: "block",
                         whiteSpace: "nowrap",
@@ -149,9 +148,9 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
                     </Typography>
                   </TableCell>
                   <TableCell sx={{ width: "60%", minWidth: 300 }}>
-                    <Stack direction="row" alignItems="center">
+                    <Stack direction={"row"} alignItems={"center"}>
                       <Stack
-                        direction="row"
+                        direction={"row"}
                         sx={{
                           alignItems: "center",
                           borderRadius: 4,
@@ -181,7 +180,7 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
                           />
                         )}
                         <Typography
-                          variant="microText"
+                          variant={"microText"}
                           fontWeight={600}
                           lineHeight={1}
                           ml={0.5}
@@ -199,8 +198,8 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
                   </TableCell>
                   <TableCell sx={{ textAlign: "center", width: 85 }}>
                     <Action
-                      onRetry={() => uploadFile(upload)}
                       upload={upload}
+                      onRetry={() => uploadFile(upload)}
                     />
                   </TableCell>
                 </TableRow>
@@ -210,7 +209,7 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
           <TableFooter>
             <TableRow>
               <TableCell colSpan={3} sx={{ padding: 0 }}>
-                <ShowUploadFormButton onClick={() => setShowUploadForm(true)} />
+                <ShowUploadFormButton onClick={() => { setShowUploadForm(true); }} />
               </TableCell>
             </TableRow>
           </TableFooter>

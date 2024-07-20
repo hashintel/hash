@@ -1,3 +1,6 @@
+import { format } from "date-fns";
+import { useRouter } from "next/router";
+import { useMemo } from "react";
 import {
   AngleRightRegularIcon,
   InfinityLightIcon,
@@ -9,11 +12,7 @@ import {
   generateFlowDefinitionPath,
   generateWorkerRunPath,
 } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import type { SxProps, Theme } from "@mui/material";
-import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
-import { format } from "date-fns";
-import { useRouter } from "next/router";
-import { useMemo } from "react";
+import type { Box, outlinedInputClasses, Stack, SxProps, Theme , Typography } from "@mui/material";
 
 import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner-for-entity";
 import type { FlowRun } from "../../../../graphql/api-types.gen";
@@ -95,9 +94,9 @@ export const Topbar = ({
 
   return (
     <Stack
-      alignItems="center"
-      direction="row"
-      justifyContent="space-between"
+      alignItems={"center"}
+      direction={"row"}
+      justifyContent={"space-between"}
       sx={({ palette }) => ({
         borderBottom: `1px solid ${palette.gray[20]}`,
         height: topbarHeight,
@@ -105,7 +104,7 @@ export const Topbar = ({
         width: "100%",
       })}
     >
-      <Stack direction="row" alignItems="center">
+      <Stack direction={"row"} alignItems={"center"}>
         <BoltLightIcon
           sx={{
             fill: ({ palette }) => palette.gray[60],
@@ -113,8 +112,8 @@ export const Topbar = ({
             mr: 0.8,
           }}
         />
-        <Link href="/workers" noLinkStyle>
-          <Typography sx={typographySx} variant="smallTextParagraphs">
+        <Link noLinkStyle href={"/workers"}>
+          <Typography sx={typographySx} variant={"smallTextParagraphs"}>
             Workers
           </Typography>
         </Link>
@@ -127,15 +126,15 @@ export const Topbar = ({
             mr: 1,
           }}
         />
-        <Link href="/flows" noLinkStyle>
-          <Typography sx={typographySx} variant="smallTextParagraphs">
+        <Link noLinkStyle href={"/flows"}>
+          <Typography sx={typographySx} variant={"smallTextParagraphs"}>
             Flows
           </Typography>
         </Link>
         <Divider />
         <Box mr={1}>
           {readonly ? (
-            <Typography sx={typographySx} variant="smallTextParagraphs">
+            <Typography sx={typographySx} variant={"smallTextParagraphs"}>
               {selectedFlowDefinition?.name}
             </Typography>
           ) : (
@@ -144,9 +143,9 @@ export const Topbar = ({
               value={selectedFlowDefinitionId ?? "none"}
               onChange={(event) => {
                 /**
-                 * @todo update this to use the flow definition's uuid when stored in the db
+                 * @todo Update this to use the flow definition's uuid when stored in the db
                  *    also then needs to take account of the correct namespace, which might be different from the
-                 *   current
+                 *   current.
                  */
                 void push(
                   generateFlowDefinitionPath({
@@ -171,7 +170,7 @@ export const Topbar = ({
           <>
             <Divider />
             {readonly && selectedFlowRun ? (
-              <Typography sx={typographySx} variant="smallTextParagraphs">
+              <Typography sx={typographySx} variant={"smallTextParagraphs"}>
                 {generateRunLabel(selectedFlowRun)}
               </Typography>
             ) : (
@@ -179,7 +178,7 @@ export const Topbar = ({
                 selectSx={{ ...selectSx, minWidth: 100 }}
                 value={selectedFlowRunId ?? "none"}
                 onChange={(event) => {
-                  const value = event.target.value;
+                  const {value} = event.target;
 
                   if (value === "none") {
                     void push(
@@ -188,12 +187,14 @@ export const Topbar = ({
                         flowDefinitionId: selectedFlowDefinitionId ?? "none",
                       }),
                     );
+
                     return;
                   }
 
                   const flowRun = flowRuns.find(
                     (run) => run.flowRunId === value,
                   );
+
                   if (!flowRun) {
                     throw new Error(`Flow run with id ${value} not found`);
                   }
@@ -208,7 +209,7 @@ export const Topbar = ({
                   );
                 }}
               >
-                <MenuItem selected value="none">
+                <MenuItem selected value={"none"}>
                   Definition
                 </MenuItem>
                 {runOptions.map((run) => (
@@ -227,8 +228,7 @@ export const Topbar = ({
       </Stack>
       {showRunButton && (
         <Button
-          onClick={handleRunFlowClicked}
-          size="xs"
+          size={"xs"}
           sx={{
             px: "14px",
             "&:before": { background: "transparent" },
@@ -236,6 +236,7 @@ export const Topbar = ({
               fill: ({ palette }) => palette.common.white,
             },
           }}
+          onClick={handleRunFlowClicked}
         >
           <PlayIconSolid
             sx={{

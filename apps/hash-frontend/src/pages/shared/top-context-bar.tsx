@@ -1,25 +1,23 @@
+import { useRouter } from "next/router";
+import type { FunctionComponent, ReactElement, ReactNode , useMemo, useState } from "react";
 import { faCheck, faFile } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { SxProps, Theme } from "@mui/material";
-import {
-  Box,
+import type {   Box,
   Collapse,
   FormControlLabel,
   Switch,
+SxProps, Theme ,
   Typography,
 } from "@mui/material";
-import { useRouter } from "next/router";
-import type { FunctionComponent, ReactElement, ReactNode } from "react";
-import { useMemo, useState } from "react";
 
 import { isItemArchived } from "../../shared/is-archived";
 import { isEntityPageEntity } from "../../shared/is-of-type";
 import { useSidebarContext } from "../../shared/layout/layout-with-sidebar";
-import type { BreadcrumbsProps } from "./breadcrumbs";
-import { Breadcrumbs } from "./breadcrumbs";
+
+import type { Breadcrumbs,BreadcrumbsProps  } from "./breadcrumbs";
 import { ArchivedItemBanner } from "./top-context-bar/archived-item-banner";
 import { ContextBarActionsDropdown } from "./top-context-bar/context-bar-actions-dropdown";
 import { ShareDropdownMenu } from "./top-context-bar/share-dropdown-menu";
@@ -93,7 +91,7 @@ const PageRestoredMessageWrapper: FunctionComponent<{
         animationFillMode: "forwards",
       })}
     />
-    <Typography variant="smallTextParagraphs" sx={{ fontWeight: 500 }}>
+    <Typography variant={"smallTextParagraphs"} sx={{ fontWeight: 500 }}>
       {children}
     </Typography>
   </Box>
@@ -101,7 +99,7 @@ const PageRestoredMessageWrapper: FunctionComponent<{
 
 export const TOP_CONTEXT_BAR_HEIGHT = 50;
 
-type TopContextBarProps = {
+interface TopContextBarProps {
   actionMenuItems?: ReactElement[];
   crumbs: BreadcrumbsProps["crumbs"];
   item?: Entity | EntityTypeWithMetadata;
@@ -109,7 +107,7 @@ type TopContextBarProps = {
   scrollToTop?: () => void;
   sx?: SxProps<Theme>;
   breadcrumbsEndAdornment?: ReactNode;
-};
+}
 
 export const TopContextBar = ({
   actionMenuItems,
@@ -134,6 +132,7 @@ export const TopContextBar = ({
   // @todo make 'additional buttons' a prop and move this to the page page
   const setCanvasLockState = (shouldLock: boolean) => {
     const { locked: __, ...otherParams } = query;
+
     void replace({ query: { ...otherParams, locked: shouldLock } }, undefined, {
       shallow: true,
     });
@@ -164,7 +163,7 @@ export const TopContextBar = ({
           ...(Array.isArray(sx) ? sx : [sx]),
         ]}
       >
-        <Box display="flex" gap={1}>
+        <Box display={"flex"} gap={1}>
           <Breadcrumbs
             crumbs={crumbs}
             defaultIcon={defaultCrumbIcon}
@@ -193,7 +192,8 @@ export const TopContextBar = ({
           ) : null}
           {isCanvasPage && (
             <FormControlLabel
-              labelPlacement="start"
+              labelPlacement={"start"}
+              label={"Locked"}
               slotProps={{
                 typography: { fontSize: 14, fontWeight: 500, marginRight: 1 },
               }}
@@ -202,13 +202,12 @@ export const TopContextBar = ({
               }}
               control={
                 <Switch
-                  checked={!!query.locked}
-                  onChange={() => setCanvasLockState(!query.locked)}
+                  checked={Boolean(query.locked)}
                   inputProps={{ "aria-label": "controlled" }}
-                  size="medium"
+                  size={"medium"}
+                  onChange={() => { setCanvasLockState(!query.locked); }}
                 />
               }
-              label="Locked"
             />
           )}
         </Box>

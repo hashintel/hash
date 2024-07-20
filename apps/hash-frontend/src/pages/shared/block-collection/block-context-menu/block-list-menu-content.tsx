@@ -1,3 +1,5 @@
+import type { PopupState } from "material-ui-popup-state/hooks";
+import type { FunctionComponent , useEffect, useRef, useState } from "react";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, TextField } from "@hashintel/design-system";
 import type { HashBlock } from "@local/hash-isomorphic-utils/blocks";
@@ -9,19 +11,16 @@ import {
   MenuList,
   Typography,
 } from "@mui/material";
-import type { PopupState } from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
-import { useEffect, useRef, useState } from "react";
 
 import { MenuItem } from "../../../../shared/ui";
 import { useBlockView } from "../block-view";
 import { useFilteredBlocks } from "../shared/use-filtered-blocks";
 
-type BlockListMenuContentProps = {
+interface BlockListMenuContentProps {
   closeMenu?: () => void;
   popupState?: PopupState;
   compatibleBlocks: HashBlock[];
-};
+}
 
 export const BlockListMenuContent: FunctionComponent<
   BlockListMenuContentProps
@@ -46,30 +45,30 @@ export const BlockListMenuContent: FunctionComponent<
     <MenuList>
       <Box sx={{ mx: 0.75 }}>
         <TextField
-          placeholder="Search for blocks"
           fullWidth
-          size="xs"
-          onChange={(evt) => {
-            setSearchQuery(evt.target.value);
-          }}
-          onKeyDown={(evt) => {
-            evt.stopPropagation();
-          }}
+          placeholder={"Search for blocks"}
+          size={"xs"}
           value={searchQuery}
           InputProps={{
             inputRef: searchInputRef,
             startAdornment: (
-              <InputAdornment position="start">
+              <InputAdornment position={"start"}>
                 <FontAwesomeIcon icon={faSearch} />
               </InputAdornment>
             ),
+          }}
+          onChange={(event) => {
+            setSearchQuery(event.target.value);
+          }}
+          onKeyDown={(event) => {
+            event.stopPropagation();
           }}
         />
       </Box>
       {blocks.length === 0 && (
         <Box px={2.25}>
           <Typography
-            variant="smallTextLabels"
+            variant={"smallTextLabels"}
             sx={({ palette }) => ({
               color: palette.gray[60],
               fontWeight: 500,
@@ -81,15 +80,15 @@ export const BlockListMenuContent: FunctionComponent<
       )}
       {blocks.map((option) => (
         <MenuItem
+          key={`${option.meta.componentId}/${option.variant.name}`}
           onClick={() => {
             blockView.onBlockChange(option.variant, option.meta);
             closeMenu?.();
           }}
-          key={`${option.meta.componentId}/${option.variant.name}`}
         >
           <ListItemIcon>
             <Box
-              component="img"
+              component={"img"}
               width={16}
               height={16}
               alt={option.variant.name}

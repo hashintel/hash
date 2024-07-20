@@ -1,5 +1,5 @@
-import type { ApolloQueryResult } from "@apollo/client";
-import { useQuery } from "@apollo/client";
+import { useMemo } from "react";
+import type { ApolloQueryResult , useQuery } from "@apollo/client";
 import type { AccountId } from "@local/hash-graph-types/account";
 import {
   currentTimeInstantTemporalAxes,
@@ -9,18 +9,16 @@ import {
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { useMemo } from "react";
 
 import type {
   GetEntitySubgraphQuery,
   GetEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
-import type { User } from "../../lib/user-and-org";
-import { constructUser, isEntityUserEntity } from "../../lib/user-and-org";
+import type { constructUser, isEntityUserEntity,User  } from "../../lib/user-and-org";
 
 /**
- * Retrieves a specific set of users, with their avatars populated
+ * Retrieves a specific set of users, with their avatars populated.
  */
 export const useUsersWithLinks = ({
   userAccountIds,
@@ -77,7 +75,7 @@ export const useUsersWithLinks = ({
       },
     },
     fetchPolicy: "cache-and-network",
-    skip: !userAccountIds || !userAccountIds.length,
+    skip: !userAccountIds?.length,
   });
 
   const subgraph = data

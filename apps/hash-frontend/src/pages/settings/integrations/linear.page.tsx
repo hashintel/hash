@@ -1,9 +1,8 @@
+import type { FunctionComponent , useCallback, useEffect, useMemo, useState } from "react";
 import { useLazyQuery, useMutation } from "@apollo/client";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
 import { Box, Container, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type {
   GetLinearOrganizationQuery,
@@ -19,21 +18,20 @@ import type { NextPageWithLayout } from "../../../shared/layout";
 import { Button } from "../../../shared/ui";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { getSettingsLayout } from "../../shared/settings-layout";
-import type { LinearOrganizationTeamsWithWorkspaces } from "./linear/select-linear-teams-table";
-import {
+
+import type { LinearOrganizationTeamsWithWorkspaces ,
   mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces,
   mapLinearOrganizationToSyncWithWorkspacesInputVariable,
   SelectLinearTeamsTable,
 } from "./linear/select-linear-teams-table";
-import type { LinearIntegration } from "./linear/use-linear-integrations";
-import { useLinearIntegrations } from "./linear/use-linear-integrations";
+import type { LinearIntegration , useLinearIntegrations } from "./linear/use-linear-integrations";
 
 const LinearConnections: FunctionComponent<{
   connectedLinearOrganizations: GetLinearOrganizationQuery["getLinearOrganization"][];
 }> = ({ connectedLinearOrganizations }) => {
   return (
     <>
-      <Typography variant="h5">Linear Connections</Typography>
+      <Typography variant={"h5"}>Linear Connections</Typography>
       {connectedLinearOrganizations.map(({ id, name }) => (
         <Typography key={id}>Linear workspace: {name}</Typography>
       ))}
@@ -105,7 +103,7 @@ const DataAccess: FunctionComponent<{
 
   return (
     <>
-      <Typography variant="h5">Data Access</Typography>
+      <Typography variant={"h5"}>Data Access</Typography>
       <Typography>
         Once connected to HASH, the contents of Linear Workspaces which are
         visible to you can be made available to one or more HASH workspaces you
@@ -115,7 +113,7 @@ const DataAccess: FunctionComponent<{
         linearOrganizations={linearOrganizations}
         setLinearOrganizations={setLinearOrganizations}
       />
-      <Box display="flex" justifyContent="flex-end">
+      <Box display={"flex"} justifyContent={"flex-end"}>
         <Button
           loading={loadingSyncLinearIntegrationWithWorkspaces}
           onClick={handleSave}
@@ -153,9 +151,9 @@ const LinearIntegrationsPage: NextPageWithLayout = () => {
 
             if (data) {
               return data.getLinearOrganization;
-            } else {
+            } 
               throw new Error("Could not get linear organization");
-            }
+            
           }),
         );
 
@@ -166,7 +164,7 @@ const LinearIntegrationsPage: NextPageWithLayout = () => {
 
   return (
     <Container>
-      <Typography variant="h1" mt={10} mb={4} fontWeight="bold">
+      <Typography variant={"h1"} mt={10} mb={4} fontWeight={"bold"}>
         Linear
       </Typography>
       {connectedLinearOrganizations ? (

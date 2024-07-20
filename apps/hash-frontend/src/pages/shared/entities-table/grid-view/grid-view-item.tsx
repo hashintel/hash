@@ -1,3 +1,4 @@
+import type { FunctionComponent, ReactNode , useMemo } from "react";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -5,8 +6,6 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Typography } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
-import { useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { FileAudioLightIcon } from "../../../../shared/icons/file-audio-light-icon";
@@ -20,6 +19,7 @@ import { FileWordLightIcon } from "../../../../shared/icons/file-word-light-icon
 import { Link } from "../../../../shared/ui";
 import { getImageUrlFromEntityProperties } from "../../get-file-properties";
 import { useEntityHref } from "../../use-entity-href";
+
 import { GridViewItemWrapper } from "./grid-view-item-wrapper";
 
 /**
@@ -116,6 +116,7 @@ export const GridViewItem: FunctionComponent<{
         return iconByMimeType;
       }
     }
+
     return defaultFileIcon;
   }, [fileEntity]);
 
@@ -127,7 +128,7 @@ export const GridViewItem: FunctionComponent<{
 
   return (
     <GridViewItemWrapper numberOfItems={numberOfItems} index={index}>
-      <Link href={href} noLinkStyle>
+      <Link noLinkStyle href={href}>
         <Box
           title={fileName}
           sx={{
@@ -155,7 +156,7 @@ export const GridViewItem: FunctionComponent<{
           >
             {imageUrl ? (
               <Box
-                component="img"
+                component={"img"}
                 src={imageUrl}
                 alt={fileName ?? "image"}
                 sx={{
@@ -211,7 +212,7 @@ export const GridViewItem: FunctionComponent<{
               {fileNameWithoutExtension}
               {fileExtension ? (
                 <Box
-                  component="span"
+                  component={"span"}
                   sx={{
                     color: ({ palette }) => palette.gray[50],
                     fontWeight: 400,

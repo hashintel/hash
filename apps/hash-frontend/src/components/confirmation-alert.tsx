@@ -1,3 +1,4 @@
+import type { FunctionComponent, ReactNode } from "react";
 import {
   Dialog,
   DialogActions,
@@ -5,17 +6,16 @@ import {
   DialogContentText,
   DialogTitle,
 } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
 
 import { Button } from "../shared/ui";
 
-type ConfirmationAlertProps = {
+interface ConfirmationAlertProps {
   children: ReactNode;
   open: boolean;
   onClose: () => void;
   onContinue: () => void;
   title: string;
-};
+}
 
 export const ConfirmationAlert: FunctionComponent<ConfirmationAlertProps> = ({
   children,
@@ -28,19 +28,19 @@ export const ConfirmationAlert: FunctionComponent<ConfirmationAlertProps> = ({
     <div>
       <Dialog
         open={open}
+        aria-labelledby={"alert-dialog-title"}
+        aria-describedby={"alert-dialog-description"}
         onClose={onClose}
-        aria-labelledby="alert-dialog-title"
-        aria-describedby="alert-dialog-description"
       >
-        <DialogTitle id="alert-dialog-title">{title}</DialogTitle>
+        <DialogTitle id={"alert-dialog-title"}>{title}</DialogTitle>
         <DialogContent>
-          <DialogContentText id="alert-dialog-description">
+          <DialogContentText id={"alert-dialog-description"}>
             {children}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>Cancel</Button>
-          <Button onClick={onContinue} autoFocus>
+          <Button autoFocus onClick={onContinue}>
             Continue
           </Button>
         </DialogActions>

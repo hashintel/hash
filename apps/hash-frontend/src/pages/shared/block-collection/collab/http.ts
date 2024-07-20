@@ -2,23 +2,25 @@ import { StatusError } from "./status-error";
 
 const makePlain = (html?: string | null | undefined) => {
   const elt = document.createElement("div");
+
   elt.innerHTML = html ?? "";
+
   return elt.textContent?.replace(/\n[^]*|\s+$/g, "") ?? "";
 };
 
 /**
  * @deprecated
- * @todo remove
+ * @todo Remove.
  */
 export type AbortingPromise<T> = Promise<T> & { abort: () => void };
 
 // A simple wrapper for XHR.
 /**
- * @todo use signal
- * @todo replace with fetch
+ * @todo Use signal.
+ * @todo Replace with fetch.
  */
 export const req = (
-  conf: {
+  config: {
     method: string;
     url: string;
     headers?: Record<string, string>;
@@ -34,7 +36,7 @@ export const req = (
 
   return Object.assign(
     new Promise<string>((resolve, reject) => {
-      request.open(conf.method, conf.url, true);
+      request.open(config.method, config.url, true);
       request.withCredentials = true;
       request.addEventListener("load", () => {
         if (aborted) {
@@ -45,18 +47,20 @@ export const req = (
           resolve(request.responseText);
         } else {
           let text = request.responseText;
+
           if (
             text &&
-            /html/.test(request.getResponseHeader("content-type") ?? "")
+            (request.getResponseHeader("content-type") ?? "").includes('html')
           ) {
             text = makePlain(text);
           }
-          const err = new StatusError(
+          const error = new StatusError(
             request.status,
             `Request failed: ${request.statusText}${text ? `\n\n${text}` : ""}`,
           );
+
           finished = true;
-          reject(err);
+          reject(error);
         }
       });
       request.addEventListener("error", () => {
@@ -65,12 +69,12 @@ export const req = (
           reject(new Error("Network error"));
         }
       });
-      if (conf.headers) {
-        for (const header of Object.keys(conf.headers)) {
-          request.setRequestHeader(header, conf.headers[header]!);
+      if (config.headers) {
+        for (const header of Object.keys(config.headers)) {
+          request.setRequestHeader(header, config.headers[header]!);
         }
       }
-      request.send(conf.body ?? null);
+      request.send(config.body ?? null);
     }),
     {
       abort() {

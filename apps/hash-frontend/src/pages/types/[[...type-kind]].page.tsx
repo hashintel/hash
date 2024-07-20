@@ -1,19 +1,19 @@
+import type { GetServerSideProps } from "next";
+import { NextSeo } from "next-seo";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { DataTypeRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, Container, Typography } from "@mui/material";
-import type { GetServerSideProps } from "next";
-import { NextSeo } from "next-seo";
-import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useBlockProtocolQueryDataTypes } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-data-types";
 import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { FilesLightIcon } from "../../shared/icons/files-light-icon";
-import type { NextPageWithLayout } from "../../shared/layout";
-import { getLayoutWithSidebar } from "../../shared/layout";
+import type { getLayoutWithSidebar,NextPageWithLayout  } from "../../shared/layout";
 import { usePropertyTypes } from "../../shared/property-types-context";
 import { TopContextBar } from "../shared/top-context-bar";
+
 import {
   tabTitles,
   TypesPageTabs,
@@ -29,15 +29,15 @@ const parsedQueryParams = [
 
 type ParsedQueryKindParam = (typeof parsedQueryParams)[number];
 
-type ParsedQueryParams = {
+interface ParsedQueryParams {
   ["type-kind"]?: ParsedQueryKindParam[];
-};
+}
 
 export type TabId = "all" | ParsedQueryKindParam;
 
-type TypesPageProps = {
+interface TypesPageProps {
   currentTab: TabId;
-};
+}
 
 export const getServerSideProps: GetServerSideProps<
   TypesPageProps,
@@ -100,7 +100,7 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
 
   const fetchDataTypes = useCallback(
     async () =>
-      await queryDataTypes({ data: {} }).then(({ data: dataTypesSubgraph }) => {
+      queryDataTypes({ data: {} }).then(({ data: dataTypesSubgraph }) => {
         if (dataTypesSubgraph) {
           setLatestDataTypes(getRoots<DataTypeRootType>(dataTypesSubgraph));
         }
@@ -156,9 +156,10 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
 
   return (
     <>
-      <NextSeo title="Types" />
+      <NextSeo title={"Types"} />
       <TopContextBar
         defaultCrumbIcon={null}
+        scrollToTop={() => {}}
         crumbs={[
           {
             title: "Types",
@@ -175,7 +176,6 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
               ]
             : []),
         ]}
-        scrollToTop={() => {}}
       />
       <Box
         sx={{
@@ -186,8 +186,8 @@ const TypesPage: NextPageWithLayout<TypesPageProps> = ({ currentTab }) => {
         }}
       >
         <Container sx={{ maxWidth: { lg: contentMaxWidth } }}>
-          <Typography variant="h1" fontWeight="bold" my={3}>
-            <Box display="inline-flex">
+          <Typography variant={"h1"} fontWeight={"bold"} my={3}>
+            <Box display={"inline-flex"}>
               <FilesLightIcon
                 sx={({ palette }) => ({
                   fontSize: 40,

@@ -2,8 +2,7 @@ import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import type { SourceProvenance } from "@local/hash-graph-client";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { Subgraph } from "@local/hash-subgraph";
-import { splitEntityId } from "@local/hash-subgraph";
+import type { splitEntityId,Subgraph  } from "@local/hash-subgraph";
 import {
   Backdrop,
   Box,
@@ -62,7 +61,7 @@ const SourceRow = ({ source }: { source: SourceProvenance }) => {
             })}
           />
           <Box
-            component="span"
+            component={"span"}
             sx={{
               textTransform: "capitalize",
               fontWeight: 500,
@@ -91,7 +90,7 @@ const SourceRow = ({ source }: { source: SourceProvenance }) => {
         {sourceUrl ? (
           <Link
             href={sourceUrl}
-            target="_blank"
+            target={"_blank"}
             sx={{
               textDecoration: "none",
               wordBreak: "break-word",
@@ -119,16 +118,20 @@ export const SourcesSlideover = ({
   subgraph: Subgraph;
 }) => {
   let headerText;
+
   switch (event.type) {
-    case "created":
+    case "created": {
       headerText = "Entity Created";
       break;
-    case "property-update":
+    }
+    case "property-update": {
       headerText = "Attribute Updated";
       break;
-    case "type-update":
+    }
+    case "type-update": {
       headerText = "Type Updated";
       break;
+    }
   }
 
   const sources =
@@ -139,13 +142,13 @@ export const SourcesSlideover = ({
   return (
     <Backdrop
       open={open}
-      onClick={onClose}
       sx={{
         zIndex: ({ zIndex }) => zIndex.drawer + 2,
         justifyContent: "flex-end",
       }}
+      onClick={onClose}
     >
-      <Slide in={open} direction="left">
+      <Slide in={open} direction={"left"}>
         <Stack
           sx={{
             height: "100vh",
@@ -161,12 +164,12 @@ export const SourcesSlideover = ({
             }}
           >
             <Typography
-              variant="h5"
+              variant={"h5"}
               sx={{ color: ({ palette }) => palette.gray[90], mb: 2 }}
             >
               {headerText}
             </Typography>
-            <Stack direction="row" alignItems="center">
+            <Stack direction={"row"} alignItems={"center"}>
               <EventDetail event={event} subgraph={subgraph} />
             </Stack>
           </Box>
@@ -178,16 +181,16 @@ export const SourcesSlideover = ({
             }}
           >
             <Typography
-              variant="h5"
+              variant={"h5"}
               sx={{ color: ({ palette }) => palette.gray[90], mb: 2 }}
             >
               Sources
             </Typography>
             <TableContainer
-              onClick={(evt) => evt.stopPropagation()}
               sx={{
                 [`&.${tableContainerClasses.root}`]: { overflowY: "auto" },
               }}
+              onClick={(event_) => { event_.stopPropagation(); }}
             >
               <Table
                 sx={[

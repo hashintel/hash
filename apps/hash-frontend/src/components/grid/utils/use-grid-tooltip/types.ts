@@ -1,19 +1,19 @@
-import type { CustomCell } from "@glideapps/glide-data-grid";
 import type { ReactElement } from "react";
+import type { CustomCell } from "@glideapps/glide-data-grid";
 
 import type { CustomIcon } from "../custom-grid-icons";
 
-export type GridTooltip = {
+export interface GridTooltip {
   colIndex: number;
   rowIndex: number;
   text: string;
   iconX: number;
-};
+}
 
-export type CellTooltipData = {
+export interface CellTooltipData {
   text: string;
   icon: CustomIcon;
-};
+}
 
 export interface TooltipCellProps {
   tooltips: CellTooltipData[];

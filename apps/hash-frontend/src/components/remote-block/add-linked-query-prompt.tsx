@@ -1,5 +1,5 @@
-import { Box, Typography } from "@mui/material";
 import type { FunctionComponent } from "react";
+import { Box, Typography } from "@mui/material";
 
 import { useBlockContext } from "../../pages/shared/block-collection/block-context";
 import { Button } from "../../shared/ui";
@@ -26,23 +26,23 @@ export const AddLinkedQueryPrompt: FunctionComponent<{
     >
       {blockIconSrc ? (
         <Box
-          component="img"
+          component={"img"}
+          src={blockIconSrc}
           sx={{
             height: 42,
             width: 42,
             marginBottom: 1,
           }}
-          src={blockIconSrc}
         />
       ) : null}
-      <Typography gutterBottom textAlign="center">
+      <Typography gutterBottom textAlign={"center"}>
         The <strong>{blockName.toLowerCase()} block</strong> needs to know what
         information to display
       </Typography>
       <Button
-        variant="tertiary"
-        onClick={() => setBlockSelectDataModalIsOpen(true)}
-        size="small"
+        variant={"tertiary"}
+        size={"small"}
+        onClick={() => { setBlockSelectDataModalIsOpen(true); }}
       >
         Click here to select data
       </Button>

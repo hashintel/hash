@@ -24,7 +24,7 @@ const callExternalApiMethod = async (params: {
 
   if (response.ok) {
     return { data: data.externalServiceMethodResponse };
-  } else {
+  } 
     const { status } = response;
 
     return {
@@ -46,7 +46,7 @@ const callExternalApiMethod = async (params: {
         },
       ],
     };
-  }
+  
 };
 
 export const serviceModuleCallbacks: ServiceEmbedderMessageCallbacks = {

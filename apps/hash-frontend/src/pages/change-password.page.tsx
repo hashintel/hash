@@ -1,15 +1,14 @@
+import type { AxiosError } from "axios";
+import { useRouter } from "next/router";
+import type { FormEventHandler , useEffect, useState } from "react";
 import { TextField } from "@hashintel/design-system";
 import { Box, Container, Typography } from "@mui/material";
 import type { SettingsFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
-import type { AxiosError } from "axios";
-import { useRouter } from "next/router";
-import type { FormEventHandler } from "react";
-import { useEffect, useState } from "react";
 
-import type { NextPageWithLayout } from "../shared/layout";
-import { getPlainLayout } from "../shared/layout";
+import type { getPlainLayout,NextPageWithLayout  } from "../shared/layout";
 import { Button } from "../shared/ui";
+
 import {
   gatherUiNodeValuesFromFlow,
   oryKratosClient,
@@ -42,8 +41,9 @@ const ChangePasswordPage: NextPageWithLayout = () => {
     if (flowId) {
       oryKratosClient
         .getSettingsFlow({ id: String(flowId) })
-        .then(({ data }) => setFlow(data))
+        .then(({ data }) => { setFlow(data); })
         .catch(handleFlowError);
+
       return;
     }
 
@@ -52,7 +52,7 @@ const ChangePasswordPage: NextPageWithLayout = () => {
       .createBrowserSettingsFlow({
         returnTo: returnTo ? String(returnTo) : undefined,
       })
-      .then(({ data }) => setFlow(data))
+      .then(({ data }) => { setFlow(data); })
       .catch(handleFlowError);
   }, [flowId, router, router.isReady, returnTo, flow, handleFlowError]);
 
@@ -96,6 +96,7 @@ const ChangePasswordPage: NextPageWithLayout = () => {
         if (error.response?.status === 400) {
           // Yup, it is!
           setFlow(error.response.data);
+
           return;
         }
 
@@ -110,12 +111,11 @@ const ChangePasswordPage: NextPageWithLayout = () => {
 
   return (
     <Container sx={{ pt: 10 }}>
-      <Typography variant="h1" gutterBottom>
+      <Typography gutterBottom variant={"h1"}>
         Change your password
       </Typography>
       <Box
-        component="form"
-        onSubmit={handlePasswordSubmit}
+        component={"form"}
         sx={{
           display: "flex",
           flexDirection: "column",
@@ -124,23 +124,24 @@ const ChangePasswordPage: NextPageWithLayout = () => {
             marginTop: 1,
           },
         }}
+        onSubmit={handlePasswordSubmit}
       >
         <TextField
-          label="Password"
-          type="password"
-          autoComplete="off"
-          placeholder="Enter your new password"
+          required
+          label={"Password"}
+          type={"password"}
+          autoComplete={"off"}
+          placeholder={"Enter your new password"}
           value={updatedPassword}
-          onChange={({ target }) => setUpdatedPassword(target.value)}
           error={
-            !!passwordInputUiNode?.messages.find(({ type }) => type === "error")
+            Boolean(passwordInputUiNode?.messages.find(({ type }) => type === "error"))
           }
           helperText={passwordInputUiNode?.messages.map(({ id, text }) => (
             <Typography key={id}>{text}</Typography>
           ))}
-          required
+          onChange={({ target }) => { setUpdatedPassword(target.value); }}
         />
-        <Button type="submit" disabled={!updatedPassword}>
+        <Button type={"submit"} disabled={!updatedPassword}>
           Change Password
         </Button>
         {flow?.ui.messages?.map(({ text, id }) => (

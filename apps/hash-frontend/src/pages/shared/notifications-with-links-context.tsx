@@ -1,3 +1,4 @@
+import type { createContext, FunctionComponent, PropsWithChildren , useContext, useMemo, useRef } from "react";
 import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
@@ -14,8 +15,7 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { SimpleProperties } from "@local/hash-isomorphic-utils/simplify-properties";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import type { SimpleProperties , simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
   Block as BlockProperties,
   Comment as CommentProperties,
@@ -30,20 +30,15 @@ import type { User as UserProperties } from "@local/hash-isomorphic-utils/system
 import type {
   EntityRootType,
   EntityVertex,
-  LinkEntityAndRightEntity,
-} from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+ extractEntityUuidFromEntityId,  LinkEntityAndRightEntity } from "@local/hash-subgraph";
 import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
-import type { FunctionComponent, PropsWithChildren } from "react";
-import { createContext, useContext, useMemo, useRef } from "react";
 
 import type {
   GetEntitySubgraphQuery,
   GetEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
-import type { MinimalUser } from "../../lib/user-and-org";
-import { constructMinimalUser } from "../../lib/user-and-org";
+import type { constructMinimalUser,MinimalUser  } from "../../lib/user-and-org";
 import { useNotificationEntities } from "../../shared/notification-entities-context";
 
 export type PageMentionNotification = {
@@ -91,9 +86,9 @@ export type GraphChangeNotification = {
 
 export type Notification = PageRelatedNotification | GraphChangeNotification;
 
-type NotificationsWithLinksContextValue = {
+interface NotificationsWithLinksContextValue {
   notifications?: Notification[];
-};
+}
 
 export const NotificationsWithLinksContext =
   createContext<null | NotificationsWithLinksContextValue>(null);
@@ -177,7 +172,7 @@ export const useNotificationsWithLinksContextValue =
     const notifications = useMemo<Notification[] | undefined>(() => {
       if (notificationEntities && notificationEntities.length === 0) {
         return [];
-      } else if (!outgoingLinksSubgraph || !notificationEntities) {
+      } if (!outgoingLinksSubgraph || !notificationEntities) {
         return previouslyFetchedNotificationsRef.current ?? undefined;
       }
 
@@ -268,7 +263,7 @@ export const useNotificationsWithLinksContextValue =
               occurredInText: occurredInText as Entity<TextWithTokens>,
               triggeredByUser,
             } satisfies PageMentionNotification;
-          } else if (
+          } if (
             entityTypeId === systemEntityTypes.commentNotification.entityTypeId
           ) {
             const occurredInEntity = outgoingLinks.find(
@@ -340,7 +335,7 @@ export const useNotificationsWithLinksContextValue =
                 triggeredByComment as Entity<CommentProperties>,
               triggeredByUser,
             } satisfies NewCommentNotification;
-          } else if (
+          } if (
             entityTypeId ===
             systemEntityTypes.graphChangeNotification.entityTypeId
           ) {
@@ -373,6 +368,7 @@ export const useNotificationsWithLinksContextValue =
             }
 
             let occurredInEntity: Entity | undefined;
+
             for (const [vertexKey, editionMap] of typedEntries(
               outgoingLinksSubgraph.vertices,
             )) {
@@ -381,7 +377,7 @@ export const useNotificationsWithLinksContextValue =
                * We need to find the vertex that _starts with_ the entityId and contains an edition at the exact timestamp from the link.
                * Needing to do this is a limitation caused by:
                * 1. The fact that links only point to the entire Entity, not any specific edition or draft series of it
-               * 2. The logic for returning linked entities from the subgraph library will just return the non-draft entity if it is found
+               * 2. The logic for returning linked entities from the subgraph library will just return the non-draft entity if it is found.
                */
               if (!vertexKey.startsWith(linkRightEntityId)) {
                 continue;
@@ -433,14 +429,13 @@ export const useNotificationsWithLinksContextValue =
           throw new Error(`Notification of type "${entityTypeId}" not handled`);
         })
         .filter(
-          (notification): notification is NonNullable<typeof notification> =>
-            !!notification,
+          Boolean,
         )
 
         .sort((a, b) => {
           if (a.readAt && !b.readAt) {
             return 1;
-          } else if (b.readAt && !a.readAt) {
+          } if (b.readAt && !a.readAt) {
             return -1;
           }
 
@@ -452,9 +447,11 @@ export const useNotificationsWithLinksContextValue =
           );
 
           const timeDifference = bCreatedAt.getTime() - aCreatedAt.getTime();
+
           if (timeDifference !== 0) {
             return timeDifference;
           }
+
           return a.entity.metadata.recordId.entityId >
             b.entity.metadata.recordId.entityId
             ? 1

@@ -1,3 +1,4 @@
+import { useMemo, useRef, useState } from "react";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import {
   Chip,
@@ -7,7 +8,6 @@ import {
 } from "@hashintel/design-system";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { BoxProps } from "@mui/material";
-import { useMemo, useRef, useState } from "react";
 
 import { useLatestEntityTypesOptional } from "../../shared/entity-types-context/hooks";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
@@ -61,15 +61,23 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
 
   return (
     <SelectorAutocomplete<EntityTypeWithMetadata, Multiple>
+      autoFocus={autoFocus}
+      inputHeight={inputHeight}
+      options={filteredEntityTypes ?? []}
+      multiple={multiple}
+      open={open}
+      inputValue={search}
+      sx={[{ maxWidth: 440 }, ...(Array.isArray(sx) ? sx : [sx])]}
+      value={value}
       dropdownProps={{
         query: search,
         creationProps: {
           createButtonProps: disableCreate
             ? null
             : {
-                onMouseDown: (evt) => {
-                  evt.preventDefault();
-                  evt.stopPropagation();
+                onMouseDown: (event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
                   onCreateNew?.(search);
                 },
                 disabled: disableCreateNewEmpty && search === "",
@@ -77,16 +85,13 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
           variant: "entity type",
         },
       }}
-      autoFocus={autoFocus}
-      inputHeight={inputHeight}
-      options={filteredEntityTypes ?? []}
-      multiple={multiple}
       filterOptions={(options, { inputValue }) => {
         return options.filter((option) => {
           const { title, description } = option.schema;
           const lowercaseInput = inputValue.toLowerCase();
+
           return (
-            !!description?.toLowerCase().includes(lowercaseInput) ||
+            Boolean(description?.toLowerCase().includes(lowercaseInput)) ||
             title.toLowerCase().includes(lowercaseInput)
           );
         });
@@ -112,46 +117,42 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
           ? `Search for ${multiple ? "entity types" : "an entity type"}`
           : undefined
       }
-      open={open}
-      onOpen={() => setOpen(true)}
+      renderTags={(tagValue, getTagProps) =>
+        tagValue.map((option, index) => (
+          <Chip
+            {...getTagProps({ index })}
+            key={option.schema.$id}
+            variant={"outlined"}
+            label={option.schema.title}
+          />
+        ))
+      }
+      onOpen={() => { setOpen(true); }}
+      onInputChange={(_, searchValue) => { setSearch(searchValue); }}
       onClose={(_, reason) => {
         if (reason !== "toggleInput") {
           setOpen(false);
         }
       }}
-      inputValue={search}
-      onInputChange={(_, searchValue) => setSearch(searchValue)}
       onHighlightChange={(_, highlightedValue) => {
         highlightedRef.current = highlightedValue;
       }}
       onChange={(_, option) => {
         onSelect(option);
       }}
-      onKeyUp={(evt) => {
-        if (evt.key === "Enter" && !highlightedRef.current) {
+      onKeyUp={(event) => {
+        if (event.key === "Enter" && !highlightedRef.current) {
           onCreateNew?.(search);
         }
       }}
-      onKeyDown={(evt) => {
-        if (evt.key === "Escape") {
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
           onCancel?.();
         }
       }}
       onClickAway={() => {
         onCancel?.();
       }}
-      renderTags={(tagValue, getTagProps) =>
-        tagValue.map((option, index) => (
-          <Chip
-            {...getTagProps({ index })}
-            key={option.schema.$id}
-            variant="outlined"
-            label={option.schema.title}
-          />
-        ))
-      }
-      sx={[{ maxWidth: 440 }, ...(Array.isArray(sx) ? sx : [sx])]}
-      value={value}
     />
   );
 };

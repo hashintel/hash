@@ -13,6 +13,7 @@ export const Deliverables = ({
   deliverables: DeliverableData[];
 }) => {
   const hasDeliverables = deliverables.length > 0;
+
   return (
     <OutputContainer
       sx={{
@@ -38,7 +39,7 @@ export const Deliverables = ({
       ) : (
         <EmptyOutputBox
           Icon={outputIcons.deliverables}
-          label="The outputs of this flow marked as deliverables will appear here when ready"
+          label={"The outputs of this flow marked as deliverables will appear here when ready"}
         />
       )}
     </OutputContainer>

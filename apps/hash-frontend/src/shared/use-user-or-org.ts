@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
@@ -22,7 +23,6 @@ import type {
   QueryTemporalAxesUnresolved,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { useMemo } from "react";
 
 import type {
   GetEntitySubgraphQuery,
@@ -112,7 +112,7 @@ export const useUserOrOrg = (
     const rootEntity = subgraph
       ? getRoots(subgraph).reduce<
           Entity<Organization> | Entity<User> | undefined
-        >((prev, currentEntity) => {
+        >((previous, currentEntity) => {
           if (
             !isEntityUserEntity(currentEntity) &&
             !isEntityOrgEntity(currentEntity)
@@ -122,17 +122,18 @@ export const useUserOrOrg = (
             );
           }
 
-          if (!prev) {
+          if (!previous) {
             return currentEntity;
           }
 
           if (
-            prev.metadata.temporalVersioning.decisionTime.start.limit <
+            previous.metadata.temporalVersioning.decisionTime.start.limit <
             currentEntity.metadata.temporalVersioning.decisionTime.start.limit
           ) {
             return currentEntity;
           }
-          return prev;
+
+          return previous;
         }, undefined)
       : undefined;
 
@@ -143,12 +144,10 @@ export const useUserOrOrg = (
       : undefined;
 
     return {
-      canUserEdit: !!(
-        rootEntity &&
+      canUserEdit: Boolean(rootEntity &&
         data?.getEntitySubgraph.userPermissionsOnEntities?.[
           rootEntity.metadata.recordId.entityId
-        ]?.edit
-      ),
+        ]?.edit),
       userOrOrgSubgraph,
       userOrOrg: rootEntity,
       loading,

@@ -1,9 +1,9 @@
 import type { Row } from "./rows";
 
-export type ColumnFilter<
+export interface ColumnFilter<
   ColumnKey extends string,
   RowType extends Row & { rowId: string } = Row & { rowId: string },
-> = {
+> {
   columnKey: ColumnKey;
   filterItems: {
     id: string;
@@ -12,4 +12,4 @@ export type ColumnFilter<
   selectedFilterItemIds: string[];
   setSelectedFilterItemIds: (selectedFilterItemIds: string[]) => void;
   isRowFiltered: (row: RowType) => boolean;
-};
+}

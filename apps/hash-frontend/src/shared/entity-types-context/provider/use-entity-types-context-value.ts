@@ -1,7 +1,7 @@
+import { useCallback, useMemo, useRef, useState } from "react";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { getEntityTypes } from "@local/hash-subgraph/stdlib";
-import { useCallback, useMemo, useRef, useState } from "react";
 
 import { useBlockProtocolQueryEntityTypes } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
 import type { EntityTypesContextValue } from "../shared/context-types";
@@ -30,6 +30,7 @@ export const useEntityTypesContextValue = (): EntityTypesContextValue => {
   const fetch = useCallback(async () => {
     controllerRef.current?.abort();
     const controller = new AbortController();
+
     controllerRef.current = controller;
     fetched.current = true;
 

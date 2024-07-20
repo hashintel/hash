@@ -1,3 +1,5 @@
+import { useRouter } from "next/router";
+import { useCallback, useMemo, useState } from "react";
 import { useQuery } from "@apollo/client";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
@@ -15,8 +17,6 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Container, Typography } from "@mui/material";
-import { useRouter } from "next/router";
-import { useCallback, useMemo, useState } from "react";
 
 import type {
   GetEntitySubgraphQuery,
@@ -29,14 +29,13 @@ import {
   isEntityUserEntity,
 } from "../lib/user-and-org";
 import { useLatestEntityTypesOptional } from "../shared/entity-types-context/hooks";
-import type { NextPageWithLayout } from "../shared/layout";
-import { getLayoutWithSidebar } from "../shared/layout";
+import type { getLayoutWithSidebar,NextPageWithLayout  } from "../shared/layout";
 import { useUserOrOrg } from "../shared/use-user-or-org";
+
 import { EditUserProfileInfoModal } from "./[shortname].page/edit-user-profile-info-modal";
 import { ProfilePageContent } from "./[shortname].page/profile-page-content";
 import { ProfilePageHeader } from "./[shortname].page/profile-page-header";
-import type { ProfilePageTab } from "./[shortname].page/util";
-import { parseProfilePageUrlQueryParams } from "./[shortname].page/util";
+import type { parseProfilePageUrlQueryParams,ProfilePageTab  } from "./[shortname].page/util";
 import { useEnabledFeatureFlags } from "./shared/use-enabled-feature-flags";
 
 const ProfilePage: NextPageWithLayout = () => {
@@ -72,12 +71,13 @@ const ProfilePage: NextPageWithLayout = () => {
         subgraph: userOrOrgSubgraph,
         userEntity: userOrOrg,
       });
-    } else {
+    }
+ 
       return constructOrg({
         orgEntity: userOrOrg,
         subgraph: userOrOrgSubgraph,
       });
-    }
+    
   }, [userOrOrgSubgraph, userOrOrg]);
 
   const profileNotFound = !profile && !loading;
@@ -191,6 +191,7 @@ const ProfilePage: NextPageWithLayout = () => {
           );
 
           let entityTypeAndDescendants = entityType ? [entityType] : [];
+
           try {
             entityTypeAndDescendants =
               entityType && entitiesSubgraph
@@ -248,6 +249,7 @@ const ProfilePage: NextPageWithLayout = () => {
     if (!matchingTab) {
       return tabsWithEntities[0]!;
     }
+
     return matchingTab;
   }, [tabsWithEntities, currentTabTitle]);
 
@@ -262,7 +264,7 @@ const ProfilePage: NextPageWithLayout = () => {
 
   return profileNotFound ? (
     <Container sx={{ paddingTop: 5 }}>
-      <Typography variant="h2">Profile not found</Typography>
+      <Typography variant={"h2"}>Profile not found</Typography>
     </Container>
   ) : (
     <>
@@ -284,9 +286,9 @@ const ProfilePage: NextPageWithLayout = () => {
       {profile && profile.kind === "user" ? (
         <EditUserProfileInfoModal
           open={displayEditUserProfileInfoModal}
-          onClose={() => setDisplayEditUserProfileInfoModal(false)}
           userProfile={profile}
           refetchUserProfile={refetchProfile}
+          onClose={() => { setDisplayEditUserProfileInfoModal(false); }}
         />
       ) : undefined}
     </>

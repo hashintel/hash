@@ -1,20 +1,18 @@
+import { useRouter } from "next/router";
+import type { FunctionComponent, ReactNode , useCallback, useEffect, useState } from "react";
 import { CaretDownSolidIcon, IconButton } from "@hashintel/design-system";
-import type { SvgIconProps } from "@mui/material";
-import {
-  Box,
+import type {   Box,
   Collapse,
   ListItem,
   styled,
+SvgIconProps ,
   Typography,
   useTheme,
 } from "@mui/material";
-import { useRouter } from "next/router";
-import type { FunctionComponent, ReactNode } from "react";
-import { useCallback, useEffect, useState } from "react";
 
 import { Link } from "../../../shared/ui/link";
 
-export type SidebarItemData = {
+export interface SidebarItemData {
   // allow for items to have a conceptual href that doesn't exist but represents their position in the hierarchy
   activeIfPathStartsWith?: string;
   children?: SidebarItemData[];
@@ -23,7 +21,7 @@ export type SidebarItemData = {
   href: string;
   icon?: FunctionComponent<SvgIconProps> | ReactNode;
   parentHref?: string;
-};
+}
 
 const ItemLink = styled(Link)<{
   active: boolean;
@@ -55,12 +53,12 @@ const SidebarItem = ({
   level: number;
   setItemExpanded: (item: SidebarItemData, shouldExpand: boolean) => void;
 }) => {
-  const expandableViaButtton = level > 1 && !!item.children?.length;
+  const expandableViaButtton = level > 1 && Boolean(item.children?.length);
 
   const router = useRouter();
   const active =
     router.asPath.startsWith(item.href) ||
-    (!!item.activeIfPathStartsWith &&
+    (Boolean(item.activeIfPathStartsWith) &&
       router.asPath.startsWith(item.activeIfPathStartsWith));
 
   const parentActive =
@@ -123,7 +121,7 @@ const SidebarItem = ({
               item.icon
             )
           ) : (
-            <Box width="1rem" minWidth="1rem" mr={1.2} />
+            <Box width={"1rem"} minWidth={"1rem"} mr={1.2} />
           )}
         </Box>
         {level === 3 && active ? (
@@ -148,13 +146,9 @@ const SidebarItem = ({
         </ItemLink>
         {expandableViaButtton && (
           <IconButton
-            onClick={(event) => {
-              event.stopPropagation();
-              setItemExpanded(item, !expanded);
-            }}
-            size="small"
             unpadded
             rounded
+            size={"small"}
             sx={({ transitions }) => ({
               ml: 0.5,
               visibility: "visible",
@@ -164,6 +158,10 @@ const SidebarItem = ({
                 duration: 300,
               }),
             })}
+            onClick={(event) => {
+              event.stopPropagation();
+              setItemExpanded(item, !expanded);
+            }}
           >
             <CaretDownSolidIcon
               sx={{
@@ -205,6 +203,7 @@ export const SettingsSidebar = ({
   const findItemAndParentsHrefs = useCallback(
     (item: SidebarItemData) => {
       const itemAndParents = [item];
+
       do {
         const parent =
           itemAndParents[0]!.parentHref &&
@@ -213,10 +212,12 @@ export const SettingsSidebar = ({
               itemAndParents[0]!.parentHref,
             ),
           );
+
         if (parent) {
           itemAndParents.unshift(parent);
         }
       } while (itemAndParents[0]!.parentHref);
+
       return itemAndParents.map((itemOption) => itemOption.href);
     },
     [menuItems],
@@ -238,9 +239,10 @@ export const SettingsSidebar = ({
       setExpandedItemHrefs((currentlyExpandedItems) => {
         if (shouldExpand) {
           return findItemAndParentsHrefs(itemToChange);
-        } else {
-          return currentlyExpandedItems.filter((i) => i !== itemToChange.href);
         }
+ 
+          return currentlyExpandedItems.filter((i) => i !== itemToChange.href);
+        
       });
     },
     [findItemAndParentsHrefs],
@@ -273,7 +275,7 @@ export const SettingsSidebar = ({
   return (
     <Box mr={4} width={200}>
       <Typography
-        variant="microText"
+        variant={"microText"}
         sx={({ palette }) => ({
           color: palette.gray[80],
           display: "block",

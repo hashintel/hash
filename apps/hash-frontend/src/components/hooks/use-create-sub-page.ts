@@ -1,17 +1,15 @@
+import { useRouter } from "next/router";
+import { useCallback } from "react";
 import { useMutation } from "@apollo/client";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
-import { useRouter } from "next/router";
-import { useCallback } from "react";
 
 import type {
   CreatePageMutation,
   CreatePageMutationVariables,
-  SetParentPageMutation,
-  SetParentPageMutationVariables,
-} from "../../graphql/api-types.gen";
-import { PageType } from "../../graphql/api-types.gen";
+ PageType,  SetParentPageMutation,
+  SetParentPageMutationVariables } from "../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { createPage, setParentPage } from "../../graphql/queries/page.queries";
 import { constructPageRelativeUrl } from "../../lib/routes";
@@ -47,7 +45,7 @@ export const useCreateSubPage = ({
   const createSubPage = useCallback(
     async (
       parentPageEntityId: EntityId,
-      prevFractionalIndex: string | null,
+      previousFractionalIndex: string | null,
       type: "canvas" | "document",
     ) => {
       if (!ownedById) {
@@ -72,7 +70,7 @@ export const useCreateSubPage = ({
           variables: {
             pageEntityId,
             parentPageEntityId,
-            prevFractionalIndex,
+            prevFractionalIndex: previousFractionalIndex,
           },
         });
 
@@ -82,6 +80,7 @@ export const useCreateSubPage = ({
           pageEntityId
         ) {
           const pageEntityUuid = extractEntityUuidFromEntityId(pageEntityId);
+
           return router.push(
             constructPageRelativeUrl({
               workspaceShortname: shortname,

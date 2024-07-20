@@ -1,6 +1,6 @@
+import { useController, useFormContext } from "react-hook-form";
 import { EditableField } from "@hashintel/block-design-system";
 import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
-import { useController, useFormContext } from "react-hook-form";
 
 interface EntityTypeDescriptionProps {
   readonly?: boolean;
@@ -20,7 +20,7 @@ export const EntityTypeDescription = ({
     <EditableField
       {...descriptionController.field}
       inputRef={descriptionController.field.ref}
-      placeholder="Enter a description"
+      placeholder={"Enter a description"}
       readonly={readonly}
     />
   );

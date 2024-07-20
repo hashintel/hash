@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import type { AccountId } from "@local/hash-graph-types/account";
 import {
@@ -10,7 +11,6 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import type { MachineProperties } from "@local/hash-isomorphic-utils/system-types/machine";
 import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { useMemo } from "react";
 
 import { useUsers } from "../components/hooks/use-users";
 import type {
@@ -20,11 +20,11 @@ import type {
 import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import type { MinimalUser } from "../lib/user-and-org";
 
-type MachineActor = {
+interface MachineActor {
   accountId: AccountId;
   kind: "machine";
   displayName: string;
-};
+}
 
 export const isAiMachineActor = (actor: MachineActor): actor is MachineActor =>
   actor.displayName.toLowerCase() === "hash ai";

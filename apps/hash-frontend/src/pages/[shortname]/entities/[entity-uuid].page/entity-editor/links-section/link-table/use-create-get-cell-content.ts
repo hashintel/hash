@@ -1,10 +1,10 @@
-import type { Item } from "@glideapps/glide-data-grid";
-import { GridCellKind } from "@glideapps/glide-data-grid";
 import { useCallback } from "react";
+import type { GridCellKind,Item  } from "@glideapps/glide-data-grid";
 
 import type { ChipCell } from "../../../../../../shared/chip-cell";
 import { useEntityEditor } from "../../entity-editor-context";
 import type { SummaryChipCell } from "../../shared/summary-chip-cell";
+
 import type { LinkCell } from "./cells/link-cell";
 import type { LinkedWithCell } from "./cells/linked-with-cell";
 import { linkGridIndexes } from "./constants";
@@ -32,10 +32,10 @@ export const useCreateGetCellContent = () => {
           throw new Error("columnKey not found");
         }
 
-        const expectsAnything = !row.expectedEntityTypeTitles.length;
+        const expectsAnything = row.expectedEntityTypeTitles.length === 0;
 
         switch (columnKey) {
-          case "linkTitle":
+          case "linkTitle": {
             return {
               kind: GridCellKind.Custom,
               readonly: true,
@@ -46,12 +46,13 @@ export const useCreateGetCellContent = () => {
                 linkRow: row,
               },
             };
-          case "linkedWith":
+          }
+          case "linkedWith": {
             return {
               kind: GridCellKind.Custom,
               readonly: true,
               allowOverlay: !readonly,
-              /** @todo add copy data */
+              /** @todo Add copy data */
               copyData: "",
               cursor: readonly ? "default" : "pointer",
               data: {
@@ -60,7 +61,8 @@ export const useCreateGetCellContent = () => {
                 readonly,
               },
             };
-          case "expectedEntityTypes":
+          }
+          case "expectedEntityTypes": {
             return {
               kind: GridCellKind.Custom,
               readonly: true,
@@ -76,6 +78,7 @@ export const useCreateGetCellContent = () => {
                 color: expectsAnything ? "blue" : "white",
               },
             };
+          }
         }
       },
     [readonly],

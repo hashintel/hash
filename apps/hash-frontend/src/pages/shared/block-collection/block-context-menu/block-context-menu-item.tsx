@@ -1,6 +1,3 @@
-import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
-import { ListItemIcon, ListItemText } from "@mui/material";
 import {
   bindFocus,
   bindHover,
@@ -8,18 +5,20 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 import HoverPopover from "material-ui-popup-state/HoverPopover";
-import type { ReactElement, RefObject } from "react";
-import {
-  cloneElement,
+import type {   cloneElement,
   forwardRef,
+ReactElement, RefObject ,
   useLayoutEffect,
   useRef,
   useState,
 } from "react";
+import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/design-system";
+import { ListItemIcon, ListItemText } from "@mui/material";
 
 import { MenuItem } from "../../../../shared/ui";
 
-type BlockContextMenuItemProps = {
+interface BlockContextMenuItemProps {
   closeMenu: () => void;
   itemKey: string;
   onClick?: () => void;
@@ -27,7 +26,7 @@ type BlockContextMenuItemProps = {
   title: string;
   subMenu?: ReactElement;
   subMenuWidth?: number;
-};
+}
 
 export const BlockContextMenuItem = forwardRef<
   HTMLLIElement,

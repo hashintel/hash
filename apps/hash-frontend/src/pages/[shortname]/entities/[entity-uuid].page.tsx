@@ -1,6 +1,8 @@
+import NextErrorComponent from "next/error";
+import { useRouter } from "next/router";
+import { useCallback, useEffect, useState } from "react";
 import { useLazyQuery, useMutation } from "@apollo/client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import {
+import type { Entity ,
   mergePropertyObjectAndMetadata,
   patchesFromPropertyObjects,
 } from "@local/hash-graph-sdk/entity";
@@ -21,16 +23,12 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import {
-  entityIdFromComponents,
-  extractDraftIdFromEntityId,
+import type {   entityIdFromComponents,
+EntityRootType,   extractDraftIdFromEntityId,
+Subgraph ,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import NextErrorComponent from "next/error";
-import { useRouter } from "next/router";
-import { useCallback, useEffect, useState } from "react";
 
 import { useBlockProtocolGetEntityType } from "../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";
 import { PageErrorState } from "../../../components/page-error-state";
@@ -41,10 +39,10 @@ import type {
   UpdateEntityMutationVariables,
 } from "../../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../../graphql/queries/knowledge/entity.queries";
-import type { NextPageWithLayout } from "../../../shared/layout";
-import { getLayoutWithSidebar } from "../../../shared/layout";
+import type { getLayoutWithSidebar,NextPageWithLayout  } from "../../../shared/layout";
 import { EditBar } from "../shared/edit-bar";
 import { useRouteNamespace } from "../shared/use-route-namespace";
+
 import { EntityEditorPage } from "./[entity-uuid].page/entity-editor-page";
 import { EntityPageLoadingState } from "./[entity-uuid].page/entity-page-loading-state";
 import { updateEntitySubgraphStateByEntity } from "./[entity-uuid].page/shared/update-entity-subgraph-state-by-entity";
@@ -117,7 +115,7 @@ const Page: NextPageWithLayout = () => {
           isOfType: { outgoing: 1 },
           hasLeftEntity: { outgoing: 1, incoming: 1 },
           hasRightEntity: { outgoing: 1, incoming: 1 },
-          includeDrafts: !!draftId,
+          includeDrafts: Boolean(draftId),
         },
       }),
     [draftId, lazyGetEntity],
@@ -220,6 +218,7 @@ const Page: NextPageWithLayout = () => {
       setSavingChanges(true);
 
       const entity = getRoots(entitySubgraphFromDb)[0];
+
       if (!entity) {
         throw new Error(`entity not found in subgraph`);
       }
@@ -272,14 +271,16 @@ const Page: NextPageWithLayout = () => {
         const entityHref = generateEntityPath({
           shortname: routeNamespace.shortname,
           entityId,
-          includeDraftId: !!latestDraftId,
+          includeDraftId: Boolean(latestDraftId),
         });
+
         void router.replace(entityHref);
+
         return;
       }
 
       /**
-       * If the entityId hasn't changed we can just refetch
+       * If the entityId hasn't changed we can just refetch.
        */
       void refetch();
     },
@@ -295,13 +296,14 @@ const Page: NextPageWithLayout = () => {
   }
 
   const draftEntity = getRoots(draftEntitySubgraph)[0];
+
   if (!draftEntity) {
     return <NextErrorComponent statusCode={404} />;
   }
 
   const entityLabel = generateEntityLabel(draftEntitySubgraph);
   const isModifyingEntity =
-    isDirty || !!draftLinksToCreate.length || !!draftLinksToArchive.length;
+    isDirty || draftLinksToCreate.length > 0 || draftLinksToArchive.length > 0;
 
   const isQueryEntity =
     draftEntity.metadata.entityTypeId ===
@@ -310,19 +312,6 @@ const Page: NextPageWithLayout = () => {
   return (
     <EntityEditorPage
       entity={entityFromDb}
-      editBar={
-        <EditBar
-          visible={isModifyingEntity}
-          discardButtonProps={{
-            onClick: discardChanges,
-          }}
-          confirmButtonProps={{
-            onClick: () => handleSaveChanges(),
-            loading: savingChanges,
-            children: "Save changes",
-          }}
-        />
-      }
       isModifyingEntity={isModifyingEntity}
       handleSaveChanges={handleSaveChanges}
       entityLabel={entityLabel}
@@ -336,7 +325,19 @@ const Page: NextPageWithLayout = () => {
       setDraftLinksToArchive={setDraftLinksToArchive}
       entitySubgraph={draftEntitySubgraph}
       readonly={isReadOnly}
-      onEntityUpdated={(entity) => onEntityUpdated(entity)}
+      editBar={
+        <EditBar
+          visible={isModifyingEntity}
+          discardButtonProps={{
+            onClick: discardChanges,
+          }}
+          confirmButtonProps={{
+            onClick: () => handleSaveChanges(),
+            loading: savingChanges,
+            children: "Save changes",
+          }}
+        />
+      }
       setEntity={(changedEntity) => {
         setIsDirty(true);
         updateEntitySubgraphStateByEntity(
@@ -344,6 +345,7 @@ const Page: NextPageWithLayout = () => {
           setDraftEntitySubgraph,
         );
       }}
+      onEntityUpdated={(entity) => { onEntityUpdated(entity); }}
     />
   );
 };

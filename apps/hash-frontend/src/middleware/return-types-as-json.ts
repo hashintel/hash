@@ -1,3 +1,6 @@
+import type { ApolloError } from "apollo-server-express";
+import type { NextRequest , NextResponse } from "next/server";
+import stringify from "safe-stable-stringify";
 import type {
   DataType,
   EntityType,
@@ -9,10 +12,6 @@ import {
   frontendUrl,
 } from "@local/hash-isomorphic-utils/environment";
 import type { OntologyTypeVertexId } from "@local/hash-subgraph";
-import type { ApolloError } from "apollo-server-express";
-import type { NextRequest } from "next/server";
-import { NextResponse } from "next/server";
-import stringify from "safe-stable-stringify";
 
 import type {
   GetDataTypeQuery,
@@ -22,6 +21,7 @@ import type {
   GetPropertyTypeQuery,
   GetPropertyTypeQueryVariables,
 } from "../graphql/api-types.gen";
+
 import { generateQueryArgs } from "./return-types-as-json/generate-query-args";
 
 const generateErrorResponse = (
@@ -59,7 +59,7 @@ export const versionedUrlRegExp =
   /types\/(entity-type|data-type|property-type)\/.+\/v\/\d+$/;
 
 const validateVersionedUrl = (url: string): url is VersionedUrl =>
-  !!url.match(versionedUrlRegExp);
+  Boolean(url.match(versionedUrlRegExp));
 
 export const returnTypeAsJson = async (request: NextRequest) => {
   const { url } = request;
@@ -106,6 +106,7 @@ export const returnTypeAsJson = async (request: NextRequest) => {
       code: "INTERNAL_SERVER_ERROR",
       message: "Unknown error",
     };
+
     return generateErrorResponse(
       code === "FORBIDDEN" ? 401 : code === "INTERNAL_SERVER_ERROR" ? 500 : 400,
       message,
@@ -120,6 +121,7 @@ export const returnTypeAsJson = async (request: NextRequest) => {
         : data.getPropertyType;
 
   const root = roots[0] as OntologyTypeVertexId | undefined;
+
   if (!root) {
     return generateErrorResponse(
       404,

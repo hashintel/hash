@@ -1,3 +1,5 @@
+import { NextSeo } from "next-seo";
+import { useMemo, useState } from "react";
 import { useQuery } from "@apollo/client";
 import { PenRegularIcon } from "@hashintel/design-system";
 import type { Filter } from "@local/hash-graph-client";
@@ -6,8 +8,7 @@ import {
   currentTimeInstantTemporalAxes,
   mapGqlSubgraphFieldsFragmentToSubgraph,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type { EntityRootType , extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   Box,
   breadcrumbsClasses,
@@ -16,8 +17,6 @@ import {
   selectClasses,
   Typography,
 } from "@mui/material";
-import { NextSeo } from "next-seo";
-import { useMemo, useState } from "react";
 
 import type {
   GetEntitySubgraphQuery,
@@ -26,11 +25,10 @@ import type {
 import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../shared/draft-entities-context";
 import { BarsSortRegularIcon } from "../shared/icons/bars-sort-regular-icon";
-import type { NextPageWithLayout } from "../shared/layout";
-import { getLayoutWithSidebar } from "../shared/layout";
+import type { getLayoutWithSidebar,NextPageWithLayout  } from "../shared/layout";
 import { MenuItem } from "../shared/ui";
-import type { SortOrder } from "./actions.page/draft-entities";
-import { DraftEntities } from "./actions.page/draft-entities";
+
+import type { DraftEntities,SortOrder  } from "./actions.page/draft-entities";
 import { DraftEntitiesBulkActionsDropdown } from "./actions.page/draft-entities-bulk-actions-dropdown";
 import { InlineSelect } from "./shared/inline-select";
 import { NotificationsWithLinksContextProvider } from "./shared/notifications-with-links-context";
@@ -96,19 +94,19 @@ const ActionsPage: NextPageWithLayout = () => {
     },
     skip: !draftEntities,
     onCompleted: (data) =>
-      setPreviouslyFetchedDraftEntitiesWithLinkedDataResponse(data),
+      { setPreviouslyFetchedDraftEntitiesWithLinkedDataResponse(data); },
     fetchPolicy: "network-only",
   });
 
   const draftEntitiesWithLinkedDataSubgraph = useMemo(
     () =>
       (draftEntitiesWithLinkedDataResponse ??
-      previouslyFetchedDraftEntitiesWithLinkedDataResponse)
+        previouslyFetchedDraftEntitiesWithLinkedDataResponse)
         ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-            (draftEntitiesWithLinkedDataResponse ??
-              previouslyFetchedDraftEntitiesWithLinkedDataResponse)!
-              .getEntitySubgraph.subgraph,
-          )
+          (draftEntitiesWithLinkedDataResponse ??
+            previouslyFetchedDraftEntitiesWithLinkedDataResponse)!
+            .getEntitySubgraph.subgraph,
+        )
         : undefined,
     [
       draftEntitiesWithLinkedDataResponse,
@@ -118,7 +116,7 @@ const ActionsPage: NextPageWithLayout = () => {
 
   return (
     <NotificationsWithLinksContextProvider>
-      <NextSeo title="Drafts" />
+      <NextSeo title={"Drafts"} />
       <TopContextBar
         defaultCrumbIcon={null}
         crumbs={[
@@ -136,10 +134,10 @@ const ActionsPage: NextPageWithLayout = () => {
           },
         }}
         breadcrumbsEndAdornment={
-          <Box display="flex" alignItems="center">
+          <Box display={"flex"} alignItems={"center"}>
             <Box
-              display="flex"
-              alignItems="center"
+              display={"flex"}
+              alignItems={"center"}
               columnGap={1}
               sx={{
                 "> div": {
@@ -171,7 +169,7 @@ const ActionsPage: NextPageWithLayout = () => {
               <InlineSelect
                 value={sortOrder}
                 onChange={({ target }) =>
-                  setSortOrder(target.value as SortOrder)
+                  { setSortOrder(target.value as SortOrder); }
                 }
               >
                 {Object.entries(sortOrderHumanReadable).map(
@@ -184,11 +182,11 @@ const ActionsPage: NextPageWithLayout = () => {
               </InlineSelect>
             </Box>
             <DraftEntitiesBulkActionsDropdown
-              deselectAllDraftEntities={() => setSelectedDraftEntityIds([])}
+              deselectAllDraftEntities={() => { setSelectedDraftEntityIds([]); }}
+              selectedDraftEntityIds={selectedDraftEntityIds}
               draftEntitiesWithLinkedDataSubgraph={
                 draftEntitiesWithLinkedDataSubgraph
               }
-              selectedDraftEntityIds={selectedDraftEntityIds}
             />
           </Box>
         }

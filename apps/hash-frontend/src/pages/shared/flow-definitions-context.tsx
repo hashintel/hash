@@ -1,3 +1,4 @@
+import type { createContext, PropsWithChildren , useContext, useMemo, useState } from "react";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import {
   automaticBrowserInferenceFlowDefinition,
@@ -18,13 +19,11 @@ import {
   goalFlowDefinitionWithSpreadsheetDeliverable,
 } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
-import type { PropsWithChildren } from "react";
-import { createContext, useContext, useMemo, useState } from "react";
 
-export type FlowDefinitionsContextType = {
+export interface FlowDefinitionsContextType {
   flowDefinitions: FlowDefinition[];
   selectedFlowDefinitionId: EntityUuid | null;
-};
+}
 
 export const FlowDefinitionsContext =
   createContext<FlowDefinitionsContextType | null>(null);

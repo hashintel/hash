@@ -18,6 +18,7 @@ export const EventDetail = ({
         subgraph as Subgraph<EntityRootType>,
         event.entity,
       );
+
       return (
         <>
           <ValueChip>{entityLabel}</ValueChip>
@@ -80,6 +81,7 @@ export const EventDetail = ({
     }
     case "type-update": {
       const { entityType } = event;
+
       return (
         <>
           <ValueChip showInFull type>
@@ -96,7 +98,7 @@ export const EventDetail = ({
         </>
       );
     }
-    case "draft-status-change":
+    case "draft-status-change": {
       return (
         <span>
           {event.newDraftStatus
@@ -104,6 +106,7 @@ export const EventDetail = ({
             : "Live edition created from draft"}
         </span>
       );
+    }
     default: {
       throw new Error("Unhandled history event type");
     }

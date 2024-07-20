@@ -5,12 +5,12 @@ import type { EntityId } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 
-export type LinkAndTargetEntity = {
+export interface LinkAndTargetEntity {
   rightEntity: Entity;
   linkEntity: Entity;
-};
+}
 
-export type LinkRow = {
+export interface LinkRow {
   rowId: string;
   linkEntityTypeId: VersionedUrl;
   linkTitle: string;
@@ -29,7 +29,7 @@ export type LinkRow = {
   markLinkAsArchived: (linkEntityId: EntityId) => void;
   onEntityClick: (params: { entity: Entity }) => void;
   retryErroredUpload?: () => void;
-};
+}
 
 export type LinkColumnKey = "linkTitle" | "linkedWith" | "expectedEntityTypes";
 

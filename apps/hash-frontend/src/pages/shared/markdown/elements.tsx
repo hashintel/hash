@@ -1,15 +1,13 @@
-import type { SxProps, Theme } from "@mui/material";
-import {
-  Box,
+import type { HTMLAttributes, HTMLProps, isValidElement,ReactNode  } from "react";
+import type {   Box,
   List,
   listClasses,
   ListItem as MuiListItem,
   listItemClasses,
+SxProps, Theme ,
   Typography,
   typographyClasses,
 } from "@mui/material";
-import type { HTMLAttributes, HTMLProps, ReactNode } from "react";
-import { isValidElement } from "react";
 
 import { Snippet } from "./elements/snippet";
 
@@ -23,6 +21,7 @@ const ParagraphSxProps: SxProps<Theme> = {
 export const BlockQuote = (props: Omit<HTMLProps<HTMLQuoteElement>, "ref">) => {
   return (
     <Box
+      component={"blockquote"}
       sx={({ palette }) => ({
         borderLeftWidth: 4,
         borderLeftStyle: "solid",
@@ -42,7 +41,6 @@ export const BlockQuote = (props: Omit<HTMLProps<HTMLQuoteElement>, "ref">) => {
             lineHeight: 1.5,
           },
       })}
-      component="blockquote"
       {...props}
     />
   );
@@ -55,8 +53,8 @@ export const Paragraph = ({ children }: { children?: ReactNode }) => {
 
   return (
     <Typography
-      variant="regularTextParagraphs"
-      component="p"
+      variant={"regularTextParagraphs"}
+      component={"p"}
       sx={ParagraphSxProps}
     >
       {children}
@@ -88,7 +86,7 @@ const listSx: SxProps<Theme> = {
 
 export const OrderedList = (props: HTMLAttributes<HTMLOListElement>) => (
   <List
-    component="ol"
+    component={"ol"}
     sx={{
       listStyle: "decimal",
       ...listSx,
@@ -129,7 +127,7 @@ export const Pre = ({ children }: HTMLAttributes<HTMLElement>) => {
 
     return (
       <Box
-        component="pre"
+        component={"pre"}
         sx={(theme) => ({
           overflow: "auto",
           display: "block",
@@ -157,7 +155,7 @@ export const Pre = ({ children }: HTMLAttributes<HTMLElement>) => {
         })}
       >
         <Snippet
-          source={`${childProps.children}`}
+          source={childProps.children}
           language={childProps.className?.replace("language-", "") ?? ""}
           sx={{ m: 0, p: 0 }}
         />
@@ -168,7 +166,7 @@ export const Pre = ({ children }: HTMLAttributes<HTMLElement>) => {
 
 export const Code = ({ children }: HTMLAttributes<HTMLElement>) => (
   <Typography
-    component="span"
+    component={"span"}
     sx={{
       padding: "0.2em 0.4em",
       margin: "0 0.15rem",

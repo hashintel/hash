@@ -1,6 +1,5 @@
-import type { TableCellProps } from "@mui/material";
-import { TableCell, Typography } from "@mui/material";
 import type { ReactNode } from "react";
+import type { TableCell, TableCellProps , Typography } from "@mui/material";
 
 export const Cell = ({
   children,
@@ -8,7 +7,7 @@ export const Cell = ({
 }: TableCellProps & { children?: ReactNode }) => (
   <TableCell {...props}>
     {children ? (
-      <Typography variant="smallTextParagraphs" fontWeight={600}>
+      <Typography variant={"smallTextParagraphs"} fontWeight={600}>
         {children}
       </Typography>
     ) : null}

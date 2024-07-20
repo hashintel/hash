@@ -1,6 +1,5 @@
-import type { SxProps, Theme } from "@mui/material";
-import { Box } from "@mui/material";
 import type { PropsWithChildren } from "react";
+import type { Box,SxProps, Theme  } from "@mui/material";
 
 import { flowSectionBorderRadius } from "../../shared/styles";
 

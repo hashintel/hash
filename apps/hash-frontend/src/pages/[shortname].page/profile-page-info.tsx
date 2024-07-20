@@ -1,3 +1,5 @@
+import { format, formatDistanceToNowStrict } from "date-fns";
+import type { FunctionComponent, ReactNode , useMemo } from "react";
 import { faLocationDot } from "@fortawesome/free-solid-svg-icons";
 import {
   Avatar,
@@ -15,9 +17,6 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import { format, formatDistanceToNowStrict } from "date-fns";
-import type { FunctionComponent, ReactNode } from "react";
-import { useMemo } from "react";
 
 import { useOrgsWithLinks } from "../../components/hooks/use-orgs-with-links";
 import type { Org, User } from "../../lib/user-and-org";
@@ -26,6 +25,7 @@ import { CustomLinkIcon } from "../../shared/icons/custom-link-icon";
 import { Link } from "../../shared/ui/link";
 import { ProfileSectionHeading } from "../[shortname]/shared/profile-section-heading";
 import { getImageUrlFromEntityProperties } from "../shared/get-file-properties";
+
 import type { ProfilePageTab } from "./util";
 
 const InfoItem: FunctionComponent<{
@@ -34,13 +34,13 @@ const InfoItem: FunctionComponent<{
   href?: string;
 }> = ({ icon, title, href }) => {
   const content = (
-    <Box display="flex" alignItems="center" columnGap={0.75}>
+    <Box display={"flex"} alignItems={"center"} columnGap={0.75}>
       <Box sx={{ width: 15, display: "flex", alignItems: "center" }}>
         {icon}
       </Box>
       {title ? (
         <Typography
-          variant="microText"
+          variant={"microText"}
           sx={{
             color: ({ palette }) => (href ? palette.blue[70] : undefined),
             fontWeight: href ? 700 : undefined,
@@ -51,7 +51,7 @@ const InfoItem: FunctionComponent<{
           {title}
         </Typography>
       ) : (
-        <Skeleton variant="text" sx={{ flexGrow: 0.75, height: 20 }} />
+        <Skeleton variant={"text"} sx={{ flexGrow: 0.75, height: 20 }} />
       )}
     </Box>
   );
@@ -95,7 +95,7 @@ const ProfileTabInfoSection: FunctionComponent<{ profile?: User | Org }> = ({
   const { location } = profile ?? {};
 
   return (
-    <Box display="flex" flexDirection="column" rowGap={0.5}>
+    <Box display={"flex"} flexDirection={"column"} rowGap={0.5}>
       {location ? (
         <InfoItem
           icon={<FontAwesomeIcon icon={faLocationDot} sx={{ fontSize: 14 }} />}
@@ -130,9 +130,9 @@ const UserProfileWebsSection: FunctionComponent<{ webs: Org[] }> = ({
   return (
     <Box>
       <ProfileSectionHeading marginBottom={1.5}>Webs</ProfileSectionHeading>
-      <Box display="flex" flexWrap="wrap" gap={1.5}>
+      <Box display={"flex"} flexWrap={"wrap"} gap={1.5}>
         {webs.map((org) => {
-          const avatarSrc = org.hasAvatar
+          const avatarSource = org.hasAvatar
             ? getImageUrlFromEntityProperties(
                 org.hasAvatar.imageEntity.properties,
               )
@@ -142,7 +142,7 @@ const UserProfileWebsSection: FunctionComponent<{ webs: Org[] }> = ({
             <Tooltip
               key={org.entity.metadata.recordId.entityId}
               title={org.name}
-              placement="bottom"
+              placement={"bottom"}
             >
               <Link
                 href={`/@${org.shortname}`}
@@ -156,10 +156,10 @@ const UserProfileWebsSection: FunctionComponent<{ webs: Org[] }> = ({
                 }}
               >
                 <Avatar
-                  src={avatarSrc}
+                  src={avatarSource}
                   title={org.name}
                   size={28}
-                  borderRadius="4px"
+                  borderRadius={"4px"}
                 />
               </Link>
             </Tooltip>
@@ -175,20 +175,20 @@ const PinnedEntityTypeTabInfo: FunctionComponent<
 > = ({ entities }) => {
   const latestEntityUpdatedAt = useMemo(() => {
     const latestEntity = entities?.reduce<Entity | undefined>(
-      (prev, current) => {
-        if (!prev) {
+      (previous, current) => {
+        if (!previous) {
           return current;
         }
 
-        const prevUpdatedAt = new Date(
-          prev.metadata.temporalVersioning.decisionTime.start.limit,
+        const previousUpdatedAt = new Date(
+          previous.metadata.temporalVersioning.decisionTime.start.limit,
         ).getTime();
 
         const currentUpdatedAt = new Date(
           current.metadata.temporalVersioning.decisionTime.start.limit,
         ).getTime();
 
-        return prevUpdatedAt > currentUpdatedAt ? prev : current;
+        return previousUpdatedAt > currentUpdatedAt ? previous : current;
       },
       undefined,
     );
@@ -201,7 +201,7 @@ const PinnedEntityTypeTabInfo: FunctionComponent<
   }, [entities]);
 
   return (
-    <Box display="flex" flexDirection="column" rowGap={2.75}>
+    <Box display={"flex"} flexDirection={"column"} rowGap={2.75}>
       {!entities || entities.length > 0 ? (
         <Box>
           {latestEntityUpdatedAt ? (
@@ -216,9 +216,9 @@ const PinnedEntityTypeTabInfo: FunctionComponent<
               {formatDistanceToNowStrict(latestEntityUpdatedAt)}
             </Typography>
           ) : (
-            <Skeleton variant="text" width="40%" />
+            <Skeleton variant={"text"} width={"40%"} />
           )}
-          <Typography variant="smallTextParagraphs">
+          <Typography variant={"smallTextParagraphs"}>
             since last update
           </Typography>
         </Box>
@@ -246,9 +246,9 @@ export const ProfilePageInfo: FunctionComponent<{
   });
 
   return (
-    <Box display="flex" flexDirection="column" rowGap={2.25}>
+    <Box display={"flex"} flexDirection={"column"} rowGap={2.25}>
       <Box>
-        <Box display="flex" marginBottom={1.5}>
+        <Box display={"flex"} marginBottom={1.5}>
           <ProfileSectionHeading>Info</ProfileSectionHeading>
           <Fade
             in={
@@ -258,7 +258,6 @@ export const ProfilePageInfo: FunctionComponent<{
             }
           >
             <IconButton
-              onClick={() => setDisplayEditUserProfileInfoModal(true)}
               sx={{
                 marginLeft: 0.75,
                 padding: 0,
@@ -276,6 +275,7 @@ export const ProfilePageInfo: FunctionComponent<{
                   },
                 },
               }}
+              onClick={() => { setDisplayEditUserProfileInfoModal(true); }}
             >
               <PenRegularIcon />
             </IconButton>

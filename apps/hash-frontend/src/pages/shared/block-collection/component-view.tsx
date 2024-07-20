@@ -1,16 +1,17 @@
+import type { Node } from "prosemirror-model";
+import type { TextSelection,Transaction  } from "prosemirror-state";
+import type { EditorView, NodeView } from "prosemirror-view";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { HashBlock } from "@local/hash-isomorphic-utils/blocks";
-import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
-import {
+import type { BlockEntity ,
   getBlockChildEntity,
   isRichTextProperties,
 } from "@local/hash-isomorphic-utils/entity";
 import type {
   DraftEntity,
   EntityStore,
-} from "@local/hash-isomorphic-utils/entity-store";
-import { isDraftBlockEntity } from "@local/hash-isomorphic-utils/entity-store";
+ isDraftBlockEntity } from "@local/hash-isomorphic-utils/entity-store";
 import {
   addEntityStoreAction,
   entityStorePluginState,
@@ -24,18 +25,14 @@ import {
 import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 import { textBlockNodeToEntityProperties } from "@local/hash-isomorphic-utils/text";
 import * as Sentry from "@sentry/nextjs";
-import type { Node } from "prosemirror-model";
-import type { Transaction } from "prosemirror-state";
-import { TextSelection } from "prosemirror-state";
-import type { EditorView, NodeView } from "prosemirror-view";
 
 import { BlockLoader } from "../../../components/block-loader/block-loader";
 import { ErrorBlock } from "../../../components/error-block/error-block";
 import { BlockCollectionContext } from "../block-collection-context";
+
 import { BlockContext } from "./block-context";
 import type { RenderPortal } from "./block-portals";
-import type { SuggesterAction } from "./create-suggester/create-suggester";
-import { suggesterPluginKey } from "./create-suggester/create-suggester";
+import type { SuggesterAction , suggesterPluginKey } from "./create-suggester/create-suggester";
 
 const getChildEntity = (
   entity: DraftEntity | null | undefined,
@@ -54,17 +51,20 @@ const getChildEntity = (
 };
 
 /**
+ * @returns A target-/mount-node for a ComponentView instance.
  * @sync `componentViewTargetSelector`
- * @returns a target-/mount-node for a ComponentView instance
  */
 const createComponentViewTarget = () => {
-  const el = document.createElement("div");
-  el.setAttribute("data-target", "true");
-  return el;
+  const element = document.createElement("div");
+
+  element.setAttribute("data-target", "true");
+
+  return element;
 };
 
 /**
- * used to match target-/mount-nodes of ComponentView instances
+ * Used to match target-/mount-nodes of ComponentView instances.
+ *
  * @sync `createComponentViewTarget`
  */
 export const componentViewTargetSelector = "div[data-target=true]";
@@ -72,7 +72,7 @@ export const componentViewTargetSelector = "div[data-target=true]";
 /**
  * This is the node view that renders the block component,
  *    and attaches an editable DOM node if the component provides for it.
- *    The node type name is the id of the block component (i.e. its URL).
+ *    The node type name is the id of the block component (i.e. Its URL).
  */
 export class ComponentView implements NodeView {
   public readonly dom = document.createElement("div");
@@ -164,7 +164,7 @@ export class ComponentView implements NodeView {
       // @todo handle entity id not being defined
       const entityId = entity.metadata.recordId.entityId ?? "";
 
-      /** used by collaborative editing feature `FocusTracker` */
+      /** Used by collaborative editing feature `FocusTracker` */
       this.target.setAttribute("data-entity-id", entityId);
 
       const childEntity = getChildEntity(entity);
@@ -200,27 +200,27 @@ export class ComponentView implements NodeView {
               <BlockCollectionContext.Consumer>
                 {(collectionContext) => (
                   <BlockLoader
-                    blockCollectionSubgraph={
-                      collectionContext?.blockCollectionSubgraph
-                    }
+                    blockEntityTypeId={this.block.meta.schema as VersionedUrl}
                     blockEntityId={
                       childEntity?.metadata.recordId.entityId as
                         | EntityId
                         | undefined
                     } // @todo make this always defined
-                    blockEntityTypeId={this.block.meta.schema as VersionedUrl}
                     blockMetadata={this.block.meta}
+                    editableRef={this.editableRef}
                     entityStore={this.store}
                     // @todo uncomment this when sandbox is fixed
                     // shouldSandbox={!this.editable}
-                    editableRef={this.editableRef}
                     fallbackBlockProperties={childEntity?.properties}
                     wrappingEntityId={entityId}
-                    onBlockLoaded={this.onBlockLoaded}
                     readonly={this.readonly}
+                    blockCollectionSubgraph={
+                      collectionContext?.blockCollectionSubgraph
+                    }
                     userPermissionsOnEntities={
                       collectionContext?.userPermissionsOnEntities
                     }
+                    onBlockLoaded={this.onBlockLoaded}
                   />
                 )}
               </BlockCollectionContext.Consumer>
@@ -232,9 +232,10 @@ export class ComponentView implements NodeView {
       );
 
       return true;
-    } else {
-      return false;
     }
+ 
+      return false;
+    
   }
 
   private getDraftBlockEntity() {
@@ -272,8 +273,8 @@ export class ComponentView implements NodeView {
      * inserted via the suggester. If it hasn't happened in that time, we want
      * to expire the opportunity to claim the cursor.
      *
-     * @todo find a better way of knowing there's been the opportunity for
-     *       this which doesn't depend on timing
+     * @todo Find a better way of knowing there's been the opportunity for
+     *       this which doesn't depend on timing.
      */
     if (this.wasSuggested) {
       setImmediate(() =>
@@ -297,7 +298,7 @@ export class ComponentView implements NodeView {
   };
 
   private editableRef = (editableNode: HTMLElement | null) => {
-    const state = this.editorView.state;
+    const {state} = this.editorView;
     let tr: Transaction | null = null;
 
     if (editableNode && this.isNodeInDoc()) {
@@ -311,7 +312,7 @@ export class ComponentView implements NodeView {
       }
 
       if (!isRichTextProperties(childEntity.properties)) {
-        tr ??= state.tr;
+        tr = tr ?? state.tr;
 
         addEntityStoreAction(state, tr, {
           type: "updateEntityProperties",
@@ -331,7 +332,7 @@ export class ComponentView implements NodeView {
       this.dom.removeAttribute("contentEditable");
 
       if (this.wasSuggested) {
-        tr ??= state.tr;
+        tr = tr ?? state.tr;
         tr.setSelection(TextSelection.create(state.doc, this.mustGetPos() + 1));
 
         this.wasSuggested = false;

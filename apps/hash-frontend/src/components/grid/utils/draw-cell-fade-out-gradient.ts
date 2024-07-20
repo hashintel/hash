@@ -7,6 +7,7 @@ const addAlpha = (color: string, opacity: number) => {
 
   // scale up opacity to 0-255 range
   const _opacity = Math.round(Math.min(Math.max(opacity, 0), 1) * 255);
+
   return color + _opacity.toString(16).toUpperCase().padStart(2, "0");
 };
 
@@ -29,6 +30,7 @@ export const drawCellFadeOutGradient = (
   const grdWidth = 50;
   const grdLeft = rectLeft - grdWidth;
   const grd = ctx.createLinearGradient(rectLeft - grdWidth, 0, rectLeft, 0);
+
   grd.addColorStop(0, "#ffffff00");
   grd.addColorStop(1, bgColor);
   ctx.fillStyle = grd;

@@ -6,23 +6,19 @@ require("setimmediate");
 
 import "./globals.scss";
 import "./prism.css";
-
+import type { AppProps as NextAppProps } from "next/app";
+import { useRouter } from "next/router";
+import { SnackbarProvider } from "notistack";
+import type { FunctionComponent , Suspense, useEffect, useState } from "react";
 import { ApolloProvider } from "@apollo/client/react";
-import type { EmotionCache } from "@emotion/react";
-import { CacheProvider } from "@emotion/react";
+import type { CacheProvider,EmotionCache  } from "@emotion/react";
 import { createEmotionCache, theme } from "@hashintel/design-system/theme";
-import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
-import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
+import type { FeatureFlag , featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
 import type { User } from "@local/hash-isomorphic-utils/system-types/user";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
 import { configureScope, ErrorBoundary } from "@sentry/nextjs";
-import type { AppProps as NextAppProps } from "next/app";
-import { useRouter } from "next/router";
-import { SnackbarProvider } from "notistack";
-import type { FunctionComponent } from "react";
-import { Suspense, useEffect, useState } from "react";
 
 import type {
   GetHashInstanceSettingsQueryQuery,
@@ -32,21 +28,19 @@ import type {
 import { getHashInstanceSettings } from "../graphql/queries/knowledge/hash-instance.queries";
 import { hasAccessToHashQuery, meQuery } from "../graphql/queries/user.queries";
 import { apolloClient } from "../lib/apollo-client";
-import type { MinimalUser } from "../lib/user-and-org";
-import { constructMinimalUser } from "../lib/user-and-org";
+import type { constructMinimalUser,MinimalUser  } from "../lib/user-and-org";
 import { DraftEntitiesContextProvider } from "../shared/draft-entities-context";
 import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
 import { FileUploadsProvider } from "../shared/file-upload-context";
 import { KeyboardShortcutsContextProvider } from "../shared/keyboard-shortcuts-context";
-import type { NextPageWithLayout } from "../shared/layout";
-import { getLayoutWithSidebar, getPlainLayout } from "../shared/layout";
+import type { getLayoutWithSidebar, getPlainLayout,NextPageWithLayout  } from "../shared/layout";
 import { SidebarContextProvider } from "../shared/layout/layout-with-sidebar/sidebar-context";
 import { NotificationEntitiesContextProvider } from "../shared/notification-entities-context";
 import { PropertyTypesContextProvider } from "../shared/property-types-context";
 import { RoutePageInfoProvider } from "../shared/routing";
+
 import { ErrorFallback } from "./_app.page/error-fallback";
-import type { AppPage } from "./shared/_app.util";
-import { redirectInGetInitialProps } from "./shared/_app.util";
+import type { AppPage , redirectInGetInitialProps } from "./shared/_app.util";
 import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
 import { DataTypesContextProvider } from "./shared/data-types-context";
 import { setSentryUser } from "./shared/sentry";
@@ -54,10 +48,10 @@ import { WorkspaceContextProvider } from "./shared/workspace-context";
 
 const clientSideEmotionCache = createEmotionCache();
 
-type AppInitialProps = {
+interface AppInitialProps {
   initialAuthenticatedUserSubgraph?: Subgraph<EntityRootType>;
   user?: MinimalUser;
-};
+}
 
 type AppProps = {
   emotionCache?: EmotionCache;
@@ -77,7 +71,7 @@ const App: FunctionComponent<AppProps> = ({
   useEffect(() => {
     configureScope((scope) =>
       // eslint-disable-next-line no-console -- TODO: consider using logger
-      console.log(`Build: ${scope.getSession()?.release ?? "not set"}`),
+      { console.log(`Build: ${scope.getSession()?.release ?? "not set"}`); },
     );
     setSsr(false);
   }, []);
@@ -277,7 +271,7 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
           query: getHashInstanceSettings,
           context: { headers: { cookie } },
         })
-        .then(({ data }) => !!data.hashInstanceSettings?.isUserAdmin);
+        .then(({ data }) => Boolean(data.hashInstanceSettings?.isUserAdmin));
 
       if (!isUserAdmin) {
         // ...then redirect them to the home page instead.

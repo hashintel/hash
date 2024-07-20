@@ -1,12 +1,12 @@
-import { Box, Container } from "@mui/material";
 import type { FunctionComponent } from "react";
+import { Box, Container } from "@mui/material";
 
 import type { Org, User } from "../../lib/user-and-org";
+
 import { PinnedEntityTypeTabContents } from "./pinned-entity-type-tab-contents";
 import { ProfilePageInfo } from "./profile-page-info";
 import { ProfileTab } from "./profile-tab";
-import type { ProfilePageTab } from "./util";
-import { leftColumnWidth } from "./util";
+import type { leftColumnWidth,ProfilePageTab  } from "./util";
 
 export const ProfilePageContent: FunctionComponent<{
   profile?: User | Org;
@@ -23,15 +23,15 @@ export const ProfilePageContent: FunctionComponent<{
 }) => {
   return (
     <Container sx={{ paddingTop: 4 }}>
-      <Box display="flex" columnGap={4}>
+      <Box display={"flex"} columnGap={4}>
         <Box sx={{ width: leftColumnWidth }}>
           <ProfilePageInfo
             profile={profile}
             isEditable={isEditable}
+            currentTab={currentTab}
             setDisplayEditUserProfileInfoModal={
               setDisplayEditUserProfileInfoModal
             }
-            currentTab={currentTab}
           />
         </Box>
         <Box flexGrow={1}>

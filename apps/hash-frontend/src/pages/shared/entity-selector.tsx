@@ -1,9 +1,8 @@
+import { useMemo, useState } from "react";
 import { useQuery } from "@apollo/client";
 import type {
-  SelectorAutocompleteProps,
-  TypeListSelectorDropdownProps,
-} from "@hashintel/design-system";
-import { Chip, SelectorAutocomplete } from "@hashintel/design-system";
+ Chip, SelectorAutocomplete,  SelectorAutocompleteProps,
+  TypeListSelectorDropdownProps } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
@@ -14,14 +13,12 @@ import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import {
-  entityIdFromComponents,
-  extractDraftIdFromEntityId,
+import type {   entityIdFromComponents,
+EntityRootType,   extractDraftIdFromEntityId,
   splitEntityId,
+Subgraph ,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { useMemo, useState } from "react";
 
 import type {
   GetEntitySubgraphQuery,
@@ -124,17 +121,20 @@ export const EntitySelector = <Multiple extends boolean>({
            * nothing to fork multiple from.
            */
           const [ownedById, entityUuid, draftId] = splitEntityId(rootEntityId);
+
           if (!draftId) {
             /** If there is no draftId, this is the live version, which is always preferred in the selector */
             hasLiveVersion[rootEntityId] = true;
+
             return true;
           }
 
           /** This has a draftId, and therefore is only permitted if there is no live version */
           const liveEntityId = entityIdFromComponents(ownedById, entityUuid);
+
           if (hasLiveVersion[liveEntityId]) {
             /**
-             * We already checked for this entityId and there is a live version
+             * We already checked for this entityId and there is a live version.
              */
             return false;
           }
@@ -145,6 +145,7 @@ export const EntitySelector = <Multiple extends boolean>({
             )
           ) {
             hasLiveVersion[liveEntityId] = true;
+
             return false;
           }
           /**
@@ -165,41 +166,41 @@ export const EntitySelector = <Multiple extends boolean>({
   return (
     <SelectorAutocomplete<Entity, Multiple>
       loading={loading}
-      onChange={(_, option) => {
-        onSelect(option, entitiesSubgraph ?? null);
-      }}
       inputValue={query}
+      options={sortedAndFilteredEntities}
+      inputPlaceholder={"Search for an entity"}
       isOptionEqualToValue={(option, value) =>
         option.metadata.recordId.entityId === value.metadata.recordId.entityId
       }
-      onInputChange={(_, value) => setQuery(value)}
-      options={sortedAndFilteredEntities}
       optionToRenderData={(entity) => {
         return {
           entityProperties: entity.properties,
           uniqueId: entity.metadata.recordId.entityId,
           icon: null,
           /**
-           * @todo update SelectorAutocomplete to show an entity's namespace as well as / instead of its entityTypeId
-           * */
+           * @todo Update SelectorAutocomplete to show an entity's namespace as well as / instead of its entityTypeId.
+            */
           typeId: entity.metadata.entityTypeId,
           title: generateEntityLabel(entitiesSubgraph!, entity),
-          draft: !!extractDraftIdFromEntityId(
+          draft: Boolean(extractDraftIdFromEntityId(
             entity.metadata.recordId.entityId,
-          ),
+          )),
         };
       }}
-      inputPlaceholder="Search for an entity"
       renderTags={(tagValue, getTagProps) =>
         tagValue.map((option, index) => (
           <Chip
             {...getTagProps({ index })}
             key={option.metadata.recordId.entityId}
-            variant="outlined"
+            variant={"outlined"}
             label={generateEntityLabel(entitiesSubgraph!, option)}
           />
         ))
       }
+      onInputChange={(_, value) => { setQuery(value); }}
+      onChange={(_, option) => {
+        onSelect(option, entitiesSubgraph ?? null);
+      }}
       {...autocompleteProps}
       dropdownProps={{
         query,

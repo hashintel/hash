@@ -1,14 +1,14 @@
+import type { FunctionComponent, ReactElement } from "react";
 import { faAngleRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { SvgIconProps, SxProps, Theme } from "@mui/material";
-import { Box, Container, Stack, Typography } from "@mui/material";
-import type { FunctionComponent, ReactElement } from "react";
+import type { Box, Container, Stack, SvgIconProps, SxProps, Theme , Typography } from "@mui/material";
 
 import type { Breadcrumb } from "../pages/shared/breadcrumbs";
 import { TopContextBar } from "../pages/shared/top-context-bar";
+
 import { BoltLightIcon } from "./icons/bolt-light-icon";
 
-type WorkersHeaderProps = {
+interface WorkersHeaderProps {
   endElement?: ReactElement;
   crumbs: Breadcrumb[];
   hideDivider?: boolean;
@@ -19,7 +19,7 @@ type WorkersHeaderProps = {
   };
   sideTitle?: string;
   subtitle?: string;
-};
+}
 
 export const WorkersHeader = ({
   crumbs,
@@ -57,12 +57,12 @@ export const WorkersHeader = ({
         <Container>
           <Box ml={4}>
             <Stack
-              alignItems="center"
-              direction="row"
-              justifyContent="space-between"
+              alignItems={"center"}
+              direction={"row"}
+              justifyContent={"space-between"}
               sx={{ mb: 1.5 }}
             >
-              <Stack alignItems="center" direction="row" gap={1.5}>
+              <Stack alignItems={"center"} direction={"row"} gap={1.5}>
                 <title.Icon
                   sx={[
                     {
@@ -74,7 +74,7 @@ export const WorkersHeader = ({
                       : [title.iconSx]),
                   ]}
                 />
-                <Typography variant="h3" sx={{ fontSize: 26, fontWeight: 400 }}>
+                <Typography variant={"h3"} sx={{ fontSize: 26, fontWeight: 400 }}>
                   {title.text}
                 </Typography>
                 {sideTitle ? (
@@ -88,7 +88,7 @@ export const WorkersHeader = ({
                       })}
                     />
                     <Typography
-                      variant="h4"
+                      variant={"h4"}
                       sx={{
                         color: ({ palette }) => palette.gray[80],
                         fontSize: 26,
@@ -105,8 +105,8 @@ export const WorkersHeader = ({
 
             {subtitle && (
               <Typography
-                component="p"
-                variant="largeTextLabels"
+                component={"p"}
+                variant={"largeTextLabels"}
                 sx={{ mt: 1, color: ({ palette }) => palette.gray[80] }}
               >
                 {subtitle}

@@ -1,29 +1,25 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { extractVersion } from "@blockprotocol/type-system";
+import { useRouter } from "next/router";
+import { NextSeo } from "next-seo";
+import type { FunctionComponent , useCallback, useMemo } from "react";
+import type { extractVersion,VersionedUrl  } from "@blockprotocol/type-system";
 import {
   AsteriskRegularIcon,
   EyeIconSolid,
   PenToSquareIconSolid,
 } from "@hashintel/design-system";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import { isBaseUrl } from "@local/hash-graph-types/ontology";
+import type { EntityTypeWithMetadata , isBaseUrl } from "@local/hash-graph-types/ontology";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { pluralize } from "@local/hash-isomorphic-utils/pluralize";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import type { SxProps, Theme } from "@mui/material";
-import {
-  Box,
+import type {   Box,
   buttonClasses,
   Container,
   Fade,
   Stack,
   styled,
+SxProps, Theme ,
   Typography,
 } from "@mui/material";
-import { useRouter } from "next/router";
-import { NextSeo } from "next-seo";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo } from "react";
 
 import { useAccountPages } from "../components/hooks/use-account-pages";
 import { useCreatePage } from "../components/hooks/use-create-page";
@@ -39,12 +35,12 @@ import { FileCirclePlusRegularIcon } from "../shared/icons/file-circle-plus-regu
 import { FilesLightIcon } from "../shared/icons/files-light-icon";
 import { FilesRegularIcon } from "../shared/icons/files-regular-icon";
 import { PlusRegularIcon } from "../shared/icons/plus-regular";
-import type { NextPageWithLayout } from "../shared/layout";
-import { getLayoutWithSidebar } from "../shared/layout";
+import type { getLayoutWithSidebar,NextPageWithLayout  } from "../shared/layout";
 import { Button } from "../shared/ui";
 import { TabLink } from "../shared/ui/tab-link";
 import { Tabs } from "../shared/ui/tabs";
 import { useUserPermissionsOnEntityType } from "../shared/use-user-permissions-on-entity-type";
+
 import type { Breadcrumb } from "./shared/breadcrumbs";
 import { EntitiesTable } from "./shared/entities-table";
 import { TopContextBar } from "./shared/top-context-bar";
@@ -53,9 +49,9 @@ import { useActiveWorkspace } from "./shared/workspace-context";
 
 const contentMaxWidth = 1000;
 
-type ParsedQueryParams = {
+interface ParsedQueryParams {
   entityTypeIdOrBaseUrl?: string;
-};
+}
 
 export const CreateButton = styled(Button)(({ theme }) => ({
   color: theme.palette.gray[90],
@@ -138,12 +134,12 @@ export const CreateButtons: FunctionComponent<{
   return isViewAllPagesPage ||
     isViewAllDocumentsPage ||
     isViewAllCanvasesPage ? (
-    <Box display="flex" gap={3}>
+    <Box display={"flex"} gap={3}>
       {(isViewAllPagesPage || isViewAllDocumentsPage) &&
       enabledFeatureFlags.pages &&
       enabledFeatureFlags.documents ? (
         <CreateButton
-          variant="tertiary_quiet"
+          variant={"tertiary_quiet"}
           endIcon={<FileCirclePlusRegularIcon />}
           onClick={createDocument}
         >
@@ -154,13 +150,13 @@ export const CreateButtons: FunctionComponent<{
       enabledFeatureFlags.pages &&
       enabledFeatureFlags.canvases ? (
         <CreateButton
-          variant="tertiary_quiet"
+          variant={"tertiary_quiet"}
+          endIcon={<CanvasNewIcon />}
           sx={{
             [`.${buttonClasses.endIcon}`]: {
               fontSize: 18,
             },
           }}
-          endIcon={<CanvasNewIcon />}
           onClick={createCanvas}
         >
           Create new canvas
@@ -169,9 +165,9 @@ export const CreateButtons: FunctionComponent<{
     </Box>
   ) : (
     <CreateButton
-      onClick={createEntity}
-      variant="tertiary_quiet"
+      variant={"tertiary_quiet"}
       endIcon={<PlusRegularIcon />}
+      onClick={createEntity}
     >
       {isFileEntityType ? "Add" : "Create"} new{" "}
       {entityType?.schema.title.toLowerCase() ?? "entity"}
@@ -206,6 +202,7 @@ const EntitiesPage: NextPageWithLayout = () => {
             : undefined,
       };
     }
+
     return {};
   }, [router]);
 
@@ -306,10 +303,10 @@ const EntitiesPage: NextPageWithLayout = () => {
         }}
       >
         <Container sx={{ maxWidth: { lg: contentMaxWidth } }}>
-          <Stack direction="row" justifyContent="space-between">
-            <Typography variant="h1" fontWeight="bold" my={3}>
+          <Stack direction={"row"} justifyContent={"space-between"}>
+            <Typography variant={"h1"} fontWeight={"bold"} my={3}>
               <Box
-                display="inline-flex"
+                display={"inline-flex"}
                 sx={({ palette }) => ({
                   svg: {
                     fontSize: 40,
@@ -330,7 +327,7 @@ const EntitiesPage: NextPageWithLayout = () => {
             {entityType && (
               <Button
                 href={generateLinkParameters(entityType.schema.$id).href}
-                size="small"
+                size={"small"}
                 sx={{ alignSelf: "center" }}
               >
                 {userPermissions?.edit ? "Edit" : "View"} Type
@@ -342,12 +339,12 @@ const EntitiesPage: NextPageWithLayout = () => {
               </Button>
             )}
           </Stack>
-          <Box display="flex" justifyContent="space-between">
-            <Tabs value="all">
+          <Box display={"flex"} justifyContent={"space-between"}>
+            <Tabs value={"all"}>
               <TabLink
-                href="/"
-                value="all"
                 active
+                href={"/"}
+                value={"all"}
                 label={`All ${pageTitle}`}
                 count={entities?.length}
                 loading={loading}
@@ -364,8 +361,8 @@ const EntitiesPage: NextPageWithLayout = () => {
       <Container sx={{ maxWidth: { lg: contentMaxWidth }, py: 5 }}>
         <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
           <EntitiesTable
-            hideEntityTypeVersionColumn={!!entityTypeId}
             hidePropertiesColumns
+            hideEntityTypeVersionColumn={Boolean(entityTypeId)}
           />
         </EntityTypeEntitiesContext.Provider>
       </Container>

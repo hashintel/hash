@@ -1,3 +1,5 @@
+import { format } from "date-fns";
+import type { memo, ReactElement , useMemo, useState } from "react";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
@@ -8,21 +10,15 @@ import type {
 import type { StepProgressLog } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { Box, Stack, TableCell, Tooltip } from "@mui/material";
-import { format } from "date-fns";
-import type { ReactElement } from "react";
-import { memo, useMemo, useState } from "react";
 
 import { CircleInfoIcon } from "../../../../shared/icons/circle-info-icon";
 import { Link } from "../../../../shared/ui/link";
 import type {
   CreateVirtualizedRowContentFn,
-  VirtualizedTableColumn,
-  VirtualizedTableSort,
-} from "../../../shared/virtualized-table";
-import {
   defaultCellSx,
-  VirtualizedTable,
-} from "../../../shared/virtualized-table";
+  VirtualizedTable,  VirtualizedTableColumn,
+  VirtualizedTableSort} from "../../../shared/virtualized-table";
+
 import { SectionLabel } from "./section-label";
 import type { LocalProgressLog } from "./shared/types";
 
@@ -137,7 +133,7 @@ const LogDetail = ({
   switch (log.type) {
     case "VisitedWebPage": {
       return (
-        <Stack direction="row" alignItems="center" gap={0.5}>
+        <Stack direction={"row"} alignItems={"center"} gap={0.5}>
           {visitedWebPagePrefix}
           <Link
             href={log.webPage.url}
@@ -151,7 +147,7 @@ const LogDetail = ({
     }
     case "ViewedFile": {
       return (
-        <Stack direction="row" alignItems="center" gap={0.5}>
+        <Stack direction={"row"} alignItems={"center"} gap={0.5}>
           {viewedPdfFilePrefix}
           <Link
             href={log.file.url}
@@ -165,7 +161,7 @@ const LogDetail = ({
     }
     case "QueriedWeb": {
       return (
-        <Stack direction="row" alignItems="center" gap={0.5}>
+        <Stack direction={"row"} alignItems={"center"} gap={0.5}>
           {queriedWebPrefix}
           <strong style={ellipsisOverflow}>“{log.query}”</strong>
           <ModelTooltip text={log.explanation} />
@@ -179,7 +175,7 @@ const LogDetail = ({
       const entityLabel = getEntityLabelFromLog(log);
 
       return (
-        <Stack direction="row" alignItems="center" gap={0.5}>
+        <Stack direction={"row"} alignItems={"center"} gap={0.5}>
           {isPersistedEntity ? "Persisted" : "Proposed"} entity{" "}
           <strong style={ellipsisOverflow}>{entityLabel}</strong>
         </Stack>
@@ -198,7 +194,7 @@ const LogDetail = ({
     }
     case "StartedSubTask": {
       return (
-        <Stack direction="row" alignItems="center" gap={1}>
+        <Stack direction={"row"} alignItems={"center"} gap={1}>
           <Box sx={ellipsisOverflow}>
             Started sub-task with goal <strong>“{log.goal}”</strong>
           </Box>
@@ -313,8 +309,8 @@ export const ActivityLog = ({ logs }: { logs: LocalProgressLog[] }) => {
 
   return (
     <>
-      <Stack alignItems="center" direction="row" mb={0.5} sx={{ height: 24 }}>
-        <SectionLabel text="Activity log" />
+      <Stack alignItems={"center"} direction={"row"} mb={0.5} sx={{ height: 24 }}>
+        <SectionLabel text={"Activity log"} />
       </Stack>
       <Box flex={1}>
         <VirtualizedTable

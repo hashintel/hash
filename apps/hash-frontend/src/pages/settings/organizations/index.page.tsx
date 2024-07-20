@@ -1,9 +1,9 @@
-import { faPlus } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon } from "@hashintel/design-system";
-import { Box, TableBody, TableHead, TableRow, Typography } from "@mui/material";
 import { useRouter } from "next/router";
 import { NextSeo } from "next-seo";
 import { useRef } from "react";
+import { faPlus } from "@fortawesome/free-solid-svg-icons";
+import { FontAwesomeIcon } from "@hashintel/design-system";
+import { Box, TableBody, TableHead, TableRow, Typography } from "@mui/material";
 
 import { PeopleGroupIcon } from "../../../shared/icons/people-group-icon";
 import type { NextPageWithLayout } from "../../../shared/layout";
@@ -11,6 +11,7 @@ import { Button } from "../../../shared/ui/button";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { getSettingsLayout } from "../../shared/settings-layout";
 import { SettingsPageContainer } from "../shared/settings-page-container";
+
 import { OrgRow } from "./index.page/org-row";
 import { Cell } from "./shared/cell";
 import { OrgTable } from "./shared/org-table";
@@ -24,19 +25,22 @@ const OrganizationListPage: NextPageWithLayout = () => {
 
   if (!authenticatedUser.accountSignupComplete) {
     void router.push("/");
+
     return null;
   }
 
   return (
     <>
-      <NextSeo title="Organizations" />
+      <NextSeo title={"Organizations"} />
 
       <SettingsPageContainer
+        heading={<>Organizations</>}
+        ref={topRef}
         topRightElement={
           <Button
-            href="/settings/organizations/new"
-            size="small"
-            variant="tertiary"
+            href={"/settings/organizations/new"}
+            size={"small"}
+            variant={"tertiary"}
           >
             Create organization
             <FontAwesomeIcon
@@ -45,14 +49,12 @@ const OrganizationListPage: NextPageWithLayout = () => {
             />
           </Button>
         }
-        heading={<>Organizations</>}
-        ref={topRef}
       >
         {authenticatedUser.memberOf.length > 0 ? (
           <OrgTable>
             <TableHead>
               <TableRow>
-                <Cell width="100%">Organization</Cell>
+                <Cell width={"100%"}>Organization</Cell>
                 <Cell>Namespace</Cell>
                 <Cell />
               </TableRow>
@@ -67,9 +69,9 @@ const OrganizationListPage: NextPageWithLayout = () => {
           </OrgTable>
         ) : (
           <Box
-            display="flex"
-            alignItems="center"
-            flexDirection="column"
+            display={"flex"}
+            alignItems={"center"}
+            flexDirection={"column"}
             paddingY={10}
           >
             <PeopleGroupIcon

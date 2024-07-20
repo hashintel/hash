@@ -19,7 +19,7 @@ export const QueryEditorToggle = ({
       }}
       onClick={toggle}
     >
-      <Button variant="secondary">
+      <Button variant={"secondary"}>
         Use {shouldShowQueryEditor ? "entity editor" : "query editor"}
       </Button>
     </Box>

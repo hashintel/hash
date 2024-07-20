@@ -1,9 +1,8 @@
+import type { FunctionComponent , useCallback } from "react";
 import { useMutation } from "@apollo/client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { ListItemIcon, ListItemText } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useCallback } from "react";
 
 import { useArchivePage } from "../../../components/hooks/use-archive-page";
 import type {

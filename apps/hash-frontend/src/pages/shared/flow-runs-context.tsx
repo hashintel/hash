@@ -1,28 +1,25 @@
+import type { createContext, PropsWithChildren , useContext, useMemo } from "react";
+import { useNodeId } from "reactflow";
 import { useQuery } from "@apollo/client";
 import {
   getFlowRunById,
   getFlowRunsQuery,
 } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
-import type { PropsWithChildren } from "react";
-import { createContext, useContext, useMemo } from "react";
-import { useNodeId } from "reactflow";
 
 import type {
   FlowRun,
-  GetFlowRunByIdQuery,
+ FlowStepStatus,  GetFlowRunByIdQuery,
   GetFlowRunByIdQueryVariables,
   GetFlowRunsQuery,
   GetFlowRunsQueryVariables,
-  StepRun,
-} from "../../graphql/api-types.gen";
-import { FlowStepStatus } from "../../graphql/api-types.gen";
+  StepRun } from "../../graphql/api-types.gen";
 
-export type FlowRunsContextType = {
+export interface FlowRunsContextType {
   flowRuns: GetFlowRunsQuery["getFlowRuns"];
   loading: boolean;
   selectedFlowRun: FlowRun | null;
   selectedFlowRunId: string | null;
-};
+}
 
 export const FlowRunsContext = createContext<FlowRunsContextType | null>(null);
 
@@ -53,6 +50,7 @@ export const FlowRunsContextProvider = ({
     if (flowRunsData) {
       return flowRunsData.getFlowRuns;
     }
+
     return [];
   }, [flowRunsData]);
 
@@ -60,6 +58,7 @@ export const FlowRunsContextProvider = ({
     if (selectedFlowRunData) {
       return selectedFlowRunData.getFlowRunById;
     }
+
     return null;
   }, [selectedFlowRunData]);
 
@@ -139,23 +138,28 @@ export const statusToSimpleStatus = (
   let simpleStatus: SimpleStatus = "Waiting";
 
   switch (status) {
-    case FlowStepStatus.Completed:
+    case FlowStepStatus.Completed: {
       simpleStatus = "Complete";
       break;
+    }
     case FlowStepStatus.Failed:
-    case FlowStepStatus.TimedOut:
+    case FlowStepStatus.TimedOut: {
       simpleStatus = "Errored";
       break;
-    case FlowStepStatus.Cancelled:
+    }
+    case FlowStepStatus.Cancelled: {
       simpleStatus = "Cancelled";
       break;
+    }
     case FlowStepStatus.Scheduled:
-    case FlowStepStatus.Started:
+    case FlowStepStatus.Started: {
       simpleStatus = "In Progress";
       break;
-    case FlowStepStatus.InformationRequired:
+    }
+    case FlowStepStatus.InformationRequired: {
       simpleStatus = "Information Required";
       break;
+    }
   }
 
   return simpleStatus;
@@ -196,9 +200,9 @@ export const useStatusForSteps = (
         ? "Cancelled"
         : "Complete";
 
-    let hasError: boolean = false;
-    let hasWaiting: boolean = false;
-    let hasInProgress: boolean = false;
+    let hasError = false;
+    let hasWaiting = false;
+    let hasInProgress = false;
 
     for (const stepRun of stepRuns) {
       if (!scheduledAt || stepRun.scheduledAt < scheduledAt) {
@@ -213,15 +217,25 @@ export const useStatusForSteps = (
 
       statusByStep[stepRun.stepId] = simpleStatus;
 
-      if (simpleStatus === "Errored") {
+      switch (simpleStatus) {
+      case "Errored": {
         hasError = true;
-      } else if (
-        simpleStatus === "In Progress" ||
-        simpleStatus === "Information Required"
-      ) {
+      
+      break;
+      }
+      case "In Progress": 
+      case "Information Required": {
         hasInProgress = true;
-      } else if (simpleStatus === "Waiting") {
+      
+      break;
+      }
+      case "Waiting": {
         hasWaiting = true;
+      
+      break;
+      }
+      default:
+      // Do nothing
       }
     }
 

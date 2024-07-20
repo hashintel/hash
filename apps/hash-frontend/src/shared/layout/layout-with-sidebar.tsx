@@ -1,11 +1,11 @@
+import type { FunctionComponent, ReactNode , useState } from "react";
 import { IconButton } from "@hashintel/design-system";
 import { Box, Collapse, Stack, styled } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
-import { useState } from "react";
 
 import { EditBarScroller } from "../edit-bar-scroller";
 import { SidebarToggleIcon } from "../icons";
 import { useIsReadonlyModeForApp } from "../readonly-mode";
+
 import { LayoutWithHeader } from "./layout-with-header";
 import { HEADER_HEIGHT } from "./layout-with-header/page-header";
 import {
@@ -25,11 +25,11 @@ const Main = styled("main")(({ theme }) => ({
   }),
 }));
 
-export type LayoutWithSidebarProps = {
+export interface LayoutWithSidebarProps {
   children?: ReactNode;
   fullWidth?: boolean;
   grayBackground?: boolean;
-};
+}
 
 export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
   children,
@@ -51,7 +51,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
         {!isReadonlyMode && <PageSidebar />}
 
         <Stack
-          direction="row"
+          direction={"row"}
           sx={(theme) => ({
             width: "100%",
             position: "relative",
@@ -68,12 +68,12 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
           })}
         >
           <Collapse
-            orientation="horizontal"
+            orientation={"horizontal"}
             timeout={100}
             in={!isReadonlyMode && !sidebarOpen}
           >
             <Stack
-              alignItems="center"
+              alignItems={"center"}
               sx={({ palette, zIndex }) => ({
                 background: palette.common.white,
                 borderRight: `1px solid ${palette.gray[20]}`,
@@ -86,7 +86,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
             >
               <IconButton
                 aria-hidden
-                size="medium"
+                size={"medium"}
                 sx={({ palette }) => ({
                   transform: "rotate(180deg)",
 
@@ -113,6 +113,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
             })}
           >
             <Main
+              ref={setMain}
               sx={({ spacing }) => ({
                 ...(!fullWidth && {
                   padding: spacing(7, 10),
@@ -120,7 +121,6 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
                   maxWidth: 820,
                 }),
               })}
-              ref={setMain}
             >
               {/* Enables EditBar to make the page scroll as it animates in */}
               <EditBarScroller scrollingNode={main}>{children}</EditBarScroller>

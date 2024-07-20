@@ -1,3 +1,6 @@
+import { Router, useRouter } from "next/router";
+import { NextSeo } from "next-seo";
+import type { PropsWithChildren , useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@apollo/client";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { HashBlock } from "@local/hash-isomorphic-utils/blocks";
@@ -5,25 +8,17 @@ import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-u
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityRootType } from "@local/hash-subgraph";
-import {
+import type { EntityRootType ,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import type { SxProps } from "@mui/material";
-import { Box } from "@mui/material";
-import { Router, useRouter } from "next/router";
-import { NextSeo } from "next-seo";
-import type { PropsWithChildren } from "react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import type { Box,SxProps  } from "@mui/material";
 
 import { BlockLoadedProvider } from "../../blocks/on-block-loaded";
 import { UserBlocksProvider } from "../../blocks/user-blocks";
-import type { AccountPagesInfo } from "../../components/hooks/use-account-pages";
-import { useAccountPages } from "../../components/hooks/use-account-pages";
-import type { PageThread } from "../../components/hooks/use-page-comments";
-import { usePageComments } from "../../components/hooks/use-page-comments";
+import type { AccountPagesInfo , useAccountPages } from "../../components/hooks/use-account-pages";
+import type { PageThread , usePageComments } from "../../components/hooks/use-page-comments";
 import { PageIcon } from "../../components/page-icon";
 import { PageLoadingState } from "../../components/page-loading-state";
 import { CollabPositionProvider } from "../../contexts/collab-position-context";
@@ -35,8 +30,7 @@ import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.q
 import { constructPageRelativeUrl } from "../../lib/routes";
 import type { MinimalOrg, MinimalUser } from "../../lib/user-and-org";
 import { iconVariantSizes } from "../../shared/edit-emoji-icon-button";
-import type { NextPageWithLayout } from "../../shared/layout";
-import { getLayoutWithSidebar } from "../../shared/layout";
+import type { getLayoutWithSidebar,NextPageWithLayout  } from "../../shared/layout";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { PageIconButton } from "../../shared/page-icon-button";
 import {
@@ -57,15 +51,16 @@ import {
   TopContextBar,
 } from "../shared/top-context-bar";
 import { useEnabledFeatureFlags } from "../shared/use-enabled-feature-flags";
+
 import { CanvasPageBlock } from "./[page-slug].page/canvas-page";
 import { ArchiveMenuItem } from "./shared/archive-menu-item";
 
 /**
- * Use to check if current browser is Safari or not
+ * Use to check if current browser is Safari or not.
  */
 export const isSafariBrowser = () =>
-  navigator.userAgent.indexOf("Safari") > -1 &&
-  navigator.userAgent.indexOf("Chrome") <= -1;
+  navigator.userAgent.includes("Safari") &&
+  !navigator.userAgent.includes("Chrome");
 
 export const pageContentWidth = 696;
 export const commentsWidth = 320;
@@ -123,11 +118,11 @@ export const PageSectionContainer = ({
   );
 };
 
-type PageProps = {
+interface PageProps {
   pageWorkspace: MinimalUser | MinimalOrg;
   pageEntityId: EntityId;
   blocks: HashBlock[];
-};
+}
 
 const generateCrumbsFromPages = ({
   pages = [],
@@ -143,13 +138,14 @@ const generateCrumbsFromPages = ({
   );
 
   let currentPage = pageMap.get(pageEntityId);
-  let arr = [];
+  let array = [];
 
   while (currentPage) {
     const currentPageEntityId = currentPage.metadata.recordId.entityId;
 
     const pageEntityUuid = extractEntityUuidFromEntityId(currentPageEntityId);
-    arr.push({
+
+    array.push({
       title: currentPage.title,
       href: constructPageRelativeUrl({
         workspaceShortname: ownerShortname,
@@ -159,7 +155,7 @@ const generateCrumbsFromPages = ({
       icon: (
         <PageIcon
           icon={currentPage.icon}
-          size="small"
+          size={"small"}
           isCanvas={
             currentPage.metadata.entityTypeId ===
             systemEntityTypes.canvas.entityTypeId
@@ -177,9 +173,9 @@ const generateCrumbsFromPages = ({
     }
   }
 
-  arr = arr.reverse();
+  array = array.reverse();
 
-  return arr;
+  return array;
 };
 
 const Page: NextPageWithLayout<PageProps> = () => {
@@ -358,6 +354,8 @@ const Page: NextPageWithLayout<PageProps> = () => {
           })}
         >
           <TopContextBar
+            item={page}
+            scrollToTop={scrollToTop}
             actionMenuItems={
               archived
                 ? undefined
@@ -368,13 +366,11 @@ const Page: NextPageWithLayout<PageProps> = () => {
                     />,
                   ]
             }
-            item={page}
             crumbs={generateCrumbsFromPages({
               pages: accountPages,
               pageEntityId: page.metadata.recordId.entityId,
               ownerShortname: workspaceShortname,
             })}
-            scrollToTop={scrollToTop}
           />
         </Box>
 
@@ -383,7 +379,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
             {...pageSectionContainerProps}
             readonly={!canUserEdit}
           >
-            <Box position="relative">
+            <Box position={"relative"}>
               <PageIconButton
                 entityId={pageEntityId}
                 pageEntityTypeId={page.metadata.entityTypeId}
@@ -391,7 +387,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
                 readonly={!canUserEdit}
                 sx={({ breakpoints }) => ({
                   mb: 2,
-                  [breakpoints.up(pageComments.length ? "xl" : "lg")]: {
+                  [breakpoints.up(pageComments.length > 0 ? "xl" : "lg")]: {
                     position: "absolute",
                     top: 0,
                     right: "calc(100% + 24px)",
@@ -399,7 +395,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
                 })}
               />
               <Box
-                component="header"
+                component={"header"}
                 ref={pageHeaderRef}
                 sx={{
                   scrollMarginTop:
@@ -457,8 +453,8 @@ const Page: NextPageWithLayout<PageProps> = () => {
                 {isCanvasPage ? (
                   <CanvasPageBlock contents={contents} />
                 ) : (
-                  <Box marginTop={5} position="relative">
-                    {!!canUserEdit && pageComments.length > 0 ? (
+                  <Box marginTop={5} position={"relative"}>
+                    {Boolean(canUserEdit) && pageComments.length > 0 ? (
                       <PageSectionContainer
                         pageComments={pageComments}
                         readonly={!canUserEdit}
@@ -470,7 +466,7 @@ const Page: NextPageWithLayout<PageProps> = () => {
                           width: "100%",
                         }}
                       >
-                        <Box width="100%" position="relative">
+                        <Box width={"100%"} position={"relative"}>
                           <Box
                             sx={{
                               position: "absolute",
@@ -491,16 +487,16 @@ const Page: NextPageWithLayout<PageProps> = () => {
                     ) : null}
 
                     <BlockCollection
+                      enableCommenting
                       ownedById={pageOwnedById}
                       contents={contents}
-                      enableCommenting
                       entityId={pageEntityId}
                       readonly={!canUserEdit}
                       autoFocus={title !== ""}
                       sx={{
                         /**
-                         * to handle margin-clicking, prosemirror should take full width, and give padding to it's content
-                         * so it automatically handles focusing on closest node on margin-clicking
+                         * To handle margin-clicking, prosemirror should take full width, and give padding to it's content
+                         * so it automatically handles focusing on closest node on margin-clicking.
                          */
                         ".ProseMirror": {
                           ...getPageSectionContainerStyles({

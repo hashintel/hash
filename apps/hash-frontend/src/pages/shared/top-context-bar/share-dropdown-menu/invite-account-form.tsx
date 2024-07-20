@@ -1,3 +1,4 @@
+import type { FunctionComponent , useCallback, useMemo, useState } from "react";
 import { Autocomplete, Avatar } from "@hashintel/design-system";
 import type {
   AccountGroupId,
@@ -9,8 +10,6 @@ import {
   outlinedInputClasses,
   Typography,
 } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo, useState } from "react";
 
 import { useOrgs } from "../../../../components/hooks/use-orgs";
 import { useOrgsWithLinks } from "../../../../components/hooks/use-orgs-with-links";
@@ -50,8 +49,7 @@ export const InviteAccountForm: FunctionComponent<{
     () =>
       [...(users ?? minimalUsers ?? []), ...(orgs ?? minimalOrgs ?? [])].filter(
         (account) =>
-          !excludeAccountIds ||
-          !excludeAccountIds.includes(
+          !excludeAccountIds?.includes(
             account.kind === "user"
               ? account.accountId
               : account.accountGroupId,
@@ -75,30 +73,23 @@ export const InviteAccountForm: FunctionComponent<{
 
   return (
     <Box
-      component="form"
-      display="flex"
+      component={"form"}
+      display={"flex"}
       columnGap={0.75}
       onSubmit={handleSubmit}
     >
       <Autocomplete<User | MinimalUser | Org | MinimalOrg | null, false, false>
+        autoFocus={false}
+        options={options}
+        inputPlaceholder={"Add a user or organization..."}
+        open={open}
+        disableClearable={false}
+        inputValue={search}
+        value={selectedAccount}
+        inputHeight={36}
         inputProps={{
           endAdornment: null,
         }}
-        autoFocus={false}
-        options={options}
-        inputPlaceholder="Add a user or organization..."
-        open={open}
-        disableClearable={false}
-        onOpen={() => setOpen(true)}
-        onClose={(_, reason) => {
-          if (reason !== "toggleInput") {
-            setOpen(false);
-          }
-        }}
-        inputValue={search}
-        value={selectedAccount}
-        onInputChange={(_, value) => setSearch(value)}
-        onChange={(_, account) => setSelectedAccount(account)}
         getOptionLabel={(option) =>
           option?.kind === "user"
             ? (option.displayName ?? "")
@@ -109,7 +100,7 @@ export const InviteAccountForm: FunctionComponent<{
             return null;
           }
 
-          const avatarSrc =
+          const avatarSource =
             "hasAvatar" in option && option.hasAvatar
               ? getImageUrlFromEntityProperties(
                   option.hasAvatar.imageEntity.properties,
@@ -117,15 +108,15 @@ export const InviteAccountForm: FunctionComponent<{
               : undefined;
 
           return (
-            <Box component="li" {...props}>
+            <Box component={"li"} {...props}>
               <Avatar
-                src={avatarSrc}
-                title={
-                  option.kind === "user" ? option.displayName : option.name
-                }
+                src={avatarSource}
                 size={28}
                 sx={{ marginRight: 1 }}
                 borderRadius={option.kind === "org" ? "4px" : undefined}
+                title={
+                  option.kind === "user" ? option.displayName : option.name
+                }
               />
               <Typography>
                 {option.kind === "user" ? option.displayName : option.name}
@@ -133,7 +124,6 @@ export const InviteAccountForm: FunctionComponent<{
             </Box>
           );
         }}
-        inputHeight={36}
         sx={{
           height: 36,
           [`.${outlinedInputClasses.root}`]: {
@@ -144,8 +134,16 @@ export const InviteAccountForm: FunctionComponent<{
             },
           },
         }}
+        onOpen={() => { setOpen(true); }}
+        onInputChange={(_, value) => { setSearch(value); }}
+        onChange={(_, account) => { setSelectedAccount(account); }}
+        onClose={(_, reason) => {
+          if (reason !== "toggleInput") {
+            setOpen(false);
+          }
+        }}
       />
-      <Button disabled={!selectedAccount} size="xs" type="submit">
+      <Button disabled={!selectedAccount} size={"xs"} type={"submit"}>
         Invite
       </Button>
     </Box>

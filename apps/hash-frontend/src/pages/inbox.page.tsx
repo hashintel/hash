@@ -1,3 +1,11 @@
+import {
+  differenceInDays,
+  differenceInMinutes,
+  format,
+  isThisYear,
+  isToday,
+} from "date-fns";
+import type { FunctionComponent , useCallback, useMemo } from "react";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
@@ -18,28 +26,18 @@ import {
   tableRowClasses,
   Typography,
 } from "@mui/material";
-import {
-  differenceInDays,
-  differenceInMinutes,
-  format,
-  isThisYear,
-  isToday,
-} from "date-fns";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo } from "react";
 
 import { useUserOrOrgShortnameByOwnedById } from "../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { constructPageRelativeUrl } from "../lib/routes";
-import type { NextPageWithLayout } from "../shared/layout";
-import { getLayoutWithSidebar } from "../shared/layout";
+import type { getLayoutWithSidebar,NextPageWithLayout  } from "../shared/layout";
 import { useNotificationEntities } from "../shared/notification-entities-context";
 import { Button, Link } from "../shared/ui";
+
 import type {
   GraphChangeNotification,
   Notification,
   PageRelatedNotification,
-} from "./shared/notifications-with-links-context";
-import { useNotificationsWithLinksContextValue } from "./shared/notifications-with-links-context";
+ useNotificationsWithLinksContextValue } from "./shared/notifications-with-links-context";
 
 const Table = styled(MuiTable)(({ theme }) => ({
   borderCollapse: "separate",
@@ -109,11 +107,11 @@ const GraphChangeNotificationContent = ({
   const { occurredInEntityLabel, occurredInEntity, operation } = notification;
 
   return (
-    <Typography component="span">
+    <Typography component={"span"}>
       HASH AI {operation}d{" "}
       <Link
-        href={targetHref ?? ""}
         noLinkStyle
+        href={targetHref ?? ""}
         onClick={handleNotificationClick}
       >
         {occurredInEntityLabel}
@@ -235,6 +233,7 @@ const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
         } ago`;
       }
       const numberOfHoursAgo = Math.floor(numberOfMinutesAgo / 60);
+
       return `${numberOfHoursAgo} hour${numberOfHoursAgo > 1 ? "s" : ""} ago`;
     }
     const numberOfDaysAgo = differenceInDays(now, createdAt);
@@ -292,7 +291,7 @@ const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
         )}
       </TableCell>
       <TableCell sx={{ display: "flex", columnGap: 1 }}>
-        <Button href={targetHref} onClick={handleNotificationClick} size="xs">
+        <Button href={targetHref} size={"xs"} onClick={handleNotificationClick}>
           {notification.kind === "new-comment" ||
           notification.kind === "comment-reply" ||
           notification.kind === "comment-mention"
@@ -303,8 +302,8 @@ const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
         </Button>
         {notification.readAt ? null : (
           <Button
-            variant="tertiary"
-            size="xs"
+            variant={"tertiary"}
+            size={"xs"}
             onClick={() =>
               markNotificationAsRead({
                 notificationEntity: notification.entity,
@@ -324,7 +323,7 @@ const InboxPage: NextPageWithLayout = () => {
 
   return (
     <Container sx={{ paddingY: 6 }}>
-      <Typography variant="h5" sx={{ marginBottom: 4 }}>
+      <Typography variant={"h5"} sx={{ marginBottom: 4 }}>
         Notifications
       </Typography>
       {notifications && notifications.length === 0 ? (
@@ -333,13 +332,13 @@ const InboxPage: NextPageWithLayout = () => {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell variant="head" sx={{ width: "auto" }}>
+              <TableCell variant={"head"} sx={{ width: "auto" }}>
                 When
               </TableCell>
-              <TableCell variant="head" sx={{ width: "100%" }}>
+              <TableCell variant={"head"} sx={{ width: "100%" }}>
                 Title
               </TableCell>
-              <TableCell variant="head" sx={{ width: "auto" }}>
+              <TableCell variant={"head"} sx={{ width: "auto" }}>
                 Actions
               </TableCell>
             </TableRow>

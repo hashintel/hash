@@ -1,16 +1,14 @@
+import type { FunctionComponent, ReactNode , useMemo } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { TextField } from "@hashintel/design-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import type { BoxProps } from "@mui/material";
-import {
-  Box,
+import type {   Box,
+BoxProps ,
   InputAdornment,
   inputAdornmentClasses,
   Typography,
   typographyClasses,
 } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
-import { useMemo } from "react";
-import { Controller, useForm } from "react-hook-form";
 
 import { SelectInput } from "../../components/forms/select-input";
 import { useShortnameInput } from "../../components/hooks/use-shortname-input";
@@ -18,8 +16,7 @@ import { ChevronRightRegularIcon } from "../../shared/icons/chevron-right-regula
 import { CircleRegularInfoIcon } from "../../shared/icons/circle-info-regular-icon";
 import { TriangleExclamationRegularIcon } from "../../shared/icons/triangle-exclamation-regular-icon";
 import { Button, Link } from "../../shared/ui";
-import type { InvitationInfo } from "../shared/auth-utils";
-import { ORG_ROLES } from "../shared/auth-utils";
+import type { InvitationInfo , ORG_ROLES } from "../shared/auth-utils";
 
 const inputWidth = 250;
 
@@ -31,7 +28,7 @@ const InputLabel: FunctionComponent<
 > = ({ label, description, sx, ...labelProps }) => {
   return (
     <Box
-      component="label"
+      component={"label"}
       {...labelProps}
       sx={[
         {
@@ -64,19 +61,19 @@ const InputLabel: FunctionComponent<
   );
 };
 
-type AccountSetupFormProps = {
+interface AccountSetupFormProps {
   onSubmit: (details: { shortname: string; displayName: string }) => void;
   loading: boolean;
   errorMessage?: string;
   email: string;
   invitationInfo: InvitationInfo | null;
-};
+}
 
-export type AccountSetupFormData = {
+export interface AccountSetupFormData {
   shortname: string;
   displayName: string;
   responsibility?: string;
-};
+}
 
 export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
   onSubmit: setupAccount,
@@ -112,7 +109,7 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
       setupAccount({
         shortname,
         displayName,
-        ...(!!invitationInfo && { responsibility }),
+        ...(Boolean(invitationInfo) && { responsibility }),
       });
     },
   );
@@ -158,24 +155,24 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
         {subtitle}
       </Typography>
       <Box
-        component="form"
-        onSubmit={onSubmit}
+        component={"form"}
         sx={{
           marginTop: 6,
           display: "flex",
           flexDirection: "column",
           rowGap: 4,
         }}
+        onSubmit={onSubmit}
       >
         <Box>
           <InputLabel
-            htmlFor="name"
-            label="Display Name"
+            htmlFor={"name"}
+            label={"Display Name"}
             description={
               <>
                 How should others see you on HASH? e.g. “
                 <Box
-                  component="strong"
+                  component={"strong"}
                   sx={{
                     color: ({ palette }) => palette.common.black,
                     opacity: 1,
@@ -189,21 +186,21 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
             }
           />
           <TextField
-            id="name"
-            placeholder="Jonathan Smith"
             autoFocus
+            id={"name"}
+            placeholder={"Jonathan Smith"}
             sx={{ width: inputWidth }}
             {...register("displayName", { required: true })}
           />
         </Box>
         <Box>
           <InputLabel
-            htmlFor="shortname"
+            htmlFor={"shortname"}
             label={
               <>
                 Personal Username{" "}
                 <Box
-                  component="span"
+                  component={"span"}
                   sx={{
                     marginLeft: 2,
                     color: ({ palette }) => palette.blue[70],
@@ -221,7 +218,7 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
                 Your own personal graph will exist under this username. e.g.{" "}
                 {frontendUrl}/
                 <Box
-                  component="strong"
+                  component={"strong"}
                   sx={{
                     color: ({ palette }) => palette.common.black,
                     fontWeight: 700,
@@ -235,26 +232,19 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <Controller
               control={control}
-              name="shortname"
+              name={"shortname"}
               rules={{ validate: validateShortname }}
               render={({ field }) => (
                 <TextField
-                  id="shortname"
+                  id={"shortname"}
                   {...field}
-                  onChange={(evt) => {
-                    const newEvt = { ...evt };
-                    newEvt.target.value = parseShortnameInput(
-                      newEvt.target.value,
-                    );
-                    field.onChange(newEvt);
-                  }}
-                  placeholder="example"
-                  autoComplete="off"
+                  placeholder={"example"}
+                  autoComplete={"off"}
                   sx={{ width: inputWidth }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment
-                        position="start"
+                        position={"start"}
                         sx={{
                           [`&.${inputAdornmentClasses.root}.${inputAdornmentClasses.positionStart}`]:
                             {
@@ -268,6 +258,14 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
                         @
                       </InputAdornment>
                     ),
+                  }}
+                  onChange={(event) => {
+                    const newEvent = { ...event };
+
+                    newEvent.target.value = parseShortnameInput(
+                      newEvent.target.value,
+                    );
+                    field.onChange(newEvent);
                   }}
                 />
               )}
@@ -317,7 +315,7 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
                   <>
                     If you’re using HASH for work or a team, you’ll be able to
                     create a separate org{" "}
-                    <Link openInNew href="https://hash.ai/guide/webs">
+                    <Link openInNew href={"https://hash.ai/guide/webs"}>
                       web
                     </Link>{" "}
                     later
@@ -328,21 +326,21 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
           </Box>
         </Box>
 
-        {!!invitationInfo && (
+        {Boolean(invitationInfo) && (
           <Box style={{ marginTop: 2 }}>
             <Controller
               control={control}
-              name="responsibility"
+              name={"responsibility"}
               rules={{ required: true }}
               render={({ field: { onChange, value } }) => (
                 <SelectInput
-                  className="w-64"
+                  className={"w-64"}
                   label={`Your Role at ${invitationInfo.orgName}`}
-                  labelClass="font-bold text-base mb-4"
-                  id="responsibility"
+                  labelClass={"font-bold text-base mb-4"}
+                  id={"responsibility"}
                   options={ORG_ROLES}
-                  onChange={onChange}
                   value={value}
+                  onChange={onChange}
                 />
               )}
             />
@@ -361,13 +359,13 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
           </Box>
         )}
         <Button
-          type="submit"
-          disabled={
-            !isValid || loading || (!!invitationInfo && !responsibilityWatcher)
-          }
+          type={"submit"}
           loading={loading}
           endIcon={<ChevronRightRegularIcon />}
           sx={{ width: inputWidth }}
+          disabled={
+            !isValid || loading || (Boolean(invitationInfo) && !responsibilityWatcher)
+          }
         >
           Continue
         </Button>

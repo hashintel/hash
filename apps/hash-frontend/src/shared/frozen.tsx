@@ -1,5 +1,4 @@
-import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
-import { useState } from "react";
+import type { FunctionComponent, PropsWithChildren, ReactNode , useState } from "react";
 
 export const useFrozenValue = <T extends ReactNode>(
   value: T,
@@ -22,6 +21,6 @@ export const Frozen: FunctionComponent<
   const frozenChildren = useFrozenValue(children, frozen);
 
   // Needed to render children directly as could be string, etc
-  // eslint-disable-next-line react/jsx-no-useless-fragment
+   
   return <>{frozenChildren}</>;
 };

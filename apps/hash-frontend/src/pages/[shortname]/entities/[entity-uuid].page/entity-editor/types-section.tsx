@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useMutation } from "@apollo/client";
 import { extractVersion } from "@blockprotocol/type-system";
 import { TypeCard } from "@hashintel/design-system";
@@ -8,7 +9,6 @@ import {
   versionedUrlFromComponents,
 } from "@local/hash-subgraph/type-system-patch";
 import { Box } from "@mui/material";
-import { useEffect, useState } from "react";
 
 import { useBlockProtocolQueryEntityTypes } from "../../../../../components/hooks/block-protocol-functions/ontology/use-block-protocol-query-entity-types";
 import type {
@@ -18,6 +18,7 @@ import type {
 import { updateEntityMutation } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { Link } from "../../../../../shared/ui/link";
 import { SectionWrapper } from "../../../shared/section-wrapper";
+
 import { useEntityEditor } from "./entity-editor-context";
 import { EntityTypeUpdateModal } from "./types-section/entity-type-update-modal";
 
@@ -42,7 +43,7 @@ export const TypesSection = () => {
 
   useEffect(() => {
     const init = async () => {
-      /** @todo instead of aggregating all types, use filtering by baseId when it's available to use */
+      /** @todo Instead of aggregating all types, use filtering by baseId when it's available to use */
       const res = await queryEntityTypes({
         data: {
           graphResolveDepths: {
@@ -113,16 +114,16 @@ export const TypesSection = () => {
     }
   };
 
-  const closeModal = () => setUpdateModalOpen(false);
-  const openModal = () => setUpdateModalOpen(true);
+  const closeModal = () => { setUpdateModalOpen(false); };
+  const openModal = () => { setUpdateModalOpen(true); };
   const currentVersion = extractVersion(entityTypeId);
 
   return (
     <SectionWrapper
-      title="Types"
-      titleTooltip="Types describe what an entity is, allowing information to be associated with it. Entities can have an unlimited number of types."
+      title={"Types"}
+      titleTooltip={"Types describe what an entity is, allowing information to be associated with it. Entities can have an unlimited number of types."}
     >
-      <Box display="flex" gap={2}>
+      <Box display={"flex"} gap={2}>
         <TypeCard
           LinkComponent={Link}
           url={entityTypeId}
@@ -142,12 +143,12 @@ export const TypesSection = () => {
       {newVersion && (
         <EntityTypeUpdateModal
           open={updateModalOpen}
-          onClose={closeModal}
           currentVersion={currentVersion}
           newVersion={newVersion}
           entityTypeTitle={entityTypeTitle}
-          onUpdateVersion={handleUpdateVersion}
           updatingVersion={updatingVersion}
+          onClose={closeModal}
+          onUpdateVersion={handleUpdateVersion}
         />
       )}
     </SectionWrapper>

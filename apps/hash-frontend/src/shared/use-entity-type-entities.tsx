@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
@@ -9,7 +10,6 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import type { EntityRootType, GraphResolveDepths } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { useMemo } from "react";
 
 import type {
   GetEntitySubgraphQuery,
@@ -21,6 +21,7 @@ import {
   queryEntitiesQuery,
 } from "../graphql/queries/knowledge/entity.queries";
 import { apolloClient } from "../lib/apollo-client";
+
 import type { EntityTypeEntitiesContextValue } from "./entity-type-entities-context";
 
 export const generateUseEntityTypeEntitiesQueryVariables = (params: {
@@ -130,7 +131,7 @@ export const useEntityTypeEntities = (params: {
   });
 
   const hadCachedContent = useMemo(
-    () => !!apolloClient.readQuery({ query: queryEntitiesQuery, variables }),
+    () => Boolean(apolloClient.readQuery({ query: queryEntitiesQuery, variables })),
     [variables],
   );
 

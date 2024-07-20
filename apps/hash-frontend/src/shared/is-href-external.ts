@@ -2,7 +2,7 @@
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 
 export const isHrefExternal = (href: string) =>
-  !!href &&
+  Boolean(href) &&
   (href === "/cases" ||
     href === "/contact" ||
     href === "/guide" ||

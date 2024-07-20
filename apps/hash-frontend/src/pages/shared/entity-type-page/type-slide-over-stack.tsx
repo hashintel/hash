@@ -1,7 +1,6 @@
+import type { FunctionComponent , useCallback, useState } from "react";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { Backdrop } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useCallback, useState } from "react";
 
 import { TypeSlideOverSlide } from "./type-slide-over-stack/type-slide-over-slide";
 
@@ -19,17 +18,17 @@ export const TypeSlideOverStack: FunctionComponent<{
   }
 
   const handleBack = useCallback(() => {
-    setCurrentIndex((prevIndex) => Math.max(prevIndex - 1, 0));
+    setCurrentIndex((previousIndex) => Math.max(previousIndex - 1, 0));
   }, []);
 
   const handleForward = useCallback(() => {
-    setCurrentIndex((prevIndex) => Math.min(prevIndex + 1, items.length - 1));
+    setCurrentIndex((previousIndex) => Math.min(previousIndex + 1, items.length - 1));
   }, [items.length]);
 
   const handleNavigateToType = useCallback(
     (url: VersionedUrl) => {
-      setItems((prev) => [...prev.slice(0, currentIndex + 1), url]);
-      setCurrentIndex((prevIndex) => prevIndex + 1);
+      setItems((previous) => [...previous.slice(0, currentIndex + 1), url]);
+      setCurrentIndex((previousIndex) => previousIndex + 1);
     },
     [currentIndex],
   );
@@ -47,20 +46,20 @@ export const TypeSlideOverStack: FunctionComponent<{
   return (
     <Backdrop
       open={!animateOut}
-      onClick={handleClose}
       sx={{ zIndex: ({ zIndex }) => zIndex.drawer + 2 }}
+      onClick={handleClose}
     >
       {items.slice(0, currentIndex + 1).map((typeId, index) => (
         <TypeSlideOverSlide
           // eslint-disable-next-line react/no-array-index-key
           key={`${index}-${typeId}`}
           open={!animateOut}
+          typeUrl={typeId}
+          stackPosition={index}
           onBack={index > 0 ? handleBack : undefined}
           onForward={index < items.length - 1 ? handleForward : undefined}
           onClose={handleClose}
           onNavigateToType={handleNavigateToType}
-          typeUrl={typeId}
-          stackPosition={index}
         />
       ))}
     </Backdrop>

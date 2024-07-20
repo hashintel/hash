@@ -1,3 +1,12 @@
+import type {   Fragment,
+FunctionComponent ,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useKey } from "rooks";
 import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { LoadingSpinner } from "@hashintel/design-system";
@@ -23,8 +32,7 @@ import {
   isPageEntityTypeId,
   pageEntityTypeIds,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import type { EntityRootType , extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
   getOutgoingLinkAndTargetEntities,
@@ -32,16 +40,6 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { List, ListItem, ListItemIcon, ListItemText } from "@mui/material";
-import type { FunctionComponent } from "react";
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { useKey } from "rooks";
 
 import type {
   GetEntitySubgraphQuery,
@@ -54,12 +52,11 @@ import { usePropertyTypes } from "../../../../shared/property-types-context";
 import { useScrollLock } from "../../../../shared/use-scroll-lock";
 import { useAuthenticatedUser } from "../../auth-info-context";
 import { hiddenEntityTypeIds } from "../../hidden-types";
+
 import { fuzzySearchBy } from "./fuzzy-search-by";
 import type {
-  SortOrder,
-  SubMenuItem,
-} from "./mention-suggester/mention-suggester-entity";
-import { MentionSuggesterEntity } from "./mention-suggester/mention-suggester-entity";
+ MentionSuggesterEntity,  SortOrder,
+  SubMenuItem } from "./mention-suggester/mention-suggester-entity";
 import { MentionSuggesterSubheading } from "./mention-suggester/mention-suggester-subheading";
 import { MentionSuggesterWrapper } from "./mention-suggester/mention-suggester-wrapper";
 
@@ -91,7 +88,7 @@ export type MentionKind = Mention["kind"];
 
 export interface MentionSuggesterProps {
   search?: string;
-  onChange(mention: Mention): void;
+  onChange: (mention: Mention) => void;
   ownedById: OwnedById;
 }
 
@@ -228,7 +225,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
       entitiesSubgraph
         ? searchedEntities
             ?.reduce(
-              (prev, currentEntity) => {
+              (previous, currentEntity) => {
                 if (
                   (isEntityPageEntity(currentEntity) &&
                     isPageArchived(currentEntity)) ||
@@ -240,17 +237,17 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                       linkEntityTypeId === currentEntity.metadata.entityTypeId,
                   )
                 ) {
-                  return prev;
+                  return previous;
                 }
 
-                const existingIndex = prev.findIndex(
+                const existingIndex = previous.findIndex(
                   ({ entityType }) =>
                     entityType.schema.$id ===
                     currentEntity.metadata.entityTypeId,
                 );
 
                 const entityType =
-                  prev[existingIndex]?.entityType ??
+                  previous[existingIndex]?.entityType ??
                   getEntityTypeById(
                     entitiesSubgraph,
                     currentEntity.metadata.entityTypeId,
@@ -260,19 +257,19 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                   throw new Error("Entity type could not be found in subgraph");
                 }
 
-                const previousEntities = prev[existingIndex]?.allEntities ?? [];
+                const previousEntities = previous[existingIndex]?.allEntities ?? [];
 
                 return existingIndex >= 0
                   ? [
-                      ...prev.slice(0, existingIndex),
+                      ...previous.slice(0, existingIndex),
                       {
-                        ...prev[existingIndex]!,
+                        ...previous[existingIndex]!,
                         allEntities: [...previousEntities, currentEntity],
                       },
-                      ...prev.slice(existingIndex + 1),
+                      ...previous.slice(existingIndex + 1),
                     ]
                   : [
-                      ...prev,
+                      ...previous,
                       {
                         entityType,
                         displayedEntities: [currentEntity],
@@ -294,9 +291,10 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
 
                 if (isAInUserAccount && !isBInUserAccount) {
                   return -1;
-                } else if (isBInUserAccount && !isAInUserAccount) {
+                } if (isBInUserAccount && !isAInUserAccount) {
                   return 1;
                 }
+
                 return 0;
               });
 
@@ -356,7 +354,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     Record<EntityId, SubMenuItem[]> | undefined
   >(() => {
     if (propertyTypes && searchedEntities && entitiesSubgraph) {
-      return searchedEntities.reduce((prev, entity) => {
+      return searchedEntities.reduce((previous, entity) => {
         const properties = Object.entries(entity.properties).map(
           ([propertyTypeBaseUrl, propertyValue]) => {
             const propertyType = Object.values(propertyTypes).find(
@@ -409,7 +407,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
         );
 
         return {
-          ...prev,
+          ...previous,
           [entity.metadata.recordId.entityId]: [
             ...properties,
             ...outgoingLinks,
@@ -446,6 +444,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     if (selectedEntity && entitiesSubMenuItems) {
       return entitiesSubMenuItems[selectedEntity.metadata.recordId.entityId];
     }
+
     return undefined;
   }, [selectedEntity, entitiesSubMenuItems]);
 
@@ -459,8 +458,9 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
     if (displayEntitySubMenu && selectedEntitySubMenuItems) {
       let index =
         entitySelectedSubMenuIndex + (event.key === "ArrowUp" ? -1 : 1);
-      index += selectedEntitySubMenuItems.length;
-      index %= selectedEntitySubMenuItems.length;
+
+      index = index + selectedEntitySubMenuItems.length;
+      index = index % selectedEntitySubMenuItems.length;
 
       setEntitySelectedSubMenuIndex(index);
     } else {
@@ -468,8 +468,8 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
       const numberOfDisplayedEntities =
         searchedEntities.length + (recentlyUsedEntities?.length ?? 0);
 
-      index += numberOfDisplayedEntities;
-      index %= numberOfDisplayedEntities;
+      index = index + numberOfDisplayedEntities;
+      index = index % numberOfDisplayedEntities;
       setSelectedEntityIndex(index);
     }
   });
@@ -498,6 +498,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
   const handleSubmit = useCallback(
     (params?: { entity?: Entity; subMenuIndex?: number }) => {
       const { subMenuIndex } = params ?? {};
+
       if (!searchedEntities) {
         return;
       }
@@ -515,6 +516,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               subMenuIndex ?? entitySelectedSubMenuIndex
             ]
           : undefined;
+
         if (selectedSubMenuItem) {
           if (selectedSubMenuItem.kind === "outgoing-link") {
             const linkEntityTypeBaseUrl = extractBaseUrl(
@@ -579,25 +581,30 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
         {entitiesSubgraph
           ? recentlyUsedEntities?.map((entity, index) => {
               const selected = index === selectedEntityIndex;
+
               return (
                 <MentionSuggesterEntity
+                  displayTypeTitle
                   key={entity.metadata.recordId.entityId}
+                  ref={selected ? selectedEntityRef : undefined}
+                  selected={selected}
+                  displaySubMenu={selected && displayEntitySubMenu}
+                  disabled={!selected && displayEntitySubMenu}
+                  subMenuIndex={entitySelectedSubMenuIndex}
+                  entitiesSubgraph={entitiesSubgraph}
+                  entity={entity}
+                  sortOrder={entitySubMenuSortOrder}
+                  setSortOrder={setEntitySubMenuSortOrder}
                   entityType={
                     getEntityTypeById(
                       entitiesSubgraph,
                       entity.metadata.entityTypeId,
                     )!
                   }
-                  ref={selected ? selectedEntityRef : undefined}
-                  selected={selected}
-                  displaySubMenu={selected && displayEntitySubMenu}
-                  disabled={!selected && displayEntitySubMenu}
-                  subMenuIndex={entitySelectedSubMenuIndex}
                   subMenuItems={
                     entitiesSubMenuItems?.[entity.metadata.recordId.entityId] ??
                     []
                   }
-                  displayTypeTitle
                   setDisplaySubMenu={(displaySubMenu) => {
                     if (displaySubMenu) {
                       setDisplayEntitySubMenu(true);
@@ -606,14 +613,10 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                       setDisplayEntitySubMenu(false);
                     }
                   }}
-                  entitiesSubgraph={entitiesSubgraph}
-                  entity={entity}
+                  onClick={() => { handleSubmit({ entity }); }}
                   onSubMenuClick={(subMenuIndex) =>
-                    handleSubmit({ subMenuIndex })
+                    { handleSubmit({ subMenuIndex }); }
                   }
-                  sortOrder={entitySubMenuSortOrder}
-                  setSortOrder={setEntitySubMenuSortOrder}
-                  onClick={() => handleSubmit({ entity })}
                 />
               );
             })
@@ -632,18 +635,18 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                   <Fragment key={entityTypeId}>
                     <MentionSuggesterSubheading
                       disabled={displayEntitySubMenu}
+                      open={isExpanded}
+                      sx={{ marginTop: 0.5 }}
                       onClick={
                         allEntities.length > numberOfEntitiesDisplayedPerSection
                           ? () =>
-                              setExpandedEntityTypes((prev) =>
+                              { setExpandedEntityTypes((previous) =>
                                 isExpanded
-                                  ? prev.filter((id) => id !== entityTypeId)
-                                  : [...prev, entityTypeId],
-                              )
+                                  ? previous.filter((id) => id !== entityTypeId)
+                                  : [...previous, entityTypeId],
+                              ); }
                           : undefined
                       }
-                      open={isExpanded}
-                      sx={{ marginTop: 0.5 }}
                     >
                       {entityType.schema.title}
                     </MentionSuggesterSubheading>
@@ -654,11 +657,11 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                           .slice(0, typeSectionIndex)
                           .reduce(
                             (
-                              prev,
+                              previous,
                               {
                                 displayedEntities: previousTypeSectionEntities,
                               },
-                            ) => prev + previousTypeSectionEntities.length,
+                            ) => previous + previousTypeSectionEntities.length,
                             0,
                           ) +
                         entityIndex;
@@ -676,6 +679,8 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                             displaySubMenu={selected && displayEntitySubMenu}
                             disabled={!selected && displayEntitySubMenu}
                             subMenuIndex={entitySelectedSubMenuIndex}
+                            sortOrder={entitySubMenuSortOrder}
+                            setSortOrder={setEntitySubMenuSortOrder}
                             subMenuItems={
                               entitiesSubMenuItems?.[
                                 entity.metadata.recordId.entityId
@@ -689,12 +694,10 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                                 setDisplayEntitySubMenu(false);
                               }
                             }}
+                            onClick={() => { handleSubmit({ entity }); }}
                             onSubMenuClick={(subMenuIndex) =>
-                              handleSubmit({ subMenuIndex })
+                              { handleSubmit({ subMenuIndex }); }
                             }
-                            sortOrder={entitySubMenuSortOrder}
-                            setSortOrder={setEntitySubMenuSortOrder}
-                            onClick={() => handleSubmit({ entity })}
                           />
                         </Fragment>
                       );

@@ -1,8 +1,9 @@
-import type { OwnedById } from "@local/hash-graph-types/web";
 import type { Node } from "prosemirror-model";
 import type { EditorView, NodeView } from "prosemirror-view";
+import type { OwnedById } from "@local/hash-graph-types/web";
 
 import type { RenderPortal } from "../block-portals";
+
 import { MentionDisplay } from "./mention-display";
 
 export class MentionView implements NodeView {

@@ -1,3 +1,5 @@
+import { useRouter } from "next/router";
+import type { FunctionComponent, PropsWithChildren , useState } from "react";
 import {
   ArrowUpRightRegularIcon,
   CodeIcon,
@@ -9,19 +11,15 @@ import type { ProvidedEntityEditionProvenanceOriginTypeEnum } from "@local/hash-
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import type { Subgraph } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
-import type { SvgIconProps, SxProps, Theme } from "@mui/material";
-import { Box, Stack, Typography } from "@mui/material";
-import { useRouter } from "next/router";
-import type { FunctionComponent, PropsWithChildren } from "react";
-import { useState } from "react";
+import type { extractEntityUuidFromEntityId,Subgraph  } from "@local/hash-subgraph";
+import type { Box, Stack, SvgIconProps, SxProps, Theme , Typography } from "@mui/material";
 
 import { SearchIcon } from "../../../../../../../shared/icons/search-icon";
 import { UserIcon } from "../../../../../../../shared/icons/user-icon";
 import { Link } from "../../../../../../../shared/ui/link";
 import { useActors } from "../../../../../../../shared/use-actors";
 import type { HistoryEvent } from "../shared/types";
+
 import { SourcesSlideover } from "./provenance/sources-slideover";
 
 const ProvenanceHeader = ({ label }: { label: string }) => (
@@ -61,7 +59,7 @@ const typographySx: SxProps<Theme> = {
 };
 
 const ProvenanceRow = ({ children }: PropsWithChildren) => (
-  <Stack direction="row" alignItems="center" gap={1.5} my={0.5}>
+  <Stack direction={"row"} alignItems={"center"} gap={1.5} my={0.5}>
     {children}
   </Stack>
 );
@@ -103,13 +101,14 @@ export const Provenance = ({
   }
 
   const originType = edition.origin?.type;
-  const actorType = edition.actorType;
+  const {actorType} = edition;
 
   const originTextPrefix = event.type === "created" ? "Created" : "Updated";
 
   let originText = originType
     ? `${originTextPrefix} from the`
     : `${originTextPrefix} from`;
+
   // @ts-expect-error - `ProvidedEntityEditionProvenanceOrigin` is not being generated correctly from the Graph API
   if (originType === "flow" || originType === "migration") {
     originText = `${originTextPrefix} by a`;
@@ -126,12 +125,12 @@ export const Provenance = ({
 
   return (
     <>
-      {!!sources?.length && (
+      {Boolean(sources?.length) && (
         <SourcesSlideover
           event={event}
-          onClose={() => setShowSourcesSlideover(false)}
           open={showSourcesSlideover}
           subgraph={subgraph}
+          onClose={() => { setShowSourcesSlideover(false); }}
         />
       )}
       <Box
@@ -143,20 +142,21 @@ export const Provenance = ({
           borderRadius: 2,
         })}
       >
-        <Stack direction="row" gap={4}>
+        <Stack direction={"row"} gap={4}>
           <Stack gap={0.8}>
-            <ProvenanceHeader label="Change origins" />
+            <ProvenanceHeader label={"Change origins"} />
             {originType && (
               <ProvenanceRow>
                 {OriginIcon ? <OriginIcon sx={provenanceIconSx} /> : null}
                 <Typography sx={typographySx}>
                   {originText}
-                  <Box component="span" sx={{ fontWeight: 600, ml: 0.5 }}>
+                  <Box component={"span"} sx={{ fontWeight: 600, ml: 0.5 }}>
                     {originType.split("-").join(" ")}
                   </Box>
                 </Typography>
                 {flowRunEntityId && (
                   <Link
+                    target={"_blank"}
                     href={generateWorkerRunPath({
                       flowRunId: extractEntityUuidFromEntityId(flowRunEntityId),
                       shortname,
@@ -171,7 +171,6 @@ export const Provenance = ({
                       borderLeft: ({ palette }) =>
                         `1px solid ${palette.gray[40]}`,
                     }}
-                    target="_blank"
                   >
                     View run
                     <ArrowUpRightRegularIcon
@@ -195,7 +194,7 @@ export const Provenance = ({
               )}
               <Typography sx={typographySx}>
                 {originTextPrefix} by
-                <Box component="span" sx={{ fontWeight: 600, ml: 0.5 }}>
+                <Box component={"span"} sx={{ fontWeight: 600, ml: 0.5 }}>
                   {actor.kind === "machine" ? (
                     actor.displayName
                   ) : (
@@ -207,16 +206,15 @@ export const Provenance = ({
               </Typography>
             </ProvenanceRow>
           </Stack>
-          {!!sources?.length && (
+          {Boolean(sources?.length) && (
             <Stack gap={0.5}>
-              <ProvenanceHeader label="Information origins" />
+              <ProvenanceHeader label={"Information origins"} />
               <ProvenanceRow>
                 <SearchIcon sx={provenanceIconSx} />
                 <Typography sx={typographySx}>
                   Inferred from
                   <Box
-                    component="button"
-                    onClick={() => setShowSourcesSlideover(true)}
+                    component={"button"}
                     sx={{
                       background: "none",
                       padding: 0,
@@ -226,6 +224,7 @@ export const Provenance = ({
                       cursor: "pointer",
                       ml: 0.6,
                     }}
+                    onClick={() => { setShowSourcesSlideover(true); }}
                   >
                     {sources.length}{" "}
                     {sources.length === 1 ? "source" : "sources"}

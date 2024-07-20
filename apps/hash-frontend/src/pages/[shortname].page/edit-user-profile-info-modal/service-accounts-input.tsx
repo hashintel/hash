@@ -1,3 +1,5 @@
+import type { FunctionComponent } from "react";
+import { Controller, useFieldArray, useFormContext } from "react-hook-form";
 import { IconButton, Select, TextField } from "@hashintel/design-system";
 import {
   Box,
@@ -5,13 +7,12 @@ import {
   selectClasses,
   Typography,
 } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { Controller, useFieldArray, useFormContext } from "react-hook-form";
 
 import type { ServiceAccountKind } from "../../../lib/user-and-org";
 import { PlusRegularIcon } from "../../../shared/icons/plus-regular";
 import { XMarkRegularIcon } from "../../../shared/icons/x-mark-regular-icon";
 import { Button, MenuItem } from "../../../shared/ui";
+
 import type { UserProfileFormData } from "./user-profile-info-form";
 import { urlRegex } from "./util";
 
@@ -36,9 +37,9 @@ export const ServiceAccountsInput: FunctionComponent = () => {
   });
 
   return (
-    <Box display="flex" flexDirection="column" rowGap={1}>
+    <Box display={"flex"} flexDirection={"column"} rowGap={1}>
       <Typography
-        variant="smallTextLabels"
+        variant={"smallTextLabels"}
         sx={({ palette }) => ({
           fontWeight: 500,
           color: palette.gray[70],
@@ -47,8 +48,10 @@ export const ServiceAccountsInput: FunctionComponent = () => {
         Social media
       </Typography>
       {fields.map(({ id }, index) => (
-        <Box key={id} display="flex" alignItems="center">
+        <Box key={id} display={"flex"} alignItems={"center"}>
           <Controller
+            control={control}
+            name={`serviceAccounts.${index}.kind`}
             render={({ field }) => (
               <Select
                 {...field}
@@ -72,12 +75,10 @@ export const ServiceAccountsInput: FunctionComponent = () => {
                 )}
               </Select>
             )}
-            control={control}
-            name={`serviceAccounts.${index}.kind`}
           />
           <TextField
             fullWidth
-            placeholder="Enter your profile URL"
+            placeholder={"Enter your profile URL"}
             {...register(`serviceAccounts.${index}.profileUrl`, {
               required: true,
               pattern: {
@@ -87,7 +88,7 @@ export const ServiceAccountsInput: FunctionComponent = () => {
             })}
             error={
               touchedFields.serviceAccounts?.[index]?.profileUrl &&
-              !!errors.serviceAccounts?.[index]?.profileUrl
+              Boolean(errors.serviceAccounts?.[index]?.profileUrl)
             }
             sx={{
               [`.${outlinedInputClasses.root}`]: {
@@ -101,7 +102,7 @@ export const ServiceAccountsInput: FunctionComponent = () => {
             }}
           />
           <Box marginLeft={1} marginRight={-1}>
-            <IconButton onClick={() => remove(index)}>
+            <IconButton onClick={() => { remove(index); }}>
               <XMarkRegularIcon />
             </IconButton>
           </Box>
@@ -109,10 +110,10 @@ export const ServiceAccountsInput: FunctionComponent = () => {
       ))}
       <Button
         sx={{ alignSelf: "flex-start" }}
-        size="small"
-        variant="tertiary"
-        onClick={() => append({ kind: "twitterAccount", profileUrl: "" })}
+        size={"small"}
+        variant={"tertiary"}
         startIcon={<PlusRegularIcon />}
+        onClick={() => { append({ kind: "twitterAccount", profileUrl: "" }); }}
       >
         Add {fields.length === 0 ? "social media" : "another"}
       </Button>

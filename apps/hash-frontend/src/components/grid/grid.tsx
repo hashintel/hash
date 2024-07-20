@@ -1,29 +1,22 @@
 import "@glideapps/glide-data-grid/dist/index.css";
-
+import { uniqueId } from "lodash";
+import type { MutableRefObject, Ref , useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
+  CompactSelection,
+  DataEditor,
   DataEditorProps,
   DataEditorRef,
   GridCell,
-  GridColumn,
+  GridCellKind,  GridColumn,
   GridSelection,
   HeaderClickedEventArgs,
   Item,
   SizedGridColumn,
   TextCell,
-  Theme,
-} from "@glideapps/glide-data-grid";
-import {
-  CompactSelection,
-  DataEditor,
-  GridCellKind,
-} from "@glideapps/glide-data-grid";
+  Theme} from "@glideapps/glide-data-grid";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
-import type { PopperProps } from "@mui/material";
-import { Box, useTheme } from "@mui/material";
+import type { Box, PopperProps , useTheme } from "@mui/material";
 import type { Instance as PopperInstance } from "@popperjs/core";
-import { uniqueId } from "lodash";
-import type { MutableRefObject, Ref } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { getCellHorizontalPadding } from "./utils";
 import { ColumnFilterMenu } from "./utils/column-filter-menu";
@@ -36,8 +29,7 @@ import type {
 } from "./utils/interactable-manager/types";
 import { overrideCustomRenderers } from "./utils/override-custom-renderers";
 import type { Row } from "./utils/rows";
-import type { ColumnSort } from "./utils/sorting";
-import { defaultSortRows } from "./utils/sorting";
+import type { ColumnSort , defaultSortRows } from "./utils/sorting";
 import { useDrawHeader } from "./utils/use-draw-header";
 import { useRenderGridPortal } from "./utils/use-render-grid-portal";
 
@@ -113,7 +105,8 @@ export const Grid = <T extends Row & { rowId: string }>({
   useEffect(() => {
     // delete saved interactables on unmount
     const tableId = tableIdRef.current;
-    return () => InteractableManager.deleteInteractables(tableId);
+
+    return () => { InteractableManager.deleteInteractables(tableId); };
   }, []);
 
   const [sorts, setSorts] = useState<ColumnSort<string>[]>(
@@ -136,20 +129,20 @@ export const Grid = <T extends Row & { rowId: string }>({
     (columnKey: string) => {
       if (currentSortedColumnKey === columnKey) {
         // Toggle the direction of the sort if it's already the currently sorted column
-        setSorts((prevSorts) => {
-          const previousSortIndex = prevSorts.findIndex(
+        setSorts((previousSorts) => {
+          const previousSortIndex = previousSorts.findIndex(
             (sort) => sort.columnKey === columnKey,
           );
 
-          const previousSort = prevSorts[previousSortIndex]!;
+          const previousSort = previousSorts[previousSortIndex]!;
 
           return [
-            ...prevSorts.slice(0, previousSortIndex),
+            ...previousSorts.slice(0, previousSortIndex),
             {
               ...previousSort,
               direction: previousSort.direction === "asc" ? "desc" : "asc",
             },
-            ...prevSorts.slice(previousSortIndex + 1),
+            ...previousSorts.slice(previousSortIndex + 1),
           ];
         });
       }
@@ -203,6 +196,7 @@ export const Grid = <T extends Row & { rowId: string }>({
             return false;
           }
         }
+
         return true;
       });
     }
@@ -321,9 +315,9 @@ export const Grid = <T extends Row & { rowId: string }>({
 
   const handleColumnResize = useCallback(
     (column: GridColumn, newSize: number) => {
-      setColumnSizes((prevColumnSizes) => {
+      setColumnSizes((previousColumnSizes) => {
         return {
-          ...prevColumnSizes,
+          ...previousColumnSizes,
           [column.id]: newSize,
         };
       });
@@ -479,50 +473,39 @@ export const Grid = <T extends Row & { rowId: string }>({
       }}
     >
       <ColumnFilterMenu
-        open={!!openFilterColumn}
+        transition
+        open={Boolean(openFilterColumn)}
         columnFilter={openFilterColumn}
-        onClose={() => setOpenFilterColumnKey(undefined)}
         anchorEl={filterIconVirtualElement}
         popperRef={popperRef}
-        transition
-        placement="bottom-start"
+        placement={"bottom-start"}
+        onClose={() => { setOpenFilterColumnKey(undefined); }}
       />
       <DataEditor
+        smoothScrollX
+        smoothScrollY
+        getCellsForSelection
         ref={gridRef}
         theme={gridTheme}
         getRowThemeOverride={getRowThemeOverride}
         gridSelection={gridSelection}
-        width="100%"
+        width={"100%"}
         headerHeight={gridHeaderHeight}
         rowHeight={gridRowHeight}
         drawFocusRing={false}
-        rangeSelect="cell"
-        columnSelect="none"
-        cellActivationBehavior="single-click"
-        smoothScrollX
-        smoothScrollY
-        getCellsForSelection
-        onItemHovered={({ location: [_colIndex, rowIndex], kind }) => {
-          setHoveredRow(kind === "cell" ? rowIndex : undefined);
-        }}
+        rangeSelect={"cell"}
+        columnSelect={"none"}
+        cellActivationBehavior={"single-click"}
         customRenderers={overriddenCustomRenderers}
-        onVisibleRegionChanged={handleVisibleRegionChanged}
-        onColumnResize={resizable ? handleColumnResize : undefined}
         columns={resizedColumns}
         drawHeader={drawHeader ?? defaultDrawHeader}
-        onHeaderClicked={handleHeaderClicked}
+        rows={sortedAndFilteredRows ? sortedAndFilteredRows.length : 1}
+        maxColumnWidth={1000}
         getCellContent={
           sortedAndFilteredRows
             ? createGetCellContent(sortedAndFilteredRows)
             : getSkeletonCellContent
         }
-        onCellEdited={
-          sortedAndFilteredRows
-            ? createOnCellEdited?.(sortedAndFilteredRows)
-            : undefined
-        }
-        rows={sortedAndFilteredRows ? sortedAndFilteredRows.length : 1}
-        maxColumnWidth={1000}
         verticalBorder={
           typeof rest.verticalBorder === "undefined"
             ? (columnNumber) =>
@@ -537,6 +520,17 @@ export const Grid = <T extends Row & { rowId: string }>({
                   ? columnNumber !== 0 || defaultValue
                   : defaultValue;
               }
+        }
+        onVisibleRegionChanged={handleVisibleRegionChanged}
+        onColumnResize={resizable ? handleColumnResize : undefined}
+        onHeaderClicked={handleHeaderClicked}
+        onItemHovered={({ location: [_colIndex, rowIndex], kind }) => {
+          setHoveredRow(kind === "cell" ? rowIndex : undefined);
+        }}
+        onCellEdited={
+          sortedAndFilteredRows
+            ? createOnCellEdited?.(sortedAndFilteredRows)
+            : undefined
         }
         onGridSelectionChange={(newSelection) => {
           setSelection(newSelection);
@@ -558,9 +552,9 @@ export const Grid = <T extends Row & { rowId: string }>({
           : {})}
         {...rest}
         /**
-         * icons defined via `headerIcons` are available to be drawn using
+         * Icons defined via `headerIcons` are available to be drawn using
          * glide's `spriteManager.drawSprite`,
-         * which will be used to draw svg icons inside custom cells
+         * which will be used to draw svg icons inside custom cells.
          */
         headerIcons={customGridIcons}
       />

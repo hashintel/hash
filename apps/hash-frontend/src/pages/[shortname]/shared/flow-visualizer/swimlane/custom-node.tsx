@@ -1,24 +1,21 @@
-import { ArrowRightIconRegular } from "@hashintel/design-system";
-import type { ActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { ExternalInputRequest } from "@local/hash-isomorphic-utils/flows/types";
-import type { SxProps, Theme } from "@mui/material";
-import { Box, Stack, Typography } from "@mui/material";
 import { formatDistance } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
 import type { NodeProps } from "reactflow";
+import { ArrowRightIconRegular } from "@hashintel/design-system";
+import type { ActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import type { ExternalInputRequest } from "@local/hash-isomorphic-utils/flows/types";
+import type { Box, Stack, SxProps, Theme , Typography } from "@mui/material";
 
 import { Button } from "../../../../../shared/ui/button";
 import type {
   SimpleStatus,
-  StepRunStatus,
-} from "../../../../shared/flow-runs-context";
-import {
   statusToSimpleStatus,
+  StepRunStatus,
   useFlowRunsContext,
-  useStatusForCurrentStep,
-} from "../../../../shared/flow-runs-context";
+  useStatusForCurrentStep} from "../../../../shared/flow-runs-context";
 import { QuestionModal } from "../shared/question-modal";
 import type { NodeData } from "../shared/types";
+
 import { Handles } from "./custom-node/handles";
 import { NodeContainer } from "./custom-node/node-container";
 import { statusSx } from "./custom-node/node-styles";
@@ -52,24 +49,31 @@ const useStatusText = ({
       const hasCreatedPlan = statusData?.logs.some(
         (log) => log.type === "CreatedPlan",
       );
+
       if (!hasCreatedPlan) {
         return "Deciding whether to ask questions...";
       }
     }
 
     switch (simpleStatusName) {
-      case "Complete":
+      case "Complete": {
         return "Successfully completed";
-      case "In Progress":
+      }
+      case "In Progress": {
         return "Currently processing step...";
-      case "Errored":
+      }
+      case "Errored": {
         return "Step failed to complete";
-      case "Cancelled":
+      }
+      case "Cancelled": {
         return "Cancelled";
-      case "Information Required":
+      }
+      case "Information Required": {
         return "Waiting for information from browser plugin";
-      default:
+      }
+      default: {
         return "Waiting for earlier stages to finish";
+      }
     }
   }, [actionDefinitionId, simpleStatusName, statusData]);
 };
@@ -101,6 +105,7 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
      * We could alternatively show a count of outstanding requests.
      */
     let browserInputRequest: ExternalInputRequest | undefined = undefined;
+
     for (const request of selectedFlowRun?.inputRequests ?? []) {
       if (request.resolvedAt ?? request.stepId !== id) {
         continue;
@@ -108,8 +113,9 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
       if (request.type === "human-input") {
         return request;
       }
-      browserInputRequest ??= request;
+      browserInputRequest = browserInputRequest ?? request;
     }
+
     return browserInputRequest;
   }, [id, selectedFlowRun]);
 
@@ -167,11 +173,11 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
 
   return (
     <>
-      {showQuestionModal && !!outstandingInputRequest && (
+      {showQuestionModal && Boolean(outstandingInputRequest) && (
         <QuestionModal
-          inputRequest={outstandingInputRequest}
           open
-          onClose={() => setShowQuestionModal(false)}
+          inputRequest={outstandingInputRequest}
+          onClose={() => { setShowQuestionModal(false); }}
         />
       )}
       <NodeContainer
@@ -179,12 +185,12 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
         selected={selected}
         stepStatusName={stepStatusName}
       >
-        <Stack justifyContent="space-between" sx={{ height: "100%" }}>
+        <Stack justifyContent={"space-between"} sx={{ height: "100%" }}>
           <Typography sx={{ textAlign: "left", fontSize: 14, fontWeight: 400 }}>
             {data.label}
             {isParallelizedStep ? "[]" : ""}
           </Typography>
-          <Stack direction="row" mb={2} mt={1}>
+          <Stack direction={"row"} mb={2} mt={1}>
             <Typography sx={{ fontSize: 12, fontWeight: 500 }}>
               {timeAgo}
             </Typography>
@@ -204,8 +210,7 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
             outstandingInputRequest &&
             outstandingInputRequest.type === "human-input" ? (
             <Button
-              component="button"
-              onClick={() => setShowQuestionModal(true)}
+              component={"button"}
               sx={{
                 ...commonStatusBarSx,
                 ...statusBarTextSx,
@@ -215,6 +220,7 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
                 },
                 "&::before": { background: "none" },
               }}
+              onClick={() => { setShowQuestionModal(true); }}
             >
               Your worker wants your advice
               <ArrowRightIconRegular sx={{ ...statusBarTextSx, ml: 0.8 }} />

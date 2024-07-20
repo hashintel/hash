@@ -1,3 +1,4 @@
+import { useRef, useState } from "react";
 import type { JsonValue } from "@blockprotocol/core";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -11,13 +12,13 @@ import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { formatDataValue } from "@local/hash-isomorphic-utils/data-types";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import { Box, Divider, Typography } from "@mui/material";
-import { useRef, useState } from "react";
 
 import { getEditorSpecs } from "../editor-specs";
 import { BooleanInput } from "../inputs/boolean-input";
 import { JsonInput } from "../inputs/json-input";
 import { NumberOrTextInput } from "../inputs/number-or-text-input";
 import { guessEditorTypeFromValue } from "../utils";
+
 import { RowAction } from "./row-action";
 import type { SortableItem } from "./types";
 import { ValueChip } from "./value-chip";
@@ -61,7 +62,7 @@ export const SortableRow = ({
 
   const [hovered, setHovered] = useState(false);
   const [draftValue, setDraftValue] = useState(value);
-  const [prevEditing, setPrevEditing] = useState(editing);
+  const [previousEditing, setPreviousEditing] = useState(editing);
 
   const editorType =
     overriddenEditorType ?? guessEditorTypeFromValue(value, expectedTypes);
@@ -74,8 +75,8 @@ export const SortableRow = ({
   const shouldShowActions =
     !isDragging && !isSorting && (hovered || selected || editing);
 
-  if (prevEditing !== editing) {
-    setPrevEditing(editing);
+  if (previousEditing !== editing) {
+    setPreviousEditing(editing);
     setDraftValue(value);
   }
 
@@ -84,7 +85,7 @@ export const SortableRow = ({
   const saveChanges = () => {
     if (!["object", "boolean"].includes(editorType)) {
       /**
-       * We want form validation triggered when the user tries to add a text or number value
+       * We want form validation triggered when the user tries to add a text or number value.
        */
       textInputFormRef.current?.requestSubmit();
     } else {
@@ -97,7 +98,7 @@ export const SortableRow = ({
       return (
         <BooleanInput
           showChange
-          value={!!draftValue}
+          value={Boolean(draftValue)}
           onChange={setDraftValue}
         />
       );
@@ -130,10 +131,10 @@ export const SortableRow = ({
       <NumberOrTextInput
         expectedType={expectedType}
         isNumber={editorType === "number"}
+        onChange={setDraftValue}
         onEnterPressed={saveChanges}
         /** @todo is this casting ok? */
         value={draftValue as number | string}
-        onChange={setDraftValue}
       />
     );
   };
@@ -143,7 +144,7 @@ export const SortableRow = ({
       return (
         <BooleanInput
           showChange={shouldShowActions}
-          value={!!draftValue}
+          value={Boolean(draftValue)}
           onChange={setDraftValue}
         />
       );
@@ -159,12 +160,12 @@ export const SortableRow = ({
 
     return (
       <ValueChip
+        selected={Boolean(selected)}
+        icon={{ icon: editorSpec.icon }}
+        tooltip={expectedType.title}
         title={formatDataValue(value as JsonValue, expectedType)
           .map((part) => part.text)
           .join("")}
-        selected={!!selected}
-        icon={{ icon: editorSpec.icon }}
-        tooltip={expectedType.title}
       />
     );
   };
@@ -183,8 +184,8 @@ export const SortableRow = ({
         position: "relative",
         outline: "none",
       }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      onMouseEnter={() => { setHovered(true); }}
+      onMouseLeave={() => { setHovered(false); }}
       onClick={() => onSelect?.(id)}
     >
       <Box
@@ -201,7 +202,7 @@ export const SortableRow = ({
       </Box>
 
       <Typography
-        variant="smallTextLabels"
+        variant={"smallTextLabels"}
         sx={{
           color: "gray.50",
           mr: 1,
@@ -212,7 +213,7 @@ export const SortableRow = ({
 
       {editing ? (
         <Box
-          component="form"
+          component={"form"}
           ref={textInputFormRef}
           onSubmit={(event) => {
             event.preventDefault();
@@ -228,7 +229,7 @@ export const SortableRow = ({
 
       {shouldShowActions && (
         <Box
-          display="flex"
+          display={"flex"}
           sx={[
             !editing && {
               position: "absolute",
@@ -247,15 +248,15 @@ export const SortableRow = ({
               arrayEditException !== "no-save-and-discard-buttons" && (
                 <>
                   <RowAction
-                    tooltip="Save Changes"
+                    tooltip={"Save Changes"}
                     icon={faCheck}
                     onClick={saveChanges}
                   />
-                  <Divider orientation="vertical" />
+                  <Divider orientation={"vertical"} />
                   <RowAction
-                    tooltip="Discard Changes"
+                    tooltip={"Discard Changes"}
                     icon={faClose}
-                    onClick={() => onDiscardChanges()}
+                    onClick={() => { onDiscardChanges(); }}
                   />
                 </>
               )
@@ -264,15 +265,15 @@ export const SortableRow = ({
                 {arrayEditException !== "no-edit-mode" && (
                   <>
                     <RowAction
-                      tooltip="Edit"
+                      tooltip={"Edit"}
                       icon={faPencil}
                       onClick={() => onEditClicked?.(id)}
                     />
-                    <Divider orientation="vertical" />
+                    <Divider orientation={"vertical"} />
                   </>
                 )}
                 <RowAction
-                  tooltip="Delete"
+                  tooltip={"Delete"}
                   icon={faTrash}
                   onClick={() => onRemove?.(index)}
                 />

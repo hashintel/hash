@@ -1,3 +1,4 @@
+import type { Dispatch, PropsWithChildren, SetStateAction , useState } from "react";
 import {
   CaretDownSolidIcon,
   IconButton,
@@ -12,8 +13,6 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import type { Dispatch, PropsWithChildren, SetStateAction } from "react";
-import { useState } from "react";
 
 import { GoogleAccountSelect } from "../../shared/integrations/google/google-account-select";
 import { GoogleAuthProvider } from "../../shared/integrations/google/google-auth-context";
@@ -46,10 +45,11 @@ const DeliverableSetting = ({
 
   return (
     <Box>
-      <Stack direction="row" alignItems="center">
+      <Stack direction={"row"} alignItems={"center"}>
         <Checkbox
           checked={checked}
           id={checkboxId}
+          sx={{ "& .MuiSvgIcon-root": { fontSize: 18 }, mr: 1 }}
           onChange={() => {
             onChangeChecked(!checked);
             if (checked) {
@@ -58,23 +58,18 @@ const DeliverableSetting = ({
               setShowSettingsDetail(true);
             }
           }}
-          sx={{ "& .MuiSvgIcon-root": { fontSize: 18 }, mr: 1 }}
         />
         <Box
-          component="label"
+          component={"label"}
           htmlFor={checkboxId}
           sx={{ fontSize: 14, cursor: "pointer" }}
         >
           {label}
         </Box>
         <IconButton
-          onClick={(event) => {
-            event.stopPropagation();
-            setShowSettingsDetail(!showSettingsDetail);
-          }}
-          size="small"
           unpadded
           rounded
+          size={"small"}
           sx={({ transitions }) => ({
             visibility: "visible",
             pointerEvents: "auto",
@@ -83,6 +78,10 @@ const DeliverableSetting = ({
               duration: 300,
             }),
           })}
+          onClick={(event) => {
+            event.stopPropagation();
+            setShowSettingsDetail(!showSettingsDetail);
+          }}
         >
           <CaretDownSolidIcon />
         </IconButton>
@@ -112,14 +111,14 @@ const SpreadsheetSettings = ({
 }) => {
   return (
     <DeliverableSetting
-      checked={!!spreadsheetSettings}
+      checked={Boolean(spreadsheetSettings)}
+      label={"Spreadsheet"}
+      subLabel={"Sync entities to a Google Sheet"}
       onChangeChecked={() =>
-        spreadsheetSettings
+        { spreadsheetSettings
           ? setSpreadsheetSettings(null)
-          : setSpreadsheetSettings({})
+          : setSpreadsheetSettings({}); }
       }
-      label="Spreadsheet"
-      subLabel="Sync entities to a Google Sheet"
     >
       <GoogleAuthProvider>
         <Box mb={1.5}>
@@ -139,10 +138,10 @@ const SpreadsheetSettings = ({
           googleAccountId={spreadsheetSettings?.googleAccountId}
           googleSheet={spreadsheetSettings?.googleSheet}
           setGoogleSheet={(newGoogleSheet) =>
-            setSpreadsheetSettings({
+            { setSpreadsheetSettings({
               ...spreadsheetSettings,
               googleSheet: newGoogleSheet,
-            })
+            }); }
           }
         />
       </GoogleAuthProvider>
@@ -159,23 +158,17 @@ const DocumentSettings = ({
 }) => {
   return (
     <DeliverableSetting
-      checked={!!documentSettings}
+      checked={Boolean(documentSettings)}
+      label={"Document"}
+      subLabel={"Outputs in markdown format"}
       onChangeChecked={() =>
-        documentSettings ? setDocumentSettings(null) : setDocumentSettings({})
+        { documentSettings ? setDocumentSettings(null) : setDocumentSettings({}); }
       }
-      label="Document"
-      subLabel="Outputs in markdown format"
     >
       <Box>
         <TextField
           value={documentSettings?.brief}
-          onChange={(event) => {
-            setDocumentSettings({
-              ...documentSettings,
-              brief: event.target.value,
-            });
-          }}
-          placeholder="What should the report focus on?"
+          placeholder={"What should the report focus on?"}
           sx={{
             width: "100%",
             [`.${outlinedInputClasses.root} input`]: {
@@ -184,21 +177,27 @@ const DocumentSettings = ({
               py: 1.5,
             },
           }}
+          onChange={(event) => {
+            setDocumentSettings({
+              ...documentSettings,
+              brief: event.target.value,
+            });
+          }}
         />
       </Box>
     </DeliverableSetting>
   );
 };
 
-export type DeliverableSettingsState = {
+export interface DeliverableSettingsState {
   document: DocumentSetting;
   spreadsheet: GoogleSheetSetting;
-};
+}
 
-type DeliverableSettingsProps = {
+interface DeliverableSettingsProps {
   settings: DeliverableSettingsState;
   setSettings: Dispatch<SetStateAction<DeliverableSettingsState>>;
-};
+}
 
 export const DeliverableSettings = ({
   settings,
@@ -209,20 +208,20 @@ export const DeliverableSettings = ({
       <SpreadsheetSettings
         spreadsheetSettings={settings.spreadsheet}
         setSpreadsheetSettings={(newSpreadsheetSettings) =>
-          setSettings((currentSettings) => ({
+          { setSettings((currentSettings) => ({
             ...currentSettings,
             spreadsheet: newSpreadsheetSettings,
-          }))
+          })); }
         }
       />
       <Box sx={{ mt: 1 }}>
         <DocumentSettings
           documentSettings={settings.document}
           setDocumentSettings={(newDocumentSettings) =>
-            setSettings((currentSettings) => ({
+            { setSettings((currentSettings) => ({
               ...currentSettings,
               document: newDocumentSettings,
-            }))
+            })); }
           }
         />
       </Box>

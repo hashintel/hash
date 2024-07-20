@@ -1,3 +1,4 @@
+import type { FunctionComponent , useCallback, useMemo } from "react";
 import { useMutation } from "@apollo/client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
@@ -6,16 +7,13 @@ import type {
 } from "@local/hash-graph-types/account";
 import { AuthorizationSubjectKind } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
 import { Box, Skeleton, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo } from "react";
 
 import { useOrgsWithLinks } from "../../../../components/hooks/use-orgs-with-links";
 import { useUsersWithLinks } from "../../../../components/hooks/use-users-with-links";
 import type {
   AddEntityViewerMutation,
   AddEntityViewerMutationVariables,
-} from "../../../../graphql/api-types.gen";
-import { EntityAuthorizationRelation } from "../../../../graphql/api-types.gen";
+ EntityAuthorizationRelation } from "../../../../graphql/api-types.gen";
 import {
   addEntityViewerMutation,
   getEntityAuthorizationRelationshipsQuery,
@@ -27,6 +25,7 @@ import type {
   User,
 } from "../../../../lib/user-and-org";
 import { isEntityPageEntity } from "../../../../shared/is-of-type";
+
 import { EditableAuthorizationRelationships } from "./editable-authorization-relationship";
 import { InviteAccountForm } from "./invite-account-form";
 import type {
@@ -35,10 +34,10 @@ import type {
   PublicAuthorizationRelationship,
 } from "./types";
 
-type AccountAuthorizationRelationshipsByAccount = {
+interface AccountAuthorizationRelationshipsByAccount {
   account: User | Org;
   relationships: AccountAuthorizationRelationship[];
-};
+}
 
 export const ShareEntitySection: FunctionComponent<{
   entity: Entity;
@@ -69,11 +68,11 @@ export const ShareEntitySection: FunctionComponent<{
   const sharedWithUserAccountIds = useMemo(
     () =>
       accountAuthorizationRelationships?.reduce<AccountId[]>(
-        (acc, { subject }) =>
+        (accumulator, { subject }) =>
           subject.__typename === "AccountAuthorizationSubject" &&
-          !acc.includes(subject.accountId)
-            ? [...acc, subject.accountId]
-            : acc,
+          !accumulator.includes(subject.accountId)
+            ? [...accumulator, subject.accountId]
+            : accumulator,
         [],
       ),
     [accountAuthorizationRelationships],
@@ -82,11 +81,11 @@ export const ShareEntitySection: FunctionComponent<{
   const sharedWithOrgAccountGroupIds = useMemo(
     () =>
       accountAuthorizationRelationships?.reduce<AccountGroupId[]>(
-        (acc, { subject }) =>
+        (accumulator, { subject }) =>
           subject.__typename === "AccountGroupAuthorizationSubject" &&
-          !acc.includes(subject.accountGroupId)
-            ? [...acc, subject.accountGroupId]
-            : acc,
+          !accumulator.includes(subject.accountGroupId)
+            ? [...accumulator, subject.accountGroupId]
+            : accumulator,
         [],
       ),
     [accountAuthorizationRelationships],
@@ -111,22 +110,22 @@ export const ShareEntitySection: FunctionComponent<{
         ? // Group the relationships by subject
           accountAuthorizationRelationships.reduce<
             AccountAuthorizationRelationshipsByAccount[]
-          >((acc, relationship) => {
+          >((accumulator, relationship) => {
             const subjectId =
               relationship.subject.__typename === "AccountAuthorizationSubject"
                 ? relationship.subject.accountId
                 : relationship.subject.accountGroupId;
 
-            const existingAccountIndex = acc.findIndex(({ account }) =>
+            const existingAccountIndex = accumulator.findIndex(({ account }) =>
               account.kind === "user"
                 ? account.accountId === subjectId
                 : account.accountGroupId === subjectId,
             );
 
             if (existingAccountIndex !== -1) {
-              acc[existingAccountIndex]!.relationships.push(relationship);
+              accumulator[existingAccountIndex]!.relationships.push(relationship);
             } else {
-              acc.push({
+              accumulator.push({
                 account: accounts.find((account) =>
                   account.kind === "user"
                     ? account.accountId === subjectId
@@ -136,7 +135,7 @@ export const ShareEntitySection: FunctionComponent<{
               });
             }
 
-            return acc;
+            return accumulator;
           }, [])
         : undefined,
     [accountAuthorizationRelationships, accounts],
@@ -258,13 +257,13 @@ export const ShareEntitySection: FunctionComponent<{
               ({ account, relationships }) => (
                 <EditableAuthorizationRelationships
                   objectEntity={entity}
+                  account={account}
+                  relationships={relationships}
                   key={
                     account.kind === "user"
                       ? account.accountId
                       : account.accountGroupId
                   }
-                  account={account}
-                  relationships={relationships}
                 />
               ),
             )}
@@ -272,13 +271,13 @@ export const ShareEntitySection: FunctionComponent<{
               ({ account, relationships }) => (
                 <EditableAuthorizationRelationships
                   objectEntity={entity}
+                  account={account}
+                  relationships={relationships}
                   key={
                     account.kind === "user"
                       ? account.accountId
                       : account.accountGroupId
                   }
-                  account={account}
-                  relationships={relationships}
                 />
               ),
             )}

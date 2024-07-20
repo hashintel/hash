@@ -5,7 +5,7 @@ import { getYCenter } from "../utils";
 export type VerticalIndentationLineDir = "up" | "down" | "full";
 
 /**
- * A helper function that draws vertical indentation lines
+ * A helper function that draws vertical indentation lines.
  */
 export const drawVerticalIndentationLine = (
   args: DrawArgs<CustomCell>,

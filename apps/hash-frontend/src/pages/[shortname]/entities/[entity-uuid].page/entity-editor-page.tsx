@@ -1,15 +1,14 @@
+import { NextSeo } from "next-seo";
+import type { ReactNode , useState } from "react";
 import { OntologyChip } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { PropertyObject } from "@local/hash-graph-types/entity";
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { NextSeo } from "next-seo";
-import type { ReactNode } from "react";
-import { useState } from "react";
 
 import { useSnackbar } from "../../../../components/hooks/use-snackbar";
-import type { EntityEditorProps } from "./entity-editor";
-import { EntityEditor } from "./entity-editor";
+
+import type { EntityEditor,EntityEditorProps  } from "./entity-editor";
 import { EntityPageWrapper } from "./entity-page-wrapper";
 import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
 import { QueryEditorPage } from "./query-editor-page";
@@ -51,12 +50,15 @@ export const EntityEditorPage = ({
       {isQueryEntity && (
         <QueryEditorToggle
           shouldShowQueryEditor={shouldShowQueryEditor}
-          toggle={() => setShouldShowQueryEditor((val) => !val)}
+          toggle={() => { setShouldShowQueryEditor((value) => !value); }}
         />
       )}
       {isQueryEntity && shouldShowQueryEditor ? (
         <QueryEditorPage
           mode={isDraft ? "create" : "edit"}
+          entityLabel={entityLabel}
+          entityUuid={entityUuid}
+          owner={owner}
           handleSaveQuery={async (value) => {
             const properties = {
               [blockProtocolPropertyTypes.query.propertyTypeBaseUrl]: value,
@@ -68,20 +70,15 @@ export const EntityEditorPage = ({
               triggerSnackbar.success("Changes saved successfully");
             }
           }}
-          entityLabel={entityLabel}
-          entityUuid={entityUuid}
-          owner={owner}
           {...entityEditorProps}
         />
       ) : (
         <EntityPageWrapper
           header={
             <EntityPageHeader
+              showTabs
               entity={entity}
               entitySubgraph={entitySubgraph}
-              isModifyingEntity={isModifyingEntity}
-              /** @todo: figure out how to replace the entity in the form state directly */
-              onEntityUpdated={onEntityUpdated}
               entityLabel={entityLabel}
               editBar={editBar}
               chip={
@@ -90,7 +87,9 @@ export const EntityEditorPage = ({
                   path={`${owner}/entities/${entityUuid}`}
                 />
               }
-              showTabs
+              isModifyingEntity={isModifyingEntity}
+              /** @todo: figure out how to replace the entity in the form state directly */
+              onEntityUpdated={onEntityUpdated}
             />
           }
         >

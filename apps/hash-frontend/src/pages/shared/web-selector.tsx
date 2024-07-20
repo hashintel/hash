@@ -1,3 +1,4 @@
+import type { ReactElement , useMemo } from "react";
 import {
   AngleRightRegularIcon,
   Autocomplete,
@@ -11,10 +12,9 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import type { ReactElement } from "react";
-import { useMemo } from "react";
 
 import { MenuItem } from "../../shared/ui/menu-item";
+
 import { useAuthenticatedUser } from "./auth-info-context";
 import { getImageUrlFromEntityProperties } from "./get-file-properties";
 
@@ -26,7 +26,7 @@ const RenderOptionContent = ({
   label: string;
 }) => {
   return (
-    <Stack direction="row" alignItems="center" py={0.2} px={0}>
+    <Stack direction={"row"} alignItems={"center"} py={0.2} px={0}>
       {avatarComponent}
       <Typography
         sx={{
@@ -41,13 +41,13 @@ const RenderOptionContent = ({
   );
 };
 
-type WebSelectorProps = {
+interface WebSelectorProps {
   avatarSize?: number;
   inputHeight: number;
   inputId?: string;
   selectedWebOwnedById?: OwnedById;
   setSelectedWebOwnedById: (ownedById: OwnedById) => void;
-};
+}
 
 const optionPx = 1.5;
 
@@ -66,6 +66,7 @@ export const WebSelector = ({
         avatarComponent: (
           <Avatar
             size={avatarSize ?? 26}
+            title={authenticatedUser.displayName ?? "?"}
             src={
               authenticatedUser.hasAvatar
                 ? getImageUrlFromEntityProperties(
@@ -73,7 +74,6 @@ export const WebSelector = ({
                   )
                 : undefined
             }
-            title={authenticatedUser.displayName ?? "?"}
           />
         ),
         label: "My web",
@@ -84,6 +84,7 @@ export const WebSelector = ({
           avatarComponent: (
             <Avatar
               size={avatarSize ?? 26}
+              title={name}
               src={
                 hasAvatar
                   ? getImageUrlFromEntityProperties(
@@ -91,7 +92,6 @@ export const WebSelector = ({
                     )
                   : undefined
               }
-              title={name}
             />
           ),
           label: name,
@@ -107,7 +107,13 @@ export const WebSelector = ({
 
   return (
     <Autocomplete
+      disableClearable
       autoFocus={false}
+      id={inputId}
+      inputHeight={inputHeight}
+      multiple={false}
+      options={options}
+      value={selectedWeb}
       componentsProps={{
         paper: {
           sx: {
@@ -116,9 +122,6 @@ export const WebSelector = ({
         },
         popper: { placement: "top" },
       }}
-      disableClearable
-      id={inputId}
-      inputHeight={inputHeight}
       inputProps={{
         endAdornment: (
           <AngleRightRegularIcon
@@ -145,11 +148,6 @@ export const WebSelector = ({
           height: inputHeight,
         },
       }}
-      multiple={false}
-      onChange={(_event, option) => {
-        setSelectedWebOwnedById(option.value);
-      }}
-      options={options}
       renderOption={(props, option) => (
         <MenuItem
           {...props}
@@ -167,7 +165,9 @@ export const WebSelector = ({
       sx={{
         width: 150,
       }}
-      value={selectedWeb}
+      onChange={(_event, option) => {
+        setSelectedWebOwnedById(option.value);
+      }}
     />
   );
 };

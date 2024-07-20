@@ -26,9 +26,7 @@ import type {
   AccountEntityId,
   AccountGroupEntityId,
   EntityRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
-import { extractAccountGroupId, extractAccountId } from "@local/hash-subgraph";
+ extractAccountGroupId, extractAccountId,  Subgraph } from "@local/hash-subgraph";
 import {
   getIncomingLinksForEntity,
   getLeftEntityForLinkEntity,
@@ -63,7 +61,7 @@ export const constructMinimalOrg = (params: {
   };
 };
 
-export type MinimalUser = {
+export interface MinimalUser {
   kind: "user";
   entity: Entity<UserEntity>;
   accountId: AccountId;
@@ -75,7 +73,7 @@ export type MinimalUser = {
   preferredPronouns?: string;
   location?: string;
   websiteUrl?: string;
-};
+}
 
 export const isEntityUserEntity = (
   entity: Entity,
@@ -94,7 +92,7 @@ export const constructMinimalUser = (params: {
   const enabledFeatureFlags = (simpleProperties.enabledFeatureFlags ??
     []) as FeatureFlag[];
 
-  const accountSignupComplete = !!shortname && !!displayName;
+  const accountSignupComplete = Boolean(shortname) && Boolean(displayName);
 
   return {
     kind: "user",
@@ -140,11 +138,11 @@ export const isEntityOrgEntity = (
  *
  * If the avatar is desired, the subgraph must have had the following depths available when traversing from the org
  *   -   hasLeftEntity: { incoming: 1 }
- *   -   hasRightEntity: { outgoing: 1 }
+ *   -   hasRightEntity: { outgoing: 1 }.
  *
  * If the memberships are desired, the subgraph must additionally have had the following depths available when traversing from the org
  *   -   hasLeftEntity: { outgoing: 1 }
- *   -   hasRightEntity: { incoming: 1 }
+ *   -   hasRightEntity: { incoming: 1 }.
  */
 export const constructOrg = (params: {
   subgraph: Subgraph;
@@ -156,39 +154,39 @@ export const constructOrg = (params: {
     orgEntity,
   });
 
-  const avatarLinkAndEntities = getOutgoingLinkAndTargetEntities(
+  const avatarLinkAndEntity = getOutgoingLinkAndTargetEntities(
     subgraph,
     orgEntity.metadata.recordId.entityId,
     intervalForTimestamp(new Date().toISOString() as Timestamp),
-  ).filter(
+  ).find(
     ({ linkEntity }) =>
       linkEntity[0]?.metadata.entityTypeId ===
       systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
   );
 
-  const hasAvatar = avatarLinkAndEntities[0]
+  const hasAvatar = avatarLinkAndEntity
     ? {
         // these are each arrays because each entity can have multiple revisions
-        linkEntity: avatarLinkAndEntities[0].linkEntity[0]!,
-        imageEntity: avatarLinkAndEntities[0].rightEntity[0]! as Entity<Image>,
+        linkEntity: avatarLinkAndEntity.linkEntity[0]!,
+        imageEntity: avatarLinkAndEntity.rightEntity[0]! as Entity<Image>,
       }
     : undefined;
 
-  const hasBioLinkAndEntities = getOutgoingLinkAndTargetEntities(
+  const hasBioLinkAndEntity = getOutgoingLinkAndTargetEntities(
     subgraph,
     orgEntity.metadata.recordId.entityId,
     intervalForTimestamp(new Date().toISOString() as Timestamp),
-  ).filter(
+  ).find(
     ({ linkEntity }) =>
       linkEntity[0]?.metadata.entityTypeId ===
       systemLinkEntityTypes.hasBio.linkEntityTypeId,
   );
 
-  const hasBio = hasBioLinkAndEntities[0]
+  const hasBio = hasBioLinkAndEntity
     ? {
         // these are each arrays because each entity can have multiple revisions
-        linkEntity: hasBioLinkAndEntities[0].linkEntity[0]!,
-        profileBioEntity: hasBioLinkAndEntities[0]
+        linkEntity: hasBioLinkAndEntity.linkEntity[0]!,
+        profileBioEntity: hasBioLinkAndEntity
           .rightEntity[0]! as Entity<ProfileBio>,
       }
     : undefined;
@@ -217,6 +215,7 @@ export const constructOrg = (params: {
     }
 
     const variableAxis = subgraph.temporalAxes.resolved.variable.axis;
+
     userEntityRevisions.sort((entityA, entityB) =>
       intervalCompareWithInterval(
         entityA.metadata.temporalVersioning[variableAxis],
@@ -257,12 +256,12 @@ export type ServiceAccountKind =
   | "instagramAccount"
   | "githubAccount";
 
-export type UserServiceAccount = {
+export interface UserServiceAccount {
   linkEntity: LinkEntity;
   serviceAccountEntity: Entity;
   kind: ServiceAccountKind;
   profileUrl: string;
-};
+}
 
 export type User = MinimalUser & {
   joinedAt: Date;
@@ -291,15 +290,15 @@ export type User = MinimalUser & {
  *
  * The following depths ensure that the user's avatar, org membership links and the orgs themselves are available.
  *
- *   -  hasLeftEntity: { incoming: 1 }, hasRightEntity: { outgoing: 1 }
+ *   -  hasLeftEntity: { incoming: 1 }, hasRightEntity: { outgoing: 1 }.
  *
  * To include other things linked from or to the user's orgs (avatars, other members) either:
  *
  * 1. Pass orgs which have already been constructed as 'resolvedOrgs' to include these, or
  * 2. Pass a subgraph rooted at the user with traversal depths of:
- *   - hasLeftEntity: { incoming: 2, outgoing: 1 }, hasRightEntity: { outgoing: 2, incoming: 1 }
+ *   - hasLeftEntity: { incoming: 2, outgoing: 1 }, hasRightEntity: { outgoing: 2, incoming: 1 }.
  *
- * @param params.orgMembershipLinks provides a minor optimization to avoid looking up membership links if they are already known
+ * @param params.orgMembershipLinks - Provides a minor optimization to avoid looking up membership links if they are already known.
  */
 export const constructUser = (params: {
   orgMembershipLinks?: LinkEntity[];
@@ -311,7 +310,7 @@ export const constructUser = (params: {
 
   const { email } = simplifyProperties(userEntity.properties);
 
-  // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- permissions means this may be undefined. @todo types to account for property-level permissions
+   
   const primaryEmailAddress = email?.[0] ?? "";
 
   // @todo implement email verification
@@ -342,6 +341,7 @@ export const constructUser = (params: {
     const fullyResolvedOrg = resolvedOrgs?.find(
       (org) => org.entity.metadata.recordId.entityId === linkData.rightEntityId,
     );
+
     if (fullyResolvedOrg) {
       return {
         linkEntity,
@@ -362,6 +362,7 @@ export const constructUser = (params: {
     }
 
     const variableAxis = subgraph.temporalAxes.resolved.variable.axis;
+
     orgEntityRevisions.sort((entityA, entityB) =>
       intervalCompareWithInterval(
         entityA.metadata.temporalVersioning[variableAxis],
@@ -382,59 +383,59 @@ export const constructUser = (params: {
     };
   });
 
-  const avatarLinkAndEntities = getOutgoingLinkAndTargetEntities(
+  const avatarLinkAndEntity = getOutgoingLinkAndTargetEntities(
     subgraph,
     userEntity.metadata.recordId.entityId,
     intervalForTimestamp(new Date().toISOString() as Timestamp),
-  ).filter(
+  ).find(
     ({ linkEntity }) =>
       linkEntity[0]?.metadata.entityTypeId ===
       systemLinkEntityTypes.hasAvatar.linkEntityTypeId,
   );
 
-  const hasAvatar = avatarLinkAndEntities[0]
+  const hasAvatar = avatarLinkAndEntity
     ? {
         // these are each arrays because each entity can have multiple revisions
-        linkEntity: avatarLinkAndEntities[0].linkEntity[0]!,
-        imageEntity: avatarLinkAndEntities[0].rightEntity[0]! as Entity<Image>,
+        linkEntity: avatarLinkAndEntity.linkEntity[0]!,
+        imageEntity: avatarLinkAndEntity.rightEntity[0]! as Entity<Image>,
       }
     : undefined;
 
-  const coverImageLinkAndEntities = getOutgoingLinkAndTargetEntities(
+  const coverImageLinkAndEntity = getOutgoingLinkAndTargetEntities(
     subgraph,
     userEntity.metadata.recordId.entityId,
     intervalForTimestamp(new Date().toISOString() as Timestamp),
-  ).filter(
+  ).find(
     ({ linkEntity }) =>
       linkEntity[0]?.metadata.entityTypeId ===
       systemLinkEntityTypes.hasCoverImage.linkEntityTypeId,
   );
 
-  const hasCoverImage = coverImageLinkAndEntities[0]
+  const hasCoverImage = coverImageLinkAndEntity
     ? {
         // these are each arrays because each entity can have multiple revisions
-        linkEntity: coverImageLinkAndEntities[0].linkEntity[0]!,
-        imageEntity: coverImageLinkAndEntities[0]
+        linkEntity: coverImageLinkAndEntity.linkEntity[0]!,
+        imageEntity: coverImageLinkAndEntity
           .rightEntity[0]! as Entity<Image>,
       }
     : undefined;
 
-  const hasBioLinkAndEntities = getOutgoingLinkAndTargetEntities(
+  const hasBioLinkAndEntity = getOutgoingLinkAndTargetEntities(
     subgraph,
     userEntity.metadata.recordId.entityId,
     intervalForTimestamp(new Date().toISOString() as Timestamp),
-  ).filter(
+  ).find(
     ({ linkEntity }) =>
       linkEntity[0]?.metadata.entityTypeId ===
       systemLinkEntityTypes.hasBio.linkEntityTypeId,
   );
 
-  const hasBio = hasBioLinkAndEntities[0]
+  const hasBio = hasBioLinkAndEntity
     ? {
         // these are each arrays because each entity can have multiple revisions
-        linkEntity: hasBioLinkAndEntities[0]
+        linkEntity: hasBioLinkAndEntity
           .linkEntity[0]! as LinkEntity<HasBio>,
-        profileBioEntity: hasBioLinkAndEntities[0]
+        profileBioEntity: hasBioLinkAndEntity
           .rightEntity[0]! as Entity<ProfileBio>,
       }
     : undefined;
@@ -491,7 +492,7 @@ export const constructUser = (params: {
   };
 };
 
-export type MinimalOrg = {
+export interface MinimalOrg {
   kind: "org";
   entity: Entity;
   accountGroupId: AccountGroupId;
@@ -501,7 +502,7 @@ export type MinimalOrg = {
   name: string;
   shortname: string;
   websiteUrl?: string;
-};
+}
 
 export const isUser = (
   userOrOrg: MinimalUser | MinimalOrg,

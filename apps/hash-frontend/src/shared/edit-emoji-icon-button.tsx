@@ -1,20 +1,18 @@
+import type { BaseEmoji } from "emoji-mart";
+import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
+import type { FunctionComponent, MouseEventHandler, ReactNode , useCallback, useState } from "react";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
   fontAwesomeIconClasses,
   IconButton,
 } from "@hashintel/design-system";
-import type { SxProps, Theme } from "@mui/material";
-import { Box, iconButtonClasses, Tooltip } from "@mui/material";
+import type { Box, iconButtonClasses, SxProps, Theme , Tooltip } from "@mui/material";
 import type { SystemStyleObject } from "@mui/system";
-import type { BaseEmoji } from "emoji-mart";
-import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import type { FunctionComponent, MouseEventHandler, ReactNode } from "react";
-import { useCallback, useState } from "react";
 
 import { useDefaultState } from "../components/hooks/use-default-state";
-import type { EmojiPickerPopoverProps } from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
-import { EmojiPicker } from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
+
+import type { EmojiPicker,EmojiPickerPopoverProps  } from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
 
 export type SizeVariant = "small" | "medium";
 
@@ -84,10 +82,7 @@ export const EditEmojiIconButton: FunctionComponent<
   const buttonContent = (
     <IconButton
       {...trigger}
-      onClick={(event) => {
-        onClick?.(event);
-        trigger.onClick(event);
-      }}
+      disabled={buttonIsDisabled}
       sx={[
         ({ palette }) => {
           const background = hasDarkBg ? palette.gray[40] : palette.gray[30];
@@ -100,6 +95,7 @@ export const EditEmojiIconButton: FunctionComponent<
               },
             }),
           };
+
           return {
             p: 0,
             ...(popupState.isOpen && hoverState),
@@ -109,7 +105,10 @@ export const EditEmojiIconButton: FunctionComponent<
         },
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
-      disabled={buttonIsDisabled}
+      onClick={(event) => {
+        onClick?.(event);
+        trigger.onClick(event);
+      }}
     >
       <Box
         sx={[
@@ -144,7 +143,7 @@ export const EditEmojiIconButton: FunctionComponent<
       {buttonIsDisabled ? (
         buttonContent
       ) : (
-        <Tooltip title="Change icon" placement="bottom">
+        <Tooltip title={"Change icon"} placement={"bottom"}>
           {buttonContent}
         </Tooltip>
       )}

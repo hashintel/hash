@@ -1,23 +1,21 @@
-import type { SxProps, Theme } from "@mui/material";
-import { Box, Typography } from "@mui/material";
-import type { ReactElement } from "react";
-import { useEffect, useRef, useState } from "react";
+import type { ReactElement , useEffect, useRef, useState } from "react";
 import { useKey } from "rooks";
+import type { Box, SxProps, Theme , Typography } from "@mui/material";
 
 import { SpinnerIcon } from "../../../../shared/icons";
 
 export interface SuggesterProps<T> {
   options: T[];
-  renderItem(item: T): ReactElement;
+  renderItem: (item: T) => ReactElement;
   error?: ReactElement | null;
-  onChange(item: T): void;
+  onChange: (item: T) => void;
   loading?: boolean;
-  itemKey(option: T): string;
+  itemKey: (option: T) => string;
   sx?: SxProps<Theme>;
 }
 
 /**
- * used to present list of suggestions to choose from to the user
+ * Used to present list of suggestions to choose from to the user.
  */
 export const Suggester = <T,>({
   onChange,
@@ -37,6 +35,7 @@ export const Suggester = <T,>({
 
   // scroll the selected option into view
   const selectedRef = useRef<HTMLLIElement>(null);
+
   useEffect(
     () => selectedRef.current?.scrollIntoView({ block: "nearest" }),
     [selectedIndex],
@@ -46,8 +45,9 @@ export const Suggester = <T,>({
   useKey(["ArrowUp", "ArrowDown"], (event) => {
     event.preventDefault();
     let index = selectedIndex + (event.key === "ArrowUp" ? -1 : 1);
-    index += options.length;
-    index %= options.length;
+
+    index = index + options.length;
+    index = index % options.length;
     setSelectedIndex(index);
   });
 
@@ -55,6 +55,7 @@ export const Suggester = <T,>({
     event.preventDefault();
 
     const option = options[selectedIndex];
+
     if (option) {
       onChange(option);
     }
@@ -78,7 +79,7 @@ export const Suggester = <T,>({
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     >
-      <Box component="ul" sx={{ overflow: "auto" }}>
+      <Box component={"ul"} sx={{ overflow: "auto" }}>
         {loading && (
           <li
             style={{
@@ -100,10 +101,10 @@ export const Suggester = <T,>({
         )}
         {options.length === 0 && (
           <Box
-            component="li"
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
+            component={"li"}
+            display={"flex"}
+            justifyContent={"center"}
+            alignItems={"center"}
             py={1.5}
           >
             <Typography>No results</Typography>
@@ -111,7 +112,7 @@ export const Suggester = <T,>({
         )}
         {options.map((option, index) => (
           <Box
-            component="li"
+            component={"li"}
             ref={index === selectedIndex ? selectedRef : undefined}
             key={itemKey(option)}
             sx={({ palette }) => ({
@@ -124,7 +125,7 @@ export const Suggester = <T,>({
                 backgroundColor: palette.gray[20],
               },
             })}
-            onClick={() => onChange(option)}
+            onClick={() => { onChange(option); }}
           >
             {renderItem(option)}
           </Box>

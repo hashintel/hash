@@ -2,7 +2,7 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { EntityTypeRootType, Subgraph } from "@local/hash-subgraph";
 
-export type EntityTypesContextValue = {
+export interface EntityTypesContextValue {
   entityTypes: EntityTypeWithMetadata[] | null;
   // a record of entity type ids to their parent entity type ids, whether direct or indirect parents
   entityTypeParentIds: Record<VersionedUrl, VersionedUrl[]> | null;
@@ -16,4 +16,4 @@ export type EntityTypesContextValue = {
 
   refetch: () => Promise<void>;
   ensureFetched: () => void;
-};
+}

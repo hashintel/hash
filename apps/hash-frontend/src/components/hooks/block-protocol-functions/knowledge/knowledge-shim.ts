@@ -30,10 +30,10 @@ import type {
 
 /* Entity CRU */
 
-export type GetEntityData = {
+export interface GetEntityData {
   entityId: EntityId;
   graphResolveDepths?: Partial<Subgraph["depths"]>;
-};
+}
 
 /** @todo-0.3 - we really want some type safety on these if we can find it, but this doesn't work */
 // export type GetEntityMessageCallback = Subtype<
@@ -52,11 +52,11 @@ export type GetEntityMessageCallback = MessageCallback<
   ReadOrModifyResourceError
 >;
 
-export type UpdateEntityData = {
+export interface UpdateEntityData {
   entityId: EntityId;
   entityTypeId: VersionedUrl;
   properties: PropertyObject;
-};
+}
 
 export type UpdateEntityMessageCallback = MessageCallback<
   UpdateEntityData,
@@ -80,10 +80,10 @@ export type UploadFileRequestCallback = MessageCallback<
   CreateResourceError
 >;
 
-export type QueryEntitiesRequest = {
+export interface QueryEntitiesRequest {
   operation: QueryOperationInput;
   graphResolveDepths?: Partial<Subgraph["depths"]>;
-};
+}
 
 export type QueryEntitiesMessageCallback = MessageCallback<
   QueryEntitiesRequest,
@@ -95,11 +95,11 @@ export type QueryEntitiesMessageCallback = MessageCallback<
   ReadOrModifyResourceError
 >;
 
-export type CreateEntityRequest = {
+export interface CreateEntityRequest {
   entityTypeId: VersionedUrl;
   properties: PropertyObject;
   linkData?: LinkData;
-};
+}
 
 export type CreateEntityMessageCallback = MessageCallback<
   CreateEntityRequest,
@@ -108,9 +108,9 @@ export type CreateEntityMessageCallback = MessageCallback<
   CreateResourceError
 >;
 
-export type ArchiveEntityRequest = {
+export interface ArchiveEntityRequest {
   entityId: EntityId;
-};
+}
 
 export type ArchiveEntityMessageCallback = MessageCallback<
   ArchiveEntityRequest,
@@ -119,10 +119,10 @@ export type ArchiveEntityMessageCallback = MessageCallback<
   ReadOrModifyResourceError
 >;
 
-export type KnowledgeCallbacks = {
+export interface KnowledgeCallbacks {
   getEntity: GetEntityMessageCallback;
   updateEntity: UpdateEntityMessageCallback;
   createEntity: CreateEntityMessageCallback;
   queryEntities: QueryEntitiesMessageCallback;
   archiveEntity: ArchiveEntityMessageCallback;
-};
+}

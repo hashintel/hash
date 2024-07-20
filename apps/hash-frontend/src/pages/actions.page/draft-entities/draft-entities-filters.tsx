@@ -1,5 +1,11 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { extractVersion } from "@blockprotocol/type-system";
+import { subDays, subHours } from "date-fns";
+import type {
+  Dispatch,
+  FunctionComponent,
+  ReactNode,
+  SetStateAction,
+ useCallback, useMemo } from "react";
+import type { extractVersion,VersionedUrl  } from "@blockprotocol/type-system";
 import { WandMagicSparklesIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
@@ -8,19 +14,10 @@ import type {
   EntityTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import type { EntityRootType, extractOwnedByIdFromEntityId,Subgraph  } from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Fade, Typography } from "@mui/material";
-import { subDays, subHours } from "date-fns";
-import type {
-  Dispatch,
-  FunctionComponent,
-  ReactNode,
-  SetStateAction,
-} from "react";
-import { useCallback, useMemo } from "react";
 
 import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";
@@ -36,9 +33,9 @@ import { LinkRegularIcon } from "../../../shared/icons/link-regular-icon";
 import { UserIcon } from "../../../shared/icons/user-icon";
 import { UsersRegularIcon } from "../../../shared/icons/users-regular-icon";
 import { Button } from "../../../shared/ui";
-import type { MinimalActor } from "../../../shared/use-actors";
-import { isAiMachineActor } from "../../../shared/use-actors";
+import type { isAiMachineActor,MinimalActor  } from "../../../shared/use-actors";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
+
 import { FilterSection } from "./draft-entities-filters/filter-section";
 import type { FilterSectionDefinition } from "./draft-entities-filters/types";
 
@@ -70,12 +67,12 @@ const lastEditedTimeRangesToIcon: Record<LastEditedTimeRanges, ReactNode> = {
   "last-365-days": <CalendarsLightIcon />,
 };
 
-export type DraftEntityFilterState = {
+export interface DraftEntityFilterState {
   entityTypeBaseUrls: BaseUrl[];
   sourceAccountIds: AccountId[];
   webOwnedByIds: OwnedById[];
   lastEditedTimeRange: LastEditedTimeRanges;
-};
+}
 
 export const getDraftEntityTypes = (params: {
   draftEntities: Entity[];
@@ -84,28 +81,29 @@ export const getDraftEntityTypes = (params: {
   params.draftEntities
     .map((draftEntity) => draftEntity.metadata.entityTypeId)
     .filter((entityTypeId, index, all) => all.indexOf(entityTypeId) === index)
-    .reduce<VersionedUrl[]>((prev, entityTypeId) => {
-      const previousEntityTypeId = prev.find(
-        (prevEntityTypeId) =>
-          extractBaseUrl(prevEntityTypeId) === extractBaseUrl(entityTypeId),
+    .reduce<VersionedUrl[]>((previous, entityTypeId) => {
+      const previousEntityTypeId = previous.find(
+        (previousEntityTypeId_) =>
+          extractBaseUrl(previousEntityTypeId_) === extractBaseUrl(entityTypeId),
       );
 
       if (!previousEntityTypeId) {
-        return [...prev, entityTypeId];
-      } else if (
+        return [...previous, entityTypeId];
+      } if (
         extractVersion(previousEntityTypeId) < extractVersion(entityTypeId)
       ) {
         return [
-          ...prev.filter(
-            (prevEntityTypeId) =>
-              extractBaseUrl(prevEntityTypeId) !== extractBaseUrl(entityTypeId),
+          ...previous.filter(
+            (previousEntityTypeId_) =>
+              extractBaseUrl(previousEntityTypeId_) !== extractBaseUrl(entityTypeId),
           ),
           entityTypeId,
         ];
       }
-      return prev;
+
+      return previous;
     }, [])
-    .map((entityTypeId) => {
+    .flatMap((entityTypeId) => {
       const entityType = getEntityTypeById(
         params.draftEntitiesSubgraph,
         entityTypeId,
@@ -116,8 +114,7 @@ export const getDraftEntityTypes = (params: {
        * of a new draft entity, as the subgraph may be outdated.
        */
       return entityType ?? [];
-    })
-    .flat();
+    });
 
 const getDraftEntitySources = (params: {
   draftEntitiesWithCreators: {
@@ -215,19 +212,26 @@ const isDateWithinLastEditedTimeRange = (params: {
 }) => {
   const { date, lastEditedTimeRange } = params;
   const now = new Date();
+
   switch (lastEditedTimeRange) {
-    case "anytime":
+    case "anytime": {
       return true;
-    case "last-24-hours":
+    }
+    case "last-24-hours": {
       return date >= subHours(now, 1);
-    case "last-7-days":
+    }
+    case "last-7-days": {
       return date >= subDays(now, 7);
-    case "last-30-days":
+    }
+    case "last-30-days": {
       return date >= subDays(now, 30);
-    case "last-365-days":
+    }
+    case "last-365-days": {
       return date >= subDays(now, 365);
-    default:
+    }
+    default: {
       return true;
+    }
   }
 };
 
@@ -383,8 +387,8 @@ export const DraftEntitiesFilters: FunctionComponent<{
               }[]
             >
           >(
-            (prev, currentFilterKind) => ({
-              ...prev,
+            (previous, currentFilterKind) => ({
+              ...previous,
               [currentFilterKind]: filterDraftEntities({
                 draftEntitiesWithCreators,
                 filterState,
@@ -405,7 +409,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
 
             return {
               icon: entityType.metadata.icon ? (
-                <Box marginRight={1.25} maxWidth={14} component="span">
+                <Box marginRight={1.25} maxWidth={14} component={"span"}>
                   {entityType.metadata.icon}
                 </Box>
               ) : isSpecialEntityTypeLookup?.[entityType.schema.$id]?.isLink ? (
@@ -416,7 +420,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
               label: entityType.schema.title,
               value: entityTypeBaseUrl,
               checked:
-                !!filterState?.entityTypeBaseUrls.includes(entityTypeBaseUrl),
+                Boolean(filterState?.entityTypeBaseUrls.includes(entityTypeBaseUrl)),
               count: filteredDraftEntitiesExceptForFilter?.type.filter(
                 ({ entity }) =>
                   extractBaseUrl(entity.metadata.entityTypeId) ===
@@ -425,14 +429,14 @@ export const DraftEntitiesFilters: FunctionComponent<{
             };
           }) ?? [],
         onChange: (updatedBaseUrls: BaseUrl[]) =>
-          setFilterState((prev) =>
-            prev
+          { setFilterState((previous) =>
+            previous
               ? {
-                  ...prev,
+                  ...previous,
                   entityTypeBaseUrls: updatedBaseUrls,
                 }
               : undefined,
-          ),
+          ); },
       } satisfies FilterSectionDefinition<BaseUrl>,
       {
         kind: "multiple-choice",
@@ -444,6 +448,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
                 authenticatedUser.accountId === source.accountId
                   ? "Me"
                   : (source.displayName ?? "Unknown");
+
               return { label, source };
             })
             .sort(
@@ -453,9 +458,10 @@ export const DraftEntitiesFilters: FunctionComponent<{
               ) => {
                 if (authenticatedUser.accountId === sourceA.accountId) {
                   return -1;
-                } else if (authenticatedUser.accountId === sourceB.accountId) {
+                } if (authenticatedUser.accountId === sourceB.accountId) {
                   return 1;
                 }
+
                 return labelA.localeCompare(labelB);
               },
             )
@@ -472,22 +478,22 @@ export const DraftEntitiesFilters: FunctionComponent<{
                 ),
               label,
               value: source.accountId,
-              checked: !!filterState?.sourceAccountIds.includes(
+              checked: Boolean(filterState?.sourceAccountIds.includes(
                 source.accountId,
-              ),
+              )),
               count: filteredDraftEntitiesExceptForFilter?.source.filter(
                 ({ creator }) => creator.accountId === source.accountId,
               ).length,
             })) ?? [],
         onChange: (updatedAccountIds: AccountId[]) =>
-          setFilterState((prev) =>
-            prev
+          { setFilterState((previous) =>
+            previous
               ? {
-                  ...prev,
+                  ...previous,
                   sourceAccountIds: updatedAccountIds,
                 }
               : undefined,
-          ),
+          ); },
       },
       {
         kind: "multiple-choice",
@@ -513,12 +519,13 @@ export const DraftEntitiesFilters: FunctionComponent<{
                   authenticatedUser.accountId === webA.accountId
                 ) {
                   return -1;
-                } else if (
+                } if (
                   webB.kind === "user" &&
                   authenticatedUser.accountId === webB.accountId
                 ) {
                   return 1;
                 }
+
                 return labelA.localeCompare(labelB);
               },
             )
@@ -526,11 +533,12 @@ export const DraftEntitiesFilters: FunctionComponent<{
               const webOwnedById = (
                 web.kind === "user" ? web.accountId : web.accountGroupId
               ) as OwnedById;
+
               return {
                 icon: web.kind === "user" ? <UserIcon /> : <UsersRegularIcon />,
                 label,
                 value: webOwnedById,
-                checked: !!filterState?.webOwnedByIds.includes(webOwnedById),
+                checked: Boolean(filterState?.webOwnedByIds.includes(webOwnedById)),
                 count: filteredDraftEntitiesExceptForFilter?.web.filter(
                   ({ entity }) =>
                     extractOwnedByIdFromEntityId(
@@ -540,14 +548,14 @@ export const DraftEntitiesFilters: FunctionComponent<{
               };
             }) ?? [],
         onChange: (updatedWebOwnedByIds: OwnedById[]) =>
-          setFilterState((prev) =>
-            prev
+          { setFilterState((previous) =>
+            previous
               ? {
-                  ...prev,
+                  ...previous,
                   webOwnedByIds: updatedWebOwnedByIds,
                 }
               : undefined,
-          ),
+          ); },
       },
       {
         kind: "single-choice",
@@ -569,14 +577,14 @@ export const DraftEntitiesFilters: FunctionComponent<{
           }),
         ),
         onChange: (updatedLastEditedTimeRange) =>
-          setFilterState((prev) =>
-            prev
+          { setFilterState((previous) =>
+            previous
               ? {
-                  ...prev,
+                  ...previous,
                   lastEditedTimeRange: updatedLastEditedTimeRange,
                 }
               : undefined,
-          ),
+          ); },
         value: filterState?.lastEditedTimeRange ?? "anytime",
       },
     ];
@@ -635,7 +643,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
         flexShrink: 0,
       }}
     >
-      <Box display="flex" alignItems="center" columnGap={1.5}>
+      <Box display={"flex"} alignItems={"center"} columnGap={1.5}>
         <Typography
           sx={{
             fontSize: 16,
@@ -647,8 +655,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
         </Typography>
         <Fade in={filterState && !isDefaultFilterState}>
           <Button
-            onClick={handleClearAll}
-            variant="tertiary_quiet"
+            variant={"tertiary_quiet"}
             sx={{
               minHeight: "unset",
               background: "transparent",
@@ -661,6 +668,7 @@ export const DraftEntitiesFilters: FunctionComponent<{
               fontWeight: 500,
               minWidth: "unset",
             }}
+            onClick={handleClearAll}
           >
             Clear all
           </Button>

@@ -1,10 +1,9 @@
+import { useEffect, useState } from "react";
 import type { CollabPosition } from "@local/hash-isomorphic-utils/collab";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
-import { useEffect, useState } from "react";
 
-import type { AbortingPromise } from "./http";
-import { GET } from "./http";
+import type { AbortingPromise , GET } from "./http";
 
 const requestRetryInterval = 5000;
 
@@ -50,8 +49,10 @@ export const useCollabPositions = (
   useEffect(() => {
     let pageHasChanged = false;
     let activeRequest: AbortingPromise<string> | undefined = undefined;
+
     void (async () => {
       let poll = false;
+
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- we break this async loop as soon as pageHasChanged
       while (true) {
         try {

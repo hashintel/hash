@@ -1,8 +1,7 @@
-import type { CustomCell, DrawArgs, Theme } from "@glideapps/glide-data-grid";
-import { getMiddleCenterBias, GridCellKind } from "@glideapps/glide-data-grid";
+import type { CustomCell, DrawArgs, getMiddleCenterBias, GridCellKind,Theme  } from "@glideapps/glide-data-grid";
 
 /**
- * @returns vertical center of a grid cell
+ * @returns Vertical center of a grid cell.
  */
 export const getYCenter = (
   args: Pick<DrawArgs<CustomCell>, "rect" | "ctx"> & { theme: Theme },
@@ -14,8 +13,8 @@ export const getYCenter = (
 };
 
 /**
- * @param atFirstColumn first columns has extra padding for the chevron icon on the left side
- * @returns cell horizontal padding
+ * @param atFirstColumn - First columns has extra padding for the chevron icon on the left side.
+ * @returns Cell horizontal padding.
  */
 export const getCellHorizontalPadding = (atFirstColumn?: boolean) =>
   atFirstColumn ? 36 : 22;

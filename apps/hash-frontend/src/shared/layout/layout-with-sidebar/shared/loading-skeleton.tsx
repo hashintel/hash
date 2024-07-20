@@ -4,10 +4,10 @@ import { iconVariantSizes } from "../../../edit-emoji-icon-button";
 
 const LoadingLine = () => {
   return (
-    <Box display="flex" alignItems="center" height={34}>
+    <Box display={"flex"} alignItems={"center"} height={34}>
       <Skeleton
-        animation="wave"
-        variant="rectangular"
+        animation={"wave"}
+        variant={"rectangular"}
         sx={{
           mr: 0.75,
           height: iconVariantSizes.small.container,
@@ -16,8 +16,8 @@ const LoadingLine = () => {
         }}
       />
       <Skeleton
-        variant="rectangular"
-        animation="wave"
+        variant={"rectangular"}
+        animation={"wave"}
         height={iconVariantSizes.small.container}
         sx={{ flex: 1, borderRadius: 1 }}
       />

@@ -1,5 +1,10 @@
-import type { MutationHookOptions } from "@apollo/client";
-import { useMutation } from "@apollo/client";
+import {
+  bindMenu,
+  bindTrigger,
+  usePopupState,
+} from "material-ui-popup-state/hooks";
+import type { FunctionComponent , useCallback, useMemo } from "react";
+import type { MutationHookOptions , useMutation } from "@apollo/client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
   Box,
@@ -13,21 +18,12 @@ import {
   styled,
   Tooltip,
 } from "@mui/material";
-import {
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo } from "react";
 
 import type {
   AddEntityViewerMutation,
   AddEntityViewerMutationVariables,
-  RemoveEntityViewerMutation,
-  RemoveEntityViewerMutationVariables,
-} from "../../../../graphql/api-types.gen";
-import { AuthorizationSubjectKind } from "../../../../graphql/api-types.gen";
+ AuthorizationSubjectKind,  RemoveEntityViewerMutation,
+  RemoveEntityViewerMutationVariables } from "../../../../graphql/api-types.gen";
 import {
   addEntityViewerMutation,
   getEntityAuthorizationRelationshipsQuery,
@@ -138,7 +134,7 @@ export const EditAuthorizationStatusMenu: FunctionComponent<{
         label: "Private",
         status: "private" as const,
         description: "Only you have access",
-        disabled: loading || !!isSharedWithOthers,
+        disabled: loading || Boolean(isSharedWithOthers),
         tooltipText: isSharedWithOthers
           ? `To make this ${
               isPageEntity ? "page" : "entity"
@@ -174,8 +170,10 @@ export const EditAuthorizationStatusMenu: FunctionComponent<{
   return (
     <>
       <Button
-        size="xs"
-        variant="tertiary"
+        size={"xs"}
+        variant={"tertiary"}
+        startIcon={entityAuthorizationStatusIcons[authorizationStatus]}
+        endIcon={<ChevronDownRegularIcon />}
         sx={{
           position: "absolute",
           right: ({ spacing }) => spacing(2),
@@ -190,8 +188,6 @@ export const EditAuthorizationStatusMenu: FunctionComponent<{
             transition: ({ transitions }) => transitions.create("color"),
           },
         }}
-        startIcon={entityAuthorizationStatusIcons[authorizationStatus]}
-        endIcon={<ChevronDownRegularIcon />}
         {...bindTrigger(privacyStatusPopupState)}
       >
         {authorizationStatus === "private"
@@ -208,8 +204,8 @@ export const EditAuthorizationStatusMenu: FunctionComponent<{
                 key={status}
                 disabled={disabled}
                 selected={status === authorizationStatus}
-                onClick={onClick}
                 title={tooltipText}
+                onClick={onClick}
               >
                 <ListItemIcon>
                   {entityAuthorizationStatusIcons[status]}

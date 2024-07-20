@@ -1,15 +1,16 @@
-import type { CollabPosition } from "@local/hash-isomorphic-utils/collab";
 import { AnimatePresence, motion } from "framer-motion";
-import type { FunctionComponent } from "react";
-import { useMemo } from "react";
+import type { FunctionComponent , useMemo } from "react";
+import type { CollabPosition } from "@local/hash-isomorphic-utils/collab";
 
 import { useCollabPositionContext } from "../../../contexts/collab-position-context";
+
 import { CollabPositionIndicator } from "./collab-position-indicator";
 
 function pickColor(inputString: string) {
   let hash = 0;
+
   for (let i = 0; i < inputString.length; i++) {
-    // eslint-disable-next-line no-bitwise
+     
     hash = inputString.charCodeAt(i) + ((hash << 5) - hash);
   }
 
@@ -36,11 +37,11 @@ export const CollabPositionIndicators: FunctionComponent<
 
   return (
     <motion.div
+      id={"presence-indicators"}
       animate={{
         // only display upto 3 indicators
         left: `-${relevantPresenceIndicators.slice(0, 3).length * 33.5}px`,
       }}
-      id="presence-indicators"
       style={{
         display: "flex",
         position: "absolute",
@@ -65,10 +66,10 @@ export const CollabPositionIndicators: FunctionComponent<
             backgroundColor={pickColor(
               `+${relevantPresenceIndicators.length - 2}`,
             )}
-            title={`${relevantPresenceIndicators
+            title={relevantPresenceIndicators
               .slice(2)
               .map((presenceIndicator) => presenceIndicator.userDisplayName)
-              .join("\n")}`}
+              .join("\n")}
           >
             <span
               style={{

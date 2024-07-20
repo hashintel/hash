@@ -28,7 +28,7 @@ export const middleware = async (request: NextRequest) => {
 };
 
 /**
- * Allow any cross-origin request for type JSON is set via headers in next.config.js
+ * Allow any cross-origin request for type JSON is set via headers in next.config.js.
  */
 export const config = {
   matcher: "/:shortname/types/:path*",

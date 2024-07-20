@@ -1,30 +1,26 @@
-import { AngleRightRegularIcon, IconButton } from "@hashintel/design-system";
-import type { Subgraph } from "@local/hash-subgraph";
-import type { SxProps, Theme } from "@mui/material";
-import {
-  Box,
-  Collapse,
-  Stack,
-  TableCell,
-  tableContainerClasses,
-  tableHeadClasses,
-  Typography,
-} from "@mui/material";
 import { format } from "date-fns";
 import { memo, useMemo, useRef, useState } from "react";
+import { AngleRightRegularIcon, IconButton } from "@hashintel/design-system";
+import type { Subgraph } from "@local/hash-subgraph";
+import type {   Box,
+  Collapse,
+  Stack,
+SxProps,   TableCell,
+  tableContainerClasses,
+  tableHeadClasses,
+Theme ,
+  Typography,
+} from "@mui/material";
 
 import { CircleInfoIcon } from "../../../../../../shared/icons/circle-info-icon";
 import type {
   CreateVirtualizedRowContentFn,
-  VirtualizedTableColumn,
-  VirtualizedTableRow,
-  VirtualizedTableSort,
-} from "../../../../../shared/virtualized-table";
-import {
   defaultCellSx,
   headerHeight,
-  VirtualizedTable,
-} from "../../../../../shared/virtualized-table";
+  VirtualizedTable,  VirtualizedTableColumn,
+  VirtualizedTableRow,
+  VirtualizedTableSort} from "../../../../../shared/virtualized-table";
+
 import { Provenance } from "./history-table/provenance";
 import { EventDetail } from "./history-table/shared/event-detail";
 import type { HistoryEvent } from "./shared/types";
@@ -130,7 +126,7 @@ const TableRow = memo(
             transition: transitions.create(["background", "border"]),
           })}
         >
-          <Stack direction="row" alignItems="center">
+          <Stack direction={"row"} alignItems={"center"}>
             <Box
               sx={{
                 ...historyEventCellSx,
@@ -161,9 +157,9 @@ const TableRow = memo(
               }}
             >
               <Stack
-                direction="row"
-                justifyContent="flex-start"
-                alignItems="center"
+                direction={"row"}
+                justifyContent={"flex-start"}
+                alignItems={"center"}
                 sx={{ maxWidth: "100%" }}
               >
                 <EventDetail event={event} subgraph={subgraph} />
@@ -178,7 +174,7 @@ const TableRow = memo(
               {format(new Date(timestamp), "yyyy-MM-dd h:mma")}
             </Box>
             <Stack
-              direction="row"
+              direction={"row"}
               sx={{
                 ...historyEventCellSx,
                 justifyContent: "flex-start",
@@ -187,19 +183,19 @@ const TableRow = memo(
               }}
             >
               <IconButton
-                aria-label="Show provenance"
+                aria-label={"Show provenance"}
+                sx={{
+                  "&:hover": { background: "none" },
+                  "& svg": { fontSize: 14 },
+                }}
                 onClick={() => {
-                  setShowProvenance((prev) => !prev);
+                  setShowProvenance((previous) => !previous);
                   setTimeout(() => {
                     provenanceRef.current?.scrollIntoView({
                       behavior: "smooth",
                       block: "end",
                     });
                   }, 200);
-                }}
-                sx={{
-                  "&:hover": { background: "none" },
-                  "& svg": { fontSize: 14 },
                 }}
               >
                 <CircleInfoIcon
@@ -231,13 +227,13 @@ const TableRow = memo(
   },
 );
 
-type HistoryRowData = {
+interface HistoryRowData {
   event: HistoryEvent;
   isFirstRow: boolean;
   isLastRow: boolean;
   numberColumnWidth: number;
   subgraph: Subgraph;
-};
+}
 
 const createRowContent: CreateVirtualizedRowContentFn<HistoryRowData> = (
   _index,
@@ -274,12 +270,14 @@ export const HistoryTable = ({
             if (a.timestamp === b.timestamp) {
               return a.number.localeCompare(b.number);
             }
+
             return a.timestamp > b.timestamp ? 1 : -1;
           }
 
           if (a.timestamp === b.timestamp) {
             return b.number.localeCompare(a.number);
           }
+
           return a.timestamp > b.timestamp ? -1 : 1;
         }
 

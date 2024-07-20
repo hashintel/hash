@@ -1,17 +1,16 @@
+import type { FunctionComponent, PropsWithChildren } from "react";
 import {
   faChevronLeft,
   faChevronRight,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { BoxProps } from "@mui/material";
-import {
+import type { BoxProps ,
   ListItem,
   ListItemButton,
   listItemButtonClasses,
   ListItemText,
   listItemTextClasses,
 } from "@mui/material";
-import type { FunctionComponent, PropsWithChildren } from "react";
 
 export const MentionSuggesterSubheading: FunctionComponent<
   PropsWithChildren & {
@@ -55,7 +54,7 @@ export const MentionSuggesterSubheading: FunctionComponent<
       {onClick && chevronDirection === "left" ? (
         <FontAwesomeIcon
           icon={faChevronLeft}
-          className="chevron-left"
+          className={"chevron-left"}
           sx={{
             right: 0,
             marginRight: 0.75,
@@ -67,7 +66,7 @@ export const MentionSuggesterSubheading: FunctionComponent<
       {onClick && chevronDirection === "right" ? (
         <FontAwesomeIcon
           icon={faChevronRight}
-          className="chevron-right"
+          className={"chevron-right"}
           sx={{
             left: 0,
             marginLeft: 0.75,
@@ -82,7 +81,6 @@ export const MentionSuggesterSubheading: FunctionComponent<
   return onClick ? (
     <ListItemButton
       disabled={disabled}
-      onClick={onClick}
       sx={[
         {
           paddingBottom: 0,
@@ -91,12 +89,13 @@ export const MentionSuggesterSubheading: FunctionComponent<
             background: "transparent",
             color: ({ palette }) => palette.gray[80],
           },
-          [`${listItemButtonClasses.disabled}`]: {
+          [listItemButtonClasses.disabled]: {
             opacity: disabled ? 0.6 : 1,
           },
         },
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
+      onClick={onClick}
     >
       {content}
     </ListItemButton>

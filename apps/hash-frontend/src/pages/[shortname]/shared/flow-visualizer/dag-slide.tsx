@@ -3,6 +3,7 @@ import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import { Backdrop, Box, Slide, Stack } from "@mui/material";
 
 import { XMarkRegularIcon } from "../../../../shared/icons/x-mark-regular-icon";
+
 import { DAG } from "./dag";
 import type {
   GroupWithEdgesAndNodes,
@@ -10,12 +11,12 @@ import type {
 } from "./shared/types";
 import { Topbar } from "./topbar";
 
-type DagSlideProps = {
+interface DagSlideProps {
   groups: [UngroupedEdgesAndNodes] | GroupWithEdgesAndNodes[];
   open: boolean;
   onClose: () => void;
   selectedFlowDefinition: FlowDefinition;
-};
+}
 
 export const DagSlide = ({
   groups,
@@ -26,16 +27,16 @@ export const DagSlide = ({
   return (
     <Backdrop
       open={open}
-      onClick={() => onClose()}
       sx={{
         zIndex: ({ zIndex }) => zIndex.drawer + 2,
         justifyContent: "flex-end",
       }}
+      onClick={() => { onClose(); }}
     >
       <Slide
         in={open}
-        direction="left"
-        onClick={(event) => event.stopPropagation()}
+        direction={"left"}
+        onClick={(event) => { event.stopPropagation(); }}
       >
         <Box
           sx={{
@@ -46,19 +47,19 @@ export const DagSlide = ({
           }}
         >
           <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
+            direction={"row"}
+            alignItems={"center"}
+            justifyContent={"space-between"}
             sx={{ background: ({ palette }) => palette.common.white }}
           >
             <Topbar
+              readonly
               handleRunFlowClicked={() => null}
               showRunButton={false}
-              readonly
             />
             <IconButton
-              onClick={onClose}
               sx={{ "& svg": { fontSize: 18 }, mr: 2.5, p: 0.5 }}
+              onClick={onClose}
             >
               <XMarkRegularIcon sx={{ fontSize: 22 }} />
             </IconButton>

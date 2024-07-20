@@ -1,8 +1,6 @@
-import { ArrowRightIconRegular } from "@hashintel/design-system";
-import type { LinkProps } from "@mui/material";
-import { Typography } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
-
+import { ArrowRightIconRegular } from "@hashintel/design-system";
+import type { LinkProps , Typography } from "@mui/material";
 import { Link } from "../../ui";
 
 export const ViewAllLink: FunctionComponent<{
@@ -11,9 +9,9 @@ export const ViewAllLink: FunctionComponent<{
   children: ReactNode;
 }> = ({ href, sx, children }) => {
   return (
-    <Link href={href} noLinkStyle tabIndex={-1} sx={sx}>
+    <Link noLinkStyle href={href} tabIndex={-1} sx={sx}>
       <Typography
-        variant="smallTextLabels"
+        variant={"smallTextLabels"}
         sx={({ palette }) => ({
           fontWeight: 500,
           color: palette.gray[80],

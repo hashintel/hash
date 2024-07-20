@@ -1,7 +1,5 @@
-import type { ModalProps } from "@hashintel/design-system";
-import { IconButton, Modal as BaseModal } from "@hashintel/design-system";
-import type { SxProps, Theme } from "@mui/material";
-import { Box, Stack, Typography } from "@mui/material";
+import type { IconButton, Modal as BaseModal,ModalProps  } from "@hashintel/design-system";
+import type { Box, Stack, SxProps, Theme , Typography } from "@mui/material";
 
 import { XMarkRegularIcon } from "../icons/x-mark-regular-icon";
 
@@ -34,8 +32,8 @@ export const Modal = ({
       {header && (
         <Stack
           alignItems={header.subtitle ? "flex-start" : "center"}
-          direction="row"
-          justifyContent="space-between"
+          direction={"row"}
+          justifyContent={"space-between"}
           sx={[
             {
               borderBottom: header.hideBorder
@@ -51,11 +49,11 @@ export const Modal = ({
           <Box>
             {header.title && (
               <Typography
+                gutterBottom={Boolean(header.subtitle)}
                 sx={{
                   fontWeight: 500,
                   color: ({ palette }) => palette.gray[80],
                 }}
-                gutterBottom={!!header.subtitle}
               >
                 {header.title}
               </Typography>
@@ -74,9 +72,9 @@ export const Modal = ({
 
           {!header.hideCloseButton && props.onClose && (
             <IconButton
-              aria-label="Cancel"
-              onClick={(event) => props.onClose?.(event, "escapeKeyDown")}
+              aria-label={"Cancel"}
               sx={{ "& svg": { fontSize: 20 } }}
+              onClick={(event) => props.onClose?.(event, "escapeKeyDown")}
             >
               <XMarkRegularIcon />
             </IconButton>

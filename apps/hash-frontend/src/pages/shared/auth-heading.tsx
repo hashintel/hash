@@ -1,6 +1,5 @@
-import type { TypographyProps } from "@mui/material";
-import { styled, Typography } from "@mui/material";
 import { Inter } from "next/font/google";
+import type { styled, Typography,TypographyProps  } from "@mui/material";
 /**
  * @todo: figure out how to make this re-usable in the theme, if it is
  * needed elsewhere.
@@ -11,7 +10,7 @@ const interFont = Inter({
 });
 
 export const AuthHeading = styled((props: TypographyProps) => (
-  <Typography variant="h1" {...props} />
+  <Typography variant={"h1"} {...props} />
 ))(({ theme }) => ({
   marginBottom: theme.spacing(4.25),
   color: theme.palette.common.black,

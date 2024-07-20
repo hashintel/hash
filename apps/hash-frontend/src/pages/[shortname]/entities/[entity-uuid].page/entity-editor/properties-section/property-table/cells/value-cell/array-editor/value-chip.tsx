@@ -1,5 +1,4 @@
-import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
-import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
+import type { faAsterisk,IconDefinition  } from "@fortawesome/free-solid-svg-icons";
 import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Tooltip } from "@mui/material";
 
@@ -18,6 +17,7 @@ export const ValueChip = ({
 }) => {
   return (
     <Chip
+      label={title}
       sx={[
         {
           minWidth: 0,
@@ -31,7 +31,7 @@ export const ValueChip = ({
       icon={
         imageSrc ? (
           <Box
-            component="img"
+            component={"img"}
             src={imageSrc}
             sx={{
               borderRadius: 1,
@@ -42,13 +42,13 @@ export const ValueChip = ({
             }}
           />
         ) : (
-          <Tooltip title={tooltip} placement="top">
+          <Tooltip title={tooltip} placement={"top"}>
             <FontAwesomeIcon
               icon={icon}
               sx={{
                 /**
-                 * used zIndex:1, otherwise label of the chip is rendered over icon with transparent background,
-                 * which prevents tooltip from opening
+                 * Used zIndex:1, otherwise label of the chip is rendered over icon with transparent background,
+                 * which prevents tooltip from opening.
                  */
                 zIndex: 1,
               }}
@@ -56,7 +56,6 @@ export const ValueChip = ({
           </Tooltip>
         )
       }
-      label={title}
     />
   );
 };

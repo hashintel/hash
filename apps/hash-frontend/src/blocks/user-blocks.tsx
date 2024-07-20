@@ -1,19 +1,16 @@
-import type { EntityType } from "@blockprotocol/type-system";
-import type { ComponentIdHashBlockMap } from "@local/hash-isomorphic-utils/blocks";
-import { fetchBlock } from "@local/hash-isomorphic-utils/blocks";
-import type {
-  Dispatch,
-  FunctionComponent,
-  ReactNode,
-  SetStateAction,
-} from "react";
 import {
   createContext,
+  type Dispatch,
+  type FunctionComponent,
+  type ReactNode,
+  type SetStateAction,
   useCallback,
   useContext,
   useEffect,
-  useMemo,
+  useMemo
 } from "react";
+import type { EntityType } from "@blockprotocol/type-system";
+import { type ComponentIdHashBlockMap, fetchBlock } from "@local/hash-isomorphic-utils/blocks";
 
 import { useCachedDefaultState } from "../components/hooks/use-default-state";
 import { useGetBlockProtocolBlocks } from "../components/hooks/use-get-block-protocol-blocks";
@@ -34,8 +31,8 @@ export const UserBlocksProvider: FunctionComponent<{
   const [value, setValue] = useCachedDefaultState(
     initialUserBlocks,
     "hash-workspace-user-blocks-v2",
-    (nextInitialItems, prevInitialItems) => {
-      return { ...prevInitialItems, ...nextInitialItems };
+    (nextInitialItems, previousInitialItems) => {
+      return { ...previousInitialItems, ...nextInitialItems };
     },
   );
 
@@ -72,8 +69,8 @@ export const UserBlocksProvider: FunctionComponent<{
              * fetch the latest version of the block once per page-load,
              * incase there's been an update.
              *
-             * @todo consider mechanisms for migrating existing blocks
-             * to new versions if there are breaking changes
+             * @todo Consider mechanisms for migrating existing blocks
+             * to new versions if there are breaking changes.
              */
             useCachedData: false,
           });
@@ -92,16 +89,18 @@ export const UserBlocksProvider: FunctionComponent<{
         apiProvidedBlocksMap[block.meta.componentId] = block;
       }
 
-      setValue((prevValue) => {
+      setValue((previousValue) => {
         const newValue: ComponentIdHashBlockMap = {};
+
         for (const [componentId, blockData] of Object.entries({
-          ...prevValue,
+          ...previousValue,
           ...apiProvidedBlocksMap,
         })) {
           if (parseFloat(blockData.meta.protocol) >= 0.3) {
             newValue[componentId] = blockData;
           }
         }
+
         return newValue;
       });
     };
@@ -120,8 +119,8 @@ export const UserBlocksProvider: FunctionComponent<{
           schemaId: meta.schema,
         });
 
-        setValue((prevValue) => {
-          const newValue: ComponentIdHashBlockMap = { ...prevValue };
+        setValue((previousValue) => {
+          const newValue: ComponentIdHashBlockMap = { ...previousValue };
 
           newValue[componentId]!.schema = schema;
 
@@ -129,11 +128,12 @@ export const UserBlocksProvider: FunctionComponent<{
         });
       }
     };
+
     void fetchMissingSchemas();
   }, [value, setValue, fetchBlockSchema]);
 
   const state = useMemo(
-    () => ({ value, setValue, blockFetchFailed: !!error }),
+    () => ({ value, setValue, blockFetchFailed: Boolean(error) }),
     [value, setValue, error],
   );
 

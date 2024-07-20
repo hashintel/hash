@@ -1,9 +1,9 @@
-import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import isPlainObject from "lodash/isPlainObject";
+import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 
 import type { EditorType } from "./types";
 
-const isEmptyArray = (value: unknown) => Array.isArray(value) && !value.length;
+const isEmptyArray = (value: unknown) => Array.isArray(value) && value.length === 0;
 
 export const guessEditorTypeFromValue = (
   value: unknown,
@@ -69,6 +69,7 @@ export const guessEditorTypeFromExpectedType = (
 };
 
 export const isBlankStringOrNullish = (value: unknown) => {
-  const isBlankString = typeof value === "string" && !value.trim().length;
+  const isBlankString = typeof value === "string" && value.trim().length === 0;
+
   return isBlankString || value === null || value === undefined;
 };

@@ -1,9 +1,9 @@
-import { Box, ListItemText, Menu } from "@mui/material";
 import {
   bindMenu,
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
+import { Box, ListItemText, Menu } from "@mui/material";
 
 import type { MinimalOrg } from "../../../../../lib/user-and-org";
 import { MenuItem } from "../../../../../shared/ui/menu-item";
@@ -27,18 +27,18 @@ export const OrgContextMenu = ({
 
       <Menu {...bindMenu(popupState)} {...contextMenuProps}>
         <MenuItem href={`/@${org.shortname}`}>
-          <ListItemText primary="View profile" />
+          <ListItemText primary={"View profile"} />
         </MenuItem>
         <MenuItem href={`/settings/organizations/${org.shortname}/general`}>
-          <ListItemText primary="Edit profile" />
+          <ListItemText primary={"Edit profile"} />
         </MenuItem>
         <MenuItem href={`/settings/organizations/${org.shortname}/members`}>
-          <ListItemText primary="View members" />
+          <ListItemText primary={"View members"} />
         </MenuItem>
         <MenuItem
           href={`/settings/organizations/${org.shortname}/members#invite`}
         >
-          <ListItemText primary="Invite new members" />
+          <ListItemText primary={"Invite new members"} />
         </MenuItem>
         <MenuItem
           dangerous
@@ -47,7 +47,7 @@ export const OrgContextMenu = ({
             popupState.close();
           }}
         >
-          <ListItemText primary="Leave organization" />
+          <ListItemText primary={"Leave organization"} />
         </MenuItem>
       </Menu>
     </Box>

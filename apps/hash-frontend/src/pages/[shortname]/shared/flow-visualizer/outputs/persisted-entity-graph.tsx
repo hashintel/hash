@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import type {
   EntityRootType as BpEntityRootType,
   Subgraph as BpSubgraph,
@@ -7,17 +8,16 @@ import { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { useMemo } from "react";
 
 import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
 
-type PersistedEntityGraphProps = {
+interface PersistedEntityGraphProps {
   onEntityClick: (entity: Entity) => void;
   persistedEntities: PersistedEntity[];
   persistedEntitiesSubgraph?: Subgraph<EntityRootType>;
-};
+}
 
 export const PersistedEntityGraph = ({
   onEntityClick,
@@ -32,13 +32,14 @@ export const PersistedEntityGraph = ({
    */
   const deduplicatedPersistedEntities = useMemo(() => {
     const deduplicatedLatestEntitiesByEntityId: Record<EntityId, Entity> = {};
+
     for (const { entity } of persistedEntities) {
       if (!entity) {
         continue;
       }
       const persistedEntity = new Entity(entity);
 
-      const entityId = persistedEntity.metadata.recordId.entityId;
+      const {entityId} = persistedEntity.metadata.recordId;
 
       const existing = deduplicatedLatestEntitiesByEntityId[entityId];
 
@@ -54,12 +55,12 @@ export const PersistedEntityGraph = ({
     return Object.values(deduplicatedLatestEntitiesByEntityId);
   }, [persistedEntities]);
 
-  if (!persistedEntitiesSubgraph && !persistedEntities.length) {
+  if (!persistedEntitiesSubgraph && persistedEntities.length === 0) {
     return (
       <OutputContainer sx={{ flex: 1.5 }}>
         <EmptyOutputBox
           Icon={outputIcons.graph}
-          label="A graph of entities saved to HASH by the flow will appear here"
+          label={"A graph of entities saved to HASH by the flow will appear here"}
         />
       </OutputContainer>
     );
@@ -69,11 +70,11 @@ export const PersistedEntityGraph = ({
     <OutputContainer sx={{ flex: 1.5 }}>
       <EntitiesGraphChart
         entities={deduplicatedPersistedEntities}
-        onEntityClick={(entity) => onEntityClick(entity)}
+        sx={{ maxHeight: "100%" }}
         subgraph={
           persistedEntitiesSubgraph as unknown as BpSubgraph<BpEntityRootType>
         } // @todo sort out this param to EntitiesGraphChart
-        sx={{ maxHeight: "100%" }}
+        onEntityClick={(entity) => { onEntityClick(entity); }}
       />
     </OutputContainer>
   );

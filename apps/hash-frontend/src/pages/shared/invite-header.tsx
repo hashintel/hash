@@ -1,13 +1,12 @@
-import type { FunctionComponent } from "react";
-import { memo } from "react";
+import type { FunctionComponent , memo } from "react";
 
-type InviteHeaderProps = {
+interface InviteHeaderProps {
   invitationInfo: {
     orgName: string;
     orgEntityId: string;
     inviterDisplayName?: string;
   };
-};
+}
 
 export const InviteHeader: FunctionComponent<InviteHeaderProps> = memo(
   ({ invitationInfo }) => {

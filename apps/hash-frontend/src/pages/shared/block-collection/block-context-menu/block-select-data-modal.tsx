@@ -1,7 +1,7 @@
+import type { FunctionComponent , useCallback, useMemo, useState } from "react";
 import { useMutation } from "@apollo/client";
 import type { MultiFilter } from "@blockprotocol/graph";
-import type { ModalProps } from "@hashintel/design-system";
-import { IconButton, Modal } from "@hashintel/design-system";
+import type { IconButton, Modal,ModalProps  } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
@@ -22,8 +22,6 @@ import {
   getRoots,
 } from "@local/hash-subgraph/stdlib";
 import { Box, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo, useState } from "react";
 
 import { useFetchBlockSubgraph } from "../../../../blocks/use-fetch-block-subgraph";
 import { useBlockProtocolCreateEntity } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
@@ -219,7 +217,7 @@ export const BlockSelectDataModal: FunctionComponent<
       onClose={onClose}
     >
       <Box paddingX={3} paddingY={2}>
-        <Box display="flex" justifyContent="space-between" marginBottom={2}>
+        <Box display={"flex"} justifyContent={"space-between"} marginBottom={2}>
           <Box>
             <Typography
               gutterBottom
@@ -239,8 +237,8 @@ export const BlockSelectDataModal: FunctionComponent<
           </Box>
           <Box>
             <IconButton
-              onClick={onClose}
               sx={{ marginRight: -2, marginTop: -1 }}
+              onClick={onClose}
             >
               <XMarkRegularIcon />
             </IconButton>
@@ -249,12 +247,8 @@ export const BlockSelectDataModal: FunctionComponent<
         <EntityQueryEditor
           sx={{ marginBottom: 2 }}
           entityTypes={entityTypeSchemas}
-          propertyTypes={propertyTypeSchemas}
-          /**
-           * This ensures the query editor is initialized with the query
-           * incase it isn't available in the first render.
-           */
-          key={initialQueryEntityId ?? "new-query"}
+          saveTitle={`${existingQuery ? "Update" : "Create"} query`}
+          discardTitle={existingQuery ? "Discard changes" : "Reset query"}
           defaultValue={
             existingQuery
               ? (simplifyProperties(existingQuery.properties)
@@ -262,8 +256,12 @@ export const BlockSelectDataModal: FunctionComponent<
               : undefined
           }
           onSave={handleSave}
-          saveTitle={`${existingQuery ? "Update" : "Create"} query`}
-          discardTitle={existingQuery ? "Discard changes" : "Reset query"}
+          propertyTypes={propertyTypeSchemas}
+          /**
+           * This ensures the query editor is initialized with the query
+           * incase it isn't available in the first render.
+           */
+          key={initialQueryEntityId ?? "new-query"}
         />
       </Box>
     </Modal>

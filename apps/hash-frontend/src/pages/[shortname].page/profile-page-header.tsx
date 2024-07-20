@@ -1,16 +1,15 @@
+import type { FunctionComponent , useState } from "react";
 import { Avatar } from "@hashintel/design-system";
 import { Box, Container, Skeleton, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useState } from "react";
 
 import type { Org, User } from "../../lib/user-and-org";
 import { CogRegularIcon } from "../../shared/icons/cog-regular-icon";
 import { Button } from "../../shared/ui";
 import { getImageUrlFromEntityProperties } from "../shared/get-file-properties";
+
 import { EditPinnedEntityTypesModal } from "./edit-pinned-entity-types-modal";
 import { ProfilePageTabs } from "./profile-page-tabs";
-import type { ProfilePageTab } from "./util";
-import { leftColumnWidth } from "./util";
+import type { leftColumnWidth,ProfilePageTab  } from "./util";
 
 const avatarTopOffset = 25;
 
@@ -34,7 +33,7 @@ export const ProfilePageHeader: FunctionComponent<{
     setDisplayEditPinnedEntityTypesModal,
   ] = useState(false);
 
-  const avatarSrc = profile?.hasAvatar
+  const avatarSource = profile?.hasAvatar
     ? getImageUrlFromEntityProperties(profile.hasAvatar.imageEntity.properties)
     : undefined;
 
@@ -58,13 +57,13 @@ export const ProfilePageHeader: FunctionComponent<{
           }}
         >
           {profile ? (
-            <Box position="relative">
+            <Box position={"relative"}>
               <Avatar
-                src={avatarSrc}
+                src={avatarSource}
+                size={leftColumnWidth}
                 title={
                   profile.kind === "user" ? profile.displayName : profile.name
                 }
-                size={leftColumnWidth}
                 sx={{
                   position: "relative",
                   top: avatarTopOffset,
@@ -74,14 +73,14 @@ export const ProfilePageHeader: FunctionComponent<{
                    * @todo: allow for editing org avatars
                    */
                   isEditable && profile.kind === "user"
-                    ? () => setDisplayEditUserProfileInfoModal(true)
+                    ? () => { setDisplayEditUserProfileInfoModal(true); }
                     : undefined
                 }
               />
             </Box>
           ) : (
             <Skeleton
-              variant="circular"
+              variant={"circular"}
               width={leftColumnWidth}
               height={leftColumnWidth}
               sx={{
@@ -93,15 +92,15 @@ export const ProfilePageHeader: FunctionComponent<{
           )}
           <Box
             paddingTop={`${avatarTopOffset}px`}
-            display="flex"
-            flexDirection="column"
-            justifyContent="space-between"
+            display={"flex"}
+            flexDirection={"column"}
+            justifyContent={"space-between"}
             flexGrow={1}
           >
             <Box>
               {profile ? (
                 <Typography
-                  variant="h1"
+                  variant={"h1"}
                   sx={{
                     fontSize: 32,
                     fontWeight: 700,
@@ -135,7 +134,7 @@ export const ProfilePageHeader: FunctionComponent<{
                 />
               )}
             </Box>
-            <Box display="flex" justifyContent="space-between">
+            <Box display={"flex"} justifyContent={"space-between"}>
               <ProfilePageTabs
                 profile={profile}
                 tabs={tabs}
@@ -144,15 +143,15 @@ export const ProfilePageHeader: FunctionComponent<{
               {isEditable ? (
                 <>
                   <Button
-                    onClick={() => setDisplayEditPinnedEntityTypesModal(true)}
-                    variant="secondary_quiet"
-                    size="xs"
+                    variant={"secondary_quiet"}
+                    size={"xs"}
+                    sx={{ marginBottom: 0.5 }}
                     endIcon={
                       <CogRegularIcon
                         sx={{ color: ({ palette }) => palette.blue[70] }}
                       />
                     }
-                    sx={{ marginBottom: 0.5 }}
+                    onClick={() => { setDisplayEditPinnedEntityTypesModal(true); }}
                   >
                     Modify
                   </Button>
@@ -160,10 +159,10 @@ export const ProfilePageHeader: FunctionComponent<{
                     <EditPinnedEntityTypesModal
                       open={displayEditPinnedEntityTypesModal}
                       profile={profile}
-                      onClose={() =>
-                        setDisplayEditPinnedEntityTypesModal(false)
-                      }
                       refetchProfile={refetchProfile}
+                      onClose={() =>
+                        { setDisplayEditPinnedEntityTypesModal(false); }
+                      }
                     />
                   ) : null}
                 </>

@@ -1,12 +1,11 @@
+import { formatDistance } from "date-fns";
+import type { FunctionComponent , useCallback, useMemo } from "react";
 import { useMutation } from "@apollo/client";
 import { faRotateRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { Box, Container, Typography } from "@mui/material";
-import { formatDistance } from "date-fns";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo } from "react";
 
 import { useArchivePage } from "../../../components/hooks/use-archive-page";
 import { useUsers } from "../../../components/hooks/use-users";
@@ -21,12 +20,13 @@ import { CalendarIcon } from "../../../shared/icons/calendar-icon";
 import { UserIcon } from "../../../shared/icons/user-icon";
 import { isEntityPageEntity } from "../../../shared/is-of-type";
 import { Button, Link } from "../../../shared/ui";
+
 import { isItemEntityType } from "./util";
 
-type ArchivedItemBannerProps = {
+interface ArchivedItemBannerProps {
   item: Entity | EntityTypeWithMetadata;
   onUnarchived: () => void;
-};
+}
 
 export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
   item,
@@ -66,15 +66,15 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
   const archivedByAccountId = useMemo(() => {
     if (isItemEntityType(item)) {
       return item.metadata.provenance.edition.archivedById!;
-    } else if (isEntityPageEntity(item)) {
+    } if (isEntityPageEntity(item)) {
       return item.metadata.provenance.edition.createdById;
-    } else {
+    } 
       throw new Error("Archived entities are not yet supported.");
-    }
+    
   }, [item]);
 
   const archivedByUser =
-    users && users.find(({ accountId }) => archivedByAccountId === accountId);
+    users?.find(({ accountId }) => archivedByAccountId === accountId);
 
   const archivedAt = useMemo(
     () =>
@@ -163,7 +163,7 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
             </>
           ) : null}
           {" at "}
-          <Box component="span">
+          <Box component={"span"}>
             <CalendarIcon
               sx={{
                 fontSize: 14,
@@ -176,7 +176,7 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
           </Box>
         </Typography>
         <Button
-          variant="secondary"
+          variant={"secondary"}
           sx={({ palette }) => ({
             marginLeft: 1.5,
             minWidth: 0,

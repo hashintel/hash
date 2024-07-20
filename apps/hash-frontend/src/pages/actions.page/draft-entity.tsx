@@ -1,9 +1,8 @@
+import type { FunctionComponent , useMemo, useRef, useState } from "react";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Checkbox, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useMemo, useRef, useState } from "react";
 
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { ArrowUpRightRegularIcon } from "../../shared/icons/arrow-up-right-regular-icon";
@@ -11,6 +10,7 @@ import { Link } from "../../shared/ui";
 import { EditEntitySlideOver } from "../[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
 import { generateEntityRootedSubgraph } from "../shared/subgraphs";
 import { useEntityHref } from "../shared/use-entity-href";
+
 import { DraftEntityActionButtons } from "./draft-entity/draft-entity-action-buttons";
 import { DraftEntityProvenance } from "./draft-entity/draft-entity-provenance";
 import { DraftEntityType } from "./draft-entity/draft-entity-type";
@@ -52,7 +52,7 @@ export const DraftEntity: FunctionComponent<{
    * const entityRootedSubgraph = useMemo<Subgraph<EntityRootType>>(
    *   () => generateEntityRootedSubgraph(entity, subgraph),
    *   [subgraph, entity],
-   * );
+   * );.
    *
    * @todo: figure out what the underlying issue is causing the `EntitySelector`
    * component to re-mount when the subgraph changes.
@@ -89,14 +89,13 @@ export const DraftEntity: FunctionComponent<{
   return (
     <Box paddingRight={4.5} paddingLeft={6} paddingY={3.25}>
       <Box
-        display="flex"
-        justifyContent="space-between"
-        alignItems="flex-start"
+        display={"flex"}
+        justifyContent={"space-between"}
+        alignItems={"flex-start"}
       >
-        <Box display="flex" alignItems="center">
+        <Box display={"flex"} alignItems={"center"}>
           <Checkbox
             checked={selected}
-            onChange={toggleSelected}
             sx={{
               position: "relative",
               top: 2,
@@ -108,12 +107,13 @@ export const DraftEntity: FunctionComponent<{
                 `calc(-1 * (18px + ${spacing(1.5)}))`,
               paddingRight: 1.5,
             }}
+            onChange={toggleSelected}
           />
           {entityRootedSubgraph ? (
             <EditEntitySlideOver
               open={displayEntityModal}
               entitySubgraph={entityRootedSubgraph}
-              onClose={() => setDisplayEntityModal(false)}
+              onClose={() => { setDisplayEntityModal(false); }}
               onSubmit={() => {
                 void refetch();
                 setDisplayEntityModal(false);
@@ -147,7 +147,7 @@ export const DraftEntity: FunctionComponent<{
               }}
             >
               <Typography
-                variant="h2"
+                variant={"h2"}
                 sx={{
                   fontSize: 24,
                   fontWeight: 600,
@@ -169,8 +169,8 @@ export const DraftEntity: FunctionComponent<{
         </Box>
         <DraftEntityActionButtons entity={entity} subgraph={subgraph} />
       </Box>
-      <Box marginTop={1.5} display="flex" justifyContent="space-between">
-        <Box display="flex" alignItems="center" columnGap={2}>
+      <Box marginTop={1.5} display={"flex"} justifyContent={"space-between"}>
+        <Box display={"flex"} alignItems={"center"} columnGap={2}>
           <DraftEntityType entity={entity} subgraph={subgraph} />
           <DraftEntityWeb entity={entity} />
           {/*

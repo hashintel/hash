@@ -1,3 +1,4 @@
+import { forwardRef, useEffect, useRef } from "react";
 import type { EntityPropertyValue } from "@blockprotocol/graph";
 import { AsteriskRegularIcon, IconButton } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -7,11 +8,10 @@ import type {
 } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import type { ListItemButtonProps } from "@mui/material";
-import {
-  Box,
+import type {   Box,
   ListItemButton as MuiListItemButton,
   listItemButtonClasses,
+ListItemButtonProps ,
   ListItemIcon,
   ListItemText as MuiListItemText,
   listItemTextClasses,
@@ -19,13 +19,13 @@ import {
   styled,
   Typography,
 } from "@mui/material";
-import { forwardRef, useEffect, useRef } from "react";
 
 import { ArrowDownArrowUpRegularIcon } from "../../../../../shared/icons/arrow-down-arrow-up-regular-icon";
 import { ChevronRightRegularIcon } from "../../../../../shared/icons/chevron-right-regular-icon";
 import { LinkRegularIcon } from "../../../../../shared/icons/link-regular-icon";
 import { Button } from "../../../../../shared/ui";
 import { useEntityIcon } from "../../../../../shared/use-entity-icon";
+
 import { MentionSuggesterSubheading } from "./mention-suggester-subheading";
 import { MentionSuggesterWrapper } from "./mention-suggester-wrapper";
 
@@ -131,7 +131,7 @@ export const MentionSuggesterEntity = forwardRef<
           <ListItemPrimaryText>
             {generateEntityLabel(entitiesSubgraph, entity)}
           </ListItemPrimaryText>
-          <Box display="flex" alignItems="center" gap={1}>
+          <Box display={"flex"} alignItems={"center"} gap={1}>
             {displayTypeTitle ? (
               <ListItemSecondaryText sx={{ marginLeft: 2 }}>
                 {entityType.schema.title}
@@ -139,10 +139,6 @@ export const MentionSuggesterEntity = forwardRef<
             ) : null}
             <Box>
               <IconButton
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setDisplaySubMenu(true);
-                }}
                 sx={{
                   opacity: subMenuItems.length > 0 ? 1 : 0,
                   borderRadius: "4px",
@@ -161,6 +157,10 @@ export const MentionSuggesterEntity = forwardRef<
                       displaySubMenu ? palette.common.white : palette.gray[50],
                   },
                 }}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  setDisplaySubMenu(true);
+                }}
               >
                 <ChevronRightRegularIcon />
               </IconButton>
@@ -168,12 +168,12 @@ export const MentionSuggesterEntity = forwardRef<
           </Box>
         </ListItemButton>
         <Popper
+          open={displaySubMenu}
+          anchorEl={buttonRef.current}
+          placement={"right-start"}
           sx={{
             zIndex: 2500,
           }}
-          open={displaySubMenu}
-          anchorEl={buttonRef.current}
-          placement="right-start"
           popperOptions={{
             modifiers: [
               {
@@ -196,10 +196,8 @@ export const MentionSuggesterEntity = forwardRef<
             >
               <MentionSuggesterSubheading>Values</MentionSuggesterSubheading>
               <Button
-                variant="tertiary"
-                onClick={() =>
-                  setSortOrder(sortOrder === "asc" ? "desc" : "asc")
-                }
+                variant={"tertiary"}
+                endIcon={<ArrowDownArrowUpRegularIcon />}
                 sx={{
                   flexShrink: 0,
                   color: ({ palette }) => palette.gray[50],
@@ -211,7 +209,9 @@ export const MentionSuggesterEntity = forwardRef<
                   height: "fit-content",
                   borderWidth: 0,
                 }}
-                endIcon={<ArrowDownArrowUpRegularIcon />}
+                onClick={() =>
+                  { setSortOrder(sortOrder === "asc" ? "desc" : "asc"); }
+                }
               >
                 {sortOrder === "asc"
                   ? "Alphabetical (A-Z)"
@@ -220,13 +220,13 @@ export const MentionSuggesterEntity = forwardRef<
             </Box>
             {subMenuItems.map((item, index) => (
               <ListItemButton
+                selected={index === subMenuIndex}
                 key={
                   item.kind === "outgoing-link"
                     ? item.linkEntity.metadata.recordId.entityId
                     : item.propertyType.metadata.recordId.baseUrl
                 }
-                onClick={() => onSubMenuClick(index)}
-                selected={index === subMenuIndex}
+                onClick={() => { onSubMenuClick(index); }}
               >
                 <ListItemIcon sx={{ minWidth: "unset" }}>
                   {item.kind === "outgoing-link" ? (
@@ -256,8 +256,8 @@ export const MentionSuggesterEntity = forwardRef<
               </ListItemButton>
             ))}
             <MentionSuggesterSubheading
-              onClick={() => setDisplaySubMenu(false)}
-              chevronDirection="left"
+              chevronDirection={"left"}
+              onClick={() => { setDisplaySubMenu(false); }}
             >
               Back to Results
             </MentionSuggesterSubheading>

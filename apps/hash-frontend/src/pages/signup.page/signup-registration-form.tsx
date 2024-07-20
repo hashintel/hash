@@ -1,12 +1,11 @@
+import type { AxiosError } from "axios";
+import { useRouter } from "next/router";
+import type { FormEventHandler, FunctionComponent , useEffect, useState } from "react";
 import { useLazyQuery } from "@apollo/client";
 import { TextField } from "@hashintel/design-system";
 import { Box, Typography } from "@mui/material";
 import type { RegistrationFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
-import type { AxiosError } from "axios";
-import { useRouter } from "next/router";
-import type { FormEventHandler, FunctionComponent } from "react";
-import { useEffect, useState } from "react";
 
 import { useHashInstance } from "../../components/hooks/use-hash-instance";
 import type { HasAccessToHashQuery } from "../../graphql/api-types.gen";
@@ -16,8 +15,7 @@ import { Button, Link } from "../../shared/ui";
 import { AuthHeading } from "../shared/auth-heading";
 import { useAuthInfo } from "../shared/auth-info-context";
 import { AuthPaper } from "../shared/auth-paper";
-import type { IdentityTraits } from "../shared/ory-kratos";
-import {
+import type { IdentityTraits ,
   mustGetCsrfTokenFromFlow,
   oryKratosClient,
 } from "../shared/ory-kratos";
@@ -82,8 +80,9 @@ export const SignupRegistrationForm: FunctionComponent = () => {
       oryKratosClient
         .getRegistrationFlow({ id: String(flowId) })
         // We received the flow - let's use its data and render the form!
-        .then(({ data }) => setFlow(data))
+        .then(({ data }) => { setFlow(data); })
         .catch(handleFlowError);
+
       return;
     }
 
@@ -92,7 +91,7 @@ export const SignupRegistrationForm: FunctionComponent = () => {
       .createBrowserRegistrationFlow({
         returnTo: returnTo ? String(returnTo) : undefined,
       })
-      .then(({ data }) => setFlow(data))
+      .then(({ data }) => { setFlow(data); })
       .catch(handleFlowError);
   }, [flowId, router, router.isReady, returnTo, flow, handleFlowError]);
 
@@ -128,9 +127,11 @@ export const SignupRegistrationForm: FunctionComponent = () => {
             const hasAccessToHash = await checkUserAccess().then(
               ({ data }) => data?.hasAccessToHash,
             );
+
             if (!hasAccessToHash) {
               await refetch();
               void router.push("/");
+
               return;
             }
 
@@ -139,15 +140,16 @@ export const SignupRegistrationForm: FunctionComponent = () => {
             void refetch();
           })
           .catch(handleFlowError)
-          .catch((err: AxiosError<RegistrationFlow>) => {
+          .catch((error: AxiosError<RegistrationFlow>) => {
             // If the previous handler did not catch the error it's most likely a form validation error
-            if (err.response?.status === 400) {
+            if (error.response?.status === 400) {
               // Yup, it is!
-              setFlow(err.response.data);
+              setFlow(error.response.data);
+
               return;
             }
 
-            return Promise.reject(err);
+            return Promise.reject(error);
           }),
       );
   };
@@ -164,56 +166,56 @@ export const SignupRegistrationForm: FunctionComponent = () => {
   );
 
   return (
-    <Box position="relative">
+    <Box position={"relative"}>
       <AuthPaper>
         <AuthHeading>Create an account</AuthHeading>
         <Box
-          component="form"
-          onSubmit={handleSubmit}
+          component={"form"}
           sx={{
             display: "flex",
             flexDirection: "column",
             rowGap: 1.5,
             width: "100%",
           }}
+          onSubmit={handleSubmit}
         >
           <TextField
-            label="Your personal email"
-            type="email"
-            autoComplete="email"
+            required
+            label={"Your personal email"}
+            type={"email"}
+            autoComplete={"email"}
             autoFocus={!initialEmail}
-            placeholder="Enter your email address"
+            placeholder={"Enter your email address"}
             value={email}
-            onChange={({ target }) => setEmail(target.value)}
+            inputProps={{ "data-1p-ignore": false }}
             error={
-              !!emailInputUiNode?.messages.find(({ type }) => type === "error")
+              Boolean(emailInputUiNode?.messages.find(({ type }) => type === "error"))
             }
             helperText={emailInputUiNode?.messages.map(({ id, text }) => (
               <Typography key={id}>{text}</Typography>
             ))}
-            required
-            inputProps={{ "data-1p-ignore": false }}
+            onChange={({ target }) => { setEmail(target.value); }}
           />
           <TextField
-            label="Password"
-            type="password"
-            autoComplete="new-password"
-            autoFocus={!!initialEmail}
+            required
+            label={"Password"}
+            type={"password"}
+            autoComplete={"new-password"}
+            autoFocus={Boolean(initialEmail)}
             value={password}
-            placeholder="Enter a password"
-            onChange={({ target }) => setPassword(target.value)}
+            placeholder={"Enter a password"}
+            inputProps={{ "data-1p-ignore": false }}
             error={
-              !!passwordInputUiNode?.messages.find(
+              Boolean(passwordInputUiNode?.messages.find(
                 ({ type }) => type === "error",
-              )
+              ))
             }
             helperText={passwordInputUiNode?.messages.map(({ id, text }) => (
               <Typography key={id}>{text}</Typography>
             ))}
-            required
-            inputProps={{ "data-1p-ignore": false }}
+            onChange={({ target }) => { setPassword(target.value); }}
           />
-          <Button type="submit" startIcon={<EnvelopeRegularIcon />}>
+          <Button type={"submit"} startIcon={<EnvelopeRegularIcon />}>
             Sign up
           </Button>
           {flow?.ui.messages?.map(({ text, id }) => (
@@ -240,11 +242,11 @@ export const SignupRegistrationForm: FunctionComponent = () => {
             }}
           >
             By creating an account you agree to the{" "}
-            <Link href="https://hash.ai/legal/terms" openInNew noLinkStyle>
+            <Link openInNew noLinkStyle href={"https://hash.ai/legal/terms"}>
               terms of use
             </Link>{" "}
             and{" "}
-            <Link href="https://hash.ai/legal/privacy" openInNew noLinkStyle>
+            <Link openInNew noLinkStyle href={"https://hash.ai/legal/privacy"}>
               privacy policy
             </Link>
           </Typography>
@@ -276,7 +278,7 @@ export const SignupRegistrationForm: FunctionComponent = () => {
           }}
         >
           Already have an account?{" "}
-          <Link href="/signin" noLinkStyle>
+          <Link noLinkStyle href={"/signin"}>
             Sign in
           </Link>
         </Typography>

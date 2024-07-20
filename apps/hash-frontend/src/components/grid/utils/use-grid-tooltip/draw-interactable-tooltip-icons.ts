@@ -4,6 +4,7 @@ import { getCellHorizontalPadding, getYCenter } from "../../utils";
 import { drawCellFadeOutGradient } from "../draw-cell-fade-out-gradient";
 import { InteractableManager } from "../interactable-manager";
 import type { Interactable } from "../interactable-manager/types";
+
 import type { TooltipCell } from "./types";
 
 const iconSize = 20;
@@ -16,13 +17,15 @@ export const drawInteractableTooltipIcons = (
   const { ctx, cell, rect, col, row, theme } = args;
   const { hideTooltip, showTooltip, tooltips } = cell.data;
 
-  if (!tooltips.length) {
+  if (tooltips.length === 0) {
     drawCellFadeOutGradient(args);
+
     return [];
   }
 
   const iconsWidth = (iconSize + iconGap) * tooltips.length;
   const bgWidth = iconsWidth + cellMargin;
+
   drawCellFadeOutGradient(args, bgWidth);
 
   const interactables: Interactable[] = [];
@@ -34,8 +37,8 @@ export const drawInteractableTooltipIcons = (
     };
 
     /**
-     * using reversedIndex while calculating tooltipX, because we'll draw
-     * tooltips icons left to right (in reversed order)
+     * Using reversedIndex while calculating tooltipX, because we'll draw
+     * tooltips icons left to right (in reversed order).
      */
     const reversedIndex = tooltips.length - i - 1;
 
@@ -70,13 +73,13 @@ export const drawInteractableTooltipIcons = (
         bottom: yCenter + iconSize / 2,
       },
       onMouseEnter: () =>
-        showTooltip({
+        { showTooltip({
           text: tooltip.text,
           iconX: actualTooltipX + iconSize / 2,
           colIndex: col,
           rowIndex: row,
-        }),
-      onMouseLeave: () => hideTooltip(col, row),
+        }); },
+      onMouseLeave: () => { hideTooltip(col, row); },
     });
 
     interactables.push(interactable);

@@ -1,3 +1,4 @@
+import type { FunctionComponent , useCallback, useMemo, useState } from "react";
 import { useQuery } from "@apollo/client";
 import { IconButton, PenRegularIcon } from "@hashintel/design-system";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -10,8 +11,6 @@ import { getEntityQuery } from "@local/hash-isomorphic-utils/graphql/queries/ent
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { EntityRootType } from "@local/hash-subgraph";
 import { Box, Skeleton, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo, useState } from "react";
 
 import { BlockLoadedProvider } from "../../blocks/on-block-loaded";
 import { UserBlocksProvider } from "../../blocks/user-blocks";
@@ -122,7 +121,7 @@ export const ProfileBio: FunctionComponent<{
 
   return (
     <>
-      <Box display="flex" columnGap={1.5}>
+      <Box display={"flex"} columnGap={1.5}>
         <ProfileSectionHeading marginBottom={1.5}>
           Overview
         </ProfileSectionHeading>
@@ -135,7 +134,7 @@ export const ProfileBio: FunctionComponent<{
         >
           Always{" "}
           <Box
-            component="span"
+            component={"span"}
             sx={{ color: ({ palette }) => palette.common.black }}
           >
             <GlobeRegularIcon sx={{ fontSize: 11, marginBottom: -0.1 }} />{" "}
@@ -175,10 +174,10 @@ export const ProfileBio: FunctionComponent<{
                   <BlockCollection
                     contents={profileBioContents}
                     ownedById={ownedById}
+                    readonly={!isEditable || !isEditing}
                     entityId={
                       profile.hasBio.profileBioEntity.metadata.recordId.entityId
                     }
-                    readonly={!isEditable || !isEditing}
                     sx={{
                       ".ProseMirror": {
                         paddingLeft: isEditing ? 1 : 0,
@@ -193,29 +192,29 @@ export const ProfileBio: FunctionComponent<{
           </BlockLoadedProvider>
         ) : isBioEmpty && !loading ? (
           <Typography
+            sx={{ color: ({ palette }) => palette.gray[60] }}
             onClick={() => {
               if (isEditable) {
                 void toggleEdit();
               }
             }}
-            sx={{ color: ({ palette }) => palette.gray[60] }}
           >
             Add a bio for{" "}
             {profile.kind === "user" ? profile.displayName : profile.name}...
           </Typography>
         ) : (
-          <Skeleton width="75%" />
+          <Skeleton width={"75%"} />
         )}
         {isEditable ? (
           <IconButton
-            onClick={toggleEdit}
             disabled={isTogglingEdit}
+            aria-label={isEditing ? "Save Bio" : "Edit Bio"}
             sx={{
               color: ({ palette }) => palette.blue[70],
               marginRight: -2,
               marginTop: -1,
             }}
-            aria-label={isEditing ? "Save Bio" : "Edit Bio"}
+            onClick={toggleEdit}
           >
             {isEditing ? <CheckRegularIcon /> : <PenRegularIcon />}
           </IconButton>

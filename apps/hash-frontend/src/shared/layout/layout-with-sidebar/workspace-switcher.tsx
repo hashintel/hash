@@ -1,3 +1,9 @@
+import {
+  bindMenu,
+  bindTrigger,
+  usePopupState,
+} from "material-ui-popup-state/hooks";
+import { useMemo } from "react";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons";
 import { Avatar, FontAwesomeIcon } from "@hashintel/design-system";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -10,12 +16,6 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import {
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
-import { useMemo } from "react";
 
 import { useLogoutFlow } from "../../../components/hooks/use-logout-flow";
 import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
@@ -36,7 +36,7 @@ export const WorkspaceSwitcher = () => {
   const activeWorkspace = useMemo<{ name: string; avatarSrc?: string }>(() => {
     if (activeWorkspaceOwnedById === authenticatedUser.accountId) {
       return {
-        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo how to handle empty displayName
+         
         name: authenticatedUser.displayName || authenticatedUser.shortname!,
         avatarSrc: authenticatedUser.hasAvatar
           ? getImageUrlFromEntityProperties(
@@ -44,7 +44,7 @@ export const WorkspaceSwitcher = () => {
             )
           : undefined,
       };
-    } else {
+    } 
       const { org: activeOrg } =
         authenticatedUser.memberOf.find(
           ({ org: { accountGroupId } }) =>
@@ -61,7 +61,7 @@ export const WorkspaceSwitcher = () => {
             : undefined,
         };
       }
-    }
+    
 
     return { name: "User" };
   }, [activeWorkspaceOwnedById, authenticatedUser]);
@@ -83,7 +83,7 @@ export const WorkspaceSwitcher = () => {
         ({ org: { accountGroupId, name, memberships, hasAvatar } }) => ({
           ownedById: accountGroupId as OwnedById,
           title: name,
-          subText: memberships.length ? `${memberships.length} members` : "", // memberships are loaded in the background
+          subText: memberships.length > 0 ? `${memberships.length} members` : "", // memberships are loaded in the background
           avatarTitle: name,
           avatarSrc: hasAvatar
             ? getImageUrlFromEntityProperties(hasAvatar.imageEntity.properties)
@@ -95,10 +95,10 @@ export const WorkspaceSwitcher = () => {
 
   return (
     <Box>
-      <Tooltip placement="bottom" title={activeWorkspace.name}>
+      <Tooltip placement={"bottom"} title={activeWorkspace.name}>
         <Button
-          variant="tertiary_quiet"
           fullWidth
+          variant={"tertiary_quiet"}
           sx={({ spacing }) => ({
             backgroundColor: "transparent",
             padding: spacing(1, 1.25),
@@ -114,6 +114,7 @@ export const WorkspaceSwitcher = () => {
             title={activeWorkspace.name}
           />
           <Typography
+            variant={"smallTextLabels"}
             sx={{
               pr: 1,
               pl: 1.25,
@@ -124,7 +125,6 @@ export const WorkspaceSwitcher = () => {
               color: ({ palette }) => palette.gray[80],
               fontWeight: 600,
             }}
-            variant="smallTextLabels"
           >
             {activeWorkspace.name}
           </Typography>
@@ -137,12 +137,12 @@ export const WorkspaceSwitcher = () => {
 
       <Menu
         {...bindMenu(popupState)}
+        autoFocus={false}
         MenuListProps={{
           sx: {
             paddingBottom: "6px",
           },
         }}
-        autoFocus={false}
       >
         {workspaceList.map(({ title, subText, ownedById, avatarSrc }) => (
           <MenuItem
@@ -181,13 +181,13 @@ export const WorkspaceSwitcher = () => {
           },
         ].map(({ title, href }, index) => (
           // eslint-disable-next-line react/no-array-index-key
-          <MenuItem key={index} href={href} onClick={() => popupState.close()}>
+          <MenuItem key={index} href={href} onClick={() => { popupState.close(); }}>
             <ListItemText primary={title} />
           </MenuItem>
         ))}
         <Divider />
         <MenuItem faded onClick={() => logout()}>
-          <ListItemText primary="Sign out" />
+          <ListItemText primary={"Sign out"} />
         </MenuItem>
       </Menu>
     </Box>

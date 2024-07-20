@@ -1,13 +1,14 @@
+import { useCallback } from "react";
 import { useLazyQuery } from "@apollo/client";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import type { DataTypeRootType } from "@local/hash-subgraph";
-import { useCallback } from "react";
 
 import type {
   GetDataTypeQuery,
   GetDataTypeQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import { getDataTypeQuery } from "../../../../graphql/queries/ontology/data-type.queries";
+
 import type { GetDataTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolGetDataType = (): {

@@ -1,3 +1,4 @@
+import type { PropsWithChildren , useState } from "react";
 import { typedValues } from "@local/advanced-types/typed-entries";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type {
@@ -7,18 +8,16 @@ import type {
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, Typography } from "@mui/material";
-import type { PropsWithChildren } from "react";
-import { useState } from "react";
 
 import { Button } from "../../../../shared/ui/button";
 import { Modal } from "../../../../shared/ui/modal";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { GoogleAuthProvider } from "../../../shared/integrations/google/google-auth-context";
 import { WebSelector } from "../../../shared/web-selector";
+
 import { ManualTriggerInput } from "./run-flow-modal/manual-trigger-input";
 import { inputHeight } from "./run-flow-modal/shared/dimensions";
-import type { FormState, LocalPayload } from "./run-flow-modal/types";
-import { isSupportedPayloadKind } from "./run-flow-modal/types";
+import type { FormState, isSupportedPayloadKind,LocalPayload  } from "./run-flow-modal/types";
 
 const InputWrapper = ({
   children,
@@ -27,8 +26,8 @@ const InputWrapper = ({
 }: PropsWithChildren<{ required: boolean; label: string }>) => (
   <Box mb={2.5}>
     <Typography
-      component="label"
-      variant="smallTextLabels"
+      component={"label"}
+      variant={"smallTextLabels"}
       sx={{
         color: ({ palette }) => palette.gray[70],
         fontWeight: 500,
@@ -43,7 +42,7 @@ const InputWrapper = ({
 );
 
 const generateInitialFormState = (outputDefinitions: OutputDefinition[]) =>
-  outputDefinitions.reduce<FormState>((acc, outputDefinition) => {
+  outputDefinitions.reduce<FormState>((accumulator, outputDefinition) => {
     if (isSupportedPayloadKind(outputDefinition.payloadKind)) {
       let defaultValue: LocalPayload["value"] = "";
 
@@ -55,7 +54,7 @@ const generateInitialFormState = (outputDefinitions: OutputDefinition[]) =>
         defaultValue = undefined;
       }
 
-      acc[outputDefinition.name] = {
+      accumulator[outputDefinition.name] = {
         outputName: outputDefinition.name,
         payload: {
           kind: outputDefinition.payloadKind satisfies LocalPayload["kind"],
@@ -63,15 +62,16 @@ const generateInitialFormState = (outputDefinitions: OutputDefinition[]) =>
         } as LocalPayload,
       };
     }
-    return acc;
+
+    return accumulator;
   }, {});
 
-type RunFlowModalProps = {
+interface RunFlowModalProps {
   flowDefinition: FlowDefinition;
   open: boolean;
   onClose: () => void;
   runFlow: (outputs: FlowTrigger["outputs"], webId: OwnedById) => Promise<void>;
-};
+}
 
 export const RunFlowModal = ({
   flowDefinition,
@@ -95,6 +95,7 @@ export const RunFlowModal = ({
 
   const allRequiredValuesPresent = (outputs ?? []).every((output) => {
     const stateValue = formState[output.name]?.payload.value;
+
     return (
       !output.required ||
       (output.payloadKind === "Text"
@@ -109,6 +110,7 @@ export const RunFlowModal = ({
     }
 
     const outputValues: FlowTrigger["outputs"] = [];
+
     for (const { outputName, payload } of typedValues(formState)) {
       if (typeof payload.value !== "undefined") {
         if (Array.isArray(payload.value) && payload.value.length === 0) {
@@ -153,14 +155,14 @@ export const RunFlowModal = ({
       contentStyle={{ p: { xs: 0, md: 0 } }}
       header={{ title: "Run flow" }}
       open={open}
-      onClose={onClose}
       sx={{ zIndex: 1000 }} // Google File Picker has zIndex 1001, MUI Modal default is 1300
+      onClose={onClose}
     >
       <GoogleAuthProvider>
         <Box sx={{ px: 4.5, py: 2.5 }}>
           <Typography
-            component="p"
-            variant="smallTextLabels"
+            component={"p"}
+            variant={"smallTextLabels"}
             sx={{
               color: ({ palette }) => palette.gray[70],
               fontWeight: 500,
@@ -193,9 +195,9 @@ export const RunFlowModal = ({
                   formState={formState}
                   key={outputDef.name}
                   payload={payload}
-                  required={!!outputDef.required}
+                  required={Boolean(outputDef.required)}
                   setValue={(newValue) =>
-                    setFormState((currentFormState) => ({
+                    { setFormState((currentFormState) => ({
                       ...currentFormState,
                       [outputDef.name]: {
                         outputName: outputDef.name,
@@ -204,7 +206,7 @@ export const RunFlowModal = ({
                           value: newValue satisfies LocalPayload["value"],
                         } as LocalPayload,
                       },
-                    }))
+                    })); }
                   }
                 />
               </InputWrapper>
@@ -213,13 +215,13 @@ export const RunFlowModal = ({
           <WebSelector
             inputHeight={inputHeight}
             selectedWebOwnedById={webId}
-            setSelectedWebOwnedById={(newWebId) => setWebId(newWebId)}
+            setSelectedWebOwnedById={(newWebId) => { setWebId(newWebId); }}
           />
           <Button
             disabled={!allRequiredValuesPresent || pending}
-            size="small"
-            onClick={submitValues}
+            size={"small"}
             sx={{ mt: 1 }}
+            onClick={submitValues}
           >
             {pending ? "Starting..." : "Run flow"}
           </Button>

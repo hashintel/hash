@@ -1,3 +1,4 @@
+import { format } from "date-fns";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   Table,
@@ -8,15 +9,15 @@ import {
   TableRow,
   Typography,
 } from "@mui/material";
-import { format } from "date-fns";
 
 import { useUsers } from "../../components/hooks/use-users";
 import type { NextPageWithLayout } from "../../shared/layout";
 import { Link } from "../../shared/ui";
+
 import { getAdminLayout } from "./admin-page-layout";
 
 const noValueTableCellContent = (
-  <Typography component="i" sx={{ color: ({ palette }) => palette.gray[50] }}>
+  <Typography component={"i"} sx={{ color: ({ palette }) => palette.gray[50] }}>
     No Value
   </Typography>
 );
@@ -26,7 +27,7 @@ const AdminUsersPage: NextPageWithLayout = () => {
 
   return (
     <>
-      <Typography variant="h5" sx={{ marginBottom: 2 }}>
+      <Typography variant={"h5"} sx={{ marginBottom: 2 }}>
         Registered Users {users ? `(${users.length})` : ""}
       </Typography>
       {/* @todo: we probably want to use a more customizable version of the `EntitiesTable` instead */}

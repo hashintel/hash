@@ -1,8 +1,7 @@
+import type { FunctionComponent, ReactNode , useMemo } from "react";
 import { faCircleCheck } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Typography } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
-import { useMemo } from "react";
 
 import { Circle1RegularIcon } from "../../shared/icons/circle-1-regular-icon";
 import { Circle2RegularIcon } from "../../shared/icons/circle-2-regular-icon";

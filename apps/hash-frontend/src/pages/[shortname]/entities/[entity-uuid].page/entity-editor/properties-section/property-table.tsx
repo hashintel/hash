@@ -1,11 +1,12 @@
-import type { DataEditorRef } from "@glideapps/glide-data-grid";
 import { useMemo, useRef } from "react";
+import type { DataEditorRef } from "@glideapps/glide-data-grid";
 
 import { Grid } from "../../../../../../components/grid/grid";
 import { useGridTooltip } from "../../../../../../components/grid/utils/use-grid-tooltip";
 import { renderChipCell } from "../../../../../shared/chip-cell";
 import { useEntityEditor } from "../entity-editor-context";
 import { renderSummaryChipCell } from "../shared/summary-chip-cell";
+
 import { createRenderChangeTypeCell } from "./property-table/cells/change-type-cell";
 import { createRenderPropertyNameCell } from "./property-table/cells/property-name-cell";
 import { renderValueCell } from "./property-table/cells/value-cell";
@@ -54,8 +55,8 @@ export const PropertyTable = ({
         dataLoading={false}
         rows={rows}
         showSearch={showSearch}
-        onSearchClose={onSearchClose}
         customRenderers={customRenderers}
+        onSearchClose={onSearchClose}
         sortRows={sortAndFlattenRows}
         // define max height if there are lots of rows
         height={rows.length > 10 ? 500 : undefined}

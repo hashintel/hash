@@ -1,12 +1,13 @@
+import { useRouter } from "next/router";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box } from "@mui/material";
-import { useRouter } from "next/router";
 
 import { useEntityTypeEntitiesContext } from "../../../shared/entity-type-entities-context";
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { TabLink } from "../../../shared/ui/tab-link";
 import { Tabs } from "../../../shared/ui/tabs";
+
 import { useEntityType } from "./shared/entity-type-context";
 import { getTabUrl, getTabValue, useCurrentTab } from "./shared/tabs";
 
@@ -34,12 +35,12 @@ export const EntityTypeTabs = ({
   const isLinkEntityType = isSpecialEntityTypeLookup?.[entityType.$id]?.isLink;
 
   return (
-    <Box display="flex">
+    <Box display={"flex"}>
       <Tabs value={router.query.tab ?? ""}>
         <TabLink
           value={getTabValue("definition")}
           href={isDraft ? router.asPath : getTabUrl("definition")}
-          label="Definition"
+          label={"Definition"}
           active={currentTab === "definition"}
         />
         {isDraft
@@ -52,10 +53,10 @@ export const EntityTypeTabs = ({
              */
             [
               <TabLink
-                key="entities"
+                key={"entities"}
                 value={getTabValue("entities")}
                 href={getTabUrl("entities")}
-                label="Entities"
+                label={"Entities"}
                 loading={loading}
                 count={entities?.length ?? 0}
                 active={currentTab === "entities"}

@@ -1,3 +1,9 @@
+import {
+  bindMenu,
+  bindTrigger,
+  usePopupState,
+} from "material-ui-popup-state/hooks";
+import type { FunctionComponent , useContext } from "react";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
   AsteriskRegularIcon,
@@ -18,13 +24,6 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
-import {
-  bindMenu,
-  bindTrigger,
-  usePopupState,
-} from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
-import { useContext } from "react";
 
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useEnabledFeatureFlags } from "../../../pages/shared/use-enabled-feature-flags";
@@ -33,6 +32,7 @@ import { HashtagRegularIcon } from "../../icons/hashtag-regular-icon";
 import { InfinitySolidIcon } from "../../icons/infinity-solid-icon";
 import { UploadRegularIcon } from "../../icons/upload-regular-icon";
 import { MenuItem } from "../../ui";
+
 import { CreatePageMenuItems } from "./actions-dropdown/create-page-menu-items";
 import { HeaderIconButton } from "./shared/header-icon-button";
 
@@ -51,8 +51,8 @@ const ActionsDropdownInner: FunctionComponent = () => {
   return (
     <Box>
       <HeaderIconButton
-        size="medium"
         rounded
+        size={"medium"}
         sx={({ palette }) => ({
           color: popupState.isOpen ? palette.common.white : palette.gray[40],
           backgroundColor: popupState.isOpen
@@ -103,17 +103,17 @@ const ActionsDropdownInner: FunctionComponent = () => {
         enabledFeatureFlags.pages ? (
           <CreatePageMenuItems onClick={popupState.close} />
         ) : null}
-        <MenuItem href="/new/entity" onClick={popupState.close}>
+        <MenuItem href={"/new/entity"} onClick={popupState.close}>
           <ListItemIcon>
             <HashtagRegularIcon />
           </ListItemIcon>
-          <ListItemText primary="Entity" />
+          <ListItemText primary={"Entity"} />
         </MenuItem>
-        <MenuItem href="/new/types/entity-type" onClick={popupState.close}>
+        <MenuItem href={"/new/types/entity-type"} onClick={popupState.close}>
           <ListItemIcon>
             <AsteriskRegularIcon />
           </ListItemIcon>
-          <ListItemText primary="Entity type" />
+          <ListItemText primary={"Entity type"} />
         </MenuItem>
         <MenuItem
           href={`/new/types/entity-type?extends=${linkEntityTypeUrl}`}
@@ -122,7 +122,7 @@ const ActionsDropdownInner: FunctionComponent = () => {
           <ListItemIcon>
             <LinkIcon />
           </ListItemIcon>
-          <ListItemText primary="Link type" />
+          <ListItemText primary={"Link type"} />
         </MenuItem>
         <Divider />
         <MenuItem
@@ -132,12 +132,11 @@ const ActionsDropdownInner: FunctionComponent = () => {
           <ListItemIcon>
             <UploadRegularIcon />
           </ListItemIcon>
-          <ListItemText primary="Upload a file" />
+          <ListItemText primary={"Upload a file"} />
         </MenuItem>
         <Divider />
         <MenuItem
-          href="/settings/integrations"
-          onClick={popupState.close}
+          href={"/settings/integrations"}
           sx={{
             [`& .${listItemTextClasses.primary}, .${listItemIconClasses.root} svg`]:
               {
@@ -151,11 +150,12 @@ const ActionsDropdownInner: FunctionComponent = () => {
                 },
             },
           }}
+          onClick={popupState.close}
         >
           <ListItemIcon>
             <InfinitySolidIcon />
           </ListItemIcon>
-          <ListItemText primary="Sync external data" />
+          <ListItemText primary={"Sync external data"} />
         </MenuItem>
       </Menu>
     </Box>

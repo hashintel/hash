@@ -1,11 +1,9 @@
-import type { HtmlBlockDefinition } from "@blockprotocol/core/html";
-import { renderHtmlBlock } from "@blockprotocol/core/html";
-import type { FunctionComponent } from "react";
-import { useEffect, useRef, useState } from "react";
+import type { FunctionComponent , useEffect, useRef, useState } from "react";
+import type { HtmlBlockDefinition , renderHtmlBlock } from "@blockprotocol/core/html";
 
-type HtmlElementLoaderProps = {
+interface HtmlElementLoaderProps {
   html: HtmlBlockDefinition;
-};
+}
 
 export const HtmlLoader: FunctionComponent<HtmlElementLoaderProps> = ({
   html,
@@ -22,11 +20,11 @@ export const HtmlLoader: FunctionComponent<HtmlElementLoaderProps> = ({
     const node = ref.current;
 
     if (node) {
-      renderHtmlBlock(node, definition, controller.signal).catch((err) => {
-        if (err?.name !== "AbortError") {
-          node.innerText = `Error: ${err}`;
+      renderHtmlBlock(node, definition, controller.signal).catch((error) => {
+        if (error?.name !== "AbortError") {
+          node.innerText = `Error: ${error}`;
           setError(() => {
-            throw new Error(`Error rendering HTML block: ${err}`);
+            throw new Error(`Error rendering HTML block: ${error}`);
           });
         }
       });

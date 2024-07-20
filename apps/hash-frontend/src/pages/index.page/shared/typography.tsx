@@ -1,6 +1,5 @@
-import type { SxProps, Theme } from "@mui/material";
-import { Typography } from "@mui/material";
 import type { PropsWithChildren } from "react";
+import type { SxProps, Theme , Typography } from "@mui/material";
 
 export const HomepageBigText = ({
   children,

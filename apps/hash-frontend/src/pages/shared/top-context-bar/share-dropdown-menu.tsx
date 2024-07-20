@@ -1,25 +1,22 @@
-import { useQuery } from "@apollo/client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import { Box, Divider, Popover, Typography } from "@mui/material";
 import {
   bindMenu,
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
-import { useMemo } from "react";
+import type { FunctionComponent , useMemo } from "react";
+import { useQuery } from "@apollo/client";
+import type { Entity } from "@local/hash-graph-sdk/entity";
+import { Box, Divider, Popover, Typography } from "@mui/material";
 
 import type {
-  GetEntityAuthorizationRelationshipsQuery,
-  GetEntityAuthorizationRelationshipsQueryVariables,
-} from "../../../graphql/api-types.gen";
-import { EntityAuthorizationRelation } from "../../../graphql/api-types.gen";
+ EntityAuthorizationRelation,  GetEntityAuthorizationRelationshipsQuery,
+  GetEntityAuthorizationRelationshipsQueryVariables } from "../../../graphql/api-types.gen";
 import { getEntityAuthorizationRelationshipsQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { Button } from "../../../shared/ui";
 import { useUserPermissionsOnEntity } from "../../../shared/use-user-permissions-on-entity";
-import type { EntityAuthorizationStatus } from "./share-dropdown-menu/edit-authorization-status-menu";
-import {
-  EditAuthorizationStatusMenu,
+
+import type {   EditAuthorizationStatusMenu,
+EntityAuthorizationStatus ,
   entityAuthorizationStatusIcons,
 } from "./share-dropdown-menu/edit-authorization-status-menu";
 import { ShareEntitySection } from "./share-dropdown-menu/share-entity-section";
@@ -45,14 +42,13 @@ export const ShareDropdownMenu: FunctionComponent<{ entity: Entity }> = ({
   const isSharedWithOthers = useMemo(() => {
     const ownerSubjectIds = authorizationRelationships
       ?.filter(({ relation }) => relation === EntityAuthorizationRelation.Owner)
-      .map(({ subject }) =>
+      .flatMap(({ subject }) =>
         subject.__typename === "AccountAuthorizationSubject"
           ? subject.accountId
           : subject.__typename === "AccountGroupAuthorizationSubject"
             ? subject.accountGroupId
             : [],
-      )
-      .flat();
+      );
 
     return (
       ownerSubjectIds &&
@@ -79,7 +75,6 @@ export const ShareDropdownMenu: FunctionComponent<{ entity: Entity }> = ({
 
     /**
      * @todo: remove this once the state can be correctly determined
-     *
      * @see https://linear.app/hash/issue/H-1115/use-permission-types-from-graph-in-graphql
      */
     // if (isSharedWithOthers) {
@@ -102,8 +97,8 @@ export const ShareDropdownMenu: FunctionComponent<{ entity: Entity }> = ({
     <>
       <Button
         startIcon={entityAuthorizationStatusIcons[entityAuthorizationStatus]}
-        size="xs"
-        variant="tertiary_quiet"
+        size={"xs"}
+        variant={"tertiary_quiet"}
         {...bindTrigger(popupState)}
       >
         Share
@@ -143,7 +138,7 @@ export const ShareDropdownMenu: FunctionComponent<{ entity: Entity }> = ({
           </Typography>
         </Box>
         <Divider sx={{ borderColor: ({ palette }) => palette.gray[30] }} />
-        <Box position="relative" padding={2}>
+        <Box position={"relative"} padding={2}>
           <EditAuthorizationStatusMenu
             entity={entity}
             authorizationStatus={entityAuthorizationStatus}

@@ -1,11 +1,12 @@
+import { useMemo } from "react";
 import type { EntityType, VersionedUrl } from "@blockprotocol/type-system/slim";
 import type {
   BaseUrl,
   EntityTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
-import { useMemo } from "react";
 
 import { isTypeArchived } from "../is-archived";
+
 import { useEntityTypesContextRequired } from "./hooks/use-entity-types-context-required";
 import { isSpecialEntityType } from "./shared/is-special-entity-type";
 
@@ -41,9 +42,10 @@ export const useLatestEntityTypesOptional = (params?: {
       new Map();
 
     for (const entityType of entityTypes) {
-      const baseUrl = entityType.metadata.recordId.baseUrl;
+      const {baseUrl} = entityType.metadata.recordId;
 
       const existingEntityType = latestEntityTypesMap.get(baseUrl);
+
       if (
         !existingEntityType ||
         existingEntityType.metadata.recordId.version <
@@ -53,7 +55,7 @@ export const useLatestEntityTypesOptional = (params?: {
       }
     }
 
-    const latestEntityTypesArray = Array.from(latestEntityTypesMap.values());
+    const latestEntityTypesArray = [...latestEntityTypesMap.values()];
 
     return includeArchived
       ? latestEntityTypesArray
@@ -67,11 +69,11 @@ export const useLatestEntityTypesOptional = (params?: {
 
 /**
  * Check if a specific entity type is or would be a special type, based on the provided 'allOf'
- * Specifically for use for checking types which aren't already in the db, e.g. draft or proposed types
+ * Specifically for use for checking types which aren't already in the db, e.g. Draft or proposed types.
  *
  * For types already in the db, do this instead:
  *   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
- *   const { isFile, isImage, isLink } = isSpecialEntityTypeLookup?.[entityType.$id] ?? {};
+ *   const { isFile, isImage, isLink } = isSpecialEntityTypeLookup?.[entityType.$id] ?? {};.
  */
 export const useIsSpecialEntityType = (
   entityType: Pick<EntityType, "allOf"> & { $id?: EntityType["$id"] },

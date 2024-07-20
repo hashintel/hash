@@ -1,7 +1,6 @@
-import type { OwnedById } from "@local/hash-graph-types/web";
 import type { EditorState } from "prosemirror-state";
-import type { DirectEditorProps } from "prosemirror-view";
-import { EditorView } from "prosemirror-view";
+import type { DirectEditorProps , EditorView } from "prosemirror-view";
+import type { OwnedById } from "@local/hash-graph-types/web";
 
 import type { RenderPortal } from "./block-portals";
 import { clipboardTextSerializer } from "./clipboard-text-serializer";
@@ -21,7 +20,7 @@ export const createTextEditorView = (
       state.schema.nodes.hardBreak,
     ),
     nodeViews: {
-      ...(editorProps?.nodeViews ?? {}),
+      ...editorProps?.nodeViews,
       mention: mentionNodeView(renderPortal, ownedById),
     },
   });

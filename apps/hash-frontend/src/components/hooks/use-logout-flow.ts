@@ -1,6 +1,6 @@
-import { useApolloClient } from "@apollo/client";
 import { AxiosError } from "axios";
 import { useRouter } from "next/router";
+import { useApolloClient } from "@apollo/client";
 
 import { resetLocalStorage } from "../../lib/config";
 import { useAuthInfo } from "../../pages/shared/auth-info-context";
@@ -45,11 +45,11 @@ export const useLogoutFlow = () => {
         await client.clearStore();
 
         await refetchUser();
-      } catch (err) {
-        if (err instanceof AxiosError && err.response?.status === 401) {
+      } catch (error) {
+        if (error instanceof AxiosError && error.response?.status === 401) {
           // do nothing, the user is not logged in
         }
-        throw err;
+        throw error;
       }
     },
   };

@@ -1,15 +1,14 @@
+import { type FunctionComponent, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import { useMutation } from "@apollo/client";
 import { Autocomplete, Chip } from "@hashintel/design-system";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
-import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
+import type { FeatureFlag , featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
 import type {
   EnabledFeatureFlagsPropertyValueWithMetadata,
   UserProperties,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Box, Stack, Typography } from "@mui/material";
-import { type FunctionComponent, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
 
 import type {
   UpdateEntityMutation,
@@ -77,9 +76,9 @@ export const BasicInfoSection: FunctionComponent<{
       const refetchedUser = await refetchUser();
 
       reset(refetchedUser);
-    } catch (err) {
+    } catch (error) {
       setSubmissionError(
-        typeof err === "string" ? err : (err as Error).message,
+        typeof error === "string" ? error : (error as Error).message,
       );
     } finally {
       setLoading(false);
@@ -90,13 +89,13 @@ export const BasicInfoSection: FunctionComponent<{
 
   return (
     <Box
-      component="form"
-      onSubmit={innerSubmit}
+      component={"form"}
       sx={{ px: 5, py: 4, display: "flex", flexDirection: "column", rowGap: 2 }}
+      onSubmit={innerSubmit}
     >
       <Controller
         control={control}
-        name="enabledFeatureFlags"
+        name={"enabledFeatureFlags"}
         render={({ field }) => (
           /**
            * Currently the height of this component is fixed, instead of dynamically
@@ -109,41 +108,41 @@ export const BasicInfoSection: FunctionComponent<{
             multiple
             value={field.value}
             options={featureFlags}
+            inputLabel={"Enabled Feature flags"}
+            inputPlaceholder={"Set enabled feature flags..."}
+            autoFocus={false}
             getOptionLabel={(featureFlag) =>
               `${featureFlag.slice(0, 1).toUpperCase()}${featureFlag.slice(1)}`
             }
-            inputLabel="Enabled Feature flags"
-            inputPlaceholder="Set enabled feature flags..."
-            onChange={(_, updatedFeatureFlags) =>
-              setValue("enabledFeatureFlags", updatedFeatureFlags, {
-                shouldDirty: true,
-              })
-            }
-            autoFocus={false}
             renderTags={(value, getTagProps) =>
               value.map((option, index) => (
                 <Chip
                   {...getTagProps({ index })}
                   key={option}
-                  variant="outlined"
+                  variant={"outlined"}
                   label={`${option.slice(0, 1).toUpperCase()}${option.slice(
                     1,
                   )}`}
                 />
               ))
             }
+            onChange={(_, updatedFeatureFlags) =>
+              { setValue("enabledFeatureFlags", updatedFeatureFlags, {
+                shouldDirty: true,
+              }); }
+            }
           />
         )}
       />
-      <Stack direction="row" spacing={2}>
-        <Button disabled={!isSubmitEnabled} type="submit">
+      <Stack direction={"row"} spacing={2}>
+        <Button disabled={!isSubmitEnabled} type={"submit"}>
           Save Changes
         </Button>
         <Button
           disabled={!isDirty}
-          onClick={() => reset(user)}
-          type="button"
-          variant="tertiary"
+          type={"button"}
+          variant={"tertiary"}
+          onClick={() => { reset(user); }}
         >
           Discard changes
         </Button>

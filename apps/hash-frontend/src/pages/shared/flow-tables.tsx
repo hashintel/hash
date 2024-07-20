@@ -1,3 +1,4 @@
+import type { PropsWithChildren, ReactElement } from "react";
 import {
   Avatar,
   CheckIcon,
@@ -5,11 +6,10 @@ import {
   PersonRunningRegularIcon,
 } from "@hashintel/design-system";
 import { Stack, type SxProps, type Theme, Typography } from "@mui/material";
-import type { PropsWithChildren, ReactElement } from "react";
 
-import type { FlowRun } from "../../graphql/api-types.gen";
-import { FlowRunStatus } from "../../graphql/api-types.gen";
+import type { FlowRun , FlowRunStatus } from "../../graphql/api-types.gen";
 import { Link } from "../../shared/ui/link";
+
 import { defaultCellSx } from "./virtualized-table";
 
 export const flowTableRowHeight = 58;
@@ -45,11 +45,11 @@ export const FlowTableWebChip = ({
   name: string;
   shortname: string;
 }) => (
-  <Link href={`/@${shortname}`} noLinkStyle>
+  <Link noLinkStyle href={`/@${shortname}`}>
     <Stack
-      direction="row"
-      alignItems="center"
-      justifyContent="center"
+      direction={"row"}
+      alignItems={"center"}
+      justifyContent={"center"}
       gap={0.8}
       sx={({ palette, transitions }) => ({
         ...flowTableChipSx,
@@ -60,7 +60,7 @@ export const FlowTableWebChip = ({
       })}
     >
       <Avatar src={avatarUrl} title={name} size={14} />
-      <Typography component="span" sx={{ fontSize: 12, fontWeight: 500 }}>
+      <Typography component={"span"} sx={{ fontSize: 12, fontWeight: 500 }}>
         {name}
       </Typography>
     </Stack>
@@ -78,18 +78,22 @@ export const flowRunStatusToStatusText = (
 ): SimpleFlowRunStatus => {
   switch (status) {
     case FlowRunStatus.Running:
-    case FlowRunStatus.ContinuedAsNew:
+    case FlowRunStatus.ContinuedAsNew: {
       return "Running";
-    case FlowRunStatus.Completed:
+    }
+    case FlowRunStatus.Completed: {
       return "Completed";
+    }
     case FlowRunStatus.Cancelled:
-    case FlowRunStatus.Terminated:
+    case FlowRunStatus.Terminated: {
       return "Abandoned";
+    }
     case FlowRunStatus.Failed:
     case FlowRunStatus.TimedOut:
     case FlowRunStatus.Unknown:
-    case FlowRunStatus.Unspecified:
+    case FlowRunStatus.Unspecified: {
       return "Errored";
+    }
   }
 };
 
@@ -112,7 +116,7 @@ const statusIcon: Record<SimpleFlowRunStatus, ReactElement> = {
   ),
   Completed: (
     <CheckIcon
-      aria-label="Entities successfully inferred"
+      aria-label={"Entities successfully inferred"}
       sx={{
         fill: ({ palette }) => palette.green[80],
         fontSize: 9,
@@ -134,9 +138,9 @@ export const FlowTableChip = ({
   sx,
 }: PropsWithChildren<{ sx?: SxProps<Theme> }>) => (
   <Stack
-    direction="row"
-    alignItems="center"
-    justifyContent="center"
+    direction={"row"}
+    alignItems={"center"}
+    justifyContent={"center"}
     gap={1}
     sx={[flowTableChipSx, ...(Array.isArray(sx) ? sx : [sx])]}
   >

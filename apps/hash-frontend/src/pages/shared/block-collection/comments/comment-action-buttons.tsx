@@ -1,10 +1,9 @@
-import type { SxProps, Theme } from "@mui/material";
-import { Box } from "@mui/material";
 import type { FunctionComponent } from "react";
+import type { Box,SxProps, Theme  } from "@mui/material";
 
 import { Button } from "../../../../shared/ui";
 
-type CommentActionButtonsProps = {
+interface CommentActionButtonsProps {
   submitLabel?: string;
   cancelLabel?: string;
   submitDisabled?: boolean;
@@ -13,7 +12,7 @@ type CommentActionButtonsProps = {
   onSubmit?: () => void;
   onCancel?: () => void;
   sx?: SxProps<Theme>;
-};
+}
 
 export const CommentActionButtons: FunctionComponent<
   CommentActionButtonsProps
@@ -38,17 +37,17 @@ export const CommentActionButtons: FunctionComponent<
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
     >
-      <Button size="xs" variant="tertiary" onClick={onCancel}>
+      <Button size={"xs"} variant={"tertiary"} onClick={onCancel}>
         {cancelLabel}
       </Button>
 
       <Button
-        size="xs"
-        variant="secondary"
-        onClick={onSubmit}
+        size={"xs"}
+        variant={"secondary"}
         disabled={submitDisabled}
         loading={loading}
         loadingText={loadingText}
+        onClick={onSubmit}
       >
         {submitLabel}
       </Button>

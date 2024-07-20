@@ -1,10 +1,10 @@
 import type { TableExpandStatus } from "../../entity-editor-context";
 
 /**
- * @param tree a tree contains nested items
- * @param expandStatus an object stores `[string]: boolean` pairs, which represents each tree item's expanded/collapsed status.
- * For each tree item ID, it should hold `true` for expanded, `false` for collapsed
- * @returns flattened tree
+ * @param tree - A tree contains nested items.
+ * @param expandStatus - An object stores `[string]: boolean` pairs, which represents each tree item's expanded/collapsed status.
+ * For each tree item ID, it should hold `true` for expanded, `false` for collapsed.
+ * @returns Flattened tree.
  * @example
  * ```ts
  * tree = [{ rowId: "1", children: [{ rowId: "2", children: [] }] }];
@@ -39,7 +39,7 @@ export const flattenExpandedItemsOfTree = <
 };
 
 /**
- * Does the same as `flattenExpandedItemsOfTree`, but assumes all items are expanded
+ * Does the same as `flattenExpandedItemsOfTree`, but assumes all items are expanded.
  */
 export const flattenAllItemsOfTree = <T extends { children: T[] }>(
   tree: T[],

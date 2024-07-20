@@ -1,11 +1,12 @@
+import type { FunctionComponent } from "react";
 import { IconButton } from "@hashintel/design-system";
 import { Box } from "@mui/material";
-import type { FunctionComponent } from "react";
 
 import { ArrowsFromLineRegularIcon } from "../../shared/icons/arrows-from-line-regular-icon";
 import { ArrowsToLineRegularIcon } from "../../shared/icons/arrows-to-line-regular-icon";
 import { ChevronDownRegularIcon } from "../../shared/icons/chevron-down-regular-icon";
 import { ChevronUpRegularIcon } from "../../shared/icons/chevron-up-regular-icon";
+
 import { TimestampCollectionHeading } from "./timestamp-collection-heading";
 import { TimestampCollectionSubheading } from "./timestamp-collection-subheading";
 
@@ -39,7 +40,7 @@ export const TimestampColumn: FunctionComponent<{
       <TimestampCollectionHeading>{heading}</TimestampCollectionHeading>
     ) : null}
     <TimestampCollectionSubheading>{subheading}</TimestampCollectionSubheading>
-    <Box display="flex" marginRight={-1}>
+    <Box display={"flex"} marginRight={-1}>
       <IconButton disabled={!navigateUp} onClick={navigateUp}>
         <ChevronUpRegularIcon />
       </IconButton>

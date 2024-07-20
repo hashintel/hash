@@ -1,6 +1,6 @@
 /**
  * @deprecated
- * @todo remove this
+ * @todo Remove this.
  */
 export class StatusError extends Error {
   constructor(

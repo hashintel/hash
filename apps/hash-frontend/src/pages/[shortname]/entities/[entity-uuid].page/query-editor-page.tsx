@@ -1,3 +1,6 @@
+import { useRouter } from "next/router";
+import { NextSeo } from "next-seo";
+import { useCallback, useState } from "react";
 import type { Entity as EntityBp, MultiFilter } from "@blockprotocol/graph";
 import { OntologyChip } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
@@ -6,9 +9,6 @@ import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-que
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, Stack, Typography } from "@mui/material";
-import { useRouter } from "next/router";
-import { NextSeo } from "next-seo";
-import { useCallback, useState } from "react";
 
 import { useBlockProtocolQueryEntities } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
 import {
@@ -16,6 +16,7 @@ import {
   useLatestEntityTypesOptional,
 } from "../../../../shared/entity-types-context/hooks";
 import { usePropertyTypes } from "../../../../shared/property-types-context";
+
 import type { EntityEditorProps } from "./entity-editor";
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
 import { TypesSection } from "./entity-editor/types-section";
@@ -65,7 +66,7 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
     async (multiFilter: MultiFilter) => {
       /**
        * When this is changed to a structural query, if drafts are included
-       * then there may be multiple roots for a single entity (a live and zero or more draft updates)
+       * then there may be multiple roots for a single entity (a live and zero or more draft updates).
        */
       const res = await queryEntities({
         data: {
@@ -138,21 +139,21 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
                   entityTypes={entityTypeSchemas}
                   propertyTypes={propertyTypeSchemas}
                   queryEntities={handleQueryEntities}
+                  discardTitle={mode === "edit" ? "Discard changes" : undefined}
+                  saveTitle={mode === "edit" ? "Save changes" : undefined}
+                  onSave={handleSaveQuery}
                   onDiscard={() => {
                     if (mode === "create") {
                       return router.push("/new/entity");
                     }
 
                     /**
-                     * this is not the best way to do this, but it works for now
+                     * This is not the best way to do this, but it works for now
                      * to discard changes, we just change the key to make `EntityQueryEditor` re-render,
-                     * which resets the state of `EntityQueryEditor`, and thus discards the changes
+                     * which resets the state of `EntityQueryEditor`, and thus discards the changes.
                      */
                     setQueryEditorKey((key) => key + 1);
                   }}
-                  discardTitle={mode === "edit" ? "Discard changes" : undefined}
-                  saveTitle={mode === "edit" ? "Save changes" : undefined}
-                  onSave={handleSaveQuery}
                 />
               </Box>
             )}

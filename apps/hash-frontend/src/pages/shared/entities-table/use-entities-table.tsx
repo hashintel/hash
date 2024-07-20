@@ -1,5 +1,6 @@
-import type { EntityType, PropertyType } from "@blockprotocol/type-system";
-import { extractVersion } from "@blockprotocol/type-system";
+import { format } from "date-fns";
+import { useMemo } from "react";
+import type { EntityType, extractVersion,PropertyType  } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
@@ -11,12 +12,9 @@ import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-p
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import { format } from "date-fns";
-import { useMemo } from "react";
 
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
-import type { MinimalActor } from "../../../shared/use-actors";
-import { useActors } from "../../../shared/use-actors";
+import type { MinimalActor , useActors } from "../../../shared/use-actors";
 
 export interface TypeEntitiesRow {
   rowId: string;
@@ -67,8 +65,8 @@ export const useEntitiesTable = (params: {
 
   const entitiesHaveSameType = useMemo(
     () =>
-      !!entities &&
-      !!entities.length &&
+      Boolean(entities) &&
+      entities.length > 0 &&
       entities
         .map(({ metadata: { entityTypeId } }) => extractBaseUrl(entityTypeId))
         .every((value, _i, all) => value === all[0]),
@@ -91,7 +89,7 @@ export const useEntitiesTable = (params: {
         }
       }
     }
-    const propertyColumns = Array.from(propertyColumnsMap.values());
+    const propertyColumns = [...propertyColumnsMap.values()];
 
     const columns: SizedGridColumn[] = [
       {
@@ -159,7 +157,7 @@ export const useEntitiesTable = (params: {
               entity,
             });
 
-            const entityId = entity.metadata.recordId.entityId;
+            const {entityId} = entity.metadata.recordId;
 
             const isPage = isPageEntityTypeId(entity.metadata.entityTypeId);
 

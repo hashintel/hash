@@ -1,12 +1,16 @@
+import { formatDistanceToNowStrict } from "date-fns";
+import { isEqual } from "lodash";
+import { bindTrigger } from "material-ui-popup-state";
+import { usePopupState } from "material-ui-popup-state/hooks";
+import type { FunctionComponent, ReactNode , useCallback, useEffect, useMemo, useState } from "react";
 import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
-import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
-import {
-  faChevronDown,
+import type {   faChevronDown,
   faChevronUp,
   faEllipsisVertical,
   faLink,
   faPencil,
   faTrash,
+IconDefinition ,
 } from "@fortawesome/free-solid-svg-icons";
 import {
   Avatar,
@@ -19,12 +23,6 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
-import { formatDistanceToNowStrict } from "date-fns";
-import { isEqual } from "lodash";
-import { bindTrigger } from "material-ui-popup-state";
-import { usePopupState } from "material-ui-popup-state/hooks";
-import type { FunctionComponent, ReactNode } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useDeleteComment } from "../../../../components/hooks/use-delete-comment";
 import type { PageComment } from "../../../../components/hooks/use-page-comments";
@@ -33,6 +31,7 @@ import { useUpdateCommentText } from "../../../../components/hooks/use-update-co
 import { PencilSlashIcon } from "../../../../shared/icons/pencil-slash-icon";
 import { Button } from "../../../../shared/ui";
 import { useAuthenticatedUser } from "../../auth-info-context";
+
 import { CommentActionButtons } from "./comment-action-buttons";
 import { CommentBlockDeleteConfirmationDialog } from "./comment-block-delete-confirmation-dialog";
 import { CommentBlockMenu } from "./comment-block-menu";
@@ -40,18 +39,18 @@ import { CommentBlockMenuItem } from "./comment-block-menu-item";
 import { CommentTextField } from "./comment-text-field";
 import styles from "./style.module.css";
 
-type ToggleTextExpandedButtonProps = {
+interface ToggleTextExpandedButtonProps {
   label: ReactNode;
   icon: IconDefinition;
   onClick: () => void;
-};
+}
 
 export const ToggleTextExpandedButton: FunctionComponent<
   ToggleTextExpandedButtonProps
 > = ({ label, icon, onClick }) => (
   <Button
-    size="xs"
-    variant="tertiary_quiet"
+    size={"xs"}
+    variant={"tertiary_quiet"}
     sx={{
       display: "flex",
       fontWeight: 600,
@@ -68,11 +67,11 @@ export const ToggleTextExpandedButton: FunctionComponent<
   </Button>
 );
 
-type CommentProps = {
+interface CommentProps {
   pageId: EntityId;
   comment: PageComment;
   resolvable?: boolean;
-};
+}
 
 export const CommentBlock: FunctionComponent<CommentProps> = ({
   pageId,
@@ -115,6 +114,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
     // @todo: replace this with the createdAt from the comment entity
     const updatedAt = new Date(textUpdatedAt.decisionTime.start.limit);
     const timeDistance = formatDistanceToNowStrict(updatedAt);
+
     return timeDistance === "0 seconds"
       ? "Just now"
       : `${formatDistanceToNowStrict(updatedAt)} ago`;
@@ -154,7 +154,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
 
   return (
     <Box
-      ref={(ref: HTMLDivElement) => setContainer(ref)}
+      ref={(ref: HTMLDivElement) => { setContainer(ref); }}
       sx={{
         display: "flex",
         flexDirection: "column",
@@ -169,15 +169,15 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
         },
       }}
     >
-      <Box display="flex" justifyContent="space-between">
+      <Box display={"flex"} justifyContent={"space-between"}>
         {}
         <Avatar size={36} title={displayName ?? "U"} />
         <Box
           sx={{ flexDirection: "column", flex: 1, overflow: "hidden", pl: 1.5 }}
         >
           <Typography
-            component="p"
-            variant="microText"
+            component={"p"}
+            variant={"microText"}
             sx={{
               whiteSpace: "nowrap",
               textOverflow: "ellipsis",
@@ -189,8 +189,8 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
             {displayName}
           </Typography>
           <Typography
-            component="p"
-            variant="microText"
+            component={"p"}
+            variant={"microText"}
             sx={{
               color: ({ palette }) => palette.gray[70],
             }}
@@ -213,10 +213,10 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
             {resolveCommentLoading ? (
               <LoadingSpinner size={18} />
             ) : (
-              <Tooltip title="Resolve Comment Thread" placement="bottom">
+              <Tooltip title={"Resolve Comment Thread"} placement={"bottom"}>
                 <IconButton
-                  onClick={() => resolveComment(commentEntityId)}
-                  size="medium"
+                  size={"medium"}
+                  disabled={resolveCommentLoading}
                   sx={({ palette, transitions }) => ({
                     p: 0,
                     transition: transitions.create("color"),
@@ -225,7 +225,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
                       background: "none",
                     },
                   })}
-                  disabled={resolveCommentLoading}
+                  onClick={() => resolveComment(commentEntityId)}
                 >
                   <FontAwesomeIcon
                     icon={faCheckCircle}
@@ -237,7 +237,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
           </Box>
         ) : null}
 
-        <Tooltip title="Edit, delete and more" placement="bottom">
+        <Tooltip title={"Edit, delete and more"} placement={"bottom"}>
           <IconButton
             {...bindTrigger(commentMenuPopupState)}
             sx={{
@@ -251,7 +251,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
         </Tooltip>
       </Box>
 
-      <Box p={0.5} pt={2} position="relative">
+      <Box p={0.5} pt={2} position={"relative"}>
         <Box
           sx={({ palette, transitions }) => ({
             border: `${editable ? 1 : 0}px solid ${palette.gray[30]}`,
@@ -264,8 +264,10 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
           })}
         >
           <CommentTextField
-            onLineCountChange={onLineCountChange}
             value={inputValue}
+            editable={editable}
+            readOnly={!editable}
+            placeholder={"Edit comment"}
             className={`${styles.Comment__TextField} ${
               editable
                 ? styles.Comment__TextField_editable
@@ -273,9 +275,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
                   ? styles.Comment__TextField_collapsed!
                   : ""
             }`}
-            editable={editable}
-            readOnly={!editable}
-            placeholder="Edit comment"
+            onLineCountChange={onLineCountChange}
             onClose={resetCommentText}
             onSubmit={handleEditComment}
             onChange={setInputValue}
@@ -286,10 +286,10 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
           <CommentActionButtons
             submitDisabled={submitUpdateDisabled}
             loading={updateCommentTextLoading}
-            loadingText="Saving..."
+            loadingText={"Saving..."}
+            sx={{ pt: 0.75 }}
             onSubmit={handleEditComment}
             onCancel={resetCommentText}
-            sx={{ pt: 0.75 }}
           />
         </Collapse>
 
@@ -316,9 +316,9 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
               ...
             </Typography>
             <ToggleTextExpandedButton
-              label="Show More"
+              label={"Show More"}
               icon={faChevronDown}
-              onClick={() => setCollapsed(false)}
+              onClick={() => { setCollapsed(false); }}
             />
           </Box>
         ) : null}
@@ -326,9 +326,9 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
 
       {!editable && shouldCollapse && !collapsed ? (
         <ToggleTextExpandedButton
-          label="Show Less"
+          label={"Show Less"}
           icon={faChevronUp}
-          onClick={() => setCollapsed(true)}
+          onClick={() => { setCollapsed(true); }}
         />
       ) : null}
 
@@ -352,7 +352,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
           />
         ) : null}
         <CommentBlockMenuItem
-          title="Copy Link"
+          title={"Copy Link"}
           icon={<FontAwesomeIcon icon={faLink} />}
           // @todo Commented implement functionality
           onClick={() => {
@@ -361,7 +361,7 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
         />
         {authenticatedUser.accountId === commentCreatedById ? (
           <CommentBlockMenuItem
-            title="Delete Comment"
+            title={"Delete Comment"}
             icon={<FontAwesomeIcon icon={faTrash} />}
             onClick={() => {
               setDeleteConfirmationDialogOpen(true);
@@ -375,8 +375,8 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
         container={container}
         open={deleteConfirmationDialogOpen}
         loading={deleteCommentLoading}
-        onDelete={async () => await deleteComment(commentEntityId)}
-        onCancel={() => setDeleteConfirmationDialogOpen(false)}
+        onDelete={async () => deleteComment(commentEntityId)}
+        onCancel={() => { setDeleteConfirmationDialogOpen(false); }}
       />
     </Box>
   );

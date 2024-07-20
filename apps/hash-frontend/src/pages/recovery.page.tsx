@@ -1,14 +1,13 @@
+import { useRouter } from "next/router";
+import type { FormEventHandler , useEffect, useState } from "react";
 import { TextField } from "@hashintel/design-system";
 import { Box, Collapse, Container, Typography } from "@mui/material";
 import type { RecoveryFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
-import { useRouter } from "next/router";
-import type { FormEventHandler } from "react";
-import { useEffect, useState } from "react";
 
-import type { NextPageWithLayout } from "../shared/layout";
-import { getPlainLayout } from "../shared/layout";
+import type { getPlainLayout,NextPageWithLayout  } from "../shared/layout";
 import { Button } from "../shared/ui";
+
 import {
   gatherUiNodeValuesFromFlow,
   oryKratosClient,
@@ -20,6 +19,7 @@ const extractFlowEmailValue = (flowToSearch: RecoveryFlow | undefined) => {
     ({ attributes }) =>
       isUiNodeInputAttributes(attributes) && attributes.name === "email",
   );
+
   if (uiCode?.attributes && "value" in uiCode.attributes) {
     return String(uiCode.attributes.value);
   }
@@ -30,6 +30,7 @@ const extractFlowCodeValue = (flowToSearch: RecoveryFlow | undefined) => {
     ({ attributes }) =>
       isUiNodeInputAttributes(attributes) && attributes.name === "code",
   );
+
   if (uiCode?.attributes && "value" in uiCode.attributes) {
     return String(uiCode.attributes.value);
   }
@@ -65,11 +66,13 @@ const RecoveryPage: NextPageWithLayout = () => {
         .then(({ data }) => {
           const flowEmail = extractFlowEmailValue(data);
           const flowCode = extractFlowCodeValue(data);
+
           setFlow(data);
           setEmail(flowEmail ?? "");
           setCode(flowCode ?? "");
         })
         .catch(handleFlowError);
+
       return;
     }
 
@@ -112,7 +115,7 @@ const RecoveryPage: NextPageWithLayout = () => {
         flow: String(flow.id),
         updateRecoveryFlowBody: { csrf_token, method: "code", email },
       })
-      .then(({ data }) => setFlow(data))
+      .then(({ data }) => { setFlow(data); })
       .catch(handleFlowError);
   };
 
@@ -138,7 +141,7 @@ const RecoveryPage: NextPageWithLayout = () => {
       })
       // Note that the user is automatically redirected to the settings page
       // where they can update their password.
-      .then(({ data }) => setFlow(data))
+      .then(({ data }) => { setFlow(data); })
       .catch(handleFlowError);
   };
 
@@ -167,12 +170,11 @@ const RecoveryPage: NextPageWithLayout = () => {
 
   return (
     <Container sx={{ pt: 10 }}>
-      <Typography variant="h1" gutterBottom>
+      <Typography gutterBottom variant={"h1"}>
         Account Recovery
       </Typography>
       <Box
-        component="form"
-        onSubmit={handleSubmitEmail}
+        component={"form"}
         sx={{
           display: "flex",
           flexDirection: "column",
@@ -181,26 +183,27 @@ const RecoveryPage: NextPageWithLayout = () => {
             marginTop: 1,
           },
         }}
+        onSubmit={handleSubmitEmail}
       >
         <TextField
-          label="Email"
-          type="email"
-          autoComplete="email"
-          placeholder="Enter your email address"
+          required
+          label={"Email"}
+          type={"email"}
+          autoComplete={"email"}
+          placeholder={"Enter your email address"}
           value={email}
-          onChange={({ target }) => setEmail(target.value)}
+          disabled={hasSubmittedEmail}
           error={
-            !!emailInputUiNode?.messages.find(({ type }) => type === "error")
+            Boolean(emailInputUiNode?.messages.find(({ type }) => type === "error"))
           }
           helperText={emailInputUiNode?.messages.map(({ id, text }) => (
             <Typography key={id}>{text}</Typography>
           ))}
-          disabled={hasSubmittedEmail}
-          required
+          onChange={({ target }) => { setEmail(target.value); }}
         />
         <Collapse in={!hasSubmittedEmail} sx={{ width: "100%" }}>
           <Button
-            type="submit"
+            type={"submit"}
             disabled={hasSubmittedEmail}
             sx={{ width: "100%" }}
           >
@@ -210,8 +213,7 @@ const RecoveryPage: NextPageWithLayout = () => {
       </Box>
       <Collapse in={hasSubmittedEmail}>
         <Box
-          component="form"
-          onSubmit={handleSubmitCode}
+          component={"form"}
           sx={{
             display: "flex",
             flexDirection: "column",
@@ -220,26 +222,27 @@ const RecoveryPage: NextPageWithLayout = () => {
               marginTop: 1,
             },
           }}
+          onSubmit={handleSubmitCode}
         >
           <TextField
-            label="Verification code"
-            type="text"
-            autoComplete="off"
-            placeholder="Enter your verification code"
+            required
+            label={"Verification code"}
+            type={"text"}
+            autoComplete={"off"}
+            placeholder={"Enter your verification code"}
             value={code}
-            onChange={({ target }) => setCode(target.value)}
             error={
-              !!codeInputUiNode?.messages.find(({ type }) => type === "error")
+              Boolean(codeInputUiNode?.messages.find(({ type }) => type === "error"))
             }
             helperText={codeInputUiNode?.messages.map(({ id, text }) => (
               <Typography key={id}>{text}</Typography>
             ))}
-            required
+            onChange={({ target }) => { setCode(target.value); }}
           />
-          <Button type="submit" disabled={!code}>
+          <Button type={"submit"} disabled={!code}>
             Submit Code
           </Button>
-          <Button variant="secondary" onClick={resetFlow}>
+          <Button variant={"secondary"} onClick={resetFlow}>
             Change Email Address
           </Button>
         </Box>

@@ -1,12 +1,12 @@
-import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
-import { Box, Stack, Typography } from "@mui/material";
 import type { PropsWithChildren } from "react";
 import { useNodeId, useStore } from "reactflow";
+import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
+import { Box, Stack, Typography } from "@mui/material";
 
-import type { SimpleStatus } from "../../../../../shared/flow-runs-context";
-import { useFlowRunsContext } from "../../../../../shared/flow-runs-context";
+import type { SimpleStatus , useFlowRunsContext } from "../../../../../shared/flow-runs-context";
 import { nodeTabHeight } from "../../shared/dimensions";
 import { transitionOptions } from "../../shared/styles";
+
 import { statusSx } from "./node-styles";
 
 const Tab = ({
@@ -80,6 +80,7 @@ export const NodeContainer = ({
   const size = useStore((state) => {
     if (nodeId) {
       const node = state.nodeInternals.get(nodeId);
+
       if (node) {
         return {
           width: node.width,
@@ -97,17 +98,17 @@ export const NodeContainer = ({
         ...size,
       }}
     >
-      <Stack direction="row" justifyContent="space-between">
+      <Stack direction={"row"} justifyContent={"space-between"}>
         <Tab
           status={stepStatusName}
           label={nodeId === "trigger" ? "Trigger" : `Action ${nodeId ?? "?"}`}
-          position="left"
+          position={"left"}
         />
         {selectedFlowRun && kind !== "parallel-group" && (
           <Tab
             status={stepStatusName}
             label={stepStatusName}
-            position="right"
+            position={"right"}
           />
         )}
       </Stack>

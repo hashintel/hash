@@ -1,9 +1,8 @@
+import type { createContext, Dispatch, PropsWithChildren, SetStateAction , useContext, useMemo, useState } from "react";
 import type { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import type { Dispatch, PropsWithChildren, SetStateAction } from "react";
-import { createContext, useContext, useMemo, useState } from "react";
 
-export type BlockContextType = {
+export interface BlockContextType {
   error: boolean;
   setError: (error: boolean) => void;
   blockSelectDataModalIsOpen: boolean;
@@ -14,7 +13,7 @@ export type BlockContextType = {
   >;
   userPermissions: UserPermissionsOnEntities | undefined;
   setUserPermissions: (permissions: UserPermissionsOnEntities) => void;
-};
+}
 
 export const BlockContext = createContext<BlockContextType | null>(null);
 

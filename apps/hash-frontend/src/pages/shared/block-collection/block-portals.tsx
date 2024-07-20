@@ -1,5 +1,4 @@
-import type { ReactNode } from "react";
-import { Fragment, useCallback, useState } from "react";
+import type { Fragment, ReactNode , useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import { v4 as uuid } from "uuid";
 
@@ -13,8 +12,9 @@ export interface PortalProps {
 /**
  * Creates portals to render the elements that make up a specific block on the page, and provides shared context to both.
  * The two elements rendered into portals are defined in BlockView (context controls) and ComponentView (block content).
- * @param draftId the draftId of the block these portals belong to
- * @param portals the pairings of nodes and elements needed to create the portals
+ *
+ * @param draftId - The draftId of the block these portals belong to.
+ * @param portals - The pairings of nodes and elements needed to create the portals.
  */
 export const BlockPortals = ({ draftId, portals }: PortalProps) => {
   return (
@@ -26,7 +26,7 @@ export const BlockPortals = ({ draftId, portals }: PortalProps) => {
   );
 };
 
-export type BlockPortal = { id: string; key: string; reactNode: ReactNode };
+export interface BlockPortal { id: string; key: string; reactNode: ReactNode }
 
 type PortalSet = Map<HTMLElement, BlockPortal>;
 
@@ -49,16 +49,16 @@ const blankPortals = new Map();
 export const usePortals = () => {
   const [portals, setPortals] = useState<PortalSet>(blankPortals);
   /**
-   * Call this to render a piece of JSX to a given DOM node in a portal
+   * Call this to render a piece of JSX to a given DOM node in a portal.
    *
-   * renderPortal(jsx, node)
+   * RenderPortal(jsx, node).
    *
-   * To clear, pass null for jsx
+   * To clear, pass null for jsx.
    */
   const renderPortal = useCallback<RenderPortal>((reactNode, node, id = "") => {
     if (node) {
-      setPortals((prevPortals) => {
-        const nextPortals = new Map(prevPortals);
+      setPortals((previousPortals) => {
+        const nextPortals = new Map(previousPortals);
 
         if (reactNode) {
           const key = nextPortals.get(node)?.key ?? uuid();
@@ -78,15 +78,15 @@ export const usePortals = () => {
   }, []);
 
   // Group the portals by the block they belong to
-  const groupedPortals = Array.from(portals.entries()).reduce(
-    (obj, portal) => {
-      const id = portal[1].id;
-
-      return { ...obj, [id]: [...(obj[id] ?? []), portal] };
-    },
-    {} as {
+  const groupedPortals = [...portals.entries()].reduce<{
       [id: string]: [HTMLElement, BlockPortal][];
+    }>(
+    (object, portal) => {
+      const {id} = portal[1];
+
+      return { ...object, [id]: [...(object[id] ?? []), portal] };
     },
+    {},
   );
 
   const renderedPortals = Object.keys(groupedPortals).map((draftId) => {

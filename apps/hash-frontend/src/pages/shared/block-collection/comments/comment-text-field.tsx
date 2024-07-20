@@ -1,3 +1,9 @@
+import { debounce, isEqual } from "lodash";
+import { baseKeymap } from "prosemirror-commands";
+import { keymap } from "prosemirror-keymap";
+import { EditorState } from "prosemirror-state";
+import type { EditorView } from "prosemirror-view";
+import type { FunctionComponent , useContext, useEffect, useLayoutEffect, useRef } from "react";
 import { faAt } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
@@ -15,13 +21,6 @@ import {
 } from "@local/hash-isomorphic-utils/text";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
 import { Box } from "@mui/material";
-import { debounce, isEqual } from "lodash";
-import { baseKeymap } from "prosemirror-commands";
-import { keymap } from "prosemirror-keymap";
-import { EditorState } from "prosemirror-state";
-import type { EditorView } from "prosemirror-view";
-import type { FunctionComponent } from "react";
-import { useContext, useEffect, useLayoutEffect, useRef } from "react";
 
 import { WorkspaceContext } from "../../workspace-context";
 import { usePortals } from "../block-portals";
@@ -31,14 +30,14 @@ import {
   suggesterPluginKey,
 } from "../create-suggester/create-suggester";
 import { createTextEditorView } from "../create-text-editor-view";
-import type { CommentPlaceholderAction } from "./comment-placeholder-plugin";
-import {
+
+import type { CommentPlaceholderAction ,
   commentPlaceholderPlugin,
   commentPlaceholderPluginkey,
 } from "./comment-placeholder-plugin";
 import styles from "./style.module.css";
 
-type CommentTextFieldProps = {
+interface CommentTextFieldProps {
   value?: TextToken[];
   placeholder?: string;
   className?: string;
@@ -50,7 +49,7 @@ type CommentTextFieldProps = {
   onFocusChange?: (focused: boolean) => void;
   onClose?: () => void;
   onSubmit?: () => Promise<void>;
-};
+}
 
 const LINE_HEIGHT = 21;
 
@@ -81,15 +80,17 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
 
   const setDocument = (textualContent: TextToken[]) => {
     const view = viewRef.current;
+
     if (view) {
-      const state = view.state;
+      const {state} = view;
       const tr = state.tr.replaceWith(
         0,
         state.doc.content.size,
-        textualContent.length
+        textualContent.length > 0
           ? textBlockNodesFromTokens(textualContent, state.schema)
           : [],
       );
+
       view.dispatch(tr);
     }
   };
@@ -112,6 +113,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
             Enter() {
               if (eventsRef.current.onSubmit) {
                 void eventsRef.current.onSubmit();
+
                 return true;
               }
 
@@ -120,8 +122,10 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
             Escape() {
               if (eventsRef.current.onClose) {
                 eventsRef.current.onClose();
+
                 return true;
               }
+
               return false;
             },
           }),
@@ -214,20 +218,22 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
 
   useEffect(() => {
     const view = viewRef.current;
+
     if (view) {
       const tr = view.state.tr.setMeta(commentPlaceholderPluginkey, {
         type: "replacePlaceholder",
         payload: { placeholder },
       } as CommentPlaceholderAction);
+
       view.dispatch(tr);
     }
   }, [placeholder]);
 
   return (
     <Box
-      display="flex"
+      display={"flex"}
       flex={1}
-      overflow="hidden"
+      overflow={"hidden"}
       onFocus={() => onFocusChange?.(true)}
       onBlur={() => onFocusChange?.(false)}
     >
@@ -258,19 +264,20 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
             </Box>
           ) : (
             <IconButton
-              onClick={() => {
-                if (viewRef.current) {
-                  const { tr } = viewRef.current.state;
-                  tr.setMeta(suggesterPluginKey, { type: "toggle" });
-                  viewRef.current.dispatch(tr);
-                  viewRef.current.focus();
-                }
-              }}
               sx={({ palette }) => ({
                 padding: 0.5,
                 borderRadius: 1,
                 color: palette.gray[40],
               })}
+              onClick={() => {
+                if (viewRef.current) {
+                  const { tr } = viewRef.current.state;
+
+                  tr.setMeta(suggesterPluginKey, { type: "toggle" });
+                  viewRef.current.dispatch(tr);
+                  viewRef.current.focus();
+                }
+              }}
             >
               <FontAwesomeIcon icon={faAt} />
             </IconButton>

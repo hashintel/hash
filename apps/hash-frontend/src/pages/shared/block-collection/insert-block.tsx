@@ -1,19 +1,19 @@
+import type { FunctionComponent , useState } from "react";
 import type { BlockVariant } from "@blockprotocol/core";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { Box, Popover, popoverClasses } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useState } from "react";
 
 import { PlusBoxOutlineIcon } from "../../../shared/icons/plus-box-outline-icon";
+
 import { BlockSuggester } from "./create-suggester/block-suggester";
 
-type InsertBlockProps = {
+interface InsertBlockProps {
   readonly: boolean;
   onBlockSuggesterChange: (
     variant: BlockVariant,
     blockMeta: HashBlockMeta,
   ) => void;
-};
+}
 
 export const InsertBlock: FunctionComponent<InsertBlockProps> = ({
   onBlockSuggesterChange,
@@ -24,7 +24,7 @@ export const InsertBlock: FunctionComponent<InsertBlockProps> = ({
     top: number;
   } | null>(null);
 
-  const onCloseSuggester = () => setContextMenuPosition(null);
+  const onCloseSuggester = () => { setContextMenuPosition(null); };
 
   const onChange = (variant: BlockVariant, blockMeta: HashBlockMeta) => {
     onBlockSuggesterChange(variant, blockMeta);
@@ -38,16 +38,6 @@ export const InsertBlock: FunctionComponent<InsertBlockProps> = ({
   return (
     <>
       <Box
-        onClick={({ clientX, clientY }) => {
-          setContextMenuPosition(
-            contextMenuPosition === null
-              ? {
-                  left: clientX,
-                  top: clientY,
-                }
-              : null,
-          );
-        }}
         sx={{
           display: "flex",
           justifyContent: "center",
@@ -59,6 +49,16 @@ export const InsertBlock: FunctionComponent<InsertBlockProps> = ({
           "&:hover": {
             opacity: 1,
           },
+        }}
+        onClick={({ clientX, clientY }) => {
+          setContextMenuPosition(
+            contextMenuPosition === null
+              ? {
+                  left: clientX,
+                  top: clientY,
+                }
+              : null,
+          );
         }}
       >
         <Box
@@ -78,9 +78,9 @@ export const InsertBlock: FunctionComponent<InsertBlockProps> = ({
       </Box>
 
       <Popover
+        disableRestoreFocus
         open={contextMenuPosition !== null}
-        onClose={onCloseSuggester}
-        anchorReference="anchorPosition"
+        anchorReference={"anchorPosition"}
         anchorPosition={contextMenuPosition ?? undefined}
         sx={{
           [`& .${popoverClasses.paper}`]: {
@@ -89,7 +89,7 @@ export const InsertBlock: FunctionComponent<InsertBlockProps> = ({
             overflow: "visible",
           },
         }}
-        disableRestoreFocus
+        onClose={onCloseSuggester}
       >
         <BlockSuggester onChange={onChange} />
       </Popover>

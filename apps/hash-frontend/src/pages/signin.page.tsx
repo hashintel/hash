@@ -1,21 +1,19 @@
+import type { AxiosError } from "axios";
+import { useRouter } from "next/router";
+import type { FormEventHandler , useContext, useEffect, useMemo, useState } from "react";
 import { TextField } from "@hashintel/design-system";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 import { Box, buttonClasses, styled, Typography } from "@mui/material";
 import type { LoginFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
-import type { AxiosError } from "axios";
-import { useRouter } from "next/router";
-import type { FormEventHandler } from "react";
-import { useContext, useEffect, useMemo, useState } from "react";
 
 import { useHashInstance } from "../components/hooks/use-hash-instance";
 import { ArrowRightToBracketRegularIcon } from "../shared/icons/arrow-right-to-bracket-regular-icon";
 import { ArrowTurnDownLeftRegularIcon } from "../shared/icons/arrow-turn-down-left-regular-icon";
-import type { NextPageWithLayout } from "../shared/layout";
-import { getPlainLayout } from "../shared/layout";
-import type { ButtonProps } from "../shared/ui";
-import { Button } from "../shared/ui";
+import type { getPlainLayout,NextPageWithLayout  } from "../shared/layout";
+import type { Button,ButtonProps  } from "../shared/ui";
+
 import { AuthHeading } from "./shared/auth-heading";
 import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthLayout } from "./shared/auth-layout";
@@ -25,7 +23,7 @@ import { useKratosErrorHandler } from "./shared/use-kratos-flow-error-handler";
 import { WorkspaceContext } from "./shared/workspace-context";
 
 const SignupButton = styled((props: ButtonProps) => (
-  <Button variant="secondary" size="small" {...props} />
+  <Button variant={"secondary"} size={"small"} {...props} />
 ))(({ theme }) => ({
   color: theme.palette.common.white,
   background: "#1F2933",
@@ -80,7 +78,7 @@ const SigninPage: NextPageWithLayout = () => {
     if (redirectUrl && redirectUrl.origin !== frontendUrl) {
       /**
        * This isn't strictly necessary since we're only going to take the pathname,
-       * but useful to have the error reported
+       * but useful to have the error reported.
        */
       throw new Error(
         `Someone tried to pass an external URL as a redirect: ${possiblyMaliciousRedirect}`,
@@ -92,8 +90,8 @@ const SigninPage: NextPageWithLayout = () => {
       (redirectPath.includes("\\") || redirectPath.includes("//"))
     ) {
       /**
-       * next/router will error if these are included in the URL, but this makes
-       * the error more useful
+       * Next/router will error if these are included in the URL, but this makes
+       * the error more useful.
        */
       throw new Error(
         `Someone tried to pass a malformed URL as a redirect: ${possiblyMaliciousRedirect}`,
@@ -123,8 +121,9 @@ const SigninPage: NextPageWithLayout = () => {
     if (flowId) {
       oryKratosClient
         .getLoginFlow({ id: String(flowId) })
-        .then(({ data }) => setFlow(data))
+        .then(({ data }) => { setFlow(data); })
         .catch(handleFlowError);
+
       return;
     }
 
@@ -136,7 +135,7 @@ const SigninPage: NextPageWithLayout = () => {
         loginChallenge:
           typeof loginChallenge === "string" ? loginChallenge : undefined,
       })
-      .then(({ data }) => setFlow(data))
+      .then(({ data }) => { setFlow(data); })
       .catch(handleFlowError);
   }, [
     flowId,
@@ -197,22 +196,24 @@ const SigninPage: NextPageWithLayout = () => {
             void router.push(returnTo ?? flow.return_to ?? "/");
           })
           .catch(handleFlowError)
-          .catch((err: AxiosError<LoginFlow>) => {
+          .catch((error: AxiosError<LoginFlow>) => {
             // If the previous handler did not catch the error it's most likely a form validation error
-            if (err.response?.status === 400) {
+            if (error.response?.status === 400) {
               // Yup, it is!
-              setFlow(err.response.data);
+              setFlow(error.response.data);
+
               return;
             }
 
-            if (err.response?.status === 429) {
+            if (error.response?.status === 429) {
               // This is a rate limiting error
               setErrorMessage("Too many attempts, please try again shortly.");
+
               return;
             }
 
             // This is an unexpected error, throw it so that it's reported
-            return Promise.reject(err);
+            return Promise.reject(error);
           }),
       );
   };
@@ -235,7 +236,7 @@ const SigninPage: NextPageWithLayout = () => {
       headerEndAdornment={
         <SignupButton
           endIcon={<ArrowRightToBracketRegularIcon />}
-          href="/signup"
+          href={"/signup"}
           disabled={!userSelfRegistrationIsEnabled}
         >
           Sign up
@@ -263,41 +264,41 @@ const SigninPage: NextPageWithLayout = () => {
         >
           <AuthHeading>Sign in to your account</AuthHeading>
           <Box
-            component="form"
-            onSubmit={handleSubmit}
+            component={"form"}
             sx={{
               display: "flex",
               flexDirection: "column",
               maxWidth: 500,
               gap: 1,
             }}
+            onSubmit={handleSubmit}
           >
             <TextField
-              label="Email address"
-              type="email"
-              autoComplete="email"
               autoFocus
-              placeholder="Enter your email address"
+              required
+              label={"Email address"}
+              type={"email"}
+              autoComplete={"email"}
+              placeholder={"Enter your email address"}
               value={email}
-              onChange={({ target }) => setEmail(target.value)}
+              inputProps={{ "data-1p-ignore": false }}
               error={
-                !!emailInputUiNode?.messages.find(
+                Boolean(emailInputUiNode?.messages.find(
                   ({ type }) => type === "error",
-                )
+                ))
               }
               helperText={emailInputUiNode?.messages.map(({ id, text }) => (
                 <Typography key={id}>{text}</Typography>
               ))}
-              required
-              inputProps={{ "data-1p-ignore": false }}
+              onChange={({ target }) => { setEmail(target.value); }}
             />
             <TextField
+              required
               label="Password"
               type="password"
               autoComplete="current-password"
               placeholder="Enter your password"
               value={password}
-              onChange={({ target }) => setPassword(target.value)}
               error={
                 !!passwordInputUiNode?.messages.find(
                   ({ type }) => type === "error",
@@ -306,7 +307,7 @@ const SigninPage: NextPageWithLayout = () => {
               helperText={passwordInputUiNode?.messages.map(({ id, text }) => (
                 <Typography key={id}>{text}</Typography>
               ))}
-              required
+              onChange={({ target }) => setPassword(target.value)}
               inputProps={{ "data-1p-ignore": false }}
               // eslint-disable-next-line react/jsx-no-duplicate-props
               InputProps={{
@@ -348,7 +349,7 @@ const SigninPage: NextPageWithLayout = () => {
           <Typography gutterBottom>
             <strong>No account?</strong> No problem.
           </Typography>
-          <Button href="/signup" disabled={!userSelfRegistrationIsEnabled}>
+          <Button href={"/signup"} disabled={!userSelfRegistrationIsEnabled}>
             Create a free account
           </Button>
         </Box>

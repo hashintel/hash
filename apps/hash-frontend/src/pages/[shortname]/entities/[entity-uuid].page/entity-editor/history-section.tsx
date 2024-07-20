@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import { Chip, Skeleton, WhiteCard } from "@hashintel/design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";
@@ -8,9 +9,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { DiffEntityInput } from "@local/hash-subgraph";
-import { splitEntityId } from "@local/hash-subgraph";
-import { useMemo } from "react";
+import type { DiffEntityInput , splitEntityId } from "@local/hash-subgraph";
 
 import type {
   GetEntityDiffsQuery,
@@ -23,6 +22,7 @@ import {
   getEntitySubgraphQuery,
 } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { SectionWrapper } from "../../../shared/section-wrapper";
+
 import { getHistoryEvents } from "./history-section/get-history-events";
 import { HistoryTable } from "./history-section/history-table";
 import type { HistoryEvent } from "./history-section/shared/types";
@@ -75,13 +75,15 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
       (a, b) => (a.revisionId > b.revisionId ? 1 : -1),
     );
 
-    if (!editions.length) {
+    if (editions.length === 0) {
       return [];
     }
 
     const diffInputs: DiffEntityInput[] = [];
+
     for (const [index, edition] of editions.entries()) {
       const nextEdition = editions[index + 1];
+
       if (!nextEdition) {
         break;
       }
@@ -95,6 +97,7 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
         secondTransactionTime: null,
       });
     }
+
     return diffInputs;
   }, [editionsData]);
 
@@ -106,7 +109,7 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
     variables: {
       inputs: diffPairs,
     },
-    skip: !diffPairs.length,
+    skip: diffPairs.length === 0,
   });
 
   const historyEvents = useMemo<HistoryEvent[]>(() => {
@@ -119,6 +122,7 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
     }
 
     const diffs = diffsData?.getEntityDiffs;
+
     if (!diffs && diffPairs.length > 0) {
       return [];
     }
@@ -136,10 +140,10 @@ export const HistorySection = ({ entityId }: { entityId: EntityId }) => {
 
   return (
     <SectionWrapper
-      title="Entity History"
+      title={"Entity History"}
       titleStartContent={
         <Chip
-          size="xs"
+          size={"xs"}
           label={editionsLoading ? "–" : `${historyEvents.length} events`}
           sx={{ color: ({ palette }) => palette.gray[70] }}
         />

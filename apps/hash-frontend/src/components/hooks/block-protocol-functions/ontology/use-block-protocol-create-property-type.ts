@@ -1,12 +1,13 @@
+import { useCallback } from "react";
 import { useMutation } from "@apollo/client";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import { useCallback } from "react";
 
 import type {
   CreatePropertyTypeMutation,
   CreatePropertyTypeMutationVariables,
 } from "../../../../graphql/api-types.gen";
 import { createPropertyTypeMutation } from "../../../../graphql/queries/ontology/property-type.queries";
+
 import type { CreatePropertyTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolCreatePropertyType = (

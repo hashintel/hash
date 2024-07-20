@@ -1,3 +1,4 @@
+import { useCallback, useState } from "react";
 import { useMutation } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
@@ -10,7 +11,6 @@ import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-type
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { useApp } from "@tldraw/editor";
 import type { DialogProps } from "@tldraw/tldraw";
-import { useCallback, useState } from "react";
 
 import type {
   UpdateBlockCollectionContentsMutation,
@@ -21,6 +21,7 @@ import { BlockSuggester } from "../../../shared/block-collection/create-suggeste
 import { usePageContext } from "../../../shared/block-collection/page-context";
 import { getBlockCollectionContentsStructuralQueryVariables } from "../../../shared/block-collection-contents";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
+
 import type { BlockShape } from "./block-shape";
 import { defaultBlockHeight, defaultBlockWidth } from "./shared";
 
@@ -144,7 +145,8 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
 
       /**
        * Set the bpBlock tool and pass the necessary entity and block meta props
-       * The user will then draw a rectangle, with any updates to position from the defaults in the class
+       * The user will then draw a rectangle, with any updates to position from the defaults in the class.
+       *
        * @see e.g. {@link BlockUtil#onTranslateEnd}
        */
       app.batch(() => {
@@ -171,7 +173,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
         setCreatingEntity(true);
         try {
           await createBlock(blockMeta);
-        } catch (err) {
+        } catch (error) {
           setCreatingEntity(false);
         }
       }}

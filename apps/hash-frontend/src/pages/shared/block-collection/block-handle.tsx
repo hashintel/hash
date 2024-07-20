@@ -1,26 +1,24 @@
+import { bindTrigger } from "material-ui-popup-state";
+import { usePopupState } from "material-ui-popup-state/hooks";
+import type { forwardRef,ForwardRefRenderFunction  } from "react";
 import type { JsonObject } from "@blockprotocol/core";
 import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
-import type { EntityStore } from "@local/hash-isomorphic-utils/entity-store";
-import { isBlockEntity } from "@local/hash-isomorphic-utils/entity-store";
+import type { EntityStore , isBlockEntity } from "@local/hash-isomorphic-utils/entity-store";
 import { Box } from "@mui/material";
-import { bindTrigger } from "material-ui-popup-state";
-import { usePopupState } from "material-ui-popup-state/hooks";
-import type { ForwardRefRenderFunction } from "react";
-import { forwardRef } from "react";
 
 import { BlockConfigMenu } from "./block-config-menu/block-config-menu";
 import { useBlockContext } from "./block-context";
 import { BlockContextMenu } from "./block-context-menu/block-context-menu";
 import { useBlockView } from "./block-view";
 
-type BlockHandleProps = {
+interface BlockHandleProps {
   deleteBlock: () => void;
   draftId: string | null;
   entityStore: EntityStore;
   onMouseDown: () => void;
   onClick: () => void;
-};
+}
 
 const BlockHandle: ForwardRefRenderFunction<
   HTMLDivElement,
@@ -42,7 +40,8 @@ const BlockHandle: ForwardRefRenderFunction<
    * data in the menus can get out of sync with data in those blocks for a few seconds.
    * The update is eventually received by collab via the db realtime subscription, and the store updated.
    * This lag will be eliminated when all updates are sent via collab, rather than some via the API.
-   * @todo remove this comment when all updates are sent via collab
+   *
+   * @todo Remove this comment when all updates are sent via collab.
    */
   const blockEntity = draftId ? (entityStore.draft[draftId] ?? null) : null;
 
@@ -54,10 +53,11 @@ const BlockHandle: ForwardRefRenderFunction<
 
   const updateChildEntity = (properties: JsonObject) => {
     /**
-     *  @todo properly type this part of the DraftEntity type
      *  @see https://linear.app/hash/issue/H-3000
+     *  @todo Properly type this part of the DraftEntity type.
      */
     const childEntity = blockEntity?.blockChildEntity;
+
     if (!childEntity) {
       throw new Error(`No child entity on block to update`);
     }
@@ -76,26 +76,26 @@ const BlockHandle: ForwardRefRenderFunction<
   return (
     <Box
       ref={ref}
+      data-testid={"block-handle"}
       sx={(theme) => ({
         opacity: blockView.hovered || contextMenuPopupState.isOpen ? 1 : 0,
         transition: theme.transitions.create("opacity"),
       })}
-      data-testid="block-handle"
     >
       <IconButton
-        ref={(el) => {
-          if (el && !contextMenuPopupState.setAnchorElUsed) {
-            contextMenuPopupState.setAnchorEl(el);
+        unpadded
+        ref={(element) => {
+          if (element && !contextMenuPopupState.setAnchorElUsed) {
+            contextMenuPopupState.setAnchorEl(element);
           }
         }}
         onMouseDown={onMouseDown}
-        unpadded
         {...bindTrigger(contextMenuPopupState)}
+        data-testid={"block-changer"}
         onClick={() => {
           onClick();
           contextMenuPopupState.open();
         }}
-        data-testid="block-changer"
       >
         <FontAwesomeIcon icon={faEllipsisVertical} />
       </IconButton>
@@ -112,7 +112,7 @@ const BlockHandle: ForwardRefRenderFunction<
         anchorRef={ref}
         blockEntity={blockEntity}
         closeMenu={configMenuPopupState.close}
-        updateConfig={(properties: JsonObject) => updateChildEntity(properties)}
+        updateConfig={(properties: JsonObject) => { updateChildEntity(properties); }}
         popupState={configMenuPopupState}
       />
     </Box>

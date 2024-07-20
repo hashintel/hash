@@ -1,7 +1,7 @@
-import { CaretDownSolidIcon } from "@hashintel/design-system";
-import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { differenceInMilliseconds, intervalToDuration } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
+import { CaretDownSolidIcon } from "@hashintel/design-system";
+import { Box, Collapse, Stack, Typography } from "@mui/material";
 
 import { isNonNullable } from "../../../../../lib/typeguards";
 import { useStatusForSteps } from "../../../../shared/flow-runs-context";
@@ -9,6 +9,7 @@ import type {
   GroupWithEdgesAndNodes,
   UngroupedEdgesAndNodes,
 } from "../shared/types";
+
 import {
   ErrorIcon,
   GroupStepStatus,
@@ -17,7 +18,7 @@ import {
   WaitingIcon,
 } from "./group-status/group-step-status";
 
-const pad = (num: number) => String(num).padStart(2, "0");
+const pad = (number_: number) => String(number_).padStart(2, "0");
 
 const formatTimeTaken = (scheduledAt: string, closedAt?: string) => {
   const start = new Date(scheduledAt);
@@ -66,7 +67,7 @@ export const GroupStatus = ({
       }, 1000);
     }
 
-    return () => clearInterval(interval);
+    return () => { clearInterval(interval); };
   }, [scheduledAt, closedAt]);
 
   useEffect(() => {
@@ -80,14 +81,14 @@ export const GroupStatus = ({
   return (
     <Box sx={{ "&:not(:first-of-type)": { mt: 1.5 } }}>
       <Stack
-        alignItems="flex-start"
-        direction="row"
-        justifyContent="space-between"
+        alignItems={"flex-start"}
+        direction={"row"}
+        justifyContent={"space-between"}
         gap={1}
         sx={{ cursor: "pointer" }}
-        onClick={() => setShowSteps(!showSteps)}
+        onClick={() => { setShowSteps(!showSteps); }}
       >
-        <Stack direction="row">
+        <Stack direction={"row"}>
           <Box
             sx={{
               width: 18,
@@ -98,23 +99,23 @@ export const GroupStatus = ({
             }}
           >
             {!groupStatus || groupStatus === "Waiting" ? (
-              <WaitingIcon statusFor="group" />
+              <WaitingIcon statusFor={"group"} />
             ) : groupStatus === "In Progress" ? (
-              <InProgressIcon statusFor="group" />
+              <InProgressIcon statusFor={"group"} />
             ) : groupStatus === "Complete" ? (
-              <SuccessIcon statusFor="group" />
+              <SuccessIcon statusFor={"group"} />
             ) : (
-              <ErrorIcon statusFor="group" />
+              <ErrorIcon statusFor={"group"} />
             )}
           </Box>
           <Typography
-            variant="smallTextParagraphs"
+            variant={"smallTextParagraphs"}
             sx={{ lineHeight: 1.2, ml: 1.5 }}
           >
             {groupData.group?.description ?? "Flow"}
           </Typography>
         </Stack>
-        <Stack alignItems="center" direction="row" gap={1} mt={0.2}>
+        <Stack alignItems={"center"} direction={"row"} gap={1} mt={0.2}>
           <Typography
             sx={{
               fontSize: 12,

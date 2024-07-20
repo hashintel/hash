@@ -1,18 +1,17 @@
+import { useCallback } from "react";
+import type { Accept , useDropzone } from "react-dropzone";
 import { ImageIconSolid } from "@hashintel/design-system";
 import { Box, Typography } from "@mui/material";
-import { useCallback } from "react";
-import type { Accept } from "react-dropzone";
-import { useDropzone } from "react-dropzone";
 
 import { UploadIcon } from "../../../shared/icons/upload-icon";
 
-type FileUploadDropzoneProps = {
+interface FileUploadDropzoneProps {
   /** @see https://react-dropzone.js.org/#section-accepting-specific-file-types */
   accept?: Accept;
   image?: boolean;
   onFileProvided: (file: File) => void;
   showUploadingMessage?: boolean;
-};
+}
 
 export const FileUploadDropzone = ({
   accept,
@@ -23,6 +22,7 @@ export const FileUploadDropzone = ({
   const onDrop = useCallback(
     (acceptedFiles: File[]) => {
       const providedFile = acceptedFiles[0];
+
       if (!providedFile) {
         throw new Error("No file provided");
       }
@@ -66,20 +66,20 @@ export const FileUploadDropzone = ({
         },
       })}
     >
-      {!showUploadingMessage && <Box component="input" {...getInputProps()} />}
+      {!showUploadingMessage && <Box component={"input"} {...getInputProps()} />}
       {image ? (
         <ImageIconSolid sx={{ color: "gray.30", fontSize: 48, mb: 1 }} />
       ) : (
         <UploadIcon sx={{ color: "gray.30", fontSize: 48, mb: 1 }} />
       )}
       <Typography
-        variant="smallTextLabels"
+        variant={"smallTextLabels"}
         sx={{ color: "blue.70", display: "block", fontWeight: 600 }}
       >
         {showUploadingMessage ? "Uploading..." : "Click to upload"}
       </Typography>
       <Typography
-        variant="smallTextLabels"
+        variant={"smallTextLabels"}
         sx={{
           color: showUploadingMessage ? "gray.60" : "gray.90",
           display: "block",
@@ -89,7 +89,7 @@ export const FileUploadDropzone = ({
         {showUploadingMessage ? <>&nbsp;</> : "or drag and drop a file"}
       </Typography>
       <Typography
-        variant="microText"
+        variant={"microText"}
         sx={{ color: "gray.50", display: "block", mt: 1, fontWeight: 500 }}
       >
         {image ? "Any image file accepted" : "All file types accepted"}

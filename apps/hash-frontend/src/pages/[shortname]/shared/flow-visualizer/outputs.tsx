@@ -1,3 +1,4 @@
+import type { FunctionComponent, PropsWithChildren , useMemo, useState } from "react";
 import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
@@ -12,12 +13,8 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
-import type { EntityRootType, EntityTypeRootType } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
-import type { SvgIconProps } from "@mui/material";
-import { Box, Stack, Typography } from "@mui/material";
-import type { FunctionComponent, PropsWithChildren } from "react";
-import { useMemo, useState } from "react";
+import type { EntityRootType, EntityTypeRootType , extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type { Box, Stack, SvgIconProps , Typography } from "@mui/material";
 
 import type {
   FlowRun,
@@ -33,6 +30,7 @@ import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import { getFileProperties } from "../../../shared/get-file-properties";
 import { generateEntityRootedSubgraph } from "../../../shared/subgraphs";
 import { EditEntitySlideOver } from "../../entities/[entity-uuid].page/edit-entity-slide-over";
+
 import { Deliverables } from "./outputs/deliverables";
 import type { DeliverableData } from "./outputs/deliverables/shared/types";
 import { EntityResultTable } from "./outputs/entity-result-table";
@@ -54,6 +52,7 @@ export const getDeliverables = (
     if (payload.kind === "FormattedText" && !Array.isArray(payload.value)) {
       if (payload.value.format === "Markdown") {
         const markdown = payload.value.content;
+
         deliverables.push({
           displayName: "Markdown",
           type: "markdown",
@@ -88,8 +87,8 @@ export const getDeliverables = (
 
 const SectionTabContainer = ({ children }: PropsWithChildren) => (
   <Stack
-    alignItems="center"
-    direction="row"
+    alignItems={"center"}
+    direction={"row"}
     gap={0.5}
     pt={0.9}
     pb={1.5}
@@ -116,7 +115,6 @@ const SectionTabButton = ({
   onClick: () => void;
 }) => (
   <IconButton
-    onClick={onClick}
     sx={({ palette }) => ({
       background: active ? palette.common.white : palette.gray[20],
       borderRadius: 16,
@@ -130,6 +128,7 @@ const SectionTabButton = ({
       },
       transition: ({ transitions }) => transitions.create("background"),
     })}
+    onClick={onClick}
   >
     <Icon
       sx={({ palette }) => ({
@@ -139,7 +138,7 @@ const SectionTabButton = ({
     />
 
     <Typography
-      component="span"
+      component={"span"}
       sx={{
         color: ({ palette }) =>
           active ? palette.common.black : palette.gray[80],
@@ -166,15 +165,15 @@ type ResultSlideOver =
     }
   | null;
 
-type OutputsProps = {
+interface OutputsProps {
   persistedEntities: PersistedEntity[];
   proposedEntities: ProposedEntityOutput[];
-};
+}
 
-type SectionVisibility = {
+interface SectionVisibility {
   deliverables: boolean;
   entities: boolean;
-};
+}
 
 export const Outputs = ({
   persistedEntities,
@@ -209,6 +208,7 @@ export const Outputs = ({
           }
 
           const entity = new Entity(persistedEntity.entity);
+
           return {
             equal: [
               { path: ["uuid"] },
@@ -269,7 +269,7 @@ export const Outputs = ({
         includeDrafts: true,
       },
     },
-    skip: !persistedEntities.length,
+    skip: persistedEntities.length === 0,
     fetchPolicy: "network-only",
   });
 
@@ -306,25 +306,25 @@ export const Outputs = ({
       {slideOver?.type === "entityType" && (
         <TypeSlideOverStack
           rootTypeId={slideOver.entityTypeId}
-          onClose={() => setSlideOver(null)}
+          onClose={() => { setSlideOver(null); }}
         />
       )}
       {selectedEntitySubgraph && (
         <EditEntitySlideOver
+          readonly
           entitySubgraph={selectedEntitySubgraph}
           open={slideOver?.type === "entity"}
-          onClose={() => setSlideOver(null)}
+          onClose={() => { setSlideOver(null); }}
           onSubmit={() => {
             throw new Error("Editing not permitted in this context");
           }}
-          readonly
         />
       )}
-      <Box position="relative">
+      <Box position={"relative"}>
         <Stack
-          alignItems="center"
-          direction="row"
-          justifyContent="space-between"
+          alignItems={"center"}
+          direction={"row"}
+          justifyContent={"space-between"}
           sx={{ top: 5, position: "relative", zIndex: 0 }}
         >
           <SectionTabContainer>
@@ -335,10 +335,10 @@ export const Outputs = ({
                 active={sectionVisibility[section]}
                 Icon={outputIcons[section]}
                 onClick={() =>
-                  setSectionVisibility({
+                  { setSectionVisibility({
                     ...sectionVisibility,
                     [section]: !sectionVisibility[section],
-                  })
+                  }); }
                 }
               />
             ))}
@@ -351,7 +351,7 @@ export const Outputs = ({
                   label={section}
                   active={entityDisplay === section}
                   Icon={outputIcons[section]}
-                  onClick={() => setEntityDisplay(section)}
+                  onClick={() => { setEntityDisplay(section); }}
                 />
               ))}
             </SectionTabContainer>
@@ -359,8 +359,8 @@ export const Outputs = ({
         </Stack>
       </Box>
       <Stack
-        alignItems="center"
-        direction="row"
+        alignItems={"center"}
+        direction={"row"}
         flex={1}
         gap={1}
         sx={{
@@ -372,24 +372,24 @@ export const Outputs = ({
         {sectionVisibility.entities &&
           (entityDisplay === "table" ? (
             <EntityResultTable
-              onEntityClick={(entity) =>
-                setSlideOver({ type: "entity", entity })
-              }
-              onEntityTypeClick={(entityTypeId) =>
-                setSlideOver({ type: "entityType", entityTypeId })
-              }
               persistedEntities={persistedEntities}
               persistedEntitiesSubgraph={persistedEntitiesSubgraph}
               proposedEntities={proposedEntities}
               proposedEntitiesTypesSubgraph={proposedEntitiesTypesSubgraph}
+              onEntityClick={(entity) =>
+                { setSlideOver({ type: "entity", entity }); }
+              }
+              onEntityTypeClick={(entityTypeId) =>
+                { setSlideOver({ type: "entityType", entityTypeId }); }
+              }
             />
           ) : (
             <PersistedEntityGraph
-              onEntityClick={(entity) =>
-                setSlideOver({ type: "entity", entity })
-              }
               persistedEntities={persistedEntities}
               persistedEntitiesSubgraph={persistedEntitiesSubgraph}
+              onEntityClick={(entity) =>
+                { setSlideOver({ type: "entity", entity }); }
+              }
             />
           ))}
 

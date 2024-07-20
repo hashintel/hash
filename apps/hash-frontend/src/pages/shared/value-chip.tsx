@@ -1,6 +1,5 @@
-import type { SxProps, Theme } from "@mui/material";
-import { Stack, Tooltip } from "@mui/material";
 import type { PropsWithChildren } from "react";
+import type { Stack, SxProps, Theme , Tooltip } from "@mui/material";
 
 export const ValueChip = ({
   children,
@@ -14,10 +13,10 @@ export const ValueChip = ({
   sx?: SxProps<Theme>;
   tooltip?: string;
 }>) => (
-  <Tooltip title={tooltip} placement="left">
+  <Tooltip title={tooltip} placement={"left"}>
     <Stack
-      direction="row"
-      alignItems="center"
+      direction={"row"}
+      alignItems={"center"}
       sx={[
         ({ palette }) => ({
           background: palette.common.white,

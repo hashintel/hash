@@ -1,3 +1,4 @@
+import type { createContext, FunctionComponent, PropsWithChildren , useCallback, useContext, useMemo } from "react";
 import { useMutation, useQuery } from "@apollo/client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
@@ -20,8 +21,6 @@ import type { GraphChangeNotification } from "@local/hash-isomorphic-utils/syste
 import type { MentionNotification } from "@local/hash-isomorphic-utils/system-types/mentionnotification";
 import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import type { FunctionComponent, PropsWithChildren } from "react";
-import { createContext, useCallback, useContext, useMemo } from "react";
 
 import type {
   GetEntitySubgraphQuery,
@@ -37,9 +36,10 @@ import {
   updateEntityMutation,
 } from "../graphql/queries/knowledge/entity.queries";
 import { useAuthInfo } from "../pages/shared/auth-info-context";
+
 import { pollInterval } from "./poll-interval";
 
-export type NotificationEntitiesContextValues = {
+export interface NotificationEntitiesContextValues {
   notificationEntities?: Entity<
     | Notification
     | MentionNotification
@@ -61,7 +61,7 @@ export type NotificationEntitiesContextValues = {
   archiveNotifications: (params: {
     notificationEntities: Entity[];
   }) => Promise<void>;
-};
+}
 
 export const NotificationEntitiesContext =
   createContext<null | NotificationEntitiesContextValues>(null);

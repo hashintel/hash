@@ -1,12 +1,11 @@
-import { getRoots } from "@local/hash-subgraph/stdlib";
-import type { PropsWithChildren } from "react";
-import {
-  createContext,
+import type {   createContext,
+PropsWithChildren ,
   useCallback,
   useContext,
   useMemo,
   useState,
 } from "react";
+import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import type { EntityEditorProps } from "../entity-editor";
 

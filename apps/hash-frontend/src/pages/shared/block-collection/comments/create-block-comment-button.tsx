@@ -1,28 +1,28 @@
+import type { FunctionComponent , useCallback, useState } from "react";
 import { faComment } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { Box, Popper } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useCallback, useState } from "react";
 
 import { useBlockView } from "../block-view";
 import styles from "../style.module.css";
+
 import { CreateBlockComment } from "./create-block-comment";
 
-type CreateBlockCommentButtonProps = {
+interface CreateBlockCommentButtonProps {
   blockEntityId: EntityId | null;
   rootNode: HTMLElement;
-};
+}
 
 export const CreateBlockCommentButton: FunctionComponent<
   CreateBlockCommentButtonProps
 > = ({ blockEntityId, rootNode }) => {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [anchorElement, setAnchorElement] = useState<null | HTMLElement>(null);
 
   const { readonly } = useBlockView();
 
   const closeInput = useCallback(() => {
-    setAnchorEl(null);
+    setAnchorElement(null);
   }, []);
 
   if (readonly) {
@@ -32,22 +32,24 @@ export const CreateBlockCommentButton: FunctionComponent<
   return (
     <Box className={styles.Block__Comments_Button}>
       <IconButton
-        onClick={(event) => {
-          setAnchorEl(anchorEl ? null : event.currentTarget);
-        }}
         sx={{
           padding: 0.5,
           borderRadius: 1,
           transition: ({ transitions }) => transitions.create("opacity"),
+        }}
+        onClick={(event) => {
+          setAnchorElement(anchorElement ? null : event.currentTarget);
         }}
       >
         <FontAwesomeIcon icon={faComment} />
       </IconButton>
 
       <Popper
-        open={!!anchorEl}
-        placement="bottom-start"
+        open={Boolean(anchorElement)}
+        placement={"bottom-start"}
         container={rootNode}
+        anchorEl={anchorElement}
+        style={{ zIndex: 1 }}
         modifiers={[
           {
             name: "flip",
@@ -58,7 +60,7 @@ export const CreateBlockCommentButton: FunctionComponent<
             options: {
               offset: () => [
                 -9,
-                -(anchorEl?.getBoundingClientRect().height ?? 0) - 12,
+                -(anchorElement?.getBoundingClientRect().height ?? 0) - 12,
               ],
             },
           },
@@ -70,8 +72,6 @@ export const CreateBlockCommentButton: FunctionComponent<
             },
           },
         ]}
-        anchorEl={anchorEl}
-        style={{ zIndex: 1 }}
       >
         <CreateBlockComment
           blockEntityId={blockEntityId}

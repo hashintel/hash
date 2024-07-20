@@ -1,3 +1,4 @@
+import type { ReactNode , useEffect, useRef } from "react";
 import {
   Box,
   Collapse,
@@ -6,13 +7,10 @@ import {
   styled,
   Typography,
 } from "@mui/material";
-import type { ReactNode } from "react";
-import { useEffect, useRef } from "react";
 
 import { useEditBarContext } from "../../../shared/edit-bar-scroller";
 import { PencilSimpleLine } from "../../../shared/icons/svg";
-import type { ButtonProps } from "../../../shared/ui/button";
-import { Button } from "../../../shared/ui/button";
+import type { Button,ButtonProps  } from "../../../shared/ui/button";
 
 export const EditBarContents = ({
   icon,
@@ -35,16 +33,16 @@ export const EditBarContents = ({
       }}
     >
       {icon}
-      <Typography variant="smallTextLabels" sx={{ ml: 1 }}>
-        <Box component="span" sx={{ fontWeight: "bold", mr: 1 }}>
+      <Typography variant={"smallTextLabels"} sx={{ ml: 1 }}>
+        <Box component={"span"} sx={{ fontWeight: "bold", mr: 1 }}>
           {title}
         </Box>{" "}
         {label}
       </Typography>
-      <Stack spacing={1.25} sx={{ marginLeft: "auto" }} direction="row">
+      <Stack spacing={1.25} sx={{ marginLeft: "auto" }} direction={"row"}>
         <Button
-          variant="tertiary"
-          size="xs"
+          variant={"tertiary"}
+          size={"xs"}
           sx={(theme) => ({
             borderColor: theme.palette.blue[50],
             backgroundColor: "transparent",
@@ -59,11 +57,11 @@ export const EditBarContents = ({
           {discardButtonProps.children}
         </Button>
         <Button
-          variant="secondary"
-          size="xs"
-          type="submit"
           loadingWithoutText
-          data-testid="editbar-confirm"
+          variant={"secondary"}
+          size={"xs"}
+          type={"submit"}
+          data-testid={"editbar-confirm"}
           {...confirmButtonProps}
         >
           {confirmButtonProps.children}
@@ -74,8 +72,9 @@ export const EditBarContents = ({
 };
 
 /**
- * THIS MUST BE KEPT IN SYNC WITH EDIT_BAR_HEIGHT IN @hashintel/type-editor
- * @todo make this a prop / shared some other way
+ * THIS MUST BE KEPT IN SYNC WITH EDIT_BAR_HEIGHT IN @hashintel/type-editor.
+ *
+ * @todo Make this a prop / shared some other way.
  */
 export const EDIT_BAR_HEIGHT = 50;
 
@@ -104,11 +103,12 @@ export const useFreezeScrollWhileTransitioning = () => {
     let appliedOffset = 0;
 
     // Transition events bubble – needs to be the right event
-    const isRelevant = (evt: TransitionEvent) =>
-      evt.target === editBar && evt.propertyName === "height";
+    const isRelevant = (event: TransitionEvent) =>
+      event.target === editBar && event.propertyName === "height";
 
     const applyOffset = (currentHeight: number) => {
       const offset = currentHeight - beginningHeight;
+
       // We can't adjust further that the scroll position, or you'll see a blank
       // space at the top. In this event, we'll compensate for the difference
       // so far as we can
@@ -132,8 +132,8 @@ export const useFreezeScrollWhileTransitioning = () => {
      * At the end of the transition, we reset the "top" position of the document
      * and scroll to compensate, as far as possible.
      */
-    const end = (evt?: TransitionEvent) => {
-      if (!evt || isRelevant(evt)) {
+    const end = (event?: TransitionEvent) => {
+      if (!event || isRelevant(event)) {
         applyOffset(parseInt(window.getComputedStyle(editBar).height, 10));
         editBar.removeEventListener("transitionend", end);
         editBar.removeEventListener("transitioncancel", end);
@@ -168,16 +168,16 @@ export const useFreezeScrollWhileTransitioning = () => {
       }
     };
 
-    const start = (evt: TransitionEvent) => {
+    const start = (event: TransitionEvent) => {
       /**
-       * we don't need to freeze the scroll if edit bar did not started to behave as sticky yet
+       * We don't need to freeze the scroll if edit bar did not started to behave as sticky yet
        * when scroll passes the height of the edit bar, it stick to the top,
        * when it sticks, we don't need to manipulate page scroll in this function,
-       * because sticky element does not shift the elements while appearing / disappearing
+       * because sticky element does not shift the elements while appearing / disappearing.
        */
       const notStickyYet = scroller.scrollTop <= EDIT_BAR_HEIGHT;
 
-      if (isRelevant(evt) && notStickyYet) {
+      if (isRelevant(event) && notStickyYet) {
         const rect = editBar.getBoundingClientRect();
 
         // If the user has scrolled far enough the edit bar is off-screen, the
@@ -246,7 +246,7 @@ export const EditBar = ({
       <EditBarContainer>
         <EditBarContents
           icon={<PencilSimpleLine />}
-          title="Currently editing"
+          title={"Currently editing"}
           label={label}
           discardButtonProps={{
             children: "Discard changes",

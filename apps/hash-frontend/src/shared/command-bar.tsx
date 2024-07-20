@@ -1,41 +1,36 @@
-import { Chip, TextField } from "@hashintel/design-system";
-import type {
-  AutocompleteChangeDetails,
-  AutocompleteChangeReason,
-  AutocompleteRenderInputParams,
-} from "@mui/material";
-import {
-  Autocomplete,
-  autocompleteClasses,
-  Box,
-  Modal,
-  Paper,
-} from "@mui/material";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
 import type {
+  createContext,
+  forwardRef,
   FunctionComponent,
   HTMLAttributes,
   PropsWithChildren,
   ReactNode,
-} from "react";
-import {
-  createContext,
-  forwardRef,
   useCallback,
   useContext,
   useEffect,
   useLayoutEffect,
   useReducer,
   useRef,
-  useState,
-} from "react";
+  useState} from "react";
+import { Chip, TextField } from "@hashintel/design-system";
+import type {
+  Autocomplete,
+  AutocompleteChangeDetails,
+  AutocompleteChangeReason,
+  autocompleteClasses,
+  AutocompleteRenderInputParams,
+  Box,
+  Modal,
+  Paper} from "@mui/material";
 
 import { useAccountPages } from "../components/hooks/use-account-pages";
 import { useCreatePage } from "../components/hooks/use-create-page";
 import { useHashInstance } from "../components/hooks/use-hash-instance";
 import { useEnabledFeatureFlags } from "../pages/shared/use-enabled-feature-flags";
 import { useActiveWorkspace } from "../pages/shared/workspace-context";
+
 // import { CheatSheet } from "./command-bar/cheat-sheet";
 import type {
   // childMenu,
@@ -49,8 +44,7 @@ import {
   menu,
 } from "./command-bar/command-bar-options";
 import { HotKey } from "./command-bar/hot-key";
-import type { KeyboardShortcut } from "./keyboard-shortcuts-context";
-import {
+import type { KeyboardShortcut ,
   useSetKeyboardShortcuts,
   useUnsetKeyboardShortcuts,
 } from "./keyboard-shortcuts-context";
@@ -98,20 +92,20 @@ const RESET_BAR_TIMEOUT = 5_000;
 // Ensures the modal is vertically centered and correctly sized when there are enough options to fill the popup
 const CenterContainer = forwardRef(({ children }: PropsWithChildren, ref) => (
   <Box
-    width="100vw"
-    height="100vh"
-    display="flex"
-    alignItems="center"
-    margin="0 auto"
+    width={"100vw"}
+    height={"100vh"}
+    display={"flex"}
+    alignItems={"center"}
+    margin={"0 auto"}
     ref={ref}
   >
     <Box
       height={518}
       maxWidth={560}
-      width="100vw"
-      display="flex"
-      justifyContent="center"
-      margin="0 auto"
+      width={"100vw"}
+      display={"flex"}
+      justifyContent={"center"}
+      margin={"0 auto"}
       // Ensures pointer events pass through to the modal backdrop
       sx={{ pointerEvents: "none" }}
     >
@@ -160,6 +154,7 @@ const useDelayedCallback = (callback: () => void, delay: number) => {
   useEffect(() => {
     return () => {
       const timer = resetTimer.current;
+
       if (timer) {
         clearTimeout(timer);
       }
@@ -167,6 +162,7 @@ const useDelayedCallback = (callback: () => void, delay: number) => {
   }, []);
 
   const callbackRef = useRef(callback);
+
   useLayoutEffect(() => {
     callbackRef.current = callback;
   });
@@ -174,20 +170,23 @@ const useDelayedCallback = (callback: () => void, delay: number) => {
   const handler = useCallback(
     (timing: DelayedCallbackTiming) => {
       const timer = resetTimer.current;
+
       if (timer) {
         clearTimeout(timer);
       }
 
       switch (timing) {
-        case "immediate":
+        case "immediate": {
           callbackRef.current();
           break;
-        case "delayed":
+        }
+        case "delayed": {
           resetTimer.current = setTimeout(() => {
             callbackRef.current();
             resetTimer.current = null;
           }, delay);
           break;
+        }
       }
     },
     [delay],
@@ -195,6 +194,7 @@ const useDelayedCallback = (callback: () => void, delay: number) => {
 
   const cancel = () => {
     const timer = resetTimer.current;
+
     if (timer) {
       clearTimeout(timer);
     }
@@ -243,7 +243,9 @@ export const CommandBar: FunctionComponent = () => {
     const handler = () => {
       closeBar("immediate");
     };
+
     router.events.on("routeChangeStart", handler);
+
     return () => {
       router.events.off("routeChangeStart", handler);
     };
@@ -293,7 +295,8 @@ export const CommandBar: FunctionComponent = () => {
     details: AutocompleteChangeDetails<CommandBarOption> | undefined,
   ) => {
     if (details && reason === "selectOption") {
-      const option = details.option;
+      const {option} = details;
+
       triggerOption(option);
     }
   };
@@ -316,23 +319,24 @@ export const CommandBar: FunctionComponent = () => {
           key={label}
           label={label}
           onDelete={() =>
-            setSelectedOptionPath(selectedOptionPath.slice(0, index))
+            { setSelectedOptionPath(selectedOptionPath.slice(0, index)); }
           }
         />
       ))}
       <TextField
         autoFocus
-        placeholder="Type a command or search…"
+        placeholder={"Type a command or search…"}
         inputRef={inputRef}
-        onKeyDown={(evt) => {
+        onKeyDown={(event) => {
           // If the user presses backspace and there is no input value, then go back to the previous selectedOption
-          switch (evt.key) {
-            case "Backspace":
+          switch (event.key) {
+            case "Backspace": {
               if (!inputRef.current?.value) {
                 setSelectedOptionPath(selectedOptionPath.slice(0, -1));
               }
               break;
-            case "Enter":
+            }
+            case "Enter": {
               if (!inputValue) {
                 return;
               }
@@ -352,6 +356,7 @@ export const CommandBar: FunctionComponent = () => {
                     }
                   });
               }
+            }
           }
         }}
         {...props}
@@ -363,11 +368,12 @@ export const CommandBar: FunctionComponent = () => {
    * The keyboard shortcuts are managed via a class outside of React.
    * This function is provided to the class to allow it to trigger a re-render when options are added/activated.
    */
-  const [, forceRender] = useReducer((val: number) => val + 1, 0);
+  const [, forceRender] = useReducer((value: number) => value + 1, 0);
+
   useEffect(() => {
     const unregisterMenuUpdateListener = menu.addUpdateListener(forceRender);
 
-    return () => unregisterMenuUpdateListener();
+    return () => { unregisterMenuUpdateListener(); };
   }, []);
 
   const setKeyboardShortcuts = useSetKeyboardShortcuts();
@@ -401,7 +407,7 @@ export const CommandBar: FunctionComponent = () => {
 
     setKeyboardShortcuts(keyboardShortcuts);
 
-    return () => unsetKeyboardShortcuts(keyboardShortcuts);
+    return () => { unsetKeyboardShortcuts(keyboardShortcuts); };
   });
 
   useEffect(() => {
@@ -446,34 +452,23 @@ export const CommandBar: FunctionComponent = () => {
         <CenterContainer>
           <CustomScreenContext.Provider value={customScreen}>
             <Autocomplete
-              options={
-                activeMenu?.subOptions.filter((option) => option.isActive()) ??
-                []
-              }
+              open
               sx={{ width: "100%" }}
               renderInput={renderInput}
               PaperComponent={CustomPaperComponent}
-              onChange={handleChange}
               groupBy={(option) => option.group}
               getOptionLabel={(option) => option.label}
+              inputValue={inputValue}
               renderOption={(props, option) => (
                 <li {...props}>
                   <HotKey keysList={option.keysList} label={option.label} />
                 </li>
               )}
               // The popup should always be open when the modal is open
-              open
-              popupIcon={null}
-              // This is used to prevent the autocomplete from closing when the user clicks on an option (as we have custom logic for handling selecting an option)
-              disableCloseOnSelect
-              // The first option should be highlighted by default to make activating the first option quicker
-              autoHighlight
-              // prevents the autocomplete ever having an internal value, as we have custom logic for handling the selectedOption option
-              value={null}
-              inputValue={inputValue}
-              onInputChange={(_, value, reason) => {
-                setInputValue(reason === "reset" ? "" : value);
-              }}
+              options={
+                activeMenu?.subOptions.filter((option) => option.isActive()) ??
+                []
+              }
               noOptionsText={
                 selectedCommand?.asyncCommand
                   ? inputValue
@@ -481,6 +476,11 @@ export const CommandBar: FunctionComponent = () => {
                     : "Type your prompt and press enter"
                   : undefined
               }
+              // The first option should be highlighted by default to make activating the first option quicker
+              onChange={handleChange}
+              onInputChange={(_, value, reason) => {
+                setInputValue(reason === "reset" ? "" : value);
+              }}
               onClose={(_, reason) => {
                 // Prevent the autocomplete from closing when the user clicks on the input
                 if (
@@ -490,6 +490,12 @@ export const CommandBar: FunctionComponent = () => {
                   closeBar(reason === "escape" ? "immediate" : "delayed");
                 }
               }}
+              autoHighlight
+              // prevents the autocomplete ever having an internal value, as we have custom logic for handling the selectedOption option
+              value={null}
+              popupIcon={null}
+              // This is used to prevent the autocomplete from closing when the user clicks on an option (as we have custom logic for handling selecting an option)
+              disableCloseOnSelect
             />
           </CustomScreenContext.Provider>
         </CenterContainer>

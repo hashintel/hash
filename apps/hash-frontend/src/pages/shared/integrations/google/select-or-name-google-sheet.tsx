@@ -1,17 +1,18 @@
+import { useState } from "react";
 import { AlertModal, TextField } from "@hashintel/design-system";
 import type { GoogleSheet } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
-import { useState } from "react";
 
 import { Button } from "../../../../shared/ui/button";
+
 import { useGoogleAuth } from "./google-auth-context";
 import { GoogleFilePicker } from "./google-file-picker";
 
-type SelectOrNameGoogleSheetProps = {
+interface SelectOrNameGoogleSheetProps {
   googleAccountId?: string;
   googleSheet?: GoogleSheet;
   setGoogleSheet: (googleSheet: GoogleSheet) => void;
-};
+}
 
 export const SelectOrNameGoogleSheet = ({
   googleAccountId,
@@ -42,10 +43,10 @@ export const SelectOrNameGoogleSheet = ({
     <>
       {showReauthModal && (
         <AlertModal
-          callback={() => addGoogleAccount()}
-          calloutMessage="Access to this Google account has expired or been revoked"
-          close={() => setShowReauthModal(false)}
-          type="info"
+          callback={() => { addGoogleAccount(); }}
+          calloutMessage={"Access to this Google account has expired or been revoked"}
+          close={() => { setShowReauthModal(false); }}
+          type={"info"}
         >
           <Typography>
             Please log in with Google again to continue setting up the flow.
@@ -66,10 +67,11 @@ export const SelectOrNameGoogleSheet = ({
           }}
         />
       )}
-      <Stack alignItems="center" direction="row" gap={1.5}>
+      <Stack alignItems={"center"} direction={"row"} gap={1.5}>
         <Box>
           <Button
             disabled={!googleAccountId}
+            size={"xs"}
             onClick={async () => {
               if (!googleAccountId) {
                 return;
@@ -85,27 +87,26 @@ export const SelectOrNameGoogleSheet = ({
                 setShowReauthModal(true);
               }
             }}
-            size="xs"
           >
             Choose {existingSpreadsheetId ? "a different" : "a"} file
           </Button>
         </Box>
-        <Typography variant="smallTextParagraphs">or</Typography>
+        <Typography variant={"smallTextParagraphs"}>or</Typography>
         <Box>
           <TextField
             value={newSheetName}
-            onChange={(event) => {
-              setGoogleSheet({
-                newSheetName: event.target.value,
-              });
-            }}
-            placeholder="Name a new file"
+            placeholder={"Name a new file"}
             sx={{
               [`.${outlinedInputClasses.root} input`]: {
                 fontSize: 15,
                 px: 2,
                 py: 1,
               },
+            }}
+            onChange={(event) => {
+              setGoogleSheet({
+                newSheetName: event.target.value,
+              });
             }}
           />
         </Box>

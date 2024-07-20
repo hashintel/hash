@@ -15,7 +15,7 @@ export type FetchSourceFn = (
 ) => Promise<string>;
 
 /**
- * Adapted from https://github.com/Paciolan/remote-module-loader
+ * Adapted from https://github.com/Paciolan/remote-module-loader.
  */
 
 const requires = (name: string) => {
@@ -45,19 +45,21 @@ const fetchAndParseBlock: FetchAndParseFn = (fetchSourceFn) => (url, signal) =>
     }
 
     /**
-     * Load a commonjs module from a url and wrap it/supply with key variables
+     * Load a commonjs module from a url and wrap it/supply with key variables.
+     *
      * @see https://nodejs.org/api/modules.html#modules_the_module_wrapper
      * @see https://github.com/Paciolan/remote-module-loader/blob/master/src/lib/loadRemoteModule.ts
      */
     const exports = {};
     const module = { exports };
-    // eslint-disable-next-line no-new-func,@typescript-eslint/no-implied-eval
+    // eslint-disable-next-line @typescript-eslint/no-implied-eval
     const func = new Function("require", "module", "exports", source);
+
     func(requires, module, exports);
 
     /**
-     * @todo check it's actually a React component or HTMLElement
-     * */
+     * @todo Check it's actually a React component or HTMLElement.
+      */
     return module.exports;
   });
 

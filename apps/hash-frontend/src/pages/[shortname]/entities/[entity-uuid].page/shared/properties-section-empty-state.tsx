@@ -7,13 +7,13 @@ import { SectionWrapper } from "../../../shared/section-wrapper";
 export const PropertiesSectionEmptyState = () => {
   return (
     <SectionWrapper
-      title="Properties"
-      titleStartContent={<Chip label="No properties" />}
+      title={"Properties"}
+      titleStartContent={<Chip label={"No properties"} />}
     >
       <SectionEmptyState
-        title="This entity currently has no properties"
+        title={"This entity currently has no properties"}
         titleIcon={<LinksIcon />}
-        description="Properties contain data about entities, and are inherited from types"
+        description={"Properties contain data about entities, and are inherited from types"}
       />
     </SectionWrapper>
   );

@@ -1,16 +1,17 @@
+import { useEffect, useState } from "react";
 import { PenIcon } from "@hashintel/block-design-system";
 import { ArrowLeftIcon, LoadingSpinner } from "@hashintel/design-system";
 import { Box } from "@mui/material";
-import { useEffect, useState } from "react";
 
 import { GrayToBlueIconButton } from "../../shared/gray-to-blue-icon-button";
+
 import { FileUploadDropzone } from "./file-upload-dropzone";
 
-type ImageFieldProps = {
+interface ImageFieldProps {
   imageUrl?: string;
   onFileProvided: (file: File) => Promise<void>;
   readonly: boolean;
-};
+}
 
 export const ImageField = ({
   imageUrl: imageUrlFromProps,
@@ -56,13 +57,13 @@ export const ImageField = ({
           {imageUrl ? (
             <Box sx={{ position: "absolute", top: 5, right: 5 }}>
               <GrayToBlueIconButton
+                sx={{
+                  zIndex: 2,
+                }}
                 onClick={(event) => {
                   event.stopPropagation();
                   setEditingImage(false);
                   setImageUrl(imageUrlFromProps);
-                }}
-                sx={{
-                  zIndex: 2,
                 }}
               >
                 <ArrowLeftIcon sx={{ width: 13, height: 13 }} />
@@ -78,16 +79,16 @@ export const ImageField = ({
           {!readonly && (
             <Box sx={{ position: "absolute", top: 5, right: 5 }}>
               {newImageUploading ? (
-                <LoadingSpinner color="gray.40" />
+                <LoadingSpinner color={"gray.40"} />
               ) : (
-                <GrayToBlueIconButton onClick={() => setEditingImage(true)}>
+                <GrayToBlueIconButton onClick={() => { setEditingImage(true); }}>
                   <PenIcon sx={{ width: 13, height: 13 }} />
                 </GrayToBlueIconButton>
               )}
             </Box>
           )}
           <Box
-            component="img"
+            component={"img"}
             src={imageUrl}
             sx={{
               borderRadius: 2,

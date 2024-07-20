@@ -1,23 +1,22 @@
+import type { FormEvent , useState } from "react";
 import { Select, TextField } from "@hashintel/design-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type { ProspectiveUserProperties } from "@local/hash-isomorphic-utils/system-types/prospectiveuser";
 import { Box, Stack, Typography } from "@mui/material";
-import type { FormEvent } from "react";
-import { useState } from "react";
 
 import { Button } from "../../../shared/ui/button";
 import { MenuItem } from "../../../shared/ui/menu-item";
 import { Modal } from "../../../shared/ui/modal";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 
-type FormFieldMetadata = {
+interface FormFieldMetadata {
   label: string;
   multiline?: boolean;
   options?: string[];
   placeholder: string;
   type?: string;
   url?: boolean;
-};
+}
 
 type FormFields = Record<keyof ProspectiveUserProperties, FormFieldMetadata>;
 
@@ -77,8 +76,8 @@ const Input = ({
 } & FormFieldMetadata) => (
   <Box mb={2.5}>
     <Typography
-      component="label"
-      variant="smallTextLabels"
+      component={"label"}
+      variant={"smallTextLabels"}
       sx={{
         color: ({ palette }) => palette.gray[70],
         fontWeight: 500,
@@ -87,7 +86,7 @@ const Input = ({
     >
       {label}
       <Box
-        component="span"
+        component={"span"}
         sx={{ color: ({ palette }) => palette.blue[70], ml: 0.5 }}
       >
         *
@@ -96,8 +95,8 @@ const Input = ({
         {options ? (
           <Select
             value={value}
-            onChange={(event) => onChange(event.target.value)}
             sx={{ width: 250 }}
+            onChange={(event) => { onChange(event.target.value); }}
           >
             {options.map((option) => (
               <MenuItem key={option} value={option}>
@@ -108,17 +107,17 @@ const Input = ({
         ) : (
           <TextField
             autoFocus={url}
+            multiline={multiline}
+            placeholder={placeholder}
+            sx={{ width: multiline ? "100%" : 330 }}
+            type={type ?? "text"}
+            value={value}
             inputProps={
               url
                 ? { pattern: "\\S+\\.\\w+", title: "Please enter a valid URL" }
                 : undefined
             }
-            multiline={multiline}
-            onChange={(event) => onChange(event.target.value)}
-            placeholder={placeholder}
-            sx={{ width: multiline ? "100%" : 330 }}
-            type={type ?? "text"}
-            value={value}
+            onChange={(event) => { onChange(event.target.value); }}
           />
         )}
       </Box>
@@ -126,11 +125,11 @@ const Input = ({
   </Box>
 );
 
-type EarlyAccessFormModalProps = {
+interface EarlyAccessFormModalProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (properties: ProspectiveUserProperties) => Promise<void>;
-};
+}
 
 export const EarlyAccessFormModal = ({
   open,
@@ -141,16 +140,17 @@ export const EarlyAccessFormModal = ({
 
   const [formState, setFormState] = useState<Record<keyof FormFields, string>>(
     () =>
-      typedKeys(formFields).reduce(
-        (acc, key) => {
+      typedKeys(formFields).reduce<Record<keyof FormFields, string>>(
+        (accumulator, key) => {
           if (key === "https://hash.ai/@hash/types/property-type/email/") {
-            acc[key] = authenticatedUser.emails[0]!.address;
+            accumulator[key] = authenticatedUser.emails[0]!.address;
           } else {
-            acc[key] = "";
+            accumulator[key] = "";
           }
-          return acc;
+
+          return accumulator;
         },
-        {} as Record<keyof FormFields, string>,
+        {},
       ),
   );
 
@@ -175,36 +175,36 @@ export const EarlyAccessFormModal = ({
       open={open}
       onClose={onClose}
     >
-      <Box component="form" sx={{ px: 4.5, py: 3 }} onSubmit={submitValues}>
+      <Box component={"form"} sx={{ px: 4.5, py: 3 }} onSubmit={submitValues}>
         {typedEntries(formFields).map(([key, metadata]) => {
           return (
             <Input
               key={key}
               {...metadata}
+              value={formState[key]}
               onChange={(value) =>
-                setFormState((currentState) => ({
+                { setFormState((currentState) => ({
                   ...currentState,
                   [key]: value,
-                }))
+                })); }
               }
-              value={formState[key]}
             />
           );
         })}
-        <Stack direction="row" mt={3} mb={2}>
+        <Stack direction={"row"} mt={3} mb={2}>
           <Button
             disabled={!allValuesPresent || pending}
-            size="small"
-            type="submit"
+            size={"small"}
+            type={"submit"}
           >
             {pending ? "Submitting..." : "Submit answers"}
           </Button>
           <Button
-            size="small"
-            onClick={onClose}
+            size={"small"}
             sx={{ ml: 1.5 }}
-            type="button"
-            variant="tertiary"
+            type={"button"}
+            variant={"tertiary"}
+            onClick={onClose}
           >
             Discard
           </Button>

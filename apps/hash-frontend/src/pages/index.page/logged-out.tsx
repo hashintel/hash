@@ -2,6 +2,7 @@ import { ArrowRightIconRegular } from "@hashintel/design-system";
 import { Box } from "@mui/material";
 
 import { Button } from "../../shared/ui/button";
+
 import { FollowUsButton } from "./shared/follow-us-button";
 import { GuideCard } from "./shared/guide-card";
 import { HomepageCard } from "./shared/homepage-card";
@@ -16,7 +17,7 @@ export const LoggedOut = () => {
         <HomepageBigText>
           You are{" "}
           <Box
-            component="span"
+            component={"span"}
             sx={{ color: ({ palette }) => palette.blue[70] }}
           >
             not yet
@@ -26,16 +27,16 @@ export const LoggedOut = () => {
         <HomepageSmallCaps>
           Sign up
           <Box
-            component="span"
+            component={"span"}
             sx={{ color: ({ palette }) => palette.blue[70], ml: 0.7 }}
           >
             for access
           </Box>
         </HomepageSmallCaps>
         <Button
-          href="/signup"
-          variant="primary"
-          size="small"
+          href={"/signup"}
+          variant={"primary"}
+          size={"small"}
           sx={{ borderRadius: 2 }}
         >
           Create an account
@@ -45,12 +46,12 @@ export const LoggedOut = () => {
       <HomepageCard wide>
         <HomepageBigText>
           <Box
-            component="span"
+            component={"span"}
             sx={{ color: ({ palette }) => palette.teal[60] }}
           >
             See videos
           </Box>
-          <Box component="span" sx={{ fontWeight: 400, ml: 1 }}>
+          <Box component={"span"} sx={{ fontWeight: 400, ml: 1 }}>
             of
           </Box>
         </HomepageBigText>

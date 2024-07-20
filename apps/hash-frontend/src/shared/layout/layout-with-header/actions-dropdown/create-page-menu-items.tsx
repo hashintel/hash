@@ -1,6 +1,6 @@
-import { ListItemIcon, ListItemText } from "@mui/material";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { useCallback, useState } from "react";
+import { ListItemIcon, ListItemText } from "@mui/material";
 
 import { useAccountPages } from "../../../../components/hooks/use-account-pages";
 import { useCreatePage } from "../../../../components/hooks/use-create-page";
@@ -36,9 +36,9 @@ export const CreatePageMenuItems = ({ onClick }: { onClick: () => void }) => {
       setLoading(true);
       try {
         await createUntitledPage(lastRootPageIndex, type);
-      } catch (err) {
-        // eslint-disable-next-line no-console -- TODO: consider using logger
-        console.error("Could not create page: ", err);
+      } catch (error) {
+         
+        console.error("Could not create page: ", error);
       } finally {
         popupState.close();
         setLoading(false);
@@ -61,7 +61,7 @@ export const CreatePageMenuItems = ({ onClick }: { onClick: () => void }) => {
           <ListItemIcon>
             <CanvasIcon />
           </ListItemIcon>
-          <ListItemText primary="Canvas" />
+          <ListItemText primary={"Canvas"} />
         </MenuItem>
       ) : null}
       {enabledFeatureFlags.documents ? (
@@ -74,7 +74,7 @@ export const CreatePageMenuItems = ({ onClick }: { onClick: () => void }) => {
           <ListItemIcon>
             <FilesLinesRegularIcon />
           </ListItemIcon>
-          <ListItemText primary="Document" />
+          <ListItemText primary={"Document"} />
         </MenuItem>
       ) : null}
     </>

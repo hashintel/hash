@@ -1,13 +1,10 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
-import { validateVersionedUrl } from "@blockprotocol/type-system";
-import { Container, Paper, Typography } from "@mui/material";
 import { useRouter } from "next/router";
-import type { FunctionComponent, PropsWithChildren } from "react";
-import { useContext, useMemo } from "react";
+import type { FunctionComponent, PropsWithChildren , useContext, useMemo } from "react";
+import type { validateVersionedUrl,VersionedUrl  } from "@blockprotocol/type-system";
+import { Container, Paper, Typography } from "@mui/material";
 
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import type { NextPageWithLayout } from "../../shared/layout";
-import { getLayoutWithSidebar } from "../../shared/layout";
+import type { getLayoutWithSidebar,NextPageWithLayout  } from "../../shared/layout";
 import { Link } from "../../shared/ui/link";
 import { useUserPermissionsOnEntityType } from "../../shared/use-user-permissions-on-entity-type";
 import { CreateEntityPage } from "../[shortname]/entities/[entity-uuid].page/create-entity-page";
@@ -39,7 +36,7 @@ const CreateEntityError: FunctionComponent<
           width: "fit-content",
         }}
       >
-        <Typography variant="h3" gutterBottom textAlign="center">
+        <Typography gutterBottom variant={"h3"} textAlign={"center"}>
           Cannot create an entity of type{" "}
           <strong>{linkEntityType?.schema.title}</strong>
         </Typography>
@@ -91,7 +88,7 @@ const Page: NextPageWithLayout = () => {
           entityTypeId?.type === "Ok" ? entityTypeId.inner : undefined
         }
       >
-        <Typography textAlign="center">
+        <Typography textAlign={"center"}>
           Create links by editing the entity that you want to link from.
         </Typography>
       </CreateEntityError>
@@ -105,11 +102,11 @@ const Page: NextPageWithLayout = () => {
           entityTypeId?.type === "Ok" ? entityTypeId.inner : undefined
         }
       >
-        <Typography textAlign="center">
+        <Typography textAlign={"center"}>
           You don't have permission to create entities of this type.
         </Typography>
-        <Typography textAlign="center" mt={2}>
-          Go back and <Link href="/new/entity">select another type</Link>
+        <Typography textAlign={"center"} mt={2}>
+          Go back and <Link href={"/new/entity"}>select another type</Link>
         </Typography>
       </CreateEntityError>
     );

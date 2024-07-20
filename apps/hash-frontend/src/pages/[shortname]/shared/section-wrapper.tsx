@@ -1,5 +1,5 @@
-import { Box, Tooltip, Typography } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
+import { Box, Tooltip, Typography } from "@mui/material";
 
 import { CircleInfoIcon } from "../../../shared/icons/circle-info-icon";
 
@@ -21,12 +21,12 @@ export const SectionWrapper: FunctionComponent<SectionWrapperProps> = ({
   tooltipIcon,
 }) => (
   <Box>
-    <Box mb={2} display="flex" alignItems="center" gap={1.5} flexWrap="wrap">
-      <Box display="flex" alignItems="center">
-        <Typography variant="h5">{title}</Typography>
+    <Box mb={2} display={"flex"} alignItems={"center"} gap={1.5} flexWrap={"wrap"}>
+      <Box display={"flex"} alignItems={"center"}>
+        <Typography variant={"h5"}>{title}</Typography>
 
         {titleTooltip && (
-          <Tooltip title={titleTooltip} placement="top">
+          <Tooltip title={titleTooltip} placement={"top"}>
             <Box
               sx={{
                 display: "flex",
@@ -36,7 +36,7 @@ export const SectionWrapper: FunctionComponent<SectionWrapperProps> = ({
                 fontSize: 14,
               }}
             >
-              {tooltipIcon ?? <CircleInfoIcon fontSize="inherit" />}
+              {tooltipIcon ?? <CircleInfoIcon fontSize={"inherit"} />}
             </Box>
           </Tooltip>
         )}

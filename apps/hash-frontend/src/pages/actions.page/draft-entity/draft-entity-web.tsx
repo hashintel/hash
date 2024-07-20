@@ -1,7 +1,6 @@
+import type { FunctionComponent , useMemo } from "react";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
-import type { FunctionComponent } from "react";
-import { useMemo } from "react";
 
 import { useOrgs } from "../../../components/hooks/use-orgs";
 import { useUsers } from "../../../components/hooks/use-users";
@@ -9,6 +8,7 @@ import { UserIcon } from "../../../shared/icons/user-icon";
 import { UsersRegularIcon } from "../../../shared/icons/users-regular-icon";
 import { Link } from "../../../shared/ui";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
+
 import { DraftEntityChip } from "./draft-entity-chip";
 
 export const DraftEntityWeb: FunctionComponent<{ entity: Entity }> = ({

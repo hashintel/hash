@@ -1,3 +1,4 @@
+import type { Edge, Node } from "reactflow";
 import type {
   ActionDefinition,
   ActionStepDefinition,
@@ -9,11 +10,10 @@ import type {
   StepGroup,
   StepProgressLog,
 } from "@local/hash-isomorphic-utils/flows/types";
-import type { Edge, Node } from "reactflow";
 
 import type { SimpleStatus } from "../../../../shared/flow-runs-context";
 
-export type NodeData = {
+export interface NodeData {
   kind: StepDefinition["kind"];
   groupId?: number;
   actionDefinition?: ActionDefinition | null;
@@ -22,36 +22,36 @@ export type NodeData = {
     | ActionStepDefinition["inputSources"]
     | ActionStepWithParallelInput["inputSources"]
     | ParallelGroupStepDefinition["inputSourceToParallelizeOn"][];
-};
+}
 
 export type CustomNodeType = Node<NodeData>;
 
-export type EdgeData = { sourceStatus: SimpleStatus };
+export interface EdgeData { sourceStatus: SimpleStatus }
 
 export type CustomEdgeType = Edge<EdgeData>;
 
-export type EdgesAndNodes = {
+export interface EdgesAndNodes {
   edges: CustomEdgeType[];
   nodes: CustomNodeType[];
-};
+}
 
 export type GroupWithEdgesAndNodes = {
   group: StepGroup;
 } & EdgesAndNodes;
 
-export type MultiGroupFlow = {
+export interface MultiGroupFlow {
   type: "grouped";
   groups: GroupWithEdgesAndNodes[];
-};
+}
 
 export type UngroupedEdgesAndNodes = {
   group: null;
 } & EdgesAndNodes;
 
-export type SingleGroupFlow = {
+export interface SingleGroupFlow {
   type: "ungrouped";
   groups: [UngroupedEdgesAndNodes];
-};
+}
 
 export type FlowMaybeGrouped = SingleGroupFlow | MultiGroupFlow;
 

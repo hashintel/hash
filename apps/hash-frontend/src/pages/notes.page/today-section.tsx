@@ -1,13 +1,14 @@
+import { format } from "date-fns";
+import { forwardRef, Fragment, useMemo, useState } from "react";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Collapse, Divider } from "@mui/material";
-import { format } from "date-fns";
-import { forwardRef, Fragment, useMemo, useState } from "react";
 
 import {
   getBlockCollectionContents,
   isBlockCollectionContentsEmpty,
 } from "../shared/block-collection-contents";
+
 import { CreateQuickNote } from "./create-quick-note";
 import { EditableQuickNote } from "./editable-quick-note";
 import { NotesSectionWrapper } from "./notes-section-wrapper";
@@ -58,6 +59,7 @@ export const TodaySection = forwardRef<
       if (isBlockCollectionContentsEmpty({ contents })) {
         return latestQuickNoteEntity;
       }
+
       return null;
     }, [quickNoteEntities, quickNotesSubgraph]);
 
@@ -82,10 +84,10 @@ export const TodaySection = forwardRef<
     return (
       <NotesSectionWrapper ref={ref}>
         <TimestampColumn
-          heading="Today"
+          heading={"Today"}
           subheading={format(new Date(), "yyyy-MM-dd")}
           isCollapsed={isCollapsed}
-          toggleIsCollapsed={() => setIsCollapsed(!isCollapsed)}
+          toggleIsCollapsed={() => { setIsCollapsed(!isCollapsed); }}
           navigateDown={navigateDown}
         />
         <Box flexGrow={1}>
@@ -102,12 +104,12 @@ export const TodaySection = forwardRef<
             */}
             <CreateQuickNote
               initialQuickNoteEntity={latestQuickNoteEntityWithEmptyContents}
+              refetchQuickNotes={refetchQuickNotes}
               initialQuickNoteEntitySubgraph={
                 latestQuickNoteEntityWithEmptyContents && quickNotesSubgraph
                   ? quickNotesSubgraph
                   : undefined
               }
-              refetchQuickNotes={refetchQuickNotes}
               onCreatingQuickNote={setCreatingQuickNote}
             />
             {/* @todo: add these chips when they do something specific to the note */}

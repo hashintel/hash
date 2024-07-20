@@ -1,16 +1,16 @@
-import type { BlockMetadata, UnknownRecord } from "@blockprotocol/core";
 import type { FunctionComponent, ReactElement } from "react";
+import type { BlockMetadata, UnknownRecord } from "@blockprotocol/core";
 
 import { CustomElementLoader } from "./block-renderer/custom-element";
 import { HtmlLoader } from "./block-renderer/html";
 import type { UnknownBlock } from "./load-remote-block";
 
-type BlockRendererProps = {
+interface BlockRendererProps {
   blockSource: UnknownBlock;
   blockType: BlockMetadata["blockType"];
   properties: UnknownRecord;
   sourceUrl: string;
-};
+}
 
 export const BlockRenderer: FunctionComponent<BlockRendererProps> = ({
   blockSource,
@@ -24,25 +24,27 @@ export const BlockRenderer: FunctionComponent<BlockRendererProps> = ({
 
   if (entryPoint === "html") {
     if (typeof blockSource !== "string") {
-      throw new Error(
+      throw new TypeError(
         `'html' entryPoint expects source to be typeof 'string', but got: ${typeof blockSource}`,
       );
     }
+
     return <HtmlLoader html={{ source: blockSource, url: sourceUrl }} />;
-  } else if (entryPoint === "custom-element") {
+  } if (entryPoint === "custom-element") {
     if (
       typeof blockSource === "string" ||
       !(blockSource.prototype instanceof HTMLElement)
     ) {
-      throw new Error(
+      throw new TypeError(
         `'custom-element' entryPoint expects parsed source to have 'HTMLElement' as prototype`,
       );
     }
     if (typeof blockType.tagName !== "string") {
-      throw new Error(
+      throw new TypeError(
         `Must provide blockType.tagName when entryPoint is 'custom-element'`,
       );
     }
+
     return (
       <CustomElementLoader
         properties={properties}
@@ -51,13 +53,14 @@ export const BlockRenderer: FunctionComponent<BlockRendererProps> = ({
       />
     );
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
-  } else if (entryPoint === "react") {
+  } if (entryPoint === "react") {
     if (typeof blockSource !== "function") {
-      throw new Error(
+      throw new TypeError(
         `'react' entryPoint expects parsed source to be a function, but got: ${typeof blockSource}`,
       );
     }
     const BlockComponent = blockSource as (...props: unknown[]) => ReactElement;
+
     return <BlockComponent {...properties} />;
   }
 

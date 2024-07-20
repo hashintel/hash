@@ -1,3 +1,5 @@
+import type { FunctionComponent , useCallback, useState } from "react";
+import { Controller, FormProvider, useForm } from "react-hook-form";
 import { useMutation } from "@apollo/client";
 import { Select, TextField } from "@hashintel/design-system";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
@@ -9,9 +11,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ProfileURLPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Box } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useCallback, useState } from "react";
-import { Controller, FormProvider, useForm } from "react-hook-form";
 
 import { useBlockProtocolArchiveEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";
 import { useBlockProtocolCreateEntity } from "../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
@@ -27,23 +26,24 @@ import type {
   UserServiceAccount,
 } from "../../../lib/user-and-org";
 import { Button, MenuItem } from "../../../shared/ui";
+
 import { ServiceAccountsInput } from "./service-accounts-input";
 import { urlRegex } from "./util";
 
-export type UserProfileFormServiceAccount = {
+export interface UserProfileFormServiceAccount {
   existingLinkEntity?: LinkEntity;
   existingServiceAccountEntity?: Entity;
   kind: ServiceAccountKind;
   profileUrl: string;
-};
+}
 
-export type UserProfileFormData = {
+export interface UserProfileFormData {
   displayName: string;
   location?: string;
   websiteUrl?: string;
   preferredPronouns?: string;
   serviceAccounts: UserProfileFormServiceAccount[];
-};
+}
 
 export const UserProfileInfoForm: FunctionComponent<{
   userProfile: User;
@@ -141,6 +141,7 @@ export const UserProfileInfoForm: FunctionComponent<{
       const {
         serviceAccount: { existingServiceAccountEntity, profileUrl },
       } = params;
+
       await updateEntity({
         variables: {
           entityUpdate: {
@@ -244,7 +245,7 @@ export const UserProfileInfoForm: FunctionComponent<{
         ),
         serviceAccountsToReplace.map(
           async (serviceAccount) =>
-            await Promise.all([
+            Promise.all([
               removeServiceAccount({
                 serviceAccount: {
                   ...serviceAccount,
@@ -298,36 +299,36 @@ export const UserProfileInfoForm: FunctionComponent<{
 
   return (
     <Box
-      component="form"
-      onSubmit={innerSubmit}
+      component={"form"}
       sx={{
         marginTop: 2,
         "> :not(:last-child)": {
           marginBottom: 3,
         },
       }}
+      onSubmit={innerSubmit}
     >
       <FormProvider {...formMethods}>
         <TextField
-          id="name"
           fullWidth
-          label="Preferred name"
-          placeholder="Enter your preferred name"
           required
-          error={touchedFields.displayName && !!errors.displayName}
+          id={"name"}
+          label={"Preferred name"}
+          placeholder={"Enter your preferred name"}
+          error={touchedFields.displayName && Boolean(errors.displayName)}
           {...register("displayName", { required: true })}
         />
         <TextField
           fullWidth
-          label="Location"
-          placeholder="Enter your current city/location"
+          label={"Location"}
+          placeholder={"Enter your current city/location"}
           {...register("location")}
         />
         <TextField
           fullWidth
-          label="Website URL"
-          placeholder="Enter a website, e.g. https://example.com/"
-          error={touchedFields.websiteUrl && !!errors.websiteUrl}
+          label={"Website URL"}
+          placeholder={"Enter a website, e.g. https://example.com/"}
+          error={touchedFields.websiteUrl && Boolean(errors.websiteUrl)}
           {...register("websiteUrl", {
             pattern: {
               value: urlRegex,
@@ -337,18 +338,18 @@ export const UserProfileInfoForm: FunctionComponent<{
         />
         <Controller
           control={control}
-          name="preferredPronouns"
-          defaultValue=""
+          name={"preferredPronouns"}
+          defaultValue={""}
           render={({ field }) => (
             <Select
               {...field}
-              label="Preferred pronouns"
               displayEmpty
-              placeholder="Select pronouns (he/him, she/her, they/them)"
+              label={"Preferred pronouns"}
+              placeholder={"Select pronouns (he/him, she/her, they/them)"}
               renderValue={(selected) =>
                 selected === "" ? (
                   <Box
-                    component="span"
+                    component={"span"}
                     sx={{
                       color: ({ palette }) => palette.gray[50],
                     }}
@@ -360,19 +361,19 @@ export const UserProfileInfoForm: FunctionComponent<{
                 )
               }
             >
-              <MenuItem value="">None</MenuItem>
-              <MenuItem value="he/him">he/him</MenuItem>
-              <MenuItem value="she/her">she/her</MenuItem>
-              <MenuItem value="they/them">they/them</MenuItem>
+              <MenuItem value={""}>None</MenuItem>
+              <MenuItem value={"he/him"}>he/him</MenuItem>
+              <MenuItem value={"she/her"}>she/her</MenuItem>
+              <MenuItem value={"they/them"}>they/them</MenuItem>
             </Select>
           )}
         />
         <ServiceAccountsInput />
-        <Box display="flex" columnGap={1.5}>
-          <Button type="submit" loading={loading} disabled={isSubmitDisabled}>
+        <Box display={"flex"} columnGap={1.5}>
+          <Button type={"submit"} loading={loading} disabled={isSubmitDisabled}>
             Save changes
           </Button>
-          <Button variant="tertiary" onClick={handleDiscard}>
+          <Button variant={"tertiary"} onClick={handleDiscard}>
             {Object.keys(dirtyFields).length === 0 ? "Cancel" : "Discard"}
           </Button>
         </Box>

@@ -6,7 +6,7 @@ export const isTopWindow = () => {
   }
 };
 
-export type CustomElementDefinition = {
+export interface CustomElementDefinition {
   elementClass: typeof HTMLElement;
   tagName: string;
-};
+}

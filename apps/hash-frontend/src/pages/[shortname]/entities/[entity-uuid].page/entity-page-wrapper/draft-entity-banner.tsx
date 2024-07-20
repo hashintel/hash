@@ -1,14 +1,12 @@
+import { useRouter } from "next/router";
+import type { FunctionComponent , useCallback } from "react";
 import { FeatherRegularIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Container, Typography } from "@mui/material";
-import { useRouter } from "next/router";
-import type { FunctionComponent } from "react";
-import { useCallback } from "react";
 
-import type { ButtonProps } from "../../../../../shared/ui";
-import { Link } from "../../../../../shared/ui";
+import type { ButtonProps , Link } from "../../../../../shared/ui";
 import { AcceptDraftEntityButton } from "../../../../shared/accept-draft-entity-button";
 import { DiscardDraftEntityButton } from "../../../../shared/discard-draft-entity-button";
 
@@ -52,7 +50,7 @@ export const DraftEntityBanner: FunctionComponent<{
   }, [router]);
 
   const isUpdate =
-    !!draftEntity.metadata.provenance.firstNonDraftCreatedAtDecisionTime;
+    Boolean(draftEntity.metadata.provenance.firstNonDraftCreatedAtDecisionTime);
 
   return (
     <Box
@@ -95,14 +93,14 @@ export const DraftEntityBanner: FunctionComponent<{
           </strong>
           {isUpdate && (
             <>
-              <Box component="span"> –</Box>
+              <Box component={"span"}> –</Box>
               <Link
+                sx={{ fontWeight: 600, ml: 0.5 }}
                 href={generateEntityPath({
                   entityId: draftEntity.metadata.recordId.entityId,
                   includeDraftId: false,
                   shortname: owningShortname,
                 })}
-                sx={{ fontWeight: 600, ml: 0.5 }}
               >
                 view live version
               </Link>
@@ -114,22 +112,22 @@ export const DraftEntityBanner: FunctionComponent<{
             Save or discard changes to the draft before deciding its fate
           </Typography>
         ) : (
-          <Box display="flex" gap={1.5}>
+          <Box display={"flex"} gap={1.5}>
             <DiscardDraftEntityButton
               draftEntity={draftEntity}
               draftEntitySubgraph={draftEntitySubgraph}
-              onDiscardedEntity={handleDiscardedEntity}
-              variant="secondary"
+              variant={"secondary"}
               sx={buttonSx}
+              onDiscardedEntity={handleDiscardedEntity}
             >
               Discard draft
             </DiscardDraftEntityButton>
             <AcceptDraftEntityButton
               draftEntity={draftEntity}
               draftEntitySubgraph={draftEntitySubgraph}
-              onAcceptedEntity={onAcceptedEntity}
-              variant="secondary"
+              variant={"secondary"}
               sx={buttonSx}
+              onAcceptedEntity={onAcceptedEntity}
             >
               {isUpdate
                 ? "Publish changes"

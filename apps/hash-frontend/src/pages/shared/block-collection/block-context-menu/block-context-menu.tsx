@@ -1,3 +1,7 @@
+import { bindMenu } from "material-ui-popup-state";
+import type { PopupState } from "material-ui-popup-state/hooks";
+import type { forwardRef, ForwardRefRenderFunction , useMemo, useRef, useState } from "react";
+import { useKey } from "rooks";
 import {
   faCopy,
   faMessage,
@@ -17,11 +21,6 @@ import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import type { DraftEntity } from "@local/hash-isomorphic-utils/entity-store";
 import { blockProtocolLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { Box, Divider, Menu, Typography } from "@mui/material";
-import { bindMenu } from "material-ui-popup-state";
-import type { PopupState } from "material-ui-popup-state/hooks";
-import type { ForwardRefRenderFunction } from "react";
-import { forwardRef, useMemo, useRef, useState } from "react";
-import { useKey } from "rooks";
 
 import { useFetchBlockSubgraph } from "../../../../blocks/use-fetch-block-subgraph";
 import { useUserBlocks } from "../../../../blocks/user-blocks";
@@ -30,19 +29,20 @@ import { getBlockDomId } from "../../../../shared/get-block-dom-id";
 import { ChartNetworkRegularIcon } from "../../../../shared/icons/chart-network-regular-icon";
 import { EditEntitySlideOver } from "../../../[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
 import { useBlockContext } from "../block-context";
+
 import { BlockContextMenuItem } from "./block-context-menu-item";
 import { BlockListMenuContent } from "./block-list-menu-content";
 import { BlockLoaderInput } from "./block-loader-input";
 import { BlockSelectDataModal } from "./block-select-data-modal";
 import { LoadEntityMenuContent } from "./load-entity-menu-content";
 
-type BlockContextMenuProps = {
+interface BlockContextMenuProps {
   blockEntity: DraftEntity | BlockEntity | null;
   deleteBlock: () => void;
   openConfigMenu: () => void;
   popupState: PopupState;
   canSwap: boolean;
-};
+}
 
 const BlockContextMenu: ForwardRefRenderFunction<
   HTMLDivElement,
@@ -94,8 +94,8 @@ const BlockContextMenu: ForwardRefRenderFunction<
 
   const menuItems = useMemo(() => {
     /**
-     * @todo properly type this part of the DraftEntity type
      * @see https://linear.app/hash/issue/H-3000
+     * @todo Properly type this part of the DraftEntity type.
      */
     const hasChildEntityWithData =
       Object.keys(blockEntity?.blockChildEntity?.properties ?? []).length > 0;
@@ -109,6 +109,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
               subMenu: (
                 <LoadEntityMenuContent
                   blockEntityId={entityId}
+                  closeParentContextMenu={() => { popupState.close(); }}
                   childEntityEntityTypeId={
                     blockEntity?.blockChildEntity?.metadata.entityTypeId ?? null
                   }
@@ -116,7 +117,6 @@ const BlockContextMenu: ForwardRefRenderFunction<
                     blockEntity?.blockChildEntity?.metadata.recordId.entityId ??
                     null
                   }
-                  closeParentContextMenu={() => popupState.close()}
                 />
               ),
               subMenuWidth: 280,
@@ -129,7 +129,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
               key: "select-data",
               title: "Select Data",
               icon: <ChartNetworkRegularIcon />,
-              onClick: () => setBlockSelectDataModalIsOpen(true),
+              onClick: () => { setBlockSelectDataModalIsOpen(true); },
             },
           ]
         : []),
@@ -139,6 +139,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
         icon: <FontAwesomeIcon icon={faLink} />,
         onClick: () => {
           const url = new URL(document.location.href);
+
           url.hash = getBlockDomId((entityId ?? undefined)!);
           void navigator.clipboard.writeText(url.toString());
         },
@@ -147,13 +148,13 @@ const BlockContextMenu: ForwardRefRenderFunction<
         key: "edit-block",
         title: "Edit Block",
         icon: <FontAwesomeIcon icon={faPenToSquare} />,
-        onClick: () => setEntityEditorOpen(true),
+        onClick: () => { setEntityEditorOpen(true); },
       },
       {
         key: "configure",
         title: "Configure",
         icon: <FontAwesomeIcon icon={faGear} />,
-        onClick: () => openConfigMenu(),
+        onClick: () => { openConfigMenu(); },
       },
       {
         key: "duplicate",
@@ -244,23 +245,24 @@ const BlockContextMenu: ForwardRefRenderFunction<
       {blockSchemaHasHasQueryLink ? (
         <BlockSelectDataModal
           open={blockSelectDataModalIsOpen}
-          onClose={() => setBlockSelectDataModalIsOpen(false)}
+          onClose={() => { setBlockSelectDataModalIsOpen(false); }}
         />
       ) : null}
       {blockSubgraph && (
         <EditEntitySlideOver
           open={entityEditorOpen}
-          onClose={() => setEntityEditorOpen(false)}
           entitySubgraph={
-            /** @todo add timeProjection & resolvedTimeProjection properly */
+            /** @todo Add timeProjection & resolvedTimeProjection properly */
             blockSubgraph
           }
+          onClose={() => { setEntityEditorOpen(false); }}
           onSubmit={handleEntityModalSubmit}
         />
       )}
       <Menu
         {...bindMenu(popupState)}
         ref={ref}
+        data-testid={"block-context-menu"}
         anchorOrigin={{
           horizontal: "left",
           vertical: "bottom",
@@ -274,10 +276,9 @@ const BlockContextMenu: ForwardRefRenderFunction<
             width: 228,
           },
         }}
-        data-testid="block-context-menu"
       >
-        <Box component="li" px={2} pt={1.5} mb={1}>
-          <BlockLoaderInput onLoad={() => popupState.close()} />
+        <Box component={"li"} px={2} pt={1.5} mb={1}>
+          <BlockLoaderInput onLoad={() => { popupState.close(); }} />
         </Box>
 
         {menuItems.map(
@@ -295,6 +296,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
             }
 
             let menuItemRef;
+
             if (key === "set-entity") {
               menuItemRef = setEntityMenuItemRef;
             }
@@ -312,13 +314,13 @@ const BlockContextMenu: ForwardRefRenderFunction<
                 title={title}
                 itemKey={key}
                 icon={icon}
-                closeMenu={() => popupState.close()}
+                closeMenu={() => { popupState.close(); }}
+                subMenu={subMenu}
+                subMenuWidth={subMenuWidth}
                 onClick={() => {
                   onClick?.();
                   popupState.close();
                 }}
-                subMenu={subMenu}
-                subMenuWidth={subMenuWidth}
                 {...(menuItemRef && { ref: menuItemRef })}
               />
             );
@@ -328,7 +330,7 @@ const BlockContextMenu: ForwardRefRenderFunction<
         <Divider />
         <Box px={1.75} pt={1.25} pb={1.5}>
           <Typography
-            variant="microText"
+            variant={"microText"}
             sx={({ palette }) => ({
               color: palette.gray[60],
               display: "block",
@@ -336,8 +338,8 @@ const BlockContextMenu: ForwardRefRenderFunction<
           >
             Last edited by
             {/**
-             * @todo re-implement when provenance fields are made available to the frontend
              * @see https://linear.app/hash/issue/H-3001
+             * @todo Re-implement when provenance fields are made available to the frontend.
              */}
             {/* {
             users?.find(
@@ -348,8 +350,8 @@ const BlockContextMenu: ForwardRefRenderFunction<
           } */}
           </Typography>
           {/**
-           * @todo re-implement after collab works
            * @see https://linear.app/hash/issue/H-3000
+           * @todo Re-implement after collab works.
            */}
           {/* {typeof blockEntity?.properties.entity.updatedAt === "string" && (
             <Typography

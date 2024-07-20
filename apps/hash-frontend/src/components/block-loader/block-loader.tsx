@@ -1,3 +1,13 @@
+import {
+  type FunctionComponent,
+  useCallback,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type {
   BlockGraphProperties,
   GraphEmbedderMessageCallbacks,
@@ -12,30 +22,19 @@ import type {
   PropertyObject,
 } from "@local/hash-graph-types/entity";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
-import type { EntityStore } from "@local/hash-isomorphic-utils/entity-store";
 import {
+  type EntityStore,
   getDraftEntityByEntityId,
   textualContentPropertyTypeBaseUrl,
 } from "@local/hash-isomorphic-utils/entity-store";
 import type { TextualContentPropertyValue } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
-import type {
-  EntityRevisionId,
-  EntityRootType,
-  EntityVertex,
-  Subgraph,
-} from "@local/hash-subgraph";
-import { extractOwnedByIdFromEntityId, isEntityId } from "@local/hash-subgraph";
-import type { FunctionComponent } from "react";
 import {
-  useCallback,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+  type EntityRevisionId,
+  type EntityRootType,
+  type EntityVertex,
+  extractOwnedByIdFromEntityId, isEntityId, type Subgraph
+} from "@local/hash-subgraph";
 
 import { useBlockLoadedContext } from "../../blocks/on-block-loaded";
 import { useFetchBlockSubgraph } from "../../blocks/use-fetch-block-subgraph";
@@ -53,11 +52,11 @@ import { useBlockProtocolFileUpload } from "../hooks/block-protocol-functions/kn
 import { useBlockProtocolGetEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
 import { useBlockProtocolQueryEntities } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
 import { useBlockProtocolUpdateEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
-import type { RemoteBlockProps } from "../remote-block/remote-block";
-import { RemoteBlock } from "../remote-block/remote-block";
+import { RemoteBlock, type RemoteBlockProps } from "../remote-block/remote-block";
+
 import { fetchEmbedCode } from "./fetch-embed-code";
 
-export type BlockLoaderProps = {
+export interface BlockLoaderProps {
   blockCollectionSubgraph?: Subgraph<EntityRootType>;
   blockEntityId?: EntityId; // @todo make this always defined
   blockEntityTypeId: VersionedUrl;
@@ -74,7 +73,7 @@ export type BlockLoaderProps = {
   wrappingEntityId: string;
   readonly: boolean;
   // shouldSandbox?: boolean;
-};
+}
 
 /**
  * Text fields use a `textual-content` property, with a value of either `Text` (a string)
@@ -105,8 +104,8 @@ const rewrittenPropertiesForTextualContent = (properties: PropertyObject) => {
 // const sandboxingEnabled = !!process.env.NEXT_PUBLIC_SANDBOX;
 
 /**
- * Converts API data to Block Protocol-formatted data (e.g. entities, links),
- * and passes the correctly formatted data to RemoteBlock, along with message callbacks
+ * Converts API data to Block Protocol-formatted data (e.g. Entities, links),
+ * and passes the correctly formatted data to RemoteBlock, along with message callbacks.
  */
 export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
   blockCollectionSubgraph,
@@ -158,7 +157,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
    *    - to ensure these changes are reflected in the block immediately, we replace any newer draft entities here
    *    - the better solution would be a single client-side entity store all components take their data from – see H-1351
    *      only the central store would deal with the API, and everything else would get the latest locally-held entities automatically
-   * 2. Where the block entity has a textual-content property, ensure it is sent as a plain string, not our rich text representation
+   * 2. Where the block entity has a textual-content property, ensure it is sent as a plain string, not our rich text representation.
    */
   const blockSubgraph = useMemo(() => {
     let subgraphToRewrite = possiblyStaleSubgraph;
@@ -179,6 +178,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
          * This data is only used briefly – we fetch the block's subgraph from the API further on this effect.
          */
         const latestEditionId = Object.keys(entityEditionMap).sort().pop()!;
+
         subgraphToRewrite = {
           ...blockCollectionSubgraph,
           roots: [
@@ -198,9 +198,9 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
 
     /**
      * The block subgraph should have a single root: the block entity. We'll default to the API-provided one,
-     * but might need to replace it if there's a later version in the entity store, since the version is part of the root identifier
+     * but might need to replace it if there's a later version in the entity store, since the version is part of the root identifier.
      */
-    let roots: Subgraph<EntityRootType>["roots"] = subgraphToRewrite.roots;
+    let { roots } = subgraphToRewrite;
 
     const newVertices: Subgraph<EntityRootType>["vertices"] = {};
 
@@ -313,8 +313,8 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
               properties: isBlockEntity
                 ? entityInStore.properties
                 : rewrittenPropertiesForTextualContent(
-                    entityInStore.properties,
-                  ),
+                  entityInStore.properties,
+                ),
               linkData: entityInStore.linkData,
             }),
           } satisfies EntityVertex,
@@ -360,7 +360,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     useState<boolean>(false);
 
   /**
-   * Fetch the block's subgraph and permissions on load and when the block's entityId changes
+   * Fetch the block's subgraph and permissions on load and when the block's entityId changes.
    */
   useEffect(() => {
     if (
@@ -419,8 +419,8 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     () => ({
       queryEntities,
       /**
-       * @todo remove this when embed block no longer relies on server-side oEmbed calls
        * @see https://linear.app/hash/issue/H-2996
+       * @todo Remove this when embed block no longer relies on server-side oEmbed calls.
        */
       getEmbedBlock: fetchEmbedCode,
       createEntity: async (
@@ -519,20 +519,18 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     () =>
       blockSubgraph
         ? {
-            readonly:
-              readonly || // is the entire page readonly?
-              /**
-               * If we have a blockEntityId, check if the user lacks edit permissions on the block entity.
-               * If we don't have a blockEntityId or userPermissions, this is a newly created entity which the user should have edit permissions on.
-               */
-              !!(
-                blockEntityId &&
-                userPermissions?.[blockEntityId] &&
-                !userPermissions[blockEntityId].edit
-              ),
-            blockEntitySubgraph:
-              blockSubgraph as unknown as BpSubgraph<EntityRootType>,
-          }
+          readonly:
+            readonly || // is the entire page readonly?
+            /**
+             * If we have a blockEntityId, check if the user lacks edit permissions on the block entity.
+             * If we don't have a blockEntityId or userPermissions, this is a newly created entity which the user should have edit permissions on.
+             */
+            Boolean(blockEntityId &&
+              userPermissions?.[blockEntityId] &&
+              !userPermissions[blockEntityId].edit),
+          blockEntitySubgraph:
+            blockSubgraph as unknown as BpSubgraph<EntityRootType>,
+        }
         : null,
     [blockEntityId, blockSubgraph, readonly, userPermissions],
   );

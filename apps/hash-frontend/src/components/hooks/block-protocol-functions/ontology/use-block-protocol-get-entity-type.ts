@@ -1,13 +1,14 @@
+import { useCallback } from "react";
 import { useLazyQuery } from "@apollo/client";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import type { EntityTypeRootType } from "@local/hash-subgraph";
-import { useCallback } from "react";
 
 import type {
   GetEntityTypeQuery,
   GetEntityTypeQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import { getEntityTypeQuery } from "../../../../graphql/queries/ontology/entity-type.queries";
+
 import type { GetEntityTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolGetEntityType = (): {
@@ -21,7 +22,7 @@ export const useBlockProtocolGetEntityType = (): {
        * However, currently requests for non-existent entity types currently return an empty subgraph, so
        * we can't rely on this.
        *
-       * @todo revert this back to cache-first once that's fixed
+       * @todo Revert this back to cache-first once that's fixed.
        */
       fetchPolicy: "network-only",
     },

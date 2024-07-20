@@ -1,7 +1,6 @@
-import { Box, Typography } from "@mui/material";
 import { useState } from "react";
-import type { HandleProps } from "reactflow";
-import { Handle as BaseHandle, Handle, Position, useEdges } from "reactflow";
+import type { Handle as BaseHandle, Handle, HandleProps , Position, useEdges } from "reactflow";
+import { Box, Typography } from "@mui/material";
 
 import { Modal } from "../../../../../../shared/ui/modal";
 import type { SimpleStatus } from "../../../../../shared/flow-runs-context";
@@ -9,12 +8,12 @@ import { nodeDimensions, nodeTabHeight } from "../../shared/dimensions";
 import type { NodeData } from "../../shared/types";
 import { edgeColor } from "../shared/edge-styles";
 
-type InputOrOutputBase = {
+interface InputOrOutputBase {
   array?: boolean;
   kind: "input" | "output";
   name: string;
   required?: boolean;
-};
+}
 
 type Input = InputOrOutputBase & {
   kind: "input";
@@ -41,7 +40,7 @@ const CustomHandle = ({
     source?.kind === "hardcoded" ? source.payload.value : null;
 
   return (
-    <Box className="nodrag" sx={{ cursor: "pointer" }}>
+    <Box className={"nodrag"} sx={{ cursor: "pointer" }}>
       {!hardcodedValue && (
         <BaseHandle
           id={name}
@@ -57,7 +56,6 @@ const CustomHandle = ({
         />
       )}
       <Typography
-        onClick={onClick}
         sx={({ palette, transitions }) => ({
           fontSize: 12,
           position: "absolute",
@@ -72,6 +70,7 @@ const CustomHandle = ({
           },
           transition: transitions.create("border"),
         })}
+        onClick={onClick}
       >
         {name}
         {array ? "[]" : ""}
@@ -134,7 +133,7 @@ export const Handles = ({
 
   if (kind === "parallel-group") {
     /**
-     * A parallel group has no action definition, but does have inputSources
+     * A parallel group has no action definition, but does have inputSources.
      */
     for (const source of inputSources) {
       inputs.push({
@@ -158,9 +157,9 @@ export const Handles = ({
   if (!showAllDependencies) {
     return (
       <>
-        {!!inputs.length && (
+        {inputs.length > 0 && (
           <Handle
-            type="target"
+            type={"target"}
             position={Position.Left}
             style={{
               ...handleStyle,
@@ -169,9 +168,9 @@ export const Handles = ({
             }}
           />
         )}
-        {!hideOutputHandle && !!outputs.length && (
+        {!hideOutputHandle && outputs.length > 0 && (
           <Handle
-            type="source"
+            type={"source"}
             position={Position.Right}
             style={{ ...handleStyle, right: -6 }}
           />
@@ -183,7 +182,7 @@ export const Handles = ({
   return (
     <>
       {selectedProperty && (
-        <Modal open onClose={() => setSelectedProperty(null)}>
+        <Modal open onClose={() => { setSelectedProperty(null); }}>
           <Typography sx={{ fontWeight: 600 }}>
             {selectedProperty.name}
           </Typography>
@@ -194,9 +193,9 @@ export const Handles = ({
           <CustomHandle
             key={input.name}
             offset={index}
-            onClick={() => setSelectedProperty(input)}
-            type="target"
+            type={"target"}
             position={Position.Left}
+            onClick={() => { setSelectedProperty(input); }}
             {...input}
           />
         ))}
@@ -204,9 +203,9 @@ export const Handles = ({
           <CustomHandle
             key={output.name}
             offset={index}
-            onClick={() => setSelectedProperty(output)}
-            type="source"
+            type={"source"}
             position={Position.Right}
+            onClick={() => { setSelectedProperty(output); }}
             {...output}
           />
         ))}

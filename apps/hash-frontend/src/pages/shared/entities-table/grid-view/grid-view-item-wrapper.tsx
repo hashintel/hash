@@ -1,7 +1,5 @@
-import type { GridProps } from "@mui/material";
-import { Grid, useMediaQuery, useTheme } from "@mui/material";
-import type { FunctionComponent, PropsWithChildren } from "react";
-import { useMemo } from "react";
+import type { FunctionComponent, PropsWithChildren , useMemo } from "react";
+import type { Grid, GridProps , useMediaQuery, useTheme } from "@mui/material";
 
 export const GridViewItemWrapper: FunctionComponent<
   {
@@ -25,6 +23,7 @@ export const GridViewItemWrapper: FunctionComponent<
   }, [numberOfItems, numberOfItemsPerRow, index]);
 
   const isLastInRow = (index + 1) % numberOfItemsPerRow === 0;
+
   return (
     <Grid
       item

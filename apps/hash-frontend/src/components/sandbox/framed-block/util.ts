@@ -3,19 +3,20 @@ import { v4 as uuid } from "uuid";
 import type { MessageFromBlockFramer, MessageFromFramedBlock } from "../types";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type PromiseFn = (val: any) => void;
+type PromiseFn = (value: any) => void;
 
 const requestMap = new Map<string, { resolve: PromiseFn; reject: PromiseFn }>();
 
 export function sendMessage<T = unknown>(
   message: Omit<MessageFromFramedBlock, "requestId">,
-  origin: string = "*",
+  origin = "*",
 ) {
   const requestId = uuid();
   const promise = new Promise<T>((resolve, reject) => {
     requestMap.set(requestId, { resolve, reject });
 
     const timeout = 10_000;
+
     setTimeout(() => {
       reject(
         new Error(
@@ -27,8 +28,9 @@ export function sendMessage<T = unknown>(
     }, timeout);
   });
 
-  // eslint-disable-next-line no-restricted-globals
+   
   parent.window.postMessage({ ...message, requestId }, origin);
+
   return promise;
 }
 
@@ -37,6 +39,7 @@ export const settlePromiseFromResponse = (
 ) => {
   const { payload, requestId } = response;
   const promiseSettlerFns = requestMap.get(requestId);
+
   if (!promiseSettlerFns) {
     throw new Error(`Request with id ${requestId} not found in request map`);
   }
@@ -44,7 +47,7 @@ export const settlePromiseFromResponse = (
     promiseSettlerFns.resolve(payload.data);
   } else {
     promiseSettlerFns.reject(
-      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing -- @todo what to do with empty error
+       
       new Error(payload.error || "Request could not be fulfilled."),
     );
   }

@@ -1,6 +1,5 @@
-import type { PopperProps } from "@mui/material";
-import {
-  Box,
+import type { FunctionComponent , useEffect, useRef, useState } from "react";
+import type {   Box,
   Checkbox,
   ClickAwayListener,
   Fade,
@@ -8,12 +7,12 @@ import {
   ListItemText,
   Paper,
   Popper,
+PopperProps ,
   Typography,
 } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useEffect, useRef, useState } from "react";
 
 import { MenuItem } from "../../../shared/ui";
+
 import type { ColumnFilter } from "./filtering";
 
 export const ColumnFilterMenu: FunctionComponent<
@@ -106,13 +105,13 @@ export const ColumnFilterMenu: FunctionComponent<
                     >
                       <ListItemIcon>
                         <Checkbox
+                          checked={checked}
                           sx={{
                             svg: {
                               width: 18,
                               height: 18,
                             },
                           }}
-                          checked={checked}
                         />
                       </ListItemIcon>
                       <ListItemText primary={label} />

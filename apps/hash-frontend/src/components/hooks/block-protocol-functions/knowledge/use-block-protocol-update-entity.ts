@@ -1,16 +1,17 @@
+import { useCallback } from "react";
 import { useMutation } from "@apollo/client";
 import {
   Entity,
   mergePropertyObjectAndMetadata,
   propertyObjectToPatches,
 } from "@local/hash-graph-sdk/entity";
-import { useCallback } from "react";
 
 import type {
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
+
 import type { UpdateEntityMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolUpdateEntity = (

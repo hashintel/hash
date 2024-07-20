@@ -1,3 +1,4 @@
+import type { PropsWithChildren , useMemo, useState } from "react";
 import { useMutation } from "@apollo/client";
 import type { MultiFilter } from "@blockprotocol/graph";
 import { CheckIcon } from "@hashintel/design-system";
@@ -6,8 +7,6 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import { blockProtocolEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { Query } from "@local/hash-isomorphic-utils/system-types/blockprotocol/query";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
-import type { PropsWithChildren } from "react";
-import { useMemo, useState } from "react";
 
 import type {
   CreateEntityMutation,
@@ -39,15 +38,10 @@ const StepContainer = ({
   return (
     <Box>
       <Stack
-        alignItems="center"
-        component="button"
-        direction="row"
-        justifyContent="space-between"
-        onClick={() => {
-          if (!disabled) {
-            setExpanded(!expanded);
-          }
-        }}
+        alignItems={"center"}
+        component={"button"}
+        direction={"row"}
+        justifyContent={"space-between"}
         sx={({ palette }) => ({
           cursor: "pointer",
           width: "100%",
@@ -56,6 +50,11 @@ const StepContainer = ({
           py: 1,
           px: 2,
         })}
+        onClick={() => {
+          if (!disabled) {
+            setExpanded(!expanded);
+          }
+        }}
       >
         <Typography
           sx={{
@@ -88,19 +87,19 @@ const StepContainer = ({
   );
 };
 
-type IntegrationData = {
+interface IntegrationData {
   audience: "human" | "machine";
   googleAccountId?: string;
   query?: MultiFilter;
   spreadsheetId?: string;
   newFileName?: string;
-};
+}
 
-type CreateOrEditSheetsSyncProps = {
+interface CreateOrEditSheetsSyncProps {
   close: () => void;
   currentFlow: null;
   onComplete: () => void;
-};
+}
 
 export const CreateOrEditSheetsSync = ({
   close,
@@ -134,13 +133,14 @@ export const CreateOrEditSheetsSync = ({
   );
 
   const authContext = useGoogleAuth();
+
   if (authContext.loading) {
     return null;
   }
 
   const submittable =
-    !!integrationData.googleAccountId &&
-    !!integrationData.query &&
+    Boolean(integrationData.googleAccountId) &&
+    Boolean(integrationData.query) &&
     (integrationData.spreadsheetId || integrationData.newFileName);
 
   const submit = async () => {
@@ -154,6 +154,7 @@ export const CreateOrEditSheetsSync = ({
 
     // @todo requires pulling from existing Flow instead, if this UI is retained
     const queryEntityId = null;
+
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     if (!queryEntityId) {
       const { data } = await createEntity({
@@ -175,6 +176,7 @@ export const CreateOrEditSheetsSync = ({
       });
 
       const serializedEntity = data?.createEntity;
+
       if (!serializedEntity) {
         throw new Error("Query entity not created");
       }
@@ -191,9 +193,9 @@ export const CreateOrEditSheetsSync = ({
     <Box>
       <Box>
         <StepContainer
-          done={!!integrationData.googleAccountId}
           startExpanded
-          title="1. Choose a Google Account"
+          done={Boolean(integrationData.googleAccountId)}
+          title={"1. Choose a Google Account"}
         >
           <GoogleAccountSelect
             googleAccountId={integrationData.googleAccountId}
@@ -204,10 +206,10 @@ export const CreateOrEditSheetsSync = ({
         </StepContainer>
         <StepContainer
           disabled={!integrationData.googleAccountId}
+          title={"2. Choose or create a spreadsheet"}
           done={
-            !!integrationData.newFileName || !!integrationData.spreadsheetId
+            Boolean(integrationData.newFileName) || Boolean(integrationData.spreadsheetId)
           }
-          title="2. Choose or create a spreadsheet"
         >
           <SelectOrNameGoogleSheet
             googleAccountId={integrationData.googleAccountId}
@@ -232,8 +234,8 @@ export const CreateOrEditSheetsSync = ({
           />
         </StepContainer>
         <StepContainer
-          done={!!integrationData.query}
-          title="3. Select data to sync"
+          done={Boolean(integrationData.query)}
+          title={"3. Select data to sync"}
         >
           <Box>
             <Typography mb={2}>
@@ -244,6 +246,8 @@ export const CreateOrEditSheetsSync = ({
               entityTypes={entityTypeSchemas}
               propertyTypes={propertyTypeSchemas}
               defaultValue={integrationData.query}
+              saveTitle={"Save query"}
+              discardTitle={"Reset query"}
               onSave={(newQuery) => {
                 throw new Error(
                   "UI needs updating to create/edit Flows, rather than old Integration entity",
@@ -254,36 +258,34 @@ export const CreateOrEditSheetsSync = ({
                   query: newQuery,
                 });
               }}
-              saveTitle="Save query"
-              discardTitle="Reset query"
             />
           </Box>
         </StepContainer>
         <StepContainer
-          done={!!integrationData.audience}
-          title="4. Select formatting"
+          done={Boolean(integrationData.audience)}
+          title={"4. Select formatting"}
         >
           <Box>
             <select
               value={integrationData.audience}
               onChange={(event) =>
-                setIntegrationData({
+                { setIntegrationData({
                   ...integrationData,
                   audience: event.target.value as "human" | "machine",
-                })
+                }); }
               }
             >
-              <option value="human">Human</option>
-              <option value="machine">Machine</option>
+              <option value={"human"}>Human</option>
+              <option value={"machine"}>Machine</option>
             </select>
           </Box>
         </StepContainer>
       </Box>
-      <Stack direction="row" gap={2} mt={2}>
-        <Button onClick={submit} disabled={!submittable} type="button">
+      <Stack direction={"row"} gap={2} mt={2}>
+        <Button disabled={!submittable} type={"button"} onClick={submit}>
           Save and update sheet
         </Button>
-        <Button onClick={close} variant="secondary" type="button">
+        <Button variant={"secondary"} type={"button"} onClick={close}>
           Discard / done
         </Button>
       </Stack>

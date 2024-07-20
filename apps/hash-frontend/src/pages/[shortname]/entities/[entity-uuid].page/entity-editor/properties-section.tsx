@@ -1,12 +1,12 @@
+import type { FunctionComponent , useState } from "react";
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { Chip, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Paper, Stack } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useState } from "react";
 
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { WhiteChip } from "../../../shared/white-chip";
 import { PropertiesSectionEmptyState } from "../shared/properties-section-empty-state";
+
 import { getPropertyCountSummary } from "./properties-section/get-property-count-summary";
 import { PropertyTable } from "./properties-section/property-table";
 import { useRows } from "./properties-section/property-table/use-rows";
@@ -28,27 +28,27 @@ export const PropertiesSection: FunctionComponent<{
   return hideSectionHeading ? (
     <Paper sx={{ overflow: "hidden" }}>
       <PropertyTable
-        onSearchClose={() => setShowSearch(false)}
         showSearch={showSearch}
+        onSearchClose={() => { setShowSearch(false); }}
       />
     </Paper>
   ) : (
     <SectionWrapper
-      title="Properties"
-      titleTooltip="The properties on an entity are determined by its type. To add a new property to this entity, specify an additional type or edit an existing one."
+      title={"Properties"}
+      titleTooltip={"The properties on an entity are determined by its type. To add a new property to this entity, specify an additional type or edit an existing one."}
       titleStartContent={
-        <Stack direction="row" spacing={1.5}>
+        <Stack direction={"row"} spacing={1.5}>
           {notEmptyCount > 0 && (
-            <Chip size="xs" label={`${notEmptyCount} values`} />
+            <Chip size={"xs"} label={`${notEmptyCount} values`} />
           )}
           {emptyCount > 0 && (
-            <WhiteChip size="xs" label={`${emptyCount} empty`} />
+            <WhiteChip size={"xs"} label={`${emptyCount} empty`} />
           )}
-          <Stack direction="row" spacing={0.5}>
+          <Stack direction={"row"} spacing={0.5}>
             <IconButton
               rounded
-              onClick={() => setShowSearch(true)}
               sx={{ color: ({ palette }) => palette.gray[60] }}
+              onClick={() => { setShowSearch(true); }}
             >
               <FontAwesomeIcon icon={faMagnifyingGlass} />
             </IconButton>
@@ -58,8 +58,8 @@ export const PropertiesSection: FunctionComponent<{
     >
       <Paper sx={{ overflow: "hidden" }}>
         <PropertyTable
-          onSearchClose={() => setShowSearch(false)}
           showSearch={showSearch}
+          onSearchClose={() => { setShowSearch(false); }}
         />
       </Paper>
     </SectionWrapper>

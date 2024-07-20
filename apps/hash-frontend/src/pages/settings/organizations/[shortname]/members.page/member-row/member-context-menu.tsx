@@ -1,9 +1,9 @@
-import { Box, ListItemText, Menu } from "@mui/material";
 import {
   bindMenu,
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
+import { Box, ListItemText, Menu } from "@mui/material";
 
 import { MenuItem } from "../../../../../../shared/ui/menu-item";
 import {

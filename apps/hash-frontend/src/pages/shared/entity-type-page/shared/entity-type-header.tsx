@@ -1,20 +1,17 @@
-import type { EntityType } from "@blockprotocol/type-system/slim";
-import { extractVersion } from "@blockprotocol/type-system/slim";
+import type { ReactNode , useState } from "react";
+import { Controller } from "react-hook-form";
+import type { EntityType , extractVersion } from "@blockprotocol/type-system/slim";
 import {
   ArrowUpRightIcon,
   EntityTypeIcon,
   LinkTypeIcon,
 } from "@hashintel/design-system";
-import type { EntityTypeEditorFormData } from "@hashintel/type-editor";
-import { useEntityTypeFormContext } from "@hashintel/type-editor";
+import type { EntityTypeEditorFormData , useEntityTypeFormContext } from "@hashintel/type-editor";
 import {
   extractBaseUrl,
   versionedUrlFromComponents,
 } from "@local/hash-subgraph/type-system-patch";
 import { Box, Stack, Typography } from "@mui/material";
-import type { ReactNode } from "react";
-import { useState } from "react";
-import { Controller } from "react-hook-form";
 
 import { EditEmojiIconButton } from "../../../../shared/edit-emoji-icon-button";
 import { Button, Link, Modal } from "../../../../shared/ui";
@@ -55,7 +52,7 @@ export const EntityTypeHeader = ({
   return (
     <>
       <Box>
-        <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
+        <Stack direction={"row"} spacing={1} sx={{ alignItems: "center" }}>
           {ontologyChip}
 
           {!isLatest && (
@@ -66,7 +63,7 @@ export const EntityTypeHeader = ({
               }}
             >
               <Typography
-                color="inherit"
+                color={"inherit"}
                 sx={{ fontSize: 11, fontWeight: 600 }}
               >
                 {`–> v${latestVersion} available`}
@@ -75,19 +72,18 @@ export const EntityTypeHeader = ({
           )}
         </Stack>
         <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="space-between"
+          direction={"row"}
+          alignItems={"center"}
+          justifyContent={"space-between"}
         >
-          <Box display="flex" alignItems="flex-end" my={3}>
+          <Box display={"flex"} alignItems={"flex-end"} my={3}>
             <Controller
               control={control}
-              name="icon"
+              name={"icon"}
               render={({ field }) => (
                 <EditEmojiIconButton
                   icon={field.value}
                   disabled={isReadonly}
-                  onChange={(updatedIcon) => field.onChange(updatedIcon)}
                   defaultIcon={
                     isLink ? (
                       <LinkTypeIcon
@@ -103,18 +99,19 @@ export const EntityTypeHeader = ({
                       />
                     )
                   }
+                  onChange={(updatedIcon) => { field.onChange(updatedIcon); }}
                 />
               )}
             />
-            <Typography variant="h1" fontWeight="bold" marginLeft={3}>
+            <Typography variant={"h1"} fontWeight={"bold"} marginLeft={3}>
               {entityTypeSchema.title}
             </Typography>
           </Box>
           {!isDraft && !isPreviewSlide ? (
             <Button
-              onClick={() => setShowExtendTypeModal(true)}
-              variant="secondary"
-              size="small"
+              variant={"secondary"}
+              size={"small"}
+              onClick={() => { setShowExtendTypeModal(true); }}
             >
               Extend type <ArrowUpRightIcon sx={{ fontSize: 16, ml: 1.5 }} />
             </Button>
@@ -140,10 +137,10 @@ export const EntityTypeHeader = ({
           </Typography>
           <Box>
             <CreateEntityTypeForm
-              afterSubmit={() => setShowExtendTypeModal(false)}
               inModal
+              afterSubmit={() => { setShowExtendTypeModal(false); }}
               initialData={{ extendsEntityTypeId: entityTypeSchema.$id }}
-              onCancel={() => setShowExtendTypeModal(false)}
+              onCancel={() => { setShowExtendTypeModal(false); }}
             />
           </Box>
         </>

@@ -1,10 +1,8 @@
 import type { JsonValue } from "@blockprotocol/core";
-import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
-import { GridCellKind } from "@glideapps/glide-data-grid";
+import type { CustomCell, CustomRenderer , GridCellKind } from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
 import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { FormattedValuePart } from "@local/hash-isomorphic-utils/data-types";
-import { formatDataValue } from "@local/hash-isomorphic-utils/data-types";
+import type { formatDataValue,FormattedValuePart  } from "@local/hash-isomorphic-utils/data-types";
 
 import {
   getCellHorizontalPadding,
@@ -15,6 +13,7 @@ import { drawTextWithIcon } from "../../../../../../../../components/grid/utils/
 import { InteractableManager } from "../../../../../../../../components/grid/utils/interactable-manager";
 import { drawInteractableTooltipIcons } from "../../../../../../../../components/grid/utils/use-grid-tooltip/draw-interactable-tooltip-icons";
 import { isValueEmpty } from "../../is-value-empty";
+
 import { ArrayEditor } from "./value-cell/array-editor";
 import { getEditorSpecs } from "./value-cell/editor-specs";
 import { SingleValueEditor } from "./value-cell/single-value-editor";
@@ -28,6 +27,7 @@ const guessDataTypeFromValue = (
   const editorType = guessEditorTypeFromValue(value, expectedTypes);
 
   const expectedType = expectedTypes.find((type) => type.type === editorType);
+
   if (!expectedType) {
     throw new Error(
       `Could not find guessed editor type ${editorType} among expected types ${expectedTypes
@@ -64,6 +64,7 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
       ctx.fillStyle = customColors.gray[50];
       ctx.font = "italic 14px Inter";
       const emptyText = isArray ? "No values" : "No value";
+
       ctx.fillText(emptyText, left, yCenter);
     } else if (!isArray && editorSpec.shouldBeDrawnAsAChip) {
       const expectedType = guessDataTypeFromValue(
@@ -97,12 +98,14 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
       });
     } else {
       const valueParts: FormattedValuePart[] = [];
+
       if (Array.isArray(value)) {
         for (const [index, entry] of value.entries()) {
           const expectedType = guessDataTypeFromValue(
             entry as JsonValue,
             expectedTypes,
           );
+
           valueParts.push(...formatDataValue(entry as JsonValue, expectedType));
           if (index < value.length - 1) {
             valueParts.push({
@@ -117,10 +120,12 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
           value as JsonValue,
           expectedTypes,
         );
+
         valueParts.push(...formatDataValue(value as JsonValue, expectedType));
       }
 
       let textOffset = left;
+
       for (const [index, part] of valueParts.entries()) {
         ctx.fillStyle = part.color;
         ctx.fillText(part.text, textOffset, yCenter);
@@ -133,11 +138,12 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
               ? 0.5
               : 0;
 
-        textOffset += ctx.measureText(part.text).width + additionalRightPadding;
+        textOffset = textOffset + (ctx.measureText(part.text).width + additionalRightPadding);
       }
     }
 
     const tooltipInteractables = drawInteractableTooltipIcons(args);
+
     InteractableManager.setInteractablesForCell(args, tooltipInteractables);
   },
   provideEditor: ({ data }) => {

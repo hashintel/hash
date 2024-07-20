@@ -37,8 +37,9 @@ export const isItemArchived = (
 ) => {
   if (isType(item)) {
     return isTypeArchived(item);
-  } else if (isEntityPageEntity(item)) {
+  } if (isEntityPageEntity(item)) {
     return isPageArchived(item);
   }
+
   return false;
 };

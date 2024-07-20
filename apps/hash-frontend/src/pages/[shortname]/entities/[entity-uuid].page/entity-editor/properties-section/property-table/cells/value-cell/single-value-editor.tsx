@@ -1,11 +1,12 @@
+import produce from "immer";
+import { useEffect, useRef, useState } from "react";
 import { Chip } from "@hashintel/design-system";
 import { GRID_CLICK_IGNORE_CLASS } from "@hashintel/design-system/constants";
 import { Box } from "@mui/material";
-import produce from "immer";
-import { useEffect, useRef, useState } from "react";
 
 import { GridEditorWrapper } from "../../../../shared/grid-editor-wrapper";
 import { isValueEmpty } from "../../../is-value-empty";
+
 import { getEditorSpecs } from "./editor-specs";
 import { EditorTypePicker } from "./editor-type-picker";
 import { BooleanInput } from "./inputs/boolean-input";
@@ -54,6 +55,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
   });
 
   const latestValueCellRef = useRef<ValueCell>(cell);
+
   useEffect(() => {
     latestValueCellRef.current = cell;
   });
@@ -72,7 +74,9 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
                 draftCell.data.propertyRow.value = editorSpec.defaultValue;
               });
 
-              return onFinishedEditing(newCell);
+              onFinishedEditing(newCell);
+
+ return;
             }
 
             setEditorType(type);
@@ -87,7 +91,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
       <GridEditorWrapper sx={{ px: 2, alignItems: "flex-start" }}>
         <BooleanInput
           showChange
-          value={!!value}
+          value={Boolean(value)}
           onChange={(newValue) => {
             const newCell = produce(cell, (draftCell) => {
               draftCell.data.propertyRow.value = newValue;
@@ -106,7 +110,9 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
         value={value}
         onChange={(newValue, isDiscarded) => {
           if (isDiscarded) {
-            return onFinishedEditing(undefined);
+            onFinishedEditing(undefined);
+
+ return;
           }
 
           const newCell = produce(cell, (draftCell) => {
@@ -129,6 +135,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
       <GridEditorWrapper sx={{ px: 2, alignItems: "flex-start" }}>
         <Chip
           color={shouldClearOnClick ? "red" : "gray"}
+          label={title}
           onClick={() => {
             const newCell = produce(cell, (draftCell) => {
               draftCell.data.propertyRow.value = shouldClearOnClick
@@ -138,13 +145,13 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
 
             onFinishedEditing(newCell);
           }}
-          label={title}
         />
       </GridEditorWrapper>
     );
   }
 
   const expectedType = expectedTypes.find((type) => type.type === editorType);
+
   if (!expectedType) {
     throw new Error(
       `Could not find guessed editor type ${editorType} among expected types ${expectedTypes
@@ -169,12 +176,12 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
     /**
      * Update the value and clean up the validation handler in either of these scenarios:
      * 1. The form is valid
-     * 2. The form has been unmounted and we can't check its validity – this happens if another grid cell is clicked
+     * 2. The form has been unmounted and we can't check its validity – this happens if another grid cell is clicked.
      *
      * If another grid cell is clicked, we cannot validate using the input and we may have an invalid value in the table.
      * The alternative is that clicking another cell wipes the value, which is slightly worse UX.
      * Ideally we would prevent the form being closed when another cell is clicked, to allow validation to run,
-     * and in any case have an indicator that an invalid value is in the form – tracked in H-1834
+     * and in any case have an indicator that an invalid value is in the form – tracked in H-1834.
      */
     onFinishedEditing(latestValueCellRef.current);
     document.removeEventListener("click", validationHandler);
@@ -200,11 +207,11 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
   return (
     <GridEditorWrapper sx={{ px: 2 }}>
       <Box
-        component="form"
+        component={"form"}
+        ref={textInputFormRef}
         onSubmit={(event) => {
           event.preventDefault();
         }}
-        ref={textInputFormRef}
       >
         <NumberOrTextInput
           expectedType={expectedType}
@@ -228,7 +235,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
             ) {
               /**
                * Add the validation enforcer if there are any validation rules.
-               * We don't add this if we know the user cannot input an invalid value (e.g. unconstrained string or number).
+               * We don't add this if we know the user cannot input an invalid value (e.g. Unconstrained string or number).
                * Adding the validation enforcer means clicking into another cell requires a second click to activate it,
                * so we don't want to add it unnecessarily.
                * Ideally we wouldn't need the click handler hacks to enforce validation, or have a different validation strategy –

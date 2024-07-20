@@ -1,11 +1,12 @@
+import { useMemo } from "react";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import { Box } from "@mui/material";
-import { useMemo } from "react";
 
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { useFlowRunsContext } from "../shared/flow-runs-context";
 import { flowRunStatusToStatusText } from "../shared/flow-tables";
+
 import { GoalListSection } from "./goals-list/goal-list-section";
 import type { GoalSummary } from "./goals-list/goal-list-section/goal-row";
 
@@ -46,6 +47,7 @@ export const GoalsList = () => {
           const org = authenticatedUser.memberOf.find(
             (memberOf) => memberOf.org.accountGroupId === webId,
           )?.org;
+
           if (!org) {
             throw new Error(`Could not find org with id ${webId}`);
           }
@@ -62,6 +64,7 @@ export const GoalsList = () => {
       }
 
       let lastEventTimestamp = closedAt ?? executedAt ?? "";
+
       for (const step of run.steps) {
         for (const log of step.logs) {
           if (log.recordedAt > lastEventTimestamp) {
@@ -73,10 +76,12 @@ export const GoalsList = () => {
       const status = flowRunStatusToStatusText(run.status);
 
       let openInputRequests = 0;
+
       if (status === "Running") {
         for (const inputRequest of run.inputRequests) {
           const lastInputEvent =
             inputRequest.resolvedAt ?? inputRequest.raisedAt;
+
           if (lastInputEvent > lastEventTimestamp) {
             lastEventTimestamp = lastInputEvent;
           }
@@ -91,7 +96,7 @@ export const GoalsList = () => {
         lastEventTimestamp,
         openInputRequests,
         /**
-         * @todo H-2722 – decide how to store an informative name per goal / flow run
+         * @todo H-2722 – decide how to store an informative name per goal / flow run.
          */
         name: run.name,
         status,
@@ -128,9 +133,9 @@ export const GoalsList = () => {
           mb: 4,
         }}
       >
-        <GoalListSection loading={loading} rows={activeGoals} type="active" />
+        <GoalListSection loading={loading} rows={activeGoals} type={"active"} />
       </Box>
-      <GoalListSection loading={loading} rows={archivedGoals} type="archived" />
+      <GoalListSection loading={loading} rows={archivedGoals} type={"archived"} />
     </Box>
   );
 };

@@ -3,17 +3,17 @@
 import { toggleMark } from "prosemirror-commands";
 import { inputRules } from "prosemirror-inputrules";
 import type { Mark } from "prosemirror-model";
-import type { EditorState } from "prosemirror-state";
-import { NodeSelection, Plugin, PluginKey } from "prosemirror-state";
+import type { EditorState , NodeSelection, Plugin, PluginKey } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 import { createRef } from "react";
 
 import { ensureMounted } from "../../../../lib/dom";
 import type { RenderPortal } from "../block-portals";
+
 import { LinkModal } from "./link-modal";
 import { MarksTooltip } from "./marks-tooltip";
 import {
-  getActiveMarksWithAttrs,
+  getActiveMarksWithAttrs as getActiveMarksWithAttributes,
   isValidLink,
   linkInputRule,
   removeLink,
@@ -42,7 +42,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
     key: markPluginKey,
     /**
      * This allows us to keep track of whether the view is focused, which
-     * is important for knowing whether to show the format tooltip
+     * is important for knowing whether to show the format tooltip.
      */
     state: {
       init() {
@@ -52,12 +52,15 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
         const action = tr.getMeta(markPluginKey);
 
         switch (action?.type) {
-          case "format-blur":
+          case "format-blur": {
             return { focused: false };
-          case "format-focus":
+          }
+          case "format-focus": {
             return { focused: true };
-          default:
+          }
+          default: {
             return state;
+          }
         }
       },
     },
@@ -76,6 +79,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
               view.state.tr.setMeta(markPluginKey, { type: "format-blur" }),
             );
           }, 300);
+
           return false;
         },
         focus(view) {
@@ -83,6 +87,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
           view.dispatch(
             view.state.tr.setMeta(markPluginKey, { type: "format-focus" }),
           );
+
           return false;
         },
       },
@@ -98,12 +103,12 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
           mountNode.remove();
         },
         update: (view: EditorView, lastState?: EditorState) => {
-          const dragging = !!editorView.dragging;
+          const dragging = Boolean(editorView.dragging);
 
-          const state = view.state;
+          const {state} = view;
 
           /**
-           * Hide tooltip if in read-only mode
+           * Hide tooltip if in read-only mode.
            */
           if (!view.editable) {
             return;
@@ -113,7 +118,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
            * We don't always want to display a format tooltip – i.e, when
            * the view isn't focused, when we're dragging and dropping, if
            * you're got an entire node selection, or the text selected is
-           * not within a paragraph
+           * not within a paragraph.
            *
            */
           if (
@@ -124,6 +129,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
             state.selection.empty
           ) {
             renderPortal(null, mountNode);
+
             return;
           }
 
@@ -147,25 +153,25 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
             (end.right - start.left) / 2 +
             document.documentElement.scrollLeft;
 
-          const activeMarks = getActiveMarksWithAttrs(editorView.state);
+          const activeMarks = getActiveMarksWithAttributes(editorView.state);
 
           const jsx = (
             <div style={{ top, left, position: "absolute", zIndex: "30" }}>
               <MarksTooltip
                 activeMarks={activeMarks}
-                toggleMark={(name, attrs) => {
-                  toggleMark(editorView.state.schema.marks[name]!, attrs)(
+                focusEditorView={() => { editorView.focus(); }}
+                toggleMark={(name, attributes) => {
+                  toggleMark(editorView.state.schema.marks[name]!, attributes)(
                     editorView.state,
                     editorView.dispatch,
                   );
                 }}
-                focusEditorView={() => editorView.focus()}
                 openLinkModal={() =>
-                  editorView.dispatch(
+                  { editorView.dispatch(
                     editorView.state.tr.setMeta(linkPluginKey, {
                       type: "openLinkModal",
                     }),
-                  )
+                  ); }
                 }
               />
             </div>
@@ -187,7 +193,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
           linkUrl: null,
         };
       },
-      apply(tr, pluginState, prevEditorState, nextEditorState) {
+      apply(tr, pluginState, previousEditorState, nextEditorState) {
         let linkUrl: string | null = null;
         const linkMark = nextEditorState.schema.marks.link!;
 
@@ -209,7 +215,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
           )
         ) {
           linkUrl =
-            getActiveMarksWithAttrs(nextEditorState).find(
+            getActiveMarksWithAttributes(nextEditorState).find(
               ({ name }) => name === linkMark.name,
             )?.attrs?.href ?? null;
         }
@@ -220,13 +226,15 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
         const action = tr.getMeta(linkPluginKey);
 
         switch (action?.type) {
-          case "closeLinkModal":
+          case "closeLinkModal": {
             return { ...nextPluginState, linkModalVisible: false };
-          case "openLinkModal":
+          }
+          case "openLinkModal": {
             return { ...nextPluginState, linkModalVisible: true };
+          }
         }
 
-        if (!prevEditorState.selection.eq(nextEditorState.selection)) {
+        if (!previousEditorState.selection.eq(nextEditorState.selection)) {
           return { ...nextPluginState, linkModalVisible: false };
         }
 
@@ -236,17 +244,17 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
 
     props: {
       handleDOMEvents: {
-        paste(view, evt) {
-          if (!evt.clipboardData) {
+        paste(view, event) {
+          if (!event.clipboardData) {
             return false;
           }
 
-          const text = evt.clipboardData.getData("text/plain");
-          const html = evt.clipboardData.getData("text/html");
+          const text = event.clipboardData.getData("text/plain");
+          const html = event.clipboardData.getData("text/html");
           const isPlainText = Boolean(text) && !html;
 
           if (isPlainText && isValidLink(text)) {
-            evt.preventDefault();
+            event.preventDefault();
             updateLink(view, text);
           }
 
@@ -265,7 +273,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
         },
         update: (view: EditorView) => {
           ensureMounted(mountNode, document.body);
-          const state = view.state;
+          const {state} = view;
 
           const linkPluginState = linkPluginKey.getState(view.state);
           const linkUrl = linkPluginState?.linkUrl;
@@ -275,6 +283,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
             (!linkUrl && !linkPluginState?.linkModalVisible)
           ) {
             renderPortal(null, mountNode);
+
             return;
           }
 

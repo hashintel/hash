@@ -1,3 +1,4 @@
+import type { PropsWithChildren , useMemo, useState } from "react";
 import {
   ArrowUpRightRegularIcon,
   CaretDownSolidIcon,
@@ -10,13 +11,12 @@ import {
 } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
-import type { PropsWithChildren } from "react";
-import { useMemo, useState } from "react";
 
 import type { FlowRun } from "../../../../graphql/api-types.gen";
 import { Link } from "../../../../shared/ui/link";
 import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import { useFlowRunsUsage } from "../../../shared/use-flow-runs-usage";
+
 import { GroupStatus } from "./flow-run-sidebar/group-status";
 import { Manager } from "./flow-run-sidebar/manager";
 import { SectionLabel } from "./section-label";
@@ -37,13 +37,13 @@ const SidebarSection = ({ children }: PropsWithChildren) => (
   </Box>
 );
 
-type FlowRunSidebarProps = {
+interface FlowRunSidebarProps {
   flowDefinition: FlowDefinition;
   flowRunId: EntityUuid;
   groups: FlowMaybeGrouped["groups"];
   name: FlowRun["name"];
   showDag: () => void;
-};
+}
 
 export const FlowRunSidebar = ({
   flowDefinition,
@@ -89,19 +89,19 @@ export const FlowRunSidebar = ({
         />
         <SidebarSection>
           <Typography
-            component="p"
-            variant="smallTextParagraphs"
+            component={"p"}
+            variant={"smallTextParagraphs"}
             sx={{ lineHeight: 1.2, wordBreak: "break-word" }}
           >
             {nameParts.map((part, index) => (
               <Box
-                component="span"
+                component={"span"}
                 // eslint-disable-next-line react/no-array-index-key
                 key={index}
                 sx={{ display: "inline-block", marginRight: "2px" }}
               >
                 {part.url ? (
-                  <Link href={part.text} target="_blank">
+                  <Link href={part.text} target={"_blank"}>
                     {part.text}
                   </Link>
                 ) : (
@@ -109,9 +109,8 @@ export const FlowRunSidebar = ({
                 )}
                 {index === nameParts.length - 1 && researchPrompt && (
                   <Box
-                    aria-label="Show research prompt"
-                    component="button"
-                    onClick={() => setShowResearchPrompt(!showResearchPrompt)}
+                    aria-label={"Show research prompt"}
+                    component={"button"}
                     sx={{
                       background: "none",
                       border: "none",
@@ -126,6 +125,7 @@ export const FlowRunSidebar = ({
                         color: ({ palette }) => palette.common.black,
                       },
                     }}
+                    onClick={() => { setShowResearchPrompt(!showResearchPrompt); }}
                   >
                     <CaretDownSolidIcon
                       sx={{
@@ -146,8 +146,8 @@ export const FlowRunSidebar = ({
           {researchPrompt && (
             <Collapse in={showResearchPrompt}>
               <Typography
-                component="p"
-                variant="smallTextParagraphs"
+                component={"p"}
+                variant={"smallTextParagraphs"}
                 sx={{ fontWeight: 300, lineHeight: 1.3, mt: 1 }}
               >
                 “{researchPrompt}”
@@ -157,10 +157,9 @@ export const FlowRunSidebar = ({
         </SidebarSection>
       </Box>
       <Box>
-        <Stack alignItems="center" direction="row">
-          <SectionLabel text="Plan" />
+        <Stack alignItems={"center"} direction={"row"}>
+          <SectionLabel text={"Plan"} />
           <IconButton
-            onClick={() => showDag()}
             sx={{
               px: 0.3,
               py: 0,
@@ -168,9 +167,10 @@ export const FlowRunSidebar = ({
               mb: 0.5,
               "& svg": { fontSize: 12 },
             }}
+            onClick={() => { showDag(); }}
           >
             <Typography
-              variant="smallCaps"
+              variant={"smallCaps"}
               sx={{ color: ({ palette }) => palette.blue[70] }}
             >
               View
@@ -196,26 +196,26 @@ export const FlowRunSidebar = ({
       </Box>
 
       <Box sx={{ mt: 2 }}>
-        <SectionLabel text="Manager" />
+        <SectionLabel text={"Manager"} />
         <SidebarSection>
           <Manager />
         </SidebarSection>
       </Box>
       {isUsageAvailable && usage ? (
         <Box sx={{ mt: 2 }}>
-          <SectionLabel text="Cost" />
+          <SectionLabel text={"Cost"} />
           <SidebarSection>
             <Stack
-              direction="row"
-              alignItems="center"
-              onClick={() => setShowUsageBreakdown(!showUsageBreakdown)}
+              direction={"row"}
+              alignItems={"center"}
               sx={{ cursor: "pointer" }}
+              onClick={() => { setShowUsageBreakdown(!showUsageBreakdown); }}
             >
               <Typography
-                variant="smallTextParagraphs"
+                variant={"smallTextParagraphs"}
                 sx={{ color: ({ palette }) => palette.gray[80] }}
               >
-                <Box component="span" fontWeight={500}>
+                <Box component={"span"} fontWeight={500}>
                   Total:
                 </Box>{" "}
                 ${usage.total.toFixed(2)}
@@ -247,12 +247,12 @@ export const FlowRunSidebar = ({
                   .map((record) => (
                     <Box key={record.featureName}>
                       <Typography
-                        variant="smallTextParagraphs"
+                        variant={"smallTextParagraphs"}
                         sx={{ color: ({ palette }) => palette.gray[50] }}
                       >
-                        <Box component="span" fontWeight={500}>
+                        <Box component={"span"} fontWeight={500}>
                           {record.featureName
-                            .replace(/-(\b\d{4}[-]?\d{2}[-]?\d{2}\b)$/, "")
+                            .replace(/-(\b\d{4}(?:-?\d{2}){2}\b)$/, "")
                             .trim()}
                           :
                         </Box>{" "}
@@ -267,10 +267,10 @@ export const FlowRunSidebar = ({
                   .map((record) => (
                     <Box key={record.taskName}>
                       <Typography
-                        variant="smallTextParagraphs"
+                        variant={"smallTextParagraphs"}
                         sx={{ color: ({ palette }) => palette.gray[50] }}
                       >
-                        <Box component="span" fontWeight={500}>
+                        <Box component={"span"} fontWeight={500}>
                           {record.taskName}:
                         </Box>{" "}
                         ${record.totalCostInUsd.toFixed(2)}

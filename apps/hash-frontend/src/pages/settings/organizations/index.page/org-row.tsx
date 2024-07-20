@@ -11,6 +11,7 @@ import type { Org } from "../../../../lib/user-and-org";
 import { Link } from "../../../../shared/ui/link";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { Cell } from "../shared/cell";
+
 import { OrgContextMenu } from "./org-row/org-context-menu";
 
 export const OrgRow = ({ org }: { org: Org }) => {
@@ -60,7 +61,7 @@ export const OrgRow = ({ org }: { org: Org }) => {
       </Cell>
       <TableCell>
         <Typography
-          variant="smallTextLabels"
+          variant={"smallTextLabels"}
           sx={({ palette }) => ({
             background: palette.gray[10],
             borderRadius: 10,

@@ -1,13 +1,12 @@
+import { useRouter } from "next/router";
+import { useContext } from "react";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { OntologyChip } from "@hashintel/design-system";
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { Box, Container, Stack, Typography } from "@mui/material";
-import { useRouter } from "next/router";
-import { useContext } from "react";
 
-import type { NextPageWithLayout } from "../../../shared/layout";
-import { getLayoutWithSidebar } from "../../../shared/layout";
+import type { getLayoutWithSidebar,NextPageWithLayout  } from "../../../shared/layout";
 import { CreateEntityTypeForm } from "../../shared/create-entity-type-form";
 import { TopContextBar } from "../../shared/top-context-bar";
 import { WorkspaceContext } from "../../shared/workspace-context";
@@ -34,9 +33,10 @@ const Page: NextPageWithLayout = () => {
 
   return (
     <Stack sx={{ height: "100vh" }}>
-      <Box bgcolor="white">
+      <Box bgcolor={"white"}>
         <TopContextBar
           defaultCrumbIcon={null}
+          scrollToTop={() => {}}
           crumbs={[
             {
               title: "Types",
@@ -49,7 +49,6 @@ const Page: NextPageWithLayout = () => {
               id: "entity-types",
             },
           ]}
-          scrollToTop={() => {}}
         />
         <Box py={3.75}>
           <Container>
@@ -58,7 +57,7 @@ const Page: NextPageWithLayout = () => {
               path={`@${activeWorkspace.shortname}/types/entity-type`}
               sx={[{ marginBottom: 2 }]}
             />
-            <Typography variant="h1" fontWeight="bold">
+            <Typography variant={"h1"} fontWeight={"bold"}>
               Create new {isCreateLinkEntityType ? "link" : "entity"} type
             </Typography>
           </Container>
@@ -66,9 +65,9 @@ const Page: NextPageWithLayout = () => {
       </Box>
       <Box
         flex={1}
-        bgcolor="gray.10"
+        bgcolor={"gray.10"}
         borderTop={1}
-        borderColor="gray.20"
+        borderColor={"gray.20"}
         pt={5}
       >
         <Container>

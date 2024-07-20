@@ -1,24 +1,22 @@
-import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
-import { Grid, styled } from "@mui/material";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
+import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
+import { Grid, styled } from "@mui/material";
 
 import { useUpdateAuthenticatedUser } from "../components/hooks/use-update-authenticated-user";
-import type { NextPageWithLayout } from "../shared/layout";
-import { getPlainLayout } from "../shared/layout";
-import type { ButtonProps } from "../shared/ui";
-import { Button } from "../shared/ui";
+import type { getPlainLayout,NextPageWithLayout  } from "../shared/layout";
+import type { Button,ButtonProps  } from "../shared/ui";
+
 import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthLayout } from "./shared/auth-layout";
 import { parseGraphQLError } from "./shared/auth-utils";
-import type { AccountSetupFormData } from "./signup.page/account-setup-form";
-import { AccountSetupForm } from "./signup.page/account-setup-form";
+import type { AccountSetupForm,AccountSetupFormData  } from "./signup.page/account-setup-form";
 import { SignupRegistrationForm } from "./signup.page/signup-registration-form";
 import { SignupRegistrationRightInfo } from "./signup.page/signup-registration-right-info";
 import { SignupSteps } from "./signup.page/signup-steps";
 
 const LoginButton = styled((props: ButtonProps) => (
-  <Button variant="secondary" size="small" {...props} />
+  <Button variant={"secondary"} size={"small"} {...props} />
 ))(({ theme }) => ({
   color: theme.palette.gray[90],
   background: theme.palette.blue[10],
@@ -76,6 +74,7 @@ const SignupPage: NextPageWithLayout = () => {
 
       if (errors && errors.length > 0) {
         const { message } = parseGraphQLError([...errors]);
+
         setErrorMessage(message);
       }
 
@@ -104,7 +103,7 @@ const SignupPage: NextPageWithLayout = () => {
       }}
       headerEndAdornment={
         authenticatedUser ? null : (
-          <LoginButton href="/signin" endIcon={<ArrowUpRightRegularIcon />}>
+          <LoginButton href={"/signin"} endIcon={<ArrowUpRightRegularIcon />}>
             Sign In
           </LoginButton>
         )
@@ -116,11 +115,11 @@ const SignupPage: NextPageWithLayout = () => {
             // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
             userHasVerifiedEmail ? (
               <AccountSetupForm
-                onSubmit={handleAccountSetupSubmit}
                 loading={updateUserLoading}
                 errorMessage={errorMessage}
                 email={authenticatedUser.emails[0]!.address}
                 invitationInfo={invitationInfo}
+                onSubmit={handleAccountSetupSubmit}
               />
             ) : /** @todo: add verification form */
             null
@@ -142,7 +141,7 @@ const SignupPage: NextPageWithLayout = () => {
           }}
         >
           {authenticatedUser ? (
-            <SignupSteps currentStep="reserve-username" />
+            <SignupSteps currentStep={"reserve-username"} />
           ) : (
             <SignupRegistrationRightInfo />
           )}
