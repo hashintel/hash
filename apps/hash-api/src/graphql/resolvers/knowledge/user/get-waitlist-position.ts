@@ -26,14 +26,15 @@ export const getWaitlistPositionResolver: ResolverFn<
   }
 
   let data: GetWaitlistPosition200Response;
+
   try {
     ({ data } = await internalApiClient.getWaitlistPosition(email));
-  } catch (err) {
+  } catch (error) {
     throw new Error("Error fetching waitlist position");
   }
 
   if (typeof data.waitlistPosition !== "number") {
-    throw new Error("No waitlist position found for user");
+    throw new TypeError("No waitlist position found for user");
   }
 
   return data.waitlistPosition;

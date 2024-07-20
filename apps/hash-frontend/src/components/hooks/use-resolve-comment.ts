@@ -1,6 +1,6 @@
+import { useCallback } from "react";
 import { useMutation } from "@apollo/client";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import { useCallback } from "react";
 
 import type {
   ResolveCommentMutation,

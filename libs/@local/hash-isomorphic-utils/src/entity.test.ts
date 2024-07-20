@@ -1,9 +1,9 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, test } from "vitest";
 
 import { flatMapTree } from "./util.js";
 
 describe("flatMapTree", () => {
-  it("can flatmap simple properties", () => {
+  test("can flatmap simple properties", () => {
     const test1 = [
       {
         rootId: "1",
@@ -20,6 +20,7 @@ describe("flatMapTree", () => {
     ];
 
     const result = [];
+
     for (const block of test1) {
       result.push(
         ...flatMapTree(block, (node: unknown) => {
@@ -63,7 +64,7 @@ describe("flatMapTree", () => {
     `);
   });
 
-  it("can flatmap simple properties", () => {
+  test("can flatmap simple properties", () => {
     const test1 = [
       {
         rootId: "1",
@@ -79,6 +80,7 @@ describe("flatMapTree", () => {
     ];
 
     const result = [];
+
     for (const block of test1) {
       result.push(
         ...flatMapTree(block, (node: unknown) => {

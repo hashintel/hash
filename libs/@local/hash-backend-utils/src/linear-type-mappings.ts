@@ -21,20 +21,21 @@ const mapLinearDateToIsoString = (date: string | Date): string => {
   if (typeof date === "string") {
     return date;
   }
+
   return date.toISOString();
 };
 
-export type SupportedLinearTypes = {
+export interface SupportedLinearTypes {
   Issue: Issue;
   User: User;
   Organization: Organization;
-};
+}
 
-export type SupportedLinearUpdateInput = {
+export interface SupportedLinearUpdateInput {
   Issue: IssueUpdateInput;
   User: UpdateUserInput;
   Organization: UpdateOrganizationInput;
-};
+}
 
 export type SupportedLinearTypeNames = keyof SupportedLinearTypes;
 
@@ -47,7 +48,7 @@ const getLinearIdFromEntity = (entity: Entity): string => {
       `Could not get linear ID from entity with ID "${entity.metadata.recordId.entityId}"`,
     );
   } else if (typeof linearId !== "string") {
-    throw new Error(
+    throw new TypeError(
       `Linear ID from entity with ID "${entity.metadata.recordId.entityId}" is not a string`,
     );
   }
@@ -55,11 +56,11 @@ const getLinearIdFromEntity = (entity: Entity): string => {
   return linearId;
 };
 
-type PropertyMapping<
+interface PropertyMapping<
   LinearType extends SupportedLinearTypeNames,
   Key extends keyof SupportedLinearTypes[LinearType],
   HashPropertyValue extends Property = Property,
-> = {
+> {
   linearPropertyKey: Key;
   hashPropertyTypeId: VersionedUrl;
   addHashValueToLinearUpdateInput?: (
@@ -69,11 +70,11 @@ type PropertyMapping<
   mapLinearValueToHashValue?: (
     linearValue: SupportedLinearTypes[LinearType][Key],
   ) => HashPropertyValue | undefined;
-};
+}
 
-type OutgoingLinkMapping<
+interface OutgoingLinkMapping<
   LinearType extends SupportedLinearTypeNames = SupportedLinearTypeNames,
-> = {
+> {
   getLinkDestinationLinearIds: (
     linearData: SupportedLinearTypes[LinearType],
   ) => Promise<{ destinationLinearIds: string[] }>;
@@ -85,16 +86,16 @@ type OutgoingLinkMapping<
     }[],
   ) => SupportedLinearUpdateInput[LinearType];
   linkEntityTypeId: VersionedUrl;
-};
+}
 
-type LinearMapping<
+interface LinearMapping<
   T extends SupportedLinearTypeNames = SupportedLinearTypeNames,
-> = {
+> {
   linearType: T;
   hashEntityTypeId: VersionedUrl;
   propertyMappings: PropertyMapping<T, keyof SupportedLinearTypes[T]>[];
   outgoingLinkMappings: OutgoingLinkMapping<T>[];
-};
+}
 
 export const linearTypeMappings = [
   {
@@ -152,6 +153,7 @@ export const linearTypeMappings = [
           linearPropertyTypes.markdownDescription.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.description = hashValue as string;
+
           return updateInput;
         },
       } satisfies PropertyMapping<"Issue", "description">,
@@ -160,6 +162,7 @@ export const linearTypeMappings = [
         hashPropertyTypeId: linearPropertyTypes.dueDate.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.dueDate = hashValue as string;
+
           return updateInput;
         },
       } satisfies PropertyMapping<"Issue", "dueDate">,
@@ -168,6 +171,7 @@ export const linearTypeMappings = [
         hashPropertyTypeId: linearPropertyTypes.estimate.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.estimate = hashValue as number;
+
           return updateInput;
         },
       } satisfies PropertyMapping<"Issue", "estimate">,
@@ -194,6 +198,7 @@ export const linearTypeMappings = [
         /** @todo: consider defaulting to `priority` */
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.priority = hashValue as number;
+
           return updateInput;
         },
       } satisfies PropertyMapping<"Issue", "priority">,
@@ -206,6 +211,7 @@ export const linearTypeMappings = [
         hashPropertyTypeId: linearPropertyTypes.snoozedUntilAt.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.snoozedUntilAt = new Date(hashValue as string);
+
           return updateInput;
         },
         mapLinearValueToHashValue: (linearValue) =>
@@ -216,6 +222,7 @@ export const linearTypeMappings = [
         hashPropertyTypeId: linearPropertyTypes.sortOrder.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.sortOrder = hashValue as number;
+
           return updateInput;
         },
       } satisfies PropertyMapping<"Issue", "sortOrder">,
@@ -237,6 +244,7 @@ export const linearTypeMappings = [
           linearPropertyTypes.subIssueSortOrder.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.subIssueSortOrder = hashValue as number;
+
           return updateInput;
         },
       } satisfies PropertyMapping<"Issue", "subIssueSortOrder">,
@@ -245,6 +253,7 @@ export const linearTypeMappings = [
         hashPropertyTypeId: linearPropertyTypes.title.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.title = hashValue as string;
+
           return updateInput;
         },
       } satisfies PropertyMapping<"Issue", "title">,
@@ -253,6 +262,7 @@ export const linearTypeMappings = [
         hashPropertyTypeId: linearPropertyTypes.trashed.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.trashed = hashValue as boolean;
+
           return updateInput;
         },
       } satisfies PropertyMapping<"Issue", "trashed">,
@@ -277,6 +287,7 @@ export const linearTypeMappings = [
       {
         getLinkDestinationLinearIds: async (issue) => {
           const assignee = await issue.assignee;
+
           return { destinationLinearIds: assignee ? [assignee.id] : [] };
         },
         addToLinearUpdateInput: (updateInput, matchingOutgoingLinks) => {
@@ -299,6 +310,7 @@ export const linearTypeMappings = [
       {
         getLinkDestinationLinearIds: async (issue) => {
           const creator = await issue.creator;
+
           return { destinationLinearIds: creator ? [creator.id] : [] };
         },
         linkEntityTypeId: linearLinkEntityTypes.hasCreator.linkEntityTypeId,
@@ -306,6 +318,7 @@ export const linearTypeMappings = [
       {
         getLinkDestinationLinearIds: async (issue) => {
           const parent = await issue.parent;
+
           return { destinationLinearIds: parent ? [parent.id] : [] };
         },
         addToLinearUpdateInput: (updateInput, matchingOutgoingLinks) => {
@@ -328,6 +341,7 @@ export const linearTypeMappings = [
       {
         getLinkDestinationLinearIds: async (issue) => {
           const snoozedBy = await issue.snoozedBy;
+
           return { destinationLinearIds: snoozedBy ? [snoozedBy.id] : [] };
         },
         addToLinearUpdateInput: (updateInput, matchingOutgoingLinks) => {
@@ -382,6 +396,7 @@ export const linearTypeMappings = [
         hashPropertyTypeId: linearPropertyTypes.active.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.active = hashValue as boolean;
+
           return updateInput;
         },
       } satisfies PropertyMapping<"User", "active">,
@@ -390,6 +405,7 @@ export const linearTypeMappings = [
         hashPropertyTypeId: linearPropertyTypes.admin.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.admin = hashValue as boolean;
+
           return updateInput;
         },
       } satisfies PropertyMapping<"User", "admin">,
@@ -404,6 +420,7 @@ export const linearTypeMappings = [
         hashPropertyTypeId: linearPropertyTypes.avatarUrl.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.avatarUrl = hashValue as string;
+
           return updateInput;
         },
       } satisfies PropertyMapping<"User", "avatarUrl">,
@@ -424,6 +441,7 @@ export const linearTypeMappings = [
           blockProtocolPropertyTypes.description.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.description = hashValue as string;
+
           return updateInput;
         },
       } satisfies PropertyMapping<"User", "description">,
@@ -440,6 +458,7 @@ export const linearTypeMappings = [
         hashPropertyTypeId: linearPropertyTypes.fullName.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.name = hashValue as string;
+
           return updateInput;
         },
       } satisfies PropertyMapping<"User", "name">,
@@ -470,6 +489,7 @@ export const linearTypeMappings = [
         hashPropertyTypeId: linearPropertyTypes.statusEmoji.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.statusEmoji = hashValue as string;
+
           return updateInput;
         },
       } satisfies PropertyMapping<"User", "statusEmoji">,
@@ -478,6 +498,7 @@ export const linearTypeMappings = [
         hashPropertyTypeId: linearPropertyTypes.statusLabel.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.statusLabel = hashValue as string;
+
           return updateInput;
         },
       } satisfies PropertyMapping<"User", "statusLabel">,
@@ -486,6 +507,7 @@ export const linearTypeMappings = [
         hashPropertyTypeId: linearPropertyTypes.statusUntilAt.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.statusUntilAt = new Date(hashValue as string);
+
           return updateInput;
         },
         mapLinearValueToHashValue: (linearValue) =>
@@ -496,6 +518,7 @@ export const linearTypeMappings = [
         hashPropertyTypeId: linearPropertyTypes.timezone.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.timezone = hashValue as string;
+
           return updateInput;
         },
       } satisfies PropertyMapping<"User", "timezone">,
@@ -514,6 +537,7 @@ export const linearTypeMappings = [
       {
         getLinkDestinationLinearIds: async (user) => {
           const organization = await user.organization;
+
           return { destinationLinearIds: [organization.id] };
         },
         linkEntityTypeId:
@@ -531,6 +555,7 @@ export const linearTypeMappings = [
           linearPropertyTypes.allowedAuthService.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.allowedAuthServices = hashValue as string[];
+
           return updateInput;
         },
       } satisfies PropertyMapping<"Organization", "allowedAuthServices">,
@@ -563,6 +588,7 @@ export const linearTypeMappings = [
         hashPropertyTypeId: linearPropertyTypes.gitBranchFormat.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.gitBranchFormat = hashValue as string;
+
           return updateInput;
         },
       } satisfies PropertyMapping<"Organization", "gitBranchFormat">,
@@ -572,6 +598,7 @@ export const linearTypeMappings = [
           linearPropertyTypes.gitLinkbackMessagesEnabled.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.gitLinkbackMessagesEnabled = hashValue as boolean;
+
           return updateInput;
         },
       } satisfies PropertyMapping<"Organization", "gitLinkbackMessagesEnabled">,
@@ -581,6 +608,7 @@ export const linearTypeMappings = [
           linearPropertyTypes.gitPublicLinkbackMessagesEnabled.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.gitPublicLinkbackMessagesEnabled = hashValue as boolean;
+
           return updateInput;
         },
       } satisfies PropertyMapping<
@@ -596,6 +624,7 @@ export const linearTypeMappings = [
         hashPropertyTypeId: linearPropertyTypes.logoUrl.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.logoUrl = hashValue as string;
+
           return updateInput;
         },
       } satisfies PropertyMapping<"Organization", "logoUrl">,
@@ -604,6 +633,7 @@ export const linearTypeMappings = [
         hashPropertyTypeId: linearPropertyTypes.name.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.name = hashValue as string;
+
           return updateInput;
         },
       } satisfies PropertyMapping<"Organization", "name">,
@@ -622,6 +652,7 @@ export const linearTypeMappings = [
           linearPropertyTypes.projectUpdateRemindersHour.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.projectUpdateRemindersHour = hashValue as number;
+
           return updateInput;
         },
       } satisfies PropertyMapping<"Organization", "projectUpdateRemindersHour">,
@@ -630,6 +661,7 @@ export const linearTypeMappings = [
         hashPropertyTypeId: linearPropertyTypes.roadmapEnabled.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.roadmapEnabled = hashValue as boolean;
+
           return updateInput;
         },
       } satisfies PropertyMapping<"Organization", "roadmapEnabled">,
@@ -658,6 +690,7 @@ export const linearTypeMappings = [
         hashPropertyTypeId: linearPropertyTypes.urlKey.propertyTypeId,
         addHashValueToLinearUpdateInput: (updateInput, hashValue) => {
           updateInput.urlKey = hashValue as string;
+
           return updateInput;
         },
       } satisfies PropertyMapping<"Organization", "urlKey">,

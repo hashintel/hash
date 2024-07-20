@@ -413,37 +413,37 @@ export type {
 };
 
 /**
- * Issue attachment (e.g. support ticket, pull request).
+ * Issue attachment (e.g. Support ticket, pull request).
  */
-export type Attachment = {
+export interface Attachment {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/attachment/v/1";
   properties: AttachmentProperties;
   propertiesWithMetadata: AttachmentPropertiesWithMetadata;
-};
+}
 
-export type AttachmentBelongsToIssueLink = {
+export interface AttachmentBelongsToIssueLink {
   linkEntity: BelongsToIssue;
   rightEntity: Issue;
-};
+}
 
-export type AttachmentHasCreatorLink = {
+export interface AttachmentHasCreatorLink {
   linkEntity: HasCreator;
   rightEntity: User;
-};
+}
 
 export type AttachmentOutgoingLinkAndTarget =
   | AttachmentBelongsToIssueLink
   | AttachmentHasCreatorLink;
 
-export type AttachmentOutgoingLinksByLinkEntityTypeId = {
+export interface AttachmentOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@linear/types/entity-type/belongs-to-issue/v/1": AttachmentBelongsToIssueLink;
   "https://hash.ai/@linear/types/entity-type/has-creator/v/1": AttachmentHasCreatorLink;
-};
+}
 
 /**
- * Issue attachment (e.g. support ticket, pull request).
+ * Issue attachment (e.g. Support ticket, pull request).
  */
-export type AttachmentProperties = {
+export interface AttachmentProperties {
   "https://hash.ai/@hash/types/property-type/title/"?: Title0PropertyValue;
   "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValue;
   "https://hash.ai/@linear/types/property-type/attachment-url/": AttachmentURLPropertyValue;
@@ -455,9 +455,9 @@ export type AttachmentProperties = {
   "https://hash.ai/@linear/types/property-type/source/"?: SourcePropertyValue;
   "https://hash.ai/@linear/types/property-type/subtitle/"?: SubtitlePropertyValue;
   "https://hash.ai/@linear/types/property-type/updated-at/": UpdatedAtPropertyValue;
-};
+}
 
-export type AttachmentPropertiesWithMetadata = {
+export interface AttachmentPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/title/"?: TitlePropertyValueWithMetadata0;
@@ -472,7 +472,7 @@ export type AttachmentPropertiesWithMetadata = {
     "https://hash.ai/@linear/types/property-type/subtitle/"?: SubtitlePropertyValueWithMetadata;
     "https://hash.ai/@linear/types/property-type/updated-at/": UpdatedAtPropertyValueWithMetadata;
   };
-};
+}
 
 /**
  * Location of the attachment which is also used as an identifier.
@@ -484,15 +484,15 @@ export type AttachmentURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * The issue this attachment belongs to.
  */
-export type BelongsToIssue = {
+export interface BelongsToIssue {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/belongs-to-issue/v/1";
   properties: BelongsToIssueProperties;
   propertiesWithMetadata: BelongsToIssuePropertiesWithMetadata;
-};
+}
 
 export type BelongsToIssueOutgoingLinkAndTarget = never;
 
-export type BelongsToIssueOutgoingLinksByLinkEntityTypeId = {};
+export interface BelongsToIssueOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The issue this attachment belongs to.
@@ -501,16 +501,16 @@ export type BelongsToIssueProperties = BelongsToIssueProperties1 &
   BelongsToIssueProperties2;
 export type BelongsToIssueProperties1 = LinkProperties;
 
-export type BelongsToIssueProperties2 = {};
+export interface BelongsToIssueProperties2 {}
 
 export type BelongsToIssuePropertiesWithMetadata =
   BelongsToIssuePropertiesWithMetadata1 & BelongsToIssuePropertiesWithMetadata2;
 export type BelongsToIssuePropertiesWithMetadata1 = LinkPropertiesWithMetadata;
 
-export type BelongsToIssuePropertiesWithMetadata2 = {
+export interface BelongsToIssuePropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
  * Indicates if attachments for the same source application should be grouped in the Linear UI.
@@ -528,19 +528,19 @@ export type MetadataPropertyValue = ObjectDataType;
 export type MetadataPropertyValueWithMetadata = ObjectDataTypeWithMetadata;
 
 /**
- * An opaque, untyped JSON object
+ * An opaque, untyped JSON object.
  */
-export type ObjectDataType = {};
+export interface ObjectDataType {}
 
-export type ObjectDataTypeWithMetadata = {
+export interface ObjectDataTypeWithMetadata {
   value: ObjectDataType;
   metadata: ObjectDataTypeMetadata;
-};
-export type ObjectDataTypeMetadata = {
+}
+export interface ObjectDataTypeMetadata {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1";
-};
+}
 
 /**
  * Information about the source which created the attachment.

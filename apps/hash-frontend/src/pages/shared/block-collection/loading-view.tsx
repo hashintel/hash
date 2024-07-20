@@ -1,19 +1,21 @@
-import { Box } from "@mui/material";
 import type { Node } from "prosemirror-model";
 import type { NodeView } from "prosemirror-view";
+import { Box } from "@mui/material";
 
 import { BlockLoadingIndicator } from "../../../components/remote-block/remote-block";
+
 import type { RenderPortal } from "./block-portals";
 
 export const ProsemirrorLoadingState = () => {
   return (
     <Box mt={3.75}>
-      {[1, 2, 3].map((num) => (
+      {[1, 2, 3].map((number_) => (
         <BlockLoadingIndicator
-          key={num}
+          key={number_}
           sx={{
             /**
-             * 30px is space between blocks
+             * 30px is space between blocks.
+             *
              * @see https://github.com/hashintel/hash/blob/ea0dacf87b6a120986081803a541cdb27ff85b02/packages/hash/frontend/src/blocks/page/style.module.css#L22
              */
             mb: "30px",
@@ -41,6 +43,7 @@ export class LoadingView implements NodeView {
     }
 
     this.renderPortal(<ProsemirrorLoadingState />, this.dom);
+
     return true;
   }
 

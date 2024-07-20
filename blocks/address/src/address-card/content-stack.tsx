@@ -1,5 +1,5 @@
-import { Stack } from "@mui/material";
 import type { ReactNode } from "react";
+import { Stack } from "@mui/material";
 
 export const ContentStack = ({
   children,

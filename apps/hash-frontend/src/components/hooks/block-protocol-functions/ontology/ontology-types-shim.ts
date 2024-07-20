@@ -30,7 +30,7 @@ import type {
 
 type SystemDefinedOntologyTypeProperties = "$id" | "kind" | "$schema";
 
-export type OntologyCallbacks = {
+export interface OntologyCallbacks {
   queryDataTypes: QueryDataTypesMessageCallback;
   getDataType: GetDataTypeMessageCallback;
   createPropertyType: CreatePropertyTypeMessageCallback;
@@ -41,7 +41,7 @@ export type OntologyCallbacks = {
   queryEntityTypes: QueryEntityTypesMessageCallback;
   getEntityType: GetEntityTypeMessageCallback;
   updateEntityType: UpdateEntityTypeMessageCallback;
-};
+}
 
 /* Data type CRU */
 export type QueryDataTypesMessageCallback = MessageCallback<
@@ -60,9 +60,9 @@ export type GetDataTypeMessageCallback = MessageCallback<
 
 /* Property type CRU */
 
-export type CreatePropertyTypeRequest = {
+export interface CreatePropertyTypeRequest {
   propertyType: Omit<PropertyType, SystemDefinedOntologyTypeProperties>;
-};
+}
 export type CreatePropertyTypeMessageCallback = MessageCallback<
   CreatePropertyTypeRequest,
   null,
@@ -70,13 +70,13 @@ export type CreatePropertyTypeMessageCallback = MessageCallback<
   CreateResourceError
 >;
 
-export type QueryPropertyTypesRequest = {
+export interface QueryPropertyTypesRequest {
   latestOnly?: boolean;
   includeArchived?: boolean;
   graphResolveDepths?: Partial<
     Pick<Subgraph["depths"], "constrainsValuesOn" | "constrainsPropertiesOn">
   >;
-};
+}
 
 export type QueryPropertyTypesMessageCallback = MessageCallback<
   QueryPropertyTypesRequest,
@@ -85,12 +85,12 @@ export type QueryPropertyTypesMessageCallback = MessageCallback<
   ReadOrModifyResourceError
 >;
 
-export type GetPropertyTypeRequest = {
+export interface GetPropertyTypeRequest {
   propertyTypeId: VersionedUrl;
   graphResolveDepths?: Partial<
     Pick<Subgraph["depths"], "constrainsValuesOn" | "constrainsPropertiesOn">
   >;
-};
+}
 
 export type GetPropertyTypeMessageCallback = MessageCallback<
   GetPropertyTypeRequest,
@@ -99,10 +99,10 @@ export type GetPropertyTypeMessageCallback = MessageCallback<
   ReadOrModifyResourceError
 >;
 
-export type UpdatePropertyTypeRequest = {
+export interface UpdatePropertyTypeRequest {
   propertyTypeId: VersionedUrl;
   propertyType: Omit<PropertyType, SystemDefinedOntologyTypeProperties>;
-};
+}
 export type UpdatePropertyTypeMessageCallback = MessageCallback<
   UpdatePropertyTypeRequest,
   null,
@@ -112,9 +112,9 @@ export type UpdatePropertyTypeMessageCallback = MessageCallback<
 
 /* Entity type CRU */
 
-export type EntityTypeRequest = {
+export interface EntityTypeRequest {
   entityType: Omit<EntityType, SystemDefinedOntologyTypeProperties>;
-};
+}
 export type CreateEntityTypeMessageCallback = MessageCallback<
   EntityTypeRequest,
   null,
@@ -122,7 +122,7 @@ export type CreateEntityTypeMessageCallback = MessageCallback<
   CreateResourceError
 >;
 
-export type QueryEntityTypesRequest = {
+export interface QueryEntityTypesRequest {
   latestOnly?: boolean;
   includeArchived?: boolean;
   graphResolveDepths?: Partial<
@@ -134,7 +134,7 @@ export type QueryEntityTypesRequest = {
       | "constrainsLinkDestinationsOn"
     >
   >;
-};
+}
 
 export type QueryEntityTypesMessageCallback = MessageCallback<
   QueryEntityTypesRequest & { latestOnly?: boolean },
@@ -143,7 +143,7 @@ export type QueryEntityTypesMessageCallback = MessageCallback<
   ReadOrModifyResourceError
 >;
 
-export type GetEntityTypeRequest = {
+export interface GetEntityTypeRequest {
   entityTypeId: VersionedUrl;
   graphResolveDepths?: Partial<
     Pick<
@@ -154,7 +154,7 @@ export type GetEntityTypeRequest = {
       | "constrainsLinkDestinationsOn"
     >
   >;
-};
+}
 
 export type GetEntityTypeMessageCallback = MessageCallback<
   GetEntityTypeRequest,
@@ -163,10 +163,10 @@ export type GetEntityTypeMessageCallback = MessageCallback<
   ReadOrModifyResourceError
 >;
 
-export type UpdateEntityTypeRequest = {
+export interface UpdateEntityTypeRequest {
   entityTypeId: VersionedUrl;
   entityType: Omit<EntityType, SystemDefinedOntologyTypeProperties>;
-};
+}
 export type UpdateEntityTypeMessageCallback = MessageCallback<
   UpdateEntityTypeRequest,
   null,

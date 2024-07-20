@@ -1,3 +1,4 @@
+import { backOff } from "exponential-backoff";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { GraphApi } from "@local/hash-graph-client";
@@ -7,7 +8,6 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import { backOff } from "exponential-backoff";
 
 import type { DereferencedEntityTypesByTypeId } from "./infer-entities/inference-types.js";
 import { dereferenceEntityType } from "./shared/dereference-entity-type.js";
@@ -15,7 +15,6 @@ import { dereferenceEntityType } from "./shared/dereference-entity-type.js";
 /**
  * @todo: allow for specifying additional entity types which may be linked to
  * when determining whether link types are "satisfiable".
- *
  * @see https://linear.app/hash/issue/H-2685/in-getdereferencedentitytypesactivity-allow-for-specifying-additional
  */
 export const getDereferencedEntityTypesActivity = async (params: {
@@ -64,6 +63,7 @@ export const getDereferencedEntityTypesActivity = async (params: {
 
   const unusableTypeIds = entityTypeIds.filter((entityTypeId) => {
     const details = entityTypes[entityTypeId];
+
     if (!details) {
       return true;
     }
@@ -73,13 +73,14 @@ export const getDereferencedEntityTypesActivity = async (params: {
     if (!isLink) {
       /**
        * If it's not a link we assume it can be satisfied.
-       * @todo consider checking if it has required links (minItems > 1) which cannot be satisfied
+       *
+       * @todo Consider checking if it has required links (minItems > 1) which cannot be satisfied.
        */
       return false;
     }
 
     /**
-     * If this is a link type, only search for it if it can be used, given the other types of entities being sought
+     * If this is a link type, only search for it if it can be used, given the other types of entities being sought.
      */
     const linkCanBeSatisfied = Object.values(entityTypes).some((option) =>
       typedEntries(option.schema.links ?? {}).some(

@@ -1,5 +1,7 @@
-import type { EntityTypeReference } from "@blockprotocol/type-system";
-import { extractBaseUrl } from "@blockprotocol/type-system";
+import type {
+  EntityTypeReference,
+  extractBaseUrl,
+} from "@blockprotocol/type-system";
 import type {
   EntityType,
   VersionedUrl,
@@ -14,18 +16,22 @@ export const getParentIds = (
 ): VersionedUrl[] => {
   let parentRefObjects: EntityTypeReference[] = entityType.allOf ?? [];
   const parentIds = parentRefObjects.map(({ $ref }) => $ref);
-  while (parentRefObjects.length) {
+
+  while (parentRefObjects.length > 0) {
     parentRefObjects = parentRefObjects.flatMap(({ $ref }) => {
       const parentEntityType = allEntityTypes[$ref];
+
       if (!parentEntityType) {
         throw new Error(
           `Entity type ${$ref} not found when looking up ancestors of entity type`,
         );
       }
+
       return parentEntityType.schema.allOf ?? [];
     });
     parentIds.push(...parentRefObjects.map(({ $ref }) => $ref));
   }
+
   return parentIds;
 };
 

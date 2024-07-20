@@ -1,5 +1,6 @@
 import path from "node:path";
 
+import { afterAll, beforeAll, describe, expect, test } from "vitest";
 import type { ImpureGraphContext } from "@apps/hash-api/src/graph/context-types";
 import { getEntitySubgraph } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
 import type { GetEntitySubgraphRequest } from "@local/hash-graph-client";
@@ -20,14 +21,13 @@ import {
   getEntities as getEntitiesSubgraph,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph, restoreSnapshot } from "../test-server";
 import { createTestImpureGraphContext } from "../util";
 
 const createRequest = (
   resolveDepths: Partial<GraphResolveDepths> = zeroedGraphResolveDepths,
-  timestamp: string = "2010-01-01T00:00:00.000Z",
+  timestamp = "2010-01-01T00:00:00.000Z",
 ): GetEntitySubgraphRequest => {
   return {
     filter: {
@@ -77,7 +77,7 @@ let link_bc: Entity;
 let link_cd: Entity;
 let link_da: Entity;
 let link_ba: Entity;
-let link_cb: Entity;
+let link_callback: Entity;
 let link_dc: Entity;
 let link_ad: Entity;
 
@@ -99,7 +99,7 @@ beforeAll(async () => {
     includeDrafts: false,
   }).then(getRoots);
 
-  expect(entities.length).toBe(12);
+  expect(entities).toHaveLength(12);
 
   const findEntity = (name: string): Entity => {
     return entities.find((entity) => {
@@ -121,7 +121,7 @@ beforeAll(async () => {
   link_cd = findEntity("CD");
   link_da = findEntity("DA");
   link_ba = findEntity("BA");
-  link_cb = findEntity("CB");
+  link_callback = findEntity("CB");
   link_dc = findEntity("DC");
   link_ad = findEntity("AD");
 });
@@ -185,7 +185,7 @@ const edgesEquals = (
   });
 };
 
-describe("Single linked list", () => {
+describe("single linked list", () => {
   // ┌──────────┐    ┌─────────┐    ┌──────────┐
   // │ Entity A ├───►│ Link AB ├───►│ Entity B │
   // └──────────┘    └─────────┘    └────┬─────┘
@@ -199,7 +199,7 @@ describe("Single linked list", () => {
   // ┌────┴─────┐     ┌─────────┐   ┌──────────┐
   // │ Entity D │◄────┤ Link CD │◄──┤ Entity C │
   // └──────────┘     └─────────┘   └──────────┘
-  it("finds AB", async () => {
+  test("finds AB", async () => {
     const subgraph = await getEntitySubgraph(
       graphContext,
       authentication,
@@ -215,7 +215,7 @@ describe("Single linked list", () => {
     );
 
     expect(getRoots(subgraph)).toStrictEqual([entity_a]);
-    expect(verticesEquals(subgraph, [entity_a, link_ab])).toBe(true);
+    expect(verticesEquals(subgraph, [entity_a, link_ab])).toBeTruthy();
     expect(
       edgesEquals(subgraph, [
         {
@@ -225,10 +225,10 @@ describe("Single linked list", () => {
           ],
         },
       ]),
-    ).toBe(true);
+    ).toBeTruthy();
   });
 
-  it("finds AB and travels back", async () => {
+  test("finds AB and travels back", async () => {
     const subgraph = await getEntitySubgraph(
       graphContext,
       authentication,
@@ -244,7 +244,7 @@ describe("Single linked list", () => {
     );
 
     expect(getRoots(subgraph)).toStrictEqual([entity_a]);
-    expect(verticesEquals(subgraph, [entity_a, link_ab])).toBe(true);
+    expect(verticesEquals(subgraph, [entity_a, link_ab])).toBeTruthy();
     expect(
       edgesEquals(subgraph, [
         {
@@ -264,10 +264,10 @@ describe("Single linked list", () => {
           ],
         },
       ]),
-    ).toBe(true);
+    ).toBeTruthy();
   });
 
-  it("finds B", async () => {
+  test("finds B", async () => {
     const subgraph = await getEntitySubgraph(
       graphContext,
       authentication,
@@ -287,7 +287,9 @@ describe("Single linked list", () => {
     );
 
     expect(getRoots(subgraph)).toStrictEqual([entity_a]);
-    expect(verticesEquals(subgraph, [entity_a, link_ab, entity_b])).toBe(true);
+    expect(
+      verticesEquals(subgraph, [entity_a, link_ab, entity_b]),
+    ).toBeTruthy();
     expect(
       edgesEquals(subgraph, [
         {
@@ -307,10 +309,10 @@ describe("Single linked list", () => {
           ],
         },
       ]),
-    ).toBe(true);
+    ).toBeTruthy();
   });
 
-  it("finds B and travels back", async () => {
+  test("finds B and travels back", async () => {
     const subgraph = await getEntitySubgraph(
       graphContext,
       authentication,
@@ -338,7 +340,7 @@ describe("Single linked list", () => {
         link_da,
         entity_d,
       ]),
-    ).toBe(true);
+    ).toBeTruthy();
     expect(
       edgesEquals(subgraph, [
         {
@@ -407,10 +409,10 @@ describe("Single linked list", () => {
           ],
         },
       ]),
-    ).toBe(true);
+    ).toBeTruthy();
   });
 
-  it("finds D", async () => {
+  test("finds D", async () => {
     const subgraph = await getEntitySubgraph(
       graphContext,
       authentication,
@@ -440,7 +442,7 @@ describe("Single linked list", () => {
         link_cd,
         entity_d,
       ]),
-    ).toBe(true);
+    ).toBeTruthy();
     expect(
       edgesEquals(subgraph, [
         {
@@ -504,11 +506,11 @@ describe("Single linked list", () => {
           ],
         },
       ]),
-    ).toBe(true);
+    ).toBeTruthy();
   });
 });
 
-describe("Double linked list", () => {
+describe("double linked list", () => {
   //                      ┌─────────┐
   //                 ┌───►│ Link AB ├─────┐
   //                 │    └─────────┘     ▼
@@ -530,7 +532,7 @@ describe("Double linked list", () => {
   //                │     ┌─────────┐    ▲
   //                └────►│ Link DC ├────┘
   //                      └─────────┘
-  it("finds AB/AD", async () => {
+  test("finds AB/AD", async () => {
     const subgraph = await getEntitySubgraph(
       graphContext,
       authentication,
@@ -543,7 +545,7 @@ describe("Double linked list", () => {
     );
 
     expect(getRoots(subgraph)).toStrictEqual([entity_a]);
-    expect(verticesEquals(subgraph, [entity_a, link_ab, link_ad])).toBe(true);
+    expect(verticesEquals(subgraph, [entity_a, link_ab, link_ad])).toBeTruthy();
     expect(
       edgesEquals(subgraph, [
         {
@@ -554,10 +556,10 @@ describe("Double linked list", () => {
           ],
         },
       ]),
-    ).toBe(true);
+    ).toBeTruthy();
   });
 
-  it("finds AD/DA and travels back", async () => {
+  test("finds AD/DA and travels back", async () => {
     const subgraph = await getEntitySubgraph(
       graphContext,
       authentication,
@@ -570,7 +572,7 @@ describe("Double linked list", () => {
     );
 
     expect(getRoots(subgraph)).toStrictEqual([entity_a]);
-    expect(verticesEquals(subgraph, [entity_a, link_ab, link_ad])).toBe(true);
+    expect(verticesEquals(subgraph, [entity_a, link_ab, link_ad])).toBeTruthy();
     expect(
       edgesEquals(subgraph, [
         {
@@ -601,10 +603,10 @@ describe("Double linked list", () => {
           ],
         },
       ]),
-    ).toBe(true);
+    ).toBeTruthy();
   });
 
-  it("finds B/D", async () => {
+  test("finds B/D", async () => {
     const subgraph = await getEntitySubgraph(
       graphContext,
       authentication,
@@ -629,7 +631,7 @@ describe("Double linked list", () => {
         link_ad,
         entity_d,
       ]),
-    ).toBe(true);
+    ).toBeTruthy();
     expect(
       edgesEquals(subgraph, [
         {
@@ -660,10 +662,10 @@ describe("Double linked list", () => {
           ],
         },
       ]),
-    ).toBe(true);
+    ).toBeTruthy();
   });
 
-  it("finds B/D and travels back", async () => {
+  test("finds B/D and travels back", async () => {
     const subgraph = await getEntitySubgraph(
       graphContext,
       authentication,
@@ -690,12 +692,12 @@ describe("Double linked list", () => {
         link_ad,
         link_ba,
         link_bc,
-        link_cb,
+        link_callback,
         link_cd,
         link_da,
         link_dc,
       ]),
-    ).toBe(true);
+    ).toBeTruthy();
 
     expect(
       edgesEquals(subgraph, [
@@ -744,7 +746,7 @@ describe("Double linked list", () => {
             },
             {
               kind: "HAS_RIGHT_ENTITY",
-              target: link_cb,
+              target: link_callback,
               direction: "backward",
             },
           ],
@@ -845,7 +847,7 @@ describe("Double linked list", () => {
           ],
         },
         {
-          source: link_cb,
+          source: link_callback,
           edges: [
             {
               kind: "HAS_LEFT_ENTITY",
@@ -875,10 +877,10 @@ describe("Double linked list", () => {
           ],
         },
       ]),
-    ).toBe(true);
+    ).toBeTruthy();
   });
 
-  it("finds D/A", async () => {
+  test("finds D/A", async () => {
     const subgraph = await getEntitySubgraph(
       graphContext,
       authentication,
@@ -905,12 +907,12 @@ describe("Double linked list", () => {
         link_ad,
         link_ba,
         link_bc,
-        link_cb,
+        link_callback,
         link_cd,
         link_da,
         link_dc,
       ]),
-    ).toBe(true);
+    ).toBeTruthy();
 
     expect(
       edgesEquals(subgraph, [
@@ -949,7 +951,7 @@ describe("Double linked list", () => {
           edges: [
             {
               kind: "HAS_LEFT_ENTITY",
-              target: link_cb,
+              target: link_callback,
               direction: "backward",
             },
             {
@@ -1025,7 +1027,7 @@ describe("Double linked list", () => {
           ],
         },
         {
-          source: link_cb,
+          source: link_callback,
           edges: [
             {
               kind: "HAS_RIGHT_ENTITY",
@@ -1055,6 +1057,6 @@ describe("Double linked list", () => {
           ],
         },
       ]),
-    ).toBe(true);
+    ).toBeTruthy();
   });
 });

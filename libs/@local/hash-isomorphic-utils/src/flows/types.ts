@@ -16,6 +16,7 @@ import type { Status } from "@local/status";
 
 import type { FlowRun } from "../graphql/api-types.gen.js";
 import type { ActorTypeDataType } from "../system-types/google/googlesheetsfile.js";
+
 import type { ActionDefinitionId } from "./action-definitions.js";
 import type { TriggerDefinitionId } from "./trigger-definitions.js";
 
@@ -23,22 +24,22 @@ export type DeepReadOnly<T> = {
   readonly [key in keyof T]: DeepReadOnly<T[key]>;
 };
 
-export type WebPage = {
+export interface WebPage {
   url: string;
   title: string;
   htmlContent: string;
   innerText: string;
-};
+}
 
 export type LocalOrExistingEntityId =
   | { kind: "proposed-entity"; localId: string }
   | { kind: "existing-entity"; entityId: EntityId };
 
 /**
- * @todo sort out mismatch between this and the ProposedEntity type inside infer-entities/
- *    possibly just resolved by removing the latter when browser plugin inference migrated to a Flow
+ * @todo Sort out mismatch between this and the ProposedEntity type inside infer-entities/
+ *    possibly just resolved by removing the latter when browser plugin inference migrated to a Flow.
  */
-export type ProposedEntity = {
+export interface ProposedEntity {
   provenance: EnforcedEntityEditionProvenance;
   propertyMetadata: PropertyMetadataObject;
   localEntityId: string;
@@ -47,7 +48,7 @@ export type ProposedEntity = {
   properties: PropertyObject;
   sourceEntityId?: LocalOrExistingEntityId;
   targetEntityId?: LocalOrExistingEntityId;
-};
+}
 
 export type ProposedEntityWithResolvedLinks = Omit<
   ProposedEntity,
@@ -59,23 +60,23 @@ export type ProposedEntityWithResolvedLinks = Omit<
   };
 };
 
-export type PersistedEntity = {
+export interface PersistedEntity {
   entity?: SerializedEntity;
   existingEntity?: SerializedEntity;
   operation: "create" | "update" | "already-exists-as-proposed";
-};
+}
 
-export type FailedEntityProposal = {
+export interface FailedEntityProposal {
   existingEntity?: SerializedEntity;
   operation?: "create" | "update" | "already-exists-as-proposed";
   proposedEntity: ProposedEntityWithResolvedLinks;
   message: string;
-};
+}
 
-export type PersistedEntities = {
+export interface PersistedEntities {
   persistedEntities: PersistedEntity[];
   failedEntityProposals: FailedEntityProposal[];
-};
+}
 
 export type FlowInputs = [
   {
@@ -89,16 +90,16 @@ export const textFormats = ["CSV", "HTML", "Markdown", "Plain"] as const;
 
 export type TextFormat = (typeof textFormats)[number];
 
-export type FormattedText = {
+export interface FormattedText {
   content: string;
   format: TextFormat;
-};
+}
 
 export type GoogleSheet = { spreadsheetId: string } | { newSheetName: string };
 
 export type WebSearchResult = Pick<WebPage, "title" | "url">;
 
-export type PayloadKindValues = {
+export interface PayloadKindValues {
   ActorType: ActorTypeDataType;
   Boolean: boolean;
   Entity: SerializedEntity;
@@ -115,7 +116,7 @@ export type PayloadKindValues = {
   VersionedUrl: VersionedUrl;
   WebPage: WebPage;
   WebSearchResult: WebSearchResult;
-};
+}
 
 export type PayloadKind = keyof PayloadKindValues;
 
@@ -136,47 +137,47 @@ export type ArrayPayload = {
 export type Payload = SingularPayload | ArrayPayload;
 
 /**
- * Step Definition
+ * Step Definition.
  */
 
-export type InputDefinition = {
+export interface InputDefinition {
   name: string;
   description?: string;
   oneOfPayloadKinds: PayloadKind[];
   array: boolean;
   required: boolean;
   default?: Payload;
-};
+}
 
-export type OutputDefinition<
+export interface OutputDefinition<
   A extends boolean = boolean,
   K extends PayloadKind = PayloadKind,
-> = {
+> {
   name: string;
   description?: string;
   payloadKind: K;
   array: A;
   required: boolean;
-};
+}
 
-export type TriggerDefinition = {
+export interface TriggerDefinition {
   kind: "trigger";
   triggerDefinitionId: TriggerDefinitionId;
   name: string;
   outputs?: OutputDefinition[];
-};
+}
 
-export type ActionDefinition = {
+export interface ActionDefinition {
   kind: "action";
   actionDefinitionId: ActionDefinitionId;
   name: string;
   description: string;
   inputs: InputDefinition[];
   outputs: OutputDefinition[];
-};
+}
 
 /**
- * Flow Definition
+ * Flow Definition.
  */
 
 export type StepInputSource<P extends Payload = Payload> = {
@@ -202,9 +203,9 @@ export type StepInputSource<P extends Payload = Payload> = {
     }
 );
 
-export type ActionStepDefinition<
+export interface ActionStepDefinition<
   AdditionalInputSources extends { inputName: string } | null = null,
-> = {
+> {
   kind: "action";
   stepId: string;
   groupId?: number;
@@ -214,7 +215,7 @@ export type ActionStepDefinition<
     ? StepInputSource[]
     : (StepInputSource | AdditionalInputSources)[];
   retryCount?: number;
-};
+}
 
 export type ActionStepWithParallelInput = ActionStepDefinition<{
   /**
@@ -230,7 +231,7 @@ export type StepDefinition =
   | ActionStepWithParallelInput
   | ParallelGroupStepDefinition;
 
-export type ParallelGroupStepDefinition = {
+export interface ParallelGroupStepDefinition {
   kind: "parallel-group";
   stepId: string;
   groupId?: number;
@@ -258,11 +259,11 @@ export type ParallelGroupStepDefinition = {
      */
     stepId: string;
     /**
-     * The name of the output that will be aggregated in an array from the
+     * The name of the output that will be aggregated in an array from the.
      */
     stepOutputName: string;
   };
-};
+}
 
 type FlowDefinitionTrigger =
   | {
@@ -280,12 +281,12 @@ type FlowDefinitionTrigger =
       outputs?: OutputDefinition[];
     };
 
-export type StepGroup = {
+export interface StepGroup {
   groupId: number;
   description: string;
-};
+}
 
-export type FlowDefinition = {
+export interface FlowDefinition {
   name: string;
   description: string;
   flowDefinitionId: EntityUuid;
@@ -299,78 +300,78 @@ export type FlowDefinition = {
      */
     stepId: string;
     /**
-     * The name of the output in the step
+     * The name of the output in the step.
      */
     stepOutputName: string;
   })[];
-};
+}
 
 /**
- * Flow Step
+ * Flow Step.
  */
 
-export type StepInput<P extends Payload = Payload> = {
+export interface StepInput<P extends Payload = Payload> {
   inputName: string;
   payload: P;
-};
+}
 
-export type StepOutput<P extends Payload = Payload> = {
+export interface StepOutput<P extends Payload = Payload> {
   outputName: string;
   payload: P;
-};
+}
 
 export type StepRunOutput = Status<Required<Pick<ActionStep, "outputs">>>;
 
-export type ActionStep = {
+export interface ActionStep {
   stepId: string;
   kind: "action";
   actionDefinitionId: ActionDefinitionId;
   retries?: number;
   inputs?: StepInput[];
   outputs?: StepOutput[];
-};
+}
 
-export type ParallelGroupStep = {
+export interface ParallelGroupStep {
   stepId: string;
   kind: "parallel-group";
   inputToParallelizeOn?: StepInput<ArrayPayload>;
   steps?: FlowStep[];
   aggregateOutput?: StepOutput<ArrayPayload>;
-};
+}
 
 export type FlowStep = ActionStep | ParallelGroupStep;
 
-export type FlowTrigger = {
+export interface FlowTrigger {
   triggerDefinitionId: TriggerDefinitionId;
   outputs?: StepOutput[];
-};
+}
 
-export type FlowInternetAccessSettings = {
+export interface FlowInternetAccessSettings {
   enabled: boolean;
   browserPlugin: {
     enabled: boolean;
     domains: string[];
   };
-};
+}
 
-export type FlowDataSources = {
+export interface FlowDataSources {
   files: { fileEntityIds: EntityId[] };
   internetAccess: FlowInternetAccessSettings;
-};
+}
 
-export type LocalFlowRun = {
+export interface LocalFlowRun {
   name: string;
   flowRunId: EntityUuid;
   trigger: FlowTrigger;
   flowDefinitionId: EntityUuid;
   steps: FlowStep[];
   outputs?: StepOutput[];
-};
+}
 
-export type ProgressLogBase = {
+export interface ProgressLogBase {
   recordedAt: string;
   stepId: string;
-};
+}
 
 export type QueriedWebLog = ProgressLogBase & {
   explanation: string;
@@ -395,13 +396,13 @@ export type StartedSubTaskLog = ProgressLogBase & {
   type: "StartedSubTask";
 };
 
-export type ViewedFile = {
+export interface ViewedFile {
   explanation: string;
   file: Pick<WebPage, "url" | "title">;
   recordedAt: string;
   stepId: string;
   type: "ViewedFile";
-};
+}
 
 export type ProposedEntityLog = ProgressLogBase & {
   proposedEntity: Omit<ProposedEntity, "provenance" | "propertyMetadata">;
@@ -422,21 +423,21 @@ export type StepProgressLog =
   | QueriedWebLog
   | StartedSubTaskLog;
 
-export type ProgressLogSignal = {
+export interface ProgressLogSignal {
   attempt: number;
   logs: StepProgressLog[];
-};
+}
 
 type ExternalInputRequestType = "human-input" | "get-urls-html-content";
 
-type ExternalInputRequestDataByType = {
+interface ExternalInputRequestDataByType {
   "human-input": {
     questions: string[];
   };
   "get-urls-html-content": {
     urls: string[];
   };
-};
+}
 
 export type ExternalInputRequestSignal<
   RequestType extends ExternalInputRequestType = ExternalInputRequestType,
@@ -449,14 +450,14 @@ export type ExternalInputRequestSignal<
   };
 }[RequestType];
 
-export type ExternalInputResponseByType = {
+export interface ExternalInputResponseByType {
   "human-input": {
     answers: string[];
   };
   "get-urls-html-content": {
     webPages: WebPage[];
   };
-};
+}
 
 export type ExternalInputResponseSignal<
   RequestType extends ExternalInputRequestType = ExternalInputRequestType,
@@ -487,10 +488,10 @@ export type ExternalInputRequest<
   raisedAt: string;
 };
 
-export type FlowUsageRecordCustomMetadata = {
+export interface FlowUsageRecordCustomMetadata {
   taskName?: string;
   stepId?: string;
-};
+}
 
 export const detailedFlowFields = [
   "inputs",

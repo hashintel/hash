@@ -1,5 +1,4 @@
 import "../../../shared/testing-utilities/mock-get-flow-context.js";
-
 import {
   existsSync,
   mkdirSync,
@@ -13,6 +12,7 @@ import { fileURLToPath } from "node:url";
 import { expect, test } from "vitest";
 
 import { researchEntitiesAction } from "../research-entities-action.js";
+
 import type { CoordinatingAgentState } from "./coordinating-agent.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -32,6 +32,7 @@ export const retrievePreviousState = (params: {
   }
 
   const files = readdirSync(directoryPath);
+
   if (files.length === 0) {
     return undefined;
   }
@@ -52,7 +53,7 @@ const persistState = (params: {
 
   const directoryPath = `${baseDirectoryPath}/${testName}`;
 
-  const filePath = `${directoryPath}/${new Date().getTime()}-state.json`;
+  const filePath = `${directoryPath}/${Date.now()}-state.json`;
 
   if (!existsSync(directoryPath)) {
     mkdirSync(directoryPath, { recursive: true });
@@ -61,7 +62,7 @@ const persistState = (params: {
 };
 
 test.skip(
-  "Test researchEntitiesAction: find subsidiary companies of Google",
+  "test researchEntitiesAction: find subsidiary companies of Google",
   async () => {
     const status = await researchEntitiesAction({
       inputs: [
@@ -82,8 +83,9 @@ test.skip(
       ],
       testingParams: {
         humanInputCanBeRequested: false,
-        persistState: (state) =>
-          persistState({ state, testName: "google-subsidiaries" }),
+        persistState: (state) => {
+          persistState({ state, testName: "google-subsidiaries" });
+        },
         resumeFromState: retrievePreviousState({
           testName: "google-subsidiaries",
         }),
@@ -98,7 +100,7 @@ test.skip(
 );
 
 test.skip(
-  "Test researchEntitiesAction: find the authors of the 'Video generation models as world simulators' article",
+  "test researchEntitiesAction: find the authors of the 'Video generation models as world simulators' article",
   async () => {
     const status = await researchEntitiesAction({
       inputs: [
@@ -120,8 +122,9 @@ test.skip(
       ],
       testingParams: {
         humanInputCanBeRequested: false,
-        persistState: (state) =>
-          persistState({ state, testName: "sora-authors" }),
+        persistState: (state) => {
+          persistState({ state, testName: "sora-authors" });
+        },
         resumeFromState: retrievePreviousState({
           testName: "sora-authors",
         }),
@@ -136,7 +139,7 @@ test.skip(
 );
 
 test.skip(
-  'Test researchEntitiesAction: find information about a person called "Ben Werner", a software engineer based in London',
+  'test researchEntitiesAction: find information about a person called "Ben Werner", a software engineer based in London',
   async () => {
     const status = await researchEntitiesAction({
       inputs: [
@@ -158,8 +161,9 @@ test.skip(
       ],
       testingParams: {
         humanInputCanBeRequested: false,
-        persistState: (state) =>
-          persistState({ state, testName: "ben-werner" }),
+        persistState: (state) => {
+          persistState({ state, testName: "ben-werner" });
+        },
         // resumeFromState: retrievePreviousState({ testName: "ben-werner" }),
       },
     });
@@ -172,7 +176,7 @@ test.skip(
 );
 
 test.skip(
-  'Test researchEntitiesAction: Find information about a person called "Tim Brooks", an employee at OpenAI',
+  'test researchEntitiesAction: Find information about a person called "Tim Brooks", an employee at OpenAI',
   async () => {
     const status = await researchEntitiesAction({
       inputs: [
@@ -194,8 +198,9 @@ test.skip(
       ],
       testingParams: {
         humanInputCanBeRequested: false,
-        persistState: (state) =>
-          persistState({ state, testName: "tim-brooks" }),
+        persistState: (state) => {
+          persistState({ state, testName: "tim-brooks" });
+        },
         resumeFromState: retrievePreviousState({ testName: "tim-brooks" }),
       },
     });
@@ -208,7 +213,7 @@ test.skip(
 );
 
 test.skip(
-  "Test researchEntitiesAction: Find all the Large Language Models provided by OpenAI",
+  "test researchEntitiesAction: Find all the Large Language Models provided by OpenAI",
   async () => {
     const status = await researchEntitiesAction({
       inputs: [
@@ -231,8 +236,9 @@ test.skip(
       ],
       testingParams: {
         humanInputCanBeRequested: false,
-        persistState: (state) =>
-          persistState({ state, testName: "openai-llm" }),
+        persistState: (state) => {
+          persistState({ state, testName: "openai-llm" });
+        },
         resumeFromState: retrievePreviousState({ testName: "openai-llm" }),
       },
     });
@@ -245,7 +251,7 @@ test.skip(
 );
 
 test.skip(
-  "Test researchEntitiesAction: Find a comparison of graphics cards which can be used for running AI models",
+  "test researchEntitiesAction: Find a comparison of graphics cards which can be used for running AI models",
   async () => {
     const status = await researchEntitiesAction({
       inputs: [
@@ -269,8 +275,9 @@ test.skip(
       ],
       testingParams: {
         humanInputCanBeRequested: false,
-        persistState: (state) =>
-          persistState({ state, testName: "graphics-cards" }),
+        persistState: (state) => {
+          persistState({ state, testName: "graphics-cards" });
+        },
         resumeFromState: retrievePreviousState({ testName: "graphics-cards" }),
       },
     });

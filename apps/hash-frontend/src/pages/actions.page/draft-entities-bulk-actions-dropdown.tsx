@@ -1,22 +1,24 @@
-import { useMutation } from "@apollo/client";
-import { AlertModal, CaretDownSolidIcon } from "@hashintel/design-system";
-import type { EntityId } from "@local/hash-graph-types/entity";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
-import {
-  getEntityRevision,
-  getIncomingLinksForEntity,
-  getOutgoingLinksForEntity,
-} from "@local/hash-subgraph/stdlib";
-import { Box, buttonClasses, Fade, ListItemText, Menu } from "@mui/material";
 import {
   anchorRef,
   bindMenu,
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo, useState } from "react";
+import type { FunctionComponent, useCallback, useMemo, useState } from "react";
+import { useMutation } from "@apollo/client";
+import { AlertModal, CaretDownSolidIcon } from "@hashintel/design-system";
+import type { EntityId } from "@local/hash-graph-types/entity";
+import type {
+  EntityRootType,
+  extractDraftIdFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
+import {
+  getEntityRevision,
+  getIncomingLinksForEntity,
+  getOutgoingLinksForEntity,
+} from "@local/hash-subgraph/stdlib";
+import { Box, buttonClasses, Fade, ListItemText, Menu } from "@mui/material";
 
 import type {
   ArchiveEntitiesMutation,
@@ -72,34 +74,30 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
       return;
     }
 
-    return selectedDraftEntities
-      .map((selectedDraftEntity) => {
-        if (selectedDraftEntity.linkData) {
-          return [];
-        }
+    return selectedDraftEntities.flatMap((selectedDraftEntity) => {
+      if (selectedDraftEntity.linkData) {
+        return [];
+      }
 
-        return [
-          ...getIncomingLinksForEntity(
-            draftEntitiesWithLinkedDataSubgraph,
-            selectedDraftEntity.metadata.recordId.entityId,
-          ).filter(
-            (linkEntity) =>
-              !!extractDraftIdFromEntityId(
-                linkEntity.metadata.recordId.entityId,
-              ),
+      return [
+        ...getIncomingLinksForEntity(
+          draftEntitiesWithLinkedDataSubgraph,
+          selectedDraftEntity.metadata.recordId.entityId,
+        ).filter((linkEntity) =>
+          Boolean(
+            extractDraftIdFromEntityId(linkEntity.metadata.recordId.entityId),
           ),
-          ...getOutgoingLinksForEntity(
-            draftEntitiesWithLinkedDataSubgraph,
-            selectedDraftEntity.metadata.recordId.entityId,
-          ).filter(
-            (linkEntity) =>
-              !!extractDraftIdFromEntityId(
-                linkEntity.metadata.recordId.entityId,
-              ),
+        ),
+        ...getOutgoingLinksForEntity(
+          draftEntitiesWithLinkedDataSubgraph,
+          selectedDraftEntity.metadata.recordId.entityId,
+        ).filter((linkEntity) =>
+          Boolean(
+            extractDraftIdFromEntityId(linkEntity.metadata.recordId.entityId),
           ),
-        ];
-      })
-      .flat();
+        ),
+      ];
+    });
   }, [draftEntitiesWithLinkedDataSubgraph, selectedDraftEntities]);
 
   const [archiveEntities] = useMutation<
@@ -179,41 +177,39 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
       return;
     }
 
-    return selectedDraftEntities
-      .map((selectedDraftEntity) => {
-        if (!selectedDraftEntity.linkData) {
-          return [];
-        }
+    return selectedDraftEntities.flatMap((selectedDraftEntity) => {
+      if (!selectedDraftEntity.linkData) {
+        return [];
+      }
 
-        const leftEntity = getEntityRevision(
-          draftEntitiesWithLinkedDataSubgraph,
-          selectedDraftEntity.linkData.leftEntityId,
-        );
+      const leftEntity = getEntityRevision(
+        draftEntitiesWithLinkedDataSubgraph,
+        selectedDraftEntity.linkData.leftEntityId,
+      );
 
-        const rightEntity = getEntityRevision(
-          draftEntitiesWithLinkedDataSubgraph,
-          selectedDraftEntity.linkData.rightEntityId,
-        );
+      const rightEntity = getEntityRevision(
+        draftEntitiesWithLinkedDataSubgraph,
+        selectedDraftEntity.linkData.rightEntityId,
+      );
 
-        return [
-          /**
-           * Note: if a left or right draft entity has already been archived, it
-           * may not be present in the subgraph. This is why the `leftEntity` and
-           * `rightEntity` are nullable in this context.
-           */
-          leftEntity &&
-          extractDraftIdFromEntityId(leftEntity.metadata.recordId.entityId) !==
-            undefined
-            ? leftEntity
-            : [],
-          rightEntity &&
-          extractDraftIdFromEntityId(rightEntity.metadata.recordId.entityId) !==
-            undefined
-            ? rightEntity
-            : [],
-        ].flat();
-      })
-      .flat();
+      return [
+        /**
+         * Note: if a left or right draft entity has already been archived, it
+         * may not be present in the subgraph. This is why the `leftEntity` and
+         * `rightEntity` are nullable in this context.
+         */
+        leftEntity &&
+        extractDraftIdFromEntityId(leftEntity.metadata.recordId.entityId) !==
+          undefined
+          ? leftEntity
+          : [],
+        rightEntity &&
+        extractDraftIdFromEntityId(rightEntity.metadata.recordId.entityId) !==
+          undefined
+          ? rightEntity
+          : [],
+      ].flat();
+    });
   }, [draftEntitiesWithLinkedDataSubgraph, selectedDraftEntities]);
 
   const [updateEntities] = useMutation<
@@ -300,6 +296,11 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
         incomingOrOutgoingDraftLinksToIgnore && (
           <AlertModal
             callback={handleIgnoreDraftLinkEntitiesWithDraftLinks}
+            header={"Ignore additional drafts"}
+            type={"info"}
+            close={() => {
+              setShowDraftEntitiesWithDraftLinksWarning(false);
+            }}
             calloutMessage={
               <>
                 {incomingOrOutgoingDraftLinksToIgnore.length} additional draft
@@ -308,15 +309,14 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
                 they depend on.
               </>
             }
-            close={() => setShowDraftEntitiesWithDraftLinksWarning(false)}
-            header="Ignore additional drafts"
-            type="info"
           />
         )}
       {showDraftLinkEntitiesWithDraftLeftOrRightEntityWarning &&
         leftOrRightDraftEntitiesToAccept && (
           <AlertModal
             callback={handleAcceptDraftLinkEntitiesWithDraftLeftOrRightEntities}
+            header={"Accept additional drafts"}
+            type={"info"}
             calloutMessage={
               <>
                 {leftOrRightDraftEntitiesToAccept.length} additional draft{" "}
@@ -327,25 +327,25 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
                 them.
               </>
             }
-            close={() =>
-              setShowDraftLinkEntitiesWithDraftLeftOrRightEntityWarning(false)
-            }
-            header="Accept additional drafts"
-            type="info"
+            close={() => {
+              setShowDraftLinkEntitiesWithDraftLeftOrRightEntityWarning(false);
+            }}
           />
         )}
       <Fade in={isMoreThanOneDraftSelected}>
         <Box
-          display="flex"
+          display={"flex"}
           columnGap={1}
-          alignItems="flex-end"
+          alignItems={"flex-end"}
           ref={anchorRef(popupState)}
         >
           <LayerGroupLightIcon
             sx={{ fontSize: 16, color: ({ palette }) => palette.gray[50] }}
           />
           <Button
-            variant="tertiary_quiet"
+            variant={"tertiary_quiet"}
+            endIcon={<CaretDownSolidIcon />}
+            disabled={!isMoreThanOneDraftSelected}
             sx={{
               fontSize: 14,
               fontWeight: 500,
@@ -372,8 +372,6 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
                 },
               },
             }}
-            endIcon={<CaretDownSolidIcon />}
-            disabled={!isMoreThanOneDraftSelected}
             {...bindTrigger(popupState)}
           >
             Bulk Action

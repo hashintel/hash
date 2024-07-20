@@ -11,6 +11,7 @@ export const CollabPositionIndicator: FunctionComponent<
   CollabPositionIndicatorProps
 > = ({ backgroundColor, title, children }) => (
   <motion.div
+    title={title}
     initial={{
       opacity: 0,
       x: "100%",
@@ -32,7 +33,6 @@ export const CollabPositionIndicator: FunctionComponent<
       marginRight: "0.5rem",
       width: "1.5em",
     }}
-    title={title}
   >
     {children}
   </motion.div>

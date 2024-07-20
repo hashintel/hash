@@ -21,7 +21,7 @@ const Container = styled(Typography)(({ theme }) => ({
 
 export const Placeholder = () => {
   return (
-    <Container variant="regularTextPages">
+    <Container variant={"regularTextPages"}>
       Type <Command>/</Command> to browse blocks, or <Command>@</Command> to
       browse entities
     </Container>

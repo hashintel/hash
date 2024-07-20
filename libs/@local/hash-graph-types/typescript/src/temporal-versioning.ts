@@ -2,26 +2,26 @@
  * Types used in embedding applications and blocks that support multi-axis temporal versioning schemes.
  */
 
-import {
-  type BoundedTimeInterval as BoundedTimeIntervalBp,
-  type ExclusiveLimitedTemporalBound as ExclusiveLimitedTemporalBoundBp,
-  type InclusiveLimitedTemporalBound as InclusiveLimitedTemporalBoundBp,
-  type LimitedTemporalBound as LimitedTemporalBoundBp,
-  type PinnedTemporalAxis as PinnedTemporalAxisBp,
-  type PinnedTemporalAxisUnresolved as PinnedTemporalAxisUnresolvedBp,
-  type TemporalAxis as TemporalAxisBp,
-  type TemporalBound as TemporalBoundBp,
-  type TimeIntervalUnresolved as TimeIntervalUnresolvedBp,
-  type Timestamp as TimestampBp,
-  type Unbounded as UnboundedBp,
-  type VariableTemporalAxis as VariableTemporalAxisBp,
-  type VariableTemporalAxisUnresolved as VariableTemporalAxisUnresolvedBp,
+import type {
+  BoundedTimeInterval as BoundedTimeIntervalBp,
+  ExclusiveLimitedTemporalBound as ExclusiveLimitedTemporalBoundBp,
+  InclusiveLimitedTemporalBound as InclusiveLimitedTemporalBoundBp,
+  LimitedTemporalBound as LimitedTemporalBoundBp,
+  PinnedTemporalAxis as PinnedTemporalAxisBp,
+  PinnedTemporalAxisUnresolved as PinnedTemporalAxisUnresolvedBp,
+  TemporalAxis as TemporalAxisBp,
+  TemporalBound as TemporalBoundBp,
+  TimeIntervalUnresolved as TimeIntervalUnresolvedBp,
+  Timestamp as TimestampBp,
+  Unbounded as UnboundedBp,
+  VariableTemporalAxis as VariableTemporalAxisBp,
+  VariableTemporalAxisUnresolved as VariableTemporalAxisUnresolvedBp,
 } from "@blockprotocol/graph";
 import type { Brand } from "@local/advanced-types/brand";
 import type { Subtype } from "@local/advanced-types/subtype";
 
 /**
- * An ISO 8601 formatted timestamp string
+ * An ISO 8601 formatted timestamp string.
  */
 export type Timestamp = Brand<TimestampBp, "Timestamp">;
 
@@ -39,7 +39,7 @@ export type TemporalAxis = TemporalAxisBp;
 export type Unbounded = UnboundedBp;
 
 /**
- * The bound of a time-interval that is either exclusively or inclusively limited by a `Timestamp`
+ * The bound of a time-interval that is either exclusively or inclusively limited by a `Timestamp`.
  */
 export type LimitedTemporalBound = Subtype<
   LimitedTemporalBoundBp,
@@ -66,7 +66,7 @@ export type ExclusiveLimitedTemporalBound = Subtype<
 >;
 
 /**
- * The bound (or explicit lack of a bound) of a time-interval
+ * The bound (or explicit lack of a bound) of a time-interval.
  */
 export type TemporalBound = Subtype<
   TemporalBoundBp,
@@ -90,13 +90,13 @@ export type TimeIntervalUnresolved<
  * A range of time from a given `start` {@link TemporalBound} to a given `end` {@link TemporalBound}, where `start` is
  * strictly before or equal to `end`.
  */
-export type TimeInterval<
+export interface TimeInterval<
   StartBound extends TemporalBound = TemporalBound,
   EndBound extends TemporalBound = TemporalBound,
-> = {
+> {
   start: StartBound;
   end: EndBound;
-};
+}
 /* @todo - replace the above with this when https://github.com/blockprotocol/blockprotocol/pull/1013 is published
  * export type TimeInterval<
  *   StartBound extends TemporalBound = TemporalBound,
@@ -129,7 +129,7 @@ export type VariableTemporalAxisUnresolved<
 
 /**
  * A representation of a "variable" temporal axis, which bounded to a given {@link TimeInterval} where the end of the
- * interval must be limited by a {@link Timestamp}
+ * interval must be limited by a {@link Timestamp}.
  *
  * In a bitemporal system, a {@link VariableTemporalAxis} should almost always be accompanied by a
  * {@link PinnedTemporalAxis}.
@@ -143,7 +143,7 @@ export type VariableTemporalAxis<
 /**
  * A representation of a "pinned" temporal axis, used to project another temporal axis along the given
  * {@link Timestamp}. If the `timestamp` is set to `null`, then it will be filled in with the current time _when a query
- * is being resolved._
+ * is being resolved._.
  *
  * In a bitemporal system, a {@link PinnedTemporalAxisUnresolved} should almost always be accompanied by a
  * {@link VariableTemporalAxisUnresolved}.

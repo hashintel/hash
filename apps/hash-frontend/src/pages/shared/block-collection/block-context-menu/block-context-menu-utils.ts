@@ -1,15 +1,15 @@
 import type { ReactElement } from "react";
 
-export type MenuState = {
+export interface MenuState {
   currentView: "normal" | "search";
   selectedIndex: number;
   subMenuVisible: boolean;
-};
+}
 
 export type ItemClickMethod = (key: string) => void;
 
-export type MenuItemType = {
+export interface MenuItemType {
   key: string;
   title: string;
   icon: ReactElement;
-};
+}

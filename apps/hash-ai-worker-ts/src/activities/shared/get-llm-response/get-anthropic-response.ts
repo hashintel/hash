@@ -1,19 +1,17 @@
-import type { Headers } from "@anthropic-ai/sdk/core";
-import type { RateLimitError } from "@anthropic-ai/sdk/error";
-import { APIError } from "@anthropic-ai/sdk/error";
-import type { Tool } from "@anthropic-ai/sdk/resources/messages";
 import dedent from "dedent";
 import { backOff } from "exponential-backoff";
+import type { Headers } from "@anthropic-ai/sdk/core";
+import type { APIError, RateLimitError } from "@anthropic-ai/sdk/error";
+import type { Tool } from "@anthropic-ai/sdk/resources/messages";
 
 import { logger } from "../activity-logger.js";
 import { stringify } from "../stringify.js";
+
 import type {
   AnthropicApiProvider,
+  anthropicMessageModelToMaxOutput,
   AnthropicMessagesCreateParams,
   AnthropicMessagesCreateResponse,
-} from "./anthropic-client.js";
-import {
-  anthropicMessageModelToMaxOutput,
   createAnthropicMessagesWithTools,
   isAnthropicContentToolUseBlock,
 } from "./anthropic-client.js";
@@ -27,8 +25,6 @@ import {
 import type {
   LlmMessageToolUseContent,
   LlmUserMessage,
-} from "./llm-message.js";
-import {
   mapAnthropicMessageToLlmMessage,
   mapLlmMessageToAnthropicMessage,
 } from "./llm-message.js";
@@ -65,16 +61,21 @@ const mapAnthropicStopReasonToLlmStopReason = (
   stopReason: AnthropicResponse["stop_reason"],
 ): LlmStopReason => {
   switch (stopReason) {
-    case "end_turn":
+    case "end_turn": {
       return "stop";
-    case "tool_use":
+    }
+    case "tool_use": {
       return "tool_use";
-    case "max_tokens":
+    }
+    case "max_tokens": {
       return "length";
-    case "stop_sequence":
+    }
+    case "stop_sequence": {
       return "stop_sequence";
-    default:
+    }
+    default: {
       throw new Error(`Unexpected Anthropic stop reason: ${stopReason}`);
+    }
   }
 };
 
@@ -122,13 +123,13 @@ const isErrorAnthropicRateLimitingError = (
   error: unknown,
 ): error is RateLimitError =>
   typeof error === "object" &&
-  !!error &&
+  Boolean(error) &&
   "status" in error &&
   error.status === 429;
 
 const isServerError = (error: unknown): error is APIError =>
   typeof error === "object" &&
-  !!error &&
+  Boolean(error) &&
   "status" in error &&
   typeof error.status === "number" &&
   error.status >= 500 &&
@@ -214,6 +215,7 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
         logger.debug(
           `Encountered rate limit error with provider "${currentProvider}", retrying directly with provider "${otherProvider}".`,
         );
+
         return createAnthropicMessagesWithToolsWithBackoff({
           payload,
           initialProvider: otherProvider,
@@ -515,7 +517,7 @@ export const getAnthropicResponse = async <ToolName extends string>(
     lastRequestTime: currentRequestTime,
     totalRequestTime:
       previousInvalidResponses?.reduce(
-        (acc, { requestTime }) => acc + requestTime,
+        (accumulator, { requestTime }) => accumulator + requestTime,
         currentRequestTime,
       ) ?? currentRequestTime,
   };

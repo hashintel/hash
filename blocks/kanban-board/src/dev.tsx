@@ -1,8 +1,9 @@
-import type { VersionedUrl } from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
+import type { VersionedUrl } from "@blockprotocol/graph";
 
 import packageJson from "../package.json";
+
 import {
   cardContentKey,
   cardIdKey,
@@ -11,10 +12,11 @@ import {
   columnsKey,
   columnTitleKey,
 } from "./components/board/board";
-import Component from "./index";
-import type { BlockEntity } from "./types/generated/block-entity";
 
-const node = document.getElementById("app");
+import type { BlockEntity } from "./types/generated/block-entity";
+import Component from "./index";
+
+const node = document.querySelector("#app");
 
 const testEntity: BlockEntity = {
   metadata: {
@@ -61,10 +63,10 @@ const testEntity: BlockEntity = {
 const DevApp = () => {
   return (
     <MockBlockDock
+      debug
       blockDefinition={{ ReactComponent: Component }}
       blockEntityRecordId={testEntity.metadata.recordId}
       blockInfo={packageJson.blockprotocol}
-      debug
       initialData={{
         initialEntities: [testEntity],
       }}

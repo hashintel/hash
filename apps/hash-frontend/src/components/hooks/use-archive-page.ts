@@ -1,10 +1,10 @@
+import { useCallback, useContext } from "react";
 import { useMutation } from "@apollo/client";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
-import { useCallback, useContext } from "react";
 
 import type {
   UpdatePageMutation,
@@ -33,6 +33,7 @@ export const useArchivePage = () => {
 
   const getRefetchQueries = useCallback((pageEntityId: EntityId) => {
     const ownedById = extractOwnedByIdFromEntityId(pageEntityId);
+
     return [
       {
         query: getEntitySubgraphQuery,

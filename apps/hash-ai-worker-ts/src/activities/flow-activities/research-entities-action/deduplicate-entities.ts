@@ -1,5 +1,5 @@
-import type { EntityId } from "@local/hash-graph-types/entity";
 import dedent from "dedent";
+import type { EntityId } from "@local/hash-graph-types/entity";
 
 import { getFlowContext } from "../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../shared/get-llm-response.js";
@@ -13,6 +13,7 @@ import type {
 import { graphApiClient } from "../../shared/graph-api-client.js";
 import type { PermittedOpenAiModel } from "../../shared/openai-client.js";
 import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text.js";
+
 import type { ExistingEntitySummary } from "./summarize-existing-entities.js";
 
 /**
@@ -47,10 +48,10 @@ export const deduplicationAgentSystemPrompt = `
   Here are the entities you need to consider:
 `;
 
-export type DuplicateReport = {
+export interface DuplicateReport {
   canonicalId: string | EntityId;
   duplicateIds: (string | EntityId)[];
-};
+}
 
 const toolName = "reportDuplicates";
 

@@ -1,11 +1,11 @@
 import type { DrawHeaderCallback, Rectangle } from "@glideapps/glide-data-grid";
 
-export type InteractablePosition = {
+export interface InteractablePosition {
   left: number;
   right: number;
   top: number;
   bottom: number;
-};
+}
 
 // used as `${tableId}-${columnIndex}-${rowIndex}`
 export type CellPath = `${string}-${number}-${number}`;

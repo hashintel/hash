@@ -1,13 +1,14 @@
+import { useCallback } from "react";
 import { useLazyQuery } from "@apollo/client";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import type { EntityRootType } from "@local/hash-subgraph";
-import { useCallback } from "react";
 
 import type {
   QueryEntitiesQuery,
   QueryEntitiesQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import { queryEntitiesQuery } from "../../../../graphql/queries/knowledge/entity.queries";
+
 import type { QueryEntitiesMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolQueryEntities = (): {
@@ -36,10 +37,10 @@ export const useBlockProtocolQueryEntities = (): {
       const { operation, graphResolveDepths } = data;
 
       /**
+       * @see https://linear.app/hash/issue/H-2998
        * @todo Add filtering to this query using structural querying.
        *   This may mean having the backend use structural querying and relaying
        *   or doing it from here.
-       * @see https://linear.app/hash/issue/H-2998
        */
       const { data: response } = await queryFn({
         variables: {

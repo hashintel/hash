@@ -6,7 +6,7 @@
  * Contains metadata about the request that clients can attach when filing a bug or providing other
  * forms of feedback.
  */
-export type RequestInfo = {
+export interface RequestInfo {
   /**
    * An opaque string that should only be interpreted by the service generating it. For example, it
    * can be used to identify requests in the service's logs.
@@ -18,4 +18,4 @@ export type RequestInfo = {
    * sent back to the service provider for debugging.
    */
   servingData: string;
-};
+}

@@ -19,20 +19,25 @@ export const Checkbox: FunctionComponent<CheckboxProps> = ({
           {label}
           <input
             checked={checked}
-            onChange={() => onChangeChecked(!checked)}
-            type="checkbox"
+            type={"checkbox"}
+            onChange={() => {
+              onChangeChecked(!checked);
+            }}
             {...props}
           />
         </label>
       </div>
     );
   }
+
   return (
     <div>
       <input
         checked={checked}
-        onChange={() => onChangeChecked(!checked)}
-        type="checkbox"
+        type={"checkbox"}
+        onChange={() => {
+          onChangeChecked(!checked);
+        }}
         {...props}
       />
     </div>

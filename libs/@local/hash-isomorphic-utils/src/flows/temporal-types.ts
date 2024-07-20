@@ -9,13 +9,13 @@ import type {
   LocalFlowRun,
 } from "./types.js";
 
-export type RunFlowWorkflowParams = {
+export interface RunFlowWorkflowParams {
   dataSources: FlowDataSources;
   flowTrigger: FlowTrigger;
   flowDefinition: FlowDefinition;
   userAuthentication: { actorId: AccountId };
   webId: OwnedById;
-};
+}
 
 export type RunFlowWorkflowResponse = Status<{
   flow?: LocalFlowRun;

@@ -1,10 +1,11 @@
 import type {
   Next,
+  proxySinks,
   WorkflowExecuteInput,
   WorkflowInboundCallsInterceptor,
+  workflowInfo,
   WorkflowInterceptors,
 } from "@temporalio/workflow";
-import { proxySinks, workflowInfo } from "@temporalio/workflow";
 
 import type { SentrySinks } from "../../sinks/sentry.js";
 
@@ -21,9 +22,9 @@ class SentryWorkflowInboundInterceptor
   ): Promise<unknown> => {
     try {
       return await next(input);
-    } catch (err) {
-      sentry.captureException(err);
-      throw err;
+    } catch (error) {
+      sentry.captureException(error);
+      throw error;
     }
   };
 }

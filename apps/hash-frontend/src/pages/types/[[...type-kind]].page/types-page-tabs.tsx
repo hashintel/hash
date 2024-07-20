@@ -20,10 +20,10 @@ export const tabTitles: Record<TabId, string> = {
   "data-type": "Data Types",
 };
 
-type TypesPageTabsProps = {
+interface TypesPageTabsProps {
   currentTab: TabId;
   numberOfTypesByTab: Record<TabId, number | undefined>;
-};
+}
 
 export const TypesPageTabs: FunctionComponent<TypesPageTabsProps> = ({
   currentTab,

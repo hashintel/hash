@@ -1,7 +1,7 @@
+import dedent from "dedent";
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { StatusCode } from "@local/status";
-import dedent from "dedent";
 
 import { getFlowContext } from "../shared/get-flow-context.js";
 import { getLlmResponse } from "../shared/get-llm-response.js";
@@ -9,6 +9,7 @@ import { getToolCallsFromLlmAssistantMessage } from "../shared/get-llm-response/
 import type { LlmToolDefinition } from "../shared/get-llm-response/types.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model.js";
+
 import type { FlowActionActivity } from "./types.js";
 
 const webQueriesSystemPrompt = dedent(`
@@ -35,9 +36,9 @@ const tools: LlmToolDefinition[] = [
   },
 ];
 
-type ProposeQueryFunctionCallArguments = {
+interface ProposeQueryFunctionCallArguments {
   query: string;
-};
+}
 
 export const generateWebQueriesAction: FlowActionActivity = async ({
   inputs,

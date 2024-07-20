@@ -312,8 +312,8 @@ export const getAllStepDefinitionsInFlowDefinition = (flow: FlowDefinition) => [
  * - Required inputs for each step are met and valid.
  * - Input sources (other step outputs, flow triggers, hardcoded values) exist and match expected types.
  *
- * @param flow The flow definition to validate.
- * @returns true if the flow definition passes all validation checks.
+ * @param flow - The flow definition to validate.
+ * @returns True if the flow definition passes all validation checks.
  */
 export const validateFlowDefinition = (flow: FlowDefinition) => {
   const stepIds = new Set<string>();

@@ -1,9 +1,10 @@
-import type { DefaultOptions, NormalizedCacheObject } from "@apollo/client";
-import {
+import type {
   ApolloClient,
   ApolloLink,
+  DefaultOptions,
   HttpLink,
   InMemoryCache,
+  NormalizedCacheObject,
 } from "@apollo/client";
 import { onError } from "@apollo/client/link/error";
 import * as Sentry from "@sentry/browser";
@@ -23,6 +24,7 @@ const errorLink = onError(({ graphQLErrors, operation }) => {
         const error = new Error(
           `GraphQL Error: ${path?.[0]?.toString() ?? "?"}`,
         );
+
         scope.setExtra("Exception", extensions.exception);
         scope.setExtra("Location", path);
         scope.setExtra("Query", operation.query.loc?.source.body);
@@ -49,7 +51,7 @@ export const createApolloClient = (params?: {
    * This wraps fetch to inject the query operation name into the URL, which makes it easier
    * to identify in dev tools.
    *
-   * @todo disable this in production due to caching concerns
+   * @todo Disable this in production due to caching concerns.
    */
   const wrappedFetch = (
     uri: string | Request,
@@ -60,9 +62,8 @@ export const createApolloClient = (params?: {
     if (typeof options?.body === "string") {
       try {
         ({ operationName } = JSON.parse(options.body));
-      } catch (err) {
-        // eslint-disable-next-line no-console -- TODO: consider using logger
-        console.error(err);
+      } catch (error) {
+        console.error(error);
       }
     }
 
@@ -77,8 +78,9 @@ export const createApolloClient = (params?: {
   };
 
   let headers = params?.additionalHeaders;
+
   if (params?.clientId) {
-    headers ??= {};
+    headers = headers ?? {};
     headers[hashClientHeaderKey] = params.clientId;
   }
 

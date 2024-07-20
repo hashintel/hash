@@ -26,7 +26,7 @@ test("/types page renders and loads types", async ({ page }) => {
   };
 
   /**
-   * Check that all tabs have a non-zero type count
+   * Check that all tabs have a non-zero type count.
    */
   for (const [tabTitle, href] of Object.entries(hrefByTabTitle)) {
     await expect(page.locator(`[href*="${href}"]`)).toHaveText(

@@ -1,11 +1,12 @@
+import { useCallback } from "react";
 import type {
   DrawHeaderCallback,
   GridColumn,
 } from "@glideapps/glide-data-grid";
 import { useTheme } from "@mui/material";
-import { useCallback } from "react";
 
 import { getCellHorizontalPadding, getYCenter } from "../utils";
+
 import type { ColumnFilter } from "./filtering";
 import { InteractableManager } from "./interactable-manager";
 import type {

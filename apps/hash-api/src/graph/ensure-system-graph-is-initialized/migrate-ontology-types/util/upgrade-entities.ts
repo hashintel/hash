@@ -1,3 +1,4 @@
+import isEqual from "lodash/isEqual";
 import { extractVersion, type VersionedUrl } from "@blockprotocol/type-system";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { propertyObjectToPatches } from "@local/hash-graph-sdk/entity";
@@ -19,7 +20,6 @@ import {
   extractBaseUrl,
   versionedUrlFromComponents,
 } from "@local/hash-subgraph/type-system-patch";
-import isEqual from "lodash/isEqual";
 
 import type { ImpureGraphContext } from "../../../context-types";
 import {
@@ -104,7 +104,7 @@ export const upgradeWebEntities = async ({
       const newVersion = migrationState.entityTypeVersions[baseUrl];
 
       if (typeof newVersion === "undefined") {
-        throw new Error(
+        throw new TypeError(
           `Could not find the version for base URL ${baseUrl} in the migration state`,
         );
       }
@@ -126,7 +126,7 @@ export const upgradeWebEntities = async ({
           baseUrl === googleEntityTypes.account.entityTypeBaseUrl
         ) {
           /**
-           *These entities are only editable by the bot that created them
+           *These entities are only editable by the bot that created them.
            */
           updateAuthentication = {
             actorId: entity.metadata.provenance.createdById,

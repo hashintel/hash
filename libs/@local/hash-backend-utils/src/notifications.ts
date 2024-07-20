@@ -107,7 +107,7 @@ export const createGraphChangeNotification = async (
   };
 
   /**
-   * We create the notification entity with the user's web bot, as we know it has the necessary permissions in the user's web
+   * We create the notification entity with the user's web bot, as we know it has the necessary permissions in the user's web.
    */
   const notificationEntity = await Entity.create<GraphChangeNotification>(
     graphApi,
@@ -135,11 +135,11 @@ export const createGraphChangeNotification = async (
   await Entity.create<OccurredInEntity>(
     graphApi,
     /**
-     * We use the user's authority to create the link to the entity because it might be in a different web, e.g. an org's,
+     * We use the user's authority to create the link to the entity because it might be in a different web, e.g. An org's,
      * and we can't be sure that any single bot has access to both the user's web and the web of the changed entity,
-     * which might have been created by e.g. an AI bot that has access to the entity's web but not the user's.
+     * which might have been created by e.g. An AI bot that has access to the entity's web but not the user's.
      *
-     * Ideally we would have a global bot with restricted permissions across all webs to do this – H-1605
+     * Ideally we would have a global bot with restricted permissions across all webs to do this – H-1605.
      */
     { actorId: notifiedUserAccountId },
     {

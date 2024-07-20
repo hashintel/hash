@@ -5,4 +5,4 @@
  * to avoid unusual / hidden whitespace causing unexpected differences.
  */
 export const normalizeWhitespace = (string: string) =>
-  string.replace(/\s+/g, " ").trim();
+  string.replaceAll(/\s+/g, " ").trim();

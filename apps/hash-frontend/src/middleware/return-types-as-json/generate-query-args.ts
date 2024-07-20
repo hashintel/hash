@@ -1,5 +1,5 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { DocumentNode } from "graphql";
+import type { VersionedUrl } from "@blockprotocol/type-system";
 
 import type {
   GetDataTypeQueryVariables,
@@ -11,7 +11,7 @@ import { getEntityTypeQuery } from "../../graphql/queries/ontology/entity-type.q
 import { getPropertyTypeQuery } from "../../graphql/queries/ontology/property-type.queries";
 
 /**
- * Return the internal query string from a gql-tagged query, i.e. gql`string` -> string
+ * Return the internal query string from a gql-tagged query, i.e. Gql`string` -> string.
  */
 const queryStringFromNode = (node: DocumentNode) => {
   const string = node.loc?.source.body.toString();
@@ -38,7 +38,7 @@ export const generateQueryArgs = (
     | GetPropertyTypeQueryVariables;
 } => {
   switch (ontologyType) {
-    case "data-type":
+    case "data-type": {
       return {
         query: queryStringFromNode(getDataTypeQuery),
         variables: {
@@ -47,7 +47,8 @@ export const generateQueryArgs = (
           includeArchived: true,
         },
       };
-    case "entity-type":
+    }
+    case "entity-type": {
       return {
         query: queryStringFromNode(getEntityTypeQuery),
         variables: {
@@ -60,7 +61,8 @@ export const generateQueryArgs = (
           includeArchived: true,
         },
       };
-    case "property-type":
+    }
+    case "property-type": {
       return {
         query: queryStringFromNode(getPropertyTypeQuery),
         variables: {
@@ -70,5 +72,6 @@ export const generateQueryArgs = (
           includeArchived: true,
         },
       };
+    }
   }
 };

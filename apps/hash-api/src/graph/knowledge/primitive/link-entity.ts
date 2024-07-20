@@ -1,8 +1,8 @@
 import type {
   CreateEntityParameters,
   Entity,
+  LinkEntity,
 } from "@local/hash-graph-sdk/entity";
-import { LinkEntity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityProperties,
   LinkData,
@@ -14,11 +14,12 @@ import {
   getEntityTypeById,
   isEntityTypeLinkEntityType,
 } from "../../ontology/primitive/entity-type";
+
 import { getLatestEntityById } from "./entity";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 
 export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
-  !!entity.linkData;
+  Boolean(entity.linkData);
 
 type CreateLinkEntityFunction<Properties extends EntityProperties> =
   ImpureGraphFunction<
@@ -95,9 +96,9 @@ export const createLinkEntity = async <Properties extends EntityProperties>(
 /**
  * Update a link entity.
  *
- * @param params.linkEntity - the link entity being updated
- * @param params.properties (optional) - the updated properties object of the link entity
- * @param params.actorId - the id of the account that is updating the entity
+ * @param params.linkEntity - The link entity being updated.
+ * @param params.properties - (optional) - the updated properties object of the link entity.
+ * @param params.actorId - The id of the account that is updating the entity.
  */
 export const updateLinkEntity: ImpureGraphFunction<
   {
@@ -109,7 +110,7 @@ export const updateLinkEntity: ImpureGraphFunction<
 > = async ({ graphApi, provenance }, { actorId }, params) => {
   const { linkEntity, propertyPatches } = params;
 
-  return await linkEntity.patch(
+  return linkEntity.patch(
     graphApi,
     { actorId },
     {
@@ -123,7 +124,7 @@ export const updateLinkEntity: ImpureGraphFunction<
 /**
  * Get the right entity of a link entity.
  *
- * @param params.linkEntity - the link entity
+ * @param params.linkEntity - The link entity.
  */
 export const getLinkEntityRightEntity: ImpureGraphFunction<
   { linkEntity: LinkEntity },
@@ -139,7 +140,7 @@ export const getLinkEntityRightEntity: ImpureGraphFunction<
 /**
  * Get the left entity of a link entity.
  *
- * @param params.linkEntity - the link entity
+ * @param params.linkEntity - The link entity.
  */
 export const getLinkEntityLeftEntity: ImpureGraphFunction<
   { linkEntity: LinkEntity },

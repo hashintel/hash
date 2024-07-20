@@ -1,3 +1,4 @@
+import { useCallback, useState } from "react";
 import { useMutation, useQuery } from "@apollo/client";
 import {
   ArrowRightIconRegular,
@@ -14,7 +15,6 @@ import { isSelfHostedInstance } from "@local/hash-isomorphic-utils/instance";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ProspectiveUserProperties } from "@local/hash-isomorphic-utils/system-types/prospectiveuser";
 import { Box } from "@mui/material";
-import { useCallback, useState } from "react";
 
 import type {
   GetEntitySubgraphQuery,
@@ -29,6 +29,7 @@ import {
   submitEarlyAccessFormMutation,
 } from "../../graphql/queries/user.queries";
 import { Button } from "../../shared/ui/button";
+
 import { FollowUsButton } from "./shared/follow-us-button";
 import { GuideCard } from "./shared/guide-card";
 import { HomepageCard } from "./shared/homepage-card";
@@ -43,9 +44,9 @@ const SelfHostedAccessDenied = () => (
     <HomepageBigText>to this instance</HomepageBigText>
     <HomepageSmallCaps>Sign up for hosted HASH instead</HomepageSmallCaps>
     <Button
-      href="https://hash.ai/signup"
-      variant="primary"
-      size="small"
+      href={"https://hash.ai/signup"}
+      variant={"primary"}
+      size={"small"}
       sx={{ borderRadius: 2 }}
     >
       Create an account
@@ -80,7 +81,7 @@ export const Waitlisted = () => {
       },
       fetchPolicy: "cache-and-network",
       onCompleted: (data) => {
-        if (data.getEntitySubgraph.subgraph.roots.length) {
+        if (data.getEntitySubgraph.subgraph.roots.length > 0) {
           setEarlyAccessFormState("submitted");
         }
       },
@@ -113,9 +114,11 @@ export const Waitlisted = () => {
     <>
       {!isSelfHostedInstance && !hasSubmittedForm && (
         <EarlyAccessFormModal
-          onClose={() => setEarlyAccessFormState("closed")}
           open={earlyAccessFormState === "open"}
           onSubmit={submitForm}
+          onClose={() => {
+            setEarlyAccessFormState("closed");
+          }}
         />
       )}
       <HomepageGrid>
@@ -127,7 +130,7 @@ export const Waitlisted = () => {
               <HomepageBigText>
                 You are{" "}
                 <Box
-                  component="span"
+                  component={"span"}
                   sx={{
                     color: ({ palette }) =>
                       position ? palette.teal[60] : "inherit",
@@ -140,7 +143,7 @@ export const Waitlisted = () => {
               <HomepageSmallCaps>
                 Stay tuned
                 <Box
-                  component="span"
+                  component={"span"}
                   sx={{ color: ({ palette }) => palette.teal[60], ml: 0.8 }}
                 >
                   for access
@@ -157,11 +160,13 @@ export const Waitlisted = () => {
               </HomepageBigText>
               <HomepageSmallCaps>Jump the queue</HomepageSmallCaps>
               <Button
-                onClick={() => setEarlyAccessFormState("open")}
                 disabled={hasSubmittedForm}
-                variant="primary"
-                size="small"
+                variant={"primary"}
+                size={"small"}
                 sx={{ borderRadius: 2 }}
+                onClick={() => {
+                  setEarlyAccessFormState("open");
+                }}
               >
                 {hasSubmittedForm ? (
                   <>
@@ -177,7 +182,7 @@ export const Waitlisted = () => {
                 ) : (
                   <>
                     <Box
-                      component="span"
+                      component={"span"}
                       sx={{ color: ({ palette }) => palette.blue[25], mr: 0.5 }}
                     >
                       Tell us about your
@@ -201,9 +206,11 @@ export const Waitlisted = () => {
           </HomepageBigText>
           <HomepageSmallCaps>Get ready</HomepageSmallCaps>
           <Button
-            href="https://chromewebstore.google.com/detail/hash-ai/nljhmbdifehhnkhinhfooebllaajlddb"
-            variant="white_cta"
-            size="small"
+            variant={"white_cta"}
+            size={"small"}
+            href={
+              "https://chromewebstore.google.com/detail/hash-ai/nljhmbdifehhnkhinhfooebllaajlddb"
+            }
           >
             <ChromeIcon sx={{ fontSize: 18, mr: 1.5 }} />
             Download for Chrome

@@ -1,5 +1,4 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
-
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,6 +14,7 @@ import {
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { inferFactsFromText } from "../infer-facts-from-text.js";
+
 import type { LocalEntitySummary } from "./get-entity-summaries-from-text.js";
 
 const microsoftWikipediaParagraph = `
@@ -32,7 +32,7 @@ Microsoft has been criticized for its monopolistic practices and the company's s
 `;
 
 test.skip(
-  "Test inferFactsFromText with Microsoft Wikipedia paragraph.",
+  "test inferFactsFromText with Microsoft Wikipedia paragraph.",
   async () => {
     const { facts } = await inferFactsFromText({
       text: microsoftWikipediaParagraph,
@@ -131,12 +131,13 @@ const _ftse350EntitySummaries: LocalEntitySummary[] = [
 ];
 
 test.skip(
-  "Test inferFactsFromText with FTSE350 web page html",
+  "test inferFactsFromText with FTSE350 web page html",
   async () => {
     const webPage = await getWebPageActivity({
       url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table",
       sanitizeForLlm: true,
     });
+
     if ("error" in webPage) {
       throw new Error(webPage.error);
     }
@@ -215,7 +216,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 test.skip(
-  "Test inferFactsFromText with Linked In web page",
+  "test inferFactsFromText with Linked In web page",
   async () => {
     const linkedInInnerHtmlPath = join(__dirname, "/var/linkedin.html");
 
@@ -414,7 +415,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
 ];
 
 test.skip(
-  "Test inferFactsFromText with LLM providers",
+  "test inferFactsFromText with LLM providers",
   async () => {
     const url = "https://platform.openai.com/docs/models";
 
@@ -422,6 +423,7 @@ test.skip(
       url,
       sanitizeForLlm: true,
     });
+
     if ("error" in webPage) {
       throw new Error(webPage.error);
     }

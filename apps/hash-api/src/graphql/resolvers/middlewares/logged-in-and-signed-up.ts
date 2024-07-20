@@ -7,5 +7,5 @@ export const loggedInAndSignedUpMiddleware: ResolverMiddleware<
   GraphQLContext,
   Record<string, unknown>,
   LoggedInGraphQLContext
-> = (next) => (obj, args, ctx: GraphQLContext, info) =>
-  loggedInMiddleware(signedUpMiddleware(next))(obj, args, ctx, info);
+> = (next) => (object, args, ctx: GraphQLContext, info) =>
+  loggedInMiddleware(signedUpMiddleware(next))(object, args, ctx, info);

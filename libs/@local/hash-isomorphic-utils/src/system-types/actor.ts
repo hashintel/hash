@@ -2,26 +2,14 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type {
-  Actor,
-  ActorOutgoingLinkAndTarget,
-  ActorOutgoingLinksByLinkEntityTypeId,
-  ActorProperties,
-  ActorPropertiesWithMetadata,
-  DisplayNamePropertyValue,
-  DisplayNamePropertyValueWithMetadata,
-  TextDataType,
-  TextDataTypeWithMetadata,
+export {
+  type Actor,
+  type ActorOutgoingLinkAndTarget,
+  type ActorOutgoingLinksByLinkEntityTypeId,
+  type ActorProperties,
+  type ActorPropertiesWithMetadata,
+  type DisplayNamePropertyValue,
+  type DisplayNamePropertyValueWithMetadata,
+  type TextDataType,
+  type TextDataTypeWithMetadata,
 } from "./shared.js";
-
-export type {
-  Actor,
-  ActorOutgoingLinkAndTarget,
-  ActorOutgoingLinksByLinkEntityTypeId,
-  ActorProperties,
-  ActorPropertiesWithMetadata,
-  DisplayNamePropertyValue,
-  DisplayNamePropertyValueWithMetadata,
-  TextDataType,
-  TextDataTypeWithMetadata,
-};

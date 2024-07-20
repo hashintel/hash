@@ -1,10 +1,10 @@
+import { useCallback } from "react";
 import { useMutation } from "@apollo/client";
 import {
   Entity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import { useCallback } from "react";
 
 import type {
   CreateEntityMutation,
@@ -16,6 +16,7 @@ import {
 } from "../../../../graphql/queries/knowledge/entity.queries";
 import { useActiveWorkspace } from "../../../../pages/shared/workspace-context";
 import { generateUseEntityTypeEntitiesQueryVariables } from "../../../../shared/use-entity-type-entities";
+
 import type { CreateEntityMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolCreateEntity = (

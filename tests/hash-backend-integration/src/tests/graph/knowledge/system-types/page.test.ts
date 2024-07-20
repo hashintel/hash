@@ -1,20 +1,24 @@
+import { generateKeyBetween } from "fractional-indexing";
+import { beforeAll, describe, expect, test } from "vitest";
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import { createEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
-import type { Block } from "@apps/hash-api/src/graph/knowledge/system-types/block";
-import { createBlock } from "@apps/hash-api/src/graph/knowledge/system-types/block";
+import type {
+  Block,
+  createBlock,
+} from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import {
   addBlockToBlockCollection,
   moveBlockInBlockCollection,
   removeBlockFromBlockCollection,
 } from "@apps/hash-api/src/graph/knowledge/system-types/block-collection";
-import type { Page } from "@apps/hash-api/src/graph/knowledge/system-types/page";
-import {
+import type {
   createPage,
   getAllPagesInWorkspace,
   getPageBlocks,
   getPageById,
   getPageParentPage,
+  Page,
   setPageParentPage,
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
@@ -27,8 +31,6 @@ import type {
   HasIndexedContent,
   Text,
 } from "@local/hash-isomorphic-utils/system-types/shared";
-import { generateKeyBetween } from "fractional-indexing";
-import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
@@ -41,7 +43,7 @@ const logger = new Logger({
 
 const graphContext = createTestImpureGraphContext();
 
-describe("Page", () => {
+describe("page", () => {
   let testUser: User;
 
   beforeAll(async () => {
@@ -84,7 +86,7 @@ describe("Page", () => {
 
   let testPage: Page;
 
-  it("can create a page", async () => {
+  test("can create a page", async () => {
     const authentication = { actorId: testUser.accountId };
 
     testPage = await createPage(graphContext, authentication, {
@@ -93,12 +95,12 @@ describe("Page", () => {
       type: "document",
     });
 
-    expect(testPage.title).toEqual("Test Page");
+    expect(testPage.title).toBe("Test Page");
   });
 
   let testPage2: Page;
 
-  it("can create a page with initial blocks", async () => {
+  test("can create a page with initial blocks", async () => {
     const authentication = { actorId: testUser.accountId };
 
     const [initialBlock1, initialBlock2] = await Promise.all([
@@ -128,7 +130,7 @@ describe("Page", () => {
     );
   });
 
-  it("can get a page by its entity id", async () => {
+  test("can get a page by its entity id", async () => {
     const authentication = { actorId: testUser.accountId };
 
     const fetchedPage = await getPageById(graphContext, authentication, {
@@ -138,7 +140,7 @@ describe("Page", () => {
     expect(fetchedPage).toEqual(testPage);
   });
 
-  it("can get all pages in a workspace", async () => {
+  test("can get all pages in a workspace", async () => {
     const authentication = { actorId: testUser.accountId };
 
     const allPages = await getAllPagesInWorkspace(
@@ -166,7 +168,7 @@ describe("Page", () => {
 
   let parentPage: Page;
 
-  it("can get/set a parent page", async () => {
+  test("can get/set a parent page", async () => {
     const authentication = { actorId: testUser.accountId };
 
     parentPage = await createPage(graphContext, authentication, {
@@ -176,9 +178,9 @@ describe("Page", () => {
       type: "document",
     });
 
-    expect(
-      await getPageParentPage(graphContext, authentication, { page: testPage }),
-    ).toBeNull();
+    await expect(
+      getPageParentPage(graphContext, authentication, { page: testPage }),
+    ).resolves.toBeNull();
 
     await setPageParentPage(graphContext, authentication, {
       page: testPage,
@@ -186,9 +188,9 @@ describe("Page", () => {
       prevFractionalIndex: null,
       nextIndex: null,
     });
-    expect(
-      await getPageParentPage(graphContext, authentication, { page: testPage }),
-    ).toEqual(parentPage);
+    await expect(
+      getPageParentPage(graphContext, authentication, { page: testPage }),
+    ).resolves.toEqual(parentPage);
   });
 
   let testBlock1: Block;
@@ -204,7 +206,7 @@ describe("Page", () => {
 
   let testPageForBlockManipulation: Page;
 
-  it("can insert blocks", async () => {
+  test("can insert blocks", async () => {
     const authentication = { actorId: testUser.accountId };
 
     const firstBlock = await createTestBlock();
@@ -294,7 +296,7 @@ describe("Page", () => {
     expect(blocks).toEqual(expect.arrayContaining(expectedBlocks));
   });
 
-  it("can move a block", async () => {
+  test("can move a block", async () => {
     const authentication = { actorId: testUser.accountId };
 
     firstKey = generateKeyBetween(
@@ -346,13 +348,14 @@ describe("Page", () => {
       })
     ).map((contentItem) => contentItem.rightEntity);
     const expectedUpdatedBlocks = [testBlock1, testBlock2, testBlock3];
+
     expect(updatedBlocks).toHaveLength(expectedUpdatedBlocks.length);
     expect(updatedBlocks).toEqual(
       expect.arrayContaining(expectedUpdatedBlocks),
     );
   });
 
-  it("can remove blocks", async () => {
+  test("can remove blocks", async () => {
     const authentication = { actorId: testUser.accountId };
 
     await removeBlockFromBlockCollection(graphContext, authentication, {

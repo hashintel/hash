@@ -1,3 +1,4 @@
+import type { FunctionComponent } from "react";
 import {
   alpha,
   backdropClasses,
@@ -7,24 +8,23 @@ import {
   DialogContent,
   DialogContentText,
 } from "@mui/material";
-import type { FunctionComponent } from "react";
 
 import { Button } from "../../../../shared/ui";
 
-type CommentBlockDeleteConfirmationDialogProps = {
+interface CommentBlockDeleteConfirmationDialogProps {
   container: HTMLDivElement | null;
   open: boolean;
   loading: boolean;
   onDelete: () => Promise<void>;
   onCancel: () => void;
-};
+}
 
 export const CommentBlockDeleteConfirmationDialog: FunctionComponent<
   CommentBlockDeleteConfirmationDialogProps
 > = ({ container, open, loading, onDelete, onCancel }) => (
   <Dialog
-    open={open}
     fullWidth
+    open={open}
     container={container}
     sx={{
       [`&.${dialogClasses.root}`]: {
@@ -53,28 +53,28 @@ export const CommentBlockDeleteConfirmationDialog: FunctionComponent<
         pb: 1.25,
       }}
     >
-      <DialogContentText variant="microText" align="center">
+      <DialogContentText variant={"microText"} align={"center"}>
         Are you sure you want to delete this comment?
       </DialogContentText>
     </DialogContent>
 
     <Box sx={{ display: "flex", justifyContent: "center", gap: 0.75 }}>
       <Button
-        size="xs"
-        onClick={onDelete}
-        variant="danger"
-        loading={loading}
         loadingWithoutText
+        size={"xs"}
+        variant={"danger"}
+        loading={loading}
         sx={{ width: 75, height: 35 }}
+        onClick={onDelete}
       >
         Delete
       </Button>
       <Button
-        size="xs"
-        onClick={onCancel}
-        variant="tertiary"
         autoFocus
+        size={"xs"}
+        variant={"tertiary"}
         sx={{ width: 75, height: 35 }}
+        onClick={onCancel}
       >
         Cancel
       </Button>

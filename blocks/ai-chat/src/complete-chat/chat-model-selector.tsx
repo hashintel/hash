@@ -1,8 +1,8 @@
 import type {
+  DropdownSelector,
   DropdownSelectorProps,
   GroupedOptions,
 } from "@hashintel/block-design-system";
-import { DropdownSelector } from "@hashintel/block-design-system";
 import { Box } from "@mui/material";
 
 import { AbstractAiIcon } from "../icons/abstract-ai";
@@ -46,7 +46,7 @@ export const ChatModelSelector = (
 
       return (
         <Box
-          component="span"
+          component={"span"}
           sx={{
             display: "inline-flex",
             gap: 0.375,
@@ -65,7 +65,7 @@ export const ChatModelSelector = (
             {icon}
           </Box>
           <Box
-            component="span"
+            component={"span"}
             sx={{ color: ({ palette }) => palette.gray[60] }}
           >
             {selectedGroup?.name}

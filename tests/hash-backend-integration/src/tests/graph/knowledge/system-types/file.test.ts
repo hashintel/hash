@@ -1,3 +1,4 @@
+import { beforeAll, describe, expect, test, vi } from "vitest";
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import {
@@ -9,7 +10,6 @@ import { Logger } from "@local/hash-backend-utils/logger";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import { beforeAll, describe, expect, it, vi } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
@@ -20,11 +20,12 @@ const logger = new Logger({
   serviceName: "integration-tests",
 });
 
-describe("File", () => {
+describe("file", () => {
   let testUser: User;
 
   beforeAll(async () => {
     const graphContext = createTestImpureGraphContext();
+
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
     testUser = await createTestUser(graphContext, "fileTest", logger);
@@ -38,7 +39,7 @@ describe("File", () => {
     };
   });
 
-  it("createFileFromUploadRequest can create a file entity from a file", async () => {
+  test("createFileFromUploadRequest can create a file entity from a file", async () => {
     const graphContext = createTestImpureGraphContext();
     const authentication = { actorId: testUser.accountId };
 
@@ -104,7 +105,7 @@ describe("File", () => {
 
   const externalUrl = "https://placekitten.com/200/300";
 
-  it("createFileFromExternalUrl can create a file entity from an external link", async () => {
+  test("createFileFromExternalUrl can create a file entity from an external link", async () => {
     const graphContext = createTestImpureGraphContext();
     const authentication = { actorId: testUser.accountId };
 

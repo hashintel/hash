@@ -3,11 +3,11 @@ import type { BaseUrl } from "@local/hash-graph-types/ontology";
 
 import type { ImpureGraphContext } from "../../context-types";
 
-export type MigrationState = {
+export interface MigrationState {
   propertyTypeVersions: Record<BaseUrl, number>;
   entityTypeVersions: Record<BaseUrl, number>;
   dataTypeVersions: Record<BaseUrl, number>;
-};
+}
 
 export type MigrationFunction = (params: {
   context: ImpureGraphContext<false, true>;

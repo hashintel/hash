@@ -8,11 +8,11 @@ const __dirname = dirname(__filename);
 
 export const monorepoRootDirPath = path.resolve(__dirname, "../../../../../..");
 
-type YarnWorkspaceInfo = {
+interface YarnWorkspaceInfo {
   location: string;
   workspaceDependencies: string[];
   mismatchedWorkspaceDependencies: string[];
-};
+}
 
 export const getWorkspaceInfoLookup = async (): Promise<
   Record<string, YarnWorkspaceInfo>

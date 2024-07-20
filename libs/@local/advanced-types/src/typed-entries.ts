@@ -24,15 +24,15 @@ export type Entry<T extends Record<string, unknown>> = T extends readonly [
   ...unknown[],
 ]
   ? TupleEntry<T>
-  : T extends ReadonlyArray<infer U>
+  : T extends readonly (infer U)[]
     ? [`${number}`, U]
     : ObjectEntry<T>;
 
 /** `Object.entries` analogue which returns a well-typed array */
 export function typedEntries<T extends Record<string, unknown>>(
   object: T,
-): ReadonlyArray<Entry<T>> {
-  return Object.entries(object) as unknown as ReadonlyArray<Entry<T>>;
+): readonly Entry<T>[] {
+  return Object.entries(object) as unknown as readonly Entry<T>[];
 }
 
 /** `Object.keys` analogue which returns a well-typed array */

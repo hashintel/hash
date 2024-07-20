@@ -107,15 +107,15 @@ export type {
 /**
  * A spreadsheet file.
  */
-export type SpreadsheetFile = {
+export interface SpreadsheetFile {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/spreadsheet-file/v/1";
   properties: SpreadsheetFileProperties;
   propertiesWithMetadata: SpreadsheetFilePropertiesWithMetadata;
-};
+}
 
 export type SpreadsheetFileOutgoingLinkAndTarget = never;
 
-export type SpreadsheetFileOutgoingLinksByLinkEntityTypeId = {};
+export interface SpreadsheetFileOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A spreadsheet file.
@@ -124,14 +124,14 @@ export type SpreadsheetFileProperties = SpreadsheetFileProperties1 &
   SpreadsheetFileProperties2;
 export type SpreadsheetFileProperties1 = FileProperties;
 
-export type SpreadsheetFileProperties2 = {};
+export interface SpreadsheetFileProperties2 {}
 
 export type SpreadsheetFilePropertiesWithMetadata =
   SpreadsheetFilePropertiesWithMetadata1 &
     SpreadsheetFilePropertiesWithMetadata2;
 export type SpreadsheetFilePropertiesWithMetadata1 = FilePropertiesWithMetadata;
 
-export type SpreadsheetFilePropertiesWithMetadata2 = {
+export interface SpreadsheetFilePropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}

@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import {
@@ -11,7 +12,6 @@ import type {
   GraphResolveDepths,
   Subgraph,
 } from "@local/hash-subgraph";
-import { useMemo } from "react";
 
 import type {
   GetEntityQuery,

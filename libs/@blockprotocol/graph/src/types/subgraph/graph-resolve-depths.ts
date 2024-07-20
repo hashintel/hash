@@ -8,7 +8,7 @@ export interface EdgeResolveDepths {
 }
 
 /** @todo - Add documentation */
-export type GraphResolveDepths = {
+export interface GraphResolveDepths {
   hasLeftEntity: EdgeResolveDepths;
   hasRightEntity: EdgeResolveDepths;
 
@@ -18,4 +18,4 @@ export type GraphResolveDepths = {
   constrainsValuesOn: OutgoingEdgeResolveDepth;
   inheritsFrom: OutgoingEdgeResolveDepth;
   isOfType: OutgoingEdgeResolveDepth;
-};
+}

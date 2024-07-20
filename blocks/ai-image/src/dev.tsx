@@ -1,12 +1,13 @@
-import type { VersionedUrl } from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
+import type { VersionedUrl } from "@blockprotocol/graph";
 
 import packageJSON from "../package.json";
-import Component from "./index";
-import type { BlockEntity } from "./types/generated/block-entity";
 
-const node = document.getElementById("app");
+import type { BlockEntity } from "./types/generated/block-entity";
+import Component from "./index";
+
+const node = document.querySelector("#app");
 
 const blockEntity: BlockEntity = {
   metadata: {
@@ -27,15 +28,16 @@ const blockEntity: BlockEntity = {
  * The component used here, 'MockBlockDock', does the following:
  * 1. It renders your block on the page and provides the initial properties specified below
  * 2. It holds an in-memory datastore of entities and links
- * 3. It listens for messages from your blocks and updates its datastore appropriately (e.g. to create a new entity)
- * 4. It displays a debug UI allowing you to see the contents of its datastore, and messages sent back and forth
+ * 3. It listens for messages from your blocks and updates its datastore appropriately (e.g. To create a new entity)
+ * 4. It displays a debug UI allowing you to see the contents of its datastore, and messages sent back and forth.
  */
 const DevApp = () => {
   return (
     <MockBlockDock
+      debug
       blockDefinition={{ ReactComponent: Component }}
       blockInfo={packageJSON.blockprotocol}
-      debug
+      blockProtocolApiKey={process.env.BLOCK_PROTOCOL_API_KEY} // add this to an .env file in the block folder
       initialData={{
         initialEntities: [blockEntity],
       }}
@@ -44,7 +46,6 @@ const DevApp = () => {
         min: 50,
         max: 200,
       }}
-      blockProtocolApiKey={process.env.BLOCK_PROTOCOL_API_KEY} // add this to an .env file in the block folder
       blockProtocolSiteHost={
         process.env.BLOCK_PROTOCOL_SITE_HOST ?? "https://blockprotocol.org"
       } // update this to a recent staging deployment when testing

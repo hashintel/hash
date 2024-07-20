@@ -3,8 +3,8 @@ import { Box, Typography } from "@mui/material";
 
 export const ShowUploadFormButton = ({ onClick }: { onClick: () => void }) => (
   <Box
-    component="button"
-    onClick={onClick}
+    component={"button"}
+    type={"button"}
     sx={{
       alignItems: "center",
       background: "none",
@@ -23,7 +23,7 @@ export const ShowUploadFormButton = ({ onClick }: { onClick: () => void }) => (
         },
       },
     }}
-    type="button"
+    onClick={onClick}
   >
     <FontAwesomeIcon
       icon={{
@@ -37,7 +37,7 @@ export const ShowUploadFormButton = ({ onClick }: { onClick: () => void }) => (
       }}
     />
     <Typography
-      variant="smallTextLabels"
+      variant={"smallTextLabels"}
       sx={{
         fontWeight: 500,
         color: "gray.50",

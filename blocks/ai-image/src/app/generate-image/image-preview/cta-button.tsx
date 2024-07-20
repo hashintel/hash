@@ -7,14 +7,16 @@ export const CTAButton = ({ onSubmit }: { onSubmit: () => void }) => {
   return (
     <Box>
       <Button
-        size="small"
-        onClick={() => onSubmit()}
+        size={"small"}
         sx={{
           gap: 1,
           borderRadius: 1,
           fontSize: 14,
           fontWeight: 500,
           lineHeight: "18px",
+        }}
+        onClick={() => {
+          onSubmit();
         }}
       >
         Insert this image

@@ -2,11 +2,11 @@ import type { JsonValue } from "@blockprotocol/core";
 import type { ValueConstraint } from "@local/hash-graph-types/ontology";
 import { getJsonSchemaTypeFromValue } from "@local/hash-subgraph/stdlib";
 
-export type FormattedValuePart = {
+export interface FormattedValuePart {
   color: string;
   type: "leftLabel" | "rightLabel" | "value";
   text: string;
-};
+}
 
 const createFormattedParts = ({
   inner,
@@ -54,7 +54,7 @@ export const formatDataValue = (
 
   if (type === "array") {
     if (!Array.isArray(value)) {
-      throw new Error("Non-array value provided for array data type");
+      throw new TypeError("Non-array value provided for array data type");
     }
 
     if (schema && !("items" in schema)) {

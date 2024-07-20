@@ -11,12 +11,14 @@ export class Telemetry {
     if (Telemetry.rudder_client === undefined) {
       if (frontendDomain === "localhost") {
         Telemetry.rudder_client = null;
+
         return null;
       }
       Telemetry.rudder_client = new RudderAnalytics(RUDDERSTACK_KEY, {
         dataPlaneUrl: "https://hashdjsn.dataplane.rudderstack.com",
       });
     }
+
     return Telemetry.rudder_client;
   }
 

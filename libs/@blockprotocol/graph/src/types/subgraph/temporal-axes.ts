@@ -41,13 +41,13 @@ export type QueryTemporalAxes =
 /**
  * Denotes the temporal axes used in constructing the {@link Subgraph}.
  */
-export type SubgraphTemporalAxes = {
+export interface SubgraphTemporalAxes {
   /**
-   * The {@link QueryTemporalAxesUnresolved} provided in the query
+   * The {@link QueryTemporalAxesUnresolved} provided in the query.
    */
   initial: QueryTemporalAxesUnresolved;
   /**
-   * The {@link QueryTemporalAxes} used when resolving the {@link Subgraph}
+   * The {@link QueryTemporalAxes} used when resolving the {@link Subgraph}.
    */
   resolved: QueryTemporalAxes;
-};
+}

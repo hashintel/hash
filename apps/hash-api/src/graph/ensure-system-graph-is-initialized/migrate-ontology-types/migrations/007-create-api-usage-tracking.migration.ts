@@ -281,7 +281,7 @@ const migrate: MigrationFunction = async ({
   });
 
   /**
-   * Step 3: Create the initial Service Feature entities
+   * Step 3: Create the initial Service Feature entities.
    */
   const initialServices = [
     /** @see https://openai.com/pricing */
@@ -375,6 +375,7 @@ const migrate: MigrationFunction = async ({
   const hashOrg = await getOrgByShortname(context, authentication, {
     shortname: "hash",
   });
+
   if (!hashOrg) {
     throw new Error(
       "Org with shortname 'hash' does not exist by migration 007, but it should.",

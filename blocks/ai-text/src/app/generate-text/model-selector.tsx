@@ -1,8 +1,8 @@
 import type {
+  DropdownSelector,
   DropdownSelectorProps,
   GroupedOptions,
 } from "@hashintel/block-design-system";
-import { DropdownSelector } from "@hashintel/block-design-system";
 import { Box, Typography } from "@mui/material";
 
 import { AbstractAiIcon } from "../../icons/abstract-ai";
@@ -40,7 +40,7 @@ export const ModelSelector = (
 
       return (
         <Typography
-          variant="regularTextLabels"
+          variant={"regularTextLabels"}
           sx={{
             display: "inline-flex",
             gap: 1,
@@ -53,7 +53,7 @@ export const ModelSelector = (
         >
           Using
           <Box
-            component="span"
+            component={"span"}
             sx={{
               display: "inline-flex",
               gap: 0.375,

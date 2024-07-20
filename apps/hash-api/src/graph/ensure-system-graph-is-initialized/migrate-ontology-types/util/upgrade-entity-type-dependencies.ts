@@ -1,9 +1,9 @@
 import type {
+  atLeastOne,
   EntityType,
   EntityTypeReference,
   VersionedUrl,
 } from "@blockprotocol/type-system";
-import { atLeastOne } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
@@ -26,6 +26,7 @@ export const replaceEntityTypeReference = ({
       };
     }
   }
+
   return reference;
 };
 
@@ -34,7 +35,7 @@ export const replaceEntityTypeReference = ({
  * generate a new schema which updates to the new id if the type appears as:
  * 1. A parent in the schema
  * 2. A link in the schema
- * 3. A link destination in the schema
+ * 3. A link destination in the schema.
  */
 export const upgradeEntityTypeDependencies = ({
   schema,
@@ -76,6 +77,7 @@ export const upgradeEntityTypeDependencies = ({
       };
 
       let linkTypeId = uncheckedLinkTypeId;
+
       for (const upgradedEntityTypeId of upgradedEntityTypeIds) {
         const linkTypeBaseUrl = extractBaseUrl(uncheckedLinkTypeId);
         const upgradedEntityTypeBaseUrl = extractBaseUrl(upgradedEntityTypeId);
@@ -86,6 +88,7 @@ export const upgradeEntityTypeDependencies = ({
       }
 
       accumulator[linkTypeId] = schemaWithUpdatedDestinations;
+
       return accumulator;
     }, {}),
   };

@@ -1,6 +1,7 @@
-import type { FunctionComponent, ReactNode } from "react";
-import {
+import type {
   createContext,
+  FunctionComponent,
+  ReactNode,
   useCallback,
   useContext,
   useMemo,
@@ -19,10 +20,10 @@ const BlockLoadedContext = createContext<{
   setHighlightedBlockId: (blockId: string | undefined) => void;
 } | null>(null);
 
-type BlockLoadedProviderProps = {
+interface BlockLoadedProviderProps {
   children?: ReactNode;
   routeHash?: string;
-};
+}
 
 export const BlockLoadedProvider: FunctionComponent<
   BlockLoadedProviderProps
@@ -34,7 +35,7 @@ export const BlockLoadedProvider: FunctionComponent<
 
   /**
    * The initial value is `routeHash`, so when the page is first open, the block which has its id in URL is highlighted
-   * `highlightedBlockId` will be used when block context menus are open to indicate which block is being edited
+   * `highlightedBlockId` will be used when block context menus are open to indicate which block is being edited.
    */
   const [highlightedBlockId, setHighlightedBlockId] = useState<
     string | undefined
@@ -63,9 +64,9 @@ export const BlockLoadedProvider: FunctionComponent<
         !scrollingComplete.current
       ) {
         clearScrollInterval();
-        scrollFrameRequestIdRef.current = requestAnimationFrame(() =>
-          frame(routeHash),
-        );
+        scrollFrameRequestIdRef.current = requestAnimationFrame(() => {
+          frame(routeHash);
+        });
       }
     },
     [routeHash],

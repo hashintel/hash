@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
   systemEntityTypes,
@@ -9,18 +10,17 @@ import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { useEffect, useState } from "react";
 
 import { useBlockProtocolQueryEntities } from "../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 
-export type LinearIntegration = {
+export interface LinearIntegration {
   entity: Entity;
   syncedWithWorkspaces: {
     workspaceEntity: Entity;
     linearTeamIds: string[];
   }[];
-};
+}
 
 export const useLinearIntegrations = () => {
   const { authenticatedUser } = useAuthenticatedUser();

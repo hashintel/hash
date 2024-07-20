@@ -38,23 +38,23 @@ export type ConstructEntityTypeParams = Omit<
   SystemDefinedProperties
 >;
 
-export type UserPermissions = {
+export interface UserPermissions {
   view: boolean;
   viewPermissions: boolean;
   edit: boolean;
   editMembers: boolean | null;
   editPermissions: boolean;
-};
+}
 
-export type UserPermissionsOnEntityType = {
+export interface UserPermissionsOnEntityType {
   view: boolean;
   edit: boolean;
   instantiate: boolean;
-};
+}
 
-export type UserPermissionsOnEntities = {
+export interface UserPermissionsOnEntities {
   [key: EntityId]: UserPermissions | undefined;
-};
+}
 
 export const isNotNullish = <T>(value: T): value is NonNullable<T> => {
   return value !== null && value !== undefined;

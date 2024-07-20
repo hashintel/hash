@@ -6,6 +6,7 @@ import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import { Box, Stack, Typography } from "@mui/material";
 
 import { Link } from "../../../../../../shared/ui/link";
+
 import type { DeliverableData } from "./shared/types";
 
 export const SpreadsheetDeliverable = ({
@@ -22,7 +23,7 @@ export const SpreadsheetDeliverable = ({
 
   return (
     <Stack
-      direction="row"
+      direction={"row"}
       gap={1.5}
       sx={{ alignItems: "flex-start", textAlign: "left" }}
     >
@@ -35,13 +36,13 @@ export const SpreadsheetDeliverable = ({
       />
       <Box>
         <Typography
-          component="div"
-          variant="smallTextParagraphs"
+          component={"div"}
+          variant={"smallTextParagraphs"}
           sx={{ fontWeight: 600, lineHeight: 1.3, mb: 1 }}
         >
           {displayName ?? fileName ?? "Untitled"}
         </Typography>
-        <Stack alignItems="center" direction="row" gap={1}>
+        <Stack alignItems={"center"} direction={"row"} gap={1}>
           <Typography
             sx={{
               display: "inline-block",

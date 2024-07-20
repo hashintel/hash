@@ -1,3 +1,15 @@
+import type {
+  Dispatch,
+  Fragment,
+  FunctionComponent,
+  SetStateAction,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Skeleton } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
@@ -6,25 +18,15 @@ import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entit
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Container, Divider, Typography } from "@mui/material";
-import type { Dispatch, FunctionComponent, SetStateAction } from "react";
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
 
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { Button } from "../../shared/ui";
-import type { MinimalActor } from "../../shared/use-actors";
-import { useActors } from "../../shared/use-actors";
+import type { MinimalActor, useActors } from "../../shared/use-actors";
+
 import { DraftEntitiesContextBar } from "./draft-entities/draft-entities-context-bar";
-import type { DraftEntityFilterState } from "./draft-entities/draft-entities-filters";
-import {
+import type {
   DraftEntitiesFilters,
+  DraftEntityFilterState,
   filterDraftEntities,
   generateDefaultFilterState,
   getDraftEntityTypes,
@@ -151,29 +153,29 @@ export const DraftEntities: FunctionComponent<{
      * we want to add it to the filter state so that the entity isn't
      * filtered out of view when it has been added.
      */
-    setPreviouslyEvaluatedDraftEntityTypeBaseUrls((prev) => [
-      ...(prev ?? []),
+    setPreviouslyEvaluatedDraftEntityTypeBaseUrls((previous) => [
+      ...(previous ?? []),
       ...newDraftEntityTypeBaseUrls,
     ]);
 
-    setFilterState((prev) =>
-      prev
+    setFilterState((previous) =>
+      previous
         ? {
-            ...prev,
+            ...previous,
             entityTypeBaseUrls: [
-              ...prev.entityTypeBaseUrls,
+              ...previous.entityTypeBaseUrls,
               ...newDraftEntityTypeBaseUrls,
             ],
           }
-        : prev,
+        : previous,
     );
   }
 
   const isDefaultFilterState = useMemo(
     () =>
-      !!filterState &&
-      !!draftEntitiesWithCreators &&
-      !!draftEntitiesWithLinkedDataSubgraph &&
+      Boolean(filterState) &&
+      Boolean(draftEntitiesWithCreators) &&
+      Boolean(draftEntitiesWithLinkedDataSubgraph) &&
       isFilerStateDefaultFilterState({
         draftEntitiesWithCreators,
         draftEntitiesSubgraph: draftEntitiesWithLinkedDataSubgraph,
@@ -239,8 +241,8 @@ export const DraftEntities: FunctionComponent<{
       );
 
       if (nonMatchingSelectedDraftEntityIds.length > 0) {
-        setSelectedDraftEntityIds((prev) =>
-          prev.filter(
+        setSelectedDraftEntityIds((previous) =>
+          previous.filter(
             (selectedDraftEntityId) =>
               !nonMatchingSelectedDraftEntityIds.includes(
                 selectedDraftEntityId,
@@ -302,7 +304,7 @@ export const DraftEntities: FunctionComponent<{
       >
         {filteredAndSortedDraftEntitiesWithCreatedAt &&
         filteredAndSortedDraftEntitiesWithCreatedAt.length === 0 ? (
-          <Typography textAlign="center">
+          <Typography textAlign={"center"}>
             {draftEntitiesWithCreators?.length === 0
               ? "You have no actions currently awaiting review."
               : "No items entities match the selected filters."}
@@ -339,26 +341,27 @@ export const DraftEntities: FunctionComponent<{
                       const isSelected = selectedDraftEntityIds.includes(
                         entity.metadata.recordId.entityId,
                       );
+
                       return (
                         <Fragment key={entity.metadata.recordId.entityId}>
                           <DraftEntity
                             entity={entity}
                             subgraph={draftEntitiesWithLinkedDataSubgraph}
                             selected={isSelected}
-                            toggleSelected={() =>
-                              setSelectedDraftEntityIds((prev) =>
+                            toggleSelected={() => {
+                              setSelectedDraftEntityIds((previous) =>
                                 isSelected
-                                  ? prev.filter(
+                                  ? previous.filter(
                                       (entityId) =>
                                         entityId !==
                                         entity.metadata.recordId.entityId,
                                     )
                                   : [
-                                      ...prev,
+                                      ...previous,
                                       entity.metadata.recordId.entityId,
                                     ],
-                              )
-                            }
+                              );
+                            }}
                           />
                           {i < all.length - 1 ? (
                             <Divider
@@ -375,17 +378,17 @@ export const DraftEntities: FunctionComponent<{
               ) : (
                 <Box paddingY={4.5} paddingX={3.25}>
                   <Box
-                    display="flex"
-                    justifyContent="space-between"
+                    display={"flex"}
+                    justifyContent={"space-between"}
                     marginBottom={1.5}
                   >
                     <Skeleton height={30} width={150} />
-                    <Box display="flex" columnGap={1}>
+                    <Box display={"flex"} columnGap={1}>
                       <Skeleton height={40} width={100} />
                       <Skeleton height={40} width={100} />
                     </Box>
                   </Box>
-                  <Box display="flex" justifyContent="space-between">
+                  <Box display={"flex"} justifyContent={"space-between"}>
                     <Skeleton height={26} width={350} />
                     <Skeleton height={26} width={250} />
                   </Box>
@@ -395,11 +398,13 @@ export const DraftEntities: FunctionComponent<{
             {filteredAndSortedDraftEntitiesWithCreatedAt &&
             filteredAndSortedDraftEntitiesWithCreatedAt.length >
               numberOfEntitiesToDisplay ? (
-              <Box display="flex" width="100%" justifyContent="center">
+              <Box display={"flex"} width={"100%"} justifyContent={"center"}>
                 <Button
-                  size="medium"
+                  size={"medium"}
                   sx={{ marginTop: 3 }}
-                  onClick={() => setNumberOfIncrements((prev) => prev + 1)}
+                  onClick={() => {
+                    setNumberOfIncrements((previous) => previous + 1);
+                  }}
                 >
                   Display{" "}
                   {Math.min(

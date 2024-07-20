@@ -2,10 +2,10 @@ import type { Logger } from "./logger.js";
 
 export type Signal = "SIGINT" | "SIGTERM" | "SIGKILL";
 
-type CleanupProcedure = {
+interface CleanupProcedure {
   name: string;
   cleanup: () => Promise<void> | void;
-};
+}
 
 export class GracefulShutdown {
   private logger: Logger;
@@ -39,15 +39,16 @@ export class GracefulShutdown {
     this.logger.debug("Running graceful shutdown procedures");
     this.alreadyShutdown = true;
     let wasError = false;
+
     for (const { name, cleanup } of this.cleanupProcedures.reverse()) {
       try {
         this.logger.debug(`Cleaning up ${name}`);
         await cleanup();
         this.logger.debug(`${name} cleaned up`);
-      } catch (err) {
+      } catch (error) {
         wasError = true;
         // eslint-disable-next-line @typescript-eslint/restrict-template-expressions -- error stringification may need improvement
-        this.logger.error(`cleaning up ${name}: ${err}`);
+        this.logger.error(`cleaning up ${name}: ${error}`);
       }
     }
     if (wasError) {

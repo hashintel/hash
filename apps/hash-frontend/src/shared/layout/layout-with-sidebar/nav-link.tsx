@@ -1,3 +1,4 @@
+import type { FunctionComponent, ReactNode } from "react";
 import { faChevronRight } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
@@ -5,16 +6,15 @@ import {
   LoadingSpinner,
 } from "@hashintel/design-system";
 import { Box, Collapse, Typography } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
 
-type NavLinkProps = {
+interface NavLinkProps {
   children?: ReactNode;
   title: string;
   loading?: boolean;
   endAdornment?: ReactNode;
   expanded: boolean;
   toggleExpanded: () => void;
-};
+}
 
 export const NavLink: FunctionComponent<NavLinkProps> = ({
   title,
@@ -59,7 +59,7 @@ export const NavLink: FunctionComponent<NavLinkProps> = ({
         onClick={toggleExpanded}
       >
         <Typography
-          variant="smallCaps"
+          variant={"smallCaps"}
           sx={({ palette }) => ({
             mr: 0.5,
             color: palette.gray[70],
@@ -69,21 +69,21 @@ export const NavLink: FunctionComponent<NavLinkProps> = ({
         </Typography>
 
         <IconButton
-          size="xs"
           unpadded
           rounded
-          className="expand-button"
+          size={"xs"}
+          className={"expand-button"}
           sx={({ palette }) => ({
             mr: "auto",
             color: palette.gray[70],
           })}
         >
           <FontAwesomeIcon
+            icon={faChevronRight}
             sx={({ transitions }) => ({
               transform: expanded ? `rotate(90deg)` : "none",
               transition: transitions.create("transform"),
             })}
-            icon={faChevronRight}
           />
         </IconButton>
       </Box>

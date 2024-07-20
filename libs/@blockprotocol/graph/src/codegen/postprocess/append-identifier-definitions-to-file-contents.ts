@@ -11,6 +11,7 @@ export const appendIdentifierDefinitionsToFileContents = (
     context.filesToDefinedIdentifiers,
   )) {
     const identifiers = [...identifiersSet];
+
     identifiers.sort();
 
     for (const identifier of identifiers) {

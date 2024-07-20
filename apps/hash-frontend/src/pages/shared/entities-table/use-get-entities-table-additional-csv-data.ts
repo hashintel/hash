@@ -1,7 +1,7 @@
+import type { MutableRefObject, useCallback } from "react";
 import { useLazyQuery } from "@apollo/client";
 import type { EntityType, PropertyType } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import { LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import {
   currentTimeInstantTemporalAxes,
@@ -9,12 +9,12 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type { EntityRootType } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type {
+  EntityRootType,
+  extractEntityUuidFromEntityId,
+} from "@local/hash-subgraph";
 import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import type { MutableRefObject } from "react";
-import { useCallback } from "react";
 
 import type {
   GetEntitySubgraphQuery,
@@ -22,6 +22,7 @@ import type {
 } from "../../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import type { GetAdditionalCsvDataFunction } from "../../../shared/table-header";
+
 import type { TypeEntitiesRow } from "./use-entities-table";
 
 export const useGetEntitiesTableAdditionalCsvData = (props: {
@@ -88,19 +89,17 @@ export const useGetEntitiesTableAdditionalCsvData = (props: {
         (linkEntity) => new LinkEntity(linkEntity),
       );
 
-      return outgoingLinkEntities
-        .map((linkEntity) => {
-          const linkEntityType = getEntityTypeById(
-            outgoingLinksSubgraph,
-            linkEntity.metadata.entityTypeId,
-          )!;
+      return outgoingLinkEntities.flatMap((linkEntity) => {
+        const linkEntityType = getEntityTypeById(
+          outgoingLinksSubgraph,
+          linkEntity.metadata.entityTypeId,
+        )!;
 
-          return {
-            linkEntity,
-            linkEntityType,
-          };
-        })
-        .flat();
+        return {
+          linkEntity,
+          linkEntityType,
+        };
+      });
     },
     [getEntitySubgraph],
   );
@@ -108,6 +107,7 @@ export const useGetEntitiesTableAdditionalCsvData = (props: {
   const getEntitiesTableAdditionalCsvData =
     useCallback<GetAdditionalCsvDataFunction>(async () => {
       const currentlyDisplayedRows = currentlyDisplayedRowsRef.current;
+
       if (!currentlyDisplayedRows) {
         return null;
       }
@@ -115,7 +115,7 @@ export const useGetEntitiesTableAdditionalCsvData = (props: {
       // Entity property columns
 
       const propertyColumns = addPropertiesColumns
-        ? currentlyDisplayedRows.reduce<PropertyType[]>((prev, row) => {
+        ? currentlyDisplayedRows.reduce<PropertyType[]>((previous, row) => {
             const { entity } = row;
 
             const propertyTypesUsedInEntity = Object.keys(
@@ -134,13 +134,13 @@ export const useGetEntitiesTableAdditionalCsvData = (props: {
 
             const newPropertyTypes = propertyTypesUsedInEntity.filter(
               (propertyType) =>
-                !prev.some(
+                !previous.some(
                   (previouslyAddedPropertyType) =>
                     previouslyAddedPropertyType.$id === propertyType.$id,
                 ),
             );
 
-            return [...prev, ...newPropertyTypes];
+            return [...previous, ...newPropertyTypes];
           }, [])
         : [];
 
@@ -154,17 +154,17 @@ export const useGetEntitiesTableAdditionalCsvData = (props: {
 
       const outgoingLinkColumns = outgoingLinksWithRightEntities.reduce<
         EntityType[]
-      >((prev, { linkEntityType }) => {
+      >((previous, { linkEntityType }) => {
         if (
-          !prev.some(
+          !previous.some(
             (previousLinkEntity) =>
               previousLinkEntity.$id === linkEntityType.schema.$id,
           )
         ) {
-          return [...prev, linkEntityType.schema];
+          return [...previous, linkEntityType.schema];
         }
 
-        return prev;
+        return previous;
       }, []);
 
       const prependedData: string[][] = [

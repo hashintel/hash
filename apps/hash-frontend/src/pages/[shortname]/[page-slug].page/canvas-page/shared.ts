@@ -8,10 +8,10 @@ export type JsonSerializableBlockLoaderProps = Omit<
   "onBlockLoaded" | "editableRef"
 >;
 
-export type CanvasProps = {
+export interface CanvasProps {
   contents: BlockCollectionContentItem[];
   blocks: ComponentIdHashBlockMap;
-};
+}
 
 export const defaultBlockWidth = 600;
 

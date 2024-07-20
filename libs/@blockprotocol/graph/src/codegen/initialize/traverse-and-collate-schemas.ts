@@ -1,12 +1,13 @@
 import { atLeastOne } from "@blockprotocol/type-system";
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
-import {
+import type {
   getReferencedIdsFromEntityType,
   getReferencedIdsFromPropertyType,
+  VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 
 import { typedValues } from "../../util/typed-object-iter.js";
 import type { InitializeContext } from "../context.js";
+
 import {
   generateDataTypeWithMetadataSchema,
   generateMetadataSchemaIdentifiers,
@@ -92,12 +93,14 @@ class TraversalContext {
 
     if (!result.done) {
       const typeId = result.value;
+
       this.exploreQueue.delete(typeId);
       this.explored.add(typeId);
+
       return typeId;
-    } else {
-      return undefined;
     }
+
+    return undefined;
   }
 }
 
@@ -147,6 +150,7 @@ export const traverseAndCollateSchemas = async (
           initialContext.addDataType(type);
 
           const withMetadata = generateDataTypeWithMetadataSchema(type);
+
           if (!initialContext.metadataSchemas[withMetadata.$id]) {
             initialContext.addMetadataSchema(withMetadata);
           }
@@ -162,13 +166,15 @@ export const traverseAndCollateSchemas = async (
 
           nestedForEach(
             [constrainsValuesOnDataTypes, constrainsPropertiesOnPropertyTypes],
-            (dependencyTypeId) =>
-              traversalContext.encounter(typeId, dependencyTypeId),
+            (dependencyTypeId) => {
+              traversalContext.encounter(typeId, dependencyTypeId);
+            },
           );
 
           initialContext.addPropertyType(type);
 
           const withMetadata = generatePropertyTypeWithMetadataSchema(type);
+
           if (!initialContext.metadataSchemas[withMetadata.$id]) {
             initialContext.addMetadataSchema(withMetadata);
           }
@@ -191,8 +197,9 @@ export const traverseAndCollateSchemas = async (
               constrainsLinksOnEntityTypes,
               inheritsFromEntityTypes,
             ],
-            (dependencyTypeId) =>
-              traversalContext.encounter(typeId, dependencyTypeId),
+            (dependencyTypeId) => {
+              traversalContext.encounter(typeId, dependencyTypeId);
+            },
           );
 
           initialContext.addEntityType(type);
@@ -219,6 +226,7 @@ export const traverseAndCollateSchemas = async (
               title,
             },
           });
+
           if (!initialContext.metadataSchemas[withMetadata.$id]) {
             initialContext.addMetadataSchema(withMetadata);
           }

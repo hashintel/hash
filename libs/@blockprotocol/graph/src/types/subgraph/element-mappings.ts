@@ -7,6 +7,7 @@ import type {
   OntologyTypeRecordId,
   PropertyTypeWithMetadata,
 } from "../ontology.js";
+
 import type { EntityIdWithInterval } from "./edges.js";
 import type { EntityIdWithTimestamp } from "./edges/outward-edge.js";
 import type {
@@ -22,7 +23,7 @@ import type {
  * A utility type that maps various ways of identifying a single (or series of) element(s) of the graph to their
  * associated types.
  *
- * Helpful when creating generic functions that operate over a {@link Subgraph}
+ * Helpful when creating generic functions that operate over a {@link Subgraph}.
  */
 export type GraphElementIdentifiers =
   | {

@@ -1,3 +1,4 @@
+import { SizeMe } from "react-sizeme";
 import type { RemoteFileEntity } from "@blockprotocol/graph";
 import {
   type BlockComponent,
@@ -5,7 +6,6 @@ import {
 } from "@blockprotocol/graph/react";
 import { theme } from "@hashintel/design-system/theme";
 import { Box, ThemeProvider } from "@mui/material";
-import { SizeMe } from "react-sizeme";
 
 import { GenerateImage } from "./app/generate-image";
 import { ImageTile } from "./shared/image-tile";
@@ -56,11 +56,11 @@ export const App: BlockComponent<BlockEntity> = ({
             >
               <ImageTile
                 url={fileEntity.properties[urlKey]}
+                maxWidth={400}
                 description={
                   fileEntity.properties[descriptionKey] ??
                   "An AI-generated image"
                 }
-                maxWidth={400}
               />
             </Box>
           ) : (

@@ -1,6 +1,6 @@
 /**
- * @todo remove this function and use ctx.roundRect when firefox supports it
  * @see https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/roundRect#browser_compatibility
+ * @todo Remove this function and use ctx.roundRect when firefox supports it.
  */
 export const drawRoundRect = (
   ctx: CanvasRenderingContext2D,

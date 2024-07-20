@@ -7,7 +7,7 @@ export const ENTITIES_SEARCH_FIELD = "fullTextSearch";
  * `EntitiesDocument` represents the type of document stored in the "entities" index
  * in the search service.
  */
-export type EntitiesDocument = {
+export interface EntitiesDocument {
   accountId: string;
   entityId: string;
   entityVersionId: string;
@@ -22,4 +22,4 @@ export type EntitiesDocument = {
     entityVersionId: string;
     accountId: string;
   };
-};
+}

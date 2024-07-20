@@ -24,6 +24,7 @@ const main = async () => {
     port,
     tls: process.env.HASH_REDIS_ENCRYPTED_TRANSIT === "true",
   });
+
   try {
     await redis.flushall();
     logger.info("Redis data cleared");

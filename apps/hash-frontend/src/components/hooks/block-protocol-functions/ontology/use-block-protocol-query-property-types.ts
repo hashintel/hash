@@ -1,13 +1,14 @@
+import { useCallback } from "react";
 import { useLazyQuery } from "@apollo/client";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import type { PropertyTypeRootType } from "@local/hash-subgraph";
-import { useCallback } from "react";
 
 import type {
   QueryPropertyTypesQuery,
   QueryPropertyTypesQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import { queryPropertyTypesQuery } from "../../../../graphql/queries/ontology/property-type.queries";
+
 import type { QueryPropertyTypesMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolQueryPropertyTypes = (): {
@@ -35,10 +36,10 @@ export const useBlockProtocolQueryPropertyTypes = (): {
 
       const { graphResolveDepths, includeArchived, latestOnly } = data;
       /**
+       * @see https://linear.app/hash/issue/H-2998
        * @todo Add filtering to this query using structural querying.
        *   This may mean having the backend use structural querying and relaying
        *   or doing it from here.
-       * @see https://linear.app/hash/issue/H-2998
        */
       const response = await queryFn({
         variables: {

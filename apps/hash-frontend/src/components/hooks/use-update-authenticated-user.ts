@@ -1,3 +1,5 @@
+import type { GraphQLError } from "graphql";
+import { useCallback, useState } from "react";
 import { useLazyQuery, useMutation } from "@apollo/client";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { PropertyPatchOperation } from "@local/hash-graph-types/entity";
@@ -8,8 +10,6 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import type { GraphQLError } from "graphql";
-import { useCallback, useState } from "react";
 
 import type {
   MeQuery,
@@ -21,13 +21,13 @@ import { meQuery } from "../../graphql/queries/user.queries";
 import type { User } from "../../lib/user-and-org";
 import { useAuthInfo } from "../../pages/shared/auth-info-context";
 
-type UpdateAuthenticatedUserParams = {
+interface UpdateAuthenticatedUserParams {
   shortname?: string;
   displayName?: string;
   location?: string;
   websiteUrl?: string;
   preferredPronouns?: string;
-};
+}
 
 export const useUpdateAuthenticatedUser = () => {
   const { authenticatedUser, refetch } = useAuthInfo();
@@ -88,6 +88,7 @@ export const useUpdateAuthenticatedUser = () => {
           websiteUrl,
           preferredPronouns,
         } = params;
+
         for (const [key, value] of typedEntries({
           shortname,
           displayName,

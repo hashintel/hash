@@ -12,18 +12,18 @@ interface RowActionProps {
 export const RowAction = ({ icon, onClick, tooltip }: RowActionProps) => {
   return (
     <Tooltip
+      disableInteractive
       title={tooltip}
-      placement="top"
+      placement={"top"}
       PopperProps={{
         // this className prevents editor overlay from closing
         className: GRID_CLICK_IGNORE_CLASS,
       }}
-      disableInteractive
     >
       <IconButton
-        onClick={onClick}
         sx={{ background: "white !important", width: 50 }}
-        size="small"
+        size={"small"}
+        onClick={onClick}
       >
         <FontAwesomeIcon icon={icon} />
       </IconButton>

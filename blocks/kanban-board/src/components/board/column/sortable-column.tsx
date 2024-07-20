@@ -1,6 +1,6 @@
+import clsx from "clsx";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import clsx from "clsx";
 
 import { Column } from "./column";
 import styles from "./styles.module.scss";

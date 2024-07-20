@@ -9,38 +9,38 @@ const SectionLoadingState = ({
 }) => {
   return (
     <Stack gap={1.5}>
-      <Typography variant="h5">
-        <Skeleton width={100} variant="rounded" />
+      <Typography variant={"h5"}>
+        <Skeleton width={100} variant={"rounded"} />
       </Typography>
-      <Skeleton width={width} height={height} variant="rounded" />
+      <Skeleton width={width} height={height} variant={"rounded"} />
     </Stack>
   );
 };
 
 export const EntityPageLoadingState = () => {
   return (
-    <Stack height="100vh">
-      <Box bgcolor="white">
+    <Stack height={"100vh"}>
+      <Box bgcolor={"white"}>
         <Skeleton width={200} height={50} sx={{ ml: 3 }} />
 
         <Box py={3.75}>
           <Container>
             <Skeleton
-              variant="rectangular"
+              variant={"rectangular"}
               width={220}
               height={26}
               sx={{ mb: 2, borderRadius: 13 }}
             />
 
             <Stack>
-              <Typography variant="h1">
+              <Typography variant={"h1"}>
                 <Skeleton width={300} />
               </Typography>
             </Stack>
           </Container>
         </Box>
       </Box>
-      <Box flex={1} bgcolor="gray.10" borderTop={1} borderColor="gray.20">
+      <Box flex={1} bgcolor={"gray.10"} borderTop={1} borderColor={"gray.20"}>
         <Container
           sx={{
             py: 5,

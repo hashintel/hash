@@ -12,13 +12,13 @@ export enum StatusCode {
   /**
    * Not an error; returned on success.
    *
-   * HTTP Mapping: 200 OK
+   * HTTP Mapping: 200 OK.
    */
   Ok = "OK",
   /**
    * The operation was cancelled, typically by the caller.
    *
-   * HTTP Mapping: 499 Client Closed Request
+   * HTTP Mapping: 499 Client Closed Request.
    */
   Cancelled = "CANCELLED",
   /**
@@ -26,14 +26,14 @@ export enum StatusCode {
    * belongs to an error space that is not known in this address space. Also errors raised by APIs that do not return
    * enough error information may be converted to this error.
    *
-   * HTTP Mapping: 500 Internal Server Error
+   * HTTP Mapping: 500 Internal Server Error.
    */
   Unknown = "UNKNOWN",
   /**
    * The client specified an invalid argument. Note that this differs from `FailedPrecondition`. `InvalidArgument`
    * indicates arguments that are problematic regardless of the state of the system (e.g., a malformed file name).
    *
-   * HTTP Mapping: 400 Bad Request
+   * HTTP Mapping: 400 Bad Request.
    */
   InvalidArgument = "INVALID_ARGUMENT",
   /**
@@ -41,7 +41,7 @@ export enum StatusCode {
    * error may be returned even if the operation has completed successfully. For example, a successful response from a
    * server could have been delayed long enough for the deadline to expire.
    *
-   * HTTP Mapping: 504 Gateway Timeout
+   * HTTP Mapping: 504 Gateway Timeout.
    */
   DeadlineExceeded = "DEADLINE_EXCEEDED",
   /**
@@ -51,13 +51,13 @@ export enum StatusCode {
    * undocumented allowlist, `NotFound` may be used. If a request is denied for some users within a class of users, such
    * as user-based access control, `PermissionDenied` must be used.
    *
-   * HTTP Mapping: 404 Not Found
+   * HTTP Mapping: 404 Not Found.
    */
   NotFound = "NOT_FOUND",
   /**
    * The entity that a client attempted to create (e.g., file or directory) already exists.
    *
-   * HTTP Mapping: 409 Conflict
+   * HTTP Mapping: 409 Conflict.
    */
   AlreadyExists = "ALREADY_EXISTS",
   /**
@@ -67,19 +67,19 @@ export enum StatusCode {
    * errors). This error code does not imply the request is valid or the requested entity exists or satisfies other
    * pre-conditions.
    *
-   * HTTP Mapping: 403 Forbidden
+   * HTTP Mapping: 403 Forbidden.
    */
   PermissionDenied = "PERMISSION_DENIED",
   /**
    * The request does not have valid authentication credentials for the operation.
    *
-   * HTTP Mapping: 401 Unauthorized
+   * HTTP Mapping: 401 Unauthorized.
    */
   Unauthenticated = "UNAUTHENTICATED",
   /**
    * Some resource has been exhausted, perhaps a per-user quota, or perhaps the entire file system is out of space.
    *
-   * HTTP Mapping: 429 Too Many Requests
+   * HTTP Mapping: 429 Too Many Requests.
    */
   ResourceExhausted = "RESOURCE_EXHAUSTED",
   /**
@@ -93,7 +93,7 @@ export enum StatusCode {
    *     example, if an \"rmdir\" fails because the directory is non-empty, `FailedPrecondition` should be returned
    *     since the client should not retry unless the files are deleted from the directory.
    *
-   * HTTP Mapping: 400 Bad Request
+   * HTTP Mapping: 400 Bad Request.
    */
   FailedPrecondition = "FAILED_PRECONDITION",
   /**
@@ -102,7 +102,7 @@ export enum StatusCode {
    *
    * See the guidelines above for deciding between `FailedPrecondition`, `Aborted`, and `Unavailable`.
    *
-   * HTTP Mapping: 409 Conflict
+   * HTTP Mapping: 409 Conflict.
    */
   Aborted = "ABORTED",
   /**
@@ -115,20 +115,20 @@ export enum StatusCode {
    * specific error) when it applies so that callers who are iterating through a space can easily look for an
    * `OutOfRange` error to detect when they are done.
    *
-   * HTTP Mapping: 400 Bad Request
+   * HTTP Mapping: 400 Bad Request.
    */
   OutOfRange = "OUT_OF_RANGE",
   /**
    * The operation is not implemented or is not supported/enabled in this service.
    *
-   * HTTP Mapping: 501 Not Implemented
+   * HTTP Mapping: 501 Not Implemented.
    */
   Unimplemented = "UNIMPLEMENTED",
   /**
    * Internal errors. This means that some invariants expected by the underlying system have been broken. This error
    * code is reserved for serious errors.
    *
-   * HTTP Mapping: 500 Internal Server Error
+   * HTTP Mapping: 500 Internal Server Error.
    */
   Internal = "INTERNAL",
   /**
@@ -137,13 +137,13 @@ export enum StatusCode {
    *
    * See the guidelines above for deciding between `FailedPrecondition`, `Aborted`, and `Unavailable`.
    *
-   * HTTP Mapping: 503 Service Unavailable
+   * HTTP Mapping: 503 Service Unavailable.
    */
   Unavailable = "UNAVAILABLE",
   /**
    * Unrecoverable data loss or corruption.
    *
-   * HTTP Mapping: 500 Internal Server Error
+   * HTTP Mapping: 500 Internal Server Error.
    */
   DataLoss = "DATA_LOSS",
 }

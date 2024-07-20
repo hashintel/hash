@@ -1,14 +1,13 @@
 /* eslint-disable import/first */
 
+import express, { type ErrorRequestHandler, raw } from "express";
+import { create as handlebarsCreate } from "express-handlebars";
 import {
   getRequiredEnv,
   monorepoRootDir,
   realtimeSyncEnabled,
   waitOnResource,
 } from "@local/hash-backend-utils/environment";
-import type { ErrorRequestHandler } from "express";
-import express, { raw } from "express";
-import { create as handlebarsCreate } from "express-handlebars";
 
 // eslint-disable-next-line import/order
 import { initSentry } from "./sentry";
@@ -21,6 +20,17 @@ import http from "node:http";
 import path from "node:path";
 import { promisify } from "node:util";
 
+import bodyParser from "body-parser";
+import cors from "cors";
+import proxy from "express-http-proxy";
+import {
+  type Options as RateLimitOptions,
+  rateLimit,
+} from "express-rate-limit";
+import helmet from "helmet";
+import { StatsD } from "hot-shots";
+import httpTerminator from "http-terminator";
+import { customAlphabet } from "nanoid";
 import { getAwsRegion } from "@local/hash-backend-utils/aws-config";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
@@ -30,15 +40,6 @@ import { createVaultClient } from "@local/hash-backend-utils/vault";
 import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 import { getHashClientTypeFromRequest } from "@local/hash-isomorphic-utils/http-requests";
 import * as Sentry from "@sentry/node";
-import bodyParser from "body-parser";
-import cors from "cors";
-import proxy from "express-http-proxy";
-import type { Options as RateLimitOptions } from "express-rate-limit";
-import { rateLimit } from "express-rate-limit";
-import helmet from "helmet";
-import { StatsD } from "hot-shots";
-import httpTerminator from "http-terminator";
-import { customAlphabet } from "nanoid";
 
 import { gptGetUserWebs } from "./ai/gpt/gpt-get-user-webs";
 import { gptQueryEntities } from "./ai/gpt/gpt-query-entities";
@@ -58,10 +59,10 @@ import { hydraPublicUrl } from "./auth/ory-hydra";
 import { kratosPublicUrl } from "./auth/ory-kratos";
 import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
 import { RedisCache } from "./cache";
-import type { EmailTransporter } from "./email/transporters";
 import {
   AwsSesEmailTransporter,
   DummyEmailTransporter,
+  type EmailTransporter,
 } from "./email/transporters";
 import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
 import { ensureHashSystemAccountExists } from "./graph/system-account";
@@ -103,7 +104,7 @@ const baseRateLimitOptions: Partial<RateLimitOptions> = {
 };
 
 /**
- * A rate limiter for routes which grant authentication or authorization credentials
+ * A rate limiter for routes which grant authentication or authorization credentials.
  */
 const authRouteRateLimiter = rateLimit(baseRateLimitOptions);
 
@@ -112,20 +113,21 @@ const authRouteRateLimiter = rateLimit(baseRateLimitOptions);
  */
 const userIdentifierRateLimiter = rateLimit({
   ...baseRateLimitOptions,
-  keyGenerator: (req) => {
-    if (req.body.identifier) {
+  keyGenerator: (request) => {
+    if (request.body.identifier) {
       /**
        * 'identifier' is the field which identifies the user on a signin attempt.
        * We use this as a rate limiting key if present to mitigate brute force signin attempts spread across multiple IPs.
        */
-      return req.body.identifier;
+      return request.body.identifier;
     }
-    return req.ip;
+
+    return request.ip;
   },
 });
 
 const hydraProxy = proxy(hydraPublicUrl ?? "", {
-  proxyReqPathResolver: (req) => req.originalUrl,
+  proxyReqPathResolver: (request) => request.originalUrl,
 });
 
 const main = async () => {
@@ -152,10 +154,12 @@ const main = async () => {
 
   // Configure the StatsD client for reporting metrics
   let statsd: StatsD | undefined;
+
   try {
     if (isStatsDEnabled) {
       const statsdHost = process.env.STATSD_HOST;
       const statsdPort = parseInt(process.env.STATSD_PORT || "8125", 10);
+
       await waitOnResource(`tcp:${statsdHost}:${statsdPort}`, logger);
 
       statsd = new StatsD({
@@ -167,8 +171,8 @@ const main = async () => {
         await promisify((statsd as StatsD).close).bind(statsd)();
       });
     }
-  } catch (err) {
-    logger.error(`Could not start StatsD client: ${err}`);
+  } catch (error) {
+    logger.error(`Could not start StatsD client: ${error}`);
   }
 
   // Configure Sentry error / trace handling
@@ -182,17 +186,18 @@ const main = async () => {
   app.use(cors(CORS_CONFIG));
 
   // Add logging of requests
-  app.use((req, res, next) => {
+  app.use((request, res, next) => {
     const requestId = nanoid();
+
     res.set("x-hash-request-id", requestId);
     logger.info({
       requestId,
-      method: req.method,
-      ip: req.ip,
-      path: req.path,
+      method: request.method,
+      ip: request.ip,
+      path: request.path,
       message: "request",
-      userAgent: req.headers["user-agent"],
-      graphqlClient: req.headers["apollographql-client-name"],
+      userAgent: request.headers["user-agent"],
+      graphqlClient: request.headers["apollographql-client-name"],
     });
 
     next();
@@ -217,6 +222,7 @@ const main = async () => {
     port: redisPort,
     tls: redisEncryptedTransit,
   });
+
   shutdown.addCleanup("Redis", async () => redis.close());
 
   // Connect to the Graph API
@@ -287,14 +293,15 @@ const main = async () => {
   const rawParser = raw({ type: "application/json" });
 
   /**
-   * PROXIES – these should come BEFORE bodyParser so that the body is proxied without being consumed and parsed
+   * PROXIES – these should come BEFORE bodyParser so that the body is proxied without being consumed and parsed.
+   *
    * @see https://www.npmjs.com/package/express-http-proxy#middleware-mixing
    *
    * Kratos is given an exception as we check the body for rate limiting purposes and parsing it out doesn't break it.
    */
 
   /**
-   * Proxy to Ory Hydra's OAuth2 authorization and token endpoints, for OAuth2 clients (e.g. HashGPT)
+   * Proxy to Ory Hydra's OAuth2 authorization and token endpoints, for OAuth2 clients (e.g. HashGPT).
    */
   app.use("/oauth2/auth", authRouteRateLimiter, hydraProxy);
   app.use("/oauth2/token", authRouteRateLimiter, hydraProxy);
@@ -303,15 +310,18 @@ const main = async () => {
   /** END PROXIES */
 
   /** Body parsing middleware */
-  app.use((req, res, next) => {
+  app.use((request, res, next) => {
     if (
-      req.path.startsWith("/webhooks/") ||
-      req.path === LOCAL_FILE_UPLOAD_PATH
+      request.path.startsWith("/webhooks/") ||
+      request.path === LOCAL_FILE_UPLOAD_PATH
     ) {
       // webhooks typically need the raw body for signature verification
-      return rawParser(req, res, next);
+      rawParser(request, res, next);
+
+      return;
     }
-    return jsonParser(req, res, next);
+
+    jsonParser(request, res, next);
   });
 
   /**
@@ -325,7 +335,7 @@ const main = async () => {
     authRouteRateLimiter,
     userIdentifierRateLimiter,
     cors(CORS_CONFIG),
-    (req, res, next) => {
+    (request, res, next) => {
       const expectedAccessControlAllowOriginHeader = res.getHeader(
         "Access-Control-Allow-Origin",
       );
@@ -334,7 +344,7 @@ const main = async () => {
         throw new Error("No kratosPublicUrl provided");
       }
 
-      return proxy(kratosPublicUrl, {
+      proxy(kratosPublicUrl, {
         /**
          * Remove the `/auth` prefix from the request path, so the path is
          * formatted correctly for the Ory Kratos API.
@@ -355,16 +365,17 @@ const main = async () => {
          * expected value here before returning the response, to prevent CORS errors
          * in modern browsers.
          */
-        userResDecorator: (_proxyRes, proxyResData, _userReq, userRes) => {
+        userResDecorator: (_proxyRes, proxyResData, _userRequest, userRes) => {
           if (typeof expectedAccessControlAllowOriginHeader === "string") {
             userRes.set(
               "Access-Control-Allow-Origin",
               expectedAccessControlAllowOriginHeader,
             );
           }
+
           return proxyResData;
         },
-      })(req, res, next);
+      })(request, res, next);
     },
   );
 
@@ -374,6 +385,7 @@ const main = async () => {
     logger,
     context: machineActorContext,
   });
+
   app.use(authMiddleware);
 
   /**
@@ -381,7 +393,7 @@ const main = async () => {
    * We could set some of this scope earlier, but it doesn't get picked up for GraphQL requests for some reason
    * if the middleware comes earlier.
    */
-  app.use((req, _res, next) => {
+  app.use((request, _res, next) => {
     const scope = Sentry.getCurrentScope();
 
     // Clear the scope and breadcrumbs – requests seem to bleed into each other otherwise
@@ -393,15 +405,16 @@ const main = async () => {
      * This might be something to do with how Sentry hooks into fetch that doesn't play nicely with ApolloServer,
      * or how we're loading it.
      */
-    const userAgent = req.header("user-agent");
-    const origin = req.header("origin");
-    const ip = req.ip;
+    const userAgent = request.header("user-agent");
+    const origin = request.header("origin");
+    const { ip } = request;
 
     scope.setContext("request", { ip, origin, userAgent });
 
-    const user = req.user;
+    const { user } = request;
+
     scope.setUser({
-      id: getActorIdFromRequest(req),
+      id: getActorIdFromRequest(request),
       email: user?.emails[0],
       username: user?.shortname ?? "public",
     });
@@ -418,6 +431,7 @@ const main = async () => {
   );
 
   const hbs = handlebarsCreate({ defaultLayout: "main", extname: ".hbs" });
+
   app.engine(
     "hbs",
     // eslint-disable-next-line @typescript-eslint/no-misused-promises
@@ -455,6 +469,7 @@ const main = async () => {
           } as EmailTransporter);
 
   let search: OpenSearch | undefined;
+
   if (process.env.HASH_OPENSEARCH_ENABLED === "true") {
     const searchAuth =
       process.env.HASH_OPENSEARCH_USERNAME === undefined
@@ -463,11 +478,12 @@ const main = async () => {
             username: process.env.HASH_OPENSEARCH_USERNAME,
             password: process.env.HASH_OPENSEARCH_PASSWORD || "",
           };
+
     search = await OpenSearch.connect(logger, {
       host: getRequiredEnv("HASH_OPENSEARCH_HOST"),
       port: parseInt(process.env.HASH_OPENSEARCH_PORT || "9200", 10),
       auth: searchAuth,
-      httpsEnabled: !!process.env.HASH_OPENSEARCH_HTTPS_ENABLED,
+      httpsEnabled: Boolean(process.env.HASH_OPENSEARCH_HTTPS_ENABLED),
     });
     shutdown.addCleanup("OpenSearch", async () => search!.close());
   }
@@ -486,16 +502,16 @@ const main = async () => {
 
   // Make the data sources/clients available to REST controllers
   // @todo figure out sharing of context between REST and GraphQL without repeating this
-  app.use((req, _res, next) => {
+  app.use((request, _res, next) => {
     const provenance: EnforcedEntityEditionProvenance = {
       actorType: "human",
       origin: {
-        type: getHashClientTypeFromRequest(req) ?? "api",
-        userAgent: req.headers["user-agent"],
+        type: getHashClientTypeFromRequest(request) ?? "api",
+        userAgent: request.headers["user-agent"],
       },
     };
 
-    req.context = {
+    request.context = {
       graphApi,
       provenance,
       temporalClient,
@@ -509,39 +525,40 @@ const main = async () => {
 
   setupBlockProtocolExternalServiceMethodProxy(app);
 
-  app.get("/", (_req, res) => {
+  app.get("/", (_request, res) => {
     res.send("Hello World");
   });
 
   // Used by AWS Application Load Balancer (ALB) for health checks
   app.get("/health-check", (_, res) => res.status(200).send("Hello World!"));
 
-  app.use((req, res, next) => {
+  app.use((request, res, next) => {
     const requestId = nanoid();
+
     res.set("x-hash-request-id", requestId);
     if (isProdEnv) {
       logger.info({
         requestId,
-        method: req.method,
-        origin: req.headers.origin,
-        ip: req.ip,
-        path: req.path,
+        method: request.method,
+        origin: request.headers.origin,
+        ip: request.ip,
+        path: request.path,
         message: "request",
-        userAgent: req.headers["user-agent"],
-        graphqlClient: req.headers["apollographql-client-name"],
+        userAgent: request.headers["user-agent"],
+        graphqlClient: request.headers["apollographql-client-name"],
       });
     }
     next();
   });
 
-  app.use((req, _res, next) => {
-    if (req.path !== "/graphql") {
-      if (!req.user?.isAccountSignupComplete) {
+  app.use((request, _res, next) => {
+    if (request.path !== "/graphql") {
+      if (!request.user?.isAccountSignupComplete) {
         /**
          * Only GraphQL requests need to be provided with incomplete users, to allow them to complete signup
          *   – otherwise they should be treated as anonymous requests.
          */
-        delete req.user;
+        delete request.user;
       }
     }
     next();
@@ -569,7 +586,7 @@ const main = async () => {
   /**
    * This middleware MUST:
    * 1. Come AFTER all non-error controllers
-   * 2. Come BEFORE all error controllers/middleware
+   * 2. Come BEFORE all error controllers/middleware.
    */
   app.use(
     Sentry.Handlers.errorHandler({
@@ -583,11 +600,12 @@ const main = async () => {
   );
 
   // Fallback error handler for errors that haven't been caught and sent as a response already
-  const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
-    Sentry.captureException(err);
+  const errorHandler: ErrorRequestHandler = (error, _request, res, _next) => {
+    Sentry.captureException(error);
 
-    res.status(500).send(err.message);
+    res.status(500).send(error.message);
   };
+
   app.use(errorHandler);
 
   // Create the HTTP server.
@@ -598,6 +616,7 @@ const main = async () => {
   const terminator = httpTerminator.createHttpTerminator({
     server: httpServer,
   });
+
   shutdown.addCleanup("HTTP Server", async () => terminator.terminate());
 
   openInferEntitiesWebSocket({
@@ -640,7 +659,7 @@ const main = async () => {
   }
 };
 
-void main().catch(async (err) => {
-  logger.error(err);
+void main().catch(async (error) => {
+  logger.error(error);
   await shutdown.trigger();
 });

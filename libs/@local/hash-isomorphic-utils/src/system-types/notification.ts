@@ -2,34 +2,18 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type {
-  ArchivedPropertyValue,
-  ArchivedPropertyValueWithMetadata,
-  BooleanDataType,
-  BooleanDataTypeWithMetadata,
-  Notification,
-  NotificationOutgoingLinkAndTarget,
-  NotificationOutgoingLinksByLinkEntityTypeId,
-  NotificationProperties,
-  NotificationPropertiesWithMetadata,
-  ReadAtPropertyValue,
-  ReadAtPropertyValueWithMetadata,
-  TextDataType,
-  TextDataTypeWithMetadata,
+export {
+  type ArchivedPropertyValue,
+  type ArchivedPropertyValueWithMetadata,
+  type BooleanDataType,
+  type BooleanDataTypeWithMetadata,
+  type Notification,
+  type NotificationOutgoingLinkAndTarget,
+  type NotificationOutgoingLinksByLinkEntityTypeId,
+  type NotificationProperties,
+  type NotificationPropertiesWithMetadata,
+  type ReadAtPropertyValue,
+  type ReadAtPropertyValueWithMetadata,
+  type TextDataType,
+  type TextDataTypeWithMetadata,
 } from "./shared.js";
-
-export type {
-  ArchivedPropertyValue,
-  ArchivedPropertyValueWithMetadata,
-  BooleanDataType,
-  BooleanDataTypeWithMetadata,
-  Notification,
-  NotificationOutgoingLinkAndTarget,
-  NotificationOutgoingLinksByLinkEntityTypeId,
-  NotificationProperties,
-  NotificationPropertiesWithMetadata,
-  ReadAtPropertyValue,
-  ReadAtPropertyValueWithMetadata,
-  TextDataType,
-  TextDataTypeWithMetadata,
-};

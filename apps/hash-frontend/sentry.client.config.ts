@@ -12,7 +12,7 @@ import {
 
 Sentry.init({
   dsn: SENTRY_DSN,
-  enabled: !!SENTRY_DSN,
+  enabled: Boolean(SENTRY_DSN),
   environment: VERCEL_ENV || "development",
   integrations: [new Sentry.Replay({ stickySession: true })],
   release: buildStamp,
@@ -21,6 +21,6 @@ Sentry.init({
     SENTRY_REPLAYS_SESSION_SAMPLE_RATE ?? "0",
   ),
   // release is set in next.config.js in the Sentry webpack plugin
-  /** @todo reduce perf sample rate from 100% when we have more traffic */
+  /** @todo Reduce perf sample rate from 100% when we have more traffic */
   tracesSampleRate: 1.0,
 });

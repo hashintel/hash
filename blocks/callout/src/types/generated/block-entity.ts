@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import { Entity } from "@blockprotocol/graph";
+import type { Entity } from "@blockprotocol/graph";
 
 export type BlockEntity = CalloutBlock;
 
@@ -14,31 +14,31 @@ export type CalloutBlock = Entity<CalloutBlockProperties>;
 /**
  * A Unicode emoji displayed along the textual contents of a Callout block.
  *
- * See: https://unicode.org/emoji/charts/full-emoji-list.html
+ * See: https://unicode.org/emoji/charts/full-emoji-list.html.
  */
 export type CalloutBlockEmojiPropertyValue = TextDataType;
 
 export type CalloutBlockOutgoingLinkAndTarget = never;
 
-export type CalloutBlockOutgoingLinksByLinkEntityTypeId = {};
+export interface CalloutBlockOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The block entity for the “Callout” block.
  *
- * See: https://blockprotocol.org/@hash/blocks/callout
+ * See: https://blockprotocol.org/@hash/blocks/callout.
  */
-export type CalloutBlockProperties = {
+export interface CalloutBlockProperties {
   "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValue;
   "https://blockprotocol.org/@hash/types/property-type/callout-block-emoji/"?: CalloutBlockEmojiPropertyValue;
-};
+}
 
 /**
- * An opaque, untyped JSON object
+ * An opaque, untyped JSON object.
  */
-export type ObjectDataType = {};
+export interface ObjectDataType {}
 
 /**
- * An ordered sequence of characters
+ * An ordered sequence of characters.
  */
 export type TextDataType = string;
 

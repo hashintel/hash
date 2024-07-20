@@ -2,13 +2,13 @@ import { access, mkdir } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import type { Subtype } from "@local/advanced-types/subtype";
-import type { StorageContext } from "llamaindex";
-import {
+import type {
   SimpleDocumentStore,
   SimpleIndexStore,
   SimpleVectorStore,
+  StorageContext,
 } from "llamaindex";
+import type { Subtype } from "@local/advanced-types/subtype";
 
 export type SimpleStorageContext = Subtype<
   StorageContext,
@@ -65,10 +65,10 @@ export const retrieveSimpleStorageContext = async (params: {
 
     return { simpleStorageContext };
   } catch (error) {
-    // eslint-disable-next-line no-console
     console.error(
       `Failed to retrieve storage context: ${(error as Error).message}`,
     );
+
     return { simpleStorageContext: undefined };
   }
 };

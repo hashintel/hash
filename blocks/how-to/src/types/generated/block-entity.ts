@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import { Entity, LinkData } from "@blockprotocol/graph";
+import type { Entity, LinkData } from "@blockprotocol/graph";
 
 export type BlockEntity = HowToBlock;
 
@@ -18,18 +18,18 @@ export type HasHowToBlockIntroduction =
 
 export type HasHowToBlockIntroductionOutgoingLinkAndTarget = never;
 
-export type HasHowToBlockIntroductionOutgoingLinksByLinkEntityTypeId = {};
+export interface HasHowToBlockIntroductionOutgoingLinksByLinkEntityTypeId {}
 
 /**
- * Contains a How-To Block Introduction
+ * Contains a How-To Block Introduction.
  *
- * See: https://blockprotocol.org/@hash/types/entity-type/how-to-block-introduction
+ * See: https://blockprotocol.org/@hash/types/entity-type/how-to-block-introduction.
  */
 export type HasHowToBlockIntroductionProperties =
   HasHowToBlockIntroductionProperties1 & HasHowToBlockIntroductionProperties2;
 export type HasHowToBlockIntroductionProperties1 = LinkProperties;
 
-export type HasHowToBlockIntroductionProperties2 = {};
+export interface HasHowToBlockIntroductionProperties2 {}
 
 export type HasHowToBlockStep = Entity<HasHowToBlockStepProperties> & {
   linkData: LinkData;
@@ -37,94 +37,94 @@ export type HasHowToBlockStep = Entity<HasHowToBlockStepProperties> & {
 
 export type HasHowToBlockStepOutgoingLinkAndTarget = never;
 
-export type HasHowToBlockStepOutgoingLinksByLinkEntityTypeId = {};
+export interface HasHowToBlockStepOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * Contains a How-To Block step.
  *
- * See: https://blockprotocol.org/@hash/types/entity-type/how-to-block-step
+ * See: https://blockprotocol.org/@hash/types/entity-type/how-to-block-step.
  */
 export type HasHowToBlockStepProperties = HasHowToBlockStepProperties1 &
   HasHowToBlockStepProperties2;
 export type HasHowToBlockStepProperties1 = LinkProperties;
 
-export type HasHowToBlockStepProperties2 = {};
+export interface HasHowToBlockStepProperties2 {}
 
 export type HowToBlock = Entity<HowToBlockProperties>;
 
-export type HowToBlockHasHowToBlockIntroductionLink = {
+export interface HowToBlockHasHowToBlockIntroductionLink {
   linkEntity: HasHowToBlockIntroduction;
   rightEntity: HowToBlockIntroduction;
-};
+}
 
-export type HowToBlockHasHowToBlockStepLink = {
+export interface HowToBlockHasHowToBlockStepLink {
   linkEntity: HasHowToBlockStep;
   rightEntity: HowToBlockStep;
-};
+}
 
 export type HowToBlockIntroduction = Entity<HowToBlockIntroductionProperties>;
 
 export type HowToBlockIntroductionOutgoingLinkAndTarget = never;
 
-export type HowToBlockIntroductionOutgoingLinksByLinkEntityTypeId = {};
+export interface HowToBlockIntroductionOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A short description or precursor that explains the process that’s defined within the How-To block, or defines any preliminary context.
  *
  * It also often describes any pre-requisites necessary for completing the subsequent set of “How-To Block Step”s.
  *
- * See: https://blockprotocol.org/@hash/types/entity-type/how-to-block-step
+ * See: https://blockprotocol.org/@hash/types/entity-type/how-to-block-step.
  */
-export type HowToBlockIntroductionProperties = {
+export interface HowToBlockIntroductionProperties {
   "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
-};
+}
 
 export type HowToBlockOutgoingLinkAndTarget =
   | HowToBlockHasHowToBlockStepLink
   | HowToBlockHasHowToBlockIntroductionLink;
 
-export type HowToBlockOutgoingLinksByLinkEntityTypeId = {
+export interface HowToBlockOutgoingLinksByLinkEntityTypeId {
   "https://blockprotocol.org/@hash/types/entity-type/has-how-to-block-step/v/1": HowToBlockHasHowToBlockStepLink;
   "https://blockprotocol.org/@hash/types/entity-type/has-how-to-block-introduction/v/1": HowToBlockHasHowToBlockIntroductionLink;
-};
+}
 
 /**
  * The block entity for the "How-To" block.
  *
- * See: https://blockprotocol.org/@hash/blocks/how-to
+ * See: https://blockprotocol.org/@hash/blocks/how-to.
  */
-export type HowToBlockProperties = {
+export interface HowToBlockProperties {
   "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
-};
+}
 
 export type HowToBlockStep = Entity<HowToBlockStepProperties>;
 
 export type HowToBlockStepOutgoingLinkAndTarget = never;
 
-export type HowToBlockStepOutgoingLinksByLinkEntityTypeId = {};
+export interface HowToBlockStepOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * Defines a single step within a How-To Block.
  *
- * See: https://blockprotocol.org/@hash/types/entity-type/how-to-block
+ * See: https://blockprotocol.org/@hash/types/entity-type/how-to-block.
  */
-export type HowToBlockStepProperties = {
+export interface HowToBlockStepProperties {
   "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
-};
+}
 
 export type Link = Entity<LinkProperties>;
 
 export type LinkOutgoingLinkAndTarget = never;
 
-export type LinkOutgoingLinksByLinkEntityTypeId = {};
+export interface LinkOutgoingLinksByLinkEntityTypeId {}
 
-export type LinkProperties = {};
+export interface LinkProperties {}
 
 /**
- * An ordered sequence of characters
+ * An ordered sequence of characters.
  */
 export type TextDataType = string;
 

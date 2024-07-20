@@ -62,36 +62,36 @@ export type {
 };
 
 /**
- * A notification of a change to a graph
+ * A notification of a change to a graph.
  */
-export type GraphChangeNotification = {
+export interface GraphChangeNotification {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/graph-change-notification/v/1";
   properties: GraphChangeNotificationProperties;
   propertiesWithMetadata: GraphChangeNotificationPropertiesWithMetadata;
-};
+}
 
-export type GraphChangeNotificationOccurredInEntityLink = {
+export interface GraphChangeNotificationOccurredInEntityLink {
   linkEntity: OccurredInEntity;
   rightEntity: Entity;
-};
+}
 
 export type GraphChangeNotificationOutgoingLinkAndTarget =
   GraphChangeNotificationOccurredInEntityLink;
 
-export type GraphChangeNotificationOutgoingLinksByLinkEntityTypeId = {
+export interface GraphChangeNotificationOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@hash/types/entity-type/occurred-in-entity/v/2": GraphChangeNotificationOccurredInEntityLink;
-};
+}
 
 /**
- * A notification of a change to a graph
+ * A notification of a change to a graph.
  */
 export type GraphChangeNotificationProperties =
   GraphChangeNotificationProperties1 & GraphChangeNotificationProperties2;
 export type GraphChangeNotificationProperties1 = NotificationProperties;
 
-export type GraphChangeNotificationProperties2 = {
+export interface GraphChangeNotificationProperties2 {
   "https://hash.ai/@hash/types/property-type/graph-change-type/": GraphChangeTypePropertyValue;
-};
+}
 
 export type GraphChangeNotificationPropertiesWithMetadata =
   GraphChangeNotificationPropertiesWithMetadata1 &
@@ -99,15 +99,15 @@ export type GraphChangeNotificationPropertiesWithMetadata =
 export type GraphChangeNotificationPropertiesWithMetadata1 =
   NotificationPropertiesWithMetadata;
 
-export type GraphChangeNotificationPropertiesWithMetadata2 = {
+export interface GraphChangeNotificationPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/graph-change-type/": GraphChangeTypePropertyValueWithMetadata;
   };
-};
+}
 
 /**
- * The type of change that occurred (e.g. create, update, archive)
+ * The type of change that occurred (e.g. Create, update, archive).
  */
 export type GraphChangeTypePropertyValue = TextDataType;
 

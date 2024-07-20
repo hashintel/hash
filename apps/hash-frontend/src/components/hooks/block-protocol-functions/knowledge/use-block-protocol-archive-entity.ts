@@ -1,11 +1,12 @@
-import { useMutation } from "@apollo/client";
 import { useCallback } from "react";
+import { useMutation } from "@apollo/client";
 
 import type {
   ArchiveEntityMutation,
   ArchiveEntityMutationVariables,
 } from "../../../../graphql/api-types.gen";
 import { archiveEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
+
 import type { ArchiveEntityMessageCallback } from "./knowledge-shim";
 
 export const useBlockProtocolArchiveEntity = (

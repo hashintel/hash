@@ -8,18 +8,19 @@ export const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
 
 export type LogLevel = (typeof LOG_LEVELS)[number];
 
-export type LoggerConfig = {
+export interface LoggerConfig {
   mode: "dev" | "prod";
   level?: LogLevel;
   serviceName: string;
   metadata?: Record<string, string>;
-};
+}
 
 const tbdIsLogLevel = (level: string): level is LogLevel =>
   LOG_LEVELS.includes(level as LogLevel);
 
 const getDefaultLoggerLevel = () => {
   const envLogLevel = process.env.LOG_LEVEL;
+
   return envLogLevel && tbdIsLogLevel(envLogLevel) ? envLogLevel : "info";
 };
 
@@ -39,8 +40,9 @@ export class Logger {
         winston.format.errors({ stack: true }),
         winston.format.json(),
       ),
-      defaultMeta: { service: cfg.serviceName, ...(cfg.metadata ?? {}) },
+      defaultMeta: { service: cfg.serviceName, ...cfg.metadata },
     });
+
     if (cfg.mode === "dev") {
       logger.add(
         new winston.transports.Console({
@@ -79,7 +81,7 @@ export class Logger {
   child(metadata: Record<string, string>): Logger {
     return new Logger({
       ...this.cfg,
-      metadata: { ...(this.cfg.metadata ?? {}), ...metadata },
+      metadata: { ...this.cfg.metadata, ...metadata },
     });
   }
 }

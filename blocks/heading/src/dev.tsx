@@ -2,16 +2,17 @@
  * This is the entry point for developing and debugging.
  * This file is not bundled with the block during the build process.
  */
-import type { VersionedUrl } from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
+import type { VersionedUrl } from "@blockprotocol/graph";
 
 import packageJSON from "../package.json";
-import Component from "./index";
+
 import { propertyIds } from "./property-ids";
 import type { BlockEntity } from "./types/generated/block-entity";
+import Component from "./index";
 
-const node = document.getElementById("app");
+const node = document.querySelector("#app");
 
 const initialData: BlockEntity = {
   metadata: {
@@ -30,6 +31,7 @@ const initialData: BlockEntity = {
 
 const App = () => (
   <MockBlockDock
+    debug
     blockDefinition={{ ReactComponent: Component }}
     blockEntityRecordId={initialData.metadata.recordId}
     initialData={{ initialEntities: [initialData] }}
@@ -39,7 +41,6 @@ const App = () => (
       min: 50,
       max: 200,
     }}
-    debug
   />
 );
 

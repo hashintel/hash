@@ -7,10 +7,10 @@ import type {
 import type {
   AutomaticInferenceTriggerInputName,
   AutomaticInferenceTriggerInputs,
+  browserInferenceFlowOutput,
   ManualInferenceTriggerInputName,
   ManualInferenceTriggerInputs,
 } from "./browser-plugin-flow-types.js";
-import { browserInferenceFlowOutput } from "./browser-plugin-flow-types.js";
 import type { FlowDefinition } from "./types.js";
 
 export const manualBrowserInferenceFlowDefinition: FlowDefinition = {

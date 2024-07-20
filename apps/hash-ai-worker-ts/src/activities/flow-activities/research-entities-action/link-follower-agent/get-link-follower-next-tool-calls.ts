@@ -1,10 +1,12 @@
-import type { Subtype } from "@local/advanced-types/subtype";
 import dedent from "dedent";
+import type { Subtype } from "@local/advanced-types/subtype";
 
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
-import type { LlmUserMessage } from "../../../shared/get-llm-response/llm-message.js";
-import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
+import type {
+  getToolCallsFromLlmAssistantMessage,
+  LlmUserMessage,
+} from "../../../shared/get-llm-response/llm-message.js";
 import type {
   LlmParams,
   LlmToolDefinition,
@@ -13,6 +15,7 @@ import { graphApiClient } from "../../../shared/graph-api-client.js";
 import type { LocalEntitySummary } from "../../shared/infer-facts-from-text/get-entity-summaries-from-text.js";
 import type { Fact } from "../../shared/infer-facts-from-text/types.js";
 import { simplifyFactForLlmConsumption } from "../shared/simplify-for-llm-consumption.js";
+
 import type { Link } from "./choose-relevant-links-from-content.js";
 
 const defaultModel: LlmParams["model"] = "claude-3-5-sonnet-20240620";
@@ -45,13 +48,13 @@ const getLinkFollowerNextToolCallsSystemPrompt = dedent(`
   </TaskDescription>
 `);
 
-type GetLinkFollowerNextToolCallsParams = {
+interface GetLinkFollowerNextToolCallsParams {
   task: string;
   entitySummaries: LocalEntitySummary[];
   factsGathered: Fact[];
   previouslyVisitedLinks: { url: string }[];
   possibleNextLinks: Link[];
-};
+}
 
 const generateUserMessage = (
   params: GetLinkFollowerNextToolCallsParams,
@@ -306,7 +309,8 @@ export const getLinkFollowerNextToolCalls = async (
           input: nextToolCall.input as ToolCallInputs["complete"],
         },
       };
-    } else if (nextToolCall.name === "terminate") {
+    }
+    if (nextToolCall.name === "terminate") {
       return {
         status: "ok",
         nextToolCall: {

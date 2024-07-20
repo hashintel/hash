@@ -1,5 +1,4 @@
 import "../shared/testing-utilities/mock-get-flow-context.js";
-
 import { expect, test } from "vitest";
 
 import {
@@ -8,7 +7,7 @@ import {
 } from "./get-web-page-activity.js";
 
 test.skip(
-  "Test getWebPageActivity with a Wikipedia page",
+  "test getWebPageActivity with a Wikipedia page",
   async () => {
     const webPage = await getWebPageActivity({
       url: "https://en.wikipedia.org/wiki/Tesla,_Inc.",
@@ -32,7 +31,7 @@ test.skip(
 );
 
 test.skip(
-  "Test getWebPageActivity with a FTSE 350 page",
+  "test getWebPageActivity with a FTSE 350 page",
   async () => {
     const webPage = await getWebPageActivity({
       url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table",
@@ -55,7 +54,7 @@ test.skip(
   },
 );
 
-test.skip("Test sanitizeHtmlForLlmConsumption with custom HTML", () => {
+test.skip("test sanitizeHtmlForLlmConsumption with custom HTML", () => {
   const sanitizedHtml = sanitizeHtmlForLlmConsumption({
     htmlContent: `
       <body>

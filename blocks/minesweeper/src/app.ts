@@ -1,9 +1,8 @@
-import { BlockElementBase } from "@blockprotocol/graph/custom-element";
-import { getRoots } from "@blockprotocol/graph/stdlib";
 import type { PropertyValues } from "lit";
-// eslint-disable-next-line import/extensions
 import { unsafeHTML } from "lit/directives/unsafe-html.js";
 import { mine_sweeper } from "mine-sweeper-tag";
+import { BlockElementBase } from "@blockprotocol/graph/custom-element";
+import { getRoots } from "@blockprotocol/graph/stdlib";
 
 import type { BlockEntity } from "./types/generated/block-entity";
 
@@ -19,6 +18,7 @@ const takeNumberOrDefault = (value: unknown, defaultValue: number) => {
   ) {
     return value;
   }
+
   return defaultValue;
 };
 
@@ -38,9 +38,11 @@ export class MinesweeperBlock extends BlockElementBase<BlockEntity> {
     }
 
     const newBlockEntity = getRoots(graph.blockEntitySubgraph)[0];
+
     if (!newBlockEntity) {
       throw new Error("No root in updated blockEntitySubgraph");
     }
+
     return (
       newBlockEntity.properties[colsKey]?.toString() !==
         this.getBlockEntity().properties[colsKey]?.toString() ||

@@ -5,7 +5,7 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
 /**
- * Entity types the user may have entities of that should be excluded from view in the UI
+ * Entity types the user may have entities of that should be excluded from view in the UI.
  */
 export const hiddenEntityTypeIds: VersionedUrl[] = [
   googleEntityTypes.account.entityTypeId,

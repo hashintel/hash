@@ -1,15 +1,16 @@
 import type { CustomCell, DrawArgs } from "@glideapps/glide-data-grid";
 
 import { getYCenter } from "../utils";
+
 import { drawChip } from "./draw-chip";
 
 /**
- * @param args draw args of cell
- * @param text text content of chip
- * @param left left position of chip
- * @param textColor text color
- * @param bgColor background color
- * @returns width of the drawn chip
+ * @param args - Draw args of cell.
+ * @param text - Text content of chip.
+ * @param left - Left position of chip.
+ * @param textColor - Text color.
+ * @param bgColor - Background color.
+ * @returns Width of the drawn chip.
  */
 export const drawChipWithText = ({
   args,

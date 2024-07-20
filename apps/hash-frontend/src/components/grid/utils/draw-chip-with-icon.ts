@@ -3,9 +3,10 @@ import type { CustomCell, DrawArgs } from "@glideapps/glide-data-grid";
 import type {
   ChipCellColor,
   ChipCellVariant,
+  getChipColors,
 } from "../../../pages/shared/chip-cell";
-import { getChipColors } from "../../../pages/shared/chip-cell";
 import { getYCenter } from "../utils";
+
 import type { CustomIcon } from "./custom-grid-icons";
 import { drawChip } from "./draw-chip";
 
@@ -72,15 +73,14 @@ const drawClippedImage = ({
 };
 
 /**
- * @param args draw args of cell
- * @param text text content of chip
- * @param left left position of chip
- * @param color the chip color
- * @param [variant] the chip variant
- * @param [icon] the icon to draw
- * @param [imageSrc] the image to draw
- *
- * @returns width of the drawn chip
+ * @param args - Draw args of cell.
+ * @param text - Text content of chip.
+ * @param left - Left position of chip.
+ * @param color - The chip color.
+ * @param [variant] - The chip variant.
+ * @param [icon] - The icon to draw.
+ * @param [imageSrc] - The image to draw.
+ * @returns Width of the drawn chip.
  */
 export const drawChipWithIcon = ({
   args,

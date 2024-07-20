@@ -1,15 +1,18 @@
+import { formatDistanceToNowStrict } from "date-fns";
+import { memo, useMemo, useState } from "react";
 import { InfinityLightIcon } from "@hashintel/design-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 import { generateFlowDefinitionPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import { Box, Container, TableCell, Typography } from "@mui/material";
-import { formatDistanceToNowStrict } from "date-fns";
-import { memo, useMemo, useState } from "react";
 
-import type { NextPageWithLayout } from "../shared/layout";
-import { getLayoutWithSidebar } from "../shared/layout";
+import type {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../shared/layout";
 import { Link } from "../shared/ui/link";
 import { WorkersHeader } from "../shared/workers-header";
+
 import {
   FlowDefinitionsContextProvider,
   useFlowDefinitionsContext,
@@ -25,11 +28,12 @@ import {
 } from "./shared/flow-tables";
 import type {
   CreateVirtualizedRowContentFn,
+  headerHeight,
+  VirtualizedTable,
   VirtualizedTableColumn,
   VirtualizedTableRow,
   VirtualizedTableSort,
 } from "./shared/virtualized-table";
-import { headerHeight, VirtualizedTable } from "./shared/virtualized-table";
 
 type FieldId = "web" | "name" | "description" | "lastRunStartedAt";
 
@@ -139,6 +143,7 @@ const FlowsPageContent = () => {
       .filter((def) => !goalFlowDefinitionIds.includes(def.flowDefinitionId))
       .map((flowDefinition) => {
         let lastRunStartedAt = null;
+
         for (const flowRun of flowRuns) {
           if (
             flowRun.flowDefinitionId === flowDefinition.flowDefinitionId &&
@@ -159,7 +164,7 @@ const FlowsPageContent = () => {
             name: flowDefinition.name,
             /**
              * Flow definitions will have their own uuid once we start storing them in the db, this is a placeholder
-             * while we only have hardcoded definitions
+             * while we only have hardcoded definitions.
              */
             uuid: flowDefinition.flowDefinitionId,
             description: flowDefinition.description,
@@ -169,7 +174,7 @@ const FlowsPageContent = () => {
       });
 
     return rowData.sort((a, b) => {
-      const field = sort.field;
+      const { field } = sort;
       const direction = sort.direction === "asc" ? 1 : -1;
 
       if (field === "web") {
@@ -190,6 +195,10 @@ const FlowsPageContent = () => {
   return (
     <Box>
       <WorkersHeader
+        title={{ text: "Flows", Icon: InfinityLightIcon }}
+        subtitle={
+          "Pre-defined sequences of actions run by workers on your behalf"
+        }
         crumbs={[
           {
             icon: null,
@@ -197,8 +206,6 @@ const FlowsPageContent = () => {
             title: "Flows",
           },
         ]}
-        title={{ text: "Flows", Icon: InfinityLightIcon }}
-        subtitle="Pre-defined sequences of actions run by workers on your behalf"
       />
       <Container sx={{ my: 4, px: 4, height: tableHeight }}>
         <VirtualizedTable

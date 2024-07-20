@@ -519,21 +519,21 @@ export type {
 /**
  * A notification related to a comment.
  */
-export type CommentNotification = {
+export interface CommentNotification {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/comment-notification/v/5";
   properties: CommentNotificationProperties;
   propertiesWithMetadata: CommentNotificationPropertiesWithMetadata;
-};
+}
 
-export type CommentNotificationOccurredInBlockLink = {
+export interface CommentNotificationOccurredInBlockLink {
   linkEntity: OccurredInBlock;
   rightEntity: Block;
-};
+}
 
-export type CommentNotificationOccurredInEntityLink = {
+export interface CommentNotificationOccurredInEntityLink {
   linkEntity: OccurredInEntity;
   rightEntity: Page;
-};
+}
 
 export type CommentNotificationOutgoingLinkAndTarget =
   | CommentNotificationOccurredInBlockLink
@@ -542,13 +542,13 @@ export type CommentNotificationOutgoingLinkAndTarget =
   | CommentNotificationTriggeredByCommentLink
   | CommentNotificationTriggeredByUserLink;
 
-export type CommentNotificationOutgoingLinksByLinkEntityTypeId = {
+export interface CommentNotificationOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@hash/types/entity-type/occurred-in-block/v/1": CommentNotificationOccurredInBlockLink;
   "https://hash.ai/@hash/types/entity-type/occurred-in-entity/v/2": CommentNotificationOccurredInEntityLink;
   "https://hash.ai/@hash/types/entity-type/replied-to-comment/v/1": CommentNotificationRepliedToCommentLink;
   "https://hash.ai/@hash/types/entity-type/triggered-by-comment/v/1": CommentNotificationTriggeredByCommentLink;
   "https://hash.ai/@hash/types/entity-type/triggered-by-user/v/1": CommentNotificationTriggeredByUserLink;
-};
+}
 
 /**
  * A notification related to a comment.
@@ -557,7 +557,7 @@ export type CommentNotificationProperties = CommentNotificationProperties1 &
   CommentNotificationProperties2;
 export type CommentNotificationProperties1 = NotificationProperties;
 
-export type CommentNotificationProperties2 = {};
+export interface CommentNotificationProperties2 {}
 
 export type CommentNotificationPropertiesWithMetadata =
   CommentNotificationPropertiesWithMetadata1 &
@@ -565,38 +565,38 @@ export type CommentNotificationPropertiesWithMetadata =
 export type CommentNotificationPropertiesWithMetadata1 =
   NotificationPropertiesWithMetadata;
 
-export type CommentNotificationPropertiesWithMetadata2 = {
+export interface CommentNotificationPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
-export type CommentNotificationRepliedToCommentLink = {
+export interface CommentNotificationRepliedToCommentLink {
   linkEntity: RepliedToComment;
   rightEntity: Comment;
-};
+}
 
-export type CommentNotificationTriggeredByCommentLink = {
+export interface CommentNotificationTriggeredByCommentLink {
   linkEntity: TriggeredByComment;
   rightEntity: Comment;
-};
+}
 
-export type CommentNotificationTriggeredByUserLink = {
+export interface CommentNotificationTriggeredByUserLink {
   linkEntity: TriggeredByUser;
   rightEntity: User;
-};
+}
 
 /**
  * The comment that something replied to.
  */
-export type RepliedToComment = {
+export interface RepliedToComment {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/replied-to-comment/v/1";
   properties: RepliedToCommentProperties;
   propertiesWithMetadata: RepliedToCommentPropertiesWithMetadata;
-};
+}
 
 export type RepliedToCommentOutgoingLinkAndTarget = never;
 
-export type RepliedToCommentOutgoingLinksByLinkEntityTypeId = {};
+export interface RepliedToCommentOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The comment that something replied to.
@@ -605,7 +605,7 @@ export type RepliedToCommentProperties = RepliedToCommentProperties1 &
   RepliedToCommentProperties2;
 export type RepliedToCommentProperties1 = LinkProperties;
 
-export type RepliedToCommentProperties2 = {};
+export interface RepliedToCommentProperties2 {}
 
 export type RepliedToCommentPropertiesWithMetadata =
   RepliedToCommentPropertiesWithMetadata1 &
@@ -613,23 +613,23 @@ export type RepliedToCommentPropertiesWithMetadata =
 export type RepliedToCommentPropertiesWithMetadata1 =
   LinkPropertiesWithMetadata;
 
-export type RepliedToCommentPropertiesWithMetadata2 = {
+export interface RepliedToCommentPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
  * A comment that triggered something.
  */
-export type TriggeredByComment = {
+export interface TriggeredByComment {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/triggered-by-comment/v/1";
   properties: TriggeredByCommentProperties;
   propertiesWithMetadata: TriggeredByCommentPropertiesWithMetadata;
-};
+}
 
 export type TriggeredByCommentOutgoingLinkAndTarget = never;
 
-export type TriggeredByCommentOutgoingLinksByLinkEntityTypeId = {};
+export interface TriggeredByCommentOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A comment that triggered something.
@@ -638,7 +638,7 @@ export type TriggeredByCommentProperties = TriggeredByCommentProperties1 &
   TriggeredByCommentProperties2;
 export type TriggeredByCommentProperties1 = LinkProperties;
 
-export type TriggeredByCommentProperties2 = {};
+export interface TriggeredByCommentProperties2 {}
 
 export type TriggeredByCommentPropertiesWithMetadata =
   TriggeredByCommentPropertiesWithMetadata1 &
@@ -646,7 +646,7 @@ export type TriggeredByCommentPropertiesWithMetadata =
 export type TriggeredByCommentPropertiesWithMetadata1 =
   LinkPropertiesWithMetadata;
 
-export type TriggeredByCommentPropertiesWithMetadata2 = {
+export interface TriggeredByCommentPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}

@@ -21,7 +21,7 @@ const migrate: MigrationFunction = async ({
   migrationState,
 }) => {
   /**
-   * Step 1. Create the Browser Plugin Settings entity type
+   * Step 1. Create the Browser Plugin Settings entity type.
    */
   const manualInferenceConfigurationPropertyType =
     await createSystemPropertyTypeIfNotExists(context, authentication, {
@@ -103,7 +103,7 @@ const migrate: MigrationFunction = async ({
     });
 
   /**
-   * Step 2: Create the 'has' link
+   * Step 2: Create the 'has' link.
    */
   const hasLinkEntityType = await createSystemEntityTypeIfNotExists(
     context,

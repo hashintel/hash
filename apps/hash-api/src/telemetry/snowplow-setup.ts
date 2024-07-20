@@ -1,9 +1,10 @@
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
-import type { Emitter, Tracker } from "@snowplow/node-tracker";
-import {
+import type {
   buildStructEvent,
+  Emitter,
   gotEmitter,
   HttpProtocol,
+  Tracker,
   tracker as createTracker,
 } from "@snowplow/node-tracker";
 

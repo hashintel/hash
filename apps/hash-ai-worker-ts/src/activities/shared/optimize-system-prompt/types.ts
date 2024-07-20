@@ -1,6 +1,6 @@
 import type { LlmErrorResponse, LlmParams } from "../get-llm-response/types.js";
 
-export type MetricResult = {
+export interface MetricResult {
   testingParams: {
     model: LlmParams["model"];
     systemPrompt: string;
@@ -9,9 +9,9 @@ export type MetricResult = {
   naturalLanguageReport: string;
   additionalInfo?: Record<string, unknown>;
   encounteredError?: LlmErrorResponse;
-};
+}
 
-export type MetricDefinition = {
+export interface MetricDefinition {
   name: string;
   description: string;
   executeMetric: (params: {
@@ -20,19 +20,19 @@ export type MetricDefinition = {
       systemPrompt: string;
     };
   }) => Promise<MetricResult>;
-};
+}
 
-export type MetricResultsForModel = {
+export interface MetricResultsForModel {
   model: LlmParams["model"];
   metricResults: {
     responseTimeInSeconds: number;
     metric: MetricDefinition;
     result: MetricResult;
   }[];
-};
+}
 
-export type MetricResultsForSystemPrompt = {
+export interface MetricResultsForSystemPrompt {
   systemPrompt: string;
   iteration: number;
   metricResultsForModels: MetricResultsForModel[];
-};
+}

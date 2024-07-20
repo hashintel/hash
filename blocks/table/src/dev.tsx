@@ -1,12 +1,13 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 
 import packageJson from "../package.json";
-import Component from "./index";
-import type { BlockEntity } from "./types/generated/block-entity";
 
-const node = document.getElementById("app");
+import type { BlockEntity } from "./types/generated/block-entity";
+import Component from "./index";
+
+const node = document.querySelector("#app");
 
 const testEntity: BlockEntity = {
   metadata: {
@@ -55,16 +56,16 @@ const testEntity: BlockEntity = {
  * The component used here, 'MockBlockDock', does the following:
  * 1. It renders your block on the page and provides the initial properties specified below
  * 2. It holds an in-memory datastore of entities and links
- * 3. It listens for messages from your blocks and updates its datastore appropriately (e.g. to create a new entity)
- * 4. It displays a debug UI allowing you to see the contents of its datastore, and messages sent back and forth
+ * 3. It listens for messages from your blocks and updates its datastore appropriately (e.g. To create a new entity)
+ * 4. It displays a debug UI allowing you to see the contents of its datastore, and messages sent back and forth.
  */
 const DevApp = () => {
   return (
     <MockBlockDock
+      debug // remove this to start with the debug UI minimised. You can also toggle it in the UI
       blockDefinition={{ ReactComponent: Component }}
       blockEntityRecordId={testEntity.metadata.recordId}
       blockInfo={packageJson.blockprotocol}
-      debug // remove this to start with the debug UI minimised. You can also toggle it in the UI
       initialData={{ initialEntities: [testEntity] }}
       simulateDatastoreLatency={{
         // configure this to adjust the range of artificial latency in responses to datastore-related requests (in ms)

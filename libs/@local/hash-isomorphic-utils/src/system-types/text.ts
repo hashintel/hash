@@ -2,30 +2,16 @@
  * This file was automatically generated – do not edit it.
  */
 
-import type {
-  ObjectDataType,
-  ObjectDataTypeWithMetadata,
-  Text,
-  TextDataType,
-  TextDataTypeWithMetadata,
-  TextOutgoingLinkAndTarget,
-  TextOutgoingLinksByLinkEntityTypeId,
-  TextProperties,
-  TextPropertiesWithMetadata,
-  TextualContentPropertyValue,
-  TextualContentPropertyValueWithMetadata,
+export {
+  type ObjectDataType,
+  type ObjectDataTypeWithMetadata,
+  type Text,
+  type TextDataType,
+  type TextDataTypeWithMetadata,
+  type TextOutgoingLinkAndTarget,
+  type TextOutgoingLinksByLinkEntityTypeId,
+  type TextProperties,
+  type TextPropertiesWithMetadata,
+  type TextualContentPropertyValue,
+  type TextualContentPropertyValueWithMetadata,
 } from "./shared.js";
-
-export type {
-  ObjectDataType,
-  ObjectDataTypeWithMetadata,
-  Text,
-  TextDataType,
-  TextDataTypeWithMetadata,
-  TextOutgoingLinkAndTarget,
-  TextOutgoingLinksByLinkEntityTypeId,
-  TextProperties,
-  TextPropertiesWithMetadata,
-  TextualContentPropertyValue,
-  TextualContentPropertyValueWithMetadata,
-};

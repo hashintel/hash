@@ -3,7 +3,7 @@ import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 
 import type { VerticalIndentationLineDir } from "../../../../../../../components/grid/utils/draw-vertical-indentation-line";
 
-export type PropertyRow = {
+export interface PropertyRow {
   title: string;
   rowId: string;
   value: unknown;
@@ -17,7 +17,7 @@ export type PropertyRow = {
   propertyKeyChain: string[];
   maxItems?: number;
   minItems?: number;
-};
+}
 
 export type PropertyColumnKey = Extract<
   keyof PropertyRow,

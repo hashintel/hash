@@ -43,7 +43,7 @@ export type EntityIdWithInterval = Subtype<
   EntityIdWithIntervalBp,
   {
     entityId: EntityId;
-    interval: TimeInterval<LimitedTemporalBound, TemporalBound>;
+    interval: TimeInterval<LimitedTemporalBound>;
   }
 >;
 

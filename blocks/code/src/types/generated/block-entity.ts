@@ -2,7 +2,7 @@
  * This file was automatically generated – do not edit it.
  */
 
-import { Entity } from "@blockprotocol/graph";
+import type { Entity } from "@blockprotocol/graph";
 
 export type BlockEntity = CodeBlock;
 
@@ -20,32 +20,32 @@ export type CodeBlock = Entity<CodeBlockProperties>;
  *
  * This should conform to one of the languages supported by Prism, for example "javascript".
  *
- * See: https://prismjs.com/#supported-languages
+ * See: https://prismjs.com/#supported-languages.
  */
 export type CodeBlockLanguagePropertyValue = TextDataType;
 
 export type CodeBlockOutgoingLinkAndTarget = never;
 
-export type CodeBlockOutgoingLinksByLinkEntityTypeId = {};
+export interface CodeBlockOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The block entity of the “Code” block.
  *
- * See: https://blockprotocol.org/@hash/blocks/code
+ * See: https://blockprotocol.org/@hash/blocks/code.
  */
-export type CodeBlockProperties = {
+export interface CodeBlockProperties {
   "https://blockprotocol.org/@blockprotocol/types/property-type/caption/"?: CaptionPropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"?: TextualContentPropertyValue;
   "https://blockprotocol.org/@hash/types/property-type/code-block-language/"?: CodeBlockLanguagePropertyValue;
-};
+}
 
 /**
- * An opaque, untyped JSON object
+ * An opaque, untyped JSON object.
  */
-export type ObjectDataType = {};
+export interface ObjectDataType {}
 
 /**
- * An ordered sequence of characters
+ * An ordered sequence of characters.
  */
 export type TextDataType = string;
 

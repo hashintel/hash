@@ -119,22 +119,22 @@ export type {
 /**
  * A page in document format, with content arranged in columns.
  */
-export type Document = {
+export interface Document {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/document/v/1";
   properties: DocumentProperties;
   propertiesWithMetadata: DocumentPropertiesWithMetadata;
-};
+}
 
-export type DocumentHasIndexedContentLink = {
+export interface DocumentHasIndexedContentLink {
   linkEntity: HasIndexedContent;
   rightEntity: Block;
-};
+}
 
 export type DocumentOutgoingLinkAndTarget = DocumentHasIndexedContentLink;
 
-export type DocumentOutgoingLinksByLinkEntityTypeId = {
+export interface DocumentOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@hash/types/entity-type/has-indexed-content/v/1": DocumentHasIndexedContentLink;
-};
+}
 
 /**
  * A page in document format, with content arranged in columns.
@@ -142,13 +142,13 @@ export type DocumentOutgoingLinksByLinkEntityTypeId = {
 export type DocumentProperties = DocumentProperties1 & DocumentProperties2;
 export type DocumentProperties1 = PageProperties;
 
-export type DocumentProperties2 = {};
+export interface DocumentProperties2 {}
 
 export type DocumentPropertiesWithMetadata = DocumentPropertiesWithMetadata1 &
   DocumentPropertiesWithMetadata2;
 export type DocumentPropertiesWithMetadata1 = PagePropertiesWithMetadata;
 
-export type DocumentPropertiesWithMetadata2 = {
+export interface DocumentPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}

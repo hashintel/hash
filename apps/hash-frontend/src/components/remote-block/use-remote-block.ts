@@ -1,26 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 
-import type { UnknownBlock } from "./load-remote-block";
-import {
+import type {
   loadCrossFrameRemoteBlock,
   loadRemoteBlock,
+  UnknownBlock,
 } from "./load-remote-block";
 import { isTopWindow } from "./util";
 
-type UseRemoteBlockHook = {
-  (
-    url: string,
-    crossFrame?: boolean,
-    onBlockLoaded?: () => void,
-  ): [boolean, Error | undefined, UnknownBlock | undefined];
-};
+type UseRemoteBlockHook = (
+  url: string,
+  crossFrame?: boolean,
+  onBlockLoaded?: () => void,
+) => [boolean, Error | undefined, UnknownBlock | undefined];
 
-type UseRemoteComponentState = {
+interface UseRemoteComponentState {
   loading: boolean;
   err?: Error | undefined;
   component?: UnknownBlock | undefined;
   url: string | null;
-};
+}
 
 // @todo put this in context
 const remoteModuleCache: Record<string, UseRemoteComponentState> = {};
@@ -77,6 +75,7 @@ export const useRemoteBlock: UseRemoteBlockHook = (
   });
 
   const onBlockLoadedRef = useRef<() => void>();
+
   useEffect(() => {
     onBlockLoadedRef.current = onBlockLoaded;
   });
@@ -96,7 +95,7 @@ export const useRemoteBlock: UseRemoteBlockHook = (
     }
 
     const controller = new AbortController();
-    const signal = controller.signal;
+    const { signal } = controller;
 
     loadedRef.current = false;
 
@@ -111,11 +110,11 @@ export const useRemoteBlock: UseRemoteBlockHook = (
       .then((result) => {
         setState(result);
       })
-      .catch((newErr) => {
+      .catch((error) => {
         if (!controller.signal.aborted) {
           setState({
             loading: false,
-            err: newErr,
+            err: error,
             component: undefined,
             url: null,
           });

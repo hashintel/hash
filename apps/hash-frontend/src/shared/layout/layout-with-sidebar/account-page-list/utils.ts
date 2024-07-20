@@ -25,7 +25,7 @@ export const getTreeItemList = (
     .sort((pageA, pageB) =>
       pageA.fractionalIndex > pageB.fractionalIndex ? 1 : -1,
     )
-    .reduce((prev, page) => {
+    .reduce((previous, page) => {
       const children = getTreeItemList(
         pagesList,
         page.metadata.recordId.entityId,
@@ -37,7 +37,7 @@ export const getTreeItemList = (
         depth,
       };
 
-      return [...prev, item, ...children];
+      return [...previous, item, ...children];
     }, emptyList);
 };
 
@@ -63,7 +63,7 @@ export const isPageCollapsed = (
 
   return (
     !parentExpanded ||
-    (!!parentPage &&
+    (Boolean(parentPage) &&
       isPageCollapsed(parentPage, treeItemList, expandedIds, activeId))
   );
 };
@@ -77,6 +77,7 @@ export const getLastIndex = (
       ? page.parentPage?.metadata.recordId.entityId === parentId
       : !page.parentPage,
   );
+
   return groupItems[groupItems.length - 1]?.page.fractionalIndex ?? null;
 };
 

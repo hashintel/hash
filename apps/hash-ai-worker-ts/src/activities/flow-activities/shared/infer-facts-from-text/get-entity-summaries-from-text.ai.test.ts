@@ -1,15 +1,15 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
-
 import { expect, test } from "vitest";
 
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
 import { getWebPageActivity } from "../../../get-web-page-activity.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
+
 import { getEntitySummariesFromText } from "./get-entity-summaries-from-text.js";
 
 test.skip(
-  "Test getEntitySummariesFromText with a FTSE350 table",
+  "test getEntitySummariesFromText with a FTSE350 table",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -46,7 +46,7 @@ test.skip(
     console.log(JSON.stringify({ entitySummaries }, null, 2));
 
     expect(entitySummaries).toBeDefined();
-    expect(entitySummaries.length).toBe(20);
+    expect(entitySummaries).toHaveLength(20);
   },
   {
     timeout: 5 * 60 * 1000,
@@ -54,7 +54,7 @@ test.skip(
 );
 
 test.skip(
-  "Test getEntitySummariesFromText with Sora paper authors",
+  "test getEntitySummariesFromText with Sora paper authors",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -91,7 +91,7 @@ test.skip(
     });
 
     expect(entitySummaries).toBeDefined();
-    expect(entitySummaries.length).toBe(13);
+    expect(entitySummaries).toHaveLength(13);
   },
   {
     timeout: 5 * 60 * 1000,
@@ -99,7 +99,7 @@ test.skip(
 );
 
 test.skip(
-  "Test getEntitySummariesFromText with church lab members",
+  "test getEntitySummariesFromText with church lab members",
   async () => {
     const { userAuthentication } = await getFlowContext();
 

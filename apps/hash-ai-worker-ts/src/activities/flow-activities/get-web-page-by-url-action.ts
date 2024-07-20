@@ -5,6 +5,7 @@ import {
 import { StatusCode } from "@local/status";
 
 import { getWebPageActivity } from "../get-web-page-activity.js";
+
 import type { FlowActionActivity } from "./types.js";
 
 export const getWebPageByUrlAction: FlowActionActivity = async ({ inputs }) => {
@@ -19,6 +20,7 @@ export const getWebPageByUrlAction: FlowActionActivity = async ({ inputs }) => {
    * by HASH flows.
    */
   const webPage = await getWebPageActivity({ url });
+
   if ("error" in webPage) {
     return {
       code: StatusCode.Unavailable,

@@ -11,11 +11,11 @@ import type { Confidence } from "@local/hash-graph-types/entity";
 /**
  * A Google user account.
  */
-export type Account = {
+export interface Account {
   entityTypeId: "https://hash.ai/@google/types/entity-type/account/v/1";
   properties: AccountProperties;
   propertiesWithMetadata: AccountPropertiesWithMetadata;
-};
+}
 
 /**
  * A unique identifier for a Google account.
@@ -26,32 +26,32 @@ export type AccountIdPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 export type AccountOutgoingLinkAndTarget = AccountUsesUserSecretLink;
 
-export type AccountOutgoingLinksByLinkEntityTypeId = {
+export interface AccountOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1": AccountUsesUserSecretLink;
-};
+}
 
 /**
  * A Google user account.
  */
-export type AccountProperties = {
+export interface AccountProperties {
   "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": DisplayNamePropertyValue;
   "https://hash.ai/@google/types/property-type/account-id/": AccountIdPropertyValue;
   "https://hash.ai/@hash/types/property-type/email/": EmailPropertyValue;
-};
+}
 
-export type AccountPropertiesWithMetadata = {
+export interface AccountPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {
     "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": DisplayNamePropertyValueWithMetadata;
     "https://hash.ai/@google/types/property-type/account-id/": AccountIdPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/email/": EmailPropertyValueWithMetadata;
   };
-};
+}
 
-export type AccountUsesUserSecretLink = {
+export interface AccountUsesUserSecretLink {
   linkEntity: UsesUserSecret;
   rightEntity: UserSecret;
-};
+}
 
 /**
  * The name of the connection source.
@@ -62,14 +62,14 @@ export type ConnectionSourceNamePropertyValueWithMetadata =
   TextDataTypeWithMetadata;
 
 /**
- * A human-friendly display name for something
+ * A human-friendly display name for something.
  */
 export type DisplayNamePropertyValue = TextDataType;
 
 export type DisplayNamePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * An email address
+ * An email address.
  */
 export type EmailPropertyValue = TextDataType;
 
@@ -83,83 +83,83 @@ export type ExpiredAtPropertyValue = TextDataType;
 export type ExpiredAtPropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 /**
- * undefined
+ * Undefined.
  */
-export type Link = {
+export interface Link {
   entityTypeId: "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
   properties: LinkProperties;
   propertiesWithMetadata: LinkPropertiesWithMetadata;
-};
+}
 
 export type LinkOutgoingLinkAndTarget = never;
 
-export type LinkOutgoingLinksByLinkEntityTypeId = {};
+export interface LinkOutgoingLinksByLinkEntityTypeId {}
 
-export type LinkProperties = {};
+export interface LinkProperties {}
 
-export type LinkPropertiesWithMetadata = {
+export interface LinkPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
- * An ordered sequence of characters
+ * An ordered sequence of characters.
  */
 export type TextDataType = string;
 
-export type TextDataTypeWithMetadata = {
+export interface TextDataTypeWithMetadata {
   value: TextDataType;
   metadata: TextDataTypeMetadata;
-};
-export type TextDataTypeMetadata = {
+}
+export interface TextDataTypeMetadata {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1";
-};
+}
 
 /**
  * A secret or credential belonging to a user.
  */
-export type UserSecret = {
+export interface UserSecret {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/user-secret/v/1";
   properties: UserSecretProperties;
   propertiesWithMetadata: UserSecretPropertiesWithMetadata;
-};
+}
 
 export type UserSecretOutgoingLinkAndTarget = never;
 
-export type UserSecretOutgoingLinksByLinkEntityTypeId = {};
+export interface UserSecretOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A secret or credential belonging to a user.
  */
-export type UserSecretProperties = {
+export interface UserSecretProperties {
   "https://hash.ai/@hash/types/property-type/connection-source-name/": ConnectionSourceNamePropertyValue;
   "https://hash.ai/@hash/types/property-type/expired-at/": ExpiredAtPropertyValue;
   "https://hash.ai/@hash/types/property-type/vault-path/": VaultPathPropertyValue;
-};
+}
 
-export type UserSecretPropertiesWithMetadata = {
+export interface UserSecretPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/connection-source-name/": ConnectionSourceNamePropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/expired-at/": ExpiredAtPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/vault-path/": VaultPathPropertyValueWithMetadata;
   };
-};
+}
 
 /**
  * The user secret something uses.
  */
-export type UsesUserSecret = {
+export interface UsesUserSecret {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1";
   properties: UsesUserSecretProperties;
   propertiesWithMetadata: UsesUserSecretPropertiesWithMetadata;
-};
+}
 
 export type UsesUserSecretOutgoingLinkAndTarget = never;
 
-export type UsesUserSecretOutgoingLinksByLinkEntityTypeId = {};
+export interface UsesUserSecretOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The user secret something uses.
@@ -168,16 +168,16 @@ export type UsesUserSecretProperties = UsesUserSecretProperties1 &
   UsesUserSecretProperties2;
 export type UsesUserSecretProperties1 = LinkProperties;
 
-export type UsesUserSecretProperties2 = {};
+export interface UsesUserSecretProperties2 {}
 
 export type UsesUserSecretPropertiesWithMetadata =
   UsesUserSecretPropertiesWithMetadata1 & UsesUserSecretPropertiesWithMetadata2;
 export type UsesUserSecretPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
 
-export type UsesUserSecretPropertiesWithMetadata2 = {
+export interface UsesUserSecretPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}
 
 /**
  * The path to a secret in Hashicorp Vault.

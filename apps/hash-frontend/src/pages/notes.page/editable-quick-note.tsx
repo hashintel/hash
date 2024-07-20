@@ -1,3 +1,4 @@
+import type { FunctionComponent, useCallback, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@apollo/client";
 import { IconButton } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -18,11 +19,12 @@ import type {
   QuickNoteProperties,
 } from "@local/hash-isomorphic-utils/system-types/quicknote";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type {
+  EntityRootType,
+  extractEntityUuidFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import { Box, Fade, Skeleton, Tooltip, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo, useState } from "react";
 
 import { useAccountPages } from "../../components/hooks/use-account-pages";
 import type {
@@ -47,8 +49,11 @@ import { Link } from "../../shared/ui";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { BlockCollection } from "../shared/block-collection/block-collection";
 import { getBlockCollectionContents } from "../shared/block-collection-contents";
-import type { PageWithParentLink } from "./convert-quick-note-to-page-modal";
-import { ConvertQuickNoteToPageModal } from "./convert-quick-note-to-page-modal";
+
+import type {
+  ConvertQuickNoteToPageModal,
+  PageWithParentLink,
+} from "./convert-quick-note-to-page-modal";
 
 const Statistic: FunctionComponent<{ amount?: number; unit: string }> = ({
   amount,
@@ -63,7 +68,7 @@ const Statistic: FunctionComponent<{ amount?: number; unit: string }> = ({
       span: { color: ({ palette }) => palette.gray[70] },
     }}
   >
-    <Box component="span">{amount}</Box> {unit}
+    <Box component={"span"}>{amount}</Box> {unit}
     {!amount || amount === 0 || amount > 1 ? "s" : ""}
   </Typography>
 );
@@ -77,8 +82,10 @@ const parseTextFromTextBlock = ({
 
   return (
     textTokens?.reduce(
-      (prevText, current) =>
-        current.tokenType === "text" ? `${prevText}${current.text}` : prevText,
+      (previousText, current) =>
+        current.tokenType === "text"
+          ? `${previousText}${current.text}`
+          : previousText,
       "",
     ) ?? ""
   );
@@ -176,10 +183,10 @@ export const EditableQuickNote: FunctionComponent<{
 
   const text = useMemo(
     () =>
-      textBlocks?.reduce((prev, textBlock) => {
+      textBlocks?.reduce((previous, textBlock) => {
         const parsedText = parseTextFromTextBlock(textBlock);
 
-        return `${prev}${prev.length > 0 ? " " : ""}${parsedText}`;
+        return `${previous}${previous.length > 0 ? " " : ""}${parsedText}`;
       }, ""),
     [textBlocks],
   );
@@ -196,9 +203,10 @@ export const EditableQuickNote: FunctionComponent<{
     if (!text || text === "") {
       return undefined;
     }
-    const noWhitespace = text.replace(/\s+/g, ""); // Remove all whitespace characters
+    const noWhitespace = text.replaceAll(/\s+/g, ""); // Remove all whitespace characters
     const surrogatePairs =
       noWhitespace.match(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g) ?? [];
+
     return noWhitespace.length - surrogatePairs.length;
   }, [text]);
 
@@ -274,8 +282,8 @@ export const EditableQuickNote: FunctionComponent<{
 
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between">
-        <Box display="flex" columnGap={2.25}>
+      <Box display={"flex"} justifyContent={"space-between"}>
+        <Box display={"flex"} columnGap={2.25}>
           {displayLabel ? (
             <Typography
               sx={{
@@ -303,22 +311,22 @@ export const EditableQuickNote: FunctionComponent<{
             }
           >
             <Box>
-              <Statistic amount={numberOfBlocks} unit="block" />
+              <Statistic amount={numberOfBlocks} unit={"block"} />
             </Box>
           </Fade>
           <Fade in={typeof numberOfWords !== "undefined"}>
             <Box>
-              <Statistic amount={numberOfWords} unit="word" />
+              <Statistic amount={numberOfWords} unit={"word"} />
             </Box>
           </Fade>
           <Fade in={typeof numberOfCharacters !== "undefined"}>
             <Box>
-              <Statistic amount={numberOfCharacters} unit="character" />
+              <Statistic amount={numberOfCharacters} unit={"character"} />
             </Box>
           </Fade>
         </Box>
         {displayActionButtons ? (
-          <Box display="flex" marginRight={-1} marginTop={-1} columnGap={1}>
+          <Box display={"flex"} marginRight={-1} marginTop={-1} columnGap={1}>
             {convertedPage ? (
               <>
                 <IconButton
@@ -348,7 +356,7 @@ export const EditableQuickNote: FunctionComponent<{
               </>
             ) : (
               <>
-                <Tooltip title="Archive Note" placement="top">
+                <Tooltip title={"Archive Note"} placement={"top"}>
                   <IconButton
                     disabled={isConvertingPage}
                     onClick={handleArchive}
@@ -356,10 +364,12 @@ export const EditableQuickNote: FunctionComponent<{
                     <ArchiveRegularIcon />
                   </IconButton>
                 </Tooltip>
-                <Tooltip title="Convert to page" placement="top">
+                <Tooltip title={"Convert to page"} placement={"top"}>
                   <IconButton
                     disabled={isConvertToPageModalOpen}
-                    onClick={() => setIsConvertToPageModalOpen(true)}
+                    onClick={() => {
+                      setIsConvertToPageModalOpen(true);
+                    }}
                   >
                     <FileExportRegularIcon />
                   </IconButton>
@@ -368,7 +378,9 @@ export const EditableQuickNote: FunctionComponent<{
                   open={isConvertToPageModalOpen}
                   quickNoteEntity={quickNoteEntity}
                   onConvertedToPage={handleConvertedToPage}
-                  onClose={() => setIsConvertToPageModalOpen(false)}
+                  onClose={() => {
+                    setIsConvertToPageModalOpen(false);
+                  }}
                 />
               </>
             )}

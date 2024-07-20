@@ -31,15 +31,15 @@ export type {
 /**
  * A GitHub account.
  */
-export type GitHubAccount = {
+export interface GitHubAccount {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/github-account/v/1";
   properties: GitHubAccountProperties;
   propertiesWithMetadata: GitHubAccountPropertiesWithMetadata;
-};
+}
 
 export type GitHubAccountOutgoingLinkAndTarget = never;
 
-export type GitHubAccountOutgoingLinksByLinkEntityTypeId = {};
+export interface GitHubAccountOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A GitHub account.
@@ -48,14 +48,14 @@ export type GitHubAccountProperties = GitHubAccountProperties1 &
   GitHubAccountProperties2;
 export type GitHubAccountProperties1 = ServiceAccountProperties;
 
-export type GitHubAccountProperties2 = {};
+export interface GitHubAccountProperties2 {}
 
 export type GitHubAccountPropertiesWithMetadata =
   GitHubAccountPropertiesWithMetadata1 & GitHubAccountPropertiesWithMetadata2;
 export type GitHubAccountPropertiesWithMetadata1 =
   ServiceAccountPropertiesWithMetadata;
 
-export type GitHubAccountPropertiesWithMetadata2 = {
+export interface GitHubAccountPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}

@@ -1,5 +1,5 @@
-import * as Sentry from "@sentry/node";
 import type { Router } from "express";
+import * as Sentry from "@sentry/node";
 
 import { isProdEnv } from "./lib/env-config";
 
@@ -13,7 +13,7 @@ export const initSentry = (app: Router) => {
   //   see https://linear.app/hash/issue/H-1916
   Sentry.init({
     dsn: sentryDsn,
-    enabled: !!sentryDsn,
+    enabled: Boolean(sentryDsn),
     environment: isProdEnv ? "production" : "development",
     integrations: [
       // Listen to routes specified in `app`

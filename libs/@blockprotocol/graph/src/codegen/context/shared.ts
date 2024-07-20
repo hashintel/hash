@@ -2,10 +2,10 @@ import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 
 import { mustBeDefined } from "../../util/must-be-defined.js";
 
-type TypeDependencies = {
+interface TypeDependencies {
   typeId: VersionedUrl;
   dependencies: TypeDependencies[];
-};
+}
 
 /**
  * We want to map every type to their dependencies, however trying to maintain this as a set of plain `Record`s would be

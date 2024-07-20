@@ -1,5 +1,8 @@
-import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
-import { GridCellKind } from "@glideapps/glide-data-grid";
+import type {
+  CustomCell,
+  CustomRenderer,
+  GridCellKind,
+} from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
 
 import {
@@ -32,6 +35,7 @@ export const renderLinkCell: CustomRenderer<LinkCell> = {
     const iconLeft = rect.x + getCellHorizontalPadding(true);
 
     const iconSize = 16;
+
     spriteManager.drawSprite(
       isList ? "bpList" : "bpLink",
       "normal",
@@ -43,6 +47,7 @@ export const renderLinkCell: CustomRenderer<LinkCell> = {
     );
 
     const textLeft = iconLeft + iconSize + 5;
+
     ctx.fillStyle = theme.textHeader;
     ctx.fillText(linkTitle, textLeft, yCenter);
 

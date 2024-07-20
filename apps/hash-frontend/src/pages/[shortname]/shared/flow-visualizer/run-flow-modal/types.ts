@@ -10,9 +10,9 @@ import type {
 import type { ActorTypeDataType } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
 
 const unsupportedPayloadKinds = [
-  /** @todo support ActorType to vary Sheet output formatting */
+  /** @todo Support ActorType to vary Sheet output formatting */
   "ActorType",
-  /** @todo support EntityId – requires updating the EntitySelector */
+  /** @todo Support EntityId – requires updating the EntitySelector */
   "EntityId",
   "PersistedEntities",
   "PersistedEntity",
@@ -21,7 +21,7 @@ const unsupportedPayloadKinds = [
   "FormattedText",
   "WebPage",
   "WebSearchResult",
-] as const satisfies ReadonlyArray<PayloadKind>;
+] as const satisfies readonly PayloadKind[];
 
 type UnsupportedPayloadKind = (typeof unsupportedPayloadKinds)[number];
 
@@ -64,9 +64,9 @@ export type LocalPayload = {
   };
 }[LocalPayloadKind];
 
-export type FormState = {
+export interface FormState {
   [outputName: string]: {
     outputName: string;
     payload: LocalPayload;
   };
-};
+}

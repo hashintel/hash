@@ -31,15 +31,15 @@ export type {
 /**
  * An Instagram account.
  */
-export type InstagramAccount = {
+export interface InstagramAccount {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/instagram-account/v/1";
   properties: InstagramAccountProperties;
   propertiesWithMetadata: InstagramAccountPropertiesWithMetadata;
-};
+}
 
 export type InstagramAccountOutgoingLinkAndTarget = never;
 
-export type InstagramAccountOutgoingLinksByLinkEntityTypeId = {};
+export interface InstagramAccountOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * An Instagram account.
@@ -48,7 +48,7 @@ export type InstagramAccountProperties = InstagramAccountProperties1 &
   InstagramAccountProperties2;
 export type InstagramAccountProperties1 = ServiceAccountProperties;
 
-export type InstagramAccountProperties2 = {};
+export interface InstagramAccountProperties2 {}
 
 export type InstagramAccountPropertiesWithMetadata =
   InstagramAccountPropertiesWithMetadata1 &
@@ -56,7 +56,7 @@ export type InstagramAccountPropertiesWithMetadata =
 export type InstagramAccountPropertiesWithMetadata1 =
   ServiceAccountPropertiesWithMetadata;
 
-export type InstagramAccountPropertiesWithMetadata2 = {
+export interface InstagramAccountPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}

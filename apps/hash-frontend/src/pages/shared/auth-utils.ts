@@ -11,10 +11,10 @@ export type Action<S, T = undefined> = T extends undefined
       payload: T;
     };
 
-type ParsedAuthQuery = {
+interface ParsedAuthQuery {
   verificationId: string;
   verificationCode: string;
-};
+}
 
 export const isParsedAuthQuery = (
   query: ParsedUrlQueryInput,
@@ -40,28 +40,28 @@ export const isParsedInvitationEmailQuery = (
   typeof query.orgEntityId === "string" &&
   typeof query.invitationEmailToken === "string" &&
   typeof query.email === "string" &&
-  !!query.invitationEmailToken &&
-  !!query.email;
+  Boolean(query.invitationEmailToken) &&
+  Boolean(query.email);
 
 export const isParsedInvitationLinkQuery = (
   query: ParsedUrlQueryInput,
 ): query is ParsedInviteLinkQuery =>
   typeof query.orgEntityId === "string" &&
   typeof query.invitationLinkToken === "string" &&
-  !!query.invitationLinkToken;
+  Boolean(query.invitationLinkToken);
 
-type InvitationEmailInfo = {
+interface InvitationEmailInfo {
   orgName: string;
   orgEntityId: string;
   inviterDisplayName: string;
   invitationEmailToken: string;
-};
+}
 
-type InvitationLinkInfo = {
+interface InvitationLinkInfo {
   orgName: string;
   orgEntityId: string;
   invitationLinkToken: string;
-};
+}
 
 export type InvitationInfo = InvitationEmailInfo | InvitationLinkInfo;
 
@@ -88,7 +88,7 @@ export const ORG_SIZES = [
 
 // https://emailregex.com/
 export const EMAIL_REGEX =
-  /^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
+  /^[\w!#$%&*+./=?^`{|}~’-]+@[\dA-Za-z-]+(?:\.[\dA-Za-z-]+)*$/;
 
 export const parseGraphQLError = (
   errors: GraphQLError[],

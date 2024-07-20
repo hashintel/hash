@@ -6,6 +6,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 
 import type { PropertyRow } from "../types";
+
 import { generatePropertyRowRecursively } from "./generate-property-rows-from-entity/generate-property-row-recursively";
 
 export const generatePropertyRowsFromEntity = (

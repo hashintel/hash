@@ -13,13 +13,11 @@ import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 
 import type {
   Edges,
-  OntologyTypeRevisionId,
-  OutwardEdge,
-} from "../../src/main.js";
-import {
   isEntityId,
   isKnowledgeGraphOutwardEdge,
   isOntologyOutwardEdge,
+  OntologyTypeRevisionId,
+  OutwardEdge,
 } from "../../src/main.js";
 
 export const mapOutwardEdge = (
@@ -125,6 +123,7 @@ export const mapEdges = (edges: EdgesGraphApi): Edges => {
   // Trying to build this with `Object.fromEntries` breaks tsc and leads to `any` typed values
   for (const [baseId, inner] of Object.entries(edges)) {
     const result = validateBaseUrl(baseId);
+
     if (result.type === "Ok") {
       // ------------ Ontology Type case ----------------
       const baseUrl = result.inner as BaseUrl;
@@ -134,13 +133,14 @@ export const mapEdges = (edges: EdgesGraphApi): Edges => {
           const versionNumber = Number(version);
 
           if (Number.isNaN(versionNumber)) {
-            throw new Error(
+            throw new TypeError(
               `Unrecognized ontology type version, expected a number but got: ${version}`,
             );
           }
 
           const mappedOutwardEdges = outwardEdges.map((outwardEdge) => {
             const mappedOutwardEdge = mapOutwardEdge(outwardEdge);
+
             if (isKnowledgeGraphOutwardEdge(mappedOutwardEdge)) {
               throw new Error(
                 `Expected an ontology outward edge but found:\n${JSON.stringify(
@@ -148,6 +148,7 @@ export const mapEdges = (edges: EdgesGraphApi): Edges => {
                 )}`,
               );
             }
+
             return mappedOutwardEdge;
           });
 
@@ -161,13 +162,14 @@ export const mapEdges = (edges: EdgesGraphApi): Edges => {
           const timestamp = Date.parse(version);
 
           if (Number.isNaN(timestamp)) {
-            throw new Error(
+            throw new TypeError(
               `Unrecognized timestamp, expected an ISO-formatted timestamp but got: ${version}`,
             );
           }
 
           const mappedOutwardEdges = outwardEdges.map((outwardEdge) => {
             const mappedOutwardEdge = mapOutwardEdge(outwardEdge);
+
             if (isOntologyOutwardEdge(mappedOutwardEdge)) {
               throw new Error(
                 `Expected an ontology outward edge but found:\n${JSON.stringify(
@@ -175,6 +177,7 @@ export const mapEdges = (edges: EdgesGraphApi): Edges => {
                 )}`,
               );
             }
+
             return mappedOutwardEdge;
           });
 

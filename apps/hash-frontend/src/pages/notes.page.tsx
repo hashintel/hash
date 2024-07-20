@@ -1,3 +1,11 @@
+import {
+  differenceInDays,
+  differenceInMonths,
+  differenceInWeeks,
+  format,
+  isYesterday,
+} from "date-fns";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useQuery } from "@apollo/client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
@@ -8,14 +16,6 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Container } from "@mui/material";
-import {
-  differenceInDays,
-  differenceInMonths,
-  differenceInWeeks,
-  format,
-  isYesterday,
-} from "date-fns";
-import { useCallback, useMemo, useRef, useState } from "react";
 
 import { BlockLoadedProvider } from "../blocks/on-block-loaded";
 import { UserBlocksProvider } from "../blocks/user-blocks";
@@ -25,8 +25,11 @@ import type {
 } from "../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import { NoteIcon } from "../shared/icons/note-icon";
-import type { NextPageWithLayout } from "../shared/layout";
-import { getLayoutWithSidebar } from "../shared/layout";
+import type {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../shared/layout";
+
 import { NotesSection } from "./notes.page/notes-section";
 import { TodaySection } from "./notes.page/today-section";
 import { useAuthenticatedUser } from "./shared/auth-info-context";
@@ -37,7 +40,7 @@ import { TopContextBar } from "./shared/top-context-bar";
 const NotesPage: NextPageWithLayout = () => {
   const { authenticatedUser } = useAuthenticatedUser();
 
-  const sectionRefs = useRef<Array<HTMLDivElement>>([]);
+  const sectionRefs = useRef<HTMLDivElement[]>([]);
 
   const [previouslyFetchedQuickNotesData, setPreviouslyFetchedQuickNotesData] =
     useState<GetEntitySubgraphQuery>();
@@ -68,7 +71,9 @@ const NotesPage: NextPageWithLayout = () => {
         includeDrafts: false,
       },
     },
-    onCompleted: (data) => setPreviouslyFetchedQuickNotesData(data),
+    onCompleted: (data) => {
+      setPreviouslyFetchedQuickNotesData(data);
+    },
     fetchPolicy: "cache-and-network",
   });
 
@@ -96,16 +101,16 @@ const NotesPage: NextPageWithLayout = () => {
 
           return bCreatedAt.getTime() - aCreatedAt.getTime();
         })
-        .reduce<Record<string, Entity[]>>((acc, quickNoteEntity) => {
+        .reduce<Record<string, Entity[]>>((accumulator, quickNoteEntity) => {
           const createdAt = new Date(
             quickNoteEntity.metadata.provenance.createdAtDecisionTime,
           );
 
           const key = format(createdAt, "yyyy-MM-dd");
 
-          acc[key] = [...(acc[key] ?? []), quickNoteEntity];
+          accumulator[key] = [...(accumulator[key] ?? []), quickNoteEntity];
 
-          return acc;
+          return accumulator;
         }, {}),
     [latestQuickNoteEntities],
   );
@@ -120,43 +125,46 @@ const NotesPage: NextPageWithLayout = () => {
 
     const today = new Date();
 
-    return sortedDates.reduce<Record<string, string>>((prev, currentDate) => {
-      const key = format(currentDate, "yyyy-MM-dd");
+    return sortedDates.reduce<Record<string, string>>(
+      (previous, currentDate) => {
+        const key = format(currentDate, "yyyy-MM-dd");
 
-      const updated = { ...prev };
+        const updated = { ...previous };
 
-      const existingHeadings = Object.values(updated);
+        const existingHeadings = Object.values(updated);
 
-      if (isYesterday(currentDate)) {
-        updated[key] = "Yesterday";
-      } else if (differenceInDays(today, currentDate) < 7) {
-        updated[key] = format(currentDate, "EEEE");
-      } else if (differenceInDays(today, currentDate) === 7) {
-        updated[key] = `Last ${format(currentDate, "EEEE")}`;
-      } else if (
-        differenceInDays(today, currentDate) < 14 &&
-        !existingHeadings.includes("Over a week ago")
-      ) {
-        updated[key] = "Over a week ago";
-      } else if (
-        differenceInWeeks(today, currentDate) < 4 &&
-        !existingHeadings.includes("Over 2 weeks ago")
-      ) {
-        updated[key] = "Over 2 weeks ago";
-      } else if (
-        differenceInMonths(today, currentDate) < 12 &&
-        !existingHeadings.includes("Over a month ago")
-      ) {
-        updated[key] = "Over a month ago";
-      } else if (
-        differenceInMonths(today, currentDate) >= 12 &&
-        !existingHeadings.includes("Over a year ago")
-      ) {
-        updated[key] = "Over a year ago";
-      }
+        if (isYesterday(currentDate)) {
+          updated[key] = "Yesterday";
+        } else if (differenceInDays(today, currentDate) < 7) {
+          updated[key] = format(currentDate, "EEEE");
+        } else if (differenceInDays(today, currentDate) === 7) {
+          updated[key] = `Last ${format(currentDate, "EEEE")}`;
+        } else if (
+          differenceInDays(today, currentDate) < 14 &&
+          !existingHeadings.includes("Over a week ago")
+        ) {
+          updated[key] = "Over a week ago";
+        } else if (
+          differenceInWeeks(today, currentDate) < 4 &&
+          !existingHeadings.includes("Over 2 weeks ago")
+        ) {
+          updated[key] = "Over 2 weeks ago";
+        } else if (
+          differenceInMonths(today, currentDate) < 12 &&
+          !existingHeadings.includes("Over a month ago")
+        ) {
+          updated[key] = "Over a month ago";
+        } else if (
+          differenceInMonths(today, currentDate) >= 12 &&
+          !existingHeadings.includes("Over a year ago")
+        ) {
+          updated[key] = "Over a year ago";
+        }
 
-      return updated;
-    }, {});
+        return updated;
+      },
+      {},
+    );
   }, [latestQuickNoteEntitiesByDay]);
 
   const todayTimestamp = useMemo(() => format(new Date(), "yyyy-MM-dd"), []);
@@ -209,19 +217,19 @@ const NotesPage: NextPageWithLayout = () => {
               }
             >
               <TodaySection
+                quickNoteEntities={quickNotesEntitiesCreatedToday}
+                refetchQuickNotes={refetchQuickNotes}
                 ref={(element) => {
                   if (element) {
                     sectionRefs.current[0] = element;
                   }
                 }}
-                quickNoteEntities={quickNotesEntitiesCreatedToday}
                 quickNotesSubgraph={
                   quickNotesEntitiesCreatedToday &&
                   quickNotesEntitiesCreatedToday.length === 0
                     ? null
                     : quickNotesSubgraph
                 }
-                refetchQuickNotes={refetchQuickNotes}
                 navigateDown={
                   quickNotesEntitiesCreatedBeforeToday &&
                   quickNotesEntitiesCreatedBeforeToday.length > 0
@@ -238,16 +246,16 @@ const NotesPage: NextPageWithLayout = () => {
                     ([dayTimestamp, quickNoteEntities], index, all) => (
                       <NotesSection
                         key={dayTimestamp}
-                        ref={(element) => {
-                          if (element) {
-                            sectionRefs.current[index + 1] = element;
-                          }
-                        }}
                         dayTimestamp={dayTimestamp}
                         heading={dayTimestampToHeadings?.[dayTimestamp]}
                         quickNoteEntities={quickNoteEntities}
                         quickNotesSubgraph={quickNotesSubgraph}
                         refetchQuickNotes={refetchQuickNotes}
+                        ref={(element) => {
+                          if (element) {
+                            sectionRefs.current[index + 1] = element;
+                          }
+                        }}
                         navigateUp={() => {
                           sectionRefs.current[index]?.scrollIntoView({
                             behavior: "smooth",

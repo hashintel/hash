@@ -1,8 +1,8 @@
+import type { PopupState } from "material-ui-popup-state/hooks";
+import type { ReactElement } from "react";
 import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { ListItemIcon, listItemIconClasses, ListItemText } from "@mui/material";
-import type { PopupState } from "material-ui-popup-state/hooks";
-import type { ReactElement } from "react";
 
 import { MenuItem } from "../../../ui";
 
@@ -26,7 +26,6 @@ export const EntityTypeMenuItem = ({
     <MenuItem
       {...(href ? { href } : {})}
       faded={faded}
-      onClick={onClick ?? popupState.close}
       sx={{
         [`> .${listItemIconClasses.root}`]: {
           width: 18,
@@ -34,6 +33,7 @@ export const EntityTypeMenuItem = ({
           justifyContent: "center",
         },
       }}
+      onClick={onClick ?? popupState.close}
     >
       <ListItemIcon>
         {"icon" in icon ? <FontAwesomeIcon icon={icon} /> : icon}

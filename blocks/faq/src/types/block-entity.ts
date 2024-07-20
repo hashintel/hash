@@ -19,7 +19,7 @@ export type BlockEntity = FAQBlock;
 export type BlockEntityOutgoingLinkAndTarget = FAQBlockOutgoingLinkAndTarget;
 
 /**
- * A True or False value
+ * A True or False value.
  */
 export type Boolean = boolean;
 
@@ -30,42 +30,42 @@ export type DescriptionPropertyValue = Text;
 
 export type FAQBlock = Entity<FAQBlockProperties>;
 
-export type FAQBlockHasFrequentlyAskedQuestionLinks = {
+export interface FAQBlockHasFrequentlyAskedQuestionLinks {
   linkEntity: HasFrequentlyAskedQuestion;
   rightEntity: FrequentlyAskedQuestion;
-};
+}
 
 export type FAQBlockOutgoingLinkAndTarget =
   FAQBlockHasFrequentlyAskedQuestionLinks;
 
-export type FAQBlockOutgoingLinksByLinkEntityTypeId = {
+export interface FAQBlockOutgoingLinksByLinkEntityTypeId {
   "https://blockprotocol.org/@hash/types/entity-type/has-frequently-asked-question/v/1": FAQBlockHasFrequentlyAskedQuestionLinks;
-};
+}
 
-export type FAQBlockProperties = {
+export interface FAQBlockProperties {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/title/"?: TitlePropertyValue;
   "https://blockprotocol.org/@hash/types/property-type/sections-should-be-numbered/"?: SectionsShouldBeNumberedPropertyValue;
   "https://blockprotocol.org/@hash/types/property-type/answer-visibility-is-configurable/"?: AnswerVisibilityIsConfigurablePropertyValue;
-};
+}
 
 export type FrequentlyAskedQuestion = Entity<FrequentlyAskedQuestionProperties>;
 
 export type FrequentlyAskedQuestionOutgoingLinkAndTarget = never;
 
-export type FrequentlyAskedQuestionOutgoingLinksByLinkEntityTypeId = {};
+export interface FrequentlyAskedQuestionOutgoingLinksByLinkEntityTypeId {}
 
-export type FrequentlyAskedQuestionProperties = {
+export interface FrequentlyAskedQuestionProperties {
   "https://blockprotocol.org/@blockprotocol/types/property-type/question/"?: QuestionPropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/answer/"?: AnswerPropertyValue;
-};
+}
 
 export type HasFrequentlyAskedQuestion =
   Entity<HasFrequentlyAskedQuestionProperties> & { linkData: LinkData };
 
 export type HasFrequentlyAskedQuestionOutgoingLinkAndTarget = never;
 
-export type HasFrequentlyAskedQuestionOutgoingLinksByLinkEntityTypeId = {};
+export interface HasFrequentlyAskedQuestionOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * Contains a frequently asked question defined by a [Frequently Asked Question] entity.
@@ -74,15 +74,15 @@ export type HasFrequentlyAskedQuestionProperties =
   HasFrequentlyAskedQuestionProperties1 & HasFrequentlyAskedQuestionProperties2;
 export type HasFrequentlyAskedQuestionProperties1 = LinkProperties;
 
-export type HasFrequentlyAskedQuestionProperties2 = {};
+export interface HasFrequentlyAskedQuestionProperties2 {}
 
 export type Link = Entity<LinkProperties>;
 
 export type LinkOutgoingLinkAndTarget = never;
 
-export type LinkOutgoingLinksByLinkEntityTypeId = {};
+export interface LinkOutgoingLinksByLinkEntityTypeId {}
 
-export type LinkProperties = {};
+export interface LinkProperties {}
 
 /**
  * A sentence that is used to request information, clarification, or confirmation about something.
@@ -95,7 +95,7 @@ export type QuestionPropertyValue = Text;
 export type SectionsShouldBeNumberedPropertyValue = boolean;
 
 /**
- * An ordered sequence of characters
+ * An ordered sequence of characters.
  */
 export type Text = string;
 

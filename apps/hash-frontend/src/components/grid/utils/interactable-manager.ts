@@ -39,9 +39,9 @@ class InteractableManagerClass {
   }
 
   /**
-   * @param args Draw args of cell
-   * @param props Properties which will will be used to create the `Interactable`
-   * @returns The created `Interactable`
+   * @param args - Draw args of cell.
+   * @param props - Properties which will will be used to create the `Interactable`.
+   * @returns The created `Interactable`.
    */
   createCellInteractable(
     args: DrawArgs<CustomCell>,
@@ -65,9 +65,9 @@ class InteractableManagerClass {
   }
 
   /**
-   * @param args Draw args of cell
-   * @param props Properties which will will be used to create the `Interactable`
-   * @returns The created `Interactable`
+   * @param args - Draw args of cell.
+   * @param props - Properties which will will be used to create the `Interactable`.
+   * @returns The created `Interactable`.
    */
   createColumnHeaderInteractable(
     args: ColumnHeaderDrawArgs,
@@ -85,8 +85,9 @@ class InteractableManagerClass {
 
   /**
    * Call this function at the end of the `draw` function of the custom cell to register the interactables.
-   * @param args Draw args of cell
-   * @param interactables List of the interactables for a specific cell.
+   *
+   * @param args - Draw args of cell.
+   * @param interactables - List of the interactables for a specific cell.
    */
   setInteractablesForCell(
     args: DrawArgs<CustomCell>,
@@ -95,8 +96,8 @@ class InteractableManagerClass {
     const path = drawArgsToCellPath(args);
 
     /**
-     * for each interactable, check if the hover status changed
-     * if it's changed, trigger corresponding event
+     * For each interactable, check if the hover status changed
+     * if it's changed, trigger corresponding event.
      */
     for (const interactable of interactables) {
       const existing = this.interactableStore[path]?.[interactable.id];
@@ -119,8 +120,9 @@ class InteractableManagerClass {
 
   /**
    * Call this function at the end of the `draw` function of the custom header to register the interactables.
-   * @param args Draw args of column header
-   * @param interactables List of the interactables for a specific column header.
+   *
+   * @param args - Draw args of column header.
+   * @param interactables - List of the interactables for a specific column header.
    */
   setInteractablesForColumnHeader(
     args: ColumnHeaderDrawArgs,
@@ -139,8 +141,9 @@ class InteractableManagerClass {
 
   /**
    * Checks if the cursor position is overlapping with an `Interactable` inside clicked cell.
-   * If it's overlapping, triggers the corresponding event handler for the clicked `Interactable`
-   * @returns true if handled the click event, false if not
+   * If it's overlapping, triggers the corresponding event handler for the clicked `Interactable`.
+   *
+   * @returns True if handled the click event, false if not.
    */
   handleClick(path: CellPath | ColumnHeaderPath, event: CursorPos): boolean {
     const interactableMap = this.interactableStore[path] ?? {};
@@ -157,8 +160,8 @@ class InteractableManagerClass {
     const { onClick, onMouseEnter } = foundInteractable;
 
     /**
-     * if there is no onClick event defined, onMouseEnter works as onClick
-     * since onMouseEnter is mostly used for showing tooltips, this will enable showing tooltips on mobile when on touch
+     * If there is no onClick event defined, onMouseEnter works as onClick
+     * since onMouseEnter is mostly used for showing tooltips, this will enable showing tooltips on mobile when on touch.
      */
     const handler = onClick ?? onMouseEnter;
 
@@ -172,10 +175,10 @@ class InteractableManagerClass {
   }
 
   /**
-   * @param tableId Table to delete interactables
-   * @param boundaries If it's defined, function will delete `Interactables` before and after the boundaries.
+   * @param tableId - Table to delete interactables.
+   * @param boundaries - If it's defined, function will delete `Interactables` before and after the boundaries.
    * This is used to prevent memory bloat on tables with too many rows.
-   * Using this we delete `Interactables` stored for non-visible rows while user scrolls through hundreds of rows
+   * Using this we delete `Interactables` stored for non-visible rows while user scrolls through hundreds of rows.
    */
   deleteInteractables(
     tableId: string,

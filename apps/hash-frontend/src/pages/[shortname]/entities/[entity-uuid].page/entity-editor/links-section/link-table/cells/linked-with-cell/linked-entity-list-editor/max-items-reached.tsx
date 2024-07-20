@@ -4,9 +4,9 @@ export const MaxItemsReached = ({ limit }: { limit: number }) => {
   return (
     <Button
       disabled
-      size="small"
-      variant="tertiary_quiet"
       fullWidth
+      size={"small"}
+      variant={"tertiary_quiet"}
       sx={{ justifyContent: "flex-start", borderRadius: 0 }}
     >
       Max Items ({limit}) Reached

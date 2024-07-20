@@ -27,8 +27,8 @@ export const App: BlockComponent<BlockEntity> = ({
          * to render the text in the EA
          */
         <AiAssistantMessage
-          messageContent={textContent}
           disableEntranceAnimation
+          messageContent={textContent}
         />
       ) : !readonly ? (
         <GenerateText blockEntity={rootEntity} />

@@ -2,29 +2,29 @@
  * This file was automatically generated – do not edit it.
  */
 
-import { Entity, LinkData } from "@blockprotocol/graph";
+import type { Entity, LinkData } from "@blockprotocol/graph";
 
 export type AIImageBlock = Entity<AIImageBlockProperties>;
 
-export type AIImageBlockGeneratedLink = {
+export interface AIImageBlockGeneratedLink {
   linkEntity: Generated;
   rightEntity: Image;
-};
+}
 
 export type AIImageBlockOutgoingLinkAndTarget = AIImageBlockGeneratedLink;
 
-export type AIImageBlockOutgoingLinksByLinkEntityTypeId = {
+export interface AIImageBlockOutgoingLinksByLinkEntityTypeId {
   "https://blockprotocol.org/@hash/types/entity-type/generated/v/1": AIImageBlockGeneratedLink;
-};
+}
 
 /**
  * The block entity of the AI [generated] image block.
  *
- * See: https://blockprotocol.org/@hash/blocks/ai-image
+ * See: https://blockprotocol.org/@hash/blocks/ai-image.
  */
-export type AIImageBlockProperties = {
+export interface AIImageBlockProperties {
   "https://blockprotocol.org/@blockprotocol/types/property-type/openai-image-model-prompt/"?: OpenAIImageModelPromptPropertyValue;
-};
+}
 
 export type BlockEntity = AIImageBlock;
 
@@ -32,7 +32,7 @@ export type BlockEntityOutgoingLinkAndTarget =
   AIImageBlockOutgoingLinkAndTarget;
 
 /**
- * A True or False value
+ * A True or False value.
  */
 export type BooleanDataType = boolean;
 
@@ -42,14 +42,14 @@ export type BooleanDataType = boolean;
 export type DescriptionPropertyValue = TextDataType;
 
 /**
- * A human-friendly display name for something
+ * A human-friendly display name for something.
  */
 export type DisplayNamePropertyValue = TextDataType;
 
 export type File = Entity<FileProperties>;
 
 /**
- * A unique signature derived from a file's contents
+ * A unique signature derived from a file's contents.
  */
 export type FileHashPropertyValue = TextDataType;
 
@@ -60,12 +60,12 @@ export type FileNamePropertyValue = TextDataType;
 
 export type FileOutgoingLinkAndTarget = never;
 
-export type FileOutgoingLinksByLinkEntityTypeId = {};
+export interface FileOutgoingLinksByLinkEntityTypeId {}
 
 /**
- * A file hosted at a URL
+ * A file hosted at a URL.
  */
-export type FileProperties = {
+export interface FileProperties {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/"?: FileHashPropertyValue;
@@ -82,10 +82,10 @@ export type FileProperties = {
   "https://hash.ai/@hash/types/property-type/file-storage-key/"?: FileStorageKeyPropertyValue;
   "https://hash.ai/@hash/types/property-type/file-storage-provider/"?: FileStorageProviderPropertyValue;
   "https://hash.ai/@hash/types/property-type/file-storage-region/"?: FileStorageRegionPropertyValue;
-};
+}
 
 /**
- * The size of a file
+ * The size of a file.
  */
 export type FileSizePropertyValue = NumberDataType;
 
@@ -128,7 +128,7 @@ export type Generated = Entity<GeneratedProperties> & { linkData: LinkData };
 
 export type GeneratedOutgoingLinkAndTarget = never;
 
-export type GeneratedOutgoingLinksByLinkEntityTypeId = {};
+export interface GeneratedOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * Generated, created, or produced, this thing.
@@ -136,65 +136,65 @@ export type GeneratedOutgoingLinksByLinkEntityTypeId = {};
 export type GeneratedProperties = GeneratedProperties1 & GeneratedProperties2;
 export type GeneratedProperties1 = LinkProperties;
 
-export type GeneratedProperties2 = {};
+export interface GeneratedProperties2 {}
 
 export type Image = Entity<ImageProperties>;
 
 export type ImageOutgoingLinkAndTarget = never;
 
-export type ImageOutgoingLinksByLinkEntityTypeId = {};
+export interface ImageOutgoingLinksByLinkEntityTypeId {}
 
 /**
- * An image file hosted at a URL
+ * An image file hosted at a URL.
  */
 export type ImageProperties = ImageProperties1 & ImageProperties2;
 export type ImageProperties1 = FileProperties;
 
-export type ImageProperties2 = {};
+export interface ImageProperties2 {}
 
 export type Link = Entity<LinkProperties>;
 
 export type LinkOutgoingLinkAndTarget = never;
 
-export type LinkOutgoingLinksByLinkEntityTypeId = {};
+export interface LinkOutgoingLinksByLinkEntityTypeId {}
 
-export type LinkProperties = {};
+export interface LinkProperties {}
 
 /**
  * A MIME (Multipurpose Internet Mail Extensions) type.
  *
- * See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types
+ * See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types.
  */
 export type MIMETypePropertyValue = TextDataType;
 
 /**
- * An arithmetical value (in the Real number system)
+ * An arithmetical value (in the Real number system).
  */
 export type NumberDataType = number;
 
 /**
  * The prompt provided as an input to an OpenAI-model capable of generating images.
  *
- * See: https://blockprotocol.org/docs/spec/service-module
+ * See: https://blockprotocol.org/docs/spec/service-module.
  */
 export type OpenAIImageModelPromptPropertyValue = TextDataType;
 
 /**
- * The original name of a file
+ * The original name of a file.
  */
 export type OriginalFileNamePropertyValue = TextDataType;
 
 /**
- * The original source of something
+ * The original source of something.
  */
 export type OriginalSourcePropertyValue = TextDataType;
 
 /**
- * The original URL something was hosted at
+ * The original URL something was hosted at.
  */
 export type OriginalURLPropertyValue = TextDataType;
 
 /**
- * An ordered sequence of characters
+ * An ordered sequence of characters.
  */
 export type TextDataType = string;

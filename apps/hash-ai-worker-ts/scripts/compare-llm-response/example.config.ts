@@ -6,7 +6,7 @@ import type { CompareLlmResponseConfig } from "./types.js";
  * To run the script:
  * 1. Copy this file into the `/var/config` directory, and specify the `llmParams` and `models` fields
  * 2. Rename the file to CONFIG_NAME.config.ts
- * 3. Run the script via: `yarn workspace @apps/hash-ai-worker-ts compare-llm-response CONFIG_NAME`
+ * 3. Run the script via: `yarn workspace @apps/hash-ai-worker-ts compare-llm-response CONFIG_NAME`.
  */
 
 export const config: CompareLlmResponseConfig = {

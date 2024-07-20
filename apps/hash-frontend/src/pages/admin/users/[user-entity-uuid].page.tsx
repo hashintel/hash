@@ -1,10 +1,10 @@
+import { useRouter } from "next/router";
+import { useCallback, useMemo } from "react";
 import type { AccountId } from "@local/hash-graph-types/account";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Typography } from "@mui/material";
-import { useRouter } from "next/router";
-import { useCallback, useMemo } from "react";
 
 import {
   constructMinimalUser,
@@ -15,6 +15,7 @@ import { Link } from "../../../shared/ui";
 import { useUserOrOrg } from "../../../shared/use-user-or-org";
 import { SettingsPageContainer } from "../../settings/shared/settings-page-container";
 import { getAdminLayout } from "../admin-page-layout";
+
 import { BasicInfoSection } from "./basic-info-section";
 
 const AdminUserPage: NextPageWithLayout = () => {
@@ -58,11 +59,12 @@ const AdminUserPage: NextPageWithLayout = () => {
 
   return user ? (
     <SettingsPageContainer
+      sectionLabel={"Basic Information"}
       heading={
         <>
           {user.displayName}{" "}
           <Typography
-            component="span"
+            component={"span"}
             sx={{
               marginLeft: 2,
               fontSize: 13,
@@ -70,13 +72,12 @@ const AdminUserPage: NextPageWithLayout = () => {
               color: ({ palette }) => palette.blue[70],
             }}
           >
-            <Link href={`/@${user.shortname}`} noLinkStyle>
+            <Link noLinkStyle href={`/@${user.shortname}`}>
               @{user.shortname}
             </Link>
           </Typography>
         </>
       }
-      sectionLabel="Basic Information"
     >
       <BasicInfoSection user={user} refetchUser={refetchUser} />
     </SettingsPageContainer>

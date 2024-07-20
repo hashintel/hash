@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
@@ -10,7 +11,6 @@ import { googleEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import type { Account as GoogleAccount } from "@local/hash-isomorphic-utils/system-types/google/account";
 import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { useMemo } from "react";
 
 import type {
   GetEntitySubgraphQuery,
@@ -19,11 +19,11 @@ import type {
 import { getEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { useAuthenticatedUser } from "../../../auth-info-context";
 
-type UseGoogleAccountsResult = {
+interface UseGoogleAccountsResult {
   accounts: Entity<GoogleAccount>[];
   loading: boolean;
   refetch: () => void;
-};
+}
 
 export const useGoogleAccounts = (): UseGoogleAccountsResult => {
   const { authenticatedUser } = useAuthenticatedUser();

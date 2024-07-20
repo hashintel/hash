@@ -1,6 +1,6 @@
-export const stringify = (obj: unknown) =>
+export const stringify = (object: unknown) =>
   JSON.stringify(
-    obj,
+    object,
     undefined,
     ["test", "development"].includes(process.env.NODE_ENV ?? "")
       ? 2

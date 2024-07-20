@@ -1,13 +1,13 @@
-import { ListItemIcon, ListItemText } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
+import { ListItemIcon, ListItemText } from "@mui/material";
 
 import { MenuItem } from "../../../../shared/ui";
 
-type CommentBlockMenuItemProps = {
+interface CommentBlockMenuItemProps {
   title: string;
   icon: ReactNode;
   onClick: () => void;
-};
+}
 
 export const CommentBlockMenuItem: FunctionComponent<
   CommentBlockMenuItemProps

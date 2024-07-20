@@ -9,12 +9,14 @@ export const uploadFileToStorageProvider = async (
 
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
+
     xhr.open("PUT", url, true);
 
     if (onProgress) {
       xhr.upload.addEventListener("progress", (event) => {
         if (event.lengthComputable) {
           const progress = (event.loaded / event.total) * 100;
+
           onProgress(progress);
         }
       });

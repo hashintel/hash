@@ -1,16 +1,16 @@
+import { useMemo } from "react";
 import type { BlockVariant } from "@blockprotocol/core";
 import type {
   HashBlock,
   HashBlockMeta,
 } from "@local/hash-isomorphic-utils/blocks";
-import { useMemo } from "react";
 
 import { fuzzySearchBy } from "./fuzzy-search-by";
 
-type Option = {
+interface Option {
   variant: BlockVariant;
   meta: HashBlockMeta;
-};
+}
 
 export const useFilteredBlocks = (
   searchText: string,

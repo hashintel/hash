@@ -1,8 +1,7 @@
+import axios, { type AxiosError, type AxiosInstance } from "axios";
 import type { AccountId } from "@local/hash-graph-types/account";
-import type { AxiosError, AxiosInstance } from "axios";
-import axios from "axios";
 
-type VaultSecret<D = unknown> = {
+interface VaultSecret<D = unknown> {
   data: D;
   metadata: {
     created_time: string;
@@ -11,7 +10,7 @@ type VaultSecret<D = unknown> = {
     destroyed: boolean;
     version: number;
   };
-};
+}
 
 type UserSecretPath = `users/${AccountId}/${string}`;
 
@@ -67,6 +66,7 @@ export class VaultClient {
     const { secretMountPath, path } = params;
 
     const userAccountIdInPath = path.split("/").at(1);
+
     if (userAccountIdInPath !== params.userAccountId) {
       throw new Error(
         `User accountId '${userAccountIdInPath}' in secret path does not match provided accountId '${params.userAccountId}'`,

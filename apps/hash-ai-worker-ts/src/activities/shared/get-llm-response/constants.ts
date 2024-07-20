@@ -19,6 +19,6 @@ export const maximumRateLimitRetries = 10;
 export const maximumExponentialBackoffRetries = 10;
 
 /**
- * The default delay between retries when an LLM server error is encountered (e.g. because of throttling).
+ * The default delay between retries when an LLM server error is encountered (e.g. Because of throttling).
  */
 export const serverErrorRetryStartingDelay = 5_000;

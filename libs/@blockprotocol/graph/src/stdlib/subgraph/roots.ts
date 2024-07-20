@@ -2,13 +2,11 @@ import type {
   DataTypeRootType,
   EntityRootType,
   EntityTypeRootType,
+  isEntityVertexId,
+  isOntologyTypeVertexId,
   PropertyTypeRootType,
   Subgraph,
   SubgraphRootType,
-} from "../../types/subgraph.js";
-import {
-  isEntityVertexId,
-  isOntologyTypeVertexId,
 } from "../../types/subgraph.js";
 import { mustBeDefined } from "../../util.js";
 import { getDataTypeByVertexId } from "./element/data-type.js";
@@ -23,7 +21,7 @@ import { getPropertyTypeByVertexId } from "./element/property-type.js";
  * - {@link isDataTypeRootedSubgraph}
  * - {@link isPropertyTypeRootedSubgraph}
  * - {@link isEntityTypeRootedSubgraph}
- * - {@link isEntityRootedSubgraph}
+ * - {@link isEntityRootedSubgraph}.
  *
  * @param subgraph
  */

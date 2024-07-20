@@ -1,12 +1,13 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
+import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 
 import packageJSON from "../package.json";
-import Component from "./index";
-import type { BlockEntity } from "./types/generated/block-entity";
 
-const node = document.getElementById("app");
+import type { BlockEntity } from "./types/generated/block-entity";
+import Component from "./index";
+
+const node = document.querySelector("#app");
 
 const testEntity: BlockEntity = {
   metadata: {
@@ -22,22 +23,22 @@ const testEntity: BlockEntity = {
 const DevApp = () => {
   return (
     <MockBlockDock
+      debug
       blockDefinition={{ ReactComponent: Component }}
       blockEntityRecordId={testEntity.metadata.recordId}
       blockInfo={packageJSON.blockprotocol}
+      blockProtocolApiKey={process.env.BLOCK_PROTOCOL_API_KEY} // add this to an .env file in the block folder
       initialData={{
         initialEntities: [testEntity],
       }}
+      blockProtocolSiteHost={
+        process.env.BLOCK_PROTOCOL_SITE_HOST ?? "https://blockprotocol.org"
+      } // update this to a recent staging deployment when testing
       simulateDatastoreLatency={{
         // configure this to adjust the range of artificial latency in responses to datastore-related requests (in ms)
         min: 50,
         max: 200,
       }}
-      blockProtocolApiKey={process.env.BLOCK_PROTOCOL_API_KEY} // add this to an .env file in the block folder
-      blockProtocolSiteHost={
-        process.env.BLOCK_PROTOCOL_SITE_HOST ?? "https://blockprotocol.org"
-      } // update this to a recent staging deployment when testing
-      debug
     />
   );
 };

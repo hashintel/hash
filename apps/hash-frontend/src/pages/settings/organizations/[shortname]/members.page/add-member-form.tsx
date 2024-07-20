@@ -1,3 +1,4 @@
+import type { FormEvent, useEffect, useRef, useState } from "react";
 import { useLazyQuery, useMutation } from "@apollo/client";
 import { TextField } from "@hashintel/design-system";
 import {
@@ -9,12 +10,13 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { AccountEntityId, EntityRootType } from "@local/hash-subgraph";
-import { extractAccountId } from "@local/hash-subgraph";
+import type {
+  AccountEntityId,
+  EntityRootType,
+  extractAccountId,
+} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
-import type { FormEvent } from "react";
-import { useEffect, useRef, useState } from "react";
 
 import type {
   AddAccountGroupMemberMutation,
@@ -76,6 +78,7 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
     ) {
       setError("Already a member");
       setLoading(false);
+
       return;
     }
 
@@ -104,6 +107,7 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
     if (!data) {
       setError("Unexpected error – please contact us");
       setLoading(false);
+
       return;
     }
 
@@ -116,6 +120,7 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
     if (!user) {
       setError("User not found");
       setLoading(false);
+
       return;
     }
 
@@ -154,13 +159,16 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
   };
 
   return (
-    <Box component="form" onSubmit={addMember}>
+    <Box component={"form"} onSubmit={addMember}>
       <TextField
-        autoComplete="off"
-        error={!!error}
+        autoComplete={"off"}
+        error={Boolean(error)}
         helperText={error}
-        id="shortname"
+        id={"shortname"}
         inputRef={inputRef}
+        placeholder={"username"}
+        size={"xs"}
+        value={shortname}
         inputProps={{
           sx: {
             borderColor: error ? "#FCA5A5" : "initial",
@@ -169,19 +177,16 @@ export const AddMemberForm = ({ org }: { org: Org }) => {
             },
           },
         }}
-        onChange={(evt) => {
+        onChange={(event) => {
           setError("");
-          setShortname(evt.target.value.replace(/[^a-zA-Z0-9-_]/g, ""));
+          setShortname(event.target.value.replaceAll(/[^\w-]/g, ""));
         }}
-        placeholder="username"
-        size="xs"
-        value={shortname}
       />
       <Button
         disabled={loading}
-        size="xs"
+        size={"xs"}
         sx={{ marginLeft: -1 }}
-        type="submit"
+        type={"submit"}
       >
         {loading ? "Pending..." : "Add member"}
       </Button>

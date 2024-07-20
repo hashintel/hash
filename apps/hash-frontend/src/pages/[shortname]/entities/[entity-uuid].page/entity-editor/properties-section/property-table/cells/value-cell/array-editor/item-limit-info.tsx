@@ -1,5 +1,5 @@
-import { Box, styled } from "@mui/material";
 import { isNumber } from "lodash";
+import { Box, styled } from "@mui/material";
 
 import { Button } from "../../../../../../../../../../shared/ui";
 
@@ -45,9 +45,9 @@ export const ItemLimitInfo = ({ min, max }: { min?: number; max?: number }) => {
   return (
     <Button
       disabled
-      size="small"
-      variant="tertiary_quiet"
       fullWidth
+      size={"small"}
+      variant={"tertiary_quiet"}
       sx={{
         justifyContent: "flex-start",
         borderRadius: 0,

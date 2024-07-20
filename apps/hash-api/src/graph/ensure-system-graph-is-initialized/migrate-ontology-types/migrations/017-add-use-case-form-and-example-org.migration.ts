@@ -22,13 +22,13 @@ const migrate: MigrationFunction = async ({
 }) => {
   if (isSelfHostedInstance) {
     /**
-     * Functionality is only relevant to hosted HASH, i.e. the instance at https://[app].hash.ai
+     * Functionality is only relevant to hosted HASH, i.e. The instance at https://[app].hash.ai.
      */
     return migrationState;
   }
 
   /**
-   * Create the entity type to hold information about a user's potential use(s) of HASH
+   * Create the entity type to hold information about a user's potential use(s) of HASH.
    */
 
   const rolePropertyType = await createSystemPropertyTypeIfNotExists(
@@ -129,11 +129,12 @@ const migrate: MigrationFunction = async ({
     });
 
   /**
-   * Create an `@example` org
+   * Create an `@example` org.
    */
   const exampleOrg = await getOrgByShortname(context, authentication, {
     shortname: "example",
   });
+
   if (!exampleOrg) {
     await createOrg(context, authentication, {
       shortname: "example",

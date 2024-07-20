@@ -1,4 +1,4 @@
-export type AppState = {
+export interface AppState {
   embedUrl: string;
   embedType: ProviderName | undefined;
   html?: string;
@@ -7,7 +7,7 @@ export type AppState = {
   maxWidth: number;
   loading: boolean;
   errorString: string;
-};
+}
 
 export type Actions =
   | { type: "UPDATE_STATE"; payload: Partial<AppState> }

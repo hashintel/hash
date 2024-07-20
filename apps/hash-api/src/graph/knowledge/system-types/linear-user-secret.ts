@@ -30,11 +30,11 @@ import type {
   PureGraphFunction,
 } from "../../context-types";
 
-export type LinearUserSecret = {
+export interface LinearUserSecret {
   connectionSourceName: string;
   vaultPath: string;
   entity: Entity<UserSecret>;
-};
+}
 
 function assertLinearUserSecret(
   entity: Entity,
@@ -83,7 +83,7 @@ export const getLinearUserSecretFromEntity: PureGraphFunction<
 };
 
 /**
- * Get a Linear user secret by the linear org ID
+ * Get a Linear user secret by the linear org ID.
  */
 export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
   { userAccountId: AccountId; linearOrgId: string; includeDrafts?: boolean },
@@ -159,9 +159,10 @@ export const getLinearUserSecretByLinearOrgId: ImpureGraphFunction<
 
 /**
  * Get a Linear user secret value by the HASH workspace it is associated with.
- * @todo there may be multiple Linear user secrets associated with a workspace – handle the following filters:
+ *
+ * @todo There may be multiple Linear user secrets associated with a workspace – handle the following filters:
  *   - the Linear workspace the secret is associated with (there may be multiple synced to a HASH workspace)
- *   - the user that created the integration (multiple users may have created a relevant secret)
+ *   - the user that created the integration (multiple users may have created a relevant secret).
  */
 
 export const getLinearSecretValueByHashWorkspaceId: ImpureGraphFunction<

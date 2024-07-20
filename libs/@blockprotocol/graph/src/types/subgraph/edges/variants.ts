@@ -1,5 +1,5 @@
 /**
- * The various variants of outward edges
+ * The various variants of outward edges.
  */
 
 export * from "./variants/knowledge.js";

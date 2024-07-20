@@ -2,19 +2,20 @@
  * This is the entry point for developing and debugging.
  * This file is not bundled with the block during the build process.
  */
-import type { Entity, VersionedUrl } from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
+import type { Entity, VersionedUrl } from "@blockprotocol/graph";
 
 import packageJSON from "../package.json";
-import Component from "./index";
+
 import { entityTypeIds, propertyIds } from "./property-ids";
 import type {
   BlockEntity,
   HasRepresentativeShuffleBlockItem,
 } from "./types/generated/block-entity";
+import Component from "./index";
 
-const node = document.getElementById("app");
+const node = document.querySelector("#app");
 
 const personEntity: Entity = {
   metadata: {
@@ -73,6 +74,7 @@ const initialEntities = [blockEntity, link1, personEntity];
 const App = () => {
   return (
     <MockBlockDock
+      debug
       blockDefinition={{ ReactComponent: Component }}
       blockEntityRecordId={blockEntity.metadata.recordId}
       initialData={{ initialEntities }}
@@ -82,7 +84,6 @@ const App = () => {
         min: 50,
         max: 200,
       }}
-      debug
     />
   );
 };

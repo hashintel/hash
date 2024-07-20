@@ -1,13 +1,14 @@
+import { useCallback } from "react";
 import { useLazyQuery } from "@apollo/client";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import type { PropertyTypeRootType } from "@local/hash-subgraph";
-import { useCallback } from "react";
 
 import type {
   GetPropertyTypeQuery,
   GetPropertyTypeQueryVariables,
 } from "../../../../graphql/api-types.gen";
 import { getPropertyTypeQuery } from "../../../../graphql/queries/ontology/property-type.queries";
+
 import type { GetPropertyTypeMessageCallback } from "./ontology-types-shim";
 
 export const useBlockProtocolGetPropertyType = (): {
@@ -22,7 +23,7 @@ export const useBlockProtocolGetPropertyType = (): {
      * However, currently requests for non-existent property types currently return an empty subgraph, so
      * we can't rely on this.
      *
-     * @todo revert this back to cache-first once that's fixed
+     * @todo Revert this back to cache-first once that's fixed.
      */
     fetchPolicy: "network-only",
   });

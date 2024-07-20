@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { type OwnedById } from "@local/hash-graph-types/web";
+import type { OwnedById } from "@local/hash-graph-types/web";
 
 import { getLlmResponse } from "../src/activities/shared/get-llm-response.js";
 import type {
@@ -11,6 +11,7 @@ import type {
 } from "../src/activities/shared/get-llm-response/types.js";
 import { graphApiClient } from "../src/activities/shared/graph-api-client.js";
 import { getAliceUserAccountId } from "../src/shared/testing-utilities/get-alice-user-account-id.js";
+
 import type { CompareLlmResponseConfig } from "./compare-llm-response/types.js";
 
 const __filename = fileURLToPath(import.meta.url);

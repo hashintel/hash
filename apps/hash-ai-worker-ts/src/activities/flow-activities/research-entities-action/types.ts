@@ -32,8 +32,8 @@ export const nullReturns: Omit<
   webQueriesMade: null,
 };
 
-export type ResourceSummary = {
+export interface ResourceSummary {
   url: string;
   title: string;
   summary: string;
-};
+}

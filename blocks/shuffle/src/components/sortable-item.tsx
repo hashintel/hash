@@ -1,11 +1,12 @@
-import type { AnimateLayoutChanges } from "@dnd-kit/sortable";
-import { defaultAnimateLayoutChanges, useSortable } from "@dnd-kit/sortable";
+import React, { type FunctionComponent } from "react";
+import {
+  type AnimateLayoutChanges,
+  defaultAnimateLayoutChanges,
+  useSortable,
+} from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { FunctionComponent } from "react";
-import React from "react";
 
-import type { ItemProps } from "./item";
-import { Item } from "./item";
+import { Item, type ItemProps } from "./item";
 
 const animateLayoutChanges: AnimateLayoutChanges = (args) => {
   const { isSorting, isDragging, wasDragging } = args;

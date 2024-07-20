@@ -1,7 +1,7 @@
+import { ApolloError } from "apollo-server-errors";
 import { getFlowRunById } from "@local/hash-backend-utils/flows";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { SparseFlowRun } from "@local/hash-isomorphic-utils/flows/types";
-import { ApolloError } from "apollo-server-errors";
 
 import type {
   FlowRun,
@@ -9,6 +9,7 @@ import type {
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
+
 import { wereDetailedFieldsRequested } from "./shared/were-detailed-fields-requested";
 
 export const getFlowRunByIdResolver: ResolverFn<

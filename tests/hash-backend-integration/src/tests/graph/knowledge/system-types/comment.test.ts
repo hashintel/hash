@@ -1,18 +1,21 @@
+import { beforeAll, describe, expect, test } from "vitest";
 import { deleteKratosIdentity } from "@apps/hash-api/src/auth/ory-kratos";
 import { ensureSystemGraphIsInitialized } from "@apps/hash-api/src/graph/ensure-system-graph-is-initialized";
 import { createEntity } from "@apps/hash-api/src/graph/knowledge/primitive/entity";
-import type { Block } from "@apps/hash-api/src/graph/knowledge/system-types/block";
-import { createBlock } from "@apps/hash-api/src/graph/knowledge/system-types/block";
+import type {
+  Block,
+  createBlock,
+} from "@apps/hash-api/src/graph/knowledge/system-types/block";
 import {
   createComment,
   getCommentAuthor,
   getCommentParent,
   getCommentText,
 } from "@apps/hash-api/src/graph/knowledge/system-types/comment";
-import type { Page } from "@apps/hash-api/src/graph/knowledge/system-types/page";
-import {
+import type {
   createPage,
   getPageBlocks,
+  Page,
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { Logger } from "@local/hash-backend-utils/logger";
@@ -20,7 +23,6 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { Text } from "@local/hash-isomorphic-utils/system-types/shared";
-import { beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {
@@ -37,7 +39,7 @@ const logger = new Logger({
 
 const graphContext = createTestImpureGraphContext();
 
-describe("Comment", () => {
+describe("comment", () => {
   let testUser: User;
   let testBlock: Block;
   let testPage: Page;
@@ -97,7 +99,7 @@ describe("Comment", () => {
     };
   });
 
-  it("createComment method can create a comment", async () => {
+  test("createComment method can create a comment", async () => {
     const authentication = { actorId: testUser.accountId };
 
     const comment = await createComment(graphContext, authentication, {
@@ -120,16 +122,19 @@ describe("Comment", () => {
     const hasText = await getCommentText(graphContext, authentication, {
       commentEntityId,
     });
+
     expect(hasText.textualContent).toEqual([]);
 
     const commentAuthor = await getCommentAuthor(graphContext, authentication, {
       commentEntityId,
     });
+
     expect(commentAuthor.entity).toEqual(testUser.entity);
 
     const parentBlock = await getCommentParent(graphContext, authentication, {
       commentEntityId,
     });
+
     expect(parentBlock).toEqual(testBlock.entity);
   });
 });

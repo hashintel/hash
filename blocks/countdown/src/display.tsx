@@ -1,12 +1,10 @@
-import type { Duration } from "date-fns";
-import { intervalToDuration, isPast } from "date-fns";
-import type { FunctionComponent } from "react";
-import { useEffect, useState } from "react";
+import type { Duration, intervalToDuration, isPast } from "date-fns";
+import type { FunctionComponent, useEffect, useState } from "react";
 
-type DisplayProps = {
+interface DisplayProps {
   targetDate: Date | null;
   displayTime: boolean;
-};
+}
 
 const intervals: (keyof Duration)[] = [
   "years",
@@ -31,14 +29,18 @@ export const Display: FunctionComponent<DisplayProps> = ({
   const [_, setClock] = useState(new Date());
 
   useEffect(() => {
-    const tick = () => setClock(new Date());
+    const tick = () => {
+      setClock(new Date());
+    };
     // Tick at most once per second
     // It might take slightly longer than a second depending on how long it takes to get through other events
     const tickInterval = setInterval(tick, 1000);
 
     tick();
 
-    return () => clearInterval(tickInterval);
+    return () => {
+      clearInterval(tickInterval);
+    };
   }, []);
 
   const duration = targetDate
@@ -48,15 +50,19 @@ export const Display: FunctionComponent<DisplayProps> = ({
       })
     : defaultDuration;
 
-  const filteredIntervals = intervals.reduce<(keyof Duration)[]>((acc, val) => {
-    if (!displayTime && ["hours", "minutes"].includes(val)) {
-      return acc;
-    }
-    if (duration[val] ?? acc.length > 0) {
-      return [...acc, val];
-    }
-    return acc;
-  }, []);
+  const filteredIntervals = intervals.reduce<(keyof Duration)[]>(
+    (accumulator, value) => {
+      if (!displayTime && ["hours", "minutes"].includes(value)) {
+        return accumulator;
+      }
+      if (duration[value] ?? accumulator.length > 0) {
+        return [...accumulator, value];
+      }
+
+      return accumulator;
+    },
+    [],
+  );
 
   const intervalsToDisplay =
     filteredIntervals.length > 0
@@ -64,10 +70,10 @@ export const Display: FunctionComponent<DisplayProps> = ({
       : (["days"] as (keyof Duration)[]);
 
   return (
-    <div className="countdown-block__display-grid">
+    <div className={"countdown-block__display-grid"}>
       {intervalsToDisplay.map((item) => {
         return (
-          <div key={item} className="countdown-block__display-grid__item">
+          <div key={item} className={"countdown-block__display-grid__item"}>
             <p>
               {["minutes"].includes(item)
                 ? (duration[item]?.toString().padStart(2, "0") ?? "00")

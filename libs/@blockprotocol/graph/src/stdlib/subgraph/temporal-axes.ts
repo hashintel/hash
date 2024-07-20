@@ -11,11 +11,12 @@ type LatestInstantInterval = BoundedTimeInterval;
  * {@link Subgraph} that does _not_ support temporal versioning, an unbounded {@link TimeInterval} is returned
  * that spans the whole axis.
  *
- * @param {Subgraph} subgraph
+ * @param subgraph
  */
 export const getLatestInstantIntervalForSubgraph = (
   subgraph: Subgraph,
 ): LatestInstantInterval => {
   const subgraphEndBound = subgraph.temporalAxes.resolved.variable.interval.end;
+
   return intervalForTimestamp(subgraphEndBound.limit);
 };

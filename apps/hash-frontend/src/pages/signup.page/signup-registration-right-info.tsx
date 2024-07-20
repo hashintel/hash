@@ -1,3 +1,4 @@
+import type { FunctionComponent, ReactNode } from "react";
 import {
   faCheck,
   faCircleInfo,
@@ -5,7 +6,6 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Typography } from "@mui/material";
-import type { FunctionComponent, ReactNode } from "react";
 
 import { PizzaSolidIcon } from "../../shared/icons/pizza-solid-icon";
 

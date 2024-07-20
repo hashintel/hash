@@ -8,6 +8,7 @@ const inlineSort = <T>(
   sortCallback: (a: T, b: T) => number,
 ): T[] => {
   array.sort(sortCallback);
+
   return array;
 };
 
@@ -95,6 +96,7 @@ export const prependImportsAndExports = (context: PostprocessContext): void => {
       identifiers.sort();
 
       const identifiersString = identifiers.join(", ");
+
       context.logTrace(
         `Adding local imports for ${file}: ${identifiersString}`,
       );

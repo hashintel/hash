@@ -2,16 +2,17 @@
  * This is the entry point for developing and debugging.
  * This file is not bundled with the library during the build process.
  */
-import type { VersionedUrl } from "@blockprotocol/graph";
 import { MockBlockDock } from "mock-block-dock";
 import { createRoot } from "react-dom/client";
+import type { VersionedUrl } from "@blockprotocol/graph";
 
 import packageJSON from "../package.json";
-import Component from "./index";
+
 import { propertyIds } from "./property-ids";
 import type { BlockEntity } from "./types/generated/block-entity";
+import Component from "./index";
 
-const node = document.getElementById("app");
+const node = document.querySelector("#app");
 
 /**
  * @type {{content: string; language: import("./utils").LanguageType;}}
@@ -34,16 +35,16 @@ const initialEntity: BlockEntity = {
 const DevApp = () => {
   return (
     <MockBlockDock
+      debug
       blockDefinition={{ ReactComponent: Component }}
       blockEntityRecordId={initialEntity.metadata.recordId}
       initialData={{ initialEntities: [initialEntity] }}
+      blockInfo={packageJSON.blockprotocol}
       simulateDatastoreLatency={{
         // configure this to adjust the range of artificial latency in responses to datastore-related requests (in ms)
         min: 50,
         max: 200,
       }}
-      blockInfo={packageJSON.blockprotocol}
-      debug
     />
   );
 };

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-type FilterOption<Value = string> = {
+interface FilterOption<Value = string> {
   icon?: ReactNode;
   label: ReactNode;
   value: Value;
@@ -9,24 +9,24 @@ type FilterOption<Value = string> = {
    * the filter state applied from all other filter sections.
    */
   count?: number;
-};
+}
 
-export type MultipleChoiceFilterSectionDefinition<Value = string> = {
+export interface MultipleChoiceFilterSectionDefinition<Value = string> {
   heading: string;
   kind: "multiple-choice";
   options: (FilterOption<Value> & {
     checked: boolean;
   })[];
   onChange: (values: Value[]) => void;
-};
+}
 
-export type SingleChoiceFilterSectionDefinition<Value = string> = {
+export interface SingleChoiceFilterSectionDefinition<Value = string> {
   heading: string;
   kind: "single-choice";
   options: FilterOption<Value>[];
   value: Value;
   onChange: (value: Value) => void;
-};
+}
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type FilterSectionDefinition<Value = any> =

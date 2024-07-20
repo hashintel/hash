@@ -1,15 +1,15 @@
 import type { UniqueIdentifier } from "@dnd-kit/core";
 
-export type CardData = {
+export interface CardData {
   id: string;
   content: string;
-};
+}
 
-export type ColumnData = {
+export interface ColumnData {
   id: string;
   title: string;
   cards: CardData[];
-};
+}
 
 export type ColumnsState = Record<string, ColumnData>;
 

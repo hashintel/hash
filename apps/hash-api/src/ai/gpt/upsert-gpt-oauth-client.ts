@@ -1,11 +1,11 @@
-import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
 import type { RequestHandler } from "express";
+import { isUserHashInstanceAdmin } from "@local/hash-backend-utils/hash-instance";
 
 import { hydraAdmin } from "../../auth/ory-hydra";
 
-type UpsertOAuthClientRequestBody = {
+interface UpsertOAuthClientRequestBody {
   redirectUri: string;
-};
+}
 
 type UpsertOAuthClientResponseBody =
   | { error: string }
@@ -26,28 +26,31 @@ export const upsertGptOauthClient: RequestHandler<
   UpsertOAuthClientResponseBody,
   UpsertOAuthClientRequestBody
   // eslint-disable-next-line @typescript-eslint/no-misused-promises
-> = async (req, res) => {
-  const { user } = req;
-  const { redirectUri } = req.body;
+> = async (request, res) => {
+  const { user } = request;
+  const { redirectUri } = request.body;
 
   if (!user) {
     res.status(401).send({ error: "No authenticated user" });
+
     return;
   }
 
   if (!user.shortname) {
     res.status(401).send({ error: "User has not completed signup." });
+
     return;
   }
 
   const isInstanceAdmin = await isUserHashInstanceAdmin(
-    req.context,
+    request.context,
     { actorId: user.accountId },
     { userAccountId: user.accountId },
   );
 
   if (!isInstanceAdmin) {
     res.status(403).send({ error: "User is not an admin of this instance" });
+
     return;
   }
 
@@ -55,6 +58,7 @@ export const upsertGptOauthClient: RequestHandler<
     res
       .status(400)
       .send({ error: "redirectUri is required in the request body" });
+
     return;
   }
 
@@ -64,6 +68,7 @@ export const upsertGptOauthClient: RequestHandler<
     res
       .status(400)
       .send({ error: "redirectUri must be a valid ChatGPT redirect URI" });
+
     return;
   }
 
@@ -78,7 +83,7 @@ export const upsertGptOauthClient: RequestHandler<
   } else if (existingClients.length === 0) {
     const { data: newClient } = await hydraAdmin.createOAuth2Client({
       oAuth2Client: {
-        redirect_uris: [req.body.redirectUri],
+        redirect_uris: [request.body.redirectUri],
         client_name: clientName,
         grant_types: ["authorization_code", "refresh_token"],
         response_types: ["code"],
@@ -88,6 +93,7 @@ export const upsertGptOauthClient: RequestHandler<
 
     if (!newClient.client_id) {
       res.status(500).send({ error: "Failed to create OAuth client" });
+
       return;
     }
 
@@ -104,13 +110,14 @@ export const upsertGptOauthClient: RequestHandler<
         {
           op: "replace",
           path: "/redirect_uris",
-          value: [req.body.redirectUri],
+          value: [request.body.redirectUri],
         },
       ],
     });
 
     if (!updatedClient.client_id) {
       res.status(500).send({ error: "Failed to update OAuth client" });
+
       return;
     }
 

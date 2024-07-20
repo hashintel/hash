@@ -7,6 +7,7 @@ import type {
   ResolverFn,
 } from "../../api-types.gen";
 import type { GraphQLContext } from "../../context";
+
 import { wereDetailedFieldsRequested } from "./shared/were-detailed-fields-requested";
 
 export const getFlowRunsResolver: ResolverFn<
@@ -21,7 +22,7 @@ export const getFlowRunsResolver: ResolverFn<
 
   const { flowDefinitionIds, executionStatus } = args;
 
-  return await getFlowRuns({
+  return getFlowRuns({
     authentication,
     filters: {
       flowDefinitionIds,

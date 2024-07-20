@@ -1,5 +1,5 @@
-import type { ArraySchema } from "@blockprotocol/type-system";
 import type { JSONSchemaDefinition } from "openai/lib/jsonschema";
+import type { ArraySchema } from "@blockprotocol/type-system";
 
 import type { DereferencedPropertyType } from "../../shared/dereference-entity-type.js";
 
@@ -21,12 +21,12 @@ export const stripIdsFromDereferencedProperties = (params: {
 
   return Object.entries(properties).reduce<{
     [key: string]: JSONSchemaDefinition;
-  }>((acc, [propertyKey, value]) => {
+  }>((accumulator, [propertyKey, value]) => {
     if ("items" in value) {
       const { $id: _id, ...itemsWithoutId } = value.items;
 
       return {
-        ...acc,
+        ...accumulator,
         [propertyKey]: {
           ...value,
           items: {
@@ -53,7 +53,7 @@ export const stripIdsFromDereferencedProperties = (params: {
 
     const { $id: _id, ...valueWithoutId } = value;
 
-    acc[propertyKey] = {
+    accumulator[propertyKey] = {
       ...valueWithoutId,
       oneOf: valueWithoutId.oneOf.map((oneOfValue) => {
         if (typeof oneOfValue === "object" && "properties" in oneOfValue) {
@@ -69,6 +69,6 @@ export const stripIdsFromDereferencedProperties = (params: {
       }),
     };
 
-    return acc;
+    return accumulator;
   }, {});
 };

@@ -1,5 +1,5 @@
 import type { ActorTypeDataType } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
 
-export type SheetOutputFormat = {
+export interface SheetOutputFormat {
   audience: ActorTypeDataType;
-};
+}

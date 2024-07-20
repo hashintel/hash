@@ -11,6 +11,7 @@ import type {
   CreateEntityMutationVariables,
 } from "../../../../../graphql/api-types.gen";
 import { createEntityMutation } from "../../../../../graphql/queries/knowledge/entity.queries";
+
 import type {
   DraftLinksToArchive,
   DraftLinksToCreate,
@@ -47,8 +48,8 @@ export const useApplyDraftLinkEntityChanges = () => {
               leftEntityId,
               rightEntityId: rightEntity.metadata.recordId.entityId,
             },
-            draft: !!extractDraftIdFromEntityId(
-              leftEntity.metadata.recordId.entityId,
+            draft: Boolean(
+              extractDraftIdFromEntityId(leftEntity.metadata.recordId.entityId),
             ),
           },
         }),

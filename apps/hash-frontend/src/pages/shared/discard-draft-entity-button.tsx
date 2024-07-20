@@ -1,15 +1,17 @@
+import type { FunctionComponent, useCallback, useMemo, useState } from "react";
 import { useMutation } from "@apollo/client";
 import { AlertModal } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
+import type {
+  EntityRootType,
+  extractDraftIdFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import {
   getIncomingLinksForEntity,
   getOutgoingLinksForEntity,
 } from "@local/hash-subgraph/stdlib";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo, useState } from "react";
 
 import type {
   ArchiveEntityMutation,
@@ -18,8 +20,8 @@ import type {
 import { archiveEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { useNotificationEntities } from "../../shared/notification-entities-context";
-import type { ButtonProps } from "../../shared/ui";
-import { Button } from "../../shared/ui";
+import type { Button, ButtonProps } from "../../shared/ui";
+
 import { useNotificationsWithLinks } from "./notifications-with-links-context";
 
 export const DiscardDraftEntityButton: FunctionComponent<
@@ -86,7 +88,7 @@ export const DiscardDraftEntityButton: FunctionComponent<
     setShowDraftEntityWithDraftLinksWarning,
   ] = useState(false);
 
-  const isLinkEntity = !!draftEntity.linkData;
+  const isLinkEntity = Boolean(draftEntity.linkData);
 
   const incomingDraftLinks = useMemo(
     () =>
@@ -95,11 +97,10 @@ export const DiscardDraftEntityButton: FunctionComponent<
         : getIncomingLinksForEntity(
             draftEntitySubgraph,
             draftEntity.metadata.recordId.entityId,
-          ).filter(
-            (linkEntity) =>
-              !!extractDraftIdFromEntityId(
-                linkEntity.metadata.recordId.entityId,
-              ),
+          ).filter((linkEntity) =>
+            Boolean(
+              extractDraftIdFromEntityId(linkEntity.metadata.recordId.entityId),
+            ),
           ),
     [draftEntitySubgraph, draftEntity, isLinkEntity],
   );
@@ -111,11 +112,10 @@ export const DiscardDraftEntityButton: FunctionComponent<
         : getOutgoingLinksForEntity(
             draftEntitySubgraph,
             draftEntity.metadata.recordId.entityId,
-          ).filter(
-            (linkEntity) =>
-              !!extractDraftIdFromEntityId(
-                linkEntity.metadata.recordId.entityId,
-              ),
+          ).filter((linkEntity) =>
+            Boolean(
+              extractDraftIdFromEntityId(linkEntity.metadata.recordId.entityId),
+            ),
           ),
     [draftEntitySubgraph, draftEntity, isLinkEntity],
   );
@@ -172,6 +172,10 @@ export const DiscardDraftEntityButton: FunctionComponent<
       {showDraftEntityWithDraftLinksWarning && (
         <AlertModal
           callback={handleIgnoreDraftEntityWithDraftLinks}
+          type={"info"}
+          close={() => {
+            setShowDraftEntityWithDraftLinksWarning(false);
+          }}
           calloutMessage={
             <>
               The <strong>{label}</strong> draft entity has{" "}
@@ -195,13 +199,11 @@ export const DiscardDraftEntityButton: FunctionComponent<
               which will be ignored as well.
             </>
           }
-          close={() => setShowDraftEntityWithDraftLinksWarning(false)}
           header={
             <>
               Ignore draft entity: <strong>{label}</strong>
             </>
           }
-          type="info"
         />
       )}
       <Button onClick={handleIgnore} {...buttonProps} />

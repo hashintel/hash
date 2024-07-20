@@ -3,8 +3,9 @@ import { flattenAllItemsOfTree } from "./property-table/flatten";
 import type { PropertyRow } from "./property-table/types";
 
 /**
- * flatten given property rows, and returns the value counts
- * @param rows not-flattened property rows
+ * Flatten given property rows, and returns the value counts.
+ *
+ * @param rows - Not-flattened property rows.
  */
 export const getPropertyCountSummary = (rows: PropertyRow[]) => {
   let notEmptyCount = 0;
@@ -13,7 +14,7 @@ export const getPropertyCountSummary = (rows: PropertyRow[]) => {
   const flattened = flattenAllItemsOfTree(rows);
 
   for (const row of flattened) {
-    if (!row.children.length) {
+    if (row.children.length === 0) {
       if (isValueEmpty(row.value)) {
         emptyCount++;
       } else {

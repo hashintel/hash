@@ -3,11 +3,9 @@ import type {
   OneOfSchema,
   PropertyType,
   PropertyValues,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
-import {
   validateBaseUrl,
   validateVersionedUrl,
+  VersionedUrl,
 } from "@blockprotocol/type-system";
 import type {
   DataType as DataTypeGraphApi,
@@ -56,14 +54,15 @@ import type {
 } from "@local/hash-graph-types/temporal-versioning";
 
 import type {
+  isEntityId,
   KnowledgeGraphVertex,
   OntologyVertex,
   Vertices,
 } from "../../src/main.js";
-import { isEntityId } from "../../src/main.js";
 
 const mapDataType = (dataType: DataTypeGraphApi): CustomDataType => {
   const idResult = validateVersionedUrl(dataType.$id);
+
   if (idResult.type === "Err") {
     throw new Error(
       `Expected type ID to be a Versioned URL:\n${JSON.stringify(
@@ -80,13 +79,14 @@ const mapDataType = (dataType: DataTypeGraphApi): CustomDataType => {
 };
 
 const mapPropertyType = (propertyType: PropertyTypeGraphApi): PropertyType => {
-  if (propertyType.oneOf.length < 1) {
+  if (propertyType.oneOf.length === 0) {
     throw new Error(
       `Property Type had an empty one of:\n${JSON.stringify(propertyType)}`,
     );
   }
 
   const idResult = validateVersionedUrl(propertyType.$id);
+
   if (idResult.type === "Err") {
     throw new Error(
       `Expected type ID to be a Versioned URL:\n${JSON.stringify(
@@ -342,6 +342,7 @@ const mapEntityMetadata = (
       `Expected entity metadata to have exactly one entity type id, but got ${metadata.entityTypeIds.length}`,
     );
   }
+
   return {
     recordId: mapEntityRecordId(metadata.recordId),
     entityTypeId: metadata.entityTypeIds[0] as VersionedUrl,
@@ -360,6 +361,7 @@ const mapKnowledgeGraphVertex = (
   const _linkData = vertex.inner.linkData
     ? mapLinkData(vertex.inner.linkData)
     : undefined;
+
   return {
     kind: vertex.kind,
     inner: new Entity(vertex.inner),
@@ -372,6 +374,7 @@ export const mapVertices = (vertices: VerticesGraphApi): Vertices => {
   // Trying to build this with `Object.fromEntries` breaks tsc and leads to `any` typed values
   for (const [baseId, inner] of Object.entries(vertices)) {
     const result = validateBaseUrl(baseId);
+
     if (result.type === "Ok") {
       // ------------ Ontology Type case ----------------
       const baseUrl = result.inner as BaseUrl;
@@ -381,7 +384,7 @@ export const mapVertices = (vertices: VerticesGraphApi): Vertices => {
           const versionNumber = Number(version);
 
           if (Number.isNaN(versionNumber)) {
-            throw new Error(
+            throw new TypeError(
               `Unrecognized ontology type version, expected a number but got: ${version}`,
             );
           }
@@ -399,6 +402,7 @@ export const mapVertices = (vertices: VerticesGraphApi): Vertices => {
           }
 
           const mappedVertex = mapOntologyVertex(vertex);
+
           return [versionNumber, mappedVertex];
         }),
       );
@@ -409,7 +413,7 @@ export const mapVertices = (vertices: VerticesGraphApi): Vertices => {
           const timestamp = Date.parse(version);
 
           if (Number.isNaN(timestamp)) {
-            throw new Error(
+            throw new TypeError(
               `Unrecognized entity version, expected an ISO-formatted timestamp but got: ${version}`,
             );
           }
@@ -421,6 +425,7 @@ export const mapVertices = (vertices: VerticesGraphApi): Vertices => {
           }
 
           const mappedVertex = mapKnowledgeGraphVertex(vertex);
+
           return [version, mappedVertex];
         }),
       );

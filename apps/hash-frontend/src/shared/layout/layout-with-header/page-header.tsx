@@ -1,5 +1,5 @@
-import { Box, Tooltip, useMediaQuery, useTheme } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
+import { Box, Tooltip, useMediaQuery, useTheme } from "@mui/material";
 
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
 import { useLogoutFlow } from "../../../components/hooks/use-logout-flow";
@@ -8,6 +8,7 @@ import { useDraftEntities } from "../../draft-entities-context";
 import { CheckRegularIcon } from "../../icons/check-regular-icon";
 import { HashLockup } from "../../icons/hash-lockup";
 import { Button, Link } from "../../ui";
+
 import { AccountDropdown } from "./account-dropdown";
 import { ActionsDropdown } from "./actions-dropdown";
 import { NotificationsDropdown } from "./notifications-dropdown";
@@ -16,7 +17,7 @@ import { HeaderIconButtonWithCount } from "./shared/header-icon-button-with-coun
 
 const Nav: FunctionComponent<{ children?: ReactNode }> = ({ children }) => (
   <Box
-    component="nav"
+    component={"nav"}
     sx={{
       width: "100%",
       display: "flex",
@@ -41,7 +42,7 @@ export const PageHeader: FunctionComponent = () => {
 
   return (
     <Box
-      component="header"
+      component={"header"}
       sx={({ palette }) => ({
         background: palette.common.white,
         borderBottom: `1px solid ${palette.gray[20]}`,
@@ -69,7 +70,7 @@ export const PageHeader: FunctionComponent = () => {
               justifyContent: "center",
             }}
           >
-            <Link noLinkStyle href="/">
+            <Link noLinkStyle href={"/"}>
               <HashLockup
                 sx={{
                   height: "1.1rem",
@@ -96,15 +97,15 @@ export const PageHeader: FunctionComponent = () => {
               <>
                 <ActionsDropdown />
                 <NotificationsDropdown />
-                <Tooltip title="Actions" placement="bottom">
-                  <Link noLinkStyle href="/actions">
+                <Tooltip title={"Actions"} placement={"bottom"}>
+                  <Link noLinkStyle href={"/actions"}>
                     <HeaderIconButtonWithCount
+                      count={draftEntities?.length}
                       icon={
                         <CheckRegularIcon
                           sx={{ color: theme.palette.blue[70] }}
                         />
                       }
-                      count={draftEntities?.length}
                     />
                   </Link>
                 </Tooltip>
@@ -115,17 +116,17 @@ export const PageHeader: FunctionComponent = () => {
         ) : (
           <Box>
             <Button
-              variant="tertiary_quiet"
+              variant={"tertiary_quiet"}
               sx={{ mr: 1 }}
-              size="xs"
+              size={"xs"}
               // navigating to the sign in route instead of showing the sign in modal for now
               // since there's some z-index issues between the sidebar and the modal
-              href="/signin"
+              href={"/signin"}
             >
               Sign In
             </Button>
             {hashInstance?.properties.userSelfRegistrationIsEnabled ? (
-              <Button href="/signup" size={isMobile ? "xs" : "small"}>
+              <Button href={"/signup"} size={isMobile ? "xs" : "small"}>
                 Sign Up
               </Button>
             ) : null}

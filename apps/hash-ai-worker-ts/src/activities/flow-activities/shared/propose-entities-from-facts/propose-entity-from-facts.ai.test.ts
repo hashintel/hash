@@ -1,13 +1,13 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
-
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { expect, test } from "vitest";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import type { LocalEntitySummary } from "../infer-facts-from-text/get-entity-summaries-from-text.js";
 import type { Fact } from "../infer-facts-from-text/types.js";
+
 import { proposeEntityFromFactsAgent } from "./propose-entity-from-facts-agent.js";
 
 const huntingPlcEntitySummary: LocalEntitySummary = {
@@ -43,7 +43,7 @@ const huntingPlcEntityFacts = [
 ];
 
 test.skip(
-  "Test proposeEntityFromFacts: HUNTING PLC ORD 25P",
+  "test proposeEntityFromFacts: HUNTING PLC ORD 25P",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -196,7 +196,7 @@ const factsAboutGraphicsCard: Fact[] = [
 ];
 
 test.skip(
-  "Test proposeEntityFromFacts with graphics card entity",
+  "test proposeEntityFromFacts with graphics card entity",
   async () => {
     const { userAuthentication } = await getFlowContext();
 

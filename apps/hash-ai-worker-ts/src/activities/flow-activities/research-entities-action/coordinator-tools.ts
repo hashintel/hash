@@ -1,8 +1,9 @@
+import dedent from "dedent";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
-import dedent from "dedent";
 
 import type { LlmToolDefinition } from "../../shared/get-llm-response/types.js";
+
 import type { CoordinatingAgentState } from "./coordinating-agent.js";
 
 export const coordinatorToolNames = [
@@ -39,6 +40,7 @@ export const generateToolDefinitions = <
   const { internetAccess } = params.dataSources;
 
   const omitTools: CoordinatorToolName[] = params.omitTools ?? [];
+
   if (!internetAccess.enabled) {
     omitTools.push("webSearch");
   }

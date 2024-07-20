@@ -397,44 +397,44 @@ export type {
 /**
  * An instance of an integration with Linear.
  */
-export type LinearIntegration = {
+export interface LinearIntegration {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/linear-integration/v/6";
   properties: LinearIntegrationProperties;
   propertiesWithMetadata: LinearIntegrationPropertiesWithMetadata;
-};
+}
 
 export type LinearIntegrationOutgoingLinkAndTarget =
   | LinearIntegrationSyncLinearDataWithLink
   | LinearIntegrationUsesUserSecretLink;
 
-export type LinearIntegrationOutgoingLinksByLinkEntityTypeId = {
+export interface LinearIntegrationOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@hash/types/entity-type/sync-linear-data-with/v/1": LinearIntegrationSyncLinearDataWithLink;
   "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1": LinearIntegrationUsesUserSecretLink;
-};
+}
 
 /**
  * An instance of an integration with Linear.
  */
-export type LinearIntegrationProperties = {
+export interface LinearIntegrationProperties {
   "https://hash.ai/@hash/types/property-type/linear-org-id/": LinearOrgIdPropertyValue;
-};
+}
 
-export type LinearIntegrationPropertiesWithMetadata = {
+export interface LinearIntegrationPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/linear-org-id/": LinearOrgIdPropertyValueWithMetadata;
   };
-};
+}
 
-export type LinearIntegrationSyncLinearDataWithLink = {
+export interface LinearIntegrationSyncLinearDataWithLink {
   linkEntity: SyncLinearDataWith;
   rightEntity: User | Organization;
-};
+}
 
-export type LinearIntegrationUsesUserSecretLink = {
+export interface LinearIntegrationUsesUserSecretLink {
   linkEntity: UsesUserSecret;
   rightEntity: UserSecret;
-};
+}
 
 /**
  * The unique identifier for an org in Linear.
@@ -453,15 +453,15 @@ export type LinearTeamIdPropertyValueWithMetadata = TextDataTypeWithMetadata;
 /**
  * Something that syncs linear data with something.
  */
-export type SyncLinearDataWith = {
+export interface SyncLinearDataWith {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/sync-linear-data-with/v/1";
   properties: SyncLinearDataWithProperties;
   propertiesWithMetadata: SyncLinearDataWithPropertiesWithMetadata;
-};
+}
 
 export type SyncLinearDataWithOutgoingLinkAndTarget = never;
 
-export type SyncLinearDataWithOutgoingLinksByLinkEntityTypeId = {};
+export interface SyncLinearDataWithOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * Something that syncs linear data with something.
@@ -470,9 +470,9 @@ export type SyncLinearDataWithProperties = SyncLinearDataWithProperties1 &
   SyncLinearDataWithProperties2;
 export type SyncLinearDataWithProperties1 = LinkProperties;
 
-export type SyncLinearDataWithProperties2 = {
+export interface SyncLinearDataWithProperties2 {
   "https://hash.ai/@hash/types/property-type/linear-team-id/"?: LinearTeamIdPropertyValue[];
-};
+}
 
 export type SyncLinearDataWithPropertiesWithMetadata =
   SyncLinearDataWithPropertiesWithMetadata1 &
@@ -480,7 +480,7 @@ export type SyncLinearDataWithPropertiesWithMetadata =
 export type SyncLinearDataWithPropertiesWithMetadata1 =
   LinkPropertiesWithMetadata;
 
-export type SyncLinearDataWithPropertiesWithMetadata2 = {
+export interface SyncLinearDataWithPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {
     "https://hash.ai/@hash/types/property-type/linear-team-id/"?: {
@@ -488,20 +488,20 @@ export type SyncLinearDataWithPropertiesWithMetadata2 = {
       metadata?: ArrayMetadata;
     };
   };
-};
+}
 
 /**
  * The user secret something uses.
  */
-export type UsesUserSecret = {
+export interface UsesUserSecret {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1";
   properties: UsesUserSecretProperties;
   propertiesWithMetadata: UsesUserSecretPropertiesWithMetadata;
-};
+}
 
 export type UsesUserSecretOutgoingLinkAndTarget = never;
 
-export type UsesUserSecretOutgoingLinksByLinkEntityTypeId = {};
+export interface UsesUserSecretOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The user secret something uses.
@@ -510,13 +510,13 @@ export type UsesUserSecretProperties = UsesUserSecretProperties1 &
   UsesUserSecretProperties2;
 export type UsesUserSecretProperties1 = LinkProperties;
 
-export type UsesUserSecretProperties2 = {};
+export interface UsesUserSecretProperties2 {}
 
 export type UsesUserSecretPropertiesWithMetadata =
   UsesUserSecretPropertiesWithMetadata1 & UsesUserSecretPropertiesWithMetadata2;
 export type UsesUserSecretPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
 
-export type UsesUserSecretPropertiesWithMetadata2 = {
+export interface UsesUserSecretPropertiesWithMetadata2 {
   metadata?: ObjectMetadata;
   value: {};
-};
+}

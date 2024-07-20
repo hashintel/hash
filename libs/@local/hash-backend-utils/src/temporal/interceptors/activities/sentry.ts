@@ -24,8 +24,8 @@ export class SentryActivityInboundInterceptor
       async (_span) => {
         try {
           return await next(input);
-        } catch (err) {
-          Sentry.captureException(err, {
+        } catch (error) {
+          Sentry.captureException(error, {
             tags: {
               activityNamespace: this.context.info.activityNamespace,
               workflowNamespace: this.context.info.workflowNamespace,
@@ -45,7 +45,7 @@ export class SentryActivityInboundInterceptor
               heartbeatTimeout: this.context.info.heartbeatTimeoutMs,
             },
           });
-          throw err;
+          throw error;
         }
       },
     );

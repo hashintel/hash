@@ -12,7 +12,7 @@ export const PROPERTY_TYPE_META_SCHEMA: PropertyType["$schema"] =
 /**
  * Type guard to determine if a given {@link PropertyValues} is an array definition.
  *
- * @param {PropertyValues} propertyValues
+ * @param propertyValues
  */
 export const isPropertyValuesArray = (
   propertyValues: PropertyValues,
@@ -22,7 +22,7 @@ export const isPropertyValuesArray = (
 /**
  * Returns all the IDs of all types referenced in a given property type.
  *
- * @param {PropertyType} propertyType
+ * @param propertyType
  */
 export const getReferencedIdsFromPropertyType = (
   propertyType: PropertyType,
@@ -37,6 +37,7 @@ export const getReferencedIdsFromPropertyType = (
     for (const oneOfValue of oneOf) {
       if (isPropertyValuesArray(oneOfValue)) {
         const nestedIds = recurseOneOf(oneOfValue.items.oneOf);
+
         for (const ele of nestedIds.constrainsPropertiesOnPropertyTypes) {
           constrainsPropertiesOnPropertyTypes.add(ele);
         }

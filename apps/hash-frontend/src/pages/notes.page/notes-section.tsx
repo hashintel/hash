@@ -1,7 +1,7 @@
+import { forwardRef, Fragment, useState } from "react";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Collapse, Divider } from "@mui/material";
-import { forwardRef, Fragment, useState } from "react";
 
 import { EditableQuickNote } from "./editable-quick-note";
 import { NotesSectionWrapper } from "./notes-section-wrapper";
@@ -40,9 +40,11 @@ export const NotesSection = forwardRef<
           heading={heading}
           subheading={dayTimestamp}
           isCollapsed={isCollapsed}
-          toggleIsCollapsed={() => setIsCollapsed(!isCollapsed)}
           navigateUp={navigateUp}
           navigateDown={navigateDown}
+          toggleIsCollapsed={() => {
+            setIsCollapsed(!isCollapsed);
+          }}
         />
         <Box flexGrow={1}>
           <Collapse in={!isCollapsed}>

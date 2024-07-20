@@ -1,19 +1,22 @@
-import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
-import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
 import { useMemo } from "react";
+import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
+import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 
-import type { NextPageWithLayout } from "../../../../shared/layout";
-import { getLayoutWithSidebar } from "../../../../shared/layout";
+import type {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../../../../shared/layout";
 import { EntityTypePage } from "../../../shared/entity-type-page";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
+
 import { getEntityTypeBaseUrl } from "./[...slug-maybe-version].page/get-entity-type-base-url";
 
 const Page: NextPageWithLayout = () => {
   const router = useRouter();
 
-  const isDraft = !!router.query.draft;
+  const isDraft = Boolean(router.query.draft);
   const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
 
   const [slug, _, requestedVersionString] = router.query[
@@ -36,6 +39,7 @@ const Page: NextPageWithLayout = () => {
       const { baseUrl, version } = componentsFromVersionedUrl(
         entityTypeSchema.$id,
       );
+
       return {
         metadata: {
           recordId: {
@@ -45,9 +49,9 @@ const Page: NextPageWithLayout = () => {
         },
         schema: entityTypeSchema,
       } satisfies EntityTypeWithMetadata;
-    } else {
-      return null;
     }
+
+    return null;
   }, [router.query.draft]);
 
   const requestedVersion = requestedVersionString
@@ -57,9 +61,8 @@ const Page: NextPageWithLayout = () => {
   if (!routeNamespace) {
     if (loadingNamespace) {
       return null;
-    } else {
-      throw new Error("Namespace for valid entity somehow missing");
     }
+    throw new Error("Namespace for valid entity somehow missing");
   }
 
   return (

@@ -13,7 +13,7 @@ import type { User } from "../graph/knowledge/system-types/user";
 
 /**
  * Apollo context object with dataSources. For details see:
- * https://www.apollographql.com/docs/apollo-server/data/data-sources/
+ * https://www.apollographql.com/docs/apollo-server/data/data-sources/.
  */
 export interface GraphQLContext {
   dataSources: {

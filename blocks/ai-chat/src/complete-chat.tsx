@@ -1,26 +1,31 @@
+import type {
+  FunctionComponent,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { SizeMe } from "react-sizeme";
+import { TransitionGroup } from "react-transition-group";
+import { v4 as uuid } from "uuid";
 import type { EntityId } from "@blockprotocol/graph";
 import { useGraphBlockModule } from "@blockprotocol/graph/react";
 import { useServiceBlockModule } from "@blockprotocol/service/react";
 import { Box, Collapse } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo, useRef, useState } from "react";
-import { SizeMe } from "react-sizeme";
-import { TransitionGroup } from "react-transition-group";
-import { v4 as uuid } from "uuid";
 
 import { ChatMessage } from "./complete-chat/chat-message";
-import type { ChatModelId } from "./complete-chat/chat-model-selector";
-import {
+import type {
+  ChatModelId,
   defaultChatModelId,
   isChatModelId,
 } from "./complete-chat/chat-model-selector";
 import { ChatTextField } from "./complete-chat/chat-textfield";
 import { ExamplePrompts } from "./complete-chat/example-prompts";
 import { Header } from "./complete-chat/header";
-import type { SystemPromptId } from "./complete-chat/system-prompt-selector";
-import {
+import type {
   defaultSystemPromptId,
   isSystemPromptId,
+  SystemPromptId,
   systemPrompts,
 } from "./complete-chat/system-prompt-selector";
 import type {
@@ -55,21 +60,21 @@ export const createResponseId = (): ResponseId => `res_${uuid()}`;
 const isIdResponseId = (id: RequestId | ResponseId): id is ResponseId =>
   id.startsWith("res_");
 
-export type CompleteChatRequest = {
+export interface CompleteChatRequest {
   id: RequestId;
   entityId?: EntityId;
   message: OpenAIChatMessage<"user">;
   active: boolean;
   childResponseIds: ResponseId[];
-};
+}
 
-export type CompleteChatResponse = {
+export interface CompleteChatResponse {
   id: ResponseId;
   entityId?: EntityId;
   message: OpenAIChatMessage<"assistant"> | IncompleteOpenAiAssistantMessage;
   active: boolean;
   childRequestIds: RequestId[];
-};
+}
 
 const isMessageCompleteChatResponse = (
   message: CompleteChatRequest | CompleteChatResponse,
@@ -87,7 +92,7 @@ const constructMessageThread = (params: {
   );
 
   const inActiveResponses = currentResponses.filter(({ active }) => !active);
-  const activeResponse = currentResponses.find(({ active }) => active === true);
+  const activeResponse = currentResponses.find(({ active }) => active);
 
   const nextRequest = activeResponse
     ? allRequests.find(
@@ -246,7 +251,7 @@ export const CompleteChat: FunctionComponent<{
   }
 
   const updateOrAddChatMessage = useCallback(
-    (message: CompleteChatRequest | CompleteChatResponse) =>
+    (message: CompleteChatRequest | CompleteChatResponse) => {
       isMessageCompleteChatResponse(message)
         ? setCompleteChatResponses((previousResponses) => {
             const existingResponseIndex = previousResponses.findIndex(
@@ -273,7 +278,8 @@ export const CompleteChat: FunctionComponent<{
                   message,
                   ...previousRequests.slice(existingRequestIndex + 1),
                 ];
-          }),
+          });
+    },
     [setCompleteChatResponses, setCompleteChatRequests],
   );
 
@@ -316,7 +322,7 @@ export const CompleteChat: FunctionComponent<{
 
       /**
        * Intentionally don't `await` the promise so that calling the `completeChat`
-       * method isn't delayed
+       * method isn't delayed.
        */
       const promisedRequestMessageEntity = createRequestMessageEntity({
         parentResponseEntityId: previousResponse?.entityId,
@@ -443,9 +449,13 @@ export const CompleteChat: FunctionComponent<{
   return (
     <Box
       ref={blockRootRef}
-      onPointerEnter={() => setHovered(true)}
-      onPointerLeave={() => setHovered(false)}
       sx={{ maxWidth: maximumWidth }}
+      onPointerEnter={() => {
+        setHovered(true);
+      }}
+      onPointerLeave={() => {
+        setHovered(false);
+      }}
     >
       <SizeMe>
         {({ size }) => {
@@ -486,8 +496,6 @@ export const CompleteChat: FunctionComponent<{
                     <ChatTextField
                       loading={loading}
                       chatHasStarted={chatHasStarted}
-                      onFocus={() => setInputFocused(true)}
-                      onBlur={() => setInputFocused(false)}
                       submitMessageContent={(messageContent) => {
                         const lastMessage =
                           messageThread[messageThread.length - 1];
@@ -502,6 +510,12 @@ export const CompleteChat: FunctionComponent<{
                             content: messageContent,
                           },
                         });
+                      }}
+                      onFocus={() => {
+                        setInputFocused(true);
+                      }}
+                      onBlur={() => {
+                        setInputFocused(false);
                       }}
                     />
                     <Collapse in={!chatHasStarted}>

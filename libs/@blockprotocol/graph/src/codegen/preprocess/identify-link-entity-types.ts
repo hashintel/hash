@@ -16,7 +16,7 @@ const isLinkEntityType = (
     const currentType = stack.pop()!;
 
     const subResult =
-      !!currentType.allOf &&
+      Boolean(currentType.allOf) &&
       currentType.allOf.some((inheritedTypeUrl) => {
         if (inheritedTypeUrl.$ref === primitiveLinkEntityTypeId) {
           return true;
@@ -35,6 +35,7 @@ const isLinkEntityType = (
         );
 
         stack.push(inheritedType);
+
         return false;
       });
 

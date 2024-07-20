@@ -5,10 +5,10 @@ import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 
-export type PartialEntity = {
+export interface PartialEntity {
   properties: Partial<Entity["properties"]>;
   entityTypeId: VersionedUrl;
-};
+}
 
 export const supportedLinearTypes = ["Issue", "User"] as const;
 
@@ -58,7 +58,7 @@ export type SyncQueryToGoogleSheetWorkflow = (params: {
   userAccountId: AccountId;
 }) => Promise<void>;
 
-export type WorkflowTypeMap = {
+export interface WorkflowTypeMap {
   syncWorkspace: SyncWorkspaceWorkflow;
   readLinearTeams: ReadLinearTeamsWorkflow;
 
@@ -67,4 +67,4 @@ export type WorkflowTypeMap = {
 
   updateLinearData: UpdateLinearDataWorkflow;
   /** @todo: add `createLinearData` */
-};
+}

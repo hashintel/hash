@@ -1,3 +1,4 @@
+import type { FunctionComponent } from "react";
 import { GraphIcon } from "@hashintel/design-system";
 import {
   Divider,
@@ -8,7 +9,6 @@ import {
   toggleButtonClasses,
   useTheme,
 } from "@mui/material";
-import type { FunctionComponent } from "react";
 
 import { BoldIcon } from "../../../../shared/icons/bold-icon";
 import { HighlighterIcon } from "../../../../shared/icons/hightlighter-icon";
@@ -39,7 +39,7 @@ const FormatButton = styled(ToggleButton)(({ theme }) => ({
 
 interface MarksTooltipProps {
   activeMarks: { name: string; attrs?: Record<string, string> }[];
-  toggleMark: (name: string, attrs?: Record<string, string>) => void;
+  toggleMark: (name: string, attributes?: Record<string, string>) => void;
   focusEditorView: () => void;
   openLinkModal: () => void;
 }
@@ -89,7 +89,7 @@ export const MarksTooltip: FunctionComponent<MarksTooltipProps> = ({
       }}
     >
       <Stack
-        direction="row"
+        direction={"row"}
         sx={({ palette }) => ({
           overflow: "hidden",
           border: `1px solid ${palette.gray[20]}`,
@@ -99,7 +99,7 @@ export const MarksTooltip: FunctionComponent<MarksTooltipProps> = ({
         })}
       >
         <FormatButton
-          value="link"
+          value={"link"}
           selected={activeMarks.some((mark) => mark.name === "link")}
           onClick={() => {
             openLinkModal();
@@ -123,7 +123,7 @@ export const MarksTooltip: FunctionComponent<MarksTooltipProps> = ({
       />
 
       <Stack
-        direction="row"
+        direction={"row"}
         sx={({ palette }) => ({
           p: 0.125,
           gap: 0.125,
@@ -137,6 +137,8 @@ export const MarksTooltip: FunctionComponent<MarksTooltipProps> = ({
         {marks.map(({ name, Icon }) => (
           <FormatButton
             value={name}
+            key={name}
+            selected={activeMarks.some((mark) => mark.name === name)}
             sx={{
               px: 1,
               height: 32,
@@ -147,12 +149,10 @@ export const MarksTooltip: FunctionComponent<MarksTooltipProps> = ({
                 fill: theme.palette.gray[90],
               },
             }}
-            key={name}
             onClick={() => {
               toggleMark(name);
               focusEditorView();
             }}
-            selected={activeMarks.some((mark) => mark.name === name)}
           >
             <Icon
               sx={{

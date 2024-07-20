@@ -18,6 +18,7 @@ export const isPathCellPath = (
 
 export const drawArgsToCellPath = (args: DrawArgs<CustomCell>): CellPath => {
   const { tableId, col, row } = args;
+
   return `${tableId}-${col}-${row}`;
 };
 
@@ -25,6 +26,7 @@ export const drawArgsToColumnHeaderPath = (
   args: ColumnHeaderDrawArgs,
 ): ColumnHeaderPath => {
   const { tableId, columnIndex } = args;
+
   return `${tableId}-${columnIndex}`;
 };
 

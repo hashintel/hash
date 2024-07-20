@@ -16,6 +16,7 @@ export const writeToFiles = async (
     context.logTrace(`Writing file ${file}`);
 
     const filePath = path.resolve(targetDir, file);
+
     // create a promise to write the contents to the file
     writeQueue.push(writeFile(filePath, contents));
   }

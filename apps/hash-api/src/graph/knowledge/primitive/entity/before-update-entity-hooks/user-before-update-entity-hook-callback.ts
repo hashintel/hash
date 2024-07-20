@@ -1,3 +1,4 @@
+import { ApolloError, UserInputError } from "apollo-server-express";
 import {
   getDefinedPropertyFromPatchesGetter,
   isValueRemovedByPatches,
@@ -5,7 +6,6 @@ import {
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
-import { ApolloError, UserInputError } from "apollo-server-express";
 
 import { userHasAccessToHash } from "../../../../../shared/user-has-access-to-hash";
 import type { ImpureGraphContext } from "../../../../context-types";
@@ -31,7 +31,7 @@ const validateAccountShortname = async (
       "Shortname may only contain letters, numbers, - or _",
     );
   }
-  if (shortname[0] === "-") {
+  if (shortname.startsWith("-")) {
     throw new UserInputError("Shortname cannot start with '-'");
   }
 
@@ -58,6 +58,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
       baseUrl: "https://hash.ai/@hash/types/property-type/shortname/",
       propertyPatches,
     });
+
     if (isShortnameRemoved) {
       throw new UserInputError("Cannot unset shortname");
     }
@@ -66,6 +67,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
       baseUrl: "https://hash.ai/@hash/types/property-type/email/",
       propertyPatches,
     });
+
     if (isEmailRemoved) {
       throw new UserInputError("Cannot unset email");
     }
@@ -113,6 +115,7 @@ export const userBeforeEntityUpdateHookCallback: BeforeUpdateEntityHookCallback 
         "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/",
       propertyPatches,
     });
+
     if (
       (updatedDisplayName !== undefined && !updatedDisplayName) ||
       isDisplayNameRemoved

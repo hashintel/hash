@@ -38,11 +38,12 @@ import type {
   Subgraph,
 } from "./subgraph.js";
 
-export type BlockGraphProperties<RootEntity extends Entity = Entity> = {
+export interface BlockGraphProperties<RootEntity extends Entity = Entity> {
   /**
    * The 'graph' object contains messages sent under the graph module from the app to the block.
    * They are sent on initialization and again when the application has new values to send.
    * One such message is 'graph.blockEntitySubgraph', which is a data entity fitting the block's schema (its type).
+   *
    * @see https://blockprotocol.org/spec/graph#message-definitions for a full list
    */
   graph: {
@@ -52,12 +53,12 @@ export type BlockGraphProperties<RootEntity extends Entity = Entity> = {
     }>;
     readonly?: boolean;
   };
-};
+}
 
-export type GraphBlockMessageCallbacks = {
+export interface GraphBlockMessageCallbacks {
   blockEntitySubgraph: MessageCallback<Subgraph<EntityRootType>, null>;
   readonly: MessageCallback<boolean, null>;
-};
+}
 
 export type GraphEmbedderMessages<
   Key extends
@@ -85,9 +86,9 @@ export type ReadOrModifyResourceError =
   | "NOT_IMPLEMENTED";
 
 /**
- * @todo Generate these types from the JSON definition, to avoid manually keeping the JSON and types in sync
+ * @todo Generate these types from the JSON definition, to avoid manually keeping the JSON and types in sync.
  */
-export type GraphEmbedderMessageCallbacks = {
+export interface GraphEmbedderMessageCallbacks {
   createEntity: MessageCallback<
     CreateEntityData,
     null,
@@ -215,7 +216,7 @@ export type GraphEmbedderMessageCallbacks = {
     MessageReturn<UploadFileReturn>,
     CreateResourceError
   >;
-};
+}
 
 export type GraphBlockMessages<
   Key extends

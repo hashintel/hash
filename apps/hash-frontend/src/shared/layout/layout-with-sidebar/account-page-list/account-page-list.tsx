@@ -1,16 +1,22 @@
 import type {
+  FunctionComponent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { useLocalstorageState } from "rooks";
+import type {
+  closestCenter,
+  DndContext,
   DragEndEvent,
   DragMoveEvent,
   DragOverEvent,
-  DragStartEvent,
-  UniqueIdentifier,
-} from "@dnd-kit/core";
-import {
-  closestCenter,
-  DndContext,
   DragOverlay,
+  DragStartEvent,
   MeasuringStrategy,
   PointerSensor,
+  UniqueIdentifier,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -27,9 +33,6 @@ import {
   isEntityId,
 } from "@local/hash-subgraph";
 import { Box, Collapse, Tooltip, Typography } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { useLocalstorageState } from "rooks";
 
 import { useAccountPages } from "../../../../components/hooks/use-account-pages";
 import { useArchivePage } from "../../../../components/hooks/use-archive-page";
@@ -43,20 +46,21 @@ import { PlusRegularIcon } from "../../../icons/plus-regular";
 import { NavLink } from "../nav-link";
 import { LoadingSkeleton } from "../shared/loading-skeleton";
 import { ViewAllLink } from "../view-all-link";
+
 import { AccountPageListItem } from "./account-page-list-item";
 import { IDENTATION_WIDTH } from "./page-tree-item";
-import type { TreeItem } from "./utils";
-import {
+import type {
   getLastIndex,
   getProjection,
   getTreeItemList,
   isPageCollapsed,
+  TreeItem,
 } from "./utils";
 
-type AccountPageListProps = {
+interface AccountPageListProps {
   ownedById: OwnedById;
   currentPageEntityUuid?: EntityUuid;
-};
+}
 
 const measuringConfig = {
   droppable: {
@@ -104,10 +108,10 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 
   const [treeItems, setTreeItems] = useState(() => getTreeItemList(data));
 
-  const [prevData, setPrevData] = useState(data);
+  const [previousData, setPreviousData] = useState(data);
 
-  if (data !== prevData) {
-    setPrevData(data);
+  if (data !== previousData) {
+    setPreviousData(data);
     setTreeItems(getTreeItemList(data));
   }
 
@@ -124,9 +128,8 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
         getLastIndex(treeItems),
         enabledFeatureFlags.documents ? "document" : "canvas",
       );
-    } catch (err) {
-      // eslint-disable-next-line no-console -- TODO: consider using logger
-      console.error("Could not create page: ", err);
+    } catch (error) {
+      console.error("Could not create page: ", error);
     }
   }, [createUntitledPage, loading, treeItems, enabledFeatureFlags]);
 
@@ -294,7 +297,9 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
           parentPageEntityId,
           beforeFractionalIndex,
           afterFractionalIndex,
-        ).catch(() => setTreeItems(getTreeItemList(data)));
+        ).catch(() => {
+          setTreeItems(getTreeItemList(data));
+        });
       }
     }
   };
@@ -331,6 +336,10 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
             pageEntityId={entityId}
             pageEntityTypeId={metadata.entityTypeId}
             icon={icon}
+            depth={entityId === activeId && projected ? projected.depth : depth}
+            expanded={isPageExpanded}
+            collapsed={collapsed}
+            archivePage={archivePage}
             pagePath={
               !ownerShortname
                 ? ""
@@ -339,13 +348,9 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
                     pageEntityUuid,
                   })
             }
-            depth={entityId === activeId && projected ? projected.depth : depth}
-            onCollapse={() => handleToggle(entityId)}
             selected={
               currentPageEntityUuid === extractEntityUuidFromEntityId(entityId)
             }
-            expanded={isPageExpanded}
-            collapsed={collapsed}
             createSubPage={async () => {
               if (loading) {
                 return;
@@ -365,7 +370,9 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
                 return expandedIds;
               });
             }}
-            archivePage={archivePage}
+            onCollapse={() => {
+              handleToggle(entityId);
+            }}
           />
         );
 
@@ -377,7 +384,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
                 children
               ) : (
                 <Typography
-                  variant="smallTextLabels"
+                  variant={"smallTextLabels"}
                   sx={{
                     color: ({ palette }) => palette.gray[60],
                     paddingLeft: `${IDENTATION_WIDTH * depth + 28}px`,
@@ -396,12 +403,12 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
     <DndContext
       sensors={sensors}
       collisionDetection={closestCenter}
+      measuring={measuringConfig}
       onDragStart={handleDragStart}
       onDragMove={handleDragMove}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
-      measuring={measuringConfig}
     >
       <SortableContext
         items={pagesFlatIdList}
@@ -409,21 +416,23 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
       >
         <NavLink
           expanded={expanded}
-          toggleExpanded={() => setExpanded((prev) => !prev)}
-          title="Pages"
+          title={"Pages"}
           loading={loading}
+          toggleExpanded={() => {
+            setExpanded((previous) => !previous);
+          }}
           endAdornment={
-            <Tooltip title="Create new page">
+            <Tooltip title={"Create new page"}>
               <IconButton
-                size="small"
                 unpadded
                 rounded
-                className="end-adornment-button"
-                data-testid="create-page-btn"
-                onClick={addPage}
+                size={"small"}
+                className={"end-adornment-button"}
+                data-testid={"create-page-btn"}
                 sx={({ palette }) => ({
                   color: palette.gray[80],
                 })}
+                onClick={addPage}
               >
                 <PlusRegularIcon />
               </IconButton>
@@ -433,14 +442,14 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
           {pagesLoading ? (
             <LoadingSkeleton page />
           ) : (
-            <Box sx={{ marginX: 0.75 }} data-testid="pages-tree">
+            <Box sx={{ marginX: 0.75 }} data-testid={"pages-tree"}>
               {renderPageTree(treeItems)}
 
               <DragOverlay dropAnimation={null} />
             </Box>
           )}
           <Box marginLeft={1} marginTop={0.5}>
-            <ViewAllLink href="/pages">View all pages</ViewAllLink>
+            <ViewAllLink href={"/pages"}>View all pages</ViewAllLink>
           </Box>
         </NavLink>
       </SortableContext>

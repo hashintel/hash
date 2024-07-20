@@ -1,16 +1,17 @@
-import type { Logger } from "@local/hash-backend-utils/logger";
-import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
-import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
 import type { AxiosError } from "axios";
+import type { Logger } from "@local/hash-backend-utils/logger";
+import type {
+  FeatureFlag,
+  featureFlags,
+} from "@local/hash-isomorphic-utils/feature-flags";
 
 import { createKratosIdentity } from "../auth/ory-kratos";
 import type { ImpureGraphContext } from "../graph/context-types";
-import type { User } from "../graph/knowledge/system-types/user";
-import { createUser } from "../graph/knowledge/system-types/user";
+import type { createUser, User } from "../graph/knowledge/system-types/user";
 import { systemAccountId } from "../graph/system-account";
 import { isDevEnv, isTestEnv } from "../lib/env-config";
 
-type SeededUser = {
+interface SeededUser {
   email: string;
   shortname: string;
   displayName: string;
@@ -18,7 +19,7 @@ type SeededUser = {
   isInstanceAdmin?: boolean;
   // If not set, default to "password"
   password?: string;
-};
+}
 
 const devUsers: readonly SeededUser[] = [
   {
@@ -31,7 +32,7 @@ const devUsers: readonly SeededUser[] = [
     email: "alice@example.com",
     shortname: "alice",
     // Alice has all feature flags enabled
-    enabledFeatureFlags: Array.from(featureFlags),
+    enabledFeatureFlags: [...featureFlags],
     displayName: "Alice",
   },
   {
@@ -57,7 +58,7 @@ export const ensureUsersAreSeeded = async ({
   // Or if we're explicitly setting users to seed.
   if (process.env.HASH_SEED_USERS) {
     try {
-      /** @todo validate the JSON parsed from the environment. */
+      /** @todo Validate the JSON parsed from the environment. */
       usersToSeed = JSON.parse(process.env.HASH_SEED_USERS) as SeededUser[];
     } catch (error) {
       logger.error(
@@ -66,7 +67,7 @@ export const ensureUsersAreSeeded = async ({
     }
   }
 
-  for (let index = 0; index < usersToSeed.length; index++) {
+  for (const [index, element] of usersToSeed.entries()) {
     const {
       email,
       shortname,
@@ -74,7 +75,7 @@ export const ensureUsersAreSeeded = async ({
       enabledFeatureFlags,
       password = "password",
       isInstanceAdmin,
-    } = usersToSeed[index]!;
+    } = element;
 
     if (!(email && shortname && displayName)) {
       logger.error(
@@ -95,12 +96,10 @@ export const ensureUsersAreSeeded = async ({
       if (error.response?.status === 409) {
         // The user already exists on 409 CONFLICT, which is fine
         return null;
-      } else {
-        logger.warn(
-          `Could not create seeded user identity, email = "${email}".`,
-        );
-        return Promise.reject(error);
       }
+      logger.warn(`Could not create seeded user identity, email = "${email}".`);
+
+      return Promise.reject(error);
     });
 
     if (maybeNewIdentity !== null) {

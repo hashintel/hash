@@ -1,11 +1,13 @@
+import type { FunctionComponent, useCallback, useMemo } from "react";
+import { Controller, useFormContext } from "react-hook-form";
 import type {
   EntityRootType,
   EntityType,
+  extractBaseUrl,
   ParseVersionedUrlError,
   Subgraph,
   VersionedUrl,
 } from "@blockprotocol/graph";
-import { extractBaseUrl } from "@blockprotocol/graph";
 import {
   getEntityTypeById,
   getIncomingLinksForEntity,
@@ -19,9 +21,6 @@ import {
   Select,
   TextField,
 } from "@mui/material";
-import type { FunctionComponent } from "react";
-import { useCallback, useMemo } from "react";
-import { Controller, useFormContext } from "react-hook-form";
 
 import type {
   BarChartCountLinkedEntitiesVariant,
@@ -30,7 +29,7 @@ import type {
 import { getEntityTypePropertyTypes } from "../util";
 
 export const generateXAxisLabel = (params: { entityType: EntityType }) =>
-  `${pluralize(params.entityType.title)}`;
+  pluralize(params.entityType.title);
 
 export const generateYAxisLabel = (params: {
   linkEntityType: EntityType;
@@ -50,12 +49,10 @@ const getOutgoingLinkEntityTypes = (params: {
 
   /** @todo: account for inherited links */
 
-  return outgoingLinkEntityTypeIds
-    .map(
-      (linkEntityTypeId) =>
-        getEntityTypeById(params.queryResult, linkEntityTypeId)?.schema ?? [],
-    )
-    .flat();
+  return outgoingLinkEntityTypeIds.flatMap(
+    (linkEntityTypeId) =>
+      getEntityTypeById(params.queryResult, linkEntityTypeId)?.schema ?? [],
+  );
 };
 
 const getIncomingLinkEntityTypes = (params: {
@@ -65,18 +62,16 @@ const getIncomingLinkEntityTypes = (params: {
   const entities = getRoots(queryResult);
 
   return entities
-    .map(({ metadata }) =>
+    .flatMap(({ metadata }) =>
       getIncomingLinksForEntity(queryResult, metadata.recordId.entityId),
     )
-    .flat()
     .map((linkEntity) => linkEntity.metadata.entityTypeId)
     .filter((linkEntityTypeId, i, all) => all.indexOf(linkEntityTypeId) === i)
-    .map((linkEntityTypeId) => {
+    .flatMap((linkEntityTypeId) => {
       const linkEntityType = getEntityTypeById(queryResult, linkEntityTypeId);
 
       return linkEntityType?.schema ?? [];
-    })
-    .flat();
+    });
 };
 
 export const generateInitialChartDefinition = (params: {
@@ -239,20 +234,20 @@ export const CountLinksForm: FunctionComponent<{
     <>
       <Controller
         control={control}
-        name="labelPropertyTypeId"
+        name={"labelPropertyTypeId"}
         disabled={!entityTypePropertyTypes}
         render={({ field }) => (
           <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel id="label-property-type">
+            <InputLabel id={"label-property-type"}>
               Label Property Type
             </InputLabel>
             <Select
               {...field}
               // prevent MUI from logging a warning
-              value={entityTypePropertyTypes ? field.value : ""}
-              labelId="label-property-type"
-              label="Label Property Type"
               required
+              value={entityTypePropertyTypes ? field.value : ""}
+              labelId={"label-property-type"}
+              label={"Label Property Type"}
             >
               {entityTypePropertyTypes?.map(({ $id, title }) => (
                 <MenuItem key={$id} value={$id}>
@@ -265,42 +260,45 @@ export const CountLinksForm: FunctionComponent<{
       />
       <Controller
         control={control}
-        name="direction"
+        name={"direction"}
         render={({ field }) => (
           <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel id="link-direction">Link Direction</InputLabel>
+            <InputLabel id={"link-direction"}>Link Direction</InputLabel>
             <Select
               {...field}
+              required
+              labelId={"label-property-type"}
+              label={"Label Property Type"}
               onChange={(event) => {
                 regenerateYAxisLabel({
                   direction: event.target.value as "incoming" | "outgoing",
                 });
                 field.onChange(event);
               }}
-              labelId="label-property-type"
-              label="Label Property Type"
-              required
             >
-              <MenuItem value="incoming">Incoming</MenuItem>
-              <MenuItem value="outgoing">Outgoing</MenuItem>
+              <MenuItem value={"incoming"}>Incoming</MenuItem>
+              <MenuItem value={"outgoing"}>Outgoing</MenuItem>
             </Select>
           </FormControl>
         )}
       />
       <Controller
         control={control}
-        name="linkEntityTypeId"
+        name={"linkEntityTypeId"}
         disabled={!linkEntityTypes}
         render={({ field }) => (
           <FormControl sx={{ minWidth: 200 }}>
-            <InputLabel id="link-entity-type-id">
+            <InputLabel id={"link-entity-type-id"}>
               {direction === "incoming" ? "Incoming" : "Outgoing"} Link Entity
               Type
             </InputLabel>
             <Select
               {...field}
               // prevent MUI from logging a warning
+              required
               value={linkEntityTypes ? field.value : ""}
+              labelId={"link-entity-type-id"}
+              label={"Link Entity Type"}
               onChange={(event) => {
                 regenerateYAxisLabel({
                   linkEntityTypeId: event.target.value as VersionedUrl,
@@ -308,9 +306,6 @@ export const CountLinksForm: FunctionComponent<{
 
                 field.onChange(event);
               }}
-              labelId="link-entity-type-id"
-              label="Link Entity Type"
-              required
             >
               {linkEntityTypes?.map(({ $id, title }) => (
                 <MenuItem key={$id} value={$id}>
@@ -322,15 +317,15 @@ export const CountLinksForm: FunctionComponent<{
         )}
       />
       <TextField
-        id="x-axis-label"
         fullWidth
-        label="X Axis Label"
+        id={"x-axis-label"}
+        label={"X Axis Label"}
         {...register("xAxisLabel")}
       />
       <TextField
-        id="y-axis-label"
         fullWidth
-        label="Y Axis Label"
+        id={"y-axis-label"}
+        label={"Y Axis Label"}
         {...register("yAxisLabel")}
       />
     </>
