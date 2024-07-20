@@ -78,10 +78,9 @@ const drawClippedImage = ({
  * @param left - Left position of chip.
  * @param color - The chip color.
  * @param [variant] - The chip variant.
- * @param [icon] the icon to draw
- * @param [imageSrc] the image to draw
- *
- * @returns width of the drawn chip
+ * @param [icon] - The icon to draw.
+ * @param [imageSrc] - The image to draw.
+ * @returns Width of the drawn chip.
  */
 export const drawChipWithIcon = ({
   args,

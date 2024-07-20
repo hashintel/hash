@@ -98,10 +98,10 @@ export const AccountEntitiesList: FunctionComponent<
     <Box>
       <NavLink
         expanded={expanded}
+        title={"Entities"}
         toggleExpanded={() => {
           setExpanded((previous) => !previous);
         }}
-        title={"Entities"}
         endAdornment={
           <Box display={"flex"} gap={1}>
             <Fade in={expanded}>

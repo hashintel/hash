@@ -184,13 +184,13 @@ export const SortableRow = ({
         position: "relative",
         outline: "none",
       }}
+      onClick={() => onSelect?.(id)}
       onMouseEnter={() => {
         setHovered(true);
       }}
       onMouseLeave={() => {
         setHovered(false);
       }}
-      onClick={() => onSelect?.(id)}
     >
       <Box
         {...listeners}

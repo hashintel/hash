@@ -296,11 +296,11 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
         incomingOrOutgoingDraftLinksToIgnore && (
           <AlertModal
             callback={handleIgnoreDraftLinkEntitiesWithDraftLinks}
+            header={"Ignore additional drafts"}
+            type={"info"}
             close={() => {
               setShowDraftEntitiesWithDraftLinksWarning(false);
             }}
-            header={"Ignore additional drafts"}
-            type={"info"}
             calloutMessage={
               <>
                 {incomingOrOutgoingDraftLinksToIgnore.length} additional draft

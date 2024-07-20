@@ -271,10 +271,10 @@ const BlockContextMenu: ForwardRefRenderFunction<
             /** @todo Add timeProjection & resolvedTimeProjection properly */
             blockSubgraph
           }
+          onSubmit={handleEntityModalSubmit}
           onClose={() => {
             setEntityEditorOpen(false);
           }}
-          onSubmit={handleEntityModalSubmit}
         />
       )}
       <Menu
@@ -336,11 +336,11 @@ const BlockContextMenu: ForwardRefRenderFunction<
                 title={title}
                 itemKey={key}
                 icon={icon}
+                subMenu={subMenu}
+                subMenuWidth={subMenuWidth}
                 closeMenu={() => {
                   popupState.close();
                 }}
-                subMenu={subMenu}
-                subMenuWidth={subMenuWidth}
                 onClick={() => {
                   onClick?.();
                   popupState.close();

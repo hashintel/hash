@@ -179,7 +179,7 @@ export const WorkspaceSwitcher = () => {
             href: "/settings/organizations/new",
           },
         ].map(({ title, href }, index) => (
-          // eslint-disable-next-line react/no-array-index-key
+           
           <MenuItem
             key={index}
             href={href}

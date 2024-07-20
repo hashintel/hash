@@ -148,10 +148,10 @@ export const EntityTypeHeader = ({
           <Box>
             <CreateEntityTypeForm
               inModal
+              initialData={{ extendsEntityTypeId: entityTypeSchema.$id }}
               afterSubmit={() => {
                 setShowExtendTypeModal(false);
               }}
-              initialData={{ extendsEntityTypeId: entityTypeSchema.$id }}
               onCancel={() => {
                 setShowExtendTypeModal(false);
               }}

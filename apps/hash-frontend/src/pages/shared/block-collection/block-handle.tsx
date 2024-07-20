@@ -115,10 +115,10 @@ const BlockHandle: ForwardRefRenderFunction<
         anchorRef={ref}
         blockEntity={blockEntity}
         closeMenu={configMenuPopupState.close}
+        popupState={configMenuPopupState}
         updateConfig={(properties: JsonObject) => {
           updateChildEntity(properties);
         }}
-        popupState={configMenuPopupState}
       />
     </Box>
   );

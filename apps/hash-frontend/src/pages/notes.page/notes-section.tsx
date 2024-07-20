@@ -40,11 +40,11 @@ export const NotesSection = forwardRef<
           heading={heading}
           subheading={dayTimestamp}
           isCollapsed={isCollapsed}
+          navigateUp={navigateUp}
+          navigateDown={navigateDown}
           toggleIsCollapsed={() => {
             setIsCollapsed(!isCollapsed);
           }}
-          navigateUp={navigateUp}
-          navigateDown={navigateDown}
         />
         <Box flexGrow={1}>
           <Collapse in={!isCollapsed}>

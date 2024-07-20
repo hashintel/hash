@@ -10,7 +10,7 @@ import { drawChip } from "./draw-chip";
  * @param left - Left position of chip.
  * @param textColor - Text color.
  * @param bgColor - Background color.
- * @returns width of the drawn chip
+ * @returns Width of the drawn chip.
  */
 export const drawChipWithText = ({
   args,

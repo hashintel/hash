@@ -1,6 +1,4 @@
-import React, { type FunctionComponent } from "react";
-
-import React, { useLayoutEffect, useRef, useState } from "react";
+import React, { type FunctionComponent , useLayoutEffect, useRef, useState } from "react";
 import { createComponent } from "@lit-labs/react";
 
 import type { CustomElementDefinition } from "../util";

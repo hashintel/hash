@@ -87,10 +87,10 @@ export const TodaySection = forwardRef<
           heading={"Today"}
           subheading={format(new Date(), "yyyy-MM-dd")}
           isCollapsed={isCollapsed}
+          navigateDown={navigateDown}
           toggleIsCollapsed={() => {
             setIsCollapsed(!isCollapsed);
           }}
-          navigateDown={navigateDown}
         />
         <Box flexGrow={1}>
           <NotesWrapper sx={{ padding: ({ spacing }) => spacing(3.25, 4.5) }}>

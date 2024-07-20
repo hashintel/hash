@@ -51,11 +51,11 @@ export const LoggedIn = () => {
         </HomepageBigText>
         <HomepageMediumText>or suggest a change</HomepageMediumText>
         <Button
+          variant={"white_cta"}
+          size={"small"}
           href={
             "https://hash.ai/contact?topic=support&category=suggest_improvement"
           }
-          variant={"white_cta"}
-          size={"small"}
         >
           Make
           <Box
@@ -85,11 +85,11 @@ export const LoggedIn = () => {
         </HomepageBigText>
         <HomepageMediumText>or unexpected behavior</HomepageMediumText>
         <Button
+          variant={"white_cta"}
+          size={"small"}
           href={
             "https://hash.ai/contact?topic=support&category=report_an_issue"
           }
-          variant={"white_cta"}
-          size={"small"}
         >
           Let us know
           <BugIcon

@@ -77,7 +77,7 @@ const App: FunctionComponent<AppProps> = ({
 
   useEffect(() => {
     configureScope((scope) =>
-      // eslint-disable-next-line no-console -- TODO: consider using logger
+       
       {
         console.log(`Build: ${scope.getSession()?.release ?? "not set"}`);
       },

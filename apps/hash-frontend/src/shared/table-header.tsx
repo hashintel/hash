@@ -300,10 +300,10 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
         ) : (
           <>
             <NoMaxWidthTooltip
+              placement={"top"}
               title={
                 "Visible to you inside your personal web and organizations you belong to"
               }
-              placement={"top"}
             >
               <Chip
                 label={`${numberOfUserWebItems ?? "–"} in your webs`}

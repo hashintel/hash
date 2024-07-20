@@ -276,10 +276,10 @@ export const createEditorView = (params: {
     * plugins,
     * accountId,
     * () => {
-      view.dispatch(onError(view.state.tr));
-    },
-  );
-   * @todo the collab editor connection is disabled currently.
+      * view.dispatch(onError(view.state.tr));
+    * },
+  * );
+   * @todo The collab editor connection is disabled currently.
   */
 
   view.dom.classList.add(styles.ProseMirror!);

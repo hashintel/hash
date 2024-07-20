@@ -189,10 +189,10 @@ const ActionsPage: NextPageWithLayout = () => {
               </InlineSelect>
             </Box>
             <DraftEntitiesBulkActionsDropdown
+              selectedDraftEntityIds={selectedDraftEntityIds}
               deselectAllDraftEntities={() => {
                 setSelectedDraftEntityIds([]);
               }}
-              selectedDraftEntityIds={selectedDraftEntityIds}
               draftEntitiesWithLinkedDataSubgraph={
                 draftEntitiesWithLinkedDataSubgraph
               }

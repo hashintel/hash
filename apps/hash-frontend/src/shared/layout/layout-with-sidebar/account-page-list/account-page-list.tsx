@@ -416,11 +416,11 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
       >
         <NavLink
           expanded={expanded}
+          title={"Pages"}
+          loading={loading}
           toggleExpanded={() => {
             setExpanded((previous) => !previous);
           }}
-          title={"Pages"}
-          loading={loading}
           endAdornment={
             <Tooltip title={"Create new page"}>
               <IconButton

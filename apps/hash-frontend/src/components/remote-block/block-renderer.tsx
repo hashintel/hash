@@ -53,7 +53,7 @@ export const BlockRenderer: FunctionComponent<BlockRendererProps> = ({
         tagName={blockType.tagName}
       />
     );
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
+     
   }
   if (entryPoint === "react") {
     if (typeof blockSource !== "function") {

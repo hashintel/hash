@@ -391,10 +391,10 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                 sx={{
                   maxWidth: "unset",
                 }}
+                onCreateNew={handleCreateNewEntityType}
                 onCancel={() => {
                   setDisplayEntityTypesSearch(false);
                 }}
-                onCreateNew={handleCreateNewEntityType}
                 onSelect={(entityType) => {
                   append(entityType);
                   setDisplayEntityTypesSearch(false);

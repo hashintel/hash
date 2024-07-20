@@ -214,14 +214,14 @@ export const ArrayEditor: ValueCellEditorComponent = ({
                 selected={selectedRow === item.id}
                 expectedTypes={expectedTypes}
                 onRemove={removeItem}
+                onSaveChanges={handleSaveChanges}
+                onSelect={toggleSelectedRow}
                 onEditClicked={(id) => {
                   setEditingRow(id);
                 }}
-                onSaveChanges={handleSaveChanges}
                 onDiscardChanges={() => {
                   setEditingRow("");
                 }}
-                onSelect={toggleSelectedRow}
               />
             ))}
           </SortableContext>

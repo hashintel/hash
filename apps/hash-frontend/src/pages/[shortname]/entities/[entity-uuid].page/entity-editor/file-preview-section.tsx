@@ -193,12 +193,12 @@ export const FilePreviewSection = () => {
       >
         {replacing ? (
           <ReplaceFile
-            close={() => {
-              setReplacing(false);
-            }}
             description={description}
             displayName={displayName}
             isImage={Boolean(isImage)}
+            close={() => {
+              setReplacing(false);
+            }}
           />
         ) : (
           <>

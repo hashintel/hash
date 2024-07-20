@@ -115,10 +115,10 @@ export const Waitlisted = () => {
       {!isSelfHostedInstance && !hasSubmittedForm && (
         <EarlyAccessFormModal
           open={earlyAccessFormState === "open"}
+          onSubmit={submitForm}
           onClose={() => {
             setEarlyAccessFormState("closed");
           }}
-          onSubmit={submitForm}
         />
       )}
       <HomepageGrid>
@@ -206,11 +206,11 @@ export const Waitlisted = () => {
           </HomepageBigText>
           <HomepageSmallCaps>Get ready</HomepageSmallCaps>
           <Button
+            variant={"white_cta"}
+            size={"small"}
             href={
               "https://chromewebstore.google.com/detail/hash-ai/nljhmbdifehhnkhinhfooebllaajlddb"
             }
-            variant={"white_cta"}
-            size={"small"}
           >
             <ChromeIcon sx={{ fontSize: 18, mr: 1.5 }} />
             Download for Chrome

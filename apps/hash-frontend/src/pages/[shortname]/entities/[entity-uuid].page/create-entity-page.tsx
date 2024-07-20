@@ -117,11 +117,11 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       {errorMessage && (
         <AlertModal
           calloutMessage={errorMessage}
+          header={"Couldn't create entity"}
+          type={"warning"}
           close={() => {
             setErrorMessage("");
           }}
-          header={"Couldn't create entity"}
-          type={"warning"}
         >
           <Typography>
             Please <Link href={"https://hash.ai/contact"}>contact us</Link> and

@@ -425,28 +425,28 @@ const NewGoalPageContent = () => {
           })}
         >
           <Question
+            number={1}
+            text={"Choose a web"}
             description={
               "Information uploaded and created while performing this task will be added to this web"
             }
-            number={1}
-            text={"Choose a web"}
           >
             <WebSelector
               avatarSize={18}
               inputHeight={30}
               inputId={"web-selector"}
+              selectedWebOwnedById={webId}
               setSelectedWebOwnedById={(ownedById) => {
                 setWebId(ownedById);
               }}
-              selectedWebOwnedById={webId}
             />
           </Question>
           <Question
+            number={2}
+            text={"What do you want to research?"}
             description={
               "Your web will be populated with entities matching your research goal."
             }
-            number={2}
-            text={"What do you want to research?"}
           >
             <TextField
               inputProps={{}}
@@ -469,11 +469,11 @@ const NewGoalPageContent = () => {
             />
           </Question>
           <Question
+            number={3}
+            text={"What types of entities are you looking for?"}
             description={
               "The research task will look for entities that match these types."
             }
-            number={3}
-            text={"What types of entities are you looking for?"}
           >
             <Box mb={1}>
               <EntityTypeSelector
@@ -498,11 +498,11 @@ const NewGoalPageContent = () => {
             </Box>
           </Question>
           <Question
+            number={4}
+            text={"What sources do you want to use?"}
             description={
               "Entities will be created from the information sources you provide access to."
             }
-            number={4}
-            text={"What sources do you want to use?"}
           >
             <SettingCard>
               <Box>
@@ -529,11 +529,11 @@ const NewGoalPageContent = () => {
             </SettingCard>
           </Question>
           <Question
+            number={5}
+            text={"What do you want to output?"}
             description={
               "Select how outputs of this research goal should be created."
             }
-            number={5}
-            text={"What do you want to output?"}
           >
             <SettingCard>
               <Box>

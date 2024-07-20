@@ -43,6 +43,7 @@ export const SelectOrNameGoogleSheet = ({
     <>
       {showReauthModal && (
         <AlertModal
+          type={"info"}
           callback={() => {
             addGoogleAccount();
           }}
@@ -52,7 +53,6 @@ export const SelectOrNameGoogleSheet = ({
           close={() => {
             setShowReauthModal(false);
           }}
-          type={"info"}
         >
           <Typography>
             Please log in with Google again to continue setting up the flow.

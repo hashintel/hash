@@ -172,10 +172,10 @@ export const DiscardDraftEntityButton: FunctionComponent<
       {showDraftEntityWithDraftLinksWarning && (
         <AlertModal
           callback={handleIgnoreDraftEntityWithDraftLinks}
+          type={"info"}
           close={() => {
             setShowDraftEntityWithDraftLinksWarning(false);
           }}
-          type={"info"}
           calloutMessage={
             <>
               The <strong>{label}</strong> draft entity has{" "}
