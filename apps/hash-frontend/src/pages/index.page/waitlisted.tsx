@@ -115,7 +115,9 @@ export const Waitlisted = () => {
       {!isSelfHostedInstance && !hasSubmittedForm && (
         <EarlyAccessFormModal
           open={earlyAccessFormState === "open"}
-          onClose={() => { setEarlyAccessFormState("closed"); }}
+          onClose={() => {
+            setEarlyAccessFormState("closed");
+          }}
           onSubmit={submitForm}
         />
       )}
@@ -162,7 +164,9 @@ export const Waitlisted = () => {
                 variant={"primary"}
                 size={"small"}
                 sx={{ borderRadius: 2 }}
-                onClick={() => { setEarlyAccessFormState("open"); }}
+                onClick={() => {
+                  setEarlyAccessFormState("open");
+                }}
               >
                 {hasSubmittedForm ? (
                   <>
@@ -202,7 +206,9 @@ export const Waitlisted = () => {
           </HomepageBigText>
           <HomepageSmallCaps>Get ready</HomepageSmallCaps>
           <Button
-            href={"https://chromewebstore.google.com/detail/hash-ai/nljhmbdifehhnkhinhfooebllaajlddb"}
+            href={
+              "https://chromewebstore.google.com/detail/hash-ai/nljhmbdifehhnkhinhfooebllaajlddb"
+            }
             variant={"white_cta"}
             size={"small"}
           >

@@ -1,10 +1,10 @@
-import type { Dispatch, SetStateAction , useState } from "react";
+import type { Dispatch, SetStateAction, useState } from "react";
 import { FileIconRegular, IconButton } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { Box, Stack, SxProps, Theme , Typography } from "@mui/material";
+import type { Box, Stack, SxProps, Theme, Typography } from "@mui/material";
 
 import { useFileUploads } from "../../../shared/file-upload-context";
 import { XMarkRegularIcon } from "../../../shared/icons/x-mark-regular-icon";
@@ -131,16 +131,16 @@ export const FileSettings = ({
               <UploadedFile
                 fileEntity={fileEntity}
                 key={fileEntity.metadata.recordId.entityId}
-                removeFromFlow={() =>
-                  { setSettings((currentSettings) => ({
+                removeFromFlow={() => {
+                  setSettings((currentSettings) => ({
                     ...currentSettings,
                     fileEntities: currentSettings.fileEntities.filter(
                       (entity) =>
                         entity.metadata.recordId.entityId !==
                         fileEntity.metadata.recordId.entityId,
                     ),
-                  })); }
-                }
+                  }));
+                }}
               />
             ))}
           </Box>

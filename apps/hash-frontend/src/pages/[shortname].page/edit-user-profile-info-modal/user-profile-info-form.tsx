@@ -1,4 +1,4 @@
-import type { FunctionComponent , useCallback, useState } from "react";
+import type { FunctionComponent, useCallback, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { useMutation } from "@apollo/client";
 import { Select, TextField } from "@hashintel/design-system";
@@ -243,22 +243,21 @@ export const UserProfileInfoForm: FunctionComponent<{
         serviceAccountProfileUrlsToUpdate.map((serviceAccount) =>
           updateServiceAccountProfileUrl({ serviceAccount }),
         ),
-        serviceAccountsToReplace.map(
-          async (serviceAccount) =>
-            Promise.all([
-              removeServiceAccount({
-                serviceAccount: {
-                  ...serviceAccount,
-                  linkEntity: serviceAccount.existingLinkEntity,
-                  serviceAccountEntity:
-                    serviceAccount.existingServiceAccountEntity,
-                },
-              }),
-              addServiceAccount({
-                kind: serviceAccount.kind,
-                profileUrl: serviceAccount.profileUrl,
-              }),
-            ]),
+        serviceAccountsToReplace.map(async (serviceAccount) =>
+          Promise.all([
+            removeServiceAccount({
+              serviceAccount: {
+                ...serviceAccount,
+                linkEntity: serviceAccount.existingLinkEntity,
+                serviceAccountEntity:
+                  serviceAccount.existingServiceAccountEntity,
+              },
+            }),
+            addServiceAccount({
+              kind: serviceAccount.kind,
+              profileUrl: serviceAccount.profileUrl,
+            }),
+          ]),
         ),
       ]);
     },

@@ -1,4 +1,4 @@
-import type { Fragment, ReactNode , useCallback, useState } from "react";
+import type { Fragment, ReactNode, useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import { v4 as uuid } from "uuid";
 
@@ -26,7 +26,11 @@ export const BlockPortals = ({ draftId, portals }: PortalProps) => {
   );
 };
 
-export interface BlockPortal { id: string; key: string; reactNode: ReactNode }
+export interface BlockPortal {
+  id: string;
+  key: string;
+  reactNode: ReactNode;
+}
 
 type PortalSet = Map<HTMLElement, BlockPortal>;
 
@@ -79,15 +83,12 @@ export const usePortals = () => {
 
   // Group the portals by the block they belong to
   const groupedPortals = [...portals.entries()].reduce<{
-      [id: string]: [HTMLElement, BlockPortal][];
-    }>(
-    (object, portal) => {
-      const {id} = portal[1];
+    [id: string]: [HTMLElement, BlockPortal][];
+  }>((object, portal) => {
+    const { id } = portal[1];
 
-      return { ...object, [id]: [...(object[id] ?? []), portal] };
-    },
-    {},
-  );
+    return { ...object, [id]: [...(object[id] ?? []), portal] };
+  }, {});
 
   const renderedPortals = Object.keys(groupedPortals).map((draftId) => {
     return (

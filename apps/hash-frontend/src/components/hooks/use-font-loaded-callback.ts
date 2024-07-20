@@ -1,5 +1,5 @@
 import { useLayoutEffect } from "react";
-import useFontFaceObserver, type { FontFace } from "use-font-face-observer";
+import useFontFaceObserver, { type FontFace } from "use-font-face-observer";
 
 export const useFontLoadedCallback = (
   fontList: FontFace[],

@@ -1,16 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 
-import type {   loadCrossFrameRemoteBlock,
+import type {
+  loadCrossFrameRemoteBlock,
   loadRemoteBlock,
-UnknownBlock ,
+  UnknownBlock,
 } from "./load-remote-block";
 import { isTopWindow } from "./util";
 
 type UseRemoteBlockHook = (
-    url: string,
-    crossFrame?: boolean,
-    onBlockLoaded?: () => void,
-  ) => [boolean, Error | undefined, UnknownBlock | undefined];
+  url: string,
+  crossFrame?: boolean,
+  onBlockLoaded?: () => void,
+) => [boolean, Error | undefined, UnknownBlock | undefined];
 
 interface UseRemoteComponentState {
   loading: boolean;
@@ -94,7 +95,7 @@ export const useRemoteBlock: UseRemoteBlockHook = (
     }
 
     const controller = new AbortController();
-    const {signal} = controller;
+    const { signal } = controller;
 
     loadedRef.current = false;
 

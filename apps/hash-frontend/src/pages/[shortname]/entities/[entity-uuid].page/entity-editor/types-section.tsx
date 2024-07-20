@@ -114,14 +114,20 @@ export const TypesSection = () => {
     }
   };
 
-  const closeModal = () => { setUpdateModalOpen(false); };
-  const openModal = () => { setUpdateModalOpen(true); };
+  const closeModal = () => {
+    setUpdateModalOpen(false);
+  };
+  const openModal = () => {
+    setUpdateModalOpen(true);
+  };
   const currentVersion = extractVersion(entityTypeId);
 
   return (
     <SectionWrapper
       title={"Types"}
-      titleTooltip={"Types describe what an entity is, allowing information to be associated with it. Entities can have an unlimited number of types."}
+      titleTooltip={
+        "Types describe what an entity is, allowing information to be associated with it. Entities can have an unlimited number of types."
+      }
     >
       <Box display={"flex"} gap={2}>
         <TypeCard

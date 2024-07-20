@@ -21,7 +21,13 @@ export const SectionWrapper: FunctionComponent<SectionWrapperProps> = ({
   tooltipIcon,
 }) => (
   <Box>
-    <Box mb={2} display={"flex"} alignItems={"center"} gap={1.5} flexWrap={"wrap"}>
+    <Box
+      mb={2}
+      display={"flex"}
+      alignItems={"center"}
+      gap={1.5}
+      flexWrap={"wrap"}
+    >
       <Box display={"flex"} alignItems={"center"}>
         <Typography variant={"h5"}>{title}</Typography>
 

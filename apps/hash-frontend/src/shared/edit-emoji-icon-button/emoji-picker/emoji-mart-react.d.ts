@@ -4,6 +4,5 @@ declare module "@emoji-mart/react" {
 
   const ReactComponent: FunctionComponent<PickerProps>;
 
-   
   export default ReactComponent;
 }

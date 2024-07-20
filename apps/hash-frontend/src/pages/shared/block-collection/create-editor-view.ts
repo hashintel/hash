@@ -6,7 +6,10 @@ import type { RefObject } from "react";
 import type { ApolloClient } from "@apollo/client";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import type { ComponentIdHashBlockMap , paragraphBlockComponentId } from "@local/hash-isomorphic-utils/blocks";
+import type {
+  ComponentIdHashBlockMap,
+  paragraphBlockComponentId,
+} from "@local/hash-isomorphic-utils/blocks";
 import { createProseMirrorState } from "@local/hash-isomorphic-utils/create-prose-mirror-state";
 import type { BlockEntity } from "@local/hash-isomorphic-utils/entity";
 import {
@@ -189,7 +192,9 @@ export const createEditorView = (params: {
           pageEntityId,
           getBlocksMap,
           client,
-          () => { snackbarManager.closeSnackbar(errorSnackbarKey); },
+          () => {
+            snackbarManager.closeSnackbar(errorSnackbarKey);
+          },
           (message: string) =>
             snackbarManager.triggerSnackbar.error(message, {
               key: errorSnackbarKey,

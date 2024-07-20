@@ -11,7 +11,9 @@ interface HighlightProps {
 const Highlight = ({ onAnimationComplete }: HighlightProps) => {
   const [visible, setVisible] = useState(true);
 
-  useEffect(() => { setVisible(false); }, []);
+  useEffect(() => {
+    setVisible(false);
+  }, []);
 
   return (
     <Fade
@@ -48,6 +50,10 @@ export const BlockHighlight = ({ blockEntityId }: BlockHighlightProps) => {
   }
 
   return (
-    <Highlight onAnimationComplete={() => { setHighlightedBlockId(undefined); }} />
+    <Highlight
+      onAnimationComplete={() => {
+        setHighlightedBlockId(undefined);
+      }}
+    />
   );
 };

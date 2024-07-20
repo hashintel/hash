@@ -1,9 +1,10 @@
-import type { FunctionComponent, ReactNode , useMemo } from "react";
+import type { FunctionComponent, ReactNode, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { TextField } from "@hashintel/design-system";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
-import type {   Box,
-BoxProps ,
+import type {
+  Box,
+  BoxProps,
   InputAdornment,
   inputAdornmentClasses,
   Typography,
@@ -16,7 +17,7 @@ import { ChevronRightRegularIcon } from "../../shared/icons/chevron-right-regula
 import { CircleRegularInfoIcon } from "../../shared/icons/circle-info-regular-icon";
 import { TriangleExclamationRegularIcon } from "../../shared/icons/triangle-exclamation-regular-icon";
 import { Button, Link } from "../../shared/ui";
-import type { InvitationInfo , ORG_ROLES } from "../shared/auth-utils";
+import type { InvitationInfo, ORG_ROLES } from "../shared/auth-utils";
 
 const inputWidth = 250;
 
@@ -364,7 +365,9 @@ export const AccountSetupForm: FunctionComponent<AccountSetupFormProps> = ({
           endIcon={<ChevronRightRegularIcon />}
           sx={{ width: inputWidth }}
           disabled={
-            !isValid || loading || (Boolean(invitationInfo) && !responsibilityWatcher)
+            !isValid ||
+            loading ||
+            (Boolean(invitationInfo) && !responsibilityWatcher)
           }
         >
           Continue

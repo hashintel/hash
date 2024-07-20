@@ -5,9 +5,10 @@ import type { LinkProps as NextLinkProps } from "next/link";
 import NextLink from "next/link";
 import { useRouter } from "next/router";
 import { forwardRef, isValidElement } from "react";
-import type {   // eslint-disable-next-line no-restricted-imports
+import type {
+  // eslint-disable-next-line no-restricted-imports
   Link as MuiLink,
-LinkProps as MuiLinkProps ,
+  LinkProps as MuiLinkProps,
   styled,
 } from "@mui/material";
 
@@ -88,7 +89,7 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(
     });
 
     if (process.env.NODE_ENV !== "production") {
-      const {children} = other;
+      const { children } = other;
 
       if (isValidElement(children) && children.type === Button) {
         throw new Error(

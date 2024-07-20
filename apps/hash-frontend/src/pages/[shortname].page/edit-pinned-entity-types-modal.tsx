@@ -1,9 +1,20 @@
-import type { FunctionComponent, ReactElement , useCallback, useEffect, useRef, useState } from "react";
 import type {
- DragDropContext, Draggable,   DraggableProvided,
+  FunctionComponent,
+  ReactElement,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import type {
+  DragDropContext,
+  Draggable,
+  DraggableProvided,
   DraggingStyle,
-Droppable,  NotDraggingStyle,
-  OnDragEndResponder } from "react-beautiful-dnd";
+  Droppable,
+  NotDraggingStyle,
+  OnDragEndResponder,
+} from "react-beautiful-dnd";
 import { createPortal } from "react-dom";
 import { useFieldArray, useForm } from "react-hook-form";
 import { useMutation } from "@apollo/client";
@@ -15,7 +26,12 @@ import {
   systemEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { Box, ModalProps , Typography, typographyClasses } from "@mui/material";
+import type {
+  Box,
+  ModalProps,
+  Typography,
+  typographyClasses,
+} from "@mui/material";
 
 import { useBlockProtocolCreateEntityType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-create-entity-type";
 import type {
@@ -350,7 +366,11 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                               <ArrowUpRightRegularIcon sx={{ fontSize: 14 }} />
                             </Box>
                           </Link>
-                          <IconButton onClick={() => { remove(index); }}>
+                          <IconButton
+                            onClick={() => {
+                              remove(index);
+                            }}
+                          >
                             <XMarkRegularIcon />
                           </IconButton>
                         </Box>
@@ -371,7 +391,9 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                 sx={{
                   maxWidth: "unset",
                 }}
-                onCancel={() => { setDisplayEntityTypesSearch(false); }}
+                onCancel={() => {
+                  setDisplayEntityTypesSearch(false);
+                }}
                 onCreateNew={handleCreateNewEntityType}
                 onSelect={(entityType) => {
                   append(entityType);
@@ -384,14 +406,20 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                 size={"xs"}
                 startIcon={<PlusRegularIcon />}
                 disabled={fields.length >= 5}
-                onClick={() => { setDisplayEntityTypesSearch(true); }}
+                onClick={() => {
+                  setDisplayEntityTypesSearch(true);
+                }}
               >
                 Add {fields.length === 0 ? "type" : "another"}
               </Button>
             )}
           </DragDropContext>
           <Box display={"flex"} columnGap={1.25} marginTop={3}>
-            <Button type={"submit"} loading={loading} disabled={isSubmitDisabled}>
+            <Button
+              type={"submit"}
+              loading={loading}
+              disabled={isSubmitDisabled}
+            >
               Save changes
             </Button>
             <Button variant={"tertiary"} onClick={handleDiscard}>

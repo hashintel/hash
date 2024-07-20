@@ -5,7 +5,7 @@ import {
   isThisYear,
   isToday,
 } from "date-fns";
-import type { FunctionComponent , useCallback, useMemo } from "react";
+import type { FunctionComponent, useCallback, useMemo } from "react";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
@@ -29,7 +29,10 @@ import {
 
 import { useUserOrOrgShortnameByOwnedById } from "../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { constructPageRelativeUrl } from "../lib/routes";
-import type { getLayoutWithSidebar,NextPageWithLayout  } from "../shared/layout";
+import type {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../shared/layout";
 import { useNotificationEntities } from "../shared/notification-entities-context";
 import { Button, Link } from "../shared/ui";
 
@@ -37,7 +40,8 @@ import type {
   GraphChangeNotification,
   Notification,
   PageRelatedNotification,
- useNotificationsWithLinksContextValue } from "./shared/notifications-with-links-context";
+  useNotificationsWithLinksContextValue,
+} from "./shared/notifications-with-links-context";
 
 const Table = styled(MuiTable)(({ theme }) => ({
   borderCollapse: "separate",

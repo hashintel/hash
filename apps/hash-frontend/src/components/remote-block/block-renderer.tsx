@@ -30,7 +30,8 @@ export const BlockRenderer: FunctionComponent<BlockRendererProps> = ({
     }
 
     return <HtmlLoader html={{ source: blockSource, url: sourceUrl }} />;
-  } if (entryPoint === "custom-element") {
+  }
+  if (entryPoint === "custom-element") {
     if (
       typeof blockSource === "string" ||
       !(blockSource.prototype instanceof HTMLElement)
@@ -53,7 +54,8 @@ export const BlockRenderer: FunctionComponent<BlockRendererProps> = ({
       />
     );
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- improve logic or types to remove this comment
-  } if (entryPoint === "react") {
+  }
+  if (entryPoint === "react") {
     if (typeof blockSource !== "function") {
       throw new TypeError(
         `'react' entryPoint expects parsed source to be a function, but got: ${typeof blockSource}`,

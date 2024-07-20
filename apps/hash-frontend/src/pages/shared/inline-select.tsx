@@ -1,6 +1,10 @@
 import type { Ref } from "react";
 import { faCaretDown } from "@fortawesome/free-solid-svg-icons";
-import type { FontAwesomeIcon, Select,SelectProps  } from "@hashintel/design-system";
+import type {
+  FontAwesomeIcon,
+  Select,
+  SelectProps,
+} from "@hashintel/design-system";
 import { inputBaseClasses, selectClasses, styled } from "@mui/material";
 
 const InlineSelectChevronDown = () => (

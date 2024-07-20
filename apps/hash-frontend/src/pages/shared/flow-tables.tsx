@@ -7,7 +7,7 @@ import {
 } from "@hashintel/design-system";
 import { Stack, type SxProps, type Theme, Typography } from "@mui/material";
 
-import type { FlowRun , FlowRunStatus } from "../../graphql/api-types.gen";
+import type { FlowRun, FlowRunStatus } from "../../graphql/api-types.gen";
 import { Link } from "../../shared/ui/link";
 
 import { defaultCellSx } from "./virtualized-table";

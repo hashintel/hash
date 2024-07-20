@@ -1,4 +1,9 @@
-import type { FunctionComponent, PropsWithChildren , useMemo, useState } from "react";
+import type {
+  FunctionComponent,
+  PropsWithChildren,
+  useMemo,
+  useState,
+} from "react";
 import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { IconButton } from "@hashintel/design-system";
@@ -13,8 +18,12 @@ import {
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
-import type { EntityRootType, EntityTypeRootType , extractEntityUuidFromEntityId } from "@local/hash-subgraph";
-import type { Box, Stack, SvgIconProps , Typography } from "@mui/material";
+import type {
+  EntityRootType,
+  EntityTypeRootType,
+  extractEntityUuidFromEntityId,
+} from "@local/hash-subgraph";
+import type { Box, Stack, SvgIconProps, Typography } from "@mui/material";
 
 import type {
   FlowRun,
@@ -306,7 +315,9 @@ export const Outputs = ({
       {slideOver?.type === "entityType" && (
         <TypeSlideOverStack
           rootTypeId={slideOver.entityTypeId}
-          onClose={() => { setSlideOver(null); }}
+          onClose={() => {
+            setSlideOver(null);
+          }}
         />
       )}
       {selectedEntitySubgraph && (
@@ -314,7 +325,9 @@ export const Outputs = ({
           readonly
           entitySubgraph={selectedEntitySubgraph}
           open={slideOver?.type === "entity"}
-          onClose={() => { setSlideOver(null); }}
+          onClose={() => {
+            setSlideOver(null);
+          }}
           onSubmit={() => {
             throw new Error("Editing not permitted in this context");
           }}
@@ -334,12 +347,12 @@ export const Outputs = ({
                 label={section}
                 active={sectionVisibility[section]}
                 Icon={outputIcons[section]}
-                onClick={() =>
-                  { setSectionVisibility({
+                onClick={() => {
+                  setSectionVisibility({
                     ...sectionVisibility,
                     [section]: !sectionVisibility[section],
-                  }); }
-                }
+                  });
+                }}
               />
             ))}
           </SectionTabContainer>
@@ -351,7 +364,9 @@ export const Outputs = ({
                   label={section}
                   active={entityDisplay === section}
                   Icon={outputIcons[section]}
-                  onClick={() => { setEntityDisplay(section); }}
+                  onClick={() => {
+                    setEntityDisplay(section);
+                  }}
                 />
               ))}
             </SectionTabContainer>
@@ -376,20 +391,20 @@ export const Outputs = ({
               persistedEntitiesSubgraph={persistedEntitiesSubgraph}
               proposedEntities={proposedEntities}
               proposedEntitiesTypesSubgraph={proposedEntitiesTypesSubgraph}
-              onEntityClick={(entity) =>
-                { setSlideOver({ type: "entity", entity }); }
-              }
-              onEntityTypeClick={(entityTypeId) =>
-                { setSlideOver({ type: "entityType", entityTypeId }); }
-              }
+              onEntityClick={(entity) => {
+                setSlideOver({ type: "entity", entity });
+              }}
+              onEntityTypeClick={(entityTypeId) => {
+                setSlideOver({ type: "entityType", entityTypeId });
+              }}
             />
           ) : (
             <PersistedEntityGraph
               persistedEntities={persistedEntities}
               persistedEntitiesSubgraph={persistedEntitiesSubgraph}
-              onEntityClick={(entity) =>
-                { setSlideOver({ type: "entity", entity }); }
-              }
+              onEntityClick={(entity) => {
+                setSlideOver({ type: "entity", entity });
+              }}
             />
           ))}
 

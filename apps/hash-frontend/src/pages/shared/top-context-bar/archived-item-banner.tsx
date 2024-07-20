@@ -1,5 +1,5 @@
 import { formatDistance } from "date-fns";
-import type { FunctionComponent , useCallback, useMemo } from "react";
+import type { FunctionComponent, useCallback, useMemo } from "react";
 import { useMutation } from "@apollo/client";
 import { faRotateRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
@@ -66,15 +66,16 @@ export const ArchivedItemBanner: FunctionComponent<ArchivedItemBannerProps> = ({
   const archivedByAccountId = useMemo(() => {
     if (isItemEntityType(item)) {
       return item.metadata.provenance.edition.archivedById!;
-    } if (isEntityPageEntity(item)) {
+    }
+    if (isEntityPageEntity(item)) {
       return item.metadata.provenance.edition.createdById;
-    } 
-      throw new Error("Archived entities are not yet supported.");
-    
+    }
+    throw new Error("Archived entities are not yet supported.");
   }, [item]);
 
-  const archivedByUser =
-    users?.find(({ accountId }) => archivedByAccountId === accountId);
+  const archivedByUser = users?.find(
+    ({ accountId }) => archivedByAccountId === accountId,
+  );
 
   const archivedAt = useMemo(
     () =>

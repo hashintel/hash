@@ -1,4 +1,4 @@
-import type { FunctionComponent , useCallback, useState } from "react";
+import type { FunctionComponent, useCallback, useState } from "react";
 import { faComment } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";

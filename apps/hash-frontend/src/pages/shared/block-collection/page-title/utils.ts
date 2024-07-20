@@ -24,12 +24,12 @@ export const focusEditorBeginning = async (
   const selectedNode = view.state.doc.nodeAt(newSelection.from - 1);
   const isTextNode = selectedNode && isHashTextBlock(selectedNode.type.name);
 
-  let {tr} = state;
+  let { tr } = state;
 
   /**
    * If the first block in the document is not a text block
    * we create a new paragraph at the top.
-    */
+   */
   if (addParagraphBlock && !isTextNode) {
     const newTransaction = (
       await manager?.insertBlock(paragraphBlockComponentId, null, 0)
@@ -47,7 +47,7 @@ export const focusEditorBeginning = async (
   /**
    * If we don't wait with setImmediate here, new view selection does not work correctly,
    * and we land focus on 2nd node instead of 1st on editor.
-    */
+   */
   setImmediate(() => {
     view.focus();
   });

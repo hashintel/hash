@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { ApolloQueryResult , useQuery } from "@apollo/client";
+import type { ApolloQueryResult, useQuery } from "@apollo/client";
 import type { AccountGroupId } from "@local/hash-graph-types/account";
 import {
   currentTimeInstantTemporalAxes,
@@ -15,7 +15,11 @@ import type {
   GetEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
-import type { constructOrg, isEntityOrgEntity,Org  } from "../../lib/user-and-org";
+import type {
+  constructOrg,
+  isEntityOrgEntity,
+  Org,
+} from "../../lib/user-and-org";
 
 /**
  * Retrieves a specific set of organizations, with their avatars and members populated.

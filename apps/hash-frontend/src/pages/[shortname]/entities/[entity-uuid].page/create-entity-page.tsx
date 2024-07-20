@@ -117,7 +117,9 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       {errorMessage && (
         <AlertModal
           calloutMessage={errorMessage}
-          close={() => { setErrorMessage(""); }}
+          close={() => {
+            setErrorMessage("");
+          }}
           header={"Couldn't create entity"}
           type={"warning"}
         >

@@ -1,4 +1,9 @@
-import type { createContext, PropsWithChildren , useContext, useMemo } from "react";
+import type {
+  createContext,
+  PropsWithChildren,
+  useContext,
+  useMemo,
+} from "react";
 import type { UserPermissionsOnEntities } from "@local/hash-isomorphic-utils/types";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 

@@ -1,5 +1,5 @@
 import { format, formatISO, parseISO } from "date-fns";
-import type { TextField,TextFieldProps  } from "@hashintel/design-system";
+import type { TextField, TextFieldProps } from "@hashintel/design-system";
 import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 
 import type { CellInputProps } from "./types";
@@ -146,7 +146,7 @@ export const NumberOrTextInput = ({
         if (newValue && jsonStringFormat === "date-time") {
           newValue = convertDateTimeToLocalRFC3339(target.value);
         } else if (newValue && jsonStringFormat === "time") {
-          newValue = `${newValue  }:00`; // add seconds
+          newValue = `${newValue}:00`; // add seconds
           newValue = newValue + getCurrentUtcOffsetString();
         }
 

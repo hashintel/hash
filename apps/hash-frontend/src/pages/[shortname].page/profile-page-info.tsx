@@ -1,5 +1,5 @@
 import { format, formatDistanceToNowStrict } from "date-fns";
-import type { FunctionComponent, ReactNode , useMemo } from "react";
+import type { FunctionComponent, ReactNode, useMemo } from "react";
 import { faLocationDot } from "@fortawesome/free-solid-svg-icons";
 import {
   Avatar,
@@ -275,7 +275,9 @@ export const ProfilePageInfo: FunctionComponent<{
                   },
                 },
               }}
-              onClick={() => { setDisplayEditUserProfileInfoModal(true); }}
+              onClick={() => {
+                setDisplayEditUserProfileInfoModal(true);
+              }}
             >
               <PenRegularIcon />
             </IconButton>

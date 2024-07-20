@@ -20,7 +20,7 @@ import { useUserPermissionsOnEntity } from "../../../../shared/use-user-permissi
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../../shared/settings-layout";
 import { SettingsPageContainer } from "../../shared/settings-page-container";
-import type { OrgForm,OrgFormData  } from "../shared/org-form";
+import type { OrgForm, OrgFormData } from "../shared/org-form";
 
 const OrgGeneralSettingsPage: NextPageWithLayout = () => {
   const router = useRouter();

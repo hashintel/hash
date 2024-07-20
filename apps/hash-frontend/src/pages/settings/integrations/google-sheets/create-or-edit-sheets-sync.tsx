@@ -1,4 +1,4 @@
-import type { PropsWithChildren , useMemo, useState } from "react";
+import type { PropsWithChildren, useMemo, useState } from "react";
 import { useMutation } from "@apollo/client";
 import type { MultiFilter } from "@blockprotocol/graph";
 import { CheckIcon } from "@hashintel/design-system";
@@ -208,7 +208,8 @@ export const CreateOrEditSheetsSync = ({
           disabled={!integrationData.googleAccountId}
           title={"2. Choose or create a spreadsheet"}
           done={
-            Boolean(integrationData.newFileName) || Boolean(integrationData.spreadsheetId)
+            Boolean(integrationData.newFileName) ||
+            Boolean(integrationData.spreadsheetId)
           }
         >
           <SelectOrNameGoogleSheet
@@ -268,12 +269,12 @@ export const CreateOrEditSheetsSync = ({
           <Box>
             <select
               value={integrationData.audience}
-              onChange={(event) =>
-                { setIntegrationData({
+              onChange={(event) => {
+                setIntegrationData({
                   ...integrationData,
                   audience: event.target.value as "human" | "machine",
-                }); }
-              }
+                });
+              }}
             >
               <option value={"human"}>Human</option>
               <option value={"machine"}>Machine</option>

@@ -6,7 +6,10 @@ import { SectionWrapper } from "../../../shared/section-wrapper";
 
 export const PeersSectionEmptyState = () => {
   return (
-    <SectionWrapper title={"Peers"} titleStartContent={<Chip label={"No peers"} />}>
+    <SectionWrapper
+      title={"Peers"}
+      titleStartContent={<Chip label={"No peers"} />}
+    >
       <SectionEmptyState
         title={"This entity currently has no known peers"}
         titleIcon={<ShapesIcon />}

@@ -5,9 +5,11 @@ import {
   usePopupState,
 } from "material-ui-popup-state/hooks";
 import HoverPopover from "material-ui-popup-state/HoverPopover";
-import type {   cloneElement,
+import type {
+  cloneElement,
   forwardRef,
-ReactElement, RefObject ,
+  ReactElement,
+  RefObject,
   useLayoutEffect,
   useRef,
   useState,

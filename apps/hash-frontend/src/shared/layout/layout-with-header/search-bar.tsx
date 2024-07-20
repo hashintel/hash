@@ -1,4 +1,11 @@
-import type { FunctionComponent, ReactNode , useCallback, useEffect, useMemo, useState } from "react";
+import type {
+  FunctionComponent,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useDebounce, useKey, useOutsideClickRef } from "rooks";
 import { useQuery } from "@apollo/client";
 import type { EntityType } from "@blockprotocol/type-system";
@@ -15,13 +22,21 @@ import type {
   EntityRootType,
   EntityTypeRootType,
   extractEntityUuidFromEntityId,
-  extractOwnedByIdFromEntityId,  Subgraph} from "@local/hash-subgraph";
+  extractOwnedByIdFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import {
   getEntityTypeById,
   getRoots,
   isEntityRootedSubgraph,
 } from "@local/hash-subgraph/stdlib";
-import type { Box, SxProps, Theme , useMediaQuery, useTheme } from "@mui/material";
+import type {
+  Box,
+  SxProps,
+  Theme,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
 
 import { useUserOrOrgShortnameByOwnedById } from "../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import type {
@@ -113,7 +128,7 @@ const EntityResult: FunctionComponent<{
   onClick: () => void;
   subgraph: Subgraph<EntityRootType>;
 }> = ({ entity, onClick, subgraph }) => {
-  const {entityId} = entity.metadata.recordId;
+  const { entityId } = entity.metadata.recordId;
 
   const ownedById = extractOwnedByIdFromEntityId(entityId);
   const { shortname: entityOwningShortname } = useUserOrOrgShortnameByOwnedById(
@@ -133,7 +148,11 @@ const EntityResult: FunctionComponent<{
       <ResultItem>
         {generateEntityLabel(subgraph, entity)}
         {entityType && (
-          <Chip color={"teal"} label={entityType.schema.title} sx={chipStyles} />
+          <Chip
+            color={"teal"}
+            label={entityType.schema.title}
+            sx={chipStyles}
+          />
         )}
       </ResultItem>
     </Link>
@@ -190,11 +209,10 @@ const getSearchBarResponsiveStyles = (
         px: 2,
       };
     }
- 
-      return {
-        mr: 1,
-      };
-    
+
+    return {
+      mr: 1,
+    };
   }
 
   return {};
@@ -292,9 +310,13 @@ export const SearchBar: FunctionComponent = () => {
     ? getRoots(entityTypeSubgraph)
     : [];
 
-  useKey(["Escape"], () => { setResultListVisible(false); });
+  useKey(["Escape"], () => {
+    setResultListVisible(false);
+  });
 
-  const [rootRef] = useOutsideClickRef(() => { setResultListVisible(false); });
+  const [rootRef] = useOutsideClickRef(() => {
+    setResultListVisible(false);
+  });
 
   const isLoading = entityTypesLoading || entitiesLoading;
 
@@ -313,7 +335,12 @@ export const SearchBar: FunctionComponent = () => {
     >
       {/* If the user is in mobile view and the search icon isn't clicked, display the icon */}
       {isMobile && !displaySearchInput ? (
-        <IconButton size={"medium"} onClick={() => { setDisplaySearchInput(true); }}>
+        <IconButton
+          size={"medium"}
+          onClick={() => {
+            setDisplaySearchInput(true);
+          }}
+        >
           <SearchIcon />
         </IconButton>
       ) : (
@@ -365,7 +392,9 @@ export const SearchBar: FunctionComponent = () => {
                   <EntityTypeResult
                     entityType={entityType.schema}
                     key={entityType.schema.$id}
-                    onClick={() => { setResultListVisible(false); }}
+                    onClick={() => {
+                      setResultListVisible(false);
+                    }}
                   />
                 );
               })}
@@ -375,7 +404,9 @@ export const SearchBar: FunctionComponent = () => {
                     key={entity.metadata.recordId.entityId}
                     entity={entity}
                     subgraph={entitySubgraph!}
-                    onClick={() => { setResultListVisible(false); }}
+                    onClick={() => {
+                      setResultListVisible(false);
+                    }}
                   />
                 );
               })}

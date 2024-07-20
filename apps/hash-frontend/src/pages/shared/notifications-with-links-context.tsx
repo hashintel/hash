@@ -1,4 +1,11 @@
-import type { createContext, FunctionComponent, PropsWithChildren , useContext, useMemo, useRef } from "react";
+import type {
+  createContext,
+  FunctionComponent,
+  PropsWithChildren,
+  useContext,
+  useMemo,
+  useRef,
+} from "react";
 import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
@@ -15,7 +22,10 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { SimpleProperties , simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import type {
+  SimpleProperties,
+  simplifyProperties,
+} from "@local/hash-isomorphic-utils/simplify-properties";
 import type {
   Block as BlockProperties,
   Comment as CommentProperties,
@@ -30,7 +40,9 @@ import type { User as UserProperties } from "@local/hash-isomorphic-utils/system
 import type {
   EntityRootType,
   EntityVertex,
- extractEntityUuidFromEntityId,  LinkEntityAndRightEntity } from "@local/hash-subgraph";
+  extractEntityUuidFromEntityId,
+  LinkEntityAndRightEntity,
+} from "@local/hash-subgraph";
 import { getOutgoingLinkAndTargetEntities } from "@local/hash-subgraph/stdlib";
 
 import type {
@@ -38,7 +50,7 @@ import type {
   GetEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
-import type { constructMinimalUser,MinimalUser  } from "../../lib/user-and-org";
+import type { constructMinimalUser, MinimalUser } from "../../lib/user-and-org";
 import { useNotificationEntities } from "../../shared/notification-entities-context";
 
 export type PageMentionNotification = {
@@ -172,7 +184,8 @@ export const useNotificationsWithLinksContextValue =
     const notifications = useMemo<Notification[] | undefined>(() => {
       if (notificationEntities && notificationEntities.length === 0) {
         return [];
-      } if (!outgoingLinksSubgraph || !notificationEntities) {
+      }
+      if (!outgoingLinksSubgraph || !notificationEntities) {
         return previouslyFetchedNotificationsRef.current ?? undefined;
       }
 
@@ -263,7 +276,8 @@ export const useNotificationsWithLinksContextValue =
               occurredInText: occurredInText as Entity<TextWithTokens>,
               triggeredByUser,
             } satisfies PageMentionNotification;
-          } if (
+          }
+          if (
             entityTypeId === systemEntityTypes.commentNotification.entityTypeId
           ) {
             const occurredInEntity = outgoingLinks.find(
@@ -335,7 +349,8 @@ export const useNotificationsWithLinksContextValue =
                 triggeredByComment as Entity<CommentProperties>,
               triggeredByUser,
             } satisfies NewCommentNotification;
-          } if (
+          }
+          if (
             entityTypeId ===
             systemEntityTypes.graphChangeNotification.entityTypeId
           ) {
@@ -428,14 +443,13 @@ export const useNotificationsWithLinksContextValue =
           }
           throw new Error(`Notification of type "${entityTypeId}" not handled`);
         })
-        .filter(
-          Boolean,
-        )
+        .filter(Boolean)
 
         .sort((a, b) => {
           if (a.readAt && !b.readAt) {
             return 1;
-          } if (b.readAt && !a.readAt) {
+          }
+          if (b.readAt && !a.readAt) {
             return -1;
           }
 

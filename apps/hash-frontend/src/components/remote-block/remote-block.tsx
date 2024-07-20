@@ -1,4 +1,4 @@
-import type { FunctionComponent , useEffect, useMemo, useRef } from "react";
+import type { FunctionComponent, useEffect, useMemo, useRef } from "react";
 import { v4 as uuid } from "uuid";
 import type { BlockMetadata } from "@blockprotocol/core";
 import type {
@@ -15,7 +15,7 @@ import { useHookEmbedderModule } from "@blockprotocol/hook/react";
 import { useServiceEmbedderModule } from "@blockprotocol/service/react";
 import { textualContentPropertyTypeBaseUrl } from "@local/hash-isomorphic-utils/entity-store";
 import { blockProtocolLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { Skeleton,SkeletonProps  } from "@mui/material";
+import type { Skeleton, SkeletonProps } from "@mui/material";
 
 import { useUserBlocks } from "../../blocks/user-blocks";
 

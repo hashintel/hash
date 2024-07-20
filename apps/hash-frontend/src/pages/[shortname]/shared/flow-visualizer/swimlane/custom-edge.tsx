@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { BaseEdge, EdgeProps , getSmoothStepPath } from "reactflow";
+import type { BaseEdge, EdgeProps, getSmoothStepPath } from "reactflow";
 
 import type { EdgeData } from "../shared/types";
 

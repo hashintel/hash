@@ -41,7 +41,11 @@ const GoogleSheetsPage: NextPageWithLayout = () => {
           />
         ) : (
           <Box>
-            <Button onClick={() => { setAddingNewIntegration(true); }}>
+            <Button
+              onClick={() => {
+                setAddingNewIntegration(true);
+              }}
+            >
               Add new sync
             </Button>
           </Box>

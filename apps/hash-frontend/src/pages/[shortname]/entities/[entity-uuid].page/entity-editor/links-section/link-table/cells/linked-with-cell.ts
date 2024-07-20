@@ -1,4 +1,8 @@
-import type { CustomCell, CustomRenderer , GridCellKind } from "@glideapps/glide-data-grid";
+import type {
+  CustomCell,
+  CustomRenderer,
+  GridCellKind,
+} from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
@@ -128,7 +132,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
 
       drawCellFadeOutGradient(args);
 
- return;
+      return;
     }
 
     let accumulatedLeft = rect.x + cellPadding;
@@ -144,7 +148,9 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     for (const { rightEntity, sourceSubgraph } of sortedLinkedEntities) {
       const label = generateEntityLabel(sourceSubgraph, rightEntity);
 
-      const imageSource = getImageUrlFromEntityProperties(rightEntity.properties);
+      const imageSource = getImageUrlFromEntityProperties(
+        rightEntity.properties,
+      );
 
       const chipWidth = drawChipWithIcon({
         args,
@@ -181,7 +187,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       if (!overflowed || sortedLinkedEntities.length <= 1) {
         drawCellFadeOutGradient(args);
 
- return;
+        return;
       }
 
       const text = `SEE ALL (${sortedLinkedEntities.length})`;
@@ -201,7 +207,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
     if (readonly) {
       drawCellFadeOutGradient(args);
 
- return;
+      return;
     }
 
     // draw delete button

@@ -1,4 +1,4 @@
-import type { FunctionComponent , useCallback, useMemo } from "react";
+import type { FunctionComponent, useCallback, useMemo } from "react";
 import { useMutation } from "@apollo/client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
@@ -13,7 +13,8 @@ import { useUsersWithLinks } from "../../../../components/hooks/use-users-with-l
 import type {
   AddEntityViewerMutation,
   AddEntityViewerMutationVariables,
- EntityAuthorizationRelation } from "../../../../graphql/api-types.gen";
+  EntityAuthorizationRelation,
+} from "../../../../graphql/api-types.gen";
 import {
   addEntityViewerMutation,
   getEntityAuthorizationRelationshipsQuery,
@@ -123,7 +124,9 @@ export const ShareEntitySection: FunctionComponent<{
             );
 
             if (existingAccountIndex !== -1) {
-              accumulator[existingAccountIndex]!.relationships.push(relationship);
+              accumulator[existingAccountIndex]!.relationships.push(
+                relationship,
+              );
             } else {
               accumulator.push({
                 account: accounts.find((account) =>

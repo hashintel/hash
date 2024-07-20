@@ -1,11 +1,11 @@
 import { useRouter } from "next/router";
-import type { FormEventHandler , useEffect, useState } from "react";
+import type { FormEventHandler, useEffect, useState } from "react";
 import { TextField } from "@hashintel/design-system";
 import { Box, Collapse, Container, Typography } from "@mui/material";
 import type { RecoveryFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 
-import type { getPlainLayout,NextPageWithLayout  } from "../shared/layout";
+import type { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
 
 import {
@@ -115,7 +115,9 @@ const RecoveryPage: NextPageWithLayout = () => {
         flow: String(flow.id),
         updateRecoveryFlowBody: { csrf_token, method: "code", email },
       })
-      .then(({ data }) => { setFlow(data); })
+      .then(({ data }) => {
+        setFlow(data);
+      })
       .catch(handleFlowError);
   };
 
@@ -141,7 +143,9 @@ const RecoveryPage: NextPageWithLayout = () => {
       })
       // Note that the user is automatically redirected to the settings page
       // where they can update their password.
-      .then(({ data }) => { setFlow(data); })
+      .then(({ data }) => {
+        setFlow(data);
+      })
       .catch(handleFlowError);
   };
 
@@ -193,13 +197,15 @@ const RecoveryPage: NextPageWithLayout = () => {
           placeholder={"Enter your email address"}
           value={email}
           disabled={hasSubmittedEmail}
-          error={
-            Boolean(emailInputUiNode?.messages.find(({ type }) => type === "error"))
-          }
+          error={Boolean(
+            emailInputUiNode?.messages.find(({ type }) => type === "error"),
+          )}
           helperText={emailInputUiNode?.messages.map(({ id, text }) => (
             <Typography key={id}>{text}</Typography>
           ))}
-          onChange={({ target }) => { setEmail(target.value); }}
+          onChange={({ target }) => {
+            setEmail(target.value);
+          }}
         />
         <Collapse in={!hasSubmittedEmail} sx={{ width: "100%" }}>
           <Button
@@ -231,13 +237,15 @@ const RecoveryPage: NextPageWithLayout = () => {
             autoComplete={"off"}
             placeholder={"Enter your verification code"}
             value={code}
-            error={
-              Boolean(codeInputUiNode?.messages.find(({ type }) => type === "error"))
-            }
+            error={Boolean(
+              codeInputUiNode?.messages.find(({ type }) => type === "error"),
+            )}
             helperText={codeInputUiNode?.messages.map(({ id, text }) => (
               <Typography key={id}>{text}</Typography>
             ))}
-            onChange={({ target }) => { setCode(target.value); }}
+            onChange={({ target }) => {
+              setCode(target.value);
+            }}
           />
           <Button type={"submit"} disabled={!code}>
             Submit Code

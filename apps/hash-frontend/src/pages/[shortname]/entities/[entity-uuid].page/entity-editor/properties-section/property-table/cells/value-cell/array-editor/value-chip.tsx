@@ -1,4 +1,7 @@
-import type { faAsterisk,IconDefinition  } from "@fortawesome/free-solid-svg-icons";
+import type {
+  faAsterisk,
+  IconDefinition,
+} from "@fortawesome/free-solid-svg-icons";
 import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Tooltip } from "@mui/material";
 

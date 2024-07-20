@@ -1,5 +1,11 @@
 import { useState } from "react";
-import type { Handle as BaseHandle, Handle, HandleProps , Position, useEdges } from "reactflow";
+import type {
+  Handle as BaseHandle,
+  Handle,
+  HandleProps,
+  Position,
+  useEdges,
+} from "reactflow";
 import { Box, Typography } from "@mui/material";
 
 import { Modal } from "../../../../../../shared/ui/modal";
@@ -182,7 +188,12 @@ export const Handles = ({
   return (
     <>
       {selectedProperty && (
-        <Modal open onClose={() => { setSelectedProperty(null); }}>
+        <Modal
+          open
+          onClose={() => {
+            setSelectedProperty(null);
+          }}
+        >
           <Typography sx={{ fontWeight: 600 }}>
             {selectedProperty.name}
           </Typography>
@@ -195,7 +206,9 @@ export const Handles = ({
             offset={index}
             type={"target"}
             position={Position.Left}
-            onClick={() => { setSelectedProperty(input); }}
+            onClick={() => {
+              setSelectedProperty(input);
+            }}
             {...input}
           />
         ))}
@@ -205,7 +218,9 @@ export const Handles = ({
             offset={index}
             type={"source"}
             position={Position.Right}
-            onClick={() => { setSelectedProperty(output); }}
+            onClick={() => {
+              setSelectedProperty(output);
+            }}
             {...output}
           />
         ))}

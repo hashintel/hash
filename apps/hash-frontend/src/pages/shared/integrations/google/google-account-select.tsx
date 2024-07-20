@@ -76,7 +76,9 @@ export const GoogleAccountSelect = ({
                 },
               width: 160,
             }}
-            onChange={(event) => { setGoogleAccountId(event.target.value); }}
+            onChange={(event) => {
+              setGoogleAccountId(event.target.value);
+            }}
           >
             {options.map((option) => (
               <MenuItem key={option.value} value={option.value}>

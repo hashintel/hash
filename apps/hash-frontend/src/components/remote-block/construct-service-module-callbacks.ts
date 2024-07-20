@@ -24,29 +24,28 @@ const callExternalApiMethod = async (params: {
 
   if (response.ok) {
     return { data: data.externalServiceMethodResponse };
-  } 
-    const { status } = response;
+  }
+  const { status } = response;
 
-    return {
-      errors: [
-        {
-          message:
-            typeof data === "object" && "errors" in data
-              ? data.errors?.[0]?.message
-              : "An unknown error occurred.",
-          // @ts-expect-error –– @todo why is this an error
-          code:
-            status === 401
-              ? "FORBIDDEN"
-              : status === 403
-                ? "UNAUTHORIZED"
-                : status === 429
-                  ? "TOO_MANY_REQUESTS"
-                  : "INTERNAL_ERROR",
-        },
-      ],
-    };
-  
+  return {
+    errors: [
+      {
+        message:
+          typeof data === "object" && "errors" in data
+            ? data.errors?.[0]?.message
+            : "An unknown error occurred.",
+        // @ts-expect-error –– @todo why is this an error
+        code:
+          status === 401
+            ? "FORBIDDEN"
+            : status === 403
+              ? "UNAUTHORIZED"
+              : status === 429
+                ? "TOO_MANY_REQUESTS"
+                : "INTERNAL_ERROR",
+      },
+    ],
+  };
 };
 
 export const serviceModuleCallbacks: ServiceEmbedderMessageCallbacks = {

@@ -51,7 +51,9 @@ export const LoggedIn = () => {
         </HomepageBigText>
         <HomepageMediumText>or suggest a change</HomepageMediumText>
         <Button
-          href={"https://hash.ai/contact?topic=support&category=suggest_improvement"}
+          href={
+            "https://hash.ai/contact?topic=support&category=suggest_improvement"
+          }
           variant={"white_cta"}
           size={"small"}
         >
@@ -83,7 +85,9 @@ export const LoggedIn = () => {
         </HomepageBigText>
         <HomepageMediumText>or unexpected behavior</HomepageMediumText>
         <Button
-          href={"https://hash.ai/contact?topic=support&category=report_an_issue"}
+          href={
+            "https://hash.ai/contact?topic=support&category=report_an_issue"
+          }
           variant={"white_cta"}
           size={"small"}
         >

@@ -1,11 +1,11 @@
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import type { CSSProperties, forwardRef, MouseEvent , useState } from "react";
+import type { CSSProperties, forwardRef, MouseEvent, useState } from "react";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { DraggableAttributes } from "@dnd-kit/core";
 import { faChevronRight, faEllipsis } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { Box, PopoverPosition , Tooltip, Typography } from "@mui/material";
+import type { Box, PopoverPosition, Tooltip, Typography } from "@mui/material";
 
 import { PAGE_TITLE_PLACEHOLDER } from "../../../../pages/shared/block-collection/page-title/page-title";
 import { PageIconButton } from "../../../page-icon-button";
@@ -84,8 +84,12 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
     return collapsed && isSorting ? null : (
       <Box
         ref={wrapperRef}
-        onMouseEnter={() => { setHoveredState(true); }}
-        onMouseLeave={() => { setHoveredState(false); }}
+        onMouseEnter={() => {
+          setHoveredState(true);
+        }}
+        onMouseLeave={() => {
+          setHoveredState(false);
+        }}
         onContextMenu={(event) => {
           event.preventDefault();
           if (popupState.isOpen) {
@@ -93,7 +97,7 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
 
             popupState.close();
 
- return;
+            return;
           }
           setAnchorPosition({
             left: event.clientX + 2,
@@ -220,7 +224,9 @@ export const PageTreeItem = forwardRef<HTMLAnchorElement, PageTreeItemProps>(
              * We reset anchor position on close because,
              * maybe next time user can open via clicking the `more` icon instead of right-clicking again.
              */
-            onClose={() => { setAnchorPosition(undefined); }}
+            onClose={() => {
+              setAnchorPosition(undefined);
+            }}
           />
         </Link>
       </Box>

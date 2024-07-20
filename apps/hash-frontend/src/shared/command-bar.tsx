@@ -13,7 +13,8 @@ import type {
   useLayoutEffect,
   useReducer,
   useRef,
-  useState} from "react";
+  useState,
+} from "react";
 import { Chip, TextField } from "@hashintel/design-system";
 import type {
   Autocomplete,
@@ -23,7 +24,8 @@ import type {
   AutocompleteRenderInputParams,
   Box,
   Modal,
-  Paper} from "@mui/material";
+  Paper,
+} from "@mui/material";
 
 import { useAccountPages } from "../components/hooks/use-account-pages";
 import { useCreatePage } from "../components/hooks/use-create-page";
@@ -44,7 +46,8 @@ import {
   menu,
 } from "./command-bar/command-bar-options";
 import { HotKey } from "./command-bar/hot-key";
-import type { KeyboardShortcut ,
+import type {
+  KeyboardShortcut,
   useSetKeyboardShortcuts,
   useUnsetKeyboardShortcuts,
 } from "./keyboard-shortcuts-context";
@@ -295,7 +298,7 @@ export const CommandBar: FunctionComponent = () => {
     details: AutocompleteChangeDetails<CommandBarOption> | undefined,
   ) => {
     if (details && reason === "selectOption") {
-      const {option} = details;
+      const { option } = details;
 
       triggerOption(option);
     }
@@ -318,9 +321,9 @@ export const CommandBar: FunctionComponent = () => {
         <Chip
           key={label}
           label={label}
-          onDelete={() =>
-            { setSelectedOptionPath(selectedOptionPath.slice(0, index)); }
-          }
+          onDelete={() => {
+            setSelectedOptionPath(selectedOptionPath.slice(0, index));
+          }}
         />
       ))}
       <TextField
@@ -373,7 +376,9 @@ export const CommandBar: FunctionComponent = () => {
   useEffect(() => {
     const unregisterMenuUpdateListener = menu.addUpdateListener(forceRender);
 
-    return () => { unregisterMenuUpdateListener(); };
+    return () => {
+      unregisterMenuUpdateListener();
+    };
   }, []);
 
   const setKeyboardShortcuts = useSetKeyboardShortcuts();
@@ -407,7 +412,9 @@ export const CommandBar: FunctionComponent = () => {
 
     setKeyboardShortcuts(keyboardShortcuts);
 
-    return () => { unsetKeyboardShortcuts(keyboardShortcuts); };
+    return () => {
+      unsetKeyboardShortcuts(keyboardShortcuts);
+    };
   });
 
   useEffect(() => {

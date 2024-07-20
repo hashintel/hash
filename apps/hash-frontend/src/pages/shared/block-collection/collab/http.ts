@@ -50,7 +50,7 @@ export const req = (
 
           if (
             text &&
-            (request.getResponseHeader("content-type") ?? "").includes('html')
+            (request.getResponseHeader("content-type") ?? "").includes("html")
           ) {
             text = makePlain(text);
           }

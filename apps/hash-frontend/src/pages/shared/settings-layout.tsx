@@ -1,5 +1,5 @@
 import { useRouter } from "next/router";
-import type { PropsWithChildren, ReactElement , useMemo } from "react";
+import type { PropsWithChildren, ReactElement, useMemo } from "react";
 import { Box, Container, Typography } from "@mui/material";
 
 import type { Org } from "../../lib/user-and-org";
@@ -8,7 +8,10 @@ import { PlugSolidIcon } from "../../shared/icons/plug-solid-icon";
 import { LayoutWithSidebar } from "../../shared/layout/layout-with-sidebar";
 
 import { useAuthenticatedUser } from "./auth-info-context";
-import type { SettingsSidebar,SidebarItemData  } from "./settings-layout/settings-sidebar";
+import type {
+  SettingsSidebar,
+  SidebarItemData,
+} from "./settings-layout/settings-sidebar";
 import { TopContextBar } from "./top-context-bar";
 
 const generateMenuLinks = (
@@ -89,7 +92,6 @@ const SettingsLayout = ({ children }: PropsWithChildren) => {
 
       do {
         const currentPage = menuItems.find(
-           
           (item) =>
             item.href === href ||
             (item.activeIfPathStartsWith &&

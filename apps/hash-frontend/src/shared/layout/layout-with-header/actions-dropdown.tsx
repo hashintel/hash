@@ -3,7 +3,7 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import type { FunctionComponent , useContext } from "react";
+import type { FunctionComponent, useContext } from "react";
 import { faPlus } from "@fortawesome/free-solid-svg-icons";
 import {
   AsteriskRegularIcon,

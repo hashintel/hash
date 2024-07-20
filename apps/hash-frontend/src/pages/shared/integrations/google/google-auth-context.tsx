@@ -1,6 +1,7 @@
 import Script from "next/script";
-import type {   createContext,
-PropsWithChildren ,
+import type {
+  createContext,
+  PropsWithChildren,
   useCallback,
   useContext,
   useMemo,
@@ -105,7 +106,8 @@ export const GoogleAuthProvider = ({ children }: PropsWithChildren) => {
       callback: async (response) => {
         if (response.error === "access_denied") {
           return null;
-        } if (response.error) {
+        }
+        if (response.error) {
           throw new Error(`Google OAuth error: ${response.error}`);
         }
 
@@ -139,11 +141,10 @@ export const GoogleAuthProvider = ({ children }: PropsWithChildren) => {
         loading: false,
       };
     }
- 
-      return {
-        loading: true,
-      };
-    
+
+    return {
+      loading: true,
+    };
   }, [
     accounts,
     accountsLoading,

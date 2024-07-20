@@ -1,4 +1,9 @@
-import type { Dispatch, FunctionComponent, SetStateAction , useCallback } from "react";
+import type {
+  Dispatch,
+  FunctionComponent,
+  SetStateAction,
+  useCallback,
+} from "react";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { Box, Checkbox, styled, Typography } from "@mui/material";

@@ -1,5 +1,11 @@
 import type { PopupState } from "material-ui-popup-state/hooks";
-import type { FunctionComponent , useCallback, useEffect, useMemo, useRef } from "react";
+import type {
+  FunctionComponent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { useQuery } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faAsterisk, faSearch } from "@fortawesome/free-solid-svg-icons";

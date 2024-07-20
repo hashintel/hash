@@ -40,9 +40,9 @@ export const useRows = () => {
         generateEntityPath({
           shortname,
           entityId: entity.metadata.recordId.entityId,
-          includeDraftId: Boolean(extractDraftIdFromEntityId(
-            entity.metadata.recordId.entityId,
-          )),
+          includeDraftId: Boolean(
+            extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
+          ),
         }),
       );
     },

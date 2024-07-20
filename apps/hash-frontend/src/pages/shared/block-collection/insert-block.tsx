@@ -1,4 +1,4 @@
-import type { FunctionComponent , useState } from "react";
+import type { FunctionComponent, useState } from "react";
 import type { BlockVariant } from "@blockprotocol/core";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
 import { Box, Popover, popoverClasses } from "@mui/material";
@@ -24,7 +24,9 @@ export const InsertBlock: FunctionComponent<InsertBlockProps> = ({
     top: number;
   } | null>(null);
 
-  const onCloseSuggester = () => { setContextMenuPosition(null); };
+  const onCloseSuggester = () => {
+    setContextMenuPosition(null);
+  };
 
   const onChange = (variant: BlockVariant, blockMeta: HashBlockMeta) => {
     onBlockSuggesterChange(variant, blockMeta);

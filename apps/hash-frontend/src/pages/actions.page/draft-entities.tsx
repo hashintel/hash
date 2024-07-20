@@ -1,5 +1,8 @@
-import type { Dispatch,   Fragment,
-FunctionComponent, SetStateAction ,
+import type {
+  Dispatch,
+  Fragment,
+  FunctionComponent,
+  SetStateAction,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -18,11 +21,12 @@ import { Box, Container, Divider, Typography } from "@mui/material";
 
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { Button } from "../../shared/ui";
-import type { MinimalActor , useActors } from "../../shared/use-actors";
+import type { MinimalActor, useActors } from "../../shared/use-actors";
 
 import { DraftEntitiesContextBar } from "./draft-entities/draft-entities-context-bar";
-import type {   DraftEntitiesFilters,
-DraftEntityFilterState ,
+import type {
+  DraftEntitiesFilters,
+  DraftEntityFilterState,
   filterDraftEntities,
   generateDefaultFilterState,
   getDraftEntityTypes,
@@ -344,8 +348,8 @@ export const DraftEntities: FunctionComponent<{
                             entity={entity}
                             subgraph={draftEntitiesWithLinkedDataSubgraph}
                             selected={isSelected}
-                            toggleSelected={() =>
-                              { setSelectedDraftEntityIds((previous) =>
+                            toggleSelected={() => {
+                              setSelectedDraftEntityIds((previous) =>
                                 isSelected
                                   ? previous.filter(
                                       (entityId) =>
@@ -356,8 +360,8 @@ export const DraftEntities: FunctionComponent<{
                                       ...previous,
                                       entity.metadata.recordId.entityId,
                                     ],
-                              ); }
-                            }
+                              );
+                            }}
                           />
                           {i < all.length - 1 ? (
                             <Divider
@@ -398,7 +402,9 @@ export const DraftEntities: FunctionComponent<{
                 <Button
                   size={"medium"}
                   sx={{ marginTop: 3 }}
-                  onClick={() => { setNumberOfIncrements((previous) => previous + 1); }}
+                  onClick={() => {
+                    setNumberOfIncrements((previous) => previous + 1);
+                  }}
                 >
                   Display{" "}
                   {Math.min(

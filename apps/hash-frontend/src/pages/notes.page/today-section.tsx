@@ -87,7 +87,9 @@ export const TodaySection = forwardRef<
           heading={"Today"}
           subheading={format(new Date(), "yyyy-MM-dd")}
           isCollapsed={isCollapsed}
-          toggleIsCollapsed={() => { setIsCollapsed(!isCollapsed); }}
+          toggleIsCollapsed={() => {
+            setIsCollapsed(!isCollapsed);
+          }}
           navigateDown={navigateDown}
         />
         <Box flexGrow={1}>

@@ -116,7 +116,9 @@ const OrgMembersPage: NextPageWithLayout = () => {
                           },
                           transition: transitions.create("color"),
                         })}
-                        onClick={() => { setShowAddMemberForm(true); }}
+                        onClick={() => {
+                          setShowAddMemberForm(true);
+                        }}
                       >
                         Invite new member...
                       </Typography>

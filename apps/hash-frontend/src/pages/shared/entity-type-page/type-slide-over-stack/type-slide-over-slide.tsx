@@ -1,4 +1,4 @@
-import type { FunctionComponent , useCallback, useMemo, useState } from "react";
+import type { FunctionComponent, useCallback, useMemo, useState } from "react";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
   ArrowLeftIcon,
@@ -10,8 +10,9 @@ import {
   OntologyChip,
   parseUrlForOntologyChip,
 } from "@hashintel/design-system";
-import type {   EntityTypeEditor,
-EntityTypeEditorFormData ,
+import type {
+  EntityTypeEditor,
+  EntityTypeEditorFormData,
   EntityTypeFormProvider,
   getFormDataFromEntityType,
   useEntityTypeForm,
@@ -71,8 +72,12 @@ const CopyableOntologyChip: FunctionComponent<{
       >
         <ButtonBase
           onClick={handleCopyEntityTypeUrl}
-          onMouseEnter={() => { setCopyTooltipIsOpen(true); }}
-          onMouseLeave={() => { setCopyTooltipIsOpen(false); }}
+          onMouseEnter={() => {
+            setCopyTooltipIsOpen(true);
+          }}
+          onMouseLeave={() => {
+            setCopyTooltipIsOpen(false);
+          }}
         >
           <OntologyChip {...ontology} />
         </ButtonBase>
@@ -186,7 +191,9 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
     <Slide
       in={open && !animateOut}
       direction={"left"}
-      onClick={(event) => { event.stopPropagation(); }}
+      onClick={(event) => {
+        event.stopPropagation();
+      }}
     >
       <Box
         sx={{
@@ -250,11 +257,11 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
                   isReadonly
                   isDraft={false}
                   entityTypeSchema={remoteEntityType.schema}
-                  isLink={
-                    Boolean(entityTypesContext.isSpecialEntityTypeLookup?.[
+                  isLink={Boolean(
+                    entityTypesContext.isSpecialEntityTypeLookup?.[
                       remoteEntityType.schema.$id
-                    ]?.isFile)
-                  }
+                    ]?.isFile,
+                  )}
                   ontologyChip={
                     <CopyableOntologyChip entityType={remoteEntityType} />
                   }

@@ -127,8 +127,12 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
           />
         ))
       }
-      onOpen={() => { setOpen(true); }}
-      onInputChange={(_, searchValue) => { setSearch(searchValue); }}
+      onOpen={() => {
+        setOpen(true);
+      }}
+      onInputChange={(_, searchValue) => {
+        setSearch(searchValue);
+      }}
       onClose={(_, reason) => {
         if (reason !== "toggleInput") {
           setOpen(false);

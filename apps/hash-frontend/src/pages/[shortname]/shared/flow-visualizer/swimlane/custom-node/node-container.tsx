@@ -3,7 +3,10 @@ import { useNodeId, useStore } from "reactflow";
 import type { StepDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, Stack, Typography } from "@mui/material";
 
-import type { SimpleStatus , useFlowRunsContext } from "../../../../../shared/flow-runs-context";
+import type {
+  SimpleStatus,
+  useFlowRunsContext,
+} from "../../../../../shared/flow-runs-context";
 import { nodeTabHeight } from "../../shared/dimensions";
 import { transitionOptions } from "../../shared/styles";
 

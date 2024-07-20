@@ -27,7 +27,7 @@ export const useCollabPositionTracking = (report: CollabPositionReporter) => {
    */
   useWindowEventListener("blur", () => {
     setImmediate(() => {
-      const {activeElement} = document;
+      const { activeElement } = document;
 
       if (activeElement?.nodeName === "IFRAME") {
         const target = activeElement.closest(componentViewTargetSelector);
@@ -35,7 +35,7 @@ export const useCollabPositionTracking = (report: CollabPositionReporter) => {
         if (target) {
           report(target.getAttribute("data-entity-id"));
 
- return;
+          return;
         }
       }
 

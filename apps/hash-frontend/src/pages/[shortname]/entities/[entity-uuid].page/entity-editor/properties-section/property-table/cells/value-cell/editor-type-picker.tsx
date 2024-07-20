@@ -74,9 +74,9 @@ export const EditorTypePicker = ({
             <ExpectedTypeButton
               expectedType={expectedType}
               key={expectedType.$id}
-              onClick={() =>
-                { onTypeChange(guessEditorTypeFromExpectedType(expectedType)); }
-              }
+              onClick={() => {
+                onTypeChange(guessEditorTypeFromExpectedType(expectedType));
+              }}
             />
           );
         })}

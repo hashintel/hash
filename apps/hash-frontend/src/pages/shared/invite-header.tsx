@@ -1,4 +1,4 @@
-import type { FunctionComponent , memo } from "react";
+import type { FunctionComponent, memo } from "react";
 
 interface InviteHeaderProps {
   invitationInfo: {

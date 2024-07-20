@@ -7,7 +7,11 @@ import {
 } from "@local/hash-graph-sdk/entity";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { EntityRootType, extractOwnedByIdFromEntityId,Subgraph  } from "@local/hash-subgraph";
+import type {
+  EntityRootType,
+  extractOwnedByIdFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Drawer, Stack, Typography } from "@mui/material";
 
@@ -163,7 +167,9 @@ export const EditEntitySlideOver = ({
   ]);
 
   const submitDisabled =
-    !isDirty && draftLinksToCreate.length === 0 && draftLinksToArchive.length === 0;
+    !isDirty &&
+    draftLinksToCreate.length === 0 &&
+    draftLinksToArchive.length === 0;
 
   return (
     <Drawer

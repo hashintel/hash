@@ -4,7 +4,7 @@ import type { NodeProps } from "reactflow";
 import { ArrowRightIconRegular } from "@hashintel/design-system";
 import type { ActionDefinitionId } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { ExternalInputRequest } from "@local/hash-isomorphic-utils/flows/types";
-import type { Box, Stack, SxProps, Theme , Typography } from "@mui/material";
+import type { Box, Stack, SxProps, Theme, Typography } from "@mui/material";
 
 import { Button } from "../../../../../shared/ui/button";
 import type {
@@ -12,7 +12,8 @@ import type {
   statusToSimpleStatus,
   StepRunStatus,
   useFlowRunsContext,
-  useStatusForCurrentStep} from "../../../../shared/flow-runs-context";
+  useStatusForCurrentStep,
+} from "../../../../shared/flow-runs-context";
 import { QuestionModal } from "../shared/question-modal";
 import type { NodeData } from "../shared/types";
 
@@ -177,7 +178,9 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
         <QuestionModal
           open
           inputRequest={outstandingInputRequest}
-          onClose={() => { setShowQuestionModal(false); }}
+          onClose={() => {
+            setShowQuestionModal(false);
+          }}
         />
       )}
       <NodeContainer
@@ -220,7 +223,9 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
                 },
                 "&::before": { background: "none" },
               }}
-              onClick={() => { setShowQuestionModal(true); }}
+              onClick={() => {
+                setShowQuestionModal(true);
+              }}
             >
               Your worker wants your advice
               <ArrowRightIconRegular sx={{ ...statusBarTextSx, ml: 0.8 }} />

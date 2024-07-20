@@ -1,5 +1,5 @@
 import type { FunctionComponent } from "react";
-import type { Stack, SvgIconProps , Typography } from "@mui/material";
+import type { Stack, SvgIconProps, Typography } from "@mui/material";
 
 export const EmptyOutputBox = ({
   label,

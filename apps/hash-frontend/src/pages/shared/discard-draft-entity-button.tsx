@@ -1,9 +1,13 @@
-import type { FunctionComponent , useCallback, useMemo, useState } from "react";
+import type { FunctionComponent, useCallback, useMemo, useState } from "react";
 import { useMutation } from "@apollo/client";
 import { AlertModal } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { EntityRootType, extractDraftIdFromEntityId,Subgraph  } from "@local/hash-subgraph";
+import type {
+  EntityRootType,
+  extractDraftIdFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import {
   getIncomingLinksForEntity,
   getOutgoingLinksForEntity,
@@ -16,7 +20,7 @@ import type {
 import { archiveEntityMutation } from "../../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { useNotificationEntities } from "../../shared/notification-entities-context";
-import type { Button,ButtonProps  } from "../../shared/ui";
+import type { Button, ButtonProps } from "../../shared/ui";
 
 import { useNotificationsWithLinks } from "./notifications-with-links-context";
 
@@ -93,11 +97,10 @@ export const DiscardDraftEntityButton: FunctionComponent<
         : getIncomingLinksForEntity(
             draftEntitySubgraph,
             draftEntity.metadata.recordId.entityId,
-          ).filter(
-            (linkEntity) =>
-              Boolean(extractDraftIdFromEntityId(
-                linkEntity.metadata.recordId.entityId,
-              )),
+          ).filter((linkEntity) =>
+            Boolean(
+              extractDraftIdFromEntityId(linkEntity.metadata.recordId.entityId),
+            ),
           ),
     [draftEntitySubgraph, draftEntity, isLinkEntity],
   );
@@ -109,11 +112,10 @@ export const DiscardDraftEntityButton: FunctionComponent<
         : getOutgoingLinksForEntity(
             draftEntitySubgraph,
             draftEntity.metadata.recordId.entityId,
-          ).filter(
-            (linkEntity) =>
-              Boolean(extractDraftIdFromEntityId(
-                linkEntity.metadata.recordId.entityId,
-              )),
+          ).filter((linkEntity) =>
+            Boolean(
+              extractDraftIdFromEntityId(linkEntity.metadata.recordId.entityId),
+            ),
           ),
     [draftEntitySubgraph, draftEntity, isLinkEntity],
   );
@@ -170,7 +172,9 @@ export const DiscardDraftEntityButton: FunctionComponent<
       {showDraftEntityWithDraftLinksWarning && (
         <AlertModal
           callback={handleIgnoreDraftEntityWithDraftLinks}
-          close={() => { setShowDraftEntityWithDraftLinksWarning(false); }}
+          close={() => {
+            setShowDraftEntityWithDraftLinksWarning(false);
+          }}
           type={"info"}
           calloutMessage={
             <>

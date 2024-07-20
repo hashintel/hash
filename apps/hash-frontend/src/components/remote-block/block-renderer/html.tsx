@@ -1,5 +1,8 @@
-import type { FunctionComponent , useEffect, useRef, useState } from "react";
-import type { HtmlBlockDefinition , renderHtmlBlock } from "@blockprotocol/core/html";
+import type { FunctionComponent, useEffect, useRef, useState } from "react";
+import type {
+  HtmlBlockDefinition,
+  renderHtmlBlock,
+} from "@blockprotocol/core/html";
 
 interface HtmlElementLoaderProps {
   html: HtmlBlockDefinition;

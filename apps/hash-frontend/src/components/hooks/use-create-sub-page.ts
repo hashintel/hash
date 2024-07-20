@@ -8,8 +8,10 @@ import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type {
   CreatePageMutation,
   CreatePageMutationVariables,
- PageType,  SetParentPageMutation,
-  SetParentPageMutationVariables } from "../../graphql/api-types.gen";
+  PageType,
+  SetParentPageMutation,
+  SetParentPageMutationVariables,
+} from "../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { createPage, setParentPage } from "../../graphql/queries/page.queries";
 import { constructPageRelativeUrl } from "../../lib/routes";

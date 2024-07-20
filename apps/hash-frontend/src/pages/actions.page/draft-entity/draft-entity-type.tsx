@@ -1,4 +1,4 @@
-import type { FunctionComponent , useMemo } from "react";
+import type { FunctionComponent, useMemo } from "react";
 import {
   ArrowUpRegularIcon,
   AsteriskRegularIcon,
@@ -29,8 +29,9 @@ export const DraftEntityType: FunctionComponent<{
     return entityTypeInSubgraph;
   }, [entity, subgraph]);
 
-  const isUpdate =
-    Boolean(entity.metadata.provenance.firstNonDraftCreatedAtDecisionTime);
+  const isUpdate = Boolean(
+    entity.metadata.provenance.firstNonDraftCreatedAtDecisionTime,
+  );
 
   return (
     <Box display={"flex"} alignItems={"stretch"} flexShrink={0}>

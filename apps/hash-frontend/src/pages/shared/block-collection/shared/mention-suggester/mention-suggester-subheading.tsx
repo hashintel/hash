@@ -4,7 +4,8 @@ import {
   faChevronRight,
 } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { BoxProps ,
+import type {
+  BoxProps,
   ListItem,
   ListItemButton,
   listItemButtonClasses,

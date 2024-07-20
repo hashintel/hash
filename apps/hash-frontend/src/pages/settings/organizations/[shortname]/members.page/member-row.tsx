@@ -1,6 +1,6 @@
 import { useMutation } from "@apollo/client";
 import type { AccountGroupId } from "@local/hash-graph-types/account";
-import type { AccountEntityId , extractAccountId } from "@local/hash-subgraph";
+import type { AccountEntityId, extractAccountId } from "@local/hash-subgraph";
 import { TableCell, TableRow, Typography } from "@mui/material";
 
 import { useBlockProtocolArchiveEntity } from "../../../../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-archive-entity";

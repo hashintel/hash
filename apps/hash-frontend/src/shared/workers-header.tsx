@@ -1,7 +1,15 @@
 import type { FunctionComponent, ReactElement } from "react";
 import { faAngleRight } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { Box, Container, Stack, SvgIconProps, SxProps, Theme , Typography } from "@mui/material";
+import type {
+  Box,
+  Container,
+  Stack,
+  SvgIconProps,
+  SxProps,
+  Theme,
+  Typography,
+} from "@mui/material";
 
 import type { Breadcrumb } from "../pages/shared/breadcrumbs";
 import { TopContextBar } from "../pages/shared/top-context-bar";
@@ -74,7 +82,10 @@ export const WorkersHeader = ({
                       : [title.iconSx]),
                   ]}
                 />
-                <Typography variant={"h3"} sx={{ fontSize: 26, fontWeight: 400 }}>
+                <Typography
+                  variant={"h3"}
+                  sx={{ fontSize: 26, fontWeight: 400 }}
+                >
                   {title.text}
                 </Typography>
                 {sideTitle ? (

@@ -1,6 +1,8 @@
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import type {
- Configuration, FrontendApi,  LoginFlow,
+  Configuration,
+  FrontendApi,
+  LoginFlow,
   RecoveryFlow,
   RegistrationFlow,
   SettingsFlow,
@@ -11,7 +13,8 @@ import type {
   UpdateSettingsFlowBody,
   UpdateSettingsFlowWithPasswordMethod,
   UpdateVerificationFlowBody,
-  VerificationFlow } from "@ory/client";
+  VerificationFlow,
+} from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 
 export const oryKratosClient = new FrontendApi(
@@ -50,14 +53,11 @@ export const gatherUiNodeValuesFromFlow = <T extends FlowNames>(
     .filter((attributes): attributes is UiNodeInputAttributes =>
       isUiNodeInputAttributes(attributes),
     )
-    .reduce<Flows[T][1]>(
-      (accumulator, attributes) => {
-        const { name, value } = attributes;
+    .reduce<Flows[T][1]>((accumulator, attributes) => {
+      const { name, value } = attributes;
 
-        return { ...accumulator, [name]: value };
-      },
-      {},
-    );
+      return { ...accumulator, [name]: value };
+    }, {});
 
 const maybeGetCsrfTokenFromFlow = (flow: FlowValues) =>
   flow.ui.nodes

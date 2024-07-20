@@ -4,7 +4,7 @@ import {
   DashIcon,
 } from "@hashintel/design-system";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
-import type { Box, Stack, SxProps, Theme , Tooltip } from "@mui/material";
+import type { Box, Stack, SxProps, Theme, Tooltip } from "@mui/material";
 
 import { useUserOrOrgShortnameByOwnedById } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import type { FileUpload } from "../../../../shared/file-upload-context";

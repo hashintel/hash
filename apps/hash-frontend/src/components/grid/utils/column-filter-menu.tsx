@@ -1,5 +1,6 @@
-import type { FunctionComponent , useEffect, useRef, useState } from "react";
-import type {   Box,
+import type { FunctionComponent, useEffect, useRef, useState } from "react";
+import type {
+  Box,
   Checkbox,
   ClickAwayListener,
   Fade,
@@ -7,7 +8,7 @@ import type {   Box,
   ListItemText,
   Paper,
   Popper,
-PopperProps ,
+  PopperProps,
   Typography,
 } from "@mui/material";
 

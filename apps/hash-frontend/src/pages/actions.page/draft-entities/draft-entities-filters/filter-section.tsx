@@ -59,7 +59,9 @@ const CheckboxFilter: FunctionComponent<{
             height: 18,
           },
         }}
-        onChange={({ target }) => { onChange(target.checked); }}
+        onChange={({ target }) => {
+          onChange(target.checked);
+        }}
       />
     }
   />
@@ -153,13 +155,13 @@ const MultipleChoiceOptions: FunctionComponent<{
           <SelectAllSwitch
             size={"small"}
             checked={filterSection.options.every(({ checked }) => checked)}
-            onChange={() =>
-              { filterSection.onChange(
+            onChange={() => {
+              filterSection.onChange(
                 allOptionsAreChecked
                   ? []
                   : filterSection.options.map(({ value }) => value),
-              ); }
-            }
+              );
+            }}
           />
         }
       />
@@ -207,7 +209,9 @@ export const FilterSection: FunctionComponent<{
       <FormControl>
         <RadioGroup
           value={filterSection.value}
-          onChange={(event) => { filterSection.onChange(event.target.value); }}
+          onChange={(event) => {
+            filterSection.onChange(event.target.value);
+          }}
         >
           {filterSection.options.map(({ icon, value, label, count }) => {
             const selected = filterSection.value === value;

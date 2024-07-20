@@ -12,7 +12,14 @@ import {
   generateFlowDefinitionPath,
   generateWorkerRunPath,
 } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import type { Box, outlinedInputClasses, Stack, SxProps, Theme , Typography } from "@mui/material";
+import type {
+  Box,
+  outlinedInputClasses,
+  Stack,
+  SxProps,
+  Theme,
+  Typography,
+} from "@mui/material";
 
 import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner-for-entity";
 import type { FlowRun } from "../../../../graphql/api-types.gen";
@@ -178,7 +185,7 @@ export const Topbar = ({
                 selectSx={{ ...selectSx, minWidth: 100 }}
                 value={selectedFlowRunId ?? "none"}
                 onChange={(event) => {
-                  const {value} = event.target;
+                  const { value } = event.target;
 
                   if (value === "none") {
                     void push(

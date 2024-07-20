@@ -99,7 +99,9 @@ export const SelectEntityTypePage = () => {
             >
               {isSelectingType ? (
                 <EntityTypeSelector
-                  onCancel={() => { setIsSelectingType(false); }}
+                  onCancel={() => {
+                    setIsSelectingType(false);
+                  }}
                   onSelect={async (entityType) => {
                     try {
                       setIsSelectingType(false);
@@ -120,7 +122,7 @@ export const SelectEntityTypePage = () => {
                     let href = `/new/types/entity-type`;
 
                     if (searchValue) {
-                      href = `${href  }?name=${encodeURIComponent(searchValue)}`;
+                      href = `${href}?name=${encodeURIComponent(searchValue)}`;
                     }
 
                     void router.push(href);
@@ -132,7 +134,9 @@ export const SelectEntityTypePage = () => {
                     loading={loading}
                     startIcon={!loading && <FontAwesomeIcon icon={faPlus} />}
                     sx={{ fontSize: 14, paddingX: 2 }}
-                    onClick={() => { setIsSelectingType(true); }}
+                    onClick={() => {
+                      setIsSelectingType(true);
+                    }}
                   >
                     Add a type
                   </Button>

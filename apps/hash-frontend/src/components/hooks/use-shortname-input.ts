@@ -33,8 +33,7 @@ const getShortnameError = (error: string | undefined, isTouched: boolean) => {
   }
 };
 
-const parseShortnameInput = (input: string) =>
-  input.replaceAll(/[^\w-]/g, "");
+const parseShortnameInput = (input: string) => input.replaceAll(/[^\w-]/g, "");
 
 export const useShortnameInput = () => {
   const [loading, setLoading] = useState(false);

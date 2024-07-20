@@ -2,12 +2,23 @@ import "@tldraw/tldraw/editor.css";
 import "@tldraw/tldraw/ui.css";
 import { useRouter } from "next/router";
 import { useEffect, useState } from "react";
-import type { ComponentIdHashBlockMap , fetchBlock } from "@local/hash-isomorphic-utils/blocks";
+import type {
+  ComponentIdHashBlockMap,
+  fetchBlock,
+} from "@local/hash-isomorphic-utils/blocks";
 import type { BlockCollectionContentItem } from "@local/hash-isomorphic-utils/entity";
 import type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
 import { Box } from "@mui/material";
 import { TldrawEditorConfig } from "@tldraw/editor";
-import type { App, createShapeId, MenuGroup, menuItem, Tldraw, TLTranslationKey , toolbarItem } from "@tldraw/tldraw";
+import type {
+  App,
+  createShapeId,
+  MenuGroup,
+  menuItem,
+  Tldraw,
+  TLTranslationKey,
+  toolbarItem,
+} from "@tldraw/tldraw";
 
 import { useUserBlocks } from "../../../blocks/user-blocks";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";

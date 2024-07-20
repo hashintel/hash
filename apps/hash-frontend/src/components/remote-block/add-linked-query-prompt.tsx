@@ -42,7 +42,9 @@ export const AddLinkedQueryPrompt: FunctionComponent<{
       <Button
         variant={"tertiary"}
         size={"small"}
-        onClick={() => { setBlockSelectDataModalIsOpen(true); }}
+        onClick={() => {
+          setBlockSelectDataModalIsOpen(true);
+        }}
       >
         Click here to select data
       </Button>

@@ -1,10 +1,13 @@
 import { bindTrigger } from "material-ui-popup-state";
 import { usePopupState } from "material-ui-popup-state/hooks";
-import type { forwardRef,ForwardRefRenderFunction  } from "react";
+import type { forwardRef, ForwardRefRenderFunction } from "react";
 import type { JsonObject } from "@blockprotocol/core";
 import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
-import type { EntityStore , isBlockEntity } from "@local/hash-isomorphic-utils/entity-store";
+import type {
+  EntityStore,
+  isBlockEntity,
+} from "@local/hash-isomorphic-utils/entity-store";
 import { Box } from "@mui/material";
 
 import { BlockConfigMenu } from "./block-config-menu/block-config-menu";
@@ -112,7 +115,9 @@ const BlockHandle: ForwardRefRenderFunction<
         anchorRef={ref}
         blockEntity={blockEntity}
         closeMenu={configMenuPopupState.close}
-        updateConfig={(properties: JsonObject) => { updateChildEntity(properties); }}
+        updateConfig={(properties: JsonObject) => {
+          updateChildEntity(properties);
+        }}
         popupState={configMenuPopupState}
       />
     </Box>

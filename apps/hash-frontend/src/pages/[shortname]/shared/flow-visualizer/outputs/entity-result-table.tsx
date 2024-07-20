@@ -21,15 +21,24 @@ import {
   getPropertyTypesForEntityType,
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import type { Box, Stack, SxProps, TableCell, Theme , Typography } from "@mui/material";
+import type {
+  Box,
+  Stack,
+  SxProps,
+  TableCell,
+  Theme,
+  Typography,
+} from "@mui/material";
 
 import { ValueChip } from "../../../../shared/value-chip";
 import type {
   CreateVirtualizedRowContentFn,
   defaultCellSx,
-  VirtualizedTable,  VirtualizedTableColumn,
+  VirtualizedTable,
+  VirtualizedTableColumn,
   VirtualizedTableRow,
-  VirtualizedTableSort} from "../../../../shared/virtualized-table";
+  VirtualizedTableSort,
+} from "../../../../shared/virtualized-table";
 import type { ProposedEntityOutput } from "../shared/types";
 
 import { EmptyOutputBox } from "./shared/empty-output-box";
@@ -48,7 +57,9 @@ const isFixedField = (fieldId: string): fieldId is FixedFieldId =>
  */
 type FieldId = FixedFieldId | VersionedUrl;
 
-interface EntityColumnMetadata { appliesToEntityTypeIds: VersionedUrl[] }
+interface EntityColumnMetadata {
+  appliesToEntityTypeIds: VersionedUrl[];
+}
 
 const generateColumns = (
   entityTypes: EntityType[],
@@ -164,7 +175,9 @@ const TableRow = memo(
           <Box
             component={"button"}
             sx={{ background: "none", border: "none", p: 0 }}
-            onClick={() => { row.onEntityTypeClick(row.entityTypeId); }}
+            onClick={() => {
+              row.onEntityTypeClick(row.entityTypeId);
+            }}
           >
             <ValueChip
               type
@@ -197,7 +210,9 @@ const TableRow = memo(
                 p: 0,
                 textAlign: "left",
               }}
-              onClick={() => { row.onEntityClick(row.persistedEntity!); }}
+              onClick={() => {
+                row.onEntityClick(row.persistedEntity!);
+              }}
             >
               <ValueChip
                 sx={{
@@ -213,9 +228,8 @@ const TableRow = memo(
           )}
         </TableCell>
         {columns.slice(fixedFieldIds.length).map((column) => {
-          const appliesToEntity = column.metadata?.appliesToEntityTypeIds.includes(
-            row.entityTypeId,
-          );
+          const appliesToEntity =
+            column.metadata?.appliesToEntityTypeIds.includes(row.entityTypeId);
 
           if (!appliesToEntity) {
             return (
@@ -328,7 +342,9 @@ export const EntityResultTable = ({
     direction: "asc",
   });
 
-  const hasData = Boolean(persistedEntities.length > 0 || proposedEntities.length > 0);
+  const hasData = Boolean(
+    persistedEntities.length > 0 || proposedEntities.length > 0,
+  );
 
   const {
     rows,
@@ -428,7 +444,7 @@ export const EntityResultTable = ({
     return {
       entityTypes: Object.values(entityTypesById),
       rows: rowData.sort((a, b) => {
-        const {field} = sort;
+        const { field } = sort;
         const direction = sort.direction === "asc" ? 1 : -1;
 
         if (!isFixedField(field)) {
@@ -500,7 +516,9 @@ export const EntityResultTable = ({
       ) : (
         <EmptyOutputBox
           Icon={outputIcons.table}
-          label={"Entities proposed and affected by this flow will appear in a table here"}
+          label={
+            "Entities proposed and affected by this flow will appear in a table here"
+          }
         />
       )}
     </OutputContainer>

@@ -1,4 +1,10 @@
-import type { CustomCell, DrawArgs, getMiddleCenterBias, GridCellKind,Theme  } from "@glideapps/glide-data-grid";
+import type {
+  CustomCell,
+  DrawArgs,
+  getMiddleCenterBias,
+  GridCellKind,
+  Theme,
+} from "@glideapps/glide-data-grid";
 
 /**
  * @returns Vertical center of a grid cell.

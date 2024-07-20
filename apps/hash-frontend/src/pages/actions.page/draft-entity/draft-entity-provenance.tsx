@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import type { FunctionComponent , useMemo } from "react";
+import type { FunctionComponent, useMemo } from "react";
 import { WandMagicSparklesIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { Box, styled, Typography } from "@mui/material";

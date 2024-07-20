@@ -1,7 +1,10 @@
 import { useCallback } from "react";
-import type { GridCellKind,Item  } from "@glideapps/glide-data-grid";
+import type { GridCellKind, Item } from "@glideapps/glide-data-grid";
 
-import type { BlankCell , blankCell } from "../../../../../../../components/grid/utils";
+import type {
+  BlankCell,
+  blankCell,
+} from "../../../../../../../components/grid/utils";
 import type { UseGridTooltipResponse } from "../../../../../../../components/grid/utils/use-grid-tooltip/types";
 import type { ChipCell } from "../../../../../../shared/chip-cell";
 import { useEntityEditor } from "../../entity-editor-context";

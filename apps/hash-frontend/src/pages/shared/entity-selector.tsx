@@ -1,8 +1,11 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@apollo/client";
 import type {
- Chip, SelectorAutocomplete,  SelectorAutocompleteProps,
-  TypeListSelectorDropdownProps } from "@hashintel/design-system";
+  Chip,
+  SelectorAutocomplete,
+  SelectorAutocompleteProps,
+  TypeListSelectorDropdownProps,
+} from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
@@ -13,10 +16,12 @@ import {
   mapGqlSubgraphFieldsFragmentToSubgraph,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type {   entityIdFromComponents,
-EntityRootType,   extractDraftIdFromEntityId,
+import type {
+  entityIdFromComponents,
+  EntityRootType,
+  extractDraftIdFromEntityId,
   splitEntityId,
-Subgraph ,
+  Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
@@ -179,12 +184,12 @@ export const EntitySelector = <Multiple extends boolean>({
           icon: null,
           /**
            * @todo Update SelectorAutocomplete to show an entity's namespace as well as / instead of its entityTypeId.
-            */
+           */
           typeId: entity.metadata.entityTypeId,
           title: generateEntityLabel(entitiesSubgraph!, entity),
-          draft: Boolean(extractDraftIdFromEntityId(
-            entity.metadata.recordId.entityId,
-          )),
+          draft: Boolean(
+            extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
+          ),
         };
       }}
       renderTags={(tagValue, getTagProps) =>
@@ -197,7 +202,9 @@ export const EntitySelector = <Multiple extends boolean>({
           />
         ))
       }
-      onInputChange={(_, value) => { setQuery(value); }}
+      onInputChange={(_, value) => {
+        setQuery(value);
+      }}
       onChange={(_, option) => {
         onSelect(option, entitiesSubgraph ?? null);
       }}

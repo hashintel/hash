@@ -1,6 +1,12 @@
 import type { AxiosError } from "axios";
 import { useRouter } from "next/router";
-import type { FormEventHandler , useContext, useEffect, useMemo, useState } from "react";
+import type {
+  FormEventHandler,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { TextField } from "@hashintel/design-system";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
@@ -11,8 +17,8 @@ import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 import { useHashInstance } from "../components/hooks/use-hash-instance";
 import { ArrowRightToBracketRegularIcon } from "../shared/icons/arrow-right-to-bracket-regular-icon";
 import { ArrowTurnDownLeftRegularIcon } from "../shared/icons/arrow-turn-down-left-regular-icon";
-import type { getPlainLayout,NextPageWithLayout  } from "../shared/layout";
-import type { Button,ButtonProps  } from "../shared/ui";
+import type { getPlainLayout, NextPageWithLayout } from "../shared/layout";
+import type { Button, ButtonProps } from "../shared/ui";
 
 import { AuthHeading } from "./shared/auth-heading";
 import { useAuthInfo } from "./shared/auth-info-context";
@@ -121,7 +127,9 @@ const SigninPage: NextPageWithLayout = () => {
     if (flowId) {
       oryKratosClient
         .getLoginFlow({ id: String(flowId) })
-        .then(({ data }) => { setFlow(data); })
+        .then(({ data }) => {
+          setFlow(data);
+        })
         .catch(handleFlowError);
 
       return;
@@ -135,7 +143,9 @@ const SigninPage: NextPageWithLayout = () => {
         loginChallenge:
           typeof loginChallenge === "string" ? loginChallenge : undefined,
       })
-      .then(({ data }) => { setFlow(data); })
+      .then(({ data }) => {
+        setFlow(data);
+      })
       .catch(handleFlowError);
   }, [
     flowId,
@@ -282,15 +292,15 @@ const SigninPage: NextPageWithLayout = () => {
               placeholder={"Enter your email address"}
               value={email}
               inputProps={{ "data-1p-ignore": false }}
-              error={
-                Boolean(emailInputUiNode?.messages.find(
-                  ({ type }) => type === "error",
-                ))
-              }
+              error={Boolean(
+                emailInputUiNode?.messages.find(({ type }) => type === "error"),
+              )}
               helperText={emailInputUiNode?.messages.map(({ id, text }) => (
                 <Typography key={id}>{text}</Typography>
               ))}
-              onChange={({ target }) => { setEmail(target.value); }}
+              onChange={({ target }) => {
+                setEmail(target.value);
+              }}
             />
             <TextField
               required

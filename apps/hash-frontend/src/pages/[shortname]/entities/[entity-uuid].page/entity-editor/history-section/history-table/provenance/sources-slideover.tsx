@@ -2,7 +2,7 @@ import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import type { SourceProvenance } from "@local/hash-graph-client";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { splitEntityId,Subgraph  } from "@local/hash-subgraph";
+import type { splitEntityId, Subgraph } from "@local/hash-subgraph";
 import {
   Backdrop,
   Box,
@@ -190,7 +190,9 @@ export const SourcesSlideover = ({
               sx={{
                 [`&.${tableContainerClasses.root}`]: { overflowY: "auto" },
               }}
-              onClick={(event_) => { event_.stopPropagation(); }}
+              onClick={(event_) => {
+                event_.stopPropagation();
+              }}
             >
               <Table
                 sx={[

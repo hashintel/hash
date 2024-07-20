@@ -131,7 +131,8 @@ export const useEntityTypeEntities = (params: {
   });
 
   const hadCachedContent = useMemo(
-    () => Boolean(apolloClient.readQuery({ query: queryEntitiesQuery, variables })),
+    () =>
+      Boolean(apolloClient.readQuery({ query: queryEntitiesQuery, variables })),
     [variables],
   );
 

@@ -1,4 +1,4 @@
-import type { FunctionComponent , useMemo } from "react";
+import type { FunctionComponent, useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { Typography } from "@mui/material";
@@ -39,8 +39,9 @@ export const DraftEntityViewers: FunctionComponent<{
 
   const orgMemberViewers = useMemo(() => {
     if (orgViewers) {
-      return orgViewers
-        .flatMap(({ memberships }) => memberships.map(({ user }) => user));
+      return orgViewers.flatMap(({ memberships }) =>
+        memberships.map(({ user }) => user),
+      );
     }
   }, [orgViewers]);
 

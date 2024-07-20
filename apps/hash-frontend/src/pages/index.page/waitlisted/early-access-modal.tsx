@@ -1,4 +1,4 @@
-import type { FormEvent , useState } from "react";
+import type { FormEvent, useState } from "react";
 import { Select, TextField } from "@hashintel/design-system";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type { ProspectiveUserProperties } from "@local/hash-isomorphic-utils/system-types/prospectiveuser";
@@ -96,7 +96,9 @@ const Input = ({
           <Select
             value={value}
             sx={{ width: 250 }}
-            onChange={(event) => { onChange(event.target.value); }}
+            onChange={(event) => {
+              onChange(event.target.value);
+            }}
           >
             {options.map((option) => (
               <MenuItem key={option} value={option}>
@@ -117,7 +119,9 @@ const Input = ({
                 ? { pattern: "\\S+\\.\\w+", title: "Please enter a valid URL" }
                 : undefined
             }
-            onChange={(event) => { onChange(event.target.value); }}
+            onChange={(event) => {
+              onChange(event.target.value);
+            }}
           />
         )}
       </Box>
@@ -182,12 +186,12 @@ export const EarlyAccessFormModal = ({
               key={key}
               {...metadata}
               value={formState[key]}
-              onChange={(value) =>
-                { setFormState((currentState) => ({
+              onChange={(value) => {
+                setFormState((currentState) => ({
                   ...currentState,
                   [key]: value,
-                })); }
-              }
+                }));
+              }}
             />
           );
         })}

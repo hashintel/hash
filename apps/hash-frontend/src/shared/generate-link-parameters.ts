@@ -63,7 +63,7 @@ export const generateLinkParameters = (
       };
     }
 
-    const {pathname} = new URL(href, frontendUrl);
+    const { pathname } = new URL(href, frontendUrl);
 
     return {
       isExternal,

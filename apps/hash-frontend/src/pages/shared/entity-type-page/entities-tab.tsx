@@ -1,4 +1,4 @@
-import type { FunctionComponent , useContext, useMemo } from "react";
+import type { FunctionComponent, useContext, useMemo } from "react";
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
@@ -49,7 +49,9 @@ export const EntitiesTab: FunctionComponent = () => {
           <Paper sx={{ overflow: "hidden" }}>
             <SectionEmptyState
               title={"There are no entities of this type visible to you"}
-              description={"Assigning this type to an entity will result in it being shown here"}
+              description={
+                "Assigning this type to an entity will result in it being shown here"
+              }
             />
           </Paper>
         ) : (

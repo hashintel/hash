@@ -164,10 +164,9 @@ export class BlockView implements NodeView {
         event.preventDefault();
 
         return true;
-      } 
-        this.dragging = true;
-        this.update(this.node);
-      
+      }
+      this.dragging = true;
+      this.update(this.node);
     }
 
     /**
@@ -176,7 +175,8 @@ export class BlockView implements NodeView {
      */
     return (
       this.blockHandleRef.current?.contains(event.target as globalThis.Node) ||
-      (event.target === this.blockHandleRef.current && event.type === "mousedown")
+      (event.target === this.blockHandleRef.current &&
+        event.type === "mousedown")
     );
   }
 
@@ -194,7 +194,8 @@ export class BlockView implements NodeView {
   ) {
     if (record.target === this.dom && record.type === "attributes") {
       return record.attributeName === "class" || record.attributeName === "id";
-    } if (
+    }
+    if (
       this.selectContainer.contains(record.target) ||
       this.insertBlockBottomContainer.contains(record.target) ||
       this.insertBlockTopContainer?.contains(record.target)
@@ -334,7 +335,6 @@ export class BlockView implements NodeView {
     const { node, getPos } = this;
 
     this.manager.deleteNode(node, getPos()).catch((error: Error) => {
-       
       console.error(
         `Error deleting node at position ${getPos()}: ${error.message}`,
       );
@@ -344,7 +344,7 @@ export class BlockView implements NodeView {
   onBlockChange = (variant: BlockVariant, meta: HashBlockMeta) => {
     const { node, editorView, getPos } = this;
 
-    const {state} = editorView;
+    const { state } = editorView;
     const child = state.doc.resolve(getPos() + 1).nodeAfter;
     const draftId = child?.attrs.draftId;
 
@@ -355,7 +355,6 @@ export class BlockView implements NodeView {
     this.manager
       .replaceNode(draftId, meta.componentId, variant, node, getPos())
       .catch((error: Error) => {
-         
         console.error(error);
       });
   };
@@ -375,7 +374,7 @@ export class BlockView implements NodeView {
         .then(({ tr }) => {
           /**
            * Calculate nextPosition to correctly focus the component inside, not the wrapper.
-            */
+           */
           const $pos = tr.doc.resolve(newPosition + 1);
           const nextPosition = findComponentNode(
             $pos.node(1),
@@ -390,7 +389,6 @@ export class BlockView implements NodeView {
           editorView.dispatch(tr);
         })
         .catch((error) => {
-           
           console.error(error);
         });
     };

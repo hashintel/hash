@@ -1,5 +1,11 @@
 import { useRouter } from "next/router";
-import type { FormEvent, FunctionComponent, PropsWithChildren , useMemo, useState } from "react";
+import type {
+  FormEvent,
+  FunctionComponent,
+  PropsWithChildren,
+  useMemo,
+  useState,
+} from "react";
 import { useApolloClient, useMutation } from "@apollo/client";
 import {
   ArrowRightIconRegular,
@@ -24,7 +30,8 @@ import type {
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { getFlowRunsQuery } from "@local/hash-isomorphic-utils/graphql/queries/flow.queries";
-import type {   autocompleteClasses,
+import type {
+  autocompleteClasses,
   Box,
   Container,
   FormControlLabel,
@@ -32,7 +39,9 @@ import type {   autocompleteClasses,
   Radio,
   RadioGroup,
   Stack,
-SvgIconProps, SxProps, Theme ,
+  SvgIconProps,
+  SxProps,
+  Theme,
   Typography,
 } from "@mui/material";
 
@@ -44,15 +53,21 @@ import type {
 import { startFlowMutation } from "../../graphql/queries/knowledge/flow.queries";
 import { FilesRegularIcon } from "../../shared/icons/files-regular-icon";
 import { GlobeRegularIcon } from "../../shared/icons/globe-regular-icon";
-import type { getLayoutWithSidebar,NextPageWithLayout  } from "../../shared/layout";
+import type {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../../shared/layout";
 import { Button } from "../../shared/ui/button";
 import { WorkersHeader } from "../../shared/workers-header";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { EntityTypeSelector } from "../shared/entity-type-selector";
 import { WebSelector } from "../shared/web-selector";
 
-import type { DeliverableSettings,DeliverableSettingsState  } from "./new.page/deliverable-settings";
-import type { FileSettings,FileSettingsState  } from "./new.page/file-settings";
+import type {
+  DeliverableSettings,
+  DeliverableSettingsState,
+} from "./new.page/deliverable-settings";
+import type { FileSettings, FileSettingsState } from "./new.page/file-settings";
 import {
   defaultBrowserPluginDomains,
   InternetSettings,
@@ -410,7 +425,9 @@ const NewGoalPageContent = () => {
           })}
         >
           <Question
-            description={"Information uploaded and created while performing this task will be added to this web"}
+            description={
+              "Information uploaded and created while performing this task will be added to this web"
+            }
             number={1}
             text={"Choose a web"}
           >
@@ -418,12 +435,16 @@ const NewGoalPageContent = () => {
               avatarSize={18}
               inputHeight={30}
               inputId={"web-selector"}
-              setSelectedWebOwnedById={(ownedById) => { setWebId(ownedById); }}
+              setSelectedWebOwnedById={(ownedById) => {
+                setWebId(ownedById);
+              }}
               selectedWebOwnedById={webId}
             />
           </Question>
           <Question
-            description={"Your web will be populated with entities matching your research goal."}
+            description={
+              "Your web will be populated with entities matching your research goal."
+            }
             number={2}
             text={"What do you want to research?"}
           >
@@ -442,11 +463,15 @@ const NewGoalPageContent = () => {
                 },
                 width: inputWidth,
               }}
-              onChange={(event) => { setGoal(event.target.value); }}
+              onChange={(event) => {
+                setGoal(event.target.value);
+              }}
             />
           </Question>
           <Question
-            description={"The research task will look for entities that match these types."}
+            description={
+              "The research task will look for entities that match these types."
+            }
             number={3}
             text={"What types of entities are you looking for?"}
           >
@@ -466,12 +491,16 @@ const NewGoalPageContent = () => {
                       pl: 2,
                     },
                 }}
-                onSelect={(newEntityTypes) => { setEntityTypes(newEntityTypes); }}
+                onSelect={(newEntityTypes) => {
+                  setEntityTypes(newEntityTypes);
+                }}
               />
             </Box>
           </Question>
           <Question
-            description={"Entities will be created from the information sources you provide access to."}
+            description={
+              "Entities will be created from the information sources you provide access to."
+            }
             number={4}
             text={"What sources do you want to use?"}
           >
@@ -500,7 +529,9 @@ const NewGoalPageContent = () => {
             </SettingCard>
           </Question>
           <Question
-            description={"Select how outputs of this research goal should be created."}
+            description={
+              "Select how outputs of this research goal should be created."
+            }
             number={5}
             text={"What do you want to output?"}
           >
@@ -512,9 +543,9 @@ const NewGoalPageContent = () => {
                     aria-labelledby={"draft-option"}
                     name={"radio-buttons-group"}
                     value={createAsDraft ? "draft" : "live"}
-                    onChange={(event) =>
-                      { setCreateAsDraft(event.target.value === "draft"); }
-                    }
+                    onChange={(event) => {
+                      setCreateAsDraft(event.target.value === "draft");
+                    }}
                   >
                     <FormControlLabel
                       value={"draft"}

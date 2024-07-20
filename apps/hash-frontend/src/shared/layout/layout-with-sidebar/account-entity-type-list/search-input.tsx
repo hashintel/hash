@@ -30,7 +30,9 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
           color: palette.gray[50],
           svg: { fontSize: 14 },
         })}
-        onClick={() => { showSearchInput(); }}
+        onClick={() => {
+          showSearchInput();
+        }}
       >
         <MagnifyingGlassLightIcon />
       </IconButton>
@@ -92,7 +94,9 @@ export const SearchInput: FunctionComponent<SearchInputProps> = ({
             </Tooltip>
           ),
         }}
-        onChange={(event) => { onChangeText(event.target.value); }}
+        onChange={(event) => {
+          onChangeText(event.target.value);
+        }}
       />
     </Fade>
   </>

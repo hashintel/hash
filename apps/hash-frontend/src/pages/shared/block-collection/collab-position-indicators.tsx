@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from "framer-motion";
-import type { FunctionComponent , useMemo } from "react";
+import type { FunctionComponent, useMemo } from "react";
 import type { CollabPosition } from "@local/hash-isomorphic-utils/collab";
 
 import { useCollabPositionContext } from "../../../contexts/collab-position-context";
@@ -10,7 +10,6 @@ function pickColor(inputString: string) {
   let hash = 0;
 
   for (let i = 0; i < inputString.length; i++) {
-     
     hash = inputString.charCodeAt(i) + ((hash << 5) - hash);
   }
 

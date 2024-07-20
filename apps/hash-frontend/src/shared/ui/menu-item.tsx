@@ -1,7 +1,8 @@
-import type { forwardRef,ReactNode  } from "react";
-import type {   // eslint-disable-next-line no-restricted-imports
+import type { forwardRef, ReactNode } from "react";
+import type {
+  // eslint-disable-next-line no-restricted-imports
   MenuItem as BaseMenuItem,
-MenuItemProps as BaseMenuItemProps ,
+  MenuItemProps as BaseMenuItemProps,
 } from "@hashintel/design-system";
 
 import { Link } from "./link";

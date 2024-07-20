@@ -4,13 +4,16 @@ import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
 import { Grid, styled } from "@mui/material";
 
 import { useUpdateAuthenticatedUser } from "../components/hooks/use-update-authenticated-user";
-import type { getPlainLayout,NextPageWithLayout  } from "../shared/layout";
-import type { Button,ButtonProps  } from "../shared/ui";
+import type { getPlainLayout, NextPageWithLayout } from "../shared/layout";
+import type { Button, ButtonProps } from "../shared/ui";
 
 import { useAuthInfo } from "./shared/auth-info-context";
 import { AuthLayout } from "./shared/auth-layout";
 import { parseGraphQLError } from "./shared/auth-utils";
-import type { AccountSetupForm,AccountSetupFormData  } from "./signup.page/account-setup-form";
+import type {
+  AccountSetupForm,
+  AccountSetupFormData,
+} from "./signup.page/account-setup-form";
 import { SignupRegistrationForm } from "./signup.page/signup-registration-form";
 import { SignupRegistrationRightInfo } from "./signup.page/signup-registration-right-info";
 import { SignupSteps } from "./signup.page/signup-steps";

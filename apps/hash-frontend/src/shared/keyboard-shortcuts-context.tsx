@@ -1,5 +1,7 @@
-import type {   createContext,
-FunctionComponent, PropsWithChildren ,
+import type {
+  createContext,
+  FunctionComponent,
+  PropsWithChildren,
   useCallback,
   useContext,
   useEffect,
@@ -116,7 +118,9 @@ export const KeyboardShortcutsContextProvider: FunctionComponent<
 
     document.addEventListener("keydown", handleKeyDown);
 
-    return () => { document.removeEventListener("keydown", handleKeyDown); };
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [keyboardShortcutsState]);
 
   const value = useMemo(

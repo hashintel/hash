@@ -1,6 +1,10 @@
 import { Box, Skeleton, Stack, Typography } from "@mui/material";
 
-import type { GoalRow, goalRowSx,GoalSummary  } from "./goal-list-section/goal-row";
+import type {
+  GoalRow,
+  goalRowSx,
+  GoalSummary,
+} from "./goal-list-section/goal-row";
 
 export const GoalListSection = ({
   loading,

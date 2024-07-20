@@ -14,7 +14,7 @@ import type { EntityId } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import type { PaperProps , Stack, Typography } from "@mui/material";
+import type { PaperProps, Stack, Typography } from "@mui/material";
 import { useEntityTypesContextRequired } from "../../../../../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { useFileUploads } from "../../../../../../../../../shared/file-upload-context";
 import { Button } from "../../../../../../../../../shared/ui/button";
@@ -130,13 +130,14 @@ export const LinkedEntitySelector = ({
           },
         },
         makePublic: false,
-        onComplete: (upload) =>
-          { onSelect(
+        onComplete: (upload) => {
+          onSelect(
             upload.createdEntities.fileEntity as Entity,
             // the entity's subgraph should mostly contain the file's type, since we're choosing it based on the expected type
             // it will not if the expected type is File and we automatically choose a narrower type of e.g. Image based on the upload
             entitySubgraph,
-          ); },
+          );
+        },
         ownedById: activeWorkspaceOwnedById,
         /**
          * Link creation is handled in the onSelect, since we might need to manage drafts,
@@ -165,7 +166,9 @@ export const LinkedEntitySelector = ({
 
   const fileCreationContextValue = useMemo(
     () => ({
-      close: () => { setShowUploadFileMenu(false); },
+      close: () => {
+        setShowUploadFileMenu(false);
+      },
       isImage,
       onFileProvided,
     }),

@@ -3,7 +3,10 @@ import { Controller, useForm } from "react-hook-form";
 import { useMutation } from "@apollo/client";
 import { Autocomplete, Chip } from "@hashintel/design-system";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { FeatureFlag , featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
+import type {
+  FeatureFlag,
+  featureFlags,
+} from "@local/hash-isomorphic-utils/feature-flags";
 import type {
   EnabledFeatureFlagsPropertyValueWithMetadata,
   UserProperties,
@@ -126,11 +129,11 @@ export const BasicInfoSection: FunctionComponent<{
                 />
               ))
             }
-            onChange={(_, updatedFeatureFlags) =>
-              { setValue("enabledFeatureFlags", updatedFeatureFlags, {
+            onChange={(_, updatedFeatureFlags) => {
+              setValue("enabledFeatureFlags", updatedFeatureFlags, {
                 shouldDirty: true,
-              }); }
-            }
+              });
+            }}
           />
         )}
       />
@@ -142,7 +145,9 @@ export const BasicInfoSection: FunctionComponent<{
           disabled={!isDirty}
           type={"button"}
           variant={"tertiary"}
-          onClick={() => { reset(user); }}
+          onClick={() => {
+            reset(user);
+          }}
         >
           Discard changes
         </Button>

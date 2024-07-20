@@ -8,7 +8,10 @@ import {
   currentTimeInstantTemporalAxes,
   mapGqlSubgraphFieldsFragmentToSubgraph,
 } from "@local/hash-isomorphic-utils/graph-queries";
-import type { EntityRootType , extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type {
+  EntityRootType,
+  extractEntityUuidFromEntityId,
+} from "@local/hash-subgraph";
 import {
   Box,
   breadcrumbsClasses,
@@ -25,10 +28,13 @@ import type {
 import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import { useDraftEntities } from "../shared/draft-entities-context";
 import { BarsSortRegularIcon } from "../shared/icons/bars-sort-regular-icon";
-import type { getLayoutWithSidebar,NextPageWithLayout  } from "../shared/layout";
+import type {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../shared/layout";
 import { MenuItem } from "../shared/ui";
 
-import type { DraftEntities,SortOrder  } from "./actions.page/draft-entities";
+import type { DraftEntities, SortOrder } from "./actions.page/draft-entities";
 import { DraftEntitiesBulkActionsDropdown } from "./actions.page/draft-entities-bulk-actions-dropdown";
 import { InlineSelect } from "./shared/inline-select";
 import { NotificationsWithLinksContextProvider } from "./shared/notifications-with-links-context";
@@ -93,20 +99,21 @@ const ActionsPage: NextPageWithLayout = () => {
       includePermissions: false,
     },
     skip: !draftEntities,
-    onCompleted: (data) =>
-      { setPreviouslyFetchedDraftEntitiesWithLinkedDataResponse(data); },
+    onCompleted: (data) => {
+      setPreviouslyFetchedDraftEntitiesWithLinkedDataResponse(data);
+    },
     fetchPolicy: "network-only",
   });
 
   const draftEntitiesWithLinkedDataSubgraph = useMemo(
     () =>
       (draftEntitiesWithLinkedDataResponse ??
-        previouslyFetchedDraftEntitiesWithLinkedDataResponse)
+      previouslyFetchedDraftEntitiesWithLinkedDataResponse)
         ? mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-          (draftEntitiesWithLinkedDataResponse ??
-            previouslyFetchedDraftEntitiesWithLinkedDataResponse)!
-            .getEntitySubgraph.subgraph,
-        )
+            (draftEntitiesWithLinkedDataResponse ??
+              previouslyFetchedDraftEntitiesWithLinkedDataResponse)!
+              .getEntitySubgraph.subgraph,
+          )
         : undefined,
     [
       draftEntitiesWithLinkedDataResponse,
@@ -168,9 +175,9 @@ const ActionsPage: NextPageWithLayout = () => {
               </Typography>
               <InlineSelect
                 value={sortOrder}
-                onChange={({ target }) =>
-                  { setSortOrder(target.value as SortOrder); }
-                }
+                onChange={({ target }) => {
+                  setSortOrder(target.value as SortOrder);
+                }}
               >
                 {Object.entries(sortOrderHumanReadable).map(
                   ([value, label]) => (
@@ -182,7 +189,9 @@ const ActionsPage: NextPageWithLayout = () => {
               </InlineSelect>
             </Box>
             <DraftEntitiesBulkActionsDropdown
-              deselectAllDraftEntities={() => { setSelectedDraftEntityIds([]); }}
+              deselectAllDraftEntities={() => {
+                setSelectedDraftEntityIds([]);
+              }}
               selectedDraftEntityIds={selectedDraftEntityIds}
               draftEntitiesWithLinkedDataSubgraph={
                 draftEntitiesWithLinkedDataSubgraph

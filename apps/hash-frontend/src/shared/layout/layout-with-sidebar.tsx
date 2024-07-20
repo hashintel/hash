@@ -1,4 +1,4 @@
-import type { FunctionComponent, ReactNode , useState } from "react";
+import type { FunctionComponent, ReactNode, useState } from "react";
 import { IconButton } from "@hashintel/design-system";
 import { Box, Collapse, Stack, styled } from "@mui/material";
 

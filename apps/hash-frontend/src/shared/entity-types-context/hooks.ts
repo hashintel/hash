@@ -42,7 +42,7 @@ export const useLatestEntityTypesOptional = (params?: {
       new Map();
 
     for (const entityType of entityTypes) {
-      const {baseUrl} = entityType.metadata.recordId;
+      const { baseUrl } = entityType.metadata.recordId;
 
       const existingEntityType = latestEntityTypesMap.get(baseUrl);
 

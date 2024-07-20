@@ -1,4 +1,4 @@
-import type { FunctionComponent , useCallback, useMemo, useState } from "react";
+import type { FunctionComponent, useCallback, useMemo, useState } from "react";
 import { useMutation, useQuery } from "@apollo/client";
 import { IconButton } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -19,7 +19,11 @@ import type {
   QuickNoteProperties,
 } from "@local/hash-isomorphic-utils/system-types/quicknote";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type { EntityRootType, extractEntityUuidFromEntityId,Subgraph  } from "@local/hash-subgraph";
+import type {
+  EntityRootType,
+  extractEntityUuidFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import { Box, Fade, Skeleton, Tooltip, Typography } from "@mui/material";
 
 import { useAccountPages } from "../../components/hooks/use-account-pages";
@@ -46,7 +50,10 @@ import { useAuthenticatedUser } from "../shared/auth-info-context";
 import { BlockCollection } from "../shared/block-collection/block-collection";
 import { getBlockCollectionContents } from "../shared/block-collection-contents";
 
-import type { ConvertQuickNoteToPageModal,PageWithParentLink  } from "./convert-quick-note-to-page-modal";
+import type {
+  ConvertQuickNoteToPageModal,
+  PageWithParentLink,
+} from "./convert-quick-note-to-page-modal";
 
 const Statistic: FunctionComponent<{ amount?: number; unit: string }> = ({
   amount,
@@ -76,7 +83,9 @@ const parseTextFromTextBlock = ({
   return (
     textTokens?.reduce(
       (previousText, current) =>
-        current.tokenType === "text" ? `${previousText}${current.text}` : previousText,
+        current.tokenType === "text"
+          ? `${previousText}${current.text}`
+          : previousText,
       "",
     ) ?? ""
   );
@@ -358,7 +367,9 @@ export const EditableQuickNote: FunctionComponent<{
                 <Tooltip title={"Convert to page"} placement={"top"}>
                   <IconButton
                     disabled={isConvertToPageModalOpen}
-                    onClick={() => { setIsConvertToPageModalOpen(true); }}
+                    onClick={() => {
+                      setIsConvertToPageModalOpen(true);
+                    }}
                   >
                     <FileExportRegularIcon />
                   </IconButton>
@@ -367,7 +378,9 @@ export const EditableQuickNote: FunctionComponent<{
                   open={isConvertToPageModalOpen}
                   quickNoteEntity={quickNoteEntity}
                   onConvertedToPage={handleConvertedToPage}
-                  onClose={() => { setIsConvertToPageModalOpen(false); }}
+                  onClose={() => {
+                    setIsConvertToPageModalOpen(false);
+                  }}
                 />
               </>
             )}

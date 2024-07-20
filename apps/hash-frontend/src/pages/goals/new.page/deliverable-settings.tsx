@@ -1,4 +1,9 @@
-import type { Dispatch, PropsWithChildren, SetStateAction , useState } from "react";
+import type {
+  Dispatch,
+  PropsWithChildren,
+  SetStateAction,
+  useState,
+} from "react";
 import {
   CaretDownSolidIcon,
   IconButton,
@@ -114,11 +119,11 @@ const SpreadsheetSettings = ({
       checked={Boolean(spreadsheetSettings)}
       label={"Spreadsheet"}
       subLabel={"Sync entities to a Google Sheet"}
-      onChangeChecked={() =>
-        { spreadsheetSettings
+      onChangeChecked={() => {
+        spreadsheetSettings
           ? setSpreadsheetSettings(null)
-          : setSpreadsheetSettings({}); }
-      }
+          : setSpreadsheetSettings({});
+      }}
     >
       <GoogleAuthProvider>
         <Box mb={1.5}>
@@ -137,12 +142,12 @@ const SpreadsheetSettings = ({
         <SelectOrNameGoogleSheet
           googleAccountId={spreadsheetSettings?.googleAccountId}
           googleSheet={spreadsheetSettings?.googleSheet}
-          setGoogleSheet={(newGoogleSheet) =>
-            { setSpreadsheetSettings({
+          setGoogleSheet={(newGoogleSheet) => {
+            setSpreadsheetSettings({
               ...spreadsheetSettings,
               googleSheet: newGoogleSheet,
-            }); }
-          }
+            });
+          }}
         />
       </GoogleAuthProvider>
     </DeliverableSetting>
@@ -161,9 +166,9 @@ const DocumentSettings = ({
       checked={Boolean(documentSettings)}
       label={"Document"}
       subLabel={"Outputs in markdown format"}
-      onChangeChecked={() =>
-        { documentSettings ? setDocumentSettings(null) : setDocumentSettings({}); }
-      }
+      onChangeChecked={() => {
+        documentSettings ? setDocumentSettings(null) : setDocumentSettings({});
+      }}
     >
       <Box>
         <TextField
@@ -207,22 +212,22 @@ export const DeliverableSettings = ({
     <Box>
       <SpreadsheetSettings
         spreadsheetSettings={settings.spreadsheet}
-        setSpreadsheetSettings={(newSpreadsheetSettings) =>
-          { setSettings((currentSettings) => ({
+        setSpreadsheetSettings={(newSpreadsheetSettings) => {
+          setSettings((currentSettings) => ({
             ...currentSettings,
             spreadsheet: newSpreadsheetSettings,
-          })); }
-        }
+          }));
+        }}
       />
       <Box sx={{ mt: 1 }}>
         <DocumentSettings
           documentSettings={settings.document}
-          setDocumentSettings={(newDocumentSettings) =>
-            { setSettings((currentSettings) => ({
+          setDocumentSettings={(newDocumentSettings) => {
+            setSettings((currentSettings) => ({
               ...currentSettings,
               document: newDocumentSettings,
-            })); }
-          }
+            }));
+          }}
         />
       </Box>
     </Box>

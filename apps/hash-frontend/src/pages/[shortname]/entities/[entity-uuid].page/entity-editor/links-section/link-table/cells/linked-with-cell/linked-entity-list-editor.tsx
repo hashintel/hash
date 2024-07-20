@@ -14,7 +14,11 @@ import type {
   Timestamp,
 } from "@local/hash-graph-types/temporal-versioning";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { EntityRootType, extractDraftIdFromEntityId,Subgraph  } from "@local/hash-subgraph";
+import type {
+  EntityRootType,
+  extractDraftIdFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 
@@ -95,7 +99,9 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
     maxItems,
   } = cell.data.linkRow;
 
-  const [addingLink, setAddingLink] = useState(linkAndTargetEntities.length === 0);
+  const [addingLink, setAddingLink] = useState(
+    linkAndTargetEntities.length === 0,
+  );
 
   const entity = useMemo(() => getRoots(entitySubgraph)[0]!, [entitySubgraph]);
 
@@ -113,7 +119,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
     if (alreadyLinked) {
       setAddingLink(false);
 
- return;
+      return;
     }
 
     const leftEntityId = entity.metadata.recordId.entityId;
@@ -137,7 +143,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
 
     const newCell = produce(cell, (draftCell) => {
       /** @see https://github.com/immerjs/immer/issues/839 for ts-ignore reason */
-       
+
       // @ts-ignore
       draftCell.data.linkRow.linkAndTargetEntities.push(newLinkAndTargetEntity);
     });
@@ -201,9 +207,9 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
             expectedEntityTypes={expectedEntityTypes}
             entityIdsToFilterOut={linkedEntityIds}
             linkEntityTypeId={linkEntityTypeId}
-            includeDrafts={
-              Boolean(extractDraftIdFromEntityId(entity.metadata.recordId.entityId))
-            }
+            includeDrafts={Boolean(
+              extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
+            )}
             onSelect={onSelect}
             onFinishedEditing={onFinishedEditing}
           />

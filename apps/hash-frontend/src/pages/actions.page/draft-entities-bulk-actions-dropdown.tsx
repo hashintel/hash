@@ -4,11 +4,15 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import type { FunctionComponent , useCallback, useMemo, useState } from "react";
+import type { FunctionComponent, useCallback, useMemo, useState } from "react";
 import { useMutation } from "@apollo/client";
 import { AlertModal, CaretDownSolidIcon } from "@hashintel/design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { EntityRootType, extractDraftIdFromEntityId,Subgraph  } from "@local/hash-subgraph";
+import type {
+  EntityRootType,
+  extractDraftIdFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import {
   getEntityRevision,
   getIncomingLinksForEntity,
@@ -70,33 +74,30 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
       return;
     }
 
-    return selectedDraftEntities
-      .flatMap((selectedDraftEntity) => {
-        if (selectedDraftEntity.linkData) {
-          return [];
-        }
+    return selectedDraftEntities.flatMap((selectedDraftEntity) => {
+      if (selectedDraftEntity.linkData) {
+        return [];
+      }
 
-        return [
-          ...getIncomingLinksForEntity(
-            draftEntitiesWithLinkedDataSubgraph,
-            selectedDraftEntity.metadata.recordId.entityId,
-          ).filter(
-            (linkEntity) =>
-              Boolean(extractDraftIdFromEntityId(
-                linkEntity.metadata.recordId.entityId,
-              )),
+      return [
+        ...getIncomingLinksForEntity(
+          draftEntitiesWithLinkedDataSubgraph,
+          selectedDraftEntity.metadata.recordId.entityId,
+        ).filter((linkEntity) =>
+          Boolean(
+            extractDraftIdFromEntityId(linkEntity.metadata.recordId.entityId),
           ),
-          ...getOutgoingLinksForEntity(
-            draftEntitiesWithLinkedDataSubgraph,
-            selectedDraftEntity.metadata.recordId.entityId,
-          ).filter(
-            (linkEntity) =>
-              Boolean(extractDraftIdFromEntityId(
-                linkEntity.metadata.recordId.entityId,
-              )),
+        ),
+        ...getOutgoingLinksForEntity(
+          draftEntitiesWithLinkedDataSubgraph,
+          selectedDraftEntity.metadata.recordId.entityId,
+        ).filter((linkEntity) =>
+          Boolean(
+            extractDraftIdFromEntityId(linkEntity.metadata.recordId.entityId),
           ),
-        ];
-      });
+        ),
+      ];
+    });
   }, [draftEntitiesWithLinkedDataSubgraph, selectedDraftEntities]);
 
   const [archiveEntities] = useMutation<
@@ -176,40 +177,39 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
       return;
     }
 
-    return selectedDraftEntities
-      .flatMap((selectedDraftEntity) => {
-        if (!selectedDraftEntity.linkData) {
-          return [];
-        }
+    return selectedDraftEntities.flatMap((selectedDraftEntity) => {
+      if (!selectedDraftEntity.linkData) {
+        return [];
+      }
 
-        const leftEntity = getEntityRevision(
-          draftEntitiesWithLinkedDataSubgraph,
-          selectedDraftEntity.linkData.leftEntityId,
-        );
+      const leftEntity = getEntityRevision(
+        draftEntitiesWithLinkedDataSubgraph,
+        selectedDraftEntity.linkData.leftEntityId,
+      );
 
-        const rightEntity = getEntityRevision(
-          draftEntitiesWithLinkedDataSubgraph,
-          selectedDraftEntity.linkData.rightEntityId,
-        );
+      const rightEntity = getEntityRevision(
+        draftEntitiesWithLinkedDataSubgraph,
+        selectedDraftEntity.linkData.rightEntityId,
+      );
 
-        return [
-          /**
-           * Note: if a left or right draft entity has already been archived, it
-           * may not be present in the subgraph. This is why the `leftEntity` and
-           * `rightEntity` are nullable in this context.
-           */
-          leftEntity &&
-          extractDraftIdFromEntityId(leftEntity.metadata.recordId.entityId) !==
-            undefined
-            ? leftEntity
-            : [],
-          rightEntity &&
-          extractDraftIdFromEntityId(rightEntity.metadata.recordId.entityId) !==
-            undefined
-            ? rightEntity
-            : [],
-        ].flat();
-      });
+      return [
+        /**
+         * Note: if a left or right draft entity has already been archived, it
+         * may not be present in the subgraph. This is why the `leftEntity` and
+         * `rightEntity` are nullable in this context.
+         */
+        leftEntity &&
+        extractDraftIdFromEntityId(leftEntity.metadata.recordId.entityId) !==
+          undefined
+          ? leftEntity
+          : [],
+        rightEntity &&
+        extractDraftIdFromEntityId(rightEntity.metadata.recordId.entityId) !==
+          undefined
+          ? rightEntity
+          : [],
+      ].flat();
+    });
   }, [draftEntitiesWithLinkedDataSubgraph, selectedDraftEntities]);
 
   const [updateEntities] = useMutation<
@@ -296,7 +296,9 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
         incomingOrOutgoingDraftLinksToIgnore && (
           <AlertModal
             callback={handleIgnoreDraftLinkEntitiesWithDraftLinks}
-            close={() => { setShowDraftEntitiesWithDraftLinksWarning(false); }}
+            close={() => {
+              setShowDraftEntitiesWithDraftLinksWarning(false);
+            }}
             header={"Ignore additional drafts"}
             type={"info"}
             calloutMessage={
@@ -325,9 +327,9 @@ export const DraftEntitiesBulkActionsDropdown: FunctionComponent<{
                 them.
               </>
             }
-            close={() =>
-              { setShowDraftLinkEntitiesWithDraftLeftOrRightEntityWarning(false); }
-            }
+            close={() => {
+              setShowDraftLinkEntitiesWithDraftLeftOrRightEntityWarning(false);
+            }}
           />
         )}
       <Fade in={isMoreThanOneDraftSelected}>

@@ -1,4 +1,4 @@
-import type { bindMenu,PopupState  } from "material-ui-popup-state/hooks";
+import type { bindMenu, PopupState } from "material-ui-popup-state/hooks";
 import type { FunctionComponent, ReactNode } from "react";
 import { faQuestionCircle } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";

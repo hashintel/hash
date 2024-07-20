@@ -6,7 +6,7 @@ import type { Org, User } from "../../lib/user-and-org";
 import { PinnedEntityTypeTabContents } from "./pinned-entity-type-tab-contents";
 import { ProfilePageInfo } from "./profile-page-info";
 import { ProfileTab } from "./profile-tab";
-import type { leftColumnWidth,ProfilePageTab  } from "./util";
+import type { leftColumnWidth, ProfilePageTab } from "./util";
 
 export const ProfilePageContent: FunctionComponent<{
   profile?: User | Org;

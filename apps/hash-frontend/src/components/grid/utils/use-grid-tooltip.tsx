@@ -1,9 +1,9 @@
 import { isEqual } from "lodash";
 import { bindPopover, usePopupState } from "material-ui-popup-state/hooks";
-import type { RefObject , useCallback, useState } from "react";
+import type { RefObject, useCallback, useState } from "react";
 import { useWindowEventListener } from "rooks";
 import type { DataEditorRef } from "@glideapps/glide-data-grid";
-import type { Popover, PopoverPosition , Typography } from "@mui/material";
+import type { Popover, PopoverPosition, Typography } from "@mui/material";
 
 import type {
   GridTooltip,
@@ -29,8 +29,9 @@ export const useGridTooltip = (
 
   const showTooltip = useCallback<TooltipCellProps["showTooltip"]>(
     (newTooltip) => {
-      const isEditorOpen =
-        Boolean(document.querySelector(`div[id="portal"]`)?.children.length);
+      const isEditorOpen = Boolean(
+        document.querySelector(`div[id="portal"]`)?.children.length,
+      );
 
       if (isEditorOpen) {
         return;

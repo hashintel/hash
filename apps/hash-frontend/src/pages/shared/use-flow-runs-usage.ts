@@ -15,9 +15,13 @@ import type {
   AggregatedUsageByTask,
   AggregatedUsageRecord,
   getAggregateUsageRecordsByServiceFeature,
-  getAggregateUsageRecordsByTask} from "@local/hash-isomorphic-utils/service-usage";
+  getAggregateUsageRecordsByTask,
+} from "@local/hash-isomorphic-utils/service-usage";
 import type { UsageRecord } from "@local/hash-isomorphic-utils/system-types/usagerecord";
-import type { EntityRootType , extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type {
+  EntityRootType,
+  extractEntityUuidFromEntityId,
+} from "@local/hash-subgraph";
 import {
   getOutgoingLinkAndTargetEntities,
   getRoots,
@@ -49,7 +53,9 @@ export const useFlowRunsUsage = ({
 } => {
   const { isUserAdmin } = useHashInstance();
 
-  const available = Boolean(process.env.NEXT_PUBLIC_SHOW_WORKER_COST ?? isUserAdmin);
+  const available = Boolean(
+    process.env.NEXT_PUBLIC_SHOW_WORKER_COST ?? isUserAdmin,
+  );
 
   const { data, loading } = useQuery<
     GetEntitySubgraphQuery,

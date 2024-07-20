@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { ApolloQueryResult , useQuery } from "@apollo/client";
+import type { ApolloQueryResult, useQuery } from "@apollo/client";
 import type { AccountId } from "@local/hash-graph-types/account";
 import {
   currentTimeInstantTemporalAxes,
@@ -15,7 +15,11 @@ import type {
   GetEntitySubgraphQueryVariables,
 } from "../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
-import type { constructUser, isEntityUserEntity,User  } from "../../lib/user-and-org";
+import type {
+  constructUser,
+  isEntityUserEntity,
+  User,
+} from "../../lib/user-and-org";
 
 /**
  * Retrieves a specific set of users, with their avatars populated.

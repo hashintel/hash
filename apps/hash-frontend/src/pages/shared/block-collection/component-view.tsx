@@ -1,17 +1,19 @@
 import type { Node } from "prosemirror-model";
-import type { TextSelection,Transaction  } from "prosemirror-state";
+import type { TextSelection, Transaction } from "prosemirror-state";
 import type { EditorView, NodeView } from "prosemirror-view";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { HashBlock } from "@local/hash-isomorphic-utils/blocks";
-import type { BlockEntity ,
+import type {
+  BlockEntity,
   getBlockChildEntity,
   isRichTextProperties,
 } from "@local/hash-isomorphic-utils/entity";
 import type {
   DraftEntity,
   EntityStore,
- isDraftBlockEntity } from "@local/hash-isomorphic-utils/entity-store";
+  isDraftBlockEntity,
+} from "@local/hash-isomorphic-utils/entity-store";
 import {
   addEntityStoreAction,
   entityStorePluginState,
@@ -32,7 +34,10 @@ import { BlockCollectionContext } from "../block-collection-context";
 
 import { BlockContext } from "./block-context";
 import type { RenderPortal } from "./block-portals";
-import type { SuggesterAction , suggesterPluginKey } from "./create-suggester/create-suggester";
+import type {
+  SuggesterAction,
+  suggesterPluginKey,
+} from "./create-suggester/create-suggester";
 
 const getChildEntity = (
   entity: DraftEntity | null | undefined,
@@ -233,9 +238,8 @@ export class ComponentView implements NodeView {
 
       return true;
     }
- 
-      return false;
-    
+
+    return false;
   }
 
   private getDraftBlockEntity() {
@@ -298,7 +302,7 @@ export class ComponentView implements NodeView {
   };
 
   private editableRef = (editableNode: HTMLElement | null) => {
-    const {state} = this.editorView;
+    const { state } = this.editorView;
     let tr: Transaction | null = null;
 
     if (editableNode && this.isNodeInDoc()) {

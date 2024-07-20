@@ -1,4 +1,4 @@
-import type { FunctionComponent , useMemo } from "react";
+import type { FunctionComponent, useMemo } from "react";
 import { LinkEntity } from "@local/hash-graph-sdk/entity";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 

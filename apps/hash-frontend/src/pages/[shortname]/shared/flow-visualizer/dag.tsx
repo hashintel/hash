@@ -69,7 +69,10 @@ export const DAG = ({
             >
               {selectedFlowDefinition.name}
             </Typography>
-            <Typography component={"span"} sx={{ fontSize: 14, fontWeight: 400 }}>
+            <Typography
+              component={"span"}
+              sx={{ fontSize: 14, fontWeight: 400 }}
+            >
               {selectedFlowDefinition.description}
             </Typography>
           </>

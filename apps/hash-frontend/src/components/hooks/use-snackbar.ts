@@ -4,7 +4,9 @@ import type {
   SnackbarKey,
   SnackbarMessage,
   // eslint-disable-next-line no-restricted-imports
-  useSnackbar as useLibrarySnackbar,  VariantType} from "notistack";
+  useSnackbar as useLibrarySnackbar,
+  VariantType,
+} from "notistack";
 import { useMemo } from "react";
 
 type EnqueueWithoutVariant = (
@@ -28,7 +30,7 @@ const generateSnackbarVariants = (
   /**
    * We map a `EnqueueWithoutVariant` function to each variant,
    * which is `enqueueSnackbar`, but with a pre-defined `variant`.
-    */
+   */
   const entries = variantTypes.map(
     (variant) =>
       [

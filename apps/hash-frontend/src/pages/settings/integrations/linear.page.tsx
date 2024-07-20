@@ -1,4 +1,10 @@
-import type { FunctionComponent , useCallback, useEffect, useMemo, useState } from "react";
+import type {
+  FunctionComponent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useLazyQuery, useMutation } from "@apollo/client";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { LinearIntegrationProperties } from "@local/hash-isomorphic-utils/system-types/linearintegration";
@@ -19,12 +25,16 @@ import { Button } from "../../../shared/ui";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 import { getSettingsLayout } from "../../shared/settings-layout";
 
-import type { LinearOrganizationTeamsWithWorkspaces ,
+import type {
+  LinearOrganizationTeamsWithWorkspaces,
   mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces,
   mapLinearOrganizationToSyncWithWorkspacesInputVariable,
   SelectLinearTeamsTable,
 } from "./linear/select-linear-teams-table";
-import type { LinearIntegration , useLinearIntegrations } from "./linear/use-linear-integrations";
+import type {
+  LinearIntegration,
+  useLinearIntegrations,
+} from "./linear/use-linear-integrations";
 
 const LinearConnections: FunctionComponent<{
   connectedLinearOrganizations: GetLinearOrganizationQuery["getLinearOrganization"][];
@@ -151,9 +161,8 @@ const LinearIntegrationsPage: NextPageWithLayout = () => {
 
             if (data) {
               return data.getLinearOrganization;
-            } 
-              throw new Error("Could not get linear organization");
-            
+            }
+            throw new Error("Could not get linear organization");
           }),
         );
 

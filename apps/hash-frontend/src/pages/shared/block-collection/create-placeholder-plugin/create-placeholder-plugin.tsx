@@ -91,7 +91,7 @@ export const createPlaceholderPlugin = (renderPortal: RenderPortal) => {
            * Passing a key prevents a focus related bug, by preventing re-creation of the dom node.
            *
            * @see https://github.com/hashintel/hash/pull/953#issuecomment-1222088538
-            */
+           */
           {
             key: "placeholder-deco",
             destroy: (node) => {

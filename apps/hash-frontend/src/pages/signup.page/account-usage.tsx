@@ -1,4 +1,4 @@
-import type { FunctionComponent , useState } from "react";
+import type { FunctionComponent, useState } from "react";
 import { HumanGreetingIcon, PeopleIcon, SpinnerIcon } from "../../shared/icons";
 
 type WayToUseHash = "BY_THEMSELVES" | "WITH_A_TEAM";
@@ -81,7 +81,9 @@ export const AccountUsage: FunctionComponent<AccountUsageProps> = ({
               position: "relative",
               width: "13rem",
             }}
-            onClick={() => { setActiveOption(value); }}
+            onClick={() => {
+              setActiveOption(value);
+            }}
           >
             <div
               style={{

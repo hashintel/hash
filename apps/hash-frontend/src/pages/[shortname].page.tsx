@@ -29,13 +29,19 @@ import {
   isEntityUserEntity,
 } from "../lib/user-and-org";
 import { useLatestEntityTypesOptional } from "../shared/entity-types-context/hooks";
-import type { getLayoutWithSidebar,NextPageWithLayout  } from "../shared/layout";
+import type {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../shared/layout";
 import { useUserOrOrg } from "../shared/use-user-or-org";
 
 import { EditUserProfileInfoModal } from "./[shortname].page/edit-user-profile-info-modal";
 import { ProfilePageContent } from "./[shortname].page/profile-page-content";
 import { ProfilePageHeader } from "./[shortname].page/profile-page-header";
-import type { parseProfilePageUrlQueryParams,ProfilePageTab  } from "./[shortname].page/util";
+import type {
+  parseProfilePageUrlQueryParams,
+  ProfilePageTab,
+} from "./[shortname].page/util";
 import { useEnabledFeatureFlags } from "./shared/use-enabled-feature-flags";
 
 const ProfilePage: NextPageWithLayout = () => {
@@ -72,12 +78,11 @@ const ProfilePage: NextPageWithLayout = () => {
         userEntity: userOrOrg,
       });
     }
- 
-      return constructOrg({
-        orgEntity: userOrOrg,
-        subgraph: userOrOrgSubgraph,
-      });
-    
+
+    return constructOrg({
+      orgEntity: userOrOrg,
+      subgraph: userOrOrgSubgraph,
+    });
   }, [userOrOrgSubgraph, userOrOrg]);
 
   const profileNotFound = !profile && !loading;
@@ -288,7 +293,9 @@ const ProfilePage: NextPageWithLayout = () => {
           open={displayEditUserProfileInfoModal}
           userProfile={profile}
           refetchUserProfile={refetchProfile}
-          onClose={() => { setDisplayEditUserProfileInfoModal(false); }}
+          onClose={() => {
+            setDisplayEditUserProfileInfoModal(false);
+          }}
         />
       ) : undefined}
     </>

@@ -3,7 +3,8 @@ import type { CustomCell, DrawArgs } from "@glideapps/glide-data-grid";
 import type {
   ChipCellColor,
   ChipCellVariant,
- getChipColors } from "../../../pages/shared/chip-cell";
+  getChipColors,
+} from "../../../pages/shared/chip-cell";
 import { getYCenter } from "../utils";
 
 import type { CustomIcon } from "./custom-grid-icons";

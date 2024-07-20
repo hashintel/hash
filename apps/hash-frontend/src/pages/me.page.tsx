@@ -1,6 +1,9 @@
 import { useRouter } from "next/router";
 
-import type { getLayoutWithSidebar,NextPageWithLayout  } from "../shared/layout";
+import type {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../shared/layout";
 
 import { useAuthInfo } from "./shared/auth-info-context";
 

@@ -1,21 +1,31 @@
 import "@glideapps/glide-data-grid/dist/index.css";
 import { uniqueId } from "lodash";
-import type { MutableRefObject, Ref , useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type {
+  MutableRefObject,
+  Ref,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type {
   CompactSelection,
   DataEditor,
   DataEditorProps,
   DataEditorRef,
   GridCell,
-  GridCellKind,  GridColumn,
+  GridCellKind,
+  GridColumn,
   GridSelection,
   HeaderClickedEventArgs,
   Item,
   SizedGridColumn,
   TextCell,
-  Theme} from "@glideapps/glide-data-grid";
+  Theme,
+} from "@glideapps/glide-data-grid";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
-import type { Box, PopperProps , useTheme } from "@mui/material";
+import type { Box, PopperProps, useTheme } from "@mui/material";
 import type { Instance as PopperInstance } from "@popperjs/core";
 
 import { getCellHorizontalPadding } from "./utils";
@@ -29,7 +39,7 @@ import type {
 } from "./utils/interactable-manager/types";
 import { overrideCustomRenderers } from "./utils/override-custom-renderers";
 import type { Row } from "./utils/rows";
-import type { ColumnSort , defaultSortRows } from "./utils/sorting";
+import type { ColumnSort, defaultSortRows } from "./utils/sorting";
 import { useDrawHeader } from "./utils/use-draw-header";
 import { useRenderGridPortal } from "./utils/use-render-grid-portal";
 
@@ -106,7 +116,9 @@ export const Grid = <T extends Row & { rowId: string }>({
     // delete saved interactables on unmount
     const tableId = tableIdRef.current;
 
-    return () => { InteractableManager.deleteInteractables(tableId); };
+    return () => {
+      InteractableManager.deleteInteractables(tableId);
+    };
   }, []);
 
   const [sorts, setSorts] = useState<ColumnSort<string>[]>(
@@ -479,7 +491,9 @@ export const Grid = <T extends Row & { rowId: string }>({
         anchorEl={filterIconVirtualElement}
         popperRef={popperRef}
         placement={"bottom-start"}
-        onClose={() => { setOpenFilterColumnKey(undefined); }}
+        onClose={() => {
+          setOpenFilterColumnKey(undefined);
+        }}
       />
       <DataEditor
         smoothScrollX

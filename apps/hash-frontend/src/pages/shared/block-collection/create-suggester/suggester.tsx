@@ -1,6 +1,6 @@
-import type { ReactElement , useEffect, useRef, useState } from "react";
+import type { ReactElement, useEffect, useRef, useState } from "react";
 import { useKey } from "rooks";
-import type { Box, SxProps, Theme , Typography } from "@mui/material";
+import type { Box, SxProps, Theme, Typography } from "@mui/material";
 
 import { SpinnerIcon } from "../../../../shared/icons";
 
@@ -125,7 +125,9 @@ export const Suggester = <T,>({
                 backgroundColor: palette.gray[20],
               },
             })}
-            onClick={() => { onChange(option); }}
+            onClick={() => {
+              onChange(option);
+            }}
           >
             {renderItem(option)}
           </Box>

@@ -1,4 +1,8 @@
-import type { CustomCell, CustomRenderer , GridCellKind } from "@glideapps/glide-data-grid";
+import type {
+  CustomCell,
+  CustomRenderer,
+  GridCellKind,
+} from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
 
 import { getCellHorizontalPadding } from "../../../components/grid/utils";

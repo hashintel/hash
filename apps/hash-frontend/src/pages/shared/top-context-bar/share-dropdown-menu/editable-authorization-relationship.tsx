@@ -3,8 +3,8 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import type { FunctionComponent , useCallback, useMemo } from "react";
-import type { MutationHookOptions , useMutation } from "@apollo/client";
+import type { FunctionComponent, useCallback, useMemo } from "react";
+import type { MutationHookOptions, useMutation } from "@apollo/client";
 import { Avatar } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
@@ -27,12 +27,14 @@ import type {
   AddEntityViewerMutation,
   AddEntityViewerMutationVariables,
   AuthorizationSubjectKind,
-  EntityAuthorizationRelation,  RemoveEntityEditorMutation,
+  EntityAuthorizationRelation,
+  RemoveEntityEditorMutation,
   RemoveEntityEditorMutationVariables,
   RemoveEntityOwnerMutation,
   RemoveEntityOwnerMutationVariables,
   RemoveEntityViewerMutation,
-  RemoveEntityViewerMutationVariables} from "../../../../graphql/api-types.gen";
+  RemoveEntityViewerMutationVariables,
+} from "../../../../graphql/api-types.gen";
 import {
   addEntityEditorMutation,
   addEntityOwnerMutation,
@@ -76,7 +78,8 @@ export const EditableAuthorizationRelationships: FunctionComponent<{
     () =>
       relationships.reduce<AuthorizationRelationship>((previous, current) => {
         if (
-          relationHierarchy[current.relation] > relationHierarchy[previous.relation]
+          relationHierarchy[current.relation] >
+          relationHierarchy[previous.relation]
         ) {
           return current;
         }
@@ -305,7 +308,10 @@ export const EditableAuthorizationRelationships: FunctionComponent<{
         )}
       </Box>
       <Box flexGrow={1} display={"flex"} columnGap={1}>
-        <Typography variant={"microText"} sx={{ fontWeight: 500, fontSize: 14 }}>
+        <Typography
+          variant={"microText"}
+          sx={{ fontWeight: 500, fontSize: 14 }}
+        >
           {name}
         </Typography>
         {account &&

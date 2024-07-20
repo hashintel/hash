@@ -1,4 +1,4 @@
-import type { ChangeEvent, CSSProperties, forwardRef,HTMLProps  } from "react";
+import type { ChangeEvent, CSSProperties, forwardRef, HTMLProps } from "react";
 
 import { InputLabelWrapper } from "./input-label-wrapper";
 

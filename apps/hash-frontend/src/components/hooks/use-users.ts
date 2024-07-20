@@ -10,9 +10,10 @@ import type {
   QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import type {   constructMinimalUser,
+import type {
+  constructMinimalUser,
   isEntityUserEntity,
-MinimalUser ,
+  MinimalUser,
 } from "../../lib/user-and-org";
 import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
 

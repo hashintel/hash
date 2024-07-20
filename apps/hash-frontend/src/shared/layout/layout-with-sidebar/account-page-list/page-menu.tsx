@@ -1,10 +1,15 @@
-import type { bindMenu,PopupState  } from "material-ui-popup-state/hooks";
-import type { FunctionComponent , useMemo, useState } from "react";
+import type { bindMenu, PopupState } from "material-ui-popup-state/hooks";
+import type { FunctionComponent, useMemo, useState } from "react";
 import { faFileAlt } from "@fortawesome/free-regular-svg-icons";
 import { faArchive, faLink } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { ListItemIcon, ListItemText, Menu,PopoverPosition  } from "@mui/material";
+import type {
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  PopoverPosition,
+} from "@mui/material";
 
 import { MenuItem } from "../../../ui";
 

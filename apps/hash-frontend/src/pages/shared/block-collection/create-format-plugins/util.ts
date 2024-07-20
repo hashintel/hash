@@ -1,12 +1,12 @@
 import { InputRule } from "prosemirror-inputrules";
 import type { Mark, Node } from "prosemirror-model";
-import type { EditorState , TextSelection } from "prosemirror-state";
+import type { EditorState, TextSelection } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 import urlRegexSafe from "url-regex-safe";
 import { isComponentNode } from "@local/hash-isomorphic-utils/prosemirror";
 
 export const selectionContainsText = (state: EditorState) => {
-  const {content} = state.selection.content();
+  const { content } = state.selection.content();
   let containsText = false;
 
   content.descendants((node) => {
@@ -175,7 +175,7 @@ export function linkInputRule() {
     new RegExp(`${urlRegexSafe({ returnString: true })}\\s$`),
     (state, match, start, end) => {
       const attributes = { href: match[0].slice(0, -1) };
-      const {tr} = state;
+      const { tr } = state;
       let newEnd = end;
 
       if (match[1]) {

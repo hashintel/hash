@@ -1,5 +1,5 @@
 import { NextSeo } from "next-seo";
-import type { ReactNode , useState } from "react";
+import type { ReactNode, useState } from "react";
 import { OntologyChip } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { PropertyObject } from "@local/hash-graph-types/entity";
@@ -8,7 +8,7 @@ import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontolog
 
 import { useSnackbar } from "../../../../components/hooks/use-snackbar";
 
-import type { EntityEditor,EntityEditorProps  } from "./entity-editor";
+import type { EntityEditor, EntityEditorProps } from "./entity-editor";
 import { EntityPageWrapper } from "./entity-page-wrapper";
 import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
 import { QueryEditorPage } from "./query-editor-page";
@@ -50,7 +50,9 @@ export const EntityEditorPage = ({
       {isQueryEntity && (
         <QueryEditorToggle
           shouldShowQueryEditor={shouldShowQueryEditor}
-          toggle={() => { setShouldShowQueryEditor((value) => !value); }}
+          toggle={() => {
+            setShouldShowQueryEditor((value) => !value);
+          }}
         />
       )}
       {isQueryEntity && shouldShowQueryEditor ? (

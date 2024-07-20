@@ -1,11 +1,15 @@
-import type { FunctionComponent , useCallback, useMemo, useState } from "react";
+import type { FunctionComponent, useCallback, useMemo, useState } from "react";
 import { useMutation } from "@apollo/client";
 import { AlertModal, FeatherRegularIcon } from "@hashintel/design-system";
 import { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { EntityRootType, extractDraftIdFromEntityId,Subgraph  } from "@local/hash-subgraph";
+import type {
+  EntityRootType,
+  extractDraftIdFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import { getEntityRevision } from "@local/hash-subgraph/stdlib";
-import type { BoxProps , Typography } from "@mui/material";
+import type { BoxProps, Typography } from "@mui/material";
 
 import type {
   UpdateEntityMutation,
@@ -15,7 +19,7 @@ import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.que
 import { useDraftEntities } from "../../shared/draft-entities-context";
 import { CheckRegularIcon } from "../../shared/icons/check-regular-icon";
 import { useNotificationEntities } from "../../shared/notification-entities-context";
-import type { Button,ButtonProps  } from "../../shared/ui";
+import type { Button, ButtonProps } from "../../shared/ui";
 
 import { LinkLabelWithSourceAndDestination } from "./link-label-with-source-and-destination";
 import { useNotificationsWithLinks } from "./notifications-with-links-context";
@@ -117,8 +121,9 @@ export const AcceptDraftEntityButton: FunctionComponent<
     return {};
   }, [draftEntity, draftEntitySubgraph]);
 
-  const isUpdate =
-    Boolean(draftEntity.metadata.provenance.firstNonDraftCreatedAtDecisionTime);
+  const isUpdate = Boolean(
+    draftEntity.metadata.provenance.firstNonDraftCreatedAtDecisionTime,
+  );
 
   /**
    * Links cannot be made live without live left && right entities, so if this is a draft update to a live link
@@ -241,9 +246,9 @@ export const AcceptDraftEntityButton: FunctionComponent<
                   : "between a published entity, and a draft entity. If you continue the latter will be accepted as well."}
             </>
           }
-          close={() =>
-            { setShowDraftLinkEntityWithDraftLeftOrRightEntityWarning(false); }
-          }
+          close={() => {
+            setShowDraftLinkEntityWithDraftLeftOrRightEntityWarning(false);
+          }}
           header={
             <>
               Accept draft link: <strong>{label}</strong>
@@ -265,10 +270,14 @@ export const AcceptDraftEntityButton: FunctionComponent<
               maxWidth: "100%",
             }}
             leftEntityEndAdornment={
-              <LeftOrRightEntityEndAdornment isDraft={Boolean(draftLeftEntity)} />
+              <LeftOrRightEntityEndAdornment
+                isDraft={Boolean(draftLeftEntity)}
+              />
             }
             rightEntityEndAdornment={
-              <LeftOrRightEntityEndAdornment isDraft={Boolean(draftRightEntity)} />
+              <LeftOrRightEntityEndAdornment
+                isDraft={Boolean(draftRightEntity)}
+              />
             }
             leftEntitySx={getRightOrLeftEntitySx({
               isDraft: Boolean(draftLeftEntity),

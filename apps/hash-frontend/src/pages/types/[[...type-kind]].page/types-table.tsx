@@ -1,10 +1,18 @@
 import { useRouter } from "next/router";
-import type { FunctionComponent , useCallback, useMemo, useRef, useState } from "react";
+import type {
+  FunctionComponent,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type {
- GridCellKind,  Item,
+  GridCellKind,
+  Item,
   SizedGridColumn,
-  TextCell } from "@glideapps/glide-data-grid";
+  TextCell,
+} from "@glideapps/glide-data-grid";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -26,9 +34,16 @@ import { useEntityTypesContextRequired } from "../../../shared/entity-types-cont
 import { generateLinkParameters } from "../../../shared/generate-link-parameters";
 import { isTypeArchived } from "../../../shared/is-archived";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
-import type { FilterState , TableHeader, tableHeaderHeight } from "../../../shared/table-header";
+import type {
+  FilterState,
+  TableHeader,
+  tableHeaderHeight,
+} from "../../../shared/table-header";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
-import type { createRenderTextIconCell,TextIconCell  } from "../../shared/entities-table/text-icon-cell";
+import type {
+  createRenderTextIconCell,
+  TextIconCell,
+} from "../../shared/entities-table/text-icon-cell";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
 
 const typesTableColumnIds = [
@@ -280,7 +295,9 @@ export const TypesTable: FunctionComponent<{
         selectedItems={types?.filter((type) =>
           selectedRows.some(({ typeId }) => type.schema.$id === typeId),
         )}
-        onBulkActionCompleted={() => { setSelectedRows([]); }}
+        onBulkActionCompleted={() => {
+          setSelectedRows([]);
+        }}
       />
       <Grid
         enableCheckboxSelection

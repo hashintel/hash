@@ -1,6 +1,10 @@
 import { format } from "date-fns";
 import { useMemo } from "react";
-import type { EntityType, extractVersion,PropertyType  } from "@blockprotocol/type-system";
+import type {
+  EntityType,
+  extractVersion,
+  PropertyType,
+} from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
@@ -14,7 +18,7 @@ import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
-import type { MinimalActor , useActors } from "../../../shared/use-actors";
+import type { MinimalActor, useActors } from "../../../shared/use-actors";
 
 export interface TypeEntitiesRow {
   rowId: string;
@@ -157,7 +161,7 @@ export const useEntitiesTable = (params: {
               entity,
             });
 
-            const {entityId} = entity.metadata.recordId;
+            const { entityId } = entity.metadata.recordId;
 
             const isPage = isPageEntityTypeId(entity.metadata.entityTypeId);
 

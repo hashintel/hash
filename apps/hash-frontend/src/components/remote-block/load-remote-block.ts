@@ -59,7 +59,7 @@ const fetchAndParseBlock: FetchAndParseFn = (fetchSourceFn) => (url, signal) =>
 
     /**
      * @todo Check it's actually a React component or HTMLElement.
-      */
+     */
     return module.exports;
   });
 

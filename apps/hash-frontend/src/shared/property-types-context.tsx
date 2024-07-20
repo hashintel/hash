@@ -1,4 +1,10 @@
-import type { createContext, FunctionComponent, PropsWithChildren , useContext, useMemo } from "react";
+import type {
+  createContext,
+  FunctionComponent,
+  PropsWithChildren,
+  useContext,
+  useMemo,
+} from "react";
 import type { BaseUrl } from "@blockprotocol/type-system";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { PropertyTypeWithMetadata } from "@local/hash-graph-types/ontology";

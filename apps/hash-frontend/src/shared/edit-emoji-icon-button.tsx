@@ -1,18 +1,33 @@
 import type { BaseEmoji } from "emoji-mart";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import type { FunctionComponent, MouseEventHandler, ReactNode , useCallback, useState } from "react";
+import type {
+  FunctionComponent,
+  MouseEventHandler,
+  ReactNode,
+  useCallback,
+  useState,
+} from "react";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
   fontAwesomeIconClasses,
   IconButton,
 } from "@hashintel/design-system";
-import type { Box, iconButtonClasses, SxProps, Theme , Tooltip } from "@mui/material";
+import type {
+  Box,
+  iconButtonClasses,
+  SxProps,
+  Theme,
+  Tooltip,
+} from "@mui/material";
 import type { SystemStyleObject } from "@mui/system";
 
 import { useDefaultState } from "../components/hooks/use-default-state";
 
-import type { EmojiPicker,EmojiPickerPopoverProps  } from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
+import type {
+  EmojiPicker,
+  EmojiPickerPopoverProps,
+} from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
 
 export type SizeVariant = "small" | "medium";
 

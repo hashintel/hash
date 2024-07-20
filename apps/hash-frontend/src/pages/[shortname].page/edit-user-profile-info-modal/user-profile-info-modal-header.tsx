@@ -1,5 +1,11 @@
 import Image from "next/image";
-import type { ChangeEventHandler, FunctionComponent , useCallback, useRef, useState } from "react";
+import type {
+  ChangeEventHandler,
+  FunctionComponent,
+  useCallback,
+  useRef,
+  useState,
+} from "react";
 import { faImage } from "@fortawesome/free-regular-svg-icons";
 import {
   Avatar,
@@ -19,7 +25,7 @@ import type { User } from "../../../lib/user-and-org";
 import { useFileUploads } from "../../../shared/file-upload-context";
 import { TrashRegularIcon } from "../../../shared/icons/trash-regular-icon";
 import { XMarkRegularIcon } from "../../../shared/icons/x-mark-regular-icon";
-import type { Button,ButtonProps  } from "../../../shared/ui";
+import type { Button, ButtonProps } from "../../../shared/ui";
 import { useUpdateProfileAvatar } from "../../[shortname]/shared/use-update-profile-avatar";
 import { useAuthInfo } from "../../shared/auth-info-context";
 import { getImageUrlFromEntityProperties } from "../../shared/get-file-properties";

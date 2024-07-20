@@ -6,7 +6,10 @@ import { generateFlowDefinitionPath } from "@local/hash-isomorphic-utils/flows/f
 import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import { Box, Container, TableCell, Typography } from "@mui/material";
 
-import type { getLayoutWithSidebar,NextPageWithLayout  } from "../shared/layout";
+import type {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../shared/layout";
 import { Link } from "../shared/ui/link";
 import { WorkersHeader } from "../shared/workers-header";
 
@@ -25,9 +28,12 @@ import {
 } from "./shared/flow-tables";
 import type {
   CreateVirtualizedRowContentFn,
- headerHeight, VirtualizedTable,  VirtualizedTableColumn,
+  headerHeight,
+  VirtualizedTable,
+  VirtualizedTableColumn,
   VirtualizedTableRow,
-  VirtualizedTableSort } from "./shared/virtualized-table";
+  VirtualizedTableSort,
+} from "./shared/virtualized-table";
 
 type FieldId = "web" | "name" | "description" | "lastRunStartedAt";
 
@@ -168,7 +174,7 @@ const FlowsPageContent = () => {
       });
 
     return rowData.sort((a, b) => {
-      const {field} = sort;
+      const { field } = sort;
       const direction = sort.direction === "asc" ? 1 : -1;
 
       if (field === "web") {
@@ -190,7 +196,9 @@ const FlowsPageContent = () => {
     <Box>
       <WorkersHeader
         title={{ text: "Flows", Icon: InfinityLightIcon }}
-        subtitle={"Pre-defined sequences of actions run by workers on your behalf"}
+        subtitle={
+          "Pre-defined sequences of actions run by workers on your behalf"
+        }
         crumbs={[
           {
             icon: null,

@@ -1,4 +1,4 @@
-import type { bindMenu,PopupState  } from "material-ui-popup-state/hooks";
+import type { bindMenu, PopupState } from "material-ui-popup-state/hooks";
 import type { FunctionComponent } from "react";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import {

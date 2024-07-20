@@ -1,4 +1,4 @@
-import type { Plugin, PluginKey,Transaction  } from "prosemirror-state";
+import type { Plugin, PluginKey, Transaction } from "prosemirror-state";
 import type { FunctionComponent } from "react";
 import { Box, Dialog, Stack, Typography } from "@mui/material";
 
@@ -7,7 +7,9 @@ import { Button } from "../../../shared/ui";
 
 import type { RenderPortal } from "./block-portals";
 
-interface ErrorProps { errored: boolean }
+interface ErrorProps {
+  errored: boolean;
+}
 
 const ErrorView: FunctionComponent<ErrorProps> = ({ errored }) => {
   return (
@@ -24,7 +26,12 @@ const ErrorView: FunctionComponent<ErrorProps> = ({ errored }) => {
           Please refresh to ensure no further work is lost.
         </Typography>
         <Stack direction={"row"} justifyContent={"center"}>
-          <Button size={"large"} onClick={() => { window.location.reload(); }}>
+          <Button
+            size={"large"}
+            onClick={() => {
+              window.location.reload();
+            }}
+          >
             Refresh
           </Button>
         </Stack>

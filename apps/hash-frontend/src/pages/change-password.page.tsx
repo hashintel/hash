@@ -1,12 +1,12 @@
 import type { AxiosError } from "axios";
 import { useRouter } from "next/router";
-import type { FormEventHandler , useEffect, useState } from "react";
+import type { FormEventHandler, useEffect, useState } from "react";
 import { TextField } from "@hashintel/design-system";
 import { Box, Container, Typography } from "@mui/material";
 import type { SettingsFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 
-import type { getPlainLayout,NextPageWithLayout  } from "../shared/layout";
+import type { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
 
 import {
@@ -41,7 +41,9 @@ const ChangePasswordPage: NextPageWithLayout = () => {
     if (flowId) {
       oryKratosClient
         .getSettingsFlow({ id: String(flowId) })
-        .then(({ data }) => { setFlow(data); })
+        .then(({ data }) => {
+          setFlow(data);
+        })
         .catch(handleFlowError);
 
       return;
@@ -52,7 +54,9 @@ const ChangePasswordPage: NextPageWithLayout = () => {
       .createBrowserSettingsFlow({
         returnTo: returnTo ? String(returnTo) : undefined,
       })
-      .then(({ data }) => { setFlow(data); })
+      .then(({ data }) => {
+        setFlow(data);
+      })
       .catch(handleFlowError);
   }, [flowId, router, router.isReady, returnTo, flow, handleFlowError]);
 
@@ -133,13 +137,15 @@ const ChangePasswordPage: NextPageWithLayout = () => {
           autoComplete={"off"}
           placeholder={"Enter your new password"}
           value={updatedPassword}
-          error={
-            Boolean(passwordInputUiNode?.messages.find(({ type }) => type === "error"))
-          }
+          error={Boolean(
+            passwordInputUiNode?.messages.find(({ type }) => type === "error"),
+          )}
           helperText={passwordInputUiNode?.messages.map(({ id, text }) => (
             <Typography key={id}>{text}</Typography>
           ))}
-          onChange={({ target }) => { setUpdatedPassword(target.value); }}
+          onChange={({ target }) => {
+            setUpdatedPassword(target.value);
+          }}
         />
         <Button type={"submit"} disabled={!updatedPassword}>
           Change Password

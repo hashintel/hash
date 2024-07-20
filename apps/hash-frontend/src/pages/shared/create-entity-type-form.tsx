@@ -1,15 +1,21 @@
 import { Buffer } from "buffer/";
 import { useRouter } from "next/router";
-import type { ReactNode , useContext } from "react";
+import type { ReactNode, useContext } from "react";
 import { useForm } from "react-hook-form";
-import type { ENTITY_TYPE_META_SCHEMA,EntityType, VersionedUrl  } from "@blockprotocol/type-system/slim";
+import type {
+  ENTITY_TYPE_META_SCHEMA,
+  EntityType,
+  VersionedUrl,
+} from "@blockprotocol/type-system/slim";
 import { Callout, TextField } from "@hashintel/design-system";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import type {   Box,
+import type {
+  Box,
   formHelperTextClasses,
   outlinedInputClasses,
   Stack,
-SxProps, Theme ,
+  SxProps,
+  Theme,
 } from "@mui/material";
 
 import { useBlockProtocolGetEntityType } from "../../components/hooks/block-protocol-functions/ontology/use-block-protocol-get-entity-type";

@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction , useCallback, useState } from "react";
+import type { Dispatch, SetStateAction, useCallback, useState } from "react";
 import { useLocalstorageState } from "rooks";
 
 export const useDefaultState = <
@@ -64,7 +64,9 @@ export const useCachedDefaultState = <
     (value: SetStateAction<T>) => {
       setNextValue((previousValue) => {
         const nextValue =
-          typeof value === "function" ? value(previousValue.currentValue) : value;
+          typeof value === "function"
+            ? value(previousValue.currentValue)
+            : value;
 
         return {
           ...previousValue,

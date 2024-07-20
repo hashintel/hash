@@ -1,7 +1,7 @@
-import type { FunctionComponent , useCallback, useMemo, useState } from "react";
+import type { FunctionComponent, useCallback, useMemo, useState } from "react";
 import { useMutation } from "@apollo/client";
 import type { MultiFilter } from "@blockprotocol/graph";
-import type { IconButton, Modal,ModalProps  } from "@hashintel/design-system";
+import type { IconButton, Modal, ModalProps } from "@hashintel/design-system";
 import { EntityQueryEditor } from "@hashintel/query-editor";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";

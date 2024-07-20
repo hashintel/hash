@@ -9,10 +9,11 @@ import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/fronte
 import { Stack, Typography } from "@mui/material";
 
 import { Link } from "../../../../shared/ui/link";
-import type {   FlowStatusChip,
+import type {
+  FlowStatusChip,
   flowTableCellSx,
   FlowTableChip,
-SimpleFlowRunStatus ,
+  SimpleFlowRunStatus,
 } from "../../../shared/flow-tables";
 
 export interface GoalSummary {

@@ -1,5 +1,5 @@
-import type { bindMenu,PopupState  } from "material-ui-popup-state/hooks";
-import type { FunctionComponent , useState } from "react";
+import type { bindMenu, PopupState } from "material-ui-popup-state/hooks";
+import type { FunctionComponent, useState } from "react";
 import type { BaseUrl, VersionedUrl } from "@blockprotocol/type-system";
 import { faAdd, faLink, faList } from "@fortawesome/free-solid-svg-icons";
 import { ArrowUpRightIcon } from "@hashintel/design-system";

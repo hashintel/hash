@@ -1,5 +1,5 @@
 import type { ApolloError } from "apollo-server-express";
-import type { NextRequest , NextResponse } from "next/server";
+import type { NextRequest, NextResponse } from "next/server";
 import stringify from "safe-stable-stringify";
 import type {
   DataType,

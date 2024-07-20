@@ -40,7 +40,9 @@ export const NotesSection = forwardRef<
           heading={heading}
           subheading={dayTimestamp}
           isCollapsed={isCollapsed}
-          toggleIsCollapsed={() => { setIsCollapsed(!isCollapsed); }}
+          toggleIsCollapsed={() => {
+            setIsCollapsed(!isCollapsed);
+          }}
           navigateUp={navigateUp}
           navigateDown={navigateDown}
         />

@@ -1,7 +1,7 @@
-import type { FunctionComponent , useMemo } from "react";
+import type { FunctionComponent, useMemo } from "react";
 import type { BlockVariant } from "@blockprotocol/core";
 import type { HashBlockMeta } from "@local/hash-isomorphic-utils/blocks";
-import type { Box, SxProps, Theme , Typography } from "@mui/material";
+import type { Box, SxProps, Theme, Typography } from "@mui/material";
 
 import { useUserBlocks } from "../../../../blocks/user-blocks";
 import { WarnIcon } from "../../../../shared/icons";
@@ -27,10 +27,7 @@ export const BlockSuggester: FunctionComponent<BlockSuggesterProps> = ({
 }) => {
   const { value: blocksMap, blockFetchFailed } = useUserBlocks();
 
-  const blocksArray = useMemo(
-    () => Object.values(blocksMap),
-    [blocksMap],
-  );
+  const blocksArray = useMemo(() => Object.values(blocksMap), [blocksMap]);
   const filteredBlocks = useFilteredBlocks(search, blocksArray);
 
   return (

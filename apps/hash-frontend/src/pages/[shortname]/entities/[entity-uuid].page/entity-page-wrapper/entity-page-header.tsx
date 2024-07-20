@@ -1,9 +1,13 @@
 import { useRouter } from "next/router";
-import type { ReactNode , useContext } from "react";
+import type { ReactNode, useContext } from "react";
 import { faAsterisk } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityRootType, extractDraftIdFromEntityId,Subgraph  } from "@local/hash-subgraph";
+import type {
+  EntityRootType,
+  extractDraftIdFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
 import { Container } from "@mui/system";
 
@@ -70,7 +74,9 @@ export const EntityPageHeader = ({
       {entity && entitySubgraph ? (
         <NotificationsWithLinksContextProvider>
           <Collapse
-            in={Boolean(extractDraftIdFromEntityId(entity.metadata.recordId.entityId))}
+            in={Boolean(
+              extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
+            )}
           >
             <DraftEntityBanner
               draftEntity={entity}

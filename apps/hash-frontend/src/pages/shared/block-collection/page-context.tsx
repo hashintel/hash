@@ -1,5 +1,14 @@
 import type { EditorView } from "prosemirror-view";
-import type { createContext, FunctionComponent, PropsWithChildren, RefObject , useContext, useMemo, useRef, useState } from "react";
+import type {
+  createContext,
+  FunctionComponent,
+  PropsWithChildren,
+  RefObject,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { ProsemirrorManager } from "@local/hash-isomorphic-utils/prosemirror-manager";
 

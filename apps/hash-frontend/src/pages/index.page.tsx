@@ -5,7 +5,10 @@ import { Stack } from "@mui/material";
 
 import type { HasAccessToHashQuery } from "../graphql/api-types.gen";
 import { hasAccessToHashQuery } from "../graphql/queries/user.queries";
-import type { getLayoutWithSidebar,NextPageWithLayout  } from "../shared/layout";
+import type {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../shared/layout";
 
 import { LoggedIn } from "./index.page/logged-in";
 import { LoggedOut } from "./index.page/logged-out";
@@ -25,9 +28,8 @@ const Page: NextPageWithLayout = () => {
     if (authenticatedUser?.accountSignupComplete) {
       return true;
     }
- 
-      return hasAccessToHashResponse?.hasAccessToHash;
-    
+
+    return hasAccessToHashResponse?.hasAccessToHash;
   }, [authenticatedUser, hasAccessToHashResponse]);
 
   if (!authenticatedUser?.accountSignupComplete) {

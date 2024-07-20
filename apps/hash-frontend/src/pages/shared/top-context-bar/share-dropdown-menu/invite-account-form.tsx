@@ -1,4 +1,4 @@
-import type { FunctionComponent , useCallback, useMemo, useState } from "react";
+import type { FunctionComponent, useCallback, useMemo, useState } from "react";
 import { Autocomplete, Avatar } from "@hashintel/design-system";
 import type {
   AccountGroupId,
@@ -134,9 +134,15 @@ export const InviteAccountForm: FunctionComponent<{
             },
           },
         }}
-        onOpen={() => { setOpen(true); }}
-        onInputChange={(_, value) => { setSearch(value); }}
-        onChange={(_, account) => { setSelectedAccount(account); }}
+        onOpen={() => {
+          setOpen(true);
+        }}
+        onInputChange={(_, value) => {
+          setSearch(value);
+        }}
+        onChange={(_, account) => {
+          setSelectedAccount(account);
+        }}
         onClose={(_, reason) => {
           if (reason !== "toggleInput") {
             setOpen(false);

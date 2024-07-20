@@ -8,10 +8,11 @@ import type {
 } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import type {   Box,
+import type {
+  Box,
   ListItemButton as MuiListItemButton,
   listItemButtonClasses,
-ListItemButtonProps ,
+  ListItemButtonProps,
   ListItemIcon,
   ListItemText as MuiListItemText,
   listItemTextClasses,
@@ -209,9 +210,9 @@ export const MentionSuggesterEntity = forwardRef<
                   height: "fit-content",
                   borderWidth: 0,
                 }}
-                onClick={() =>
-                  { setSortOrder(sortOrder === "asc" ? "desc" : "asc"); }
-                }
+                onClick={() => {
+                  setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                }}
               >
                 {sortOrder === "asc"
                   ? "Alphabetical (A-Z)"
@@ -226,7 +227,9 @@ export const MentionSuggesterEntity = forwardRef<
                     ? item.linkEntity.metadata.recordId.entityId
                     : item.propertyType.metadata.recordId.baseUrl
                 }
-                onClick={() => { onSubMenuClick(index); }}
+                onClick={() => {
+                  onSubMenuClick(index);
+                }}
               >
                 <ListItemIcon sx={{ minWidth: "unset" }}>
                   {item.kind === "outgoing-link" ? (
@@ -257,7 +260,9 @@ export const MentionSuggesterEntity = forwardRef<
             ))}
             <MentionSuggesterSubheading
               chevronDirection={"left"}
-              onClick={() => { setDisplaySubMenu(false); }}
+              onClick={() => {
+                setDisplaySubMenu(false);
+              }}
             >
               Back to Results
             </MentionSuggesterSubheading>

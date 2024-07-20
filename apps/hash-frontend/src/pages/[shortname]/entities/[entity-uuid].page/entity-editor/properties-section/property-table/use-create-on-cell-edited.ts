@@ -1,7 +1,11 @@
 import cloneDeep from "lodash/cloneDeep";
 import set from "lodash/set";
 import { useCallback } from "react";
-import type { EditableGridCell, GridCellKind,Item  } from "@glideapps/glide-data-grid";
+import type {
+  EditableGridCell,
+  GridCellKind,
+  Item,
+} from "@glideapps/glide-data-grid";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 

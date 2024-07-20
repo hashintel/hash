@@ -135,7 +135,11 @@ export const GoalsList = () => {
       >
         <GoalListSection loading={loading} rows={activeGoals} type={"active"} />
       </Box>
-      <GoalListSection loading={loading} rows={archivedGoals} type={"archived"} />
+      <GoalListSection
+        loading={loading}
+        rows={archivedGoals}
+        type={"archived"}
+      />
     </Box>
   );
 };

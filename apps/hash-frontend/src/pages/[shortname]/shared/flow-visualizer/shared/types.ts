@@ -26,7 +26,9 @@ export interface NodeData {
 
 export type CustomNodeType = Node<NodeData>;
 
-export interface EdgeData { sourceStatus: SimpleStatus }
+export interface EdgeData {
+  sourceStatus: SimpleStatus;
+}
 
 export type CustomEdgeType = Edge<EdgeData>;
 

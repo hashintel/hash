@@ -26,7 +26,9 @@ export const JsonInput = ({ onChange, value }: CellInputProps<unknown>) => {
     JSON.stringify(value, undefined, 2),
   );
 
-  const [anchorElement, setAnchorElement] = useState<HTMLDivElement | null>(null);
+  const [anchorElement, setAnchorElement] = useState<HTMLDivElement | null>(
+    null,
+  );
 
   const isValid = isJsonObjectString(innerValue);
 
@@ -54,7 +56,9 @@ export const JsonInput = ({ onChange, value }: CellInputProps<unknown>) => {
           <JsonEditor
             height={300}
             value={innerValue}
-            onChange={(value_) => { setInnerValue(value_); }}
+            onChange={(value_) => {
+              setInnerValue(value_);
+            }}
           />
           <Box
             sx={{
@@ -90,12 +94,18 @@ export const JsonInput = ({ onChange, value }: CellInputProps<unknown>) => {
                 <IconButton
                   rounded
                   sx={{ color: "white" }}
-                  onClick={() => { onChange(value, true); }}
+                  onClick={() => {
+                    onChange(value, true);
+                  }}
                 >
                   <FontAwesomeIcon icon={faClose} />
                 </IconButton>
               </Tooltip>
-              <Tooltip disableInteractive title={"Save Changes"} placement={"top"}>
+              <Tooltip
+                disableInteractive
+                title={"Save Changes"}
+                placement={"top"}
+              >
                 <Box>
                   <IconButton
                     rounded

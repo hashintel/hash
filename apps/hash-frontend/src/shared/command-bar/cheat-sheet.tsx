@@ -3,7 +3,7 @@ import { Box, Typography } from "@mui/material";
 
 import { Modal } from "../ui/modal";
 
-import type { CommandBarOption , menu } from "./command-bar-options";
+import type { CommandBarOption, menu } from "./command-bar-options";
 import { HotKey } from "./hot-key";
 
 export const CheatSheet = () => {
@@ -62,13 +62,20 @@ export const CheatSheet = () => {
   // }, [setKeyboardShortcuts, unsetKeyboardShortcuts]);
 
   return (
-    <Modal open={open} onClose={() => { setOpen(false); }}>
+    <Modal
+      open={open}
+      onClose={() => {
+        setOpen(false);
+      }}
+    >
       <Box bgcolor={"white"} margin={"40px auto"} width={600} px={2} py={1}>
         <label>
           <input
             type={"checkbox"}
             checked={showAll}
-            onChange={(event) => { setShowAll(event.target.checked); }}
+            onChange={(event) => {
+              setShowAll(event.target.checked);
+            }}
           />{" "}
           Show All
         </label>

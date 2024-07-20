@@ -1,11 +1,18 @@
 import { useRouter } from "next/router";
-import type { FunctionComponent, ReactNode , useCallback, useEffect, useState } from "react";
+import type {
+  FunctionComponent,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import { CaretDownSolidIcon, IconButton } from "@hashintel/design-system";
-import type {   Box,
+import type {
+  Box,
   Collapse,
   ListItem,
   styled,
-SvgIconProps ,
+  SvgIconProps,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -240,9 +247,8 @@ export const SettingsSidebar = ({
         if (shouldExpand) {
           return findItemAndParentsHrefs(itemToChange);
         }
- 
-          return currentlyExpandedItems.filter((i) => i !== itemToChange.href);
-        
+
+        return currentlyExpandedItems.filter((i) => i !== itemToChange.href);
       });
     },
     [findItemAndParentsHrefs],

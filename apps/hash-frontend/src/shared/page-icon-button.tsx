@@ -1,4 +1,4 @@
-import type { MouseEventHandler , useCallback } from "react";
+import type { MouseEventHandler, useCallback } from "react";
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { faFile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
@@ -8,9 +8,10 @@ import type { SxProps, Theme } from "@mui/material";
 
 import { useDefaultState } from "../components/hooks/use-default-state";
 
-import type {   EditEmojiIconButton,
+import type {
+  EditEmojiIconButton,
   iconVariantSizes,
-SizeVariant ,
+  SizeVariant,
 } from "./edit-emoji-icon-button";
 import type { EmojiPickerPopoverProps } from "./edit-emoji-icon-button/emoji-picker/emoji-picker";
 import { CanvasIcon } from "./icons/canvas-icon";

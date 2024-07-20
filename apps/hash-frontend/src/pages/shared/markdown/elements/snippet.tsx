@@ -21,7 +21,7 @@ import "prismjs/components/prism-python";
 import "prismjs/components/prism-rust";
 import "prismjs/components/prism-typescript";
 
-import type { BoxProps , Box } from "@mui/material";
+import type { BoxProps, Box } from "@mui/material";
 import type { FunctionComponent } from "react";
 
 type SnippetProps = {

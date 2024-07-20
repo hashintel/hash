@@ -31,7 +31,9 @@ const CopyableMonospace = ({ text }: { text: string }) => {
             } catch {
               setTooltipTitle("Not allowed to copy to clipboard");
             } finally {
-              setTimeout(() => { setTooltipTitle("Copy to clipboard"); }, 3_000);
+              setTimeout(() => {
+                setTooltipTitle("Copy to clipboard");
+              }, 3_000);
             }
           }}
         >
@@ -84,14 +86,16 @@ export const ErrorFallback: FallbackRender = ({
         </Button>
       </Box>
       <Typography mt={2}>
-        You can also <Link href={"https://hash.ai/contact"}>contact us</Link>. If
-        you do, please include the details below.
+        You can also <Link href={"https://hash.ai/contact"}>contact us</Link>.
+        If you do, please include the details below.
       </Typography>
       <Button
         variant={"tertiary"}
         size={"xs"}
         sx={{ mt: 2 }}
-        onClick={() => { setShowMessage(!showMessage); }}
+        onClick={() => {
+          setShowMessage(!showMessage);
+        }}
       >
         {showMessage ? "Hide details" : "Show details"}
       </Button>

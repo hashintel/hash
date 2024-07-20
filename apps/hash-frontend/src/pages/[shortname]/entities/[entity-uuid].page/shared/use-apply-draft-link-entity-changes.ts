@@ -48,9 +48,9 @@ export const useApplyDraftLinkEntityChanges = () => {
               leftEntityId,
               rightEntityId: rightEntity.metadata.recordId.entityId,
             },
-            draft: Boolean(extractDraftIdFromEntityId(
-              leftEntity.metadata.recordId.entityId,
-            )),
+            draft: Boolean(
+              extractDraftIdFromEntityId(leftEntity.metadata.recordId.entityId),
+            ),
           },
         }),
     );

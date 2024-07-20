@@ -72,14 +72,17 @@ export const drawInteractableTooltipIcons = (
         top: yCenter - iconSize / 2,
         bottom: yCenter + iconSize / 2,
       },
-      onMouseEnter: () =>
-        { showTooltip({
+      onMouseEnter: () => {
+        showTooltip({
           text: tooltip.text,
           iconX: actualTooltipX + iconSize / 2,
           colIndex: col,
           rowIndex: row,
-        }); },
-      onMouseLeave: () => { hideTooltip(col, row); },
+        });
+      },
+      onMouseLeave: () => {
+        hideTooltip(col, row);
+      },
     });
 
     interactables.push(interactable);

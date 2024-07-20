@@ -1,6 +1,6 @@
 import { buttonClasses, styled } from "@mui/material";
 
-import type { Button,ButtonProps  } from "../ui";
+import type { Button, ButtonProps } from "../ui";
 
 export const TableHeaderButton = styled((props: ButtonProps) => (
   <Button variant={"tertiary_quiet"} {...props} />

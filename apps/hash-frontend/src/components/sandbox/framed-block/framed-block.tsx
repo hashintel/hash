@@ -1,5 +1,10 @@
 import "iframe-resizer/js/iframeResizer.contentWindow";
-import type { FunctionComponent , useCallback, useEffect, useState } from "react";
+import type {
+  FunctionComponent,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import type {
   Entity,
   GraphEmbedderMessageCallbacks,
@@ -54,7 +59,9 @@ export const FramedBlock: FunctionComponent = () => {
 
     window.addEventListener("message", messageHandler);
 
-    return () => { window.removeEventListener("message", messageHandler); };
+    return () => {
+      window.removeEventListener("message", messageHandler);
+    };
   }, []);
 
   if (!sourceUrl) {
@@ -65,7 +72,7 @@ export const FramedBlock: FunctionComponent = () => {
     /**
      * If we have _no_ properties object then they are being sent by message instead.
      * We can't load the block until we have them, as it might crash without.
-      */
+     */
     return <BlockLoadingIndicator />;
   }
 

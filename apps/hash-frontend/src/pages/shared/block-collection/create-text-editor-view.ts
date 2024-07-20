@@ -1,5 +1,5 @@
 import type { EditorState } from "prosemirror-state";
-import type { DirectEditorProps , EditorView } from "prosemirror-view";
+import type { DirectEditorProps, EditorView } from "prosemirror-view";
 import type { OwnedById } from "@local/hash-graph-types/web";
 
 import type { RenderPortal } from "./block-portals";

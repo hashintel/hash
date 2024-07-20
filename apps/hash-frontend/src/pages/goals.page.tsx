@@ -2,7 +2,10 @@ import { BullseyeLightIcon } from "@hashintel/design-system";
 import { Box, Container } from "@mui/material";
 
 import { PlusRegularIcon } from "../shared/icons/plus-regular";
-import type { getLayoutWithSidebar,NextPageWithLayout  } from "../shared/layout";
+import type {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../shared/layout";
 import { Button } from "../shared/ui/button";
 import { WorkersHeader } from "../shared/workers-header";
 

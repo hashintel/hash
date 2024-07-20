@@ -3,7 +3,7 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import type { FunctionComponent , useCallback, useMemo } from "react";
+import type { FunctionComponent, useCallback, useMemo } from "react";
 import { useMutation } from "@apollo/client";
 import { CaretDownSolidIcon, Chip } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";

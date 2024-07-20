@@ -1,4 +1,4 @@
-import type { FunctionComponent, ReactNode , useMemo } from "react";
+import type { FunctionComponent, ReactNode, useMemo } from "react";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";

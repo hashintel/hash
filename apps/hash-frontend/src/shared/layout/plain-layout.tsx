@@ -1,6 +1,6 @@
 import Head from "next/head";
 import { useRouter } from "next/router";
-import type { DefaultSeo,DefaultSeoProps  } from "next-seo";
+import type { DefaultSeo, DefaultSeoProps } from "next-seo";
 import NextNProgress from "nextjs-progressbar";
 import type { FunctionComponent, ReactNode } from "react";
 import { useTheme } from "@mui/material";

@@ -51,7 +51,9 @@ const Question = ({
         placeholder={"Your answer..."}
         sx={{ width: "100%" }}
         value={answer}
-        onChange={(event) => { setAnswer(event.target.value); }}
+        onChange={(event) => {
+          setAnswer(event.target.value);
+        }}
       />
     </Box>
   );
@@ -76,7 +78,7 @@ export const QuestionModal = ({
   >(submitExternalInputResponseMutation);
 
   const [answers, setAnswers] = useState<string[]>(
-    Array.from({length: inputRequest.data.questions.length}).fill(""),
+    Array.from({ length: inputRequest.data.questions.length }).fill(""),
   );
 
   const multipleQuestions = inputRequest.data.questions.length > 1;

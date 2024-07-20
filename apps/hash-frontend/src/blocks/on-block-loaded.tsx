@@ -1,5 +1,7 @@
-import type {   createContext,
-FunctionComponent, ReactNode ,
+import type {
+  createContext,
+  FunctionComponent,
+  ReactNode,
   useCallback,
   useContext,
   useMemo,
@@ -62,9 +64,9 @@ export const BlockLoadedProvider: FunctionComponent<
         !scrollingComplete.current
       ) {
         clearScrollInterval();
-        scrollFrameRequestIdRef.current = requestAnimationFrame(() =>
-          { frame(routeHash); },
-        );
+        scrollFrameRequestIdRef.current = requestAnimationFrame(() => {
+          frame(routeHash);
+        });
       }
     },
     [routeHash],

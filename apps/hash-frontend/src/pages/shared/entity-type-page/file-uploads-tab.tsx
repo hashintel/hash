@@ -1,14 +1,16 @@
-import type { ReactNode , useContext, useState } from "react";
+import type { ReactNode, useContext, useState } from "react";
 import { faCircleQuestion } from "@fortawesome/free-regular-svg-icons";
 import {
   CheckIcon,
   CloseIcon,
   FontAwesomeIcon,
 } from "@hashintel/design-system";
-import type {   Box,
+import type {
+  Box,
   CircularProgress,
-CircularProgressProps,   LinearProgress,
-LinearProgressProps ,
+  CircularProgressProps,
+  LinearProgress,
+  LinearProgressProps,
   Stack,
   Table,
   TableBody,
@@ -209,7 +211,11 @@ export const FileUploadsTab = ({ isImage }: { isImage: boolean }) => {
           <TableFooter>
             <TableRow>
               <TableCell colSpan={3} sx={{ padding: 0 }}>
-                <ShowUploadFormButton onClick={() => { setShowUploadForm(true); }} />
+                <ShowUploadFormButton
+                  onClick={() => {
+                    setShowUploadForm(true);
+                  }}
+                />
               </TableCell>
             </TableRow>
           </TableFooter>

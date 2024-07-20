@@ -2,7 +2,7 @@ import millify from "millify";
 import type { FunctionComponent, ReactElement, ReactNode } from "react";
 import { LoadingSpinner } from "@hashintel/design-system";
 import { theme } from "@hashintel/design-system/theme";
-import type { Box, SxProps, Tab, Theme , Typography } from "@mui/material";
+import type { Box, SxProps, Tab, Theme, Typography } from "@mui/material";
 
 import { Link } from "./link";
 

@@ -1,4 +1,10 @@
-import type { createContext, PropsWithChildren , useContext, useMemo, useState } from "react";
+import type {
+  createContext,
+  PropsWithChildren,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import {
   automaticBrowserInferenceFlowDefinition,

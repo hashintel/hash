@@ -1,6 +1,9 @@
 import { useCallback, useMemo } from "react";
 
-import type { ColumnSort , defaultSortRows } from "../../../../../../../components/grid/utils/sorting";
+import type {
+  ColumnSort,
+  defaultSortRows,
+} from "../../../../../../../components/grid/utils/sorting";
 import { useEntityEditor } from "../../entity-editor-context";
 
 import { fillRowIndentCalculations } from "./fill-row-indent-calculations";

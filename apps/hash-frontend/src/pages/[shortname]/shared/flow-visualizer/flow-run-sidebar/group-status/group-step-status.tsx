@@ -24,7 +24,9 @@ const iconSx = {
   },
 } as const;
 
-interface IconProps { statusFor: StatusFor }
+interface IconProps {
+  statusFor: StatusFor;
+}
 
 export const SuccessIcon = ({ statusFor }: IconProps) => (
   <CheckRegularIcon

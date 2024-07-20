@@ -4,14 +4,24 @@ import {
   isBefore,
   subWeeks,
 } from "date-fns";
-import type { Fragment, FunctionComponent , useCallback, useMemo, useState } from "react";
+import type {
+  Fragment,
+  FunctionComponent,
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import type { EntityRootType, extractEntityUuidFromEntityId,Subgraph  } from "@local/hash-subgraph";
+import type {
+  EntityRootType,
+  extractEntityUuidFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import {
   Box,
   Divider,
@@ -201,7 +211,12 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
 
   return (
     <Box mb={6}>
-      <Box display={"flex"} alignItems={"center"} columnGap={1.5} marginBottom={1}>
+      <Box
+        display={"flex"}
+        alignItems={"center"}
+        columnGap={1.5}
+        marginBottom={1}
+      >
         <ProfileSectionHeading>{currentTab.pluralTitle}</ProfileSectionHeading>
         <Box display={"flex"} alignItems={"center"} columnGap={1}>
           <Typography
@@ -232,7 +247,9 @@ export const PinnedEntityTypeTabContents: FunctionComponent<{
                 top: -1,
               },
             }}
-            onChange={({ target }) => { setSortOrder(target.value as SortOrder); }}
+            onChange={({ target }) => {
+              setSortOrder(target.value as SortOrder);
+            }}
           >
             {Object.entries(sortOrderHumanReadable).map(([value, label]) => (
               <MenuItem key={value} value={value}>

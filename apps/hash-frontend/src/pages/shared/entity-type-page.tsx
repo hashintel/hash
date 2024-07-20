@@ -9,7 +9,8 @@ import {
   LinkTypeIcon,
   OntologyChip,
 } from "@hashintel/design-system";
-import type { EntityTypeEditorFormData ,
+import type {
+  EntityTypeEditorFormData,
   EntityTypeFormProvider,
   getEntityTypeFromFormData,
   getFormDataFromEntityType,
@@ -20,7 +21,7 @@ import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateLinkMapWithConsistentSelfReferences } from "@local/hash-isomorphic-utils/ontology-types";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import type { Box, Container, Theme , Typography } from "@mui/material";
+import type { Box, Container, Theme, Typography } from "@mui/material";
 import { GlobalStyles } from "@mui/system";
 
 import { PageErrorState } from "../../components/page-error-state";
@@ -115,7 +116,7 @@ export const EntityTypePage = ({
     [entityType, remotePropertyTypes],
   );
 
-  const {isDirty} = formMethods.formState;
+  const { isDirty } = formMethods.formState;
   const isDraft = Boolean(draftEntityType);
 
   const { userPermissions } = useUserPermissionsOnEntityType(
@@ -207,7 +208,8 @@ export const EntityTypePage = ({
   if (!entityType) {
     if (loadingRemoteEntityType) {
       return null;
-    } if (isHrefExternal(entityTypeBaseUrl as string)) {
+    }
+    if (isHrefExternal(entityTypeBaseUrl as string)) {
       return (
         <Container sx={{ mt: 8 }}>
           <Typography variant={"h2"} mb={4}>
@@ -220,9 +222,8 @@ export const EntityTypePage = ({
         </Container>
       );
     }
- 
-      return <PageErrorState />;
-    
+
+    return <PageErrorState />;
   }
 
   if (!userPermissions) {
@@ -265,7 +266,11 @@ export const EntityTypePage = ({
       <EntityTypeFormProvider {...formMethods}>
         <EntityTypeContext.Provider value={entityType.schema}>
           <EntityTypeEntitiesContext.Provider value={entityTypeEntitiesValue}>
-            <Box display={"contents"} component={"form"} onSubmit={handleSubmit}>
+            <Box
+              display={"contents"}
+              component={"form"}
+              onSubmit={handleSubmit}
+            >
               <TopContextBar
                 defaultCrumbIcon={null}
                 item={remoteEntityType ?? undefined}
@@ -408,7 +413,9 @@ export const EntityTypePage = ({
       {previewEntityTypeUrl ? (
         <TypeSlideOverStack
           rootTypeId={previewEntityTypeUrl}
-          onClose={() => { setPreviewEntityTypeUrl(null); }}
+          onClose={() => {
+            setPreviewEntityTypeUrl(null);
+          }}
         />
       ) : null}
 

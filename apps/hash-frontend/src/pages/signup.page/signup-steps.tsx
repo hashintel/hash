@@ -1,4 +1,4 @@
-import type { FunctionComponent, ReactNode , useMemo } from "react";
+import type { FunctionComponent, ReactNode, useMemo } from "react";
 import { faCircleCheck } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import { Box, Typography } from "@mui/material";

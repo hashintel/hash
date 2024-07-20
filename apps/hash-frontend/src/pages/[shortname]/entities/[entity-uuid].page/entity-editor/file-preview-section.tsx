@@ -1,4 +1,4 @@
-import type { PropsWithChildren , useState } from "react";
+import type { PropsWithChildren, useState } from "react";
 import {
   ArrowLeftIcon,
   DownloadIconRegular,
@@ -193,7 +193,9 @@ export const FilePreviewSection = () => {
       >
         {replacing ? (
           <ReplaceFile
-            close={() => { setReplacing(false); }}
+            close={() => {
+              setReplacing(false);
+            }}
             description={description}
             displayName={displayName}
             isImage={Boolean(isImage)}
@@ -212,7 +214,9 @@ export const FilePreviewSection = () => {
                 <Box>
                   <GrayToBlueIconButton
                     disabled={isDirty}
-                    onClick={() => { setReplacing(true); }}
+                    onClick={() => {
+                      setReplacing(true);
+                    }}
                   >
                     <RotateIconRegular sx={{ width: 13, height: 13 }} />
                   </GrayToBlueIconButton>

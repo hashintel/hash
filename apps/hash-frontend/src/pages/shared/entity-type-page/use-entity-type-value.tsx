@@ -98,18 +98,17 @@ export const useEntityTypeValue = (
             contextEntityType: relevantEntityTypes[indexOfRequestedVersion]!,
             latestVersion: maxVersion,
           };
-        } 
-           
-          console.warn(
-            `Requested version ${requestedVersion} not found – redirecting to latest.`,
-          );
-          void router.replace(
-            window.location.href.replace(
-              `/v/${requestedVersion}`,
-              `/v/${maxVersion}`,
-            ),
-          );
-        
+        }
+
+        console.warn(
+          `Requested version ${requestedVersion} not found – redirecting to latest.`,
+        );
+        void router.replace(
+          window.location.href.replace(
+            `/v/${requestedVersion}`,
+            `/v/${maxVersion}`,
+          ),
+        );
       }
 
       // Otherwise, return the latest version

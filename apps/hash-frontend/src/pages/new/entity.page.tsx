@@ -1,10 +1,21 @@
 import { useRouter } from "next/router";
-import type { FunctionComponent, PropsWithChildren , useContext, useMemo } from "react";
-import type { validateVersionedUrl,VersionedUrl  } from "@blockprotocol/type-system";
+import type {
+  FunctionComponent,
+  PropsWithChildren,
+  useContext,
+  useMemo,
+} from "react";
+import type {
+  validateVersionedUrl,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { Container, Paper, Typography } from "@mui/material";
 
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import type { getLayoutWithSidebar,NextPageWithLayout  } from "../../shared/layout";
+import type {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../../shared/layout";
 import { Link } from "../../shared/ui/link";
 import { useUserPermissionsOnEntityType } from "../../shared/use-user-permissions-on-entity-type";
 import { CreateEntityPage } from "../[shortname]/entities/[entity-uuid].page/create-entity-page";

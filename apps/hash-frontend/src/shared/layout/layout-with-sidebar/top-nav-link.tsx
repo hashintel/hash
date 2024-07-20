@@ -1,6 +1,7 @@
 import type { FunctionComponent, ReactNode } from "react";
-import type {   Box,
-BoxProps ,
+import type {
+  Box,
+  BoxProps,
   Fade,
   Tooltip,
   Typography,

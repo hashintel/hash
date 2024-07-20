@@ -4,7 +4,10 @@ import type {
   MutableRefObject,
   ReactNode,
   SetStateAction,
- useCallback, useMemo, useState } from "react";
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import {
   CheckIcon,
@@ -21,20 +24,25 @@ import type {
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
- isBaseUrl,  PropertyTypeWithMetadata } from "@local/hash-graph-types/ontology";
+  isBaseUrl,
+  PropertyTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
 import {
   extractOwnedByIdFromEntityId,
   isExternalOntologyElementMetadata,
 } from "@local/hash-subgraph";
-import type {   Box,
+import type {
+  Box,
   Checkbox,
   chipClasses,
   FormControlLabel,
   formControlLabelClasses,
   styled,
-SxProps, Theme,   Tooltip,
+  SxProps,
+  Theme,
+  Tooltip,
   tooltipClasses,
-TooltipProps ,
+  TooltipProps,
 } from "@mui/material";
 
 import type { Row } from "../components/grid/utils/rows";
@@ -47,7 +55,10 @@ import { FilterListIcon } from "./icons/filter-list-icon";
 import { HouseRegularIcon } from "./icons/house-regular-icon";
 import { MagnifyingGlassRegularIcon } from "./icons/magnifying-glass-regular-icon";
 import { BulkActionsDropdown } from "./table-header/bulk-actions-dropdown";
-import type { ExportToCsvButton,GenerateCsvFileFunction  } from "./table-header/export-to-csv-button";
+import type {
+  ExportToCsvButton,
+  GenerateCsvFileFunction,
+} from "./table-header/export-to-csv-button";
 import { TableHeaderButton } from "./table-header/table-header-button";
 
 export const tableHeaderHeight = 50;
@@ -88,7 +99,9 @@ const CheckboxFilter: FunctionComponent<{
             height: 12,
           },
         }}
-        onChange={({ target }) => { onChange(target.checked); }}
+        onChange={({ target }) => {
+          onChange(target.checked);
+        }}
       />
     }
   />
@@ -227,17 +240,20 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
 
           if (typeof value === "string") {
             return value;
-          } if (key === "lastEditedBy") {
+          }
+          if (key === "lastEditedBy") {
             const user = value as MinimalUser | undefined;
 
             return user?.displayName ?? "";
-          } if (isBaseUrl(key)) {
+          }
+          if (isBaseUrl(key)) {
             /**
              * If the key is a base URL, then the value needs to be obtained
              * from the nested `properties` field on the row.
              */
             return (row as TypeEntitiesRow).properties?.[key] ?? "";
-          } if (key === "archived") {
+          }
+          if (key === "archived") {
             return (row as TypesTableRow).archived ? "Yes" : "No";
           }
 
@@ -284,7 +300,9 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
         ) : (
           <>
             <NoMaxWidthTooltip
-              title={"Visible to you inside your personal web and organizations you belong to"}
+              title={
+                "Visible to you inside your personal web and organizations you belong to"
+              }
               placement={"top"}
             >
               <Chip
@@ -343,8 +361,12 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
                     border: palette.common.white,
                   },
                 })}
-                onMouseEnter={() => { setPublicFilterHovered(true); }}
-                onMouseLeave={() => { setPublicFilterHovered(false); }}
+                onMouseEnter={() => {
+                  setPublicFilterHovered(true);
+                }}
+                onMouseLeave={() => {
+                  setPublicFilterHovered(false);
+                }}
                 onClick={() => {
                   setDisplayFilters(true);
                   setFilterState((previous) => ({
@@ -369,8 +391,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
             display: "flex",
             justifyContent: "flex-end",
             background: ({ palette }) =>
-              displayFilters ||
-              Object.values(filterState).some(Boolean)
+              displayFilters || Object.values(filterState).some(Boolean)
                 ? palette.common.white
                 : "transparent",
             transition: ({ transitions }) => transitions.create("background"),
@@ -380,7 +401,9 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
           <TableHeaderButton
             variant={"tertiary_quiet"}
             startIcon={<FilterListIcon />}
-            onClick={() => { setDisplayFilters(!displayFilters); }}
+            onClick={() => {
+              setDisplayFilters(!displayFilters);
+            }}
           >
             Filter
           </TableHeaderButton>
@@ -402,23 +425,23 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
                 <CheckboxFilter
                   label={"Include archived"}
                   checked={filterState.includeArchived}
-                  onChange={(checked) =>
-                    { setFilterState((previous) => ({
+                  onChange={(checked) => {
+                    setFilterState((previous) => ({
                       ...previous,
                       includeArchived: checked,
-                    })); }
-                  }
+                    }));
+                  }}
                 />
               ) : null}
               <CheckboxFilter
                 label={"Include external"}
                 checked={filterState.includeGlobal}
-                onChange={(checked) =>
-                  { setFilterState((previous) => ({
+                onChange={(checked) => {
+                  setFilterState((previous) => ({
                     ...previous,
                     includeGlobal: checked,
-                  })); }
-                }
+                  }));
+                }}
               />
             </Box>
           </Box>

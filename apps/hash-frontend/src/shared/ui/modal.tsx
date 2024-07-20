@@ -1,5 +1,9 @@
-import type { IconButton, Modal as BaseModal,ModalProps  } from "@hashintel/design-system";
-import type { Box, Stack, SxProps, Theme , Typography } from "@mui/material";
+import type {
+  IconButton,
+  Modal as BaseModal,
+  ModalProps,
+} from "@hashintel/design-system";
+import type { Box, Stack, SxProps, Theme, Typography } from "@mui/material";
 
 import { XMarkRegularIcon } from "../icons/x-mark-regular-icon";
 

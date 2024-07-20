@@ -9,7 +9,7 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
-import type { DiffEntityInput , splitEntityId } from "@local/hash-subgraph";
+import type { DiffEntityInput, splitEntityId } from "@local/hash-subgraph";
 
 import type {
   GetEntityDiffsQuery,

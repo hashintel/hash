@@ -33,7 +33,9 @@ import {
   type EntityRevisionId,
   type EntityRootType,
   type EntityVertex,
-  extractOwnedByIdFromEntityId, isEntityId, type Subgraph
+  extractOwnedByIdFromEntityId,
+  isEntityId,
+  type Subgraph,
 } from "@local/hash-subgraph";
 
 import { useBlockLoadedContext } from "../../blocks/on-block-loaded";
@@ -52,7 +54,10 @@ import { useBlockProtocolFileUpload } from "../hooks/block-protocol-functions/kn
 import { useBlockProtocolGetEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-get-entity";
 import { useBlockProtocolQueryEntities } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-query-entities";
 import { useBlockProtocolUpdateEntity } from "../hooks/block-protocol-functions/knowledge/use-block-protocol-update-entity";
-import { RemoteBlock, type RemoteBlockProps } from "../remote-block/remote-block";
+import {
+  RemoteBlock,
+  type RemoteBlockProps,
+} from "../remote-block/remote-block";
 
 import { fetchEmbedCode } from "./fetch-embed-code";
 
@@ -313,8 +318,8 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
               properties: isBlockEntity
                 ? entityInStore.properties
                 : rewrittenPropertiesForTextualContent(
-                  entityInStore.properties,
-                ),
+                    entityInStore.properties,
+                  ),
               linkData: entityInStore.linkData,
             }),
           } satisfies EntityVertex,
@@ -519,18 +524,20 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
     () =>
       blockSubgraph
         ? {
-          readonly:
-            readonly || // is the entire page readonly?
-            /**
-             * If we have a blockEntityId, check if the user lacks edit permissions on the block entity.
-             * If we don't have a blockEntityId or userPermissions, this is a newly created entity which the user should have edit permissions on.
-             */
-            Boolean(blockEntityId &&
-              userPermissions?.[blockEntityId] &&
-              !userPermissions[blockEntityId].edit),
-          blockEntitySubgraph:
-            blockSubgraph as unknown as BpSubgraph<EntityRootType>,
-        }
+            readonly:
+              readonly || // is the entire page readonly?
+              /**
+               * If we have a blockEntityId, check if the user lacks edit permissions on the block entity.
+               * If we don't have a blockEntityId or userPermissions, this is a newly created entity which the user should have edit permissions on.
+               */
+              Boolean(
+                blockEntityId &&
+                  userPermissions?.[blockEntityId] &&
+                  !userPermissions[blockEntityId].edit,
+              ),
+            blockEntitySubgraph:
+              blockSubgraph as unknown as BpSubgraph<EntityRootType>,
+          }
         : null,
     [blockEntityId, blockSubgraph, readonly, userPermissions],
   );

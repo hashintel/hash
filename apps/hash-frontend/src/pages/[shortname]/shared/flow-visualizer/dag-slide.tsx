@@ -31,12 +31,16 @@ export const DagSlide = ({
         zIndex: ({ zIndex }) => zIndex.drawer + 2,
         justifyContent: "flex-end",
       }}
-      onClick={() => { onClose(); }}
+      onClick={() => {
+        onClose();
+      }}
     >
       <Slide
         in={open}
         direction={"left"}
-        onClick={(event) => { event.stopPropagation(); }}
+        onClick={(event) => {
+          event.stopPropagation();
+        }}
       >
         <Box
           sx={{

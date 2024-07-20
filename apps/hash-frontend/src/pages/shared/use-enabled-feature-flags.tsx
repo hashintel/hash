@@ -1,5 +1,8 @@
 import { useMemo } from "react";
-import type { FeatureFlag , featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
+import type {
+  FeatureFlag,
+  featureFlags,
+} from "@local/hash-isomorphic-utils/feature-flags";
 import { useAuthenticatedUser } from "./auth-info-context";
 
 export const useEnabledFeatureFlags = () => {
@@ -18,8 +21,11 @@ export const useEnabledFeatureFlags = () => {
       ? [...featureFlags]
       : authenticatedUser.enabledFeatureFlags;
 
-    return Object.fromEntries(featureFlags.map<Record<FeatureFlag, boolean>>(
-      ( featureFlag) => [featureFlag, enabledFeatureFlags.includes(featureFlag)],
-    ));
+    return Object.fromEntries(
+      featureFlags.map<Record<FeatureFlag, boolean>>((featureFlag) => [
+        featureFlag,
+        enabledFeatureFlags.includes(featureFlag),
+      ]),
+    );
   }, [authenticatedUser, isInstanceAdmin]);
 };

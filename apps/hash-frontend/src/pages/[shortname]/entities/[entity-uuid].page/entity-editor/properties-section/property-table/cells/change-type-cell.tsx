@@ -4,7 +4,8 @@ import type {
   CustomCell,
   CustomRenderer,
   DataEditorRef,
- GridCellKind } from "@glideapps/glide-data-grid";
+  GridCellKind,
+} from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
 import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 
@@ -104,9 +105,7 @@ export const createRenderChangeTypeCell = (
 
       const [_, rowIndex] = args.location;
 
-      const valueCellColumnIndex = propertyGridIndexes.indexOf(
-        "value",
-      );
+      const valueCellColumnIndex = propertyGridIndexes.indexOf("value");
 
       const newContent = produce(valueCellOfThisRow, (draft) => {
         draft.data.propertyRow.value = undefined;

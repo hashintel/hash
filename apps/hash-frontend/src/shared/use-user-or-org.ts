@@ -144,10 +144,12 @@ export const useUserOrOrg = (
       : undefined;
 
     return {
-      canUserEdit: Boolean(rootEntity &&
-        data?.getEntitySubgraph.userPermissionsOnEntities?.[
-          rootEntity.metadata.recordId.entityId
-        ]?.edit),
+      canUserEdit: Boolean(
+        rootEntity &&
+          data?.getEntitySubgraph.userPermissionsOnEntities?.[
+            rootEntity.metadata.recordId.entityId
+          ]?.edit,
+      ),
       userOrOrgSubgraph,
       userOrOrg: rootEntity,
       loading,

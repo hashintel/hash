@@ -39,7 +39,7 @@ export const PersistedEntityGraph = ({
       }
       const persistedEntity = new Entity(entity);
 
-      const {entityId} = persistedEntity.metadata.recordId;
+      const { entityId } = persistedEntity.metadata.recordId;
 
       const existing = deduplicatedLatestEntitiesByEntityId[entityId];
 
@@ -60,7 +60,9 @@ export const PersistedEntityGraph = ({
       <OutputContainer sx={{ flex: 1.5 }}>
         <EmptyOutputBox
           Icon={outputIcons.graph}
-          label={"A graph of entities saved to HASH by the flow will appear here"}
+          label={
+            "A graph of entities saved to HASH by the flow will appear here"
+          }
         />
       </OutputContainer>
     );
@@ -74,7 +76,9 @@ export const PersistedEntityGraph = ({
         subgraph={
           persistedEntitiesSubgraph as unknown as BpSubgraph<BpEntityRootType>
         } // @todo sort out this param to EntitiesGraphChart
-        onEntityClick={(entity) => { onEntityClick(entity); }}
+        onEntityClick={(entity) => {
+          onEntityClick(entity);
+        }}
       />
     </OutputContainer>
   );

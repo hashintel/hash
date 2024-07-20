@@ -1,4 +1,11 @@
-import type { createContext, FunctionComponent, PropsWithChildren , useContext, useMemo, useState } from "react";
+import type {
+  createContext,
+  FunctionComponent,
+  PropsWithChildren,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 import { useQuery } from "@apollo/client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import {
@@ -75,7 +82,9 @@ export const DraftEntitiesContextProvider: FunctionComponent<
         },
         includePermissions: false,
       },
-      onCompleted: (data) => { setPreviouslyFetchedDraftEntitiesData(data); },
+      onCompleted: (data) => {
+        setPreviouslyFetchedDraftEntitiesData(data);
+      },
       pollInterval,
       fetchPolicy: "network-only",
       skip: !authenticatedUser,

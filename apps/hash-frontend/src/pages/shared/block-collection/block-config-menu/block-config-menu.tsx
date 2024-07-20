@@ -1,6 +1,13 @@
 import { get } from "lodash";
-import type { bindPopover,PopupState  } from "material-ui-popup-state/hooks";
-import type { ChangeEvent, ForwardedRef, FunctionComponent , useEffect, useRef, useState } from "react";
+import type { bindPopover, PopupState } from "material-ui-popup-state/hooks";
+import type {
+  ChangeEvent,
+  ForwardedRef,
+  FunctionComponent,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { useKey } from "rooks";
 import type { JsonObject, JsonValue } from "@blockprotocol/core";
 import { TextField } from "@hashintel/design-system";
@@ -91,7 +98,9 @@ const ConfigurationInput: FunctionComponent<{
         control={
           <Checkbox
             checked={typeof value === "boolean" ? value : value === "true"}
-            onChange={(event) => { onChange(event.target.checked); }}
+            onChange={(event) => {
+              onChange(event.target.checked);
+            }}
           />
         }
       />
@@ -132,8 +141,12 @@ const ConfigurationInput: FunctionComponent<{
         type={"number"}
         value={draftValue}
         variant={"outlined"}
-        onBlur={(event) => { onChange(event.target.value); }}
-        onChange={(event) => { setDraftValue(event.target.value); }}
+        onBlur={(event) => {
+          onChange(event.target.value);
+        }}
+        onChange={(event) => {
+          setDraftValue(event.target.value);
+        }}
       />
     );
   }
@@ -218,7 +231,9 @@ export const BlockConfigMenu: FunctionComponent<BlockConfigMenuProps> = ({
             rootSchema={blockSchema ?? {}}
             propertySchema={schema}
             value={entityData?.[name] ?? ""}
-            onChange={(value) => { updateConfig({ [name]: value }); }}
+            onChange={(value) => {
+              updateConfig({ [name]: value });
+            }}
           />
         </Box>
       ))}

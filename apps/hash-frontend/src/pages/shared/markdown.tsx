@@ -1,5 +1,5 @@
 import type { LegacyRef } from "react";
-import ReactMarkdown, type { Components } from "react-markdown";
+import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
   Box,

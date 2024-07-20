@@ -1,7 +1,7 @@
 import type { BaseEmoji } from "emoji-mart";
-import type { bindPopover,PopupState  } from "material-ui-popup-state/hooks";
+import type { bindPopover, PopupState } from "material-ui-popup-state/hooks";
 import Picker from "@emoji-mart/react";
-import type { Popover,PopoverProps  } from "@mui/material";
+import type { Popover, PopoverProps } from "@mui/material";
 
 export type EmojiPickerPopoverProps = Omit<
   PopoverProps,

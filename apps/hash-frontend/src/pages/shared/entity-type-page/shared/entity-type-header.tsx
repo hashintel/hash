@@ -1,12 +1,18 @@
-import type { ReactNode , useState } from "react";
+import type { ReactNode, useState } from "react";
 import { Controller } from "react-hook-form";
-import type { EntityType , extractVersion } from "@blockprotocol/type-system/slim";
+import type {
+  EntityType,
+  extractVersion,
+} from "@blockprotocol/type-system/slim";
 import {
   ArrowUpRightIcon,
   EntityTypeIcon,
   LinkTypeIcon,
 } from "@hashintel/design-system";
-import type { EntityTypeEditorFormData , useEntityTypeFormContext } from "@hashintel/type-editor";
+import type {
+  EntityTypeEditorFormData,
+  useEntityTypeFormContext,
+} from "@hashintel/type-editor";
 import {
   extractBaseUrl,
   versionedUrlFromComponents,
@@ -99,7 +105,9 @@ export const EntityTypeHeader = ({
                       />
                     )
                   }
-                  onChange={(updatedIcon) => { field.onChange(updatedIcon); }}
+                  onChange={(updatedIcon) => {
+                    field.onChange(updatedIcon);
+                  }}
                 />
               )}
             />
@@ -111,7 +119,9 @@ export const EntityTypeHeader = ({
             <Button
               variant={"secondary"}
               size={"small"}
-              onClick={() => { setShowExtendTypeModal(true); }}
+              onClick={() => {
+                setShowExtendTypeModal(true);
+              }}
             >
               Extend type <ArrowUpRightIcon sx={{ fontSize: 16, ml: 1.5 }} />
             </Button>
@@ -138,9 +148,13 @@ export const EntityTypeHeader = ({
           <Box>
             <CreateEntityTypeForm
               inModal
-              afterSubmit={() => { setShowExtendTypeModal(false); }}
+              afterSubmit={() => {
+                setShowExtendTypeModal(false);
+              }}
               initialData={{ extendsEntityTypeId: entityTypeSchema.$id }}
-              onCancel={() => { setShowExtendTypeModal(false); }}
+              onCancel={() => {
+                setShowExtendTypeModal(false);
+              }}
             />
           </Box>
         </>

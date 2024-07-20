@@ -18,7 +18,9 @@ export const BooleanInput = ({
         zIndex: 1,
         cursor: "pointer",
       }}
-      onClick={() => { onChange(!value); }}
+      onClick={() => {
+        onChange(!value);
+      }}
     >
       <Chip
         sx={{ cursor: "pointer !important" }}

@@ -1,5 +1,6 @@
-import type {   Fragment,
-FunctionComponent ,
+import type {
+  Fragment,
+  FunctionComponent,
   useCallback,
   useEffect,
   useMemo,
@@ -32,7 +33,10 @@ import {
   isPageEntityTypeId,
   pageEntityTypeIds,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
-import type { EntityRootType , extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import type {
+  EntityRootType,
+  extractOwnedByIdFromEntityId,
+} from "@local/hash-subgraph";
 import {
   getEntityTypeById,
   getOutgoingLinkAndTargetEntities,
@@ -55,8 +59,10 @@ import { hiddenEntityTypeIds } from "../../hidden-types";
 
 import { fuzzySearchBy } from "./fuzzy-search-by";
 import type {
- MentionSuggesterEntity,  SortOrder,
-  SubMenuItem } from "./mention-suggester/mention-suggester-entity";
+  MentionSuggesterEntity,
+  SortOrder,
+  SubMenuItem,
+} from "./mention-suggester/mention-suggester-entity";
 import { MentionSuggesterSubheading } from "./mention-suggester/mention-suggester-subheading";
 import { MentionSuggesterWrapper } from "./mention-suggester/mention-suggester-wrapper";
 
@@ -257,7 +263,8 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                   throw new Error("Entity type could not be found in subgraph");
                 }
 
-                const previousEntities = previous[existingIndex]?.allEntities ?? [];
+                const previousEntities =
+                  previous[existingIndex]?.allEntities ?? [];
 
                 return existingIndex >= 0
                   ? [
@@ -291,7 +298,8 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
 
                 if (isAInUserAccount && !isBInUserAccount) {
                   return -1;
-                } if (isBInUserAccount && !isAInUserAccount) {
+                }
+                if (isBInUserAccount && !isAInUserAccount) {
                   return 1;
                 }
 
@@ -613,10 +621,12 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                       setDisplayEntitySubMenu(false);
                     }
                   }}
-                  onClick={() => { handleSubmit({ entity }); }}
-                  onSubMenuClick={(subMenuIndex) =>
-                    { handleSubmit({ subMenuIndex }); }
-                  }
+                  onClick={() => {
+                    handleSubmit({ entity });
+                  }}
+                  onSubMenuClick={(subMenuIndex) => {
+                    handleSubmit({ subMenuIndex });
+                  }}
                 />
               );
             })
@@ -639,12 +649,13 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                       sx={{ marginTop: 0.5 }}
                       onClick={
                         allEntities.length > numberOfEntitiesDisplayedPerSection
-                          ? () =>
-                              { setExpandedEntityTypes((previous) =>
+                          ? () => {
+                              setExpandedEntityTypes((previous) =>
                                 isExpanded
                                   ? previous.filter((id) => id !== entityTypeId)
                                   : [...previous, entityTypeId],
-                              ); }
+                              );
+                            }
                           : undefined
                       }
                     >
@@ -694,10 +705,12 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                                 setDisplayEntitySubMenu(false);
                               }
                             }}
-                            onClick={() => { handleSubmit({ entity }); }}
-                            onSubMenuClick={(subMenuIndex) =>
-                              { handleSubmit({ subMenuIndex }); }
-                            }
+                            onClick={() => {
+                              handleSubmit({ entity });
+                            }}
+                            onSubMenuClick={(subMenuIndex) => {
+                              handleSubmit({ subMenuIndex });
+                            }}
                           />
                         </Fragment>
                       );

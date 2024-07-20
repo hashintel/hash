@@ -1,4 +1,4 @@
-import type { FormEvent , useEffect, useRef, useState } from "react";
+import type { FormEvent, useEffect, useRef, useState } from "react";
 import { useLazyQuery, useMutation } from "@apollo/client";
 import { TextField } from "@hashintel/design-system";
 import {
@@ -10,7 +10,11 @@ import {
   systemLinkEntityTypes,
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type { AccountEntityId, EntityRootType , extractAccountId } from "@local/hash-subgraph";
+import type {
+  AccountEntityId,
+  EntityRootType,
+  extractAccountId,
+} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
 

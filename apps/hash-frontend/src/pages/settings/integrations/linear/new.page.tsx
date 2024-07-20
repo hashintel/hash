@@ -21,7 +21,8 @@ import { Button } from "../../../../shared/ui";
 import { useAuthenticatedUser } from "../../../shared/auth-info-context";
 import { getSettingsLayout } from "../../../shared/settings-layout";
 
-import type { LinearOrganizationTeamsWithWorkspaces ,
+import type {
+  LinearOrganizationTeamsWithWorkspaces,
   mapLinearOrganizationToLinearOrganizationTeamsWithWorkspaces,
   mapLinearOrganizationToSyncWithWorkspacesInputVariable,
   SelectLinearTeamsTable,
@@ -141,11 +142,11 @@ const NewLinearIntegrationPage: NextPageWithLayout = () => {
         <>
           <SelectLinearTeamsTable
             linearOrganizations={[linearOrganization]}
-            setLinearOrganizations={(update) =>
-              { typeof update === "function"
+            setLinearOrganizations={(update) => {
+              typeof update === "function"
                 ? setLinearOrganization((previous) => update([previous!])[0])
-                : setLinearOrganization(update[0]); }
-            }
+                : setLinearOrganization(update[0]);
+            }}
           />
           <Box display={"flex"} justifyContent={"flex-end"} columnGap={2}>
             <Button variant={"tertiary"}>Exit without granting access</Button>

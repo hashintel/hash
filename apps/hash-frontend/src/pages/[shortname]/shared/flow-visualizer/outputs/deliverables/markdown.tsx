@@ -42,7 +42,9 @@ export const MarkdownDeliverable = ({
           sx: { pl: 3, pr: 1.5, pt: 1.5 },
           title: "Research report",
         }}
-        onClose={() => { setShowPreview(false); }}
+        onClose={() => {
+          setShowPreview(false);
+        }}
       >
         <Box>
           <Stack
@@ -58,7 +60,9 @@ export const MarkdownDeliverable = ({
               <Tabs
                 sx={{ ml: -0.5 }}
                 value={selectedTab}
-                onChange={(_event, newValue) => { setSelectedTab(newValue); }}
+                onChange={(_event, newValue) => {
+                  setSelectedTab(newValue);
+                }}
               >
                 <Tab
                   sx={{ pt: 0 }}
@@ -115,10 +119,9 @@ export const MarkdownDeliverable = ({
                 } catch {
                   setCopyButtonText("Couldn't copy");
                 } finally {
-                  setTimeout(
-                    () => { setCopyButtonText("Copy as Markdown"); },
-                    3_000,
-                  );
+                  setTimeout(() => {
+                    setCopyButtonText("Copy as Markdown");
+                  }, 3_000);
                 }
               }}
             >
@@ -179,7 +182,9 @@ export const MarkdownDeliverable = ({
             <Box
               component={"button"}
               sx={{ background: "none", border: "none", cursor: "pointer" }}
-              onClick={() => { setShowPreview(true); }}
+              onClick={() => {
+                setShowPreview(true);
+              }}
             >
               <Typography
                 sx={{

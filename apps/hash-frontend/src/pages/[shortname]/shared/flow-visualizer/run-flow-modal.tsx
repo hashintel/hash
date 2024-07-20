@@ -1,4 +1,4 @@
-import type { PropsWithChildren , useState } from "react";
+import type { PropsWithChildren, useState } from "react";
 import { typedValues } from "@local/advanced-types/typed-entries";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type {
@@ -17,7 +17,11 @@ import { WebSelector } from "../../../shared/web-selector";
 
 import { ManualTriggerInput } from "./run-flow-modal/manual-trigger-input";
 import { inputHeight } from "./run-flow-modal/shared/dimensions";
-import type { FormState, isSupportedPayloadKind,LocalPayload  } from "./run-flow-modal/types";
+import type {
+  FormState,
+  isSupportedPayloadKind,
+  LocalPayload,
+} from "./run-flow-modal/types";
 
 const InputWrapper = ({
   children,
@@ -196,8 +200,8 @@ export const RunFlowModal = ({
                   key={outputDef.name}
                   payload={payload}
                   required={Boolean(outputDef.required)}
-                  setValue={(newValue) =>
-                    { setFormState((currentFormState) => ({
+                  setValue={(newValue) => {
+                    setFormState((currentFormState) => ({
                       ...currentFormState,
                       [outputDef.name]: {
                         outputName: outputDef.name,
@@ -206,8 +210,8 @@ export const RunFlowModal = ({
                           value: newValue satisfies LocalPayload["value"],
                         } as LocalPayload,
                       },
-                    })); }
-                  }
+                    }));
+                  }}
                 />
               </InputWrapper>
             );
@@ -215,7 +219,9 @@ export const RunFlowModal = ({
           <WebSelector
             inputHeight={inputHeight}
             selectedWebOwnedById={webId}
-            setSelectedWebOwnedById={(newWebId) => { setWebId(newWebId); }}
+            setSelectedWebOwnedById={(newWebId) => {
+              setWebId(newWebId);
+            }}
           />
           <Button
             disabled={!allRequiredValuesPresent || pending}

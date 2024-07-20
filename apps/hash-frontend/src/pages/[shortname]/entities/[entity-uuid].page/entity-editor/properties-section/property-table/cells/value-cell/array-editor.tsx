@@ -1,9 +1,10 @@
 import produce from "immer";
 import { isNumber } from "lodash";
 import { useMemo, useRef, useState } from "react";
-import type {   closestCenter,
+import type {
+  closestCenter,
   DndContext,
-DragEndEvent ,
+  DragEndEvent,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -174,7 +175,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     if (onlyOneExpectedType && noEditMode) {
       addItem(editorSpec.defaultValue);
 
- return;
+      return;
     }
 
     setEditingRow(DRAFT_ROW_KEY);
@@ -184,7 +185,7 @@ export const ArrayEditor: ValueCellEditorComponent = ({
     if (isBlankStringOrNullish(value)) {
       removeItem(index);
 
- return;
+      return;
     }
 
     updateItem(index, value);
@@ -213,9 +214,13 @@ export const ArrayEditor: ValueCellEditorComponent = ({
                 selected={selectedRow === item.id}
                 expectedTypes={expectedTypes}
                 onRemove={removeItem}
-                onEditClicked={(id) => { setEditingRow(id); }}
+                onEditClicked={(id) => {
+                  setEditingRow(id);
+                }}
                 onSaveChanges={handleSaveChanges}
-                onDiscardChanges={() => { setEditingRow(""); }}
+                onDiscardChanges={() => {
+                  setEditingRow("");
+                }}
                 onSelect={toggleSelectedRow}
               />
             ))}
@@ -235,7 +240,9 @@ export const ArrayEditor: ValueCellEditorComponent = ({
           existingItemCount={items.length}
           expectedTypes={expectedTypes}
           onDraftSaved={addItem}
-          onDraftDiscarded={() => { setEditingRow(""); }}
+          onDraftDiscarded={() => {
+            setEditingRow("");
+          }}
         />
       )}
 

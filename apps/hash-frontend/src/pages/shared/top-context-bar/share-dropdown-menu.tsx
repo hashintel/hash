@@ -3,20 +3,23 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import type { FunctionComponent , useMemo } from "react";
+import type { FunctionComponent, useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { Box, Divider, Popover, Typography } from "@mui/material";
 
 import type {
- EntityAuthorizationRelation,  GetEntityAuthorizationRelationshipsQuery,
-  GetEntityAuthorizationRelationshipsQueryVariables } from "../../../graphql/api-types.gen";
+  EntityAuthorizationRelation,
+  GetEntityAuthorizationRelationshipsQuery,
+  GetEntityAuthorizationRelationshipsQueryVariables,
+} from "../../../graphql/api-types.gen";
 import { getEntityAuthorizationRelationshipsQuery } from "../../../graphql/queries/knowledge/entity.queries";
 import { Button } from "../../../shared/ui";
 import { useUserPermissionsOnEntity } from "../../../shared/use-user-permissions-on-entity";
 
-import type {   EditAuthorizationStatusMenu,
-EntityAuthorizationStatus ,
+import type {
+  EditAuthorizationStatusMenu,
+  EntityAuthorizationStatus,
   entityAuthorizationStatusIcons,
 } from "./share-dropdown-menu/edit-authorization-status-menu";
 import { ShareEntitySection } from "./share-dropdown-menu/share-entity-section";

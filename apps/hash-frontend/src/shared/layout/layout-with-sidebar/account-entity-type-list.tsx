@@ -1,6 +1,6 @@
 import { orderBy } from "lodash";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import type { FunctionComponent , useMemo, useState } from "react";
+import type { FunctionComponent, useMemo, useState } from "react";
 import { TransitionGroup } from "react-transition-group";
 import { IconButton } from "@hashintel/design-system";
 import { isOwnedOntologyElementMetadata } from "@local/hash-subgraph";
@@ -14,7 +14,10 @@ import { Link } from "../../ui";
 
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
 import { SearchInput } from "./account-entity-type-list/search-input";
-import type { SortActionsDropdown,SortType  } from "./account-entity-type-list/sort-actions-dropdown";
+import type {
+  SortActionsDropdown,
+  SortType,
+} from "./account-entity-type-list/sort-actions-dropdown";
 import { NavLink } from "./nav-link";
 import { LoadingSkeleton } from "./shared/loading-skeleton";
 import { ViewAllLink } from "./view-all-link";
@@ -74,7 +77,9 @@ export const AccountEntityTypeList: FunctionComponent<
     <Box>
       <NavLink
         expanded={expanded}
-        toggleExpanded={() => { setExpanded((previous) => !previous); }}
+        toggleExpanded={() => {
+          setExpanded((previous) => !previous);
+        }}
         title={"Types"}
         endAdornment={
           <Box display={"flex"} gap={1}>
@@ -182,12 +187,16 @@ export const AccountEntityTypeList: FunctionComponent<
               </ViewAllLink>
               <SearchInput
                 searchVisible={searchVisible}
-                showSearchInput={() => { setSearchVisible(true); }}
+                showSearchInput={() => {
+                  setSearchVisible(true);
+                }}
                 hideSearchInput={() => {
                   setSearchQuery("");
                   setSearchVisible(false);
                 }}
-                onChangeText={(query) => { setSearchQuery(query); }}
+                onChangeText={(query) => {
+                  setSearchQuery(query);
+                }}
               />
             </Box>
           </Box>

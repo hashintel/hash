@@ -2,15 +2,23 @@ import { formatDistanceToNowStrict } from "date-fns";
 import { isEqual } from "lodash";
 import { bindTrigger } from "material-ui-popup-state";
 import { usePopupState } from "material-ui-popup-state/hooks";
-import type { FunctionComponent, ReactNode , useCallback, useEffect, useMemo, useState } from "react";
+import type {
+  FunctionComponent,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { faCheckCircle } from "@fortawesome/free-regular-svg-icons";
-import type {   faChevronDown,
+import type {
+  faChevronDown,
   faChevronUp,
   faEllipsisVertical,
   faLink,
   faPencil,
   faTrash,
-IconDefinition ,
+  IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
 import {
   Avatar,
@@ -154,7 +162,9 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
 
   return (
     <Box
-      ref={(ref: HTMLDivElement) => { setContainer(ref); }}
+      ref={(ref: HTMLDivElement) => {
+        setContainer(ref);
+      }}
       sx={{
         display: "flex",
         flexDirection: "column",
@@ -318,7 +328,9 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
             <ToggleTextExpandedButton
               label={"Show More"}
               icon={faChevronDown}
-              onClick={() => { setCollapsed(false); }}
+              onClick={() => {
+                setCollapsed(false);
+              }}
             />
           </Box>
         ) : null}
@@ -328,7 +340,9 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
         <ToggleTextExpandedButton
           label={"Show Less"}
           icon={faChevronUp}
-          onClick={() => { setCollapsed(true); }}
+          onClick={() => {
+            setCollapsed(true);
+          }}
         />
       ) : null}
 
@@ -376,7 +390,9 @@ export const CommentBlock: FunctionComponent<CommentProps> = ({
         open={deleteConfirmationDialogOpen}
         loading={deleteCommentLoading}
         onDelete={async () => deleteComment(commentEntityId)}
-        onCancel={() => { setDeleteConfirmationDialogOpen(false); }}
+        onCancel={() => {
+          setDeleteConfirmationDialogOpen(false);
+        }}
       />
     </Box>
   );

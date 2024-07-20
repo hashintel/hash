@@ -3,7 +3,7 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import type { FunctionComponent , useMemo } from "react";
+import type { FunctionComponent, useMemo } from "react";
 import { Avatar } from "@hashintel/design-system";
 import {
   Box,
@@ -126,9 +126,17 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
               color: ({ palette }) => palette.blue[70],
             },
           }}
-          onClick={() => { popupState.close(); }}
+          onClick={() => {
+            popupState.close();
+          }}
         >
-          <Box px={1.5} pt={1} pb={0.25} display={"flex"} flexDirection={"column"}>
+          <Box
+            px={1.5}
+            pt={1}
+            pb={0.25}
+            display={"flex"}
+            flexDirection={"column"}
+          >
             <Typography
               variant={"smallTextLabels"}
               sx={({ palette }) => ({
@@ -153,7 +161,9 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
           <MenuItem
             href={"/settings"}
             key={"settings"}
-            onClick={() => { popupState.close(); }}
+            onClick={() => {
+              popupState.close();
+            }}
           >
             <ListItemText primary={"Settings"} />
           </MenuItem>,
@@ -161,7 +171,9 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
             <MenuItem
               href={"/admin"}
               key={"admin"}
-              onClick={() => { popupState.close(); }}
+              onClick={() => {
+                popupState.close();
+              }}
             >
               <ListItemText primary={"Instance Settings"} />
             </MenuItem>
@@ -169,7 +181,9 @@ export const AccountDropdown: FunctionComponent<AccountDropdownProps> = ({
           <MenuItem
             href={"/settings/integrations"}
             key={"integrations"}
-            onClick={() => { popupState.close(); }}
+            onClick={() => {
+              popupState.close();
+            }}
           >
             <ListItemText primary={"Integrations"} />
           </MenuItem>,

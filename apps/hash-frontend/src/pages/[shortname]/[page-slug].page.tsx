@@ -1,6 +1,12 @@
 import { Router, useRouter } from "next/router";
 import { NextSeo } from "next-seo";
-import type { PropsWithChildren , useEffect, useMemo, useRef, useState } from "react";
+import type {
+  PropsWithChildren,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useQuery } from "@apollo/client";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { HashBlock } from "@local/hash-isomorphic-utils/blocks";
@@ -8,17 +14,24 @@ import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-u
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityRootType ,
+import type {
+  EntityRootType,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import type { Box,SxProps  } from "@mui/material";
+import type { Box, SxProps } from "@mui/material";
 
 import { BlockLoadedProvider } from "../../blocks/on-block-loaded";
 import { UserBlocksProvider } from "../../blocks/user-blocks";
-import type { AccountPagesInfo , useAccountPages } from "../../components/hooks/use-account-pages";
-import type { PageThread , usePageComments } from "../../components/hooks/use-page-comments";
+import type {
+  AccountPagesInfo,
+  useAccountPages,
+} from "../../components/hooks/use-account-pages";
+import type {
+  PageThread,
+  usePageComments,
+} from "../../components/hooks/use-page-comments";
 import { PageIcon } from "../../components/page-icon";
 import { PageLoadingState } from "../../components/page-loading-state";
 import { CollabPositionProvider } from "../../contexts/collab-position-context";
@@ -30,7 +43,10 @@ import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.q
 import { constructPageRelativeUrl } from "../../lib/routes";
 import type { MinimalOrg, MinimalUser } from "../../lib/user-and-org";
 import { iconVariantSizes } from "../../shared/edit-emoji-icon-button";
-import type { getLayoutWithSidebar,NextPageWithLayout  } from "../../shared/layout";
+import type {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../../shared/layout";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import { PageIconButton } from "../../shared/page-icon-button";
 import {

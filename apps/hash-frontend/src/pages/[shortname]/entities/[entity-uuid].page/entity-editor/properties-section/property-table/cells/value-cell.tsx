@@ -1,8 +1,15 @@
 import type { JsonValue } from "@blockprotocol/core";
-import type { CustomCell, CustomRenderer , GridCellKind } from "@glideapps/glide-data-grid";
+import type {
+  CustomCell,
+  CustomRenderer,
+  GridCellKind,
+} from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
 import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { formatDataValue,FormattedValuePart  } from "@local/hash-isomorphic-utils/data-types";
+import type {
+  formatDataValue,
+  FormattedValuePart,
+} from "@local/hash-isomorphic-utils/data-types";
 
 import {
   getCellHorizontalPadding,
@@ -138,7 +145,9 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
               ? 0.5
               : 0;
 
-        textOffset = textOffset + (ctx.measureText(part.text).width + additionalRightPadding);
+        textOffset =
+          textOffset +
+          (ctx.measureText(part.text).width + additionalRightPadding);
       }
     }
 

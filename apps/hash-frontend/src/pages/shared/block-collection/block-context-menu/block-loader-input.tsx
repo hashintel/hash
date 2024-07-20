@@ -1,4 +1,4 @@
-import type { FormEvent, FunctionComponent , useRef, useState } from "react";
+import type { FormEvent, FunctionComponent, useRef, useState } from "react";
 import { unstable_batchedUpdates } from "react-dom";
 import { TextField } from "@hashintel/design-system";
 import { Box, Collapse } from "@mui/material";
@@ -24,7 +24,9 @@ export const BlockLoaderInput: FunctionComponent<BlockLoaderInputProps> = ({
   const [blockUrl, setBlockUrl] = useState("");
   const blockUrlRef = useRef<HTMLInputElement | null>(null);
 
-  const isDefinedBlock = Boolean(userBlocks[createNormalizedBlockUrl(blockUrl)]);
+  const isDefinedBlock = Boolean(
+    userBlocks[createNormalizedBlockUrl(blockUrl)],
+  );
   const isValidBlockUrl = Boolean(blockUrlRef.current?.validity.valid);
 
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- @todo improve logic or types to remove this comment
@@ -59,7 +61,6 @@ export const BlockLoaderInput: FunctionComponent<BlockLoaderInputProps> = ({
         onLoad();
       })
       .catch((error_) => {
-         
         console.error(
           "could not load block from url:",
           normalizedUrl,
@@ -69,7 +70,9 @@ export const BlockLoaderInput: FunctionComponent<BlockLoaderInputProps> = ({
 
         // clear the error after short delay to enable retries (re-enable load button)
         setError(error_);
-        setTimeout(() => { setError(null); }, 2000);
+        setTimeout(() => {
+          setError(null);
+        }, 2000);
       });
   };
 
@@ -90,7 +93,9 @@ export const BlockLoaderInput: FunctionComponent<BlockLoaderInputProps> = ({
         InputProps={{
           inputRef: blockUrlRef,
         }}
-        onChange={(event) => { setBlockUrl(event.target.value); }}
+        onChange={(event) => {
+          setBlockUrl(event.target.value);
+        }}
         onKeyDown={(event) => {
           event.stopPropagation();
         }}

@@ -1,9 +1,9 @@
-import type { FunctionComponent , useMemo, useRef, useState } from "react";
+import type { FunctionComponent, useMemo, useRef, useState } from "react";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import type { TextToken } from "@local/hash-isomorphic-utils/types";
-import type { AccountEntityId , extractAccountId } from "@local/hash-subgraph";
+import type { AccountEntityId, extractAccountId } from "@local/hash-subgraph";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { Box, buttonClasses, Collapse } from "@mui/material";
@@ -96,8 +96,12 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
         marginBottom: 4,
         outline: "none",
       })}
-      onFocus={() => { setThreadFocused(true); }}
-      onBlur={() => { setThreadFocused(false); }}
+      onFocus={() => {
+        setThreadFocused(true);
+      }}
+      onBlur={() => {
+        setThreadFocused(false);
+      }}
     >
       <CommentBlock
         key={comment.metadata.recordId.entityId}
@@ -133,7 +137,9 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
                 fontSize: 20,
               },
             })}
-            onClick={() => { setExpanded(!expanded); }}
+            onClick={() => {
+              setExpanded(!expanded);
+            }}
           >
             {expanded
               ? "Show fewer responses"
@@ -164,7 +170,9 @@ export const CommentThread: FunctionComponent<CommentThreadProps> = ({
         <Box
           sx={{
             borderTop: ({ palette }) =>
-              comment.replies.length > 0 ? `1px solid ${palette.gray[20]}` : "none",
+              comment.replies.length > 0
+                ? `1px solid ${palette.gray[20]}`
+                : "none",
             px: 1,
             pt: comment.replies.length > 0 ? 1 : 0,
             pb: 0.75,

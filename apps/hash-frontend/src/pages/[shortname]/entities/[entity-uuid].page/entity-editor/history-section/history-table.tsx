@@ -2,13 +2,15 @@ import { format } from "date-fns";
 import { memo, useMemo, useRef, useState } from "react";
 import { AngleRightRegularIcon, IconButton } from "@hashintel/design-system";
 import type { Subgraph } from "@local/hash-subgraph";
-import type {   Box,
+import type {
+  Box,
   Collapse,
   Stack,
-SxProps,   TableCell,
+  SxProps,
+  TableCell,
   tableContainerClasses,
   tableHeadClasses,
-Theme ,
+  Theme,
   Typography,
 } from "@mui/material";
 
@@ -17,9 +19,11 @@ import type {
   CreateVirtualizedRowContentFn,
   defaultCellSx,
   headerHeight,
-  VirtualizedTable,  VirtualizedTableColumn,
+  VirtualizedTable,
+  VirtualizedTableColumn,
   VirtualizedTableRow,
-  VirtualizedTableSort} from "../../../../../shared/virtualized-table";
+  VirtualizedTableSort,
+} from "../../../../../shared/virtualized-table";
 
 import { Provenance } from "./history-table/provenance";
 import { EventDetail } from "./history-table/shared/event-detail";

@@ -1,4 +1,4 @@
-import type { FunctionComponent , useMemo } from "react";
+import type { FunctionComponent, useMemo } from "react";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 

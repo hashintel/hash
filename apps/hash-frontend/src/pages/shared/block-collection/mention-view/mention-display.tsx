@@ -1,4 +1,4 @@
-import type { FunctionComponent , useMemo, useRef, useState } from "react";
+import type { FunctionComponent, useMemo, useRef, useState } from "react";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { zeroedGraphResolveDepths } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -109,7 +109,8 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
       mention.kind === "user"
     ) {
       return entityLabel;
-    } if (mention.kind === "outgoing-link") {
+    }
+    if (mention.kind === "outgoing-link") {
       const outgoingLinkAndTargetEntities = getOutgoingLinkAndTargetEntities(
         entitySubgraph,
         entityId,
@@ -127,13 +128,12 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
         : inaccessibleTargetEntityLabel;
 
       return targetEntityLabel;
-    } 
-      const {propertyTypeBaseUrl} = mention;
+    }
+    const { propertyTypeBaseUrl } = mention;
 
-      const propertyValue = entity?.properties[propertyTypeBaseUrl];
+    const propertyValue = entity?.properties[propertyTypeBaseUrl];
 
-      return propertyValue?.toString();
-    
+    return propertyValue?.toString();
   }, [mention, entityId, entitySubgraph, entity, entityLabel]);
 
   const title =
@@ -156,7 +156,8 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
         }
 
         return entityHref;
-      } if (mention.kind === "page" && entityOwnerShortname) {
+      }
+      if (mention.kind === "page" && entityOwnerShortname) {
         const pageEntityUuid = extractEntityUuidFromEntityId(entityId);
 
         return constructPageRelativeUrl({
@@ -237,7 +238,13 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
             }
           : {}),
       }}
-      onClick={hasPopover ? () => { setPopoverOpen(true); } : undefined}
+      onClick={
+        hasPopover
+          ? () => {
+              setPopoverOpen(true);
+            }
+          : undefined
+      }
     >
       {loading ? (
         "Loading..."
@@ -314,7 +321,9 @@ export const MentionDisplay: FunctionComponent<MentionDisplayProps> = ({
               borderWidth: 1,
             },
           }}
-          onClose={() => { setPopoverOpen(false); }}
+          onClose={() => {
+            setPopoverOpen(false);
+          }}
         >
           <Link
             href={entityType?.schema.$id ?? "#"}

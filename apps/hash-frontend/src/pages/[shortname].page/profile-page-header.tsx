@@ -1,4 +1,4 @@
-import type { FunctionComponent , useState } from "react";
+import type { FunctionComponent, useState } from "react";
 import { Avatar } from "@hashintel/design-system";
 import { Box, Container, Skeleton, Typography } from "@mui/material";
 
@@ -9,7 +9,7 @@ import { getImageUrlFromEntityProperties } from "../shared/get-file-properties";
 
 import { EditPinnedEntityTypesModal } from "./edit-pinned-entity-types-modal";
 import { ProfilePageTabs } from "./profile-page-tabs";
-import type { leftColumnWidth,ProfilePageTab  } from "./util";
+import type { leftColumnWidth, ProfilePageTab } from "./util";
 
 const avatarTopOffset = 25;
 
@@ -73,7 +73,9 @@ export const ProfilePageHeader: FunctionComponent<{
                    * @todo: allow for editing org avatars
                    */
                   isEditable && profile.kind === "user"
-                    ? () => { setDisplayEditUserProfileInfoModal(true); }
+                    ? () => {
+                        setDisplayEditUserProfileInfoModal(true);
+                      }
                     : undefined
                 }
               />
@@ -151,7 +153,9 @@ export const ProfilePageHeader: FunctionComponent<{
                         sx={{ color: ({ palette }) => palette.blue[70] }}
                       />
                     }
-                    onClick={() => { setDisplayEditPinnedEntityTypesModal(true); }}
+                    onClick={() => {
+                      setDisplayEditPinnedEntityTypesModal(true);
+                    }}
                   >
                     Modify
                   </Button>
@@ -160,9 +164,9 @@ export const ProfilePageHeader: FunctionComponent<{
                       open={displayEditPinnedEntityTypesModal}
                       profile={profile}
                       refetchProfile={refetchProfile}
-                      onClose={() =>
-                        { setDisplayEditPinnedEntityTypesModal(false); }
-                      }
+                      onClose={() => {
+                        setDisplayEditPinnedEntityTypesModal(false);
+                      }}
                     />
                   ) : null}
                 </>

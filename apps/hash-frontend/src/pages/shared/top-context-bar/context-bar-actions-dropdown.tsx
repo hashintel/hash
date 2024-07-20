@@ -3,7 +3,7 @@ import {
   bindTrigger,
   usePopupState,
 } from "material-ui-popup-state/hooks";
-import type { FunctionComponent, ReactElement , useMemo } from "react";
+import type { FunctionComponent, ReactElement, useMemo } from "react";
 import { faEllipsisVertical } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Menu } from "@mui/material";

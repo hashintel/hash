@@ -1,4 +1,4 @@
-import type { ReactElement , useMemo } from "react";
+import type { ReactElement, useMemo } from "react";
 import {
   AngleRightRegularIcon,
   Autocomplete,

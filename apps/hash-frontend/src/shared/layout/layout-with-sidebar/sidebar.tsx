@@ -51,9 +51,11 @@ const isNavLinkActive = ({
   definition.path === currentPath ||
   (definition.activeIfPathMatches &&
     Boolean(currentPath.match(definition.activeIfPathMatches))) ||
-  Boolean(definition.children?.some((child) =>
-    isNavLinkActive({ definition: child, currentPath }),
-  ));
+  Boolean(
+    definition.children?.some((child) =>
+      isNavLinkActive({ definition: child, currentPath }),
+    ),
+  );
 
 export const PageSidebar: FunctionComponent = () => {
   const router = useRouter();

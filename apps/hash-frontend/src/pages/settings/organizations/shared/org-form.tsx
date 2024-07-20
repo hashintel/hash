@@ -1,4 +1,4 @@
-import type { PropsWithChildren , useState } from "react";
+import type { PropsWithChildren, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { TextField } from "@hashintel/design-system";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -356,7 +356,9 @@ export const OrgForm = ({
                 disabled={!isDirty}
                 type={"button"}
                 variant={"tertiary"}
-                onClick={() => { reset(initialOrg); }}
+                onClick={() => {
+                  reset(initialOrg);
+                }}
               >
                 Discard changes
               </Button>

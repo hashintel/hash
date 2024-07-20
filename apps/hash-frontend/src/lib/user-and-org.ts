@@ -26,7 +26,10 @@ import type {
   AccountEntityId,
   AccountGroupEntityId,
   EntityRootType,
- extractAccountGroupId, extractAccountId,  Subgraph } from "@local/hash-subgraph";
+  extractAccountGroupId,
+  extractAccountId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import {
   getIncomingLinksForEntity,
   getLeftEntityForLinkEntity,
@@ -310,7 +313,6 @@ export const constructUser = (params: {
 
   const { email } = simplifyProperties(userEntity.properties);
 
-   
   const primaryEmailAddress = email?.[0] ?? "";
 
   // @todo implement email verification
@@ -415,8 +417,7 @@ export const constructUser = (params: {
     ? {
         // these are each arrays because each entity can have multiple revisions
         linkEntity: coverImageLinkAndEntity.linkEntity[0]!,
-        imageEntity: coverImageLinkAndEntity
-          .rightEntity[0]! as Entity<Image>,
+        imageEntity: coverImageLinkAndEntity.rightEntity[0]! as Entity<Image>,
       }
     : undefined;
 
@@ -433,8 +434,7 @@ export const constructUser = (params: {
   const hasBio = hasBioLinkAndEntity
     ? {
         // these are each arrays because each entity can have multiple revisions
-        linkEntity: hasBioLinkAndEntity
-          .linkEntity[0]! as LinkEntity<HasBio>,
+        linkEntity: hasBioLinkAndEntity.linkEntity[0]! as LinkEntity<HasBio>,
         profileBioEntity: hasBioLinkAndEntity
           .rightEntity[0]! as Entity<ProfileBio>,
       }

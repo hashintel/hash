@@ -11,7 +11,10 @@ import { Box, Container, Typography } from "@mui/material";
 
 import { LayoutWithSidebar } from "../../shared/layout/layout-with-sidebar";
 import { useAuthenticatedUser } from "../shared/auth-info-context";
-import type { SettingsSidebar,SidebarItemData  } from "../shared/settings-layout/settings-sidebar";
+import type {
+  SettingsSidebar,
+  SidebarItemData,
+} from "../shared/settings-layout/settings-sidebar";
 import { TopContextBar } from "../shared/top-context-bar";
 
 const containerSx = {

@@ -1,5 +1,12 @@
-import type { faAsterisk,IconDefinition  } from "@fortawesome/free-solid-svg-icons";
-import type { CustomCell, CustomRenderer , GridCellKind } from "@glideapps/glide-data-grid";
+import type {
+  faAsterisk,
+  IconDefinition,
+} from "@fortawesome/free-solid-svg-icons";
+import type {
+  CustomCell,
+  CustomRenderer,
+  GridCellKind,
+} from "@glideapps/glide-data-grid";
 import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
 import { customColors } from "@hashintel/design-system/theme";
 import { Box } from "@mui/material";

@@ -1,4 +1,4 @@
-import type { ReactNode , useEffect, useRef } from "react";
+import type { ReactNode, useEffect, useRef } from "react";
 import {
   Box,
   Collapse,
@@ -10,7 +10,7 @@ import {
 
 import { useEditBarContext } from "../../../shared/edit-bar-scroller";
 import { PencilSimpleLine } from "../../../shared/icons/svg";
-import type { Button,ButtonProps  } from "../../../shared/ui/button";
+import type { Button, ButtonProps } from "../../../shared/ui/button";
 
 export const EditBarContents = ({
   icon,

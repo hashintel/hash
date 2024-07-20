@@ -1,4 +1,4 @@
-import type { PropsWithChildren , useMemo, useState } from "react";
+import type { PropsWithChildren, useMemo, useState } from "react";
 import {
   ArrowUpRightRegularIcon,
   CaretDownSolidIcon,
@@ -125,7 +125,9 @@ export const FlowRunSidebar = ({
                         color: ({ palette }) => palette.common.black,
                       },
                     }}
-                    onClick={() => { setShowResearchPrompt(!showResearchPrompt); }}
+                    onClick={() => {
+                      setShowResearchPrompt(!showResearchPrompt);
+                    }}
                   >
                     <CaretDownSolidIcon
                       sx={{
@@ -167,7 +169,9 @@ export const FlowRunSidebar = ({
               mb: 0.5,
               "& svg": { fontSize: 12 },
             }}
-            onClick={() => { showDag(); }}
+            onClick={() => {
+              showDag();
+            }}
           >
             <Typography
               variant={"smallCaps"}
@@ -209,7 +213,9 @@ export const FlowRunSidebar = ({
               direction={"row"}
               alignItems={"center"}
               sx={{ cursor: "pointer" }}
-              onClick={() => { setShowUsageBreakdown(!showUsageBreakdown); }}
+              onClick={() => {
+                setShowUsageBreakdown(!showUsageBreakdown);
+              }}
             >
               <Typography
                 variant={"smallTextParagraphs"}

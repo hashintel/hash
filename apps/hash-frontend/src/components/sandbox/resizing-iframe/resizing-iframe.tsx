@@ -1,5 +1,10 @@
 import { iframeResizer as iFrameResizer } from "iframe-resizer";
-import type { DetailedHTMLProps, forwardRef, IframeHTMLAttributes , useEffect } from "react";
+import type {
+  DetailedHTMLProps,
+  forwardRef,
+  IframeHTMLAttributes,
+  useEffect,
+} from "react";
 
 /**
  * @todo Expose the unused functions to component consumers, or use them here,
@@ -53,14 +58,15 @@ export const ResizingIFrame = forwardRef<
       iframe,
     );
 
-    return () => { (iframe as IFrameWithResizer).iFrameResizer.removeListeners(); };
+    return () => {
+      (iframe as IFrameWithResizer).iFrameResizer.removeListeners();
+    };
   }, [iFrameRef, props]);
 
   return (
     <iframe
       {...props}
       ref={iFrameRef}
-       
       title={props.title || "HASH"}
       sandbox={"allow-scripts allow-top-navigation-by-user-activation"}
     />

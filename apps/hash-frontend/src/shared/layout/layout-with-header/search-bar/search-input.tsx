@@ -1,4 +1,4 @@
-import type { FunctionComponent , useCallback, useEffect, useRef } from "react";
+import type { FunctionComponent, useCallback, useEffect, useRef } from "react";
 import { faXmark } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import {
@@ -181,7 +181,9 @@ export const SearchInput: FunctionComponent<{
           </InputAdornment>
         ) : null
       }
-      onFocus={() => { setResultListVisible(true); }}
+      onFocus={() => {
+        setResultListVisible(true);
+      }}
       onChange={(event) => {
         setResultListVisible(true);
         setQueryText(event.target.value);

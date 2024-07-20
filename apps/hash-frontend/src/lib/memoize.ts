@@ -1,4 +1,7 @@
-type MemoizableFetchFunction<T> = (url: string, signal?: AbortSignal) => Promise<T>;
+type MemoizableFetchFunction<T> = (
+  url: string,
+  signal?: AbortSignal,
+) => Promise<T>;
 
 /**
  * Memoize a fetch function by its URL.

@@ -1,6 +1,12 @@
 import { bindMenu } from "material-ui-popup-state";
 import type { PopupState } from "material-ui-popup-state/hooks";
-import type { forwardRef, ForwardRefRenderFunction , useMemo, useRef, useState } from "react";
+import type {
+  forwardRef,
+  ForwardRefRenderFunction,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useKey } from "rooks";
 import {
   faCopy,
@@ -109,7 +115,9 @@ const BlockContextMenu: ForwardRefRenderFunction<
               subMenu: (
                 <LoadEntityMenuContent
                   blockEntityId={entityId}
-                  closeParentContextMenu={() => { popupState.close(); }}
+                  closeParentContextMenu={() => {
+                    popupState.close();
+                  }}
                   childEntityEntityTypeId={
                     blockEntity?.blockChildEntity?.metadata.entityTypeId ?? null
                   }
@@ -129,7 +137,9 @@ const BlockContextMenu: ForwardRefRenderFunction<
               key: "select-data",
               title: "Select Data",
               icon: <ChartNetworkRegularIcon />,
-              onClick: () => { setBlockSelectDataModalIsOpen(true); },
+              onClick: () => {
+                setBlockSelectDataModalIsOpen(true);
+              },
             },
           ]
         : []),
@@ -148,13 +158,17 @@ const BlockContextMenu: ForwardRefRenderFunction<
         key: "edit-block",
         title: "Edit Block",
         icon: <FontAwesomeIcon icon={faPenToSquare} />,
-        onClick: () => { setEntityEditorOpen(true); },
+        onClick: () => {
+          setEntityEditorOpen(true);
+        },
       },
       {
         key: "configure",
         title: "Configure",
         icon: <FontAwesomeIcon icon={faGear} />,
-        onClick: () => { openConfigMenu(); },
+        onClick: () => {
+          openConfigMenu();
+        },
       },
       {
         key: "duplicate",
@@ -245,7 +259,9 @@ const BlockContextMenu: ForwardRefRenderFunction<
       {blockSchemaHasHasQueryLink ? (
         <BlockSelectDataModal
           open={blockSelectDataModalIsOpen}
-          onClose={() => { setBlockSelectDataModalIsOpen(false); }}
+          onClose={() => {
+            setBlockSelectDataModalIsOpen(false);
+          }}
         />
       ) : null}
       {blockSubgraph && (
@@ -255,7 +271,9 @@ const BlockContextMenu: ForwardRefRenderFunction<
             /** @todo Add timeProjection & resolvedTimeProjection properly */
             blockSubgraph
           }
-          onClose={() => { setEntityEditorOpen(false); }}
+          onClose={() => {
+            setEntityEditorOpen(false);
+          }}
           onSubmit={handleEntityModalSubmit}
         />
       )}
@@ -278,7 +296,11 @@ const BlockContextMenu: ForwardRefRenderFunction<
         }}
       >
         <Box component={"li"} px={2} pt={1.5} mb={1}>
-          <BlockLoaderInput onLoad={() => { popupState.close(); }} />
+          <BlockLoaderInput
+            onLoad={() => {
+              popupState.close();
+            }}
+          />
         </Box>
 
         {menuItems.map(
@@ -314,7 +336,9 @@ const BlockContextMenu: ForwardRefRenderFunction<
                 title={title}
                 itemKey={key}
                 icon={icon}
-                closeMenu={() => { popupState.close(); }}
+                closeMenu={() => {
+                  popupState.close();
+                }}
                 subMenu={subMenu}
                 subMenuWidth={subMenuWidth}
                 onClick={() => {

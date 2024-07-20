@@ -1,6 +1,6 @@
 import type { AxiosError } from "axios";
 import { useRouter } from "next/router";
-import type { Dispatch, SetStateAction , useCallback } from "react";
+import type { Dispatch, SetStateAction, useCallback } from "react";
 import type {
   ErrorAuthenticatorAssuranceLevelNotSatisfied,
   ErrorBrowserLocationChangeRequired,

@@ -4,8 +4,10 @@ import type {
   FunctionComponent,
   ReactNode,
   SetStateAction,
- useCallback, useMemo } from "react";
-import type { extractVersion,VersionedUrl  } from "@blockprotocol/type-system";
+  useCallback,
+  useMemo,
+} from "react";
+import type { extractVersion, VersionedUrl } from "@blockprotocol/type-system";
 import { WandMagicSparklesIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
@@ -14,7 +16,11 @@ import type {
   EntityTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import type { EntityRootType, extractOwnedByIdFromEntityId,Subgraph  } from "@local/hash-subgraph";
+import type {
+  EntityRootType,
+  extractOwnedByIdFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, Fade, Typography } from "@mui/material";
@@ -33,7 +39,10 @@ import { LinkRegularIcon } from "../../../shared/icons/link-regular-icon";
 import { UserIcon } from "../../../shared/icons/user-icon";
 import { UsersRegularIcon } from "../../../shared/icons/users-regular-icon";
 import { Button } from "../../../shared/ui";
-import type { isAiMachineActor,MinimalActor  } from "../../../shared/use-actors";
+import type {
+  isAiMachineActor,
+  MinimalActor,
+} from "../../../shared/use-actors";
 import { useAuthenticatedUser } from "../../shared/auth-info-context";
 
 import { FilterSection } from "./draft-entities-filters/filter-section";
@@ -84,18 +93,19 @@ export const getDraftEntityTypes = (params: {
     .reduce<VersionedUrl[]>((previous, entityTypeId) => {
       const previousEntityTypeId = previous.find(
         (previousEntityTypeId_) =>
-          extractBaseUrl(previousEntityTypeId_) === extractBaseUrl(entityTypeId),
+          extractBaseUrl(previousEntityTypeId_) ===
+          extractBaseUrl(entityTypeId),
       );
 
       if (!previousEntityTypeId) {
         return [...previous, entityTypeId];
-      } if (
-        extractVersion(previousEntityTypeId) < extractVersion(entityTypeId)
-      ) {
+      }
+      if (extractVersion(previousEntityTypeId) < extractVersion(entityTypeId)) {
         return [
           ...previous.filter(
             (previousEntityTypeId_) =>
-              extractBaseUrl(previousEntityTypeId_) !== extractBaseUrl(entityTypeId),
+              extractBaseUrl(previousEntityTypeId_) !==
+              extractBaseUrl(entityTypeId),
           ),
           entityTypeId,
         ];
@@ -419,8 +429,9 @@ export const DraftEntitiesFilters: FunctionComponent<{
               ),
               label: entityType.schema.title,
               value: entityTypeBaseUrl,
-              checked:
-                Boolean(filterState?.entityTypeBaseUrls.includes(entityTypeBaseUrl)),
+              checked: Boolean(
+                filterState?.entityTypeBaseUrls.includes(entityTypeBaseUrl),
+              ),
               count: filteredDraftEntitiesExceptForFilter?.type.filter(
                 ({ entity }) =>
                   extractBaseUrl(entity.metadata.entityTypeId) ===
@@ -428,15 +439,16 @@ export const DraftEntitiesFilters: FunctionComponent<{
               ).length,
             };
           }) ?? [],
-        onChange: (updatedBaseUrls: BaseUrl[]) =>
-          { setFilterState((previous) =>
+        onChange: (updatedBaseUrls: BaseUrl[]) => {
+          setFilterState((previous) =>
             previous
               ? {
                   ...previous,
                   entityTypeBaseUrls: updatedBaseUrls,
                 }
               : undefined,
-          ); },
+          );
+        },
       } satisfies FilterSectionDefinition<BaseUrl>,
       {
         kind: "multiple-choice",
@@ -458,7 +470,8 @@ export const DraftEntitiesFilters: FunctionComponent<{
               ) => {
                 if (authenticatedUser.accountId === sourceA.accountId) {
                   return -1;
-                } if (authenticatedUser.accountId === sourceB.accountId) {
+                }
+                if (authenticatedUser.accountId === sourceB.accountId) {
                   return 1;
                 }
 
@@ -478,22 +491,23 @@ export const DraftEntitiesFilters: FunctionComponent<{
                 ),
               label,
               value: source.accountId,
-              checked: Boolean(filterState?.sourceAccountIds.includes(
-                source.accountId,
-              )),
+              checked: Boolean(
+                filterState?.sourceAccountIds.includes(source.accountId),
+              ),
               count: filteredDraftEntitiesExceptForFilter?.source.filter(
                 ({ creator }) => creator.accountId === source.accountId,
               ).length,
             })) ?? [],
-        onChange: (updatedAccountIds: AccountId[]) =>
-          { setFilterState((previous) =>
+        onChange: (updatedAccountIds: AccountId[]) => {
+          setFilterState((previous) =>
             previous
               ? {
                   ...previous,
                   sourceAccountIds: updatedAccountIds,
                 }
               : undefined,
-          ); },
+          );
+        },
       },
       {
         kind: "multiple-choice",
@@ -519,7 +533,8 @@ export const DraftEntitiesFilters: FunctionComponent<{
                   authenticatedUser.accountId === webA.accountId
                 ) {
                   return -1;
-                } if (
+                }
+                if (
                   webB.kind === "user" &&
                   authenticatedUser.accountId === webB.accountId
                 ) {
@@ -538,7 +553,9 @@ export const DraftEntitiesFilters: FunctionComponent<{
                 icon: web.kind === "user" ? <UserIcon /> : <UsersRegularIcon />,
                 label,
                 value: webOwnedById,
-                checked: Boolean(filterState?.webOwnedByIds.includes(webOwnedById)),
+                checked: Boolean(
+                  filterState?.webOwnedByIds.includes(webOwnedById),
+                ),
                 count: filteredDraftEntitiesExceptForFilter?.web.filter(
                   ({ entity }) =>
                     extractOwnedByIdFromEntityId(
@@ -547,15 +564,16 @@ export const DraftEntitiesFilters: FunctionComponent<{
                 ).length,
               };
             }) ?? [],
-        onChange: (updatedWebOwnedByIds: OwnedById[]) =>
-          { setFilterState((previous) =>
+        onChange: (updatedWebOwnedByIds: OwnedById[]) => {
+          setFilterState((previous) =>
             previous
               ? {
                   ...previous,
                   webOwnedByIds: updatedWebOwnedByIds,
                 }
               : undefined,
-          ); },
+          );
+        },
       },
       {
         kind: "single-choice",
@@ -576,15 +594,16 @@ export const DraftEntitiesFilters: FunctionComponent<{
             ).length,
           }),
         ),
-        onChange: (updatedLastEditedTimeRange) =>
-          { setFilterState((previous) =>
+        onChange: (updatedLastEditedTimeRange) => {
+          setFilterState((previous) =>
             previous
               ? {
                   ...previous,
                   lastEditedTimeRange: updatedLastEditedTimeRange,
                 }
               : undefined,
-          ); },
+          );
+        },
         value: filterState?.lastEditedTimeRange ?? "anytime",
       },
     ];

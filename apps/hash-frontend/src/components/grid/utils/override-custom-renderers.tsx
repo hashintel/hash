@@ -1,5 +1,8 @@
 import type { MutableRefObject, PropsWithChildren } from "react";
-import type { DataEditorProps , isObjectEditorCallbackResult } from "@glideapps/glide-data-grid";
+import type {
+  DataEditorProps,
+  isObjectEditorCallbackResult,
+} from "@glideapps/glide-data-grid";
 
 import { useEditBarContext } from "../../../shared/edit-bar-scroller";
 import { useScrollLock } from "../../../shared/use-scroll-lock";
@@ -12,13 +15,12 @@ const ScrollLockWrapper = ({ children }: PropsWithChildren) => {
    * because our table components are rendered inside `LayoutWithSidebar`.
    * Which has the overflow-y happening on `main` instead of `body` or `html`
    * So we need to lock `main` elements scroll when grid editors are visible.
-    */
+   */
 
   const editBarContext = useEditBarContext();
 
   useScrollLock(true, editBarContext?.scrollingNode);
 
-   
   return <>{children}</>;
 };
 
@@ -39,8 +41,9 @@ export const overrideCustomRenderers = (
     ({ draw, provideEditor, onClick, ...restFields }) => {
       return {
         ...restFields,
-        draw: (args, cell) =>
-          { draw({ ...args, tableId: tableIdRef.current }, cell); },
+        draw: (args, cell) => {
+          draw({ ...args, tableId: tableIdRef.current }, cell);
+        },
         onClick: (args) => {
           const [colIndex, rowIndex] = args.location;
 

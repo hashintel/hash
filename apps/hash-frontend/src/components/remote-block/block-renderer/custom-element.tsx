@@ -1,5 +1,5 @@
-import React, type { FunctionComponent } from "react";
- 
+import React, { type FunctionComponent } from "react";
+
 import React, { useLayoutEffect, useRef, useState } from "react";
 import { createComponent } from "@lit-labs/react";
 
@@ -33,7 +33,6 @@ export const CustomElementLoader: FunctionComponent<
       try {
         customElements.define(tagName, elementClass);
       } catch (error) {
-         
         console.error(
           `Error defining custom element: ${(error as Error).message}`,
         );
@@ -54,7 +53,6 @@ export const CustomElementLoader: FunctionComponent<
       try {
         customElements.define(`${tagName}${i}`, elementClass);
       } catch (error) {
-         
         console.error(
           `Error defining custom element: ${(error as Error).message}`,
         );

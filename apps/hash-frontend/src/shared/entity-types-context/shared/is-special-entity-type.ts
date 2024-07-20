@@ -1,4 +1,7 @@
-import type { EntityTypeReference , extractBaseUrl } from "@blockprotocol/type-system";
+import type {
+  EntityTypeReference,
+  extractBaseUrl,
+} from "@blockprotocol/type-system";
 import type {
   EntityType,
   VersionedUrl,

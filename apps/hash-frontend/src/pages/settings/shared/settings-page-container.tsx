@@ -1,4 +1,4 @@
-import type { forwardRef,PropsWithChildren, ReactNode  } from "react";
+import type { forwardRef, PropsWithChildren, ReactNode } from "react";
 import { Box, Stack, Typography } from "@mui/material";
 
 export const SettingsPageContainer = forwardRef<

@@ -42,7 +42,9 @@ export const GoogleFilePicker = ({
       async
       defer
       src={"https://apis.google.com/js/api.js"}
-      onReady={() => { setReady(true); }}
+      onReady={() => {
+        setReady(true);
+      }}
     />
   );
 };

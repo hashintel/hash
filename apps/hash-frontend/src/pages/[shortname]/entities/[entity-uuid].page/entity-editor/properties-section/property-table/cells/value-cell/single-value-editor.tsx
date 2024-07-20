@@ -76,7 +76,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
 
               onFinishedEditing(newCell);
 
- return;
+              return;
             }
 
             setEditorType(type);
@@ -112,7 +112,7 @@ export const SingleValueEditor: ValueCellEditorComponent = (props) => {
           if (isDiscarded) {
             onFinishedEditing(undefined);
 
- return;
+            return;
           }
 
           const newCell = produce(cell, (draftCell) => {

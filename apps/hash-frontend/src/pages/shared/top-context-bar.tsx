@@ -1,15 +1,23 @@
 import { useRouter } from "next/router";
-import type { FunctionComponent, ReactElement, ReactNode , useMemo, useState } from "react";
+import type {
+  FunctionComponent,
+  ReactElement,
+  ReactNode,
+  useMemo,
+  useState,
+} from "react";
 import { faCheck, faFile } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import type {   Box,
+import type {
+  Box,
   Collapse,
   FormControlLabel,
   Switch,
-SxProps, Theme ,
+  SxProps,
+  Theme,
   Typography,
 } from "@mui/material";
 
@@ -17,7 +25,7 @@ import { isItemArchived } from "../../shared/is-archived";
 import { isEntityPageEntity } from "../../shared/is-of-type";
 import { useSidebarContext } from "../../shared/layout/layout-with-sidebar";
 
-import type { Breadcrumbs,BreadcrumbsProps  } from "./breadcrumbs";
+import type { Breadcrumbs, BreadcrumbsProps } from "./breadcrumbs";
 import { ArchivedItemBanner } from "./top-context-bar/archived-item-banner";
 import { ContextBarActionsDropdown } from "./top-context-bar/context-bar-actions-dropdown";
 import { ShareDropdownMenu } from "./top-context-bar/share-dropdown-menu";
@@ -205,7 +213,9 @@ export const TopContextBar = ({
                   checked={Boolean(query.locked)}
                   inputProps={{ "aria-label": "controlled" }}
                   size={"medium"}
-                  onChange={() => { setCanvasLockState(!query.locked); }}
+                  onChange={() => {
+                    setCanvasLockState(!query.locked);
+                  }}
                 />
               }
             />

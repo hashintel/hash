@@ -13,7 +13,9 @@ export const PropertiesSectionEmptyState = () => {
       <SectionEmptyState
         title={"This entity currently has no properties"}
         titleIcon={<LinksIcon />}
-        description={"Properties contain data about entities, and are inherited from types"}
+        description={
+          "Properties contain data about entities, and are inherited from types"
+        }
       />
     </SectionWrapper>
   );

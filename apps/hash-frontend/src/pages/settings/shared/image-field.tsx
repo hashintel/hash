@@ -81,7 +81,11 @@ export const ImageField = ({
               {newImageUploading ? (
                 <LoadingSpinner color={"gray.40"} />
               ) : (
-                <GrayToBlueIconButton onClick={() => { setEditingImage(true); }}>
+                <GrayToBlueIconButton
+                  onClick={() => {
+                    setEditingImage(true);
+                  }}
+                >
                   <PenIcon sx={{ width: 13, height: 13 }} />
                 </GrayToBlueIconButton>
               )}

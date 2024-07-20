@@ -1,6 +1,6 @@
 import type { FunctionComponent } from "react";
 import { Modal } from "@hashintel/design-system";
-import type { Box,ModalProps  } from "@mui/material";
+import type { Box, ModalProps } from "@mui/material";
 
 import type { User } from "../../lib/user-and-org";
 

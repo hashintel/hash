@@ -4,7 +4,10 @@ import { useMemo } from "react";
 import type { EntityTypeWithMetadata } from "@blockprotocol/graph";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 
-import type { getLayoutWithSidebar,NextPageWithLayout  } from "../../../../shared/layout";
+import type {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../../../../shared/layout";
 import { EntityTypePage } from "../../../shared/entity-type-page";
 import { useRouteNamespace } from "../../shared/use-route-namespace";
 
@@ -47,9 +50,8 @@ const Page: NextPageWithLayout = () => {
         schema: entityTypeSchema,
       } satisfies EntityTypeWithMetadata;
     }
- 
-      return null;
-    
+
+    return null;
   }, [router.query.draft]);
 
   const requestedVersion = requestedVersionString
@@ -59,9 +61,8 @@ const Page: NextPageWithLayout = () => {
   if (!routeNamespace) {
     if (loadingNamespace) {
       return null;
-    } 
-      throw new Error("Namespace for valid entity somehow missing");
-    
+    }
+    throw new Error("Namespace for valid entity somehow missing");
   }
 
   return (

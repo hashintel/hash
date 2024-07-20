@@ -1,5 +1,7 @@
-import type {   createContext,
-FunctionComponent, ReactElement ,
+import type {
+  createContext,
+  FunctionComponent,
+  ReactElement,
   useCallback,
   useContext,
   useMemo,
@@ -13,7 +15,11 @@ import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { IsMemberOf } from "@local/hash-isomorphic-utils/system-types/shared";
-import type { EntityRootType, extractEntityUuidFromEntityId,Subgraph  } from "@local/hash-subgraph";
+import type {
+  EntityRootType,
+  extractEntityUuidFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import {
   getOutgoingLinksForEntity,
   getRoots,
@@ -24,7 +30,11 @@ import { useHashInstance } from "../../components/hooks/use-hash-instance";
 import { useOrgsWithLinks } from "../../components/hooks/use-orgs-with-links";
 import type { MeQuery } from "../../graphql/api-types.gen";
 import { meQuery } from "../../graphql/queries/user.queries";
-import type { constructUser, isEntityUserEntity,User  } from "../../lib/user-and-org";
+import type {
+  constructUser,
+  isEntityUserEntity,
+  User,
+} from "../../lib/user-and-org";
 
 type RefetchAuthInfoFunction = () => Promise<{
   authenticatedUser?: User;

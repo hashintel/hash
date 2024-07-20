@@ -7,11 +7,13 @@ import { updateBlockCollectionContents } from "@local/hash-isomorphic-utils/grap
 import type { HasSpatiallyPositionedContentProperties } from "@local/hash-isomorphic-utils/system-types/canvas";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { toDomPrecision } from "@tldraw/primitives";
-import type {   defineShape,
+import type {
+  defineShape,
   HTMLContainer,
-TLBaseShape,   TLBoxTool,
+  TLBaseShape,
+  TLBoxTool,
   TLBoxUtil,
-TLOpacityType ,
+  TLOpacityType,
 } from "@tldraw/tldraw";
 
 import { BlockLoader } from "../../../../components/block-loader/block-loader";
@@ -21,7 +23,11 @@ import { BlockContextProvider } from "../../../shared/block-collection/block-con
 import { getBlockCollectionContentsStructuralQueryVariables } from "../../../shared/block-collection-contents";
 import { BlockCollectionContext } from "../../../shared/block-collection-context";
 
-import type { defaultBlockHeight, defaultBlockWidth,JsonSerializableBlockLoaderProps  } from "./shared";
+import type {
+  defaultBlockHeight,
+  defaultBlockWidth,
+  JsonSerializableBlockLoaderProps,
+} from "./shared";
 
 // Defines the string id and the 'props' available on our custom TLDraw shape
 export type BlockShape = TLBaseShape<

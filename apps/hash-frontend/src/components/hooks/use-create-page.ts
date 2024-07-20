@@ -10,7 +10,8 @@ import {
 import type {
   CreatePageMutation,
   CreatePageMutationVariables,
- PageType } from "../../graphql/api-types.gen";
+  PageType,
+} from "../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../graphql/queries/knowledge/entity.queries";
 import { createPage } from "../../graphql/queries/page.queries";
 import { constructPageRelativeUrl } from "../../lib/routes";
@@ -46,7 +47,10 @@ export const useCreatePage = ({
   });
 
   const createUntitledPage = useCallback(
-    async (previousFractionalIndex: string | null, type: "canvas" | "document") => {
+    async (
+      previousFractionalIndex: string | null,
+      type: "canvas" | "document",
+    ) => {
       if (!ownedById) {
         throw new Error("No ownedById provided to useCreatePage");
       }

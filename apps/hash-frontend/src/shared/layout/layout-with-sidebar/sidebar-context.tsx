@@ -1,4 +1,11 @@
-import type { createContext, FunctionComponent, ReactNode , useContext, useMemo, useState } from "react";
+import type {
+  createContext,
+  FunctionComponent,
+  ReactNode,
+  useContext,
+  useMemo,
+  useState,
+} from "react";
 
 interface SidebarContextState {
   sidebarOpen: boolean;
@@ -22,8 +29,12 @@ export const SidebarContextProvider: FunctionComponent<{
   const value = useMemo(
     () => ({
       sidebarOpen,
-      openSidebar: () => { setSidebarOpen(true); },
-      closeSidebar: () => { setSidebarOpen(false); },
+      openSidebar: () => {
+        setSidebarOpen(true);
+      },
+      closeSidebar: () => {
+        setSidebarOpen(false);
+      },
     }),
     [sidebarOpen, setSidebarOpen],
   );

@@ -1,4 +1,4 @@
-import type { FunctionComponent , useMemo, useRef, useState } from "react";
+import type { FunctionComponent, useMemo, useRef, useState } from "react";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
@@ -113,7 +113,9 @@ export const DraftEntity: FunctionComponent<{
             <EditEntitySlideOver
               open={displayEntityModal}
               entitySubgraph={entityRootedSubgraph}
-              onClose={() => { setDisplayEntityModal(false); }}
+              onClose={() => {
+                setDisplayEntityModal(false);
+              }}
               onSubmit={() => {
                 void refetch();
                 setDisplayEntityModal(false);

@@ -1,6 +1,6 @@
 import { orderBy } from "lodash";
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
-import type { FunctionComponent , useMemo, useState } from "react";
+import type { FunctionComponent, useMemo, useState } from "react";
 import { TransitionGroup } from "react-transition-group";
 import { IconButton } from "@hashintel/design-system";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -20,7 +20,10 @@ import { Link } from "../../ui";
 import { useEntityTypeEntities } from "../../use-entity-type-entities";
 
 import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
-import type { SortActionsDropdown,SortType  } from "./account-entity-type-list/sort-actions-dropdown";
+import type {
+  SortActionsDropdown,
+  SortType,
+} from "./account-entity-type-list/sort-actions-dropdown";
 import { NavLink } from "./nav-link";
 import { LoadingSkeleton } from "./shared/loading-skeleton";
 import { ViewAllLink } from "./view-all-link";
@@ -95,7 +98,9 @@ export const AccountEntitiesList: FunctionComponent<
     <Box>
       <NavLink
         expanded={expanded}
-        toggleExpanded={() => { setExpanded((previous) => !previous); }}
+        toggleExpanded={() => {
+          setExpanded((previous) => !previous);
+        }}
         title={"Entities"}
         endAdornment={
           <Box display={"flex"} gap={1}>

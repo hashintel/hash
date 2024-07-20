@@ -1,4 +1,10 @@
-import type { FunctionComponent , useCallback, useEffect, useMemo, useState } from "react";
+import type {
+  FunctionComponent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import { useLocalstorageState } from "rooks";
 import type {
   closestCenter,
@@ -12,7 +18,8 @@ import type {
   PointerSensor,
   UniqueIdentifier,
   useSensor,
-  useSensors} from "@dnd-kit/core";
+  useSensors,
+} from "@dnd-kit/core";
 import {
   arrayMove,
   SortableContext,
@@ -42,11 +49,12 @@ import { ViewAllLink } from "../view-all-link";
 
 import { AccountPageListItem } from "./account-page-list-item";
 import { IDENTATION_WIDTH } from "./page-tree-item";
-import type {   getLastIndex,
+import type {
+  getLastIndex,
   getProjection,
   getTreeItemList,
   isPageCollapsed,
-TreeItem ,
+  TreeItem,
 } from "./utils";
 
 interface AccountPageListProps {
@@ -121,7 +129,6 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
         enabledFeatureFlags.documents ? "document" : "canvas",
       );
     } catch (error) {
-       
       console.error("Could not create page: ", error);
     }
   }, [createUntitledPage, loading, treeItems, enabledFeatureFlags]);
@@ -290,7 +297,9 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
           parentPageEntityId,
           beforeFractionalIndex,
           afterFractionalIndex,
-        ).catch(() => { setTreeItems(getTreeItemList(data)); });
+        ).catch(() => {
+          setTreeItems(getTreeItemList(data));
+        });
       }
     }
   };
@@ -361,7 +370,9 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
                 return expandedIds;
               });
             }}
-            onCollapse={() => { handleToggle(entityId); }}
+            onCollapse={() => {
+              handleToggle(entityId);
+            }}
           />
         );
 
@@ -405,7 +416,9 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
       >
         <NavLink
           expanded={expanded}
-          toggleExpanded={() => { setExpanded((previous) => !previous); }}
+          toggleExpanded={() => {
+            setExpanded((previous) => !previous);
+          }}
           title={"Pages"}
           loading={loading}
           endAdornment={

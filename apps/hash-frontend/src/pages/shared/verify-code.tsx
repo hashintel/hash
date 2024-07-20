@@ -2,12 +2,16 @@ import type {
   ClipboardEventHandler,
   FormEvent,
   FunctionComponent,
- useCallback, useEffect, useRef, useState } from "react";
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Box } from "@mui/material";
 
 import { KeyboardReturnIcon } from "../../shared/icons";
 
-import type { InvitationInfo , SYNTHETIC_LOADING_TIME_MS } from "./auth-utils";
+import type { InvitationInfo, SYNTHETIC_LOADING_TIME_MS } from "./auth-utils";
 import { InviteHeader } from "./invite-header";
 
 interface VerifyCodeProps {
@@ -81,7 +85,9 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
       try {
         await requestCode();
         updateState({ emailResent: true, syntheticLoading: false });
-        setTimeout(() => { updateState({ emailResent: false }); }, 5000);
+        setTimeout(() => {
+          updateState({ emailResent: false });
+        }, 5000);
       } catch (error) {
         updateState({ syntheticLoading: false });
       }
@@ -133,7 +139,9 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
         }}
       >
         <div style={{ width: "66.666667%" }}>
-          {Boolean(invitationInfo) && <InviteHeader invitationInfo={invitationInfo} />}
+          {Boolean(invitationInfo) && (
+            <InviteHeader invitationInfo={invitationInfo} />
+          )}
           <p style={{ fontWeight: "700" }}>
             A verification code has been sent to{" "}
             <span>
@@ -173,9 +181,9 @@ export const VerifyCode: FunctionComponent<VerifyCodeProps> = ({
                 },
               }}
               onPaste={handleInputPaste}
-              onChange={({ target }) =>
-                { updateState({ text: parseVerificationCodeInput(target.value) }); }
-              }
+              onChange={({ target }) => {
+                updateState({ text: parseVerificationCodeInput(target.value) });
+              }}
             />
             <Box
               component={"button"}

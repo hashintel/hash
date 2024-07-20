@@ -8,7 +8,7 @@ import type {
 } from "../../../../../graphql/api-types.gen";
 import { createOrgMutation } from "../../../../../graphql/queries/knowledge/org.queries";
 import { useAuthenticatedUser } from "../../../../shared/auth-info-context";
-import type { OrgForm,OrgFormData  } from "../../shared/org-form";
+import type { OrgForm, OrgFormData } from "../../shared/org-form";
 
 export const CreateOrgForm = () => {
   const router = useRouter();

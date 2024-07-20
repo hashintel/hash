@@ -1,6 +1,6 @@
 import type { FunctionComponent, ReactNode } from "react";
 import { ArrowRightIconRegular } from "@hashintel/design-system";
-import type { LinkProps , Typography } from "@mui/material";
+import type { LinkProps, Typography } from "@mui/material";
 import { Link } from "../../ui";
 
 export const ViewAllLink: FunctionComponent<{

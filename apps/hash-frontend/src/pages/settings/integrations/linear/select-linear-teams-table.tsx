@@ -1,4 +1,11 @@
-import type { Dispatch, Fragment, FunctionComponent, SetStateAction , useCallback, useMemo } from "react";
+import type {
+  Dispatch,
+  Fragment,
+  FunctionComponent,
+  SetStateAction,
+  useCallback,
+  useMemo,
+} from "react";
 import { Chip, Select } from "@hashintel/design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -56,11 +63,11 @@ const SelectWorkspaces: FunctionComponent<{
           })}
         </Box>
       )}
-      onChange={({ target: { value } }) =>
-        { setSelectedWorkspaceEntityIds(
+      onChange={({ target: { value } }) => {
+        setSelectedWorkspaceEntityIds(
           typeof value === "string" ? (value.split(",") as EntityId[]) : value,
-        ); }
-      }
+        );
+      }}
     >
       {possibleWorkspaces.map((userOrOrg) => (
         <MenuItem
@@ -150,10 +157,12 @@ export const SelectLinearTeamsTable: FunctionComponent<{
 
   const handleSelectAllWorkspacesChange = useCallback(
     (params: { linearOrganization: LinearOrganizationTeamsWithWorkspaces }) =>
-      (entityIds: EntityId[]) =>
-        { setLinearOrganizations((previous) => {
+      (entityIds: EntityId[]) => {
+        setLinearOrganizations((previous) => {
           const { id: linearOrgId, teams } = params.linearOrganization;
-          const linearOrgIndex = previous.findIndex(({ id }) => id === linearOrgId);
+          const linearOrgIndex = previous.findIndex(
+            ({ id }) => id === linearOrgId,
+          );
 
           const previousOrganization = previous[linearOrgIndex]!;
 
@@ -185,19 +194,22 @@ export const SelectLinearTeamsTable: FunctionComponent<{
               teams: teams.map((team) => {
                 return {
                   ...team,
-                  workspaceEntityIds: [...new Set([
+                  workspaceEntityIds: [
+                    ...new Set([
                       ...team.workspaceEntityIds.filter(
                         (entityId) =>
                           !removedWorkspaceEntityIds.includes(entityId),
                       ),
                       ...addedEntityIds,
-                    ])],
+                    ]),
+                  ],
                 };
               }),
             },
             ...previous.slice(linearOrgIndex + 1),
           ];
-        }); },
+        });
+      },
     [possibleWorkspaces, setLinearOrganizations],
   );
 
@@ -206,8 +218,8 @@ export const SelectLinearTeamsTable: FunctionComponent<{
       linearOrganization: LinearOrganizationTeamsWithWorkspaces;
       linearTeamId: string;
     }) =>
-      (entityIds: EntityId[]) =>
-        { setLinearOrganizations((previous) => {
+      (entityIds: EntityId[]) => {
+        setLinearOrganizations((previous) => {
           const { linearOrganization, linearTeamId } = params;
           const linearOrgIndex = previous.findIndex(
             ({ id }) => id === linearOrganization.id,
@@ -243,20 +255,23 @@ export const SelectLinearTeamsTable: FunctionComponent<{
                 ...previousOrganization.teams.slice(0, linearTeamIndex),
                 {
                   ...previousTeam,
-                  workspaceEntityIds: [...new Set([
+                  workspaceEntityIds: [
+                    ...new Set([
                       ...previousTeam.workspaceEntityIds.filter(
                         (entityId) =>
                           !removedWorkspaceEntityIds.includes(entityId),
                       ),
                       ...addedEntityIds,
-                    ])],
+                    ]),
+                  ],
                 },
                 ...previousOrganization.teams.slice(linearTeamIndex + 1),
               ],
             },
             ...previous.slice(linearOrgIndex + 1),
           ];
-        }); },
+        });
+      },
     [setLinearOrganizations],
   );
 

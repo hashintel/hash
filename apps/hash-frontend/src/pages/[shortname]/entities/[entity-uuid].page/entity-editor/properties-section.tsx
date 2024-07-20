@@ -1,4 +1,4 @@
-import type { FunctionComponent , useState } from "react";
+import type { FunctionComponent, useState } from "react";
 import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { Chip, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import { Paper, Stack } from "@mui/material";
@@ -29,13 +29,17 @@ export const PropertiesSection: FunctionComponent<{
     <Paper sx={{ overflow: "hidden" }}>
       <PropertyTable
         showSearch={showSearch}
-        onSearchClose={() => { setShowSearch(false); }}
+        onSearchClose={() => {
+          setShowSearch(false);
+        }}
       />
     </Paper>
   ) : (
     <SectionWrapper
       title={"Properties"}
-      titleTooltip={"The properties on an entity are determined by its type. To add a new property to this entity, specify an additional type or edit an existing one."}
+      titleTooltip={
+        "The properties on an entity are determined by its type. To add a new property to this entity, specify an additional type or edit an existing one."
+      }
       titleStartContent={
         <Stack direction={"row"} spacing={1.5}>
           {notEmptyCount > 0 && (
@@ -48,7 +52,9 @@ export const PropertiesSection: FunctionComponent<{
             <IconButton
               rounded
               sx={{ color: ({ palette }) => palette.gray[60] }}
-              onClick={() => { setShowSearch(true); }}
+              onClick={() => {
+                setShowSearch(true);
+              }}
             >
               <FontAwesomeIcon icon={faMagnifyingGlass} />
             </IconButton>
@@ -59,7 +65,9 @@ export const PropertiesSection: FunctionComponent<{
       <Paper sx={{ overflow: "hidden" }}>
         <PropertyTable
           showSearch={showSearch}
-          onSearchClose={() => { setShowSearch(false); }}
+          onSearchClose={() => {
+            setShowSearch(false);
+          }}
         />
       </Paper>
     </SectionWrapper>

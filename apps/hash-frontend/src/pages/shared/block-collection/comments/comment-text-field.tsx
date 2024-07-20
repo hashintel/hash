@@ -3,7 +3,13 @@ import { baseKeymap } from "prosemirror-commands";
 import { keymap } from "prosemirror-keymap";
 import { EditorState } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
-import type { FunctionComponent , useContext, useEffect, useLayoutEffect, useRef } from "react";
+import type {
+  FunctionComponent,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+} from "react";
 import { faAt } from "@fortawesome/free-solid-svg-icons";
 import {
   FontAwesomeIcon,
@@ -31,7 +37,8 @@ import {
 } from "../create-suggester/create-suggester";
 import { createTextEditorView } from "../create-text-editor-view";
 
-import type { CommentPlaceholderAction ,
+import type {
+  CommentPlaceholderAction,
   commentPlaceholderPlugin,
   commentPlaceholderPluginkey,
 } from "./comment-placeholder-plugin";
@@ -82,7 +89,7 @@ export const CommentTextField: FunctionComponent<CommentTextFieldProps> = ({
     const view = viewRef.current;
 
     if (view) {
-      const {state} = view;
+      const { state } = view;
       const tr = state.tr.replaceWith(
         0,
         state.doc.content.size,

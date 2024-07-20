@@ -1,5 +1,5 @@
-import type { FunctionComponent, PropsWithChildren , useMemo } from "react";
-import type { Grid, GridProps , useMediaQuery, useTheme } from "@mui/material";
+import type { FunctionComponent, PropsWithChildren, useMemo } from "react";
+import type { Grid, GridProps, useMediaQuery, useTheme } from "@mui/material";
 
 export const GridViewItemWrapper: FunctionComponent<
   {

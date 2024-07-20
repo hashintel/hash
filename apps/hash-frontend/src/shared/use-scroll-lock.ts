@@ -70,6 +70,8 @@ export const useScrollLock = (
       removeStylesFromElement(elementToLock);
     }
 
-    return () => { removeStylesFromElement(elementToLock); };
+    return () => {
+      removeStylesFromElement(elementToLock);
+    };
   }, [active, scrollbarSize, elementToLock]);
 };

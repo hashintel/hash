@@ -37,7 +37,9 @@ export const ConvertTypeMenuItem = ({
           <MenuItem
             disabled={disabled}
             title={"Test"}
-            onClick={() => { setShowConvertTypeConfirmationModal(true); }}
+            onClick={() => {
+              setShowConvertTypeConfirmationModal(true);
+            }}
           >
             <ListItemIcon>
               <LinkIcon sx={{ fontSize: 16 }} />

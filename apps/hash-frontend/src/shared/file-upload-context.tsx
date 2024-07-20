@@ -1,5 +1,6 @@
-import type {   createContext,
-PropsWithChildren ,
+import type {
+  createContext,
+  PropsWithChildren,
   useCallback,
   useContext,
   useMemo,
@@ -27,7 +28,8 @@ import type {
   AddEntityViewerMutationVariables,
   ArchiveEntityMutation,
   ArchiveEntityMutationVariables,
- AuthorizationSubjectKind,  CreateEntityMutation,
+  AuthorizationSubjectKind,
+  CreateEntityMutation,
   CreateEntityMutationVariables,
   CreateFileFromUrlMutation,
   CreateFileFromUrlMutationVariables,
@@ -35,7 +37,8 @@ import type {
   RequestFileUploadMutation,
   RequestFileUploadMutationVariables,
   UpdateEntityMutation,
-  UpdateEntityMutationVariables } from "../graphql/api-types.gen";
+  UpdateEntityMutationVariables,
+} from "../graphql/api-types.gen";
 import {
   addEntityViewerMutation,
   archiveEntityMutation,
@@ -195,15 +198,13 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
     CreateFileFromUrlMutationVariables
   >(createFileFromUrl);
 
-  const updateUpload = useCallback(
-    (updatedUpload: FileUpload) =>
-      { setUploads((currentUploads) =>
-        currentUploads.map((upload) =>
-          upload.requestId === updatedUpload.requestId ? updatedUpload : upload,
-        ),
-      ); },
-    [],
-  );
+  const updateUpload = useCallback((updatedUpload: FileUpload) => {
+    setUploads((currentUploads) =>
+      currentUploads.map((upload) =>
+        upload.requestId === updatedUpload.requestId ? updatedUpload : upload,
+      ),
+    );
+  }, []);
 
   const uploadFile: FileUploadsContextValue["uploadFile"] = useCallback(
     async ({

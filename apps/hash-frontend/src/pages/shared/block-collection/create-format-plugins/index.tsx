@@ -3,7 +3,12 @@
 import { toggleMark } from "prosemirror-commands";
 import { inputRules } from "prosemirror-inputrules";
 import type { Mark } from "prosemirror-model";
-import type { EditorState , NodeSelection, Plugin, PluginKey } from "prosemirror-state";
+import type {
+  EditorState,
+  NodeSelection,
+  Plugin,
+  PluginKey,
+} from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 import { createRef } from "react";
 
@@ -105,7 +110,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
         update: (view: EditorView, lastState?: EditorState) => {
           const dragging = Boolean(editorView.dragging);
 
-          const {state} = view;
+          const { state } = view;
 
           /**
            * Hide tooltip if in read-only mode.
@@ -159,20 +164,22 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
             <div style={{ top, left, position: "absolute", zIndex: "30" }}>
               <MarksTooltip
                 activeMarks={activeMarks}
-                focusEditorView={() => { editorView.focus(); }}
+                focusEditorView={() => {
+                  editorView.focus();
+                }}
                 toggleMark={(name, attributes) => {
                   toggleMark(editorView.state.schema.marks[name]!, attributes)(
                     editorView.state,
                     editorView.dispatch,
                   );
                 }}
-                openLinkModal={() =>
-                  { editorView.dispatch(
+                openLinkModal={() => {
+                  editorView.dispatch(
                     editorView.state.tr.setMeta(linkPluginKey, {
                       type: "openLinkModal",
                     }),
-                  ); }
-                }
+                  );
+                }}
               />
             </div>
           );
@@ -273,7 +280,7 @@ export function createFormatPlugins(renderPortal: RenderPortal) {
         },
         update: (view: EditorView) => {
           ensureMounted(mountNode, document.body);
-          const {state} = view;
+          const { state } = view;
 
           const linkPluginState = linkPluginKey.getState(view.state);
           const linkUrl = linkPluginState?.linkUrl;

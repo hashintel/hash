@@ -1,5 +1,5 @@
 import { generateKeyBetween } from "fractional-indexing";
-import type { FunctionComponent , useCallback, useMemo } from "react";
+import type { FunctionComponent, useCallback, useMemo } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { useMutation } from "@apollo/client";
 import { Autocomplete, TextField } from "@hashintel/design-system";
@@ -15,15 +15,19 @@ import type {
   PageProperties,
   TitlePropertyValueWithMetadata,
 } from "@local/hash-isomorphic-utils/system-types/page";
-import type {   autocompleteClasses,
+import type {
+  autocompleteClasses,
   Box,
-ModalProps ,
+  ModalProps,
   outlinedInputClasses,
   Typography,
 } from "@mui/material";
 
 import { useBlockProtocolCreateEntity } from "../../components/hooks/block-protocol-functions/knowledge/use-block-protocol-create-entity";
-import type { SimplePage , useAccountPages } from "../../components/hooks/use-account-pages";
+import type {
+  SimplePage,
+  useAccountPages,
+} from "../../components/hooks/use-account-pages";
 import { PageIcon } from "../../components/page-icon";
 import type {
   UpdateEntityMutation,
@@ -239,9 +243,9 @@ export const ConvertQuickNoteToPageModal: FunctionComponent<
                     },
                   },
                 }}
-                onChange={(_, page) =>
-                  { setValue("parentPage", page ?? undefined); }
-                }
+                onChange={(_, page) => {
+                  setValue("parentPage", page ?? undefined);
+                }}
               />
             )}
           />

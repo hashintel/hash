@@ -1,4 +1,4 @@
-import type { FormEvent, FunctionComponent , useRef, useState } from "react";
+import type { FormEvent, FunctionComponent, useRef, useState } from "react";
 import DeleteIcon from "@mui/icons-material/Delete";
 import LanguageIcon from "@mui/icons-material/Language";
 import LinkIcon from "@mui/icons-material/LinkOutlined";
@@ -79,7 +79,9 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
             paddingTop: "0.25rem",
             width: "100%",
           }}
-          onChange={(event) => { setNewLinkHref(event.target.value); }}
+          onChange={(event) => {
+            setNewLinkHref(event.target.value);
+          }}
         />
       </form>
 
@@ -108,7 +110,9 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
                 backgroundColor: "#E5E7EB",
               },
             }}
-            onClick={() => { updateLink(newLinkHref); }}
+            onClick={() => {
+              updateLink(newLinkHref);
+            }}
           >
             <LinkIcon style={{ marginRight: "0.25rem" }} />
             <span>Add Link</span>
@@ -226,7 +230,9 @@ export const LinkModal: FunctionComponent<LinkModalProps> = ({
                         backgroundColor: "#E5E7EB",
                       },
                     }}
-                    onClick={() => { updateLink(newLinkHref); }}
+                    onClick={() => {
+                      updateLink(newLinkHref);
+                    }}
                   >
                     <LinkIcon
                       style={{

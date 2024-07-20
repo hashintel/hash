@@ -1,12 +1,12 @@
 import { useRouter } from "next/router";
-import type { FunctionComponent , useCallback } from "react";
+import type { FunctionComponent, useCallback } from "react";
 import { FeatherRegularIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Container, Typography } from "@mui/material";
 
-import type { ButtonProps , Link } from "../../../../../shared/ui";
+import type { ButtonProps, Link } from "../../../../../shared/ui";
 import { AcceptDraftEntityButton } from "../../../../shared/accept-draft-entity-button";
 import { DiscardDraftEntityButton } from "../../../../shared/discard-draft-entity-button";
 
@@ -49,8 +49,9 @@ export const DraftEntityBanner: FunctionComponent<{
     void router.push("/actions");
   }, [router]);
 
-  const isUpdate =
-    Boolean(draftEntity.metadata.provenance.firstNonDraftCreatedAtDecisionTime);
+  const isUpdate = Boolean(
+    draftEntity.metadata.provenance.firstNonDraftCreatedAtDecisionTime,
+  );
 
   return (
     <Box

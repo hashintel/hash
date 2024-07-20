@@ -1,5 +1,9 @@
 import { theme } from "@hashintel/design-system/theme";
-import type { listItemSecondaryActionClasses, MenuProps , styled } from "@mui/material";
+import type {
+  listItemSecondaryActionClasses,
+  MenuProps,
+  styled,
+} from "@mui/material";
 
 export const ContextButton = styled("button")`
   background: none;

@@ -12,7 +12,7 @@ export const useRouteNamespace = (): {
   };
 } => {
   const router = useRouter();
-  const {shortname} = router.query;
+  const { shortname } = router.query;
 
   if (Array.isArray(shortname)) {
     throw new TypeError("shortname can't be an array");
@@ -33,8 +33,7 @@ export const useRouteNamespace = (): {
         },
       };
     }
- 
-      return { loading };
-    
+
+    return { loading };
   }, [loading, accountId, shortnameWithoutPrefix]);
 };

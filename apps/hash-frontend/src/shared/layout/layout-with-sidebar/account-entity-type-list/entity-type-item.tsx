@@ -1,6 +1,6 @@
 import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import { useRouter } from "next/router";
-import type { FunctionComponent , useRef } from "react";
+import type { FunctionComponent, useRef } from "react";
 import {
   EntityTypeIcon,
   IconButton,
@@ -8,7 +8,7 @@ import {
 } from "@hashintel/design-system";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import type { Box, BoxProps , styled, Tooltip, Typography } from "@mui/material";
+import type { Box, BoxProps, styled, Tooltip, Typography } from "@mui/material";
 
 import { useEntityTypesContextRequired } from "../../../entity-types-context/hooks/use-entity-types-context-required";
 import { EllipsisRegularIcon } from "../../../icons/ellipsis-regular-icon";

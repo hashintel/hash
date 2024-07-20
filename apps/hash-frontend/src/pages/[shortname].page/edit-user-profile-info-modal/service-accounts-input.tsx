@@ -102,7 +102,11 @@ export const ServiceAccountsInput: FunctionComponent = () => {
             }}
           />
           <Box marginLeft={1} marginRight={-1}>
-            <IconButton onClick={() => { remove(index); }}>
+            <IconButton
+              onClick={() => {
+                remove(index);
+              }}
+            >
               <XMarkRegularIcon />
             </IconButton>
           </Box>
@@ -113,7 +117,9 @@ export const ServiceAccountsInput: FunctionComponent = () => {
         size={"small"}
         variant={"tertiary"}
         startIcon={<PlusRegularIcon />}
-        onClick={() => { append({ kind: "twitterAccount", profileUrl: "" }); }}
+        onClick={() => {
+          append({ kind: "twitterAccount", profileUrl: "" });
+        }}
       >
         Add {fields.length === 0 ? "social media" : "another"}
       </Button>

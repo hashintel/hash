@@ -1,4 +1,4 @@
-import type { FunctionComponent, KeyboardEvent , useRef } from "react";
+import type { FunctionComponent, KeyboardEvent, useRef } from "react";
 import { Box } from "@mui/material";
 
 interface TagsInputProps {
@@ -143,7 +143,9 @@ export const TagsInput: FunctionComponent<TagsInputProps> = ({
                   outline: "none",
                 },
               }}
-              onClick={() => { handleRemove(tag); }}
+              onClick={() => {
+                handleRemove(tag);
+              }}
             >
               &times;
             </Box>

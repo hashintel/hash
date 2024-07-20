@@ -1,6 +1,11 @@
 import type { AxiosError } from "axios";
 import { useRouter } from "next/router";
-import type { FormEventHandler, FunctionComponent , useEffect, useState } from "react";
+import type {
+  FormEventHandler,
+  FunctionComponent,
+  useEffect,
+  useState,
+} from "react";
 import { useLazyQuery } from "@apollo/client";
 import { TextField } from "@hashintel/design-system";
 import { Box, Typography } from "@mui/material";
@@ -15,7 +20,8 @@ import { Button, Link } from "../../shared/ui";
 import { AuthHeading } from "../shared/auth-heading";
 import { useAuthInfo } from "../shared/auth-info-context";
 import { AuthPaper } from "../shared/auth-paper";
-import type { IdentityTraits ,
+import type {
+  IdentityTraits,
   mustGetCsrfTokenFromFlow,
   oryKratosClient,
 } from "../shared/ory-kratos";
@@ -80,7 +86,9 @@ export const SignupRegistrationForm: FunctionComponent = () => {
       oryKratosClient
         .getRegistrationFlow({ id: String(flowId) })
         // We received the flow - let's use its data and render the form!
-        .then(({ data }) => { setFlow(data); })
+        .then(({ data }) => {
+          setFlow(data);
+        })
         .catch(handleFlowError);
 
       return;
@@ -91,7 +99,9 @@ export const SignupRegistrationForm: FunctionComponent = () => {
       .createBrowserRegistrationFlow({
         returnTo: returnTo ? String(returnTo) : undefined,
       })
-      .then(({ data }) => { setFlow(data); })
+      .then(({ data }) => {
+        setFlow(data);
+      })
       .catch(handleFlowError);
   }, [flowId, router, router.isReady, returnTo, flow, handleFlowError]);
 
@@ -188,13 +198,15 @@ export const SignupRegistrationForm: FunctionComponent = () => {
             placeholder={"Enter your email address"}
             value={email}
             inputProps={{ "data-1p-ignore": false }}
-            error={
-              Boolean(emailInputUiNode?.messages.find(({ type }) => type === "error"))
-            }
+            error={Boolean(
+              emailInputUiNode?.messages.find(({ type }) => type === "error"),
+            )}
             helperText={emailInputUiNode?.messages.map(({ id, text }) => (
               <Typography key={id}>{text}</Typography>
             ))}
-            onChange={({ target }) => { setEmail(target.value); }}
+            onChange={({ target }) => {
+              setEmail(target.value);
+            }}
           />
           <TextField
             required
@@ -205,15 +217,17 @@ export const SignupRegistrationForm: FunctionComponent = () => {
             value={password}
             placeholder={"Enter a password"}
             inputProps={{ "data-1p-ignore": false }}
-            error={
-              Boolean(passwordInputUiNode?.messages.find(
+            error={Boolean(
+              passwordInputUiNode?.messages.find(
                 ({ type }) => type === "error",
-              ))
-            }
+              ),
+            )}
             helperText={passwordInputUiNode?.messages.map(({ id, text }) => (
               <Typography key={id}>{text}</Typography>
             ))}
-            onChange={({ target }) => { setPassword(target.value); }}
+            onChange={({ target }) => {
+              setPassword(target.value);
+            }}
           />
           <Button type={"submit"} startIcon={<EnvelopeRegularIcon />}>
             Sign up

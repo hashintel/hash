@@ -1,7 +1,10 @@
 import { useRouter } from "next/router";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 
-import type { getLayoutWithSidebar,NextPageWithLayout  } from "../../../shared/layout";
+import type {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../../../shared/layout";
 import { FlowDefinitionsContextProvider } from "../../shared/flow-definitions-context";
 import {
   FlowRunsContextProvider,

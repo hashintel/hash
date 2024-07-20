@@ -67,7 +67,9 @@ export const GroupStatus = ({
       }, 1000);
     }
 
-    return () => { clearInterval(interval); };
+    return () => {
+      clearInterval(interval);
+    };
   }, [scheduledAt, closedAt]);
 
   useEffect(() => {
@@ -86,7 +88,9 @@ export const GroupStatus = ({
         justifyContent={"space-between"}
         gap={1}
         sx={{ cursor: "pointer" }}
-        onClick={() => { setShowSteps(!showSteps); }}
+        onClick={() => {
+          setShowSteps(!showSteps);
+        }}
       >
         <Stack direction={"row"}>
           <Box

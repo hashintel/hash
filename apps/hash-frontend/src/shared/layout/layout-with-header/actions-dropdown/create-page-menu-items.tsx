@@ -37,7 +37,6 @@ export const CreatePageMenuItems = ({ onClick }: { onClick: () => void }) => {
       try {
         await createUntitledPage(lastRootPageIndex, type);
       } catch (error) {
-         
         console.error("Could not create page: ", error);
       } finally {
         popupState.close();

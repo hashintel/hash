@@ -1,6 +1,12 @@
 import { format } from "date-fns";
 import { useRouter } from "next/router";
-import type { memo, PropsWithChildren , useCallback, useMemo, useState } from "react";
+import type {
+  memo,
+  PropsWithChildren,
+  useCallback,
+  useMemo,
+  useState,
+} from "react";
 import {
   BullseyeLightIcon,
   InfinityLightIcon,
@@ -24,7 +30,10 @@ import {
   Typography,
 } from "@mui/material";
 
-import type { getLayoutWithSidebar,NextPageWithLayout  } from "../shared/layout";
+import type {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../shared/layout";
 import { Link } from "../shared/ui/link";
 import { WorkersHeader } from "../shared/workers-header";
 
@@ -37,20 +46,24 @@ import {
   FlowRunsContextProvider,
   useFlowRunsContext,
 } from "./shared/flow-runs-context";
-import type {   flowRunStatusToStatusText,
+import type {
+  flowRunStatusToStatusText,
   FlowStatusChip,
   flowTableCellSx,
   FlowTableChip,
   flowTableRowHeight,
   FlowTableWebChip,
-SimpleFlowRunStatus ,
+  SimpleFlowRunStatus,
 } from "./shared/flow-tables";
 import { useFlowRunsUsage } from "./shared/use-flow-runs-usage";
 import type {
   CreateVirtualizedRowContentFn,
- headerHeight, VirtualizedTable,  VirtualizedTableColumn,
+  headerHeight,
+  VirtualizedTable,
+  VirtualizedTableColumn,
   VirtualizedTableRow,
-  VirtualizedTableSort } from "./shared/virtualized-table";
+  VirtualizedTableSort,
+} from "./shared/virtualized-table";
 
 type FieldId =
   | "web"
@@ -386,7 +399,7 @@ const WorkersPageContent = () => {
     );
 
     return rowData.sort((a, b) => {
-      const {field} = sort;
+      const { field } = sort;
       const direction = sort.direction === "asc" ? 1 : -1;
 
       if (field === "web") {

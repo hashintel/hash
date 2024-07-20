@@ -1,5 +1,5 @@
 import type { PopupState } from "material-ui-popup-state/hooks";
-import type { FunctionComponent , useEffect, useRef, useState } from "react";
+import type { FunctionComponent, useEffect, useRef, useState } from "react";
 import { faSearch } from "@fortawesome/free-solid-svg-icons";
 import { FontAwesomeIcon, TextField } from "@hashintel/design-system";
 import type { HashBlock } from "@local/hash-isomorphic-utils/blocks";

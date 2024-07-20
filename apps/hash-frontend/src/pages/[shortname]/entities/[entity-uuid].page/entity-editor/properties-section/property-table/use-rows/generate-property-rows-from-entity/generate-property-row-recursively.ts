@@ -20,16 +20,16 @@ import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property
  * This function generates property row data,
  * and calls itself again for each nested property. Then puts results of these recursive calls into `children` array.
  *
- * @param propertyTypeBaseUrl- - 
+ * @param propertyTypeBaseUrl- -
  * Name of the specific property inside `properties` object.
- * @param propertyKeyChain- - 
+ * @param propertyKeyChain- -
  * An array of `propertyTypeBaseUrl`'s to store the path to each nested property.
  * ```js
  * // Example: `propertyKeyChain` of `c`
  * properties = { a: { b: { c: "John" } } };
  * propertyKeyChain = ["a", "b", "c"]
  * ```
- * @param entity- - 
+ * @param entity- -
  * The entity object.
  * @param entitySubgraph
  * An object storing root entity & subgraph of that entity

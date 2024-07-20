@@ -1,7 +1,10 @@
 import { useRouter } from "next/router";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 
-import type { getLayoutWithSidebar,NextPageWithLayout  } from "../../../../shared/layout";
+import type {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../../../../shared/layout";
 import { EntityTypePage } from "../../../shared/entity-type-page";
 
 const Page: NextPageWithLayout = () => {

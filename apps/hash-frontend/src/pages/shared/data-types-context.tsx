@@ -1,10 +1,19 @@
-import type { createContext, PropsWithChildren , useCallback, useContext, useMemo } from "react";
+import type {
+  createContext,
+  PropsWithChildren,
+  useCallback,
+  useContext,
+  useMemo,
+} from "react";
 import { useQuery } from "@apollo/client";
 import type { JsonValue } from "@blockprotocol/core";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedValues } from "@local/advanced-types/typed-entries";
 import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import type { formatDataValue,FormattedValuePart  } from "@local/hash-isomorphic-utils/data-types";
+import type {
+  formatDataValue,
+  FormattedValuePart,
+} from "@local/hash-isomorphic-utils/data-types";
 import type { OntologyTypeRevisionId } from "@local/hash-subgraph";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 

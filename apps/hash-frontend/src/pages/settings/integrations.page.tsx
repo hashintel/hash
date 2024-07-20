@@ -1,4 +1,4 @@
-import type { FunctionComponent , useContext } from "react";
+import type { FunctionComponent, useContext } from "react";
 import { apiOrigin } from "@local/hash-isomorphic-utils/environment";
 import { Box, Paper, Stack, Typography } from "@mui/material";
 

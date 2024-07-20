@@ -1,11 +1,16 @@
- 
-import type { ComponentPropsWithoutRef, forwardRef, ReactElement , useCallback, useMemo } from "react";
-import type { TableComponents , TableVirtuoso } from "react-virtuoso";
+import type {
+  ComponentPropsWithoutRef,
+  forwardRef,
+  ReactElement,
+  useCallback,
+  useMemo,
+} from "react";
+import type { TableComponents, TableVirtuoso } from "react-virtuoso";
 import {
   ArrowUpWideShortLightIcon,
   IconButton,
 } from "@hashintel/design-system";
-import type { Box, Stack, SxProps, Theme , Typography } from "@mui/material";
+import type { Box, Stack, SxProps, Theme, Typography } from "@mui/material";
 /* eslint-disable no-restricted-imports */
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -51,7 +56,9 @@ export interface VirtualizedTableColumn<
 export interface VirtualizedTableContext<
   F extends string,
   M extends ColumnMetadata = Record<string, never>,
-> { columns: VirtualizedTableColumn<F, M>[] }
+> {
+  columns: VirtualizedTableColumn<F, M>[];
+}
 
 const VirtuosoTableComponents: TableComponents<
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -104,10 +111,12 @@ export interface VirtualizedTableSort<Field extends string = string> {
   direction: "asc" | "desc";
 }
 
-interface TableSortProps<Sort extends VirtualizedTableSort = VirtualizedTableSort> {
-    sort?: Sort;
-    setSort: (sort: Sort) => void;
-  }
+interface TableSortProps<
+  Sort extends VirtualizedTableSort = VirtualizedTableSort,
+> {
+  sort?: Sort;
+  setSort: (sort: Sort) => void;
+}
 
 const SortButton = <Sort extends VirtualizedTableSort>({
   columnId,
@@ -119,12 +128,12 @@ const SortButton = <Sort extends VirtualizedTableSort>({
 
   return (
     <IconButton
-      onClick={() =>
-        { setSort({
+      onClick={() => {
+        setSort({
           field: columnId,
           direction: isSortedAscending ? "desc" : "asc",
-        } as Sort); }
-      }
+        } as Sort);
+      }}
     >
       <ArrowUpWideShortLightIcon
         sx={{

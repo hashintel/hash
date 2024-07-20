@@ -1,4 +1,4 @@
-import type { FunctionComponent , useCallback, useMemo, useState } from "react";
+import type { FunctionComponent, useCallback, useMemo, useState } from "react";
 import { useQuery } from "@apollo/client";
 import { IconButton, PenRegularIcon } from "@hashintel/design-system";
 import type { OwnedById } from "@local/hash-graph-types/web";

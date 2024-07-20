@@ -1,5 +1,5 @@
 import { TextField } from "@hashintel/design-system";
-import type { Switch,SxProps, Theme  } from "@mui/material";
+import type { Switch, SxProps, Theme } from "@mui/material";
 
 import { EntitySelector } from "../../../../shared/entity-selector";
 import { EntityTypeSelector } from "../../../../shared/entity-type-selector";
@@ -43,7 +43,9 @@ export const ManualTriggerInput = <Payload extends LocalPayload>({
           placeholder={`${
             required ? "Required" : "Optional"
           } to start the flow`}
-          onChange={(event) => { setValue(event.target.value); }}
+          onChange={(event) => {
+            setValue(event.target.value);
+          }}
         />
       );
     }
@@ -60,11 +62,11 @@ export const ManualTriggerInput = <Payload extends LocalPayload>({
           placeholder={`${
             required ? "Required" : "Optional"
           } to start the flow`}
-          onChange={(event) =>
-            { setValue(
+          onChange={(event) => {
+            setValue(
               event.target.value !== "" ? Number(event.target.value) : "",
-            ); }
-          }
+            );
+          }}
         />
       );
     }
@@ -77,7 +79,9 @@ export const ManualTriggerInput = <Payload extends LocalPayload>({
         <Switch
           size={"medium"}
           checked={payload.value}
-          onChange={(event) => { setValue(event.target.checked); }}
+          onChange={(event) => {
+            setValue(event.target.checked);
+          }}
         />
       );
     }
@@ -90,9 +94,9 @@ export const ManualTriggerInput = <Payload extends LocalPayload>({
           multiple={array}
           sx={{ height: inputHeight, maxWidth: "100%" }}
           value={payload.value}
-          onSelect={(newValue) =>
-            { setValue(Array.isArray(newValue) ? newValue : newValue); }
-          }
+          onSelect={(newValue) => {
+            setValue(Array.isArray(newValue) ? newValue : newValue);
+          }}
         />
       );
     }

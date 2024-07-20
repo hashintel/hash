@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import type { ApolloQueryResult , useQuery } from "@apollo/client";
+import type { ApolloQueryResult, useQuery } from "@apollo/client";
 import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { EntityRootType } from "@local/hash-subgraph";
@@ -10,7 +10,11 @@ import type {
   QueryEntitiesQueryVariables,
 } from "../../graphql/api-types.gen";
 import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queries";
-import type { constructMinimalOrg, isEntityOrgEntity,MinimalOrg  } from "../../lib/user-and-org";
+import type {
+  constructMinimalOrg,
+  isEntityOrgEntity,
+  MinimalOrg,
+} from "../../lib/user-and-org";
 import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
 
 /**

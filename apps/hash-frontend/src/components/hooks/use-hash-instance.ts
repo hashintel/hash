@@ -1,7 +1,10 @@
 import { useMemo } from "react";
 import { useQuery } from "@apollo/client";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type { Simplified , simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import type {
+  Simplified,
+  simplifyProperties,
+} from "@local/hash-isomorphic-utils/simplify-properties";
 import type { HASHInstance } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 
 import type {

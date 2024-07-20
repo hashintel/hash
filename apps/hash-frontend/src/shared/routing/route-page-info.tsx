@@ -1,6 +1,12 @@
 import type { NextParsedUrlQuery } from "next/dist/server/request-meta";
 import { useRouter } from "next/router";
-import type { createContext, FunctionComponent, ReactNode , useContext, useMemo } from "react";
+import type {
+  createContext,
+  FunctionComponent,
+  ReactNode,
+  useContext,
+  useMemo,
+} from "react";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 
 interface RoutePageInfo {

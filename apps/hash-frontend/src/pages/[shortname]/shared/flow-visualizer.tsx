@@ -421,7 +421,9 @@ export const FlowVisualizer = () => {
           groups={flowMaybeGrouped.groups}
           open={showDag}
           selectedFlowDefinition={selectedFlowDefinition}
-          onClose={() => { setShowDag(false); }}
+          onClose={() => {
+            setShowDag(false);
+          }}
         />
       )}
       <Box sx={{ height: containerHeight }}>
@@ -468,7 +470,9 @@ export const FlowVisualizer = () => {
 
               void push(generateWorkerRunPath({ shortname, flowRunId }));
             }}
-            onClose={() => { setShowRunModal(false); }}
+            onClose={() => {
+              setShowRunModal(false);
+            }}
           />
         )}
         <Box sx={{ background: ({ palette }) => palette.gray[5] }}>
@@ -496,7 +500,9 @@ export const FlowVisualizer = () => {
               flowRunId={selectedFlowRun.flowRunId}
               groups={flowMaybeGrouped.groups}
               name={selectedFlowRun.name}
-              showDag={() => { setShowDag(true); }}
+              showDag={() => {
+                setShowDag(true);
+              }}
             />
           ) : null}
           <Stack

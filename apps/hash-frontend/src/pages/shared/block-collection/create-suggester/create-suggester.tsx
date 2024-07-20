@@ -1,7 +1,10 @@
 import type {
   EditorState,
- Plugin, PluginKey,  TextSelection,
-  Transaction } from "prosemirror-state";
+  Plugin,
+  PluginKey,
+  TextSelection,
+  Transaction,
+} from "prosemirror-state";
 import { Decoration, DecorationSet } from "prosemirror-view";
 import type { ReactElement } from "react";
 import type { BlockVariant } from "@blockprotocol/core";
@@ -12,7 +15,7 @@ import { Popper } from "@mui/material";
 
 import { ensureMounted } from "../../../../lib/dom";
 import type { RenderPortal } from "../block-portals";
-import type { Mention , MentionSuggester } from "../shared/mention-suggester";
+import type { Mention, MentionSuggester } from "../shared/mention-suggester";
 
 import { BlockSuggester } from "./block-suggester";
 
@@ -44,14 +47,13 @@ const findTrigger = (state: EditorState): Trigger | null => {
 
   let text = "";
 
-   
   parentContent.forEach((node) => {
     // replace non-text nodes with a space so that regex stops
     // matching at that point
     if (node.text) {
       text = text + node.text;
     } else {
-      text = `${text  } `;
+      text = `${text} `;
     }
   });
 
@@ -155,7 +157,7 @@ export const createSuggester = (
         const action: SuggesterAction | undefined =
           tr.getMeta(suggesterPluginKey);
 
-        let {decorations} = state;
+        let { decorations } = state;
 
         let trigger = findTrigger(nextEditorState);
 
@@ -224,20 +226,19 @@ export const createSuggester = (
                 trigger: null,
               };
             }
- 
-              return {
-                ...state,
-                disabled: false,
-                trigger: {
-                  from: tr.selection.from,
-                  to: tr.selection.to,
-                  search: "",
-                  char: "@",
-                  triggeredBy: "event",
-                },
-              };
+
+            return {
+              ...state,
+              disabled: false,
+              trigger: {
+                from: tr.selection.from,
+                to: tr.selection.to,
+                search: "",
+                char: "@",
+                triggeredBy: "event",
+              },
+            };
           }
-            
         }
 
         /**
@@ -320,7 +321,7 @@ export const createSuggester = (
           if (!view.hasFocus() || !state.isOpen()) {
             this.destroy!();
 
- return;
+            return;
           }
 
           const { from, to, search, char: triggerChar } = state.trigger!;
@@ -344,7 +345,6 @@ export const createSuggester = (
                 view.dispatch(tr);
               })
               .catch((error) => {
-                 
                 console.error(error);
               });
           };
@@ -426,7 +426,9 @@ export const createSuggester = (
                     },
                   },
                 ]}
-                onMouseDown={(event) => { event.preventDefault(); }}
+                onMouseDown={(event) => {
+                  event.preventDefault();
+                }}
               >
                 {jsx}
               </Popper>,

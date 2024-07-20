@@ -1,4 +1,8 @@
-import type { CustomCell, CustomRenderer , GridCellKind } from "@glideapps/glide-data-grid";
+import type {
+  CustomCell,
+  CustomRenderer,
+  GridCellKind,
+} from "@glideapps/glide-data-grid";
 import { customColors } from "@hashintel/design-system/theme";
 
 import {
@@ -94,7 +98,6 @@ export const createRenderPropertyNameCell = (
       // draw vertical indentation lines for each indentation level
       if (depth || children.length > 0) {
         for (const [i, dir] of verticalLinesForEachIndent.entries()) {
-
           if (dir) {
             const indentationLevel = i;
             const lineLeft =

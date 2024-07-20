@@ -7,10 +7,13 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useMemo
+  useMemo,
 } from "react";
 import type { EntityType } from "@blockprotocol/type-system";
-import { type ComponentIdHashBlockMap, fetchBlock } from "@local/hash-isomorphic-utils/blocks";
+import {
+  type ComponentIdHashBlockMap,
+  fetchBlock,
+} from "@local/hash-isomorphic-utils/blocks";
 
 import { useCachedDefaultState } from "../components/hooks/use-default-state";
 import { useGetBlockProtocolBlocks } from "../components/hooks/use-get-block-protocol-blocks";

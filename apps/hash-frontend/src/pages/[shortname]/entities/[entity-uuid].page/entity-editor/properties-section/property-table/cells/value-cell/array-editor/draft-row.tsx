@@ -69,7 +69,7 @@ export const DraftRow = ({
         if (isBlankStringOrNullish(value)) {
           onDraftDiscarded();
 
- return;
+          return;
         }
 
         onDraftSaved(value);

@@ -184,8 +184,12 @@ export const SortableRow = ({
         position: "relative",
         outline: "none",
       }}
-      onMouseEnter={() => { setHovered(true); }}
-      onMouseLeave={() => { setHovered(false); }}
+      onMouseEnter={() => {
+        setHovered(true);
+      }}
+      onMouseLeave={() => {
+        setHovered(false);
+      }}
       onClick={() => onSelect?.(id)}
     >
       <Box
@@ -256,7 +260,9 @@ export const SortableRow = ({
                   <RowAction
                     tooltip={"Discard Changes"}
                     icon={faClose}
-                    onClick={() => { onDiscardChanges(); }}
+                    onClick={() => {
+                      onDiscardChanges();
+                    }}
                   />
                 </>
               )

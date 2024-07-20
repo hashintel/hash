@@ -176,7 +176,6 @@ export const useFetchBlockSubgraph = (): ((
           } satisfies SubgraphAndPermissions;
         })
         .catch((error) => {
-           
           console.error(error);
           throw error;
         });

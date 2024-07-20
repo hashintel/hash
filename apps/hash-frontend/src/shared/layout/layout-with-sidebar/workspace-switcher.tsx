@@ -36,7 +36,6 @@ export const WorkspaceSwitcher = () => {
   const activeWorkspace = useMemo<{ name: string; avatarSrc?: string }>(() => {
     if (activeWorkspaceOwnedById === authenticatedUser.accountId) {
       return {
-         
         name: authenticatedUser.displayName || authenticatedUser.shortname!,
         avatarSrc: authenticatedUser.hasAvatar
           ? getImageUrlFromEntityProperties(
@@ -44,24 +43,23 @@ export const WorkspaceSwitcher = () => {
             )
           : undefined,
       };
-    } 
-      const { org: activeOrg } =
-        authenticatedUser.memberOf.find(
-          ({ org: { accountGroupId } }) =>
-            accountGroupId === activeWorkspaceOwnedById,
-        ) ?? {};
+    }
+    const { org: activeOrg } =
+      authenticatedUser.memberOf.find(
+        ({ org: { accountGroupId } }) =>
+          accountGroupId === activeWorkspaceOwnedById,
+      ) ?? {};
 
-      if (activeOrg) {
-        return {
-          name: activeOrg.name,
-          avatarSrc: activeOrg.hasAvatar
-            ? getImageUrlFromEntityProperties(
-                activeOrg.hasAvatar.imageEntity.properties,
-              )
-            : undefined,
-        };
-      }
-    
+    if (activeOrg) {
+      return {
+        name: activeOrg.name,
+        avatarSrc: activeOrg.hasAvatar
+          ? getImageUrlFromEntityProperties(
+              activeOrg.hasAvatar.imageEntity.properties,
+            )
+          : undefined,
+      };
+    }
 
     return { name: "User" };
   }, [activeWorkspaceOwnedById, authenticatedUser]);
@@ -83,7 +81,8 @@ export const WorkspaceSwitcher = () => {
         ({ org: { accountGroupId, name, memberships, hasAvatar } }) => ({
           ownedById: accountGroupId as OwnedById,
           title: name,
-          subText: memberships.length > 0 ? `${memberships.length} members` : "", // memberships are loaded in the background
+          subText:
+            memberships.length > 0 ? `${memberships.length} members` : "", // memberships are loaded in the background
           avatarTitle: name,
           avatarSrc: hasAvatar
             ? getImageUrlFromEntityProperties(hasAvatar.imageEntity.properties)
@@ -181,7 +180,13 @@ export const WorkspaceSwitcher = () => {
           },
         ].map(({ title, href }, index) => (
           // eslint-disable-next-line react/no-array-index-key
-          <MenuItem key={index} href={href} onClick={() => { popupState.close(); }}>
+          <MenuItem
+            key={index}
+            href={href}
+            onClick={() => {
+              popupState.close();
+            }}
+          >
             <ListItemText primary={title} />
           </MenuItem>
         ))}

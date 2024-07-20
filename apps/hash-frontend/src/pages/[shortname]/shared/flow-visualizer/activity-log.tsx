@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import type { memo, ReactElement , useMemo, useState } from "react";
+import type { memo, ReactElement, useMemo, useState } from "react";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
@@ -16,8 +16,10 @@ import { Link } from "../../../../shared/ui/link";
 import type {
   CreateVirtualizedRowContentFn,
   defaultCellSx,
-  VirtualizedTable,  VirtualizedTableColumn,
-  VirtualizedTableSort} from "../../../shared/virtualized-table";
+  VirtualizedTable,
+  VirtualizedTableColumn,
+  VirtualizedTableSort,
+} from "../../../shared/virtualized-table";
 
 import { SectionLabel } from "./section-label";
 import type { LocalProgressLog } from "./shared/types";
@@ -309,7 +311,12 @@ export const ActivityLog = ({ logs }: { logs: LocalProgressLog[] }) => {
 
   return (
     <>
-      <Stack alignItems={"center"} direction={"row"} mb={0.5} sx={{ height: 24 }}>
+      <Stack
+        alignItems={"center"}
+        direction={"row"}
+        mb={0.5}
+        sx={{ height: 24 }}
+      >
         <SectionLabel text={"Activity log"} />
       </Stack>
       <Box flex={1}>

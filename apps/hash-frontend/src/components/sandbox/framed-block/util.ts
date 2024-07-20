@@ -28,7 +28,6 @@ export function sendMessage<T = unknown>(
     }, timeout);
   });
 
-   
   parent.window.postMessage({ ...message, requestId }, origin);
 
   return promise;
@@ -47,7 +46,6 @@ export const settlePromiseFromResponse = (
     promiseSettlerFns.resolve(payload.data);
   } else {
     promiseSettlerFns.reject(
-       
       new Error(payload.error || "Request could not be fulfilled."),
     );
   }

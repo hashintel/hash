@@ -1,13 +1,16 @@
 import { useMemo, useState } from "react";
 import { CircleCheckRegularIcon } from "@hashintel/design-system";
 import type { ExternalInputRequest } from "@local/hash-isomorphic-utils/flows/types";
-import type { Stack, SxProps, Theme , Typography } from "@mui/material";
+import type { Stack, SxProps, Theme, Typography } from "@mui/material";
 
 import { CircleInfoIcon } from "../../../../../shared/icons/circle-info-icon";
 import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
 import { QuestionModal } from "../shared/question-modal";
 
-import type { ResolvedQuestionRequest , ResolvedQuestionsModal } from "./manager/resolved-questions-modal";
+import type {
+  ResolvedQuestionRequest,
+  ResolvedQuestionsModal,
+} from "./manager/resolved-questions-modal";
 
 const iconSx: SxProps<Theme> = {
   mr: 1.5,
@@ -50,7 +53,8 @@ export const Manager = () => {
             resolvedAt: inputRequest.resolvedAt,
             answers: inputRequest.answers,
           });
-          answersProvidedCount = answersProvidedCount + inputRequest.data.questions.length;
+          answersProvidedCount =
+            answersProvidedCount + inputRequest.data.questions.length;
         }
       }
     }
@@ -66,18 +70,24 @@ export const Manager = () => {
 
   return (
     <>
-      {showQuestionModal && Boolean(outstandingQuestionsRequest) && !flowIsClosed && (
-        <QuestionModal
-          open
-          inputRequest={outstandingQuestionsRequest}
-          onClose={() => { setShowQuestionModal(false); }}
-        />
-      )}
+      {showQuestionModal &&
+        Boolean(outstandingQuestionsRequest) &&
+        !flowIsClosed && (
+          <QuestionModal
+            open
+            inputRequest={outstandingQuestionsRequest}
+            onClose={() => {
+              setShowQuestionModal(false);
+            }}
+          />
+        )}
       {showResolvedQuestionsModal && resolvedQuestionsRequests.length > 0 && (
         <ResolvedQuestionsModal
           open
           resolvedQuestionRequests={resolvedQuestionsRequests}
-          onClose={() => { setShowResolvedQuestionsModal(false); }}
+          onClose={() => {
+            setShowResolvedQuestionsModal(false);
+          }}
         />
       )}
       <Stack direction={"row"} alignItems={"center"}>
@@ -97,7 +107,9 @@ export const Manager = () => {
             pt: 2,
             mt: 2,
           }}
-          onClick={() => { setShowQuestionModal(true); }}
+          onClick={() => {
+            setShowQuestionModal(true);
+          }}
         >
           <CircleInfoIcon
             sx={{ fill: ({ palette }) => palette.yellow[80], ...iconSx }}
@@ -136,7 +148,9 @@ export const Manager = () => {
             pt: 2,
             mt: 2,
           }}
-          onClick={() => { setShowResolvedQuestionsModal(true); }}
+          onClick={() => {
+            setShowResolvedQuestionsModal(true);
+          }}
         >
           <CircleInfoIcon
             sx={{ fill: ({ palette }) => palette.blue[60], ...iconSx }}

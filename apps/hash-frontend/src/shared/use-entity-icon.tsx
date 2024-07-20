@@ -1,4 +1,4 @@
-import type { ReactNode , useMemo } from "react";
+import type { ReactNode, useMemo } from "react";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { AsteriskRegularIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";

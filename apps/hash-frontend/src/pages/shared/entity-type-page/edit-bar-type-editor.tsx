@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { faSmile } from "@fortawesome/free-regular-svg-icons";
 import { FontAwesomeIcon } from "@hashintel/design-system";
-import type { EntityTypeEditorFormData , useEntityTypeFormState } from "@hashintel/type-editor";
+import type {
+  EntityTypeEditorFormData,
+  useEntityTypeFormState,
+} from "@hashintel/type-editor";
 import { PencilSimpleLine } from "../../../shared/icons/svg";
 import type { ButtonProps } from "../../../shared/ui/button";
 import {

@@ -43,9 +43,15 @@ export const SelectOrNameGoogleSheet = ({
     <>
       {showReauthModal && (
         <AlertModal
-          callback={() => { addGoogleAccount(); }}
-          calloutMessage={"Access to this Google account has expired or been revoked"}
-          close={() => { setShowReauthModal(false); }}
+          callback={() => {
+            addGoogleAccount();
+          }}
+          calloutMessage={
+            "Access to this Google account has expired or been revoked"
+          }
+          close={() => {
+            setShowReauthModal(false);
+          }}
           type={"info"}
         >
           <Typography>

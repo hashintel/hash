@@ -59,7 +59,8 @@ export const useEntityTypeEntitiesContextValue = (params: {
 
     for (const { properties } of relevantTypes) {
       for (const property of Object.values(properties)) {
-        const propertyUrl = "items" in property ? property.items.$ref : property.$ref;
+        const propertyUrl =
+          "items" in property ? property.items.$ref : property.$ref;
 
         if (!relevantPropertiesMap.has(propertyUrl)) {
           const propertyType = getPropertyTypeById(

@@ -1,4 +1,9 @@
-import type { createContext, PropsWithChildren , useContext, useMemo } from "react";
+import type {
+  createContext,
+  PropsWithChildren,
+  useContext,
+  useMemo,
+} from "react";
 import { useNodeId } from "reactflow";
 import { useQuery } from "@apollo/client";
 import {
@@ -8,11 +13,13 @@ import {
 
 import type {
   FlowRun,
- FlowStepStatus,  GetFlowRunByIdQuery,
+  FlowStepStatus,
+  GetFlowRunByIdQuery,
   GetFlowRunByIdQueryVariables,
   GetFlowRunsQuery,
   GetFlowRunsQueryVariables,
-  StepRun } from "../../graphql/api-types.gen";
+  StepRun,
+} from "../../graphql/api-types.gen";
 
 export interface FlowRunsContextType {
   flowRuns: GetFlowRunsQuery["getFlowRuns"];
@@ -218,24 +225,24 @@ export const useStatusForSteps = (
       statusByStep[stepRun.stepId] = simpleStatus;
 
       switch (simpleStatus) {
-      case "Errored": {
-        hasError = true;
-      
-      break;
-      }
-      case "In Progress": 
-      case "Information Required": {
-        hasInProgress = true;
-      
-      break;
-      }
-      case "Waiting": {
-        hasWaiting = true;
-      
-      break;
-      }
-      default:
-      // Do nothing
+        case "Errored": {
+          hasError = true;
+
+          break;
+        }
+        case "In Progress":
+        case "Information Required": {
+          hasInProgress = true;
+
+          break;
+        }
+        case "Waiting": {
+          hasWaiting = true;
+
+          break;
+        }
+        default:
+        // Do nothing
       }
     }
 

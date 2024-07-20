@@ -1,7 +1,11 @@
 import { useMemo } from "react";
 import type { ProvideEditorComponent } from "@glideapps/glide-data-grid";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityRootType, extractDraftIdFromEntityId,Subgraph  } from "@local/hash-subgraph";
+import type {
+  EntityRootType,
+  extractDraftIdFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 
 import { useMarkLinkEntityToArchive } from "../../../../../shared/use-mark-link-entity-to-archive";
@@ -45,7 +49,7 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
     if (sameEntity) {
       onFinishedEditing();
 
- return;
+      return;
     }
 
     // if there is an existing link, archive it
@@ -85,9 +89,9 @@ export const LinkedWithCellEditor: ProvideEditorComponent<LinkedWithCell> = (
         expectedEntityTypes={expectedEntityTypes}
         entityIdsToFilterOut={linkedEntityId && [linkedEntityId]}
         linkEntityTypeId={linkEntityTypeId}
-        includeDrafts={
-          Boolean(extractDraftIdFromEntityId(entity.metadata.recordId.entityId))
-        }
+        includeDrafts={Boolean(
+          extractDraftIdFromEntityId(entity.metadata.recordId.entityId),
+        )}
         onSelect={onSelectForSingleLink}
         onFinishedEditing={onCancel}
       />

@@ -37,7 +37,9 @@ export const LinksSection = () => {
   return (
     <SectionWrapper
       title={"Links"}
-      titleTooltip={"The links on an entity are determined by its type. To add a new link to this entity, specify an additional type or edit an existing one."}
+      titleTooltip={
+        "The links on an entity are determined by its type. To add a new link to this entity, specify an additional type or edit an existing one."
+      }
       titleStartContent={
         <Stack direction={"row"} spacing={1.5}>
           <Chip size={"xs"} label={`${outgoingLinks.length} links`} />
@@ -45,7 +47,9 @@ export const LinksSection = () => {
             <IconButton
               rounded
               sx={{ color: ({ palette }) => palette.gray[60] }}
-              onClick={() => { setShowSearch(true); }}
+              onClick={() => {
+                setShowSearch(true);
+              }}
             >
               <FontAwesomeIcon icon={faMagnifyingGlass} />
             </IconButton>
@@ -57,7 +61,9 @@ export const LinksSection = () => {
         <LinkTable
           key={entity.metadata.recordId.editionId}
           showSearch={showSearch}
-          onSearchClose={() => { setShowSearch(false); }}
+          onSearchClose={() => {
+            setShowSearch(false);
+          }}
         />
       </Paper>
     </SectionWrapper>

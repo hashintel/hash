@@ -1,4 +1,4 @@
-import type { FunctionComponent, ReactNode , useMemo } from "react";
+import type { FunctionComponent, ReactNode, useMemo } from "react";
 import type { EntityPropertyValue } from "@blockprotocol/graph";
 import { extractVersion } from "@blockprotocol/type-system";
 import {
@@ -9,7 +9,11 @@ import {
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import type { EntityRootType, extractEntityUuidFromEntityId,Subgraph  } from "@local/hash-subgraph";
+import type {
+  EntityRootType,
+  extractEntityUuidFromEntityId,
+  Subgraph,
+} from "@local/hash-subgraph";
 import {
   getEntityRevision,
   getEntityTypeById,
@@ -17,8 +21,9 @@ import {
   getPropertyTypeById,
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import type {   Box,
-BoxProps ,
+import type {
+  Box,
+  BoxProps,
   chipClasses,
   styled,
   Tooltip,
@@ -44,14 +49,15 @@ const ContentTypography = styled(Typography)(({ theme }) => ({
 const stringifyEntityPropertyValue = (value: EntityPropertyValue): string => {
   if (Array.isArray(value)) {
     return value.map(stringifyEntityPropertyValue).join(", ");
-  } if (typeof value === "boolean") {
+  }
+  if (typeof value === "boolean") {
     return value ? "True" : "False";
-  } if (typeof value === "undefined") {
+  }
+  if (typeof value === "undefined") {
     return "Undefined";
   }
- 
-    return String(value);
-  
+
+  return String(value);
 };
 
 const LeftOrRightEntity: FunctionComponent<{
@@ -151,8 +157,8 @@ const LeftOrRightEntity: FunctionComponent<{
       return undefined;
     }
 
-    return Object.entries(entity.properties)
-      .flatMap(([baseUrl, propertyValue]) => {
+    return Object.entries(entity.properties).flatMap(
+      ([baseUrl, propertyValue]) => {
         const propertyTypeId = Object.values(entityType.schema.properties)
           .map((value) => ("items" in value ? value.items.$ref : value.$ref))
           .find((id) => extractBaseUrl(id) === baseUrl);
@@ -174,7 +180,8 @@ const LeftOrRightEntity: FunctionComponent<{
           propertyType,
           stringifiedPropertyValue,
         };
-      });
+      },
+    );
   }, [entity, subgraph, entityType]);
 
   const outgoingLinksByLinkEntityType = useMemo(() => {

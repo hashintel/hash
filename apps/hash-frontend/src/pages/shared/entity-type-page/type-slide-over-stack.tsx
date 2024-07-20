@@ -1,4 +1,4 @@
-import type { FunctionComponent , useCallback, useState } from "react";
+import type { FunctionComponent, useCallback, useState } from "react";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { Backdrop } from "@mui/material";
 
@@ -22,7 +22,9 @@ export const TypeSlideOverStack: FunctionComponent<{
   }, []);
 
   const handleForward = useCallback(() => {
-    setCurrentIndex((previousIndex) => Math.min(previousIndex + 1, items.length - 1));
+    setCurrentIndex((previousIndex) =>
+      Math.min(previousIndex + 1, items.length - 1),
+    );
   }, [items.length]);
 
   const handleNavigateToType = useCallback(

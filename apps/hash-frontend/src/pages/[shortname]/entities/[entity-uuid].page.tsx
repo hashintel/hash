@@ -2,7 +2,8 @@ import NextErrorComponent from "next/error";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useState } from "react";
 import { useLazyQuery, useMutation } from "@apollo/client";
-import type { Entity ,
+import type {
+  Entity,
   mergePropertyObjectAndMetadata,
   patchesFromPropertyObjects,
 } from "@local/hash-graph-sdk/entity";
@@ -23,9 +24,11 @@ import {
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/shared";
-import type {   entityIdFromComponents,
-EntityRootType,   extractDraftIdFromEntityId,
-Subgraph ,
+import type {
+  entityIdFromComponents,
+  EntityRootType,
+  extractDraftIdFromEntityId,
+  Subgraph,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
@@ -39,7 +42,10 @@ import type {
   UpdateEntityMutationVariables,
 } from "../../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../../graphql/queries/knowledge/entity.queries";
-import type { getLayoutWithSidebar,NextPageWithLayout  } from "../../../shared/layout";
+import type {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../../../shared/layout";
 import { EditBar } from "../shared/edit-bar";
 import { useRouteNamespace } from "../shared/use-route-namespace";
 
@@ -345,7 +351,9 @@ const Page: NextPageWithLayout = () => {
           setDraftEntitySubgraph,
         );
       }}
-      onEntityUpdated={(entity) => { onEntityUpdated(entity); }}
+      onEntityUpdated={(entity) => {
+        onEntityUpdated(entity);
+      }}
     />
   );
 };

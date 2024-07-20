@@ -25,7 +25,10 @@ import type {
 } from "../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../graphql/queries/knowledge/entity.queries";
 import { NoteIcon } from "../shared/icons/note-icon";
-import type { getLayoutWithSidebar,NextPageWithLayout  } from "../shared/layout";
+import type {
+  getLayoutWithSidebar,
+  NextPageWithLayout,
+} from "../shared/layout";
 
 import { NotesSection } from "./notes.page/notes-section";
 import { TodaySection } from "./notes.page/today-section";
@@ -68,7 +71,9 @@ const NotesPage: NextPageWithLayout = () => {
         includeDrafts: false,
       },
     },
-    onCompleted: (data) => { setPreviouslyFetchedQuickNotesData(data); },
+    onCompleted: (data) => {
+      setPreviouslyFetchedQuickNotesData(data);
+    },
     fetchPolicy: "cache-and-network",
   });
 
@@ -120,43 +125,46 @@ const NotesPage: NextPageWithLayout = () => {
 
     const today = new Date();
 
-    return sortedDates.reduce<Record<string, string>>((previous, currentDate) => {
-      const key = format(currentDate, "yyyy-MM-dd");
+    return sortedDates.reduce<Record<string, string>>(
+      (previous, currentDate) => {
+        const key = format(currentDate, "yyyy-MM-dd");
 
-      const updated = { ...previous };
+        const updated = { ...previous };
 
-      const existingHeadings = Object.values(updated);
+        const existingHeadings = Object.values(updated);
 
-      if (isYesterday(currentDate)) {
-        updated[key] = "Yesterday";
-      } else if (differenceInDays(today, currentDate) < 7) {
-        updated[key] = format(currentDate, "EEEE");
-      } else if (differenceInDays(today, currentDate) === 7) {
-        updated[key] = `Last ${format(currentDate, "EEEE")}`;
-      } else if (
-        differenceInDays(today, currentDate) < 14 &&
-        !existingHeadings.includes("Over a week ago")
-      ) {
-        updated[key] = "Over a week ago";
-      } else if (
-        differenceInWeeks(today, currentDate) < 4 &&
-        !existingHeadings.includes("Over 2 weeks ago")
-      ) {
-        updated[key] = "Over 2 weeks ago";
-      } else if (
-        differenceInMonths(today, currentDate) < 12 &&
-        !existingHeadings.includes("Over a month ago")
-      ) {
-        updated[key] = "Over a month ago";
-      } else if (
-        differenceInMonths(today, currentDate) >= 12 &&
-        !existingHeadings.includes("Over a year ago")
-      ) {
-        updated[key] = "Over a year ago";
-      }
+        if (isYesterday(currentDate)) {
+          updated[key] = "Yesterday";
+        } else if (differenceInDays(today, currentDate) < 7) {
+          updated[key] = format(currentDate, "EEEE");
+        } else if (differenceInDays(today, currentDate) === 7) {
+          updated[key] = `Last ${format(currentDate, "EEEE")}`;
+        } else if (
+          differenceInDays(today, currentDate) < 14 &&
+          !existingHeadings.includes("Over a week ago")
+        ) {
+          updated[key] = "Over a week ago";
+        } else if (
+          differenceInWeeks(today, currentDate) < 4 &&
+          !existingHeadings.includes("Over 2 weeks ago")
+        ) {
+          updated[key] = "Over 2 weeks ago";
+        } else if (
+          differenceInMonths(today, currentDate) < 12 &&
+          !existingHeadings.includes("Over a month ago")
+        ) {
+          updated[key] = "Over a month ago";
+        } else if (
+          differenceInMonths(today, currentDate) >= 12 &&
+          !existingHeadings.includes("Over a year ago")
+        ) {
+          updated[key] = "Over a year ago";
+        }
 
-      return updated;
-    }, {});
+        return updated;
+      },
+      {},
+    );
   }, [latestQuickNoteEntitiesByDay]);
 
   const todayTimestamp = useMemo(() => format(new Date(), "yyyy-MM-dd"), []);

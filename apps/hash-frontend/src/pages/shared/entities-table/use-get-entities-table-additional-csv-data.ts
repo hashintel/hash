@@ -1,7 +1,7 @@
-import type { MutableRefObject , useCallback } from "react";
+import type { MutableRefObject, useCallback } from "react";
 import { useLazyQuery } from "@apollo/client";
 import type { EntityType, PropertyType } from "@blockprotocol/type-system";
-import type { Entity , LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import {
   currentTimeInstantTemporalAxes,
@@ -9,7 +9,10 @@ import {
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type { EntityRootType , extractEntityUuidFromEntityId } from "@local/hash-subgraph";
+import type {
+  EntityRootType,
+  extractEntityUuidFromEntityId,
+} from "@local/hash-subgraph";
 import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
@@ -86,18 +89,17 @@ export const useGetEntitiesTableAdditionalCsvData = (props: {
         (linkEntity) => new LinkEntity(linkEntity),
       );
 
-      return outgoingLinkEntities
-        .flatMap((linkEntity) => {
-          const linkEntityType = getEntityTypeById(
-            outgoingLinksSubgraph,
-            linkEntity.metadata.entityTypeId,
-          )!;
+      return outgoingLinkEntities.flatMap((linkEntity) => {
+        const linkEntityType = getEntityTypeById(
+          outgoingLinksSubgraph,
+          linkEntity.metadata.entityTypeId,
+        )!;
 
-          return {
-            linkEntity,
-            linkEntityType,
-          };
-        });
+        return {
+          linkEntity,
+          linkEntityType,
+        };
+      });
     },
     [getEntitySubgraph],
   );

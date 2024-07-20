@@ -106,13 +106,15 @@ const InternetAccess = ({
       checked={internetAccessSettings.enabled}
       label={"Use public sites"}
       subLabel={"on the World Wide Web"}
-      tooltipText={"Whether or not the research task can access the public internet"}
-      onChangeChecked={() =>
-        { setInternetAccessSettings({
+      tooltipText={
+        "Whether or not the research task can access the public internet"
+      }
+      onChangeChecked={() => {
+        setInternetAccessSettings({
           ...internetAccessSettings,
           enabled: !internetAccessSettings.enabled,
-        }); }
-      }
+        });
+      }}
     />
   );
 };
@@ -134,13 +136,15 @@ const BrowserPlugin = ({
       disabled={disabled}
       label={"Use browser access"}
       subLabel={"To authenticate as you"}
-      tooltipText={"Whether pages can be requested via the browser plugin, taking the content as it appears in your browser"}
-      onChangeChecked={() =>
-        { setBrowserPluginSettings({
+      tooltipText={
+        "Whether pages can be requested via the browser plugin, taking the content as it appears in your browser"
+      }
+      onChangeChecked={() => {
+        setBrowserPluginSettings({
           ...browserPluginSettings,
           enabled: !browserPluginSettings.enabled,
-        }); }
-      }
+        });
+      }}
     />
   );
 };
@@ -164,12 +168,12 @@ export const InternetSettings = ({
         <BrowserPlugin
           browserPluginSettings={settings.browserPlugin}
           disabled={!settings.enabled}
-          setBrowserPluginSettings={(newBrowserPluginSettings) =>
-            { setSettings((currentSettings) => ({
+          setBrowserPluginSettings={(newBrowserPluginSettings) => {
+            setSettings((currentSettings) => ({
               ...currentSettings,
               browserPlugin: newBrowserPluginSettings,
-            })); }
-          }
+            }));
+          }}
         />
       </Box>
     </Box>

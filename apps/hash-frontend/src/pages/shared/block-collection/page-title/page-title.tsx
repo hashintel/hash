@@ -3,7 +3,9 @@ import type {
   FocusEventHandler,
   FunctionComponent,
   KeyboardEventHandler,
- useEffect, useState } from "react";
+  useEffect,
+  useState,
+} from "react";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { styled, TextareaAutosize } from "@mui/material";
 

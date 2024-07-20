@@ -1,12 +1,12 @@
 import { useRouter } from "next/router";
-import type { FormEventHandler , useEffect, useState } from "react";
+import type { FormEventHandler, useEffect, useState } from "react";
 import { TextField } from "@hashintel/design-system";
 import { Box, Container, Typography } from "@mui/material";
 import type { VerificationFlow } from "@ory/client";
 import { isUiNodeInputAttributes } from "@ory/integrations/ui";
 
 import { useLogoutFlow } from "../components/hooks/use-logout-flow";
-import type { getPlainLayout,NextPageWithLayout  } from "../shared/layout";
+import type { getPlainLayout, NextPageWithLayout } from "../shared/layout";
 import { Button } from "../shared/ui";
 
 import {
@@ -154,13 +154,15 @@ const VerificationPage: NextPageWithLayout = () => {
           autoComplete={"off"}
           placeholder={"Enter your verification code"}
           value={code}
-          error={
-            Boolean(codeInputUiNode?.messages.find(({ type }) => type === "error"))
-          }
+          error={Boolean(
+            codeInputUiNode?.messages.find(({ type }) => type === "error"),
+          )}
           helperText={codeInputUiNode?.messages.map(({ id, text }) => (
             <Typography key={id}>{text}</Typography>
           ))}
-          onChange={({ target }) => { setCode(target.value); }}
+          onChange={({ target }) => {
+            setCode(target.value);
+          }}
         />
         <Button type={"submit"}>Verify account</Button>
         {flow?.ui.messages?.map(({ text, id }) => (

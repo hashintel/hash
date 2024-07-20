@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import type { GridCellKind,Item  } from "@glideapps/glide-data-grid";
+import type { GridCellKind, Item } from "@glideapps/glide-data-grid";
 
 import type { ChipCell } from "../../../../../../shared/chip-cell";
 import { useEntityEditor } from "../../entity-editor-context";

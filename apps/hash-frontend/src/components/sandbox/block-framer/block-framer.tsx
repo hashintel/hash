@@ -1,4 +1,10 @@
-import type { FunctionComponent , useCallback, useEffect, useMemo, useRef } from "react";
+import type {
+  FunctionComponent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { v4 as uuid } from "uuid";
 import type {
   GraphEmbedderMessageCallbacks,
@@ -169,7 +175,9 @@ export const BlockFramer: FunctionComponent<CrossFrameProxyProps> = ({
 
     window.addEventListener("message", messageHandler);
 
-    return () => { window.removeEventListener("message", messageHandler); };
+    return () => {
+      window.removeEventListener("message", messageHandler);
+    };
   }, [
     queryEntities,
     getEmbedBlock,

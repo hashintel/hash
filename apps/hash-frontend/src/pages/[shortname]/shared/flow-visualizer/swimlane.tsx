@@ -1,5 +1,5 @@
 import "reactflow/dist/style.css";
-import ELK, type { ElkNode } from "elkjs/lib/elk.bundled.js";
+import ELK, { type ElkNode } from "elkjs/lib/elk.bundled.js";
 import { useEffect, useMemo } from "react";
 import ReactFlow, {
   Background,

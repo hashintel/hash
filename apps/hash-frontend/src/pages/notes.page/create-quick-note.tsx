@@ -1,4 +1,10 @@
-import type { FunctionComponent , useCallback, useEffect, useRef, useState } from "react";
+import type {
+  FunctionComponent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { getBlockCollectionResolveDepth } from "@local/hash-isomorphic-utils/block-collection";
@@ -35,14 +41,17 @@ export const CreateQuickNote: FunctionComponent<{
   const [isFocused, setIsFocused] = useState(false);
 
   useEffect(() => {
-    const handleFocus = (event: FocusEvent) =>
-      { setIsFocused(
+    const handleFocus = (event: FocusEvent) => {
+      setIsFocused(
         Boolean(wrapperRef.current) &&
           event.target instanceof Node &&
           wrapperRef.current.contains(event.target),
-      ); };
+      );
+    };
 
-    const handleBlur = () => { setIsFocused(false); };
+    const handleBlur = () => {
+      setIsFocused(false);
+    };
 
     document.addEventListener("focus", handleFocus, true);
     document.addEventListener("blur", handleBlur, true);
@@ -134,7 +143,9 @@ export const CreateQuickNote: FunctionComponent<{
 
     setKeyboardShortcuts(shortcuts);
 
-    return () => { unsetKeyboardShortcuts(shortcuts); };
+    return () => {
+      unsetKeyboardShortcuts(shortcuts);
+    };
   }, [handleCommandEnter, setKeyboardShortcuts, unsetKeyboardShortcuts]);
 
   return (
