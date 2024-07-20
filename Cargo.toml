@@ -21,6 +21,7 @@ members = [
     "libs/@local/harpc/types",
     "libs/@local/harpc/net",
     "libs/@local/harpc/tower",
+    "libs/@local/hql/*",
     "libs/antsi",
     "libs/deer",
     "libs/deer/desert",
