@@ -7,6 +7,8 @@ authors.workspace = true
 edition.workspace = true
 
 [dependencies]
+justjson = { version = "0.3.0", features = ["nightly"] }
+winnow = { version = "0.6.14", features = ["simd"] }
 
 [lints]
 workspace = true
