@@ -179,7 +179,6 @@ export const WorkspaceSwitcher = () => {
             href: "/settings/organizations/new",
           },
         ].map(({ title, href }, index) => (
-           
           <MenuItem
             key={index}
             href={href}

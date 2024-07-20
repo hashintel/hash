@@ -31,12 +31,12 @@ import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property
  * ```
  * @param entity- -
  * The entity object.
- * @param entitySubgraph- - 
+ * @param entitySubgraph- -
  * An object storing root entity & subgraph of that entity.
- * @param requiredPropertyTypes- - 
+ * @param requiredPropertyTypes- -
  * An array of `propertyTypeBaseUrl`'s.
  * This is used to check if a property should be shown as `required` or not.
- * @param depth- - 
+ * @param depth- -
  * Depth of the property. For properties at root, depth starts from `0`.
  * @param propertyRefSchema
  * The schema referring to this property, which might be found on the entity type or a property type object.

@@ -3,7 +3,7 @@
 import NextErrorComponent, { type ErrorProps } from "next/error";
 import * as Sentry from "@sentry/nextjs";
 
-import { getLayoutWithHeader,type NextPageWithLayout } from "../shared/layout";
+import { getLayoutWithHeader, type NextPageWithLayout } from "../shared/layout";
 
 const CustomErrorPage: NextPageWithLayout<ErrorProps> = ({ statusCode }) => {
   return <NextErrorComponent statusCode={statusCode} />;

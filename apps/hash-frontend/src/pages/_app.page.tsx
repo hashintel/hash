@@ -9,12 +9,12 @@ import "./prism.css";
 import type { AppProps as NextAppProps } from "next/app";
 import { useRouter } from "next/router";
 import { SnackbarProvider } from "notistack";
-import type { FunctionComponent, Suspense, useEffect, useState } from "react";
+import { type FunctionComponent, Suspense, useEffect, useState } from "react";
 import { ApolloProvider } from "@apollo/client/react";
-import type { CacheProvider, EmotionCache } from "@emotion/react";
+import { CacheProvider, type EmotionCache } from "@emotion/react";
 import { createEmotionCache, theme } from "@hashintel/design-system/theme";
-import type {
-  FeatureFlag,
+import {
+  type FeatureFlag,
   featureFlags,
 } from "@local/hash-isomorphic-utils/feature-flags";
 import type { User } from "@local/hash-isomorphic-utils/system-types/user";
@@ -31,15 +31,15 @@ import type {
 import { getHashInstanceSettings } from "../graphql/queries/knowledge/hash-instance.queries";
 import { hasAccessToHashQuery, meQuery } from "../graphql/queries/user.queries";
 import { apolloClient } from "../lib/apollo-client";
-import type { constructMinimalUser, MinimalUser } from "../lib/user-and-org";
+import { constructMinimalUser, type MinimalUser } from "../lib/user-and-org";
 import { DraftEntitiesContextProvider } from "../shared/draft-entities-context";
 import { EntityTypesContextProvider } from "../shared/entity-types-context/provider";
 import { FileUploadsProvider } from "../shared/file-upload-context";
 import { KeyboardShortcutsContextProvider } from "../shared/keyboard-shortcuts-context";
-import type {
+import {
   getLayoutWithSidebar,
   getPlainLayout,
-  NextPageWithLayout,
+  type NextPageWithLayout,
 } from "../shared/layout";
 import { SidebarContextProvider } from "../shared/layout/layout-with-sidebar/sidebar-context";
 import { NotificationEntitiesContextProvider } from "../shared/notification-entities-context";
@@ -47,7 +47,7 @@ import { PropertyTypesContextProvider } from "../shared/property-types-context";
 import { RoutePageInfoProvider } from "../shared/routing";
 
 import { ErrorFallback } from "./_app.page/error-fallback";
-import type { AppPage, redirectInGetInitialProps } from "./shared/_app.util";
+import { type AppPage, redirectInGetInitialProps } from "./shared/_app.util";
 import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
 import { DataTypesContextProvider } from "./shared/data-types-context";
 import { setSentryUser } from "./shared/sentry";
@@ -76,12 +76,9 @@ const App: FunctionComponent<AppProps> = ({
   const router = useRouter();
 
   useEffect(() => {
-    configureScope((scope) =>
-       
-      {
-        console.log(`Build: ${scope.getSession()?.release ?? "not set"}`);
-      },
-    );
+    configureScope((scope) => {
+      console.log(`Build: ${scope.getSession()?.release ?? "not set"}`);
+    });
     setSsr(false);
   }, []);
 
@@ -234,9 +231,8 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
       // ...redirect them to the sign in page
       redirectInGetInitialProps({
         appContext,
-        location: `/signin${
-          ["", "/", "/404"].includes(pathname) ? "" : `?return_to=${asPath}`
-        }`,
+        location: `/signin${["", "/", "/404"].includes(pathname) ? "" : `?return_to=${asPath}`
+          }`,
       });
     }
 

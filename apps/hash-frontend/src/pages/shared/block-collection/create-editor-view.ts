@@ -268,19 +268,19 @@ export const createEditorView = (params: {
   /**
    * @see https://linear.app/hash/issue/H-3000
    *
-  * connection = new EditorConnection(
-    * `${apiOrigin}/collab-backend/${accountId}/${pageEntityId}`,
-    * view.state.schema,
-    * view,
-    * manager,
-    * plugins,
-    * accountId,
-    * () => {
-      * view.dispatch(onError(view.state.tr));
-    * },
-  * );
+   * connection = new EditorConnection(
+   * `${apiOrigin}/collab-backend/${accountId}/${pageEntityId}`,
+   * view.state.schema,
+   * view,
+   * manager,
+   * plugins,
+   * accountId,
+   * () => {
+   * view.dispatch(onError(view.state.tr));
+   * },
+   * );
    * @todo The collab editor connection is disabled currently.
-  */
+   */
 
   view.dom.classList.add(styles.ProseMirror!);
   // Prevent keyboard navigation on the editor

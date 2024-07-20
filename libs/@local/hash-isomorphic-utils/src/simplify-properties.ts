@@ -55,6 +55,6 @@ export const simplifyProperties = <T extends PropertyObject>(
         [simplified]: value,
       };
     },
-    {},
+    {} as SimpleProperties<T>,
   );
 };

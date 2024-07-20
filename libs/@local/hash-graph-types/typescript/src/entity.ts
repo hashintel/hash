@@ -1,3 +1,4 @@
+import { Record } from "effect";
 import type {
   EntityMetadata as EntityMetadataBp,
   EntityRecordId as EntityRecordIdBp,
@@ -99,9 +100,9 @@ export type PropertyArray = Property[];
 /**
  * A mapping of property base URLs to their values.
  */
-export interface PropertyObject {
-  [key: BaseUrl]: Property;
-}
+export type PropertyObject = {
+  [K in BaseUrl]: Property;
+};
 
 export interface EntityProperties {
   entityTypeId: VersionedUrl;

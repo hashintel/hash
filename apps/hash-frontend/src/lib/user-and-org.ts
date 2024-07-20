@@ -22,13 +22,13 @@ import type {
   ServiceAccount,
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { User as UserEntity } from "@local/hash-isomorphic-utils/system-types/user";
-import type {
-  AccountEntityId,
-  AccountGroupEntityId,
-  EntityRootType,
+import {
+  type AccountEntityId,
+  type AccountGroupEntityId,
+  type EntityRootType,
   extractAccountGroupId,
   extractAccountId,
-  Subgraph,
+  type Subgraph,
 } from "@local/hash-subgraph";
 import {
   getIncomingLinksForEntity,
@@ -57,8 +57,8 @@ export const constructMinimalOrg = (params: {
     name: organizationName,
     ...(pinnedEntityTypeBaseUrl !== undefined
       ? {
-          pinnedEntityTypeBaseUrls: pinnedEntityTypeBaseUrl as BaseUrl[],
-        }
+        pinnedEntityTypeBaseUrls: pinnedEntityTypeBaseUrl as BaseUrl[],
+      }
       : {}),
     ...simpleProperties,
   };
@@ -109,8 +109,8 @@ export const constructMinimalUser = (params: {
     enabledFeatureFlags,
     ...(pinnedEntityTypeBaseUrl !== undefined
       ? {
-          pinnedEntityTypeBaseUrls: pinnedEntityTypeBaseUrl as BaseUrl[],
-        }
+        pinnedEntityTypeBaseUrls: pinnedEntityTypeBaseUrl as BaseUrl[],
+      }
       : {}),
   };
 };
@@ -169,10 +169,10 @@ export const constructOrg = (params: {
 
   const hasAvatar = avatarLinkAndEntity
     ? {
-        // these are each arrays because each entity can have multiple revisions
-        linkEntity: avatarLinkAndEntity.linkEntity[0]!,
-        imageEntity: avatarLinkAndEntity.rightEntity[0]! as Entity<Image>,
-      }
+      // these are each arrays because each entity can have multiple revisions
+      linkEntity: avatarLinkAndEntity.linkEntity[0]!,
+      imageEntity: avatarLinkAndEntity.rightEntity[0]! as Entity<Image>,
+    }
     : undefined;
 
   const hasBioLinkAndEntity = getOutgoingLinkAndTargetEntities(
@@ -187,11 +187,11 @@ export const constructOrg = (params: {
 
   const hasBio = hasBioLinkAndEntity
     ? {
-        // these are each arrays because each entity can have multiple revisions
-        linkEntity: hasBioLinkAndEntity.linkEntity[0]!,
-        profileBioEntity: hasBioLinkAndEntity
-          .rightEntity[0]! as Entity<ProfileBio>,
-      }
+      // these are each arrays because each entity can have multiple revisions
+      linkEntity: hasBioLinkAndEntity.linkEntity[0]!,
+      profileBioEntity: hasBioLinkAndEntity
+        .rightEntity[0]! as Entity<ProfileBio>,
+    }
     : undefined;
 
   const orgMemberships = getIncomingLinksForEntity(
@@ -397,10 +397,10 @@ export const constructUser = (params: {
 
   const hasAvatar = avatarLinkAndEntity
     ? {
-        // these are each arrays because each entity can have multiple revisions
-        linkEntity: avatarLinkAndEntity.linkEntity[0]!,
-        imageEntity: avatarLinkAndEntity.rightEntity[0]! as Entity<Image>,
-      }
+      // these are each arrays because each entity can have multiple revisions
+      linkEntity: avatarLinkAndEntity.linkEntity[0]!,
+      imageEntity: avatarLinkAndEntity.rightEntity[0]! as Entity<Image>,
+    }
     : undefined;
 
   const coverImageLinkAndEntity = getOutgoingLinkAndTargetEntities(
@@ -415,10 +415,10 @@ export const constructUser = (params: {
 
   const hasCoverImage = coverImageLinkAndEntity
     ? {
-        // these are each arrays because each entity can have multiple revisions
-        linkEntity: coverImageLinkAndEntity.linkEntity[0]!,
-        imageEntity: coverImageLinkAndEntity.rightEntity[0]! as Entity<Image>,
-      }
+      // these are each arrays because each entity can have multiple revisions
+      linkEntity: coverImageLinkAndEntity.linkEntity[0]!,
+      imageEntity: coverImageLinkAndEntity.rightEntity[0]! as Entity<Image>,
+    }
     : undefined;
 
   const hasBioLinkAndEntity = getOutgoingLinkAndTargetEntities(
@@ -433,11 +433,11 @@ export const constructUser = (params: {
 
   const hasBio = hasBioLinkAndEntity
     ? {
-        // these are each arrays because each entity can have multiple revisions
-        linkEntity: hasBioLinkAndEntity.linkEntity[0]! as LinkEntity<HasBio>,
-        profileBioEntity: hasBioLinkAndEntity
-          .rightEntity[0]! as Entity<ProfileBio>,
-      }
+      // these are each arrays because each entity can have multiple revisions
+      linkEntity: hasBioLinkAndEntity.linkEntity[0]! as LinkEntity<HasBio>,
+      profileBioEntity: hasBioLinkAndEntity
+        .rightEntity[0]! as Entity<ProfileBio>,
+    }
     : undefined;
 
   const hasServiceAccounts = getOutgoingLinkAndTargetEntities(

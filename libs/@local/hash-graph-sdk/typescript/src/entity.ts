@@ -503,10 +503,10 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
         },
         linkData: entity.linkData
           ? {
-              ...entity.linkData,
-              leftEntityId: entity.linkData.leftEntityId as EntityId,
-              rightEntityId: entity.linkData.rightEntityId as EntityId,
-            }
+            ...entity.linkData,
+            leftEntityId: entity.linkData.leftEntityId as EntityId,
+            rightEntityId: entity.linkData.rightEntityId as EntityId,
+          }
           : undefined,
       };
     } else {

@@ -2,13 +2,15 @@
  * This file was automatically generated – do not edit it.
  */
 
+import { Brand } from "@local/advanced-types/brand";
 import type {
   ArrayMetadata,
   ObjectMetadata,
   PropertyProvenance,
 } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { Confidence } from "@local/hash-graph-types/entity";
+import type { Confidence, PropertyObject } from "@local/hash-graph-types/entity";
+import { BaseUrl } from "@local/hash-graph-types/ontology";
 
 /**
  * Someone or something that can perform actions in the system.
@@ -21,12 +23,12 @@ export interface Actor {
 
 export type ActorOutgoingLinkAndTarget = never;
 
-export interface ActorOutgoingLinksByLinkEntityTypeId {}
+export interface ActorOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * Someone or something that can perform actions in the system.
  */
-export interface ActorProperties {
+interface ActorProperties {
   "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValue;
 }
 
@@ -70,7 +72,7 @@ export interface AuthoredBy {
 
 export type AuthoredByOutgoingLinkAndTarget = never;
 
-export interface AuthoredByOutgoingLinksByLinkEntityTypeId {}
+export interface AuthoredByOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * What or whom something was authored by.
@@ -79,7 +81,7 @@ export type AuthoredByProperties = AuthoredByProperties1 &
   AuthoredByProperties2;
 export type AuthoredByProperties1 = LinkProperties;
 
-export interface AuthoredByProperties2 {}
+export interface AuthoredByProperties2 { }
 
 export type AuthoredByPropertiesWithMetadata =
   AuthoredByPropertiesWithMetadata1 & AuthoredByPropertiesWithMetadata2;
@@ -118,12 +120,12 @@ export interface BlockCollection {
 
 export type BlockCollectionOutgoingLinkAndTarget = never;
 
-export interface BlockCollectionOutgoingLinksByLinkEntityTypeId {}
+export interface BlockCollectionOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * A collection of blocks.
  */
-export interface BlockCollectionProperties {}
+export interface BlockCollectionProperties { }
 
 export interface BlockCollectionPropertiesWithMetadata {
   metadata?: ObjectMetadata;
@@ -181,7 +183,7 @@ export interface BrowserPluginSettings {
 
 export type BrowserPluginSettingsOutgoingLinkAndTarget = never;
 
-export interface BrowserPluginSettingsOutgoingLinksByLinkEntityTypeId {}
+export interface BrowserPluginSettingsOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * Settings for the HASH browser plugin.
@@ -324,7 +326,7 @@ export interface DocumentFile {
 
 export type DocumentFileOutgoingLinkAndTarget = never;
 
-export interface DocumentFileOutgoingLinksByLinkEntityTypeId {}
+export interface DocumentFileOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * A document file.
@@ -418,7 +420,7 @@ export type FileNamePropertyValueWithMetadata = TextDataTypeWithMetadata;
 
 export type FileOutgoingLinkAndTarget = never;
 
-export interface FileOutgoingLinksByLinkEntityTypeId {}
+export interface FileOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * A file hosted at a URL.
@@ -546,7 +548,7 @@ export interface FlowRun {
 
 export type FlowRunOutgoingLinkAndTarget = never;
 
-export interface FlowRunOutgoingLinksByLinkEntityTypeId {}
+export interface FlowRunOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * An execution run of a flow.
@@ -597,7 +599,7 @@ export interface HasAvatar {
 
 export type HasAvatarOutgoingLinkAndTarget = never;
 
-export interface HasAvatarOutgoingLinksByLinkEntityTypeId {}
+export interface HasAvatarOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * The avatar something has.
@@ -605,7 +607,7 @@ export interface HasAvatarOutgoingLinksByLinkEntityTypeId {}
 export type HasAvatarProperties = HasAvatarProperties1 & HasAvatarProperties2;
 export type HasAvatarProperties1 = LinkProperties;
 
-export interface HasAvatarProperties2 {}
+export interface HasAvatarProperties2 { }
 
 export type HasAvatarPropertiesWithMetadata = HasAvatarPropertiesWithMetadata1 &
   HasAvatarPropertiesWithMetadata2;
@@ -627,7 +629,7 @@ export interface HasBio {
 
 export type HasBioOutgoingLinkAndTarget = never;
 
-export interface HasBioOutgoingLinksByLinkEntityTypeId {}
+export interface HasBioOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * The biography something has.
@@ -635,7 +637,7 @@ export interface HasBioOutgoingLinksByLinkEntityTypeId {}
 export type HasBioProperties = HasBioProperties1 & HasBioProperties2;
 export type HasBioProperties1 = LinkProperties;
 
-export interface HasBioProperties2 {}
+export interface HasBioProperties2 { }
 
 export type HasBioPropertiesWithMetadata = HasBioPropertiesWithMetadata1 &
   HasBioPropertiesWithMetadata2;
@@ -657,7 +659,7 @@ export interface HasCoverImage {
 
 export type HasCoverImageOutgoingLinkAndTarget = never;
 
-export interface HasCoverImageOutgoingLinksByLinkEntityTypeId {}
+export interface HasCoverImageOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * The cover image something has.
@@ -666,7 +668,7 @@ export type HasCoverImageProperties = HasCoverImageProperties1 &
   HasCoverImageProperties2;
 export type HasCoverImageProperties1 = LinkProperties;
 
-export interface HasCoverImageProperties2 {}
+export interface HasCoverImageProperties2 { }
 
 export type HasCoverImagePropertiesWithMetadata =
   HasCoverImagePropertiesWithMetadata1 & HasCoverImagePropertiesWithMetadata2;
@@ -688,7 +690,7 @@ export interface HasData {
 
 export type HasDataOutgoingLinkAndTarget = never;
 
-export interface HasDataOutgoingLinksByLinkEntityTypeId {}
+export interface HasDataOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * The data that something has.
@@ -696,7 +698,7 @@ export interface HasDataOutgoingLinksByLinkEntityTypeId {}
 export type HasDataProperties = HasDataProperties1 & HasDataProperties2;
 export type HasDataProperties1 = LinkProperties;
 
-export interface HasDataProperties2 {}
+export interface HasDataProperties2 { }
 
 export type HasDataPropertiesWithMetadata = HasDataPropertiesWithMetadata1 &
   HasDataPropertiesWithMetadata2;
@@ -718,7 +720,7 @@ export interface HasIndexedContent {
 
 export type HasIndexedContentOutgoingLinkAndTarget = never;
 
-export interface HasIndexedContentOutgoingLinksByLinkEntityTypeId {}
+export interface HasIndexedContentOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * Something contained at an index by something.
@@ -733,7 +735,7 @@ export interface HasIndexedContentProperties2 {
 
 export type HasIndexedContentPropertiesWithMetadata =
   HasIndexedContentPropertiesWithMetadata1 &
-    HasIndexedContentPropertiesWithMetadata2;
+  HasIndexedContentPropertiesWithMetadata2;
 export type HasIndexedContentPropertiesWithMetadata1 =
   LinkPropertiesWithMetadata;
 
@@ -746,7 +748,7 @@ export interface HasIndexedContentPropertiesWithMetadata2 {
 
 export type HasOutgoingLinkAndTarget = never;
 
-export interface HasOutgoingLinksByLinkEntityTypeId {}
+export interface HasOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * The parent something has.
@@ -759,7 +761,7 @@ export interface HasParent {
 
 export type HasParentOutgoingLinkAndTarget = never;
 
-export interface HasParentOutgoingLinksByLinkEntityTypeId {}
+export interface HasParentOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * The parent something has.
@@ -767,7 +769,7 @@ export interface HasParentOutgoingLinksByLinkEntityTypeId {}
 export type HasParentProperties = HasParentProperties1 & HasParentProperties2;
 export type HasParentProperties1 = LinkProperties;
 
-export interface HasParentProperties2 {}
+export interface HasParentProperties2 { }
 
 export type HasParentPropertiesWithMetadata = HasParentPropertiesWithMetadata1 &
   HasParentPropertiesWithMetadata2;
@@ -784,7 +786,7 @@ export interface HasParentPropertiesWithMetadata2 {
 export type HasProperties = HasProperties1 & HasProperties2;
 export type HasProperties1 = LinkProperties;
 
-export interface HasProperties2 {}
+export interface HasProperties2 { }
 
 export type HasPropertiesWithMetadata = HasPropertiesWithMetadata1 &
   HasPropertiesWithMetadata2;
@@ -806,7 +808,7 @@ export interface HasServiceAccount {
 
 export type HasServiceAccountOutgoingLinkAndTarget = never;
 
-export interface HasServiceAccountOutgoingLinksByLinkEntityTypeId {}
+export interface HasServiceAccountOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * The service account something has.
@@ -815,11 +817,11 @@ export type HasServiceAccountProperties = HasServiceAccountProperties1 &
   HasServiceAccountProperties2;
 export type HasServiceAccountProperties1 = LinkProperties;
 
-export interface HasServiceAccountProperties2 {}
+export interface HasServiceAccountProperties2 { }
 
 export type HasServiceAccountPropertiesWithMetadata =
   HasServiceAccountPropertiesWithMetadata1 &
-    HasServiceAccountPropertiesWithMetadata2;
+  HasServiceAccountPropertiesWithMetadata2;
 export type HasServiceAccountPropertiesWithMetadata1 =
   LinkPropertiesWithMetadata;
 
@@ -839,7 +841,7 @@ export interface HasText {
 
 export type HasTextOutgoingLinkAndTarget = never;
 
-export interface HasTextOutgoingLinksByLinkEntityTypeId {}
+export interface HasTextOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * The text something has.
@@ -847,7 +849,7 @@ export interface HasTextOutgoingLinksByLinkEntityTypeId {}
 export type HasTextProperties = HasTextProperties1 & HasTextProperties2;
 export type HasTextProperties1 = LinkProperties;
 
-export interface HasTextProperties2 {}
+export interface HasTextProperties2 { }
 
 export type HasTextPropertiesWithMetadata = HasTextPropertiesWithMetadata1 &
   HasTextPropertiesWithMetadata2;
@@ -876,7 +878,7 @@ export interface Image {
 
 export type ImageOutgoingLinkAndTarget = never;
 
-export interface ImageOutgoingLinksByLinkEntityTypeId {}
+export interface ImageOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * An image file hosted at a URL.
@@ -884,7 +886,7 @@ export interface ImageOutgoingLinksByLinkEntityTypeId {}
 export type ImageProperties = ImageProperties1 & ImageProperties2;
 export type ImageProperties1 = FileProperties;
 
-export interface ImageProperties2 {}
+export interface ImageProperties2 { }
 
 export type ImagePropertiesWithMetadata = ImagePropertiesWithMetadata1 &
   ImagePropertiesWithMetadata2;
@@ -913,7 +915,7 @@ export interface IsMemberOf {
 
 export type IsMemberOfOutgoingLinkAndTarget = never;
 
-export interface IsMemberOfOutgoingLinksByLinkEntityTypeId {}
+export interface IsMemberOfOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * Something that someone or something is a member of.
@@ -922,7 +924,7 @@ export type IsMemberOfProperties = IsMemberOfProperties1 &
   IsMemberOfProperties2;
 export type IsMemberOfProperties1 = LinkProperties;
 
-export interface IsMemberOfProperties2 {}
+export interface IsMemberOfProperties2 { }
 
 export type IsMemberOfPropertiesWithMetadata =
   IsMemberOfPropertiesWithMetadata1 & IsMemberOfPropertiesWithMetadata2;
@@ -952,9 +954,9 @@ export interface Link {
 
 export type LinkOutgoingLinkAndTarget = never;
 
-export interface LinkOutgoingLinksByLinkEntityTypeId {}
+export interface LinkOutgoingLinksByLinkEntityTypeId { }
 
-export interface LinkProperties {}
+export interface LinkProperties { }
 
 export interface LinkPropertiesWithMetadata {
   metadata?: ObjectMetadata;
@@ -1003,7 +1005,7 @@ export interface Notification {
 
 export type NotificationOutgoingLinkAndTarget = never;
 
-export interface NotificationOutgoingLinksByLinkEntityTypeId {}
+export interface NotificationOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * A notification to a user.
@@ -1039,7 +1041,7 @@ export interface NumberDataTypeMetadata {
 /**
  * An opaque, untyped JSON object.
  */
-export interface ObjectDataType {}
+export interface ObjectDataType { }
 
 export interface ObjectDataTypeWithMetadata {
   value: ObjectDataType;
@@ -1062,7 +1064,7 @@ export interface OccurredInBlock {
 
 export type OccurredInBlockOutgoingLinkAndTarget = never;
 
-export interface OccurredInBlockOutgoingLinksByLinkEntityTypeId {}
+export interface OccurredInBlockOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * A block that something occurred in.
@@ -1071,11 +1073,11 @@ export type OccurredInBlockProperties = OccurredInBlockProperties1 &
   OccurredInBlockProperties2;
 export type OccurredInBlockProperties1 = LinkProperties;
 
-export interface OccurredInBlockProperties2 {}
+export interface OccurredInBlockProperties2 { }
 
 export type OccurredInBlockPropertiesWithMetadata =
   OccurredInBlockPropertiesWithMetadata1 &
-    OccurredInBlockPropertiesWithMetadata2;
+  OccurredInBlockPropertiesWithMetadata2;
 export type OccurredInBlockPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
 
 export interface OccurredInBlockPropertiesWithMetadata2 {
@@ -1094,7 +1096,7 @@ export interface OccurredInEntity {
 
 export type OccurredInEntityOutgoingLinkAndTarget = never;
 
-export interface OccurredInEntityOutgoingLinksByLinkEntityTypeId {}
+export interface OccurredInEntityOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * An entity that something occurred in.
@@ -1109,7 +1111,7 @@ export interface OccurredInEntityProperties2 {
 
 export type OccurredInEntityPropertiesWithMetadata =
   OccurredInEntityPropertiesWithMetadata1 &
-    OccurredInEntityPropertiesWithMetadata2;
+  OccurredInEntityPropertiesWithMetadata2;
 export type OccurredInEntityPropertiesWithMetadata1 =
   LinkPropertiesWithMetadata;
 
@@ -1174,30 +1176,30 @@ export interface OrganizationProperties {
    * @maxItems 5
    */
   "https://hash.ai/@hash/types/property-type/pinned-entity-type-base-url/"?:
-    | []
-    | [PinnedEntityTypeBaseURLPropertyValue]
-    | [
-        PinnedEntityTypeBaseURLPropertyValue,
-        PinnedEntityTypeBaseURLPropertyValue,
-      ]
-    | [
-        PinnedEntityTypeBaseURLPropertyValue,
-        PinnedEntityTypeBaseURLPropertyValue,
-        PinnedEntityTypeBaseURLPropertyValue,
-      ]
-    | [
-        PinnedEntityTypeBaseURLPropertyValue,
-        PinnedEntityTypeBaseURLPropertyValue,
-        PinnedEntityTypeBaseURLPropertyValue,
-        PinnedEntityTypeBaseURLPropertyValue,
-      ]
-    | [
-        PinnedEntityTypeBaseURLPropertyValue,
-        PinnedEntityTypeBaseURLPropertyValue,
-        PinnedEntityTypeBaseURLPropertyValue,
-        PinnedEntityTypeBaseURLPropertyValue,
-        PinnedEntityTypeBaseURLPropertyValue,
-      ];
+  | []
+  | [PinnedEntityTypeBaseURLPropertyValue]
+  | [
+    PinnedEntityTypeBaseURLPropertyValue,
+    PinnedEntityTypeBaseURLPropertyValue,
+  ]
+  | [
+    PinnedEntityTypeBaseURLPropertyValue,
+    PinnedEntityTypeBaseURLPropertyValue,
+    PinnedEntityTypeBaseURLPropertyValue,
+  ]
+  | [
+    PinnedEntityTypeBaseURLPropertyValue,
+    PinnedEntityTypeBaseURLPropertyValue,
+    PinnedEntityTypeBaseURLPropertyValue,
+    PinnedEntityTypeBaseURLPropertyValue,
+  ]
+  | [
+    PinnedEntityTypeBaseURLPropertyValue,
+    PinnedEntityTypeBaseURLPropertyValue,
+    PinnedEntityTypeBaseURLPropertyValue,
+    PinnedEntityTypeBaseURLPropertyValue,
+    PinnedEntityTypeBaseURLPropertyValue,
+  ];
   "https://hash.ai/@hash/types/property-type/shortname/": ShortnamePropertyValue;
   "https://hash.ai/@hash/types/property-type/website-url/"?: WebsiteURLPropertyValue;
 }
@@ -1333,7 +1335,7 @@ export interface PresentationFile {
 
 export type PresentationFileOutgoingLinkAndTarget = never;
 
-export interface PresentationFileOutgoingLinksByLinkEntityTypeId {}
+export interface PresentationFileOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * A presentation file.
@@ -1348,7 +1350,7 @@ export interface PresentationFileProperties2 {
 
 export type PresentationFilePropertiesWithMetadata =
   PresentationFilePropertiesWithMetadata1 &
-    PresentationFilePropertiesWithMetadata2;
+  PresentationFilePropertiesWithMetadata2;
 export type PresentationFilePropertiesWithMetadata1 =
   FilePropertiesWithMetadata;
 
@@ -1386,7 +1388,7 @@ export type ProfileBioProperties = ProfileBioProperties1 &
   ProfileBioProperties2;
 export type ProfileBioProperties1 = BlockCollectionProperties;
 
-export interface ProfileBioProperties2 {}
+export interface ProfileBioProperties2 { }
 
 export type ProfileBioPropertiesWithMetadata =
   ProfileBioPropertiesWithMetadata1 & ProfileBioPropertiesWithMetadata2;
@@ -1430,7 +1432,7 @@ export interface ServiceAccount {
 
 export type ServiceAccountOutgoingLinkAndTarget = never;
 
-export interface ServiceAccountOutgoingLinksByLinkEntityTypeId {}
+export interface ServiceAccountOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * A service account.
@@ -1457,7 +1459,7 @@ export interface ServiceFeature {
 
 export type ServiceFeatureOutgoingLinkAndTarget = never;
 
-export interface ServiceFeatureOutgoingLinksByLinkEntityTypeId {}
+export interface ServiceFeatureOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * A feature of a service.
@@ -1557,7 +1559,7 @@ export interface TextDataTypeMetadata {
 
 export type TextOutgoingLinkAndTarget = never;
 
-export interface TextOutgoingLinksByLinkEntityTypeId {}
+export interface TextOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * An ordered sequence of characters.
@@ -1581,9 +1583,9 @@ export type TextualContentPropertyValue = TextDataType | ObjectDataType[];
 export type TextualContentPropertyValueWithMetadata =
   | TextDataTypeWithMetadata
   | {
-      value: ObjectDataTypeWithMetadata[];
-      metadata?: ArrayMetadata;
-    };
+    value: ObjectDataTypeWithMetadata[];
+    metadata?: ArrayMetadata;
+  };
 
 /**
  * The title of something.
@@ -1627,7 +1629,7 @@ export interface TriggeredByUser {
 
 export type TriggeredByUserOutgoingLinkAndTarget = never;
 
-export interface TriggeredByUserOutgoingLinksByLinkEntityTypeId {}
+export interface TriggeredByUserOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * A user that triggered something.
@@ -1636,11 +1638,11 @@ export type TriggeredByUserProperties = TriggeredByUserProperties1 &
   TriggeredByUserProperties2;
 export type TriggeredByUserProperties1 = LinkProperties;
 
-export interface TriggeredByUserProperties2 {}
+export interface TriggeredByUserProperties2 { }
 
 export type TriggeredByUserPropertiesWithMetadata =
   TriggeredByUserPropertiesWithMetadata1 &
-    TriggeredByUserPropertiesWithMetadata2;
+  TriggeredByUserPropertiesWithMetadata2;
 export type TriggeredByUserPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
 
 export interface TriggeredByUserPropertiesWithMetadata2 {
@@ -1726,30 +1728,30 @@ export interface UserProperties2 {
    * @maxItems 5
    */
   "https://hash.ai/@hash/types/property-type/pinned-entity-type-base-url/"?:
-    | []
-    | [PinnedEntityTypeBaseURLPropertyValue]
-    | [
-        PinnedEntityTypeBaseURLPropertyValue,
-        PinnedEntityTypeBaseURLPropertyValue,
-      ]
-    | [
-        PinnedEntityTypeBaseURLPropertyValue,
-        PinnedEntityTypeBaseURLPropertyValue,
-        PinnedEntityTypeBaseURLPropertyValue,
-      ]
-    | [
-        PinnedEntityTypeBaseURLPropertyValue,
-        PinnedEntityTypeBaseURLPropertyValue,
-        PinnedEntityTypeBaseURLPropertyValue,
-        PinnedEntityTypeBaseURLPropertyValue,
-      ]
-    | [
-        PinnedEntityTypeBaseURLPropertyValue,
-        PinnedEntityTypeBaseURLPropertyValue,
-        PinnedEntityTypeBaseURLPropertyValue,
-        PinnedEntityTypeBaseURLPropertyValue,
-        PinnedEntityTypeBaseURLPropertyValue,
-      ];
+  | []
+  | [PinnedEntityTypeBaseURLPropertyValue]
+  | [
+    PinnedEntityTypeBaseURLPropertyValue,
+    PinnedEntityTypeBaseURLPropertyValue,
+  ]
+  | [
+    PinnedEntityTypeBaseURLPropertyValue,
+    PinnedEntityTypeBaseURLPropertyValue,
+    PinnedEntityTypeBaseURLPropertyValue,
+  ]
+  | [
+    PinnedEntityTypeBaseURLPropertyValue,
+    PinnedEntityTypeBaseURLPropertyValue,
+    PinnedEntityTypeBaseURLPropertyValue,
+    PinnedEntityTypeBaseURLPropertyValue,
+  ]
+  | [
+    PinnedEntityTypeBaseURLPropertyValue,
+    PinnedEntityTypeBaseURLPropertyValue,
+    PinnedEntityTypeBaseURLPropertyValue,
+    PinnedEntityTypeBaseURLPropertyValue,
+    PinnedEntityTypeBaseURLPropertyValue,
+  ];
   "https://hash.ai/@hash/types/property-type/preferred-pronouns/"?: PreferredPronounsPropertyValue;
   "https://hash.ai/@hash/types/property-type/shortname/"?: ShortnamePropertyValue;
   "https://hash.ai/@hash/types/property-type/website-url/"?: WebsiteURLPropertyValue;
@@ -1790,7 +1792,7 @@ export interface UserSecret {
 
 export type UserSecretOutgoingLinkAndTarget = never;
 
-export interface UserSecretOutgoingLinksByLinkEntityTypeId {}
+export interface UserSecretOutgoingLinksByLinkEntityTypeId { }
 
 /**
  * A secret or credential belonging to a user.

@@ -53,7 +53,6 @@ export const BlockRenderer: FunctionComponent<BlockRendererProps> = ({
         tagName={blockType.tagName}
       />
     );
-     
   }
   if (entryPoint === "react") {
     if (typeof blockSource !== "function") {
