@@ -2794,6 +2794,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "hql-ast"
+version = "0.1.0"
+
+[[package]]
+name = "hql-cst"
+version = "0.1.0"
+
+[[package]]
 name = "http"
 version = "0.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
