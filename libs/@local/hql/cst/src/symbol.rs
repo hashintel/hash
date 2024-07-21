@@ -97,5 +97,7 @@ where
         StreamIsPartial + Stream<Token: AsChar + Clone> + Compare<char> + for<'a> Compare<&'a str>,
     Error: ParserError<Input>,
 {
-    ('`', parse_operator, '`').recognize().parse_next(input)
+    delimited('`', parse_operator, '`')
+        .recognize()
+        .parse_next(input)
 }
