@@ -83,7 +83,9 @@ impl Display for Type<'_> {
 /// intersection = union *("&" union)
 /// type = intersection
 /// ```
-fn parse_type<'a, Input, Error>(input: &mut Stateful<Input, &'a Arena>) -> PResult<Type<'a>, Error>
+pub(crate) fn parse_type<'a, Input, Error>(
+    input: &mut Stateful<Input, &'a Arena>,
+) -> PResult<Type<'a>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
