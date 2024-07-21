@@ -1,7 +1,10 @@
 #![feature(allocator_api)]
 
+pub mod arena;
+pub(crate) mod parse;
 pub mod signature;
 pub mod symbol;
+pub mod r#type;
 
 extern crate alloc;
 

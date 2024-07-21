@@ -1,3 +1,4 @@
+use bumpalo::Bump;
 use smol_str::SmolStr;
 use unicode_ident::{is_xid_continue, is_xid_start};
 use winnow::{
@@ -5,9 +6,11 @@ use winnow::{
     error::ParserError,
     stream::{AsChar, Compare, Stream, StreamIsPartial},
     token::{literal, one_of, take_while},
-    PResult, Parser,
+    PResult, Parser, Stateful,
 };
 
+// TODO: in the future we might want to use the bump arena here as well.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Symbol(SmolStr);
 
 /// Implementation of Symbol parsing
@@ -23,7 +26,7 @@ pub struct Symbol(SmolStr);
 /// operator = "+" / "-" / "*" / "/" / "|" / "&" / "^" / "==" / "!=" / ">" / ">=" / "<" / "<="
 /// operatorSafe = "`" operators "`"
 /// ```
-fn parse_symbol<Input, Error>(input: &mut Input) -> PResult<Symbol, Error>
+pub(crate) fn parse_symbol<Input, Error>(input: &mut Input) -> PResult<Symbol, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
@@ -51,7 +54,9 @@ where
 /// ```
 fn parse_rust_identifier<Input, Error>(input: &mut Input) -> PResult<Input::Slice, Error>
 where
-    Input: StreamIsPartial + Stream<Token: AsChar + Clone> + Compare<char>,
+    Input: StreamIsPartial //
+        + Stream<Token: AsChar + Clone>
+        + Compare<char>,
     Error: ParserError<Input>,
 {
     (
@@ -59,10 +64,7 @@ where
             let c = c.as_char();
             is_xid_start(c) || c == '_'
         }),
-        take_while(0.., |c: Input::Token| {
-            let c = c.as_char();
-            is_xid_continue(c)
-        }),
+        take_while(0.., |c: Input::Token| is_xid_continue(c.as_char())),
     )
         .recognize()
         .parse_next(input)
@@ -77,8 +79,10 @@ where
 /// ```
 fn parse_operator<Input, Error>(input: &mut Input) -> PResult<Input::Slice, Error>
 where
-    Input:
-        StreamIsPartial + Stream<Token: AsChar + Clone> + Compare<char> + for<'a> Compare<&'a str>,
+    Input: StreamIsPartial //
+        + Stream<Token: AsChar + Clone>
+        + Compare<char>
+        + for<'a> Compare<&'a str>,
     Error: ParserError<Input>,
 {
     alt((
@@ -93,8 +97,10 @@ where
 
 fn parse_safe_operator<Input, Error>(input: &mut Input) -> PResult<Input::Slice, Error>
 where
-    Input:
-        StreamIsPartial + Stream<Token: AsChar + Clone> + Compare<char> + for<'a> Compare<&'a str>,
+    Input: StreamIsPartial //
+        + Stream<Token: AsChar + Clone>
+        + Compare<char>
+        + for<'a> Compare<&'a str>,
     Error: ParserError<Input>,
 {
     delimited('`', parse_operator, '`').parse_next(input)
