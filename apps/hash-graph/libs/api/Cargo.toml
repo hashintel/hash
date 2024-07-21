@@ -35,8 +35,8 @@ http-body-util = "0.1.2"
 hyper = "1.4.1"
 include_dir = "0.7.4"
 mime = "0.3.17"
-opentelemetry = "0.23.0"
-opentelemetry_sdk = { version = "0.23.0", features = ["rt-tokio"] }
+opentelemetry = "0.24.0"
+opentelemetry_sdk = { version = "0.24.0", features = ["rt-tokio"] }
 sentry = { version = "0.34.0", features = [
     "tracing",
     "tower",
@@ -51,7 +51,7 @@ tokio-util = { workspace = true, features = ["io"], optional = true }
 tower = "0.4.13"
 tower-http = { version = "0.5.2", features = ["trace"] }
 tracing = { workspace = true }
-tracing-opentelemetry = "0.24.0"
+tracing-opentelemetry = "0.25.0"
 utoipa = "4.2.3"
 uuid = { workspace = true }
 
