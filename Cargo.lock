@@ -2802,6 +2802,7 @@ name = "hql-cst"
 version = "0.1.0"
 dependencies = [
  "bumpalo",
+ "insta",
  "justjson",
  "smol_str",
  "unicode-ident",

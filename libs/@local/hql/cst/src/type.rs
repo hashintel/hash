@@ -1,4 +1,5 @@
 use alloc::alloc::Global;
+use core::fmt::{self, Display};
 
 use bumpalo::Bump;
 use winnow::{
@@ -14,10 +15,61 @@ use crate::{
     symbol::{parse_symbol, Symbol},
 };
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Type<'a> {
     Symbol(Symbol),
     Union(arena::Box<'a, [Type<'a>]>),
     Intersection(arena::Box<'a, [Type<'a>]>),
+}
+
+impl Display for Type<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Symbol(symbol) => Display::fmt(symbol, f),
+            Self::Union(types) => {
+                if types.len() > 1 {
+                    f.write_str("(")?;
+                }
+
+                let mut index = 0;
+                for ty in types {
+                    if index > 0 {
+                        f.write_str(" | ")?;
+                    }
+
+                    Display::fmt(ty, f)?;
+                    index += 1;
+                }
+
+                if types.len() > 1 {
+                    f.write_str(")")?;
+                }
+
+                Ok(())
+            }
+            Self::Intersection(types) => {
+                if types.len() > 1 {
+                    f.write_str("(")?;
+                }
+
+                let mut index = 0;
+                for ty in types {
+                    if index > 0 {
+                        f.write_str(" & ")?;
+                    }
+
+                    Display::fmt(ty, f)?;
+                    index += 1;
+                }
+
+                if types.len() > 1 {
+                    f.write_str(")")?;
+                }
+
+                Ok(())
+            }
+        }
+    }
 }
 
 /// Implementation of [`Type`] parsing
@@ -31,17 +83,15 @@ pub enum Type<'a> {
 /// intersection = union *("&" union)
 /// type = intersection
 /// ```
-fn parse_type<'a, Input, Error>(
-    input: &mut Stateful<Input, &'a Arena>,
-) -> PResult<Signature<'a>, Error>
+fn parse_type<'a, Input, Error>(input: &mut Stateful<Input, &'a Arena>) -> PResult<Type<'a>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
         + Compare<char>
-        + for<'a> Compare<&'a str>,
-    Error: ParserError<Input>,
+        + for<'b> Compare<&'b str>,
+    Error: ParserError<Stateful<Input, &'a Arena>>,
 {
-    alt((parse_intersection)).parse_next(input)
+    parse_intersection.parse_next(input)
 }
 
 fn parse_primary<'a, Input, Error>(
@@ -51,12 +101,12 @@ where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
         + Compare<char>
-        + for<'a> Compare<&'a str>,
-    Error: ParserError<Input>,
+        + for<'b> Compare<&'b str>,
+    Error: ParserError<Stateful<Input, &'a Arena>>,
 {
     alt((
-        parse_symbol.map(Type::Symbol), //
-        parse_enclosed,
+        parse_enclosed, //
+        parse_symbol.map(Type::Symbol),
     ))
     .parse_next(input)
 }
@@ -68,8 +118,8 @@ where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
         + Compare<char>
-        + for<'a> Compare<&'a str>,
-    Error: ParserError<Input>,
+        + for<'b> Compare<&'b str>,
+    Error: ParserError<Stateful<Input, &'a Arena>>,
 {
     delimited('(', parse_type, ')').parse_next(input)
 }
@@ -79,13 +129,13 @@ where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
         + Compare<char>
-        + for<'a> Compare<&'a str>,
-    Error: ParserError<Input>,
+        + for<'b> Compare<&'b str>,
+    Error: ParserError<Stateful<Input, &'a Arena>>,
 {
     let arena = input.state;
 
     (
-        parse_type,
+        parse_primary,
         repeat(0.., preceded(ws('|'), parse_primary)).fold(
             || arena.vec(None),
             |mut acc, value: Type<'a>| {
@@ -113,14 +163,14 @@ where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
         + Compare<char>
-        + for<'a> Compare<&'a str>,
-    Error: ParserError<Input>,
+        + for<'b> Compare<&'b str>,
+    Error: ParserError<Stateful<Input, &'a Arena>>,
 {
     let arena = input.state;
 
     (
         parse_union,
-        repeat(0.., preceded('&', parse_union)).fold(
+        repeat(0.., preceded(ws('&'), parse_union)).fold(
             || arena.vec(None),
             |mut acc, value: Type<'a>| {
                 acc.push(value);
@@ -139,3 +189,90 @@ where
         })
         .parse_next(input)
 }
+
+#[cfg(test)]
+mod test {
+    use bumpalo::Bump;
+    use insta::assert_snapshot;
+    use winnow::{
+        error::{ContextError, ErrMode, ParseError},
+        Parser, Stateful,
+    };
+
+    use super::Type;
+    use crate::arena::Arena;
+
+    #[track_caller]
+    fn parse<'a, 'b>(
+        arena: &'a Arena,
+        value: &'b str,
+    ) -> Result<Type<'a>, ParseError<Stateful<&'b str, &'a Arena>, ErrMode<ContextError>>> {
+        let mut state = Stateful {
+            input: value,
+            state: arena,
+        };
+
+        super::parse_type.parse(state)
+    }
+
+    #[track_caller]
+    fn parse_ok<'a>(arena: &'a Arena, value: &str) -> Type<'a> {
+        parse(arena, value).expect("should be valid symbol")
+    }
+
+    #[test]
+    fn union() {
+        let mut arena = Arena::new();
+
+        assert_snapshot!(parse_ok(&arena, "Int"), @"Int");
+        assert_snapshot!(parse_ok(&arena, "Int | Float"), @"(Int | Float)");
+        assert_snapshot!(parse_ok(&arena, "Int | Float | Bool"), @"(Int | Float | Bool)");
+    }
+
+    #[test]
+    fn intersection() {
+        let mut arena = Arena::new();
+
+        assert_snapshot!(parse_ok(&arena, "Int"), @"Int");
+        assert_snapshot!(parse_ok(&arena, "Int & Float"), @"(Int & Float)");
+        assert_snapshot!(parse_ok(&arena, "Int & Float & Bool"), @"(Int & Float & Bool)");
+    }
+
+    #[test]
+    fn precedence() {
+        let mut arena = Arena::new();
+
+        assert_snapshot!(parse_ok(&arena, "Int | Float & Bool"), @"((Int | Float) & Bool)");
+        assert_snapshot!(parse_ok(&arena, "Int & Float | Bool"), @"(Int & (Float | Bool))");
+        assert_snapshot!(parse_ok(&arena, "Int & (Float | Bool)"), @"(Int & (Float | Bool))");
+    }
+
+    #[test]
+    fn whitespace() {
+        let mut arena = Arena::new();
+
+        assert_snapshot!(parse_ok(&arena, "Int|Float&Bool"), @"((Int | Float) & Bool)");
+        assert_snapshot!(parse_ok(&arena, "Int | Float & Bool"), @"((Int | Float) & Bool)");
+        assert_snapshot!(parse_ok(&arena, "Int   |   Float   &   Bool"), @"((Int | Float) & Bool)");
+    }
+
+    #[test]
+    fn enclosed() {
+        let mut arena = Arena::new();
+
+        assert_snapshot!(parse_ok(&arena, "(Int)"), @"Int");
+        assert_snapshot!(parse_ok(&arena, "(Int | Float)"), @"(Int | Float)");
+        assert_snapshot!(parse_ok(&arena, "(Int | Float) & Bool"), @"((Int | Float) & Bool)");
+    }
+
+    #[test]
+    fn symbol() {
+        let mut arena = Arena::new();
+
+        assert_snapshot!(parse_ok(&arena, "Int"), @"Int");
+        assert_snapshot!(parse_ok(&arena, "Float"), @"Float");
+        assert_snapshot!(parse_ok(&arena, "Bool"), @"Bool");
+    }
+}
+
+// TODO: tests (precedence, etc.)

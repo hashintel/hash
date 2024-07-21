@@ -51,7 +51,7 @@ where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
         + Compare<char>
-        + for<'a> Compare<&'a str>,
+        + for<'b> Compare<&'b str>,
     Error: ParserError<Input>,
 {
     todo!()
