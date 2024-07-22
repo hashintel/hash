@@ -132,7 +132,7 @@ type EntityResultRow = {
   onEntityTypeClick: (entityTypeId: VersionedUrl) => void;
   persistedEntity?: Entity;
   properties: PropertyObject;
-  propertyMetadata: PropertyMetadataObject;
+  propertiesMetadata: PropertyMetadataObject;
   researchOngoing: boolean;
   status: "Proposed" | "Created" | "Updated";
 };
@@ -220,73 +220,77 @@ const SourcesList = ({ sources }: { sources: SourceProvenance[] }) => {
   );
 };
 
-const PropertyValueCell = memo(
-  ({ metadata, value }: { metadata: ValueMetadata; value: PropertyValue }) => {
-    const [showMetadataTooltip, setShowMetadataTooltip] = useState(false);
+const PropertyValueCell = ({
+  metadata,
+  value,
+}: {
+  metadata?: ValueMetadata;
+  value: PropertyValue;
+}) => {
+  const [showMetadataTooltip, setShowMetadataTooltip] = useState(false);
 
-    const stringifiedValue = stringifyPropertyValue(value);
-    const cellRef = useRef<HTMLDivElement>(null);
+  const stringifiedValue = stringifyPropertyValue(value);
+  const cellRef = useRef<HTMLDivElement>(null);
 
-    const buttonId = generateUuid();
+  const buttonId = generateUuid();
 
-    return (
-      <TableCell sx={{ ...cellSx, maxWidth: 700 }} ref={cellRef}>
-        <Stack direction="row" alignItems="center">
-          <Typography
-            sx={{
-              ...typographySx,
-              lineHeight: 1,
-              textOverflow: "ellipsis",
-              overflow: "hidden",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {stringifiedValue}
-          </Typography>
-          <IconButton
-            aria-describedby={buttonId}
-            onClick={() => setShowMetadataTooltip(true)}
-            sx={{ ml: 1 }}
-          >
-            <CircleInfoIcon
-              sx={{
-                fontSize: 12,
-                fill: ({ palette }) => palette.gray[40],
-              }}
-            />
-          </IconButton>
-        </Stack>
-        <Popover
-          id={showMetadataTooltip}
-          open={showMetadataTooltip}
-          anchorEl={cellRef.current}
-          onClose={() => setShowMetadataTooltip(false)}
-          anchorOrigin={{
-            vertical: "bottom",
-            horizontal: "left",
+  return (
+    <TableCell sx={{ ...cellSx, maxWidth: 700 }} ref={cellRef}>
+      <Stack direction="row" alignItems="center">
+        <Typography
+          sx={{
+            ...typographySx,
+            lineHeight: 1,
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
           }}
-          slotProps={{
-            paper: {
-              sx: {
-                borderRadius: 2,
-                width: cellRef.current?.scrollWidth,
-                minWidth: "fit-content",
-              },
-            },
-            root: {
-              sx: {
-                background: "rgba(0,0,0,0.3)",
-              },
-            },
-          }}
-          transitionDuration={50}
         >
-          <SourcesList sources={metadata.provenance?.sources ?? []} />
-        </Popover>
-      </TableCell>
-    );
-  },
-);
+          {stringifiedValue}
+        </Typography>
+        <IconButton
+          aria-describedby={buttonId}
+          onClick={() => setShowMetadataTooltip(true)}
+          sx={{ ml: 1 }}
+        >
+          <CircleInfoIcon
+            sx={{
+              fontSize: 12,
+              fill: ({ palette }) => palette.gray[40],
+            }}
+          />
+        </IconButton>
+      </Stack>
+      <Popover
+        id={buttonId}
+        open={showMetadataTooltip}
+        anchorEl={cellRef.current}
+        onClose={() => setShowMetadataTooltip(false)}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "left",
+        }}
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: 2,
+              width: cellRef.current?.scrollWidth,
+              minWidth: "fit-content",
+            },
+          },
+          root: {
+            sx: {
+              background: "rgba(0,0,0,0.3)",
+            },
+          },
+        }}
+        transitionDuration={50}
+      >
+        <SourcesList sources={metadata?.provenance?.sources ?? []} />
+      </Popover>
+    </TableCell>
+  );
+};
 
 const TableRow = memo(
   ({
@@ -425,7 +429,9 @@ const TableRow = memo(
           }
 
           const metadata =
-            row.propertyMetadata.value[extractBaseUrl(column.id)].metadata;
+            row.propertiesMetadata.value[
+              extractBaseUrl(column.id as VersionedUrl)
+            ]?.metadata;
 
           return (
             <PropertyValueCell
@@ -488,7 +494,7 @@ export const EntityResultTable = ({
       const isProposed = "localEntityId" in record;
 
       const entity = isProposed
-        ? (record as Omit<ProposedEntity, "provenance">)
+        ? record
         : record.entity
           ? new Entity(record.entity)
           : undefined;
@@ -561,7 +567,11 @@ export const EntityResultTable = ({
               )
             : undefined,
           properties: entity.properties,
-          propertyMetadata: entity.propertyMetadata,
+          propertiesMetadata:
+            "propertiesMetadata" in entity
+              ? entity.propertiesMetadata
+              : // eslint-disable-next-line @typescript-eslint/unbound-method
+                entity.propertyMetadata,
           researchOngoing:
             "researchOngoing" in record && record.researchOngoing,
           status: isProposed
