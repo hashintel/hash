@@ -98,6 +98,17 @@ impl EdgeKind<PropertyTypeVertexId, DataTypeVertexId> for OntologyEdgeKind {
     }
 }
 
+impl EdgeKind<DataTypeVertexId, DataTypeVertexId> for OntologyEdgeKind {
+    type EdgeSet = HashSet<DataTypeVertexId>;
+
+    fn subgraph_entry_mut<'a>(
+        &self,
+        edges: &'a mut Edges,
+    ) -> &'a mut AdjacencyList<DataTypeVertexId, Self, Self::EdgeSet> {
+        &mut edges.data_type_to_data_type
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
