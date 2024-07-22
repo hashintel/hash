@@ -244,7 +244,8 @@ where
                 (
                     OntologyEdgeKind::InheritsFrom,
                     ReferenceTable::DataTypeInheritsFrom {
-                        inheritance_depth: None,
+                        // TODO: Use the resolve depths passed to the query
+                        inheritance_depth: Some(0),
                     },
                 ),
                 (

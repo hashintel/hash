@@ -14,8 +14,8 @@ use crate::{
         postgres::{
             ontology::OntologyId,
             query::{
-                Column, Distinctness, ForeignKeyReference, ReferenceTable, SelectCompiler, Table,
-                Transpile,
+                table::DatabaseColumn, Distinctness, ForeignKeyReference, ReferenceTable,
+                SelectCompiler, Table, Transpile,
             },
         },
         query::Filter,
@@ -114,12 +114,10 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
 
         let depth = reference_table
             .inheritance_depth_column()
-            .and_then(Column::inheritance_depth);
+            .and_then(|column| Some((column.as_str(), column.inheritance_depth()?)));
 
         let where_statement = match depth {
-            Some(depth) if depth != 0 => {
-                Cow::Owned(format!("WHERE {table}.inheritance_depth <= {depth}"))
-            }
+            Some((column, depth)) => Cow::Owned(format!("WHERE {table}.{column} <= {depth}")),
             _ => Cow::Borrowed(""),
         };
 

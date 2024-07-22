@@ -304,4 +304,15 @@ impl GraphResolveDepths {
         *depths = depths.checked_sub(1)?;
         Some(self)
     }
+
+    #[must_use]
+    pub fn zero_depth_for_edge(
+        mut self,
+        kind: impl GraphResolveDepthIndex,
+        direction: EdgeDirection,
+    ) -> Self {
+        let depths = kind.depth_mut(direction, &mut self);
+        *depths = 0;
+        self
+    }
 }

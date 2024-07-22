@@ -59,12 +59,10 @@ pub enum ReferenceTable {
 impl ReferenceTable {
     pub fn inheritance_depth_column(self) -> Option<Column> {
         match self {
-            Self::DataTypeInheritsFrom { inheritance_depth } if inheritance_depth != Some(0) => {
-                Some(Column::DataTypeInheritsFrom(
-                    DataTypeInheritsFrom::InheritanceDepth,
-                    inheritance_depth,
-                ))
-            }
+            Self::DataTypeInheritsFrom { inheritance_depth } => Some(Column::DataTypeInheritsFrom(
+                DataTypeInheritsFrom::Depth,
+                inheritance_depth,
+            )),
             Self::EntityTypeConstrainsPropertiesOn { inheritance_depth }
                 if inheritance_depth != Some(0) =>
             {
@@ -843,14 +841,14 @@ impl DatabaseColumn for DataTypeConstrainsValuesOn {
 pub enum DataTypeInheritsFrom {
     SourceDataTypeOntologyId,
     TargetDataTypeOntologyId,
-    InheritanceDepth,
+    Depth,
 }
 
 impl DatabaseColumn for DataTypeInheritsFrom {
     fn parameter_type(self) -> ParameterType {
         match self {
             Self::SourceDataTypeOntologyId | Self::TargetDataTypeOntologyId => ParameterType::Uuid,
-            Self::InheritanceDepth => ParameterType::I32,
+            Self::Depth => ParameterType::I32,
         }
     }
 
@@ -862,7 +860,7 @@ impl DatabaseColumn for DataTypeInheritsFrom {
         match self {
             Self::SourceDataTypeOntologyId => "source_data_type_ontology_id",
             Self::TargetDataTypeOntologyId => "target_data_type_ontology_id",
-            Self::InheritanceDepth => "inheritance_depth",
+            Self::Depth => "depth",
         }
     }
 }
