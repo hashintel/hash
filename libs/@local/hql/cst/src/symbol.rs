@@ -1,15 +1,14 @@
 use core::fmt::Display;
 use std::fmt;
 
-use bumpalo::Bump;
 use smol_str::SmolStr;
 use unicode_ident::{is_xid_continue, is_xid_start};
 use winnow::{
-    combinator::{alt, delimited, dispatch, empty, opt},
+    combinator::{delimited, dispatch, empty, fail, opt, peek},
     error::ParserError,
     stream::{AsChar, Compare, Stream, StreamIsPartial},
-    token::{literal, one_of, take_while},
-    PResult, Parser, Stateful,
+    token::{any, one_of, take_while},
+    PResult, Parser,
 };
 
 // TODO: in the future we might want to use the bump arena here as well.
@@ -19,6 +18,29 @@ pub struct Symbol(SmolStr);
 impl Display for Symbol {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.0, f)
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) enum ParseRestriction {
+    None,
+    RustOnly,
+    OperatorsOnly,
+}
+
+impl ParseRestriction {
+    fn is_rust(&self) -> bool {
+        matches!(self, Self::None | Self::RustOnly)
+    }
+
+    fn is_operators(&self) -> bool {
+        matches!(self, Self::None | Self::OperatorsOnly)
+    }
+}
+
+impl Default for ParseRestriction {
+    fn default() -> Self {
+        Self::None
     }
 }
 
@@ -35,7 +57,9 @@ impl Display for Symbol {
 /// operator = "+" / "-" / "*" / "/" / "|" / "&" / "^" / "==" / "!=" / ">" / ">=" / "<" / "<="
 /// operatorSafe = "`" operators "`"
 /// ```
-pub(crate) fn parse_symbol<Input, Error>(input: &mut Input) -> PResult<Symbol, Error>
+pub(crate) fn parse_symbol<Input, Error>(
+    restriction: ParseRestriction,
+) -> impl Parser<Input, Symbol, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
@@ -43,14 +67,18 @@ where
         + for<'a> Compare<&'a str>,
     Error: ParserError<Input>,
 {
-    alt((
-        parse_rust_identifier, //
-        parse_operator,
-        parse_safe_operator,
-    ))
-    .map(SmolStr::new)
-    .map(Symbol)
-    .parse_next(input)
+    move |input: &mut Input| {
+        dispatch! {peek(any).map(|token: Input::Token| token.as_char());
+            char if restriction.is_rust() && is_xid_start(char) => parse_rust_identifier,
+            '_' if restriction.is_rust() => parse_rust_identifier,
+            char if restriction.is_operators() && OPERATORS_PREFIX.contains(&char) => parse_operator,
+            '`' if restriction.is_operators() => parse_safe_operator,
+            _ => fail
+        }
+        .map(SmolStr::new)
+        .map(Symbol)
+        .parse_next(input)
+    }
 }
 
 /// Implementation of `regular` and `ignore` parsing
@@ -79,6 +107,8 @@ where
         .parse_next(input)
 }
 
+const OPERATORS_PREFIX: &[char] = &['=', '!', '>', '<', '+', '-', '*', '/', '|', '&', '^'];
+
 /// Implementation of `operator` parsing
 ///
 /// # Syntax
@@ -94,7 +124,7 @@ where
         + for<'a> Compare<&'a str>,
     Error: ParserError<Input>,
 {
-    dispatch! {one_of(['=', '!', '>', '<', '+', '-', '*', '/', '|', '&', '^']).map(AsChar::as_char);
+    dispatch! {one_of(OPERATORS_PREFIX).map(AsChar::as_char);
         '=' | '!' | '>' | '<' => opt('=').void(),
         _ => empty.void()
     }
@@ -115,77 +145,176 @@ where
 
 #[cfg(test)]
 mod test {
+    #![expect(
+        clippy::non_ascii_literal,
+        reason = "using umlaute for XID_START testing purposes"
+    )]
     use insta::{assert_debug_snapshot, assert_snapshot};
     use winnow::{
         error::{ContextError, ErrMode, ParseError},
-        PResult, Parser,
+        Parser,
     };
 
-    use super::Symbol;
+    use super::{ParseRestriction, Symbol};
 
     #[track_caller]
-    fn parse(value: &str) -> Result<Symbol, ParseError<&str, ErrMode<ContextError>>> {
-        let mut cursor = value;
+    fn parse(
+        value: &str,
+        restriction: ParseRestriction,
+    ) -> Result<Symbol, ParseError<&str, ErrMode<ContextError>>> {
+        let cursor = value;
 
-        super::parse_symbol.parse(cursor)
+        super::parse_symbol(restriction).parse(cursor)
     }
 
     #[track_caller]
-    fn parse_ok(value: &str) -> Symbol {
-        parse(value).expect("should be valid symbol")
+    fn parse_ok(value: &str, restriction: ParseRestriction) -> Symbol {
+        parse(value, restriction).expect("should be valid symbol")
+    }
+
+    #[track_caller]
+    fn parse_err(
+        value: &str,
+        restriction: ParseRestriction,
+    ) -> ParseError<&str, ErrMode<ContextError>> {
+        parse(value, restriction).expect_err("should be invalid symbol")
     }
 
     #[test]
-    fn unicode() {
-        assert_snapshot!(parse_ok("m"), @"m");
-        assert_snapshot!(parse_ok("main"), @"main");
-        assert_snapshot!(parse_ok("main_"), @"main_");
-        assert_snapshot!(parse_ok("main_123"), @"main_123");
-        assert_snapshot!(parse_ok("übung"), @"übung");
-        assert_snapshot!(parse_ok("_"), @"_");
-        assert_snapshot!(parse_ok("_test"), @"_test");
+    fn rust() {
+        assert_snapshot!(parse_ok("m", ParseRestriction::None), @"m");
+        assert_snapshot!(parse_ok("main", ParseRestriction::None), @"main");
+        assert_snapshot!(parse_ok("main_", ParseRestriction::None), @"main_");
+        assert_snapshot!(parse_ok("main_123", ParseRestriction::None), @"main_123");
+        assert_snapshot!(parse_ok("übung", ParseRestriction::None), @"übung");
+        assert_snapshot!(parse_ok("_", ParseRestriction::None), @"_");
+        assert_snapshot!(parse_ok("_test", ParseRestriction::None), @"_test");
+
+        assert_debug_snapshot!(parse_err("123", ParseRestriction::None), @r###"
+        ParseError {
+            input: "123",
+            offset: 0,
+            inner: Backtrack(
+                ContextError {
+                    context: [],
+                    cause: None,
+                },
+            ),
+        }
+        "###);
     }
 
     #[test]
-    fn ignored() {
-        assert_snapshot!(parse_ok("_"), @"_");
-        assert_snapshot!(parse_ok("_test"), @"_test");
+    fn rust_ignored() {
+        assert_snapshot!(parse_ok("_", ParseRestriction::None), @"_");
+        assert_snapshot!(parse_ok("_test", ParseRestriction::None), @"_test");
+    }
+
+    #[test]
+    fn rust_restrictions() {
+        assert_snapshot!(parse_ok("übung", ParseRestriction::RustOnly), @"übung");
+        assert_debug_snapshot!(parse_err("+", ParseRestriction::RustOnly), @r###"
+        ParseError {
+            input: "+",
+            offset: 0,
+            inner: Backtrack(
+                ContextError {
+                    context: [],
+                    cause: None,
+                },
+            ),
+        }
+        "###);
+        assert_debug_snapshot!(parse_err("übung", ParseRestriction::OperatorsOnly), @r###"
+        ParseError {
+            input: "übung",
+            offset: 0,
+            inner: Backtrack(
+                ContextError {
+                    context: [],
+                    cause: None,
+                },
+            ),
+        }
+        "###);
     }
 
     #[test]
     fn operators() {
-        assert_snapshot!(parse_ok("+"), @"+");
-        assert_snapshot!(parse_ok("-"), @"-");
-        assert_snapshot!(parse_ok("*"), @"*");
-        assert_snapshot!(parse_ok("/"), @"/");
-        assert_snapshot!(parse_ok("|"), @"|");
-        assert_snapshot!(parse_ok("&"), @"&");
-        assert_snapshot!(parse_ok("^"), @"^");
-        assert_snapshot!(parse_ok("=="), @"==");
-        assert_snapshot!(parse_ok("!"), @"!");
-        assert_snapshot!(parse_ok("!="), @"!=");
-        assert_snapshot!(parse_ok(">"), @">");
-        assert_snapshot!(parse_ok(">="), @">=");
-        assert_snapshot!(parse_ok("<"), @"<");
-        assert_snapshot!(parse_ok("<="), @"<=");
+        assert_snapshot!(parse_ok("+", ParseRestriction::None), @"+");
+        assert_snapshot!(parse_ok("-", ParseRestriction::None), @"-");
+        assert_snapshot!(parse_ok("*", ParseRestriction::None), @"*");
+        assert_snapshot!(parse_ok("/", ParseRestriction::None), @"/");
+        assert_snapshot!(parse_ok("|", ParseRestriction::None), @"|");
+        assert_snapshot!(parse_ok("&", ParseRestriction::None), @"&");
+        assert_snapshot!(parse_ok("^", ParseRestriction::None), @"^");
+        assert_snapshot!(parse_ok("==", ParseRestriction::None), @"==");
+        assert_snapshot!(parse_ok("!", ParseRestriction::None), @"!");
+        assert_snapshot!(parse_ok("!=", ParseRestriction::None), @"!=");
+        assert_snapshot!(parse_ok(">", ParseRestriction::None), @">");
+        assert_snapshot!(parse_ok(">=", ParseRestriction::None), @">=");
+        assert_snapshot!(parse_ok("<", ParseRestriction::None), @"<");
+        assert_snapshot!(parse_ok("<=", ParseRestriction::None), @"<=");
     }
 
     #[test]
     fn operators_safe() {
-        assert_snapshot!(parse_ok("`+`"), @"+");
-        assert_snapshot!(parse_ok("`-`"), @"-");
-        assert_snapshot!(parse_ok("`*`"), @"*");
-        assert_snapshot!(parse_ok("`/`"), @"/");
-        assert_snapshot!(parse_ok("`|`"), @"|");
-        assert_snapshot!(parse_ok("`&`"), @"&");
-        assert_snapshot!(parse_ok("`^`"), @"^");
-        assert_snapshot!(parse_ok("`==`"), @"==");
-        assert_snapshot!(parse_ok("`!`"), @"!");
-        assert_snapshot!(parse_ok("`!=`"), @"!=");
-        assert_snapshot!(parse_ok("`>`"), @">");
-        assert_snapshot!(parse_ok("`>=`"), @">=");
-        assert_snapshot!(parse_ok("`<`"), @"<");
-        assert_snapshot!(parse_ok("`<=`"), @"<=");
+        assert_snapshot!(parse_ok("`+`", ParseRestriction::None), @"+");
+        assert_snapshot!(parse_ok("`-`", ParseRestriction::None), @"-");
+        assert_snapshot!(parse_ok("`*`", ParseRestriction::None), @"*");
+        assert_snapshot!(parse_ok("`/`", ParseRestriction::None), @"/");
+        assert_snapshot!(parse_ok("`|`", ParseRestriction::None), @"|");
+        assert_snapshot!(parse_ok("`&`", ParseRestriction::None), @"&");
+        assert_snapshot!(parse_ok("`^`", ParseRestriction::None), @"^");
+        assert_snapshot!(parse_ok("`==`", ParseRestriction::None), @"==");
+        assert_snapshot!(parse_ok("`!`", ParseRestriction::None), @"!");
+        assert_snapshot!(parse_ok("`!=`", ParseRestriction::None), @"!=");
+        assert_snapshot!(parse_ok("`>`", ParseRestriction::None), @">");
+        assert_snapshot!(parse_ok("`>=`", ParseRestriction::None), @">=");
+        assert_snapshot!(parse_ok("`<`", ParseRestriction::None), @"<");
+        assert_snapshot!(parse_ok("`<=`", ParseRestriction::None), @"<=");
+
+        assert_debug_snapshot!(parse_err("`ü`", ParseRestriction::None), @r###"
+        ParseError {
+            input: "`ü`",
+            offset: 1,
+            inner: Backtrack(
+                ContextError {
+                    context: [],
+                    cause: None,
+                },
+            ),
+        }
+        "###);
+    }
+
+    #[test]
+    fn operators_restrictions() {
+        assert_snapshot!(parse_ok("+", ParseRestriction::OperatorsOnly), @"+");
+        assert_debug_snapshot!(parse_err("+", ParseRestriction::RustOnly), @r###"
+        ParseError {
+            input: "+",
+            offset: 0,
+            inner: Backtrack(
+                ContextError {
+                    context: [],
+                    cause: None,
+                },
+            ),
+        }
+        "###);
+        assert_debug_snapshot!(parse_err("ü", ParseRestriction::OperatorsOnly), @r###"
+        ParseError {
+            input: "ü",
+            offset: 0,
+            inner: Backtrack(
+                ContextError {
+                    context: [],
+                    cause: None,
+                },
+            ),
+        }
+        "###);
     }
 }
 

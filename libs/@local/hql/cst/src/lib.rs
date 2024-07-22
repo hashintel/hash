@@ -1,4 +1,4 @@
-#![feature(allocator_api)]
+#![feature(allocator_api, box_into_boxed_slice)]
 
 pub mod arena;
 pub(crate) mod parse;

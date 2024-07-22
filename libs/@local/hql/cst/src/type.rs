@@ -12,7 +12,7 @@ use winnow::{
 use crate::{
     arena::{self, Arena},
     parse::ws,
-    symbol::{parse_symbol, Symbol},
+    symbol::{self, parse_symbol, Symbol},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -74,10 +74,12 @@ impl Display for Type<'_> {
 
 /// Implementation of [`Type`] parsing
 ///
+/// Types are only allowed to be valid rust symbols, operators are *not* allowed.
+///
 /// # Syntax
 ///
 /// ```abnf
-/// primary = symbol / enclosed
+/// primary = symbol-rust / enclosed
 /// enclosed = "(" type ")"
 /// union = primary *("|" primary)
 /// intersection = union *("&" union)
@@ -108,7 +110,7 @@ where
 {
     alt((
         parse_enclosed, //
-        parse_symbol.map(Type::Symbol),
+        parse_symbol(symbol::ParseRestriction::RustOnly).map(Type::Symbol),
     ))
     .parse_next(input)
 }

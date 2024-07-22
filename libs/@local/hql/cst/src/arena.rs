@@ -27,4 +27,8 @@ impl Arena {
             None => Vec::new_in(&self.bump),
         }
     }
+
+    pub fn boxed<T>(&self, value: T) -> Box<'_, T> {
+        Box::new_in(value, &self.bump)
+    }
 }

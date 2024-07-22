@@ -1,7 +1,11 @@
+use core::{fmt, fmt::Display};
+
 use bumpalo::Bump;
 use smol_str::SmolStr;
 use winnow::{
-    combinator::{delimited, opt, preceded, repeat, separated, separated_pair, todo},
+    combinator::{
+        delimited, opt, preceded, repeat, separated, separated_foldl1, separated_pair, todo, trace,
+    },
     error::ParserError,
     stream::{AsChar, Compare, Stream, StreamIsPartial},
     PResult, Parser, Stateful,
@@ -9,8 +13,8 @@ use winnow::{
 
 use crate::{
     arena::{self, Arena},
-    parse::ws,
-    symbol::{parse_symbol, Symbol},
+    parse::{separated_boxed1, ws, VecOrOne},
+    symbol::{self, parse_symbol, Symbol},
     r#type::{parse_type, Type},
 };
 
@@ -23,10 +27,53 @@ pub struct Signature<'a> {
     r#return: Return<'a>,
 }
 
+impl<'a> Display for Signature<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if !self.generics.is_empty() {
+            f.write_str("<")?;
+            for (index, generic) in self.generics.iter().enumerate() {
+                if index > 0 {
+                    f.write_str(", ")?;
+                }
+
+                Display::fmt(generic, f)?;
+            }
+            f.write_str(">")?;
+        }
+
+        f.write_str("(")?;
+
+        for (index, argument) in self.arguments.iter().enumerate() {
+            if index > 0 {
+                f.write_str(", ")?;
+            }
+
+            Display::fmt(argument, f)?;
+        }
+
+        f.write_str(") -> ")?;
+
+        Display::fmt(&self.r#return, f)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Generic<'a> {
     name: Symbol,
     bound: Option<Type<'a>>,
+}
+
+impl<'a> Display for Generic<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.name, f)?;
+
+        if let Some(bound) = &self.bound {
+            f.write_str(": ")?;
+            Display::fmt(bound, f)
+        } else {
+            Ok(())
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -35,19 +82,35 @@ pub struct Argument<'a> {
     r#type: Type<'a>,
 }
 
+impl<'a> Display for Argument<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.name, f)?;
+        f.write_str(": ")?;
+        Display::fmt(&self.r#type, f)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Return<'a> {
     r#type: Type<'a>,
 }
 
+impl<'a> Display for Return<'a> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.r#type, f)
+    }
+}
+
 /// Implementation of [`Signature`] parsing
-// TODO: ability to omit return type?! (Needs to be like Unit type as return type)
+///
+/// Arguments and generics are only allowed to be rust symbols, operators are **not** allowed
+///
 /// # Syntax
 ///
 /// ```abnf
 /// signature = [generics] "(" [ argument *("," argument) ] ")" "->" type
-/// generics = "<" symbol [":" type ] ">"
-/// argument = symbol ":" type
+/// generics = "<" symbol-rust [":" type ] ">"
+/// argument = symbol-rust ":" type
 /// ```
 fn parse_signature<'a, Input, Error>(
     input: &mut Stateful<Input, &'a Arena>,
@@ -61,16 +124,20 @@ where
 {
     let arena = input.state;
 
-    let generics = opt(parse_generics)
-        .map(|generics| generics.unwrap_or_else(|| arena.vec(None).into_boxed_slice()));
-
-    (generics, parse_argument_list, parse_return)
-        .map(|(generics, arguments, r#return)| Signature {
-            generics,
-            arguments,
-            r#return,
-        })
-        .parse_next(input)
+    trace(
+        "signature",
+        (
+            opt(parse_generics).map(|generics| generics.unwrap_or_else(|| arena.boxed([]))),
+            parse_arguments,
+            parse_return,
+        )
+            .map(|(generics, arguments, r#return)| Signature {
+                generics,
+                arguments,
+                r#return,
+            }),
+    )
+    .parse_next(input)
 }
 
 fn parse_generic<'a, Input, Error>(
@@ -83,9 +150,15 @@ where
         + for<'b> Compare<&'b str>,
     Error: ParserError<Stateful<Input, &'a Arena>>,
 {
-    (parse_symbol, opt(preceded(ws(':'), parse_type)))
-        .map(|(name, bound)| Generic { name, bound })
-        .parse_next(input)
+    trace(
+        "generic",
+        (
+            parse_symbol(symbol::ParseRestriction::RustOnly),
+            opt(preceded(ws(':'), parse_type)),
+        )
+            .map(|(name, bound)| Generic { name, bound }),
+    )
+    .parse_next(input)
 }
 
 // TODO: generics are not working properly, <> isn't working, also trailing , isn't
@@ -108,27 +181,20 @@ where
 {
     let arena = input.state;
 
-    delimited(
-        ws('<'),
-        opt((
-            parse_generic,
-            repeat(0.., preceded(ws(','), parse_generic)).fold(
-                || arena.vec(None),
-                |mut acc, generic| {
-                    acc.push(generic);
-                    acc
-                },
-            ),
-            opt(ws(',')).void(),
-        ))
-        .map(|generics| match generics {
-            Some((first, mut rest, ())) => {
-                rest.insert(0, first);
-                rest.into_boxed_slice()
-            }
-            None => arena.vec(Some(0)).into_boxed_slice(),
-        }),
-        ws('>'),
+    trace(
+        "generics",
+        delimited(
+            ws('<'),
+            opt((
+                separated_boxed1(arena, parse_generic, ws(',')),
+                opt(ws(',')).void(),
+            ))
+            .map(|generics| match generics {
+                Some((generics, ())) => generics,
+                None => arena.boxed([]),
+            }),
+            ws('>'),
+        ),
     )
     .parse_next(input)
 }
@@ -150,9 +216,16 @@ where
         + for<'b> Compare<&'b str>,
     Error: ParserError<Stateful<Input, &'a Arena>>,
 {
-    separated_pair(parse_symbol, ws(':'), parse_type)
-        .map(|(name, r#type)| Argument { name, r#type })
-        .parse_next(input)
+    trace(
+        "argument",
+        separated_pair(
+            parse_symbol(symbol::ParseRestriction::RustOnly),
+            ws(':'),
+            parse_type,
+        )
+        .map(|(name, r#type)| Argument { name, r#type }),
+    )
+    .parse_next(input)
 }
 
 /// Implementation of argument list parsing
@@ -160,10 +233,10 @@ where
 /// # Syntax
 ///
 /// ```abnf
-/// argument-list = "(" [ argument *("," argument) ] ")"
+/// arguments = "(" [ argument *("," argument) ] ")"
 /// argument = symbol ":" type
 /// ```
-fn parse_argument_list<'a, Input, Error>(
+fn parse_arguments<'a, Input, Error>(
     input: &mut Stateful<Input, &'a Arena>,
 ) -> PResult<arena::Box<'a, [Argument<'a>]>, Error>
 where
@@ -175,27 +248,20 @@ where
 {
     let arena = input.state;
 
-    delimited(
-        ws('('),
-        opt((
-            parse_argument,
-            repeat(0.., preceded(ws(','), parse_argument)).fold(
-                || arena.vec(None),
-                |mut acc, argument| {
-                    acc.push(argument);
-                    acc
-                },
-            ),
-            opt(ws(',')).void(),
-        ))
-        .map(|value| match value {
-            Some((first, mut rest, ())) => {
-                rest.insert(0, first);
-                rest.into_boxed_slice()
-            }
-            None => arena.vec(Some(0)).into_boxed_slice(),
-        }),
-        ws(')'),
+    trace(
+        "argument list",
+        delimited(
+            ws('('),
+            opt((
+                separated_boxed1(arena, parse_argument, ws(',')),
+                opt(ws(',')).void(),
+            ))
+            .map(|value| match value {
+                Some((arguments, ())) => arguments,
+                None => arena.boxed([]),
+            }),
+            ws(')'),
+        ),
     )
     .parse_next(input)
 }
@@ -217,15 +283,16 @@ where
         + for<'b> Compare<&'b str>,
     Error: ParserError<Stateful<Input, &'a Arena>>,
 {
-    preceded(ws("->"), parse_type)
-        .map(|r#type| Return { r#type })
-        .parse_next(input)
+    trace(
+        "return",
+        preceded(ws("->"), parse_type).map(|r#type| Return { r#type }),
+    )
+    .parse_next(input)
 }
 
 #[cfg(test)]
 mod test {
-
-    use insta::assert_debug_snapshot;
+    use insta::assert_snapshot;
     use winnow::{
         error::{ContextError, ErrMode, ParseError},
         Parser, Stateful,
@@ -240,7 +307,7 @@ mod test {
         value: &'b str,
     ) -> Result<Signature<'a>, ParseError<Stateful<&'b str, &'a Arena>, ErrMode<ContextError>>>
     {
-        let mut state = Stateful {
+        let state = Stateful {
             input: value,
             state: arena,
         };
@@ -257,373 +324,46 @@ mod test {
     fn bare() {
         let arena = Arena::new();
 
-        assert_debug_snapshot!(parse_ok(&arena, "() -> Int"), @r###"
-        Signature {
-            generics: [],
-            arguments: [],
-            return: Return {
-                type: Symbol(
-                    Symbol(
-                        "Int",
-                    ),
-                ),
-            },
-        }
-        "###);
+        assert_snapshot!(parse_ok(&arena, "() -> Int"), @"() -> Int");
+    }
+
+    #[test]
+    fn empty_generics() {
+        let arena = Arena::new();
+
+        assert_snapshot!(parse_ok(&arena, "<>() -> Int"), @"() -> Int");
     }
 
     #[test]
     fn generics() {
         let arena = Arena::new();
 
-        // assert_debug_snapshot!(parse_ok(&arena, "<>() -> Int"), @"");
-        assert_debug_snapshot!(parse_ok(&arena, " <T> () -> Int"), @r###"
-        Signature {
-            generics: [
-                Generic {
-                    name: Symbol(
-                        "T",
-                    ),
-                    bound: None,
-                },
-            ],
-            arguments: [],
-            return: Return {
-                type: Symbol(
-                    Symbol(
-                        "Int",
-                    ),
-                ),
-            },
-        }
-        "###);
-        assert_debug_snapshot!(parse_ok(&arena, "<T>() -> Int"), @r###"
-        Signature {
-            generics: [
-                Generic {
-                    name: Symbol(
-                        "T",
-                    ),
-                    bound: None,
-                },
-            ],
-            arguments: [],
-            return: Return {
-                type: Symbol(
-                    Symbol(
-                        "Int",
-                    ),
-                ),
-            },
-        }
-        "###);
-        assert_debug_snapshot!(parse_ok(&arena, "<T: Int>() -> Int"), @r###"
-        Signature {
-            generics: [
-                Generic {
-                    name: Symbol(
-                        "T",
-                    ),
-                    bound: Some(
-                        Symbol(
-                            Symbol(
-                                "Int",
-                            ),
-                        ),
-                    ),
-                },
-            ],
-            arguments: [],
-            return: Return {
-                type: Symbol(
-                    Symbol(
-                        "Int",
-                    ),
-                ),
-            },
-        }
-        "###);
-        assert_debug_snapshot!(parse_ok(&arena, "<T:Int>() -> Int"), @r###"
-        Signature {
-            generics: [
-                Generic {
-                    name: Symbol(
-                        "T",
-                    ),
-                    bound: Some(
-                        Symbol(
-                            Symbol(
-                                "Int",
-                            ),
-                        ),
-                    ),
-                },
-            ],
-            arguments: [],
-            return: Return {
-                type: Symbol(
-                    Symbol(
-                        "Int",
-                    ),
-                ),
-            },
-        }
-        "###);
-        assert_debug_snapshot!(parse_ok(&arena, "<T: Int, U>() -> Int"), @r###"
-        Signature {
-            generics: [
-                Generic {
-                    name: Symbol(
-                        "T",
-                    ),
-                    bound: Some(
-                        Symbol(
-                            Symbol(
-                                "Int",
-                            ),
-                        ),
-                    ),
-                },
-                Generic {
-                    name: Symbol(
-                        "U",
-                    ),
-                    bound: None,
-                },
-            ],
-            arguments: [],
-            return: Return {
-                type: Symbol(
-                    Symbol(
-                        "Int",
-                    ),
-                ),
-            },
-        }
-        "###);
-        assert_debug_snapshot!(parse_ok(&arena, "<T,U>() -> Int"), @r###"
-        Signature {
-            generics: [
-                Generic {
-                    name: Symbol(
-                        "T",
-                    ),
-                    bound: None,
-                },
-                Generic {
-                    name: Symbol(
-                        "U",
-                    ),
-                    bound: None,
-                },
-            ],
-            arguments: [],
-            return: Return {
-                type: Symbol(
-                    Symbol(
-                        "Int",
-                    ),
-                ),
-            },
-        }
-        "###);
-        assert_debug_snapshot!(parse_ok(&arena, "<T,U,>() -> Int"), @"");
+        assert_snapshot!(parse_ok(&arena, " <T> () -> Int"), @"<T>() -> Int");
+        assert_snapshot!(parse_ok(&arena, "<T>() -> Int"), @"<T>() -> Int");
+        assert_snapshot!(parse_ok(&arena, "<T: Int>() -> Int"), @"<T: Int>() -> Int");
+        assert_snapshot!(parse_ok(&arena, "<T:Int>() -> Int"), @"<T: Int>() -> Int");
+        assert_snapshot!(parse_ok(&arena, "<T: Int, U>() -> Int"), @"<T: Int, U>() -> Int");
+        assert_snapshot!(parse_ok(&arena, "<T,U>() -> Int"), @"<T, U>() -> Int");
+        assert_snapshot!(parse_ok(&arena, "<T,U,>() -> Int"), @"<T, U>() -> Int");
     }
 
     #[test]
     fn arguments() {
         let arena = Arena::new();
 
-        assert_debug_snapshot!(parse_ok(&arena, "() -> Int"), @r###"
-        Signature {
-            generics: [],
-            arguments: [],
-            return: Return {
-                type: Symbol(
-                    Symbol(
-                        "Int",
-                    ),
-                ),
-            },
-        }
-        "###);
-        assert_debug_snapshot!(parse_ok(&arena, "(a: Int) -> Int"), @r###"
-        Signature {
-            generics: [],
-            arguments: [
-                Argument {
-                    name: Symbol(
-                        "a",
-                    ),
-                    type: Symbol(
-                        Symbol(
-                            "Int",
-                        ),
-                    ),
-                },
-            ],
-            return: Return {
-                type: Symbol(
-                    Symbol(
-                        "Int",
-                    ),
-                ),
-            },
-        }
-        "###);
-        assert_debug_snapshot!(parse_ok(&arena, "(a:Int) -> Int"), @r###"
-        Signature {
-            generics: [],
-            arguments: [
-                Argument {
-                    name: Symbol(
-                        "a",
-                    ),
-                    type: Symbol(
-                        Symbol(
-                            "Int",
-                        ),
-                    ),
-                },
-            ],
-            return: Return {
-                type: Symbol(
-                    Symbol(
-                        "Int",
-                    ),
-                ),
-            },
-        }
-        "###);
-        assert_debug_snapshot!(parse_ok(&arena, "(a: Int, b: Int) -> Int"), @r###"
-        Signature {
-            generics: [],
-            arguments: [
-                Argument {
-                    name: Symbol(
-                        "a",
-                    ),
-                    type: Symbol(
-                        Symbol(
-                            "Int",
-                        ),
-                    ),
-                },
-                Argument {
-                    name: Symbol(
-                        "b",
-                    ),
-                    type: Symbol(
-                        Symbol(
-                            "Int",
-                        ),
-                    ),
-                },
-            ],
-            return: Return {
-                type: Symbol(
-                    Symbol(
-                        "Int",
-                    ),
-                ),
-            },
-        }
-        "###);
-        assert_debug_snapshot!(parse_ok(&arena, "(a: Int,) -> Int"), @r###"
-        Signature {
-            generics: [],
-            arguments: [
-                Argument {
-                    name: Symbol(
-                        "a",
-                    ),
-                    type: Symbol(
-                        Symbol(
-                            "Int",
-                        ),
-                    ),
-                },
-            ],
-            return: Return {
-                type: Symbol(
-                    Symbol(
-                        "Int",
-                    ),
-                ),
-            },
-        }
-        "###);
+        assert_snapshot!(parse_ok(&arena, "() -> Int"), @"() -> Int");
+        assert_snapshot!(parse_ok(&arena, "(a: Int) -> Int"), @"(a: Int) -> Int");
+        assert_snapshot!(parse_ok(&arena, "(a:Int) -> Int"), @"(a: Int) -> Int");
+        assert_snapshot!(parse_ok(&arena, "(a: Int, b: Int) -> Int"), @"(a: Int, b: Int) -> Int");
+        assert_snapshot!(parse_ok(&arena, "(a: Int,) -> Int"), @"(a: Int) -> Int");
     }
 
     #[test]
     fn return_type() {
         let arena = Arena::new();
 
-        assert_debug_snapshot!(parse_ok(&arena, "() -> Int"), @r###"
-        Signature {
-            generics: [],
-            arguments: [],
-            return: Return {
-                type: Symbol(
-                    Symbol(
-                        "Int",
-                    ),
-                ),
-            },
-        }
-        "###);
-        assert_debug_snapshot!(parse_ok(&arena, "() -> Int | Bool"), @r###"
-        Signature {
-            generics: [],
-            arguments: [],
-            return: Return {
-                type: Union(
-                    [
-                        Symbol(
-                            Symbol(
-                                "Int",
-                            ),
-                        ),
-                        Symbol(
-                            Symbol(
-                                "Bool",
-                            ),
-                        ),
-                    ],
-                ),
-            },
-        }
-        "###);
-        assert_debug_snapshot!(parse_ok(&arena, "() -> Int | Bool & Float"), @r###"
-        Signature {
-            generics: [],
-            arguments: [],
-            return: Return {
-                type: Intersection(
-                    [
-                        Union(
-                            [
-                                Symbol(
-                                    Symbol(
-                                        "Int",
-                                    ),
-                                ),
-                                Symbol(
-                                    Symbol(
-                                        "Bool",
-                                    ),
-                                ),
-                            ],
-                        ),
-                        Symbol(
-                            Symbol(
-                                "Float",
-                            ),
-                        ),
-                    ],
-                ),
-            },
-        }
-        "###);
+        assert_snapshot!(parse_ok(&arena, "() -> Int"), @"() -> Int");
+        assert_snapshot!(parse_ok(&arena, "() -> Int | Bool"), @"() -> (Int | Bool)");
+        assert_snapshot!(parse_ok(&arena, "() -> Int | Bool & Float"), @"() -> ((Int | Bool) & Float)");
     }
 }
