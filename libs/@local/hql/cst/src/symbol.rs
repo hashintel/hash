@@ -1,5 +1,4 @@
-use core::fmt::Display;
-use std::fmt;
+use core::{fmt, fmt::Display};
 
 use smol_str::SmolStr;
 use unicode_ident::{is_xid_continue, is_xid_start};

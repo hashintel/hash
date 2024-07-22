@@ -1,11 +1,9 @@
-use alloc::alloc::Global;
 use core::fmt::{self, Display};
 
-use bumpalo::Bump;
 use winnow::{
     combinator::{alt, delimited, preceded, repeat},
     error::ParserError,
-    stream::{Accumulate, AsChar, Compare, Stream, StreamIsPartial},
+    stream::{AsChar, Compare, Stream, StreamIsPartial},
     PResult, Parser, Stateful,
 };
 
@@ -31,14 +29,12 @@ impl Display for Type<'_> {
                     f.write_str("(")?;
                 }
 
-                let mut index = 0;
-                for ty in types {
+                for (index, ty) in types.into_iter().enumerate() {
                     if index > 0 {
                         f.write_str(" | ")?;
                     }
 
                     Display::fmt(ty, f)?;
-                    index += 1;
                 }
 
                 if types.len() > 1 {
@@ -52,14 +48,12 @@ impl Display for Type<'_> {
                     f.write_str("(")?;
                 }
 
-                let mut index = 0;
-                for ty in types {
+                for (index, ty) in types.into_iter().enumerate() {
                     if index > 0 {
                         f.write_str(" & ")?;
                     }
 
                     Display::fmt(ty, f)?;
-                    index += 1;
                 }
 
                 if types.len() > 1 {

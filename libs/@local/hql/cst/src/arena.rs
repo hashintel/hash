@@ -11,10 +11,12 @@ pub struct Arena {
 }
 
 impl Arena {
+    #[must_use]
     pub fn new() -> Self {
         Self { bump: Bump::new() }
     }
 
+    #[must_use]
     pub fn with_capacity(capacity: usize) -> Self {
         Self {
             bump: Bump::with_capacity(capacity),
@@ -22,10 +24,10 @@ impl Arena {
     }
 
     pub fn vec<T>(&self, capacity: Option<usize>) -> Vec<'_, T> {
-        match capacity {
-            Some(capacity) => Vec::with_capacity_in(capacity, &self.bump),
-            None => Vec::new_in(&self.bump),
-        }
+        capacity.map_or_else(
+            || Vec::new_in(&self.bump),
+            |capacity| Vec::with_capacity_in(capacity, &self.bump),
+        )
     }
 
     pub fn boxed<T>(&self, value: T) -> Box<'_, T> {
