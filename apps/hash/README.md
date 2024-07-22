@@ -1,4 +1,3 @@
-[discord]: https://hash.ai/discord?utm_medium=organic&utm_source=github_readme_hash-repo_root
 [github_star]: https://github.com/hashintel/hash#
 
 <!-- markdownlint-disable link-fragments -->
@@ -10,7 +9,7 @@
   <img src="https://cdn-us1.hash.ai/assets/hash-github-readme-header%402x.png">
 </p>
 
-[![discord](https://img.shields.io/discord/840573247803097118)][discord] [![github_star](https://img.shields.io/github/stars/hashintel/hash?label=Star%20on%20GitHub&style=social)][github_star]
+[![github_star](https://img.shields.io/github/stars/hashintel/hash?label=Star%20on%20GitHub&style=social)][github_star]
 
 # HASH
 
@@ -171,7 +170,7 @@ If you need to reset the local database, to clear out test data or because it ha
 
    1. Run the Graph API in test mode by running `yarn dev:graph:test-server`
    1. Run `yarn graph:reset-database` to reset the database
-   1. **If you need to use the frontend**, you will also need to delete the rows in the `identities` table in the `dev_kratos` database, or login will not work. You can do so via any Postgres UI or CLI. The db connection and user details are in `.env`
+   1. **If you need to use the frontend**, you will also need to delete the rows in the `identities` table in the `dev_kratos` database, or signin will not work. You can do so via any Postgres UI or CLI. The db connection and user details are in `.env`
 
 #### External services test mode
 
@@ -332,6 +331,55 @@ First-time contributors need to wait for a maintainer to manually launch the che
 We use [Yarn Workspaces](https://classic.yarnpkg.com/en/docs/workspaces) to work with multiple packages in a single repository.
 [Turborepo](https://turborepo.com) is used to cache script results and thus speed up their execution.
 
+### New packages
+
+New local packages should follow these rules:
+
+1. Anything which is imported or consumed by something else belongs in `libs/` and have a `package.json` `"name"`:
+   - beginning with `@local/` for non-published JavaScript dependencies
+   - identical to their `npm` name for published JavaScript dependencies
+   - begin with `@rust/` for Rust dependencies
+1. Things which are executed belong in `apps/`, and are named `@apps/app-name
+1. Packages which aren't published to `npm` should have `"private": true` in their `package.json`
+1. All TypeScript packages should be `"type": "module"`
+1. ESLint and TypeScript configuration should all extend the base configs (see existing examples in other packages). Don't modify or override anything unless necessary.
+
+Read the next section to understand how to configure compilation for packages.
+
+### TypeScript package resolution / compilation
+
+The package resolution setup is designed to meet two goals:
+
+1. Enable the local dependency graph for any application to be executed directly as TypeScript code during development, whilst
+1. Enabling it to be run as transpiled JavaScript in production.
+
+This is achieved by maintaining two parallel exports definitions for each package:
+
+1. The `exports` field in `package.json` should point to the transpiled JavaScript (and `typesVersions` to the type definition files)
+1. The `paths` map in the base TSConfig should map the same import paths to their TypeScript source
+
+During development (e.g. running `yarn dev` for an application), the `paths` override will be in effect, meaning that the source TypeScript
+is being run directly, and modifying any dependent file in the repo will trigger a reload of the application (assuming `tsx watch` or equivalent is used).
+
+For production builds, where they are created, a `tsconfig.build.json` in the package is used which overwrites the `paths` field in the root config,
+meaning that the imports will resolve to the transpiled JavaScript (usually in a git-ignored `dist/` folder).
+
+Creating a production build should be done by running `turbo run build`, so that `turbo` takes care of building its dependencies first.
+Running `yarn build` may not work as expected, as the built JavaScript for its dependencies may be (a) missing or (b) out of date.
+
+If a bundler is used rather than `tsc`, the `paths` override needs to be translated into the appropriate configuration for the bundler.
+For `webpack`, this is automated by adding the `TsconfigPathsPlugin` to the configuration's `resolve` field (search existing examples in repo).
+
+New packages which are to be built as JavaScript, whether as an app or dependency, must follow these rules:
+
+1. They must have a `tsconfig.json` which extends the base config and sets `"module": "NodeNext"` and `"moduleResolution": "NodeNext"`
+1. Imports within a package must use relative imports and not the package's name (they will not be resolved when built otherwise)
+1. Relative imports within a package must have a `.js` file extension (`tsc` will enforce this)
+1. They must have a `tsconfig.build.json` which overrides the `paths` field (`"paths": {}`)
+1. They must have a `build` command which uses this file (typically `rimraf ./dist/ && tsc -p tsconfig.build.json`)
+1. They must specify the paths exposed to consumers in `exports` and `typesVersions` in `package.json`, and `paths` in the base TSConfig
+1. They must have a `turbo.json` which extends the root and specifies the `outputs` for caching (see existing examples)
+
 ## Troubleshooting
 
 ### eslint `parserOptions.project`
@@ -484,7 +532,7 @@ If the service should report metrics to a StatsD server, the following variables
 - `HASH_SEARCH_LOADER_PORT`: (default: `3838`)
 - `HASH_SEARCH_QUEUE_NAME`: The name of the queue to push changes for the search loader service (default: `search`)
 - `API_ORIGIN`: The origin that the API service can be reached on (default: `http://localhost:5001`)
-- `SESSION_SECRET`: The secret used to sign login sessions (default: `secret`)
+- `SESSION_SECRET`: The secret used to sign sessions (default: `secret`)
 - `LOG_LEVEL`: the level of runtime logs that should be omitted, either set to `debug`, `info`, `warn`, `error` (default: `info`)
 - `BLOCK_PROTOCOL_API_KEY`: the api key for fetching blocks from the [Þ Hub](https://blockprotocol.org/hub). Generate a key at https://blockprotocol.org/settings/api-keys.
 
@@ -492,4 +540,4 @@ If the service should report metrics to a StatsD server, the following variables
 
 The HASH application's development is overseen by _[HASH](https://hash.ai/about)_ (the company).
 
-As an open-source project, we gratefully accept external contributions and have published a [contributing guide](https://github.com/hashintel/hash/blob/main/.github/CONTRIBUTING.md) that outlines the process. If you have questions, please reach out to us on our [Discord server](https://hash.ai/discord).
+As an open-source project, we gratefully accept external contributions and have published a [contributing guide](https://github.com/hashintel/hash/blob/main/.github/CONTRIBUTING.md) that outlines the process. If you have questions, please open a [discussion](https://github.com/orgs/hashintel/discussions).

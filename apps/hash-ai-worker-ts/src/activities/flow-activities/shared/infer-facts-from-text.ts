@@ -1,11 +1,11 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 
-import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
-import { logger } from "../../shared/activity-logger";
-import type { LocalEntitySummary } from "./infer-facts-from-text/get-entity-summaries-from-text";
-import { getEntitySummariesFromText } from "./infer-facts-from-text/get-entity-summaries-from-text";
-import { inferEntityFactsFromTextAgent } from "./infer-facts-from-text/infer-entity-facts-from-text-agent";
-import type { Fact } from "./infer-facts-from-text/types";
+import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types.js";
+import { logger } from "../../shared/activity-logger.js";
+import type { LocalEntitySummary } from "./infer-facts-from-text/get-entity-summaries-from-text.js";
+import { getEntitySummariesFromText } from "./infer-facts-from-text/get-entity-summaries-from-text.js";
+import { inferEntityFactsFromTextAgent } from "./infer-facts-from-text/infer-entity-facts-from-text-agent.js";
+import type { Fact } from "./infer-facts-from-text/types.js";
 
 export const inferFactsFromText = async (params: {
   text: string;

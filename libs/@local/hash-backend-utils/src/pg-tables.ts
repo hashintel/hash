@@ -6,7 +6,7 @@ import type { JsonObject } from "@blockprotocol/core";
 import type { EditionCreatedById } from "@local/hash-graph-types/account";
 import type { Uuid } from "@local/hash-graph-types/branded";
 
-import type { Wal2JsonMsg } from "./wal2json";
+import type { Wal2JsonMsg } from "./wal2json.js";
 
 type EntityEditionRecord = {
   archived: boolean;

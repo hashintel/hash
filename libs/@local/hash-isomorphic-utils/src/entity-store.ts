@@ -1,5 +1,4 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   EntityTemporalVersioningMetadata,
@@ -9,11 +8,11 @@ import type {
 import type { Draft } from "immer";
 import { produce } from "immer";
 
-import type { BlockEntity } from "./entity";
-import { generateDraftIdForEntity } from "./entity-store-plugin";
-import { blockProtocolPropertyTypes } from "./ontology-type-ids";
+import type { BlockEntity } from "./entity.js";
+import { generateDraftIdForEntity } from "./entity-store-plugin.js";
+import { blockProtocolPropertyTypes } from "./ontology-type-ids.js";
 
-export type EntityStoreType = BlockEntity | Entity;
+export type EntityStoreType = BlockEntity | BlockEntity["blockChildEntity"];
 
 export const textualContentPropertyTypeBaseUrl =
   blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl;
@@ -177,8 +176,11 @@ export const createEntityStore = (
      */
     draft[draftId] = produce<DraftEntity>(
       {
-        properties: entity.properties,
+        componentId: "componentId" in entity ? entity.componentId : undefined,
+        blockChildEntity:
+          "blockChildEntity" in entity ? entity.blockChildEntity : undefined,
         metadata: entity.metadata,
+        properties: entity.properties,
         draftId,
       },
       (draftEntity: Draft<DraftEntity>) => {

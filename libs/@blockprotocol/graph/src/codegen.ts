@@ -3,23 +3,23 @@
  */
 import * as path from "node:path";
 
-import { compile } from "./codegen/compile";
+import { compile } from "./codegen/compile.js";
 import {
   CompileContext,
   InitializeContext,
   PostprocessContext,
   PreprocessContext,
-} from "./codegen/context";
-import { initialize } from "./codegen/initialize";
-import type { CodegenParameters } from "./codegen/parameters";
-import { postprocess } from "./codegen/postprocess";
-import { preprocess } from "./codegen/preprocess";
-import type { LogLevel } from "./codegen/shared";
+} from "./codegen/context.js";
+import { initialize } from "./codegen/initialize.js";
+import type { CodegenParameters } from "./codegen/parameters.js";
+import { postprocess } from "./codegen/postprocess.js";
+import { preprocess } from "./codegen/preprocess.js";
+import type { LogLevel } from "./codegen/shared.js";
 
 export {
   type CodegenParameters,
   validateCodegenParameters,
-} from "./codegen/parameters";
+} from "./codegen/parameters.js";
 
 export const codegen = async (
   params: CodegenParameters,

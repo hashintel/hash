@@ -10,8 +10,8 @@ import type { ParseTextFromFileParams } from "@local/hash-isomorphic-utils/parse
 import type { TextualContentPropertyValueWithMetadata } from "@local/hash-isomorphic-utils/system-types/shared";
 import officeParser from "officeparser";
 
-import { fetchFileFromUrl } from "./shared/fetch-file-from-url";
-import { getFlowContext } from "./shared/get-flow-context";
+import { fetchFileFromUrl } from "./shared/fetch-file-from-url.js";
+import { getFlowContext } from "./shared/get-flow-context.js";
 
 type TextParsingFunction = (fileBuffer: Buffer) => Promise<string>;
 

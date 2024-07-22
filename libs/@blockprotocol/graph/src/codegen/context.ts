@@ -1,4 +1,4 @@
-export { CompileContext } from "./context/compile";
-export { InitializeContext } from "./context/initialize";
-export { PostprocessContext } from "./context/postprocess";
-export { PreprocessContext } from "./context/preprocess";
+export { CompileContext } from "./context/compile.js";
+export { InitializeContext } from "./context/initialize.js";
+export { PostprocessContext } from "./context/postprocess.js";
+export { PreprocessContext } from "./context/preprocess.js";

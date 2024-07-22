@@ -8,8 +8,6 @@ import "./globals.scss";
 import "./prism.css";
 
 import { ApolloProvider } from "@apollo/client/react";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
-import wasm from "@blockprotocol/type-system/wasm";
 import type { EmotionCache } from "@emotion/react";
 import { CacheProvider } from "@emotion/react";
 import { createEmotionCache, theme } from "@hashintel/design-system/theme";
@@ -21,10 +19,9 @@ import { getRoots } from "@local/hash-subgraph/stdlib";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
 import { configureScope, ErrorBoundary } from "@sentry/nextjs";
 import type { AppProps as NextAppProps } from "next/app";
-import dynamic from "next/dynamic";
 import { useRouter } from "next/router";
 import { SnackbarProvider } from "notistack";
-import type { FunctionComponent, PropsWithChildren } from "react";
+import type { FunctionComponent } from "react";
 import { Suspense, useEffect, useState } from "react";
 
 import type {
@@ -54,40 +51,6 @@ import { AuthInfoProvider, useAuthInfo } from "./shared/auth-info-context";
 import { DataTypesContextProvider } from "./shared/data-types-context";
 import { setSentryUser } from "./shared/sentry";
 import { WorkspaceContextProvider } from "./shared/workspace-context";
-
-// eslint-disable-next-line react/jsx-no-useless-fragment
-const RenderChildren = ({ children }: PropsWithChildren) => <>{children}</>;
-
-export const initWasm = async () => {
-  let wasmModule;
-  if (typeof window === "undefined") {
-    // eslint-disable-next-line unicorn/prefer-node-protocol
-    const { default: fs } = await import("fs/promises");
-
-    // @ts-expect-error -- We need Node's native require here, and it's safe as this is a server-only block
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-    const wasmPath = __non_webpack_require__.resolve(
-      "@blockprotocol/type-system/wasm",
-    );
-    const contents = await fs.readFile(wasmPath);
-
-    wasmModule = await WebAssembly.compile(contents);
-  } else {
-    wasmModule = wasm;
-  }
-  await TypeSystemInitializer.initialize(wasmModule);
-};
-
-const InitTypeSystem = dynamic(
-  async () => {
-    await initWasm();
-
-    return { default: RenderChildren };
-  },
-  {
-    suspense: true,
-  },
-);
 
 const clientSideEmotionCache = createEmotionCache();
 
@@ -130,61 +93,56 @@ const App: FunctionComponent<AppProps> = ({
   // getServerSideProps. By showing app skeleton on the server, we avoid UI
   // mismatches during rehydration and improve type-safety of param extraction.
   if (ssr || !router.isReady) {
-    return (
-      <Suspense>
-        <InitTypeSystem />
-      </Suspense>
-    ); // Replace with app skeleton
+    return <Suspense />; // Replace with app skeleton
   }
 
   const getLayout = Component.getLayout ?? getPlainLayout;
 
   return (
     <Suspense>
-      <InitTypeSystem>
-        <CacheProvider value={emotionCache}>
-          <ThemeProvider theme={theme}>
-            <CssBaseline />
-            <RoutePageInfoProvider>
-              <WorkspaceContextProvider>
-                <KeyboardShortcutsContextProvider>
-                  <SnackbarProvider maxSnack={3}>
-                    <NotificationEntitiesContextProvider>
-                      <DraftEntitiesContextProvider>
-                        <EntityTypesContextProvider>
-                          <PropertyTypesContextProvider includeArchived>
-                            <DataTypesContextProvider>
-                              <FileUploadsProvider>
-                                <SidebarContextProvider>
-                                  <ErrorBoundary
-                                    beforeCapture={(scope) => {
-                                      scope.setTag("error-boundary", "_app");
-                                    }}
-                                    fallback={(props) =>
-                                      getLayoutWithSidebar(
-                                        <ErrorFallback {...props} />,
-                                      )
-                                    }
-                                  >
-                                    {getLayout(<Component {...pageProps} />)}
-                                  </ErrorBoundary>
-                                </SidebarContextProvider>
-                              </FileUploadsProvider>
-                            </DataTypesContextProvider>
-                          </PropertyTypesContextProvider>
-                        </EntityTypesContextProvider>
-                      </DraftEntitiesContextProvider>
-                    </NotificationEntitiesContextProvider>
-                  </SnackbarProvider>
-                </KeyboardShortcutsContextProvider>
-              </WorkspaceContextProvider>
-            </RoutePageInfoProvider>
-          </ThemeProvider>
-        </CacheProvider>
-        {/* "spin" is used in some inline styles which have been temporarily introduced in https://github.com/hashintel/hash/pull/1471 */}
-        {/* @todo remove when inline styles are replaced with MUI styles */}
-        <GlobalStyles
-          styles={`
+      <CacheProvider value={emotionCache}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <RoutePageInfoProvider>
+            <WorkspaceContextProvider>
+              <KeyboardShortcutsContextProvider>
+                <SnackbarProvider maxSnack={3}>
+                  <NotificationEntitiesContextProvider>
+                    <DraftEntitiesContextProvider>
+                      <EntityTypesContextProvider>
+                        <PropertyTypesContextProvider includeArchived>
+                          <DataTypesContextProvider>
+                            <FileUploadsProvider>
+                              <SidebarContextProvider>
+                                <ErrorBoundary
+                                  beforeCapture={(scope) => {
+                                    scope.setTag("error-boundary", "_app");
+                                  }}
+                                  fallback={(props) =>
+                                    getLayoutWithSidebar(
+                                      <ErrorFallback {...props} />,
+                                    )
+                                  }
+                                >
+                                  {getLayout(<Component {...pageProps} />)}
+                                </ErrorBoundary>
+                              </SidebarContextProvider>
+                            </FileUploadsProvider>
+                          </DataTypesContextProvider>
+                        </PropertyTypesContextProvider>
+                      </EntityTypesContextProvider>
+                    </DraftEntitiesContextProvider>
+                  </NotificationEntitiesContextProvider>
+                </SnackbarProvider>
+              </KeyboardShortcutsContextProvider>
+            </WorkspaceContextProvider>
+          </RoutePageInfoProvider>
+        </ThemeProvider>
+      </CacheProvider>
+      {/* "spin" is used in some inline styles which have been temporarily introduced in https://github.com/hashintel/hash/pull/1471 */}
+      {/* @todo remove when inline styles are replaced with MUI styles */}
+      <GlobalStyles
+        styles={`
         @keyframes spin {
           from {
             transform: rotate(0deg);
@@ -194,8 +152,7 @@ const App: FunctionComponent<AppProps> = ({
           }
         };
       `}
-        />
-      </InitTypeSystem>
+      />
     </Suspense>
   );
 };
@@ -271,7 +228,7 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
   if (!userEntity) {
     // If the user is logged out and not on a page that should be publicly accessible...
     if (!publiclyAccessiblePagePathnames.includes(pathname)) {
-      // ...redirect them to the login page
+      // ...redirect them to the sign in page
       redirectInGetInitialProps({
         appContext,
         location: `/signin${
@@ -282,9 +239,6 @@ AppWithTypeSystemContextProvider.getInitialProps = async (appContext) => {
 
     return {};
   }
-
-  // The type system package needs to be initialized before calling `constructAuthenticatedUser`
-  // await TypeSystemInitializer.initialize();
 
   const user = constructMinimalUser({ userEntity });
 

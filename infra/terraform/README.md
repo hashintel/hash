@@ -296,7 +296,7 @@ Once the CLI has been configured, you should have a `.aws` folder in your home d
 
 If you wish to pull/push container images to ECR manually, you must:
 
-1. Login to the registry
+1. Sign in to the registry
 1. Build and tag the image
 1. Push the image to ECR
 

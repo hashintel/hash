@@ -9,31 +9,31 @@ import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import type OpenAI from "openai";
 
-import { logger } from "../shared/activity-logger";
-import { getFlowContext } from "../shared/get-flow-context";
-import { getLlmResponse } from "../shared/get-llm-response";
+import { logger } from "../shared/activity-logger.js";
+import { getFlowContext } from "../shared/get-flow-context.js";
+import { getLlmResponse } from "../shared/get-llm-response.js";
 import {
   getTextContentFromLlmMessage,
   getToolCallsFromLlmAssistantMessage,
   mapLlmMessageToOpenAiMessages,
   mapOpenAiMessagesToLlmMessages,
-} from "../shared/get-llm-response/llm-message";
-import { stringify } from "../shared/stringify";
-import { inferEntitiesSystemPrompt } from "./infer-entities-system-prompt";
+} from "../shared/get-llm-response/llm-message.js";
+import { stringify } from "../shared/stringify.js";
+import { inferEntitiesSystemPrompt } from "./infer-entities-system-prompt.js";
 import type {
   CouldNotInferEntitiesReturn,
   ProposedEntitySummariesByType,
-} from "./infer-entity-summaries/generate-summary-tools";
+} from "./infer-entity-summaries/generate-summary-tools.js";
 import {
   generateSummaryTools,
   validateEntitySummariesByType,
-} from "./infer-entity-summaries/generate-summary-tools";
+} from "./infer-entity-summaries/generate-summary-tools.js";
 import type {
   CompletionPayload,
   DereferencedEntityTypesByTypeId,
   InferenceState,
   ProposedEntitySummary,
-} from "./inference-types";
+} from "./inference-types.js";
 
 export const inferEntitySummaries = async (params: {
   completionPayload: CompletionPayload;

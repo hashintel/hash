@@ -1,4 +1,4 @@
-import "../../../../shared/testing-utilities/mock-get-flow-context";
+import "../../../../shared/testing-utilities/mock-get-flow-context.js";
 
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -6,14 +6,14 @@ import { fileURLToPath } from "node:url";
 import dedent from "dedent";
 import { test } from "vitest";
 
-import { getWebPageActivity } from "../../../get-web-page-activity";
-import type { LlmParams } from "../../../shared/get-llm-response/types";
-import { optimizeSystemPrompt } from "../../../shared/optimize-system-prompt";
-import type { MetricDefinition } from "../../../shared/optimize-system-prompt/types";
+import { getWebPageActivity } from "../../../get-web-page-activity.js";
+import type { LlmParams } from "../../../shared/get-llm-response/types.js";
+import { optimizeSystemPrompt } from "../../../shared/optimize-system-prompt.js";
+import type { MetricDefinition } from "../../../shared/optimize-system-prompt/types.js";
 import {
-  extractLinksFromContent,
-  extractLinksFromContentSystemPrompt,
-} from "./extract-links-from-content";
+  chooseRelevantLinksFromContent,
+  chooseRelevantLinksFromContentSystemPrompt,
+} from "./choose-relevant-links-from-content.js";
 
 const ftse350MetricPrompt = "Find all the FTSE350 stock market constituents.";
 
@@ -41,9 +41,10 @@ const ftse350Metric: MetricDefinition = {
   executeMetric: async (params) => {
     const { testingParams } = params;
 
-    const response = await extractLinksFromContent({
+    const response = await chooseRelevantLinksFromContent({
       contentUrl: ftse350WebPage.url,
       content: ftse350WebPage.htmlContent,
+      contentType: "html",
       prompt: ftse350MetricPrompt,
       testingParams,
     });
@@ -123,9 +124,10 @@ const marksAndSpencersAnnualInvestorsReport: MetricDefinition = {
   executeMetric: async (params) => {
     const { testingParams } = params;
 
-    const response = await extractLinksFromContent({
+    const response = await chooseRelevantLinksFromContent({
       contentUrl: marksAndSpencersInvestorsPage.url,
       content: marksAndSpencersInvestorsPage.htmlContent,
+      contentType: "html",
       prompt: marksAndSpencerInvestorsPrompt,
       testingParams,
     });
@@ -199,9 +201,10 @@ const graphicsCardSpecificationMetric: MetricDefinition = {
   executeMetric: async (params) => {
     const { testingParams } = params;
 
-    const response = await extractLinksFromContent({
+    const response = await chooseRelevantLinksFromContent({
       contentUrl: gpuSpecsPage.url,
       content: gpuSpecsPage.htmlContent,
+      contentType: "html",
       prompt: graphicsCardSpecificationPrompt,
       testingParams,
     });
@@ -274,7 +277,7 @@ test(
 
     await optimizeSystemPrompt({
       models,
-      initialSystemPrompt: extractLinksFromContentSystemPrompt,
+      initialSystemPrompt: chooseRelevantLinksFromContentSystemPrompt,
       directoryPath: baseDirectoryPath,
       metrics,
       numberOfIterations: 4,

@@ -6,16 +6,17 @@
   "license": "AGPL-3.0",
   "type": "module",
   "exports": {
-    "./*": "./src/*.ts"
+    "./*": "./dist/*.js"
   },
   "typesVersions": {
     "*": {
       "*": [
-        "./src/*.ts"
+        "./dist/*.d.ts"
       ]
     }
   },
   "scripts": {
+    "build": "rimraf dist && tsc --build tsconfig.build.json",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
@@ -35,7 +36,7 @@
     "@local/hash-subgraph": "0.0.0-private",
     "@local/internal-api-client": "0.0.0-private",
     "@local/status": "0.0.0-private",
-    "@opensearch-project/opensearch": "1.1.0",
+    "@opensearch-project/opensearch": "2.1.0",
     "@sentry/node": "7.116.0",
     "@temporalio/activity": "1.10.1",
     "@temporalio/client": "1.10.1",
@@ -61,6 +62,7 @@
     "@types/wait-on": "5.3.1",
     "@vitest/coverage-istanbul": "2.0.3",
     "eslint": "8.57.0",
+    "rimraf": "6.0.1",
     "typescript": "5.5.3",
     "vitest": "2.0.3"
   }

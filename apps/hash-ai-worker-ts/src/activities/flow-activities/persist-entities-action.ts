@@ -11,8 +11,8 @@ import { StatusCode } from "@local/status";
 import {
   fileEntityTypeIds,
   persistEntityAction,
-} from "./persist-entity-action";
-import type { FlowActionActivity } from "./types";
+} from "./persist-entity-action.js";
+import type { FlowActionActivity } from "./types.js";
 
 export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
   const { draft, proposedEntities } = getSimplifiedActionInputs({

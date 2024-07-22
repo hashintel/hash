@@ -1,15 +1,15 @@
 import dedent from "dedent";
 
-import { logger } from "../activity-logger";
-import { getFlowContext } from "../get-flow-context";
-import { getLlmResponse } from "../get-llm-response";
+import { logger } from "../activity-logger.js";
+import { getFlowContext } from "../get-flow-context.js";
+import { getLlmResponse } from "../get-llm-response.js";
 import {
   getToolCallsFromLlmAssistantMessage,
   type LlmUserMessage,
-} from "../get-llm-response/llm-message";
-import type { LlmToolDefinition } from "../get-llm-response/types";
-import { graphApiClient } from "../graph-api-client";
-import type { MetricResultsForSystemPrompt } from "./types";
+} from "../get-llm-response/llm-message.js";
+import type { LlmToolDefinition } from "../get-llm-response/types.js";
+import { graphApiClient } from "../graph-api-client.js";
+import type { MetricResultsForSystemPrompt } from "./types.js";
 
 const improveSystemPromptSystemPrompt = dedent(`
   You are an LLM prompt optimization agent.

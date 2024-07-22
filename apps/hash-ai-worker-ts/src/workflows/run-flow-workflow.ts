@@ -21,17 +21,17 @@ import {
   workflowInfo,
 } from "@temporalio/workflow";
 
-import type { createFlowActivities } from "../activities/flow-activities";
-import { stringify } from "../activities/shared/stringify";
-import { getAllStepsInFlow } from "./run-flow-workflow/get-all-steps-in-flow";
-import { getStepDefinitionFromFlowDefinition } from "./run-flow-workflow/get-step-definition-from-flow";
+import type { createFlowActivities } from "../activities/flow-activities.js";
+import { stringify } from "../activities/shared/stringify.js";
+import { getAllStepsInFlow } from "./run-flow-workflow/get-all-steps-in-flow.js";
+import { getStepDefinitionFromFlowDefinition } from "./run-flow-workflow/get-step-definition-from-flow.js";
 import {
   initializeActionStep,
   initializeFlow,
   initializeParallelGroup,
-} from "./run-flow-workflow/initialize-flow";
-import { passOutputsToUnprocessedSteps } from "./run-flow-workflow/pass-outputs-to-unprocessed-steps";
-import { setQueryAndSignalHandlers } from "./run-flow-workflow/set-query-and-signal-handlers";
+} from "./run-flow-workflow/initialize-flow.js";
+import { passOutputsToUnprocessedSteps } from "./run-flow-workflow/pass-outputs-to-unprocessed-steps.js";
+import { setQueryAndSignalHandlers } from "./run-flow-workflow/set-query-and-signal-handlers.js";
 
 const log = (message: string) => {
   // eslint-disable-next-line no-console
@@ -353,7 +353,6 @@ export const runFlowWorkflow = async (
         // eslint-disable-next-line no-useless-return
         return;
       }
-
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
     } else if (currentStep.kind === "parallel-group") {
       const parallelGroupStepDefinition = getStepDefinitionFromFlowDefinition({

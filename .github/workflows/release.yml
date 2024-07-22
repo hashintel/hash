@@ -31,7 +31,7 @@ jobs:
         if: ${{ failure() }}
         env:
           SLACK_LINK_NAMES: true
-          SLACK_MESSAGE: "Error releasing NPM packages <@U0143NL4GMP> <@U027NPY8Y3X>"
+          SLACK_MESSAGE: "Error releasing NPM packages <@U0143NL4GMP>" # Notifies C
           SLACK_TITLE: Package release failed
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_USERNAME: GitHub

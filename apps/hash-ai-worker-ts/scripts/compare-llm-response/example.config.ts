@@ -1,4 +1,4 @@
-import type { CompareLlmResponseConfig } from "./types";
+import type { CompareLlmResponseConfig } from "./types.js";
 
 /**
  * This is a template configuration for the `compare-llm-response` script.

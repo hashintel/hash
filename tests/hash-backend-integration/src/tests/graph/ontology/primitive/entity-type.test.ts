@@ -10,7 +10,6 @@ import {
   updateEntityType,
 } from "@apps/hash-api/src/graph/ontology/primitive/entity-type";
 import { createPropertyType } from "@apps/hash-api/src/graph/ontology/primitive/property-type";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import type {
@@ -60,7 +59,6 @@ let previousAddressLinkEntityType: EntityTypeWithMetadata;
 let addressEntityType: EntityTypeWithMetadata;
 
 beforeAll(async () => {
-  await TypeSystemInitializer.initialize();
   await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
   testUser = await createTestUser(graphContext, "entity-type-test-1", logger);

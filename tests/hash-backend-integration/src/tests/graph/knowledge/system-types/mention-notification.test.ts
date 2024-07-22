@@ -25,7 +25,6 @@ import {
 import type { Text } from "@apps/hash-api/src/graph/knowledge/system-types/text";
 import { getTextFromEntity } from "@apps/hash-api/src/graph/knowledge/system-types/text";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
@@ -60,8 +59,6 @@ describe.skip("Page Mention Notification", () => {
 
   beforeAll(async () => {
     const graphContext = createTestImpureGraphContext();
-
-    await TypeSystemInitializer.initialize();
 
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 

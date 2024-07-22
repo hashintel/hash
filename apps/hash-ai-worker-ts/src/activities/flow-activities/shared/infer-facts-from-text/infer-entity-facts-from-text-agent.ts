@@ -1,21 +1,21 @@
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import dedent from "dedent";
 
-import { logger } from "../../../shared/activity-logger";
-import type { DereferencedEntityType } from "../../../shared/dereference-entity-type";
-import { getFlowContext } from "../../../shared/get-flow-context";
-import { getLlmResponse } from "../../../shared/get-llm-response";
+import { logger } from "../../../shared/activity-logger.js";
+import type { DereferencedEntityType } from "../../../shared/dereference-entity-type.js";
+import { getFlowContext } from "../../../shared/get-flow-context.js";
+import { getLlmResponse } from "../../../shared/get-llm-response.js";
 import type {
   LlmMessage,
   LlmMessageToolResultContent,
   LlmUserMessage,
-} from "../../../shared/get-llm-response/llm-message";
-import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message";
-import type { LlmToolDefinition } from "../../../shared/get-llm-response/types";
-import { graphApiClient } from "../../../shared/graph-api-client";
-import { stringify } from "../../../shared/stringify";
-import type { LocalEntitySummary } from "./get-entity-summaries-from-text";
-import type { Fact } from "./types";
+} from "../../../shared/get-llm-response/llm-message.js";
+import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
+import type { LlmToolDefinition } from "../../../shared/get-llm-response/types.js";
+import { graphApiClient } from "../../../shared/graph-api-client.js";
+import { stringify } from "../../../shared/stringify.js";
+import type { LocalEntitySummary } from "./get-entity-summaries-from-text.js";
+import type { Fact } from "./types.js";
 
 const toolNames = ["submitFacts"] as const;
 

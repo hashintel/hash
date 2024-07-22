@@ -3,16 +3,17 @@ import type { DistributiveOmit } from "@local/advanced-types/distribute";
 import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import type { Property } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { Status } from "@local/status";
+import type { QueryDefinition } from "@temporalio/workflow";
+
 import type {
   AutomaticInferenceArguments,
   ManualInferenceArguments,
-} from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
+} from "./flows/browser-plugin-flow-types.js";
 import type {
   ExternalInputRequestSignal,
   ExternalInputResponseSignal,
-} from "@local/hash-isomorphic-utils/flows/types";
-import type { Status } from "@local/status";
-import type { QueryDefinition } from "@temporalio/workflow";
+} from "./flows/types.js";
 
 export const inferenceModelNames = [
   "gpt-4",

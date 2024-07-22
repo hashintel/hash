@@ -1,4 +1,3 @@
-import { getHashInstanceAdminAccountGroupId } from "@local/hash-backend-utils/hash-instance";
 import type { GraphApi } from "@local/hash-graph-client";
 import {
   type EnforcedEntityEditionProvenance,
@@ -39,6 +38,8 @@ import type {
 import { entityIdFromComponents } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { backOff } from "exponential-backoff";
+
+import { getHashInstanceAdminAccountGroupId } from "./hash-instance.js";
 
 /**
  * Retrieve a web's service usage

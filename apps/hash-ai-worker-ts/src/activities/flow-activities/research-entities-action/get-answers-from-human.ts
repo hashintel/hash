@@ -1,7 +1,7 @@
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
-import { getFlowContext } from "../../shared/get-flow-context";
-import { requestExternalInput } from "../../shared/request-external-input";
+import { getFlowContext } from "../../shared/get-flow-context.js";
+import { requestExternalInput } from "../../shared/request-external-input.js";
 
 export const getAnswersFromHuman = async (
   questions: string[],

@@ -11,7 +11,6 @@ import type {
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
-import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
   EntityRelationAndSubject,
   EntityTypeRelationAndSubject,
@@ -22,8 +21,9 @@ import type {
 import { splitEntityId } from "@local/hash-subgraph";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 
-import type { SubgraphFieldsFragment } from "./graphql/api-types.gen";
-import { systemPropertyTypes } from "./ontology-type-ids";
+import type { SubgraphFieldsFragment } from "./graphql/api-types.gen.js";
+import { systemPropertyTypes } from "./ontology-type-ids.js";
+import { deserializeSubgraph } from "./subgraph-mapping.js";
 
 export const zeroedGraphResolveDepths: GraphResolveDepths = {
   inheritsFrom: { outgoing: 0 },

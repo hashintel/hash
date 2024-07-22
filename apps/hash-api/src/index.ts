@@ -1,6 +1,5 @@
 /* eslint-disable import/first */
 
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   getRequiredEnv,
   monorepoRootDir,
@@ -116,8 +115,8 @@ const userIdentifierRateLimiter = rateLimit({
   keyGenerator: (req) => {
     if (req.body.identifier) {
       /**
-       * 'identifier' is the field which identifies the user on a login attempt.
-       * We use this as a rate limiting key if present to mitigate brute force login attempts spread across multiple IPs.
+       * 'identifier' is the field which identifies the user on a signin attempt.
+       * We use this as a rate limiting key if present to mitigate brute force signin attempts spread across multiple IPs.
        */
       return req.body.identifier;
     }
@@ -130,7 +129,6 @@ const hydraProxy = proxy(hydraPublicUrl ?? "", {
 });
 
 const main = async () => {
-  await TypeSystemInitializer.initialize();
   logger.info("Type System initialized");
 
   registerOpenTelemetryTracing(process.env.HASH_OTLP_ENDPOINT ?? null);

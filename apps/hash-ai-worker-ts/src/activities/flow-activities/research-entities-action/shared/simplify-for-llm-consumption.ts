@@ -8,8 +8,8 @@ import type {
   DereferencedEntityType,
   DereferencedPropertyType,
   MinimalPropertyTypeValue,
-} from "../../../shared/dereference-entity-type";
-import type { Fact } from "../../shared/infer-facts-from-text/types";
+} from "../../../shared/dereference-entity-type.js";
+import type { Fact } from "../../shared/infer-facts-from-text/types.js";
 
 const simplifyMinimalPropertyTypeValueForLlmConsumption = (params: {
   propertyTypeValue: MinimalPropertyTypeValue;

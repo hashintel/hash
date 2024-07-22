@@ -8,7 +8,7 @@ import type {
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
   BlockCollectionPropertiesWithMetadata,
-} from "./shared";
+} from "./shared.js";
 
 export type {
   BlockCollection,

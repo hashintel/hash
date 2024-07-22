@@ -3,7 +3,7 @@ import { keymap } from "prosemirror-keymap";
 import type { Node, NodeSpec, NodeType } from "prosemirror-model";
 import { Schema } from "prosemirror-model";
 
-import { paragraphBlockComponentId } from "./blocks";
+import { paragraphBlockComponentId } from "./blocks.js";
 
 type NodeWithAttrs<Attrs extends Record<string, unknown>> = Omit<
   Node,

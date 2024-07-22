@@ -1,7 +1,7 @@
 import dedent from "dedent";
 
-import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text";
-import type { Fact } from "../shared/infer-facts-from-text/types";
+import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text.js";
+import type { Fact } from "../shared/infer-facts-from-text/types.js";
 
 export const generatePreviouslyInferredFactsSystemPromptMessage = (params: {
   entitySummaries: LocalEntitySummary[];

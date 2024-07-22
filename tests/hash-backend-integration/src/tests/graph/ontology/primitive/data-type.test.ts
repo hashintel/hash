@@ -9,7 +9,6 @@ import {
   updateDataType,
 } from "@apps/hash-api/src/graph/ontology/primitive/data-type";
 import { modifyWebAuthorizationRelationships } from "@apps/hash-api/src/graph/ontology/primitive/util";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type {
   ConstructDataTypeParams,
@@ -45,7 +44,6 @@ const dataTypeSchema: ConstructDataTypeParams = {
 };
 
 beforeAll(async () => {
-  await TypeSystemInitializer.initialize();
   await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
   testUser = await createTestUser(graphContext, "data-type-test-1", logger);

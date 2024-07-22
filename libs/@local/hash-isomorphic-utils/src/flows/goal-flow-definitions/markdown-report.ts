@@ -1,12 +1,10 @@
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
+
 import type {
   InputNameForAction,
   OutputNameForAction,
-} from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type {
-  ActionStepDefinition,
-  FlowDefinition,
-} from "@local/hash-isomorphic-utils/flows/types";
+} from "../action-definitions.js";
+import type { ActionStepDefinition, FlowDefinition } from "../types.js";
 
 export type ReportTriggerInput = "Report specification";
 

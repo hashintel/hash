@@ -16,7 +16,7 @@ test("user can create entity type", async ({ page }) => {
   });
 
   // Check if we are on the user page
-  await expect(page.locator("text=Welcome to HASH")).toBeVisible();
+  await expect(page.locator("text=Get support")).toBeVisible();
 
   // Go to Create Entity Type
   await page.locator('[data-testid="create-entity-type-btn"]').click();

@@ -4,9 +4,9 @@ import type {
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 
-import type { QueryOperationInput } from "../entity";
-import type { EntityTypeRootType, Subgraph } from "../subgraph";
-import type { OntologyElementMetadata } from "./metadata";
+import type { QueryOperationInput } from "../entity.js";
+import type { EntityTypeRootType, Subgraph } from "../subgraph.js";
+import type { OntologyElementMetadata } from "./metadata.js";
 
 export type EntityTypeWithMetadata = {
   schema: EntityType;

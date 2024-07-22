@@ -10,11 +10,11 @@ import type {
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 
-import { logProgress } from "../../shared/log-progress";
-import { getWebPageSummaryAction } from "../get-web-page-summary-action";
-import { webSearchAction } from "../web-search-action";
-import type { CoordinatorToolCallArguments } from "./coordinator-tools";
-import type { ResourceSummary } from "./types";
+import { logProgress } from "../../shared/log-progress.js";
+import { getWebPageSummaryAction } from "../get-web-page-summary-action.js";
+import { webSearchAction } from "../web-search-action.js";
+import type { CoordinatorToolCallArguments } from "./coordinator-tools.js";
+import type { ResourceSummary } from "./types.js";
 
 export const handleWebSearchToolCall = async (params: {
   input: CoordinatorToolCallArguments["webSearch"];
@@ -99,19 +99,22 @@ export const handleWebSearchToolCall = async (params: {
         };
       }
 
-      const { outputs: webPageSummaryOutputs } =
-        webPageSummaryResponse.contents[0]!;
+      const responseContent = webPageSummaryResponse.contents[0];
 
-      const summaryOutput = webPageSummaryOutputs.find(
+      const webPageSummaryOutputs = responseContent?.outputs;
+
+      const summaryOutput = webPageSummaryOutputs?.find(
         ({ outputName }) =>
           outputName ===
           ("summary" satisfies OutputNameForAction<"getWebPageSummary">),
       );
 
       if (!summaryOutput) {
-        throw new Error(
-          `No summary output was found when calling "getSummariesOfWebPages" for the web page at url ${url}.`,
-        );
+        return {
+          url,
+          title,
+          summary: `An unexpected error occurred trying to summarize the web page at url ${url}.`,
+        };
       }
 
       const summary = summaryOutput.payload.value as string;

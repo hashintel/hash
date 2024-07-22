@@ -1,4 +1,4 @@
-import type { Logger } from "./logger";
+import type { Logger } from "./logger.js";
 
 export type Signal = "SIGINT" | "SIGTERM" | "SIGKILL";
 

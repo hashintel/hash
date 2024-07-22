@@ -14,7 +14,7 @@ import type {
   DisplayNamePropertyValueWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
-} from "./shared";
+} from "./shared.js";
 
 export type {
   Actor,

@@ -1,3 +1,3 @@
-export * from "./types/element";
-export * from "./types/shared";
-export * from "./types/subgraph";
+export * from "./types/element.js";
+export * from "./types/shared.js";
+export * from "./types/subgraph.js";

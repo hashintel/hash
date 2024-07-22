@@ -24,7 +24,6 @@ import { useContext, useEffect, useState } from "react";
 
 import { SiteMapContext } from "../pages/shared/sitemap-context";
 import { Button } from "./button";
-import { DiscordIcon } from "./icons/discord-icon";
 import { EnvelopeRegularIcon } from "./icons/envelope-regular-icon";
 import { FontAwesomeIcon } from "./icons/font-awesome-icon";
 import { Logo } from "./logo";
@@ -176,14 +175,6 @@ const MobileNav: FunctionComponent<{
               />
             </Box>
             <Stack spacing={1.25}>
-              <Button
-                variant="tertiary"
-                startIcon={<DiscordIcon />}
-                size="large"
-                href="https://hash.ai/discord"
-              >
-                Chat to us on Discord
-              </Button>
               <Button
                 size="large"
                 variant="primary"

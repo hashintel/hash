@@ -3,32 +3,36 @@ import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { Draft } from "immer";
 import { castDraft, produce } from "immer";
-import isEqual from "lodash/isEqual";
+import { isEqual } from "lodash-es";
 import type { Node } from "prosemirror-model";
 import type { EditorState, Transaction } from "prosemirror-state";
 import { Plugin, PluginKey } from "prosemirror-state";
 import type { EditorView } from "prosemirror-view";
 import { v4 as uuid } from "uuid";
 
-import type { BlockEntity } from "./entity";
-import { getEntityChildEntity, isRichTextProperties } from "./entity";
-import type { DraftEntity, EntityStore, EntityStoreType } from "./entity-store";
+import type { BlockEntity } from "./entity.js";
+import { getEntityChildEntity, isRichTextProperties } from "./entity.js";
+import type {
+  DraftEntity,
+  EntityStore,
+  EntityStoreType,
+} from "./entity-store.js";
 import {
   createEntityStore,
   getDraftEntityByEntityId,
   isBlockEntity,
   isDraftBlockEntity,
   textualContentPropertyTypeBaseUrl,
-} from "./entity-store";
-import type { ComponentNode, EntityNode } from "./prosemirror";
+} from "./entity-store.js";
+import type { ComponentNode, EntityNode } from "./prosemirror.js";
 import {
   componentNodeToId,
   findComponentNodes,
   isComponentNode,
   isEntityNode,
-} from "./prosemirror";
-import { textBlockNodeToEntityProperties } from "./text";
-import { collect } from "./util";
+} from "./prosemirror.js";
+import { textBlockNodeToEntityProperties } from "./text.js";
+import { collect } from "./util.js";
 
 type EntityStorePluginStateListener = (store: EntityStore) => void;
 
@@ -307,10 +311,10 @@ const entityStoreReducer = (
 
             /**
              * When we merge the updated entity store in from the API in createEntityStore, after a save,
-             * we compare the decision time of the local draft entities to that of the API-provided ones to see which to prefer.
-             * Although this is fragile and not a robust solution given the possibility of the API and the frontend having different clocks,
-             * it's better than nothing. We should instead have a proper collaborative server which manages document state.
-             * H-1234
+             * we compare the decision time of the local draft entities to that of the API-provided ones to see which
+             * to prefer. Although this is fragile and not a robust solution given the possibility of the API and the
+             * frontend having different clocks, it's better than nothing. We should instead have a proper
+             * collaborative server which manages document state. H-1234
              */
             draftEntity.metadata.temporalVersioning = {
               decisionTime: {
@@ -687,7 +691,7 @@ class ProsemirrorStateChangeHandler {
          *   new blocks – this is potentially insecure and needs
          *   considering
          */
-        node.attrs.draftId ?? generateDraftIdForEntity(null);
+        (node.attrs.draftId ?? generateDraftIdForEntity(null));
 
     if (!draftEntityStore[draftId]) {
       addEntityStoreAction(this.state, this.tr, {

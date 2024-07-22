@@ -1,6 +1,9 @@
 {
   "extends": ["//"],
   "tasks": {
+    "build": {
+      "outputs": ["./dist/**"]
+    },
     "codegen": {
       // Outputs of GraphQL generation
       "outputs": ["./src/**/*.gen.*"],

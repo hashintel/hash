@@ -1,15 +1,15 @@
-import "../../shared/testing-utilities/mock-get-flow-context";
+import "../../shared/testing-utilities/mock-get-flow-context.js";
 
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import type { LlmParams } from "./get-llm-response/types";
-import { improveSystemPrompt } from "./optimize-system-prompt/improve-system-prompt";
+import type { LlmParams } from "./get-llm-response/types.js";
+import { improveSystemPrompt } from "./optimize-system-prompt/improve-system-prompt.js";
 import type {
   MetricDefinition,
   MetricResultsForModel,
   MetricResultsForSystemPrompt,
-} from "./optimize-system-prompt/types";
+} from "./optimize-system-prompt/types.js";
 
 const escapeCSV = (value: string) => {
   if (value.includes(",") || value.includes('"') || value.includes("\n")) {

@@ -2,14 +2,14 @@ import type { CodegenParameters } from "@blockprotocol/graph/codegen";
 import { codegen } from "@blockprotocol/graph/codegen";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
-import slugify from "slugify";
 
 import {
   blockProtocolEntityTypes,
   googleEntityTypes,
   linearEntityTypes,
   systemEntityTypes,
-} from "./ontology-type-ids";
+} from "./ontology-type-ids.js";
+import { slugify } from "./slugify.js";
 
 const generateTypes = async (
   typeMap: Record<string, { entityTypeId: VersionedUrl }>,
@@ -40,9 +40,7 @@ const generateTypes = async (
        */
       continue;
     }
-    targets[`${slugify(name, { strict: true, lower: true })}.ts`] = [
-      { sourceTypeId: entityTypeId },
-    ];
+    targets[`${slugify(name)}.ts`] = [{ sourceTypeId: entityTypeId }];
   }
 
   await codegen({

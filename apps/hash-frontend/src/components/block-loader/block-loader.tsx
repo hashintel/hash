@@ -250,18 +250,18 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
 
       if (!entityInStore || !draftEntityIsNewer) {
         if (isBlockEntity) {
+          // @ts-expect-error –– @todo fix this
+          const entityVertex = entityOrTypeEditionMap[
+            latestSubgraphEditionTimestamp
+          ] as EntityVertex;
+
           // If it's the block entity, rewrite the textual-content property of the latest edition to a plain string
           newVertices[entityIdOrTypeId] = {
             ...entityOrTypeEditionMap,
             [latestSubgraphEditionTimestamp]: {
               kind: "entity",
-              inner: {
-                ...(
-                  entityOrTypeEditionMap as Record<
-                    EntityRevisionId,
-                    EntityVertex
-                  >
-                )[latestSubgraphEditionTimestamp]!.inner,
+              inner: new Entity({
+                ...entityVertex.inner.toJSON(),
                 properties: rewrittenPropertiesForTextualContent(
                   (
                     entityOrTypeEditionMap as Record<
@@ -270,7 +270,7 @@ export const BlockLoader: FunctionComponent<BlockLoaderProps> = ({
                     >
                   )[latestSubgraphEditionTimestamp]!.inner.properties,
                 ),
-              },
+              }),
             },
           };
         } else {

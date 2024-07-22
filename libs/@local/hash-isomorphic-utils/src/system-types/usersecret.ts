@@ -16,7 +16,7 @@ import type {
   UserSecretPropertiesWithMetadata,
   VaultPathPropertyValue,
   VaultPathPropertyValueWithMetadata,
-} from "./shared";
+} from "./shared.js";
 
 export type {
   ConnectionSourceNamePropertyValue,

@@ -1,6 +1,6 @@
-import type { ParsedLlmToolCall } from "../../shared/get-llm-response/types";
-import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text";
-import type { Fact } from "../shared/infer-facts-from-text/types";
+import type { ParsedLlmToolCall } from "../../shared/get-llm-response/types.js";
+import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text.js";
+import type { Fact } from "../shared/infer-facts-from-text/types.js";
 
 export type CompletedCoordinatorToolCall<ToolId extends string> = {
   inferredFacts: Fact[] | null;

@@ -109,7 +109,7 @@ test("new notifications are shown on inbox page", async ({ page }) => {
     userPassword: "password",
   });
 
-  await expect(page.locator("text=Welcome to HASH")).toBeVisible();
+  await expect(page.locator("text=Get support")).toBeVisible();
 
   await page.goto("/inbox");
 

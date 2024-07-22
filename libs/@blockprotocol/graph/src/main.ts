@@ -3,7 +3,7 @@
  * This defines the main types and type-guards used when working with the Graph module.
  */
 
-import type { Entity, EntityVertexId, Subgraph } from "./types";
+import type { Entity, EntityVertexId, Subgraph } from "./types.js";
 
 export type {
   BoundedTimeInterval,
@@ -134,7 +134,7 @@ export type {
   Vertex,
   VertexId,
   Vertices,
-} from "./types";
+} from "./types.js";
 export {
   isConstrainsLinkDestinationsOnEdge,
   isConstrainsLinksOnEdge,
@@ -167,14 +167,14 @@ export {
   isPropertyTypeVertex,
   isSharedEdgeKind,
   isValuesConstrainedByEdge,
-} from "./types";
+} from "./types.js";
 
 // import {
 //   BlockGraphProperties as BlockGraphPropertiesGeneral,
 // } from "../types.js"
 
-export { GraphBlockHandler } from "./graph-block-handler";
-export { GraphEmbedderHandler } from "./graph-embedder-handler";
+export { GraphBlockHandler } from "./graph-block-handler.js";
+export { GraphEmbedderHandler } from "./graph-embedder-handler.js";
 
 /*
  @todo - For some reason, exporting this alias breaks inference of generics when passed into things

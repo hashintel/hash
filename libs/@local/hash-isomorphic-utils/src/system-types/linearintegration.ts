@@ -197,7 +197,7 @@ import type {
   VaultPathPropertyValueWithMetadata,
   WebsiteURLPropertyValue,
   WebsiteURLPropertyValueWithMetadata,
-} from "./shared";
+} from "./shared.js";
 
 export type {
   Actor,

@@ -3,12 +3,12 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import dedent from "dedent";
 
-import { getFlowContext } from "../../shared/get-flow-context";
-import { getLlmResponse } from "../../shared/get-llm-response";
-import { getToolCallsFromLlmAssistantMessage } from "../../shared/get-llm-response/llm-message";
-import type { LlmToolDefinition } from "../../shared/get-llm-response/types";
-import { graphApiClient } from "../../shared/graph-api-client";
-import { simplifyEntity } from "../../shared/simplify-entity";
+import { getFlowContext } from "../../shared/get-flow-context.js";
+import { getLlmResponse } from "../../shared/get-llm-response.js";
+import { getToolCallsFromLlmAssistantMessage } from "../../shared/get-llm-response/llm-message.js";
+import type { LlmToolDefinition } from "../../shared/get-llm-response/types.js";
+import { graphApiClient } from "../../shared/graph-api-client.js";
+import { simplifyEntity } from "../../shared/simplify-entity.js";
 
 export type ExistingEntitySummary = {
   entityId: EntityId;

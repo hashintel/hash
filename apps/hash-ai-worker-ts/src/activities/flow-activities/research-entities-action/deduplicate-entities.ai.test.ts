@@ -1,9 +1,9 @@
-import "../../../shared/testing-utilities/mock-get-flow-context";
+import "../../../shared/testing-utilities/mock-get-flow-context.js";
 
 import { expect, test } from "vitest";
 
-import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text";
-import { deduplicateEntities } from "./deduplicate-entities";
+import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text.js";
+import { deduplicateEntities } from "./deduplicate-entities.js";
 
 const ftse350EntitySummaries: LocalEntitySummary[] = [
   {

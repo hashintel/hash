@@ -1,4 +1,4 @@
-import { stringify } from "../../shared/stringify";
+import { stringify } from "../../shared/stringify.js";
 
 const generateErrorMessage = (err: unknown) =>
   err instanceof Error ? err.message : stringify(err);

@@ -11,7 +11,6 @@ import {
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { joinOrg } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
@@ -42,8 +41,6 @@ describe("Comment Notification", () => {
 
   beforeAll(async () => {
     const graphContext = createTestImpureGraphContext();
-
-    await TypeSystemInitializer.initialize();
 
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 

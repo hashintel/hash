@@ -174,7 +174,6 @@ const RowByLocation = (
       }
 
       for (const newTypeId of newEntityTypeIds) {
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (rulesByType[newTypeId]) {
           continue;
         }
@@ -243,7 +242,7 @@ const RowByLocation = (
           options={domainOptions}
           selectedDomains={restrictToDomain ? [restrictToDomain] : []}
           setSelectedDomains={(newDomains) => {
-            updateDomain(newDomains[0]);
+            updateDomain(newDomains[0]!);
           }}
         />
       </TableCell>

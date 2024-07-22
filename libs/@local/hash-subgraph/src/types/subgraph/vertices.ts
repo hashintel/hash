@@ -24,7 +24,7 @@ import type {
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 
-import type { EntityRevisionId, OntologyTypeRevisionId } from "../element";
+import type { EntityRevisionId, OntologyTypeRevisionId } from "../element.js";
 
 export type DataTypeVertex = Subtype<
   DataTypeVertexBp,

@@ -23,12 +23,12 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import type { sheets_v4 } from "googleapis";
 
-import type { SheetOutputFormat } from "./shared/config";
+import type { SheetOutputFormat } from "./shared/config.js";
 import {
   createCellFromValue,
   createHyperlinkCell,
-} from "./shared/create-sheet-data";
-import { cellHeaderFormat } from "./shared/format";
+} from "./shared/create-sheet-data.js";
+import { cellHeaderFormat } from "./shared/format.js";
 
 type ColumnsForEntity = {
   columns: Record<

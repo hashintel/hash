@@ -1,4 +1,4 @@
-import "../../../shared/testing-utilities/mock-get-flow-context";
+import "../../../shared/testing-utilities/mock-get-flow-context.js";
 
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 import {
@@ -9,8 +9,8 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import { expect, test } from "vitest";
 
-import { graphApiClient } from "../../shared/graph-api-client";
-import { summarizeExistingEntities } from "./summarize-existing-entities";
+import { graphApiClient } from "../../shared/graph-api-client.js";
+import { summarizeExistingEntities } from "./summarize-existing-entities.js";
 
 test.skip(
   "Test summarizeExistingEntities with user entities",

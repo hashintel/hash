@@ -24,7 +24,7 @@ test.skip("user can create page", async ({ page }) => {
   await loginUsingTempForm({ page });
 
   await page.waitForURL("/");
-  await expect(page.locator("text=Welcome to HASH")).toBeVisible();
+  await expect(page.locator("text=Get support")).toBeVisible();
 
   // TODO: investigate why delay is required for create page button to work
   await sleep(500);

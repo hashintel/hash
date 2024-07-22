@@ -12,7 +12,7 @@ test("/types page renders and loads types", async ({ page }) => {
     userPassword: "password",
   });
 
-  await expect(page.locator("text=Welcome to HASH")).toBeVisible();
+  await expect(page.locator("text=Get support")).toBeVisible();
 
   await page.goto("/types");
 

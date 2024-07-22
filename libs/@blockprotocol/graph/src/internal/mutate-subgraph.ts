@@ -4,10 +4,10 @@ export {
   inferEntityEdgesInSubgraphByMutation,
   inferEntityTypeEdgesInSubgraphByMutation,
   inferPropertyTypeEdgesInSubgraphByMutation,
-} from "./mutate-subgraph/edge";
+} from "./mutate-subgraph/edge.js";
 export {
   addDataTypeVerticesToSubgraphByMutation,
   addEntityTypeVerticesToSubgraphByMutation,
   addEntityVerticesToSubgraphByMutation,
   addPropertyTypeVerticesToSubgraphByMutation,
-} from "./mutate-subgraph/element";
+} from "./mutate-subgraph/element.js";

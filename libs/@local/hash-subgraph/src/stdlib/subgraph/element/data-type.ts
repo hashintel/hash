@@ -12,7 +12,7 @@ import type {
   DataTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 
-import type { OntologyTypeVertexId, Subgraph } from "../../../main";
+import type { OntologyTypeVertexId, Subgraph } from "../../../main.js";
 
 /**
  * Returns all `DataTypeWithMetadata`s within the vertices of the subgraph

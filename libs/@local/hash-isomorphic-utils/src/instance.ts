@@ -1,4 +1,4 @@
-import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
+import { frontendUrl } from "./environment.js";
 
 // Whether this is a self-hosted instance, rather than the central HASH hosted instance
 export const isSelfHostedInstance =

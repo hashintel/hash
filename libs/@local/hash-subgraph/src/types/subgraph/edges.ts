@@ -8,15 +8,15 @@ import type { EntityId } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 
-import type { OntologyTypeRevisionId } from "../element";
+import type { OntologyTypeRevisionId } from "../element.js";
 import type {
   KnowledgeGraphOutwardEdge,
   OntologyOutwardEdge,
-} from "./edges/variants";
+} from "./edges/variants.js";
 
-export * from "./edges/kind";
-export * from "./edges/outward-edge";
-export * from "./edges/variants";
+export * from "./edges/kind.js";
+export * from "./edges/outward-edge.js";
+export * from "./edges/variants.js";
 
 export type OntologyRootedEdges = Subtype<
   OntologyRootedEdgesBp,

@@ -108,7 +108,7 @@ import type {
   UserOutgoingLinksByLinkEntityTypeId,
   UserProperties,
   UserPropertiesWithMetadata,
-} from "./shared";
+} from "./shared.js";
 
 export type {
   ActivePropertyValue,

@@ -7,9 +7,9 @@ import { sleep } from "@local/hash-isomorphic-utils/sleep";
 import { Context } from "@temporalio/activity";
 import type { Client as TemporalClient } from "@temporalio/client";
 
-import { getExternalInputResponseQuery } from "../../shared/queries";
-import { externalInputRequestSignal } from "../../shared/signals";
-import { logger } from "./activity-logger";
+import { getExternalInputResponseQuery } from "../../shared/queries.js";
+import { externalInputRequestSignal } from "../../shared/signals.js";
+import { logger } from "./activity-logger.js";
 
 let temporalClient: TemporalClient | undefined;
 

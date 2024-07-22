@@ -4,26 +4,26 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/main.ts",
-    "./stdlib": "./src/stdlib.ts",
-    "./type-system-patch": "./src/shared/type-system-patch.ts",
-    "./temp": "./src/temp.ts"
+    ".": "./dist/main.js",
+    "./stdlib": "./dist/stdlib.js",
+    "./type-system-patch": "./dist/type-system-patch.js"
   },
-  "types": "./src/main.ts",
+  "types": "./dist/main.d.ts",
   "typesVersions": {
     "*": {
       ".": [
-        "./src/main.ts"
+        "./dist/main.d.ts"
       ],
       "stdlib": [
-        "./src/stdlib.ts"
+        "./dist/stdlib.d.ts"
       ],
       "type-system-patch": [
-        "./src/shared/type-system-patch.ts"
+        "./dist/type-system-patch.d.ts"
       ]
     }
   },
   "scripts": {
+    "build": "rimraf dist && tsc --build tsconfig.build.json",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
