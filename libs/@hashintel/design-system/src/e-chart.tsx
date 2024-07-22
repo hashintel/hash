@@ -13,12 +13,12 @@ import type { TooltipComponentOption } from "echarts/components";
 import { GridComponent, TooltipComponent } from "echarts/components";
 import * as echarts from "echarts/core";
 import { SVGRenderer } from "echarts/renderers";
+import type {
+  GraphEdgeItemOption,
+  GraphNodeItemOption,
+} from "echarts/types/src/chart/graph/GraphSeries";
 import type { FunctionComponent } from "react";
 import { useEffect, useRef, useState } from "react";
-import type {
-  GraphNodeItemOption,
-  GraphEdgeItemOption,
-} from "echarts/types/src/chart/graph/GraphSeries";
 
 export type Chart = echarts.ECharts;
 

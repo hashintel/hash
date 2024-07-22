@@ -128,7 +128,7 @@ const generatePropertyMetadata = (params: {
             all.findIndex(
               (otherSource) =>
                 /** normalize by dropping any trailing slash */
-                otherSource.location?.uri.replace(/\/$/, "") ===
+                otherSource.location?.uri?.replace(/\/$/, "") ===
                 sourceLocationUri.replace(/\/$/, ""),
             ) === index
           );

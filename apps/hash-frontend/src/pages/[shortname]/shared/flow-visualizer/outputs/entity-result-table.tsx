@@ -570,8 +570,7 @@ export const EntityResultTable = ({
           propertiesMetadata:
             "propertiesMetadata" in entity
               ? entity.propertiesMetadata
-              : // eslint-disable-next-line @typescript-eslint/unbound-method
-                entity.propertyMetadata,
+              : entity.propertyMetadata,
           researchOngoing:
             "researchOngoing" in record && record.researchOngoing,
           status: isProposed

@@ -39,6 +39,7 @@ test.skip(
     const { facts } = await inferEntityFactsFromTextAgent({
       text: htmlContent,
       dereferencedEntityType,
+      linkEntityTypesById: {},
       subjectEntities: [
         {
           localId: "6675a4ca-2282-4823-a4ff-d65d87218ebd",
@@ -93,6 +94,7 @@ test.skip(
     const { facts } = await inferEntityFactsFromTextAgent({
       text: htmlContent,
       dereferencedEntityType,
+      linkEntityTypesById: {},
       subjectEntities: [
         {
           localId: "6675a4ca-2282-4823-a4ff-d65d87218ebd",

@@ -381,8 +381,6 @@ export const Outputs = ({
         selectedFlowRun.webId,
       );
 
-      console.log({ mockedEntity });
-
       /**
        * @todo also handle proposed entities which link to existing persisted entities
        *   -- requires having fetched them.
@@ -391,11 +389,9 @@ export const Outputs = ({
         .filter(
           (entity) =>
             (proposedEntity.sourceEntityId?.kind === "proposed-entity" &&
-              proposedEntity.sourceEntityId?.localId ===
-                entity.localEntityId) ||
+              proposedEntity.sourceEntityId.localId === entity.localEntityId) ||
             (proposedEntity.targetEntityId?.kind === "proposed-entity" &&
-              proposedEntity.targetEntityId?.localId ===
-                entity.localEntityId) ||
+              proposedEntity.targetEntityId.localId === entity.localEntityId) ||
             (entity.sourceEntityId?.kind === "proposed-entity" &&
               entity.sourceEntityId.localId === selectedEntityId) ||
             (entity.targetEntityId?.kind === "proposed-entity" &&
@@ -526,8 +522,6 @@ export const Outputs = ({
     }
     return entities;
   }, [persistedEntities, proposedEntities]);
-
-  console.log({ entitiesForGraph });
 
   return (
     <>
