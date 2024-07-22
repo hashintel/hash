@@ -1,7 +1,7 @@
 /* eslint-disable import/first */
-// @todo have webpack polyfill this
-import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
+import "./_app.page/why-did-you-render";
 
+// @todo have webpack polyfill this
 require("setimmediate");
 
 import "./globals.scss";
@@ -13,6 +13,7 @@ import { CacheProvider } from "@emotion/react";
 import { createEmotionCache, theme } from "@hashintel/design-system/theme";
 import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
+import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-utils/graph-queries";
 import type { User } from "@local/hash-isomorphic-utils/system-types/user";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
