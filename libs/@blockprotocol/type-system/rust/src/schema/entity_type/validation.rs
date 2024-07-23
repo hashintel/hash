@@ -24,12 +24,11 @@ pub struct EntityTypeValidator;
 
 impl Validator<EntityType> for EntityTypeValidator {
     type Error = EntityTypeValidationError;
-    type Validated = EntityType;
 
     async fn validate_ref<'v>(
         &self,
         value: &'v EntityType,
-    ) -> Result<&'v Valid<Self::Validated>, Self::Error> {
+    ) -> Result<&'v Valid<EntityType>, Self::Error> {
         ObjectSchemaValidator.validate_ref(value).await?;
 
         for (property, value) in &value.properties {
@@ -53,12 +52,11 @@ impl Validator<EntityType> for EntityTypeValidator {
 
 impl Validator<ClosedEntityType> for EntityTypeValidator {
     type Error = EntityTypeValidationError;
-    type Validated = ClosedEntityType;
 
     async fn validate_ref<'v>(
         &self,
         value: &'v ClosedEntityType,
-    ) -> Result<&'v Valid<Self::Validated>, Self::Error> {
+    ) -> Result<&'v Valid<ClosedEntityType>, Self::Error> {
         ObjectSchemaValidator.validate_ref(value).await?;
 
         for (property, value) in &value.properties {
