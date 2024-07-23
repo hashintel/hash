@@ -143,26 +143,3 @@ services:
       VAULT_DEV_LISTEN_ADDRESS: "0.0.0.0:8200"
     security_opt:
       - no-new-privileges:true
-
-  # TODO: Services below this line are developed by HASH and should not be part of this file
-
-  graph-migrate:
-    depends_on:
-      telemetry-collector:
-        condition: service_healthy
-    environment:
-      HASH_GRAPH_OTLP_ENDPOINT: "http://telemetry-collector:4317"
-
-  graph:
-    depends_on:
-      telemetry-collector:
-        condition: service_healthy
-    environment:
-      HASH_SPICEDB_HOST: http://spicedb
-      HASH_SPICEDB_HTTP_PORT: "${HASH_SPICEDB_HTTP_PORT}"
-      HASH_SPICEDB_GRPC_PRESHARED_KEY: "${HASH_SPICEDB_GRPC_PRESHARED_KEY}"
-      HASH_TEMPORAL_SERVER_HOST: "http://temporal"
-      HASH_TEMPORAL_SERVER_PORT: "${HASH_TEMPORAL_SERVER_PORT}"
-      HASH_GRAPH_OTLP_ENDPOINT: "http://telemetry-collector:4317"
-    ports:
-      - "${HASH_GRAPH_API_PORT}:4000"
