@@ -10,6 +10,7 @@ import type {
   ActorOutgoingLinksByLinkEntityTypeId,
   ActorProperties,
   ActorPropertiesWithMetadata,
+  ActorPropertiesWithMetadataValue,
   ArchivedPropertyValue,
   ArchivedPropertyValueWithMetadata,
   AuthoredBy,
@@ -17,6 +18,7 @@ import type {
   AuthoredByOutgoingLinksByLinkEntityTypeId,
   AuthoredByProperties,
   AuthoredByPropertiesWithMetadata,
+  AuthoredByPropertiesWithMetadataValue,
   AutomaticInferenceConfigurationPropertyValue,
   AutomaticInferenceConfigurationPropertyValueWithMetadata,
   Block,
@@ -25,11 +27,13 @@ import type {
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
   BlockCollectionPropertiesWithMetadata,
+  BlockCollectionPropertiesWithMetadataValue,
   BlockHasDataLink,
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
   BlockPropertiesWithMetadata,
+  BlockPropertiesWithMetadataValue,
   BooleanDataType,
   BooleanDataTypeWithMetadata,
   BrowserPluginSettings,
@@ -37,6 +41,7 @@ import type {
   BrowserPluginSettingsOutgoingLinksByLinkEntityTypeId,
   BrowserPluginSettingsProperties,
   BrowserPluginSettingsPropertiesWithMetadata,
+  BrowserPluginSettingsPropertiesWithMetadataValue,
   BrowserPluginTabPropertyValue,
   BrowserPluginTabPropertyValueWithMetadata,
   Comment,
@@ -47,6 +52,7 @@ import type {
   CommentOutgoingLinksByLinkEntityTypeId,
   CommentProperties,
   CommentPropertiesWithMetadata,
+  CommentPropertiesWithMetadataValue,
   ComponentIdPropertyValue,
   ComponentIdPropertyValueWithMetadata,
   DateTimeDataType,
@@ -74,6 +80,7 @@ import type {
   FileOutgoingLinksByLinkEntityTypeId,
   FileProperties,
   FilePropertiesWithMetadata,
+  FilePropertiesWithMetadataValue,
   FileSizePropertyValue,
   FileSizePropertyValueWithMetadata,
   FileStorageBucketPropertyValue,
@@ -98,26 +105,31 @@ import type {
   HasAvatarOutgoingLinksByLinkEntityTypeId,
   HasAvatarProperties,
   HasAvatarPropertiesWithMetadata,
+  HasAvatarPropertiesWithMetadataValue,
   HasBio,
   HasBioOutgoingLinkAndTarget,
   HasBioOutgoingLinksByLinkEntityTypeId,
   HasBioProperties,
   HasBioPropertiesWithMetadata,
+  HasBioPropertiesWithMetadataValue,
   HasCoverImage,
   HasCoverImageOutgoingLinkAndTarget,
   HasCoverImageOutgoingLinksByLinkEntityTypeId,
   HasCoverImageProperties,
   HasCoverImagePropertiesWithMetadata,
+  HasCoverImagePropertiesWithMetadataValue,
   HasData,
   HasDataOutgoingLinkAndTarget,
   HasDataOutgoingLinksByLinkEntityTypeId,
   HasDataProperties,
   HasDataPropertiesWithMetadata,
+  HasDataPropertiesWithMetadataValue,
   HasIndexedContent,
   HasIndexedContentOutgoingLinkAndTarget,
   HasIndexedContentOutgoingLinksByLinkEntityTypeId,
   HasIndexedContentProperties,
   HasIndexedContentPropertiesWithMetadata,
+  HasIndexedContentPropertiesWithMetadataValue,
   HasOutgoingLinkAndTarget,
   HasOutgoingLinksByLinkEntityTypeId,
   HasParent,
@@ -125,18 +137,22 @@ import type {
   HasParentOutgoingLinksByLinkEntityTypeId,
   HasParentProperties,
   HasParentPropertiesWithMetadata,
+  HasParentPropertiesWithMetadataValue,
   HasProperties,
   HasPropertiesWithMetadata,
+  HasPropertiesWithMetadataValue,
   HasServiceAccount,
   HasServiceAccountOutgoingLinkAndTarget,
   HasServiceAccountOutgoingLinksByLinkEntityTypeId,
   HasServiceAccountProperties,
   HasServiceAccountPropertiesWithMetadata,
+  HasServiceAccountPropertiesWithMetadataValue,
   HasText,
   HasTextOutgoingLinkAndTarget,
   HasTextOutgoingLinksByLinkEntityTypeId,
   HasTextProperties,
   HasTextPropertiesWithMetadata,
+  HasTextPropertiesWithMetadataValue,
   IconPropertyValue,
   IconPropertyValueWithMetadata,
   Image,
@@ -144,11 +160,13 @@ import type {
   ImageOutgoingLinksByLinkEntityTypeId,
   ImageProperties,
   ImagePropertiesWithMetadata,
+  ImagePropertiesWithMetadataValue,
   IsMemberOf,
   IsMemberOfOutgoingLinkAndTarget,
   IsMemberOfOutgoingLinksByLinkEntityTypeId,
   IsMemberOfProperties,
   IsMemberOfPropertiesWithMetadata,
+  IsMemberOfPropertiesWithMetadataValue,
   KratosIdentityIdPropertyValue,
   KratosIdentityIdPropertyValueWithMetadata,
   Link,
@@ -156,6 +174,7 @@ import type {
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   LinkPropertiesWithMetadata,
+  LinkPropertiesWithMetadataValue,
   LocationPropertyValue,
   LocationPropertyValueWithMetadata,
   ManualInferenceConfigurationPropertyValue,
@@ -167,6 +186,7 @@ import type {
   NotificationOutgoingLinksByLinkEntityTypeId,
   NotificationProperties,
   NotificationPropertiesWithMetadata,
+  NotificationPropertiesWithMetadataValue,
   NumberDataType,
   NumberDataTypeWithMetadata,
   ObjectDataType,
@@ -176,11 +196,13 @@ import type {
   OccurredInBlockOutgoingLinksByLinkEntityTypeId,
   OccurredInBlockProperties,
   OccurredInBlockPropertiesWithMetadata,
+  OccurredInBlockPropertiesWithMetadataValue,
   OccurredInEntity,
   OccurredInEntityOutgoingLinkAndTarget,
   OccurredInEntityOutgoingLinksByLinkEntityTypeId,
   OccurredInEntityProperties,
   OccurredInEntityPropertiesWithMetadata,
+  OccurredInEntityPropertiesWithMetadataValue,
   Organization,
   OrganizationHasAvatarLink,
   OrganizationHasBioLink,
@@ -191,6 +213,7 @@ import type {
   OrganizationOutgoingLinksByLinkEntityTypeId,
   OrganizationProperties,
   OrganizationPropertiesWithMetadata,
+  OrganizationPropertiesWithMetadataValue,
   OriginalFileNamePropertyValue,
   OriginalFileNamePropertyValueWithMetadata,
   OriginalSourcePropertyValue,
@@ -203,6 +226,7 @@ import type {
   PageOutgoingLinksByLinkEntityTypeId,
   PageProperties,
   PagePropertiesWithMetadata,
+  PagePropertiesWithMetadataValue,
   PinnedEntityTypeBaseURLPropertyValue,
   PinnedEntityTypeBaseURLPropertyValueWithMetadata,
   PreferredPronounsPropertyValue,
@@ -213,6 +237,7 @@ import type {
   ProfileBioOutgoingLinksByLinkEntityTypeId,
   ProfileBioProperties,
   ProfileBioPropertiesWithMetadata,
+  ProfileBioPropertiesWithMetadataValue,
   ProfileURLPropertyValue,
   ProfileURLPropertyValueWithMetadata,
   ReadAtPropertyValue,
@@ -224,6 +249,7 @@ import type {
   ServiceAccountOutgoingLinksByLinkEntityTypeId,
   ServiceAccountProperties,
   ServiceAccountPropertiesWithMetadata,
+  ServiceAccountPropertiesWithMetadataValue,
   ShortnamePropertyValue,
   ShortnamePropertyValueWithMetadata,
   SummaryPropertyValue,
@@ -235,6 +261,7 @@ import type {
   TextOutgoingLinksByLinkEntityTypeId,
   TextProperties,
   TextPropertiesWithMetadata,
+  TextPropertiesWithMetadataValue,
   TextualContentPropertyValue,
   TextualContentPropertyValueWithMetadata,
   TitlePropertyValue,
@@ -244,6 +271,7 @@ import type {
   TriggeredByUserOutgoingLinksByLinkEntityTypeId,
   TriggeredByUserProperties,
   TriggeredByUserPropertiesWithMetadata,
+  TriggeredByUserPropertiesWithMetadataValue,
   UploadCompletedAtPropertyValue,
   UploadCompletedAtPropertyValueWithMetadata,
   User,
@@ -256,6 +284,7 @@ import type {
   UserOutgoingLinksByLinkEntityTypeId,
   UserProperties,
   UserPropertiesWithMetadata,
+  UserPropertiesWithMetadataValue,
   WebsiteURLPropertyValue,
   WebsiteURLPropertyValueWithMetadata,
 } from "./shared.js";
@@ -266,6 +295,7 @@ export type {
   ActorOutgoingLinksByLinkEntityTypeId,
   ActorProperties,
   ActorPropertiesWithMetadata,
+  ActorPropertiesWithMetadataValue,
   ArchivedPropertyValue,
   ArchivedPropertyValueWithMetadata,
   AuthoredBy,
@@ -273,6 +303,7 @@ export type {
   AuthoredByOutgoingLinksByLinkEntityTypeId,
   AuthoredByProperties,
   AuthoredByPropertiesWithMetadata,
+  AuthoredByPropertiesWithMetadataValue,
   AutomaticInferenceConfigurationPropertyValue,
   AutomaticInferenceConfigurationPropertyValueWithMetadata,
   Block,
@@ -281,11 +312,13 @@ export type {
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
   BlockCollectionPropertiesWithMetadata,
+  BlockCollectionPropertiesWithMetadataValue,
   BlockHasDataLink,
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
   BlockPropertiesWithMetadata,
+  BlockPropertiesWithMetadataValue,
   BooleanDataType,
   BooleanDataTypeWithMetadata,
   BrowserPluginSettings,
@@ -293,6 +326,7 @@ export type {
   BrowserPluginSettingsOutgoingLinksByLinkEntityTypeId,
   BrowserPluginSettingsProperties,
   BrowserPluginSettingsPropertiesWithMetadata,
+  BrowserPluginSettingsPropertiesWithMetadataValue,
   BrowserPluginTabPropertyValue,
   BrowserPluginTabPropertyValueWithMetadata,
   Comment,
@@ -303,6 +337,7 @@ export type {
   CommentOutgoingLinksByLinkEntityTypeId,
   CommentProperties,
   CommentPropertiesWithMetadata,
+  CommentPropertiesWithMetadataValue,
   ComponentIdPropertyValue,
   ComponentIdPropertyValueWithMetadata,
   DateTimeDataType,
@@ -330,6 +365,7 @@ export type {
   FileOutgoingLinksByLinkEntityTypeId,
   FileProperties,
   FilePropertiesWithMetadata,
+  FilePropertiesWithMetadataValue,
   FileSizePropertyValue,
   FileSizePropertyValueWithMetadata,
   FileStorageBucketPropertyValue,
@@ -354,26 +390,31 @@ export type {
   HasAvatarOutgoingLinksByLinkEntityTypeId,
   HasAvatarProperties,
   HasAvatarPropertiesWithMetadata,
+  HasAvatarPropertiesWithMetadataValue,
   HasBio,
   HasBioOutgoingLinkAndTarget,
   HasBioOutgoingLinksByLinkEntityTypeId,
   HasBioProperties,
   HasBioPropertiesWithMetadata,
+  HasBioPropertiesWithMetadataValue,
   HasCoverImage,
   HasCoverImageOutgoingLinkAndTarget,
   HasCoverImageOutgoingLinksByLinkEntityTypeId,
   HasCoverImageProperties,
   HasCoverImagePropertiesWithMetadata,
+  HasCoverImagePropertiesWithMetadataValue,
   HasData,
   HasDataOutgoingLinkAndTarget,
   HasDataOutgoingLinksByLinkEntityTypeId,
   HasDataProperties,
   HasDataPropertiesWithMetadata,
+  HasDataPropertiesWithMetadataValue,
   HasIndexedContent,
   HasIndexedContentOutgoingLinkAndTarget,
   HasIndexedContentOutgoingLinksByLinkEntityTypeId,
   HasIndexedContentProperties,
   HasIndexedContentPropertiesWithMetadata,
+  HasIndexedContentPropertiesWithMetadataValue,
   HasOutgoingLinkAndTarget,
   HasOutgoingLinksByLinkEntityTypeId,
   HasParent,
@@ -381,18 +422,22 @@ export type {
   HasParentOutgoingLinksByLinkEntityTypeId,
   HasParentProperties,
   HasParentPropertiesWithMetadata,
+  HasParentPropertiesWithMetadataValue,
   HasProperties,
   HasPropertiesWithMetadata,
+  HasPropertiesWithMetadataValue,
   HasServiceAccount,
   HasServiceAccountOutgoingLinkAndTarget,
   HasServiceAccountOutgoingLinksByLinkEntityTypeId,
   HasServiceAccountProperties,
   HasServiceAccountPropertiesWithMetadata,
+  HasServiceAccountPropertiesWithMetadataValue,
   HasText,
   HasTextOutgoingLinkAndTarget,
   HasTextOutgoingLinksByLinkEntityTypeId,
   HasTextProperties,
   HasTextPropertiesWithMetadata,
+  HasTextPropertiesWithMetadataValue,
   IconPropertyValue,
   IconPropertyValueWithMetadata,
   Image,
@@ -400,11 +445,13 @@ export type {
   ImageOutgoingLinksByLinkEntityTypeId,
   ImageProperties,
   ImagePropertiesWithMetadata,
+  ImagePropertiesWithMetadataValue,
   IsMemberOf,
   IsMemberOfOutgoingLinkAndTarget,
   IsMemberOfOutgoingLinksByLinkEntityTypeId,
   IsMemberOfProperties,
   IsMemberOfPropertiesWithMetadata,
+  IsMemberOfPropertiesWithMetadataValue,
   KratosIdentityIdPropertyValue,
   KratosIdentityIdPropertyValueWithMetadata,
   Link,
@@ -412,6 +459,7 @@ export type {
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   LinkPropertiesWithMetadata,
+  LinkPropertiesWithMetadataValue,
   LocationPropertyValue,
   LocationPropertyValueWithMetadata,
   ManualInferenceConfigurationPropertyValue,
@@ -423,6 +471,7 @@ export type {
   NotificationOutgoingLinksByLinkEntityTypeId,
   NotificationProperties,
   NotificationPropertiesWithMetadata,
+  NotificationPropertiesWithMetadataValue,
   NumberDataType,
   NumberDataTypeWithMetadata,
   ObjectDataType,
@@ -432,11 +481,13 @@ export type {
   OccurredInBlockOutgoingLinksByLinkEntityTypeId,
   OccurredInBlockProperties,
   OccurredInBlockPropertiesWithMetadata,
+  OccurredInBlockPropertiesWithMetadataValue,
   OccurredInEntity,
   OccurredInEntityOutgoingLinkAndTarget,
   OccurredInEntityOutgoingLinksByLinkEntityTypeId,
   OccurredInEntityProperties,
   OccurredInEntityPropertiesWithMetadata,
+  OccurredInEntityPropertiesWithMetadataValue,
   Organization,
   OrganizationHasAvatarLink,
   OrganizationHasBioLink,
@@ -447,6 +498,7 @@ export type {
   OrganizationOutgoingLinksByLinkEntityTypeId,
   OrganizationProperties,
   OrganizationPropertiesWithMetadata,
+  OrganizationPropertiesWithMetadataValue,
   OriginalFileNamePropertyValue,
   OriginalFileNamePropertyValueWithMetadata,
   OriginalSourcePropertyValue,
@@ -459,6 +511,7 @@ export type {
   PageOutgoingLinksByLinkEntityTypeId,
   PageProperties,
   PagePropertiesWithMetadata,
+  PagePropertiesWithMetadataValue,
   PinnedEntityTypeBaseURLPropertyValue,
   PinnedEntityTypeBaseURLPropertyValueWithMetadata,
   PreferredPronounsPropertyValue,
@@ -469,6 +522,7 @@ export type {
   ProfileBioOutgoingLinksByLinkEntityTypeId,
   ProfileBioProperties,
   ProfileBioPropertiesWithMetadata,
+  ProfileBioPropertiesWithMetadataValue,
   ProfileURLPropertyValue,
   ProfileURLPropertyValueWithMetadata,
   ReadAtPropertyValue,
@@ -480,6 +534,7 @@ export type {
   ServiceAccountOutgoingLinksByLinkEntityTypeId,
   ServiceAccountProperties,
   ServiceAccountPropertiesWithMetadata,
+  ServiceAccountPropertiesWithMetadataValue,
   ShortnamePropertyValue,
   ShortnamePropertyValueWithMetadata,
   SummaryPropertyValue,
@@ -491,6 +546,7 @@ export type {
   TextOutgoingLinksByLinkEntityTypeId,
   TextProperties,
   TextPropertiesWithMetadata,
+  TextPropertiesWithMetadataValue,
   TextualContentPropertyValue,
   TextualContentPropertyValueWithMetadata,
   TitlePropertyValue,
@@ -500,6 +556,7 @@ export type {
   TriggeredByUserOutgoingLinksByLinkEntityTypeId,
   TriggeredByUserProperties,
   TriggeredByUserPropertiesWithMetadata,
+  TriggeredByUserPropertiesWithMetadataValue,
   UploadCompletedAtPropertyValue,
   UploadCompletedAtPropertyValueWithMetadata,
   User,
@@ -512,6 +569,7 @@ export type {
   UserOutgoingLinksByLinkEntityTypeId,
   UserProperties,
   UserPropertiesWithMetadata,
+  UserPropertiesWithMetadataValue,
   WebsiteURLPropertyValue,
   WebsiteURLPropertyValueWithMetadata,
 };
@@ -519,31 +577,31 @@ export type {
 /**
  * A notification that a user was mentioned somewhere.
  */
-export type MentionNotification = {
+export interface MentionNotification {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/mention-notification/v/5";
   properties: MentionNotificationProperties;
   propertiesWithMetadata: MentionNotificationPropertiesWithMetadata;
-};
+}
 
-export type MentionNotificationOccurredInBlockLink = {
+export interface MentionNotificationOccurredInBlockLink {
   linkEntity: OccurredInBlock;
   rightEntity: Block;
-};
+}
 
-export type MentionNotificationOccurredInCommentLink = {
+export interface MentionNotificationOccurredInCommentLink {
   linkEntity: OccurredInComment;
   rightEntity: Comment;
-};
+}
 
-export type MentionNotificationOccurredInEntityLink = {
+export interface MentionNotificationOccurredInEntityLink {
   linkEntity: OccurredInEntity;
   rightEntity: Page;
-};
+}
 
-export type MentionNotificationOccurredInTextLink = {
+export interface MentionNotificationOccurredInTextLink {
   linkEntity: OccurredInText;
   rightEntity: Text;
-};
+}
 
 export type MentionNotificationOutgoingLinkAndTarget =
   | MentionNotificationOccurredInBlockLink
@@ -552,99 +610,111 @@ export type MentionNotificationOutgoingLinkAndTarget =
   | MentionNotificationOccurredInTextLink
   | MentionNotificationTriggeredByUserLink;
 
-export type MentionNotificationOutgoingLinksByLinkEntityTypeId = {
+export interface MentionNotificationOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@hash/types/entity-type/occurred-in-block/v/1": MentionNotificationOccurredInBlockLink;
   "https://hash.ai/@hash/types/entity-type/occurred-in-comment/v/1": MentionNotificationOccurredInCommentLink;
   "https://hash.ai/@hash/types/entity-type/occurred-in-entity/v/2": MentionNotificationOccurredInEntityLink;
   "https://hash.ai/@hash/types/entity-type/occurred-in-text/v/1": MentionNotificationOccurredInTextLink;
   "https://hash.ai/@hash/types/entity-type/triggered-by-user/v/1": MentionNotificationTriggeredByUserLink;
-};
+}
 
 /**
  * A notification that a user was mentioned somewhere.
  */
-export type MentionNotificationProperties = MentionNotificationProperties1 &
-  MentionNotificationProperties2;
-export type MentionNotificationProperties1 = NotificationProperties;
+export interface MentionNotificationProperties
+  extends MentionNotificationProperties1,
+    MentionNotificationProperties2 {}
+export interface MentionNotificationProperties1
+  extends NotificationProperties {}
 
-export type MentionNotificationProperties2 = {};
+export interface MentionNotificationProperties2 {}
 
-export type MentionNotificationPropertiesWithMetadata =
-  MentionNotificationPropertiesWithMetadata1 &
-    MentionNotificationPropertiesWithMetadata2;
-export type MentionNotificationPropertiesWithMetadata1 =
-  NotificationPropertiesWithMetadata;
-
-export type MentionNotificationPropertiesWithMetadata2 = {
+export interface MentionNotificationPropertiesWithMetadata {
   metadata?: ObjectMetadata;
-  value: {};
-};
+  value: MentionNotificationPropertiesWithMetadataValue;
+}
 
-export type MentionNotificationTriggeredByUserLink = {
+export interface MentionNotificationPropertiesWithMetadataValue
+  extends MentionNotificationPropertiesWithMetadataValue1,
+    MentionNotificationPropertiesWithMetadataValue2 {}
+export interface MentionNotificationPropertiesWithMetadataValue1
+  extends NotificationPropertiesWithMetadataValue {}
+
+export interface MentionNotificationPropertiesWithMetadataValue2 {}
+
+export interface MentionNotificationTriggeredByUserLink {
   linkEntity: TriggeredByUser;
   rightEntity: User;
-};
+}
 
 /**
  * A comment that something occurred in.
  */
-export type OccurredInComment = {
+export interface OccurredInComment {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/occurred-in-comment/v/1";
   properties: OccurredInCommentProperties;
   propertiesWithMetadata: OccurredInCommentPropertiesWithMetadata;
-};
+}
 
 export type OccurredInCommentOutgoingLinkAndTarget = never;
 
-export type OccurredInCommentOutgoingLinksByLinkEntityTypeId = {};
+export interface OccurredInCommentOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A comment that something occurred in.
  */
-export type OccurredInCommentProperties = OccurredInCommentProperties1 &
-  OccurredInCommentProperties2;
-export type OccurredInCommentProperties1 = LinkProperties;
+export interface OccurredInCommentProperties
+  extends OccurredInCommentProperties1,
+    OccurredInCommentProperties2 {}
+export interface OccurredInCommentProperties1 extends LinkProperties {}
 
-export type OccurredInCommentProperties2 = {};
+export interface OccurredInCommentProperties2 {}
 
-export type OccurredInCommentPropertiesWithMetadata =
-  OccurredInCommentPropertiesWithMetadata1 &
-    OccurredInCommentPropertiesWithMetadata2;
-export type OccurredInCommentPropertiesWithMetadata1 =
-  LinkPropertiesWithMetadata;
-
-export type OccurredInCommentPropertiesWithMetadata2 = {
+export interface OccurredInCommentPropertiesWithMetadata {
   metadata?: ObjectMetadata;
-  value: {};
-};
+  value: OccurredInCommentPropertiesWithMetadataValue;
+}
+
+export interface OccurredInCommentPropertiesWithMetadataValue
+  extends OccurredInCommentPropertiesWithMetadataValue1,
+    OccurredInCommentPropertiesWithMetadataValue2 {}
+export interface OccurredInCommentPropertiesWithMetadataValue1
+  extends LinkPropertiesWithMetadataValue {}
+
+export interface OccurredInCommentPropertiesWithMetadataValue2 {}
 
 /**
  * Text that something occurred in.
  */
-export type OccurredInText = {
+export interface OccurredInText {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/occurred-in-text/v/1";
   properties: OccurredInTextProperties;
   propertiesWithMetadata: OccurredInTextPropertiesWithMetadata;
-};
+}
 
 export type OccurredInTextOutgoingLinkAndTarget = never;
 
-export type OccurredInTextOutgoingLinksByLinkEntityTypeId = {};
+export interface OccurredInTextOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * Text that something occurred in.
  */
-export type OccurredInTextProperties = OccurredInTextProperties1 &
-  OccurredInTextProperties2;
-export type OccurredInTextProperties1 = LinkProperties;
+export interface OccurredInTextProperties
+  extends OccurredInTextProperties1,
+    OccurredInTextProperties2 {}
+export interface OccurredInTextProperties1 extends LinkProperties {}
 
-export type OccurredInTextProperties2 = {};
+export interface OccurredInTextProperties2 {}
 
-export type OccurredInTextPropertiesWithMetadata =
-  OccurredInTextPropertiesWithMetadata1 & OccurredInTextPropertiesWithMetadata2;
-export type OccurredInTextPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type OccurredInTextPropertiesWithMetadata2 = {
+export interface OccurredInTextPropertiesWithMetadata {
   metadata?: ObjectMetadata;
-  value: {};
-};
+  value: OccurredInTextPropertiesWithMetadataValue;
+}
+
+export interface OccurredInTextPropertiesWithMetadataValue
+  extends OccurredInTextPropertiesWithMetadataValue1,
+    OccurredInTextPropertiesWithMetadataValue2 {}
+export interface OccurredInTextPropertiesWithMetadataValue1
+  extends LinkPropertiesWithMetadataValue {}
+
+export interface OccurredInTextPropertiesWithMetadataValue2 {}

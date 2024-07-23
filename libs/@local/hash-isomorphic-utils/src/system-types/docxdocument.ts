@@ -18,6 +18,7 @@ import type {
   DocumentFileOutgoingLinksByLinkEntityTypeId,
   DocumentFileProperties,
   DocumentFilePropertiesWithMetadata,
+  DocumentFilePropertiesWithMetadataValue,
   File,
   FileHashPropertyValue,
   FileHashPropertyValueWithMetadata,
@@ -27,6 +28,7 @@ import type {
   FileOutgoingLinksByLinkEntityTypeId,
   FileProperties,
   FilePropertiesWithMetadata,
+  FilePropertiesWithMetadataValue,
   FileSizePropertyValue,
   FileSizePropertyValueWithMetadata,
   FileStorageBucketPropertyValue,
@@ -77,6 +79,7 @@ export type {
   DocumentFileOutgoingLinksByLinkEntityTypeId,
   DocumentFileProperties,
   DocumentFilePropertiesWithMetadata,
+  DocumentFilePropertiesWithMetadataValue,
   File,
   FileHashPropertyValue,
   FileHashPropertyValueWithMetadata,
@@ -86,6 +89,7 @@ export type {
   FileOutgoingLinksByLinkEntityTypeId,
   FileProperties,
   FilePropertiesWithMetadata,
+  FilePropertiesWithMetadataValue,
   FileSizePropertyValue,
   FileSizePropertyValueWithMetadata,
   FileStorageBucketPropertyValue,
@@ -125,31 +129,35 @@ export type {
 /**
  * A Microsoft Word document.
  */
-export type DOCXDocument = {
+export interface DOCXDocument {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/docx-document/v/1";
   properties: DOCXDocumentProperties;
   propertiesWithMetadata: DOCXDocumentPropertiesWithMetadata;
-};
+}
 
 export type DOCXDocumentOutgoingLinkAndTarget = never;
 
-export type DOCXDocumentOutgoingLinksByLinkEntityTypeId = {};
+export interface DOCXDocumentOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A Microsoft Word document.
  */
-export type DOCXDocumentProperties = DOCXDocumentProperties1 &
-  DOCXDocumentProperties2;
-export type DOCXDocumentProperties1 = DocumentFileProperties;
+export interface DOCXDocumentProperties
+  extends DOCXDocumentProperties1,
+    DOCXDocumentProperties2 {}
+export interface DOCXDocumentProperties1 extends DocumentFileProperties {}
 
-export type DOCXDocumentProperties2 = {};
+export interface DOCXDocumentProperties2 {}
 
-export type DOCXDocumentPropertiesWithMetadata =
-  DOCXDocumentPropertiesWithMetadata1 & DOCXDocumentPropertiesWithMetadata2;
-export type DOCXDocumentPropertiesWithMetadata1 =
-  DocumentFilePropertiesWithMetadata;
-
-export type DOCXDocumentPropertiesWithMetadata2 = {
+export interface DOCXDocumentPropertiesWithMetadata {
   metadata?: ObjectMetadata;
-  value: {};
-};
+  value: DOCXDocumentPropertiesWithMetadataValue;
+}
+
+export interface DOCXDocumentPropertiesWithMetadataValue
+  extends DOCXDocumentPropertiesWithMetadataValue1,
+    DOCXDocumentPropertiesWithMetadataValue2 {}
+export interface DOCXDocumentPropertiesWithMetadataValue1
+  extends DocumentFilePropertiesWithMetadataValue {}
+
+export interface DOCXDocumentPropertiesWithMetadataValue2 {}

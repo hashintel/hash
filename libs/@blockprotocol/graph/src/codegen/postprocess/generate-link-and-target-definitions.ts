@@ -26,7 +26,7 @@ const individualOutgoingLinkAndTargetDefinition = (
   const identifier = `${sourceName}${linkIdentifier}Link`;
 
   const targetUnion = targetIdentifiers.join(" | ");
-  const compiledContents = `export type ${identifier} = { linkEntity: ${linkIdentifier}; rightEntity: ${targetUnion} }`;
+  const compiledContents = `export interface ${identifier} { linkEntity: ${linkIdentifier}; rightEntity: ${targetUnion} }`;
   return {
     identifier,
     compiledContents,
@@ -52,7 +52,7 @@ const lookupDefinition = (
     })
     .join(", ");
 
-  const compiledContents = `export type ${identifier} = { ${lookupItems} }`;
+  const compiledContents = `export interface ${identifier} { ${lookupItems} }`;
 
   return {
     identifier,

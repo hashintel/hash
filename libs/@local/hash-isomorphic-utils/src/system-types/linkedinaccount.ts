@@ -12,6 +12,7 @@ import type {
   ServiceAccountOutgoingLinksByLinkEntityTypeId,
   ServiceAccountProperties,
   ServiceAccountPropertiesWithMetadata,
+  ServiceAccountPropertiesWithMetadataValue,
   TextDataType,
   TextDataTypeWithMetadata,
 } from "./shared.js";
@@ -24,6 +25,7 @@ export type {
   ServiceAccountOutgoingLinksByLinkEntityTypeId,
   ServiceAccountProperties,
   ServiceAccountPropertiesWithMetadata,
+  ServiceAccountPropertiesWithMetadataValue,
   TextDataType,
   TextDataTypeWithMetadata,
 };
@@ -31,32 +33,35 @@ export type {
 /**
  * A LinkedIn account.
  */
-export type LinkedInAccount = {
+export interface LinkedInAccount {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/linkedin-account/v/1";
   properties: LinkedInAccountProperties;
   propertiesWithMetadata: LinkedInAccountPropertiesWithMetadata;
-};
+}
 
 export type LinkedInAccountOutgoingLinkAndTarget = never;
 
-export type LinkedInAccountOutgoingLinksByLinkEntityTypeId = {};
+export interface LinkedInAccountOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A LinkedIn account.
  */
-export type LinkedInAccountProperties = LinkedInAccountProperties1 &
-  LinkedInAccountProperties2;
-export type LinkedInAccountProperties1 = ServiceAccountProperties;
+export interface LinkedInAccountProperties
+  extends LinkedInAccountProperties1,
+    LinkedInAccountProperties2 {}
+export interface LinkedInAccountProperties1 extends ServiceAccountProperties {}
 
-export type LinkedInAccountProperties2 = {};
+export interface LinkedInAccountProperties2 {}
 
-export type LinkedInAccountPropertiesWithMetadata =
-  LinkedInAccountPropertiesWithMetadata1 &
-    LinkedInAccountPropertiesWithMetadata2;
-export type LinkedInAccountPropertiesWithMetadata1 =
-  ServiceAccountPropertiesWithMetadata;
-
-export type LinkedInAccountPropertiesWithMetadata2 = {
+export interface LinkedInAccountPropertiesWithMetadata {
   metadata?: ObjectMetadata;
-  value: {};
-};
+  value: LinkedInAccountPropertiesWithMetadataValue;
+}
+
+export interface LinkedInAccountPropertiesWithMetadataValue
+  extends LinkedInAccountPropertiesWithMetadataValue1,
+    LinkedInAccountPropertiesWithMetadataValue2 {}
+export interface LinkedInAccountPropertiesWithMetadataValue1
+  extends ServiceAccountPropertiesWithMetadataValue {}
+
+export interface LinkedInAccountPropertiesWithMetadataValue2 {}

@@ -18,6 +18,7 @@ import type {
   DocumentFileOutgoingLinksByLinkEntityTypeId,
   DocumentFileProperties,
   DocumentFilePropertiesWithMetadata,
+  DocumentFilePropertiesWithMetadataValue,
   File,
   FileHashPropertyValue,
   FileHashPropertyValueWithMetadata,
@@ -27,6 +28,7 @@ import type {
   FileOutgoingLinksByLinkEntityTypeId,
   FileProperties,
   FilePropertiesWithMetadata,
+  FilePropertiesWithMetadataValue,
   FileSizePropertyValue,
   FileSizePropertyValueWithMetadata,
   FileStorageBucketPropertyValue,
@@ -77,6 +79,7 @@ export type {
   DocumentFileOutgoingLinksByLinkEntityTypeId,
   DocumentFileProperties,
   DocumentFilePropertiesWithMetadata,
+  DocumentFilePropertiesWithMetadataValue,
   File,
   FileHashPropertyValue,
   FileHashPropertyValueWithMetadata,
@@ -86,6 +89,7 @@ export type {
   FileOutgoingLinksByLinkEntityTypeId,
   FileProperties,
   FilePropertiesWithMetadata,
+  FilePropertiesWithMetadataValue,
   FileSizePropertyValue,
   FileSizePropertyValueWithMetadata,
   FileStorageBucketPropertyValue,
@@ -125,31 +129,35 @@ export type {
 /**
  * A PDF document.
  */
-export type PDFDocument = {
+export interface PDFDocument {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/pdf-document/v/1";
   properties: PDFDocumentProperties;
   propertiesWithMetadata: PDFDocumentPropertiesWithMetadata;
-};
+}
 
 export type PDFDocumentOutgoingLinkAndTarget = never;
 
-export type PDFDocumentOutgoingLinksByLinkEntityTypeId = {};
+export interface PDFDocumentOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A PDF document.
  */
-export type PDFDocumentProperties = PDFDocumentProperties1 &
-  PDFDocumentProperties2;
-export type PDFDocumentProperties1 = DocumentFileProperties;
+export interface PDFDocumentProperties
+  extends PDFDocumentProperties1,
+    PDFDocumentProperties2 {}
+export interface PDFDocumentProperties1 extends DocumentFileProperties {}
 
-export type PDFDocumentProperties2 = {};
+export interface PDFDocumentProperties2 {}
 
-export type PDFDocumentPropertiesWithMetadata =
-  PDFDocumentPropertiesWithMetadata1 & PDFDocumentPropertiesWithMetadata2;
-export type PDFDocumentPropertiesWithMetadata1 =
-  DocumentFilePropertiesWithMetadata;
-
-export type PDFDocumentPropertiesWithMetadata2 = {
+export interface PDFDocumentPropertiesWithMetadata {
   metadata?: ObjectMetadata;
-  value: {};
-};
+  value: PDFDocumentPropertiesWithMetadataValue;
+}
+
+export interface PDFDocumentPropertiesWithMetadataValue
+  extends PDFDocumentPropertiesWithMetadataValue1,
+    PDFDocumentPropertiesWithMetadataValue2 {}
+export interface PDFDocumentPropertiesWithMetadataValue1
+  extends DocumentFilePropertiesWithMetadataValue {}
+
+export interface PDFDocumentPropertiesWithMetadataValue2 {}

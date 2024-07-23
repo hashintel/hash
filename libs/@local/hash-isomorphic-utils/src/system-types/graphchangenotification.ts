@@ -17,16 +17,19 @@ import type {
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   LinkPropertiesWithMetadata,
+  LinkPropertiesWithMetadataValue,
   Notification,
   NotificationOutgoingLinkAndTarget,
   NotificationOutgoingLinksByLinkEntityTypeId,
   NotificationProperties,
   NotificationPropertiesWithMetadata,
+  NotificationPropertiesWithMetadataValue,
   OccurredInEntity,
   OccurredInEntityOutgoingLinkAndTarget,
   OccurredInEntityOutgoingLinksByLinkEntityTypeId,
   OccurredInEntityProperties,
   OccurredInEntityPropertiesWithMetadata,
+  OccurredInEntityPropertiesWithMetadataValue,
   ReadAtPropertyValue,
   ReadAtPropertyValueWithMetadata,
   TextDataType,
@@ -45,16 +48,19 @@ export type {
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   LinkPropertiesWithMetadata,
+  LinkPropertiesWithMetadataValue,
   Notification,
   NotificationOutgoingLinkAndTarget,
   NotificationOutgoingLinksByLinkEntityTypeId,
   NotificationProperties,
   NotificationPropertiesWithMetadata,
+  NotificationPropertiesWithMetadataValue,
   OccurredInEntity,
   OccurredInEntityOutgoingLinkAndTarget,
   OccurredInEntityOutgoingLinksByLinkEntityTypeId,
   OccurredInEntityProperties,
   OccurredInEntityPropertiesWithMetadata,
+  OccurredInEntityPropertiesWithMetadataValue,
   ReadAtPropertyValue,
   ReadAtPropertyValueWithMetadata,
   TextDataType,
@@ -64,51 +70,56 @@ export type {
 /**
  * A notification of a change to a graph
  */
-export type GraphChangeNotification = {
+export interface GraphChangeNotification {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/graph-change-notification/v/1";
   properties: GraphChangeNotificationProperties;
   propertiesWithMetadata: GraphChangeNotificationPropertiesWithMetadata;
-};
+}
 
-export type GraphChangeNotificationOccurredInEntityLink = {
+export interface GraphChangeNotificationOccurredInEntityLink {
   linkEntity: OccurredInEntity;
   rightEntity: Entity;
-};
+}
 
 export type GraphChangeNotificationOutgoingLinkAndTarget =
   GraphChangeNotificationOccurredInEntityLink;
 
-export type GraphChangeNotificationOutgoingLinksByLinkEntityTypeId = {
+export interface GraphChangeNotificationOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@hash/types/entity-type/occurred-in-entity/v/2": GraphChangeNotificationOccurredInEntityLink;
-};
+}
 
 /**
  * A notification of a change to a graph
  */
-export type GraphChangeNotificationProperties =
-  GraphChangeNotificationProperties1 & GraphChangeNotificationProperties2;
-export type GraphChangeNotificationProperties1 = NotificationProperties;
+export interface GraphChangeNotificationProperties
+  extends GraphChangeNotificationProperties1,
+    GraphChangeNotificationProperties2 {}
+export interface GraphChangeNotificationProperties1
+  extends NotificationProperties {}
 
-export type GraphChangeNotificationProperties2 = {
+export interface GraphChangeNotificationProperties2 {
   "https://hash.ai/@hash/types/property-type/graph-change-type/": GraphChangeTypePropertyValue;
-};
+}
 
-export type GraphChangeNotificationPropertiesWithMetadata =
-  GraphChangeNotificationPropertiesWithMetadata1 &
-    GraphChangeNotificationPropertiesWithMetadata2;
-export type GraphChangeNotificationPropertiesWithMetadata1 =
-  NotificationPropertiesWithMetadata;
-
-export type GraphChangeNotificationPropertiesWithMetadata2 = {
+export interface GraphChangeNotificationPropertiesWithMetadata {
   metadata?: ObjectMetadata;
-  value: {
-    "https://hash.ai/@hash/types/property-type/graph-change-type/": GraphChangeTypePropertyValueWithMetadata;
-  };
-};
+  value: GraphChangeNotificationPropertiesWithMetadataValue;
+}
+
+export interface GraphChangeNotificationPropertiesWithMetadataValue
+  extends GraphChangeNotificationPropertiesWithMetadataValue1,
+    GraphChangeNotificationPropertiesWithMetadataValue2 {}
+export interface GraphChangeNotificationPropertiesWithMetadataValue1
+  extends NotificationPropertiesWithMetadataValue {}
+
+export interface GraphChangeNotificationPropertiesWithMetadataValue2 {
+  "https://hash.ai/@hash/types/property-type/graph-change-type/": GraphChangeTypePropertyValueWithMetadata;
+}
 
 /**
  * The type of change that occurred (e.g. create, update, archive)
  */
 export type GraphChangeTypePropertyValue = TextDataType;
 
-export type GraphChangeTypePropertyValueWithMetadata = TextDataTypeWithMetadata;
+export interface GraphChangeTypePropertyValueWithMetadata
+  extends TextDataTypeWithMetadata {}

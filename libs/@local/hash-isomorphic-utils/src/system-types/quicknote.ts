@@ -13,11 +13,13 @@ import type {
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
   BlockCollectionPropertiesWithMetadata,
+  BlockCollectionPropertiesWithMetadataValue,
   BlockHasDataLink,
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
   BlockPropertiesWithMetadata,
+  BlockPropertiesWithMetadataValue,
   BooleanDataType,
   BooleanDataTypeWithMetadata,
   ComponentIdPropertyValue,
@@ -29,16 +31,19 @@ import type {
   HasDataOutgoingLinksByLinkEntityTypeId,
   HasDataProperties,
   HasDataPropertiesWithMetadata,
+  HasDataPropertiesWithMetadataValue,
   HasIndexedContent,
   HasIndexedContentOutgoingLinkAndTarget,
   HasIndexedContentOutgoingLinksByLinkEntityTypeId,
   HasIndexedContentProperties,
   HasIndexedContentPropertiesWithMetadata,
+  HasIndexedContentPropertiesWithMetadataValue,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   LinkPropertiesWithMetadata,
+  LinkPropertiesWithMetadataValue,
   TextDataType,
   TextDataTypeWithMetadata,
 } from "./shared.js";
@@ -52,11 +57,13 @@ export type {
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
   BlockCollectionPropertiesWithMetadata,
+  BlockCollectionPropertiesWithMetadataValue,
   BlockHasDataLink,
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
   BlockPropertiesWithMetadata,
+  BlockPropertiesWithMetadataValue,
   BooleanDataType,
   BooleanDataTypeWithMetadata,
   ComponentIdPropertyValue,
@@ -68,16 +75,19 @@ export type {
   HasDataOutgoingLinksByLinkEntityTypeId,
   HasDataProperties,
   HasDataPropertiesWithMetadata,
+  HasDataPropertiesWithMetadataValue,
   HasIndexedContent,
   HasIndexedContentOutgoingLinkAndTarget,
   HasIndexedContentOutgoingLinksByLinkEntityTypeId,
   HasIndexedContentProperties,
   HasIndexedContentPropertiesWithMetadata,
+  HasIndexedContentPropertiesWithMetadataValue,
   Link,
   LinkOutgoingLinkAndTarget,
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   LinkPropertiesWithMetadata,
+  LinkPropertiesWithMetadataValue,
   TextDataType,
   TextDataTypeWithMetadata,
 };
@@ -85,41 +95,46 @@ export type {
 /**
  * A (usually) quick or short note.
  */
-export type QuickNote = {
+export interface QuickNote {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/quick-note/v/1";
   properties: QuickNoteProperties;
   propertiesWithMetadata: QuickNotePropertiesWithMetadata;
-};
+}
 
-export type QuickNoteHasIndexedContentLink = {
+export interface QuickNoteHasIndexedContentLink {
   linkEntity: HasIndexedContent;
   rightEntity: Block;
-};
+}
 
 export type QuickNoteOutgoingLinkAndTarget = QuickNoteHasIndexedContentLink;
 
-export type QuickNoteOutgoingLinksByLinkEntityTypeId = {
+export interface QuickNoteOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@hash/types/entity-type/has-indexed-content/v/1": QuickNoteHasIndexedContentLink;
-};
+}
 
 /**
  * A (usually) quick or short note.
  */
-export type QuickNoteProperties = QuickNoteProperties1 & QuickNoteProperties2;
-export type QuickNoteProperties1 = BlockCollectionProperties;
+export interface QuickNoteProperties
+  extends QuickNoteProperties1,
+    QuickNoteProperties2 {}
+export interface QuickNoteProperties1 extends BlockCollectionProperties {}
 
-export type QuickNoteProperties2 = {
+export interface QuickNoteProperties2 {
   "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValue;
-};
+}
 
-export type QuickNotePropertiesWithMetadata = QuickNotePropertiesWithMetadata1 &
-  QuickNotePropertiesWithMetadata2;
-export type QuickNotePropertiesWithMetadata1 =
-  BlockCollectionPropertiesWithMetadata;
-
-export type QuickNotePropertiesWithMetadata2 = {
+export interface QuickNotePropertiesWithMetadata {
   metadata?: ObjectMetadata;
-  value: {
-    "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValueWithMetadata;
-  };
-};
+  value: QuickNotePropertiesWithMetadataValue;
+}
+
+export interface QuickNotePropertiesWithMetadataValue
+  extends QuickNotePropertiesWithMetadataValue1,
+    QuickNotePropertiesWithMetadataValue2 {}
+export interface QuickNotePropertiesWithMetadataValue1
+  extends BlockCollectionPropertiesWithMetadataValue {}
+
+export interface QuickNotePropertiesWithMetadataValue2 {
+  "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValueWithMetadata;
+}

@@ -12,6 +12,7 @@ import type {
   ServiceAccountOutgoingLinksByLinkEntityTypeId,
   ServiceAccountProperties,
   ServiceAccountPropertiesWithMetadata,
+  ServiceAccountPropertiesWithMetadataValue,
   TextDataType,
   TextDataTypeWithMetadata,
 } from "./shared.js";
@@ -24,6 +25,7 @@ export type {
   ServiceAccountOutgoingLinksByLinkEntityTypeId,
   ServiceAccountProperties,
   ServiceAccountPropertiesWithMetadata,
+  ServiceAccountPropertiesWithMetadataValue,
   TextDataType,
   TextDataTypeWithMetadata,
 };
@@ -31,32 +33,35 @@ export type {
 /**
  * An Instagram account.
  */
-export type InstagramAccount = {
+export interface InstagramAccount {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/instagram-account/v/1";
   properties: InstagramAccountProperties;
   propertiesWithMetadata: InstagramAccountPropertiesWithMetadata;
-};
+}
 
 export type InstagramAccountOutgoingLinkAndTarget = never;
 
-export type InstagramAccountOutgoingLinksByLinkEntityTypeId = {};
+export interface InstagramAccountOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * An Instagram account.
  */
-export type InstagramAccountProperties = InstagramAccountProperties1 &
-  InstagramAccountProperties2;
-export type InstagramAccountProperties1 = ServiceAccountProperties;
+export interface InstagramAccountProperties
+  extends InstagramAccountProperties1,
+    InstagramAccountProperties2 {}
+export interface InstagramAccountProperties1 extends ServiceAccountProperties {}
 
-export type InstagramAccountProperties2 = {};
+export interface InstagramAccountProperties2 {}
 
-export type InstagramAccountPropertiesWithMetadata =
-  InstagramAccountPropertiesWithMetadata1 &
-    InstagramAccountPropertiesWithMetadata2;
-export type InstagramAccountPropertiesWithMetadata1 =
-  ServiceAccountPropertiesWithMetadata;
-
-export type InstagramAccountPropertiesWithMetadata2 = {
+export interface InstagramAccountPropertiesWithMetadata {
   metadata?: ObjectMetadata;
-  value: {};
-};
+  value: InstagramAccountPropertiesWithMetadataValue;
+}
+
+export interface InstagramAccountPropertiesWithMetadataValue
+  extends InstagramAccountPropertiesWithMetadataValue1,
+    InstagramAccountPropertiesWithMetadataValue2 {}
+export interface InstagramAccountPropertiesWithMetadataValue1
+  extends ServiceAccountPropertiesWithMetadataValue {}
+
+export interface InstagramAccountPropertiesWithMetadataValue2 {}

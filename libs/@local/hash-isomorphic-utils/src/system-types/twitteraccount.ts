@@ -12,6 +12,7 @@ import type {
   ServiceAccountOutgoingLinksByLinkEntityTypeId,
   ServiceAccountProperties,
   ServiceAccountPropertiesWithMetadata,
+  ServiceAccountPropertiesWithMetadataValue,
   TextDataType,
   TextDataTypeWithMetadata,
 } from "./shared.js";
@@ -24,6 +25,7 @@ export type {
   ServiceAccountOutgoingLinksByLinkEntityTypeId,
   ServiceAccountProperties,
   ServiceAccountPropertiesWithMetadata,
+  ServiceAccountPropertiesWithMetadataValue,
   TextDataType,
   TextDataTypeWithMetadata,
 };
@@ -31,31 +33,35 @@ export type {
 /**
  * A Twitter account.
  */
-export type TwitterAccount = {
+export interface TwitterAccount {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/twitter-account/v/1";
   properties: TwitterAccountProperties;
   propertiesWithMetadata: TwitterAccountPropertiesWithMetadata;
-};
+}
 
 export type TwitterAccountOutgoingLinkAndTarget = never;
 
-export type TwitterAccountOutgoingLinksByLinkEntityTypeId = {};
+export interface TwitterAccountOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A Twitter account.
  */
-export type TwitterAccountProperties = TwitterAccountProperties1 &
-  TwitterAccountProperties2;
-export type TwitterAccountProperties1 = ServiceAccountProperties;
+export interface TwitterAccountProperties
+  extends TwitterAccountProperties1,
+    TwitterAccountProperties2 {}
+export interface TwitterAccountProperties1 extends ServiceAccountProperties {}
 
-export type TwitterAccountProperties2 = {};
+export interface TwitterAccountProperties2 {}
 
-export type TwitterAccountPropertiesWithMetadata =
-  TwitterAccountPropertiesWithMetadata1 & TwitterAccountPropertiesWithMetadata2;
-export type TwitterAccountPropertiesWithMetadata1 =
-  ServiceAccountPropertiesWithMetadata;
-
-export type TwitterAccountPropertiesWithMetadata2 = {
+export interface TwitterAccountPropertiesWithMetadata {
   metadata?: ObjectMetadata;
-  value: {};
-};
+  value: TwitterAccountPropertiesWithMetadataValue;
+}
+
+export interface TwitterAccountPropertiesWithMetadataValue
+  extends TwitterAccountPropertiesWithMetadataValue1,
+    TwitterAccountPropertiesWithMetadataValue2 {}
+export interface TwitterAccountPropertiesWithMetadataValue1
+  extends ServiceAccountPropertiesWithMetadataValue {}
+
+export interface TwitterAccountPropertiesWithMetadataValue2 {}

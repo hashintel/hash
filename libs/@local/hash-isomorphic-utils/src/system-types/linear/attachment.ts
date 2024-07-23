@@ -30,6 +30,7 @@ import type {
   BelongsToOrganizationOutgoingLinksByLinkEntityTypeId,
   BelongsToOrganizationProperties,
   BelongsToOrganizationPropertiesWithMetadata,
+  BelongsToOrganizationPropertiesWithMetadataValue,
   BooleanDataType,
   BooleanDataTypeWithMetadata,
   BranchNamePropertyValue,
@@ -73,16 +74,19 @@ import type {
   HasAssigneeOutgoingLinksByLinkEntityTypeId,
   HasAssigneeProperties,
   HasAssigneePropertiesWithMetadata,
+  HasAssigneePropertiesWithMetadataValue,
   HasCreator,
   HasCreatorOutgoingLinkAndTarget,
   HasCreatorOutgoingLinksByLinkEntityTypeId,
   HasCreatorProperties,
   HasCreatorPropertiesWithMetadata,
+  HasCreatorPropertiesWithMetadataValue,
   HasSubscriber,
   HasSubscriberOutgoingLinkAndTarget,
   HasSubscriberOutgoingLinksByLinkEntityTypeId,
   HasSubscriberProperties,
   HasSubscriberPropertiesWithMetadata,
+  HasSubscriberPropertiesWithMetadataValue,
   IdentifierPropertyValue,
   IdentifierPropertyValueWithMetadata,
   IDPropertyValue,
@@ -104,6 +108,7 @@ import type {
   IssueParentLink,
   IssueProperties,
   IssuePropertiesWithMetadata,
+  IssuePropertiesWithMetadataValue,
   IssueSnoozedByLink,
   IssueStateLink,
   IssueURLPropertyValue,
@@ -115,6 +120,7 @@ import type {
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   LinkPropertiesWithMetadata,
+  LinkPropertiesWithMetadataValue,
   LogoURLPropertyValue,
   LogoURLPropertyValueWithMetadata,
   MarkdownDescriptionPropertyValue,
@@ -128,11 +134,13 @@ import type {
   OrganizationOutgoingLinksByLinkEntityTypeId,
   OrganizationProperties,
   OrganizationPropertiesWithMetadata,
+  OrganizationPropertiesWithMetadataValue,
   Parent,
   ParentOutgoingLinkAndTarget,
   ParentOutgoingLinksByLinkEntityTypeId,
   ParentProperties,
   ParentPropertiesWithMetadata,
+  ParentPropertiesWithMetadataValue,
   PeriodUploadVolumePropertyValue,
   PeriodUploadVolumePropertyValueWithMetadata,
   PreviousIdentifierPropertyValue,
@@ -158,6 +166,7 @@ import type {
   SnoozedByOutgoingLinksByLinkEntityTypeId,
   SnoozedByProperties,
   SnoozedByPropertiesWithMetadata,
+  SnoozedByPropertiesWithMetadataValue,
   SnoozedUntilAtPropertyValue,
   SnoozedUntilAtPropertyValueWithMetadata,
   SortOrderPropertyValue,
@@ -171,6 +180,7 @@ import type {
   StateOutgoingLinksByLinkEntityTypeId,
   StateProperties,
   StatePropertiesWithMetadata,
+  StatePropertiesWithMetadataValue,
   StatusEmojiPropertyValue,
   StatusEmojiPropertyValueWithMetadata,
   StatusLabelPropertyValue,
@@ -203,12 +213,14 @@ import type {
   UserOutgoingLinksByLinkEntityTypeId,
   UserProperties,
   UserPropertiesWithMetadata,
+  UserPropertiesWithMetadataValue,
   WorkflowState,
   WorkflowStateOutgoingLinkAndTarget,
   WorkflowStateOutgoingLinksByLinkEntityTypeId,
   WorkflowStateProperties,
   WorkflowStatePropertiesWithMetadata,
-} from "./shared.js";
+  WorkflowStatePropertiesWithMetadataValue,
+} from "./shared";
 
 export type {
   ActivePropertyValue,
@@ -232,6 +244,7 @@ export type {
   BelongsToOrganizationOutgoingLinksByLinkEntityTypeId,
   BelongsToOrganizationProperties,
   BelongsToOrganizationPropertiesWithMetadata,
+  BelongsToOrganizationPropertiesWithMetadataValue,
   BooleanDataType,
   BooleanDataTypeWithMetadata,
   BranchNamePropertyValue,
@@ -275,16 +288,19 @@ export type {
   HasAssigneeOutgoingLinksByLinkEntityTypeId,
   HasAssigneeProperties,
   HasAssigneePropertiesWithMetadata,
+  HasAssigneePropertiesWithMetadataValue,
   HasCreator,
   HasCreatorOutgoingLinkAndTarget,
   HasCreatorOutgoingLinksByLinkEntityTypeId,
   HasCreatorProperties,
   HasCreatorPropertiesWithMetadata,
+  HasCreatorPropertiesWithMetadataValue,
   HasSubscriber,
   HasSubscriberOutgoingLinkAndTarget,
   HasSubscriberOutgoingLinksByLinkEntityTypeId,
   HasSubscriberProperties,
   HasSubscriberPropertiesWithMetadata,
+  HasSubscriberPropertiesWithMetadataValue,
   IdentifierPropertyValue,
   IdentifierPropertyValueWithMetadata,
   IDPropertyValue,
@@ -306,6 +322,7 @@ export type {
   IssueParentLink,
   IssueProperties,
   IssuePropertiesWithMetadata,
+  IssuePropertiesWithMetadataValue,
   IssueSnoozedByLink,
   IssueStateLink,
   IssueURLPropertyValue,
@@ -317,6 +334,7 @@ export type {
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   LinkPropertiesWithMetadata,
+  LinkPropertiesWithMetadataValue,
   LogoURLPropertyValue,
   LogoURLPropertyValueWithMetadata,
   MarkdownDescriptionPropertyValue,
@@ -330,11 +348,13 @@ export type {
   OrganizationOutgoingLinksByLinkEntityTypeId,
   OrganizationProperties,
   OrganizationPropertiesWithMetadata,
+  OrganizationPropertiesWithMetadataValue,
   Parent,
   ParentOutgoingLinkAndTarget,
   ParentOutgoingLinksByLinkEntityTypeId,
   ParentProperties,
   ParentPropertiesWithMetadata,
+  ParentPropertiesWithMetadataValue,
   PeriodUploadVolumePropertyValue,
   PeriodUploadVolumePropertyValueWithMetadata,
   PreviousIdentifierPropertyValue,
@@ -360,6 +380,7 @@ export type {
   SnoozedByOutgoingLinksByLinkEntityTypeId,
   SnoozedByProperties,
   SnoozedByPropertiesWithMetadata,
+  SnoozedByPropertiesWithMetadataValue,
   SnoozedUntilAtPropertyValue,
   SnoozedUntilAtPropertyValueWithMetadata,
   SortOrderPropertyValue,
@@ -373,6 +394,7 @@ export type {
   StateOutgoingLinksByLinkEntityTypeId,
   StateProperties,
   StatePropertiesWithMetadata,
+  StatePropertiesWithMetadataValue,
   StatusEmojiPropertyValue,
   StatusEmojiPropertyValueWithMetadata,
   StatusLabelPropertyValue,
@@ -405,45 +427,47 @@ export type {
   UserOutgoingLinksByLinkEntityTypeId,
   UserProperties,
   UserPropertiesWithMetadata,
+  UserPropertiesWithMetadataValue,
   WorkflowState,
   WorkflowStateOutgoingLinkAndTarget,
   WorkflowStateOutgoingLinksByLinkEntityTypeId,
   WorkflowStateProperties,
   WorkflowStatePropertiesWithMetadata,
+  WorkflowStatePropertiesWithMetadataValue,
 };
 
 /**
  * Issue attachment (e.g. support ticket, pull request).
  */
-export type Attachment = {
+export interface Attachment {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/attachment/v/1";
   properties: AttachmentProperties;
   propertiesWithMetadata: AttachmentPropertiesWithMetadata;
-};
+}
 
-export type AttachmentBelongsToIssueLink = {
+export interface AttachmentBelongsToIssueLink {
   linkEntity: BelongsToIssue;
   rightEntity: Issue;
-};
+}
 
-export type AttachmentHasCreatorLink = {
+export interface AttachmentHasCreatorLink {
   linkEntity: HasCreator;
   rightEntity: User;
-};
+}
 
 export type AttachmentOutgoingLinkAndTarget =
   | AttachmentBelongsToIssueLink
   | AttachmentHasCreatorLink;
 
-export type AttachmentOutgoingLinksByLinkEntityTypeId = {
+export interface AttachmentOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@linear/types/entity-type/belongs-to-issue/v/1": AttachmentBelongsToIssueLink;
   "https://hash.ai/@linear/types/entity-type/has-creator/v/1": AttachmentHasCreatorLink;
-};
+}
 
 /**
  * Issue attachment (e.g. support ticket, pull request).
  */
-export type AttachmentProperties = {
+export interface AttachmentProperties {
   "https://hash.ai/@hash/types/property-type/title/"?: Title0PropertyValue;
   "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValue;
   "https://hash.ai/@linear/types/property-type/attachment-url/": AttachmentURLPropertyValue;
@@ -455,117 +479,130 @@ export type AttachmentProperties = {
   "https://hash.ai/@linear/types/property-type/source/"?: SourcePropertyValue;
   "https://hash.ai/@linear/types/property-type/subtitle/"?: SubtitlePropertyValue;
   "https://hash.ai/@linear/types/property-type/updated-at/": UpdatedAtPropertyValue;
-};
+}
 
-export type AttachmentPropertiesWithMetadata = {
+export interface AttachmentPropertiesWithMetadata {
   metadata?: ObjectMetadata;
-  value: {
-    "https://hash.ai/@hash/types/property-type/title/"?: TitlePropertyValueWithMetadata0;
-    "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValueWithMetadata;
-    "https://hash.ai/@linear/types/property-type/attachment-url/": AttachmentURLPropertyValueWithMetadata;
-    "https://hash.ai/@linear/types/property-type/created-at/"?: CreatedAtPropertyValueWithMetadata;
-    "https://hash.ai/@linear/types/property-type/group-by-source/": GroupBySourcePropertyValueWithMetadata;
-    "https://hash.ai/@linear/types/property-type/id/": IDPropertyValueWithMetadata;
-    "https://hash.ai/@linear/types/property-type/metadata/": MetadataPropertyValueWithMetadata;
-    "https://hash.ai/@linear/types/property-type/source-type/"?: SourceTypePropertyValueWithMetadata;
-    "https://hash.ai/@linear/types/property-type/source/"?: SourcePropertyValueWithMetadata;
-    "https://hash.ai/@linear/types/property-type/subtitle/"?: SubtitlePropertyValueWithMetadata;
-    "https://hash.ai/@linear/types/property-type/updated-at/": UpdatedAtPropertyValueWithMetadata;
-  };
-};
+  value: AttachmentPropertiesWithMetadataValue;
+}
+
+export interface AttachmentPropertiesWithMetadataValue {
+  "https://hash.ai/@hash/types/property-type/title/"?: TitlePropertyValueWithMetadata0;
+  "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValueWithMetadata;
+  "https://hash.ai/@linear/types/property-type/attachment-url/": AttachmentURLPropertyValueWithMetadata;
+  "https://hash.ai/@linear/types/property-type/created-at/"?: CreatedAtPropertyValueWithMetadata;
+  "https://hash.ai/@linear/types/property-type/group-by-source/": GroupBySourcePropertyValueWithMetadata;
+  "https://hash.ai/@linear/types/property-type/id/": IDPropertyValueWithMetadata;
+  "https://hash.ai/@linear/types/property-type/metadata/": MetadataPropertyValueWithMetadata;
+  "https://hash.ai/@linear/types/property-type/source-type/"?: SourceTypePropertyValueWithMetadata;
+  "https://hash.ai/@linear/types/property-type/source/"?: SourcePropertyValueWithMetadata;
+  "https://hash.ai/@linear/types/property-type/subtitle/"?: SubtitlePropertyValueWithMetadata;
+  "https://hash.ai/@linear/types/property-type/updated-at/": UpdatedAtPropertyValueWithMetadata;
+}
 
 /**
  * Location of the attachment which is also used as an identifier.
  */
 export type AttachmentURLPropertyValue = TextDataType;
 
-export type AttachmentURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export interface AttachmentURLPropertyValueWithMetadata
+  extends TextDataTypeWithMetadata {}
 
 /**
  * The issue this attachment belongs to.
  */
-export type BelongsToIssue = {
+export interface BelongsToIssue {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/belongs-to-issue/v/1";
   properties: BelongsToIssueProperties;
   propertiesWithMetadata: BelongsToIssuePropertiesWithMetadata;
-};
+}
 
 export type BelongsToIssueOutgoingLinkAndTarget = never;
 
-export type BelongsToIssueOutgoingLinksByLinkEntityTypeId = {};
+export interface BelongsToIssueOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The issue this attachment belongs to.
  */
-export type BelongsToIssueProperties = BelongsToIssueProperties1 &
-  BelongsToIssueProperties2;
-export type BelongsToIssueProperties1 = LinkProperties;
+export interface BelongsToIssueProperties
+  extends BelongsToIssueProperties1,
+    BelongsToIssueProperties2 {}
+export interface BelongsToIssueProperties1 extends LinkProperties {}
 
-export type BelongsToIssueProperties2 = {};
+export interface BelongsToIssueProperties2 {}
 
-export type BelongsToIssuePropertiesWithMetadata =
-  BelongsToIssuePropertiesWithMetadata1 & BelongsToIssuePropertiesWithMetadata2;
-export type BelongsToIssuePropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type BelongsToIssuePropertiesWithMetadata2 = {
+export interface BelongsToIssuePropertiesWithMetadata {
   metadata?: ObjectMetadata;
-  value: {};
-};
+  value: BelongsToIssuePropertiesWithMetadataValue;
+}
+
+export interface BelongsToIssuePropertiesWithMetadataValue
+  extends BelongsToIssuePropertiesWithMetadataValue1,
+    BelongsToIssuePropertiesWithMetadataValue2 {}
+export interface BelongsToIssuePropertiesWithMetadataValue1
+  extends LinkPropertiesWithMetadataValue {}
+
+export interface BelongsToIssuePropertiesWithMetadataValue2 {}
 
 /**
  * Indicates if attachments for the same source application should be grouped in the Linear UI.
  */
 export type GroupBySourcePropertyValue = BooleanDataType;
 
-export type GroupBySourcePropertyValueWithMetadata =
-  BooleanDataTypeWithMetadata;
+export interface GroupBySourcePropertyValueWithMetadata
+  extends BooleanDataTypeWithMetadata {}
 
 /**
  * Custom metadata related to the attachment.
  */
 export type MetadataPropertyValue = ObjectDataType;
 
-export type MetadataPropertyValueWithMetadata = ObjectDataTypeWithMetadata;
+export interface MetadataPropertyValueWithMetadata
+  extends ObjectDataTypeWithMetadata {}
 
 /**
  * An opaque, untyped JSON object
  */
-export type ObjectDataType = {};
+export interface ObjectDataType {}
 
-export type ObjectDataTypeWithMetadata = {
+export interface ObjectDataTypeWithMetadata {
   value: ObjectDataType;
   metadata: ObjectDataTypeMetadata;
-};
-export type ObjectDataTypeMetadata = {
+}
+export interface ObjectDataTypeMetadata {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1";
-};
+}
 
 /**
  * Information about the source which created the attachment.
  */
 export type SourcePropertyValue = ObjectDataType;
 
-export type SourcePropertyValueWithMetadata = ObjectDataTypeWithMetadata;
+export interface SourcePropertyValueWithMetadata
+  extends ObjectDataTypeWithMetadata {}
 
 /**
  * An accessor helper to source.type, defines the source type of the attachment.
  */
 export type SourceTypePropertyValue = TextDataType;
 
-export type SourceTypePropertyValueWithMetadata = TextDataTypeWithMetadata;
+export interface SourceTypePropertyValueWithMetadata
+  extends TextDataTypeWithMetadata {}
 
 /**
  * Content for the subtitle line in the Linear attachment widget.
  */
 export type SubtitlePropertyValue = TextDataType;
 
-export type SubtitlePropertyValueWithMetadata = TextDataTypeWithMetadata;
+export interface SubtitlePropertyValueWithMetadata
+  extends TextDataTypeWithMetadata {}
 
 /**
  * The title of something.
  */
 export type Title0PropertyValue = TextDataType;
 
-export type TitlePropertyValueWithMetadata0 = TextDataTypeWithMetadata;
+export interface TitlePropertyValueWithMetadata0
+  extends TextDataTypeWithMetadata {}

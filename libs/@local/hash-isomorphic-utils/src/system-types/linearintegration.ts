@@ -10,6 +10,7 @@ import type {
   ActorOutgoingLinksByLinkEntityTypeId,
   ActorProperties,
   ActorPropertiesWithMetadata,
+  ActorPropertiesWithMetadataValue,
   AutomaticInferenceConfigurationPropertyValue,
   AutomaticInferenceConfigurationPropertyValueWithMetadata,
   Block,
@@ -18,11 +19,13 @@ import type {
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
   BlockCollectionPropertiesWithMetadata,
+  BlockCollectionPropertiesWithMetadataValue,
   BlockHasDataLink,
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
   BlockPropertiesWithMetadata,
+  BlockPropertiesWithMetadataValue,
   BooleanDataType,
   BooleanDataTypeWithMetadata,
   BrowserPluginSettings,
@@ -30,6 +33,7 @@ import type {
   BrowserPluginSettingsOutgoingLinksByLinkEntityTypeId,
   BrowserPluginSettingsProperties,
   BrowserPluginSettingsPropertiesWithMetadata,
+  BrowserPluginSettingsPropertiesWithMetadataValue,
   BrowserPluginTabPropertyValue,
   BrowserPluginTabPropertyValueWithMetadata,
   ComponentIdPropertyValue,
@@ -59,6 +63,7 @@ import type {
   FileOutgoingLinksByLinkEntityTypeId,
   FileProperties,
   FilePropertiesWithMetadata,
+  FilePropertiesWithMetadataValue,
   FileSizePropertyValue,
   FileSizePropertyValueWithMetadata,
   FileStorageBucketPropertyValue,
@@ -83,45 +88,54 @@ import type {
   HasAvatarOutgoingLinksByLinkEntityTypeId,
   HasAvatarProperties,
   HasAvatarPropertiesWithMetadata,
+  HasAvatarPropertiesWithMetadataValue,
   HasBio,
   HasBioOutgoingLinkAndTarget,
   HasBioOutgoingLinksByLinkEntityTypeId,
   HasBioProperties,
   HasBioPropertiesWithMetadata,
+  HasBioPropertiesWithMetadataValue,
   HasCoverImage,
   HasCoverImageOutgoingLinkAndTarget,
   HasCoverImageOutgoingLinksByLinkEntityTypeId,
   HasCoverImageProperties,
   HasCoverImagePropertiesWithMetadata,
+  HasCoverImagePropertiesWithMetadataValue,
   HasData,
   HasDataOutgoingLinkAndTarget,
   HasDataOutgoingLinksByLinkEntityTypeId,
   HasDataProperties,
   HasDataPropertiesWithMetadata,
+  HasDataPropertiesWithMetadataValue,
   HasIndexedContent,
   HasIndexedContentOutgoingLinkAndTarget,
   HasIndexedContentOutgoingLinksByLinkEntityTypeId,
   HasIndexedContentProperties,
   HasIndexedContentPropertiesWithMetadata,
+  HasIndexedContentPropertiesWithMetadataValue,
   HasOutgoingLinkAndTarget,
   HasOutgoingLinksByLinkEntityTypeId,
   HasProperties,
   HasPropertiesWithMetadata,
+  HasPropertiesWithMetadataValue,
   HasServiceAccount,
   HasServiceAccountOutgoingLinkAndTarget,
   HasServiceAccountOutgoingLinksByLinkEntityTypeId,
   HasServiceAccountProperties,
   HasServiceAccountPropertiesWithMetadata,
+  HasServiceAccountPropertiesWithMetadataValue,
   Image,
   ImageOutgoingLinkAndTarget,
   ImageOutgoingLinksByLinkEntityTypeId,
   ImageProperties,
   ImagePropertiesWithMetadata,
+  ImagePropertiesWithMetadataValue,
   IsMemberOf,
   IsMemberOfOutgoingLinkAndTarget,
   IsMemberOfOutgoingLinksByLinkEntityTypeId,
   IsMemberOfProperties,
   IsMemberOfPropertiesWithMetadata,
+  IsMemberOfPropertiesWithMetadataValue,
   KratosIdentityIdPropertyValue,
   KratosIdentityIdPropertyValueWithMetadata,
   Link,
@@ -129,6 +143,7 @@ import type {
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   LinkPropertiesWithMetadata,
+  LinkPropertiesWithMetadataValue,
   LocationPropertyValue,
   LocationPropertyValueWithMetadata,
   ManualInferenceConfigurationPropertyValue,
@@ -149,6 +164,7 @@ import type {
   OrganizationOutgoingLinksByLinkEntityTypeId,
   OrganizationProperties,
   OrganizationPropertiesWithMetadata,
+  OrganizationPropertiesWithMetadataValue,
   OriginalFileNamePropertyValue,
   OriginalFileNamePropertyValueWithMetadata,
   OriginalSourcePropertyValue,
@@ -165,6 +181,7 @@ import type {
   ProfileBioOutgoingLinksByLinkEntityTypeId,
   ProfileBioProperties,
   ProfileBioPropertiesWithMetadata,
+  ProfileBioPropertiesWithMetadataValue,
   ProfileURLPropertyValue,
   ProfileURLPropertyValueWithMetadata,
   ServiceAccount,
@@ -172,6 +189,7 @@ import type {
   ServiceAccountOutgoingLinksByLinkEntityTypeId,
   ServiceAccountProperties,
   ServiceAccountPropertiesWithMetadata,
+  ServiceAccountPropertiesWithMetadataValue,
   ShortnamePropertyValue,
   ShortnamePropertyValueWithMetadata,
   TextDataType,
@@ -188,11 +206,13 @@ import type {
   UserOutgoingLinksByLinkEntityTypeId,
   UserProperties,
   UserPropertiesWithMetadata,
+  UserPropertiesWithMetadataValue,
   UserSecret,
   UserSecretOutgoingLinkAndTarget,
   UserSecretOutgoingLinksByLinkEntityTypeId,
   UserSecretProperties,
   UserSecretPropertiesWithMetadata,
+  UserSecretPropertiesWithMetadataValue,
   VaultPathPropertyValue,
   VaultPathPropertyValueWithMetadata,
   WebsiteURLPropertyValue,
@@ -205,6 +225,7 @@ export type {
   ActorOutgoingLinksByLinkEntityTypeId,
   ActorProperties,
   ActorPropertiesWithMetadata,
+  ActorPropertiesWithMetadataValue,
   AutomaticInferenceConfigurationPropertyValue,
   AutomaticInferenceConfigurationPropertyValueWithMetadata,
   Block,
@@ -213,11 +234,13 @@ export type {
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
   BlockCollectionPropertiesWithMetadata,
+  BlockCollectionPropertiesWithMetadataValue,
   BlockHasDataLink,
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
   BlockPropertiesWithMetadata,
+  BlockPropertiesWithMetadataValue,
   BooleanDataType,
   BooleanDataTypeWithMetadata,
   BrowserPluginSettings,
@@ -225,6 +248,7 @@ export type {
   BrowserPluginSettingsOutgoingLinksByLinkEntityTypeId,
   BrowserPluginSettingsProperties,
   BrowserPluginSettingsPropertiesWithMetadata,
+  BrowserPluginSettingsPropertiesWithMetadataValue,
   BrowserPluginTabPropertyValue,
   BrowserPluginTabPropertyValueWithMetadata,
   ComponentIdPropertyValue,
@@ -254,6 +278,7 @@ export type {
   FileOutgoingLinksByLinkEntityTypeId,
   FileProperties,
   FilePropertiesWithMetadata,
+  FilePropertiesWithMetadataValue,
   FileSizePropertyValue,
   FileSizePropertyValueWithMetadata,
   FileStorageBucketPropertyValue,
@@ -278,45 +303,54 @@ export type {
   HasAvatarOutgoingLinksByLinkEntityTypeId,
   HasAvatarProperties,
   HasAvatarPropertiesWithMetadata,
+  HasAvatarPropertiesWithMetadataValue,
   HasBio,
   HasBioOutgoingLinkAndTarget,
   HasBioOutgoingLinksByLinkEntityTypeId,
   HasBioProperties,
   HasBioPropertiesWithMetadata,
+  HasBioPropertiesWithMetadataValue,
   HasCoverImage,
   HasCoverImageOutgoingLinkAndTarget,
   HasCoverImageOutgoingLinksByLinkEntityTypeId,
   HasCoverImageProperties,
   HasCoverImagePropertiesWithMetadata,
+  HasCoverImagePropertiesWithMetadataValue,
   HasData,
   HasDataOutgoingLinkAndTarget,
   HasDataOutgoingLinksByLinkEntityTypeId,
   HasDataProperties,
   HasDataPropertiesWithMetadata,
+  HasDataPropertiesWithMetadataValue,
   HasIndexedContent,
   HasIndexedContentOutgoingLinkAndTarget,
   HasIndexedContentOutgoingLinksByLinkEntityTypeId,
   HasIndexedContentProperties,
   HasIndexedContentPropertiesWithMetadata,
+  HasIndexedContentPropertiesWithMetadataValue,
   HasOutgoingLinkAndTarget,
   HasOutgoingLinksByLinkEntityTypeId,
   HasProperties,
   HasPropertiesWithMetadata,
+  HasPropertiesWithMetadataValue,
   HasServiceAccount,
   HasServiceAccountOutgoingLinkAndTarget,
   HasServiceAccountOutgoingLinksByLinkEntityTypeId,
   HasServiceAccountProperties,
   HasServiceAccountPropertiesWithMetadata,
+  HasServiceAccountPropertiesWithMetadataValue,
   Image,
   ImageOutgoingLinkAndTarget,
   ImageOutgoingLinksByLinkEntityTypeId,
   ImageProperties,
   ImagePropertiesWithMetadata,
+  ImagePropertiesWithMetadataValue,
   IsMemberOf,
   IsMemberOfOutgoingLinkAndTarget,
   IsMemberOfOutgoingLinksByLinkEntityTypeId,
   IsMemberOfProperties,
   IsMemberOfPropertiesWithMetadata,
+  IsMemberOfPropertiesWithMetadataValue,
   KratosIdentityIdPropertyValue,
   KratosIdentityIdPropertyValueWithMetadata,
   Link,
@@ -324,6 +358,7 @@ export type {
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   LinkPropertiesWithMetadata,
+  LinkPropertiesWithMetadataValue,
   LocationPropertyValue,
   LocationPropertyValueWithMetadata,
   ManualInferenceConfigurationPropertyValue,
@@ -344,6 +379,7 @@ export type {
   OrganizationOutgoingLinksByLinkEntityTypeId,
   OrganizationProperties,
   OrganizationPropertiesWithMetadata,
+  OrganizationPropertiesWithMetadataValue,
   OriginalFileNamePropertyValue,
   OriginalFileNamePropertyValueWithMetadata,
   OriginalSourcePropertyValue,
@@ -360,6 +396,7 @@ export type {
   ProfileBioOutgoingLinksByLinkEntityTypeId,
   ProfileBioProperties,
   ProfileBioPropertiesWithMetadata,
+  ProfileBioPropertiesWithMetadataValue,
   ProfileURLPropertyValue,
   ProfileURLPropertyValueWithMetadata,
   ServiceAccount,
@@ -367,6 +404,7 @@ export type {
   ServiceAccountOutgoingLinksByLinkEntityTypeId,
   ServiceAccountProperties,
   ServiceAccountPropertiesWithMetadata,
+  ServiceAccountPropertiesWithMetadataValue,
   ShortnamePropertyValue,
   ShortnamePropertyValueWithMetadata,
   TextDataType,
@@ -383,11 +421,13 @@ export type {
   UserOutgoingLinksByLinkEntityTypeId,
   UserProperties,
   UserPropertiesWithMetadata,
+  UserPropertiesWithMetadataValue,
   UserSecret,
   UserSecretOutgoingLinkAndTarget,
   UserSecretOutgoingLinksByLinkEntityTypeId,
   UserSecretProperties,
   UserSecretPropertiesWithMetadata,
+  UserSecretPropertiesWithMetadataValue,
   VaultPathPropertyValue,
   VaultPathPropertyValueWithMetadata,
   WebsiteURLPropertyValue,
@@ -397,126 +437,138 @@ export type {
 /**
  * An instance of an integration with Linear.
  */
-export type LinearIntegration = {
+export interface LinearIntegration {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/linear-integration/v/6";
   properties: LinearIntegrationProperties;
   propertiesWithMetadata: LinearIntegrationPropertiesWithMetadata;
-};
+}
 
 export type LinearIntegrationOutgoingLinkAndTarget =
   | LinearIntegrationSyncLinearDataWithLink
   | LinearIntegrationUsesUserSecretLink;
 
-export type LinearIntegrationOutgoingLinksByLinkEntityTypeId = {
+export interface LinearIntegrationOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@hash/types/entity-type/sync-linear-data-with/v/1": LinearIntegrationSyncLinearDataWithLink;
   "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1": LinearIntegrationUsesUserSecretLink;
-};
+}
 
 /**
  * An instance of an integration with Linear.
  */
-export type LinearIntegrationProperties = {
+export interface LinearIntegrationProperties {
   "https://hash.ai/@hash/types/property-type/linear-org-id/": LinearOrgIdPropertyValue;
-};
+}
 
-export type LinearIntegrationPropertiesWithMetadata = {
+export interface LinearIntegrationPropertiesWithMetadata {
   metadata?: ObjectMetadata;
-  value: {
-    "https://hash.ai/@hash/types/property-type/linear-org-id/": LinearOrgIdPropertyValueWithMetadata;
-  };
-};
+  value: LinearIntegrationPropertiesWithMetadataValue;
+}
 
-export type LinearIntegrationSyncLinearDataWithLink = {
+export interface LinearIntegrationPropertiesWithMetadataValue {
+  "https://hash.ai/@hash/types/property-type/linear-org-id/": LinearOrgIdPropertyValueWithMetadata;
+}
+
+export interface LinearIntegrationSyncLinearDataWithLink {
   linkEntity: SyncLinearDataWith;
   rightEntity: User | Organization;
-};
+}
 
-export type LinearIntegrationUsesUserSecretLink = {
+export interface LinearIntegrationUsesUserSecretLink {
   linkEntity: UsesUserSecret;
   rightEntity: UserSecret;
-};
+}
 
 /**
  * The unique identifier for an org in Linear.
  */
 export type LinearOrgIdPropertyValue = TextDataType;
 
-export type LinearOrgIdPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export interface LinearOrgIdPropertyValueWithMetadata
+  extends TextDataTypeWithMetadata {}
 
 /**
  * The unique identifier for a team in Linear.
  */
 export type LinearTeamIdPropertyValue = TextDataType;
 
-export type LinearTeamIdPropertyValueWithMetadata = TextDataTypeWithMetadata;
+export interface LinearTeamIdPropertyValueWithMetadata
+  extends TextDataTypeWithMetadata {}
 
 /**
  * Something that syncs linear data with something.
  */
-export type SyncLinearDataWith = {
+export interface SyncLinearDataWith {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/sync-linear-data-with/v/1";
   properties: SyncLinearDataWithProperties;
   propertiesWithMetadata: SyncLinearDataWithPropertiesWithMetadata;
-};
+}
 
 export type SyncLinearDataWithOutgoingLinkAndTarget = never;
 
-export type SyncLinearDataWithOutgoingLinksByLinkEntityTypeId = {};
+export interface SyncLinearDataWithOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * Something that syncs linear data with something.
  */
-export type SyncLinearDataWithProperties = SyncLinearDataWithProperties1 &
-  SyncLinearDataWithProperties2;
-export type SyncLinearDataWithProperties1 = LinkProperties;
+export interface SyncLinearDataWithProperties
+  extends SyncLinearDataWithProperties1,
+    SyncLinearDataWithProperties2 {}
+export interface SyncLinearDataWithProperties1 extends LinkProperties {}
 
-export type SyncLinearDataWithProperties2 = {
+export interface SyncLinearDataWithProperties2 {
   "https://hash.ai/@hash/types/property-type/linear-team-id/"?: LinearTeamIdPropertyValue[];
-};
+}
 
-export type SyncLinearDataWithPropertiesWithMetadata =
-  SyncLinearDataWithPropertiesWithMetadata1 &
-    SyncLinearDataWithPropertiesWithMetadata2;
-export type SyncLinearDataWithPropertiesWithMetadata1 =
-  LinkPropertiesWithMetadata;
-
-export type SyncLinearDataWithPropertiesWithMetadata2 = {
+export interface SyncLinearDataWithPropertiesWithMetadata {
   metadata?: ObjectMetadata;
-  value: {
-    "https://hash.ai/@hash/types/property-type/linear-team-id/"?: {
-      value: LinearTeamIdPropertyValueWithMetadata[];
-      metadata?: ArrayMetadata;
-    };
+  value: SyncLinearDataWithPropertiesWithMetadataValue;
+}
+
+export interface SyncLinearDataWithPropertiesWithMetadataValue
+  extends SyncLinearDataWithPropertiesWithMetadataValue1,
+    SyncLinearDataWithPropertiesWithMetadataValue2 {}
+export interface SyncLinearDataWithPropertiesWithMetadataValue1
+  extends LinkPropertiesWithMetadataValue {}
+
+export interface SyncLinearDataWithPropertiesWithMetadataValue2 {
+  "https://hash.ai/@hash/types/property-type/linear-team-id/"?: {
+    value: LinearTeamIdPropertyValueWithMetadata[];
+    metadata?: ArrayMetadata;
   };
-};
+}
 
 /**
  * The user secret something uses.
  */
-export type UsesUserSecret = {
+export interface UsesUserSecret {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1";
   properties: UsesUserSecretProperties;
   propertiesWithMetadata: UsesUserSecretPropertiesWithMetadata;
-};
+}
 
 export type UsesUserSecretOutgoingLinkAndTarget = never;
 
-export type UsesUserSecretOutgoingLinksByLinkEntityTypeId = {};
+export interface UsesUserSecretOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The user secret something uses.
  */
-export type UsesUserSecretProperties = UsesUserSecretProperties1 &
-  UsesUserSecretProperties2;
-export type UsesUserSecretProperties1 = LinkProperties;
+export interface UsesUserSecretProperties
+  extends UsesUserSecretProperties1,
+    UsesUserSecretProperties2 {}
+export interface UsesUserSecretProperties1 extends LinkProperties {}
 
-export type UsesUserSecretProperties2 = {};
+export interface UsesUserSecretProperties2 {}
 
-export type UsesUserSecretPropertiesWithMetadata =
-  UsesUserSecretPropertiesWithMetadata1 & UsesUserSecretPropertiesWithMetadata2;
-export type UsesUserSecretPropertiesWithMetadata1 = LinkPropertiesWithMetadata;
-
-export type UsesUserSecretPropertiesWithMetadata2 = {
+export interface UsesUserSecretPropertiesWithMetadata {
   metadata?: ObjectMetadata;
-  value: {};
-};
+  value: UsesUserSecretPropertiesWithMetadataValue;
+}
+
+export interface UsesUserSecretPropertiesWithMetadataValue
+  extends UsesUserSecretPropertiesWithMetadataValue1,
+    UsesUserSecretPropertiesWithMetadataValue2 {}
+export interface UsesUserSecretPropertiesWithMetadataValue1
+  extends LinkPropertiesWithMetadataValue {}
+
+export interface UsesUserSecretPropertiesWithMetadataValue2 {}

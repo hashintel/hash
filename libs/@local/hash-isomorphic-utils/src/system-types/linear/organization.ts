@@ -36,6 +36,7 @@ import type {
   OrganizationOutgoingLinksByLinkEntityTypeId,
   OrganizationProperties,
   OrganizationPropertiesWithMetadata,
+  OrganizationPropertiesWithMetadataValue,
   PeriodUploadVolumePropertyValue,
   PeriodUploadVolumePropertyValueWithMetadata,
   PreviousURLKeysPropertyValue,
@@ -58,7 +59,7 @@ import type {
   URLKeyPropertyValueWithMetadata,
   UserCountPropertyValue,
   UserCountPropertyValueWithMetadata,
-} from "./shared.js";
+} from "./shared";
 
 export type {
   AllowedAuthServicePropertyValue,
@@ -94,6 +95,7 @@ export type {
   OrganizationOutgoingLinksByLinkEntityTypeId,
   OrganizationProperties,
   OrganizationPropertiesWithMetadata,
+  OrganizationPropertiesWithMetadataValue,
   PeriodUploadVolumePropertyValue,
   PeriodUploadVolumePropertyValueWithMetadata,
   PreviousURLKeysPropertyValue,

@@ -33,37 +33,39 @@ export type {
 /**
  * The definition of a HASH flow.
  */
-export type FlowDefinition = {
+export interface FlowDefinition {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/flow-definition/v/1";
   properties: FlowDefinitionProperties;
   propertiesWithMetadata: FlowDefinitionPropertiesWithMetadata;
-};
+}
 
 export type FlowDefinitionOutgoingLinkAndTarget = never;
 
-export type FlowDefinitionOutgoingLinksByLinkEntityTypeId = {};
+export interface FlowDefinitionOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * The definition of a HASH flow.
  */
-export type FlowDefinitionProperties = {
+export interface FlowDefinitionProperties {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
   "https://hash.ai/@hash/types/property-type/output-definitions/": OutputDefinitionsPropertyValue;
   "https://hash.ai/@hash/types/property-type/step-definitions/": StepDefinitionsPropertyValue;
   "https://hash.ai/@hash/types/property-type/trigger-definition/": TriggerDefinitionPropertyValue;
-};
+}
 
-export type FlowDefinitionPropertiesWithMetadata = {
+export interface FlowDefinitionPropertiesWithMetadata {
   metadata?: ObjectMetadata;
-  value: {
-    "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValueWithMetadata;
-    "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/output-definitions/": OutputDefinitionsPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/step-definitions/": StepDefinitionsPropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/trigger-definition/": TriggerDefinitionPropertyValueWithMetadata;
-  };
-};
+  value: FlowDefinitionPropertiesWithMetadataValue;
+}
+
+export interface FlowDefinitionPropertiesWithMetadataValue {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValueWithMetadata;
+  "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
+  "https://hash.ai/@hash/types/property-type/output-definitions/": OutputDefinitionsPropertyValueWithMetadata;
+  "https://hash.ai/@hash/types/property-type/step-definitions/": StepDefinitionsPropertyValueWithMetadata;
+  "https://hash.ai/@hash/types/property-type/trigger-definition/": TriggerDefinitionPropertyValueWithMetadata;
+}
 
 /**
  * The output definitions of something.

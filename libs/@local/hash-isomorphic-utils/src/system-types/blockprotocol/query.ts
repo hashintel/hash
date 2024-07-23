@@ -11,45 +11,48 @@ import type { Confidence } from "@local/hash-graph-types/entity";
 /**
  * An opaque, untyped JSON object
  */
-export type ObjectDataType = {};
+export interface ObjectDataType {}
 
-export type ObjectDataTypeWithMetadata = {
+export interface ObjectDataTypeWithMetadata {
   value: ObjectDataType;
   metadata: ObjectDataTypeMetadata;
-};
-export type ObjectDataTypeMetadata = {
+}
+export interface ObjectDataTypeMetadata {
   provenance?: PropertyProvenance;
   confidence?: Confidence;
   dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1";
-};
+}
 
 /**
  *
  */
-export type Query = {
+export interface Query {
   entityTypeId: "https://blockprotocol.org/@hash/types/entity-type/query/v/1";
   properties: QueryProperties;
   propertiesWithMetadata: QueryPropertiesWithMetadata;
-};
+}
 
 export type QueryOutgoingLinkAndTarget = never;
 
-export type QueryOutgoingLinksByLinkEntityTypeId = {};
+export interface QueryOutgoingLinksByLinkEntityTypeId {}
 
-export type QueryProperties = {
+export interface QueryProperties {
   "https://blockprotocol.org/@hash/types/property-type/query/": QueryPropertyValue;
-};
+}
 
-export type QueryPropertiesWithMetadata = {
+export interface QueryPropertiesWithMetadata {
   metadata?: ObjectMetadata;
-  value: {
-    "https://blockprotocol.org/@hash/types/property-type/query/": QueryPropertyValueWithMetadata;
-  };
-};
+  value: QueryPropertiesWithMetadataValue;
+}
+
+export interface QueryPropertiesWithMetadataValue {
+  "https://blockprotocol.org/@hash/types/property-type/query/": QueryPropertyValueWithMetadata;
+}
 
 /**
  * The query for something.
  */
 export type QueryPropertyValue = ObjectDataType;
 
-export type QueryPropertyValueWithMetadata = ObjectDataTypeWithMetadata;
+export interface QueryPropertyValueWithMetadata
+  extends ObjectDataTypeWithMetadata {}

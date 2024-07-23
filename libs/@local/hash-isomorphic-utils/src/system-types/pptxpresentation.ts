@@ -22,6 +22,7 @@ import type {
   FileOutgoingLinksByLinkEntityTypeId,
   FileProperties,
   FilePropertiesWithMetadata,
+  FilePropertiesWithMetadataValue,
   FileSizePropertyValue,
   FileSizePropertyValueWithMetadata,
   FileStorageBucketPropertyValue,
@@ -55,6 +56,7 @@ import type {
   PresentationFileOutgoingLinksByLinkEntityTypeId,
   PresentationFileProperties,
   PresentationFilePropertiesWithMetadata,
+  PresentationFilePropertiesWithMetadataValue,
   TextDataType,
   TextDataTypeWithMetadata,
   TextualContentPropertyValue,
@@ -81,6 +83,7 @@ export type {
   FileOutgoingLinksByLinkEntityTypeId,
   FileProperties,
   FilePropertiesWithMetadata,
+  FilePropertiesWithMetadataValue,
   FileSizePropertyValue,
   FileSizePropertyValueWithMetadata,
   FileStorageBucketPropertyValue,
@@ -114,6 +117,7 @@ export type {
   PresentationFileOutgoingLinksByLinkEntityTypeId,
   PresentationFileProperties,
   PresentationFilePropertiesWithMetadata,
+  PresentationFilePropertiesWithMetadataValue,
   TextDataType,
   TextDataTypeWithMetadata,
   TextualContentPropertyValue,
@@ -125,32 +129,36 @@ export type {
 /**
  * A Microsoft PowerPoint presentation.
  */
-export type PPTXPresentation = {
+export interface PPTXPresentation {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/pptx-presentation/v/1";
   properties: PPTXPresentationProperties;
   propertiesWithMetadata: PPTXPresentationPropertiesWithMetadata;
-};
+}
 
 export type PPTXPresentationOutgoingLinkAndTarget = never;
 
-export type PPTXPresentationOutgoingLinksByLinkEntityTypeId = {};
+export interface PPTXPresentationOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A Microsoft PowerPoint presentation.
  */
-export type PPTXPresentationProperties = PPTXPresentationProperties1 &
-  PPTXPresentationProperties2;
-export type PPTXPresentationProperties1 = PresentationFileProperties;
+export interface PPTXPresentationProperties
+  extends PPTXPresentationProperties1,
+    PPTXPresentationProperties2 {}
+export interface PPTXPresentationProperties1
+  extends PresentationFileProperties {}
 
-export type PPTXPresentationProperties2 = {};
+export interface PPTXPresentationProperties2 {}
 
-export type PPTXPresentationPropertiesWithMetadata =
-  PPTXPresentationPropertiesWithMetadata1 &
-    PPTXPresentationPropertiesWithMetadata2;
-export type PPTXPresentationPropertiesWithMetadata1 =
-  PresentationFilePropertiesWithMetadata;
-
-export type PPTXPresentationPropertiesWithMetadata2 = {
+export interface PPTXPresentationPropertiesWithMetadata {
   metadata?: ObjectMetadata;
-  value: {};
-};
+  value: PPTXPresentationPropertiesWithMetadataValue;
+}
+
+export interface PPTXPresentationPropertiesWithMetadataValue
+  extends PPTXPresentationPropertiesWithMetadataValue1,
+    PPTXPresentationPropertiesWithMetadataValue2 {}
+export interface PPTXPresentationPropertiesWithMetadataValue1
+  extends PresentationFilePropertiesWithMetadataValue {}
+
+export interface PPTXPresentationPropertiesWithMetadataValue2 {}

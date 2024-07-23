@@ -12,6 +12,7 @@ import type {
   TextOutgoingLinksByLinkEntityTypeId,
   TextProperties,
   TextPropertiesWithMetadata,
+  TextPropertiesWithMetadataValue,
   TextualContentPropertyValue,
   TextualContentPropertyValueWithMetadata,
 } from "./shared.js";
@@ -26,6 +27,7 @@ export type {
   TextOutgoingLinksByLinkEntityTypeId,
   TextProperties,
   TextPropertiesWithMetadata,
+  TextPropertiesWithMetadataValue,
   TextualContentPropertyValue,
   TextualContentPropertyValueWithMetadata,
 };

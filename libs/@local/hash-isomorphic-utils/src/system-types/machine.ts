@@ -10,6 +10,7 @@ import type {
   ActorOutgoingLinksByLinkEntityTypeId,
   ActorProperties,
   ActorPropertiesWithMetadata,
+  ActorPropertiesWithMetadataValue,
   DisplayNamePropertyValue,
   DisplayNamePropertyValueWithMetadata,
   TextDataType,
@@ -22,6 +23,7 @@ export type {
   ActorOutgoingLinksByLinkEntityTypeId,
   ActorProperties,
   ActorPropertiesWithMetadata,
+  ActorPropertiesWithMetadataValue,
   DisplayNamePropertyValue,
   DisplayNamePropertyValueWithMetadata,
   TextDataType,
@@ -31,43 +33,49 @@ export type {
 /**
  * A machine that can perform actions in the system
  */
-export type Machine = {
+export interface Machine {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/machine/v/2";
   properties: MachineProperties;
   propertiesWithMetadata: MachinePropertiesWithMetadata;
-};
+}
 
 /**
  * A unique identifier for a machine
  */
 export type MachineIdentifierPropertyValue = TextDataType;
 
-export type MachineIdentifierPropertyValueWithMetadata =
-  TextDataTypeWithMetadata;
+export interface MachineIdentifierPropertyValueWithMetadata
+  extends TextDataTypeWithMetadata {}
 
 export type MachineOutgoingLinkAndTarget = never;
 
-export type MachineOutgoingLinksByLinkEntityTypeId = {};
+export interface MachineOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A machine that can perform actions in the system
  */
-export type MachineProperties = MachineProperties1 & MachineProperties2;
-export type MachineProperties1 = ActorProperties;
+export interface MachineProperties
+  extends MachineProperties1,
+    MachineProperties2 {}
+export interface MachineProperties1 extends ActorProperties {}
 
-export type MachineProperties2 = {
+export interface MachineProperties2 {
   "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": DisplayNamePropertyValue;
   "https://hash.ai/@hash/types/property-type/machine-identifier/": MachineIdentifierPropertyValue;
-};
+}
 
-export type MachinePropertiesWithMetadata = MachinePropertiesWithMetadata1 &
-  MachinePropertiesWithMetadata2;
-export type MachinePropertiesWithMetadata1 = ActorPropertiesWithMetadata;
-
-export type MachinePropertiesWithMetadata2 = {
+export interface MachinePropertiesWithMetadata {
   metadata?: ObjectMetadata;
-  value: {
-    "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": DisplayNamePropertyValueWithMetadata;
-    "https://hash.ai/@hash/types/property-type/machine-identifier/": MachineIdentifierPropertyValueWithMetadata;
-  };
-};
+  value: MachinePropertiesWithMetadataValue;
+}
+
+export interface MachinePropertiesWithMetadataValue
+  extends MachinePropertiesWithMetadataValue1,
+    MachinePropertiesWithMetadataValue2 {}
+export interface MachinePropertiesWithMetadataValue1
+  extends ActorPropertiesWithMetadataValue {}
+
+export interface MachinePropertiesWithMetadataValue2 {
+  "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": DisplayNamePropertyValueWithMetadata;
+  "https://hash.ai/@hash/types/property-type/machine-identifier/": MachineIdentifierPropertyValueWithMetadata;
+}

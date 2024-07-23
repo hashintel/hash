@@ -13,11 +13,13 @@ import type {
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
   BlockCollectionPropertiesWithMetadata,
+  BlockCollectionPropertiesWithMetadataValue,
   BlockHasDataLink,
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
   BlockPropertiesWithMetadata,
+  BlockPropertiesWithMetadataValue,
   BooleanDataType,
   BooleanDataTypeWithMetadata,
   ComponentIdPropertyValue,
@@ -29,16 +31,19 @@ import type {
   HasDataOutgoingLinksByLinkEntityTypeId,
   HasDataProperties,
   HasDataPropertiesWithMetadata,
+  HasDataPropertiesWithMetadataValue,
   HasIndexedContent,
   HasIndexedContentOutgoingLinkAndTarget,
   HasIndexedContentOutgoingLinksByLinkEntityTypeId,
   HasIndexedContentProperties,
   HasIndexedContentPropertiesWithMetadata,
+  HasIndexedContentPropertiesWithMetadataValue,
   HasParent,
   HasParentOutgoingLinkAndTarget,
   HasParentOutgoingLinksByLinkEntityTypeId,
   HasParentProperties,
   HasParentPropertiesWithMetadata,
+  HasParentPropertiesWithMetadataValue,
   IconPropertyValue,
   IconPropertyValueWithMetadata,
   Link,
@@ -46,12 +51,14 @@ import type {
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   LinkPropertiesWithMetadata,
+  LinkPropertiesWithMetadataValue,
   Page,
   PageHasParentLink,
   PageOutgoingLinkAndTarget,
   PageOutgoingLinksByLinkEntityTypeId,
   PageProperties,
   PagePropertiesWithMetadata,
+  PagePropertiesWithMetadataValue,
   SummaryPropertyValue,
   SummaryPropertyValueWithMetadata,
   TextDataType,
@@ -69,11 +76,13 @@ export type {
   BlockCollectionOutgoingLinksByLinkEntityTypeId,
   BlockCollectionProperties,
   BlockCollectionPropertiesWithMetadata,
+  BlockCollectionPropertiesWithMetadataValue,
   BlockHasDataLink,
   BlockOutgoingLinkAndTarget,
   BlockOutgoingLinksByLinkEntityTypeId,
   BlockProperties,
   BlockPropertiesWithMetadata,
+  BlockPropertiesWithMetadataValue,
   BooleanDataType,
   BooleanDataTypeWithMetadata,
   ComponentIdPropertyValue,
@@ -85,16 +94,19 @@ export type {
   HasDataOutgoingLinksByLinkEntityTypeId,
   HasDataProperties,
   HasDataPropertiesWithMetadata,
+  HasDataPropertiesWithMetadataValue,
   HasIndexedContent,
   HasIndexedContentOutgoingLinkAndTarget,
   HasIndexedContentOutgoingLinksByLinkEntityTypeId,
   HasIndexedContentProperties,
   HasIndexedContentPropertiesWithMetadata,
+  HasIndexedContentPropertiesWithMetadataValue,
   HasParent,
   HasParentOutgoingLinkAndTarget,
   HasParentOutgoingLinksByLinkEntityTypeId,
   HasParentProperties,
   HasParentPropertiesWithMetadata,
+  HasParentPropertiesWithMetadataValue,
   IconPropertyValue,
   IconPropertyValueWithMetadata,
   Link,
@@ -102,12 +114,14 @@ export type {
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   LinkPropertiesWithMetadata,
+  LinkPropertiesWithMetadataValue,
   Page,
   PageHasParentLink,
   PageOutgoingLinkAndTarget,
   PageOutgoingLinksByLinkEntityTypeId,
   PageProperties,
   PagePropertiesWithMetadata,
+  PagePropertiesWithMetadataValue,
   SummaryPropertyValue,
   SummaryPropertyValueWithMetadata,
   TextDataType,
@@ -119,36 +133,42 @@ export type {
 /**
  * A page in document format, with content arranged in columns.
  */
-export type Document = {
+export interface Document {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/document/v/1";
   properties: DocumentProperties;
   propertiesWithMetadata: DocumentPropertiesWithMetadata;
-};
+}
 
-export type DocumentHasIndexedContentLink = {
+export interface DocumentHasIndexedContentLink {
   linkEntity: HasIndexedContent;
   rightEntity: Block;
-};
+}
 
 export type DocumentOutgoingLinkAndTarget = DocumentHasIndexedContentLink;
 
-export type DocumentOutgoingLinksByLinkEntityTypeId = {
+export interface DocumentOutgoingLinksByLinkEntityTypeId {
   "https://hash.ai/@hash/types/entity-type/has-indexed-content/v/1": DocumentHasIndexedContentLink;
-};
+}
 
 /**
  * A page in document format, with content arranged in columns.
  */
-export type DocumentProperties = DocumentProperties1 & DocumentProperties2;
-export type DocumentProperties1 = PageProperties;
+export interface DocumentProperties
+  extends DocumentProperties1,
+    DocumentProperties2 {}
+export interface DocumentProperties1 extends PageProperties {}
 
-export type DocumentProperties2 = {};
+export interface DocumentProperties2 {}
 
-export type DocumentPropertiesWithMetadata = DocumentPropertiesWithMetadata1 &
-  DocumentPropertiesWithMetadata2;
-export type DocumentPropertiesWithMetadata1 = PagePropertiesWithMetadata;
-
-export type DocumentPropertiesWithMetadata2 = {
+export interface DocumentPropertiesWithMetadata {
   metadata?: ObjectMetadata;
-  value: {};
-};
+  value: DocumentPropertiesWithMetadataValue;
+}
+
+export interface DocumentPropertiesWithMetadataValue
+  extends DocumentPropertiesWithMetadataValue1,
+    DocumentPropertiesWithMetadataValue2 {}
+export interface DocumentPropertiesWithMetadataValue1
+  extends PagePropertiesWithMetadataValue {}
+
+export interface DocumentPropertiesWithMetadataValue2 {}

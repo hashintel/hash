@@ -12,6 +12,7 @@ import type {
   ServiceAccountOutgoingLinksByLinkEntityTypeId,
   ServiceAccountProperties,
   ServiceAccountPropertiesWithMetadata,
+  ServiceAccountPropertiesWithMetadataValue,
   TextDataType,
   TextDataTypeWithMetadata,
 } from "./shared.js";
@@ -24,6 +25,7 @@ export type {
   ServiceAccountOutgoingLinksByLinkEntityTypeId,
   ServiceAccountProperties,
   ServiceAccountPropertiesWithMetadata,
+  ServiceAccountPropertiesWithMetadataValue,
   TextDataType,
   TextDataTypeWithMetadata,
 };
@@ -31,31 +33,35 @@ export type {
 /**
  * A TikTok account.
  */
-export type TikTokAccount = {
+export interface TikTokAccount {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/tiktok-account/v/1";
   properties: TikTokAccountProperties;
   propertiesWithMetadata: TikTokAccountPropertiesWithMetadata;
-};
+}
 
 export type TikTokAccountOutgoingLinkAndTarget = never;
 
-export type TikTokAccountOutgoingLinksByLinkEntityTypeId = {};
+export interface TikTokAccountOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A TikTok account.
  */
-export type TikTokAccountProperties = TikTokAccountProperties1 &
-  TikTokAccountProperties2;
-export type TikTokAccountProperties1 = ServiceAccountProperties;
+export interface TikTokAccountProperties
+  extends TikTokAccountProperties1,
+    TikTokAccountProperties2 {}
+export interface TikTokAccountProperties1 extends ServiceAccountProperties {}
 
-export type TikTokAccountProperties2 = {};
+export interface TikTokAccountProperties2 {}
 
-export type TikTokAccountPropertiesWithMetadata =
-  TikTokAccountPropertiesWithMetadata1 & TikTokAccountPropertiesWithMetadata2;
-export type TikTokAccountPropertiesWithMetadata1 =
-  ServiceAccountPropertiesWithMetadata;
-
-export type TikTokAccountPropertiesWithMetadata2 = {
+export interface TikTokAccountPropertiesWithMetadata {
   metadata?: ObjectMetadata;
-  value: {};
-};
+  value: TikTokAccountPropertiesWithMetadataValue;
+}
+
+export interface TikTokAccountPropertiesWithMetadataValue
+  extends TikTokAccountPropertiesWithMetadataValue1,
+    TikTokAccountPropertiesWithMetadataValue2 {}
+export interface TikTokAccountPropertiesWithMetadataValue1
+  extends ServiceAccountPropertiesWithMetadataValue {}
+
+export interface TikTokAccountPropertiesWithMetadataValue2 {}

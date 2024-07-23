@@ -22,12 +22,16 @@ const generateMetadataSchemaTitles = ({
   title,
 }: Pick<EntityType | PropertyType | DataType, "title">) => ({
   valueWithMetadataTitle: `${title} With Metadata`,
+  valueWithMetadataValueTitle: `${title} With Metadata Value`,
   metadataTitle: `${title} Metadata`,
 });
 
 export const generateMetadataSchemaIdentifiers = ({
   $id,
-}: Pick<EntityType | PropertyType | DataType, "$id">) => ({
+  prependProperties,
+}: Pick<EntityType | PropertyType | DataType, "$id"> & {
+  prependProperties?: boolean;
+}) => ({
   valueWithMetadata$id: $id.replace(
     /(\/types\/(?:entity-type|property-type|data-type)\/)/,
     /**
@@ -35,7 +39,16 @@ export const generateMetadataSchemaIdentifiers = ({
      * @example "https://app.hash.ai/@hash/types/property-type/user/v/1" =>
      *   "https://app.hash.ai/@hash/types/property-type/with-metadata/user/v/1"
      */
-    "$1with-metadata/",
+    `$1${prependProperties ? "properties-" : ""}with-metadata/`,
+  ) as VersionedUrl,
+  valueWithMetadataValue$id: $id.replace(
+    /(\/types\/(?:entity-type|property-type|data-type)\/)/,
+    /**
+     * Insert the path segment /with-metadata/ into the VersionedUrl
+     * @example "https://app.hash.ai/@hash/types/property-type/user/v/1" =>
+     *   "https://app.hash.ai/@hash/types/property-type/with-metadata/user/v/1"
+     */
+    `$1${prependProperties ? "properties-" : ""}with-metadata-value/`,
   ) as VersionedUrl,
   metadata$id: $id.replace(
     /(\/types\/(?:entity-type|property-type|data-type)\/)/,
@@ -46,6 +59,8 @@ export const generateMetadataSchemaIdentifiers = ({
 /**
  * Generate a schema for a data type with metadata, which is an object with two properties:
  * { value: SomeLeafValue, metadata: { provenance?: PropertyProvenance, confidence?: number, dataTypeId: VersionedUrl }
+ *
+ * Also generates a separate schema for the metadata object.
  */
 export const generateDataTypeWithMetadataSchema = (
   dataTypeSchema: DataType,
@@ -83,61 +98,62 @@ export const generateDataTypeWithMetadataSchema = (
   };
 };
 
-type EntityParentIdentifiers = {
+type EntityOwnerIdentifiers = {
   title: string;
   $id: VersionedUrl;
 };
 
 type ObjectWithMetadataParams = {
-  allOf?: EntityType["allOf"];
+  allOfForValueWithMetadataValue?: EntityType["allOf"];
   properties: EntityType["properties"];
   required: string[];
-  entityParentIdentifiers: EntityParentIdentifiers | null;
+  entityOwnerIdentifiers: EntityOwnerIdentifiers | null;
 };
 
 export function generatePropertiesObjectWithMetadataSchema({
-  allOf,
+  allOfForValueWithMetadataValue,
   properties,
   required,
-  entityParentIdentifiers,
+  entityOwnerIdentifiers,
 }: ObjectWithMetadataParams & {
-  entityParentIdentifiers: null;
+  entityOwnerIdentifiers: null;
 }): PartialJsonSchema;
 export function generatePropertiesObjectWithMetadataSchema({
-  allOf,
+  allOfForValueWithMetadataValue,
   properties,
   required,
-  entityParentIdentifiers,
+  entityOwnerIdentifiers,
 }: ObjectWithMetadataParams & {
-  entityParentIdentifiers: EntityParentIdentifiers;
+  entityOwnerIdentifiers: EntityOwnerIdentifiers;
 }): JsonSchema;
 /**
  * Generate a schema for a properties object with metadata.
  *
- * If entityParentIdentifiers is provided, it will also assign an $id to the type so that it appears separately.
- * The $id is derived from the parent and assumes that the parent is creating only a single properties object
- * – do not use this for properties objects defined within a property type, which may include multiple properties objects.
+ * If entityOwnerIdentifiers is provided, it will also assign an $id to the type so that it appears separately.
+ * The $id is derived from the owning entity and assumes that the owner is creating only a single properties object
+ * – do not use this for properties objects defined within a property type, which may include multiple properties
+ * objects.
  */
 export function generatePropertiesObjectWithMetadataSchema({
-  allOf,
+  allOfForValueWithMetadataValue,
   properties,
   required,
-  entityParentIdentifiers,
+  entityOwnerIdentifiers,
 }: ObjectWithMetadataParams): JsonSchema | PartialJsonSchema {
-  const title = entityParentIdentifiers
-    ? generateMetadataSchemaTitles({
-        title: `${entityParentIdentifiers.title} Properties`,
-      }).valueWithMetadataTitle
-    : undefined;
+  const { valueWithMetadataTitle, valueWithMetadataValueTitle } =
+    entityOwnerIdentifiers
+      ? generateMetadataSchemaTitles({
+          title: `${entityOwnerIdentifiers.title} Properties`,
+        })
+      : ({} as Record<string, undefined>);
 
-  const $id = entityParentIdentifiers
-    ? (generateMetadataSchemaIdentifiers({
-        $id: entityParentIdentifiers.$id,
-      }).valueWithMetadata$id.replace(
-        "/with-metadata/",
-        "/properties-with-metadata/",
-      ) as VersionedUrl)
-    : undefined;
+  const { valueWithMetadata$id, valueWithMetadataValue$id } =
+    entityOwnerIdentifiers
+      ? generateMetadataSchemaIdentifiers({
+          $id: entityOwnerIdentifiers.$id,
+          prependProperties: true,
+        })
+      : ({} as Record<string, undefined>);
 
   const propertiesSchema = Object.entries(properties).reduce<PartialJsonSchema>(
     (acc, [baseUrl, refSchema]) => {
@@ -172,12 +188,15 @@ export function generatePropertiesObjectWithMetadataSchema({
 
   const schema: JsonSchema | PartialJsonSchema = {
     type: "object",
-    title,
-    $id,
+    $id: valueWithMetadata$id,
+    title: valueWithMetadataTitle,
     kind,
     properties: {
       metadata: objectMetadataSchema,
       value: {
+        $id: valueWithMetadataValue$id,
+        title: valueWithMetadataValueTitle,
+        kind,
         type: "object",
         properties: propertiesSchema,
         required,
@@ -186,8 +205,8 @@ export function generatePropertiesObjectWithMetadataSchema({
     required: ["value"],
   };
 
-  if (allOf) {
-    schema.allOf = allOf;
+  if (allOfForValueWithMetadataValue) {
+    schema.properties!.value!.allOf = allOfForValueWithMetadataValue;
   }
 
   return schema;
@@ -230,7 +249,7 @@ const generatePropertyValueWithMetadataTree = (
   return generatePropertiesObjectWithMetadataSchema({
     properties,
     required: required ?? [],
-    entityParentIdentifiers: null,
+    entityOwnerIdentifiers: null,
   });
 };
 

@@ -20,6 +20,7 @@ import type {
   BelongsToOrganizationOutgoingLinksByLinkEntityTypeId,
   BelongsToOrganizationProperties,
   BelongsToOrganizationPropertiesWithMetadata,
+  BelongsToOrganizationPropertiesWithMetadataValue,
   BooleanDataType,
   BooleanDataTypeWithMetadata,
   CreatedAtPropertyValue,
@@ -59,6 +60,7 @@ import type {
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   LinkPropertiesWithMetadata,
+  LinkPropertiesWithMetadataValue,
   LogoURLPropertyValue,
   LogoURLPropertyValueWithMetadata,
   NamePropertyValue,
@@ -70,6 +72,7 @@ import type {
   OrganizationOutgoingLinksByLinkEntityTypeId,
   OrganizationProperties,
   OrganizationPropertiesWithMetadata,
+  OrganizationPropertiesWithMetadataValue,
   PeriodUploadVolumePropertyValue,
   PeriodUploadVolumePropertyValueWithMetadata,
   PreviousURLKeysPropertyValue,
@@ -108,7 +111,8 @@ import type {
   UserOutgoingLinksByLinkEntityTypeId,
   UserProperties,
   UserPropertiesWithMetadata,
-} from "./shared.js";
+  UserPropertiesWithMetadataValue,
+} from "./shared";
 
 export type {
   ActivePropertyValue,
@@ -128,6 +132,7 @@ export type {
   BelongsToOrganizationOutgoingLinksByLinkEntityTypeId,
   BelongsToOrganizationProperties,
   BelongsToOrganizationPropertiesWithMetadata,
+  BelongsToOrganizationPropertiesWithMetadataValue,
   BooleanDataType,
   BooleanDataTypeWithMetadata,
   CreatedAtPropertyValue,
@@ -167,6 +172,7 @@ export type {
   LinkOutgoingLinksByLinkEntityTypeId,
   LinkProperties,
   LinkPropertiesWithMetadata,
+  LinkPropertiesWithMetadataValue,
   LogoURLPropertyValue,
   LogoURLPropertyValueWithMetadata,
   NamePropertyValue,
@@ -178,6 +184,7 @@ export type {
   OrganizationOutgoingLinksByLinkEntityTypeId,
   OrganizationProperties,
   OrganizationPropertiesWithMetadata,
+  OrganizationPropertiesWithMetadataValue,
   PeriodUploadVolumePropertyValue,
   PeriodUploadVolumePropertyValueWithMetadata,
   PreviousURLKeysPropertyValue,
@@ -216,4 +223,5 @@ export type {
   UserOutgoingLinksByLinkEntityTypeId,
   UserProperties,
   UserPropertiesWithMetadata,
+  UserPropertiesWithMetadataValue,
 };

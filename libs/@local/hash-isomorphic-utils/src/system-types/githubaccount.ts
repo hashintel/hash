@@ -12,6 +12,7 @@ import type {
   ServiceAccountOutgoingLinksByLinkEntityTypeId,
   ServiceAccountProperties,
   ServiceAccountPropertiesWithMetadata,
+  ServiceAccountPropertiesWithMetadataValue,
   TextDataType,
   TextDataTypeWithMetadata,
 } from "./shared.js";
@@ -24,6 +25,7 @@ export type {
   ServiceAccountOutgoingLinksByLinkEntityTypeId,
   ServiceAccountProperties,
   ServiceAccountPropertiesWithMetadata,
+  ServiceAccountPropertiesWithMetadataValue,
   TextDataType,
   TextDataTypeWithMetadata,
 };
@@ -31,31 +33,35 @@ export type {
 /**
  * A GitHub account.
  */
-export type GitHubAccount = {
+export interface GitHubAccount {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/github-account/v/1";
   properties: GitHubAccountProperties;
   propertiesWithMetadata: GitHubAccountPropertiesWithMetadata;
-};
+}
 
 export type GitHubAccountOutgoingLinkAndTarget = never;
 
-export type GitHubAccountOutgoingLinksByLinkEntityTypeId = {};
+export interface GitHubAccountOutgoingLinksByLinkEntityTypeId {}
 
 /**
  * A GitHub account.
  */
-export type GitHubAccountProperties = GitHubAccountProperties1 &
-  GitHubAccountProperties2;
-export type GitHubAccountProperties1 = ServiceAccountProperties;
+export interface GitHubAccountProperties
+  extends GitHubAccountProperties1,
+    GitHubAccountProperties2 {}
+export interface GitHubAccountProperties1 extends ServiceAccountProperties {}
 
-export type GitHubAccountProperties2 = {};
+export interface GitHubAccountProperties2 {}
 
-export type GitHubAccountPropertiesWithMetadata =
-  GitHubAccountPropertiesWithMetadata1 & GitHubAccountPropertiesWithMetadata2;
-export type GitHubAccountPropertiesWithMetadata1 =
-  ServiceAccountPropertiesWithMetadata;
-
-export type GitHubAccountPropertiesWithMetadata2 = {
+export interface GitHubAccountPropertiesWithMetadata {
   metadata?: ObjectMetadata;
-  value: {};
-};
+  value: GitHubAccountPropertiesWithMetadataValue;
+}
+
+export interface GitHubAccountPropertiesWithMetadataValue
+  extends GitHubAccountPropertiesWithMetadataValue1,
+    GitHubAccountPropertiesWithMetadataValue2 {}
+export interface GitHubAccountPropertiesWithMetadataValue1
+  extends ServiceAccountPropertiesWithMetadataValue {}
+
+export interface GitHubAccountPropertiesWithMetadataValue2 {}

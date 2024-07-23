@@ -99,15 +99,15 @@ export type PropertyArray = Property[];
 /**
  * A mapping of property base URLs to their values.
  */
-export type PropertyObject = {
+export interface PropertyObject {
   [key: BaseUrl]: Property;
-};
+}
 
-export type EntityProperties = {
+export interface EntityProperties {
   entityTypeId: VersionedUrl;
   properties: PropertyObject;
   propertiesWithMetadata: PropertyObjectWithMetadata;
-};
+}
 
 /**
  * A property is a tree structure that represents a property of an entity.

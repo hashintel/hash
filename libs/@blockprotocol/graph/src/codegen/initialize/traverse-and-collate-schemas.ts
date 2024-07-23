@@ -7,6 +7,7 @@ import {
 
 import { typedValues } from "../../util/typed-object-iter.js";
 import type { InitializeContext } from "../context.js";
+import type { JsonSchema } from "../shared.js";
 import {
   generateDataTypeWithMetadataSchema,
   generateMetadataSchemaIdentifiers,
@@ -199,32 +200,61 @@ export const traverseAndCollateSchemas = async (
 
           const { properties, required, $id, title } = type;
 
-          const parentsWithMetadataIdentifiers = type.allOf?.map((parent) => ({
-            $ref: generateMetadataSchemaIdentifiers({
-              $id: parent.$ref,
-            }).valueWithMetadata$id.replace(
-              "/with-metadata/",
-              "/properties-with-metadata/",
-            ) as VersionedUrl,
-          }));
+          const parentsWithMetadataValueIdentifiers = type.allOf?.map(
+            (parent) => ({
+              $ref: generateMetadataSchemaIdentifiers({
+                $id: parent.$ref,
+                prependProperties: true,
+              }).valueWithMetadataValue$id,
+            }),
+          );
 
           const withMetadata = generatePropertiesObjectWithMetadataSchema({
-            allOf: parentsWithMetadataIdentifiers
-              ? atLeastOne(parentsWithMetadataIdentifiers)
+            allOfForValueWithMetadataValue: parentsWithMetadataValueIdentifiers
+              ? atLeastOne(parentsWithMetadataValueIdentifiers)
               : undefined,
             properties,
             required: required ?? [],
-            entityParentIdentifiers: {
+            entityOwnerIdentifiers: {
               $id,
               title,
             },
           });
+
+          /**
+           * We need to replace the `metadata-with-value` property with a reference to the schema that was generated for it,
+           * so that the json-schema-to-typescript library doesn't duplicate definitions of the in-line schemas.
+           *
+           * We don't do this for property objects because they can't be addressed by other types – they belong to a single type.
+           * In contrast, an entity type may inherit from another entity type, in which case we need to be able to extend
+           * the parent 'metadata-with-value' object.
+           *
+           * We can't extend the 'with-metadata' object because an entity with no properties of its own has it generated as value: {},
+           * which cannot extend value: { ...something }
+           */
+          const withMetadataValueSchema = withMetadata.properties!
+            .value as JsonSchema;
+
+          withMetadata.properties!.value = {
+            $ref: withMetadataValueSchema.$id,
+          };
+
           if (!initialContext.metadataSchemas[withMetadata.$id]) {
             initialContext.addMetadataSchema(withMetadata);
           }
+
+          if (!initialContext.metadataSchemas[withMetadataValueSchema.$id]) {
+            initialContext.addMetadataSchema(withMetadataValueSchema);
+          }
+
           initialContext.typeDependencyMap.addDependencyForType(
             typeId,
             withMetadata.$id,
+          );
+
+          initialContext.typeDependencyMap.addDependencyForType(
+            withMetadata.$id,
+            withMetadataValueSchema.$id,
           );
         } else {
           throw new Error(`Unexpected type, was it malformed? URL: ${typeId}`);
