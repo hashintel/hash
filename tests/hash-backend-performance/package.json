@@ -6,9 +6,9 @@
   "license": "AGPL-3.0",
   "type": "module",
   "scripts": {
-    "bench:load-testing": "artillery run --quiet scripts/artillery.yml -o reports/artillery.json",
+    "bench:load-testing": "for file in scenarios/*.yml; do artillery run --config artillery.yml $file --environment local; done",
     "codegen": "mkdir -p reports && echo '*' > reports/.gitignore",
-    "test:integration": "yarn bench:load-testing --overrides '{ \"config\": { \"phases\": [{ \"duration\": 1, \"arrivalRate\": 1 }] } }'"
+    "test:integration": "for file in scenarios/*.yml; do artillery run --config artillery.yml $file --environment functional; done"
   },
   "dependencies": {
     "@apps/hash-api": "0.0.0-private",

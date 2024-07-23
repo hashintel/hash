@@ -1,0 +1,34 @@
+config:
+  target: http://localhost:5001/graphql
+  environments:
+    functional:
+      phases:
+        - name: Functional test
+          duration: 1 second
+          arrivalRate: 1
+      plugins:
+        expect:
+          reportFailuresAsErrors: true
+    local:
+      phases:
+        - name: Warm up
+          duration: 15 seconds
+          arrivalRate: 1
+          rampTo: 5
+        - name: Ramp up load
+          duration: 60 seconds
+          arrivalRate: 5
+          rampTo: 10
+        - name: Spike phase
+          duration: 30 seconds
+          arrivalRate: 10
+          rampTo: 30
+  plugins:
+    expect:
+      outputFormat: silent
+      expectDefault200: true
+    apdex:
+      threshold: 100
+    metrics-by-endpoint:
+      ignoreUnnamedEndpoints: true
+      useOnlyRequestNames: true
