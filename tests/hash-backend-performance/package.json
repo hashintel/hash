@@ -1,0 +1,17 @@
+{
+  "name": "@tests/hash-backend-performance",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Performance testing for the HASH backend",
+  "license": "AGPL-3.0",
+  "type": "module",
+  "scripts": {
+    "bench:load-testing": "artillery run --quiet scripts/artillery.yml -o reports/artillery.json",
+    "codegen": "mkdir -p reports && echo '*' > reports/.gitignore",
+    "test:integration": "yarn bench:load-testing --overrides '{ \"config\": { \"phases\": [{ \"duration\": 1, \"arrivalRate\": 1 }] } }'"
+  },
+  "dependencies": {
+    "@apps/hash-api": "0.0.0-private",
+    "artillery": "2.0.18"
+  }
+}
