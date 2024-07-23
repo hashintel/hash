@@ -4,7 +4,9 @@ This is the compiler, planner and executor for the HASH Query Language (HQL). HQ
 
 ## Language
 
-The language design docs are found in Notion, but in general the CST of the language is very basic, only consisting of three different constructs:
+Language design documentation and a specification of the language will be provided in the future.
+
+The CST of the language is very basic, only consisting of three different constructs:
 
 - Function Invocation: A function invocation has multiple possible forms:
   - `[name, ...args]`
