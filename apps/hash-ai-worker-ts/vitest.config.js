@@ -3,7 +3,7 @@ import { monorepoRootDir } from "@local/hash-backend-utils/environment";
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { loadEnv } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
-import { defineConfig } from "vitest/config";
+import { defineConfig } from "vitest/config.js";
 
 export default defineConfig(({ mode }) => {
   return {

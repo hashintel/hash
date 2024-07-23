@@ -6,7 +6,10 @@ import type { DereferencedEntityType } from "../../../shared/dereference-entity-
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
 import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
-import type { LlmToolDefinition } from "../../../shared/get-llm-response/types.js";
+import type {
+  LlmParams,
+  LlmToolDefinition,
+} from "../../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 
 export type LocalEntitySummary = {
@@ -21,7 +24,7 @@ const toolNames = ["registerEntitySummaries"] as const;
 type ToolName = (typeof toolNames)[number];
 
 const generateToolDefinitions = (params: {
-  dereferencedEntityType: DereferencedEntityType;
+  dereferencedEntityType: Pick<DereferencedEntityType, "title" | "description">;
 }): Record<ToolName, LlmToolDefinition<ToolName>> => ({
   registerEntitySummaries: {
     name: "registerEntitySummaries",
@@ -52,35 +55,24 @@ const generateToolDefinitions = (params: {
   },
 });
 
-const generateSystemPrompt = (params: {
+export const generateSystemPrompt = (params: {
   includesRelevantEntitiesPrompt?: boolean;
-  dereferencedEntityType: DereferencedEntityType;
 }) =>
   dedent(`
   You are an entity summary extraction agent.
 
   The user will provide you with:
-    - "text": the text from which you should extract entity summaries.
-    - "entityType": the definition of the "${
-      params.dereferencedEntityType.title
-    }" type, which must be the type of the entities that are extracted from the text
+    - Text: the text from which you should extract entity summaries.
+    - Entity type: the entity type of the entities you should extract summaries for. Ignore any others in the text.
     ${
       params.includesRelevantEntitiesPrompt
-        ? `- "relevantEntitiesPrompt": a prompt provided by the user indicating which entities should be included.`
+        ? `- "Relevant entities prompt": a prompt provided by the user indicating which entities should be included.`
         : ""
     }
 
-  You must extract all the entities from the text which are of the "${
-    params.dereferencedEntityType.title
-  }" type${
-    params.includesRelevantEntitiesPrompt
-      ? " and are relevant given the provided prompt"
-      : ""
-  }.
+  You must extract all the entities from the text which are of the requested type and are relevant given the provided prompt.
 
-  Do not under any circumstances provide entity summaries for entities which are not of the "${
-    params.dereferencedEntityType.title
-  }" type.
+  Do not under any circumstances provide entity summaries for entities which are not of the requested type, even if the relevant entities prompt suggests they should be included.
   
   For each ${
     params.includesRelevantEntitiesPrompt ? "relevant " : ""
@@ -92,12 +84,24 @@ const generateSystemPrompt = (params: {
 
 export const getEntitySummariesFromText = async (params: {
   text: string;
-  dereferencedEntityType: DereferencedEntityType;
+  dereferencedEntityType: Pick<
+    DereferencedEntityType,
+    "$id" | "title" | "description"
+  >;
   relevantEntitiesPrompt?: string;
+  testingParams?: {
+    model?: LlmParams["model"];
+    systemPrompt?: string;
+  };
 }): Promise<{
   entitySummaries: LocalEntitySummary[];
 }> => {
-  const { text, dereferencedEntityType, relevantEntitiesPrompt } = params;
+  const {
+    text,
+    dereferencedEntityType,
+    relevantEntitiesPrompt,
+    testingParams,
+  } = params;
 
   const { userAuthentication, flowEntityId, stepId, webId } =
     await getFlowContext();
@@ -108,7 +112,7 @@ export const getEntitySummariesFromText = async (params: {
 
   const llmResponse = await getLlmResponse(
     {
-      model: "claude-3-haiku-20240307",
+      model: testingParams?.model ?? "claude-3-haiku-20240307",
       toolChoice: toolNames[0],
       messages: [
         {
@@ -117,11 +121,19 @@ export const getEntitySummariesFromText = async (params: {
             {
               type: "text",
               text: dedent(`
-                text: ${text}
-                entityType: ${JSON.stringify(dereferencedEntityType)}
+                Here is the text to identify entities from:
+                <Text>${text}</Text>
+                
+                Here is the entity type the entities must be of.
+                IMPORTANT: Ignore any entities which don't match this type:
+                <EntityType>
+                    Name: ${dereferencedEntityType.title}
+                    Description: ${dereferencedEntityType.description}
+                </EntityType>
                 ${
                   relevantEntitiesPrompt
-                    ? `Relevant entities prompt: ${relevantEntitiesPrompt}`
+                    ? dedent(`Relevant entities prompt: the user has asked you only focus on entities which match the research goal '${relevantEntitiesPrompt}'
+                       Remember: don't include entities which aren't of type ${dereferencedEntityType.title}, even if they otherwise match the research goal!`)
                     : ""
                 }
               `),
@@ -129,10 +141,11 @@ export const getEntitySummariesFromText = async (params: {
           ],
         },
       ],
-      systemPrompt: generateSystemPrompt({
-        includesRelevantEntitiesPrompt: !!relevantEntitiesPrompt,
-        dereferencedEntityType,
-      }),
+      systemPrompt:
+        testingParams?.systemPrompt ??
+        generateSystemPrompt({
+          includesRelevantEntitiesPrompt: !!relevantEntitiesPrompt,
+        }),
       tools: Object.values(toolDefinitions),
     },
     {

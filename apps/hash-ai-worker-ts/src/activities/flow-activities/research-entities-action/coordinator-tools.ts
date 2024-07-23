@@ -197,7 +197,8 @@ export const generateToolDefinitions = <
                 Do not specify any information of the structure of the entities, as this is predefined by
                   the entity type.
     
-                You must be specific about which and how many entities you need to gather facts about to satisfy the research task.`),
+                You must be specific about which and how many entities you need to gather facts about to satisfy the research task.
+                Don't ask for information on types of entities you haven't specified under entityTypeIds.`),
                 },
                 descriptionOfExpectedContent: {
                   type: "string",
