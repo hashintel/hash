@@ -24,7 +24,6 @@ impl Display for Symbol {
 pub(crate) enum ParseRestriction {
     None,
     RustOnly,
-    OperatorsOnly,
 }
 
 impl ParseRestriction {
@@ -33,7 +32,7 @@ impl ParseRestriction {
     }
 
     const fn is_operators(self) -> bool {
-        matches!(self, Self::None | Self::OperatorsOnly)
+        matches!(self, Self::None)
     }
 }
 
@@ -224,18 +223,6 @@ mod test {
             ),
         }
         "###);
-        assert_debug_snapshot!(parse_err("übung", ParseRestriction::OperatorsOnly), @r###"
-        ParseError {
-            input: "übung",
-            offset: 0,
-            inner: Backtrack(
-                ContextError {
-                    context: [],
-                    cause: None,
-                },
-            ),
-        }
-        "###);
     }
 
     #[test]
@@ -289,22 +276,9 @@ mod test {
 
     #[test]
     fn operators_restrictions() {
-        assert_snapshot!(parse_ok("+", ParseRestriction::OperatorsOnly), @"+");
         assert_debug_snapshot!(parse_err("+", ParseRestriction::RustOnly), @r###"
         ParseError {
             input: "+",
-            offset: 0,
-            inner: Backtrack(
-                ContextError {
-                    context: [],
-                    cause: None,
-                },
-            ),
-        }
-        "###);
-        assert_debug_snapshot!(parse_err("ü", ParseRestriction::OperatorsOnly), @r###"
-        ParseError {
-            input: "ü",
             offset: 0,
             inner: Backtrack(
                 ContextError {

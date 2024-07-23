@@ -82,7 +82,7 @@ mod test {
     fn fn_empty() {
         let arena = Arena::new();
 
-        let result = Expr::from_str(&arena, r"[]");
+        let result = Expr::from_str(&arena, "[]");
 
         assert_debug_snapshot!(result);
     }
@@ -202,7 +202,7 @@ mod test {
     fn object_is_empty() {
         let arena = Arena::new();
 
-        let result = Expr::from_str(&arena, r"{}");
+        let result = Expr::from_str(&arena, "{}");
 
         assert_debug_snapshot!(result);
     }

@@ -2,7 +2,7 @@ use bumpalo::Bump;
 
 pub type Box<'a, T> = alloc::boxed::Box<T, &'a Bump>;
 pub type Vec<'a, T> = alloc::vec::Vec<T, &'a Bump>;
-pub type VecDeque<'a, T> = std::collections::vec_deque::VecDeque<T, &'a Bump>;
+pub type VecDeque<'a, T> = alloc::collections::vec_deque::VecDeque<T, &'a Bump>;
 
 #[derive(Debug)]
 pub struct Arena {
@@ -38,5 +38,11 @@ impl Arena {
 
     pub fn boxed<T>(&self, value: T) -> Box<'_, T> {
         Box::new_in(value, &self.bump)
+    }
+}
+
+impl Default for Arena {
+    fn default() -> Self {
+        Self::new()
     }
 }

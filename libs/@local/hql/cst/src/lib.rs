@@ -4,10 +4,15 @@ extern crate alloc;
 
 pub mod arena;
 pub mod call;
-pub mod codec;
+pub(crate) mod codec;
 pub mod constant;
 pub mod expr;
 pub(crate) mod parse;
 pub mod signature;
 pub mod symbol;
 pub mod r#type;
+
+pub use self::{
+    arena::Arena, call::Call, constant::Constant, expr::Expr, signature::Signature, symbol::Symbol,
+    r#type::Type,
+};

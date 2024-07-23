@@ -196,10 +196,6 @@ impl<'a, 'de> Visitor<'de> for ExprVisitor<'a> {
         formatter.write_str("an expression")
     }
 
-    #[expect(
-        clippy::too_many_lines,
-        reason = "manually implementing visitor is sadly quite verbose"
-    )]
     fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
     where
         A: serde::de::MapAccess<'de>,
