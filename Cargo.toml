@@ -2,6 +2,7 @@ cargo-features = ["edition2024"]
 
 [workspace]
 members = [
+    "apps/client-desktop/src-tauri",
     "apps/hash-graph/bins/cli",
     "apps/hash-graph/libs/*",
     "libs/@blockprotocol/type-system/rust",
