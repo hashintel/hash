@@ -1,14 +1,13 @@
-
-[hash terms of service]: https://hash.ai/legal/terms?utm_medium=organic&utm_source=github_license_hash-license
-[hash developer docs]: https://hash.dev/docs?utm_medium=organic&utm_source=github_license_hash-license
-[hash product]: https://hash.ai/platform/hash?utm_medium=organic&utm_source=github_license_hash-license
-[hash subscription agreement]: https://hash.ai/legal?utm_medium=organic&utm_source=github_license_hash-license
-[https://hash.dev/license]: https://hash.dev/license?utm_medium=organic&utm_source=github_license_hash-license
-[primary open-source license]: https://hash.dev/license?utm_medium=organic&utm_source=github_license_hash-license
+[applicable open-source license]: https://hash.ai/legal/developers/license-open
+[hash global terms of service]: https://hash.ai/legal/terms
+[hash developer docs]: https://hash.dev/docs
+[hash product]: https://hash.ai/platform/hash
+[hash subscription agreement]: /legal
+[https://hash.dev/license]: https://hash.dev/license
 
 # HASH License
 
-_Version 1.1_
+_Version 1.2_
 _Copyright © 2019–, HASH &lt;[https://hash.dev/license]&gt;_
 
 ### 1. Definitions
@@ -19,14 +18,14 @@ successors.
 "**HASH-O**" shall mean the "Open" version of the [HASH product] described in the
 [HASH Developer Docs] available at `https://hash.dev/docs`.
 
-"**HASH-O License**" shall mean the [primary open-source license] available directly
+"**HASH-O License**" shall mean the [applicable open-source license] available directly
 at or via `https://hash.dev/license`.
 
 "**HASH Subscription**" shall mean a valid, active subscription agreement with HASH
 for the correct number of user seats and instances as defined in the [HASH
 Subscription Agreement], linked to from `https://hash.ai/legal`.
 
-"**HASH Terms**" shall mean the [HASH Terms of Service], available at
+"**HASH Terms**" shall mean the [HASH Global Terms of Service], available at
 `https://hash.ai/legal/terms`.
 
 “**Legal Entity**” shall mean the union of the acting entity and all other entities
@@ -58,14 +57,14 @@ the Software, as agreed by you and HASH, and otherwise have a valid HASH
 Subscription.
 
 **2.2.** Subject to section 2.1, you are free to modify this Software and publish
-patches to the Software. You agree that HASH and/or its Licensors (as applicable)
+patches to the Software. You agree that HASH and/or its Licensors (as )
 retain all right, title and interest in and to all such modifications and/or
 patches, and all such modifications and/or patches may only be used, copied,
 modified, displayed, distributed, or otherwise exploited with a HASH Subscription.
 
 **2.3.** Notwithstanding the foregoing sections, you may copy and modify the
 Software for development purposes, without requiring a HASH Subscription. You
-agree that HASH and/or its licensors (as applicable) retain all right, title
+agree that HASH and/or its licensors (as ) retain all right, title
 and interest in and to all such modifications.
 
 **2.4.** You are not granted any other rights beyond what is expressly stated
