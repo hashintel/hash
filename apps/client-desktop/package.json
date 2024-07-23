@@ -1,0 +1,14 @@
+{
+  "name": "@apps/client-desktop",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Desktop client for HASH",
+  "repository": "https://github.com/hashintel/hash",
+  "license": "HASH-1.2",
+  "author": "HASH",
+  "main": "index.js",
+  "devDependencies": {
+    "@tauri-apps/cli": "1.6.0"
+  }
+}
+

@@ -9,6 +9,7 @@
     "hashicorp.terraform",
     "ms-playwright.playwright",
     "ms-vscode.vscode-typescript-next",
+    "tauri-apps.tauri-vscode",
     "vitest.explorer"
   ]
 }
