@@ -2794,10 +2794,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hql-ast"
-version = "0.1.0"
-
-[[package]]
 name = "hql-cst"
 version = "0.1.0"
 dependencies = [
