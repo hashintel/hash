@@ -2,7 +2,7 @@
   "$schema": "../../../node_modules/@tauri-apps/cli/schema.json",
   "build": {
     "beforeBuildCommand": "turbo build",
-    "beforeDevCommand": "yarn dev:frontend",
+    "beforeDevCommand": "cd ../../ && yarn dev",
     "devPath": "localhost:3000",
     "distDir": "../../hash-frontend"
   },
