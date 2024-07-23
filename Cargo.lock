@@ -2803,7 +2803,8 @@ version = "0.1.0"
 dependencies = [
  "bumpalo",
  "insta",
- "justjson",
+ "serde",
+ "serde_json",
  "smol_str",
  "unicode-ident",
  "winnow",

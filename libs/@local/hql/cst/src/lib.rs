@@ -2,12 +2,9 @@
 
 extern crate alloc;
 
-use justjson::parser::ParseDelegate;
-
-use self::{call::Call, constant::Constant, signature::Signature, symbol::Symbol};
-
 pub mod arena;
 pub mod call;
+pub mod codec;
 pub mod constant;
 pub mod expr;
 pub(crate) mod parse;

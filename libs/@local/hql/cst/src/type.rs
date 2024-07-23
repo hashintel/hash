@@ -13,7 +13,7 @@ use crate::{
     symbol::{self, parse_symbol, Symbol},
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type<'a> {
     Symbol(Symbol),
     Union(arena::Box<'a, [Type<'a>]>),

@@ -1,0 +1,16 @@
+---
+source: libs/@local/hql/cst/src/expr.rs
+expression: result
+---
+Ok(
+    Call(
+        Call {
+            fn: Symbol(
+                Symbol(
+                    "func",
+                ),
+            ),
+            args: [],
+        },
+    ),
+)

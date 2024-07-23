@@ -1,0 +1,7 @@
+---
+source: libs/@local/hql/cst/src/expr.rs
+expression: result
+---
+Err(
+    Error("invalid length 0, expected at least 1 element", line: 1, column: 2),
+)

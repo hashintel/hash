@@ -53,7 +53,7 @@ impl<'a> Display for Signature<'a> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Generic<'a> {
     pub name: Symbol,
     pub bound: Option<Type<'a>>,
@@ -72,7 +72,7 @@ impl<'a> Display for Generic<'a> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Argument<'a> {
     pub name: Symbol,
     pub r#type: Type<'a>,
@@ -86,7 +86,7 @@ impl<'a> Display for Argument<'a> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Return<'a> {
     pub r#type: Type<'a>,
 }
@@ -108,7 +108,7 @@ impl<'a> Display for Return<'a> {
 /// generics = "<" symbol-rust [":" type ] ">"
 /// argument = symbol-rust ":" type
 /// ```
-fn parse_signature<'a, Input, Error>(
+pub(crate) fn parse_signature<'a, Input, Error>(
     input: &mut Stateful<Input, &'a Arena>,
 ) -> PResult<Signature<'a>, Error>
 where

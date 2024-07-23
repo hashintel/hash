@@ -8,7 +8,8 @@ edition.workspace = true
 
 [dependencies]
 bumpalo = { version = "3.16.0", features = ["allocator_api"] }
-justjson = { version = "0.3.0", features = ["nightly"] }
+serde = { workspace = true, features = ["derive"] }
+serde_json.workspace = true
 smol_str = "0.2.2"
 unicode-ident = "1.0.12"
 winnow = { version = "0.6.14", features = ["simd"] }

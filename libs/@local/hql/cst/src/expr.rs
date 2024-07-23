@@ -1,12 +1,8 @@
-use justjson::{parser::ParseDelegate, Value};
+use serde::de::DeserializeSeed;
 
 use crate::{
-    arena::{self, Arena},
-    call::Call,
-    constant::Constant,
-    signature::Signature,
-    symbol::Symbol,
-    r#type::Type,
+    arena::Arena, call::Call, codec::deserialize::ExprVisitor, constant::Constant,
+    signature::Signature, symbol::Symbol,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -17,107 +13,197 @@ pub enum Expr<'a> {
     Constant(Constant<'a>),
 }
 
-#[derive(Debug, Default)]
-struct Object<'a> {
-    r#fn: Option<Expr<'a>>,
-    r#const: Option<Value<'a>>,
-    r#type: Option<Type<'a>>,
-    var: Option<Symbol>,
-    sig: Option<Signature<'a>>,
+impl<'a> Expr<'a> {
+    /// Deserialize an expression from a JSON string.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the input is not valid JSON, or a malformed expression.
+    pub fn from_str(arena: &'a Arena, value: &str) -> serde_json::Result<Self> {
+        let mut deserializer = serde_json::Deserializer::from_str(value);
+
+        DeserializeSeed::deserialize(ExprVisitor { arena }, &mut deserializer)
+    }
+
+    /// Deserialize an expression from a JSON byte slice.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the input is not valid JSON, or a malformed expression.
+    pub fn from_slice(arena: &'a Arena, value: &[u8]) -> serde_json::Result<Self> {
+        let mut deserializer = serde_json::Deserializer::from_slice(value);
+
+        DeserializeSeed::deserialize(ExprVisitor { arena }, &mut deserializer)
+    }
+
+    /// Deserialize an expression from a JSON value.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the input is a malformed expression.
+    pub fn from_value(arena: &'a Arena, value: &serde_json::Value) -> serde_json::Result<Self> {
+        DeserializeSeed::deserialize(ExprVisitor { arena }, value)
+    }
 }
 
-struct ExprParser<'a> {
-    arena: &'a Arena,
-}
+#[cfg(test)]
+mod test {
+    use insta::assert_debug_snapshot;
 
-impl<'a, 'b> ParseDelegate<'b> for ExprParser<'a> {
-    type Array = Option<(Expr<'a>, arena::Vec<'a, Expr<'a>>)>;
-    // TODO: proper error
-    type Error = &'static str;
-    type Key = &'b str;
-    type Object = Object<'a>;
-    type Value = Expr<'a>;
+    use super::Expr;
+    use crate::arena::Arena;
 
-    fn null(&mut self) -> Result<Self::Value, Self::Error> {
-        todo!()
+    #[test]
+    fn fn_is_expr() {
+        let arena = Arena::new();
+
+        let result = Expr::from_str(
+            &arena,
+            r#"[
+            ["input", "variable"],
+            "arg1",
+            "arg2"
+        ]"#,
+        );
+
+        assert_debug_snapshot!(result);
     }
 
-    fn boolean(&mut self, value: bool) -> Result<Self::Value, Self::Error> {
-        todo!()
+    #[test]
+    fn fn_empty_args() {
+        let arena = Arena::new();
+
+        let result = Expr::from_str(&arena, r#"["func"]"#);
+
+        assert_debug_snapshot!(result);
     }
 
-    fn number(&mut self, value: justjson::JsonNumber<'b>) -> Result<Self::Value, Self::Error> {
-        todo!()
+    #[test]
+    fn fn_empty() {
+        let arena = Arena::new();
+
+        let result = Expr::from_str(&arena, r"[]");
+
+        assert_debug_snapshot!(result);
     }
 
-    fn string(&mut self, value: justjson::JsonString<'b>) -> Result<Self::Value, Self::Error> {
-        todo!()
+    #[test]
+    fn string_is_symbol() {
+        let arena = Arena::new();
+
+        let result = Expr::from_str(&arena, r#""symbol""#);
+
+        assert_debug_snapshot!(result);
     }
 
-    fn begin_object(&mut self) -> Result<Self::Object, Self::Error> {
-        Ok(Object::default())
+    #[test]
+    fn string_is_signature() {
+        let arena = Arena::new();
+
+        let result = Expr::from_str(&arena, r#""<T: Int>(a: T) -> T""#);
+
+        assert_debug_snapshot!(result);
     }
 
-    fn object_key(
-        &mut self,
-        object: &mut Self::Object,
-        key: justjson::JsonString<'b>,
-    ) -> Result<Self::Key, Self::Error> {
-        todo!()
+    #[test]
+    fn string_is_invalid() {
+        let arena = Arena::new();
+
+        let result = Expr::from_str(&arena, r#""1234""#);
+
+        assert_debug_snapshot!(result);
     }
 
-    fn object_value(
-        &mut self,
-        object: &mut Self::Object,
-        key: Self::Key,
-        value: Self::Value,
-    ) -> Result<(), Self::Error> {
-        todo!()
+    #[test]
+    fn object_is_constant() {
+        let arena = Arena::new();
+
+        let result = Expr::from_str(&arena, r#"{"const": 42}"#);
+
+        assert_debug_snapshot!(result);
     }
 
-    fn object_is_empty(&self, object: &Self::Object) -> bool {
-        todo!()
+    #[test]
+    fn object_is_constant_with_type() {
+        let arena = Arena::new();
+
+        let result = Expr::from_str(&arena, r#"{"type": "u32", "const": 42}"#);
+
+        assert_debug_snapshot!(result);
     }
 
-    fn end_object(&mut self, object: Self::Object) -> Result<Self::Value, Self::Error> {
-        todo!()
+    #[test]
+    fn object_is_constant_with_extra_fields() {
+        let arena = Arena::new();
+
+        let result = Expr::from_str(
+            &arena,
+            r#"{"type": "u32", "const": 42, "sig": "() -> Unit"}"#,
+        );
+
+        assert_debug_snapshot!(result);
     }
 
-    fn begin_array(&mut self) -> Result<Self::Array, Self::Error> {
-        Ok(None)
+    #[test]
+    fn object_is_call() {
+        let arena = Arena::new();
+
+        let result = Expr::from_str(&arena, r#"{"fn": "func", "args": ["arg1", "arg2"]}"#);
+
+        assert_debug_snapshot!(result);
     }
 
-    fn array_value(
-        &mut self,
-        array: &mut Self::Array,
-        value: Self::Value,
-    ) -> Result<(), Self::Error> {
-        match array {
-            Some((_, rest)) => {
-                rest.push(value);
-            }
-            None => {
-                *array = Some((value, self.arena.vec(None)));
-            }
-        }
+    #[test]
+    fn object_is_args_without_fn() {
+        let arena = Arena::new();
 
-        Ok(())
+        let result = Expr::from_str(&arena, r#"{"args": ["arg1", "arg2"]}"#);
+
+        assert_debug_snapshot!(result);
     }
 
-    fn array_is_empty(&self, array: &Self::Array) -> bool {
-        array.is_none()
+    #[test]
+    fn object_is_call_without_args() {
+        let arena = Arena::new();
+
+        let result = Expr::from_str(&arena, r#"{"fn": "func"}"#);
+
+        assert_debug_snapshot!(result);
     }
 
-    fn end_array(&mut self, array: Self::Array) -> Result<Self::Value, Self::Error> {
-        let (r#fn, args) = array.unwrap();
+    #[test]
+    fn object_is_signature() {
+        let arena = Arena::new();
 
-        Ok(Expr::Call(Call {
-            r#fn: self.arena.boxed(r#fn),
-            args: args.into_boxed_slice(),
-        }))
+        let result = Expr::from_str(&arena, r#"{"sig": "<T: Int>(a: T) -> T"}"#);
+
+        assert_debug_snapshot!(result);
     }
 
-    fn kind_of(&self, value: &Self::Value) -> justjson::parser::JsonKind {
-        todo!()
+    #[test]
+    fn object_is_invalid_multiple() {
+        let arena = Arena::new();
+
+        let result = Expr::from_str(&arena, r#"{"sig": "<T: Int>(a: T) -> T", "fn": "func"}"#);
+
+        assert_debug_snapshot!(result);
+    }
+
+    #[test]
+    fn object_is_invalid() {
+        let arena = Arena::new();
+
+        let result = Expr::from_str(&arena, r#"{"unknown": "key"}"#);
+
+        assert_debug_snapshot!(result);
+    }
+
+    #[test]
+    fn object_is_empty() {
+        let arena = Arena::new();
+
+        let result = Expr::from_str(&arena, r"{}");
+
+        assert_debug_snapshot!(result);
     }
 }
