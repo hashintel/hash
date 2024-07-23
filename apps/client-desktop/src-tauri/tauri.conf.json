@@ -2,13 +2,13 @@
   "$schema": "../../../node_modules/@tauri-apps/cli/schema.json",
   "build": {
     "beforeBuildCommand": "turbo build",
-    "beforeDevCommand": "cd ../../ && yarn dev",
+    "beforeDevCommand": "cd ../../ && yarn dev:frontend",
     "devPath": "localhost:3000",
     "distDir": "../../hash-frontend"
   },
   "package": {
     "productName": "client-desktop",
-    "version": "0.1.0"
+    "version": "0.0.0-private"
   },
   "tauri": {
     "allowlist": {

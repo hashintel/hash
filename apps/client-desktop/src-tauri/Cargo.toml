@@ -1,12 +1,12 @@
 [package]
-name = "hash"
+name = "client-desktop"
 version = "0.0.0-private"
 description = "HASH Desktop application"
 authors = ["HASH"]
 license = "HASH-1.2"
 repository = "https://github.com/hashintel/hash"
 publish = false
-default-run = "hash"
+default-run = "client-desktop"
 edition = "2021"
 rust-version = "1.60"
 
