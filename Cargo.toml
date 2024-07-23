@@ -38,7 +38,10 @@ resolver = "3"
 
 [workspace.package]
 authors = ["HASH"]
+documentation = "https://hash.dev/docs"
 edition = "2024"
+homepage = "https://hash.ai/"
+repository = "https://github.com/hashintel/hash"
 
 
 [workspace.dependencies]
@@ -134,7 +137,7 @@ tests_outside_test_module = "allow"
 unimplemented = "allow"
 unreachable = "allow"
 
-# Does not apply to us:
+# Do not apply to us:
 blanket_clippy_restriction_lints = "allow"
 exhaustive_enums = "allow"
 exhaustive_structs = "allow"
