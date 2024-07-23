@@ -190,7 +190,6 @@ where
 
 #[cfg(test)]
 mod test {
-    use bumpalo::Bump;
     use insta::assert_snapshot;
     use winnow::{
         error::{ContextError, ErrMode, ParseError},
@@ -205,7 +204,7 @@ mod test {
         arena: &'a Arena,
         value: &'b str,
     ) -> Result<Type<'a>, ParseError<Stateful<&'b str, &'a Arena>, ErrMode<ContextError>>> {
-        let mut state = Stateful {
+        let state = Stateful {
             input: value,
             state: arena,
         };
@@ -220,7 +219,7 @@ mod test {
 
     #[test]
     fn union() {
-        let mut arena = Arena::new();
+        let arena = Arena::new();
 
         assert_snapshot!(parse_ok(&arena, "Int"), @"Int");
         assert_snapshot!(parse_ok(&arena, "Int | Float"), @"(Int | Float)");
@@ -229,7 +228,7 @@ mod test {
 
     #[test]
     fn intersection() {
-        let mut arena = Arena::new();
+        let arena = Arena::new();
 
         assert_snapshot!(parse_ok(&arena, "Int"), @"Int");
         assert_snapshot!(parse_ok(&arena, "Int & Float"), @"(Int & Float)");
@@ -238,7 +237,7 @@ mod test {
 
     #[test]
     fn precedence() {
-        let mut arena = Arena::new();
+        let arena = Arena::new();
 
         assert_snapshot!(parse_ok(&arena, "Int | Float & Bool"), @"((Int | Float) & Bool)");
         assert_snapshot!(parse_ok(&arena, "Int & Float | Bool"), @"(Int & (Float | Bool))");
@@ -247,7 +246,7 @@ mod test {
 
     #[test]
     fn whitespace() {
-        let mut arena = Arena::new();
+        let arena = Arena::new();
 
         assert_snapshot!(parse_ok(&arena, "Int|Float&Bool"), @"((Int | Float) & Bool)");
         assert_snapshot!(parse_ok(&arena, "Int | Float & Bool"), @"((Int | Float) & Bool)");
@@ -256,7 +255,7 @@ mod test {
 
     #[test]
     fn enclosed() {
-        let mut arena = Arena::new();
+        let arena = Arena::new();
 
         assert_snapshot!(parse_ok(&arena, "(Int)"), @"Int");
         assert_snapshot!(parse_ok(&arena, "(Int | Float)"), @"(Int | Float)");
@@ -265,7 +264,7 @@ mod test {
 
     #[test]
     fn symbol() {
-        let mut arena = Arena::new();
+        let arena = Arena::new();
 
         assert_snapshot!(parse_ok(&arena, "Int"), @"Int");
         assert_snapshot!(parse_ok(&arena, "Float"), @"Float");

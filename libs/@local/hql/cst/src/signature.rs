@@ -9,18 +9,18 @@ use winnow::{
 
 use crate::{
     arena::{self, Arena},
-    parse::{separated_boxed1, ws, VecOrOne},
+    parse::{separated_boxed1, ws},
     symbol::{self, parse_symbol, Symbol},
     r#type::{parse_type, Type},
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Signature<'a> {
-    generics: arena::Box<'a, [Generic<'a>]>,
+    pub generics: arena::Box<'a, [Generic<'a>]>,
 
-    arguments: arena::Box<'a, [Argument<'a>]>,
+    pub arguments: arena::Box<'a, [Argument<'a>]>,
 
-    r#return: Return<'a>,
+    pub r#return: Return<'a>,
 }
 
 impl<'a> Display for Signature<'a> {
@@ -55,8 +55,8 @@ impl<'a> Display for Signature<'a> {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Generic<'a> {
-    name: Symbol,
-    bound: Option<Type<'a>>,
+    pub name: Symbol,
+    pub bound: Option<Type<'a>>,
 }
 
 impl<'a> Display for Generic<'a> {
@@ -74,8 +74,8 @@ impl<'a> Display for Generic<'a> {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Argument<'a> {
-    name: Symbol,
-    r#type: Type<'a>,
+    pub name: Symbol,
+    pub r#type: Type<'a>,
 }
 
 impl<'a> Display for Argument<'a> {
@@ -88,7 +88,7 @@ impl<'a> Display for Argument<'a> {
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Return<'a> {
-    r#type: Type<'a>,
+    pub r#type: Type<'a>,
 }
 
 impl<'a> Display for Return<'a> {

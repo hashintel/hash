@@ -11,7 +11,7 @@ use winnow::{
 };
 
 // TODO: in the future we might want to use the bump arena here as well.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Symbol(SmolStr);
 
 impl Display for Symbol {
@@ -28,11 +28,11 @@ pub(crate) enum ParseRestriction {
 }
 
 impl ParseRestriction {
-    fn is_rust(&self) -> bool {
+    const fn is_rust(self) -> bool {
         matches!(self, Self::None | Self::RustOnly)
     }
 
-    fn is_operators(&self) -> bool {
+    const fn is_operators(self) -> bool {
         matches!(self, Self::None | Self::OperatorsOnly)
     }
 }
@@ -316,5 +316,3 @@ mod test {
         "###);
     }
 }
-
-// TODO: tests (special cases, etc.)
