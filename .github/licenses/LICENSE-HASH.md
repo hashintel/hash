@@ -57,14 +57,14 @@ the Software, as agreed by you and HASH, and otherwise have a valid HASH
 Subscription.
 
 **2.2.** Subject to section 2.1, you are free to modify this Software and publish
-patches to the Software. You agree that HASH and/or its Licensors (as )
+patches to the Software. You agree that HASH and/or its Licensors (as applicable)
 retain all right, title and interest in and to all such modifications and/or
 patches, and all such modifications and/or patches may only be used, copied,
 modified, displayed, distributed, or otherwise exploited with a HASH Subscription.
 
 **2.3.** Notwithstanding the foregoing sections, you may copy and modify the
 Software for development purposes, without requiring a HASH Subscription. You
-agree that HASH and/or its licensors (as ) retain all right, title
+agree that HASH and/or its licensors (as applicable) retain all right, title
 and interest in and to all such modifications.
 
 **2.4.** You are not granted any other rights beyond what is expressly stated
