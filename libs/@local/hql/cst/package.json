@@ -1,0 +1,14 @@
+{
+  "name": "@rust/hql-cst",
+  "version": "0.1.0",
+  "private": false,
+  "license": "AGPL-3.0",
+  "scripts": {
+    "fix:clippy": "just clippy --fix",
+    "lint:clippy": "just clippy",
+    "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
+
