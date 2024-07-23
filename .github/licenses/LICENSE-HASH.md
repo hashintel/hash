@@ -1,9 +1,9 @@
-[applicable open-source license]: https://hash.ai/legal/developers/license-open
-[hash global terms of service]: https://hash.ai/legal/terms
-[hash developer docs]: https://hash.dev/docs
-[hash product]: https://hash.ai/platform/hash
-[hash subscription agreement]: /legal
-[https://hash.dev/license]: https://hash.dev/license
+[applicable open-source license]: https://hash.ai/legal/developers/license-open?utm_medium=organic&utm_source=github_license_hash-license
+[hash global terms of service]: https://hash.ai/legal/terms?utm_medium=organic&utm_source=github_license_hash-license
+[hash developer docs]: https://hash.dev/docs?utm_medium=organic&utm_source=github_license_hash-license
+[hash product]: https://hash.ai/platform/hash?utm_medium=organic&utm_source=github_license_hash-license
+[hash subscription agreement]: https://hash.ai/legal?utm_medium=organic&utm_source=github_license_hash-license
+[https://hash.dev/license]: https://hash.dev/license?utm_medium=organic&utm_source=github_license_hash-license
 
 # HASH License
 
