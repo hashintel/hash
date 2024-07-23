@@ -25,6 +25,7 @@ import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-en
 import { useDraftLinkState } from "./shared/use-draft-link-state";
 
 interface EditEntitySlideOverProps {
+  hideOpenInNew?: boolean;
   open: boolean;
   onClose: () => void;
   onSubmit: () => void;
@@ -36,6 +37,7 @@ interface EditEntitySlideOverProps {
  * @todo move this to a shared location (it's also used in the Flows output and draft entities views)
  */
 export const EditEntitySlideOver = ({
+  hideOpenInNew,
   open,
   onClose,
   onSubmit,
@@ -186,7 +188,7 @@ export const EditEntitySlideOver = ({
         <Typography variant="h2" color="gray.90" fontWeight="bold">
           {entityLabel}
         </Typography>
-        {entityOwningShortname && (
+        {entityOwningShortname && !hideOpenInNew && (
           <Link
             href={generateEntityPath({
               shortname: entityOwningShortname,

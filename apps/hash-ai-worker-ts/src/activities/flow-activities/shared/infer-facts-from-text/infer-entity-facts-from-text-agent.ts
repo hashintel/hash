@@ -48,6 +48,7 @@ const generateToolDefinitions = (params: {
                   The text containing the fact, which:
                   - must follow a consistent sentence structure, with a single subject, a single predicate and a single object
                   - must have the one of the subject entities as the singular subject of the fact, for example a fact for an entity with name ${params.subjectEntities[0]?.name} must start with "${params.subjectEntities[0]?.name} <predicate> <object>"
+                  - must specify the objectEntityId of the object of the fact, if the object of the fact is one of the potential object entities
                   - must be concise statements that are true based on the information provided in the text
                   - must be standalone, and not depend on any contextual information to make sense
                   - must not contain any pronouns, and refer to all entities by their provided "name"
@@ -99,10 +100,10 @@ const systemPrompt = dedent(`
 
   The user will provide you with:
     - Text: the text from which you should extract facts.
-    - Subject Entities: the subject entities of facts that the user is looking for, each of which are of the same type (i.e. have the same properties and outgoing links)
-    - Relevant Properties: a list of properties the user is looking for in the text.
-    - Relevant Outgoing Links: a definition of the possible outgoing links the user is looking for in the text.
-    - Potential Object Entities: a list of other entities mentioned in the text, which may be the object of facts.
+    - Subject Entities: the subject entities of facts that the user is looking for, each of which are of the same type (i.e. have the same properties and outgoing links). 
+    - Relevant Properties: a list of properties the user is looking for in the text. Pay particular attention to these properties when extracting facts.
+    - Relevant Outgoing Links: a definition of the possible outgoing links the user is looking for in the text. Pay particular attention to relationships (links) with other entities of these kinds.
+    - Potential Object Entities: a list of other entities mentioned in the text, which may be the object of facts. Include their id as the object of the fact if they are the object of the fact.
 
   You must provide an exhaustive list of facts about the provided subject entities based on the information provided in the text.
   For example, if you are provided with data from a table where the entity is a row of the table,
@@ -113,20 +114,23 @@ const systemPrompt = dedent(`
   
   Each fact should be in the format <subject> <predicate> <object>, where the subject is the singular subject of the fact.
   Example:
-  [{ text: "Company X acquired Company Y.", prepositionalPhrases: ["in 2019", "for $10 million"], subjectEntityLocalId: "abc", objectEntityLocalId: "123" }]
-  Don't include facts which start with a subject you can't provide an id for.
+  [{ text: "Company X acquired Company Y.", prepositionalPhrases: ["in 2019", "for $10 million"], subjectEntityLocalId: "companyXabc", objectEntityLocalId: "companyYdef" }]
+  Don't include facts which start with a subject you can't provide an id for. 
+  Omit any facts that don't start with one of the subject entities provided.
 `);
 
 const constructUserMessage = (params: {
   text: string;
   subjectEntities: LocalEntitySummary[];
   dereferencedEntityType: DereferencedEntityType;
+  linkEntityTypesById: Record<string, DereferencedEntityType>;
   potentialObjectEntities: LocalEntitySummary[];
 }): LlmUserMessage => {
   const {
     text,
     subjectEntities,
     dereferencedEntityType,
+    linkEntityTypesById,
     potentialObjectEntities,
   } = params;
 
@@ -143,22 +147,76 @@ const constructUserMessage = (params: {
       {
         type: "text",
         text: dedent(`
-          Text: ${text}
-          Subject Entities: ${JSON.stringify(
-            subjectEntities.map(({ localId, name }) => ({ localId, name })),
-          )}
-          Relevant Properties: ${JSON.stringify(relevantProperties)}
-          Relevant Outgoing Links: ${JSON.stringify(
-            Object.values(dereferencedEntityType.links ?? {}),
-          )}
-          Potential Object Entities: ${JSON.stringify(
-            potentialObjectEntities.map(({ localId, name, summary }) => ({
-              localId,
-              name,
-              summary,
-            })),
-          )}
-        `),
+          <Text>${text}</Text>
+          <SubjectEntities>
+          These are the entities which facts can be about. For example, a fact might start '${subjectEntities[0]?.name} acquired...'.
+          ${subjectEntities
+            .map(({ localId, name, summary }) =>
+              dedent(`<SubjectEntity>
+entityLocalId: ${localId}
+name: ${name}
+summary: ${summary}</SubjectEntity>`),
+            )
+            .join("\n")}
+          </SubjectEntities>
+          <RelevantProperties>
+          These are the properties of entities that the user is particularly interested in. Prioritise facts relevant to these properties.
+          ${relevantProperties
+            .map(({ title, description }) =>
+              dedent(`<Property>
+title: ${title}
+description: ${description}</Property>`),
+            )
+            .join("\n")}
+          </RelevantProperties>
+          <RelevantOutgoingLinks>
+          These are the kinds of relationships with other entities that the subject entities may have.
+          Pay attention to any facts which imply these sorts of relationships, and make sure to include them.
+          Include the properties of the link as prepositional phrases in the fact
+          Where the link is to another entity listed in subject or object entities, include its id as the objectEntityId.
+          
+          Example:
+          text: "Company X acquired Company Y."
+          prepositionalPhrases: ["in 2019", "for $3 billion"]
+          subjectEntityId: companyXlocalEntityId
+          objectEntityId: companyYlocalEntityId
+          
+          ${Object.keys(dereferencedEntityType.links ?? {})
+            .map((linkEntityTypeId) => {
+              const linkEntityType = linkEntityTypesById[linkEntityTypeId];
+
+              if (!linkEntityType) {
+                return "";
+              }
+              return dedent(`<Link>
+            title: {linkEntityType.title}
+            description: ${linkEntityType.description}
+            properties: ${Object.values(linkEntityType.properties)
+              .flatMap((value) => ("items" in value ? value.items : value))
+              .map(({ title, description }) =>
+                dedent(`
+              <Property>
+              title: ${title}
+              description: ${description}
+              </Property>`),
+              )
+              .join("\n")}
+            </Link>`);
+            })
+            .join("\n")}
+          </RelevantOutgoingLinks>
+          <PotentialObjectEntities>
+          These are other entities mentioned in the text which may be the object of facts.
+          If they are the object of the fact, include their id as the objectEntityId.
+          ${potentialObjectEntities
+            .map(({ localId, name, summary }) =>
+              dedent(`<PotentialObjectEntity>
+          entityLocalId: ${localId}
+          name: ${name}
+          summary: ${summary}</PotentialObjectEntity>`),
+            )
+            .join("\n")}
+          </PotentialObjectEntities>`),
       },
     ],
   };
@@ -171,6 +229,7 @@ export const inferEntityFactsFromTextAgent = async (params: {
   potentialObjectEntities: LocalEntitySummary[];
   text: string;
   dereferencedEntityType: DereferencedEntityType;
+  linkEntityTypesById: Record<string, DereferencedEntityType>;
   retryContext?: {
     previousValidFacts: Fact[];
     retryMessages: LlmMessage[];
@@ -182,6 +241,7 @@ export const inferEntityFactsFromTextAgent = async (params: {
     potentialObjectEntities,
     text,
     dereferencedEntityType,
+    linkEntityTypesById,
     retryContext,
   } = params;
 
@@ -201,6 +261,7 @@ export const inferEntityFactsFromTextAgent = async (params: {
             : text,
           subjectEntities,
           dereferencedEntityType,
+          linkEntityTypesById,
           potentialObjectEntities,
         }),
         ...(retryContext?.retryMessages ?? []),
@@ -286,11 +347,11 @@ export const inferEntityFactsFromTextAgent = async (params: {
     return { facts: params.retryContext?.previousValidFacts ?? [] };
   }
 
-  const validFacts: Fact[] = [];
-
   const toolCalls = getToolCallsFromLlmAssistantMessage({
     message: llmResponse.message,
   });
+
+  const validFacts: Fact[] = [];
 
   const invalidFacts: (Fact & { invalidReason: string; toolCallId: string })[] =
     [];
@@ -323,7 +384,7 @@ export const inferEntityFactsFromTextAgent = async (params: {
       if (!subjectEntity) {
         invalidFacts.push({
           ...fact,
-          invalidReason: `An invalid "subjectEntityLocalId" has been provided: ${fact.subjectEntityLocalId}. All facts must relate to a subject entity – don't submit facts that can't be linked to one.`,
+          invalidReason: `An invalid "subjectEntityLocalId" has been provided: ${fact.subjectEntityLocalId}. All facts must relate to a subject entity – don't submit facts that can't be linked to one. Review the subject entities in the earlier message and only provides facts that begin with one of them.`,
           toolCallId: toolCall.id,
         });
 
@@ -341,7 +402,7 @@ export const inferEntityFactsFromTextAgent = async (params: {
       if (fact.objectEntityLocalId && !objectEntity) {
         invalidFacts.push({
           ...fact,
-          invalidReason: `An invalid "objectEntityLocalId" has been provided: ${fact.objectEntityLocalId} – if not null, the objectEntityId must relate to a provided entity.`,
+          invalidReason: `An invalid "objectEntityLocalId" has been provided: ${fact.objectEntityLocalId} – if not null, the objectEntityId must relate to a provided entity. Review the object entities provided and match the objectEntityId to one of them – or if there is no match, provide 'null' for the objectEntityId`,
           toolCallId: toolCall.id,
         });
 
@@ -351,7 +412,7 @@ export const inferEntityFactsFromTextAgent = async (params: {
       if (!fact.text.includes(subjectEntity.name)) {
         invalidFacts.push({
           ...fact,
-          invalidReason: `The fact specifies subjectEntityId "${fact.subjectEntityLocalId}", but that entity's name "${subjectEntity.name}" does not appear in the fact. Facts must start with the name of the subject.`,
+          invalidReason: `The fact specifies subjectEntityId "${fact.subjectEntityLocalId}", but that entity's name "${subjectEntity.name}" does not appear in the fact. Facts must start with the name of the subject. If you don't have an appropriate subject for the fact, don't include the fact. Review the subject entities in the earlier message for valid subjects.`,
           toolCallId: toolCall.id,
         });
       } else if (objectEntity && !fact.text.includes(objectEntity.name)) {
@@ -368,7 +429,12 @@ export const inferEntityFactsFromTextAgent = async (params: {
 
   const allValidInferredFacts = [
     ...validFacts,
-    ...(retryContext?.previousValidFacts ?? []),
+    ...(retryContext?.previousValidFacts ?? []).filter(
+      /**
+       * The LLM may submit the same valid fact across multiple retries attempting to correct invalid facts
+       */
+      (fact) => !validFacts.some((validFact) => validFact.text === fact.text),
+    ),
   ];
 
   /** @todo: check if there are subject entities for which no facts have been provided */

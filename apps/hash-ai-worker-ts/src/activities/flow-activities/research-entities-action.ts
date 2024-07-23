@@ -11,6 +11,7 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import { StatusCode } from "@local/status";
+import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 
 import { logger } from "../shared/activity-logger.js";
@@ -44,12 +45,6 @@ import type { LocalEntitySummary } from "./shared/infer-facts-from-text/get-enti
 import type { Fact } from "./shared/infer-facts-from-text/types.js";
 import { proposeEntitiesFromFacts } from "./shared/propose-entities-from-facts.js";
 import type { FlowActionActivity } from "./types.js";
-
-export type AccessedRemoteFile = {
-  entityTypeId: VersionedUrl;
-  url: string;
-  loadedAt: string;
-};
 
 const adjustDuplicates = (params: {
   duplicates: DuplicateReport[];
@@ -267,6 +262,12 @@ const updateStateFromInferredFacts = async (params: {
   ];
 };
 
+type ActivityHeartbeatDetails =
+  | {
+      state?: CoordinatingAgentState;
+    }
+  | undefined;
+
 export const researchEntitiesAction: FlowActionActivity<{
   testingParams?: {
     humanInputCanBeRequested?: boolean;
@@ -301,7 +302,12 @@ export const researchEntitiesAction: FlowActionActivity<{
       };
     });
 
-  if (testingParams?.resumeFromState) {
+  const stateBeforeRetry = Context.current().info
+    .heartbeatDetails as ActivityHeartbeatDetails;
+
+  if (stateBeforeRetry?.state) {
+    state = stateBeforeRetry.state;
+  } else if (testingParams?.resumeFromState) {
     state = testingParams.resumeFromState;
   } else {
     /**
@@ -334,6 +340,8 @@ export const researchEntitiesAction: FlowActionActivity<{
     if (testingParams?.persistState) {
       testingParams.persistState(state);
     }
+
+    Context.current().heartbeat({ state });
   }
 
   const { toolCalls: initialToolCalls } =
@@ -852,6 +860,7 @@ export const researchEntitiesAction: FlowActionActivity<{
      */
     if (isCompleted) {
       if (state.hasConductedCheckStep) {
+        Context.current().heartbeat({ state });
         return;
       } else {
         state.hasConductedCheckStep = true;
@@ -863,6 +872,8 @@ export const researchEntitiesAction: FlowActionActivity<{
     if (testingParams?.persistState) {
       testingParams.persistState(state);
     }
+
+    Context.current().heartbeat({ state });
 
     const { toolCalls: nextToolCalls } =
       await coordinatingAgent.getNextToolCalls({

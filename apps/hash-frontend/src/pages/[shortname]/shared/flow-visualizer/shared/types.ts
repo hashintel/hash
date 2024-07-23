@@ -62,9 +62,6 @@ export type StateChangeLog = ProgressLogBase & {
 
 export type LocalProgressLog = StepProgressLog | StateChangeLog;
 
-export type ProposedEntityOutput = Omit<
-  ProposedEntity,
-  "provenance" | "propertyMetadata"
-> & {
+export type ProposedEntityOutput = Omit<ProposedEntity, "provenance"> & {
   researchOngoing: boolean;
 };

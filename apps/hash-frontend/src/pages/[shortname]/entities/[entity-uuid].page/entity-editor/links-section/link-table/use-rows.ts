@@ -33,7 +33,9 @@ export const useRows = () => {
     (params: { entity: Entity }) => {
       const { entity } = params;
 
-      const { shortname } = getOwnerForEntity({ entity });
+      const { shortname } = getOwnerForEntity({
+        entityId: entity.metadata.recordId.entityId,
+      });
 
       void router.push(
         generateEntityPath({

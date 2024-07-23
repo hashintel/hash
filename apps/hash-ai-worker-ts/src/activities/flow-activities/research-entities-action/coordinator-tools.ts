@@ -79,6 +79,8 @@ export const generateToolDefinitions = <
       Make use of this tool if the research task needs to be be broken down into smaller, non-overlapping sub-tasks.
       For example: "Find the technical specifications of the product with name X, including specification x, y and z".
       
+      IMPORTANT: Make sure sub-tasks align with the user's research prompt, clarified by any questions they have subsequently answered.
+      
       Subtasks must be independent and not overlap in any way with the information they gather.
       Subtasks run independently, and cannot share information between them.
       When gathering facts about a specific set of entities in multiple subtasks,

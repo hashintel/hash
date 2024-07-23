@@ -142,7 +142,9 @@ ${
    *
    * @see https://linear.app/hash/issue/H-2826/simplify-property-values-for-llm-consumption
    */
-  linkEntityTypes ? `Link Types: ${JSON.stringify(linkEntityTypes)}` : ""
+  linkEntityTypes
+    ? `<LinkTypes>${linkEntityTypes.map((linkType) => simplifyEntityTypeForLlmConsumption({ entityType: linkType })).join("\n")}</LinkTypes>`
+    : ""
 }
 ${existingEntities ? `Existing Entities: ${JSON.stringify(existingEntities)}` : ""}
       `),

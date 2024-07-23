@@ -154,7 +154,7 @@ const proxyFlowActivity = <
      *   received, but this requires refactoring the research task such that all tool calls are activities.
      * @see https://docs.temporal.io/dev-guide/typescript/features#asynchronous-design-patterns
      */
-    startToCloseTimeout: "7200 second", // 2 hours
+    startToCloseTimeout: "14400 second", // 4 hours
     retry: { maximumAttempts },
     activityId,
   });
