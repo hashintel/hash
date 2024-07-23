@@ -1,5 +1,13 @@
 config:
   target: http://localhost:5001/graphql
+  plugins:
+    expect:
+      expectDefault200: true
+    apdex:
+      threshold: 100
+    metrics-by-endpoint:
+      ignoreUnnamedRequests: true
+      useOnlyRequestNames: true
   environments:
     functional:
       phases:
@@ -23,12 +31,6 @@ config:
           duration: 30 seconds
           arrivalRate: 10
           rampTo: 30
-  plugins:
-    expect:
-      outputFormat: silent
-      expectDefault200: true
-    apdex:
-      threshold: 100
-    metrics-by-endpoint:
-      ignoreUnnamedEndpoints: true
-      useOnlyRequestNames: true
+      plugins:
+        expect:
+          outputFormat: silent
