@@ -319,7 +319,8 @@ jobs:
         id: background-tasks
         if: steps.tests.outputs.background-tasks != '[]'
         run: |
-          turbo run dev --env-mode=loose --filter $(echo '${{ steps.tests.outputs.background-tasks }}' | jq -r 'join(" --filter ")') &
+          BACKGROUND_TASK_FILTER="--filter $(echo '${{ steps.tests.outputs.background-tasks }}' | jq -r 'join(" --filter ")')"
+          turbo run dev --env-mode=loose $BACKGROUND_TASK_FILTER &
           PID=$!
           echo "pid=$PID" >> $GITHUB_OUTPUT
 
@@ -327,7 +328,7 @@ jobs:
             if ! ps -p $PID > /dev/null 2>&1; then
               break
             fi
-            turbo run dev:healthcheck --env-mode=loose >/dev/null 2>&1 && exit 0 || sleep 1
+            turbo run dev:healthcheck --env-mode=loose $BACKGROUND_TASK_FILTER >/dev/null 2>&1 && exit 0 || sleep 1
           done
           exit 1
 
@@ -351,7 +352,7 @@ jobs:
         run: yarn workspace @apps/hash-external-services deploy logs --timestamps
 
       - name: Shutting down background tasks
-        if: steps.tests.outputs.background-tasks != '[]'
+        if: always() && steps.tests.outputs.background-tasks != '[]'
         run: |
           kill -9 ${{ steps.background-tasks.outputs.pid }}
 
