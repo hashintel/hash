@@ -270,14 +270,14 @@ jobs:
           fi
 
       - name: Install Rust toolchain
-        if: always() && steps.tests.outputs.has-rust == 'true'
+        if: steps.tests.outputs.has-rust == 'true'
         uses: ./.github/actions/install-rust-toolchain
         with:
           toolchain: ${{ steps.tests.outputs.rust-toolchain }}
           working-directory: ${{ matrix.directory }}
 
       - name: Install Rust tools
-        if: always() && steps.tests.outputs.has-rust == 'true'
+        if: steps.tests.outputs.has-rust == 'true'
         uses: taiki-e/install-action@3e71e7135de310b70bc22dccb4d275acde8e055a # v2.42.0
         with:
           tool: just@1.13.0,cargo-hack@0.6.28,cargo-nextest@0.9.68,cargo-llvm-cov@0.6.9
@@ -286,11 +286,10 @@ jobs:
         uses: ./.github/actions/warm-up-repo
 
       - name: Install Protobuf
-        if: always() && steps.tests.outputs.has-rust == 'true'
         run: sudo apt install protobuf-compiler
 
       - name: Cache Rust dependencies
-        if: always() && steps.tests.outputs.has-rust == 'true'
+        if: steps.tests.outputs.has-rust == 'true'
         uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
         with:
           workspaces: ${{ matrix.directory }}
@@ -318,7 +317,7 @@ jobs:
       - name: Run background tasks
         if: steps.tests.outputs.background-tasks != '[]'
         run: |
-          turbo run dev --env-mode=loose --filter $(echo '${{ steps.tests.outputs.background-tasks }}' | jq -r 'join(" --filter ")')
+          turbo run dev --env-mode=loose --filter $(echo '${{ steps.tests.outputs.background-tasks }}' | jq -r 'join(" --filter ")') &
 
           for i in {1..600}; do
             turbo run dev:healthcheck --env-mode=loose
@@ -391,18 +390,17 @@ jobs:
             @apps/hash-external-services
 
       - name: Install Protobuf
-        if: always() && steps.tests.outputs.has-rust == 'true'
         run: sudo apt install protobuf-compiler
 
       - name: Install Rust toolchain
-        if: always() && steps.tests.outputs.has-rust == 'true'
+        if: steps.tests.outputs.has-rust == 'true'
         uses: ./.github/actions/install-rust-toolchain
         with:
           toolchain: ${{ steps.tests.outputs.rust-toolchain }}
           working-directory: ${{ matrix.directory }}
 
       - name: Install Rust tools
-        if: always() && steps.tests.outputs.has-rust == 'true'
+        if: steps.tests.outputs.has-rust == 'true'
         uses: taiki-e/install-action@3e71e7135de310b70bc22dccb4d275acde8e055a # v2.42.0
         with:
           tool: just@1.13.0,cargo-hack@0.6.28,cargo-nextest@0.9.68,cargo-llvm-cov@0.6.9
@@ -411,7 +409,7 @@ jobs:
         uses: ./.github/actions/warm-up-repo
 
       - name: Cache Rust dependencies
-        if: always() && steps.tests.outputs.has-rust == 'true'
+        if: steps.tests.outputs.has-rust == 'true'
         uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
         with:
           workspaces: ${{ matrix.directory }}

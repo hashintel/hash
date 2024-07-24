@@ -57,7 +57,7 @@ use graph::{
         },
         AccountStore, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo, DatabasePoolConfig,
         DatabaseType, EntityStore, EntityTypeStore, InsertionError, PostgresStore,
-        PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
+        PostgresStorePool, PropertyTypeStore, QueryError, StoreMigration, StorePool, UpdateError,
     },
     Environment,
 };
@@ -166,10 +166,15 @@ impl DatabaseTestWrapper<NoAuthorization> {
             .await
             .expect("could not connect to database");
 
-        let connection = pool
+        let mut connection = pool
             .acquire_owned(NoAuthorization, None)
             .await
             .expect("could not acquire a database connection");
+
+        connection
+            .run_migrations()
+            .await
+            .expect("could not run migrations");
 
         Self {
             _pool: pool,
