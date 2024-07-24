@@ -6,6 +6,10 @@
       "persistent": true,
       "dependsOn": ["@apps/hash-graph#compile"]
     },
+    "dev:healthcheck": {
+      "cache": false,
+      "dependsOn": ["@apps/hash-graph#compile"]
+    },
     "start": {
       "cache": false,
       "persistent": true,

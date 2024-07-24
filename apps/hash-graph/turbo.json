@@ -15,6 +15,10 @@
       "cache": false,
       "dependsOn": ["dev:migrate"]
     },
+    "dev:healthcheck": {
+      "cache": false,
+      "dependsOn": ["compile"]
+    },
     "dev:test": {
       "cache": false,
       "dependsOn": ["dev:migrate"]

@@ -243,10 +243,19 @@ jobs:
       - name: Install turbo
         uses: ./.github/actions/install-turbo
 
+      - name: Prune repository
+        uses: ./.github/actions/prune-repository
+        with:
+          scope: |
+            ${{ matrix.package }}
+            @apps/hash-external-services
+
       - name: Find test steps to run
         id: tests
         run: |
           TEST_TASKS=$(turbo run test:integration --env-mode=loose --dry-run=json --filter "${{ matrix.package }}" | jq -c '.tasks[]')
+          BACKGROUND_TASKS=$(turbo run dev:healthcheck --dry-run json | jq -c '[.tasks[] | select(.command != "<NONEXISTENT>") | .package]')
+          echo "background-tasks=$BACKGROUND_TASKS" >> $GITHUB_OUTPUT
 
           HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
@@ -259,13 +268,6 @@ jobs:
             echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
             echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
           fi
-
-      - name: Prune repository
-        uses: ./.github/actions/prune-repository
-        with:
-          scope: |
-            ${{ matrix.package }}
-            @apps/hash-external-services
 
       - name: Install Rust toolchain
         if: always() && steps.tests.outputs.has-rust == 'true'
@@ -311,9 +313,10 @@ jobs:
       - name: Show disk usage
         run: df -h
 
-      - name: Run app dependencies
+      - name: Run background tasks
+        if: steps.tests.outputs.background-tasks != '[]'
         run: |
-          turbo run dev --env-mode=loose --filter $(turbo run dev:healthcheck --dry-run json | jq -r '[.tasks[] | select(.command != "<NONEXISTENT>") | .package] | join(" --filter ")') &
+          turbo run dev --env-mode=loose --filter $(echo "${{ steps.tests.outputs.background-tasks }}" | jq -r 'join(" --filter ")')
 
           for i in {1..10}; do
             turbo run dev:healthcheck --env-mode=loose
