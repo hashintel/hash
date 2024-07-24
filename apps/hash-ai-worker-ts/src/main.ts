@@ -79,6 +79,11 @@ const workflowOptions: Partial<WorkerOptions> =
                 ...webpackConfig.resolve,
                 plugins: [
                   ...((webpackConfig.plugins as [] | undefined) ?? []),
+                  /**
+                   * Because we run TypeScript directly in development, we need to use the 'paths' in the base tsconfig.json
+                   * This tells TypeScript where to resolve the imports from, overwriting the 'exports' in local dependencies' package.jsons,
+                   * which refer to the transpiled JavaScript code.
+                   */
                   new TsconfigPathsPlugin({
                     configFile:
                       "../../libs/@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
