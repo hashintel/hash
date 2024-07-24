@@ -375,6 +375,9 @@ const generateProgressReport = (params: {
       `);
   }
 
+  text +=
+    "Now decide what to do next – if you have already sufficient information to complete the task, call 'complete'.";
+
   return {
     type: "text",
     text,
@@ -413,15 +416,10 @@ const getNextToolCalls = async (params: {
 
   const messages: LlmMessage[] = [
     generateInitialUserMessage({ input }),
-    ...llmMessagesFromPreviousToolCalls.slice(0, -1),
     lastUserMessage
       ? ({
-          ...lastUserMessage,
-          content: [
-            ...lastUserMessage.content,
-            // Add the progress report to the most recent user message.
-            progressReport,
-          ],
+          role: "user",
+          content: [progressReport],
         } satisfies LlmUserMessage)
       : [],
   ].flat();

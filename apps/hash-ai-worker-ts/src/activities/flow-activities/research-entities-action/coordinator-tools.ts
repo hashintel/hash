@@ -87,6 +87,9 @@ export const generateToolDefinitions = <
         you must name and specify which entities to focus on for each subtask.
       Do not leave it up to the subtasks to decide which entities to focus on,
         as this could result in looking up information about different entities in each subtask.
+        
+      Make sure that the goal of the research task matches the entity types it will seek – don't have a goal
+      which asks to identify entities of types which aren't provided as entityTypeIds.
     `),
       inputSchema: {
         type: "object",
@@ -131,6 +134,7 @@ export const generateToolDefinitions = <
                   description: dedent(`
                   The goal of the sub-task, a detailed description of what is required to be achieved.
                   For example "Find the technical specifications of the product with name X".
+                  It should focus on the types of entities being asked for, as provided by you under entityTypeIds.
                 `),
                 },
                 explanation: {
@@ -307,6 +311,13 @@ export const generateToolDefinitions = <
       description: dedent(`
       Update the plan for the research task.
       You can call this alongside other tool calls to progress towards completing the task.
+      
+      IMPORTANT: the plan should take account of:
+      1. The user's research goal
+      2. The information gathered so far.
+      
+      Don't be afraid to deviate from an earlier plan if you've gathered sufficient information to 
+      meet the user's research goal, and return the information to the user.
     `),
       inputSchema: {
         type: "object",

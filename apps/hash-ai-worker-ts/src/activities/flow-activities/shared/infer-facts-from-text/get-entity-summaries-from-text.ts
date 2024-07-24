@@ -59,27 +59,35 @@ export const generateSystemPrompt = (params: {
   includesRelevantEntitiesPrompt?: boolean;
 }) =>
   dedent(`
-  You are an entity summary extraction agent.
+  "You are an advanced entity summary extraction agent.
 
-  The user will provide you with:
-    - Text: the text from which you should extract entity summaries.
-    - Entity type: the entity type of the entities you should extract summaries for. Ignore any others in the text.
+The user will provide you with:
+1. Text: the source text from which you should extract entity summaries.
+2. Entity type: the specific type of entities you should extract summaries for. You must focus exclusively on this type and ignore all others.
     ${
       params.includesRelevantEntitiesPrompt
-        ? `- "Relevant entities prompt": a prompt provided by the user indicating which entities should be included.`
+        ? `3. "Relevant entities prompt": a prompt provided by the user indicating which entities should be included.`
         : ""
     }
+    
+Your task:
+1. Carefully analyze the text to identify all entities of the requested type${params.includesRelevantEntitiesPrompt ? " that are relevant to the provided prompt." : "."}
+2. Strictly adhere to the specified entity type${params.includesRelevantEntitiesPrompt ? ", regardless of the relevant entities prompt." : "."} Never include entities of a different type, even if they seem relevant.
+3. For each relevant entity of the correct type, provide:
+   - "name": The exact name or identifier of the entity as it appears in the text.
+   - "summary": A concise, one-sentence description of the entity based solely on the information provided in the text. Do not include any external knowledge.
 
-  You must extract all the entities from the text which are of the requested type and are relevant given the provided prompt.
+4. Be extremely thorough in your extraction, ensuring you don't miss any entities of the specified type.
+5. Pay special attention to structured data (e.g., tables, lists) to extract all entities of the specified type.
+6. After extracting all entities of the correct type, filter them based on the relevance prompt. Include all entities that could potentially be relevant, even if you're not certain.
+7. If no entities of the specified type are found, return an empty list.
 
-  Do not under any circumstances provide entity summaries for entities which are not of the requested type, even if the relevant entities prompt suggests they should be included.
-  
-  For each ${
-    params.includesRelevantEntitiesPrompt ? "relevant " : ""
-  }entity, provide:
-    - "name": the name of the entity, which can be used to identify the entity in the text.
-    - "summary": a one sentence description of the entity. This must be entirely based on
-      the provided text, and not any other knowledge you may have.
+Remember:
+- Accuracy and completeness are crucial. Extract ALL entities of the specified type first, then filter for relevance.
+- Ignore the relevance prompt during the initial extraction phase.
+- Be inclusive rather than exclusive when applying the relevance filter.
+- Stick strictly to the information provided in the text for summaries.
+- Do not let the relevance prompt mislead you into extracting incorrect entity types.
 `);
 
 export const getEntitySummariesFromText = async (params: {
@@ -88,6 +96,7 @@ export const getEntitySummariesFromText = async (params: {
     DereferencedEntityType,
     "$id" | "title" | "description"
   >;
+  existingSummaries: LocalEntitySummary[];
   relevantEntitiesPrompt?: string;
   testingParams?: {
     model?: LlmParams["model"];
@@ -99,6 +108,7 @@ export const getEntitySummariesFromText = async (params: {
   const {
     text,
     dereferencedEntityType,
+    existingSummaries,
     relevantEntitiesPrompt,
     testingParams,
   } = params;
@@ -136,6 +146,14 @@ export const getEntitySummariesFromText = async (params: {
                        Remember: don't include entities which aren't of type ${dereferencedEntityType.title}, even if they otherwise match the research goal!`)
                     : ""
                 }
+                ${
+                  existingSummaries.length
+                    ? dedent(`<ExistingEntities>
+                We already have summaries for the following entities – please don't include them in your response:
+                ${existingSummaries.map((summary) => `Name: ${summary.name}`).join("\n")}
+                </ExistingEntities>`)
+                    : ""
+                } 
               `),
             },
           ],

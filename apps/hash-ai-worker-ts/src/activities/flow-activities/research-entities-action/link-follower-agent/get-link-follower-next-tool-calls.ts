@@ -36,8 +36,8 @@ const getLinkFollowerNextToolCallsSystemPrompt = dedent(`
   Using the provided tools, you must make a decision on what to do next to fulfill the task.
 
   You can only make a single tool call, which must be one of the following:
+    - complete: complete the research task if the gathered facts fulfill the task
     - exploreLinks: call this tool to explore additional links to gather more facts that may fulfill the task
-    - complete: complete the research task if all the gathered facts fulfill the task
     - terminate: terminate the research task if it cannot be progressed further
     
   If you already have enough facts to meet the research brief, call 'complete'. 
@@ -99,6 +99,8 @@ ${JSON.stringify(
   2,
 )}
 </PossibleNextLinks>
+
+Now decide what to do next. If you have gathered enough information about entities to satisfy the task, call 'complete'.
     `),
       },
     ],
@@ -168,7 +170,8 @@ const tools: LlmToolDefinition<ToolName>[] = [
   },
   {
     name: "complete",
-    description: "Complete the research task",
+    description:
+      "Complete the research task, if you have gathered enough facts to satisfy the research goal.",
     inputSchema: {
       type: "object",
       properties: {
@@ -176,7 +179,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
         explanation: {
           type: "string",
           description:
-            "The reason the task is complete based on the facts gathered",
+            "The reason the task is complete based on the facts gathered.",
         },
       },
       required: ["explanation", "suggestionForNextSteps"],

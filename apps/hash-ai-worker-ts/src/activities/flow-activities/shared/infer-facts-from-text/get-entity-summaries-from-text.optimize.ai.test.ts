@@ -61,23 +61,54 @@ const metrics: MetricDefinition[] = testData.map((testItem) => {
 
       let score = 1;
 
-      const missingEntitiesPenalty =
-        0.5 * (missingGoldEntities.size / goldEntitiesTestSet.size);
+      const testDataHasGoldEntities = goldEntitiesTestSet.size > 0;
+      const testDataHasWrongTypeEntities = wrongTypeEntitiesTestSet.size > 0;
+      const testDataHasIrrelevantEntities = irrelevantEntitiesTestSet.size > 0;
+
+      let missingEntitiesMultiplier = 0;
+      if (testDataHasGoldEntities) {
+        if (testDataHasWrongTypeEntities && testDataHasIrrelevantEntities) {
+          missingEntitiesMultiplier = 0.5;
+        } else if (testDataHasWrongTypeEntities) {
+          missingEntitiesMultiplier = 0.7;
+        } else if (testDataHasIrrelevantEntities) {
+          missingEntitiesMultiplier = 0.8;
+        } else {
+          missingEntitiesMultiplier = 1;
+        }
+      }
+
+      const missingEntitiesPenalty = testDataHasGoldEntities
+        ? missingEntitiesMultiplier *
+          (missingGoldEntities.size / goldEntitiesTestSet.size)
+        : 0;
+
       score -= missingEntitiesPenalty;
 
-      const wrongTypeEntitiesPenalty =
-        0.3 *
-        (wrongTypeEntitiesIdentified.size / wrongTypeEntitiesTestSet.size);
-      score -= wrongTypeEntitiesPenalty;
+      const irrelevantEntitiesMultiplier = testDataHasIrrelevantEntities
+        ? 0.2
+        : 0;
 
-      const irrelevantEntitiesPenalty =
-        0.2 *
-        (irrelevantEntitiesIdentified.size / irrelevantEntitiesTestSet.size);
+      const irrelevantEntitiesPenalty = testDataHasIrrelevantEntities
+        ? irrelevantEntitiesMultiplier *
+          (irrelevantEntitiesIdentified.size / irrelevantEntitiesTestSet.size)
+        : 0;
+
       score -= irrelevantEntitiesPenalty;
+
+      const wrongTypeEntitiesMultiplier =
+        1 - missingEntitiesMultiplier - irrelevantEntitiesMultiplier;
+
+      const wrongTypeEntitiesPenalty = testDataHasWrongTypeEntities
+        ? wrongTypeEntitiesMultiplier *
+          (wrongTypeEntitiesIdentified.size / wrongTypeEntitiesTestSet.size)
+        : 0;
+
+      score -= wrongTypeEntitiesPenalty;
 
       return {
         score,
-        naturalLanguageReport: `The LLM extracted ${entitySummaries.length} entity summaries.`,
+        naturalLanguageReport: `The LLM extracted ${entitySummaries.length} entity summaries in total. They identified ${wrongTypeEntitiesIdentified.size} entities of an incorrect type, identified ${goldEntitiesTestSet.size - missingGoldEntities.size} out of a possible ${goldEntitiesTestSet.size} target entities, and identified ${irrelevantEntitiesIdentified.size} entities which were of the right type but didn't meet the research prompt.`,
         testingParams,
       };
     },
@@ -98,16 +129,17 @@ test(
     const models: LlmParams["model"][] = ["claude-3-haiku-20240307"];
 
     await optimizeSystemPrompt({
+      attemptsPerPrompt: 3,
       models,
       initialSystemPrompt: generateSystemPrompt({
         includesRelevantEntitiesPrompt: true,
       }),
       directoryPath: baseDirectoryPath,
       metrics,
-      numberOfIterations: 10,
+      promptIterations: 4,
     });
   },
   {
-    timeout: 10 * 60 * 1000,
+    timeout: 30 * 60 * 1000,
   },
 );

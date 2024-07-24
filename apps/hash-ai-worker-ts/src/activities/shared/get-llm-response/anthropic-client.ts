@@ -146,7 +146,7 @@ export const createAnthropicMessagesWithTools = async (params: {
       },
       {
         headers: {
-          "anthropic-beta": "tools-2024-05-16",
+          "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
         },
       },
     )) as AnthropicMessagesCreateResponse;
@@ -155,7 +155,7 @@ export const createAnthropicMessagesWithTools = async (params: {
       payload as MessageCreateParamsNonStreaming,
       {
         headers: {
-          "anthropic-beta": "tools-2024-05-16",
+          "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
         },
       },
     )) as AnthropicMessagesCreateResponse;

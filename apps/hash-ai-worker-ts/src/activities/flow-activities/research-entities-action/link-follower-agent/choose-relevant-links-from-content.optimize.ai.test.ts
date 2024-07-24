@@ -271,10 +271,10 @@ test(
       initialSystemPrompt: chooseRelevantLinksFromContentSystemPrompt,
       directoryPath: baseDirectoryPath,
       metrics,
-      numberOfIterations: 4,
+      promptIterations: 4,
     });
   },
   {
-    timeout: 10 * 60 * 1000,
+    timeout: 30 * 60 * 1000,
   },
 );

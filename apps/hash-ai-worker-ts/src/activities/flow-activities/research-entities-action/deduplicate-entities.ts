@@ -94,13 +94,14 @@ const defaultModel: LlmParams["model"] = "claude-3-5-sonnet-20240620";
 export const deduplicateEntities = async (params: {
   entities: (LocalEntitySummary | ExistingEntitySummary)[];
   model?: PermittedOpenAiModel | AnthropicMessageModel;
+  exceededMaxTokens?: boolean;
 }): Promise<
   { duplicates: DuplicateReport[] } & {
     usage: LlmUsage;
     totalRequestTime: number;
   }
 > => {
-  const { entities, model } = params;
+  const { entities, model, exceededMaxTokens } = params;
 
   const { flowEntityId, userAuthentication, stepId, webId } =
     await getFlowContext();
@@ -116,10 +117,10 @@ export const deduplicateEntities = async (params: {
           content: [
             {
               type: "text",
-              text: dedent(
-                entities
+              text: dedent(`Here are the entities to deduplicate:
+                ${entities
                   .map(
-                    (entitySummary) => `
+                    (entitySummary) => `<Entity>
                     Name: ${entitySummary.name}
                     Type: ${entitySummary.entityTypeId}
                     Summary: ${entitySummary.summary}
@@ -128,10 +129,11 @@ export const deduplicateEntities = async (params: {
                         ? entitySummary.localId
                         : entitySummary.entityId
                     }
-                    `,
+                    </Entity>`,
                   )
-                  .join("\n"),
-              ),
+                  .join("\n")}
+                  ${exceededMaxTokens ? "Your previous response exceeded the maximum input tokens. Please try again, aiming for brevity, and omitting any duplicate reports you aren't 100% certain of." : ""}
+                  `),
             },
           ],
         },
@@ -151,6 +153,9 @@ export const deduplicateEntities = async (params: {
   );
 
   if (llmResponse.status !== "ok") {
+    if (llmResponse.status === "exceeded-maximum-output-tokens") {
+      return deduplicateEntities({ ...params, exceededMaxTokens: true });
+    }
     return deduplicateEntities(params);
   }
 

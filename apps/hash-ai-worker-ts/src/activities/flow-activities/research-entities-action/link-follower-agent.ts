@@ -275,6 +275,12 @@ const exploreResource = async (params: {
         reason: webPage.error,
         resource,
       };
+    } else if (!webPage.htmlContent.trim()) {
+      return {
+        status: "not-explored",
+        reason: "Could not retrieve web page content",
+        resource,
+      };
     }
 
     resourceTitle = webPage.title;

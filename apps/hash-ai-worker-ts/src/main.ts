@@ -82,7 +82,7 @@ const workflowOptions: Partial<WorkerOptions> =
                   /**
                    * Because we run TypeScript directly in development, we need to use the 'paths' in the base tsconfig.json
                    * This tells TypeScript where to resolve the imports from, overwriting the 'exports' in local dependencies' package.jsons,
-                   * which refer to the transpiled JavaScript code.
+                   * which refer to the transpiled JavaScript code. This plugin converts the 'paths' to webpack 'alias'.
                    */
                   new TsconfigPathsPlugin({
                     configFile:
