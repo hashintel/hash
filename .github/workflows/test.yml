@@ -301,15 +301,16 @@ jobs:
 
       - name: Launch external services
         run: |
-          turbo codegen --filter '@apps/hash-external-services'
+          touch .env.local
 
-          echo 'HASH_GRAPH_PG_DATABASE=graph' >> .env.local
           echo 'OPENAI_API_KEY=dummy' >> .env.local
           echo 'ANTHROPIC_API_KEY=dummy' >> .env.local
           echo 'HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID=dummy' >> .env.local
           echo 'HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY=dummy' >> .env.local
 
-          yarn workspace @apps/hash-external-services deploy:test up hydra kratos redis spicedb --wait
+          echo 'HASH_GRAPH_PG_DATABASE=graph' >> .env.local
+
+          yarn external-services:test up --wait
 
       - name: Show disk usage
         run: df -h
