@@ -254,7 +254,7 @@ jobs:
         id: tests
         run: |
           TEST_TASKS=$(turbo run test:integration --env-mode=loose --dry-run=json --filter "${{ matrix.package }}" | jq -c '.tasks[]')
-          BACKGROUND_TASKS=$(turbo run dev:healthcheck --dry-run json | jq -c '[.tasks[] | select(.command != "<NONEXISTENT>") | .package]')
+          BACKGROUND_TASKS=$(turbo run dev:healthcheck --dry-run json | jq -c '[.tasks[] | select(.command != "<NONEXISTENT>") | .package]' || echo '[]')
           echo "background-tasks=$BACKGROUND_TASKS" >> $GITHUB_OUTPUT
 
           HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
@@ -316,9 +316,9 @@ jobs:
       - name: Run background tasks
         if: steps.tests.outputs.background-tasks != '[]'
         run: |
-          turbo run dev --env-mode=loose --filter $(echo "${{ steps.tests.outputs.background-tasks }}" | jq -r 'join(" --filter ")')
+          turbo run dev --env-mode=loose --filter $(echo '${{ steps.tests.outputs.background-tasks }}' | jq -r 'join(" --filter ")')
 
-          for i in {1..10}; do
+          for i in {1..600}; do
             turbo run dev:healthcheck --env-mode=loose
             if [[ $? -eq 0 ]]; then
               exit 0
