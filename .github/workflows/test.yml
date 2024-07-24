@@ -259,13 +259,15 @@ jobs:
 
           HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
+
+          if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
+            RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
+          else
+            RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
+          fi
+          echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
+
           if [[ $HAS_RUST = 'true' ]]; then
-            if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
-              RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
-            else
-              RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
-            fi
-            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
             echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
           fi
 
@@ -321,11 +323,11 @@ jobs:
           PID=$!
           echo "pid=$PID" >> $GITHUB_OUTPUT
 
-          for i in {1..600}; do
-            if [[ ps -p $PID > /dev/null ]]; then
+          for i in {1..300}; do
+            if ! ps -p $PID > /dev/null 2>&1; then
               break
             fi
-            turbo run dev:healthcheck --env-mode=loose >/dev/null 2>/dev/null && exit 0 || sleep 1
+            turbo run dev:healthcheck --env-mode=loose >/dev/null 2>&1 && exit 0 || sleep 1
           done
           exit 1
 
