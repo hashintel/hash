@@ -61,11 +61,8 @@ To run HASH locally, please follow these steps:
    yarn --version
    ## ≥ 1.16
    
-   rustc --version
-   ## ≥ 2024-07-15 (If installed through rustup, this will automatically install the required toolchain)
-   
-   cargo --version
-   ## Version matching the above rustc version
+   rustup --version
+   ## ≥ 1.27.1 (Required to match the toolchain as specified in `rust-toolchain.toml`)
    
    docker --version
    ## ≥ 20.10
@@ -141,6 +138,7 @@ To run HASH locally, please follow these steps:
    You can also launch parts of the app in separate terminals, e.g.:
 
    ```sh
+   yarn start:graph
    yarn dev:backend
    yarn dev:frontend
    ```

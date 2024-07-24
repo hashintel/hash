@@ -254,8 +254,8 @@ jobs:
         id: tests
         run: |
           TEST_TASKS=$(turbo run test:integration --env-mode=loose --dry-run=json --filter "${{ matrix.package }}" | jq -c '.tasks[]')
-          BACKGROUND_TASKS=$(turbo run start:test --dry-run json | jq -c '[.tasks[] | select(.command != "<NONEXISTENT>") | .package]' || echo '[]')
-          echo "background-tasks=$BACKGROUND_TASKS" >> $GITHUB_OUTPUT
+          HAS_BACKGROUND_TASKS=$(turbo run start:test --dry-run json | jq -c '[.tasks[] | select(.command != "<NONEXISTENT>") | .package]' && echo 'true' || echo 'false')
+          echo "has-background-tasks=$HAS_BACKGROUND_TASKS" >> $GITHUB_OUTPUT
 
           HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
@@ -317,15 +317,14 @@ jobs:
 
       - name: Run background tasks
         id: background-tasks
-        if: steps.tests.outputs.background-tasks != '[]'
+        if: steps.tests.outputs.has-background-tasks == 'true'
         run: |
           mkdir -p logs
-          BACKGROUND_TASK_FILTER="--filter $(echo '${{ steps.tests.outputs.background-tasks }}' | jq -r 'join(" --filter ")')"
-          turbo run start:test --env-mode=loose $BACKGROUND_TASK_FILTER >logs/background-task.log 2>&1 &
+          turbo run start:test --env-mode=loose >logs/background-task.log 2>&1 &
           PID=$!
           echo "pid=$PID" >> $GITHUB_OUTPUT
 
-          turbo run start:test:wait --env-mode=loose $BACKGROUND_TASK_FILTER
+          turbo run start:test:wait --env-mode=loose
 
       - name: Run tests
         continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
@@ -347,7 +346,7 @@ jobs:
         run: yarn workspace @apps/hash-external-services deploy logs --timestamps
 
       - name: Shutting down background tasks
-        if: always() && steps.tests.outputs.background-tasks != '[]'
+        if: always() && steps.tests.outputs.has-background-tasks == 'true'
         run: |
           kill -9 ${{ steps.background-tasks.outputs.pid }}
           cat logs/background-task.log
