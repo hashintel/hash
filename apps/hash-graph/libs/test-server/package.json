@@ -1,5 +1,5 @@
 {
-  "name": "@rust/test-server",
+  "name": "@rust/graph-test-server",
   "version": "0.0.0-private",
   "private": true,
   "scripts": {
