@@ -3,8 +3,6 @@ services:
     image: hash-ai-worker-ts
     restart: unless-stopped
     depends_on:
-      graph:
-        condition: service_healthy
       temporal:
         condition: service_healthy
       temporal-setup:

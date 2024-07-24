@@ -300,8 +300,6 @@ services:
         condition: service_healthy
       temporal-setup:
         condition: service_completed_successfully
-      graph:
-        condition: service_healthy
     environment:
       HASH_TEMPORAL_SERVER_HOST: "http://temporal"
       HASH_TEMPORAL_SERVER_PORT: "${HASH_TEMPORAL_SERVER_PORT}"
