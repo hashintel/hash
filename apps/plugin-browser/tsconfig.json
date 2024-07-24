@@ -7,7 +7,7 @@
     "jsx": "react-jsx",
     "lib": ["dom", "dom.iterable", "esnext"],
     "noEmit": false,
-    "target": "es6"
+    "target": "ES2021"
   },
   "include": [
     "src",
