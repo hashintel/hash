@@ -41,6 +41,9 @@ export const identifiersForExternalImports = [
   "Entity",
   "ArrayMetadata",
   "Confidence",
+  "EntityProperties",
+  "PropertyObject",
+  "PropertyObjectValueMetadata",
   "ObjectMetadata",
   "PropertyProvenance",
 ] as const;
@@ -54,6 +57,7 @@ export const metadataSchemaKind = "metadataSchema";
  * We already have types for these schemas generated from the Graph API,
  * so we just want this codegen to insert the title of the type rather than generate it again,
  * – we'll add import statements for the types in post-processing.
+ * These exported schemas are referenced in the JSON schemas we define for property / data type metadata.
  */
 export const propertyProvenanceSchema: JsonSchema = {
   $id: "https://hash.ai/@hash/schemas/property-provenance/v/1",
@@ -83,9 +87,38 @@ export const confidenceMetadataSchema: JsonSchema = {
   const: redundantTypePlaceholder,
 };
 
+/**
+ * These non-exported schemas are not referenced in the JSON schemas we define,
+ * but we need various of the generated interfaces to extend them for compatibility
+ * with the function signatures of the code that will use them.
+ */
+const propertyObjectSchema: JsonSchema = {
+  $id: "https://hash.ai/@hash/schemas/property-object/v/1",
+  title: "PropertyObject",
+  kind: metadataSchemaKind,
+  const: redundantTypePlaceholder,
+};
+
+const propertyObjectValueMetadataSchema: JsonSchema = {
+  $id: "https://hash.ai/@hash/schemas/property-object-value-metadata/v/1",
+  title: "PropertyObjectValueMetadata",
+  kind: metadataSchemaKind,
+  const: redundantTypePlaceholder,
+};
+
+const entityPropertiesSchema: JsonSchema = {
+  $id: "https://hash.ai/@hash/schemas/entity-properties/v/1",
+  title: "EntityProperties",
+  kind: metadataSchemaKind,
+  const: redundantTypePlaceholder,
+};
+
 export const sharedMetadataSchemas = [
   propertyProvenanceSchema,
   objectMetadataSchema,
   confidenceMetadataSchema,
   arrayMetadataSchema,
+  propertyObjectSchema,
+  propertyObjectValueMetadataSchema,
+  entityPropertiesSchema,
 ];

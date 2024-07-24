@@ -60,6 +60,27 @@ const externalIdentifiersToSource: Record<
       definingPath: "@local/hash-graph-types/entity",
     },
   },
+  EntityProperties: {
+    locallyImportable: true,
+    source: {
+      kind: "external",
+      definingPath: "@local/hash-graph-types/entity",
+    },
+  },
+  PropertyObject: {
+    locallyImportable: true,
+    source: {
+      kind: "external",
+      definingPath: "@local/hash-graph-types/entity",
+    },
+  },
+  PropertyObjectValueMetadata: {
+    locallyImportable: true,
+    source: {
+      kind: "external",
+      definingPath: "@local/hash-graph-types/entity",
+    },
+  },
   ObjectMetadata: {
     locallyImportable: true,
     source: {

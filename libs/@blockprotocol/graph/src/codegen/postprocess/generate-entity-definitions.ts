@@ -19,7 +19,7 @@ const generateEntityDefinitionForEntityType = (
   const compiledContents = `\n/**
   * ${type.description}
   */
-  export interface ${entityName} {
+  export interface ${entityName} extends EntityProperties {
   entityTypeId: "${entityTypeId}";
   properties: ${typeName};
   propertiesWithMetadata: ${typeName}WithMetadata;

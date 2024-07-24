@@ -18,7 +18,10 @@ const replaceIntersectionWithExtends = (
     (match, p1: string, p2: string) => {
       const parents = p2.split(" & ");
 
-      if (parents.some((parent) => parent.endsWith("DataType"))) {
+      if (
+        p1.endsWith("DataType") ||
+        parents.some((parent) => parent.endsWith("DataType"))
+      ) {
         return match;
       }
 
@@ -38,7 +41,7 @@ const replaceIntersectionWithExtends = (
       /**
        * Data type values are not interfaces
        */
-      if (p2.endsWith("DataType")) {
+      if (p1.endsWith("DataType") || p2.endsWith("DataType")) {
         return match;
       }
       return `export interface ${p1} extends ${p2} {}`;
