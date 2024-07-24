@@ -310,7 +310,7 @@ jobs:
 
           echo 'HASH_GRAPH_PG_DATABASE=graph' >> .env.local
 
-          yarn external-services:test up --wait
+          yarn external-services:test up hydra kratos redis spicedb temporal-ui --wait
 
       - name: Show disk usage
         run: df -h
