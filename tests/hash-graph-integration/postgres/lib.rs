@@ -157,24 +157,45 @@ impl DatabaseTestWrapper<NoAuthorization> {
             DatabaseType::Postgres,
             user,
             password,
-            host,
+            host.clone(),
             port,
-            database,
+            database.clone(),
         );
 
         let pool = PostgresStorePool::new(&connection_info, &DatabasePoolConfig::default(), NoTls)
             .await
             .expect("could not connect to database");
 
-        let mut connection = pool
+        // Connect as super user and run the migrations
+        {
+            let db_pool = PostgresStorePool::new(
+                &DatabaseConnectionInfo::new(
+                    DatabaseType::Postgres,
+                    std::env::var("POSTGRES_USER").unwrap_or_else(|_| "postgres".to_owned()),
+                    std::env::var("POSTGRES_PASSWORD").unwrap_or_else(|_| "postgres".to_owned()),
+                    host,
+                    port,
+                    database,
+                ),
+                &DatabasePoolConfig::default(),
+                NoTls,
+            )
+            .await
+            .expect("could not connect to database");
+
+            db_pool
+                .acquire(NoAuthorization, None)
+                .await
+                .expect("could not acquire a database connection")
+                .run_migrations()
+                .await
+                .expect("could not run migrations");
+        }
+
+        let connection = pool
             .acquire_owned(NoAuthorization, None)
             .await
             .expect("could not acquire a database connection");
-
-        connection
-            .run_migrations()
-            .await
-            .expect("could not run migrations");
 
         Self {
             _pool: pool,
