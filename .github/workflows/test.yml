@@ -303,6 +303,7 @@ jobs:
         run: |
           turbo codegen --filter '@apps/hash-external-services'
 
+          echo 'HASH_GRAPH_PG_DATABASE=graph' >> .env.local
           echo 'OPENAI_API_KEY=dummy' >> .env.local
           echo 'ANTHROPIC_API_KEY=dummy' >> .env.local
           echo 'HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID=dummy' >> .env.local
@@ -441,6 +442,7 @@ jobs:
       - name: Launch external services
         run: |
           turbo codegen --filter '@apps/hash-external-services'
+          echo 'HASH_GRAPH_PG_DATABASE=graph' >> .env.local
           echo 'OPENAI_API_KEY=dummy' >> .env.local
           echo 'ANTHROPIC_API_KEY=dummy' >> .env.local
           yarn workspace @apps/hash-external-services deploy up --wait
