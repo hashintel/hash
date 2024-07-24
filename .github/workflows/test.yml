@@ -270,7 +270,6 @@ jobs:
           fi
 
       - name: Install Rust toolchain
-        if: steps.tests.outputs.has-rust == 'true'
         uses: ./.github/actions/install-rust-toolchain
         with:
           toolchain: ${{ steps.tests.outputs.rust-toolchain }}
@@ -315,16 +314,18 @@ jobs:
         run: df -h
 
       - name: Run background tasks
+        id: background-tasks
         if: steps.tests.outputs.background-tasks != '[]'
         run: |
           turbo run dev --env-mode=loose --filter $(echo '${{ steps.tests.outputs.background-tasks }}' | jq -r 'join(" --filter ")') &
+          PID=$!
+          echo "pid=$PID" >> $GITHUB_OUTPUT
 
           for i in {1..600}; do
-            turbo run dev:healthcheck --env-mode=loose
-            if [[ $? -eq 0 ]]; then
-              exit 0
+            if [[ ps -p $PID > /dev/null ]]; then
+              break
             fi
-            sleep 1
+            turbo run dev:healthcheck --env-mode=loose >/dev/null 2>/dev/null && exit 0 || sleep 1
           done
           exit 1
 
@@ -346,6 +347,11 @@ jobs:
       - name: Show container logs
         if: ${{ success() || failure() }}
         run: yarn workspace @apps/hash-external-services deploy logs --timestamps
+
+      - name: Shutting down background tasks
+        if: steps.tests.outputs.background-tasks != '[]'
+        run: |
+          kill -9 ${{ steps.background-tasks.outputs.pid }}
 
   system-tests:
     name: System
