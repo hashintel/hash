@@ -1,49 +1,84 @@
 {
   "$schema": "https://turborepo.org/schema.json",
   "tasks": {
+    // Install commands
     "postinstall": {
       "cache": false
     },
-    "codegen": {
-      "dependsOn": ["^build"]
-    },
-    "build": {
-      "dependsOn": ["^build", "codegen"]
-    },
-    "test:unit": {
-      "dependsOn": ["codegen"],
-      "env": ["TEST_COVERAGE"]
-    },
-    "test:integration": {
-      "dependsOn": ["codegen", "^wait"],
-      "env": ["TEST_COVERAGE"]
-    },
-    "test:system": {},
-    "test:miri": {},
-    "bench:unit": {
-      "dependsOn": ["codegen"],
-      "cache": false
-    },
-    "bench:integration": {
-      "dependsOn": ["codegen"],
-      "cache": false
-    },
+
+    // Development commands
     "dev": {
       "cache": false,
       "persistent": true,
       "dependsOn": ["codegen"]
     },
-    "dev:healthcheck": {
-      "cache": false
+
+    // Build commands
+    "codegen": {
+      "dependsOn": ["^build"]
     },
-    "dev:wait": {
+    "build": {
+      "dependsOn": ["codegen"]
+    },
+    "compile": {
+      "dependsOn": ["codegen"]
+    },
+    "compile:release": {
+      "dependsOn": ["codegen"]
+    },
+
+    // Run commands
+    "start:migrate": {
+      "cache": false,
+      "dependsOn": ["compile:release", "^start:wait"]
+    },
+    "start": {
       "cache": false,
       "persistent": true,
-      "dependsOn": ["codegen", "^wait"]
+      "dependsOn": ["start:migrate"]
     },
-    "wait": {
+    "start:wait": {
       "cache": false
     },
+
+    "start:test:migrate": {
+      "cache": false,
+      "dependsOn": ["compile", "^start:test:wait"]
+    },
+    "start:test": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["start:test:migrate"]
+    },
+    "start:test:wait": {
+      "cache": false
+    },
+
+    // Test commands
+    "test:unit": {
+      "dependsOn": ["codegen"],
+      "env": ["TEST_COVERAGE"]
+    },
+    "test:integration": {
+      "dependsOn": ["codegen", "^start:test:wait"],
+      "env": ["TEST_COVERAGE"]
+    },
+    "test:system": {
+      "dependsOn": ["codegen", "^start:test:wait"]
+    },
+    "test:miri": {},
+
+    // Benchmarks
+    "bench:unit": {
+      "dependsOn": ["codegen"],
+      "cache": false
+    },
+    "bench:integration": {
+      "dependsOn": ["codegen", "^start:wait"],
+      "cache": false
+    },
+
+    // Linting and formatting
     "lint": {
       "dependsOn": ["codegen"]
     },

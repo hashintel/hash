@@ -1,38 +1,20 @@
 {
   "extends": ["//"],
   "tasks": {
-    "compile": {
-      "cache": false
-    },
-    "compile:release": {
-      "cache": false
-    },
-    "dev": {
-      "cache": false,
-      "persistent": true,
-      "dependsOn": ["dev:migrate"]
-    },
-    "dev:migrate": {
-      "cache": false,
-      "dependsOn": ["compile"]
-    },
-    "start": {
-      "cache": false,
-      "persistent": true,
-      "dependsOn": ["start:migrate"]
-    },
     "start:migrate": {
       "cache": false,
       "dependsOn": ["compile:release"]
+    },
+    "start:test:migrate": {
+      "cache": false,
+      "dependsOn": ["compile"]
     },
     "build:docker": {
       "cache": false
     },
     "codegen:generate-openapi-specs": {
+      "dependsOn": ["compile"],
       "outputs": ["openapi/openapi.json", "openapi/models/**"]
-    },
-    "test:integration": {
-      "dependsOn": ["build"]
     }
   }
 }

@@ -254,7 +254,7 @@ jobs:
         id: tests
         run: |
           TEST_TASKS=$(turbo run test:integration --env-mode=loose --dry-run=json --filter "${{ matrix.package }}" | jq -c '.tasks[]')
-          BACKGROUND_TASKS=$(turbo run dev:healthcheck --dry-run json | jq -c '[.tasks[] | select(.command != "<NONEXISTENT>") | .package]' || echo '[]')
+          BACKGROUND_TASKS=$(turbo run start:test --dry-run json | jq -c '[.tasks[] | select(.command != "<NONEXISTENT>") | .package]' || echo '[]')
           echo "background-tasks=$BACKGROUND_TASKS" >> $GITHUB_OUTPUT
 
           HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
@@ -321,17 +321,11 @@ jobs:
         run: |
           mkdir -p logs
           BACKGROUND_TASK_FILTER="--filter $(echo '${{ steps.tests.outputs.background-tasks }}' | jq -r 'join(" --filter ")')"
-          turbo run dev --env-mode=loose $BACKGROUND_TASK_FILTER >logs/background-task.log 2>&1 &
+          turbo run start:test --env-mode=loose $BACKGROUND_TASK_FILTER >logs/background-task.log 2>&1 &
           PID=$!
           echo "pid=$PID" >> $GITHUB_OUTPUT
 
-          for i in {1..300}; do
-            if ! ps -p $PID > /dev/null 2>&1; then
-              break
-            fi
-            turbo run dev:healthcheck --env-mode=loose $BACKGROUND_TASK_FILTER >/dev/null 2>&1 && exit 0 || sleep 1
-          done
-          exit 1
+          turbo run start:test:wait --env-mode=loose $BACKGROUND_TASK_FILTER
 
       - name: Run tests
         continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}

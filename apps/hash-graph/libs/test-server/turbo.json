@@ -1,10 +1,11 @@
 {
   "extends": ["//"],
   "tasks": {
-    "dev": {
-      "cache": false,
-      "persistent": true,
-      "dependsOn": ["@apps/hash-graph#dev:migrate"]
+    "start": {
+      "dependsOn": ["@apps/hash-graph#start:migrate"]
+    },
+    "start:test": {
+      "dependsOn": ["@apps/hash-graph#start:test:migrate"]
     }
   }
 }
