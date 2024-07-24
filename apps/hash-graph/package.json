@@ -33,6 +33,7 @@
   "dependencies": {
     "@rust/graph": "0.0.0-private",
     "@rust/graph-api": "0.0.0-private",
+    "@rust/graph-test-server": "0.0.0-private",
     "@rust/hash-graph": "0.0.0-private",
     "@rust/type-fetcher": "0.0.0-private"
   },

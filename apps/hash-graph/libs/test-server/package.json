@@ -1,19 +1,18 @@
 {
-  "name": "@rust/hash-graph",
+  "name": "@rust/test-server",
   "version": "0.0.0-private",
   "private": true,
+  "scripts": {
+    "dev": "../../../../target/debug/hash-graph test-server --api-port 4001",
+    "dev:healthcheck": "../../../../target/debug/hash-graph  test-server --api-port 4001 --healthcheck"
+  },
   "dependencies": {
-    "@blockprotocol/type-system-rs": "0.0.0-private",
     "@rust/authorization": "0.0.0-private",
     "@rust/codec": "0.0.0-private",
     "@rust/graph": "0.0.0-private",
     "@rust/graph-api": "0.0.0-private",
     "@rust/graph-types": "0.0.0-private",
-    "@rust/hash-tracing": "0.0.0-private",
-    "@rust/temporal-client": "0.0.0-private",
-    "@rust/test-server": "0.0.0-private",
-    "@rust/type-fetcher": "0.0.0-private",
-    "@rust/validation": "0.0.0-private"
+    "@rust/hash-status": "0.0.0-private"
   },
   "devDependencies": {}
 }

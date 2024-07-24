@@ -1,0 +1,28 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "test-server"
+version = "0.0.0"
+authors.workspace = true
+edition.workspace = true
+publish = false
+description = "HASH Graph test server"
+
+[dependencies]
+authorization = { workspace = true }
+codec = { workspace = true }
+error-stack = { workspace = true }
+graph = { workspace = true, features = ["utoipa"] }
+graph-types = { workspace = true, features = ["utoipa"] }
+hash-status = { workspace = true }
+graph-api = { workspace = true }
+
+axum = "0.7.5"
+futures = { workspace = true }
+tokio = { workspace = true, features = ["macros"] }
+tokio-util = { workspace = true, features = ["io"] }
+uuid = { workspace = true }
+tracing = { workspace = true}
+
+[lints]
+workspace = true

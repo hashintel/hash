@@ -2376,7 +2376,6 @@ dependencies = [
  "axum 0.7.5",
  "base64 0.22.1",
  "bytes",
- "codec",
  "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures",
  "graph",
@@ -2395,9 +2394,6 @@ dependencies = [
  "temporal-client 0.0.0",
  "temporal-versioning",
  "time",
- "tokio",
- "tokio-postgres",
- "tokio-util",
  "tower",
  "tower-http",
  "tracing",
@@ -2613,6 +2609,7 @@ dependencies = [
  "serde_json",
  "tarpc",
  "temporal-client 0.0.0",
+ "test-server",
  "time",
  "tokio",
  "tokio-postgres",
@@ -6335,6 +6332,25 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 2.0.71",
+]
+
+[[package]]
+name = "test-server"
+version = "0.0.0"
+dependencies = [
+ "authorization",
+ "axum 0.7.5",
+ "codec",
+ "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futures",
+ "graph",
+ "graph-api",
+ "graph-types",
+ "hash-status",
+ "tokio",
+ "tokio-util",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]

@@ -7,41 +7,25 @@
     "compile:release": {
       "cache": false
     },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["dev:migrate"]
+    },
     "dev:migrate": {
       "cache": false,
       "dependsOn": ["compile"]
-    },
-    "dev": {
-      "cache": false,
-      "dependsOn": ["dev:migrate"]
-    },
-    "dev:healthcheck": {
-      "cache": false,
-      "dependsOn": ["compile"]
-    },
-    "dev:test": {
-      "cache": false,
-      "dependsOn": ["dev:migrate"]
-    },
-    "start:migrate": {
-      "cache": false,
-      "dependsOn": ["compile:release"]
     },
     "start": {
       "cache": false,
       "persistent": true,
       "dependsOn": ["start:migrate"]
     },
+    "start:migrate": {
+      "cache": false,
+      "dependsOn": ["compile:release"]
+    },
     "build:docker": {
-      "cache": false
-    },
-    "build:docker:test": {
-      "cache": false
-    },
-    "build:docker:offline": {
-      "cache": false
-    },
-    "build:docker:prod": {
       "cache": false
     },
     "codegen:generate-openapi-specs": {
