@@ -3,6 +3,7 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
 
 import type {
   ArchivedPropertyValue,
@@ -95,7 +96,7 @@ export type {
 /**
  * A (usually) quick or short note.
  */
-export interface QuickNote {
+export interface QuickNote extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/quick-note/v/1";
   properties: QuickNoteProperties;
   propertiesWithMetadata: QuickNotePropertiesWithMetadata;

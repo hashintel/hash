@@ -10,13 +10,15 @@ import type {
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   Confidence,
+  EntityProperties,
   PropertyObject,
+  PropertyObjectValueMetadata,
 } from "@local/hash-graph-types/entity";
 
 /**
  * Someone or something that can perform actions in the system
  */
-export interface Actor {
+export interface Actor extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/actor/v/2";
   properties: ActorProperties;
   propertiesWithMetadata: ActorPropertiesWithMetadata;
@@ -38,7 +40,8 @@ export interface ActorPropertiesWithMetadata {
   value: ActorPropertiesWithMetadataValue;
 }
 
-export interface ActorPropertiesWithMetadataValue {
+export interface ActorPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValueWithMetadata;
 }
 
@@ -69,7 +72,7 @@ export interface ArchivedPropertyValueWithMetadata
 /**
  * What or whom something was authored by.
  */
-export interface AuthoredBy {
+export interface AuthoredBy extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/authored-by/v/1";
   properties: AuthoredByProperties;
   propertiesWithMetadata: AuthoredByPropertiesWithMetadata;
@@ -113,7 +116,7 @@ export interface AutomaticInferenceConfigurationPropertyValueWithMetadata
 /**
  * A block that displays or otherwise uses data, part of a wider page or collection.
  */
-export interface Block {
+export interface Block extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/block/v/1";
   properties: BlockProperties;
   propertiesWithMetadata: BlockPropertiesWithMetadata;
@@ -122,7 +125,7 @@ export interface Block {
 /**
  * A collection of blocks.
  */
-export interface BlockCollection {
+export interface BlockCollection extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/block-collection/v/1";
   properties: BlockCollectionProperties;
   propertiesWithMetadata: BlockCollectionPropertiesWithMetadata;
@@ -135,14 +138,15 @@ export interface BlockCollectionOutgoingLinksByLinkEntityTypeId {}
 /**
  * A collection of blocks.
  */
-export interface BlockCollectionProperties {}
+export interface BlockCollectionProperties extends PropertyObject {}
 
 export interface BlockCollectionPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: BlockCollectionPropertiesWithMetadataValue;
 }
 
-export interface BlockCollectionPropertiesWithMetadataValue {}
+export interface BlockCollectionPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {}
 
 export interface BlockHasDataLink {
   linkEntity: HasData;
@@ -158,7 +162,7 @@ export interface BlockOutgoingLinksByLinkEntityTypeId {
 /**
  * A block that displays or otherwise uses data, part of a wider page or collection.
  */
-export interface BlockProperties {
+export interface BlockProperties extends PropertyObject {
   "https://hash.ai/@hash/types/property-type/component-id/": ComponentIdPropertyValue;
 }
 
@@ -167,14 +171,15 @@ export interface BlockPropertiesWithMetadata {
   value: BlockPropertiesWithMetadataValue;
 }
 
-export interface BlockPropertiesWithMetadataValue {
+export interface BlockPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://hash.ai/@hash/types/property-type/component-id/": ComponentIdPropertyValueWithMetadata;
 }
 
 /**
  * A True or False value
  */
-export interface BooleanDataType extends boolean {}
+export type BooleanDataType = boolean;
 
 export interface BooleanDataTypeWithMetadata {
   value: BooleanDataType;
@@ -189,7 +194,7 @@ export interface BooleanDataTypeMetadata {
 /**
  * Settings for the HASH browser plugin
  */
-export interface BrowserPluginSettings {
+export interface BrowserPluginSettings extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/browser-plugin-settings/v/1";
   properties: BrowserPluginSettingsProperties;
   propertiesWithMetadata: BrowserPluginSettingsPropertiesWithMetadata;
@@ -202,7 +207,7 @@ export interface BrowserPluginSettingsOutgoingLinksByLinkEntityTypeId {}
 /**
  * Settings for the HASH browser plugin
  */
-export interface BrowserPluginSettingsProperties {
+export interface BrowserPluginSettingsProperties extends PropertyObject {
   "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/": AutomaticInferenceConfigurationPropertyValue;
   "https://hash.ai/@hash/types/property-type/browser-plugin-tab/": BrowserPluginTabPropertyValue;
   "https://hash.ai/@hash/types/property-type/draft-note/"?: DraftNotePropertyValue;
@@ -214,7 +219,8 @@ export interface BrowserPluginSettingsPropertiesWithMetadata {
   value: BrowserPluginSettingsPropertiesWithMetadataValue;
 }
 
-export interface BrowserPluginSettingsPropertiesWithMetadataValue {
+export interface BrowserPluginSettingsPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/": AutomaticInferenceConfigurationPropertyValueWithMetadata;
   "https://hash.ai/@hash/types/property-type/browser-plugin-tab/": BrowserPluginTabPropertyValueWithMetadata;
   "https://hash.ai/@hash/types/property-type/draft-note/"?: DraftNotePropertyValueWithMetadata;
@@ -232,7 +238,7 @@ export interface BrowserPluginTabPropertyValueWithMetadata
 /**
  * Comment associated with the issue.
  */
-export interface Comment {
+export interface Comment extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/comment/v/5";
   properties: CommentProperties;
   propertiesWithMetadata: CommentPropertiesWithMetadata;
@@ -267,7 +273,7 @@ export interface CommentOutgoingLinksByLinkEntityTypeId {
 /**
  * Comment associated with the issue.
  */
-export interface CommentProperties {
+export interface CommentProperties extends PropertyObject {
   "https://hash.ai/@hash/types/property-type/deleted-at/"?: DeletedAtPropertyValue;
   "https://hash.ai/@hash/types/property-type/resolved-at/"?: ResolvedAtPropertyValue;
 }
@@ -277,7 +283,8 @@ export interface CommentPropertiesWithMetadata {
   value: CommentPropertiesWithMetadataValue;
 }
 
-export interface CommentPropertiesWithMetadataValue {
+export interface CommentPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://hash.ai/@hash/types/property-type/deleted-at/"?: DeletedAtPropertyValueWithMetadata;
   "https://hash.ai/@hash/types/property-type/resolved-at/"?: ResolvedAtPropertyValueWithMetadata;
 }
@@ -301,7 +308,7 @@ export interface ConnectionSourceNamePropertyValueWithMetadata
 /**
  * A reference to a particular date and time, formatted according to RFC 3339.
  */
-export interface DateTimeDataType extends string {}
+export type DateTimeDataType = string;
 
 export interface DateTimeDataTypeWithMetadata {
   value: DateTimeDataType;
@@ -340,7 +347,7 @@ export interface DisplayNamePropertyValueWithMetadata
 /**
  * A document file.
  */
-export interface DocumentFile {
+export interface DocumentFile extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/document-file/v/1";
   properties: DocumentFileProperties;
   propertiesWithMetadata: DocumentFilePropertiesWithMetadata;
@@ -430,7 +437,7 @@ export interface FeatureNamePropertyValueWithMetadata
 /**
  * A file hosted at a URL
  */
-export interface File extends PropertyObject {
+export interface File extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/file/v/2";
   properties: FileProperties;
   propertiesWithMetadata: FilePropertiesWithMetadata;
@@ -484,7 +491,8 @@ export interface FilePropertiesWithMetadata {
   value: FilePropertiesWithMetadataValue;
 }
 
-export interface FilePropertiesWithMetadataValue {
+export interface FilePropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValueWithMetadata;
   "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValueWithMetadata;
   "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/"?: FileHashPropertyValueWithMetadata;
@@ -579,7 +587,7 @@ export interface FlowDefinitionIDPropertyValueWithMetadata
 /**
  * An execution run of a flow.
  */
-export interface FlowRun {
+export interface FlowRun extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/flow-run/v/1";
   properties: FlowRunProperties;
   propertiesWithMetadata: FlowRunPropertiesWithMetadata;
@@ -592,7 +600,7 @@ export interface FlowRunOutgoingLinksByLinkEntityTypeId {}
 /**
  * An execution run of a flow.
  */
-export interface FlowRunProperties {
+export interface FlowRunProperties extends PropertyObject {
   "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
   "https://hash.ai/@hash/types/property-type/flow-definition-id/": FlowDefinitionIDPropertyValue;
   "https://hash.ai/@hash/types/property-type/outputs/"?: OutputsPropertyValue;
@@ -605,7 +613,8 @@ export interface FlowRunPropertiesWithMetadata {
   value: FlowRunPropertiesWithMetadataValue;
 }
 
-export interface FlowRunPropertiesWithMetadataValue {
+export interface FlowRunPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
   "https://hash.ai/@hash/types/property-type/flow-definition-id/": FlowDefinitionIDPropertyValueWithMetadata;
   "https://hash.ai/@hash/types/property-type/outputs/"?: OutputsPropertyValueWithMetadata;
@@ -624,7 +633,7 @@ export interface FractionalIndexPropertyValueWithMetadata
 /**
  * Something that something has
  */
-export interface Has {
+export interface Has extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/has/v/1";
   properties: HasProperties;
   propertiesWithMetadata: HasPropertiesWithMetadata;
@@ -633,7 +642,7 @@ export interface Has {
 /**
  * The avatar something has.
  */
-export interface HasAvatar {
+export interface HasAvatar extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/has-avatar/v/1";
   properties: HasAvatarProperties;
   propertiesWithMetadata: HasAvatarPropertiesWithMetadata;
@@ -669,7 +678,7 @@ export interface HasAvatarPropertiesWithMetadataValue2 {}
 /**
  * The biography something has.
  */
-export interface HasBio {
+export interface HasBio extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/has-bio/v/1";
   properties: HasBioProperties;
   propertiesWithMetadata: HasBioPropertiesWithMetadata;
@@ -705,7 +714,7 @@ export interface HasBioPropertiesWithMetadataValue2 {}
 /**
  * The cover image something has.
  */
-export interface HasCoverImage {
+export interface HasCoverImage extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/has-cover-image/v/1";
   properties: HasCoverImageProperties;
   propertiesWithMetadata: HasCoverImagePropertiesWithMetadata;
@@ -741,7 +750,7 @@ export interface HasCoverImagePropertiesWithMetadataValue2 {}
 /**
  * The data that something has.
  */
-export interface HasData {
+export interface HasData extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/has-data/v/1";
   properties: HasDataProperties;
   propertiesWithMetadata: HasDataPropertiesWithMetadata;
@@ -777,7 +786,7 @@ export interface HasDataPropertiesWithMetadataValue2 {}
 /**
  * Something contained at an index by something
  */
-export interface HasIndexedContent extends PropertyObject {
+export interface HasIndexedContent extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/has-indexed-content/v/1";
   properties: HasIndexedContentProperties;
   propertiesWithMetadata: HasIndexedContentPropertiesWithMetadata;
@@ -821,7 +830,7 @@ export interface HasOutgoingLinksByLinkEntityTypeId {}
 /**
  * The parent something has.
  */
-export interface HasParent {
+export interface HasParent extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/has-parent/v/1";
   properties: HasParentProperties;
   propertiesWithMetadata: HasParentPropertiesWithMetadata;
@@ -878,7 +887,7 @@ export interface HasPropertiesWithMetadataValue2 {}
 /**
  * The service account something has.
  */
-export interface HasServiceAccount {
+export interface HasServiceAccount extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/has-service-account/v/1";
   properties: HasServiceAccountProperties;
   propertiesWithMetadata: HasServiceAccountPropertiesWithMetadata;
@@ -914,7 +923,7 @@ export interface HasServiceAccountPropertiesWithMetadataValue2 {}
 /**
  * The text something has.
  */
-export interface HasText {
+export interface HasText extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/has-text/v/1";
   properties: HasTextProperties;
   propertiesWithMetadata: HasTextPropertiesWithMetadata;
@@ -958,7 +967,7 @@ export interface IconPropertyValueWithMetadata
 /**
  * An image file hosted at a URL
  */
-export interface Image {
+export interface Image extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/image/v/2";
   properties: ImageProperties;
   propertiesWithMetadata: ImagePropertiesWithMetadata;
@@ -1000,7 +1009,7 @@ export interface InputUnitCostPropertyValueWithMetadata
 /**
  * Something that someone or something is a member of.
  */
-export interface IsMemberOf {
+export interface IsMemberOf extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/is-member-of/v/1";
   properties: IsMemberOfProperties;
   propertiesWithMetadata: IsMemberOfPropertiesWithMetadata;
@@ -1044,7 +1053,7 @@ export interface KratosIdentityIdPropertyValueWithMetadata
 /**
  * undefined
  */
-export interface Link {
+export interface Link extends EntityProperties {
   entityTypeId: "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
   properties: LinkProperties;
   propertiesWithMetadata: LinkPropertiesWithMetadata;
@@ -1054,14 +1063,15 @@ export type LinkOutgoingLinkAndTarget = never;
 
 export interface LinkOutgoingLinksByLinkEntityTypeId {}
 
-export interface LinkProperties {}
+export interface LinkProperties extends PropertyObject {}
 
 export interface LinkPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: LinkPropertiesWithMetadataValue;
 }
 
-export interface LinkPropertiesWithMetadataValue {}
+export interface LinkPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {}
 
 /**
  * A location for something, expressed as a single string
@@ -1100,7 +1110,7 @@ export interface NamePropertyValueWithMetadata
 /**
  * A notification to a user.
  */
-export interface Notification {
+export interface Notification extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/notification/v/1";
   properties: NotificationProperties;
   propertiesWithMetadata: NotificationPropertiesWithMetadata;
@@ -1113,7 +1123,7 @@ export interface NotificationOutgoingLinksByLinkEntityTypeId {}
 /**
  * A notification to a user.
  */
-export interface NotificationProperties {
+export interface NotificationProperties extends PropertyObject {
   "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValue;
   "https://hash.ai/@hash/types/property-type/read-at/"?: ReadAtPropertyValue;
 }
@@ -1123,7 +1133,8 @@ export interface NotificationPropertiesWithMetadata {
   value: NotificationPropertiesWithMetadataValue;
 }
 
-export interface NotificationPropertiesWithMetadataValue {
+export interface NotificationPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://hash.ai/@hash/types/property-type/archived/"?: ArchivedPropertyValueWithMetadata;
   "https://hash.ai/@hash/types/property-type/read-at/"?: ReadAtPropertyValueWithMetadata;
 }
@@ -1131,7 +1142,7 @@ export interface NotificationPropertiesWithMetadataValue {
 /**
  * An arithmetical value (in the Real number system)
  */
-export interface NumberDataType extends number {}
+export type NumberDataType = number;
 
 export interface NumberDataTypeWithMetadata {
   value: NumberDataType;
@@ -1161,7 +1172,7 @@ export interface ObjectDataTypeMetadata {
 /**
  * A block that something occurred in.
  */
-export interface OccurredInBlock {
+export interface OccurredInBlock extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/occurred-in-block/v/1";
   properties: OccurredInBlockProperties;
   propertiesWithMetadata: OccurredInBlockPropertiesWithMetadata;
@@ -1197,7 +1208,7 @@ export interface OccurredInBlockPropertiesWithMetadataValue2 {}
 /**
  * An entity that something occurred in.
  */
-export interface OccurredInEntity {
+export interface OccurredInEntity extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/occurred-in-entity/v/2";
   properties: OccurredInEntityProperties;
   propertiesWithMetadata: OccurredInEntityPropertiesWithMetadata;
@@ -1237,7 +1248,7 @@ export interface OccurredInEntityPropertiesWithMetadataValue2 {
 /**
  * An organization. Organizations are root-level objects that contain user accounts and teams.
  */
-export interface Organization {
+export interface Organization extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/organization/v/2";
   properties: OrganizationProperties;
   propertiesWithMetadata: OrganizationPropertiesWithMetadata;
@@ -1280,7 +1291,7 @@ export interface OrganizationOutgoingLinksByLinkEntityTypeId {
 /**
  * An organization. Organizations are root-level objects that contain user accounts and teams.
  */
-export interface OrganizationProperties {
+export interface OrganizationProperties extends PropertyObject {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
   "https://hash.ai/@hash/types/property-type/location/"?: LocationPropertyValue;
   "https://hash.ai/@hash/types/property-type/organization-name/": OrganizationNamePropertyValue;
@@ -1321,7 +1332,8 @@ export interface OrganizationPropertiesWithMetadata {
   value: OrganizationPropertiesWithMetadataValue;
 }
 
-export interface OrganizationPropertiesWithMetadataValue {
+export interface OrganizationPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValueWithMetadata;
   "https://hash.ai/@hash/types/property-type/location/"?: LocationPropertyValueWithMetadata;
   "https://hash.ai/@hash/types/property-type/organization-name/": OrganizationNamePropertyValueWithMetadata;
@@ -1378,7 +1390,7 @@ export type OutputsPropertyValueWithMetadata = {
 /**
  * A page for displaying and potentially interacting with data.
  */
-export interface Page {
+export interface Page extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/page/v/1";
   properties: PageProperties;
   propertiesWithMetadata: PagePropertiesWithMetadata;
@@ -1447,7 +1459,7 @@ export interface PreferredPronounsPropertyValueWithMetadata
 /**
  * A presentation file.
  */
-export interface PresentationFile {
+export interface PresentationFile extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/presentation-file/v/1";
   properties: PresentationFileProperties;
   propertiesWithMetadata: PresentationFilePropertiesWithMetadata;
@@ -1487,7 +1499,7 @@ export interface PresentationFilePropertiesWithMetadataValue2 {
 /**
  * A biography for display on someone or something's profile.
  */
-export interface ProfileBio {
+export interface ProfileBio extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/profile-bio/v/1";
   properties: ProfileBioProperties;
   propertiesWithMetadata: ProfileBioPropertiesWithMetadata;
@@ -1554,7 +1566,7 @@ export interface ResolvedAtPropertyValueWithMetadata
 /**
  * A service account.
  */
-export interface ServiceAccount {
+export interface ServiceAccount extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/service-account/v/1";
   properties: ServiceAccountProperties;
   propertiesWithMetadata: ServiceAccountPropertiesWithMetadata;
@@ -1567,7 +1579,7 @@ export interface ServiceAccountOutgoingLinksByLinkEntityTypeId {}
 /**
  * A service account.
  */
-export interface ServiceAccountProperties {
+export interface ServiceAccountProperties extends PropertyObject {
   "https://hash.ai/@hash/types/property-type/profile-url/": ProfileURLPropertyValue;
 }
 
@@ -1576,14 +1588,15 @@ export interface ServiceAccountPropertiesWithMetadata {
   value: ServiceAccountPropertiesWithMetadataValue;
 }
 
-export interface ServiceAccountPropertiesWithMetadataValue {
+export interface ServiceAccountPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://hash.ai/@hash/types/property-type/profile-url/": ProfileURLPropertyValueWithMetadata;
 }
 
 /**
  * A feature of a service
  */
-export interface ServiceFeature {
+export interface ServiceFeature extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/service-feature/v/1";
   properties: ServiceFeatureProperties;
   propertiesWithMetadata: ServiceFeaturePropertiesWithMetadata;
@@ -1596,7 +1609,7 @@ export interface ServiceFeatureOutgoingLinksByLinkEntityTypeId {}
 /**
  * A feature of a service
  */
-export interface ServiceFeatureProperties {
+export interface ServiceFeatureProperties extends PropertyObject {
   "https://hash.ai/@hash/types/property-type/feature-name/": FeatureNamePropertyValue;
   "https://hash.ai/@hash/types/property-type/service-name/": ServiceNamePropertyValue;
   "https://hash.ai/@hash/types/property-type/service-unit-cost/"?: ServiceUnitCostPropertyValue[];
@@ -1607,7 +1620,8 @@ export interface ServiceFeaturePropertiesWithMetadata {
   value: ServiceFeaturePropertiesWithMetadataValue;
 }
 
-export interface ServiceFeaturePropertiesWithMetadataValue {
+export interface ServiceFeaturePropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://hash.ai/@hash/types/property-type/feature-name/": FeatureNamePropertyValueWithMetadata;
   "https://hash.ai/@hash/types/property-type/service-name/": ServiceNamePropertyValueWithMetadata;
   "https://hash.ai/@hash/types/property-type/service-unit-cost/"?: {
@@ -1673,7 +1687,7 @@ export interface SummaryPropertyValueWithMetadata
 /**
  * An ordered sequence of characters.
  */
-export interface Text {
+export interface Text extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/text/v/1";
   properties: TextProperties;
   propertiesWithMetadata: TextPropertiesWithMetadata;
@@ -1682,7 +1696,7 @@ export interface Text {
 /**
  * An ordered sequence of characters
  */
-export interface TextDataType extends string {}
+export type TextDataType = string;
 
 export interface TextDataTypeWithMetadata {
   value: TextDataType;
@@ -1701,7 +1715,7 @@ export interface TextOutgoingLinksByLinkEntityTypeId {}
 /**
  * An ordered sequence of characters.
  */
-export interface TextProperties {
+export interface TextProperties extends PropertyObject {
   "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": TextualContentPropertyValue;
 }
 
@@ -1710,7 +1724,8 @@ export interface TextPropertiesWithMetadata {
   value: TextPropertiesWithMetadataValue;
 }
 
-export interface TextPropertiesWithMetadataValue {
+export interface TextPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/": TextualContentPropertyValueWithMetadata;
 }
 
@@ -1761,7 +1776,7 @@ export type TriggerPropertyValueWithMetadata = {
 /**
  * A user that triggered something.
  */
-export interface TriggeredByUser {
+export interface TriggeredByUser extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/triggered-by-user/v/1";
   properties: TriggeredByUserProperties;
   propertiesWithMetadata: TriggeredByUserPropertiesWithMetadata;
@@ -1805,7 +1820,7 @@ export interface UploadCompletedAtPropertyValueWithMetadata
 /**
  * A user of the HASH application.
  */
-export interface User {
+export interface User extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/5";
   properties: UserProperties;
   propertiesWithMetadata: UserPropertiesWithMetadata;
@@ -1932,7 +1947,7 @@ export interface UserPropertiesWithMetadataValue2 {
 /**
  * A secret or credential belonging to a user.
  */
-export interface UserSecret {
+export interface UserSecret extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/user-secret/v/1";
   properties: UserSecretProperties;
   propertiesWithMetadata: UserSecretPropertiesWithMetadata;
@@ -1945,7 +1960,7 @@ export interface UserSecretOutgoingLinksByLinkEntityTypeId {}
 /**
  * A secret or credential belonging to a user.
  */
-export interface UserSecretProperties {
+export interface UserSecretProperties extends PropertyObject {
   "https://hash.ai/@hash/types/property-type/connection-source-name/": ConnectionSourceNamePropertyValue;
   "https://hash.ai/@hash/types/property-type/expired-at/": ExpiredAtPropertyValue;
   "https://hash.ai/@hash/types/property-type/vault-path/": VaultPathPropertyValue;
@@ -1956,7 +1971,8 @@ export interface UserSecretPropertiesWithMetadata {
   value: UserSecretPropertiesWithMetadataValue;
 }
 
-export interface UserSecretPropertiesWithMetadataValue {
+export interface UserSecretPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://hash.ai/@hash/types/property-type/connection-source-name/": ConnectionSourceNamePropertyValueWithMetadata;
   "https://hash.ai/@hash/types/property-type/expired-at/": ExpiredAtPropertyValueWithMetadata;
   "https://hash.ai/@hash/types/property-type/vault-path/": VaultPathPropertyValueWithMetadata;

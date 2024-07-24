@@ -3,6 +3,11 @@
  */
 
 import type { ArrayMetadata, ObjectMetadata } from "@local/hash-graph-client";
+import type {
+  EntityProperties,
+  PropertyObject,
+  PropertyObjectValueMetadata,
+} from "@local/hash-graph-types/entity";
 
 import type {
   DescriptionPropertyValue,
@@ -33,7 +38,7 @@ export type {
 /**
  * The definition of a HASH flow.
  */
-export interface FlowDefinition {
+export interface FlowDefinition extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/flow-definition/v/1";
   properties: FlowDefinitionProperties;
   propertiesWithMetadata: FlowDefinitionPropertiesWithMetadata;
@@ -46,7 +51,7 @@ export interface FlowDefinitionOutgoingLinksByLinkEntityTypeId {}
 /**
  * The definition of a HASH flow.
  */
-export interface FlowDefinitionProperties {
+export interface FlowDefinitionProperties extends PropertyObject {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValue;
   "https://hash.ai/@hash/types/property-type/output-definitions/": OutputDefinitionsPropertyValue;
@@ -59,7 +64,8 @@ export interface FlowDefinitionPropertiesWithMetadata {
   value: FlowDefinitionPropertiesWithMetadataValue;
 }
 
-export interface FlowDefinitionPropertiesWithMetadataValue {
+export interface FlowDefinitionPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/": DescriptionPropertyValueWithMetadata;
   "https://blockprotocol.org/@blockprotocol/types/property-type/name/": NamePropertyValueWithMetadata;
   "https://hash.ai/@hash/types/property-type/output-definitions/": OutputDefinitionsPropertyValueWithMetadata;

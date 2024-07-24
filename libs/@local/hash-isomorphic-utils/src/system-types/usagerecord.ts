@@ -4,6 +4,11 @@
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import type {
+  EntityProperties,
+  PropertyObject,
+  PropertyObjectValueMetadata,
+} from "@local/hash-graph-types/entity";
 
 import type {
   AppliesFromPropertyValue,
@@ -118,7 +123,7 @@ export type {
 /**
  * The thing that something created.
  */
-export interface Created {
+export interface Created extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/created/v/1";
   properties: CreatedProperties;
   propertiesWithMetadata: CreatedPropertiesWithMetadata;
@@ -162,7 +167,7 @@ export interface CustomMetadataPropertyValueWithMetadata
 /**
  * Something that was incurred in something else.
  */
-export interface IncurredIn {
+export interface IncurredIn extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/incurred-in/v/1";
   properties: IncurredInProperties;
   propertiesWithMetadata: IncurredInPropertiesWithMetadata;
@@ -214,7 +219,7 @@ export interface OutputUnitCountPropertyValueWithMetadata
 /**
  * The thing that something records usage of.
  */
-export interface RecordsUsageOf {
+export interface RecordsUsageOf extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/records-usage-of/v/1";
   properties: RecordsUsageOfProperties;
   propertiesWithMetadata: RecordsUsageOfPropertiesWithMetadata;
@@ -250,7 +255,7 @@ export interface RecordsUsageOfPropertiesWithMetadataValue2 {}
 /**
  * The thing that something created.
  */
-export interface Updated {
+export interface Updated extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/updated/v/1";
   properties: UpdatedProperties;
   propertiesWithMetadata: UpdatedPropertiesWithMetadata;
@@ -286,7 +291,7 @@ export interface UpdatedPropertiesWithMetadataValue2 {}
 /**
  * A record of usage of a service
  */
-export interface UsageRecord {
+export interface UsageRecord extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/usage-record/v/2";
   properties: UsageRecordProperties;
   propertiesWithMetadata: UsageRecordPropertiesWithMetadata;
@@ -318,7 +323,7 @@ export interface UsageRecordOutgoingLinksByLinkEntityTypeId {
 /**
  * A record of usage of a service
  */
-export interface UsageRecordProperties {
+export interface UsageRecordProperties extends PropertyObject {
   "https://hash.ai/@hash/types/property-type/custom-metadata/"?: CustomMetadataPropertyValue;
   "https://hash.ai/@hash/types/property-type/input-unit-count/"?: InputUnitCountPropertyValue;
   "https://hash.ai/@hash/types/property-type/output-unit-count/"?: OutputUnitCountPropertyValue;
@@ -329,7 +334,8 @@ export interface UsageRecordPropertiesWithMetadata {
   value: UsageRecordPropertiesWithMetadataValue;
 }
 
-export interface UsageRecordPropertiesWithMetadataValue {
+export interface UsageRecordPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://hash.ai/@hash/types/property-type/custom-metadata/"?: CustomMetadataPropertyValueWithMetadata;
   "https://hash.ai/@hash/types/property-type/input-unit-count/"?: InputUnitCountPropertyValueWithMetadata;
   "https://hash.ai/@hash/types/property-type/output-unit-count/"?: OutputUnitCountPropertyValueWithMetadata;

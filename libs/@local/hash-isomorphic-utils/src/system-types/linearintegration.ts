@@ -3,6 +3,11 @@
  */
 
 import type { ArrayMetadata, ObjectMetadata } from "@local/hash-graph-client";
+import type {
+  EntityProperties,
+  PropertyObject,
+  PropertyObjectValueMetadata,
+} from "@local/hash-graph-types/entity";
 
 import type {
   Actor,
@@ -437,7 +442,7 @@ export type {
 /**
  * An instance of an integration with Linear.
  */
-export interface LinearIntegration {
+export interface LinearIntegration extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/linear-integration/v/6";
   properties: LinearIntegrationProperties;
   propertiesWithMetadata: LinearIntegrationPropertiesWithMetadata;
@@ -455,7 +460,7 @@ export interface LinearIntegrationOutgoingLinksByLinkEntityTypeId {
 /**
  * An instance of an integration with Linear.
  */
-export interface LinearIntegrationProperties {
+export interface LinearIntegrationProperties extends PropertyObject {
   "https://hash.ai/@hash/types/property-type/linear-org-id/": LinearOrgIdPropertyValue;
 }
 
@@ -464,7 +469,8 @@ export interface LinearIntegrationPropertiesWithMetadata {
   value: LinearIntegrationPropertiesWithMetadataValue;
 }
 
-export interface LinearIntegrationPropertiesWithMetadataValue {
+export interface LinearIntegrationPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://hash.ai/@hash/types/property-type/linear-org-id/": LinearOrgIdPropertyValueWithMetadata;
 }
 
@@ -497,7 +503,7 @@ export interface LinearTeamIdPropertyValueWithMetadata
 /**
  * Something that syncs linear data with something.
  */
-export interface SyncLinearDataWith {
+export interface SyncLinearDataWith extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/sync-linear-data-with/v/1";
   properties: SyncLinearDataWithProperties;
   propertiesWithMetadata: SyncLinearDataWithPropertiesWithMetadata;
@@ -540,7 +546,7 @@ export interface SyncLinearDataWithPropertiesWithMetadataValue2 {
 /**
  * The user secret something uses.
  */
-export interface UsesUserSecret {
+export interface UsesUserSecret extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1";
   properties: UsesUserSecretProperties;
   propertiesWithMetadata: UsesUserSecretPropertiesWithMetadata;

@@ -6,7 +6,12 @@ import type {
   ObjectMetadata,
   PropertyProvenance,
 } from "@local/hash-graph-client";
-import type { Confidence } from "@local/hash-graph-types/entity";
+import type {
+  Confidence,
+  EntityProperties,
+  PropertyObject,
+  PropertyObjectValueMetadata,
+} from "@local/hash-graph-types/entity";
 
 /**
  * An opaque, untyped JSON object
@@ -26,7 +31,7 @@ export interface ObjectDataTypeMetadata {
 /**
  *
  */
-export interface Query {
+export interface Query extends EntityProperties {
   entityTypeId: "https://blockprotocol.org/@hash/types/entity-type/query/v/1";
   properties: QueryProperties;
   propertiesWithMetadata: QueryPropertiesWithMetadata;
@@ -36,7 +41,7 @@ export type QueryOutgoingLinkAndTarget = never;
 
 export interface QueryOutgoingLinksByLinkEntityTypeId {}
 
-export interface QueryProperties {
+export interface QueryProperties extends PropertyObject {
   "https://blockprotocol.org/@hash/types/property-type/query/": QueryPropertyValue;
 }
 
@@ -45,7 +50,8 @@ export interface QueryPropertiesWithMetadata {
   value: QueryPropertiesWithMetadataValue;
 }
 
-export interface QueryPropertiesWithMetadataValue {
+export interface QueryPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://blockprotocol.org/@hash/types/property-type/query/": QueryPropertyValueWithMetadata;
 }
 

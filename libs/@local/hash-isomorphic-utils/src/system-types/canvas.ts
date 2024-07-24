@@ -3,6 +3,7 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
 
 import type {
   ArchivedPropertyValue,
@@ -62,7 +63,6 @@ import type {
   TitlePropertyValue,
   TitlePropertyValueWithMetadata,
 } from "./shared.js";
-import { PropertyObject } from "@local/hash-graph-types/entity";
 
 export type {
   ArchivedPropertyValue,
@@ -126,7 +126,7 @@ export type {
 /**
  * A page in canvas format, with content in a free-form arrangement.
  */
-export interface Canvas {
+export interface Canvas extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/canvas/v/1";
   properties: CanvasProperties;
   propertiesWithMetadata: CanvasPropertiesWithMetadata;
@@ -170,7 +170,7 @@ export interface CanvasPropertiesWithMetadataValue2 {}
 /**
  * Something contained at a spatial position by something
  */
-export interface HasSpatiallyPositionedContent extends PropertyObject {
+export interface HasSpatiallyPositionedContent extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/has-spatially-positioned-content/v/1";
   properties: HasSpatiallyPositionedContentProperties;
   propertiesWithMetadata: HasSpatiallyPositionedContentPropertiesWithMetadata;

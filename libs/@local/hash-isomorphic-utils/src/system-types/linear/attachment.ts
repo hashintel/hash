@@ -6,7 +6,12 @@ import type {
   ObjectMetadata,
   PropertyProvenance,
 } from "@local/hash-graph-client";
-import type { Confidence } from "@local/hash-graph-types/entity";
+import type {
+  Confidence,
+  EntityProperties,
+  PropertyObject,
+  PropertyObjectValueMetadata,
+} from "@local/hash-graph-types/entity";
 
 import type {
   ActivePropertyValue,
@@ -439,7 +444,7 @@ export type {
 /**
  * Issue attachment (e.g. support ticket, pull request).
  */
-export interface Attachment {
+export interface Attachment extends EntityProperties {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/attachment/v/1";
   properties: AttachmentProperties;
   propertiesWithMetadata: AttachmentPropertiesWithMetadata;
@@ -467,7 +472,7 @@ export interface AttachmentOutgoingLinksByLinkEntityTypeId {
 /**
  * Issue attachment (e.g. support ticket, pull request).
  */
-export interface AttachmentProperties {
+export interface AttachmentProperties extends PropertyObject {
   "https://hash.ai/@hash/types/property-type/title/"?: Title0PropertyValue;
   "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValue;
   "https://hash.ai/@linear/types/property-type/attachment-url/": AttachmentURLPropertyValue;
@@ -486,7 +491,8 @@ export interface AttachmentPropertiesWithMetadata {
   value: AttachmentPropertiesWithMetadataValue;
 }
 
-export interface AttachmentPropertiesWithMetadataValue {
+export interface AttachmentPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://hash.ai/@hash/types/property-type/title/"?: TitlePropertyValueWithMetadata0;
   "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValueWithMetadata;
   "https://hash.ai/@linear/types/property-type/attachment-url/": AttachmentURLPropertyValueWithMetadata;
@@ -511,7 +517,7 @@ export interface AttachmentURLPropertyValueWithMetadata
 /**
  * The issue this attachment belongs to.
  */
-export interface BelongsToIssue {
+export interface BelongsToIssue extends EntityProperties {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/belongs-to-issue/v/1";
   properties: BelongsToIssueProperties;
   propertiesWithMetadata: BelongsToIssuePropertiesWithMetadata;

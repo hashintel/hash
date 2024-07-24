@@ -3,6 +3,7 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
 
 import type {
   Actor,
@@ -577,7 +578,7 @@ export type {
 /**
  * A notification related to a comment.
  */
-export interface CommentNotification {
+export interface CommentNotification extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/comment-notification/v/5";
   properties: CommentNotificationProperties;
   propertiesWithMetadata: CommentNotificationPropertiesWithMetadata;
@@ -650,7 +651,7 @@ export interface CommentNotificationTriggeredByUserLink {
 /**
  * The comment that something replied to.
  */
-export interface RepliedToComment {
+export interface RepliedToComment extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/replied-to-comment/v/1";
   properties: RepliedToCommentProperties;
   propertiesWithMetadata: RepliedToCommentPropertiesWithMetadata;
@@ -686,7 +687,7 @@ export interface RepliedToCommentPropertiesWithMetadataValue2 {}
 /**
  * A comment that triggered something.
  */
-export interface TriggeredByComment {
+export interface TriggeredByComment extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/triggered-by-comment/v/1";
   properties: TriggeredByCommentProperties;
   propertiesWithMetadata: TriggeredByCommentPropertiesWithMetadata;

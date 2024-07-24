@@ -3,6 +3,7 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
 
 import type {
   Actor,
@@ -577,7 +578,7 @@ export type {
 /**
  * A notification that a user was mentioned somewhere.
  */
-export interface MentionNotification {
+export interface MentionNotification extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/mention-notification/v/5";
   properties: MentionNotificationProperties;
   propertiesWithMetadata: MentionNotificationPropertiesWithMetadata;
@@ -650,7 +651,7 @@ export interface MentionNotificationTriggeredByUserLink {
 /**
  * A comment that something occurred in.
  */
-export interface OccurredInComment {
+export interface OccurredInComment extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/occurred-in-comment/v/1";
   properties: OccurredInCommentProperties;
   propertiesWithMetadata: OccurredInCommentPropertiesWithMetadata;
@@ -686,7 +687,7 @@ export interface OccurredInCommentPropertiesWithMetadataValue2 {}
 /**
  * Text that something occurred in.
  */
-export interface OccurredInText {
+export interface OccurredInText extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/occurred-in-text/v/1";
   properties: OccurredInTextProperties;
   propertiesWithMetadata: OccurredInTextPropertiesWithMetadata;

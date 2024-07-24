@@ -3,6 +3,7 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
 
 import type {
   Actor,
@@ -33,7 +34,7 @@ export type {
 /**
  * A machine that can perform actions in the system
  */
-export interface Machine {
+export interface Machine extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/machine/v/2";
   properties: MachineProperties;
   propertiesWithMetadata: MachinePropertiesWithMetadata;

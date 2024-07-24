@@ -3,6 +3,7 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
 
 import type {
   BooleanDataType,
@@ -109,7 +110,7 @@ export type {
 /**
  * A spreadsheet file.
  */
-export interface SpreadsheetFile {
+export interface SpreadsheetFile extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/spreadsheet-file/v/1";
   properties: SpreadsheetFileProperties;
   propertiesWithMetadata: SpreadsheetFilePropertiesWithMetadata;

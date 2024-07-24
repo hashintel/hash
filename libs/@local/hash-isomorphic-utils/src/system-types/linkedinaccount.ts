@@ -3,6 +3,7 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
 
 import type {
   ProfileURLPropertyValue,
@@ -33,7 +34,7 @@ export type {
 /**
  * A LinkedIn account.
  */
-export interface LinkedInAccount {
+export interface LinkedInAccount extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/linkedin-account/v/1";
   properties: LinkedInAccountProperties;
   propertiesWithMetadata: LinkedInAccountPropertiesWithMetadata;

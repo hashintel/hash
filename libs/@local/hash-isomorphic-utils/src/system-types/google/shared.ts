@@ -6,12 +6,17 @@ import type {
   ObjectMetadata,
   PropertyProvenance,
 } from "@local/hash-graph-client";
-import type { Confidence } from "@local/hash-graph-types/entity";
+import type {
+  Confidence,
+  EntityProperties,
+  PropertyObject,
+  PropertyObjectValueMetadata,
+} from "@local/hash-graph-types/entity";
 
 /**
  * A Google user account.
  */
-export interface Account {
+export interface Account extends EntityProperties {
   entityTypeId: "https://hash.ai/@google/types/entity-type/account/v/1";
   properties: AccountProperties;
   propertiesWithMetadata: AccountPropertiesWithMetadata;
@@ -34,7 +39,7 @@ export interface AccountOutgoingLinksByLinkEntityTypeId {
 /**
  * A Google user account.
  */
-export interface AccountProperties {
+export interface AccountProperties extends PropertyObject {
   "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": DisplayNamePropertyValue;
   "https://hash.ai/@google/types/property-type/account-id/": AccountIdPropertyValue;
   "https://hash.ai/@hash/types/property-type/email/": EmailPropertyValue;
@@ -45,7 +50,8 @@ export interface AccountPropertiesWithMetadata {
   value: AccountPropertiesWithMetadataValue;
 }
 
-export interface AccountPropertiesWithMetadataValue {
+export interface AccountPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/": DisplayNamePropertyValueWithMetadata;
   "https://hash.ai/@google/types/property-type/account-id/": AccountIdPropertyValueWithMetadata;
   "https://hash.ai/@hash/types/property-type/email/": EmailPropertyValueWithMetadata;
@@ -91,7 +97,7 @@ export interface ExpiredAtPropertyValueWithMetadata
 /**
  * undefined
  */
-export interface Link {
+export interface Link extends EntityProperties {
   entityTypeId: "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
   properties: LinkProperties;
   propertiesWithMetadata: LinkPropertiesWithMetadata;
@@ -101,19 +107,20 @@ export type LinkOutgoingLinkAndTarget = never;
 
 export interface LinkOutgoingLinksByLinkEntityTypeId {}
 
-export interface LinkProperties {}
+export interface LinkProperties extends PropertyObject {}
 
 export interface LinkPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: LinkPropertiesWithMetadataValue;
 }
 
-export interface LinkPropertiesWithMetadataValue {}
+export interface LinkPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {}
 
 /**
  * An ordered sequence of characters
  */
-export interface TextDataType extends string {}
+export type TextDataType = string;
 
 export interface TextDataTypeWithMetadata {
   value: TextDataType;
@@ -128,7 +135,7 @@ export interface TextDataTypeMetadata {
 /**
  * A secret or credential belonging to a user.
  */
-export interface UserSecret {
+export interface UserSecret extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/user-secret/v/1";
   properties: UserSecretProperties;
   propertiesWithMetadata: UserSecretPropertiesWithMetadata;
@@ -141,7 +148,7 @@ export interface UserSecretOutgoingLinksByLinkEntityTypeId {}
 /**
  * A secret or credential belonging to a user.
  */
-export interface UserSecretProperties {
+export interface UserSecretProperties extends PropertyObject {
   "https://hash.ai/@hash/types/property-type/connection-source-name/": ConnectionSourceNamePropertyValue;
   "https://hash.ai/@hash/types/property-type/expired-at/": ExpiredAtPropertyValue;
   "https://hash.ai/@hash/types/property-type/vault-path/": VaultPathPropertyValue;
@@ -152,7 +159,8 @@ export interface UserSecretPropertiesWithMetadata {
   value: UserSecretPropertiesWithMetadataValue;
 }
 
-export interface UserSecretPropertiesWithMetadataValue {
+export interface UserSecretPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://hash.ai/@hash/types/property-type/connection-source-name/": ConnectionSourceNamePropertyValueWithMetadata;
   "https://hash.ai/@hash/types/property-type/expired-at/": ExpiredAtPropertyValueWithMetadata;
   "https://hash.ai/@hash/types/property-type/vault-path/": VaultPathPropertyValueWithMetadata;
@@ -161,7 +169,7 @@ export interface UserSecretPropertiesWithMetadataValue {
 /**
  * The user secret something uses.
  */
-export interface UsesUserSecret {
+export interface UsesUserSecret extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1";
   properties: UsesUserSecretProperties;
   propertiesWithMetadata: UsesUserSecretPropertiesWithMetadata;

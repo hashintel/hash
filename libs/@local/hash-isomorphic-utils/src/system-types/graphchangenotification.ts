@@ -4,6 +4,7 @@
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
 
 import type {
   ArchivedPropertyValue,
@@ -70,7 +71,7 @@ export type {
 /**
  * A notification of a change to a graph
  */
-export interface GraphChangeNotification {
+export interface GraphChangeNotification extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/graph-change-notification/v/1";
   properties: GraphChangeNotificationProperties;
   propertiesWithMetadata: GraphChangeNotificationPropertiesWithMetadata;

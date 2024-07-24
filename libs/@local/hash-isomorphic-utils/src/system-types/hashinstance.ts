@@ -3,6 +3,11 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
+import type {
+  EntityProperties,
+  PropertyObject,
+  PropertyObjectValueMetadata,
+} from "@local/hash-graph-types/entity";
 
 import type { BooleanDataType, BooleanDataTypeWithMetadata } from "./shared.js";
 
@@ -11,7 +16,7 @@ export type { BooleanDataType, BooleanDataTypeWithMetadata };
 /**
  * An instance of HASH.
  */
-export interface HASHInstance {
+export interface HASHInstance extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/hash-instance/v/1";
   properties: HASHInstanceProperties;
   propertiesWithMetadata: HASHInstancePropertiesWithMetadata;
@@ -24,7 +29,7 @@ export interface HASHInstanceOutgoingLinksByLinkEntityTypeId {}
 /**
  * An instance of HASH.
  */
-export interface HASHInstanceProperties {
+export interface HASHInstanceProperties extends PropertyObject {
   "https://hash.ai/@hash/types/property-type/org-self-registration-is-enabled/": OrgSelfRegistrationIsEnabledPropertyValue;
   "https://hash.ai/@hash/types/property-type/pages-are-enabled/": PagesAreEnabledPropertyValue;
   "https://hash.ai/@hash/types/property-type/user-registration-by-invitation-is-enabled/": UserRegistrationByInvitationIsEnabledPropertyValue;
@@ -36,7 +41,8 @@ export interface HASHInstancePropertiesWithMetadata {
   value: HASHInstancePropertiesWithMetadataValue;
 }
 
-export interface HASHInstancePropertiesWithMetadataValue {
+export interface HASHInstancePropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://hash.ai/@hash/types/property-type/org-self-registration-is-enabled/": OrgSelfRegistrationIsEnabledPropertyValueWithMetadata;
   "https://hash.ai/@hash/types/property-type/pages-are-enabled/": PagesAreEnabledPropertyValueWithMetadata;
   "https://hash.ai/@hash/types/property-type/user-registration-by-invitation-is-enabled/": UserRegistrationByInvitationIsEnabledPropertyValueWithMetadata;

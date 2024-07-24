@@ -3,6 +3,7 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
 
 import type {
   ProfileURLPropertyValue,
@@ -33,7 +34,7 @@ export type {
 /**
  * An Instagram account.
  */
-export interface InstagramAccount {
+export interface InstagramAccount extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/instagram-account/v/1";
   properties: InstagramAccountProperties;
   propertiesWithMetadata: InstagramAccountPropertiesWithMetadata;

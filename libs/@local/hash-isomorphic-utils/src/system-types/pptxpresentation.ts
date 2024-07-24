@@ -3,6 +3,7 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
 
 import type {
   BooleanDataType,
@@ -129,7 +130,7 @@ export type {
 /**
  * A Microsoft PowerPoint presentation.
  */
-export interface PPTXPresentation {
+export interface PPTXPresentation extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/pptx-presentation/v/1";
   properties: PPTXPresentationProperties;
   propertiesWithMetadata: PPTXPresentationPropertiesWithMetadata;

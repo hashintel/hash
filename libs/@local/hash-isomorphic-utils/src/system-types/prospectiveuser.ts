@@ -3,6 +3,11 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
+import type {
+  EntityProperties,
+  PropertyObject,
+  PropertyObjectValueMetadata,
+} from "@local/hash-graph-types/entity";
 
 import type {
   EmailPropertyValue,
@@ -41,7 +46,7 @@ export interface IntendedUsePropertyValueWithMetadata
 /**
  * Information about a prospective user of an application or system
  */
-export interface ProspectiveUser {
+export interface ProspectiveUser extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/prospective-user/v/1";
   properties: ProspectiveUserProperties;
   propertiesWithMetadata: ProspectiveUserPropertiesWithMetadata;
@@ -54,7 +59,7 @@ export interface ProspectiveUserOutgoingLinksByLinkEntityTypeId {}
 /**
  * Information about a prospective user of an application or system
  */
-export interface ProspectiveUserProperties {
+export interface ProspectiveUserProperties extends PropertyObject {
   "https://hash.ai/@hash/types/property-type/current-approach/": CurrentApproachPropertyValue;
   "https://hash.ai/@hash/types/property-type/email/": EmailPropertyValue;
   "https://hash.ai/@hash/types/property-type/intended-use/": IntendedUsePropertyValue;
@@ -68,7 +73,8 @@ export interface ProspectiveUserPropertiesWithMetadata {
   value: ProspectiveUserPropertiesWithMetadataValue;
 }
 
-export interface ProspectiveUserPropertiesWithMetadataValue {
+export interface ProspectiveUserPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://hash.ai/@hash/types/property-type/current-approach/": CurrentApproachPropertyValueWithMetadata;
   "https://hash.ai/@hash/types/property-type/email/": EmailPropertyValueWithMetadata;
   "https://hash.ai/@hash/types/property-type/intended-use/": IntendedUsePropertyValueWithMetadata;

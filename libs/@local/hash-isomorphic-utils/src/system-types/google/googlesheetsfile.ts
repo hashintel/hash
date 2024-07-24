@@ -6,7 +6,12 @@ import type {
   ObjectMetadata,
   PropertyProvenance,
 } from "@local/hash-graph-client";
-import type { Confidence } from "@local/hash-graph-types/entity";
+import type {
+  Confidence,
+  EntityProperties,
+  PropertyObject,
+  PropertyObjectValueMetadata,
+} from "@local/hash-graph-types/entity";
 
 import type {
   Account,
@@ -110,7 +115,7 @@ export interface ActorTypeDataTypeMetadata {
 /**
  * The account that something is associated with.
  */
-export interface AssociatedWithAccount {
+export interface AssociatedWithAccount extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/associated-with-account/v/1";
   properties: AssociatedWithAccountProperties;
   propertiesWithMetadata: AssociatedWithAccountPropertiesWithMetadata;
@@ -146,7 +151,7 @@ export interface AssociatedWithAccountPropertiesWithMetadataValue2 {}
 /**
  * A True or False value
  */
-export interface BooleanDataType extends boolean {}
+export type BooleanDataType = boolean;
 
 export interface BooleanDataTypeWithMetadata {
   value: BooleanDataType;
@@ -169,7 +174,7 @@ export interface DataAudiencePropertyValueWithMetadata
 /**
  * A reference to a particular date and time, formatted according to RFC 3339.
  */
-export interface DateTimeDataType extends string {}
+export type DateTimeDataType = string;
 
 export interface DateTimeDataTypeWithMetadata {
   value: DateTimeDataType;
@@ -192,7 +197,7 @@ export interface DescriptionPropertyValueWithMetadata
 /**
  * A file hosted at a URL
  */
-export interface File {
+export interface File extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/file/v/2";
   properties: FileProperties;
   propertiesWithMetadata: FilePropertiesWithMetadata;
@@ -229,7 +234,7 @@ export interface FileOutgoingLinksByLinkEntityTypeId {}
 /**
  * A file hosted at a URL
  */
-export interface FileProperties {
+export interface FileProperties extends PropertyObject {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValue;
   "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/"?: FileHashPropertyValue;
@@ -254,7 +259,8 @@ export interface FilePropertiesWithMetadata {
   value: FilePropertiesWithMetadataValue;
 }
 
-export interface FilePropertiesWithMetadataValue {
+export interface FilePropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValueWithMetadata;
   "https://blockprotocol.org/@blockprotocol/types/property-type/display-name/"?: DisplayNamePropertyValueWithMetadata;
   "https://blockprotocol.org/@blockprotocol/types/property-type/file-hash/"?: FileHashPropertyValueWithMetadata;
@@ -341,7 +347,7 @@ export interface FileURLPropertyValueWithMetadata
 /**
  * A Google Sheets file.
  */
-export interface GoogleSheetsFile {
+export interface GoogleSheetsFile extends EntityProperties {
   entityTypeId: "https://hash.ai/@google/types/entity-type/google-sheets-file/v/1";
   properties: GoogleSheetsFileProperties;
   propertiesWithMetadata: GoogleSheetsFilePropertiesWithMetadata;
@@ -402,7 +408,7 @@ export interface MIMETypePropertyValueWithMetadata
 /**
  * An arithmetical value (in the Real number system)
  */
-export interface NumberDataType extends number {}
+export type NumberDataType = number;
 
 export interface NumberDataTypeWithMetadata {
   value: NumberDataType;
@@ -441,7 +447,7 @@ export interface OriginalURLPropertyValueWithMetadata
 /**
  * A spreadsheet file.
  */
-export interface SpreadsheetFile {
+export interface SpreadsheetFile extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/spreadsheet-file/v/1";
   properties: SpreadsheetFileProperties;
   propertiesWithMetadata: SpreadsheetFilePropertiesWithMetadata;

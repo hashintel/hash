@@ -3,6 +3,7 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
 
 import type {
   BooleanDataType,
@@ -129,7 +130,7 @@ export type {
 /**
  * A PDF document.
  */
-export interface PDFDocument {
+export interface PDFDocument extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/pdf-document/v/1";
   properties: PDFDocumentProperties;
   propertiesWithMetadata: PDFDocumentPropertiesWithMetadata;

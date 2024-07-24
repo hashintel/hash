@@ -3,6 +3,7 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
 
 import type {
   ProfileURLPropertyValue,
@@ -33,7 +34,7 @@ export type {
 /**
  * A GitHub account.
  */
-export interface GitHubAccount {
+export interface GitHubAccount extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/github-account/v/1";
   properties: GitHubAccountProperties;
   propertiesWithMetadata: GitHubAccountPropertiesWithMetadata;

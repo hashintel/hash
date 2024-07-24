@@ -7,7 +7,12 @@ import type {
   ObjectMetadata,
   PropertyProvenance,
 } from "@local/hash-graph-client";
-import type { Confidence } from "@local/hash-graph-types/entity";
+import type {
+  Confidence,
+  EntityProperties,
+  PropertyObject,
+  PropertyObjectValueMetadata,
+} from "@local/hash-graph-types/entity";
 
 /**
  * Whether the user account is active or disabled (suspended).
@@ -76,7 +81,7 @@ export interface AvatarURLPropertyValueWithMetadata
 /**
  * The organization the user belongs to.
  */
-export interface BelongsToOrganization {
+export interface BelongsToOrganization extends EntityProperties {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/belongs-to-organization/v/1";
   properties: BelongsToOrganizationProperties;
   propertiesWithMetadata: BelongsToOrganizationPropertiesWithMetadata;
@@ -112,7 +117,7 @@ export interface BelongsToOrganizationPropertiesWithMetadataValue2 {}
 /**
  * A True or False value
  */
-export interface BooleanDataType extends boolean {}
+export type BooleanDataType = boolean;
 
 export interface BooleanDataTypeWithMetadata {
   value: BooleanDataType;
@@ -271,7 +276,7 @@ export interface GuestPropertyValueWithMetadata
 /**
  * The user to whom the issue is assigned to.
  */
-export interface HasAssignee {
+export interface HasAssignee extends EntityProperties {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/has-assignee/v/1";
   properties: HasAssigneeProperties;
   propertiesWithMetadata: HasAssigneePropertiesWithMetadata;
@@ -307,7 +312,7 @@ export interface HasAssigneePropertiesWithMetadataValue2 {}
 /**
  * The user who created something.
  */
-export interface HasCreator {
+export interface HasCreator extends EntityProperties {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/has-creator/v/1";
   properties: HasCreatorProperties;
   propertiesWithMetadata: HasCreatorPropertiesWithMetadata;
@@ -343,7 +348,7 @@ export interface HasCreatorPropertiesWithMetadataValue2 {}
 /**
  * A user who is subscribed to the issue.
  */
-export interface HasSubscriber {
+export interface HasSubscriber extends EntityProperties {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/has-subscriber/v/1";
   properties: HasSubscriberProperties;
   propertiesWithMetadata: HasSubscriberPropertiesWithMetadata;
@@ -418,7 +423,7 @@ export interface IsMePropertyValueWithMetadata
 /**
  * An issue.
  */
-export interface Issue {
+export interface Issue extends EntityProperties {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/issue/v/1";
   properties: IssueProperties;
   propertiesWithMetadata: IssuePropertiesWithMetadata;
@@ -472,7 +477,7 @@ export interface IssueParentLink {
 /**
  * An issue.
  */
-export interface IssueProperties {
+export interface IssueProperties extends PropertyObject {
   "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValue;
   "https://hash.ai/@linear/types/property-type/auto-archived-at/"?: AutoArchivedAtPropertyValue;
   "https://hash.ai/@linear/types/property-type/auto-closed-at/"?: AutoClosedAtPropertyValue;
@@ -508,7 +513,8 @@ export interface IssuePropertiesWithMetadata {
   value: IssuePropertiesWithMetadataValue;
 }
 
-export interface IssuePropertiesWithMetadataValue {
+export interface IssuePropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValueWithMetadata;
   "https://hash.ai/@linear/types/property-type/auto-archived-at/"?: AutoArchivedAtPropertyValueWithMetadata;
   "https://hash.ai/@linear/types/property-type/auto-closed-at/"?: AutoClosedAtPropertyValueWithMetadata;
@@ -571,7 +577,7 @@ export interface LastSeenPropertyValueWithMetadata
 /**
  * undefined
  */
-export interface Link {
+export interface Link extends EntityProperties {
   entityTypeId: "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1";
   properties: LinkProperties;
   propertiesWithMetadata: LinkPropertiesWithMetadata;
@@ -581,14 +587,15 @@ export type LinkOutgoingLinkAndTarget = never;
 
 export interface LinkOutgoingLinksByLinkEntityTypeId {}
 
-export interface LinkProperties {}
+export interface LinkProperties extends PropertyObject {}
 
 export interface LinkPropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: LinkPropertiesWithMetadataValue;
 }
 
-export interface LinkPropertiesWithMetadataValue {}
+export interface LinkPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {}
 
 /**
  * The organization's logo URL.
@@ -617,7 +624,7 @@ export interface NamePropertyValueWithMetadata
 /**
  * An arithmetical value (in the Real number system)
  */
-export interface NumberDataType extends number {}
+export type NumberDataType = number;
 
 export interface NumberDataTypeWithMetadata {
   value: NumberDataType;
@@ -632,7 +639,7 @@ export interface NumberDataTypeMetadata {
 /**
  * An organization. Organizations are root-level objects that contain user accounts and teams.
  */
-export interface Organization {
+export interface Organization extends EntityProperties {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/organization/v/1";
   properties: OrganizationProperties;
   propertiesWithMetadata: OrganizationPropertiesWithMetadata;
@@ -645,7 +652,7 @@ export interface OrganizationOutgoingLinksByLinkEntityTypeId {}
 /**
  * An organization. Organizations are root-level objects that contain user accounts and teams.
  */
-export interface OrganizationProperties {
+export interface OrganizationProperties extends PropertyObject {
   "https://hash.ai/@linear/types/property-type/allow-members-to-invite/"?: AllowMembersToInvitePropertyValue;
   "https://hash.ai/@linear/types/property-type/allowed-auth-service/": AllowedAuthServicePropertyValue[];
   "https://hash.ai/@linear/types/property-type/archived-at/"?: ArchivedAtPropertyValue;
@@ -675,7 +682,8 @@ export interface OrganizationPropertiesWithMetadata {
   value: OrganizationPropertiesWithMetadataValue;
 }
 
-export interface OrganizationPropertiesWithMetadataValue {
+export interface OrganizationPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://hash.ai/@linear/types/property-type/allow-members-to-invite/"?: AllowMembersToInvitePropertyValueWithMetadata;
   "https://hash.ai/@linear/types/property-type/allowed-auth-service/": {
     value: AllowedAuthServicePropertyValueWithMetadata[];
@@ -709,7 +717,7 @@ export interface OrganizationPropertiesWithMetadataValue {
 /**
  * The parent of the issue.
  */
-export interface Parent {
+export interface Parent extends EntityProperties {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/parent/v/1";
   properties: ParentProperties;
   propertiesWithMetadata: ParentPropertiesWithMetadata;
@@ -825,7 +833,7 @@ export interface SCIMEnabledPropertyValueWithMetadata
 /**
  * The user who snoozed the issue.
  */
-export interface SnoozedBy {
+export interface SnoozedBy extends EntityProperties {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/snoozed-by/v/1";
   properties: SnoozedByProperties;
   propertiesWithMetadata: SnoozedByPropertiesWithMetadata;
@@ -893,7 +901,7 @@ export interface StartedTriageAtPropertyValueWithMetadata
 /**
  * The workflow state that the issue is associated with.
  */
-export interface State {
+export interface State extends EntityProperties {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/state/v/1";
   properties: StateProperties;
   propertiesWithMetadata: StatePropertiesWithMetadata;
@@ -959,7 +967,7 @@ export interface SubIssueSortOrderPropertyValueWithMetadata
 /**
  * An ordered sequence of characters
  */
-export interface TextDataType extends string {}
+export type TextDataType = string;
 
 export interface TextDataTypeWithMetadata {
   value: TextDataType;
@@ -1030,7 +1038,7 @@ export interface UpdatedAtPropertyValueWithMetadata
 /**
  * A user that has access to the the resources of an organization.
  */
-export interface User {
+export interface User extends EntityProperties {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/user/v/1";
   properties: UserProperties;
   propertiesWithMetadata: UserPropertiesWithMetadata;
@@ -1058,7 +1066,7 @@ export interface UserOutgoingLinksByLinkEntityTypeId {
 /**
  * A user that has access to the the resources of an organization.
  */
-export interface UserProperties {
+export interface UserProperties extends PropertyObject {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValue;
   "https://hash.ai/@hash/types/property-type/email/": EmailPropertyValue;
   "https://hash.ai/@linear/types/property-type/active/": ActivePropertyValue;
@@ -1088,7 +1096,8 @@ export interface UserPropertiesWithMetadata {
   value: UserPropertiesWithMetadataValue;
 }
 
-export interface UserPropertiesWithMetadataValue {
+export interface UserPropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {
   "https://blockprotocol.org/@blockprotocol/types/property-type/description/"?: DescriptionPropertyValueWithMetadata;
   "https://hash.ai/@hash/types/property-type/email/": EmailPropertyValueWithMetadata;
   "https://hash.ai/@linear/types/property-type/active/": ActivePropertyValueWithMetadata;
@@ -1116,7 +1125,7 @@ export interface UserPropertiesWithMetadataValue {
 /**
  * A state in a team workflow.
  */
-export interface WorkflowState {
+export interface WorkflowState extends EntityProperties {
   entityTypeId: "https://hash.ai/@linear/types/entity-type/workflow-state/v/1";
   properties: WorkflowStateProperties;
   propertiesWithMetadata: WorkflowStatePropertiesWithMetadata;
@@ -1129,11 +1138,12 @@ export interface WorkflowStateOutgoingLinksByLinkEntityTypeId {}
 /**
  * A state in a team workflow.
  */
-export interface WorkflowStateProperties {}
+export interface WorkflowStateProperties extends PropertyObject {}
 
 export interface WorkflowStatePropertiesWithMetadata {
   metadata?: ObjectMetadata;
   value: WorkflowStatePropertiesWithMetadataValue;
 }
 
-export interface WorkflowStatePropertiesWithMetadataValue {}
+export interface WorkflowStatePropertiesWithMetadataValue
+  extends PropertyObjectValueMetadata {}

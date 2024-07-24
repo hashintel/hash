@@ -3,6 +3,7 @@
  */
 
 import type { ObjectMetadata } from "@local/hash-graph-client";
+import type { EntityProperties } from "@local/hash-graph-types/entity";
 
 import type {
   ArchivedPropertyValue,
@@ -133,7 +134,7 @@ export type {
 /**
  * A page in document format, with content arranged in columns.
  */
-export interface Document {
+export interface Document extends EntityProperties {
   entityTypeId: "https://hash.ai/@hash/types/entity-type/document/v/1";
   properties: DocumentProperties;
   propertiesWithMetadata: DocumentPropertiesWithMetadata;

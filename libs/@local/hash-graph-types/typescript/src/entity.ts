@@ -123,33 +123,33 @@ export type Property = PropertyValue | PropertyArray | PropertyObject;
 /**
  * The metadata for a `PropertyValue`.
  */
-export type PropertyMetadataValue = {
+export interface PropertyMetadataValue {
   metadata: Omit<ValueMetadata, "dataTypeId"> & {
     dataTypeId?: VersionedUrl;
   };
-};
+}
 
 /**
  * The metadata for a `PropertyArray`.
  *
  * It contains metadata for the array itself and for each of its elements.
  */
-export type PropertyMetadataArray = {
+export interface PropertyMetadataArray {
   value: PropertyMetadata[];
   metadata?: ArrayMetadata;
-};
+}
 
 /**
  * The metadata for a `PropertyObject`.
  *
  * It contains metadata for the object itself and for each of its properties.
  */
-export type PropertyMetadataObject = {
+export interface PropertyMetadataObject {
   value: {
     [key: BaseUrl]: PropertyMetadata;
   };
   metadata?: ObjectMetadata;
-};
+}
 
 export type PropertyMetadata =
   | PropertyMetadataArray
@@ -196,6 +196,10 @@ export interface PropertyArrayWithMetadata {
   metadata?: PropertyMetadataArray["metadata"];
 }
 
+export interface PropertyObjectValueMetadata {
+  [propertyType: BaseUrl]: PropertyWithMetadata;
+}
+
 /**
  * A compound type that contains both the value and the metadata of a property
  * object.
@@ -204,7 +208,7 @@ export interface PropertyArrayWithMetadata {
  * `metadata` of the object itself.
  */
 export interface PropertyObjectWithMetadata {
-  value: Record<BaseUrl, PropertyWithMetadata>;
+  value: PropertyObjectValueMetadata;
   metadata?: PropertyMetadataObject["metadata"];
 }
 

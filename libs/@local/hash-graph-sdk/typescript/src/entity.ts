@@ -401,7 +401,7 @@ export const mergePropertyObjectAndMetadata = <T extends EntityProperties>(
 ): T["propertiesWithMetadata"] => {
   return {
     value: Object.fromEntries(
-      Object.entries(property)
+      typedEntries(property)
         // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- It's possible for values to be undefined
         .filter(([_key, value]) => value !== undefined)
         .map(([key, value]) => {
