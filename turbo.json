@@ -15,7 +15,7 @@
       "env": ["TEST_COVERAGE"]
     },
     "test:integration": {
-      "dependsOn": ["codegen"],
+      "dependsOn": ["codegen", "^wait"],
       "env": ["TEST_COVERAGE"]
     },
     "test:system": {},
@@ -29,8 +29,20 @@
       "cache": false
     },
     "dev": {
+      "cache": false,
       "persistent": true,
       "dependsOn": ["codegen"]
+    },
+    "dev:healthcheck": {
+      "cache": false
+    },
+    "dev:wait": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["codegen", "^wait"]
+    },
+    "wait": {
+      "cache": false
     },
     "lint": {
       "dependsOn": ["codegen"]

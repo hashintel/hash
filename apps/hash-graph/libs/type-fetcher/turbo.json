@@ -1,0 +1,15 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["@apps/hash-graph#compile"]
+    },
+    "start": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["@apps/hash-graph#compile:release"]
+    }
+  }
+}

@@ -8,38 +8,25 @@
       "cache": false
     },
     "dev:migrate": {
+      "cache": false,
       "dependsOn": ["compile"]
     },
-    "dev:server": {
-      "dependsOn": ["compile", "dev:migrate"],
-      "persistent": true
-    },
-    "dev:test-server": {
-      "dependsOn": ["compile", "dev:migrate"],
-      "persistent": true
-    },
-    "dev:type-fetcher": {
-      "dependsOn": ["compile"],
-      "persistent": true
-    },
     "dev": {
-      "dependsOn": ["compile", "dev:migrate"],
-      "persistent": true
+      "cache": false,
+      "dependsOn": ["dev:migrate"]
+    },
+    "dev:test": {
+      "cache": false,
+      "dependsOn": ["dev:migrate"]
     },
     "start:migrate": {
-      "dependsOn": ["compile:release", "build:release"]
-    },
-    "start:server": {
-      "dependsOn": ["compile:release", "start:migrate"],
-      "persistent": true
-    },
-    "start:type-fetcher": {
-      "dependsOn": ["compile:release", "build"],
-      "persistent": true
+      "cache": false,
+      "dependsOn": ["compile:release"]
     },
     "start": {
-      "dependsOn": ["compile:release", "start:migrate"],
-      "persistent": true
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["start:migrate"]
     },
     "build:docker": {
       "cache": false

@@ -2,6 +2,11 @@
   "name": "@rust/type-fetcher",
   "version": "0.0.0-private",
   "private": true,
+  "scripts": {
+    "dev": "../../../../target/debug/hash-graph type-fetcher",
+    "dev:healthcheck": "../../../../target/debug/hash-graph server --healthcheck",
+    "start": "../../../../target/release/hash-graph type-fetcher"
+  },
   "dependencies": {
     "@blockprotocol/type-system-rs": "0.0.0-private"
   },

@@ -230,7 +230,7 @@ jobs:
 
   integration-tests:
     name: Integration
-    needs: [setup, build]
+    needs: [setup]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integration-tests) }}
       fail-fast: false
@@ -247,10 +247,6 @@ jobs:
         id: tests
         run: |
           TEST_TASKS=$(turbo run test:integration --env-mode=loose --dry-run=json --filter "${{ matrix.package }}" | jq -c '.tasks[]')
-          REQUIRES_GRAPH=$(echo "$TEST_TASKS" | jq -s '[.[] | select((.package == "@apps/hash-graph" or .package == "@rust/graph") and .task == "build")] != []')
-          REQUIRES_AI_WORKER_TS=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-ts" and .task == "build")] != []')
-          REQUIRES_INTEGRATION_WORKER=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-worker-integration" and .task == "build")] != []')
-          REQUIRES_API=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-api" and .task == "build")] != []')
 
           HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
           echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
@@ -263,11 +259,6 @@ jobs:
             echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
             echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
           fi
-
-          echo "external-service-graph=$REQUIRES_GRAPH" >> $GITHUB_OUTPUT
-          echo "external-service-ai-worker-ts=$REQUIRES_AI_WORKER_TS" >> $GITHUB_OUTPUT
-          echo "external-service-worker-integration=$REQUIRES_INTEGRATION_WORKER" >> $GITHUB_OUTPUT
-          echo "external-service-api=$REQUIRES_API" >> $GITHUB_OUTPUT
 
       - name: Prune repository
         uses: ./.github/actions/prune-repository
@@ -306,42 +297,32 @@ jobs:
       - name: Show disk usage
         run: df -h
 
-      - name: Load Docker images
-        uses: ./.github/actions/load-docker-images
-        with:
-          hash-graph: ${{ steps.tests.outputs.external-service-graph == 'true' }}
-          hash-ai-worker-ts: ${{ steps.tests.outputs.external-service-ai-worker-ts == 'true' }}
-          hash-integration-worker: ${{ steps.tests.outputs.external-service-worker-integration == 'true' }}
-          hash-api: ${{ steps.tests.outputs.external-service-api == 'true' }}
-
-      - name: Show disk usage
-        run: df -h
-
       - name: Launch external services
         run: |
           turbo codegen --filter '@apps/hash-external-services'
 
-          SERVICES="hydra kratos redis spicedb"
+          echo 'OPENAI_API_KEY=dummy' >> .env.local
+          echo 'ANTHROPIC_API_KEY=dummy' >> .env.local
+          echo 'HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID=dummy' >> .env.local
+          echo 'HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY=dummy' >> .env.local
 
-          if [[ ${{ steps.tests.outputs.external-service-graph == 'true' }} == 'true' ]]; then
-            SERVICES="$SERVICES graph"
-          fi
-          if [[ ${{ steps.tests.outputs.external-service-ai-worker-ts }} == 'true' ]]; then
-              echo 'OPENAI_API_KEY=dummy' >> .env.local
-              echo 'ANTHROPIC_API_KEY=dummy' >> .env.local
-              echo 'HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID=dummy' >> .env.local
-              echo 'HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY=dummy' >> .env.local
-              SERVICES="$SERVICES hash-temporal-worker-ts"
-          fi
-          if [[ ${{ steps.tests.outputs.external-service-worker-integration }} == 'true' ]]; then
-              SERVICES="$SERVICES hash-temporal-worker-integration"
-          fi
-
-          echo "Running services: $SERVICES"
-          yarn workspace @apps/hash-external-services deploy:test up $SERVICES --wait
+          yarn workspace @apps/hash-external-services deploy:test up hydra kratos redis spicedb --wait
 
       - name: Show disk usage
         run: df -h
+
+      - name: Run app dependencies
+        run: |
+          turbo run dev --env-mode=loose --filter $(turbo run dev:healthcheck --dry-run json | jq -r '[.tasks[] | select(.command != "<NONEXISTENT>") | .package] | join(" --filter ")') &
+
+          for i in {1..10}; do
+            turbo run dev:healthcheck --env-mode=loose
+            if [[ $? -eq 0 ]]; then
+              exit 0
+            fi
+            sleep 1
+          done
+          exit 1
 
       - name: Run tests
         continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
