@@ -319,8 +319,9 @@ jobs:
         id: background-tasks
         if: steps.tests.outputs.background-tasks != '[]'
         run: |
+          mkdir -p logs
           BACKGROUND_TASK_FILTER="--filter $(echo '${{ steps.tests.outputs.background-tasks }}' | jq -r 'join(" --filter ")')"
-          turbo run dev --env-mode=loose $BACKGROUND_TASK_FILTER &
+          turbo run dev --env-mode=loose $BACKGROUND_TASK_FILTER >logs/background-task.log 2>&1 &
           PID=$!
           echo "pid=$PID" >> $GITHUB_OUTPUT
 
@@ -355,6 +356,7 @@ jobs:
         if: always() && steps.tests.outputs.background-tasks != '[]'
         run: |
           kill -9 ${{ steps.background-tasks.outputs.pid }}
+          cat logs/background-task.log
 
   system-tests:
     name: System
