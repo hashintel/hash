@@ -30,7 +30,7 @@
     // Run commands
     "start:migrate": {
       "cache": false,
-      "dependsOn": ["^start:wait"]
+      "dependsOn": ["build", "^start:wait"]
     },
     "start": {
       "cache": false,
@@ -38,13 +38,13 @@
       "dependsOn": ["start:migrate"]
     },
     "start:wait": {
-      "cache": false,
-      "dependsOn": ["compile:release"]
+      "cache": false
+      // "dependsOn": ["compile:release"]
     },
 
     "start:test:migrate": {
       "cache": false,
-      "dependsOn": ["^start:test:wait"]
+      "dependsOn": ["build", "^start:test:wait"]
     },
     "start:test": {
       "cache": false,
@@ -52,8 +52,8 @@
       "dependsOn": ["start:test:migrate"]
     },
     "start:test:wait": {
-      "cache": false,
-      "dependsOn": ["compile"]
+      "cache": false
+      // "dependsOn": ["compile"]
     },
 
     // Test commands
