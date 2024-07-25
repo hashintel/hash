@@ -55,13 +55,11 @@ jobs:
             | jq 'select(.task == "test:system" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
-          set -x
           DOCKER_PACKAGES_FILTER=$(turbo run build:docker --dry-run=json --filter '...[HEAD^]' | jq -e '.packages | contains(["//"])' > /dev/null && echo '' || echo '--filter ...[HEAD^]')
-          DOCKER_PACKAGES_PACKAGES=$(sh -c "turbo run build:docker --dry-run=json $DOCKER_PACKAGES_FILTER" \
+          DOCKER_PACKAGES=$(sh -c "turbo run build:docker --dry-run=json $DOCKER_PACKAGES_FILTER" \
             | jq '.tasks[]' \
             | jq 'select(.task == "build:docker" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
-          set +x
 
           PUBLISH_PACKAGES=[]
           PUBLISH_INCLUDES=[]

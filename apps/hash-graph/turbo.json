@@ -9,9 +9,6 @@
       "cache": false,
       "dependsOn": ["compile"]
     },
-    "build:docker": {
-      "cache": false
-    },
     "codegen:generate-openapi-specs": {
       "dependsOn": ["compile"],
       "outputs": ["openapi/openapi.json", "openapi/models/**"]

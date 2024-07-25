@@ -20,6 +20,9 @@
     "build": {
       "dependsOn": ["codegen"]
     },
+    "build:docker": {
+      "cache": false
+    },
     "compile": {
       "cache": false
     },
