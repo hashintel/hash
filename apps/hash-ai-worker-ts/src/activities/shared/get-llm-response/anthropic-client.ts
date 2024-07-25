@@ -18,7 +18,6 @@ export const anthropic = new Anthropic({
 const anthropicMessageModels = [
   "claude-3-5-sonnet-20240620",
   "claude-3-opus-20240229",
-  "claude-3-sonnet-20240229",
   "claude-3-haiku-20240307",
 ] satisfies MessageCreateParamsBase["model"][];
 
@@ -35,7 +34,6 @@ export const anthropicMessageModelToContextWindow: Record<
   number
 > = {
   "claude-3-haiku-20240307": 200_000,
-  "claude-3-sonnet-20240229": 200_000,
   "claude-3-opus-20240229": 200_000,
   "claude-3-5-sonnet-20240620": 200_000,
 };
@@ -46,9 +44,8 @@ export const anthropicMessageModelToMaxOutput: Record<
   number
 > = {
   "claude-3-haiku-20240307": 4096,
-  "claude-3-sonnet-20240229": 4096,
   "claude-3-opus-20240229": 4096,
-  "claude-3-5-sonnet-20240620": 4096,
+  "claude-3-5-sonnet-20240620": 8192,
 };
 
 export type AnthropicMessagesCreateParams = {
@@ -93,7 +90,6 @@ const anthropicBedrockClient: AnthropicBedrock = new AnthropicBedrock({
 });
 
 const anthropicBedrockModels = [
-  "anthropic.claude-3-sonnet-20240229-v1:0",
   "anthropic.claude-3-haiku-20240307-v1:0",
   "anthropic.claude-3-opus-20240229-v1:0",
   "anthropic.claude-3-5-sonnet-20240620-v1:0",
@@ -106,7 +102,6 @@ export const anthropicModelToBedrockModel: Record<
   AnthropicMessageModel,
   AnthropicBedrockModel
 > = {
-  "claude-3-sonnet-20240229": "anthropic.claude-3-sonnet-20240229-v1:0",
   "claude-3-haiku-20240307": "anthropic.claude-3-haiku-20240307-v1:0",
   "claude-3-opus-20240229": "anthropic.claude-3-opus-20240229-v1:0",
   "claude-3-5-sonnet-20240620": "anthropic.claude-3-5-sonnet-20240620-v1:0",
@@ -146,7 +141,7 @@ export const createAnthropicMessagesWithTools = async (params: {
       },
       {
         headers: {
-          "anthropic-beta": "tools-2024-05-16",
+          "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
         },
       },
     )) as AnthropicMessagesCreateResponse;
@@ -155,7 +150,7 @@ export const createAnthropicMessagesWithTools = async (params: {
       payload as MessageCreateParamsNonStreaming,
       {
         headers: {
-          "anthropic-beta": "tools-2024-05-16",
+          "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
         },
       },
     )) as AnthropicMessagesCreateResponse;

@@ -16,8 +16,7 @@ export const sanitizeInputBeforeValidation = (params: {
   const { toolDefinition } = params;
 
   /**
-   * Some LLM models (e.g. `claude-3-sonnet-20240229`) may provide
-   * valid input, but in a nested `properties` object. If this is present,
+   * Some LLM models may provide valid input, but in a nested `properties` object. If this is present,
    * and the tool definition does not specify a `properties` input, we can
    * attempt to gracefully handle this by extracting the input from the nested
    * `properties` object.

@@ -7,7 +7,7 @@
      * @todo ideally we wouldn't specify 'dom' as this library is supposed to be usable across environments,
      *    but we're using WebAssembly DOM types in the constructor input
      */
-    "lib": ["dom", "esnext"],
+    "lib": ["dom", "ES2023"],
     "module": "NodeNext",
     "moduleResolution": "NodeNext"
   }

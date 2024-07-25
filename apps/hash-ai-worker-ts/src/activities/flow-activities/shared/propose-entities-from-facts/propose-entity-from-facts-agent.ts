@@ -347,7 +347,9 @@ export const proposeEntityFromFactsAgent = async (params: {
             {
               type: "text",
               text: dedent(`
-                Facts: ${JSON.stringify(facts)}
+                Entity name: ${entitySummary.name}
+                Entity summary ${entitySummary.summary}
+                Facts about entity: ${JSON.stringify(facts)}
                 ${
                   proposingOutgoingLinks
                     ? `Possible outgoing link target entities: ${JSON.stringify(

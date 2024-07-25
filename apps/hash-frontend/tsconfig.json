@@ -10,7 +10,8 @@
       {
         "name": "next"
       }
-    ]
+    ],
+    "target": "ES2021"
   },
   "include": [
     "assets.d.ts",

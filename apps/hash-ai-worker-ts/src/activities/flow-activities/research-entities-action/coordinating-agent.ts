@@ -173,7 +173,7 @@ const generateProgressReport = (params: {
   input: CoordinatingAgentInput;
   state: CoordinatingAgentState;
 }): LlmMessageTextContent => {
-  const { state } = params;
+  const { state, input } = params;
 
   const {
     subTasksCompleted,
@@ -182,6 +182,8 @@ const generateProgressReport = (params: {
     resourceUrlsVisited,
     webQueriesMade,
   } = state;
+
+  const { allDereferencedEntityTypesById } = input;
 
   const proposedEntities = state.proposedEntities.filter(
     (proposedEntity) => !("sourceEntityId" in proposedEntity),
@@ -206,14 +208,31 @@ const generateProgressReport = (params: {
     if (proposedEntities.length > 0) {
       progressReport += dedent(`
       <DiscoveredEntities>
-      ${proposedEntities.map((proposedEntity) => simplifyProposedEntityForLlmConsumption({ proposedEntity })).join("\n")}
+      ${proposedEntities
+        .map((proposedEntity) =>
+          simplifyProposedEntityForLlmConsumption({
+            proposedEntity,
+            entityType:
+              allDereferencedEntityTypesById[proposedEntity.entityTypeId]!
+                .schema,
+          }),
+        )
+        .join("\n")}
       </DiscoveredEntities>
     `);
     }
     if (proposedLinks.length > 0) {
       progressReport += dedent(`
       <DiscoveredLinks>
-      ${proposedLinks.map((proposedLink) => simplifyProposedEntityForLlmConsumption({ proposedEntity: proposedLink })).join("\n")}
+      ${proposedLinks
+        .map((proposedLink) =>
+          simplifyProposedEntityForLlmConsumption({
+            proposedEntity: proposedLink,
+            entityType:
+              allDereferencedEntityTypesById[proposedLink.entityTypeId]!.schema,
+          }),
+        )
+        .join("\n")}
       </DiscoveredLinks>
     `);
     }
@@ -233,10 +252,20 @@ const generateProgressReport = (params: {
   ) {
     if (resourceUrlsVisited.length > 0) {
       progressReport += dedent(`
-        You have already visited the following resources – they may be worth visiting again if you need more information:
-        <ResourcesVisited>
-        ${resourceUrlsVisited.join("\n")}
-        </ResourcesVisited>
+        You have discovered the following resources via web searches but noy yet visited them. It may be worth inferring facts from the URL.
+        <ResourcesNotVisited>
+        ${resourcesNotVisited
+          .map(
+            (webPage) =>
+              `
+<Resource>
+  <Url>${webPage.url}</Url>
+  <Summary>${webPage.summary}</Summary>
+  <FromWebSearch>"${webPage.fromSearchQuery}"</FromWebSearch>
+</Resource>`,
+          )
+          .join("\n")}
+        </ResourcesNotVisited>
       `);
     }
     if (resourcesNotVisited.length > 0) {
@@ -274,6 +303,10 @@ const generateProgressReport = (params: {
       </SubTasksCompleted>
     `);
   }
+
+  progressReport += dedent(`
+    Now decide what to do next. Pay close attention to any missing properties on entities, and consider doing work to populate them.
+  `);
 
   return {
     type: "text",
@@ -325,8 +358,7 @@ const getNextToolCalls = async (params: {
         progressReport,
       ],
     } satisfies LlmUserMessage,
-    ...llmMessagesFromPreviousToolCalls,
-  ].flat();
+  ];
 
   const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
     await getFlowContext();

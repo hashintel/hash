@@ -51,8 +51,8 @@ const generateToolDefinitions = (params: {
                   - must specify the objectEntityId of the object of the fact, if the object of the fact is one of the potential object entities
                   - must be concise statements that are true based on the information provided in the text
                   - must be standalone, and not depend on any contextual information to make sense
-                  - must not contain any pronouns, and refer to all entities by their provided "name"
-                  - must not be lists or contain multiple pieces of information, each piece of information must be expressed as a standalone fact
+                  - must not contain any pronouns, and refer to all entities by the name provided by the user (which may differ slightly from that in the text)
+                  - must not be lists or contain multiple pieces of information – each piece of information must be expressed as a standalone fact
                   - must not include prepositional phrases, these must be provided separately in the "prepositionalPhrases" argument
                   - must include full and complete units when specifying numeric data as the object of the fact
                 `),
@@ -100,6 +100,8 @@ const systemPrompt = dedent(`
 
   The user will provide you with:
     - Text: the text from which you should extract facts.
+    - URL: the URL the text was taken from, if any.
+    - Title: The title of the text, if any.
     - Subject Entities: the subject entities of facts that the user is looking for, each of which are of the same type (i.e. have the same properties and outgoing links). 
     - Relevant Properties: a list of properties the user is looking for in the text. Pay particular attention to these properties when extracting facts.
     - Relevant Outgoing Links: a definition of the possible outgoing links the user is looking for in the text. Pay particular attention to relationships (links) with other entities of these kinds.
@@ -117,10 +119,15 @@ const systemPrompt = dedent(`
   [{ text: "Company X acquired Company Y.", prepositionalPhrases: ["in 2019", "for $10 million"], subjectEntityLocalId: "companyXabc", objectEntityLocalId: "companyYdef" }]
   Don't include facts which start with a subject you can't provide an id for. 
   Omit any facts that don't start with one of the subject entities provided.
+  
+  IMPORTANT: pay attention to the name of each SubjectEntity – each fact MUST start with one of these names, exactly as it is expressed in the <SubjectEntity>
+             If this is slightly different to how the entity is named in the text, use the name of the SubjectEntity!
 `);
 
 const constructUserMessage = (params: {
   text: string;
+  url: string | null;
+  title: string | null;
   subjectEntities: LocalEntitySummary[];
   dereferencedEntityType: DereferencedEntityType;
   linkEntityTypesById: Record<string, DereferencedEntityType>;
@@ -128,6 +135,8 @@ const constructUserMessage = (params: {
 }): LlmUserMessage => {
   const {
     text,
+    url,
+    title,
     subjectEntities,
     dereferencedEntityType,
     linkEntityTypesById,
@@ -147,24 +156,15 @@ const constructUserMessage = (params: {
       {
         type: "text",
         text: dedent(`
+          ${url ? `<URL>${url}</URL>` : ""}
+          ${title ? `<Title>${title}</Title>` : ""}
           <Text>${text}</Text>
-          <SubjectEntities>
-          These are the entities which facts can be about. For example, a fact might start '${subjectEntities[0]?.name} acquired...'.
-          ${subjectEntities
-            .map(({ localId, name, summary }) =>
-              dedent(`<SubjectEntity>
-entityLocalId: ${localId}
-name: ${name}
-summary: ${summary}</SubjectEntity>`),
-            )
-            .join("\n")}
-          </SubjectEntities>
           <RelevantProperties>
           These are the properties of entities that the user is particularly interested in. Prioritise facts relevant to these properties.
           ${relevantProperties
-            .map(({ title, description }) =>
+            .map(({ title: propertyTitle, description }) =>
               dedent(`<Property>
-title: ${title}
+title: ${propertyTitle}
 description: ${description}</Property>`),
             )
             .join("\n")}
@@ -193,10 +193,10 @@ description: ${description}</Property>`),
             description: ${linkEntityType.description}
             properties: ${Object.values(linkEntityType.properties)
               .flatMap((value) => ("items" in value ? value.items : value))
-              .map(({ title, description }) =>
+              .map(({ title: propertyTitle, description }) =>
                 dedent(`
               <Property>
-              title: ${title}
+              title: ${propertyTitle}
               description: ${description}
               </Property>`),
               )
@@ -216,7 +216,23 @@ description: ${description}</Property>`),
           summary: ${summary}</PotentialObjectEntity>`),
             )
             .join("\n")}
-          </PotentialObjectEntities>`),
+          </PotentialObjectEntities>
+          <SubjectEntities>
+          These are the entities which facts can be about. For example, a fact might start '${subjectEntities[0]?.name} acquired...'.
+          ${subjectEntities
+            .map(({ localId, name, summary }) =>
+              dedent(`<SubjectEntity>
+entityLocalId: ${localId}
+name: ${name}
+summary: ${summary}</SubjectEntity>`),
+            )
+            .join("\n")}
+          </SubjectEntities>
+
+          Please now submit facts, remembering these key points:
+            - Each fact MUST start with and be about one of the subject entities: ${subjectEntities.map(({ name }) => name).join(", ")}
+            - We are particularly interested in facts related to the following properties: ${relevantProperties.map((property) => property.title).join(", ")}. You must include facts about these properties if they are present in the text.
+`),
       },
     ],
   };
@@ -228,9 +244,12 @@ export const inferEntityFactsFromTextAgent = async (params: {
   subjectEntities: LocalEntitySummary[];
   potentialObjectEntities: LocalEntitySummary[];
   text: string;
+  url: string | null;
+  title: string | null;
   dereferencedEntityType: DereferencedEntityType;
   linkEntityTypesById: Record<string, DereferencedEntityType>;
   retryContext?: {
+    previousInvalidFacts: Fact[];
     previousValidFacts: Fact[];
     retryMessages: LlmMessage[];
     retryCount: number;
@@ -240,10 +259,16 @@ export const inferEntityFactsFromTextAgent = async (params: {
     subjectEntities,
     potentialObjectEntities,
     text,
+    url,
+    title,
     dereferencedEntityType,
     linkEntityTypesById,
     retryContext,
   } = params;
+
+  logger.debug(
+    `Inferring facts from text for entities ${subjectEntities.map(({ name }) => name).join(", ")}`,
+  );
 
   const { userAuthentication, flowEntityId, stepId, webId } =
     await getFlowContext();
@@ -256,9 +281,9 @@ export const inferEntityFactsFromTextAgent = async (params: {
       systemPrompt,
       messages: [
         constructUserMessage({
-          text: retryContext
-            ? "Omitted, as you no longer need to infer new facts."
-            : text,
+          text,
+          url,
+          title,
           subjectEntities,
           dereferencedEntityType,
           linkEntityTypesById,
@@ -281,9 +306,11 @@ export const inferEntityFactsFromTextAgent = async (params: {
 
   const retry = (retryParams: {
     allValidInferredFacts: Fact[];
+    allInvalidFacts: Fact[];
     retryMessages: LlmMessage[];
   }) => {
-    const { allValidInferredFacts, retryMessages } = retryParams;
+    const { allValidInferredFacts, allInvalidFacts, retryMessages } =
+      retryParams;
 
     const { retryCount = 0 } = retryContext ?? {};
 
@@ -303,6 +330,7 @@ export const inferEntityFactsFromTextAgent = async (params: {
     return inferEntityFactsFromTextAgent({
       ...params,
       retryContext: {
+        previousInvalidFacts: allInvalidFacts,
         previousValidFacts: allValidInferredFacts,
         retryMessages,
         retryCount: retryCount + 1,
@@ -318,6 +346,7 @@ export const inferEntityFactsFromTextAgent = async (params: {
      *    entity doesn't exceed the maximum output token limit
      */
     return retry({
+      allInvalidFacts: params.retryContext?.previousInvalidFacts ?? [],
       allValidInferredFacts: params.retryContext?.previousValidFacts ?? [],
       retryMessages: [
         {
@@ -353,8 +382,10 @@ export const inferEntityFactsFromTextAgent = async (params: {
 
   const validFacts: Fact[] = [];
 
-  const invalidFacts: (Fact & { invalidReason: string; toolCallId: string })[] =
-    [];
+  const potentiallyRepeatedInvalidFacts: (Fact & {
+    invalidReason: string;
+    toolCallId: string;
+  })[] = [];
 
   for (const toolCall of toolCalls) {
     const input = toolCall.input as {
@@ -382,7 +413,7 @@ export const inferEntityFactsFromTextAgent = async (params: {
         );
 
       if (!subjectEntity) {
-        invalidFacts.push({
+        potentiallyRepeatedInvalidFacts.push({
           ...fact,
           invalidReason: `An invalid "subjectEntityLocalId" has been provided: ${fact.subjectEntityLocalId}. All facts must relate to a subject entity – don't submit facts that can't be linked to one. Review the subject entities in the earlier message and only provides facts that begin with one of them.`,
           toolCallId: toolCall.id,
@@ -400,7 +431,7 @@ export const inferEntityFactsFromTextAgent = async (params: {
         );
 
       if (fact.objectEntityLocalId && !objectEntity) {
-        invalidFacts.push({
+        potentiallyRepeatedInvalidFacts.push({
           ...fact,
           invalidReason: `An invalid "objectEntityLocalId" has been provided: ${fact.objectEntityLocalId} – if not null, the objectEntityId must relate to a provided entity. Review the object entities provided and match the objectEntityId to one of them – or if there is no match, provide 'null' for the objectEntityId`,
           toolCallId: toolCall.id,
@@ -410,15 +441,15 @@ export const inferEntityFactsFromTextAgent = async (params: {
       }
 
       if (!fact.text.includes(subjectEntity.name)) {
-        invalidFacts.push({
+        potentiallyRepeatedInvalidFacts.push({
           ...fact,
-          invalidReason: `The fact specifies subjectEntityId "${fact.subjectEntityLocalId}", but that entity's name "${subjectEntity.name}" does not appear in the fact. Facts must start with the name of the subject. If you don't have an appropriate subject for the fact, don't include the fact. Review the subject entities in the earlier message for valid subjects.`,
+          invalidReason: `The fact specifies subjectEntityId "${fact.subjectEntityLocalId}", but that entity's name "${subjectEntity.name}" does not appear in the fact. Facts must start with the name of the subject. If you described the entity slightly different, resubmit the fact beginning with "${subjectEntity.name}" instead, as long as you are sure the fact relates to this same entity. If you don't have an appropriate subject for the fact, don't include the fact. Review the subject entities in my previous message for valid subjects.`,
           toolCallId: toolCall.id,
         });
       } else if (objectEntity && !fact.text.includes(objectEntity.name)) {
-        invalidFacts.push({
+        potentiallyRepeatedInvalidFacts.push({
           ...fact,
-          invalidReason: `The fact specifies objectEntityId "${fact.objectEntityLocalId}, but that entity's name "${objectEntity.name}" does not appear in the fact. Facts must end with the name of the object of the fact.`,
+          invalidReason: `The fact specifies objectEntityId "${fact.objectEntityLocalId}, but that entity's name "${objectEntity.name}" does not appear in the fact. Facts must end with the name of the object of the fact. If you described the entity slightly different, resubmit the fact ending with "${objectEntity.name}" instead. If you don't have an objectEntityId for the object of the fact, pass 'null' for objectEntityId.`,
           toolCallId: toolCall.id,
         });
       } else {
@@ -437,6 +468,16 @@ export const inferEntityFactsFromTextAgent = async (params: {
     ),
   ];
 
+  /**
+   * Only give the model one chance to correct an invalid fact – if it doesn't, discard the fact.
+   */
+  const invalidFacts = potentiallyRepeatedInvalidFacts.filter(
+    (fact) =>
+      !(params.retryContext?.previousInvalidFacts ?? []).find(
+        (previousInvalidFact) => previousInvalidFact.text === fact.text,
+      ),
+  );
+
   /** @todo: check if there are subject entities for which no facts have been provided */
 
   if (invalidFacts.length > 0) {
@@ -446,7 +487,7 @@ export const inferEntityFactsFromTextAgent = async (params: {
           ({ toolCallId }) => toolCallId === toolCall.id,
         );
 
-        if (invalidFactsProvidedInToolCall.length === 0) {
+        if (invalidFacts.length === 0) {
           return {
             type: "tool_result",
             tool_use_id: toolCall.id,
@@ -462,11 +503,19 @@ export const inferEntityFactsFromTextAgent = async (params: {
             ${invalidFactsProvidedInToolCall
               .map(
                 (invalidFact) =>
-                  `InvalidFact: ${stringify(invalidFact)}\nInvalid Reason: ${invalidFact.invalidReason}`,
+                  dedent`<InvalidFact>
+            text: ${invalidFact.text}
+            subjectEntityId: ${invalidFact.subjectEntityLocalId}
+            objectEntityId: ${invalidFact.objectEntityLocalId}
+            prepositionalPhrases: ${stringify(invalidFact.prepositionalPhrases)}
+            
+            Invalid because: ${invalidFact.invalidReason}
+            Please correct this!
+            </InvalidFact>`,
               )
               .join("\n\n")}
 
-            You must make another "submitFacts" tool call, with valid facts.
+            You must now make another "submitFacts" tool call, correcting each of the errors identified above.
           `),
           is_error: true,
         };
@@ -480,6 +529,10 @@ export const inferEntityFactsFromTextAgent = async (params: {
     );
 
     return retry({
+      allInvalidFacts: [
+        ...invalidFacts,
+        ...(retryContext?.previousInvalidFacts ?? []),
+      ],
       allValidInferredFacts,
       retryMessages: [
         llmResponse.message,
