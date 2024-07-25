@@ -90,6 +90,8 @@ export const generateToolDefinitions = <
         
       Make sure that the goal of the research task matches the entity types it will seek – don't have a goal
       which asks to identify entities of types which aren't provided as entityTypeIds.
+      
+      If you need specific properties for the entities, mention those properties by name in the research goal.
     `),
       inputSchema: {
         type: "object",
@@ -133,8 +135,13 @@ export const generateToolDefinitions = <
                   type: "string",
                   description: dedent(`
                   The goal of the sub-task, a detailed description of what is required to be achieved.
-                  For example "Find the technical specifications of the product with name X".
                   It should focus on the types of entities being asked for, as provided by you under entityTypeIds.
+                  Mention any specific properties required by name.
+                  
+                  For example 
+                  "Find the technical specifications of product X".
+                  "Find the LinkedIn URL for person X"
+                  "Find the release date, director and box office takings for movie X"
                 `),
                 },
                 explanation: {
@@ -198,8 +205,9 @@ export const generateToolDefinitions = <
                   type: "string",
                   description: dedent(`
                 A prompt instructing the inference agent which entities it should gather facts about from the resource.
-                Do not specify any information of the structure of the entities, as this is predefined by
-                  the entity type.
+                Do not specify any information of the structure of the entities, as this is predefined by the entity type.
+                
+                DO specify any particular properties you are looking for by name.
     
                 You must be specific about which and how many entities you need to gather facts about to satisfy the research task.
                 Don't ask for information on types of entities you haven't specified under entityTypeIds.`),

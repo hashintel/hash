@@ -100,6 +100,8 @@ const systemPrompt = dedent(`
 
   The user will provide you with:
     - Text: the text from which you should extract facts.
+    - URL: the URL the text was taken from, if any.
+    - Title: The title of the text, if any.
     - Subject Entities: the subject entities of facts that the user is looking for, each of which are of the same type (i.e. have the same properties and outgoing links). 
     - Relevant Properties: a list of properties the user is looking for in the text. Pay particular attention to these properties when extracting facts.
     - Relevant Outgoing Links: a definition of the possible outgoing links the user is looking for in the text. Pay particular attention to relationships (links) with other entities of these kinds.
@@ -124,6 +126,8 @@ const systemPrompt = dedent(`
 
 const constructUserMessage = (params: {
   text: string;
+  url: string | null;
+  title: string | null;
   subjectEntities: LocalEntitySummary[];
   dereferencedEntityType: DereferencedEntityType;
   linkEntityTypesById: Record<string, DereferencedEntityType>;
@@ -131,6 +135,8 @@ const constructUserMessage = (params: {
 }): LlmUserMessage => {
   const {
     text,
+    url,
+    title,
     subjectEntities,
     dereferencedEntityType,
     linkEntityTypesById,
@@ -150,13 +156,15 @@ const constructUserMessage = (params: {
       {
         type: "text",
         text: dedent(`
+          ${url ? `<URL>${url}</URL>` : ""}
+          ${title ? `<Title>${title}</Title>` : ""}
           <Text>${text}</Text>
           <RelevantProperties>
           These are the properties of entities that the user is particularly interested in. Prioritise facts relevant to these properties.
           ${relevantProperties
-            .map(({ title, description }) =>
+            .map(({ title: propertyTitle, description }) =>
               dedent(`<Property>
-title: ${title}
+title: ${propertyTitle}
 description: ${description}</Property>`),
             )
             .join("\n")}
@@ -185,10 +193,10 @@ description: ${description}</Property>`),
             description: ${linkEntityType.description}
             properties: ${Object.values(linkEntityType.properties)
               .flatMap((value) => ("items" in value ? value.items : value))
-              .map(({ title, description }) =>
+              .map(({ title: propertyTitle, description }) =>
                 dedent(`
               <Property>
-              title: ${title}
+              title: ${propertyTitle}
               description: ${description}
               </Property>`),
               )
@@ -223,6 +231,7 @@ summary: ${summary}</SubjectEntity>`),
 
           Please now submit facts, remembering these key points:
             - Each fact MUST start with and be about one of the subject entities: ${subjectEntities.map(({ name }) => name).join(", ")}
+            - We are particularly interested in facts related to the following properties: ${relevantProperties.map((property) => property.title).join(", ")}. You must include facts about these properties if they are present in the text.
 `),
       },
     ],
@@ -235,6 +244,8 @@ export const inferEntityFactsFromTextAgent = async (params: {
   subjectEntities: LocalEntitySummary[];
   potentialObjectEntities: LocalEntitySummary[];
   text: string;
+  url: string | null;
+  title: string | null;
   dereferencedEntityType: DereferencedEntityType;
   linkEntityTypesById: Record<string, DereferencedEntityType>;
   retryContext?: {
@@ -248,10 +259,16 @@ export const inferEntityFactsFromTextAgent = async (params: {
     subjectEntities,
     potentialObjectEntities,
     text,
+    url,
+    title,
     dereferencedEntityType,
     linkEntityTypesById,
     retryContext,
   } = params;
+
+  logger.debug(
+    `Inferring facts from text for entities ${subjectEntities.map(({ name }) => name).join(", ")}`,
+  );
 
   const { userAuthentication, flowEntityId, stepId, webId } =
     await getFlowContext();
@@ -265,6 +282,8 @@ export const inferEntityFactsFromTextAgent = async (params: {
       messages: [
         constructUserMessage({
           text,
+          url,
+          title,
           subjectEntities,
           dereferencedEntityType,
           linkEntityTypesById,
@@ -430,7 +449,7 @@ export const inferEntityFactsFromTextAgent = async (params: {
       } else if (objectEntity && !fact.text.includes(objectEntity.name)) {
         potentiallyRepeatedInvalidFacts.push({
           ...fact,
-          invalidReason: `The fact specifies objectEntityId "${fact.objectEntityLocalId}, but that entity's name "${objectEntity.name}" does not appear in the fact. Facts must end with the name of the object of the fact. If you described the entity slightly different, resubmit the fact ending with "${objectEntity.name}" instead`,
+          invalidReason: `The fact specifies objectEntityId "${fact.objectEntityLocalId}, but that entity's name "${objectEntity.name}" does not appear in the fact. Facts must end with the name of the object of the fact. If you described the entity slightly different, resubmit the fact ending with "${objectEntity.name}" instead. If you don't have an objectEntityId for the object of the fact, pass 'null' for objectEntityId.`,
           toolCallId: toolCall.id,
         });
       } else {

@@ -341,6 +341,8 @@ const exploreResource = async (params: {
   } = await inferFactsFromText({
     existingEntitiesOfInterest,
     text: content,
+    url: resource.url,
+    title: resourceTitle ?? null,
     /** @todo: consider whether this should be a dedicated input */
     relevantEntitiesPrompt: task,
     dereferencedEntityTypes: dereferencedEntityTypesById,
@@ -396,25 +398,36 @@ export const linkFollowerAgent = async (
   params: LinkFollowerAgentInput,
 ): Promise<{
   status: "ok";
-  facts: Fact[];
+  inferredFacts: Fact[];
   exploredResources: ResourceToExplore[];
-  existingEntitiesOfInterest: LocalEntitySummary[];
+  inferredSummaries: LocalEntitySummary[];
   suggestionForNextSteps: string;
 }> => {
-  const { initialResource, task } = params;
+  const { initialResource, existingEntitiesOfInterest, task } = params;
 
   const exploredResources: ResourceToExplore[] = [];
 
   let resourcesToExplore: ResourceToExplore[] = [initialResource];
 
-  let allEntitySummaries: LocalEntitySummary[] = [];
-  let allFacts: Fact[] = [];
+  let allInferredEntitySummaries: LocalEntitySummary[] = [];
+  let allInferredFacts: Fact[] = [];
   let suggestionForNextSteps = "";
 
   while (resourcesToExplore.length > 0) {
+    const entitiesToProvideExplorer = [
+      ...allInferredEntitySummaries,
+      ...existingEntitiesOfInterest,
+    ];
+
     const exploredResourcesResponses = await Promise.all(
       resourcesToExplore.map((resource) =>
-        exploreResource({ resource, input: params }),
+        exploreResource({
+          resource,
+          input: {
+            ...params,
+            existingEntitiesOfInterest: entitiesToProvideExplorer,
+          },
+        }),
       ),
     );
 
@@ -449,24 +462,27 @@ export const linkFollowerAgent = async (
     }
 
     if (inferredEntitySummaries.length > 0) {
-      if (allEntitySummaries.length === 0 && resourcesToExplore.length === 1) {
+      if (
+        allInferredEntitySummaries.length === 0 &&
+        resourcesToExplore.length === 1
+      ) {
         /**
          * If we previously haven't encountered any entities, and we only explored
          * a single resource, we can safely assume that any entities inferred
          * are unique and don't require deduplication.
          */
-        allEntitySummaries.push(...inferredEntitySummaries);
-        allFacts.push(...inferredFacts);
+        allInferredEntitySummaries.push(...inferredEntitySummaries);
+        allInferredFacts.push(...inferredFacts);
       } else {
         /**
          * Otherwise we need to deduplicate the entities.
          */
         const { duplicates } = await deduplicateEntities({
-          entities: [...inferredEntitySummaries, ...allEntitySummaries],
+          entities: [...inferredEntitySummaries, ...allInferredEntitySummaries],
         });
 
-        allEntitySummaries = [
-          ...allEntitySummaries,
+        allInferredEntitySummaries = [
+          ...allInferredEntitySummaries,
           ...inferredEntitySummaries,
         ].filter(
           ({ localId }) =>
@@ -475,26 +491,28 @@ export const linkFollowerAgent = async (
             ),
         );
 
-        allFacts = [...allFacts, ...inferredFacts].map((fact) => {
-          const { subjectEntityLocalId, objectEntityLocalId } = fact;
-          const subjectDuplicate = duplicates.find(({ duplicateIds }) =>
-            duplicateIds.includes(subjectEntityLocalId),
-          );
+        allInferredFacts = [...allInferredFacts, ...inferredFacts].map(
+          (fact) => {
+            const { subjectEntityLocalId, objectEntityLocalId } = fact;
+            const subjectDuplicate = duplicates.find(({ duplicateIds }) =>
+              duplicateIds.includes(subjectEntityLocalId),
+            );
 
-          const objectDuplicate = objectEntityLocalId
-            ? duplicates.find(({ duplicateIds }) =>
-                duplicateIds.includes(objectEntityLocalId),
-              )
-            : undefined;
+            const objectDuplicate = objectEntityLocalId
+              ? duplicates.find(({ duplicateIds }) =>
+                  duplicateIds.includes(objectEntityLocalId),
+                )
+              : undefined;
 
-          return {
-            ...fact,
-            subjectEntityLocalId:
-              subjectDuplicate?.canonicalId ?? fact.subjectEntityLocalId,
-            objectEntityLocalId:
-              objectDuplicate?.canonicalId ?? objectEntityLocalId,
-          };
-        });
+            return {
+              ...fact,
+              subjectEntityLocalId:
+                subjectDuplicate?.canonicalId ?? fact.subjectEntityLocalId,
+              objectEntityLocalId:
+                objectDuplicate?.canonicalId ?? objectEntityLocalId,
+            };
+          },
+        );
       }
     }
 
@@ -509,8 +527,8 @@ export const linkFollowerAgent = async (
 
     const { nextToolCall } = await getLinkFollowerNextToolCalls({
       task,
-      entitySummaries: allEntitySummaries,
-      factsGathered: allFacts,
+      entitySummaries: allInferredEntitySummaries,
+      factsGathered: allInferredFacts,
       previouslyVisitedLinks,
       possibleNextLinks,
     });
@@ -533,8 +551,8 @@ export const linkFollowerAgent = async (
 
   return {
     status: "ok",
-    facts: allFacts,
-    existingEntitiesOfInterest: allEntitySummaries,
+    inferredFacts: allInferredFacts,
+    inferredSummaries: allInferredEntitySummaries,
     suggestionForNextSteps,
     exploredResources,
   };

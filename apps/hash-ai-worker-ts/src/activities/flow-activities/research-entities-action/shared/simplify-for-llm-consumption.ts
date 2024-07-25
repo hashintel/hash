@@ -10,6 +10,7 @@ import type {
   MinimalPropertyTypeValue,
 } from "../../../shared/dereference-entity-type.js";
 import type { Fact } from "../../shared/infer-facts-from-text/types.js";
+import { BaseUrl } from "@local/hash-graph-types/ontology";
 
 const simplifyMinimalPropertyTypeValueForLlmConsumption = (params: {
   propertyTypeValue: MinimalPropertyTypeValue;
@@ -85,8 +86,9 @@ const getIdForLinkEndpoint = (endpoint: LocalOrExistingEntityId) =>
 
 export const simplifyProposedEntityForLlmConsumption = (params: {
   proposedEntity: ProposedEntity;
+  entityType: DereferencedEntityType;
 }) => {
-  const { proposedEntity } = params;
+  const { proposedEntity, entityType } = params;
 
   const {
     entityTypeId,
@@ -112,6 +114,12 @@ ${Object.entries(properties)
         ? `\n<LinkData>SourceEntityId: ${getIdForLinkEndpoint(sourceEntityId)}\nTargetEntityId: ${getIdForLinkEndpoint(targetEntityId)}</LinkData>`
         : ""
     }
+Missing properties: ${Object.entries(entityType.properties)
+    .filter(([baseUrl]) => properties[baseUrl as BaseUrl] === undefined)
+    .map(([_baseUrl, schema]) =>
+      "items" in schema ? schema.items.title : schema.title,
+    )
+    .join(", ")}
 </Entity>
   `;
 };

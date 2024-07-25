@@ -43,6 +43,9 @@ const getLinkFollowerNextToolCallsSystemPrompt = dedent(`
   If you already have enough facts to meet the research brief, call 'complete'. 
   Don't follow more links unless it is required to meet the goal of the research task.
   </TaskDescription>
+  
+  Balance any need to gather more facts with the need to complete the task in a timely manner.
+  Consider the research task and the facts already gathered when making your decision.
 `);
 
 type GetLinkFollowerNextToolCallsParams = {
@@ -72,24 +75,26 @@ const generateUserMessage = (
         text: dedent(`
 <Task>${task}</Task>
 <PreviouslyVisitedLinks>${previouslyVisitedLinks.map(({ url }) => url).join("\n")}</PreviouslyVisitedLinks>
-<Entities>${JSON.stringify(
-          entitySummaries.map(({ localId, name, summary, entityTypeId }) => {
-            const factsAboutEntity = factsGathered.filter(
-              (fact) => fact.subjectEntityLocalId === localId,
-            );
+<Entities>
+Here is the information about entities you have already gathered:
+${JSON.stringify(
+  entitySummaries.map(({ localId, name, summary, entityTypeId }) => {
+    const factsAboutEntity = factsGathered.filter(
+      (fact) => fact.subjectEntityLocalId === localId,
+    );
 
-            return {
-              name,
-              summary,
-              entityType: entityTypeId,
-              facts: JSON.stringify(
-                factsAboutEntity.map(simplifyFactForLlmConsumption),
-              ),
-            };
-          }),
-          undefined,
-          2,
-        )}</Entities>
+    return {
+      name,
+      summary,
+      entityType: entityTypeId,
+      facts: JSON.stringify(
+        factsAboutEntity.map(simplifyFactForLlmConsumption),
+      ),
+    };
+  }),
+  undefined,
+  2,
+)}</Entities>
 <PossibleNextLinks>
 ${JSON.stringify(
   possibleNextLinks.filter(

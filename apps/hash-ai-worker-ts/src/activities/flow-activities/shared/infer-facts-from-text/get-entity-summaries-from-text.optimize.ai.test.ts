@@ -30,6 +30,7 @@ const metrics: MetricDefinition[] = testData.map((testItem) => {
 
       const { entitySummaries } = await getEntitySummariesFromText({
         dereferencedEntityType: entityType,
+        existingSummaries: [],
         relevantEntitiesPrompt,
         testingParams,
         text: context,

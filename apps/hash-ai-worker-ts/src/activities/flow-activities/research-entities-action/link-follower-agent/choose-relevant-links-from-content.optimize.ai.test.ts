@@ -262,7 +262,6 @@ test(
     const models: LlmParams["model"][] = [
       // "claude-3-5-sonnet-20240620",
       "claude-3-haiku-20240307",
-      // "claude-3-sonnet-20240229",
       // "gpt-4o",
     ];
 
@@ -271,6 +270,7 @@ test(
       initialSystemPrompt: chooseRelevantLinksFromContentSystemPrompt,
       directoryPath: baseDirectoryPath,
       metrics,
+      attemptsPerPrompt: 3,
       promptIterations: 4,
     });
   },

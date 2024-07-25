@@ -88,6 +88,7 @@ Remember:
 - Be inclusive rather than exclusive when applying the relevance filter.
 - Stick strictly to the information provided in the text for summaries.
 - Do not let the relevance prompt mislead you into extracting incorrect entity types.
+- If you can't find any entities of the requested type, return an empty list – don't make them up, or use any prior knowledge
 `);
 
 export const getEntitySummariesFromText = async (params: {

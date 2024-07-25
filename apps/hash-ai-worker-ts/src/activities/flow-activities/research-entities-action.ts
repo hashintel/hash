@@ -299,6 +299,7 @@ export const researchEntitiesAction: FlowActionActivity<{
         url: unsignedUrl,
         title: displayName ?? fileName ?? unsignedUrl.split("/").pop()!,
         summary: description ?? "",
+        fromSearchQuery: "User-provided resource",
       };
     });
 
@@ -425,6 +426,15 @@ export const researchEntitiesAction: FlowActionActivity<{
                 toolCall.input as CoordinatorToolCallArguments["webSearch"],
             });
 
+            if ("error" in webPageSummaries) {
+              return {
+                ...toolCall,
+                ...nullReturns,
+                isError: true,
+                output: webPageSummaries.error,
+              };
+            }
+
             return {
               ...nullReturns,
               ...toolCall,
@@ -548,8 +558,8 @@ export const researchEntitiesAction: FlowActionActivity<{
             const resourceUrlsVisited: string[] = [];
 
             for (const { response } of responsesWithUrl) {
-              inferredFacts.push(...response.facts);
-              entitySummaries.push(...response.existingEntitiesOfInterest);
+              inferredFacts.push(...response.inferredFacts);
+              entitySummaries.push(...response.inferredSummaries);
               suggestionsForNextStepsMade.push(response.suggestionForNextSteps);
               resourceUrlsVisited.push(
                 ...response.exploredResources.map(({ url }) => url),
