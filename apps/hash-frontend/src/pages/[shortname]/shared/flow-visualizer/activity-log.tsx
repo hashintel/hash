@@ -309,7 +309,7 @@ export const ActivityLog = ({ logs }: { logs: LocalProgressLog[] }) => {
       }));
   }, [logs, sort]);
 
-  const columns = useMemo(() => createColumns(rows.length), [rows]);
+  const columns = useMemo(() => createColumns(rows.length), [rows.length]);
 
   return (
     <>
