@@ -4,8 +4,8 @@
     "codegen": {
       "dependsOn": ["^codegen"]
     },
-    "test:system": {
-      "dependsOn": ["@apps/plugin-browser#build:test"],
+    "test:integration": {
+      "dependsOn": ["@apps/plugin-browser#build:test", "^start:test:wait"],
       "cache": false
     }
   }

@@ -18,8 +18,8 @@
     "start:migrate": "NODE_ENV=production tsx ./src/ensure-system-graph-is-initialized.ts",
     "start:test": "cross-env NODE_ENV=test NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/index.ts",
     "start:test:migrate": "NODE_ENV=test tsx ./src/ensure-system-graph-is-initialized.ts",
-    "start:test:wait": "wait-on --timeout 120000 http://0.0.0.0:5001",
-    "start:wait": "wait-on --timeout 120000 http://0.0.0.0:5001",
+    "start:test:wait": "wait-on --timeout 10000 http://0.0.0.0:5001",
+    "start:wait": "wait-on --timeout 10000 http://0.0.0.0:5001",
     "test:unit": "vitest --run"
   },
   "dependencies": {
