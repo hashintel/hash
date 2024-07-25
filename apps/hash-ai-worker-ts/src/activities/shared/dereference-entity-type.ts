@@ -48,7 +48,7 @@ export type DereferencedPropertyType = Pick<
 
 export type DereferencedEntityType<
   PropertyTypeKey extends string | BaseUrl = BaseUrl,
-> = Pick<EntityType, "$id" | "description" | "links" | "title"> & {
+> = Pick<EntityType, "$id" | "description" | "links" | "required" | "title"> & {
   properties: Record<
     PropertyTypeKey,
     DereferencedPropertyType | ArraySchema<DereferencedPropertyType>
@@ -376,7 +376,7 @@ export const dereferenceEntityType = <
     for (const [versionedUrl, linkSchema] of typedEntries(
       entityType.schema.links ?? {},
     )) {
-      mergedLinks[versionedUrl] = linkSchema;
+      mergedLinks[versionedUrl] ??= linkSchema;
     }
   }
 
