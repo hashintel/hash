@@ -357,7 +357,7 @@ const generateProgressReport = (params: {
     text += dedent(`
         You have already visited the following resources – they may be worth visiting again if you need more information, but don't do so unless you have a clear goal in mind that this page is likely to help with:
         <ResourcesVisited>
-          ${resourceUrlsVisited.map((resourceUrl) => `<ResourceVisited>{resourceUrl}</ResourceVisited>`).join("\n")}
+          ${resourceUrlsVisited.map((resourceUrl) => `<ResourceVisited>${resourceUrl}</ResourceVisited>`).join("\n")}
         </ResourcesVisited>
       `);
   }

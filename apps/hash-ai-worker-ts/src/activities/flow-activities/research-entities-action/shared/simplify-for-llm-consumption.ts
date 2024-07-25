@@ -1,3 +1,4 @@
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type {
   LocalOrExistingEntityId,
   ProposedEntity,
@@ -10,7 +11,6 @@ import type {
   MinimalPropertyTypeValue,
 } from "../../../shared/dereference-entity-type.js";
 import type { Fact } from "../../shared/infer-facts-from-text/types.js";
-import { BaseUrl } from "@local/hash-graph-types/ontology";
 
 const simplifyMinimalPropertyTypeValueForLlmConsumption = (params: {
   propertyTypeValue: MinimalPropertyTypeValue;
