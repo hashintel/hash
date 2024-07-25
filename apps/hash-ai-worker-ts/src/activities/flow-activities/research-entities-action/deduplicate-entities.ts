@@ -94,14 +94,14 @@ const defaultModel: LlmParams["model"] = "claude-3-5-sonnet-20240620";
 export const deduplicateEntities = async (params: {
   entities: (LocalEntitySummary | ExistingEntitySummary)[];
   model?: PermittedOpenAiModel | AnthropicMessageModel;
-  exceededMaxTokens?: boolean;
+  exceededMaxTokensAttempt?: number | null;
 }): Promise<
   { duplicates: DuplicateReport[] } & {
     usage: LlmUsage;
     totalRequestTime: number;
   }
 > => {
-  const { entities, model, exceededMaxTokens } = params;
+  const { entities, model, exceededMaxTokensAttempt } = params;
 
   const { flowEntityId, userAuthentication, stepId, webId } =
     await getFlowContext();
@@ -132,7 +132,7 @@ export const deduplicateEntities = async (params: {
                     </Entity>`,
                   )
                   .join("\n")}
-                  ${exceededMaxTokens ? "Your previous response exceeded the maximum input tokens. Please try again, aiming for brevity, and omitting any duplicate reports you aren't 100% certain of." : ""}
+                  ${exceededMaxTokensAttempt ? "Your previous response exceeded the maximum input tokens. Please try again, aiming for brevity, and omitting any duplicate reports you aren't 100% certain of." : ""}
                   `),
             },
           ],
@@ -154,7 +154,18 @@ export const deduplicateEntities = async (params: {
 
   if (llmResponse.status !== "ok") {
     if (llmResponse.status === "exceeded-maximum-output-tokens") {
-      return deduplicateEntities({ ...params, exceededMaxTokens: true });
+      if (exceededMaxTokensAttempt && exceededMaxTokensAttempt > 2) {
+        return {
+          duplicates: [],
+          totalRequestTime: llmResponse.totalRequestTime,
+          usage: llmResponse.usage,
+        };
+      }
+
+      return deduplicateEntities({
+        ...params,
+        exceededMaxTokensAttempt: (exceededMaxTokensAttempt ?? 0) + 1,
+      });
     }
     return deduplicateEntities(params);
   }
