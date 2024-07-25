@@ -48,8 +48,8 @@ jobs:
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
           set -x
-          echo "unit=$UNIT_BENCH_PACKAGES" >> $GITHUB_OUTPUT
-          echo "integration=$INTEGRATION_BENCH_PACKAGES" >> $GITHUB_OUTPUT
+          echo "unit=$UNIT_BENCH_PACKAGES"  | tee -a $GITHUB_OUTPUT
+          echo "integration=$INTEGRATION_BENCH_PACKAGES"  | tee -a $GITHUB_OUTPUT
 
   unit-benches:
     name: Unit
@@ -75,20 +75,20 @@ jobs:
         id: benches
         run: |
           if [[ "${{ github.event_name == 'pull_request' }}" == 'true' ]]; then
-            echo "create-baseline=true" >> $GITHUB_OUTPUT
+            echo "create-baseline=true"  | tee -a $GITHUB_OUTPUT
           else
-            echo "create-baseline=false" >> $GITHUB_OUTPUT
+            echo "create-baseline=false"  | tee -a $GITHUB_OUTPUT
           fi
 
           HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
-          echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
+          echo "has-rust=$HAS_RUST"  | tee -a $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
             if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
               RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
             else
               RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
             fi
-            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
+            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)"  | tee -a $GITHUB_OUTPUT
           fi
 
       - name: Install Rust tools
@@ -223,20 +223,20 @@ jobs:
         id: benches
         run: |
           if [[ "${{ github.event_name == 'pull_request' }}" == 'true' ]]; then
-            echo "create-baseline=true" >> $GITHUB_OUTPUT
+            echo "create-baseline=true"  | tee -a $GITHUB_OUTPUT
           else
-            echo "create-baseline=false" >> $GITHUB_OUTPUT
+            echo "create-baseline=false"  | tee -a $GITHUB_OUTPUT
           fi
 
           HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
-          echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
+          echo "has-rust=$HAS_RUST"  | tee -a $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
             if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
               RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
             else
               RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
             fi
-            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
+            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)"  | tee -a $GITHUB_OUTPUT
           fi
 
       - name: Install Rust tools

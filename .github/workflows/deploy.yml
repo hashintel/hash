@@ -40,7 +40,7 @@ jobs:
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
           set -x
-          echo "sourcemaps=$SOURCEMAPS_FILTER_PACKAGES" >> $GITHUB_OUTPUT
+          echo "sourcemaps=$SOURCEMAPS_FILTER_PACKAGES"  | tee -a $GITHUB_OUTPUT
 
   sourcemaps:
     name: Sourcemaps
