@@ -121,25 +121,28 @@ const openAiChatCompletionWithBackoff = async (params: {
   const { completionPayload, retryCount = 0 } = params;
 
   try {
-    return backOff(() => openai.chat.completions.create(completionPayload), {
-      startingDelay: serverErrorRetryStartingDelay,
-      jitter: "full",
-      numOfAttempts: maximumExponentialBackoffRetries,
-      retry: (error) => {
-        /**
-         * Only retry further requests with an exponential back-off if a server error
-         * was encountered.
-         */
-        if (isServerError(error)) {
-          logger.debug(
-            `Encountered server error with OpenAI, retrying with exponential backoff.`,
-          );
-          return true;
-        }
+    return await backOff(
+      () => openai.chat.completions.create(completionPayload),
+      {
+        startingDelay: serverErrorRetryStartingDelay,
+        jitter: "full",
+        numOfAttempts: maximumExponentialBackoffRetries,
+        retry: (error) => {
+          /**
+           * Only retry further requests with an exponential back-off if a server error
+           * was encountered.
+           */
+          if (isServerError(error)) {
+            logger.debug(
+              `Encountered server error with OpenAI, retrying with exponential backoff.`,
+            );
+            return true;
+          }
 
-        return false;
+          return false;
+        },
       },
-    });
+    );
   } catch (error) {
     if (
       error instanceof RateLimitError &&
@@ -271,7 +274,7 @@ export const getOpenAiResponse = async <ToolName extends string>(
 
     return {
       status: "api-error",
-      openAiApiError: error instanceof APIError ? error : undefined,
+      error,
     };
   }
 
