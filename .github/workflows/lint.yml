@@ -39,7 +39,7 @@ jobs:
             | jq 'select(.task == "lint")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
-          echo "packages=$PACKAGES"  | tee -a $GITHUB_OUTPUT
+          echo "packages=$PACKAGES" | tee -a $GITHUB_OUTPUT
 
   package:
     name: Package
@@ -64,27 +64,27 @@ jobs:
           set -x
           ESLINT=$(turbo run lint:eslint --filter '${{ matrix.package }}' --dry-run=json \
             | jq '[.tasks[] | select(.task == "lint:eslint" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "eslint=$ESLINT"  | tee -a $GITHUB_OUTPUT
+          echo "eslint=$ESLINT" | tee -a $GITHUB_OUTPUT
 
           TSC=$(turbo run lint:tsc --filter '${{ matrix.package }}' --dry-run=json \
             | jq '[.tasks[] | select(.task == "lint:tsc" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "tsc=$TSC"  | tee -a $GITHUB_OUTPUT
+          echo "tsc=$TSC" | tee -a $GITHUB_OUTPUT
 
           CODEGEN=$(turbo run codegen --filter '${{ matrix.package }}' --dry-run=json \
             | jq '[.tasks[] | select(.task == "codegen" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "codegen=$CODEGEN"  | tee -a $GITHUB_OUTPUT
+          echo "codegen=$CODEGEN" | tee -a $GITHUB_OUTPUT
 
           HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
-          echo "has-rust=$HAS_RUST"  | tee -a $GITHUB_OUTPUT
+          echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
             if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
               RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
             else
               RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
             fi
-            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)"  | tee -a $GITHUB_OUTPUT
-            echo "has-rustfmt=$(yq '.toolchain.components | contains(["rustfmt"])' $RUST_TOOLCHAIN_FILE)"  | tee -a $GITHUB_OUTPUT
-            echo "has-clippy=$(yq '.toolchain.components | contains(["clippy"])' $RUST_TOOLCHAIN_FILE)"  | tee -a $GITHUB_OUTPUT
+            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
+            echo "has-rustfmt=$(yq '.toolchain.components | contains(["rustfmt"])' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
+            echo "has-clippy=$(yq '.toolchain.components | contains(["clippy"])' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
           fi
 
       - name: Prune repository

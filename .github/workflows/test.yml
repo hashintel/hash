@@ -113,12 +113,11 @@ jobs:
 
           DOCKER_PACKAGES=$(echo $DOCKER_PACKAGES | jq -c '{ include: [{ package: .[] }] }')
 
-          set -x
-          echo "unit-tests=$UNIT_TEST_PACKAGES"  | tee -a $GITHUB_OUTPUT
-          echo "integration-tests=$INTEGRATION_TEST_PACKAGES"  | tee -a $GITHUB_OUTPUT
-          echo "system-tests=$SYSTEM_TEST_PACKAGES"  | tee -a $GITHUB_OUTPUT
-          echo "dockers=$DOCKER_PACKAGES"  | tee -a $GITHUB_OUTPUT
-          echo "publish=$PUBLISH_PACKAGES"  | tee -a $GITHUB_OUTPUT
+          echo "unit-tests=$UNIT_TEST_PACKAGES" | tee -a $GITHUB_OUTPUT
+          echo "integration-tests=$INTEGRATION_TEST_PACKAGES" | tee -a $GITHUB_OUTPUT
+          echo "system-tests=$SYSTEM_TEST_PACKAGES" | tee -a $GITHUB_OUTPUT
+          echo "dockers=$DOCKER_PACKAGES" | tee -a $GITHUB_OUTPUT
+          echo "publish=$PUBLISH_PACKAGES" | tee -a $GITHUB_OUTPUT
 
   unit-tests:
     name: Unit
@@ -139,15 +138,15 @@ jobs:
         id: tests
         run: |
           HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
-          echo "has-rust=$HAS_RUST"  | tee -a $GITHUB_OUTPUT
+          echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
             if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
               RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
             else
               RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
             fi
-            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)"  | tee -a $GITHUB_OUTPUT
-            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)"  | tee -a $GITHUB_OUTPUT
+            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
+            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
           fi
 
       - name: Prune repository
@@ -323,7 +322,7 @@ jobs:
           mkdir -p logs
           turbo run start:test --env-mode=loose >logs/background-task.log 2>&1 &
           PID=$!
-          echo "pid=$PID"  | tee -a $GITHUB_OUTPUT
+          echo "pid=$PID" | tee -a $GITHUB_OUTPUT
 
           turbo run start:test:wait --env-mode=loose --continue
 
@@ -376,15 +375,15 @@ jobs:
         id: tests
         run: |
           HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
-          echo "has-rust=$HAS_RUST"  | tee -a $GITHUB_OUTPUT
+          echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
             if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
               RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
             else
               RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
             fi
-            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)"  | tee -a $GITHUB_OUTPUT
-            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)"  | tee -a $GITHUB_OUTPUT
+            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
+            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
           fi
 
       - name: Prune repository
@@ -523,14 +522,14 @@ jobs:
         id: publish
         run: |
           HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
-          echo "has-rust=$HAS_RUST"  | tee -a $GITHUB_OUTPUT
+          echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
             if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
               RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
             else
               RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
             fi
-            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)"  | tee -a $GITHUB_OUTPUT
+            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
           fi
 
       - name: Install Rust toolchain

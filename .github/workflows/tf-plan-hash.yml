@@ -30,7 +30,7 @@ jobs:
         run: |
           # We only have a single environment, so that's all we need to plan
           # TODO: use the `env` input to determine which environments to plan
-          echo "matrix=[\"prod\"]"  | tee -a $GITHUB_OUTPUT
+          echo "matrix=[\"prod\"]" | tee -a $GITHUB_OUTPUT
 
   terraform:
     runs-on: ubuntu-latest
