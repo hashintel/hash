@@ -38,7 +38,8 @@
       "dependsOn": ["start:migrate"]
     },
     "start:wait": {
-      "cache": false
+      "cache": false,
+      "dependsOn": ["compile:release"]
     },
 
     "start:test:migrate": {
@@ -51,7 +52,8 @@
       "dependsOn": ["start:test:migrate"]
     },
     "start:test:wait": {
-      "cache": false
+      "cache": false,
+      "dependsOn": ["compile"]
     },
 
     // Test commands
