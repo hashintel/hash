@@ -24,8 +24,8 @@
     "start:migrate": "../../target/release/hash-graph migrate --user postgres --password postgres",
     "start:test": "../../target/debug/hash-graph server",
     "start:test:migrate": "../../target/debug/hash-graph migrate --user postgres --password postgres",
-    "start:test:wait": "../../target/debug/hash-graph server --healthcheck --wait --timeout 10",
-    "start:wait": "../../target/release/hash-graph server --healthcheck --wait --timeout 10",
+    "start:test:wait": "../../target/debug/hash-graph server --healthcheck --wait --timeout 300",
+    "start:wait": "../../target/release/hash-graph server --healthcheck --wait --timeout 600",
     "test:integration": "just test-integration",
     "test:unit": "just test-unit"
   },

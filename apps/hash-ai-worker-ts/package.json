@@ -35,8 +35,8 @@
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org hashintel --project hash-temporal-worker-ai ./dist && sentry-cli sourcemaps upload --org hashintel --project hash-temporal-worker-ai ./dist",
     "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 node ./dist/main.js",
     "start:test": "cross-env NODE_ENV=test NODE_OPTIONS=--max-old-space-size=2048 node ./dist/main.js",
-    "start:test:wait": "wait-on --timeout 10000 http-get://localhost:4100/health",
-    "start:wait": "wait-on --timeout 10000 http-get://localhost:4100/health",
+    "start:test:wait": "wait-on --timeout 120000 http-get://localhost:4100/health",
+    "start:wait": "wait-on --timeout 120000 http-get://localhost:4100/health",
     "test:unit": "vitest --run  --exclude \"**/*.ai.test.ts\""
   },
   "dependencies": {
