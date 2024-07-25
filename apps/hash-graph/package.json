@@ -24,15 +24,14 @@
     "start:migrate": "../../target/release/hash-graph migrate --user postgres --password postgres",
     "start:test": "../../target/debug/hash-graph server",
     "start:test:migrate": "../../target/debug/hash-graph migrate --user postgres --password postgres",
-    "start:test:wait": "../../target/debug/hash-graph server --healthcheck --wait --timeout 300",
-    "start:wait": "../../target/release/hash-graph server --healthcheck --wait --timeout 600",
+    "start:test:wait": "../../target/debug/hash-graph server --healthcheck --wait --timeout 10",
+    "start:wait": "../../target/release/hash-graph server --healthcheck --wait --timeout 10",
     "test:integration": "just test-integration",
     "test:unit": "just test-unit"
   },
   "dependencies": {
     "@rust/graph": "0.0.0-private",
     "@rust/graph-api": "0.0.0-private",
-    "@rust/graph-test-server": "0.0.0-private",
     "@rust/hash-graph": "0.0.0-private",
     "@rust/type-fetcher": "0.0.0-private"
   },

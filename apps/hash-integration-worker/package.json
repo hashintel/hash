@@ -16,8 +16,8 @@
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org hashintel --project hash-temporal-worker-integration ./dist && sentry-cli sourcemaps upload --org hashintel --project hash-temporal-worker-integration ./dist",
     "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/main.ts",
     "start:test": "cross-env NODE_ENV=test NODE_OPTIONS=--max-old-space-size=2048 tsx ./dist/main.js",
-    "start:test:wait": "wait-on --timeout 120000 http://localhost:4300/health",
-    "start:wait": "wait-on --timeout 120000 http://localhost:4300/health"
+    "start:test:wait": "wait-on --timeout 10000 http-get://localhost:4300/health",
+    "start:wait": "wait-on --timeout 10000 http-get://localhost:4300/health"
   },
   "dependencies": {
     "@blockprotocol/graph": "0.4.0-canary.0",

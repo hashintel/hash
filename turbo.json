@@ -39,7 +39,7 @@
     },
     "start:wait": {
       "cache": false,
-      "dependsOn": ["compile:release"]
+      "dependsOn": ["compile:release", "^start:wait"]
     },
 
     "start:test:migrate": {
@@ -53,7 +53,7 @@
     },
     "start:test:wait": {
       "cache": false,
-      "dependsOn": ["compile"]
+      "dependsOn": ["compile", "^start:test:wait"]
     },
 
     // Test commands
