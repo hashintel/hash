@@ -335,16 +335,6 @@ export const getAnthropicResponse = async <ToolName extends string>(
     };
   }
 
-  if (anthropicResponse.stop_reason === "max_tokens") {
-    return {
-      status: "exceeded-maximum-output-tokens",
-      requestMaxTokens: maxTokens,
-      response: anthropicResponse,
-    };
-  }
-
-  const currentRequestTime = Date.now() - timeBeforeRequest;
-
   const { previousUsage, retryCount = 0 } = retryContext ?? {};
 
   const usage: LlmUsage = {
@@ -359,6 +349,26 @@ export const getAnthropicResponse = async <ToolName extends string>(
       anthropicResponse.usage.output_tokens,
   };
 
+  const currentRequestTime = Date.now() - timeBeforeRequest;
+
+  const lastRequestTime = currentRequestTime;
+  const totalRequestTime =
+    previousInvalidResponses?.reduce(
+      (acc, { requestTime }) => acc + requestTime,
+      currentRequestTime,
+    ) ?? currentRequestTime;
+
+  if (anthropicResponse.stop_reason === "max_tokens") {
+    return {
+      status: "exceeded-maximum-output-tokens",
+      lastRequestTime,
+      totalRequestTime,
+      requestMaxTokens: maxTokens,
+      response: anthropicResponse,
+      usage,
+    };
+  }
+
   const retry = async (retryParams: {
     successfullyParsedToolCalls: ParsedLlmToolCall<ToolName>[];
     retryMessageContent: LlmUserMessage["content"];
@@ -367,6 +377,8 @@ export const getAnthropicResponse = async <ToolName extends string>(
       return {
         status: "exceeded-maximum-retries",
         invalidResponses: previousInvalidResponses ?? [],
+        lastRequestTime,
+        totalRequestTime,
         usage,
       };
     }

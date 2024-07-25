@@ -309,6 +309,13 @@ export const getOpenAiResponse = async <ToolName extends string>(
       (openAiResponse.usage?.total_tokens ?? 0),
   };
 
+  const lastRequestTime = currentRequestTime;
+  const totalRequestTime =
+    previousInvalidResponses?.reduce(
+      (acc, { requestTime }) => acc + requestTime,
+      currentRequestTime,
+    ) ?? currentRequestTime;
+
   const retry = async (retryParams: {
     successfullyParsedToolCalls: ParsedLlmToolCall<ToolName>[];
     retryMessageContent: LlmUserMessage["content"];
@@ -317,6 +324,8 @@ export const getOpenAiResponse = async <ToolName extends string>(
       return {
         status: "exceeded-maximum-retries",
         invalidResponses: previousInvalidResponses ?? [],
+        lastRequestTime,
+        totalRequestTime,
         usage,
       };
     }
@@ -397,6 +406,9 @@ export const getOpenAiResponse = async <ToolName extends string>(
       status: "exceeded-maximum-output-tokens",
       response: openAiResponse,
       requestMaxTokens: params.max_tokens ?? undefined,
+      lastRequestTime,
+      totalRequestTime,
+      usage,
     };
   }
 
