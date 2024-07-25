@@ -316,7 +316,7 @@ jobs:
           PID=$!
           echo "pid=$PID" | tee -a $GITHUB_OUTPUT
 
-          turbo run start:test:wait --env-mode=loose --continue
+          turbo run start:test:wait --env-mode=loose
 
       - name: Run tests
         continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
