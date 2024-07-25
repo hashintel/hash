@@ -5,8 +5,8 @@
   "scripts": {
     "start": "../../../../target/release/hash-graph test-server --api-port 4001",
     "start:test": "../../../../target/debug/hash-graph test-server --api-port 4001",
-    "start:test:wait": "wait-on --timeout 120000 http://localhost:4001/snapshot",
-    "start:wait": "wait-on --timeout 120000 http://localhost:4001/snapshotn"
+    "start:test:wait": "wait-on --timeout 300000 http://localhost:4001/snapshot",
+    "start:wait": "wait-on --timeout 300000 http://localhost:4001/snapshotn"
   },
   "dependencies": {
     "@rust/authorization": "0.0.0-private",
