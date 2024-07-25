@@ -4,8 +4,14 @@
     "start": {
       "dependsOn": ["@apps/hash-graph#start:migrate"]
     },
+    "start:test:wait": {
+      "dependsOn": ["@apps/hash-graph#compile:release"]
+    },
     "start:test": {
       "dependsOn": ["@apps/hash-graph#start:test:migrate"]
+    },
+    "start:test:wait": {
+      "dependsOn": ["@apps/hash-graph#compile"]
     }
   }
 }
