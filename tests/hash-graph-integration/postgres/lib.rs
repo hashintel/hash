@@ -166,32 +166,6 @@ impl DatabaseTestWrapper<NoAuthorization> {
             .await
             .expect("could not connect to database");
 
-        // Connect as super user and run the migrations
-        {
-            let db_pool = PostgresStorePool::new(
-                &DatabaseConnectionInfo::new(
-                    DatabaseType::Postgres,
-                    std::env::var("POSTGRES_USER").unwrap_or_else(|_| "postgres".to_owned()),
-                    std::env::var("POSTGRES_PASSWORD").unwrap_or_else(|_| "postgres".to_owned()),
-                    host,
-                    port,
-                    database,
-                ),
-                &DatabasePoolConfig::default(),
-                NoTls,
-            )
-            .await
-            .expect("could not connect to database");
-
-            db_pool
-                .acquire(NoAuthorization, None)
-                .await
-                .expect("could not acquire a database connection")
-                .run_migrations()
-                .await
-                .expect("could not run migrations");
-        }
-
         let connection = pool
             .acquire_owned(NoAuthorization, None)
             .await

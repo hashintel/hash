@@ -321,6 +321,7 @@ jobs:
         shell: bash
         if: steps.tests.outputs.has-background-tasks == 'true'
         run: |
+          turbo run build compile migrate --env-mode=loose
           mkdir -p logs
           turbo run start:test --env-mode=loose >logs/background-task.log 2>&1 &
           PID=$!
