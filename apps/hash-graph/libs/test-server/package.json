@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "start": "../../../../target/release/hash-graph test-server --api-port 4001",
-    "start:test": "../../../../target/debug/hash-graph test-server --api-port 4001"
+    "start:test": "../../../../target/debug/hash-graph test-server --api-port 4001",
+    "start:test:wait": "../../../../target/debug/hash-graph test-server --api-port 4001 --healthcheck --wait --timeout 300000",
+    "start:wait": "../../../../target/release/hash-graph test-server --api-port 4001 --healthcheck --wait --timeout 600000"
   },
   "dependencies": {
     "@rust/authorization": "0.0.0-private",

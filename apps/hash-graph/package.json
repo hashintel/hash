@@ -24,8 +24,8 @@
     "start:migrate": "../../target/release/hash-graph migrate --user postgres --password postgres",
     "start:test": "../../target/debug/hash-graph server",
     "start:test:migrate": "../../target/debug/hash-graph migrate --user postgres --password postgres",
-    "start:test:wait": "wait-on --timeout 300000 http://localhost:4000/api-doc/openapi.json",
-    "start:wait": "wait-on --timeout 300000 http://localhost:4000/api-doc/openapi.json",
+    "start:test:wait": "../../target/debug/hash-graph server --healthcheck --wait --timeout 300000",
+    "start:wait": "../../target/release/hash-graph server --healthcheck --wait --timeout 600000",
     "test:integration": "just test-integration",
     "test:unit": "just test-unit"
   },

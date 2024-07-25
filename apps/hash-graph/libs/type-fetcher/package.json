@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "start": "../../../../target/release/hash-graph type-fetcher",
-    "start:test": "../../../../target/debug/hash-graph type-fetcher"
+    "start:test": "../../../../target/debug/hash-graph type-fetcher",
+    "start:test:wait": "../../../../target/debug/hash-graph type-fetcher --healthcheck --wait --timeout 300000",
+    "start:wait": "../../../../target/release/hash-graph type-fetcher --healthcheck --wait --timeout 600000"
   },
   "dependencies": {
     "@blockprotocol/type-system-rs": "0.0.0-private"

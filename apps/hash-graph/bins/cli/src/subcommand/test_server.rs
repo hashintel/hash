@@ -17,7 +17,7 @@ use tokio_postgres::NoTls;
 
 use crate::{
     error::{GraphError, HealthcheckError},
-    subcommand::server::ApiAddress,
+    subcommand::{server::ApiAddress, wait_healthcheck},
 };
 
 #[derive(Debug, Parser)]
@@ -37,6 +37,14 @@ pub struct TestServerArgs {
     #[clap(long, default_value_t = false)]
     pub healthcheck: bool,
 
+    /// Waits for the healthcheck to become healthy
+    #[clap(long, default_value_t = false, requires = "healthcheck")]
+    pub wait: bool,
+
+    /// Timeout for the wait flag in seconds
+    #[clap(long, requires = "wait")]
+    pub timeout: Option<u64>,
+
     /// The host the Spice DB server is listening at.
     #[clap(long, env = "HASH_SPICEDB_HOST")]
     pub spicedb_host: String,
@@ -54,9 +62,13 @@ pub async fn test_server(args: TestServerArgs) -> Result<(), GraphError> {
     SnapshotEntry::install_error_stack_hook();
 
     if args.healthcheck {
-        return healthcheck(args.api_address)
-            .await
-            .change_context(GraphError);
+        return wait_healthcheck(
+            || healthcheck(args.api_address.clone()),
+            args.wait,
+            args.timeout.map(Duration::from_secs),
+        )
+        .await
+        .change_context(GraphError);
     }
 
     let pool = PostgresStorePool::new(&args.db_info, &args.pool_config, NoTls)
