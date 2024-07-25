@@ -317,6 +317,7 @@ jobs:
 
       - name: Run background tasks
         id: background-tasks
+        shell: bash
         if: steps.tests.outputs.has-background-tasks == 'true'
         run: |
           mkdir -p logs
@@ -324,7 +325,7 @@ jobs:
           PID=$!
           echo "pid=$PID" >> $GITHUB_OUTPUT
 
-          turbo run start:test:wait --env-mode=loose
+          turbo run start:test:wait --env-mode=loose --continue
 
       - name: Run tests
         continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
