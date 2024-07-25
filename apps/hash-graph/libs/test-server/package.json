@@ -5,8 +5,8 @@
   "scripts": {
     "start": "../../../../target/release/hash-graph test-server --api-port 4001",
     "start:test": "../../../../target/debug/hash-graph test-server --api-port 4001",
-    "start:test:wait": "../../../../target/debug/hash-graph test-server --api-port 4001 --healthcheck --wait --timeout 300",
-    "start:wait": "../../../../target/release/hash-graph test-server --api-port 4001 --healthcheck --wait --timeout 600"
+    "start:test:wait": "../../../../target/debug/hash-graph test-server --api-port 4001 --healthcheck --wait --timeout 300 --logging-console-level=warn",
+    "start:wait": "../../../../target/release/hash-graph test-server --api-port 4001 --healthcheck --wait --timeout 600 --logging-console-level=warn"
   },
   "dependencies": {
     "@rust/authorization": "0.0.0-private",
