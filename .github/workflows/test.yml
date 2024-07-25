@@ -55,11 +55,13 @@ jobs:
             | jq 'select(.task == "test:system" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
+          set -x
           DOCKER_PACKAGES_FILTER=$(turbo run build:docker --dry-run=json --filter '...[HEAD^]' | jq -e '.packages | contains(["//"])' > /dev/null && echo '' || echo '--filter ...[HEAD^]')
           DOCKER_PACKAGES_PACKAGES=$(sh -c "turbo run build:docker --dry-run=json $DOCKER_PACKAGES_FILTER" \
             | jq '.tasks[]' \
             | jq 'select(.task == "build:docker" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
+          set +x
 
           PUBLISH_PACKAGES=[]
           PUBLISH_INCLUDES=[]
@@ -231,8 +233,6 @@ jobs:
         id: tests
         run: |
           TEST_TASKS=$(turbo run test:integration --env-mode=loose --dry-run=json --filter "${{ matrix.package }}" | jq -c '.tasks[]')
-          turbo run start:test --dry-run json
-          turbo run start:test --dry-run json | jq -c '[.tasks[] | select(.command != "<NONEXISTENT>") | .package]'
           HAS_BACKGROUND_TASKS=$(turbo run start:test --dry-run json | jq -c '[.tasks[] | select(.command != "<NONEXISTENT>" and .package != "@apps/hash-external-services") | .package] != []' || echo 'false')
           echo "has-background-tasks=$HAS_BACKGROUND_TASKS" | tee -a $GITHUB_OUTPUT
 
