@@ -5,8 +5,8 @@
   "scripts": {
     "start": "../../../../target/release/hash-graph test-server --api-port 4001",
     "start:test": "../../../../target/debug/hash-graph test-server --api-port 4001",
-    "start:test:wait": "for i in {1..300}; do ../../../../target/debug/hash-graph test-server --api-port 4001 --healthcheck >/dev/null 2>&1 && exit 0 || sleep 1; done && exit 1",
-    "start:wait": "for i in {1..300}; do ../../../../target/release/hash-graph test-server --api-port 4001 --healthcheck >/dev/null 2>&1 && exit 0 || sleep 1; done && exit 1"
+    "start:test:wait": "for i in {1..300}; do ../../../../target/debug/hash-graph test-server --api-port 4001 --healthcheck && exit 0 || sleep 1; done && exit 1",
+    "start:wait": "for i in {1..300}; do ../../../../target/release/hash-graph test-server --api-port 4001 --healthcheck && exit 0 || sleep 1; done && exit 1"
   },
   "dependencies": {
     "@rust/authorization": "0.0.0-private",
