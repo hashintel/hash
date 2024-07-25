@@ -248,6 +248,9 @@ jobs:
             echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
           fi
 
+      - name: Create temp files and folders
+        run: mkdir -p var/logs
+
       - name: Install Rust toolchain
         uses: ./.github/actions/install-rust-toolchain
         with:
@@ -313,7 +316,7 @@ jobs:
           # command would fail.
           turbo run compile --env-mode=loose
           mkdir -p logs
-          turbo run start:test --env-mode=loose >logs/background-task.log 2>&1 &
+          turbo run start:test --env-mode=loose >var/logs/background-task.log 2>&1 &
           PID=$!
           echo "pid=$PID" | tee -a $GITHUB_OUTPUT
 
@@ -342,7 +345,7 @@ jobs:
         if: always() && steps.tests.outputs.has-background-tasks == 'true'
         run: |
           kill -9 ${{ steps.background-tasks.outputs.pid }} || true
-          cat logs/background-task.log
+          cat var/logs/background-task.log
 
       - name: Upload artifact playwright-report
         if: matrix.package == '@tests/hash-playwright' && success() || failure()
