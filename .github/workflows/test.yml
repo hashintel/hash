@@ -191,7 +191,7 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.dockers) }}
       fail-fast: false
-    if: needs.setup.outputs.dockers != '{"include":[]}'
+    if: needs.setup.outputs.dockers != '{"package":[],"include":[]}'
     steps:
       - name: Checkout
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -308,7 +308,11 @@ jobs:
         shell: bash
         if: steps.tests.outputs.has-background-tasks == 'true'
         run: |
-          turbo run build compile --filter '!@apps/plugin-browser' --env-mode=loose
+          # Optimistically compile background tasks. Ideally, we also `build` them but this includes
+          # `@apps/plugin-browser` which needs `build:test` instead. We cannot filter it out because
+          # except when running PlayWright tests, the plugin-browser is already pruned out so the
+          # command would fail.
+          turbo run compile --env-mode=loose
           mkdir -p logs
           turbo run start:test --env-mode=loose >logs/background-task.log 2>&1 &
           PID=$!
