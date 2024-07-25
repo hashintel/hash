@@ -21,16 +21,16 @@
       "dependsOn": ["codegen"]
     },
     "compile": {
-      "dependsOn": ["codegen"]
+      "cache": false
     },
     "compile:release": {
-      "dependsOn": ["codegen"]
+      "cache": false
     },
 
     // Run commands
     "start:migrate": {
       "cache": false,
-      "dependsOn": ["compile:release", "^start:wait"]
+      "dependsOn": ["^start:wait"]
     },
     "start": {
       "cache": false,
@@ -38,13 +38,12 @@
       "dependsOn": ["start:migrate"]
     },
     "start:wait": {
-      "cache": false,
-      "dependsOn": ["compile:release", "^start:wait"]
+      "cache": false
     },
 
     "start:test:migrate": {
       "cache": false,
-      "dependsOn": ["compile", "^start:test:wait"]
+      "dependsOn": ["^start:test:wait"]
     },
     "start:test": {
       "cache": false,
@@ -52,8 +51,7 @@
       "dependsOn": ["start:test:migrate"]
     },
     "start:test:wait": {
-      "cache": false,
-      "dependsOn": ["compile", "^start:test:wait"]
+      "cache": false
     },
 
     // Test commands
