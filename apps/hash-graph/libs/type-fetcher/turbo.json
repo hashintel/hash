@@ -4,11 +4,11 @@
     "start": {
       "dependsOn": ["@apps/hash-graph#compile:release"]
     },
+    "start:wait": {
+      "dependsOn": ["@apps/hash-graph#compile:release"]
+    },
     "start:test": {
       "dependsOn": ["@apps/hash-graph#compile"]
-    },
-    "start:test:wait": {
-      "dependsOn": ["@apps/hash-graph#compile:release"]
     },
     "start:test:wait": {
       "dependsOn": ["@apps/hash-graph#compile"]
