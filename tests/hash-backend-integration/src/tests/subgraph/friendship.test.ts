@@ -149,6 +149,7 @@ const authentication = {
 };
 
 beforeAll(async () => {
+  await resetGraph();
   await restoreSnapshot(path.join(__dirname, "pass", "friendship.jsonl"));
 
   graphContext = createTestImpureGraphContext();

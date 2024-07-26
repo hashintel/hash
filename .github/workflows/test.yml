@@ -344,7 +344,7 @@ jobs:
       - name: Show background tasks logs
         if: always() && steps.tests.outputs.has-background-tasks == 'true'
         run: |
-          kill -9 ${{ steps.background-tasks.outputs.pid }} || true
+          kill -15 ${{ steps.background-tasks.outputs.pid }} || true
           cat var/logs/background-task.log
 
       - name: Upload artifact playwright-report
