@@ -88,7 +88,7 @@
     "ts-loader": "9.4.2",
     "tsconfig-paths-webpack-plugin": "4.1.0",
     "type-fest": "3.5.2",
-    "typescript": "5.5.3",
+    "typescript": "5.5.4",
     "webpack": "5.90.3",
     "webpack-cli": "4.10.0",
     "webpack-dev-server": "4.11.1",
