@@ -9,6 +9,8 @@ import type { Fact } from "./infer-facts-from-text/types.js";
 
 export const inferFactsFromText = async (params: {
   text: string;
+  url: string | null;
+  title: string | null;
   existingEntitiesOfInterest: LocalEntitySummary[];
   dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
   relevantEntitiesPrompt?: string;
@@ -21,6 +23,8 @@ export const inferFactsFromText = async (params: {
 }> => {
   const {
     text,
+    title,
+    url,
     existingEntitiesOfInterest,
     testingParams,
     dereferencedEntityTypes,
@@ -39,6 +43,7 @@ export const inferFactsFromText = async (params: {
           .map(async ({ schema }) => {
             const { entitySummaries: entitySummariesOfType } =
               await getEntitySummariesFromText({
+                existingSummaries: existingEntitiesOfInterest,
                 text,
                 dereferencedEntityType: schema,
                 relevantEntitiesPrompt,
@@ -90,11 +95,25 @@ export const inferFactsFromText = async (params: {
             const { facts: factsForSingleEntity } =
               await inferEntityFactsFromTextAgent({
                 subjectEntities: [entity],
+                linkEntityTypesById: Object.fromEntries(
+                  Object.entries(dereferencedEntityTypes)
+                    .filter(([linkEntityTypeId]) =>
+                      Object.keys(dereferencedEntityType.links ?? {}).includes(
+                        linkEntityTypeId,
+                      ),
+                    )
+                    .map(([linkEntityTypeId, linkEntity]) => [
+                      linkEntityTypeId,
+                      linkEntity.schema,
+                    ]),
+                ),
                 potentialObjectEntities: [
                   ...newEntitySummaries,
                   ...existingEntitiesOfInterest,
                 ],
                 text,
+                title,
+                url,
                 dereferencedEntityType,
               });
 

@@ -1,29 +1,38 @@
 import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 import type { EntityType } from "@blockprotocol/type-system/slim";
+import { IconButton } from "@hashintel/design-system";
+import type {
+  SourceProvenance,
+  ValueMetadata,
+} from "@local/hash-graph-client/api";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   EntityMetadata,
   EntityRecordId,
+  EntityUuid,
+  PropertyMetadataObject,
   PropertyObject,
+  PropertyValue,
 } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type {
-  EntityRootType,
-  EntityTypeRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import { entityIdFromComponents } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
   getPropertyTypesForEntityType,
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { SxProps, Theme } from "@mui/material";
-import { Box, Stack, TableCell, Typography } from "@mui/material";
-import { memo, useMemo, useState } from "react";
+import { Box, Popover, Stack, TableCell, Typography } from "@mui/material";
+import { memo, useMemo, useRef, useState } from "react";
 
+import { CircleInfoIcon } from "../../../../../shared/icons/circle-info-icon";
+import { Link } from "../../../../../shared/ui/link";
 import { ValueChip } from "../../../../shared/value-chip";
 import type {
   CreateVirtualizedRowContentFn,
@@ -118,10 +127,12 @@ type EntityResultRow = {
   entityLabel: string;
   entityTypeId: VersionedUrl;
   entityType: EntityType;
-  onEntityClick: (entity: Entity) => void;
+  proposedEntityId?: EntityId;
+  onEntityClick: (entityId: EntityId) => void;
   onEntityTypeClick: (entityTypeId: VersionedUrl) => void;
   persistedEntity?: Entity;
   properties: PropertyObject;
+  propertiesMetadata: PropertyMetadataObject;
   researchOngoing: boolean;
   status: "Proposed" | "Created" | "Updated";
 };
@@ -140,6 +151,146 @@ const cellSx = {
     borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
   },
 } as const satisfies SxProps<Theme>;
+
+const SourcesList = ({ sources }: { sources: SourceProvenance[] }) => {
+  return (
+    <Box
+      p={1.5}
+      pt={2}
+      sx={{
+        border: ({ palette }) => `1px solid ${palette.gray[20]}`,
+        borderRadius: 2,
+      }}
+    >
+      <Typography
+        component="div"
+        sx={{
+          color: ({ palette }) => palette.gray[70],
+          mb: 1.2,
+          lineHeight: 1,
+        }}
+        variant="smallCaps"
+      >
+        Sources
+      </Typography>
+      <Stack gap={2}>
+        {sources.map((source, index) => {
+          const sourceUrl = source.location?.uri;
+
+          return (
+            <Box
+              key={source.location?.uri ?? index}
+              sx={({ palette }) => ({
+                border: `1px solid ${palette.gray[30]}`,
+                background: palette.gray[15],
+                borderRadius: 2,
+                p: 1.5,
+              })}
+            >
+              <Typography
+                sx={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                }}
+              >
+                {source.location?.name ?? "Unknown"}
+              </Typography>
+              <Box mt={0.5} sx={{ lineHeight: 1 }}>
+                {sourceUrl ? (
+                  <Link
+                    href={sourceUrl}
+                    target="_blank"
+                    sx={{
+                      fontSize: 13,
+                      textDecoration: "none",
+                      wordBreak: "break-word",
+                    }}
+                  >
+                    {sourceUrl}
+                  </Link>
+                ) : (
+                  "Unknown"
+                )}
+              </Box>
+            </Box>
+          );
+        })}
+      </Stack>
+    </Box>
+  );
+};
+
+const PropertyValueCell = ({
+  metadata,
+  value,
+}: {
+  metadata?: ValueMetadata;
+  value: PropertyValue;
+}) => {
+  const [showMetadataTooltip, setShowMetadataTooltip] = useState(false);
+
+  const stringifiedValue = stringifyPropertyValue(value);
+  const cellRef = useRef<HTMLDivElement>(null);
+
+  const buttonId = generateUuid();
+
+  return (
+    <TableCell sx={{ ...cellSx, maxWidth: 700 }} ref={cellRef}>
+      <Stack direction="row" alignItems="center">
+        <Typography
+          sx={{
+            ...typographySx,
+            lineHeight: 1,
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {stringifiedValue}
+        </Typography>
+        <IconButton
+          aria-describedby={buttonId}
+          onClick={() => setShowMetadataTooltip(true)}
+          sx={{ ml: 1 }}
+        >
+          <CircleInfoIcon
+            sx={{
+              fontSize: 12,
+              fill: ({ palette }) => palette.gray[40],
+            }}
+          />
+        </IconButton>
+      </Stack>
+      <Popover
+        id={buttonId}
+        open={showMetadataTooltip}
+        anchorEl={cellRef.current}
+        onClose={() => setShowMetadataTooltip(false)}
+        anchorOrigin={{
+          vertical: "bottom",
+          horizontal: "left",
+        }}
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: 2,
+              width: cellRef.current?.scrollWidth,
+              minWidth: "fit-content",
+            },
+          },
+          root: {
+            sx: {
+              background: "rgba(0,0,0,0.3)",
+            },
+          },
+        }}
+        transitionDuration={50}
+      >
+        <SourcesList sources={metadata?.provenance?.sources ?? []} />
+      </Popover>
+    </TableCell>
+  );
+};
 
 const TableRow = memo(
   ({
@@ -190,31 +341,33 @@ const TableRow = memo(
             zIndex: 1,
           }}
         >
-          {row.persistedEntity ? (
-            <Box
-              component="button"
-              onClick={() => row.onEntityClick(row.persistedEntity!)}
-              sx={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
+          <Box
+            component="button"
+            onClick={() =>
+              row.onEntityClick(
+                row.persistedEntity
+                  ? row.persistedEntity.metadata.recordId.entityId
+                  : row.proposedEntityId!,
+              )
+            }
+            sx={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
 
-                p: 0,
-                textAlign: "left",
+              p: 0,
+              textAlign: "left",
+            }}
+          >
+            <ValueChip
+              sx={{
+                ...typographySx,
+                color: ({ palette }) => palette.blue[70],
               }}
             >
-              <ValueChip
-                sx={{
-                  ...typographySx,
-                  color: ({ palette }) => palette.blue[70],
-                }}
-              >
-                {row.entityLabel}
-              </ValueChip>
-            </Box>
-          ) : (
-            <ValueChip sx={typographySx}>{row.entityLabel}</ValueChip>
-          )}
+              {row.entityLabel}
+            </ValueChip>
+          </Box>
         </TableCell>
         {columns.slice(fixedFieldIds.length).map((column) => {
           const appliesToEntity = column.metadata?.appliesToEntityTypeIds.some(
@@ -236,10 +389,10 @@ const TableRow = memo(
             );
           }
 
-          const entityValue =
+          const propertyValue =
             row.properties[extractBaseUrl(column.id as VersionedUrl)];
 
-          if (entityValue === undefined || entityValue === "") {
+          if (propertyValue === undefined || propertyValue === "") {
             if (row.researchOngoing) {
               return (
                 <TableCell
@@ -275,25 +428,17 @@ const TableRow = memo(
             );
           }
 
-          const value = stringifyPropertyValue(entityValue);
+          const metadata =
+            row.propertiesMetadata.value[
+              extractBaseUrl(column.id as VersionedUrl)
+            ]?.metadata;
 
           return (
-            <TableCell key={column.id} sx={cellSx}>
-              {!!value.length && (
-                <Typography
-                  sx={{
-                    ...typographySx,
-                    maxWidth: 700,
-                    lineHeight: 1,
-                    textOverflow: "ellipsis",
-                    overflow: "hidden",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {value}
-                </Typography>
-              )}
-            </TableCell>
+            <PropertyValueCell
+              key={column.id}
+              metadata={metadata}
+              value={propertyValue}
+            />
           );
         })}
       </>
@@ -310,12 +455,12 @@ const createRowContent: CreateVirtualizedRowContentFn<
 );
 
 type EntityResultTableProps = {
-  onEntityClick: (entity: Entity) => void;
+  onEntityClick: (entityId: EntityId) => void;
   onEntityTypeClick: (entityTypeId: VersionedUrl) => void;
   persistedEntities: PersistedEntity[];
   persistedEntitiesSubgraph?: Subgraph<EntityRootType>;
   proposedEntities: ProposedEntityOutput[];
-  proposedEntitiesTypesSubgraph?: Subgraph<EntityTypeRootType>;
+  proposedEntitiesTypesSubgraph?: Subgraph;
 };
 
 export const EntityResultTable = ({
@@ -415,7 +560,17 @@ export const EntityResultTable = ({
           onEntityClick,
           onEntityTypeClick,
           persistedEntity: "metadata" in entity ? entity : undefined,
+          proposedEntityId: isProposed
+            ? entityIdFromComponents(
+                "ownedById" as OwnedById,
+                entityId as EntityUuid,
+              )
+            : undefined,
           properties: entity.properties,
+          propertiesMetadata:
+            "propertiesMetadata" in entity
+              ? entity.propertiesMetadata
+              : entity.propertyMetadata,
           researchOngoing:
             "researchOngoing" in record && record.researchOngoing,
           status: isProposed

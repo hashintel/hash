@@ -87,10 +87,7 @@ const ftse350Metric: MetricDefinition = {
           ? `The LLM failed to extract the following paginated links from the FTSE350 constituents page: ${JSON.stringify(missedUrls)}`
           : "The LLM successfully extracted all the paginated links from the FTSE350 constituents page.",
       additionalInfo: {
-        missedUrls: expectedLinks.filter(
-          (expectedLink) =>
-            !response.links.some(({ url }) => url === expectedLink),
-        ),
+        missedUrls,
       },
     };
   },
@@ -165,10 +162,7 @@ const marksAndSpencersAnnualInvestorsReport: MetricDefinition = {
           ? `The LLM failed to extract the following links from the page: ${JSON.stringify(missedUrls)}`
           : "The LLM successfully extracted all the required links from the page.",
       additionalInfo: {
-        missedUrls: expectedLinks.filter(
-          (expectedLink) =>
-            !response.links.some(({ url }) => url === expectedLink),
-        ),
+        missedUrls,
       },
     };
   },
@@ -242,10 +236,7 @@ const graphicsCardSpecificationMetric: MetricDefinition = {
           ? `The LLM failed to extract the following links from the page: ${JSON.stringify(missedUrls)}`
           : "The LLM successfully extracted all the required links from the page.",
       additionalInfo: {
-        missedUrls: expectedLinks.filter(
-          (expectedLink) =>
-            !response.links.some(({ url }) => url === expectedLink),
-        ),
+        missedUrls,
       },
     };
   },
@@ -269,9 +260,8 @@ test(
   "Extract links form text system prompt test",
   async () => {
     const models: LlmParams["model"][] = [
-      "claude-3-5-sonnet-20240620",
-      // "claude-3-haiku-20240307",
-      "claude-3-sonnet-20240229",
+      // "claude-3-5-sonnet-20240620",
+      "claude-3-haiku-20240307",
       // "gpt-4o",
     ];
 
@@ -280,10 +270,11 @@ test(
       initialSystemPrompt: chooseRelevantLinksFromContentSystemPrompt,
       directoryPath: baseDirectoryPath,
       metrics,
-      numberOfIterations: 4,
+      attemptsPerPrompt: 3,
+      promptIterations: 4,
     });
   },
   {
-    timeout: 10 * 60 * 1000,
+    timeout: 30 * 60 * 1000,
   },
 );

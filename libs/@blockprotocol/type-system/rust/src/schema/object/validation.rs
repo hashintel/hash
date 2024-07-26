@@ -37,7 +37,6 @@ impl<T> ObjectSchemaRef<'_, T> {
 
 impl<T: Sync> Validator<ObjectSchema<T>> for ObjectSchemaValidator {
     type Error = ObjectSchemaValidationError;
-    type Validated = ObjectSchema<T>;
 
     async fn validate_ref<'v>(
         &self,
@@ -55,7 +54,6 @@ impl<T: Sync> Validator<ObjectSchema<T>> for ObjectSchemaValidator {
 
 impl Validator<EntityType> for ObjectSchemaValidator {
     type Error = ObjectSchemaValidationError;
-    type Validated = EntityType;
 
     async fn validate_ref<'v>(
         &self,
@@ -73,7 +71,6 @@ impl Validator<EntityType> for ObjectSchemaValidator {
 
 impl Validator<ClosedEntityType> for ObjectSchemaValidator {
     type Error = ObjectSchemaValidationError;
-    type Validated = ClosedEntityType;
 
     async fn validate_ref<'v>(
         &self,

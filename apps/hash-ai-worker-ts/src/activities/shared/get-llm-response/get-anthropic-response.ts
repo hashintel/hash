@@ -1,6 +1,5 @@
 import type { Headers } from "@anthropic-ai/sdk/core";
-import type { RateLimitError } from "@anthropic-ai/sdk/error";
-import { APIError } from "@anthropic-ai/sdk/error";
+import type { APIError, RateLimitError } from "@anthropic-ai/sdk/error";
 import type { Tool } from "@anthropic-ai/sdk/resources/messages";
 import dedent from "dedent";
 import { backOff } from "exponential-backoff";
@@ -155,7 +154,7 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
   let currentProvider: AnthropicApiProvider = initialProvider;
 
   try {
-    return backOff(
+    return await backOff(
       () =>
         createAnthropicMessagesWithTools({
           payload,
@@ -332,19 +331,9 @@ export const getAnthropicResponse = async <ToolName extends string>(
 
     return {
       status: "api-error",
-      anthropicApiError: error instanceof APIError ? error : undefined,
+      error,
     };
   }
-
-  if (anthropicResponse.stop_reason === "max_tokens") {
-    return {
-      status: "exceeded-maximum-output-tokens",
-      requestMaxTokens: maxTokens,
-      response: anthropicResponse,
-    };
-  }
-
-  const currentRequestTime = Date.now() - timeBeforeRequest;
 
   const { previousUsage, retryCount = 0 } = retryContext ?? {};
 
@@ -360,6 +349,26 @@ export const getAnthropicResponse = async <ToolName extends string>(
       anthropicResponse.usage.output_tokens,
   };
 
+  const currentRequestTime = Date.now() - timeBeforeRequest;
+
+  const lastRequestTime = currentRequestTime;
+  const totalRequestTime =
+    previousInvalidResponses?.reduce(
+      (acc, { requestTime }) => acc + requestTime,
+      currentRequestTime,
+    ) ?? currentRequestTime;
+
+  if (anthropicResponse.stop_reason === "max_tokens") {
+    return {
+      status: "exceeded-maximum-output-tokens",
+      lastRequestTime,
+      totalRequestTime,
+      requestMaxTokens: maxTokens,
+      response: anthropicResponse,
+      usage,
+    };
+  }
+
   const retry = async (retryParams: {
     successfullyParsedToolCalls: ParsedLlmToolCall<ToolName>[];
     retryMessageContent: LlmUserMessage["content"];
@@ -368,6 +377,8 @@ export const getAnthropicResponse = async <ToolName extends string>(
       return {
         status: "exceeded-maximum-retries",
         invalidResponses: previousInvalidResponses ?? [],
+        lastRequestTime,
+        totalRequestTime,
         usage,
       };
     }

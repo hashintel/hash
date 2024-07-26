@@ -35,7 +35,7 @@ export const DraftEntity: FunctionComponent<{
 
   const [entityRootedSubgraph, setEntityRootedSubgraph] = useState<
     Subgraph<EntityRootType> | undefined
-  >(generateEntityRootedSubgraph(entity, subgraph));
+  >(generateEntityRootedSubgraph(entity.metadata.recordId.entityId, subgraph));
 
   const previouslyEvaluatedSubgraph =
     useRef<Subgraph<EntityRootType>>(subgraph);
@@ -63,7 +63,9 @@ export const DraftEntity: FunctionComponent<{
   ) {
     previouslyEvaluatedEntity.current = entity;
     previouslyEvaluatedSubgraph.current = subgraph;
-    setEntityRootedSubgraph(generateEntityRootedSubgraph(entity, subgraph));
+    setEntityRootedSubgraph(
+      generateEntityRootedSubgraph(entity.metadata.recordId.entityId, subgraph),
+    );
   }
 
   /**
@@ -83,7 +85,9 @@ export const DraftEntity: FunctionComponent<{
   ) {
     previouslyEvaluatedEntity.current = entity;
     previouslyEvaluatedSubgraph.current = subgraph;
-    setEntityRootedSubgraph(generateEntityRootedSubgraph(entity, subgraph));
+    setEntityRootedSubgraph(
+      generateEntityRootedSubgraph(entity.metadata.recordId.entityId, subgraph),
+    );
   }
 
   return (

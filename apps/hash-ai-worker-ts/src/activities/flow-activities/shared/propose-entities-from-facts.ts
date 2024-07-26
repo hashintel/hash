@@ -54,7 +54,7 @@ export const proposeEntitiesFromFacts = async (params: {
         (fact) => fact.subjectEntityLocalId === entitySummary.localId,
       );
 
-      const proposeOutgoingLinkEntityTypes: {
+      const possibleLinkTypesFromEntity: {
         schema: DereferencedEntityType;
         simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
       }[] = Object.entries(dereferencedEntityTypes)
@@ -101,7 +101,23 @@ export const proposeEntitiesFromFacts = async (params: {
                 potentialTargetEntitySummary.entityId,
           );
 
-        return someFactIncludesTargetEntityAsObject;
+        const entityIsValidTarget = Object.values(
+          dereferencedEntityType.links ??
+            ({} as NonNullable<DereferencedEntityType["links"]>),
+        ).find((linkSchema) => {
+          const destinationConstraints =
+            "oneOf" in linkSchema.items ? linkSchema.items.oneOf : null;
+
+          return (
+            !destinationConstraints ||
+            destinationConstraints.some(
+              (schema) =>
+                schema.$ref === potentialTargetEntitySummary.entityTypeId,
+            )
+          );
+        });
+
+        return someFactIncludesTargetEntityAsObject && entityIsValidTarget;
       });
 
       logger.debug(
@@ -125,7 +141,7 @@ export const proposeEntitiesFromFacts = async (params: {
          */
         proposeOutgoingLinkEntityTypes:
           possibleOutgoingLinkTargetEntitySummaries.length > 0
-            ? proposeOutgoingLinkEntityTypes
+            ? possibleLinkTypesFromEntity
             : [],
         possibleOutgoingLinkTargetEntitySummaries,
       });

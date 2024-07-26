@@ -560,6 +560,7 @@ export const proposeEntities = async (params: {
                       localEntityId: entity.entityId.toString(),
                       entityTypeId: entityTypeId as VersionedUrl,
                       properties: entity.properties ?? {},
+                      propertyMetadata: { value: {} },
                       sourceEntityId:
                         "sourceEntityId" in entity
                           ? typeof entity.sourceEntityId === "number"

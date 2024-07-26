@@ -79,12 +79,19 @@ export const generateToolDefinitions = <
       Make use of this tool if the research task needs to be be broken down into smaller, non-overlapping sub-tasks.
       For example: "Find the technical specifications of the product with name X, including specification x, y and z".
       
+      IMPORTANT: Make sure sub-tasks align with the user's research prompt, clarified by any questions they have subsequently answered.
+      
       Subtasks must be independent and not overlap in any way with the information they gather.
       Subtasks run independently, and cannot share information between them.
       When gathering facts about a specific set of entities in multiple subtasks,
         you must name and specify which entities to focus on for each subtask.
       Do not leave it up to the subtasks to decide which entities to focus on,
         as this could result in looking up information about different entities in each subtask.
+        
+      Make sure that the goal of the research task matches the entity types it will seek – don't have a goal
+      which asks to identify entities of types which aren't provided as entityTypeIds.
+      
+      If you need specific properties for the entities, mention those properties by name in the research goal.
     `),
       inputSchema: {
         type: "object",
@@ -128,7 +135,13 @@ export const generateToolDefinitions = <
                   type: "string",
                   description: dedent(`
                   The goal of the sub-task, a detailed description of what is required to be achieved.
-                  For example "Find the technical specifications of the product with name X".
+                  It should focus on the types of entities being asked for, as provided by you under entityTypeIds.
+                  Mention any specific properties required by name.
+                  
+                  For example 
+                  "Find the technical specifications of product X".
+                  "Find the LinkedIn URL for person X"
+                  "Find the release date, director and box office takings for movie X"
                 `),
                 },
                 explanation: {
@@ -192,10 +205,12 @@ export const generateToolDefinitions = <
                   type: "string",
                   description: dedent(`
                 A prompt instructing the inference agent which entities it should gather facts about from the resource.
-                Do not specify any information of the structure of the entities, as this is predefined by
-                  the entity type.
+                Do not specify any information of the structure of the entities, as this is predefined by the entity type.
+                
+                DO specify any particular properties you are looking for by name.
     
-                You must be specific about which and how many entities you need to gather facts about to satisfy the research task.`),
+                You must be specific about which and how many entities you need to gather facts about to satisfy the research task.
+                Don't ask for information on types of entities you haven't specified under entityTypeIds.`),
                 },
                 descriptionOfExpectedContent: {
                   type: "string",
@@ -304,6 +319,13 @@ export const generateToolDefinitions = <
       description: dedent(`
       Update the plan for the research task.
       You can call this alongside other tool calls to progress towards completing the task.
+      
+      IMPORTANT: the plan should take account of:
+      1. The user's research goal
+      2. The information gathered so far.
+      
+      Don't be afraid to deviate from an earlier plan if you've gathered sufficient information to 
+      meet the user's research goal, and return the information to the user.
     `),
       inputSchema: {
         type: "object",

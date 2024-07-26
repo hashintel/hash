@@ -1,4 +1,5 @@
 #![feature(extend_one)]
+#![feature(hash_raw_entry)]
 #![expect(unsafe_code)]
 #![cfg_attr(
     target_arch = "wasm32",
@@ -12,6 +13,7 @@ pub mod url;
 pub mod schema;
 mod utils;
 
+use alloc::sync::Arc;
 #[cfg(feature = "postgres")]
 use core::error::Error;
 use core::{borrow::Borrow, fmt::Debug, ops::Deref, ptr};
@@ -23,7 +25,6 @@ use serde::{Deserialize, Serialize};
 
 pub trait Validator<V>: Sync {
     type Error;
-    type Validated: Sized + From<V>;
 
     fn validate_ref<'v>(
         &self,
@@ -32,19 +33,30 @@ pub trait Validator<V>: Sync {
     where
         V: Sync;
 
-    fn validate(
-        &self,
-        value: V,
-    ) -> impl Future<Output = Result<Valid<Self::Validated>, Self::Error>> + Send
+    fn validate(&self, value: V) -> impl Future<Output = Result<Valid<V>, Self::Error>> + Send
     where
         V: Send + Sync,
     {
         async move {
             self.validate_ref(&value).await?;
-            Ok(Valid {
-                value: value.into(),
-            })
+            Ok(Valid { value })
         }
+    }
+}
+
+impl<V, T> Validator<Arc<V>> for T
+where
+    V: Send + Sync,
+    T: Validator<V> + Sync,
+{
+    type Error = T::Error;
+
+    async fn validate_ref<'v>(&self, value: &'v Arc<V>) -> Result<&'v Valid<Arc<V>>, Self::Error>
+    where
+        V: Sync,
+    {
+        self.validate_ref(value.as_ref()).await?;
+        Ok(Valid::new_ref_unchecked(value))
     }
 }
 

@@ -109,17 +109,7 @@ export const goalFlowDefinition = {
       ],
     },
   ],
-  outputs: [
-    {
-      stepId: "2",
-      stepOutputName:
-        "persistedEntities" satisfies OutputNameForAction<"persistEntities">,
-      payloadKind: "PersistedEntity",
-      name: "persistedEntities" as const,
-      array: false,
-      required: true,
-    },
-  ],
+  outputs: [],
 } satisfies FlowDefinition;
 
 export const goalFlowDefinitionWithSpreadsheetDeliverable: FlowDefinition = {

@@ -72,7 +72,7 @@
     "json-schema-to-typescript": "11.0.5",
     "lit": "2.4.1",
     "lodash.isequal": "4.5.0",
-    "typescript": "5.5.3"
+    "typescript": "5.5.4"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",

@@ -647,6 +647,10 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
     );
   }
 
+  public get propertiesMetadata(): PropertyMetadataObject {
+    return this.#entity.metadata.properties ?? { value: {} };
+  }
+
   public propertyMetadata(path: PropertyPath): PropertyMetadata["metadata"] {
     return path.reduce<PropertyMetadata | undefined>((map, key) => {
       if (!map || !("value" in map)) {
