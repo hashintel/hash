@@ -557,6 +557,10 @@ export const proposeEntities = async (params: {
                   entities.map((entity) => ({
                     proposedEntity: {
                       ...entity,
+                      claims: {
+                        isSubjectOf: [],
+                        isObjectOf: [],
+                      },
                       localEntityId: entity.entityId.toString(),
                       entityTypeId: entityTypeId as VersionedUrl,
                       properties: entity.properties ?? {},

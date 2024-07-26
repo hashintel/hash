@@ -73,6 +73,7 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
    */
   for (const unresolvedEntity of entitiesWithDependenciesSortedLast) {
     const {
+      claims,
       entityTypeId,
       properties,
       provenance,
@@ -82,6 +83,7 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
     } = unresolvedEntity;
 
     const entityWithResolvedLinks: ProposedEntityWithResolvedLinks = {
+      claims,
       entityTypeId,
       properties,
       propertyMetadata,

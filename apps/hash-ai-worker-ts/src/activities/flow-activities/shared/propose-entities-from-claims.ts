@@ -54,6 +54,10 @@ export const proposeEntitiesFromClaims = async (params: {
         (claim) => claim.subjectEntityLocalId === entitySummary.localId,
       );
 
+      const claimsWithEntityAsObject = claims.filter(
+        (claim) => claim.objectEntityLocalId === entitySummary.localId,
+      );
+
       const possibleLinkTypesFromEntity: {
         schema: DereferencedEntityType;
         simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
@@ -132,7 +136,10 @@ export const proposeEntitiesFromClaims = async (params: {
        */
       const proposeEntityFromClaimsStatus = await proposeEntityFromClaimsAgent({
         entitySummary,
-        claims: claimsWithEntityAsSubject,
+        claims: {
+          isObjectOf: claimsWithEntityAsObject,
+          isSubjectOf: claimsWithEntityAsSubject,
+        },
         dereferencedEntityType,
         simplifiedPropertyTypeMappings,
         /**

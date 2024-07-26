@@ -1,6 +1,12 @@
+import { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
+import type { Claim as ClaimEntity } from "@local/hash-isomorphic-utils/system-types/claim";
+import { entityIdFromComponents } from "@local/hash-subgraph";
 import dedent from "dedent";
 
+import { getAiAssistantAccountIdActivity } from "../../../get-ai-assistant-account-id-activity.js";
 import { logger } from "../../../shared/activity-logger.js";
 import type { DereferencedEntityType } from "../../../shared/dereference-entity-type.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
@@ -387,6 +393,16 @@ export const inferEntityClaimsFromTextAgent = async (params: {
     toolCallId: string;
   })[] = [];
 
+  const aiAssistantAccountId = await getAiAssistantAccountIdActivity({
+    authentication: userAuthentication,
+    grantCreatePermissionForWeb: webId,
+    graphApiClient,
+  });
+
+  if (!aiAssistantAccountId) {
+    throw new Error(`Failed to get the AI Assistant account for web ${webId}`);
+  }
+
   for (const toolCall of toolCalls) {
     const input = toolCall.input as {
       claims: {
@@ -398,10 +414,10 @@ export const inferEntityClaimsFromTextAgent = async (params: {
     };
 
     for (const unfinishedClaims of input.claims) {
-      const claim = {
+      const claim: Claim = {
         ...unfinishedClaims,
         objectEntityLocalId: unfinishedClaims.objectEntityLocalId ?? undefined,
-        claimId: generateUuid(),
+        claimId: entityIdFromComponents(webId, generateUuid() as EntityUuid),
       };
 
       const subjectEntity =
@@ -454,6 +470,73 @@ export const inferEntityClaimsFromTextAgent = async (params: {
         });
       } else {
         validClaims.push(claim);
+
+        const provenance = {
+          actorType: "ai",
+          origin: {
+            id: flowEntityId,
+            stepIds: [stepId],
+            type: "flow",
+          },
+          sources: claim.sources,
+        };
+
+        /**
+         * @todo H-3162: when we pass existing entities to Flows, we can link them directly to the claim here
+         */
+        await Entity.create<ClaimEntity>(
+          graphApiClient,
+          { actorId: aiAssistantAccountId },
+          {
+            entityTypeId: "https://hash.ai/@hash/types/entity-type/claim/v/1",
+            ownedById: webId,
+            provenance: {
+              actorType: "ai",
+              origin: {
+                id: flowEntityId,
+                stepIds: [stepId],
+                type: "flow",
+              },
+              sources: claim.sources,
+            },
+            relationships: createDefaultAuthorizationRelationships({
+              actorId: userAuthentication.actorId,
+            }),
+            properties: {
+              value: {
+                "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
+                  {
+                    metadata: {
+                      dataTypeId:
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                      provenance,
+                    },
+                    value: `${claim.text}${claim.prepositionalPhrases.length ? `– ${claim.prepositionalPhrases.join(", ")}` : ""}`,
+                  },
+                "https://hash.ai/@hash/types/property-type/subject/": {
+                  metadata: {
+                    dataTypeId:
+                      "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    provenance,
+                  },
+                  value: subjectEntity.name,
+                },
+                ...(objectEntity
+                  ? {
+                      "https://hash.ai/@hash/types/property-type/object/": {
+                        metadata: {
+                          dataTypeId:
+                            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                          provenance,
+                        },
+                        value: objectEntity.name,
+                      },
+                    }
+                  : {}),
+              },
+            },
+          },
+        );
       }
     }
   }

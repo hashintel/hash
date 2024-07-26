@@ -968,6 +968,10 @@ export const researchEntitiesAction: FlowActionActivity<{
    */
   const fileEntityProposals: ProposedEntity[] = filesUsedToProposeEntities.map(
     ({ url, entityTypeId }) => ({
+      claims: {
+        isObjectOf: [],
+        isSubjectOf: [],
+      },
       /**
        * @todo: H-2728 set the web page this file was discovered in (if applicable) in the property provenance
        * for the `fileUrl`

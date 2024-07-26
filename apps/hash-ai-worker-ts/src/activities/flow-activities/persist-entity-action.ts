@@ -3,8 +3,10 @@ import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { CreateEntityParameters } from "@local/hash-graph-sdk/entity";
 import {
   Entity,
+  LinkEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
+import { EntityId } from "@local/hash-graph-types/entity";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
@@ -12,6 +14,10 @@ import {
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type {
+  HasObject,
+  HasSubject,
+} from "@local/hash-isomorphic-utils/system-types/claim";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
@@ -28,7 +34,10 @@ import { getFlowContext } from "../shared/get-flow-context.js";
 import { graphApiClient } from "../shared/graph-api-client.js";
 import { logProgress } from "../shared/log-progress.js";
 import { getFileEntityFromUrl } from "./shared/get-file-entity-from-url.js";
-import { getEntityUpdate } from "./shared/graph-requests.js";
+import {
+  getEntityUpdate,
+  getLatestEntityById,
+} from "./shared/graph-requests.js";
 import type { FlowActionActivity } from "./types.js";
 
 export const fileEntityTypeIds: VersionedUrl[] = [
@@ -43,6 +52,8 @@ export const fileEntityTypeIds: VersionedUrl[] = [
 
 export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
   const {
+    flowEntityId,
+    stepId,
     userAuthentication: { actorId },
     webId,
   } = await getFlowContext();
@@ -54,8 +65,14 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
 
   const createEditionAsDraft = draft ?? false;
 
-  const { entityTypeId, properties, linkData, provenance, propertyMetadata } =
-    proposedEntityWithResolvedLinks;
+  const {
+    entityTypeId,
+    claims,
+    properties,
+    linkData,
+    provenance,
+    propertyMetadata,
+  } = proposedEntityWithResolvedLinks;
 
   const entityValues: Omit<
     CreateEntityParameters,
@@ -269,6 +286,54 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     existingEntity: existingEntity?.toJSON(),
     operation,
   } satisfies PersistedEntity;
+
+  const createLinkFromClaimToEntity = async <
+    T extends "has-object" | "has-subject",
+  >(
+    claimId: EntityId,
+    linkType: T,
+  ) => {
+    const claim = await getLatestEntityById({
+      graphApiClient,
+      authentication: { actorId },
+      entityId: claimId,
+    });
+
+    return LinkEntity.create<T extends "has-subject" ? HasSubject : HasObject>(
+      graphApiClient,
+      { actorId: webBotActorId },
+      {
+        entityTypeId: `https://hash.ai/@hash/types/entity-type/${linkType}/v/1`,
+        ownedById: webId,
+        provenance: {
+          ...claim.metadata.provenance,
+          actorType: "ai",
+          origin: {
+            type: "flow",
+            id: flowEntityId,
+            stepIds: [stepId],
+          },
+        },
+        linkData: {
+          leftEntityId: claimId,
+          rightEntityId: entity.entityId,
+        },
+        relationships: createDefaultAuthorizationRelationships({
+          actorId,
+        }),
+        properties: { value: {} },
+      },
+    );
+  };
+
+  await Promise.all([
+    ...claims.isSubjectOf.map(async (claimId) =>
+      createLinkFromClaimToEntity(claimId, "has-subject"),
+    ),
+    ...claims.isObjectOf.map(async (claimId) =>
+      createLinkFromClaimToEntity(claimId, "has-object"),
+    ),
+  ]);
 
   logProgress([
     {

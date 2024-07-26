@@ -39,6 +39,10 @@ export type LocalOrExistingEntityId =
  *    possibly just resolved by removing the latter when browser plugin inference migrated to a Flow
  */
 export type ProposedEntity = {
+  claims: {
+    isSubjectOf: EntityId[];
+    isObjectOf: EntityId[];
+  };
   provenance: EnforcedEntityEditionProvenance;
   propertyMetadata: PropertyMetadataObject;
   localEntityId: string;
@@ -401,6 +405,11 @@ export type ViewedFile = {
   recordedAt: string;
   stepId: string;
   type: "ViewedFile";
+};
+
+export type ClaimProgressLog = ProgressLogBase & {
+  claimEntityId: EntityId;
+  type: "Claim";
 };
 
 export type ProposedEntityLog = ProgressLogBase & {

@@ -98,10 +98,10 @@ const mapInputPropertiesToPropertiesObject = (params: {
 
 const generatePropertyMetadata = (params: {
   inputProperties: InputPropertiesObject;
-  claims: Claim[];
+  allClaims: Claim[];
   simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
 }): { propertyMetadata: ProposedEntity["propertyMetadata"] } => {
-  const { inputProperties, claims, simplifiedPropertyTypeMappings } = params;
+  const { inputProperties, allClaims, simplifiedPropertyTypeMappings } = params;
 
   const propertyMetadata: NonNullable<ProposedEntity["propertyMetadata"]> = {
     value: {},
@@ -111,7 +111,7 @@ const generatePropertyMetadata = (params: {
     simplifiedPropertyKey,
     { claimIdsUsedToDetermineValue },
   ] of Object.entries(inputProperties)) {
-    const claimsUsedToDetermineValue = claims.filter((claim) =>
+    const claimsUsedToDetermineValue = allClaims.filter((claim) =>
       claimIdsUsedToDetermineValue.includes(claim.claimId),
     );
 
@@ -261,7 +261,7 @@ const generateSystemPrompt = (params: { proposingOutgoingLinks: boolean }) =>
   dedent(`
   You are an entity proposal agent.
 
-  The user will provide you with:
+  I will provide you with:
     - Claims: a list of claims about the entity
     ${
       params.proposingOutgoingLinks
@@ -269,7 +269,7 @@ const generateSystemPrompt = (params: { proposingOutgoingLinks: boolean }) =>
         : ``
     }
 
-  The user has requested that you fill out as many properties as possible, so please do so. Do not optimize for short responses.
+  Please fill out as many properties as possible – do not optimize for short responses.
 
   The provided claims are your only source of information, so make sure to extract as much information as possible,
     and do not rely on other information about the entities in question you may know.
@@ -281,7 +281,10 @@ const retryMax = 3;
 
 export const proposeEntityFromClaimsAgent = async (params: {
   entitySummary: LocalEntitySummary;
-  claims: Claim[];
+  claims: {
+    isObjectOf: Claim[];
+    isSubjectOf: Claim[];
+  };
   dereferencedEntityType: DereferencedEntityType;
   simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
   proposeOutgoingLinkEntityTypes: {
@@ -319,6 +322,8 @@ export const proposeEntityFromClaimsAgent = async (params: {
     proposeOutgoingLinkEntityTypes,
     possibleOutgoingLinkTargetEntitySummaries,
   } = params;
+
+  const allClaims = [...claims.isObjectOf, ...claims.isSubjectOf];
 
   const { userAuthentication, flowEntityId, stepId, webId } =
     await getFlowContext();
@@ -451,7 +456,7 @@ export const proposeEntityFromClaimsAgent = async (params: {
 
     const { propertyMetadata } = generatePropertyMetadata({
       inputProperties,
-      claims,
+      allClaims,
       simplifiedPropertyTypeMappings,
     });
 
@@ -528,10 +533,16 @@ export const proposeEntityFromClaimsAgent = async (params: {
           const { propertyMetadata: outgoingLinkPropertyMetadata } =
             generatePropertyMetadata({
               inputProperties: outgoingLinkInputProperties,
-              claims,
+              allClaims,
               simplifiedPropertyTypeMappings:
                 outgoingLinkSimplifiedPropertyTypeMappings,
             });
+
+          const claimsUsedToToCreateLink = allClaims.filter((claim) =>
+            Object.values(outgoingLink.properties)
+              .flatMap((property) => property.claimIdsUsedToDetermineValue)
+              .includes(claim.claimId),
+          );
 
           try {
             await Entity.validate(graphApiClient, userAuthentication, {
@@ -574,6 +585,21 @@ export const proposeEntityFromClaimsAgent = async (params: {
           }
 
           proposedOutgoingLinkEntities.push({
+            claims: {
+              /**
+               * The claims used to create the link won't express the relationship itself as their subject or object,
+               * but rather have the entity on either side of the link as the explicit subject / object.
+               * The relationship this link entity represents is likely to more of a predicate in the claim, e.g. "Bob _worked at_ Acme Corp.".
+               * For now, we set the relationship as the object of the claim – we could instead
+               * 1. ask an LLM to determine if it's more properly the subject or object
+               * 2. Or/additionally introduce a 'has predicate' relationship from the claim,
+               *    which we either use always or ask an LLM to decide between subject/object/predicate based on the phrasing of the claim.
+               */
+              isObjectOf: claimsUsedToToCreateLink.map(
+                (claim) => claim.claimId,
+              ),
+              isSubjectOf: [],
+            },
             localEntityId: generateUuid(),
             summary: `"${dereferencedOutgoingLinkEntityType.title}" link with source ${entitySummary.name} and target ${targetEntitySummary.name}`,
             sourceEntityId: {
@@ -620,6 +646,10 @@ export const proposeEntityFromClaimsAgent = async (params: {
     }
 
     const proposedEntity: ProposedEntity = {
+      claims: {
+        isObjectOf: claims.isObjectOf.map((claim) => claim.claimId),
+        isSubjectOf: claims.isSubjectOf.map((claim) => claim.claimId),
+      },
       localEntityId: entitySummary.localId,
       propertyMetadata,
       summary: entitySummary.summary,
