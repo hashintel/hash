@@ -305,7 +305,7 @@ jobs:
       - name: Show disk usage
         run: df -h
 
-      - name: Run background tasks
+      - name: Start background tasks
         id: background-tasks
         if: steps.tests.outputs.has-background-tasks == 'true'
         run: |
@@ -315,7 +315,7 @@ jobs:
           # command would fail.
           turbo run compile --env-mode=loose
           mkdir -p logs
-          turbo run start:test --env-mode=loose >var/logs/background-task.log 2>&1 &
+          turbo run start:test --env-mode=loose --log-order stream >var/logs/background-task.log 2>&1 &
           PID=$!
           echo "pid=$PID" | tee -a $GITHUB_OUTPUT
 
@@ -347,8 +347,6 @@ jobs:
         if: always() && steps.tests.outputs.has-background-tasks == 'true'
         run: |
           kill -15 ${{ steps.background-tasks.outputs.pid }} || true
-          # Wait for the background tasks to finish
-          sleep 5
           cat var/logs/background-task.log
 
       - name: Upload artifact playwright-report
