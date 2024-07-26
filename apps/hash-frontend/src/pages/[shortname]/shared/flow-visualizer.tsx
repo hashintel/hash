@@ -2,6 +2,7 @@ import "reactflow/dist/style.css";
 
 import { useApolloClient, useMutation } from "@apollo/client";
 import { Skeleton } from "@hashintel/design-system";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { manualBrowserInferenceFlowDefinition } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
@@ -52,6 +53,13 @@ const getGraphFromFlowDefinition = (
   flowDefinition: FlowDefinitionType,
   showAllDependencies: boolean = false,
 ) => {
+  /**
+   * Flows may organize their steps into 'groups'.
+   * Groups are essentially a way of labelling sets of steps, used to organize the UI into sequentially-executing lanes.
+   * Assigning steps to groups does not affect how the flow runs – it is for user/UI convenience.
+   * The only constraint is that each 'dependency layer' (set of steps that can run in parallel)
+   * must be fully contained in a group, such that only one group is executing at a time.
+   */
   const hasGroups = (flowDefinition.groups ?? []).length > 0;
 
   const { layerByStepId } = groupStepsByDependencyLayer(flowDefinition.steps);
@@ -289,91 +297,105 @@ export const FlowVisualizer = () => {
     return graphsByGroup;
   }, [derivedNodes, derivedEdges, selectedFlowDefinition]);
 
-  const { logs, persistedEntities, proposedEntities } = useMemo<{
-    logs: LocalProgressLog[];
-    persistedEntities: PersistedEntity[];
-    proposedEntities: ProposedEntityOutput[];
-  }>(() => {
-    if (!selectedFlowRun) {
-      return { logs: [], persistedEntities: [], proposedEntities: [] };
-    }
-
-    const progressLogs: LocalProgressLog[] = [
-      {
-        message: "Flow run started",
-        recordedAt: selectedFlowRun.startedAt,
-        stepId: "trigger",
-        type: "StateChange",
-      },
-    ];
-
-    const persisted: PersistedEntity[] = [];
-    const proposed: ProposedEntityOutput[] = [];
-
-    for (const step of selectedFlowRun.steps) {
-      const outputs = step.outputs?.[0]?.contents?.[0]?.outputs ?? [];
-
-      for (const log of step.logs) {
-        progressLogs.push(log);
-
-        if (outputs.length === 0) {
-          if (log.type === "ProposedEntity") {
-            proposed.push({
-              ...log.proposedEntity,
-              researchOngoing: !["CANCELLED", "FAILED", "TIMED_OUT"].includes(
-                step.status,
-              ),
-            });
-          }
-          if (log.type === "PersistedEntity" && log.persistedEntity.entity) {
-            persisted.push(log.persistedEntity);
-          }
-        }
+  const { claimEntityIds, logs, persistedEntities, proposedEntities } =
+    useMemo<{
+      claimEntityIds: EntityId[];
+      logs: LocalProgressLog[];
+      persistedEntities: PersistedEntity[];
+      proposedEntities: ProposedEntityOutput[];
+    }>(() => {
+      if (!selectedFlowRun) {
+        return {
+          claimEntityIds: [],
+          logs: [],
+          persistedEntities: [],
+          proposedEntities: [],
+        };
       }
 
-      for (const output of outputs) {
-        switch (output.payload.kind) {
-          case "ProposedEntity":
-            if (Array.isArray(output.payload.value)) {
-              proposed.push(
-                ...output.payload.value.map((entity) => ({
-                  ...entity,
-                  researchOngoing: false,
-                })),
-              );
-            } else {
+      const progressLogs: LocalProgressLog[] = [
+        {
+          message: "Flow run started",
+          recordedAt: selectedFlowRun.startedAt,
+          stepId: "trigger",
+          type: "StateChange",
+        },
+      ];
+
+      const persisted: PersistedEntity[] = [];
+      const proposed: ProposedEntityOutput[] = [];
+      const claimIds: EntityId[] = [];
+
+      for (const step of selectedFlowRun.steps) {
+        const outputs = step.outputs?.[0]?.contents?.[0]?.outputs ?? [];
+
+        for (const log of step.logs) {
+          if (log.type === "Claim") {
+            claimIds.push(log.claimEntityId);
+            continue;
+          }
+
+          progressLogs.push(log);
+
+          if (outputs.length === 0) {
+            if (log.type === "ProposedEntity") {
               proposed.push({
-                ...output.payload.value,
-                researchOngoing: false,
+                ...log.proposedEntity,
+                researchOngoing: !["CANCELLED", "FAILED", "TIMED_OUT"].includes(
+                  step.status,
+                ),
               });
             }
-            break;
-          case "PersistedEntity":
-            if (Array.isArray(output.payload.value)) {
-              persisted.push(...output.payload.value);
-            } else if (output.payload.value.entity) {
-              persisted.push(output.payload.value);
+            if (log.type === "PersistedEntity" && log.persistedEntity.entity) {
+              persisted.push(log.persistedEntity);
             }
-            break;
-          case "PersistedEntities":
-            if (Array.isArray(output.payload.value)) {
-              persisted.push(
-                ...output.payload.value.flatMap(
-                  (innerMap) => innerMap.persistedEntities,
-                ),
-              );
-            } else {
-              persisted.push(...output.payload.value.persistedEntities);
-            }
+          }
+        }
+
+        for (const output of outputs) {
+          switch (output.payload.kind) {
+            case "ProposedEntity":
+              if (Array.isArray(output.payload.value)) {
+                proposed.push(
+                  ...output.payload.value.map((entity) => ({
+                    ...entity,
+                    researchOngoing: false,
+                  })),
+                );
+              } else {
+                proposed.push({
+                  ...output.payload.value,
+                  researchOngoing: false,
+                });
+              }
+              break;
+            case "PersistedEntity":
+              if (Array.isArray(output.payload.value)) {
+                persisted.push(...output.payload.value);
+              } else if (output.payload.value.entity) {
+                persisted.push(output.payload.value);
+              }
+              break;
+            case "PersistedEntities":
+              if (Array.isArray(output.payload.value)) {
+                persisted.push(
+                  ...output.payload.value.flatMap(
+                    (innerMap) => innerMap.persistedEntities,
+                  ),
+                );
+              } else {
+                persisted.push(...output.payload.value.persistedEntities);
+              }
+          }
         }
       }
-    }
-    return {
-      logs: progressLogs,
-      proposedEntities: proposed,
-      persistedEntities: persisted,
-    };
-  }, [selectedFlowRun]);
+      return {
+        claimEntityIds: claimIds,
+        logs: progressLogs,
+        proposedEntities: proposed,
+        persistedEntities: persisted,
+      };
+    }, [selectedFlowRun]);
 
   const [startFlow] = useMutation<
     StartFlowMutation,
@@ -501,6 +523,7 @@ export const FlowVisualizer = () => {
             {selectedFlowRun ? (
               <Outputs
                 key={`${flowRunStateKey}-outputs`}
+                claimEntityIds={claimEntityIds}
                 persistedEntities={persistedEntities}
                 proposedEntities={proposedEntities}
               />

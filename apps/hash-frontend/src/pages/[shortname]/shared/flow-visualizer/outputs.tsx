@@ -49,6 +49,7 @@ import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import { getFileProperties } from "../../../shared/get-file-properties";
 import { generateEntityRootedSubgraph } from "../../../shared/subgraphs";
 import { EditEntitySlideOver } from "../../entities/[entity-uuid].page/edit-entity-slide-over";
+import { ClaimsTable } from "./outputs/claims-table";
 import { Deliverables } from "./outputs/deliverables";
 import type { DeliverableData } from "./outputs/deliverables/shared/types";
 import { EntityResultGraph } from "./outputs/entity-result-graph";
@@ -243,16 +244,19 @@ type ResultSlideOver =
   | null;
 
 type OutputsProps = {
+  claimEntityIds: EntityId[];
   persistedEntities: PersistedEntity[];
   proposedEntities: ProposedEntityOutput[];
 };
 
 type SectionVisibility = {
+  claims: boolean;
   deliverables: boolean;
   entities: boolean;
 };
 
 export const Outputs = ({
+  claimEntityIds,
   persistedEntities,
   proposedEntities,
 }: OutputsProps) => {
@@ -269,7 +273,8 @@ export const Outputs = ({
 
   const [sectionVisibility, setSectionVisibility] = useState<SectionVisibility>(
     {
-      entities: true,
+      claims: true,
+      entities: false,
       deliverables: false,
     },
   );
@@ -551,20 +556,22 @@ export const Outputs = ({
           sx={{ top: 5, position: "relative", zIndex: 0 }}
         >
           <SectionTabContainer>
-            {(["entities", "deliverables"] as const).map((section) => (
-              <SectionTabButton
-                key={section}
-                label={section}
-                active={sectionVisibility[section]}
-                Icon={outputIcons[section]}
-                onClick={() =>
-                  setSectionVisibility({
-                    ...sectionVisibility,
-                    [section]: !sectionVisibility[section],
-                  })
-                }
-              />
-            ))}
+            {(["entities", "claims", "deliverables"] as const).map(
+              (section) => (
+                <SectionTabButton
+                  key={section}
+                  label={section}
+                  active={sectionVisibility[section]}
+                  Icon={outputIcons[section]}
+                  onClick={() =>
+                    setSectionVisibility({
+                      ...sectionVisibility,
+                      [section]: !sectionVisibility[section],
+                    })
+                  }
+                />
+              ),
+            )}
           </SectionTabContainer>
           {sectionVisibility.entities && (
             <SectionTabContainer>
@@ -623,7 +630,14 @@ export const Outputs = ({
               }
             />
           ))}
-
+        {sectionVisibility.claims && (
+          <ClaimsTable
+            claimEntityIds={claimEntityIds}
+            onEntityClick={onEntityClick}
+            persistedEntities={persistedEntities}
+            proposedEntities={proposedEntities}
+          />
+        )}
         {sectionVisibility.deliverables && (
           <Deliverables deliverables={deliverables} />
         )}

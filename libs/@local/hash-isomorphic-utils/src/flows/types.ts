@@ -424,6 +424,7 @@ export type PersistedEntityLog = ProgressLogBase & {
 
 export type StepProgressLog =
   | CreatedPlanLog
+  | ClaimProgressLog
   | PersistedEntityLog
   | ProposedEntityLog
   | VisitedWebPageLog

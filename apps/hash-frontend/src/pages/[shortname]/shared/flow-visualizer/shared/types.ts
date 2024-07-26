@@ -2,6 +2,7 @@ import type {
   ActionDefinition,
   ActionStepDefinition,
   ActionStepWithParallelInput,
+  ClaimProgressLog,
   ParallelGroupStepDefinition,
   ProgressLogBase,
   ProposedEntity,
@@ -60,7 +61,9 @@ export type StateChangeLog = ProgressLogBase & {
   type: "StateChange";
 };
 
-export type LocalProgressLog = StepProgressLog | StateChangeLog;
+export type LocalProgressLog =
+  | Exclude<StepProgressLog, ClaimProgressLog>
+  | StateChangeLog;
 
 export type ProposedEntityOutput = Omit<ProposedEntity, "provenance"> & {
   researchOngoing: boolean;

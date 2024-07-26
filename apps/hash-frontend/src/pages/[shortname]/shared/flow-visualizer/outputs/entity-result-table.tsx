@@ -1,10 +1,7 @@
 import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 import type { EntityType } from "@blockprotocol/type-system/slim";
 import { IconButton } from "@hashintel/design-system";
-import type {
-  SourceProvenance,
-  ValueMetadata,
-} from "@local/hash-graph-client/api";
+import type { ValueMetadata } from "@local/hash-graph-client/api";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
@@ -28,11 +25,10 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { SxProps, Theme } from "@mui/material";
-import { Box, Popover, Stack, TableCell, Typography } from "@mui/material";
+import { Box, Stack, TableCell, Typography } from "@mui/material";
 import { memo, useMemo, useRef, useState } from "react";
 
 import { CircleInfoIcon } from "../../../../../shared/icons/circle-info-icon";
-import { Link } from "../../../../../shared/ui/link";
 import { ValueChip } from "../../../../shared/value-chip";
 import type {
   CreateVirtualizedRowContentFn,
@@ -48,6 +44,7 @@ import type { ProposedEntityOutput } from "../shared/types";
 import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
+import { SourcesPopover } from "./shared/sources-popover";
 
 const fixedFieldIds = ["status", "entityTypeId", "entityLabel"] as const;
 
@@ -152,74 +149,6 @@ const cellSx = {
   },
 } as const satisfies SxProps<Theme>;
 
-const SourcesList = ({ sources }: { sources: SourceProvenance[] }) => {
-  return (
-    <Box
-      p={1.5}
-      pt={2}
-      sx={{
-        border: ({ palette }) => `1px solid ${palette.gray[20]}`,
-        borderRadius: 2,
-      }}
-    >
-      <Typography
-        component="div"
-        sx={{
-          color: ({ palette }) => palette.gray[70],
-          mb: 1.2,
-          lineHeight: 1,
-        }}
-        variant="smallCaps"
-      >
-        Sources
-      </Typography>
-      <Stack gap={2}>
-        {sources.map((source, index) => {
-          const sourceUrl = source.location?.uri;
-
-          return (
-            <Box
-              key={source.location?.uri ?? index}
-              sx={({ palette }) => ({
-                border: `1px solid ${palette.gray[30]}`,
-                background: palette.gray[15],
-                borderRadius: 2,
-                p: 1.5,
-              })}
-            >
-              <Typography
-                sx={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                }}
-              >
-                {source.location?.name ?? "Unknown"}
-              </Typography>
-              <Box mt={0.5} sx={{ lineHeight: 1 }}>
-                {sourceUrl ? (
-                  <Link
-                    href={sourceUrl}
-                    target="_blank"
-                    sx={{
-                      fontSize: 13,
-                      textDecoration: "none",
-                      wordBreak: "break-word",
-                    }}
-                  >
-                    {sourceUrl}
-                  </Link>
-                ) : (
-                  "Unknown"
-                )}
-              </Box>
-            </Box>
-          );
-        })}
-      </Stack>
-    </Box>
-  );
-};
-
 const PropertyValueCell = ({
   metadata,
   value,
@@ -261,33 +190,13 @@ const PropertyValueCell = ({
           />
         </IconButton>
       </Stack>
-      <Popover
-        id={buttonId}
+      <SourcesPopover
+        buttonId={buttonId}
         open={showMetadataTooltip}
-        anchorEl={cellRef.current}
+        cellRef={cellRef}
         onClose={() => setShowMetadataTooltip(false)}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "left",
-        }}
-        slotProps={{
-          paper: {
-            sx: {
-              borderRadius: 2,
-              width: cellRef.current?.scrollWidth,
-              minWidth: "fit-content",
-            },
-          },
-          root: {
-            sx: {
-              background: "rgba(0,0,0,0.3)",
-            },
-          },
-        }}
-        transitionDuration={50}
-      >
-        <SourcesList sources={metadata?.provenance?.sources ?? []} />
-      </Popover>
+        sources={metadata?.provenance?.sources ?? []}
+      />
     </TableCell>
   );
 };
