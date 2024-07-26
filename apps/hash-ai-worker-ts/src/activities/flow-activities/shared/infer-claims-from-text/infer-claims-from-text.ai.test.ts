@@ -14,7 +14,7 @@ import {
 } from "../../../get-web-page-activity.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
-import { inferFactsFromText } from "../infer-facts-from-text.js";
+import { inferClaimsFromText } from "../infer-claims-from-text.js";
 import type { LocalEntitySummary } from "./get-entity-summaries-from-text.js";
 
 const microsoftWikipediaParagraph = `
@@ -32,9 +32,9 @@ Microsoft has been criticized for its monopolistic practices and the company's s
 `;
 
 test.skip(
-  "Test inferFactsFromText with Microsoft Wikipedia paragraph.",
+  "Test inferClaimsFromText with Microsoft Wikipedia paragraph.",
   async () => {
-    const { facts } = await inferFactsFromText({
+    const { claims } = await inferClaimsFromText({
       text: microsoftWikipediaParagraph,
       url: null,
       title: "Microsoft – Wikipedia",
@@ -42,7 +42,7 @@ test.skip(
       existingEntitiesOfInterest: [],
     });
 
-    expect(facts).toBeDefined();
+    expect(claims).toBeDefined();
   },
   {
     timeout: 5 * 60 * 1000,
@@ -133,7 +133,7 @@ const _ftse350EntitySummaries: LocalEntitySummary[] = [
 ];
 
 test.skip(
-  "Test inferFactsFromText with FTSE350 web page html",
+  "Test inferClaimsFromText with FTSE350 web page html",
   async () => {
     const url =
       "https://www.londonstockexchange.com/indices/ftse-350/constituents/table";
@@ -161,7 +161,7 @@ test.skip(
       simplifyPropertyKeys: true,
     });
 
-    const { facts, entitySummaries } = await inferFactsFromText({
+    const { claims, entitySummaries } = await inferClaimsFromText({
       text: htmlContent,
       url,
       title: webPage.title,
@@ -170,9 +170,9 @@ test.skip(
     });
 
     // eslint-disable-next-line no-console
-    console.log(JSON.stringify({ facts, entitySummaries }, null, 2));
+    console.log(JSON.stringify({ claims, entitySummaries }, null, 2));
 
-    expect(facts).toBeDefined();
+    expect(claims).toBeDefined();
   },
   {
     timeout: 5 * 60 * 1000,
@@ -222,7 +222,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 test.skip(
-  "Test inferFactsFromText with Linked In web page",
+  "Test inferClaimsFromText with Linked In web page",
   async () => {
     const linkedInInnerHtmlPath = join(__dirname, "/var/linkedin.html");
 
@@ -252,23 +252,23 @@ test.skip(
       simplifyPropertyKeys: true,
     });
 
-    const { facts, entitySummaries } = await inferFactsFromText({
+    const { claims, entitySummaries } = await inferClaimsFromText({
       text,
       url: "https://www.linkedin.com/in/satyanadella/",
       title: null,
       dereferencedEntityTypes,
       existingEntitiesOfInterest: [],
       relevantEntitiesPrompt:
-        "Find facts about Satya Nadella, and the companies where he has worked.",
+        "Find claims about Satya Nadella, and the companies where he has worked.",
       testingParams: {
         existingEntitySummaries: statyaNadellaLinkedInEntitySummaries,
       },
     });
 
     // eslint-disable-next-line no-console
-    console.log(JSON.stringify({ facts, entitySummaries }, null, 2));
+    console.log(JSON.stringify({ claims, entitySummaries }, null, 2));
 
-    expect(facts).toBeDefined();
+    expect(claims).toBeDefined();
   },
   {
     timeout: 5 * 60 * 1000,
@@ -423,7 +423,7 @@ const llmProviderExistingEntitySummaries: LocalEntitySummary[] = [
 ];
 
 test.skip(
-  "Test inferFactsFromText with LLM providers",
+  "Test inferClaimsFromText with LLM providers",
   async () => {
     const url = "https://platform.openai.com/docs/models";
 
@@ -455,7 +455,7 @@ test.skip(
       simplifyPropertyKeys: true,
     });
 
-    const { facts, entitySummaries } = await inferFactsFromText({
+    const { claims, entitySummaries } = await inferClaimsFromText({
       text,
       url,
       title,
@@ -469,9 +469,9 @@ test.skip(
     });
 
     // eslint-disable-next-line no-console
-    console.log(JSON.stringify({ facts, entitySummaries }, null, 2));
+    console.log(JSON.stringify({ claims, entitySummaries }, null, 2));
 
-    expect(facts).toBeDefined();
+    expect(claims).toBeDefined();
   },
   {
     timeout: 5 * 60 * 1000,

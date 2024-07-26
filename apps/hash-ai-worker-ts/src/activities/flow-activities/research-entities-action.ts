@@ -41,9 +41,9 @@ import { linkFollowerAgent } from "./research-entities-action/link-follower-agen
 import { runSubTaskAgent } from "./research-entities-action/sub-task-agent.js";
 import type { CompletedCoordinatorToolCall } from "./research-entities-action/types.js";
 import { nullReturns } from "./research-entities-action/types.js";
-import type { LocalEntitySummary } from "./shared/infer-facts-from-text/get-entity-summaries-from-text.js";
-import type { Fact } from "./shared/infer-facts-from-text/types.js";
-import { proposeEntitiesFromFacts } from "./shared/propose-entities-from-facts.js";
+import type { LocalEntitySummary } from "./shared/infer-claims-from-text/get-entity-summaries-from-text.js";
+import type { Claim } from "./shared/infer-claims-from-text/types.js";
+import { proposeEntitiesFromClaims } from "./shared/propose-entities-from-claims.js";
 import type { FlowActionActivity } from "./types.js";
 
 const adjustDuplicates = (params: {
@@ -88,19 +88,19 @@ const adjustDuplicates = (params: {
 };
 
 /**
- * Given newly discovered facts and entity summaries:
+ * Given newly discovered claims and entity summaries:
  * 1. Deduplicate entities
- * 2. Update the state with the new facts and entity summaries
- * 3. Create or update proposals for (1) new entities and (2) existing entities with new facts
+ * 2. Update the state with the new claims and entity summaries
+ * 3. Create or update proposals for (1) new entities and (2) existing entities with new claims
  * 4. Update the state with the new and updated proposals
  */
-const updateStateFromInferredFacts = async (params: {
+const updateStateFromInferredClaims = async (params: {
   input: CoordinatingAgentInput;
   state: CoordinatingAgentState;
-  newFacts: Fact[];
+  newClaims: Claim[];
   newEntitySummaries: LocalEntitySummary[];
 }) => {
-  const { input, state, newEntitySummaries, newFacts } = params;
+  const { input, state, newEntitySummaries, newClaims } = params;
 
   /**
    * Step 1: Deduplication (if necessary)
@@ -143,8 +143,8 @@ const updateStateFromInferredFacts = async (params: {
       ...adjustedDuplicates.map(({ canonicalId }) => canonicalId),
     );
 
-    const inferredFactsWithDeduplicatedEntities = newFacts.map((fact) => {
-      const { subjectEntityLocalId, objectEntityLocalId } = fact;
+    const inferredClaimsWithDeduplicatedEntities = newClaims.map((claim) => {
+      const { subjectEntityLocalId, objectEntityLocalId } = claim;
       const subjectDuplicate = adjustedDuplicates.find(({ duplicateIds }) =>
         duplicateIds.includes(subjectEntityLocalId),
       );
@@ -156,15 +156,15 @@ const updateStateFromInferredFacts = async (params: {
         : undefined;
 
       return {
-        ...fact,
+        ...claim,
         subjectEntityLocalId:
-          subjectDuplicate?.canonicalId ?? fact.subjectEntityLocalId,
+          subjectDuplicate?.canonicalId ?? claim.subjectEntityLocalId,
         objectEntityLocalId:
           objectDuplicate?.canonicalId ?? objectEntityLocalId,
       };
     });
 
-    state.inferredFacts.push(...inferredFactsWithDeduplicatedEntities);
+    state.inferredClaims.push(...inferredClaimsWithDeduplicatedEntities);
     state.entitySummaries = [
       ...state.entitySummaries,
       ...newEntitySummaries,
@@ -189,19 +189,19 @@ const updateStateFromInferredFacts = async (params: {
   }
 
   /**
-   * Step 2: Create or update proposals for new entities and existing entities with new facts
+   * Step 2: Create or update proposals for new entities and existing entities with new claims
    */
 
   /**
    * We want to (re)propose entities which may have new information, via one of:
    * 1. Appearing as a new summary
-   * 2. Being the subject or object of a new fact
-   * 3. Having been identified as the canonical version of a new duplicate (which means it may have had new facts discovered)
+   * 2. Being the subject or object of a new claim
+   * 3. Having been identified as the canonical version of a new duplicate (which means it may have had new claims discovered)
    */
   const entityIdsToPropose = [
     ...new Set([
       ...newEntitySummaries.map(({ localId }) => localId),
-      ...newFacts.flatMap(({ subjectEntityLocalId, objectEntityLocalId }) =>
+      ...newClaims.flatMap(({ subjectEntityLocalId, objectEntityLocalId }) =>
         [subjectEntityLocalId, objectEntityLocalId].filter(isNotNullish),
       ),
       ...canonicalEntityIdsForNewDuplicates,
@@ -209,18 +209,18 @@ const updateStateFromInferredFacts = async (params: {
   ];
 
   /**
-   * Gather the facts which relate to the entities that are being proposed
+   * Gather the claims which relate to the entities that are being proposed
    */
   const entitySummaries = state.entitySummaries.filter(({ localId }) =>
     entityIdsToPropose.includes(localId),
   );
 
-  const relevantFacts = state.inferredFacts.filter(
+  const relevantClaims = state.inferredClaims.filter(
     ({ subjectEntityLocalId, objectEntityLocalId }) =>
       entityIdsToPropose.includes(subjectEntityLocalId) ||
       /**
-       * Facts where the entity is the object may contain information which is useful in constructing it,
-       * or a link from it – the fact may be expressed in the reverse direction to that of the target entity types.
+       * Claims where the entity is the object may contain information which is useful in constructing it,
+       * or a link from it – the claim may be expressed in the reverse direction to that of the target entity types.
        */
       (objectEntityLocalId && entityIdsToPropose.includes(objectEntityLocalId)),
   );
@@ -230,7 +230,7 @@ const updateStateFromInferredFacts = async (params: {
    */
   const potentialLinkTargetEntitySummaries = state.entitySummaries.filter(
     ({ localId }) =>
-      relevantFacts.some(
+      relevantClaims.some(
         ({ objectEntityLocalId }) => localId === objectEntityLocalId,
       ),
   );
@@ -239,17 +239,17 @@ const updateStateFromInferredFacts = async (params: {
    * Get the updated proposals
    */
   const { proposedEntities: newProposedEntities } =
-    await proposeEntitiesFromFacts({
+    await proposeEntitiesFromClaims({
       dereferencedEntityTypes: input.allDereferencedEntityTypesById,
       entitySummaries,
       existingEntitySummaries: input.existingEntitySummaries,
-      facts: relevantFacts,
+      claims: relevantClaims,
       potentialLinkTargetEntitySummaries,
     });
 
   state.proposedEntities = [
     /**
-     * Filter out any previous proposed entities that have been re-proposed with new facts.
+     * Filter out any previous proposed entities that have been re-proposed with new claims.
      */
     ...state.proposedEntities.filter(
       ({ localEntityId }) =>
@@ -325,7 +325,7 @@ export const researchEntitiesAction: FlowActionActivity<{
     state = {
       entitySummaries: [],
       hasConductedCheckStep: false,
-      inferredFacts: [],
+      inferredClaims: [],
       plan: initialPlan,
       previousCalls: [],
       proposedEntities: [],
@@ -441,9 +441,9 @@ export const researchEntitiesAction: FlowActionActivity<{
               output: "Search successful",
               webPagesFromSearchQuery: webPageSummaries,
             };
-          } else if (toolCall.name === "inferFactsFromResources") {
+          } else if (toolCall.name === "inferClaimsFromResources") {
             const { resources } =
-              toolCall.input as CoordinatorToolCallArguments["inferFactsFromResources"];
+              toolCall.input as CoordinatorToolCallArguments["inferClaimsFromResources"];
 
             const validEntityTypeIds = input.entityTypes.map(({ $id }) => $id);
 
@@ -552,13 +552,13 @@ export const researchEntitiesAction: FlowActionActivity<{
               ),
             );
 
-            const inferredFacts: Fact[] = [];
+            const inferredClaims: Claim[] = [];
             const entitySummaries: LocalEntitySummary[] = [];
             const suggestionsForNextStepsMade: string[] = [];
             const resourceUrlsVisited: string[] = [];
 
             for (const { response } of responsesWithUrl) {
-              inferredFacts.push(...response.inferredFacts);
+              inferredClaims.push(...response.inferredClaims);
               entitySummaries.push(...response.inferredSummaries);
               suggestionsForNextStepsMade.push(response.suggestionForNextSteps);
               resourceUrlsVisited.push(
@@ -569,18 +569,18 @@ export const researchEntitiesAction: FlowActionActivity<{
             return {
               ...toolCall,
               ...nullReturns,
-              inferredFacts,
+              inferredClaims,
               entitySummaries,
               suggestionsForNextStepsMade,
               resourceUrlsVisited,
               output:
                 entitySummaries.length > 0
                   ? "Entities inferred from web page"
-                  : "No facts were inferred about any relevant entities.",
+                  : "No claims were inferred about any relevant entities.",
             };
-          } else if (toolCall.name === "startFactGatheringSubTasks") {
+          } else if (toolCall.name === "startClaimGatheringSubTasks") {
             const { subTasks } =
-              toolCall.input as CoordinatorToolCallArguments["startFactGatheringSubTasks"];
+              toolCall.input as CoordinatorToolCallArguments["startClaimGatheringSubTasks"];
 
             let counter = 0;
 
@@ -632,8 +632,8 @@ export const researchEntitiesAction: FlowActionActivity<{
                       ),
                   );
 
-                  const existingFactsAboutRelevantEntities =
-                    state.inferredFacts.filter(({ subjectEntityLocalId }) =>
+                  const existingClaimsAboutRelevantEntities =
+                    state.inferredClaims.filter(({ subjectEntityLocalId }) =>
                       relevantEntityIds?.includes(subjectEntityLocalId),
                     );
 
@@ -651,7 +651,7 @@ export const researchEntitiesAction: FlowActionActivity<{
                     input: {
                       goal,
                       relevantEntities,
-                      existingFactsAboutRelevantEntities,
+                      existingClaimsAboutRelevantEntities,
                       entityTypes,
                       linkEntityTypes,
                     },
@@ -661,7 +661,7 @@ export const researchEntitiesAction: FlowActionActivity<{
                 }),
             );
 
-            const inferredFacts: Fact[] = [];
+            const inferredClaims: Claim[] = [];
             const entitySummaries: LocalEntitySummary[] = [];
             const subTasksCompleted: string[] = [];
 
@@ -669,7 +669,7 @@ export const researchEntitiesAction: FlowActionActivity<{
 
             for (const { response, subTask } of responsesWithSubTask) {
               entitySummaries.push(...response.discoveredEntities);
-              inferredFacts.push(...response.discoveredFacts);
+              inferredClaims.push(...response.discoveredClaims);
 
               if (response.status === "ok") {
                 subTasksCompleted.push(subTask.goal);
@@ -689,7 +689,7 @@ export const researchEntitiesAction: FlowActionActivity<{
             return {
               ...toolCall,
               ...nullReturns,
-              inferredFacts,
+              inferredClaims,
               entitySummaries,
               subTasksCompleted,
               output: errorMessage || "Sub-tasks all completed.",
@@ -845,18 +845,18 @@ export const researchEntitiesAction: FlowActionActivity<{
     const newEntitySummaries = completedToolCalls.flatMap(
       ({ entitySummaries }) => entitySummaries ?? [],
     );
-    const newFacts = completedToolCalls.flatMap(
-      ({ inferredFacts }) => inferredFacts ?? [],
+    const newClaims = completedToolCalls.flatMap(
+      ({ inferredClaims }) => inferredClaims ?? [],
     );
 
     /**
-     * Update the state with the new facts and entity summaries inferred from the tool calls,
-     * which includes the deduplication of entities and the conversion of facts into proposed entities.
+     * Update the state with the new claims and entity summaries inferred from the tool calls,
+     * which includes the deduplication of entities and the conversion of claims into proposed entities.
      */
-    await updateStateFromInferredFacts({
+    await updateStateFromInferredClaims({
       input,
       state,
-      newFacts,
+      newClaims,
       newEntitySummaries,
     });
 

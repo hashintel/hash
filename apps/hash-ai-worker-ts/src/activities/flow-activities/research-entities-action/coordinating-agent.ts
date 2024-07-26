@@ -27,8 +27,8 @@ import { graphApiClient } from "../../shared/graph-api-client.js";
 import { logProgress } from "../../shared/log-progress.js";
 import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-entities-to-entities.js";
 import { stringify } from "../../shared/stringify.js";
-import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text.js";
-import type { Fact } from "../shared/infer-facts-from-text/types.js";
+import type { LocalEntitySummary } from "../shared/infer-claims-from-text/get-entity-summaries-from-text.js";
+import type { Claim } from "../shared/infer-claims-from-text/types.js";
 import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
@@ -66,10 +66,10 @@ const generateSystemPromptPrefix = (params: {
   return dedent(`
     You are a coordinating agent for a research task.
     The user provides you with a research brief, and the types of entities that are relevant.
-    Your job is to do research to gather facts about those types of entities, consistent with the research brief,
+    Your job is to do research to gather claims about those types of entities, consistent with the research brief,
     as well as relevant entities that they link to – forming a graph.
     
-    You will have tools provided to you to gather facts, which will be automatically converted into entities.
+    You will have tools provided to you to gather claims, which will be automatically converted into entities.
 
     The user provides you with:
       - Prompt: the text prompt you need to satisfy to complete the research task
@@ -102,9 +102,9 @@ const generateSystemPromptPrefix = (params: {
       as many properties as possible.
 
     This may well involve:
-      - inferring facts from more than one data source
+      - inferring claims from more than one data source
       - conducting multiple searches
-      - starting sub-tasks to find additional relevant facts about specific entities
+      - starting sub-tasks to find additional relevant claims about specific entities
 
     If it would be useful to split up the task into sub-tasks to find detailed information on specific entities, do so. 
     Don't start sub-tasks in parallel which duplicate or overlap, or where one will depend on the result of another (do it in sequence).
@@ -157,7 +157,7 @@ export type CoordinatingAgentState = {
     completedToolCalls: CompletedCoordinatorToolCall<CoordinatorToolName>[];
   }[];
   entitySummaries: LocalEntitySummary[];
-  inferredFacts: Fact[];
+  inferredClaims: Claim[];
   proposedEntities: ProposedEntity[];
   subTasksCompleted: string[];
   suggestionsForNextStepsMade: string[];
@@ -239,10 +239,10 @@ const generateProgressReport = (params: {
 
     progressReport += dedent`
     If further research is needed to fill more properties of any entities or links,
-      consider defining them as sub-tasks via the "startFactGatheringSubTasks" tool.
+      consider defining them as sub-tasks via the "startClaimGatheringSubTasks" tool.
 
     Do not sequentially conduct additional actions for each of the entities,
-      instead start multiple sub-tasks via the "startFactGatheringSubTasks" tool to
+      instead start multiple sub-tasks via the "startClaimGatheringSubTasks" tool to
       conduct additional research per entity in parallel.`;
   }
   if (
@@ -252,7 +252,7 @@ const generateProgressReport = (params: {
   ) {
     if (resourceUrlsVisited.length > 0) {
       progressReport += dedent(`
-        You have discovered the following resources via web searches but noy yet visited them. It may be worth inferring facts from the URL.
+        You have discovered the following resources via web searches but noy yet visited them. It may be worth inferring claims from the URL.
         <ResourcesNotVisited>
         ${resourcesNotVisited
           .map(
@@ -428,7 +428,7 @@ const createInitialPlan = async (params: {
     ${
       providedFiles.length
         ? dedent(`
-      The user has provided you with the following resources which can be used to infer facts from:
+      The user has provided you with the following resources which can be used to infer claims from:
       ${providedFiles.map((file) => `<Resource>Url: ${file.url}\nTitle: ${file.title}</Resource>`).join("\n\n")}`)
         : ""
     }

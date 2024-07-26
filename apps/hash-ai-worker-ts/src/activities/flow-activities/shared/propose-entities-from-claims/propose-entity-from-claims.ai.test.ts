@@ -6,9 +6,9 @@ import { expect, test } from "vitest";
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
-import type { LocalEntitySummary } from "../infer-facts-from-text/get-entity-summaries-from-text.js";
-import type { Fact } from "../infer-facts-from-text/types.js";
-import { proposeEntityFromFactsAgent } from "./propose-entity-from-facts-agent.js";
+import type { LocalEntitySummary } from "../infer-claims-from-text/get-entity-summaries-from-text.js";
+import type { Claim } from "../infer-claims-from-text/types.js";
+import { proposeEntityFromClaimsAgent } from "./propose-entity-from-claims-agent.js";
 
 const huntingPlcEntitySummary: LocalEntitySummary = {
   localId: "6916156b-e759-41ad-b1da-2cf7af05d223",
@@ -19,7 +19,7 @@ const huntingPlcEntitySummary: LocalEntitySummary = {
     "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
 };
 
-const huntingPlcEntityFacts = [
+const huntingPlcEntityClaims = [
   {
     text: "HUNTING PLC has a market cap of 614.40 million GBX",
     subjectEntityLocalId: "66f93842-c6e0-4378-ab04-519edd7231af",
@@ -43,7 +43,7 @@ const huntingPlcEntityFacts = [
 ];
 
 test.skip(
-  "Test proposeEntityFromFacts: HUNTING PLC ORD 25P",
+  "Test proposeEntityFromClaims: HUNTING PLC ORD 25P",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -59,10 +59,10 @@ test.skip(
     const { schema: dereferencedEntityType, simplifiedPropertyTypeMappings } =
       Object.values(dereferencedEntityTypes)[0]!;
 
-    const huntingPlcEntityFactsWithSources = huntingPlcEntityFacts.map(
-      (fact): Fact => ({
-        ...fact,
-        factId: generateUuid(),
+    const huntingPlcEntityClaimsWithSources = huntingPlcEntityClaims.map(
+      (claim): Claim => ({
+        ...claim,
+        claimId: generateUuid(),
         sources: [
           {
             type: "webpage",
@@ -75,9 +75,9 @@ test.skip(
       }),
     );
 
-    const proposeEntityFromFactsStatus = await proposeEntityFromFactsAgent({
+    const proposeEntityFromClaimsStatus = await proposeEntityFromClaimsAgent({
       entitySummary: huntingPlcEntitySummary,
-      facts: huntingPlcEntityFactsWithSources,
+      claims: huntingPlcEntityClaimsWithSources,
       dereferencedEntityType,
       simplifiedPropertyTypeMappings: simplifiedPropertyTypeMappings!,
       proposeOutgoingLinkEntityTypes: [],
@@ -85,9 +85,9 @@ test.skip(
     });
 
     // eslint-disable-next-line no-console
-    console.log(JSON.stringify({ proposeEntityFromFactsStatus }, null, 2));
+    console.log(JSON.stringify({ proposeEntityFromClaimsStatus }, null, 2));
 
-    expect(proposeEntityFromFactsStatus).toBeDefined();
+    expect(proposeEntityFromClaimsStatus).toBeDefined();
   },
   {
     timeout: 5 * 60 * 1000,
@@ -102,9 +102,9 @@ const graphicsCardEntitySummary: LocalEntitySummary = {
   entityTypeId: "https://hash.ai/@ftse/types/entity-type/graphics-card/v/1",
 };
 
-const factsAboutGraphicsCard: Fact[] = [
+const claimsAboutGraphicsCard: Claim[] = [
   {
-    factId: "5294b951-fbe0-4b31-b287-130036c1f551",
+    claimId: "5294b951-fbe0-4b31-b287-130036c1f551",
     text: "NVIDIA GeForce RTX 2080 Ti provides 11GB of memory",
     subjectEntityLocalId: "d705527d-59ed-462c-92c4-507b92095c22",
     prepositionalPhrases: [],
@@ -119,7 +119,7 @@ const factsAboutGraphicsCard: Fact[] = [
     ],
   },
   {
-    factId: "e2ef33ee-d23e-4fba-aded-944067013515",
+    claimId: "e2ef33ee-d23e-4fba-aded-944067013515",
     text: "NVIDIA GeForce RTX 2080 Ti has a 352-bit memory bus",
     subjectEntityLocalId: "d705527d-59ed-462c-92c4-507b92095c22",
     prepositionalPhrases: [],
@@ -134,7 +134,7 @@ const factsAboutGraphicsCard: Fact[] = [
     ],
   },
   {
-    factId: "710c911e-7641-4f7a-908e-dd5d162399d5",
+    claimId: "710c911e-7641-4f7a-908e-dd5d162399d5",
     text: "NVIDIA GeForce RTX 2080 Ti has a 6MB cache",
     subjectEntityLocalId: "d705527d-59ed-462c-92c4-507b92095c22",
     prepositionalPhrases: [],
@@ -149,7 +149,7 @@ const factsAboutGraphicsCard: Fact[] = [
     ],
   },
   {
-    factId: "b8547d6c-dbdc-4765-8e40-326c39b87e6c",
+    claimId: "b8547d6c-dbdc-4765-8e40-326c39b87e6c",
     text: "NVIDIA GeForce RTX 2080 Ti provides roughly 120 teraflops of performance",
     subjectEntityLocalId: "d705527d-59ed-462c-92c4-507b92095c22",
     prepositionalPhrases: [],
@@ -164,7 +164,7 @@ const factsAboutGraphicsCard: Fact[] = [
     ],
   },
   {
-    factId: "06e3ae80-e7c7-4762-877b-36241edf8b55",
+    claimId: "06e3ae80-e7c7-4762-877b-36241edf8b55",
     text: "NVIDIA GeForce RTX 2080 Ti is a PC GPU",
     subjectEntityLocalId: "d705527d-59ed-462c-92c4-507b92095c22",
     prepositionalPhrases: [],
@@ -179,7 +179,7 @@ const factsAboutGraphicsCard: Fact[] = [
     ],
   },
   {
-    factId: "e9fa4dba-a4d0-421d-b907-7b534fb0eae0",
+    claimId: "e9fa4dba-a4d0-421d-b907-7b534fb0eae0",
     text: "NVIDIA GeForce RTX 2080 Ti is based on the TU102 graphics processor",
     subjectEntityLocalId: "d705527d-59ed-462c-92c4-507b92095c22",
     prepositionalPhrases: [],
@@ -196,7 +196,7 @@ const factsAboutGraphicsCard: Fact[] = [
 ];
 
 test.skip(
-  "Test proposeEntityFromFacts with graphics card entity",
+  "Test proposeEntityFromClaims with graphics card entity",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -212,9 +212,9 @@ test.skip(
     const { schema: dereferencedEntityType, simplifiedPropertyTypeMappings } =
       Object.values(dereferencedEntityTypes)[0]!;
 
-    const proposeEntityFromFactsStatus = await proposeEntityFromFactsAgent({
+    const proposeEntityFromClaimsStatus = await proposeEntityFromClaimsAgent({
       entitySummary: graphicsCardEntitySummary,
-      facts: factsAboutGraphicsCard,
+      claims: claimsAboutGraphicsCard,
       dereferencedEntityType,
       simplifiedPropertyTypeMappings: simplifiedPropertyTypeMappings!,
       proposeOutgoingLinkEntityTypes: [],
@@ -222,9 +222,9 @@ test.skip(
     });
 
     // eslint-disable-next-line no-console
-    console.log(JSON.stringify({ proposeEntityFromFactsStatus }, null, 2));
+    console.log(JSON.stringify({ proposeEntityFromClaimsStatus }, null, 2));
 
-    expect(proposeEntityFromFactsStatus).toBeDefined();
+    expect(proposeEntityFromClaimsStatus).toBeDefined();
   },
   {
     timeout: 5 * 60 * 1000,

@@ -6,10 +6,10 @@ import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-en
 import { getWebPageActivity } from "../../../get-web-page-activity.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
-import { inferEntityFactsFromTextAgent } from "./infer-entity-facts-from-text-agent.js";
+import { inferEntityClaimsFromTextAgent } from "./infer-entity-claims-from-text-agent.js";
 
 test.skip(
-  "Test inferEntityFactsFromText with the FTSE350 table",
+  "Test inferEntityClaimsFromText with the FTSE350 table",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -39,7 +39,7 @@ test.skip(
 
     const { htmlContent } = webPage;
 
-    const { facts } = await inferEntityFactsFromTextAgent({
+    const { claims } = await inferEntityClaimsFromTextAgent({
       text: htmlContent,
       url,
       title: webPage.title,
@@ -59,9 +59,9 @@ test.skip(
     });
 
     // eslint-disable-next-line no-console
-    console.log(JSON.stringify({ facts }, null, 2));
+    console.log(JSON.stringify({ claims }, null, 2));
 
-    expect(facts).toBeDefined();
+    expect(claims).toBeDefined();
   },
   {
     timeout: 5 * 60 * 1000,
@@ -69,7 +69,7 @@ test.skip(
 );
 
 test.skip(
-  "Test inferEntityFactsFromText for the GeForce RTX 4090 graphics card",
+  "Test inferEntityClaimsFromText for the GeForce RTX 4090 graphics card",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -99,7 +99,7 @@ test.skip(
 
     const { htmlContent } = webPage;
 
-    const { facts } = await inferEntityFactsFromTextAgent({
+    const { claims } = await inferEntityClaimsFromTextAgent({
       text: htmlContent,
       url,
       title: webPage.title,
@@ -118,9 +118,9 @@ test.skip(
     });
 
     // eslint-disable-next-line no-console
-    console.log(JSON.stringify({ facts }, null, 2));
+    console.log(JSON.stringify({ claims }, null, 2));
 
-    expect(facts).toBeDefined();
+    expect(claims).toBeDefined();
   },
   {
     timeout: 5 * 60 * 1000,

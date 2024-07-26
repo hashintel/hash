@@ -19,8 +19,8 @@ import type {
 } from "../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
 import { stringify } from "../../shared/stringify.js";
-import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text.js";
-import type { Fact } from "../shared/infer-facts-from-text/types.js";
+import type { LocalEntitySummary } from "../shared/infer-claims-from-text/get-entity-summaries-from-text.js";
+import type { Claim } from "../shared/infer-claims-from-text/types.js";
 import type { CoordinatingAgentState } from "./coordinating-agent.js";
 import type {
   CoordinatorToolCallArguments,
@@ -32,8 +32,8 @@ import { deduplicateEntities } from "./deduplicate-entities.js";
 import { handleWebSearchToolCall } from "./handle-web-search-tool-call.js";
 import { linkFollowerAgent } from "./link-follower-agent.js";
 import {
+  simplifyClaimForLlmConsumption,
   simplifyEntityTypeForLlmConsumption,
-  simplifyFactForLlmConsumption,
 } from "./shared/simplify-for-llm-consumption.js";
 import type { CompletedCoordinatorToolCall } from "./types.js";
 import { nullReturns } from "./types.js";
@@ -43,7 +43,7 @@ const model: LlmParams["model"] = "claude-3-5-sonnet-20240620";
 
 const omittedCoordinatorToolNames = [
   "complete",
-  "startFactGatheringSubTasks",
+  "startClaimGatheringSubTasks",
   "requestHumanInput",
   "terminate",
 ] as const;
@@ -101,7 +101,7 @@ const generateToolDefinitions = <
           explanation: {
             type: "string",
             description:
-              "The explanation for how the gathered facts satisfy sub-task.",
+              "The explanation for how the gathered claims satisfy sub-task.",
           },
         },
       },
@@ -135,7 +135,7 @@ export type SubTaskAgentToolCallArguments = Subtype<
 const generateSystemPromptPrefix = (params: { input: SubTaskAgentInput }) => {
   const {
     relevantEntities,
-    existingFactsAboutRelevantEntities,
+    existingClaimsAboutRelevantEntities,
     linkEntityTypes,
   } = params.input;
 
@@ -144,10 +144,10 @@ const generateSystemPromptPrefix = (params: { input: SubTaskAgentInput }) => {
 
     The user will provide you with:
       - Goal: the research goal you need to satisfy to complete the research task
-      - Entity Types: a list of entity types of the entities that you may need to discover facts about
+      - Entity Types: a list of entity types of the entities that you may need to discover claims about
       ${
         linkEntityTypes
-          ? `- Link Entity Types: a list of link entity types of the entities that you may need to discover facts about`
+          ? `- Link Entity Types: a list of link entity types of the entities that you may need to discover claims about`
           : ""
       }
       ${
@@ -156,24 +156,24 @@ const generateSystemPromptPrefix = (params: { input: SubTaskAgentInput }) => {
           : ""
       }
       ${
-        existingFactsAboutRelevantEntities.length > 0
-          ? `- Existing Facts About Relevant Entities: a list of facts that have already been discovered about the relevant entities`
+        existingClaimsAboutRelevantEntities.length > 0
+          ? `- Existing Claims About Relevant Entities: a list of claims that have already been discovered about the relevant entities`
           : ""
       }
 
-    You are tasked with finding the facts with the provided tools to satisfy the research goal.
+    You are tasked with finding the claims with the provided tools to satisfy the research goal.
     
     The user will also provide you with a progress report of the information discovered and work done to date.
     Take account of this when deciding your next action.
 
-    The "complete" tool should be used once you have gathered sufficient facts to satisfy the research goal.
+    The "complete" tool should be used once you have gathered sufficient claims to satisfy the research goal.
   `);
 };
 
 export type SubTaskAgentInput = {
   goal: string;
   relevantEntities: LocalEntitySummary[];
-  existingFactsAboutRelevantEntities: Fact[];
+  existingClaimsAboutRelevantEntities: Claim[];
   entityTypes: DereferencedEntityType[];
   linkEntityTypes?: DereferencedEntityType[];
 };
@@ -182,7 +182,7 @@ export type SubTaskAgentState = Pick<
   CoordinatingAgentState,
   | "plan"
   | "entitySummaries"
-  | "inferredFacts"
+  | "inferredClaims"
   | "resourcesNotVisited"
   | "resourceUrlsVisited"
   | "webQueriesMade"
@@ -198,7 +198,7 @@ const generateInitialUserMessage = (params: {
   const {
     goal,
     relevantEntities,
-    existingFactsAboutRelevantEntities,
+    existingClaimsAboutRelevantEntities,
     entityTypes,
     linkEntityTypes,
   } = params.input;
@@ -220,8 +220,8 @@ ${
   relevantEntities.length > 0
     ? `<RelevantEntities>${relevantEntities
         .map(({ localId, name, summary, entityTypeId }) => {
-          const factsAboutEntity = existingFactsAboutRelevantEntities.filter(
-            (fact) => fact.subjectEntityLocalId === localId,
+          const claimsAboutEntity = existingClaimsAboutRelevantEntities.filter(
+            (claim) => claim.subjectEntityLocalId === localId,
           );
 
           return dedent(`
@@ -229,7 +229,7 @@ ${
             Name: ${name}
             Summary: ${summary}
             EntityType: ${entityTypeId}
-            Facts known at start of task: ${factsAboutEntity.map((fact) => `<Fact>${simplifyFactForLlmConsumption(fact)}</Fact>`).join("\n")}
+            Claims known at start of task: ${claimsAboutEntity.map((claim) => `<Claim>${simplifyClaimForLlmConsumption(claim)}</Claim>`).join("\n")}
           </Entity>`);
         })
         .join("\n")}</RelevantEntities>`
@@ -317,7 +317,7 @@ const generateProgressReport = (params: {
 
   const {
     entitySummaries,
-    inferredFacts,
+    inferredClaims,
     webQueriesMade,
     resourcesNotVisited,
     resourceUrlsVisited,
@@ -330,23 +330,23 @@ const generateProgressReport = (params: {
       If you want to deviate from this plan or improve it, update it using the "updatePlan" tool.
       You must call the "updatePlan" tool alongside other tool calls to progress towards completing the task.
       
-      You don't need to complete all the steps in the plan if you feel the facts you have already gathered are sufficient to meet the research goal – call complete if they are, with an explanation as to why they are sufficient.
+      You don't need to complete all the steps in the plan if you feel the claims you have already gathered are sufficient to meet the research goal – call complete if they are, with an explanation as to why they are sufficient.
     `);
 
-  if (inferredFacts.length > 0) {
+  if (inferredClaims.length > 0) {
     text += dedent(`
       Here's the information about entities we've gathered so far:
       <Entities>${entitySummaries
         .map(({ localId, name, summary, entityTypeId }) => {
-          const factsAboutEntity = inferredFacts.filter(
-            (fact) => fact.subjectEntityLocalId === localId,
+          const claimsAboutEntity = inferredClaims.filter(
+            (claim) => claim.subjectEntityLocalId === localId,
           );
 
           return dedent(`<Entity>
     Name: ${name}
     Summary: ${summary}
     EntityType: ${entityTypeId}
-    Facts: ${factsAboutEntity.map((fact) => `<Fact>${simplifyFactForLlmConsumption(fact)}</Fact>`).join("\n")}
+    Claims: ${claimsAboutEntity.map((claim) => `<Claim>${simplifyClaimForLlmConsumption(claim)}</Claim>`).join("\n")}
     </Entity>`);
         })
         .join("\n")}</Entities>
@@ -363,7 +363,7 @@ const generateProgressReport = (params: {
   }
   if (resourcesNotVisited.length > 0) {
     text += dedent(`
-        You have discovered the following resources via web searches but noy yet visited them. It may be worth inferring facts from the URL.
+        You have discovered the following resources via web searches but noy yet visited them. It may be worth inferring claims from the URL.
         <ResourcesNotVisited>
         ${resourcesNotVisited
           .map(
@@ -440,7 +440,7 @@ const getNextToolCalls = async (params: {
     generateToolDefinitions({
       dataSources,
       omitTools: [
-        ...(state.inferredFacts.length > 0 ? [] : ["complete" as const]),
+        ...(state.inferredClaims.length > 0 ? [] : ["complete" as const]),
       ],
     }),
   );
@@ -489,13 +489,13 @@ export const runSubTaskAgent = async (params: {
       status: "ok";
       explanation: string;
       discoveredEntities: LocalEntitySummary[];
-      discoveredFacts: Fact[];
+      discoveredClaims: Claim[];
     }
   | {
       status: "terminated";
       reason: string;
       discoveredEntities: LocalEntitySummary[];
-      discoveredFacts: Fact[];
+      discoveredClaims: Claim[];
     }
 > => {
   const { testingParams, input } = params;
@@ -509,7 +509,7 @@ export const runSubTaskAgent = async (params: {
 
     state = {
       plan: initialPlan,
-      inferredFacts: [],
+      inferredClaims: [],
       entitySummaries: [],
       previousCalls: [],
       webQueriesMade: [],
@@ -587,9 +587,9 @@ export const runSubTaskAgent = async (params: {
                 output: "Search successful",
                 webPagesFromSearchQuery: webPageSummaries,
               };
-            } else if (toolCall.name === "inferFactsFromResources") {
+            } else if (toolCall.name === "inferClaimsFromResources") {
               const { resources } =
-                toolCall.input as CoordinatorToolCallArguments["inferFactsFromResources"];
+                toolCall.input as CoordinatorToolCallArguments["inferClaimsFromResources"];
 
               const validEntityTypeIds = input.entityTypes.map(
                 ({ $id }) => $id,
@@ -695,13 +695,13 @@ export const runSubTaskAgent = async (params: {
                 ),
               );
 
-              const inferredFacts: Fact[] = [];
+              const inferredClaims: Claim[] = [];
               const entitySummaries: LocalEntitySummary[] = [];
               const suggestionsForNextStepsMade: string[] = [];
               const resourceUrlsVisited: string[] = [];
 
               for (const { response } of responsesWithUrl) {
-                inferredFacts.push(...response.inferredFacts);
+                inferredClaims.push(...response.inferredClaims);
                 entitySummaries.push(...response.inferredSummaries);
                 suggestionsForNextStepsMade.push(
                   response.suggestionForNextSteps,
@@ -714,14 +714,14 @@ export const runSubTaskAgent = async (params: {
               return {
                 ...toolCall,
                 ...nullReturns,
-                inferredFacts,
+                inferredClaims,
                 entitySummaries,
                 suggestionsForNextStepsMade,
                 resourceUrlsVisited,
                 output:
                   entitySummaries.length > 0
                     ? "Entities inferred from web page"
-                    : "No facts were inferred about any relevant entities.",
+                    : "No claims were inferred about any relevant entities.",
               };
             }
 
@@ -763,11 +763,11 @@ export const runSubTaskAgent = async (params: {
     const newEntitySummaries = completedToolCalls.flatMap(
       ({ entitySummaries }) => entitySummaries ?? [],
     );
-    const newFacts = completedToolCalls.flatMap(
-      ({ inferredFacts }) => inferredFacts ?? [],
+    const newClaims = completedToolCalls.flatMap(
+      ({ inferredClaims }) => inferredClaims ?? [],
     );
 
-    state.inferredFacts = [...state.inferredFacts, ...newFacts];
+    state.inferredClaims = [...state.inferredClaims, ...newClaims];
 
     if (newEntitySummaries.length > 0) {
       const { duplicates } = await deduplicateEntities({
@@ -812,9 +812,9 @@ export const runSubTaskAgent = async (params: {
         },
       );
 
-      const inferredFactsWithDeduplicatedEntities = state.inferredFacts.map(
-        (fact) => {
-          const { subjectEntityLocalId, objectEntityLocalId } = fact;
+      const inferredClaimsWithDeduplicatedEntities = state.inferredClaims.map(
+        (claim) => {
+          const { subjectEntityLocalId, objectEntityLocalId } = claim;
           const subjectDuplicate = adjustedDuplicates.find(({ duplicateIds }) =>
             duplicateIds.includes(subjectEntityLocalId),
           );
@@ -826,16 +826,16 @@ export const runSubTaskAgent = async (params: {
             : undefined;
 
           return {
-            ...fact,
+            ...claim,
             subjectEntityLocalId:
-              subjectDuplicate?.canonicalId ?? fact.subjectEntityLocalId,
+              subjectDuplicate?.canonicalId ?? claim.subjectEntityLocalId,
             objectEntityLocalId:
               objectDuplicate?.canonicalId ?? objectEntityLocalId,
           };
         },
       );
 
-      state.inferredFacts.push(...inferredFactsWithDeduplicatedEntities);
+      state.inferredClaims.push(...inferredClaimsWithDeduplicatedEntities);
       state.entitySummaries = [
         ...state.entitySummaries,
         ...newEntitySummaries,
@@ -871,6 +871,6 @@ export const runSubTaskAgent = async (params: {
   return {
     ...result,
     discoveredEntities: state.entitySummaries,
-    discoveredFacts: state.inferredFacts,
+    discoveredClaims: state.inferredClaims,
   };
 };

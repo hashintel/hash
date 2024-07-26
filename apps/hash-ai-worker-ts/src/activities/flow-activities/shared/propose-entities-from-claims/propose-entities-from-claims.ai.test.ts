@@ -6,9 +6,9 @@ import { expect, test } from "vitest";
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
-import type { LocalEntitySummary } from "../infer-facts-from-text/get-entity-summaries-from-text.js";
-import type { Fact } from "../infer-facts-from-text/types.js";
-import { proposeEntitiesFromFacts } from "../propose-entities-from-facts.js";
+import type { LocalEntitySummary } from "../infer-claims-from-text/get-entity-summaries-from-text.js";
+import type { Claim } from "../infer-claims-from-text/types.js";
+import { proposeEntitiesFromClaims } from "../propose-entities-from-claims.js";
 
 const ftse350EntitySummaries: LocalEntitySummary[] = [
   {
@@ -101,7 +101,7 @@ const ftse350EntitySummaries: LocalEntitySummary[] = [
   },
 ];
 
-const ftse350Facts = [
+const ftse350Claims = [
   {
     text: "HUNTING PLC ORD 25P has the code HTG",
     subjectEntityLocalId: "91f82ccc-42b0-4dd1-8b53-56e07eb265b2",
@@ -417,7 +417,7 @@ const ftse350Facts = [
 ];
 
 test.skip(
-  "Test proposeEntitiesFromFacts",
+  "Test proposeEntitiesFromClaims",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -432,10 +432,10 @@ test.skip(
       simplifyPropertyKeys: true,
     });
 
-    const facts = ftse350Facts.map(
-      (fact): Fact => ({
-        ...fact,
-        factId: generateUuid(),
+    const claims = ftse350Claims.map(
+      (claim): Claim => ({
+        ...claim,
+        claimId: generateUuid(),
         sources: [
           {
             type: "webpage",
@@ -448,10 +448,10 @@ test.skip(
       }),
     );
 
-    const { proposedEntities } = await proposeEntitiesFromFacts({
+    const { proposedEntities } = await proposeEntitiesFromClaims({
       entitySummaries: ftse350EntitySummaries,
       existingEntitySummaries: [],
-      facts,
+      claims,
       dereferencedEntityTypes,
       potentialLinkTargetEntitySummaries: [],
     });

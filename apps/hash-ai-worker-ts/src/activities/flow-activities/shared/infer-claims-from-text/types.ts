@@ -1,7 +1,7 @@
 import type { SourceProvenance } from "@local/hash-graph-client";
 
-export type Fact = {
-  factId: string;
+export type Claim = {
+  claimId: string;
   subjectEntityLocalId: string;
   objectEntityLocalId?: string;
   text: string;

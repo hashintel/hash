@@ -12,7 +12,7 @@ import type {
 } from "../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
 import type { PermittedOpenAiModel } from "../../shared/openai-client.js";
-import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text.js";
+import type { LocalEntitySummary } from "../shared/infer-claims-from-text/get-entity-summaries-from-text.js";
 import type { ExistingEntitySummary } from "./summarize-existing-entities.js";
 
 /**

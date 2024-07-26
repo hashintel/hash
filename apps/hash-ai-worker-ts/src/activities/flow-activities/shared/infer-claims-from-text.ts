@@ -2,12 +2,12 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types.js";
 import { logger } from "../../shared/activity-logger.js";
-import type { LocalEntitySummary } from "./infer-facts-from-text/get-entity-summaries-from-text.js";
-import { getEntitySummariesFromText } from "./infer-facts-from-text/get-entity-summaries-from-text.js";
-import { inferEntityFactsFromTextAgent } from "./infer-facts-from-text/infer-entity-facts-from-text-agent.js";
-import type { Fact } from "./infer-facts-from-text/types.js";
+import type { LocalEntitySummary } from "./infer-claims-from-text/get-entity-summaries-from-text.js";
+import { getEntitySummariesFromText } from "./infer-claims-from-text/get-entity-summaries-from-text.js";
+import { inferEntityClaimsFromTextAgent } from "./infer-claims-from-text/infer-entity-claims-from-text-agent.js";
+import type { Claim } from "./infer-claims-from-text/types.js";
 
-export const inferFactsFromText = async (params: {
+export const inferClaimsFromText = async (params: {
   text: string;
   url: string | null;
   title: string | null;
@@ -18,7 +18,7 @@ export const inferFactsFromText = async (params: {
     existingEntitySummaries?: LocalEntitySummary[];
   };
 }): Promise<{
-  facts: Fact[];
+  claims: Claim[];
   entitySummaries: LocalEntitySummary[];
 }> => {
   const {
@@ -74,11 +74,11 @@ export const inferFactsFromText = async (params: {
     {} as Record<VersionedUrl, LocalEntitySummary[]>,
   );
 
-  const aggregatedFacts: Fact[] = await Promise.all(
+  const aggregatedClaims: Claim[] = await Promise.all(
     Object.entries(entitySummariesForInferenceByType).map(
       async ([entityTypeId, entitySummariesOfType]) => {
         logger.debug(
-          `Inferring facts for ${entitySummariesOfType.length} entity summaries of type: ${entityTypeId}`,
+          `Inferring claims for ${entitySummariesOfType.length} entity summaries of type: ${entityTypeId}`,
         );
 
         const dereferencedEntityType =
@@ -92,8 +92,8 @@ export const inferFactsFromText = async (params: {
 
         return await Promise.all(
           entitySummariesOfType.map(async (entity) => {
-            const { facts: factsForSingleEntity } =
-              await inferEntityFactsFromTextAgent({
+            const { claims: claimsForSingleEntity } =
+              await inferEntityClaimsFromTextAgent({
                 subjectEntities: [entity],
                 linkEntityTypesById: Object.fromEntries(
                   Object.entries(dereferencedEntityTypes)
@@ -117,12 +117,12 @@ export const inferFactsFromText = async (params: {
                 dereferencedEntityType,
               });
 
-            return factsForSingleEntity;
+            return claimsForSingleEntity;
           }),
-        ).then((unflattenedFacts) => unflattenedFacts.flat());
+        ).then((unflattenedClaims) => unflattenedClaims.flat());
       },
     ),
-  ).then((unflattenedFacts) => unflattenedFacts.flat());
+  ).then((unflattenedClaims) => unflattenedClaims.flat());
 
-  return { facts: aggregatedFacts, entitySummaries: newEntitySummaries };
+  return { claims: aggregatedClaims, entitySummaries: newEntitySummaries };
 };
