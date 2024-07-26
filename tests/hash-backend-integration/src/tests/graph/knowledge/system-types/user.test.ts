@@ -14,7 +14,7 @@ import {
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, assert, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {
@@ -51,14 +51,14 @@ describe("User model class", () => {
 
     const identity = await createKratosIdentity({
       traits: {
-        emails: ["alice@example.com"],
+        emails: ["test-user@example.com"],
       },
     });
 
     kratosIdentityId = identity.id;
 
     createdUser = await createUser(graphContext, authentication, {
-      emails: ["alice@example.com"],
+      emails: ["test-user@example.com"],
       kratosIdentityId,
       shortname,
       displayName: "Alice",

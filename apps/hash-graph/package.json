@@ -21,11 +21,11 @@
     "lint:clippy": "just clippy",
     "reset-database": "httpyac send --all tests/reset-database.http",
     "start": "../../target/release/hash-graph server",
+    "start:healthcheck": "../../target/release/hash-graph server --healthcheck --wait --timeout 600 --logging-console-level=warn",
     "start:migrate": "../../target/release/hash-graph migrate --user postgres --password postgres",
     "start:test": "../../target/debug/hash-graph server",
+    "start:test:healthcheck": "../../target/debug/hash-graph server --healthcheck --wait --timeout 300 --logging-console-level=warn",
     "start:test:migrate": "../../target/debug/hash-graph migrate --user postgres --password postgres",
-    "start:test:wait": "../../target/debug/hash-graph server --healthcheck --wait --timeout 300 --logging-console-level=warn",
-    "start:wait": "../../target/release/hash-graph server --healthcheck --wait --timeout 600 --logging-console-level=warn",
     "test:integration": "just test-integration",
     "test:unit": "just test-unit"
   },

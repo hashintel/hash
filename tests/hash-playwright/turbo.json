@@ -5,7 +5,10 @@
       "dependsOn": ["^codegen"]
     },
     "test:integration": {
-      "dependsOn": ["@apps/plugin-browser#build:test", "^start:test:wait"],
+      "dependsOn": [
+        "@apps/plugin-browser#build:test",
+        "^start:test:healthcheck"
+      ],
       "cache": false
     }
   }

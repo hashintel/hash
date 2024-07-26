@@ -13,9 +13,9 @@
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "start": "next start",
+    "start:healthcheck": "wait-on --timeout 600000 http://0.0.0.0:3000",
     "start:test": "next start",
-    "start:test:wait": "wait-on --timeout 600000 http://0.0.0.0:3000",
-    "start:wait": "wait-on --timeout 600000 http://0.0.0.0:3000"
+    "start:test:healthcheck": "wait-on --timeout 600000 http://0.0.0.0:3000"
   },
   "dependencies": {
     "@apollo/client": "3.10.5",

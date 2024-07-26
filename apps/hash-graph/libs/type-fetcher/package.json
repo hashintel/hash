@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "start": "../../../../target/release/hash-graph type-fetcher",
+    "start:healthcheck": "../../../../target/release/hash-graph type-fetcher --healthcheck --wait --timeout 600 --logging-console-level=warn",
     "start:test": "../../../../target/debug/hash-graph type-fetcher",
-    "start:test:wait": "../../../../target/debug/hash-graph type-fetcher --healthcheck --wait --timeout 300 --logging-console-level=warn",
-    "start:wait": "../../../../target/release/hash-graph type-fetcher --healthcheck --wait --timeout 600 --logging-console-level=warn"
+    "start:test:healthcheck": "../../../../target/debug/hash-graph type-fetcher --healthcheck --wait --timeout 300 --logging-console-level=warn"
   },
   "dependencies": {
     "@blockprotocol/type-system-rs": "0.0.0-private"

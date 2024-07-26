@@ -33,30 +33,30 @@
     // Run commands
     "start:migrate": {
       "cache": false,
-      "dependsOn": ["build", "^start:wait"]
+      "dependsOn": ["build", "^start:healthcheck"]
     },
     "start": {
       "cache": false,
       "persistent": true,
       "dependsOn": ["start:migrate"]
     },
-    "start:wait": {
+    "start:healthcheck": {
       "cache": false,
-      "dependsOn": ["compile:release", "^start:wait"]
+      "dependsOn": ["compile:release", "^start:healthcheck"]
     },
 
     "start:test:migrate": {
       "cache": false,
-      "dependsOn": ["build", "^start:test:wait"]
+      "dependsOn": ["build", "^start:test:healthcheck"]
     },
     "start:test": {
       "cache": false,
       "persistent": true,
       "dependsOn": ["start:test:migrate"]
     },
-    "start:test:wait": {
+    "start:test:healthcheck": {
       "cache": false,
-      "dependsOn": ["compile", "^start:test:wait"]
+      "dependsOn": ["compile", "^start:test:healthcheck"]
     },
 
     // Test commands
@@ -65,11 +65,11 @@
       "env": ["TEST_COVERAGE"]
     },
     "test:integration": {
-      "dependsOn": ["codegen", "^start:test:wait"],
+      "dependsOn": ["codegen", "^start:test:healthcheck"],
       "env": ["TEST_COVERAGE"]
     },
     "test:system": {
-      "dependsOn": ["codegen", "^start:test:wait"]
+      "dependsOn": ["codegen", "^start:test:healthcheck"]
     },
     "test:miri": {},
 
@@ -79,7 +79,7 @@
       "cache": false
     },
     "bench:integration": {
-      "dependsOn": ["codegen", "^start:wait"],
+      "dependsOn": ["codegen", "^start:healthcheck"],
       "cache": false
     },
 

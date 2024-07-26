@@ -19,7 +19,7 @@
     },
     "start:test:migrate": {
       "cache": false,
-      "dependsOn": ["build:test", "^start:test:wait"]
+      "dependsOn": ["build:test", "^start:test:healthcheck"]
     }
   }
 }
