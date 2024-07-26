@@ -8,6 +8,7 @@
     "@rust/codec": "0.0.0-private",
     "@rust/graph": "0.0.0-private",
     "@rust/graph-api": "0.0.0-private",
+    "@rust/graph-test-server": "0.0.0-private",
     "@rust/graph-types": "0.0.0-private",
     "@rust/hash-tracing": "0.0.0-private",
     "@rust/temporal-client": "0.0.0-private",

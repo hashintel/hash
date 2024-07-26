@@ -14,7 +14,7 @@ import {
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
-import { afterAll, assert, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { resetGraph } from "../../../test-server";
 import {
