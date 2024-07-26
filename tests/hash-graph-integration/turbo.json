@@ -1,0 +1,14 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "start:test:migrate": {
+      "dependsOn": []
+    },
+    "start:test:healthcheck": {
+      "dependsOn": []
+    },
+    "test:integration": {
+      "dependsOn": []
+    }
+  }
+}

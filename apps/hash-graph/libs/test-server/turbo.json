@@ -1,6 +1,12 @@
 {
   "extends": ["//"],
   "tasks": {
+    "start": {
+      "dependsOn": ["@apps/hash-graph#start:migrate"]
+    },
+    "start:healthcheck": {
+      "dependsOn": ["@apps/hash-graph#compile:release"]
+    },
     "start:test": {
       "dependsOn": ["@apps/hash-graph#start:test:migrate"]
     },

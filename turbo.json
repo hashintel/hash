@@ -68,9 +68,6 @@
       "dependsOn": ["codegen", "^start:test:healthcheck"],
       "env": ["TEST_COVERAGE"]
     },
-    "test:system": {
-      "dependsOn": ["codegen", "^start:test:healthcheck"]
-    },
     "test:miri": {},
 
     // Benchmarks
