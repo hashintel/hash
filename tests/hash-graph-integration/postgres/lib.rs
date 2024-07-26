@@ -57,7 +57,7 @@ use graph::{
         },
         AccountStore, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo, DatabasePoolConfig,
         DatabaseType, EntityStore, EntityTypeStore, InsertionError, PostgresStore,
-        PostgresStorePool, PropertyTypeStore, QueryError, StoreMigration, StorePool, UpdateError,
+        PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
     },
     Environment,
 };
@@ -157,9 +157,9 @@ impl DatabaseTestWrapper<NoAuthorization> {
             DatabaseType::Postgres,
             user,
             password,
-            host.clone(),
+            host,
             port,
-            database.clone(),
+            database,
         );
 
         let pool = PostgresStorePool::new(&connection_info, &DatabasePoolConfig::default(), NoTls)

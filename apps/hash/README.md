@@ -129,7 +129,7 @@ To run HASH locally, please follow these steps:
 1. Launch app services:
 
    ```sh
-   yarn dev
+   yarn start
    ```
 
    This will start backend and frontend in a single terminal. Once you see http://localhost:3000, the frontend end is ready to visit there.
@@ -139,8 +139,8 @@ To run HASH locally, please follow these steps:
 
    ```sh
    yarn start:graph
-   yarn dev:backend
-   yarn dev:frontend
+   yarn start:backend
+   yarn start:frontend
    ```
 
    See `package.json` → `scripts` for details and more options.
