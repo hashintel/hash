@@ -307,7 +307,6 @@ jobs:
 
       - name: Run background tasks
         id: background-tasks
-        shell: bash
         if: steps.tests.outputs.has-background-tasks == 'true'
         run: |
           # Optimistically compile background tasks. Ideally, we also `build` them but this includes
@@ -320,6 +319,9 @@ jobs:
           PID=$!
           echo "pid=$PID" | tee -a $GITHUB_OUTPUT
 
+          # Not strictly needed to run the healthchecks here as they are also run in the integration
+          # tests but it this way we can fail the job early if the background tasks are not healthy.
+          # Also, the recorded time for the different steps is more accurate.
           turbo run start:test:healthcheck --env-mode=loose
 
       - name: Run tests
@@ -345,6 +347,8 @@ jobs:
         if: always() && steps.tests.outputs.has-background-tasks == 'true'
         run: |
           kill -15 ${{ steps.background-tasks.outputs.pid }} || true
+          # Wait for the background tasks to finish
+          sleep 5
           cat var/logs/background-task.log
 
       - name: Upload artifact playwright-report
