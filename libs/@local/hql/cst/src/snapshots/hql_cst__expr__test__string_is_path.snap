@@ -1,0 +1,15 @@
+---
+source: libs/@local/hql/cst/src/expr.rs
+expression: result
+---
+Ok(
+    Path(
+        Path(
+            [
+                Symbol(
+                    "symbol",
+                ),
+            ],
+        ),
+    ),
+)

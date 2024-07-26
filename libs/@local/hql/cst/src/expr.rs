@@ -2,14 +2,14 @@ use serde::de::DeserializeSeed;
 
 use crate::{
     arena::Arena, call::Call, codec::deserialize::ExprVisitor, constant::Constant,
-    signature::Signature, symbol::Symbol,
+    signature::Signature, Path,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expr<'a> {
     Call(Call<'a>),
     Signature(Signature<'a>),
-    Symbol(Symbol),
+    Path(Path<'a>),
     Constant(Constant<'a>),
 }
 
@@ -88,11 +88,13 @@ mod test {
     }
 
     #[test]
-    fn string_is_symbol() {
+    fn string_is_path() {
         let arena = Arena::new();
 
         let result = Expr::from_str(&arena, r#""symbol""#);
+        assert_debug_snapshot!(result);
 
+        let result = Expr::from_str(&arena, r#""foo::bar""#);
         assert_debug_snapshot!(result);
     }
 

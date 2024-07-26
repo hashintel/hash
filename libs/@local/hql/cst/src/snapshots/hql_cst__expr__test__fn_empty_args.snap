@@ -5,9 +5,13 @@ expression: result
 Ok(
     Call(
         Call {
-            fn: Symbol(
-                Symbol(
-                    "func",
+            fn: Path(
+                Path(
+                    [
+                        Symbol(
+                            "func",
+                        ),
+                    ],
                 ),
             ),
             args: [],

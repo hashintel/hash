@@ -13,9 +13,10 @@ use crate::{
     call::Call,
     constant::Constant,
     expr::Expr,
+    path::parse_path,
     signature::{parse_signature, Signature},
-    symbol::{parse_symbol, ParseRestriction, Symbol},
     r#type::{parse_type, Type},
+    Path,
 };
 
 struct ExprSeed<'a> {
@@ -105,10 +106,12 @@ impl<'a, 'de> Visitor<'de> for TypeVisitor<'a> {
     }
 }
 
-struct SymbolVisitor;
+struct PathVisitor<'a> {
+    arena: &'a arena::Arena,
+}
 
-impl<'de> DeserializeSeed<'de> for SymbolVisitor {
-    type Value = Symbol;
+impl<'de, 'a> DeserializeSeed<'de> for PathVisitor<'a> {
+    type Value = Path<'a>;
 
     fn deserialize<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
     where
@@ -118,19 +121,22 @@ impl<'de> DeserializeSeed<'de> for SymbolVisitor {
     }
 }
 
-impl<'de> Visitor<'de> for SymbolVisitor {
-    type Value = Symbol;
+impl<'de, 'a> Visitor<'de> for PathVisitor<'a> {
+    type Value = Path<'a>;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("a symbol")
+        formatter.write_str("a path")
     }
 
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
     where
         E: serde::de::Error,
     {
-        parse_symbol(ParseRestriction::None)
-            .parse(Located::new(v))
+        parse_path
+            .parse(Stateful {
+                input: Located::new(v),
+                state: self.arena,
+            })
             .map_err(|error: ParseError<_, ErrMode<ContextError>>| {
                 serde::de::Error::invalid_value(Unexpected::Str(v), &&*error.to_string())
             })
@@ -222,7 +228,7 @@ impl<'a, 'de> Visitor<'de> for ExprVisitor<'a> {
             args: Option<arena::Box<'a, [Expr<'a>]>>,
             r#const: Option<Value>,
             r#type: Option<Type<'a>>,
-            var: Option<Symbol>,
+            var: Option<Path<'a>>,
             sig: Option<Signature<'a>>,
         }
 
@@ -263,7 +269,7 @@ impl<'a, 'de> Visitor<'de> for ExprVisitor<'a> {
                         return Err(serde::de::Error::duplicate_field("var"));
                     }
 
-                    bag.var = Some(map.next_value_seed(SymbolVisitor)?);
+                    bag.var = Some(map.next_value_seed(PathVisitor { arena: self.arena })?);
                 }
                 Key::Sig => {
                     if bag.sig.is_some() {
@@ -309,7 +315,7 @@ impl<'a, 'de> Visitor<'de> for ExprVisitor<'a> {
         } else if let Some(var) = bag.var {
             ensure_missing!([var]; [r#fn, args, r#const, r#type, sig]);
 
-            Ok(Expr::Symbol(var))
+            Ok(Expr::Path(var))
         } else if let Some(sig) = bag.sig {
             ensure_missing!([sig]; [r#fn, args, r#const, r#type, var]);
 
@@ -346,7 +352,7 @@ impl<'a, 'de> Visitor<'de> for ExprVisitor<'a> {
         // Symbol or Signature
         alt((
             parse_signature.map(Expr::Signature),
-            parse_symbol(ParseRestriction::None).map(Expr::Symbol),
+            parse_path.map(Expr::Path),
         ))
         .parse(Stateful {
             input: Located::new(v),

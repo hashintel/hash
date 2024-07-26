@@ -7,29 +7,45 @@ Ok(
         Call {
             fn: Call(
                 Call {
-                    fn: Symbol(
-                        Symbol(
-                            "input",
+                    fn: Path(
+                        Path(
+                            [
+                                Symbol(
+                                    "input",
+                                ),
+                            ],
                         ),
                     ),
                     args: [
-                        Symbol(
-                            Symbol(
-                                "variable",
+                        Path(
+                            Path(
+                                [
+                                    Symbol(
+                                        "variable",
+                                    ),
+                                ],
                             ),
                         ),
                     ],
                 },
             ),
             args: [
-                Symbol(
-                    Symbol(
-                        "arg1",
+                Path(
+                    Path(
+                        [
+                            Symbol(
+                                "arg1",
+                            ),
+                        ],
                     ),
                 ),
-                Symbol(
-                    Symbol(
-                        "arg2",
+                Path(
+                    Path(
+                        [
+                            Symbol(
+                                "arg2",
+                            ),
+                        ],
                     ),
                 ),
             ],

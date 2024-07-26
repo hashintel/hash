@@ -5,20 +5,32 @@ expression: result
 Ok(
     Call(
         Call {
-            fn: Symbol(
-                Symbol(
-                    "func",
+            fn: Path(
+                Path(
+                    [
+                        Symbol(
+                            "func",
+                        ),
+                    ],
                 ),
             ),
             args: [
-                Symbol(
-                    Symbol(
-                        "arg1",
+                Path(
+                    Path(
+                        [
+                            Symbol(
+                                "arg1",
+                            ),
+                        ],
                     ),
                 ),
-                Symbol(
-                    Symbol(
-                        "arg2",
+                Path(
+                    Path(
+                        [
+                            Symbol(
+                                "arg2",
+                            ),
+                        ],
                     ),
                 ),
             ],
