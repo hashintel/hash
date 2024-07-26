@@ -18,7 +18,7 @@
     "set-interval-async": "2.0.3",
     "slonik": "24.1.2",
     "tsx": "4.16.2",
-    "typescript": "5.5.3"
+    "typescript": "5.5.4"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
