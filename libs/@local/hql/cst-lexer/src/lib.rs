@@ -1,112 +1,121 @@
-use justjson::{parser::PeekableTokenKind, ErrorKind};
-use text_size::{TextRange, TextSize};
+use std::borrow::Cow;
 
-fn offset_to_text_size(offset: usize) -> TextSize {
-    TextSize::try_from(offset).expect("infallible, input is never larger than 4GiB")
+use logos::{Lexer, Logos};
+
+macro_rules! eof {
+    ($iter:ident) => {{
+        let Some(item) = $iter.next() else {
+            panic!("Unexpected end of input");
+        };
+
+        item
+    }};
 }
 
-fn token_to_kind(token: &justjson::parser::Token) -> PeekableTokenKind {
-    match token {
-        justjson::parser::Token::Null => PeekableTokenKind::Null,
-        justjson::parser::Token::Bool(true) => PeekableTokenKind::True,
-        justjson::parser::Token::Bool(false) => PeekableTokenKind::False,
-        justjson::parser::Token::String(_) => PeekableTokenKind::String,
-        justjson::parser::Token::Number(_) => PeekableTokenKind::Number,
-        justjson::parser::Token::Object => PeekableTokenKind::Object,
-        justjson::parser::Token::ObjectEnd => PeekableTokenKind::ObjectEnd,
-        justjson::parser::Token::Array => PeekableTokenKind::Array,
-        justjson::parser::Token::ArrayEnd => PeekableTokenKind::ArrayEnd,
-        justjson::parser::Token::Colon => PeekableTokenKind::Colon,
-        justjson::parser::Token::Comma => PeekableTokenKind::Comma,
-    }
-}
+fn parse_string(lex: &mut Lexer<Token>) -> Result<(), ()> {
+    // The lexer has encountered a string token (by using a quote - ")
 
-fn token_length(token: &justjson::parser::Token) -> TextSize {
-    let length: u32 = match token {
-        justjson::parser::Token::Null => 4,
-        justjson::parser::Token::Bool(true) => 4,
-        justjson::parser::Token::Bool(false) => 5,
-        justjson::parser::Token::String(s) => {
-            u32::try_from(s.len()).expect("infallible, input is never larger than 4GiB") + 2
-        }
-        justjson::parser::Token::Number(s) => {
-            u32::try_from(s.source().len()).expect("infallible, input is never larger than 4GiB")
-        }
-        justjson::parser::Token::Object => 1,
-        justjson::parser::Token::ObjectEnd => 1,
-        justjson::parser::Token::Array => 1,
-        justjson::parser::Token::ArrayEnd => 1,
-        justjson::parser::Token::Colon => 1,
-        justjson::parser::Token::Comma => 1,
-    };
+    // iterate over all remaining characters, until we find the closing quote
+    let mut remaining = lex.remainder();
+    // TODO: problem are utf8 surrogates, we can't easily handle them here in the escape!
+    let mut output = Cow::Borrowed("");
 
-    TextSize::from(length)
-}
+    let mut chars = remaining.char_indices();
 
-#[derive(Debug, PartialEq, Eq, thiserror::Error)]
-#[error("error at {location:?}: {kind}")]
-pub struct Error {
-    pub kind: ErrorKind,
-    pub location: TextRange,
-}
+    loop {
+        let (index, char) = eof!(chars);
 
-impl From<justjson::Error> for Error {
-    fn from(error: justjson::Error) -> Self {
-        Self {
-            kind: error.kind().clone(),
-            location: TextRange::empty(offset_to_text_size(error.offset())),
-        }
-    }
-}
+        match char {
+            '\\' => {
+                // escape sequence, next character needs to be: " \ / b f n r t (4 hex digits)
+                let (index, char) = eof!(chars);
+                let to_push = match char {
+                    '"' | '\\' | '/' => {
+                        // these are the same in rust
+                        char
+                    }
+                    'b' => '\x08',
+                    'f' => '\x0C',
+                    'n' => '\n',
+                    'r' => '\r',
+                    't' => '\t',
+                    '0'..='9' | 'a'..='f' | 'A'..='F' => {
+                        // unicode escape sequence
+                        // we need to read 4 hex digits
+                        // they follow one after the other, so we can just read them
 
-pub struct Token<'a> {
-    pub kind: justjson::parser::Token<'a>,
-    pub location: TextRange,
-}
+                        let mut until;
+                        for _ in 0..3 {
+                            let (index, char) = eof!(chars);
+                            if char.is_ascii_hexdigit() {
+                                until = index;
+                            } else {
+                                panic!("Invalid unicode escape sequence at index {}", index);
+                            }
+                        }
+                        let mut slice = &remaining[index..until];
 
-pub struct Lexer<'a> {
-    inner: justjson::parser::Tokenizer<'a, true>,
-}
+                        let codepoint = u32::from_str_radix(slice, 16).map_err(|_| ())?;
+                        std::char::from_u32(codepoint).unwrap()
+                    }
+                    _ => panic!("Invalid escape sequence at index {}", index),
+                };
 
-impl<'a> Lexer<'a> {
-    fn sequence<E>(
-        &mut self,
-        end: PeekableTokenKind,
-        mut every: impl FnMut(&mut Self, Token<'a>) -> Result<(), E>,
-    ) -> Result<(), Error>
-    where
-        Error: From<E>,
-    {
-        loop {
-            let Some(token) = self.inner.next() else {
-                return Err(Error {
-                    kind: ErrorKind::UnexpectedEof,
-                    location: TextRange::empty(offset_to_text_size(self.inner.offset())),
-                });
-            };
-
-            let token = token?;
-            if token_to_kind(&token) == end {
-                return Ok(());
+                output.to_mut().push(to_push);
             }
-
-            let length = token_length(&token);
-            every(
-                self,
-                Token {
-                    kind: token,
-                    location: TextRange::new(offset_to_text_size(self.inner.offset()), length),
-                },
-            )?;
-
-            every(
-                self,
-                Token {
-                    kind: token,
-                    location: TextRange::empty(offset_to_text_size(self.inner.offset())),
-                },
-            )?;
+            '"' => {
+                // end of string
+                break;
+            }
+            '\x20' | '\x21' | '\x23'..'\x5C' | '\x5D'.. => {
+                // valid characters
+                match &mut output {
+                    Cow::Borrowed(slice) => {
+                        *slice = &remaining[..index];
+                    }
+                    Cow::Owned(value) => {
+                        value.push(char);
+                    }
+                }
+            }
         }
-        // TODO: multiple errors?!
     }
+
+    // we have successfully parsed the string
+    Ok(output)
+}
+
+#[derive(Debug, Logos)]
+#[logos(skip r"[ \t\r\n\f]+")]
+enum Token<'source> {
+    #[token("false", |_| false)]
+    #[token("true", |_| true)]
+    Bool(bool),
+
+    #[token("{")]
+    BraceOpen,
+
+    #[token("}")]
+    BraceClose,
+
+    #[token("[")]
+    BracketOpen,
+
+    #[token("]")]
+    BracketClose,
+
+    #[token(":")]
+    Colon,
+
+    #[token(",")]
+    Comma,
+
+    #[token("null")]
+    Null,
+
+    #[regex(r"-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?", |lex| lex.slice().parse::<f64>().unwrap())]
+    Number(f64),
+
+    #[regex(r#""([^"\\]|\\["\\bnfrt]|u[a-fA-F0-9]{4})*""#, |lex| lex.slice())]
+    String(&'source str),
 }
