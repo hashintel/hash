@@ -7,6 +7,8 @@ authors.workspace = true
 edition.workspace = true
 
 [dependencies]
+error-stack.workspace = true
+hifijson = "0.2.1"
 json-number = "0.4.8"
 justjson = { version = "0.3.0", features = ["nightly"] }
 logos = "0.14.0"

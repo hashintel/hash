@@ -1,217 +1,119 @@
-use justjson::{parser::PeekableTokenKind, ErrorKind, JsonNumber, JsonString};
-use text_size::{TextRange, TextSize};
+use std::{borrow::Cow, sync::Arc};
 
-macro_rules! size {
-    ($expr:expr) => {
-        TextSize::try_from($expr).expect("infallible, input is never larger than 4GiB")
-    };
-    ($start:expr, $end:expr) => {
-        TextRange::new(size!($start), size!($end))
-    };
+use hifijson::{num::LexWrite, str::LexAlloc, SliceLexer};
+use json_number::Number;
+use logos::{Lexer, Logos};
+
+#[derive(Debug, Clone, PartialEq, Eq, Default, thiserror::Error)]
+enum LexingError {
+    #[error("malformed JSON string: {0}")]
+    String(Arc<hifijson::str::Error>),
+
+    #[error("malformed JSON number: {0:?}")]
+    Number(Arc<hifijson::num::Error>),
+
+    #[error("unknown error")]
+    #[default]
+    Unknown,
 }
 
-pub struct Error {
-    kind: ErrorKind,
-    range: TextRange,
-}
-
-impl From<justjson::Error> for Error {
-    fn from(error: justjson::Error) -> Self {
-        Self {
-            kind: error.kind().clone(),
-            range: TextRange::empty(size!(error.offset())),
-        }
+impl From<hifijson::str::Error> for LexingError {
+    fn from(error: hifijson::str::Error) -> Self {
+        Self::String(Arc::new(error))
     }
 }
 
-pub enum SyntaxKind {
-    Null,
-    True,
-    False,
-    String,
-    Number,
-    LBrace,
-    RBrace,
-    LBracket,
-    RBracket,
-    Colon,
-    Comma,
-    Unrecognized,
-}
-
-impl From<PeekableTokenKind> for SyntaxKind {
-    fn from(value: PeekableTokenKind) -> Self {
-        match value {
-            PeekableTokenKind::Null => Self::Null,
-            PeekableTokenKind::True => Self::True,
-            PeekableTokenKind::False => Self::False,
-            PeekableTokenKind::String => Self::String,
-            PeekableTokenKind::Number => Self::Number,
-            PeekableTokenKind::Object => Self::LBrace,
-            PeekableTokenKind::ObjectEnd => Self::RBrace,
-            PeekableTokenKind::Array => Self::LBracket,
-            PeekableTokenKind::ArrayEnd => Self::RBracket,
-            PeekableTokenKind::Colon => Self::Colon,
-            PeekableTokenKind::Comma => Self::Comma,
-            PeekableTokenKind::Unrecognized => Self::Unrecognized,
-        }
+impl From<hifijson::num::Error> for LexingError {
+    fn from(error: hifijson::num::Error) -> Self {
+        Self::Number(Arc::new(error))
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TokenKind<'a> {
-    Null,
+fn ptr_distance<T>(start: *const T, end: *const T) -> usize {
+    (end as usize) - (start as usize)
+}
+
+fn parse_string<'source>(
+    lexer: &mut Lexer<'source, Token<'source>>,
+) -> Result<Cow<'source, str>, LexingError> {
+    // the first character is '"' so we can skip it
+    let span = lexer.span();
+    let mut slice = lexer.remainder();
+    let mut lex = SliceLexer::new(slice.as_bytes());
+    let value = lex.str_string()?;
+
+    let consumed = ptr_distance(slice.as_ptr(), lex.as_ptr());
+    lexer.bump(consumed);
+    Ok(value)
+}
+
+fn parse_number<'source>(
+    lexer: &mut Lexer<'source, Token<'source>>,
+) -> Result<&'source Number, LexingError> {
+    let span = lexer.span();
+    // this time we cannot automatically exclude the first character
+    let slice = lexer.source()[span.start..].as_bytes();
+    let mut lex = SliceLexer::new(slice);
+    let (value, _) = lex.num_string()?;
+
+    // the last character of the number is also a reference to the pointer
+    let end = value
+        .as_bytes()
+        .last()
+        .expect("infallible; number is always at least a single character");
+
+    let consumed = ptr_distance(slice.as_ptr(), end as *const u8);
+    lexer.bump(consumed);
+
+    #[expect(unsafe_code, reason = "already validated to be valid number")]
+    // SAFETY: The number is guaranteed to be a valid number
+    let number = unsafe { Number::new_unchecked(value) };
+
+    Ok(number)
+}
+
+#[derive(Debug, Logos)]
+#[logos(error = LexingError)]
+#[logos(skip r"[ \t\r\n\f]+")]
+enum Token<'source> {
+    #[token("false", |_| false)]
+    #[token("true", |_| true)]
     Bool(bool),
-    String(JsonString<'a>),
-    Number(JsonNumber<'a>),
-    Object,
-    ObjectEnd,
-    Array,
-    ArrayEnd,
+
+    #[token("{")]
+    BraceOpen,
+
+    #[token("}")]
+    BraceClose,
+
+    #[token("[")]
+    BracketOpen,
+
+    #[token("]")]
+    BracketClose,
+
+    #[token(":")]
     Colon,
+
+    #[token(",")]
     Comma,
-}
 
-impl<'a> From<justjson::parser::Token<'a>> for TokenKind<'a> {
-    fn from(value: justjson::parser::Token<'a>) -> Self {
-        match value {
-            justjson::parser::Token::Null => Self::Null,
-            justjson::parser::Token::Bool(value) => Self::Bool(value),
-            justjson::parser::Token::String(value) => Self::String(value),
-            justjson::parser::Token::Number(value) => Self::Number(value),
-            justjson::parser::Token::Object => Self::Object,
-            justjson::parser::Token::ObjectEnd => Self::ObjectEnd,
-            justjson::parser::Token::Array => Self::Array,
-            justjson::parser::Token::ArrayEnd => Self::ArrayEnd,
-            justjson::parser::Token::Colon => Self::Colon,
-            justjson::parser::Token::Comma => Self::Comma,
-        }
-    }
-}
+    #[token("null")]
+    Null,
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum Nested {
-    Object,
-    Array,
-}
+    #[token("-", parse_number)]
+    #[token("0", parse_number)]
+    #[token("1", parse_number)]
+    #[token("2", parse_number)]
+    #[token("3", parse_number)]
+    #[token("4", parse_number)]
+    #[token("5", parse_number)]
+    #[token("6", parse_number)]
+    #[token("7", parse_number)]
+    #[token("8", parse_number)]
+    #[token("9", parse_number)]
+    Number(&'source Number),
 
-pub struct Token<'a> {
-    pub kind: TokenKind<'a>,
-    pub range: TextRange,
-}
-
-pub struct Lexer<'a> {
-    inner: justjson::parser::Tokenizer<'a, true>,
-    stack: Vec<Nested>,
-}
-
-impl<'a> Lexer<'a> {
-    pub fn peek(&mut self) -> Option<SyntaxKind> {
-        self.inner.peek().map(From::from)
-    }
-
-    /// Returns the next token in the stream.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the next token is invalid.
-    pub fn bump(&mut self) -> Result<Option<Token<'a>>, Error> {
-        let start = self.inner.offset();
-        let Some(token) = self.inner.next() else {
-            return Ok(None);
-        };
-        let token = token?;
-        let end = self.inner.offset();
-
-        Ok(Some(Token {
-            kind: token.into(),
-            range: size!(start, end),
-        }))
-    }
-
-    pub fn recover(&mut self, depth: usize) -> Result<(), Error> {
-        while self.stack.len() > depth {
-            let Some(next) = self.stack.pop() else {
-                return Err(Error {
-                    kind: ErrorKind::UnexpectedEof,
-                    range: TextRange::empty(size!(self.inner.offset())),
-                });
-            };
-
-            loop {
-                let Some(token) = self.bump()? else {
-                    return Err(Error {
-                        kind: ErrorKind::UnexpectedEof,
-                        range: TextRange::empty(size!(self.inner.offset())),
-                    });
-                };
-
-                if next == Nested::Object && token.kind == TokenKind::ObjectEnd {
-                    break;
-                }
-
-                if next == Nested::Array && token.kind == TokenKind::ArrayEnd {
-                    break;
-                }
-            }
-        }
-
-        Ok(())
-    }
-
-    pub fn on_array<E>(
-        &mut self,
-        mut on_item: impl FnMut(&mut Self, Token<'a>) -> Result<(), E>,
-    ) -> Result<(), Error>
-    where
-        Error: From<E>,
-    {
-        // TODO: make this a report instead!
-        let mut errors = Vec::new();
-        // we assume that the LBracket token has already been consumed
-        // add a recovery checkpoint
-        self.stack.push(Nested::Array);
-        let depth = self.stack.len();
-
-        loop {
-            let Some(token) = self.bump()? else {
-                self.stack.pop();
-                return Err(Error {
-                    kind: ErrorKind::UnexpectedEof,
-                    range: TextRange::empty(size!(self.inner.offset())),
-                });
-            };
-
-            if token.kind == TokenKind::ArrayEnd {
-                break;
-            }
-
-            if let Err(error) = on_item(self, token) {
-                self.recover(depth)?;
-                errors.push(error);
-            }
-
-            let Some(token) = self.bump()? else {
-                self.stack.pop();
-                return Err(Error {
-                    kind: ErrorKind::UnexpectedEof,
-                    range: TextRange::empty(size!(self.inner.offset())),
-                });
-            };
-
-            // we're gracious and allow a trailing comma (even tho it is not allowed by the spec)
-            if token.kind != TokenKind::Comma && token.kind != TokenKind::ArrayEnd {
-                self.stack.pop();
-                // TODO: part of error accumulation
-                return Err(Error {
-                    kind: ErrorKind::ExpectedCommaOrEndOfArray,
-                    range: token.range,
-                });
-            }
-        }
-
-        // remove the recovery checkpoint
-        self.stack.pop();
-        todo!()
-    }
+    #[token(r#"""#, parse_string)]
+    String(Cow<'source, str>),
 }
