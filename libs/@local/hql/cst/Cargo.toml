@@ -10,10 +10,15 @@ authors.workspace = true
 
 [dependencies]
 bumpalo = { version = "3.16.0", features = ["allocator_api"] }
+error-stack.workspace = true
+jiter = "0.5.0"
 logos = "0.14.0"
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 smol_str = "0.2.2"
+struson = { version = "0.5.0", features = ["experimental"] }
+text-size = "1.1.1"
+thiserror = "1.0.63"
 unicode-ident = "1.0.12"
 winnow = { version = "0.6.14", features = ["simd"] }
 

@@ -150,7 +150,7 @@ where
         "generic",
         (
             parse_symbol(symbol::ParseRestriction::RustOnly),
-            opt(preceded(ws(':'), parse_type)),
+            opt(preceded(modname::ws(':'), parse_type)),
         )
             .map(|(name, bound)| Generic { name, bound }),
     )
@@ -180,16 +180,16 @@ where
     trace(
         "generics",
         delimited(
-            ws('<'),
+            modname::ws('<'),
             opt((
-                separated_boxed1(arena, parse_generic, ws(',')),
-                opt(ws(',')).void(),
+                modname::separated_boxed1(arena, parse_generic, modname::ws(',')),
+                opt(modname::ws(',')).void(),
             ))
             .map(|generics| match generics {
                 Some((generics, ())) => generics,
                 None => arena.boxed([]),
             }),
-            ws('>'),
+            modname::ws('>'),
         ),
     )
     .parse_next(input)
@@ -216,7 +216,7 @@ where
         "argument",
         separated_pair(
             parse_symbol(symbol::ParseRestriction::RustOnly),
-            ws(':'),
+            modname::ws(':'),
             parse_type,
         )
         .map(|(name, r#type)| Argument { name, r#type }),
@@ -247,16 +247,16 @@ where
     trace(
         "argument list",
         delimited(
-            ws('('),
+            modname::ws('('),
             opt((
-                separated_boxed1(arena, parse_argument, ws(',')),
-                opt(ws(',')).void(),
+                modname::separated_boxed1(arena, parse_argument, modname::ws(',')),
+                opt(modname::ws(',')).void(),
             ))
             .map(|value| match value {
                 Some((arguments, ())) => arguments,
                 None => arena.boxed([]),
             }),
-            ws(')'),
+            modname::ws(')'),
         ),
     )
     .parse_next(input)
@@ -281,7 +281,7 @@ where
 {
     trace(
         "return",
-        preceded(ws("->"), parse_type).map(|r#type| Return { r#type }),
+        preceded(modname::ws("->"), parse_type).map(|r#type| Return { r#type }),
     )
     .parse_next(input)
 }

@@ -8,7 +8,7 @@ use winnow::{
 
 use crate::arena::{self, Arena};
 
-enum VecOrOneValue<'a, T> {
+pub(crate) enum VecOrOneValue<'a, T> {
     Vec(arena::Vec<'a, T>),
     One(T),
 }
@@ -105,8 +105,8 @@ where
     )
 }
 
-/// A combinator that takes a parser `inner` and produces a parser that also consumes both leading
-/// and trailing whitespace, returning the output of `inner`.
+/// A combinator that takes a parser `inner` and produces a parser that also consumes both
+/// leading and trailing whitespace, returning the output of `inner`.
 pub(crate) fn ws<Input, Output, Error, ParseNext>(
     parser: ParseNext,
 ) -> impl Parser<Input, Output, Error>

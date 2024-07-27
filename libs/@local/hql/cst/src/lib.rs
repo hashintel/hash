@@ -14,7 +14,14 @@ pub mod signature;
 pub mod symbol;
 pub mod r#type;
 
+use text_size::{TextRange, TextSize};
+
 pub use self::{
     arena::Arena, call::Call, constant::Constant, expr::Expr, path::Path, signature::Signature,
     symbol::Symbol, r#type::Type,
 };
+
+pub struct Node<'a> {
+    pub expr: Expr<'a>,
+    pub range: TextRange,
+}

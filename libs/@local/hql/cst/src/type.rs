@@ -134,7 +134,7 @@ where
 
     (
         parse_primary,
-        repeat(0.., preceded(ws('|'), parse_primary)).fold(
+        repeat(0.., preceded(modname::ws('|'), parse_primary)).fold(
             || arena.vec(None),
             |mut acc, value: Type<'a>| {
                 acc.push(value);
@@ -168,7 +168,7 @@ where
 
     (
         parse_union,
-        repeat(0.., preceded(ws('&'), parse_union)).fold(
+        repeat(0.., preceded(modname::ws('&'), parse_union)).fold(
             || arena.vec(None),
             |mut acc, value: Type<'a>| {
                 acc.push(value);
