@@ -1,15 +1,66 @@
+use core::str;
 use std::borrow::Cow;
 
 use logos::{Lexer, Logos};
 
 macro_rules! eof {
-    ($iter:ident) => {{
-        let Some(item) = $iter.next() else {
+    ($bytes:ident) => {{
+        let Some((&byte, remainder)) = $bytes.split_first() else {
             panic!("Unexpected end of input");
         };
 
-        item
+        $bytes = remainder;
+        byte
     }};
+}
+
+fn parse_escape() {}
+
+fn parse_byte(current: u8, remainder: &mut &[u8]) {
+    // lookup ASCII characters
+    match current {
+        0x20 | 0x21 | 0x23..=0x5B | 0x5D..=0x7F => {
+            // valid unicode characters, therefore we can just push them
+            current
+        }
+        b'"' => {
+            // closing quote
+            break;
+        }
+        b'\\' => {
+            // escape sequence
+            let next = eof!(remainder);
+            match next {
+                b'"' | b'\\' | b'/' => next,
+                b'b' => b'\x08',
+                b'f' => b'\x0C',
+                b'n' => b'\n',
+                b'r' => b'\r',
+                b't' => b'\t',
+                b'u' => {
+                    // unicode escape sequence
+                    // we need to read 4 hex digits
+                    // they follow one after the other, so we can just read them
+
+                    let mut codepoint = 0;
+                    for _ in 0..4 {
+                        let next = eof!(remainder);
+                        let digit = match next {
+                            b'0'..=b'9' => next - b'0',
+                            b'a'..=b'f' => next - b'a' + 10,
+                            b'A'..=b'F' => next - b'A' + 10,
+                            _ => panic!("Invalid unicode escape sequence"),
+                        };
+
+                        codepoint = codepoint * 16 + digit as u32;
+                    }
+
+                    codepoint
+                }
+                _ => panic!("Invalid escape sequence"),
+            }
+        }
+    }
 }
 
 fn parse_string(lex: &mut Lexer<Token>) -> Result<(), ()> {
@@ -18,12 +69,11 @@ fn parse_string(lex: &mut Lexer<Token>) -> Result<(), ()> {
     // iterate over all remaining characters, until we find the closing quote
     let mut remaining = lex.remainder();
     // TODO: problem are utf8 surrogates, we can't easily handle them here in the escape!
-    let mut output = Cow::Borrowed("");
+    let mut output = Cow::Borrowed(&[]);
 
-    let mut chars = remaining.char_indices();
-
+    let mut bytes = remaining.as_bytes();
     loop {
-        let (index, char) = eof!(chars);
+        let byte = eof!(bytes);
 
         match char {
             '\\' => {
