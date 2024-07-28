@@ -1,9 +1,10 @@
 use std::borrow::Cow;
 
 use error_stack::{Report, Result, ResultExt};
-use hql_cst_lex::{Lexer, LexingError, Number, Token, TokenKind};
+use hql_cst_lex::{Lexer, LexingError, Number, SyntaxKind, Token, TokenKind};
 use text_size::TextRange;
 
+use super::util::{ArrayParser, EofParser, ObjectParser};
 use crate::{arena, Arena};
 
 pub enum ValueKind<'arena, 'source> {
@@ -33,33 +34,36 @@ pub struct Value<'arena, 'source> {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, thiserror::Error)]
 pub enum ValueParseError {
-    #[error("unexpected end of input")]
-    UnexpectedEndOfInput,
     #[error("lexing error")]
     Lex,
-    #[error("unexpected token {}", token.kind)]
-    UnexpectedToken { token: Token<'static> },
+    #[error("unable to parse array")]
+    Array,
+    #[error("unable to parse object")]
+    Object,
+    #[error("unexpected token, received {received}")]
+    UnexpectedToken { received: SyntaxKind },
 }
 
 pub(crate) struct ValueParser<'arena, 'source, 'lexer> {
     pub arena: &'arena Arena,
-    pub lexer: &'lexer mut Lexer<'source>,
+    pub lexer: EofParser<'source, 'lexer>,
 }
 
 impl<'arena, 'source, 'lexer> ValueParser<'arena, 'source, 'lexer> {
-    fn next(&mut self) -> Result<Token<'source>, ValueParseError> {
-        let token = self
-            .lexer
-            .next()
-            .ok_or_else(|| Report::new(ValueParseError::UnexpectedEndOfInput))?;
+    fn parse_inner(
+        arena: &'arena Arena,
+        lexer: &mut Lexer<'source>,
+        token: Option<Token<'source>>,
+    ) -> Result<Value<'arena, 'source>, ValueParseError> {
+        let token = match token {
+            Some(token) => token,
+            None => {
+                let mut eof = EofParser { lexer };
+                eof.advance().change_context(ValueParseError::Lex)?
+            }
+        };
 
-        token.change_context(ValueParseError::Lex)
-    }
-
-    fn parse(&mut self, token: Option<Token<'source>>) -> Result<Value<'arena, 'source>, ValueParseError> {
-        let token = self.next()?;
-
-        let token = match token.kind {
+        match token.kind {
             TokenKind::Bool(bool) => Ok(Value {
                 kind: ValueKind::Bool(bool),
                 span: token.span,
@@ -76,40 +80,57 @@ impl<'arena, 'source, 'lexer> ValueParser<'arena, 'source, 'lexer> {
                 kind: ValueKind::String(string),
                 span: token.span,
             }),
-            TokenKind::LBracket => self.parse_array(token),
-            TokenKind::LBrace => self.parse_object(token),
+            TokenKind::LBracket => Self::parse_array(arena, lexer, token),
+            TokenKind::LBrace => Self::parse_object(arena, lexer, token),
             _ => Err(Report::new(ValueParseError::UnexpectedToken {
-                token: token.into_owned(),
+                received: SyntaxKind::from(&token.kind),
             })),
-        };
-
-        token.change_context(ValueParseError::Lex)
+        }
     }
 
     /// Parse a JSON object, expects the `[` to already be consumed
-    ///
-    /// Adapted from: <https://github.com/maciejhirsz/logos/blob/master/examples/json_borrowed.rs#L109>
     fn parse_array(
-        &mut self,
+        arena: &'arena Arena,
+        lexer: &mut Lexer<'source>,
         token: Token<'source>,
     ) -> Result<Value<'arena, 'source>, ValueParseError> {
-        let span = token.span;
+        let mut values = arena.vec(None);
 
-        let mut values = self.arena.vec(None);
+        let mut parser = ArrayParser::new(lexer);
 
-        let mut token = self.next()?;
-        let mut first = true;
+        let span = parser
+            .parse(token, |lexer, token| {
+                let item = Self::parse_inner(arena, lexer, token)?;
+                values.push(item);
+                Ok(())
+            })
+            .change_context(ValueParseError::Array)?;
 
-        loop {
-            if token.kind == TokenKind::RBracket {
-                break;
-            }
+        Ok(Value {
+            kind: ValueKind::Array(values),
+            span,
+        })
+    }
 
-            let value = if first {
-                // in case we're first, we don't expect a comma, just immediately parse the value
-                first = false;
-                let value = self.parse()?;
-            }
-        }
+    fn parse_object(
+        arena: &'arena Arena,
+        lexer: &mut Lexer<'source>,
+        token: Token<'source>,
+    ) -> Result<Value<'arena, 'source>, ValueParseError> {
+        let mut object = arena.hash_map(None);
+
+        let mut parser = ObjectParser::new(lexer);
+        let span = parser
+            .parse(token, |lexer, key| {
+                let value = Self::parse_inner(arena, lexer, None)?;
+                object.insert(key, value);
+                Ok(())
+            })
+            .change_context(ValueParseError::Object)?;
+
+        Ok(Value {
+            kind: ValueKind::Object(object),
+            span,
+        })
     }
 }

@@ -39,12 +39,17 @@ pub enum ArrayParserError {
     ExpectedCommaOrRBracket { received: SyntaxKind },
 }
 
-pub(crate) struct ArrayParser<'arena, 'source, 'lexer> {
-    pub arena: &'arena Arena,
+pub(crate) struct ArrayParser<'source, 'lexer> {
     pub lexer: EofParser<'source, 'lexer>,
 }
 
-impl<'arena, 'source, 'lexer> ArrayParser<'arena, 'source, 'lexer> {
+impl<'source, 'lexer> ArrayParser<'source, 'lexer> {
+    pub(crate) fn new(lexer: &'lexer mut Lexer<'source>) -> Self {
+        Self {
+            lexer: EofParser { lexer },
+        }
+    }
+
     /// Parse an array from the lexer
     ///
     /// Assumes that the lexer has already consumed the opening bracket.
@@ -54,7 +59,7 @@ impl<'arena, 'source, 'lexer> ArrayParser<'arena, 'source, 'lexer> {
     /// Panics if the lexer has not consumed the opening bracket.
     // TODO: test `[]`, `[1]`, `[1, 2]`, error on `[1,]`, `[1, 2,]`, `[,1]`, `[,]`
     // TODO: quickcheck
-    fn parse<E>(
+    pub(crate) fn parse<E>(
         &mut self,
         token: Token<'source>,
         mut on_item: impl FnMut(&mut Lexer<'source>, Option<Token<'source>>) -> Result<(), E>,
@@ -111,12 +116,17 @@ pub enum ObjectParserError {
     ExpectedColon { received: SyntaxKind },
 }
 
-pub(crate) struct ObjectParser<'arena, 'source, 'lexer> {
-    pub arena: &'arena Arena,
+pub(crate) struct ObjectParser<'source, 'lexer> {
     pub lexer: EofParser<'source, 'lexer>,
 }
 
-impl<'arena, 'source, 'lexer> ObjectParser<'arena, 'source, 'lexer> {
+impl<'source, 'lexer> ObjectParser<'source, 'lexer> {
+    pub(crate) fn new(lexer: &'lexer mut Lexer<'source>) -> Self {
+        Self {
+            lexer: EofParser { lexer },
+        }
+    }
+
     /// Parse an object from the lexer
     ///
     /// Assumes that the lexer has already consumed the opening brace.
@@ -129,7 +139,7 @@ impl<'arena, 'source, 'lexer> ObjectParser<'arena, 'source, 'lexer> {
     pub(crate) fn parse<E>(
         &mut self,
         token: Token<'source>,
-        mut on_entry: impl FnMut(&mut Self, Cow<'source, str>) -> Result<(), E>,
+        mut on_entry: impl FnMut(&mut Lexer<'source>, Cow<'source, str>) -> Result<(), E>,
     ) -> Result<TextRange, ObjectParserError>
     where
         E: Context,
@@ -187,7 +197,7 @@ impl<'arena, 'source, 'lexer> ObjectParser<'arena, 'source, 'lexer> {
                 .attach(Location::new(colon.span)));
             }
 
-            on_entry(self, key).change_context(ObjectParserError::Entry)?;
+            on_entry(self.lexer.lexer, key).change_context(ObjectParserError::Entry)?;
 
             token = self
                 .lexer
