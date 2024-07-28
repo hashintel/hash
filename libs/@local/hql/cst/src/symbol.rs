@@ -1,6 +1,6 @@
 use core::{fmt, fmt::Display};
 
-use smol_str::SmolStr;
+use ecow::EcoString;
 use unicode_ident::{is_xid_continue, is_xid_start};
 use winnow::{
     combinator::{delimited, dispatch, empty, fail, opt, peek},
@@ -12,7 +12,7 @@ use winnow::{
 
 // TODO: in the future we might want to use the bump arena here as well.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Symbol(SmolStr);
+pub struct Symbol(EcoString);
 
 impl Display for Symbol {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -89,7 +89,7 @@ where
             '`' if restriction.is_operators() => parse_safe_operator,
             _ => fail
         }
-        .map(SmolStr::new)
+        .map(|value| EcoString::from(value.as_ref()))
         .map(Symbol)
         .parse_next(input)
     }

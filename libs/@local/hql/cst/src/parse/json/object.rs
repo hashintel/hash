@@ -6,7 +6,7 @@ use winnow::{Located, Parser};
 use super::{util::ArrayParser, value::ValueParser, ExprParser, WinnowError};
 use crate::{
     arena, parse::json::util::EofParser, path::parse_path, signature::parse_signature,
-    value::Value, Arena, Call, Expr, Node, Path, Signature, Spanned,
+    value::Value, Arena, Call, Expr, Node, Path, Signature, Span,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, thiserror::Error)]
@@ -145,7 +145,7 @@ impl<'arena> ObjectState<'arena> for CallState<'arena> {
 
 struct ConstState<'arena, 'source> {
     r#const: Option<Value<'arena, 'source>>,
-    r#type: Option<Spanned<Path<'arena>>>,
+    r#type: Option<Span<Path<'arena>>>,
 }
 
 impl<'arena, 'source> ObjectState<'arena> for ConstState<'arena, 'source> {

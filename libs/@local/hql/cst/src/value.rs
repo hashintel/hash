@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use hql_cst_lex::Number;
 use text_size::TextRange;
 
-use crate::arena;
+use crate::{arena, Span};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ValueKind<'arena, 'source> {
@@ -30,4 +30,10 @@ pub enum ValueKind<'arena, 'source> {
 pub struct Value<'arena, 'source> {
     pub kind: ValueKind<'arena, 'source>,
     pub span: TextRange,
+}
+
+impl Span for Value<'_, '_> {
+    fn span(&self) -> TextRange {
+        self.span
+    }
 }

@@ -1,25 +1,28 @@
+pub mod call;
+pub mod constant;
+pub mod path;
+pub mod signature;
+
 use serde::de::DeserializeSeed;
 
-use crate::{
-    arena::Arena, call::Call, codec::deserialize::ExprVisitor, constant::Constant,
-    signature::Signature, Path,
-};
+use self::{call::Call, constant::Constant, path::Path, signature::Signature};
+use crate::Arena;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Expr<'a> {
-    Call(Call<'a>),
-    Signature(Signature<'a>),
-    Path(Path<'a>),
-    Constant(Constant<'a>),
+pub enum Expr<'arena, 'source> {
+    Call(Call<'arena>),
+    Signature(Signature<'arena>),
+    Path(Path<'arena>),
+    Constant(Constant<'arena, 'source>),
 }
 
-impl<'a> Expr<'a> {
+impl<'arena, 'source> Expr<'arena, 'source> {
     /// Deserialize an expression from a JSON string.
     ///
     /// # Errors
     ///
     /// Returns an error if the input is not valid JSON, or a malformed expression.
-    pub fn from_str(arena: &'a Arena, value: &str) -> serde_json::Result<Self> {
+    pub fn from_str(arena: &'arena Arena, value: &str) -> serde_json::Result<Self> {
         let mut deserializer = serde_json::Deserializer::from_str(value);
 
         DeserializeSeed::deserialize(ExprVisitor { arena }, &mut deserializer)
@@ -30,7 +33,7 @@ impl<'a> Expr<'a> {
     /// # Errors
     ///
     /// Returns an error if the input is not valid JSON, or a malformed expression.
-    pub fn from_slice(arena: &'a Arena, value: &[u8]) -> serde_json::Result<Self> {
+    pub fn from_slice(arena: &'arena Arena, value: &[u8]) -> serde_json::Result<Self> {
         let mut deserializer = serde_json::Deserializer::from_slice(value);
 
         DeserializeSeed::deserialize(ExprVisitor { arena }, &mut deserializer)
@@ -41,7 +44,7 @@ impl<'a> Expr<'a> {
     /// # Errors
     ///
     /// Returns an error if the input is a malformed expression.
-    pub fn from_value(arena: &'a Arena, value: &serde_json::Value) -> serde_json::Result<Self> {
+    pub fn from_value(arena: &'arena Arena, value: &serde_json::Value) -> serde_json::Result<Self> {
         DeserializeSeed::deserialize(ExprVisitor { arena }, value)
     }
 }

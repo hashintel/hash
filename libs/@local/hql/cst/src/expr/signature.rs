@@ -7,6 +7,7 @@ use winnow::{
     PResult, Parser, Stateful,
 };
 
+use super::Expr;
 use crate::{
     arena::{self, Arena},
     parse::string,
@@ -15,12 +16,12 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Signature<'a> {
-    pub generics: arena::Box<'a, [Generic<'a>]>,
+pub struct Signature<'arena> {
+    pub generics: arena::Box<'arena, [Generic<'arena>]>,
 
-    pub arguments: arena::Box<'a, [Argument<'a>]>,
+    pub arguments: arena::Box<'arena, [Argument<'arena>]>,
 
-    pub r#return: Return<'a>,
+    pub r#return: Return<'arena>,
 }
 
 impl<'a> Display for Signature<'a> {
@@ -50,6 +51,12 @@ impl<'a> Display for Signature<'a> {
         f.write_str(") -> ")?;
 
         Display::fmt(&self.r#return, f)
+    }
+}
+
+impl<'arena, 'source> From<Signature<'arena>> for Expr<'arena, 'source> {
+    fn from(signature: Signature<'arena>) -> Self {
+        Self::Signature(signature)
     }
 }
 

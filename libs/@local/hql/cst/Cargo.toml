@@ -10,6 +10,7 @@ authors.workspace = true
 
 [dependencies]
 bumpalo = { version = "3.16.0", features = ["allocator_api"] }
+ecow = "0.2.2"
 error-stack.workspace = true
 hashbrown = { version = "0.14.5", features = ["nightly"] }
 hql-cst-lex.workspace = true

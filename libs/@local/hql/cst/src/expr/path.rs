@@ -7,15 +7,16 @@ use winnow::{
     PResult, Parser, Stateful,
 };
 
+use super::Expr;
 use crate::{
     arena::Box,
-    parse::separated_boxed1,
+    parse::string::separated_boxed1,
     symbol::{parse_symbol, ParseRestriction},
     Arena, Symbol,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Path<'a>(Box<'a, [Symbol]>);
+pub struct Path<'arena>(Box<'arena, [Symbol]>);
 
 impl Display for Path<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -28,6 +29,12 @@ impl Display for Path<'_> {
         }
 
         Ok(())
+    }
+}
+
+impl<'arena, 'source> From<Path<'arena>> for Expr<'arena, 'source> {
+    fn from(path: Path<'arena>) -> Self {
+        Self::Path(path)
     }
 }
 

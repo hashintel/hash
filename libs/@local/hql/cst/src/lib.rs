@@ -4,13 +4,9 @@
 extern crate alloc;
 
 pub mod arena;
-pub mod call;
 pub(crate) mod codec;
-pub mod constant;
 pub mod expr;
 pub(crate) mod parse;
-pub mod path;
-pub mod signature;
 pub mod symbol;
 pub mod r#type;
 pub mod value;
@@ -22,16 +18,20 @@ pub use self::{
     symbol::Symbol, r#type::Type,
 };
 
+pub trait Span {
+    fn span(&self) -> TextRange;
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Node<'a> {
-    pub expr: Expr<'a>,
+pub struct Node<'arena> {
+    pub expr: Expr<'arena>,
     pub span: TextRange,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct Spanned<T> {
-    pub node: T,
-    pub span: TextRange,
+impl Span for Node<'_> {
+    fn span(&self) -> TextRange {
+        self.span
+    }
 }
 
 pub struct Program<'a> {
