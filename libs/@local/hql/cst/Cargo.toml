@@ -14,9 +14,6 @@ ecow = "0.2.2"
 error-stack.workspace = true
 hashbrown = { version = "0.14.5", features = ["nightly"] }
 hql-cst-lex.workspace = true
-serde = { workspace = true, features = ["derive"] }
-serde_json.workspace = true
-smol_str = "0.2.2"
 text-size = "1.1.1"
 thiserror = "1.0.63"
 unicode-ident = "1.0.12"
@@ -27,3 +24,6 @@ workspace = true
 
 [dev-dependencies]
 insta = "1.39.0"
+serde.workspace = true
+serde_json.workspace = true
+test-fuzz = "5.2.2"

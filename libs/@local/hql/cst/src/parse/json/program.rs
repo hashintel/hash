@@ -15,6 +15,8 @@ pub enum ProgramParseError {
     ExpectedArray { received: SyntaxKind },
     #[error("unable to parse array of nodes")]
     Array,
+    #[error("expected end of input, but received {received}")]
+    ExpectedEndOfInput { received: SyntaxKind },
 }
 
 pub(crate) struct ProgramParser<'arena> {
@@ -32,7 +34,19 @@ impl<'arena> ProgramParser<'arena> {
     ) -> Result<Program<'arena, 'source>, ProgramParseError> {
         let mut lexer = Lexer::new(source);
 
-        self.parse_program(&mut lexer)
+        let program = self.parse_program(&mut lexer)?;
+
+        if let Some(token) = lexer.next() {
+            // we would error out either way, so it's fine to propagate the error
+            let token = token.change_context(ProgramParseError::Parse)?;
+
+            return Err(Report::new(ProgramParseError::ExpectedEndOfInput {
+                received: SyntaxKind::from(&token.kind),
+            })
+            .attach(Location::new(token.span)));
+        }
+
+        Ok(program)
     }
 
     pub(crate) fn parse_program<'source>(

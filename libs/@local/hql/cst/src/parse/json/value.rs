@@ -122,3 +122,148 @@ impl<'arena> ValueParser<'arena> {
         })
     }
 }
+
+#[cfg(test)]
+mod test {
+    use error_stack::{Frame, Report};
+    use hql_cst_lex::Lexer;
+
+    use super::ValueParseError;
+    use crate::{
+        arena::Arena,
+        parse::json::value::ValueParser,
+        value::{Value, ValueKind},
+    };
+
+    impl PartialEq<serde_json::Value> for Value<'_, '_> {
+        fn eq(&self, value: &serde_json::Value) -> bool {
+            match (&self.kind, value) {
+                (ValueKind::Bool(a), serde_json::Value::Bool(b)) => a == b,
+                (ValueKind::Null, serde_json::Value::Null) => true,
+                (ValueKind::Number(a), serde_json::Value::Number(b)) => {
+                    let Some(b) = b.as_f64() else {
+                        return false;
+                    };
+
+                    f64::abs(a.as_f64_lossy() - b) < f64::EPSILON
+                }
+                (ValueKind::String(a), serde_json::Value::String(b)) => a == b,
+                (ValueKind::Array(a), serde_json::Value::Array(b)) => {
+                    a.iter().zip(b.iter()).all(|(a, b)| a == b)
+                }
+                (ValueKind::Object(a), serde_json::Value::Object(b)) => a
+                    .iter()
+                    .all(|(k, v)| b.get(k.as_ref()).map_or(false, |b| v == b)),
+                _ => false,
+            }
+        }
+    }
+
+    fn parse_complete<'arena, 'source>(
+        parser: &ValueParser<'arena>,
+        lexer: &mut Lexer<'source>,
+    ) -> error_stack::Result<Value<'arena, 'source>, ValueParseError> {
+        let value = parser.parse(lexer, None)?;
+        if lexer.advance().is_some() {
+            // early eof is not handled by the parser itself (TODO: node and program need this!)
+            return Err(Report::new(ValueParseError::Parse));
+        }
+        Ok(value)
+    }
+
+    #[test_fuzz::test_fuzz]
+    fn assert_eq_serde(input: &str) {
+        let input = input.trim_end(); // we ignore whitespace, serde_json does not
+        let arena = Arena::new();
+        let mut lexer = Lexer::new(input);
+        let parser = ValueParser::new(&arena);
+
+        let value_result = parse_complete(&parser, &mut lexer);
+        let serde_result = serde_json::from_str::<serde_json::Value>(input);
+
+        if let Err(error) = &serde_result {
+            // serde_json number out of range is normal, because we don't have any precision checks
+            // (we save it as a string for later)
+            if error.to_string().contains("number out of range") {
+                return;
+            }
+
+            if input.contains('\u{c}') {
+                // serde_json does not support form feed, we do
+                return;
+            }
+        }
+
+        if let Err(error) = &value_result {
+            let is_duplicate =
+                error
+                    .frames()
+                    .filter_map(Frame::downcast_ref)
+                    .any(|error: &ValueParseError| {
+                        matches!(error, ValueParseError::DuplicateKey { .. })
+                    });
+            if is_duplicate {
+                // we error out on duplicate keys, serde_json does not
+                return;
+            }
+        }
+
+        match (value_result, serde_result) {
+            (Ok(a), Ok(b)) => assert_eq!(a, b),
+            (Err(_), Err(_)) => {}
+            (value, serde) => {
+                panic!("input: {input:?}\nvalue: {value:?}\nserde: {serde:?}");
+            }
+        };
+    }
+
+    const INPUT: &str = r#"
+    [
+      {
+        "Name": "Edward the Elder",
+        "Country": "United Kingdom",
+        "House": "House of Wessex",
+        "Reign": "899-925",
+        "ID": 1
+      },
+      {
+        "Name": "Athelstan",
+        "Country": "United Kingdom",
+        "House": "House of Wessex",
+        "Reign": "925-940",
+        "ID": 2
+      },
+      {
+        "Name": "Edmund",
+        "Country": "United Kingdom",
+        "House": "House of Wessex",
+        "Reign": "940-946",
+        "ID": 3
+      },
+      {
+        "Name": "Edred",
+        "Country": "United Kingdom",
+        "House": "House of Wessex",
+        "Reign": "946-955",
+        "ID": 4
+      },
+      {
+        "Name": "Edwy",
+        "Country": "United Kingdom",
+        "House": "House of Wessex",
+        "Reign": "955-959",
+        "ID": 5
+      }
+    ]"#;
+
+    #[test]
+    fn serde_integration() {
+        // ensure that everything that serde can parse, we can parse as well
+        assert_eq_serde(INPUT);
+        assert_eq_serde("[[");
+        assert_eq_serde("[[[]]");
+        assert_eq_serde("{}");
+        assert_eq_serde("{}}");
+        assert_eq_serde(r#"{12: "12"}"#);
+    }
+}

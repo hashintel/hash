@@ -31,6 +31,8 @@ pub enum NodeParseError {
     Object,
     #[error("expected string to be either a path or signature")]
     PathOrSignature,
+    #[error("expected end of input, but received {received}")]
+    ExpectedEndOfInput { received: SyntaxKind },
 }
 
 pub(crate) struct NodeParser<'arena> {
@@ -48,7 +50,19 @@ impl<'arena> NodeParser<'arena> {
     ) -> Result<Node<'arena, 'source>, NodeParseError> {
         let mut lexer = Lexer::new(source);
 
-        self.parse_node(&mut lexer, None)
+        let node = self.parse_node(&mut lexer, None)?;
+
+        if let Some(token) = lexer.next() {
+            // we would error out either way, so it's fine to propagate the error
+            let token = token.change_context(NodeParseError::Parse)?;
+
+            return Err(Report::new(NodeParseError::ExpectedEndOfInput {
+                received: SyntaxKind::from(&token.kind),
+            })
+            .attach(Location::new(token.span)));
+        }
+
+        Ok(node)
     }
 
     pub(crate) fn parse_node<'source>(

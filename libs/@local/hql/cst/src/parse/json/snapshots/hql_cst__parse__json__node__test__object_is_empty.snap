@@ -4,7 +4,7 @@ expression: result
 ---
 Err(
     [1mmalformed expression object[22m
-    ├╴at [3mlibs/@local/hql/cst/src/parse/json/node.rs:122:14[23m
+    ├╴at [3mlibs/@local/hql/cst/src/parse/json/node.rs:136:14[23m
     │
     ╰─▶ [1mreceived empty object, but expected non-empty one[22m
         ╰╴at [3mlibs/@local/hql/cst/src/parse/json/node_object.rs:517:35[23m,
