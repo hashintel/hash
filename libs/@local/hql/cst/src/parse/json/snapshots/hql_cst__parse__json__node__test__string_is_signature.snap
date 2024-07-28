@@ -1,0 +1,58 @@
+---
+source: libs/@local/hql/cst/src/parse/json/node.rs
+expression: result
+---
+Ok(
+    Node {
+        expr: Signature(
+            Signature {
+                generics: [
+                    Generic {
+                        name: Symbol(
+                            "T",
+                        ),
+                        bound: Some(
+                            Path(
+                                Path(
+                                    [
+                                        Symbol(
+                                            "Int",
+                                        ),
+                                    ],
+                                ),
+                            ),
+                        ),
+                    },
+                ],
+                arguments: [
+                    Argument {
+                        name: Symbol(
+                            "a",
+                        ),
+                        type: Path(
+                            Path(
+                                [
+                                    Symbol(
+                                        "T",
+                                    ),
+                                ],
+                            ),
+                        ),
+                    },
+                ],
+                return: Return {
+                    type: Path(
+                        Path(
+                            [
+                                Symbol(
+                                    "T",
+                                ),
+                            ],
+                        ),
+                    ),
+                },
+            },
+        ),
+        span: 0..21,
+    },
+)

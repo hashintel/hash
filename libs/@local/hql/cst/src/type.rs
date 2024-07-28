@@ -231,15 +231,15 @@ mod test {
     fn path() {
         let arena = Arena::new();
 
-        assert_snapshot!(parse_ok(&arena, "core::Int"), @"Int");
+        assert_snapshot!(parse_ok(&arena, "core::Int"), @"core::Int");
     }
 
     #[test]
     fn safe_operator() {
         let arena = Arena::new();
 
-        assert_snapshot!(parse_ok(&arena, "`+`"), @"Int");
-        assert_snapshot!(parse_ok(&arena, "core::`+`"), @"");
+        assert_snapshot!(parse_ok(&arena, "`+`"), @"+");
+        assert_snapshot!(parse_ok(&arena, "core::`+`"), @"core::+");
     }
 
     #[test]

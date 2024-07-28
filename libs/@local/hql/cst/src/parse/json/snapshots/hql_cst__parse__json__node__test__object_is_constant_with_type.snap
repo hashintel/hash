@@ -1,0 +1,33 @@
+---
+source: libs/@local/hql/cst/src/parse/json/node.rs
+expression: result
+---
+Ok(
+    Node {
+        expr: Constant(
+            Constant {
+                value: Value {
+                    kind: Number(
+                        "42",
+                    ),
+                    span: 25..27,
+                },
+                type: Some(
+                    ConstantType {
+                        type: Path(
+                            Path(
+                                [
+                                    Symbol(
+                                        "u32",
+                                    ),
+                                ],
+                            ),
+                        ),
+                        span: 9..14,
+                    },
+                ),
+            },
+        ),
+        span: 0..28,
+    },
+)

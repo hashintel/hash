@@ -1,0 +1,26 @@
+---
+source: libs/@local/hql/cst/src/parse/json/node.rs
+expression: result
+---
+Ok(
+    Node {
+        expr: Call(
+            Call {
+                fn: Node {
+                    expr: Path(
+                        Path(
+                            [
+                                Symbol(
+                                    "func",
+                                ),
+                            ],
+                        ),
+                    ),
+                    span: 1..7,
+                },
+                args: [],
+            },
+        ),
+        span: 0..8,
+    },
+)

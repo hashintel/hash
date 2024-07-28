@@ -1,0 +1,14 @@
+---
+source: libs/@local/hql/cst/src/parse/json/node.rs
+expression: result
+---
+Err(
+    [1mexpected string to be either a path or signature[22m
+    ├╴at [3mlibs/@local/hql/cst/src/parse/json/node.rs:149:10[23m
+    ├╴1 additional opaque attachment
+    │
+    ╰─▶ [1m1234[22m
+        ^
+        Parsing Error: ContextError { context: [], cause: None }
+        ╰╴at [3mlibs/@local/hql/cst/src/parse/json/node.rs:149:10[23m,
+)

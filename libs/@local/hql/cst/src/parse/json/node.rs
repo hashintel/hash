@@ -296,6 +296,15 @@ mod test {
     }
 
     #[test]
+    fn object_is_invalid_duplicate_key() {
+        let arena = Arena::new();
+
+        let result = NodeParser::new(&arena).parse(r#"{"fn": "func", "fn": "func"}"#);
+
+        assert_debug_snapshot!(result);
+    }
+
+    #[test]
     fn object_is_invalid() {
         let arena = Arena::new();
 

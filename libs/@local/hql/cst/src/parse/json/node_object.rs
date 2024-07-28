@@ -479,13 +479,17 @@ impl<'arena, 'source, 'lexer> NodeObjectParser<'arena, 'source, 'lexer> {
         let span = util::ObjectParser::new(self.lexer)
             .parse(token, |lexer, key, key_span| match &mut state {
                 State::Unknown => {
-                    if let Some(call) = CallState::unknown(key.as_ref()) {
+                    if let Some(mut call) = CallState::unknown(key.as_ref()) {
+                        call.apply(key.as_ref(), key_span, self.arena, lexer)?;
                         state = State::Call(call);
-                    } else if let Some(constant) = ConstantState::unknown(key.as_ref()) {
+                    } else if let Some(mut constant) = ConstantState::unknown(key.as_ref()) {
+                        constant.apply(key.as_ref(), key_span, self.arena, lexer)?;
                         state = State::Constant(constant);
-                    } else if let Some(variable) = VariableState::unknown(key.as_ref()) {
+                    } else if let Some(mut variable) = VariableState::unknown(key.as_ref()) {
+                        variable.apply(key.as_ref(), key_span, self.arena, lexer)?;
                         state = State::Variable(variable);
-                    } else if let Some(signature) = SignatureState::unknown(key.as_ref()) {
+                    } else if let Some(mut signature) = SignatureState::unknown(key.as_ref()) {
+                        signature.apply(key.as_ref(), key_span, self.arena, lexer)?;
                         state = State::Signature(signature);
                     } else {
                         return Err(Report::new(NodePbjectParseError::UnknownKey {

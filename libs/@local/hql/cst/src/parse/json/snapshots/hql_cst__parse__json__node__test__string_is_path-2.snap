@@ -1,0 +1,21 @@
+---
+source: libs/@local/hql/cst/src/parse/json/node.rs
+expression: result
+---
+Ok(
+    Node {
+        expr: Path(
+            Path(
+                [
+                    Symbol(
+                        "foo",
+                    ),
+                    Symbol(
+                        "bar",
+                    ),
+                ],
+            ),
+        ),
+        span: 0..10,
+    },
+)
