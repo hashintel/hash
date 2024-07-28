@@ -30,7 +30,7 @@ impl<'arena> ValueParser<'arena> {
         Self { arena }
     }
 
-    pub(crate) fn parse<'source>(
+    pub(crate) fn parse_value<'source>(
         &self,
         lexer: &mut Lexer<'source>,
         token: Option<Token<'source>>,
@@ -80,7 +80,7 @@ impl<'arena> ValueParser<'arena> {
 
         let span = parser
             .parse(token, |lexer, token| {
-                let item = self.parse(lexer, token)?;
+                let item = self.parse_value(lexer, token)?;
                 values.push(item);
                 Ok(())
             })
@@ -110,7 +110,7 @@ impl<'arena> ValueParser<'arena> {
                     .attach(Location::new(key_span)));
                 }
 
-                let value = self.parse(lexer, None)?;
+                let value = self.parse_value(lexer, None)?;
                 object.insert(key, value);
                 Ok(())
             })
@@ -163,9 +163,9 @@ mod test {
         parser: &ValueParser<'arena>,
         lexer: &mut Lexer<'source>,
     ) -> error_stack::Result<Value<'arena, 'source>, ValueParseError> {
-        let value = parser.parse(lexer, None)?;
+        let value = parser.parse_value(lexer, None)?;
         if lexer.advance().is_some() {
-            // early eof is not handled by the parser itself (TODO: node and program need this!)
+            // early eof is not handled by the parser itself
             return Err(Report::new(ValueParseError::Parse));
         }
         Ok(value)

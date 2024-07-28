@@ -223,7 +223,7 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for ConstantState<'arena, 'so
                 let parser = ValueParser::new(arena);
 
                 let value = parser
-                    .parse(lexer, None)
+                    .parse_value(lexer, None)
                     .change_context(NodePbjectParseError::Parse)?;
 
                 self.r#const = Some(value);
