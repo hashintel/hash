@@ -1,13 +1,13 @@
 extern crate alloc;
 
-use error_stack::Report;
+use error_stack::{Report, Result};
 pub use json_number::Number;
 use logos::SpannedIter;
 use text_size::{TextRange, TextSize};
 
 pub use self::{
     error::{LexingError, Location},
-    kind::TokenKind,
+    kind::{SyntaxKind, TokenKind},
     token::Token,
 };
 
@@ -37,12 +37,19 @@ impl<'source> Lexer<'source> {
             inner: logos::Lexer::new(source).spanned(),
         }
     }
-}
 
-impl<'source> Iterator for Lexer<'source> {
-    type Item = error_stack::Result<Token<'source>, LexingError>;
+    #[must_use]
+    pub fn span(&self) -> TextRange {
+        let span = self.inner.span();
 
-    fn next(&mut self) -> Option<Self::Item> {
+        // The constructor verifies that the span is always less than `u32::MAX`.
+        let start = TextSize::try_from(span.start).unwrap_or_else(|_error| unreachable!());
+        let end = TextSize::try_from(span.end).unwrap_or_else(|_error| unreachable!());
+
+        TextRange::new(start, end)
+    }
+
+    pub fn advance(&mut self) -> Option<Result<Token<'source>, LexingError>> {
         let (kind, span) = self.inner.next()?;
 
         let span = {
@@ -57,5 +64,13 @@ impl<'source> Iterator for Lexer<'source> {
             Ok(kind) => Some(Ok(Token { kind, span })),
             Err(error) => Some(Err(Report::new(error).attach(Location::new(span)))),
         }
+    }
+}
+
+impl<'source> Iterator for Lexer<'source> {
+    type Item = Result<Token<'source>, LexingError>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.advance()
     }
 }

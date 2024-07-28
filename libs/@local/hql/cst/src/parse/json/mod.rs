@@ -1,3 +1,4 @@
+pub mod util;
 pub mod value;
 
 use error_stack::{Report, Result, ResultExt};
@@ -351,7 +352,6 @@ fn parse_call_array<'a>(
     let mut token = next!(lexer);
     let mut first = true;
 
-    // TODO: test `[]`, `[1]`, `[1, 2]`, error on `[1,]`, `[1, 2,]`, `[,1]`, `[,]`
     loop {
         // immediately terminate if we find the closing bracket
         if token.kind == TokenKind::RBracket {
