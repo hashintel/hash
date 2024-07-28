@@ -4,7 +4,7 @@ use hifijson::{num::LexWrite, offset::Offset, str::LexAlloc, SliceLexer};
 use json_number::Number;
 use logos::Lexer;
 
-use crate::{error::LexingError, kind::TokenKind};
+use crate::{error::LexingError, token_kind::TokenKind};
 
 pub(crate) fn parse_string<'source>(
     lexer: &mut Lexer<'source, TokenKind<'source>>,

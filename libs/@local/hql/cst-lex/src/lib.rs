@@ -7,14 +7,18 @@ use text_size::{TextRange, TextSize};
 
 pub use self::{
     error::{LexingError, Location},
-    kind::{SyntaxKind, TokenKind},
+    syntax_kind::SyntaxKind,
+    syntax_kind_set::{SyntaxKindSet, SyntaxKindSetIter},
     token::Token,
+    token_kind::TokenKind,
 };
 
 mod error;
-mod kind;
 mod parse;
+pub mod syntax_kind;
+mod syntax_kind_set;
 mod token;
+mod token_kind;
 
 pub struct Lexer<'source> {
     inner: SpannedIter<'source, TokenKind<'source>>,

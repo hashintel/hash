@@ -1,41 +1,16 @@
-use std::borrow::Cow;
-
 use error_stack::{Report, Result, ResultExt};
-use hql_cst_lex::{Lexer, LexingError, Number, SyntaxKind, Token, TokenKind};
-use text_size::TextRange;
+use hql_cst_lex::{Lexer, SyntaxKind, Token, TokenKind};
 
 use super::util::{ArrayParser, EofParser, ObjectParser};
-use crate::{arena, Arena};
-
-pub enum ValueKind<'arena, 'source> {
-    /// Represents a JSON null value
-    Null,
-
-    /// Represents a JSON boolean
-    Bool(bool),
-
-    /// Represents a JSON number, wether integer or floating point
-    Number(Cow<'source, Number>),
-
-    /// Represents a JSON string
-    String(Cow<'source, str>),
-
-    /// Represents a JSON array
-    Array(arena::Vec<'arena, Value<'arena, 'source>>),
-
-    /// Represents a JSON object
-    Object(arena::HashMap<'arena, Cow<'source, str>, Value<'arena, 'source>>),
-}
-
-pub struct Value<'arena, 'source> {
-    pub kind: ValueKind<'arena, 'source>,
-    pub span: TextRange,
-}
+use crate::{
+    value::{Value, ValueKind},
+    Arena,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, thiserror::Error)]
 pub enum ValueParseError {
-    #[error("lexing error")]
-    Lex,
+    #[error("unable to parse input")]
+    Parse,
     #[error("unable to parse array")]
     Array,
     #[error("unable to parse object")]
@@ -46,14 +21,17 @@ pub enum ValueParseError {
     DuplicateKey { key: Box<str> },
 }
 
-pub(crate) struct ValueParser<'arena, 'source, 'lexer> {
-    pub arena: &'arena Arena,
-    pub lexer: EofParser<'source, 'lexer>,
+pub(crate) struct ValueParser<'arena> {
+    arena: &'arena Arena,
 }
 
-impl<'arena, 'source, 'lexer> ValueParser<'arena, 'source, 'lexer> {
-    fn parse_inner(
-        arena: &'arena Arena,
+impl<'arena> ValueParser<'arena> {
+    pub(crate) fn new(arena: &'arena Arena) -> Self {
+        Self { arena }
+    }
+
+    pub(crate) fn parse<'source>(
+        &self,
         lexer: &mut Lexer<'source>,
         token: Option<Token<'source>>,
     ) -> Result<Value<'arena, 'source>, ValueParseError> {
@@ -61,7 +39,7 @@ impl<'arena, 'source, 'lexer> ValueParser<'arena, 'source, 'lexer> {
             Some(token) => token,
             None => {
                 let mut eof = EofParser { lexer };
-                eof.advance().change_context(ValueParseError::Lex)?
+                eof.advance().change_context(ValueParseError::Parse)?
             }
         };
 
@@ -82,8 +60,8 @@ impl<'arena, 'source, 'lexer> ValueParser<'arena, 'source, 'lexer> {
                 kind: ValueKind::String(string),
                 span: token.span,
             }),
-            TokenKind::LBracket => Self::parse_array(arena, lexer, token),
-            TokenKind::LBrace => Self::parse_object(arena, lexer, token),
+            TokenKind::LBracket => self.parse_array(lexer, token),
+            TokenKind::LBrace => self.parse_object(lexer, token),
             _ => Err(Report::new(ValueParseError::UnexpectedToken {
                 received: SyntaxKind::from(&token.kind),
             })),
@@ -91,18 +69,18 @@ impl<'arena, 'source, 'lexer> ValueParser<'arena, 'source, 'lexer> {
     }
 
     /// Parse a JSON object, expects the `[` to already be consumed
-    fn parse_array(
-        arena: &'arena Arena,
+    fn parse_array<'source>(
+        &self,
         lexer: &mut Lexer<'source>,
         token: Token<'source>,
     ) -> Result<Value<'arena, 'source>, ValueParseError> {
-        let mut values = arena.vec(None);
+        let mut values = self.arena.vec(None);
 
         let mut parser = ArrayParser::new(lexer);
 
         let span = parser
             .parse(token, |lexer, token| {
-                let item = Self::parse_inner(arena, lexer, token)?;
+                let item = self.parse(lexer, token)?;
                 values.push(item);
                 Ok(())
             })
@@ -115,12 +93,12 @@ impl<'arena, 'source, 'lexer> ValueParser<'arena, 'source, 'lexer> {
     }
 
     /// Parse a JSON object, expects the `{` to already be consumed
-    fn parse_object(
-        arena: &'arena Arena,
+    fn parse_object<'source>(
+        &self,
         lexer: &mut Lexer<'source>,
         token: Token<'source>,
     ) -> Result<Value<'arena, 'source>, ValueParseError> {
-        let mut object = arena.hash_map(None);
+        let mut object = self.arena.hash_map(None);
 
         let mut parser = ObjectParser::new(lexer);
         let span = parser
@@ -131,7 +109,7 @@ impl<'arena, 'source, 'lexer> ValueParser<'arena, 'source, 'lexer> {
                     }));
                 }
 
-                let value = Self::parse_inner(arena, lexer, None)?;
+                let value = self.parse(lexer, None)?;
                 object.insert(key, value);
                 Ok(())
             })

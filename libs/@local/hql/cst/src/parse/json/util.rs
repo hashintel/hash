@@ -4,8 +4,6 @@ use error_stack::{Context, Report, Result, ResultExt};
 use hql_cst_lex::{Lexer, Location, SyntaxKind, Token, TokenKind};
 use text_size::TextRange;
 
-use crate::Arena;
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, thiserror::Error)]
 pub enum ParseError {
     #[error("unexpected end of input")]

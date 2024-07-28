@@ -1,6 +1,6 @@
 use text_size::TextRange;
 
-use crate::kind::TokenKind;
+use crate::token_kind::TokenKind;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Token<'source> {

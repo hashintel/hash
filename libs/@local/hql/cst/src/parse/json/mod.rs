@@ -1,8 +1,9 @@
+mod object;
 pub mod util;
 pub mod value;
 
 use error_stack::{Report, Result, ResultExt};
-use hql_cst_lex::{Lexer, Location, Token, TokenKind};
+use hql_cst_lex::{Lexer, Location, SyntaxKind, SyntaxKindSet, Token, TokenKind};
 use winnow::{
     combinator::alt,
     error::{ContextError, ErrMode},
@@ -10,6 +11,7 @@ use winnow::{
     Parser,
 };
 
+use self::util::{ArrayParser, EofParser};
 use crate::{
     arena, path::parse_path, signature::parse_signature, Arena, Call, Constant, Expr, Node, Path,
     Signature,
@@ -17,24 +19,21 @@ use crate::{
 
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 pub enum ParseError {
-    #[error("unable to lex JSON")]
-    Lexing,
-    #[error("unexpected end of input")]
-    UnexpectedEndOfInput,
+    #[error("malformed input")]
+    Lex,
     #[error("unable to parse path or signature expression")]
     PathOrSignature,
     #[error("call expected a function to be called")]
     CallExpectedFn,
     #[error("expected a `,` or `]` after an expression in an array")]
     ExpectedCommaOrRBracket,
-    #[error("expected a string")]
-    ExpectedString,
+    #[error("expected one of {expected}, but received {received}")]
+    Expected {
+        expected: SyntaxKindSet,
+        received: SyntaxKind,
+    },
     #[error("expected a key")]
     ExpectedKey,
-    #[error("expected a `,` or `}}`")]
-    ExpectedCommaOrRBrace,
-    #[error("expected a `:`")]
-    ExpectedColon,
     #[error("repeated object key `{key}`")]
     RepeatedObjectKey { key: &'static str },
     #[error("The `{key}` key is valid, but not expected in this context")]
@@ -45,8 +44,12 @@ pub enum ParseError {
     EmptyObject,
     #[error("missing object key `{key}`")]
     MissingObjectKey { key: &'static str },
-    #[error("unexpected token kind for expr, expected a string, array, or object")]
-    UnexpectedExprTokenKind,
+    #[error(
+        "unexpected token kind for expr, expected a string, array, or object, received {received}"
+    )]
+    UnexpectedExprToken { received: SyntaxKind },
+    #[error("unable to parse expr array")]
+    ExprArray,
 }
 
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
@@ -68,13 +71,100 @@ where
     }
 }
 
-macro_rules! next {
-    ($lexer:ident) => {{
-        $lexer
-            .next()
-            .ok_or_else(|| Report::new(ParseError::UnexpectedEndOfInput))?
-            .change_context(ParseError::Lexing)?
-    }};
+struct ExprParser<'arena> {
+    arena: &'arena Arena,
+}
+
+impl<'arena> ExprParser<'arena> {
+    fn parse_expr<'source>(
+        &self,
+        lexer: &mut Lexer<'source>,
+        token: Option<Token<'source>>,
+    ) -> Result<Node<'arena>, ParseError> {
+        let token = match token {
+            Some(token) => token,
+            None => {
+                let eof = EofParser { lexer };
+                eof.advance().change_context(ParseError::Lex)?
+            }
+        };
+
+        match &token.kind {
+            TokenKind::String(..) => self.parse_string(token),
+            TokenKind::LBracket => self.parse_call(lexer, token),
+            TokenKind::LBrace => self.parse_object(token),
+            _ => Err(Report::new(ParseError::UnexpectedExprToken {
+                received: SyntaxKind::from(&token.kind),
+            })
+            .attach(Location::new(token.span))),
+        }
+    }
+
+    fn parse_call<'source>(
+        &self,
+        lexer: &mut Lexer<'source>,
+        token: Token<'source>,
+    ) -> Result<Node<'arena>, ParseError> {
+        let mut r#fn = None;
+        let mut args = self.arena.vec(None);
+
+        let span = ArrayParser::new(lexer)
+            .parse(token, |lexer, token| {
+                let node = self.parse_expr(lexer, token)?;
+                match r#fn {
+                    Some(..) => args.push(node),
+                    None => r#fn = Some(node),
+                }
+
+                Ok(())
+            })
+            .change_context(ParseError::ExprArray)?;
+
+        let Some(r#fn) = r#fn else {
+            return Err(Report::new(ParseError::CallExpectedFn).attach(Location::new(span)));
+        };
+
+        Ok(Node {
+            expr: Expr::Call(Call {
+                r#fn: self.arena.boxed(r#fn),
+                args: args.into_boxed_slice(),
+            }),
+            span,
+        })
+    }
+
+    fn parse_object<'source>(
+        &self,
+        lexer: &mut Lexer<'source>,
+        token: Token<'source>,
+    ) -> Result<Node<'arena>, ParseError> {
+        todo!()
+    }
+
+    fn parse_string<'source>(&self, token: Token<'source>) -> Result<Node<'arena>, ParseError> {
+        let span = token.span;
+
+        let TokenKind::String(value) = token.kind else {
+            return Err(Report::new(ParseError::Expected {
+                expected: SyntaxKindSet::new([SyntaxKind::String]),
+                received: SyntaxKind::from(&token.kind),
+            })
+            .attach(Location::new(span)));
+        };
+
+        let expr = alt((
+            parse_signature.map(Expr::Signature),
+            parse_path.map(Expr::Path),
+        ))
+        .parse(winnow::Stateful {
+            input: value.as_ref(),
+            state: self.arena,
+        })
+        .map_err(WinnowError::from)
+        .change_context(ParseError::PathOrSignature)?;
+
+        Ok(Node { expr, span })
+    }
 }
 
 fn parse_expr<'a>(
@@ -91,9 +181,7 @@ fn parse_expr<'a>(
         TokenKind::String(..) => parse_string(arena, token),
         TokenKind::LBracket => parse_call_array(arena, parser, token),
         TokenKind::LBrace => parse_object(arena, parser, token),
-        _ => {
-            Err(Report::new(ParseError::UnexpectedExprTokenKind).attach(Location::new(token.span)))
-        }
+        _ => Err(Report::new(ParseError::UnexpectedExprToken).attach(Location::new(token.span))),
     }
 }
 
@@ -392,28 +480,4 @@ fn parse_call_array<'a>(
         }),
         span,
     })
-}
-
-/// Parse a string
-///
-/// This function assumes that the token given is a string.
-fn parse_string<'a>(arena: &'a Arena, token: Token) -> Result<Node<'a>, ParseError> {
-    let span = token.span;
-
-    let TokenKind::String(value) = token.kind else {
-        return Err(Report::new(ParseError::ExpectedString).attach(Location::new(span)));
-    };
-
-    let expr = alt((
-        parse_signature.map(Expr::Signature),
-        parse_path.map(Expr::Path),
-    ))
-    .parse(winnow::Stateful {
-        input: value.as_ref(),
-        state: arena,
-    })
-    .map_err(WinnowError::from)
-    .change_context(ParseError::PathOrSignature)?;
-
-    Ok(Node { expr, span })
 }

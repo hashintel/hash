@@ -13,6 +13,7 @@ pub mod path;
 pub mod signature;
 pub mod symbol;
 pub mod r#type;
+pub mod value;
 
 use text_size::TextRange;
 
