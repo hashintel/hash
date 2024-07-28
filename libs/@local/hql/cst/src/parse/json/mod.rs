@@ -1,3 +1,5 @@
+pub mod value;
+
 use error_stack::{Report, Result, ResultExt};
 use hql_cst_lex::{Lexer, Location, Token, TokenKind};
 use winnow::{

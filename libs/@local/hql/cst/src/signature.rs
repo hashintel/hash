@@ -9,7 +9,7 @@ use winnow::{
 
 use crate::{
     arena::{self, Arena},
-    parse::{separated_boxed1, ws},
+    parse::string,
     symbol::{self, parse_symbol, Symbol},
     r#type::{parse_type, Type},
 };
@@ -150,7 +150,7 @@ where
         "generic",
         (
             parse_symbol(symbol::ParseRestriction::RustOnly),
-            opt(preceded(modname::ws(':'), parse_type)),
+            opt(preceded(string::ws(':'), parse_type)),
         )
             .map(|(name, bound)| Generic { name, bound }),
     )
@@ -180,16 +180,16 @@ where
     trace(
         "generics",
         delimited(
-            modname::ws('<'),
+            string::ws('<'),
             opt((
-                modname::separated_boxed1(arena, parse_generic, modname::ws(',')),
-                opt(modname::ws(',')).void(),
+                string::separated_boxed1(arena, parse_generic, string::ws(',')),
+                opt(string::ws(',')).void(),
             ))
             .map(|generics| match generics {
                 Some((generics, ())) => generics,
                 None => arena.boxed([]),
             }),
-            modname::ws('>'),
+            string::ws('>'),
         ),
     )
     .parse_next(input)
@@ -216,7 +216,7 @@ where
         "argument",
         separated_pair(
             parse_symbol(symbol::ParseRestriction::RustOnly),
-            modname::ws(':'),
+            string::ws(':'),
             parse_type,
         )
         .map(|(name, r#type)| Argument { name, r#type }),
@@ -247,16 +247,16 @@ where
     trace(
         "argument list",
         delimited(
-            modname::ws('('),
+            string::ws('('),
             opt((
-                modname::separated_boxed1(arena, parse_argument, modname::ws(',')),
-                opt(modname::ws(',')).void(),
+                string::separated_boxed1(arena, parse_argument, string::ws(',')),
+                opt(string::ws(',')).void(),
             ))
             .map(|value| match value {
                 Some((arguments, ())) => arguments,
                 None => arena.boxed([]),
             }),
-            modname::ws(')'),
+            string::ws(')'),
         ),
     )
     .parse_next(input)
@@ -281,7 +281,7 @@ where
 {
     trace(
         "return",
-        preceded(modname::ws("->"), parse_type).map(|r#type| Return { r#type }),
+        preceded(string::ws("->"), parse_type).map(|r#type| Return { r#type }),
     )
     .parse_next(input)
 }

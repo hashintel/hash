@@ -1,6 +1,7 @@
 extern crate alloc;
 
 use error_stack::Report;
+pub use json_number::Number;
 use logos::SpannedIter;
 use text_size::{TextRange, TextSize};
 

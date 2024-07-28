@@ -1,2 +1,2 @@
 mod json;
-mod string;
+pub(crate) mod string;

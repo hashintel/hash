@@ -11,6 +11,7 @@ authors.workspace = true
 [dependencies]
 bumpalo = { version = "3.16.0", features = ["allocator_api"] }
 error-stack.workspace = true
+hashbrown = { version = "0.14.5", features = ["nightly"] }
 hql-cst-lex.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true

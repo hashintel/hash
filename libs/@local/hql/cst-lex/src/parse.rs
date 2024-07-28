@@ -22,7 +22,7 @@ pub(crate) fn parse_string<'source>(
 #[expect(clippy::string_slice, reason = "UTF-8 boundary is always valid")]
 pub(crate) fn parse_number<'source>(
     lexer: &mut Lexer<'source, TokenKind<'source>>,
-) -> Result<&'source Number, LexingError> {
+) -> Result<Cow<'source, Number>, LexingError> {
     let span = lexer.span();
     // this time we cannot automatically exclude the first character
     let slice = lexer.source()[span.start..].as_bytes();
@@ -37,5 +37,5 @@ pub(crate) fn parse_number<'source>(
     // SAFETY: The number is guaranteed to be a valid number
     let number = unsafe { Number::new_unchecked(value) };
 
-    Ok(number)
+    Ok(Cow::Borrowed(number))
 }
