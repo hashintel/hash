@@ -4,7 +4,7 @@ use winnow::{
     combinator::trace,
     error::ParserError,
     stream::{AsChar, Compare, Stream, StreamIsPartial},
-    PResult, Parser, Stateful,
+    Parser, Stateful,
 };
 
 use super::Expr;
@@ -72,7 +72,7 @@ mod test {
     };
 
     use super::{parse_path, Path};
-    use crate::arena::Arena;
+    use crate::{arena::Arena, symbol::ParseRestriction};
 
     #[track_caller]
     fn parse<'a, 'b>(
@@ -84,7 +84,7 @@ mod test {
             state: arena,
         };
 
-        parse_path.parse(state)
+        parse_path(ParseRestriction::None).parse(state)
     }
 
     #[track_caller]

@@ -39,12 +39,19 @@ impl SyntaxKindSet {
         iter.into_iter().collect()
     }
 
-    pub fn contains(&self, kind: SyntaxKind) -> bool {
+    #[must_use]
+    pub const fn contains(&self, kind: SyntaxKind) -> bool {
         self.0 & kind.into_u128() != 0
     }
 
-    pub fn len(&self) -> usize {
+    #[must_use]
+    pub const fn len(&self) -> usize {
         self.0.count_ones() as usize
+    }
+
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
+        self.0 == 0
     }
 }
 

@@ -8,7 +8,7 @@ use winnow::{
 
 use crate::arena::{self, Arena};
 
-pub(crate) enum VecOrOneValue<'a, T> {
+enum VecOrOneValue<'a, T> {
     Vec(arena::Vec<'a, T>),
     One(T),
 }
@@ -40,20 +40,20 @@ impl<'a, T> VecOrOneValue<'a, T> {
     }
 }
 
-pub(crate) struct VecOrOne<'a, T> {
+struct VecOrOne<'a, T> {
     arena: &'a Arena,
     value: Option<VecOrOneValue<'a, T>>,
 }
 
 impl<'a, T> VecOrOne<'a, T> {
-    pub(crate) const fn new(arena: &'a Arena, value: T) -> Self {
+    const fn new(arena: &'a Arena, value: T) -> Self {
         Self {
             arena,
             value: Some(VecOrOneValue::One(value)),
         }
     }
 
-    pub(crate) fn into_boxed_slice(self) -> arena::Box<'a, [T]> {
+    fn into_boxed_slice(self) -> arena::Box<'a, [T]> {
         match self.value {
             Some(VecOrOneValue::Vec(vec)) => vec.into_boxed_slice(),
             Some(VecOrOneValue::One(value)) => Box::into_boxed_slice(self.arena.boxed(value)),

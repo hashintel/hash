@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use alloc::borrow::Cow;
 
 use hql_cst_lex::Number;
 use text_size::TextRange;

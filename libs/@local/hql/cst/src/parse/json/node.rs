@@ -38,7 +38,7 @@ pub(crate) struct NodeParser<'arena> {
 }
 
 impl<'arena> NodeParser<'arena> {
-    pub(crate) fn new(arena: &'arena Arena) -> Self {
+    pub(crate) const fn new(arena: &'arena Arena) -> Self {
         Self { arena }
     }
 
@@ -56,12 +56,11 @@ impl<'arena> NodeParser<'arena> {
         lexer: &mut Lexer<'source>,
         token: Option<Token<'source>>,
     ) -> Result<Node<'arena, 'source>, NodeParseError> {
-        let token = match token {
-            Some(token) => token,
-            None => {
-                let mut eof = EofParser { lexer };
-                eof.advance().change_context(NodeParseError::Parse)?
-            }
+        let token = if let Some(token) = token {
+            token
+        } else {
+            let mut eof = EofParser { lexer };
+            eof.advance().change_context(NodeParseError::Parse)?
         };
 
         match &token.kind {
@@ -151,5 +150,166 @@ impl<'arena> NodeParser<'arena> {
         .attach(Location::new(span))?;
 
         Ok(Node { expr, span })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use insta::assert_debug_snapshot;
+
+    use crate::{arena::Arena, parse::json::node::NodeParser};
+
+    #[test]
+    fn fn_is_expr() {
+        let arena = Arena::new();
+
+        let result = NodeParser::new(&arena).parse(
+            r#"[
+            ["input", "variable"],
+            "arg1",
+            "arg2"
+        ]"#,
+        );
+
+        assert_debug_snapshot!(result);
+    }
+
+    #[test]
+    fn fn_empty_args() {
+        let arena = Arena::new();
+
+        let result = NodeParser::new(&arena).parse(r#"["func"]"#);
+
+        assert_debug_snapshot!(result);
+    }
+
+    #[test]
+    fn fn_empty() {
+        let arena = Arena::new();
+
+        let result = NodeParser::new(&arena).parse("[]");
+
+        assert_debug_snapshot!(result);
+    }
+
+    #[test]
+    fn string_is_path() {
+        let arena = Arena::new();
+
+        let result = NodeParser::new(&arena).parse(r#""symbol""#);
+        assert_debug_snapshot!(result);
+
+        let result = NodeParser::new(&arena).parse(r#""foo::bar""#);
+        assert_debug_snapshot!(result);
+    }
+
+    #[test]
+    fn string_is_signature() {
+        let arena = Arena::new();
+
+        let result = NodeParser::new(&arena).parse(r#""<T: Int>(a: T) -> T""#);
+
+        assert_debug_snapshot!(result);
+    }
+
+    #[test]
+    fn string_is_invalid() {
+        let arena = Arena::new();
+
+        let result = NodeParser::new(&arena).parse(r#""1234""#);
+
+        assert_debug_snapshot!(result);
+    }
+
+    #[test]
+    fn object_is_constant() {
+        let arena = Arena::new();
+
+        let result = NodeParser::new(&arena).parse(r#"{"const": 42}"#);
+
+        assert_debug_snapshot!(result);
+    }
+
+    #[test]
+    fn object_is_constant_with_type() {
+        let arena = Arena::new();
+
+        let result = NodeParser::new(&arena).parse(r#"{"type": "u32", "const": 42}"#);
+
+        assert_debug_snapshot!(result);
+    }
+
+    #[test]
+    fn object_is_constant_with_extra_fields() {
+        let arena = Arena::new();
+
+        let result =
+            NodeParser::new(&arena).parse(r#"{"type": "u32", "const": 42, "sig": "() -> Unit"}"#);
+
+        assert_debug_snapshot!(result);
+    }
+
+    #[test]
+    fn object_is_call() {
+        let arena = Arena::new();
+
+        let result = NodeParser::new(&arena).parse(r#"{"fn": "func", "args": ["arg1", "arg2"]}"#);
+
+        assert_debug_snapshot!(result);
+    }
+
+    #[test]
+    fn object_is_args_without_fn() {
+        let arena = Arena::new();
+
+        let result = NodeParser::new(&arena).parse(r#"{"args": ["arg1", "arg2"]}"#);
+
+        assert_debug_snapshot!(result);
+    }
+
+    #[test]
+    fn object_is_call_without_args() {
+        let arena = Arena::new();
+
+        let result = NodeParser::new(&arena).parse(r#"{"fn": "func"}"#);
+
+        assert_debug_snapshot!(result);
+    }
+
+    #[test]
+    fn object_is_signature() {
+        let arena = Arena::new();
+
+        let result = NodeParser::new(&arena).parse(r#"{"sig": "<T: Int>(a: T) -> T"}"#);
+
+        assert_debug_snapshot!(result);
+    }
+
+    #[test]
+    fn object_is_invalid_multiple() {
+        let arena = Arena::new();
+
+        let result =
+            NodeParser::new(&arena).parse(r#"{"sig": "<T: Int>(a: T) -> T", "fn": "func"}"#);
+
+        assert_debug_snapshot!(result);
+    }
+
+    #[test]
+    fn object_is_invalid() {
+        let arena = Arena::new();
+
+        let result = NodeParser::new(&arena).parse(r#"{"unknown": "key"}"#);
+
+        assert_debug_snapshot!(result);
+    }
+
+    #[test]
+    fn object_is_empty() {
+        let arena = Arena::new();
+
+        let result = NodeParser::new(&arena).parse("{}");
+
+        assert_debug_snapshot!(result);
     }
 }

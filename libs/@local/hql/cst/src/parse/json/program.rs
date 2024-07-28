@@ -8,7 +8,7 @@ use super::{
 use crate::{arena::Arena, Program};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, thiserror::Error)]
-pub(crate) enum ProgramParseError {
+pub enum ProgramParseError {
     #[error("unable to parse input")]
     Parse,
     #[error("expected array, but received {received}")]
@@ -22,8 +22,17 @@ pub(crate) struct ProgramParser<'arena> {
 }
 
 impl<'arena> ProgramParser<'arena> {
-    pub(crate) fn new(arena: &'arena Arena) -> Self {
+    pub(crate) const fn new(arena: &'arena Arena) -> Self {
         Self { arena }
+    }
+
+    pub(crate) fn parse<'source>(
+        &self,
+        source: &'source str,
+    ) -> Result<Program<'arena, 'source>, ProgramParseError> {
+        let mut lexer = Lexer::new(source);
+
+        self.parse_program(&mut lexer)
     }
 
     pub(crate) fn parse_program<'source>(

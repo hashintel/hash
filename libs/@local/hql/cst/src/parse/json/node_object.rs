@@ -26,7 +26,7 @@ use crate::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, thiserror::Error)]
-pub enum ObjectParseError {
+pub enum NodePbjectParseError {
     #[error("duplicate key `{name}`")]
     DuplicateKey { name: &'static str },
     #[error("unable to parse")]
@@ -68,13 +68,13 @@ trait ObjectState<'arena, 'source> {
         key_span: TextRange,
         arena: &'arena Arena,
         lexer: &mut Lexer<'source>,
-    ) -> Result<(), ObjectParseError>;
+    ) -> Result<(), NodePbjectParseError>;
 
     fn finalize(
         self,
         arena: &'arena Arena,
         span: TextRange,
-    ) -> Result<Node<'arena, 'source>, ObjectParseError>;
+    ) -> Result<Node<'arena, 'source>, NodePbjectParseError>;
 }
 
 struct CallState<'arena, 'source> {
@@ -102,30 +102,36 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for CallState<'arena, 'source
         key_span: TextRange,
         arena: &'arena Arena,
         lexer: &mut Lexer<'source>,
-    ) -> Result<(), ObjectParseError> {
+    ) -> Result<(), NodePbjectParseError> {
         match key {
             "fn" if self.r#fn.is_some() => {
-                return Err(Report::new(ObjectParseError::DuplicateKey { name: "fn" }))
-                    .attach(Location::new(key_span));
+                return Err(Report::new(NodePbjectParseError::DuplicateKey {
+                    name: "fn",
+                }))
+                .attach(Location::new(key_span));
             }
             "fn" => {
                 let node = NodeParser::new(arena)
                     .parse_node(lexer, None)
-                    .change_context(ObjectParseError::Parse)?;
+                    .change_context(NodePbjectParseError::Parse)?;
 
                 self.r#fn = Some(node);
             }
             "args" if self.args.is_some() => {
-                return Err(Report::new(ObjectParseError::DuplicateKey { name: "args" }))
-                    .attach(Location::new(key_span));
+                return Err(Report::new(NodePbjectParseError::DuplicateKey {
+                    name: "args",
+                }))
+                .attach(Location::new(key_span));
             }
             "args" => {
                 let token = {
                     let mut parser = EofParser { lexer };
-                    parser.advance().change_context(ObjectParseError::Parse)?
+                    parser
+                        .advance()
+                        .change_context(NodePbjectParseError::Parse)?
                 };
                 if token.kind != TokenKind::LBracket {
-                    return Err(Report::new(ObjectParseError::ExpectedArgsArray {
+                    return Err(Report::new(NodePbjectParseError::ExpectedArgsArray {
                         received: SyntaxKind::from(&token.kind),
                     }));
                 }
@@ -138,12 +144,12 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for CallState<'arena, 'source
                         args.push(arg);
                         Ok(())
                     })
-                    .change_context(ObjectParseError::Parse)?;
+                    .change_context(NodePbjectParseError::Parse)?;
 
                 self.r#args = Some(args);
             }
             _ => {
-                return Err(Report::new(ObjectParseError::CallInvalidKey {
+                return Err(Report::new(NodePbjectParseError::CallInvalidKey {
                     name: Box::from(key),
                 }))
                 .attach(Location::new(key_span));
@@ -153,17 +159,21 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for CallState<'arena, 'source
         Ok(())
     }
 
+    #[expect(
+        clippy::map_unwrap_or,
+        reason = "map->unwrap_or_else is used for typing purposes of the resulting box"
+    )]
     fn finalize(
         self,
         arena: &'arena Arena,
         span: TextRange,
-    ) -> Result<Node<'arena, 'source>, ObjectParseError> {
+    ) -> Result<Node<'arena, 'source>, NodePbjectParseError> {
         let r#fn = self.r#fn.ok_or_else(|| {
-            Report::new(ObjectParseError::MissingKey { name: "fn" }).attach(Location::new(span))
+            Report::new(NodePbjectParseError::MissingKey { name: "fn" }).attach(Location::new(span))
         })?;
         let args = self
             .r#args
-            .map(|args| args.into_boxed_slice())
+            .map(Vec::into_boxed_slice)
             .unwrap_or_else(|| arena.boxed([]));
 
         Ok(Node {
@@ -201,10 +211,10 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for ConstantState<'arena, 'so
         key_span: TextRange,
         arena: &'arena Arena,
         lexer: &mut Lexer<'source>,
-    ) -> Result<(), ObjectParseError> {
+    ) -> Result<(), NodePbjectParseError> {
         match key {
             "const" if self.r#const.is_some() => {
-                return Err(Report::new(ObjectParseError::DuplicateKey {
+                return Err(Report::new(NodePbjectParseError::DuplicateKey {
                     name: "const",
                 }))
                 .attach(Location::new(key_span));
@@ -214,22 +224,26 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for ConstantState<'arena, 'so
 
                 let value = parser
                     .parse(lexer, None)
-                    .change_context(ObjectParseError::Parse)?;
+                    .change_context(NodePbjectParseError::Parse)?;
 
                 self.r#const = Some(value);
             }
             "type" if self.r#type.is_some() => {
-                return Err(Report::new(ObjectParseError::DuplicateKey { name: "type" }))
-                    .attach(Location::new(key_span));
+                return Err(Report::new(NodePbjectParseError::DuplicateKey {
+                    name: "type",
+                }))
+                .attach(Location::new(key_span));
             }
             "type" => {
                 let token = {
                     let mut parser = EofParser { lexer };
-                    parser.advance().change_context(ObjectParseError::Parse)?
+                    parser
+                        .advance()
+                        .change_context(NodePbjectParseError::Parse)?
                 };
 
                 let TokenKind::String(value) = token.kind else {
-                    return Err(Report::new(ObjectParseError::ExpectedTypeString {
+                    return Err(Report::new(NodePbjectParseError::ExpectedTypeString {
                         received: SyntaxKind::from(&token.kind),
                     }));
                 };
@@ -240,7 +254,7 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for ConstantState<'arena, 'so
                         state: arena,
                     })
                     .map_err(WinnowError::from)
-                    .change_context(ObjectParseError::ParsePath)
+                    .change_context(NodePbjectParseError::ParsePath)
                     .attach(Location::new(token.span))?;
 
                 self.r#type = Some(ConstantType {
@@ -249,7 +263,7 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for ConstantState<'arena, 'so
                 });
             }
             _ => {
-                return Err(Report::new(ObjectParseError::CallInvalidKey {
+                return Err(Report::new(NodePbjectParseError::CallInvalidKey {
                     name: Box::from(key),
                 }))
                 .attach(Location::new(key_span));
@@ -263,9 +277,10 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for ConstantState<'arena, 'so
         self,
         _: &'arena Arena,
         span: TextRange,
-    ) -> Result<Node<'arena, 'source>, ObjectParseError> {
+    ) -> Result<Node<'arena, 'source>, NodePbjectParseError> {
         let r#const = self.r#const.ok_or_else(|| {
-            Report::new(ObjectParseError::MissingKey { name: "const" }).attach(Location::new(span))
+            Report::new(NodePbjectParseError::MissingKey { name: "const" })
+                .attach(Location::new(span))
         })?;
         let r#type = self.r#type;
 
@@ -300,20 +315,24 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for VariableState<'arena> {
         key_span: TextRange,
         arena: &'arena Arena,
         lexer: &mut Lexer<'source>,
-    ) -> Result<(), ObjectParseError> {
+    ) -> Result<(), NodePbjectParseError> {
         match key {
             "var" if self.var.is_some() => {
-                return Err(Report::new(ObjectParseError::DuplicateKey { name: "var" }))
-                    .attach(Location::new(key_span));
+                Err(
+                    Report::new(NodePbjectParseError::DuplicateKey { name: "var" })
+                        .attach(Location::new(key_span)),
+                )
             }
             "var" => {
                 let token = {
                     let mut parser = EofParser { lexer };
-                    parser.advance().change_context(ObjectParseError::Parse)?
+                    parser
+                        .advance()
+                        .change_context(NodePbjectParseError::Parse)?
                 };
 
                 let TokenKind::String(value) = token.kind else {
-                    return Err(Report::new(ObjectParseError::ExpectedVariableString {
+                    return Err(Report::new(NodePbjectParseError::ExpectedVariableString {
                         received: SyntaxKind::from(&token.kind),
                     }));
                 };
@@ -324,18 +343,16 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for VariableState<'arena> {
                         state: arena,
                     })
                     .map_err(WinnowError::from)
-                    .change_context(ObjectParseError::ParsePath)
+                    .change_context(NodePbjectParseError::ParsePath)
                     .attach(Location::new(token.span))?;
 
                 self.var = Some(path);
                 Ok(())
             }
-            _ => {
-                return Err(Report::new(ObjectParseError::VariableInvalidKey {
-                    name: Box::from(key),
-                }))
-                .attach(Location::new(key_span));
-            }
+            _ => Err(Report::new(NodePbjectParseError::VariableInvalidKey {
+                name: Box::from(key),
+            })
+            .attach(Location::new(key_span))),
         }
     }
 
@@ -343,9 +360,10 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for VariableState<'arena> {
         self,
         _: &'arena Arena,
         span: TextRange,
-    ) -> Result<Node<'arena, 'source>, ObjectParseError> {
+    ) -> Result<Node<'arena, 'source>, NodePbjectParseError> {
         let var = self.var.ok_or_else(|| {
-            Report::new(ObjectParseError::MissingKey { name: "var" }).attach(Location::new(span))
+            Report::new(NodePbjectParseError::MissingKey { name: "var" })
+                .attach(Location::new(span))
         })?;
 
         Ok(Node {
@@ -376,20 +394,24 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for SignatureState<'arena> {
         key_span: TextRange,
         arena: &'arena Arena,
         lexer: &mut Lexer<'source>,
-    ) -> Result<(), ObjectParseError> {
+    ) -> Result<(), NodePbjectParseError> {
         match key {
             "sig" if self.sig.is_some() => {
-                return Err(Report::new(ObjectParseError::DuplicateKey { name: "sig" }))
-                    .attach(Location::new(key_span));
+                Err(
+                    Report::new(NodePbjectParseError::DuplicateKey { name: "sig" })
+                        .attach(Location::new(key_span)),
+                )
             }
             "sig" => {
                 let token = {
                     let mut parser = EofParser { lexer };
-                    parser.advance().change_context(ObjectParseError::Parse)?
+                    parser
+                        .advance()
+                        .change_context(NodePbjectParseError::Parse)?
                 };
 
                 let TokenKind::String(value) = token.kind else {
-                    return Err(Report::new(ObjectParseError::ExpectedSignatureString {
+                    return Err(Report::new(NodePbjectParseError::ExpectedSignatureString {
                         received: SyntaxKind::from(&token.kind),
                     }));
                 };
@@ -400,18 +422,16 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for SignatureState<'arena> {
                         state: arena,
                     })
                     .map_err(WinnowError::from)
-                    .change_context(ObjectParseError::ParseSignature)
+                    .change_context(NodePbjectParseError::ParseSignature)
                     .attach(Location::new(token.span))?;
 
                 self.sig = Some(sig);
                 Ok(())
             }
-            _ => {
-                return Err(Report::new(ObjectParseError::SignatureInvalidKey {
-                    name: Box::from(key),
-                }))
-                .attach(Location::new(key_span));
-            }
+            _ => Err(Report::new(NodePbjectParseError::SignatureInvalidKey {
+                name: Box::from(key),
+            })
+            .attach(Location::new(key_span))),
         }
     }
 
@@ -419,9 +439,10 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for SignatureState<'arena> {
         self,
         _: &'arena Arena,
         span: TextRange,
-    ) -> Result<Node<'arena, 'source>, ObjectParseError> {
+    ) -> Result<Node<'arena, 'source>, NodePbjectParseError> {
         let sig = self.sig.ok_or_else(|| {
-            Report::new(ObjectParseError::MissingKey { name: "sig" }).attach(Location::new(span))
+            Report::new(NodePbjectParseError::MissingKey { name: "sig" })
+                .attach(Location::new(span))
         })?;
 
         Ok(Node {
@@ -452,7 +473,7 @@ impl<'arena, 'source, 'lexer> NodeObjectParser<'arena, 'source, 'lexer> {
     pub(crate) fn parse(
         &mut self,
         token: Token<'source>,
-    ) -> Result<Node<'arena, 'source>, ObjectParseError> {
+    ) -> Result<Node<'arena, 'source>, NodePbjectParseError> {
         let mut state = State::Unknown;
 
         let span = util::ObjectParser::new(self.lexer)
@@ -467,7 +488,7 @@ impl<'arena, 'source, 'lexer> NodeObjectParser<'arena, 'source, 'lexer> {
                     } else if let Some(signature) = SignatureState::unknown(key.as_ref()) {
                         state = State::Signature(signature);
                     } else {
-                        return Err(Report::new(ObjectParseError::UnknownKey {
+                        return Err(Report::new(NodePbjectParseError::UnknownKey {
                             name: key.into_owned().into_boxed_str(),
                         }))
                         .attach(Location::new(key_span));
@@ -486,10 +507,10 @@ impl<'arena, 'source, 'lexer> NodeObjectParser<'arena, 'source, 'lexer> {
                     signature.apply(key.as_ref(), key_span, self.arena, lexer)
                 }
             })
-            .change_context(ObjectParseError::Parse)?;
+            .change_context(NodePbjectParseError::Parse)?;
 
         match state {
-            State::Unknown => Err(Report::new(ObjectParseError::EmptyObject)),
+            State::Unknown => Err(Report::new(NodePbjectParseError::EmptyObject)),
             State::Call(call) => call.finalize(self.arena, span),
             State::Constant(constant) => constant.finalize(self.arena, span),
             State::Variable(variable) => variable.finalize(self.arena, span),

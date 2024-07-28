@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use alloc::borrow::Cow;
 
 use hifijson::{num::LexWrite, offset::Offset, str::LexAlloc, SliceLexer};
 use json_number::Number;

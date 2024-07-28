@@ -1,4 +1,5 @@
-use std::{assert_matches::assert_matches, borrow::Cow};
+use alloc::borrow::Cow;
+use std::assert_matches::assert_matches;
 
 use error_stack::{Context, Report, Result, ResultExt};
 use hql_cst_lex::{Lexer, Location, SyntaxKind, Token, TokenKind};
@@ -28,7 +29,7 @@ impl<'source, 'lexer> EofParser<'source, 'lexer> {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, thiserror::Error)]
-pub enum ArrayParserError {
+pub enum ArrayParseError {
     #[error("unable to lex input")]
     Lex,
     #[error("error while parsing array item")]
@@ -57,18 +58,23 @@ impl<'source, 'lexer> ArrayParser<'source, 'lexer> {
     /// Panics if the lexer has not consumed the opening bracket.
     // TODO: test `[]`, `[1]`, `[1, 2]`, error on `[1,]`, `[1, 2,]`, `[,1]`, `[,]`
     // TODO: quickcheck
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "API contract, we want to signify to the user, we're now proceeding with this \
+                  specific token. Not that we hold it temporary, but instead that we consume it."
+    )]
     pub(crate) fn parse<E>(
         &mut self,
         token: Token<'source>,
         mut on_item: impl FnMut(&mut Lexer<'source>, Option<Token<'source>>) -> Result<(), E>,
-    ) -> Result<TextRange, ArrayParserError>
+    ) -> Result<TextRange, ArrayParseError>
     where
         E: Context,
     {
         assert_matches!(token.kind, TokenKind::LBracket);
         let mut span = token.span;
 
-        let mut token = self.lexer.advance().change_context(ArrayParserError::Lex)?;
+        let mut token = self.lexer.advance().change_context(ArrayParseError::Lex)?;
         let mut first = true;
 
         loop {
@@ -83,17 +89,17 @@ impl<'source, 'lexer> ArrayParser<'source, 'lexer> {
             // parse next token
             if first {
                 first = false;
-                on_item(self.lexer.lexer, Some(token)).change_context(ArrayParserError::Item)?;
+                on_item(self.lexer.lexer, Some(token)).change_context(ArrayParseError::Item)?;
             } else if token.kind == TokenKind::Comma {
-                on_item(self.lexer.lexer, None).change_context(ArrayParserError::Item)?;
+                on_item(self.lexer.lexer, None).change_context(ArrayParseError::Item)?;
             } else {
-                return Err(Report::new(ArrayParserError::ExpectedCommaOrRBracket {
+                return Err(Report::new(ArrayParseError::ExpectedCommaOrRBracket {
                     received: SyntaxKind::from(&token.kind),
                 })
                 .attach(Location::new(token.span)));
             }
 
-            token = self.lexer.advance().change_context(ArrayParserError::Lex)?;
+            token = self.lexer.advance().change_context(ArrayParseError::Lex)?;
         }
 
         Ok(span)
@@ -101,7 +107,7 @@ impl<'source, 'lexer> ArrayParser<'source, 'lexer> {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, thiserror::Error)]
-pub enum ObjectParserError {
+pub enum ObjectParseError {
     #[error("unable to lex input")]
     Lex,
     #[error("error while parsing object entry")]
@@ -134,11 +140,16 @@ impl<'source, 'lexer> ObjectParser<'source, 'lexer> {
     /// Panics if the lexer has not consumed the opening brace.
     // TODO: test `{}`, `{"fn": "foo"}`, `{"fn": "foo",}`, `{,"fn": "foo"}`, `{123: "foo"}`, `{"foo"
     // "bar"}`
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "API contract, we want to signify to the user, we're now proceeding with this \
+                  specific token. Not that we hold it temporary, but instead that we consume it."
+    )]
     pub(crate) fn parse<E>(
         &mut self,
         token: Token<'source>,
         mut on_entry: impl FnMut(&mut Lexer<'source>, Cow<'source, str>, TextRange) -> Result<(), E>,
-    ) -> Result<TextRange, ObjectParserError>
+    ) -> Result<TextRange, ObjectParseError>
     where
         E: Context,
     {
@@ -146,10 +157,7 @@ impl<'source, 'lexer> ObjectParser<'source, 'lexer> {
 
         let mut span = token.span;
 
-        let mut token = self
-            .lexer
-            .advance()
-            .change_context(ObjectParserError::Lex)?;
+        let mut token = self.lexer.advance().change_context(ObjectParseError::Lex)?;
         let mut first = true;
 
         loop {
@@ -166,12 +174,10 @@ impl<'source, 'lexer> ObjectParser<'source, 'lexer> {
                 token
             } else if token.kind == TokenKind::Comma {
                 // the key is the next token
-                self.lexer
-                    .advance()
-                    .change_context(ObjectParserError::Lex)?
+                self.lexer.advance().change_context(ObjectParseError::Lex)?
             } else {
                 // ... no comma == error
-                return Err(Report::new(ObjectParserError::ExpectedCommaOrRBrace {
+                return Err(Report::new(ObjectParseError::ExpectedCommaOrRBrace {
                     received: SyntaxKind::from(&token.kind),
                 })
                 .attach(Location::new(token.span)));
@@ -179,29 +185,23 @@ impl<'source, 'lexer> ObjectParser<'source, 'lexer> {
 
             let key_span = key.span;
             let TokenKind::String(key) = key.kind else {
-                return Err(Report::new(ObjectParserError::ExpectedStringKey {
+                return Err(Report::new(ObjectParseError::ExpectedStringKey {
                     received: SyntaxKind::from(&key.kind),
                 })
                 .attach(Location::new(key.span)));
             };
 
-            let colon = self
-                .lexer
-                .advance()
-                .change_context(ObjectParserError::Lex)?;
+            let colon = self.lexer.advance().change_context(ObjectParseError::Lex)?;
             if colon.kind != TokenKind::Colon {
-                return Err(Report::new(ObjectParserError::ExpectedColon {
+                return Err(Report::new(ObjectParseError::ExpectedColon {
                     received: SyntaxKind::from(&colon.kind),
                 })
                 .attach(Location::new(colon.span)));
             }
 
-            on_entry(self.lexer.lexer, key, key_span).change_context(ObjectParserError::Entry)?;
+            on_entry(self.lexer.lexer, key, key_span).change_context(ObjectParseError::Entry)?;
 
-            token = self
-                .lexer
-                .advance()
-                .change_context(ObjectParserError::Lex)?;
+            token = self.lexer.advance().change_context(ObjectParseError::Lex)?;
         }
 
         Ok(span)

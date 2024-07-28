@@ -156,7 +156,7 @@ where
     trace(
         "generic",
         (
-            parse_symbol(symbol::ParseRestriction::RustOnly),
+            parse_symbol(symbol::ParseRestriction::SafeOnly),
             opt(preceded(string::ws(':'), parse_type)),
         )
             .map(|(name, bound)| Generic { name, bound }),
@@ -222,7 +222,7 @@ where
     trace(
         "argument",
         separated_pair(
-            parse_symbol(symbol::ParseRestriction::RustOnly),
+            parse_symbol(symbol::ParseRestriction::SafeOnly),
             string::ws(':'),
             parse_type,
         )

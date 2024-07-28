@@ -9,6 +9,14 @@ use winnow::{
     stream::AsBStr,
 };
 
+pub use self::{
+    node::NodeParseError,
+    node_object::NodePbjectParseError,
+    program::ProgramParseError,
+    util::{ArrayParseError, ObjectParseError, ParseError},
+    value::ValueParseError,
+};
+
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 #[error("{display}")]
 pub struct WinnowError {

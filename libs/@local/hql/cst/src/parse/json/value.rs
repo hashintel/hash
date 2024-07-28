@@ -26,7 +26,7 @@ pub(crate) struct ValueParser<'arena> {
 }
 
 impl<'arena> ValueParser<'arena> {
-    pub(crate) fn new(arena: &'arena Arena) -> Self {
+    pub(crate) const fn new(arena: &'arena Arena) -> Self {
         Self { arena }
     }
 
@@ -35,12 +35,11 @@ impl<'arena> ValueParser<'arena> {
         lexer: &mut Lexer<'source>,
         token: Option<Token<'source>>,
     ) -> Result<Value<'arena, 'source>, ValueParseError> {
-        let token = match token {
-            Some(token) => token,
-            None => {
-                let mut eof = EofParser { lexer };
-                eof.advance().change_context(ValueParseError::Parse)?
-            }
+        let token = if let Some(token) = token {
+            token
+        } else {
+            let mut eof = EofParser { lexer };
+            eof.advance().change_context(ValueParseError::Parse)?
         };
 
         match token.kind {

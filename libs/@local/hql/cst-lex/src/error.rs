@@ -1,5 +1,5 @@
+use alloc::sync::Arc;
 use core::fmt::Display;
-use std::sync::Arc;
 
 use text_size::TextRange;
 
