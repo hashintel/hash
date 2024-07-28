@@ -28,33 +28,25 @@ impl Display for Symbol {
 /// assumes that `>` is the name of a generic, and then fails, as no closing `>` is found.
 ///
 /// Using parsing restrictions, the signature parser is able to restrict the set of valid symbols to
-/// only valid Rust identifiers, which do not suffer from this ambiguity.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// only safe identifiers, which do not suffer from this ambiguity.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
 pub(crate) enum ParseRestriction {
     /// Any symbol is allowed
-    ///
     /// This includes:
     /// - Rust identifiers
     /// - Operators
     /// - Safe Operators
+    #[default]
     None,
-    /// Only Rust identifiers are allowed
-    RustOnly,
+    /// This includes:
+    /// - Rust identifiers
+    /// - Safe Operators
+    SafeOnly,
 }
 
 impl ParseRestriction {
-    const fn is_rust(self) -> bool {
-        matches!(self, Self::None | Self::RustOnly)
-    }
-
-    const fn is_operators(self) -> bool {
+    const fn allow_unsafe(self) -> bool {
         matches!(self, Self::None)
-    }
-}
-
-impl Default for ParseRestriction {
-    fn default() -> Self {
-        Self::None
     }
 }
 
@@ -83,13 +75,13 @@ where
 {
     move |input: &mut Input| {
         dispatch! {peek(any).map(|token: Input::Token| token.as_char());
-            char if restriction.is_rust() && is_xid_start(char) => parse_rust_identifier,
-            '_' if restriction.is_rust() => parse_rust_identifier,
-            char if restriction.is_operators() && OPERATORS_PREFIX.contains(&char) => parse_operator,
-            '`' if restriction.is_operators() => parse_safe_operator,
+            char if is_xid_start(char) => parse_rust_identifier,
+            '_' => parse_rust_identifier,
+            char if restriction.allow_unsafe() && OPERATORS_PREFIX.contains(&char) => parse_operator,
+            '`' => parse_safe_operator,
             _ => fail
         }
-        .map(|value| EcoString::from(value.as_ref()))
+        .map(|value: Input::Slice| EcoString::from(value.as_ref()))
         .map(Symbol)
         .parse_next(input)
     }
@@ -225,9 +217,9 @@ mod test {
     }
 
     #[test]
-    fn rust_restrictions() {
-        assert_snapshot!(parse_ok("übung", ParseRestriction::RustOnly), @"übung");
-        assert_debug_snapshot!(parse_err("+", ParseRestriction::RustOnly), @r###"
+    fn safe_mode() {
+        assert_snapshot!(parse_ok("übung", ParseRestriction::SafeOnly), @"übung");
+        assert_debug_snapshot!(parse_err("+", ParseRestriction::SafeOnly), @r###"
         ParseError {
             input: "+",
             offset: 0,
@@ -239,6 +231,7 @@ mod test {
             ),
         }
         "###);
+        assert_snapshot!(parse_ok("`+`", ParseRestriction::SafeOnly), @"+");
     }
 
     #[test]
@@ -280,22 +273,6 @@ mod test {
         ParseError {
             input: "`ü`",
             offset: 1,
-            inner: Backtrack(
-                ContextError {
-                    context: [],
-                    cause: None,
-                },
-            ),
-        }
-        "###);
-    }
-
-    #[test]
-    fn operators_restrictions() {
-        assert_debug_snapshot!(parse_err("+", ParseRestriction::RustOnly), @r###"
-        ParseError {
-            input: "+",
-            offset: 0,
             inner: Backtrack(
                 ContextError {
                     context: [],

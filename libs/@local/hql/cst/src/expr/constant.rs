@@ -1,5 +1,6 @@
 use text_size::TextRange;
 
+use super::Expr;
 use crate::{r#type::Type, value::Value, Span};
 
 #[derive(Debug, Clone, PartialEq, Eq)]

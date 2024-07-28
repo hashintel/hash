@@ -1,5 +1,5 @@
 use error_stack::{Report, Result, ResultExt};
-use hql_cst_lex::{Lexer, SyntaxKind, Token, TokenKind};
+use hql_cst_lex::{Lexer, Location, SyntaxKind, Token, TokenKind};
 
 use super::util::{ArrayParser, EofParser, ObjectParser};
 use crate::{
@@ -64,7 +64,8 @@ impl<'arena> ValueParser<'arena> {
             TokenKind::LBrace => self.parse_object(lexer, token),
             _ => Err(Report::new(ValueParseError::UnexpectedToken {
                 received: SyntaxKind::from(&token.kind),
-            })),
+            }))
+            .attach(Location::new(token.span)),
         }
     }
 
@@ -102,11 +103,12 @@ impl<'arena> ValueParser<'arena> {
 
         let mut parser = ObjectParser::new(lexer);
         let span = parser
-            .parse(token, |lexer, key| {
+            .parse(token, |lexer, key, key_span| {
                 if object.contains_key(&key) {
                     return Err(Report::new(ValueParseError::DuplicateKey {
                         key: key.into_owned().into_boxed_str(),
-                    }));
+                    })
+                    .attach(Location::new(key_span)));
                 }
 
                 let value = self.parse(lexer, None)?;

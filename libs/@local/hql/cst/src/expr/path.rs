@@ -9,10 +9,9 @@ use winnow::{
 
 use super::Expr;
 use crate::{
-    arena::Box,
+    arena::{Arena, Box},
     parse::string::separated_boxed1,
-    symbol::{parse_symbol, ParseRestriction},
-    Arena, Symbol,
+    symbol::{parse_symbol, ParseRestriction, Symbol},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -45,21 +44,23 @@ impl<'arena, 'source> From<Path<'arena>> for Expr<'arena, 'source> {
 /// ```abnf
 /// path = symbol *("::" symbol)
 /// ```
-pub(crate) fn parse_path<'a, Input, Error>(
-    input: &mut Stateful<Input, &'a Arena>,
-) -> PResult<Path<'a>, Error>
+pub(crate) fn parse_path<'arena, Input, Error>(
+    restriction: ParseRestriction,
+) -> impl Parser<Stateful<Input, &'arena Arena>, Path<'arena>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
         + Compare<char>
-        + for<'b> Compare<&'b str>,
-    Error: ParserError<Stateful<Input, &'a Arena>>,
+        + for<'a> Compare<&'a str>,
+    Error: ParserError<Stateful<Input, &'arena Arena>>,
 {
-    trace(
-        "path",
-        separated_boxed1(input.state, parse_symbol(ParseRestriction::None), "::").map(Path),
-    )
-    .parse_next(input)
+    move |input: &mut Stateful<Input, &'arena Arena>| {
+        trace(
+            "path",
+            separated_boxed1(input.state, parse_symbol(restriction), "::").map(Path),
+        )
+        .parse_next(input)
+    }
 }
 
 #[cfg(test)]

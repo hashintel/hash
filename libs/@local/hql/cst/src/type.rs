@@ -9,21 +9,22 @@ use winnow::{
 
 use crate::{
     arena::{self, Arena},
+    expr::path::{parse_path, Path},
     parse::string,
-    symbol::{self, parse_symbol, Symbol},
+    symbol::ParseRestriction,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Type<'a> {
-    Symbol(Symbol),
-    Union(arena::Box<'a, [Type<'a>]>),
-    Intersection(arena::Box<'a, [Type<'a>]>),
+pub enum Type<'arena> {
+    Path(Path<'arena>),
+    Union(arena::Box<'arena, [Type<'arena>]>),
+    Intersection(arena::Box<'arena, [Type<'arena>]>),
 }
 
 impl Display for Type<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Symbol(symbol) => Display::fmt(symbol, f),
+            Self::Path(path) => Display::fmt(path, f),
             Self::Union(types) => {
                 if types.len() > 1 {
                     f.write_str("(")?;
@@ -73,7 +74,7 @@ impl Display for Type<'_> {
 /// # Syntax
 ///
 /// ```abnf
-/// primary = symbol-rust / enclosed
+/// primary = path-safe / enclosed
 /// enclosed = "(" type ")"
 /// union = primary *("|" primary)
 /// intersection = union *("&" union)
@@ -104,7 +105,7 @@ where
 {
     alt((
         parse_enclosed, //
-        parse_symbol(symbol::ParseRestriction::RustOnly).map(Type::Symbol),
+        parse_path(ParseRestriction::SafeOnly).map(Type::Path),
     ))
     .parse_next(input)
 }
@@ -224,6 +225,21 @@ mod test {
         assert_snapshot!(parse_ok(&arena, "Int"), @"Int");
         assert_snapshot!(parse_ok(&arena, "Int | Float"), @"(Int | Float)");
         assert_snapshot!(parse_ok(&arena, "Int | Float | Bool"), @"(Int | Float | Bool)");
+    }
+
+    #[test]
+    fn path() {
+        let arena = Arena::new();
+
+        assert_snapshot!(parse_ok(&arena, "core::Int"), @"Int");
+    }
+
+    #[test]
+    fn safe_operator() {
+        let arena = Arena::new();
+
+        assert_snapshot!(parse_ok(&arena, "`+`"), @"Int");
+        assert_snapshot!(parse_ok(&arena, "core::`+`"), @"");
     }
 
     #[test]

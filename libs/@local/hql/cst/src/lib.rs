@@ -11,11 +11,13 @@ pub mod symbol;
 pub mod r#type;
 pub mod value;
 
+use error_stack::Result;
 use text_size::TextRange;
 
-pub use self::{
-    arena::Arena, call::Call, constant::Constant, expr::Expr, path::Path, signature::Signature,
-    symbol::Symbol, r#type::Type,
+use self::{
+    arena::Arena,
+    expr::Expr,
+    parse::json::node::{NodeParseError, NodeParser},
 };
 
 pub trait Span {
@@ -23,17 +25,29 @@ pub trait Span {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Node<'arena> {
-    pub expr: Expr<'arena>,
+pub struct Node<'arena, 'source> {
+    pub expr: Expr<'arena, 'source>,
     pub span: TextRange,
 }
 
-impl Span for Node<'_> {
+impl<'arena, 'source> Node<'arena, 'source> {
+    /// Deserialize an expression from a JSON string.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the input is not valid JSON, or a malformed expression.
+    pub fn from_str(arena: &'arena Arena, value: &'source str) -> Result<Self, NodeParseError> {
+        NodeParser::new(arena).parse(value)
+    }
+}
+
+impl Span for Node<'_, '_> {
     fn span(&self) -> TextRange {
         self.span
     }
 }
 
-pub struct Program<'a> {
-    pub exprs: arena::Vec<'a, Node<'a>>,
+pub struct Program<'arena, 'source> {
+    pub nodes: arena::Vec<'arena, Node<'arena, 'source>>,
+    pub span: TextRange,
 }

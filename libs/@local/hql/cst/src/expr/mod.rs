@@ -6,47 +6,14 @@ pub mod signature;
 use serde::de::DeserializeSeed;
 
 use self::{call::Call, constant::Constant, path::Path, signature::Signature};
-use crate::Arena;
+use crate::{arena::Arena, parse::json::ExprParser};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expr<'arena, 'source> {
-    Call(Call<'arena>),
+    Call(Call<'arena, 'source>),
     Signature(Signature<'arena>),
     Path(Path<'arena>),
     Constant(Constant<'arena, 'source>),
-}
-
-impl<'arena, 'source> Expr<'arena, 'source> {
-    /// Deserialize an expression from a JSON string.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the input is not valid JSON, or a malformed expression.
-    pub fn from_str(arena: &'arena Arena, value: &str) -> serde_json::Result<Self> {
-        let mut deserializer = serde_json::Deserializer::from_str(value);
-
-        DeserializeSeed::deserialize(ExprVisitor { arena }, &mut deserializer)
-    }
-
-    /// Deserialize an expression from a JSON byte slice.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the input is not valid JSON, or a malformed expression.
-    pub fn from_slice(arena: &'arena Arena, value: &[u8]) -> serde_json::Result<Self> {
-        let mut deserializer = serde_json::Deserializer::from_slice(value);
-
-        DeserializeSeed::deserialize(ExprVisitor { arena }, &mut deserializer)
-    }
-
-    /// Deserialize an expression from a JSON value.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the input is a malformed expression.
-    pub fn from_value(arena: &'arena Arena, value: &serde_json::Value) -> serde_json::Result<Self> {
-        DeserializeSeed::deserialize(ExprVisitor { arena }, value)
-    }
 }
 
 #[cfg(test)]

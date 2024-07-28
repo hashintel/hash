@@ -137,7 +137,7 @@ impl<'source, 'lexer> ObjectParser<'source, 'lexer> {
     pub(crate) fn parse<E>(
         &mut self,
         token: Token<'source>,
-        mut on_entry: impl FnMut(&mut Lexer<'source>, Cow<'source, str>) -> Result<(), E>,
+        mut on_entry: impl FnMut(&mut Lexer<'source>, Cow<'source, str>, TextRange) -> Result<(), E>,
     ) -> Result<TextRange, ObjectParserError>
     where
         E: Context,
@@ -177,6 +177,7 @@ impl<'source, 'lexer> ObjectParser<'source, 'lexer> {
                 .attach(Location::new(token.span)));
             };
 
+            let key_span = key.span;
             let TokenKind::String(key) = key.kind else {
                 return Err(Report::new(ObjectParserError::ExpectedStringKey {
                     received: SyntaxKind::from(&key.kind),
@@ -195,7 +196,7 @@ impl<'source, 'lexer> ObjectParser<'source, 'lexer> {
                 .attach(Location::new(colon.span)));
             }
 
-            on_entry(self.lexer.lexer, key).change_context(ObjectParserError::Entry)?;
+            on_entry(self.lexer.lexer, key, key_span).change_context(ObjectParserError::Entry)?;
 
             token = self
                 .lexer
