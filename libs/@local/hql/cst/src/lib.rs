@@ -23,5 +23,15 @@ pub use self::{
 
 pub struct Node<'a> {
     pub expr: Expr<'a>,
-    pub range: TextRange,
+    pub span: TextRange,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct Spanned<T> {
+    pub node: T,
+    pub span: TextRange,
+}
+
+pub struct Program<'a> {
+    pub exprs: arena::Vec<'a, Node<'a>>,
 }

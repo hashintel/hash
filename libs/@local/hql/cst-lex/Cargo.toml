@@ -1,7 +1,7 @@
 cargo-features = ["edition2024"]
 
 [package]
-name = "hql-cst-lexer"
+name = "hql-cst-lex"
 version = "0.1.0"
 authors.workspace = true
 edition.workspace = true
@@ -10,7 +10,6 @@ edition.workspace = true
 error-stack.workspace = true
 hifijson = { version = "0.2.1", git = "https://github.com/indietyp/hifijson.git", branch = "offset" }
 json-number = "0.4.8"
-justjson = { version = "0.3.0", features = ["nightly"] }
 logos = "0.14.0"
 text-size = "1.1.1"
 thiserror = "1.0.63"

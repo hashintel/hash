@@ -8,7 +8,7 @@ use crate::{
     parse::{parse_number, parse_string},
 };
 
-#[derive(Debug, Logos)]
+#[derive(Debug, PartialEq, Eq, PartialOrd, Ord, Hash, Logos)]
 #[logos(error = LexingError)]
 #[logos(skip r"[ \t\r\n\f]+")]
 pub enum TokenKind<'source> {

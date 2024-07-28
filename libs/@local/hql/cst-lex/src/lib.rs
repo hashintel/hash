@@ -10,10 +10,10 @@ pub use self::{
     token::Token,
 };
 
-pub mod error;
-pub mod kind;
+mod error;
+mod kind;
 mod parse;
-pub mod token;
+mod token;
 
 pub struct Lexer<'source> {
     inner: SpannedIter<'source, TokenKind<'source>>,
@@ -45,6 +45,7 @@ impl<'source> Iterator for Lexer<'source> {
         let (kind, span) = self.inner.next()?;
 
         let span = {
+            // The constructor verifies that the span is always less than `u32::MAX`.
             let start = TextSize::try_from(span.start).unwrap_or_else(|_error| unreachable!());
             let end = TextSize::try_from(span.end).unwrap_or_else(|_error| unreachable!());
 

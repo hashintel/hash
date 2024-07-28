@@ -63,6 +63,8 @@ harpc-types.path = "libs/@local/harpc/types"
 harpc-wire-protocol.path = "libs/@local/harpc/wire-protocol"
 harpc-net.path = "libs/@local/harpc/net"
 repo-chores.path = "libs/@local/repo-chores/rust"
+hql-cst.path = "libs/@local/hql/cst"
+hql-cst-lex.path = "libs/@local/hql/cst-lex"
 
 # External dependencies owned by HASH
 error-stack = { version = "0.5.0", default-features = false }
