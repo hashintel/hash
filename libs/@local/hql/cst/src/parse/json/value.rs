@@ -42,6 +42,8 @@ pub enum ValueParseError {
     Object,
     #[error("unexpected token, received {received}")]
     UnexpectedToken { received: SyntaxKind },
+    #[error("duplicate key {key}")]
+    DuplicateKey { key: Box<str> },
 }
 
 pub(crate) struct ValueParser<'arena, 'source, 'lexer> {
@@ -112,6 +114,7 @@ impl<'arena, 'source, 'lexer> ValueParser<'arena, 'source, 'lexer> {
         })
     }
 
+    /// Parse a JSON object, expects the `{` to already be consumed
     fn parse_object(
         arena: &'arena Arena,
         lexer: &mut Lexer<'source>,
@@ -122,6 +125,12 @@ impl<'arena, 'source, 'lexer> ValueParser<'arena, 'source, 'lexer> {
         let mut parser = ObjectParser::new(lexer);
         let span = parser
             .parse(token, |lexer, key| {
+                if object.contains_key(&key) {
+                    return Err(Report::new(ValueParseError::DuplicateKey {
+                        key: key.into_owned().into_boxed_str(),
+                    }));
+                }
+
                 let value = Self::parse_inner(arena, lexer, None)?;
                 object.insert(key, value);
                 Ok(())
