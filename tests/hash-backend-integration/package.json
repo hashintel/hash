@@ -30,7 +30,6 @@
     "node-fetch": "2.7.0"
   },
   "devDependencies": {
-    "@apps/hash-graph": "0.0.0-private",
     "@blockprotocol/graph": "0.4.0-canary.0",
     "@graphql-codegen/cli": "5.0.0",
     "@graphql-codegen/introspection": "2.2.3",
