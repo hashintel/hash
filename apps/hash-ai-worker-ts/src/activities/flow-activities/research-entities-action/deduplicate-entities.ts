@@ -48,8 +48,8 @@ export const deduplicationAgentSystemPrompt = `
 `;
 
 export type DuplicateReport = {
-  canonicalId: string | EntityId;
-  duplicateIds: (string | EntityId)[];
+  canonicalId: EntityId;
+  duplicateIds: EntityId[];
 };
 
 const toolName = "reportDuplicates";

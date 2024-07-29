@@ -3,8 +3,8 @@ import type { EntityId } from "@local/hash-graph-types/entity";
 
 export type Claim = {
   claimId: EntityId;
-  subjectEntityLocalId: string;
-  objectEntityLocalId?: string;
+  subjectEntityLocalId: EntityId;
+  objectEntityLocalId?: EntityId;
   text: string;
   prepositionalPhrases: string[];
   sources?: SourceProvenance[];

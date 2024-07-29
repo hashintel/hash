@@ -130,6 +130,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
     operation = "create";
 
     const getFileEntityFromUrlStatus = await getFileEntityFromUrl({
+      entityUuid,
       url: fileUrl,
       propertyMetadata,
       provenance,
@@ -307,6 +308,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       graphApiClient,
       { actorId: webBotActorId },
       {
+        draft,
         entityTypeId: `https://hash.ai/@hash/types/entity-type/${linkType}/v/1`,
         ownedById: webId,
         provenance: {

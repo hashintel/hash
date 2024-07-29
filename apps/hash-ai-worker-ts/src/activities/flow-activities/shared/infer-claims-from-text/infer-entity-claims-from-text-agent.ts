@@ -1,5 +1,6 @@
+import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityUuid } from "@local/hash-graph-types/entity";
+import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import type { Claim as ClaimEntity } from "@local/hash-isomorphic-utils/system-types/claim";
@@ -252,6 +253,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
   text: string;
   url: string | null;
   title: string | null;
+  contentType: "webpage" | "document";
   dereferencedEntityType: DereferencedEntityType;
   linkEntityTypesById: Record<string, DereferencedEntityType>;
   retryContext?: {
@@ -267,6 +269,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
     text,
     url,
     title,
+    contentType,
     dereferencedEntityType,
     linkEntityTypesById,
     retryContext,
@@ -276,8 +279,13 @@ export const inferEntityClaimsFromTextAgent = async (params: {
     `Inferring claims from text for entities ${subjectEntities.map(({ name }) => name).join(", ")}`,
   );
 
-  const { userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
+  const {
+    createEntitiesAsDraft,
+    userAuthentication,
+    flowEntityId,
+    stepId,
+    webId,
+  } = await getFlowContext();
 
   const llmResponse = await getLlmResponse(
     {
@@ -406,18 +414,20 @@ export const inferEntityClaimsFromTextAgent = async (params: {
   for (const toolCall of toolCalls) {
     const input = toolCall.input as {
       claims: {
-        subjectEntityLocalId: string;
+        subjectEntityLocalId: EntityId;
         text: string;
         prepositionalPhrases: string[];
-        objectEntityLocalId: string | null;
+        objectEntityLocalId: EntityId | null;
       }[];
     };
 
     for (const unfinishedClaims of input.claims) {
-      const claim: Claim = {
+      const claimUuid = generateUuid() as EntityUuid;
+
+      const claim: Omit<Claim, "sources"> = {
         ...unfinishedClaims,
         objectEntityLocalId: unfinishedClaims.objectEntityLocalId ?? undefined,
-        claimId: entityIdFromComponents(webId, generateUuid() as EntityUuid),
+        claimId: entityIdFromComponents(webId, claimUuid),
       };
 
       const subjectEntity =
@@ -456,13 +466,18 @@ export const inferEntityClaimsFromTextAgent = async (params: {
         continue;
       }
 
-      if (!claim.text.includes(subjectEntity.name)) {
+      if (
+        !claim.text.toLowerCase().includes(subjectEntity.name.toLowerCase())
+      ) {
         potentiallyRepeatedInvalidClaims.push({
           ...claim,
           invalidReason: `The claim specifies subjectEntityId "${claim.subjectEntityLocalId}", but that entity's name "${subjectEntity.name}" does not appear in the claim. Claims must start with the name of the subject. If you described the entity slightly different, resubmit the claim beginning with "${subjectEntity.name}" instead, as long as you are sure the claim relates to this same entity. If you don't have an appropriate subject for the claim, don't include the claim. Review the subject entities in my previous message for valid subjects.`,
           toolCallId: toolCall.id,
         });
-      } else if (objectEntity && !claim.text.includes(objectEntity.name)) {
+      } else if (
+        objectEntity &&
+        !claim.text.toLowerCase().includes(objectEntity.name.toLowerCase())
+      ) {
         potentiallyRepeatedInvalidClaims.push({
           ...claim,
           invalidReason: `The claim specifies objectEntityId "${claim.objectEntityLocalId}, but that entity's name "${objectEntity.name}" does not appear in the claim. Claims must end with the name of the object of the claim. If you described the entity slightly different, resubmit the claim ending with "${objectEntity.name}" instead. If you don't have an objectEntityId for the object of the claim, pass 'null' for objectEntityId.`,
@@ -471,14 +486,24 @@ export const inferEntityClaimsFromTextAgent = async (params: {
       } else {
         validClaims.push(claim);
 
-        const provenance = {
+        const sources = [
+          {
+            type: contentType,
+            location: {
+              name: title ?? undefined,
+              uri: url ?? undefined,
+            },
+          },
+        ];
+
+        const provenance: EnforcedEntityEditionProvenance = {
           actorType: "ai",
           origin: {
             id: flowEntityId,
             stepIds: [stepId],
             type: "flow",
           },
-          sources: claim.sources,
+          sources,
         };
 
         /**
@@ -488,6 +513,8 @@ export const inferEntityClaimsFromTextAgent = async (params: {
           graphApiClient,
           { actorId: aiAssistantAccountId },
           {
+            draft: createEntitiesAsDraft,
+            entityUuid: claimUuid,
             entityTypeId: "https://hash.ai/@hash/types/entity-type/claim/v/1",
             ownedById: webId,
             provenance: {
@@ -497,7 +524,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
                 stepIds: [stepId],
                 type: "flow",
               },
-              sources: claim.sources,
+              sources,
             },
             relationships: createDefaultAuthorizationRelationships({
               actorId: userAuthentication.actorId,
@@ -509,7 +536,9 @@ export const inferEntityClaimsFromTextAgent = async (params: {
                     metadata: {
                       dataTypeId:
                         "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-                      provenance,
+                      provenance: {
+                        sources: provenance.sources,
+                      },
                     },
                     value: `${claim.text}${claim.prepositionalPhrases.length ? `– ${claim.prepositionalPhrases.join(", ")}` : ""}`,
                   },
@@ -517,7 +546,9 @@ export const inferEntityClaimsFromTextAgent = async (params: {
                   metadata: {
                     dataTypeId:
                       "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-                    provenance,
+                    provenance: {
+                      sources: provenance.sources,
+                    },
                   },
                   value: subjectEntity.name,
                 },
@@ -527,7 +558,9 @@ export const inferEntityClaimsFromTextAgent = async (params: {
                         metadata: {
                           dataTypeId:
                             "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-                          provenance,
+                          provenance: {
+                            sources: provenance.sources,
+                          },
                         },
                         value: objectEntity.name,
                       },

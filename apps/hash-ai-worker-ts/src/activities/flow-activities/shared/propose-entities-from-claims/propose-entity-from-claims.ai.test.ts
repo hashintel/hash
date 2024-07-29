@@ -1,6 +1,9 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
 
+import type { EntityUuid } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { entityIdFromComponents } from "@local/hash-subgraph";
 import { expect, test } from "vitest";
 
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
@@ -10,8 +13,13 @@ import type { LocalEntitySummary } from "../infer-claims-from-text/get-entity-su
 import type { Claim } from "../infer-claims-from-text/types.js";
 import { proposeEntityFromClaimsAgent } from "./propose-entity-from-claims-agent.js";
 
+const ownedById = generateUuid();
+
+const generateEntityId = (entityUuid: string) =>
+  entityIdFromComponents(ownedById as OwnedById, entityUuid as EntityUuid);
+
 const huntingPlcEntitySummary: LocalEntitySummary = {
-  localId: "6916156b-e759-41ad-b1da-2cf7af05d223",
+  localId: generateEntityId("6916156b-e759-41ad-b1da-2cf7af05d223"),
   name: "HUNTING PLC ORD 25P",
   summary:
     "HUNTING PLC, represented by the stock code HTG, has a market cap of 614.40 million GBX, a last recorded price of 452.50 GBX, and experienced a recent price change of 80.00 GBX, translating to a 21.48% increase.",
@@ -22,22 +30,30 @@ const huntingPlcEntitySummary: LocalEntitySummary = {
 const huntingPlcEntityClaims = [
   {
     text: "HUNTING PLC has a market cap of 614.40 million GBX",
-    subjectEntityLocalId: "66f93842-c6e0-4378-ab04-519edd7231af",
+    subjectEntityLocalId: generateEntityId(
+      "66f93842-c6e0-4378-ab04-519edd7231af",
+    ),
     prepositionalPhrases: [],
   },
   {
     text: "HUNTING PLC has a price of 443.50 GBX",
-    subjectEntityLocalId: "66f93842-c6e0-4378-ab04-519edd7231af",
+    subjectEntityLocalId: generateEntityId(
+      "66f93842-c6e0-4378-ab04-519edd7231af",
+    ),
     prepositionalPhrases: [],
   },
   {
     text: "HUNTING PLC has a change value of 71.00 GBX",
-    subjectEntityLocalId: "66f93842-c6e0-4378-ab04-519edd7231af",
+    subjectEntityLocalId: generateEntityId(
+      "66f93842-c6e0-4378-ab04-519edd7231af",
+    ),
     prepositionalPhrases: [],
   },
   {
     text: "HUNTING PLC has a change percentage of 19.06%",
-    subjectEntityLocalId: "66f93842-c6e0-4378-ab04-519edd7231af",
+    subjectEntityLocalId: generateEntityId(
+      "66f93842-c6e0-4378-ab04-519edd7231af",
+    ),
     prepositionalPhrases: [],
   },
 ];
@@ -62,7 +78,7 @@ test.skip(
     const huntingPlcEntityClaimsWithSources = huntingPlcEntityClaims.map(
       (claim): Claim => ({
         ...claim,
-        claimId: generateUuid(),
+        claimId: generateEntityId(generateUuid()),
         sources: [
           {
             type: "webpage",
@@ -77,7 +93,10 @@ test.skip(
 
     const proposeEntityFromClaimsStatus = await proposeEntityFromClaimsAgent({
       entitySummary: huntingPlcEntitySummary,
-      claims: huntingPlcEntityClaimsWithSources,
+      claims: {
+        isSubjectOf: huntingPlcEntityClaimsWithSources,
+        isObjectOf: [],
+      },
       dereferencedEntityType,
       simplifiedPropertyTypeMappings: simplifiedPropertyTypeMappings!,
       proposeOutgoingLinkEntityTypes: [],
@@ -95,7 +114,7 @@ test.skip(
 );
 
 const graphicsCardEntitySummary: LocalEntitySummary = {
-  localId: "d705527d-59ed-462c-92c4-507b92095c22",
+  localId: generateEntityId("d705527d-59ed-462c-92c4-507b92095c22"),
   name: "NVIDIA GeForce RTX 2080 Ti",
   summary:
     "The GeForce RTX 2080 Ti is a PC GPU based on the TU102 graphics processor with 11GB of memory, 352-bit memory bus, and approximately 120 teraflops of performance.",
@@ -104,9 +123,11 @@ const graphicsCardEntitySummary: LocalEntitySummary = {
 
 const claimsAboutGraphicsCard: Claim[] = [
   {
-    claimId: "5294b951-fbe0-4b31-b287-130036c1f551",
+    claimId: generateEntityId("5294b951-fbe0-4b31-b287-130036c1f551"),
     text: "NVIDIA GeForce RTX 2080 Ti provides 11GB of memory",
-    subjectEntityLocalId: "d705527d-59ed-462c-92c4-507b92095c22",
+    subjectEntityLocalId: generateEntityId(
+      "d705527d-59ed-462c-92c4-507b92095c22",
+    ),
     prepositionalPhrases: [],
     sources: [
       {
@@ -119,9 +140,11 @@ const claimsAboutGraphicsCard: Claim[] = [
     ],
   },
   {
-    claimId: "e2ef33ee-d23e-4fba-aded-944067013515",
+    claimId: generateEntityId("e2ef33ee-d23e-4fba-aded-944067013515"),
     text: "NVIDIA GeForce RTX 2080 Ti has a 352-bit memory bus",
-    subjectEntityLocalId: "d705527d-59ed-462c-92c4-507b92095c22",
+    subjectEntityLocalId: generateEntityId(
+      "d705527d-59ed-462c-92c4-507b92095c22",
+    ),
     prepositionalPhrases: [],
     sources: [
       {
@@ -134,9 +157,11 @@ const claimsAboutGraphicsCard: Claim[] = [
     ],
   },
   {
-    claimId: "710c911e-7641-4f7a-908e-dd5d162399d5",
+    claimId: generateEntityId("710c911e-7641-4f7a-908e-dd5d162399d5"),
     text: "NVIDIA GeForce RTX 2080 Ti has a 6MB cache",
-    subjectEntityLocalId: "d705527d-59ed-462c-92c4-507b92095c22",
+    subjectEntityLocalId: generateEntityId(
+      "d705527d-59ed-462c-92c4-507b92095c22",
+    ),
     prepositionalPhrases: [],
     sources: [
       {
@@ -149,9 +174,11 @@ const claimsAboutGraphicsCard: Claim[] = [
     ],
   },
   {
-    claimId: "b8547d6c-dbdc-4765-8e40-326c39b87e6c",
+    claimId: generateEntityId("b8547d6c-dbdc-4765-8e40-326c39b87e6c"),
     text: "NVIDIA GeForce RTX 2080 Ti provides roughly 120 teraflops of performance",
-    subjectEntityLocalId: "d705527d-59ed-462c-92c4-507b92095c22",
+    subjectEntityLocalId: generateEntityId(
+      "d705527d-59ed-462c-92c4-507b92095c22",
+    ),
     prepositionalPhrases: [],
     sources: [
       {
@@ -164,9 +191,11 @@ const claimsAboutGraphicsCard: Claim[] = [
     ],
   },
   {
-    claimId: "06e3ae80-e7c7-4762-877b-36241edf8b55",
+    claimId: generateEntityId("06e3ae80-e7c7-4762-877b-36241edf8b55"),
     text: "NVIDIA GeForce RTX 2080 Ti is a PC GPU",
-    subjectEntityLocalId: "d705527d-59ed-462c-92c4-507b92095c22",
+    subjectEntityLocalId: generateEntityId(
+      "d705527d-59ed-462c-92c4-507b92095c22",
+    ),
     prepositionalPhrases: [],
     sources: [
       {
@@ -179,9 +208,11 @@ const claimsAboutGraphicsCard: Claim[] = [
     ],
   },
   {
-    claimId: "e9fa4dba-a4d0-421d-b907-7b534fb0eae0",
+    claimId: generateEntityId("e9fa4dba-a4d0-421d-b907-7b534fb0eae0"),
     text: "NVIDIA GeForce RTX 2080 Ti is based on the TU102 graphics processor",
-    subjectEntityLocalId: "d705527d-59ed-462c-92c4-507b92095c22",
+    subjectEntityLocalId: generateEntityId(
+      "d705527d-59ed-462c-92c4-507b92095c22",
+    ),
     prepositionalPhrases: [],
     sources: [
       {
@@ -214,7 +245,10 @@ test.skip(
 
     const proposeEntityFromClaimsStatus = await proposeEntityFromClaimsAgent({
       entitySummary: graphicsCardEntitySummary,
-      claims: claimsAboutGraphicsCard,
+      claims: {
+        isSubjectOf: claimsAboutGraphicsCard,
+        isObjectOf: [],
+      },
       dereferencedEntityType,
       simplifiedPropertyTypeMappings: simplifiedPropertyTypeMappings!,
       proposeOutgoingLinkEntityTypes: [],

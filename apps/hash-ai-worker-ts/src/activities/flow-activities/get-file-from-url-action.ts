@@ -20,6 +20,7 @@ export const getFileFromUrlAction: FlowActionActivity = async ({ inputs }) => {
   });
 
   const getFileEntityFromUrlStatus = await getFileEntityFromUrl({
+    entityUuid: null,
     url: originalUrl,
     description,
     displayName,

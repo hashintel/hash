@@ -187,6 +187,9 @@ export const generateToolDefinitions = <
       This tool should be used to gather claims about entities of specific types.
       The URLs for resources selected must have been provided in the user messages to you,
       or as the result of a previous action (e.g. a web search, or in suggestions for next steps). Don't guess URLs!
+      
+      If you want new information about existing entities, or to find new entities to link to existing entities,
+      be sure to specify the existing entities under 'relevantEntityIds'.
     `),
       inputSchema: {
         type: "object",
@@ -254,6 +257,7 @@ export const generateToolDefinitions = <
                   },
                   description: dedent(`
                   The entityIds of already proposed entities which you are seeking further detail on, if any.
+                  If you expect new entities you are seeking to be linked to already-discovered entities, specify them here.
                 `),
                 },
               },

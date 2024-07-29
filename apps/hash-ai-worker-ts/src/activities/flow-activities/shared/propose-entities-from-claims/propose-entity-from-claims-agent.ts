@@ -5,9 +5,11 @@ import {
   Entity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { entityIdFromComponents } from "@local/hash-subgraph";
 import dedent from "dedent";
 import type { JSONSchemaDefinition } from "openai/lib/jsonschema";
 
@@ -600,7 +602,10 @@ export const proposeEntityFromClaimsAgent = async (params: {
               ),
               isSubjectOf: [],
             },
-            localEntityId: generateUuid(),
+            localEntityId: entityIdFromComponents(
+              webId,
+              generateUuid() as EntityUuid,
+            ),
             summary: `"${dereferencedOutgoingLinkEntityType.title}" link with source ${entitySummary.name} and target ${targetEntitySummary.name}`,
             sourceEntityId: {
               kind: "proposed-entity",

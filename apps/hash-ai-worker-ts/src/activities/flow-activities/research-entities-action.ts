@@ -2,7 +2,7 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { OriginProvenance } from "@local/hash-graph-client";
 import { SourceType } from "@local/hash-graph-client";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 import type { OutputNameForAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -10,6 +10,7 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
+import { entityIdFromComponents } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import dedent from "dedent";
@@ -54,14 +55,12 @@ const adjustDuplicates = (params: {
 
   const adjustedDuplicates = duplicates.map<DuplicateReport>(
     ({ canonicalId, duplicateIds }) => {
-      if (
-        entityIdsWhichCannotBeDeduplicated.includes(canonicalId as EntityId)
-      ) {
+      if (entityIdsWhichCannotBeDeduplicated.includes(canonicalId)) {
         return { canonicalId, duplicateIds };
       }
 
       const existingEntityIdMarkedAsDuplicate = duplicateIds.find((id) =>
-        entityIdsWhichCannotBeDeduplicated.includes(id as EntityId),
+        entityIdsWhichCannotBeDeduplicated.includes(id),
       );
 
       /**
@@ -282,7 +281,7 @@ export const researchEntitiesAction: FlowActionActivity<{
 
   let state: CoordinatingAgentState;
 
-  const { flowEntityId, stepId } = await getFlowContext();
+  const { flowEntityId, stepId, webId } = await getFlowContext();
 
   const providedFileEntities = await getProvidedFiles();
 
@@ -979,7 +978,10 @@ export const researchEntitiesAction: FlowActionActivity<{
       propertyMetadata: { value: {} },
       provenance: fileEditionProvenance,
       entityTypeId,
-      localEntityId: generateUuid(),
+      localEntityId: entityIdFromComponents(
+        webId,
+        generateUuid() as EntityUuid,
+      ),
       properties: {
         "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
           url,

@@ -11,6 +11,7 @@ export const inferClaimsFromText = async (params: {
   text: string;
   url: string | null;
   title: string | null;
+  contentType: "webpage" | "document";
   existingEntitiesOfInterest: LocalEntitySummary[];
   dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
   relevantEntitiesPrompt?: string;
@@ -25,6 +26,7 @@ export const inferClaimsFromText = async (params: {
     text,
     title,
     url,
+    contentType,
     existingEntitiesOfInterest,
     testingParams,
     dereferencedEntityTypes,
@@ -114,6 +116,7 @@ export const inferClaimsFromText = async (params: {
                 text,
                 title,
                 url,
+                contentType,
                 dereferencedEntityType,
               });
 

@@ -342,6 +342,7 @@ const exploreResource = async (params: {
     existingEntitiesOfInterest,
     text: content,
     url: resource.url,
+    contentType: isResourcePdfFile ? "document" : "webpage",
     title: resourceTitle ?? null,
     /** @todo: consider whether this should be a dedicated input */
     relevantEntitiesPrompt: task,
