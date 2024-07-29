@@ -2,17 +2,24 @@ import { useQuery } from "@apollo/client";
 import { IconButton } from "@hashintel/design-system";
 import type { SourceProvenance } from "@local/hash-graph-client/api";
 import type { EntityId } from "@local/hash-graph-types/entity";
-import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import {
   currentTimeInstantTemporalAxes,
-  generateEntityIdFilter,
+  generateVersionedUrlMatchingFilter,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
+import {
+  systemEntityTypes,
+  systemLinkEntityTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { Claim } from "@local/hash-isomorphic-utils/system-types/claim";
 import type { EntityRootType } from "@local/hash-subgraph";
-import { getRoots } from "@local/hash-subgraph/stdlib";
+import { entityIdFromComponents } from "@local/hash-subgraph";
+import {
+  getOutgoingLinksForEntity,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, TableCell, Typography } from "@mui/material";
 import { memo, useMemo, useRef, useState } from "react";
@@ -23,6 +30,7 @@ import type {
 } from "../../../../../graphql/api-types.gen";
 import { getEntitySubgraphQuery } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { CircleInfoIcon } from "../../../../../shared/icons/circle-info-icon";
+import { useFlowRunsContext } from "../../../../shared/flow-runs-context";
 import { ValueChip } from "../../../../shared/value-chip";
 import type {
   CreateVirtualizedRowContentFn,
@@ -59,13 +67,13 @@ const columns: VirtualizedTableColumn<FieldId>[] = [
     label: "Subject of claim",
     id: "subject",
     sortable: true,
-    width: 140,
+    width: 160,
   },
   {
     label: "Relevant value",
     id: "object",
     sortable: true,
-    width: 140,
+    width: 160,
   },
 ];
 
@@ -99,12 +107,12 @@ const cellSx = {
   },
 } as const satisfies SxProps<Theme>;
 
-const ClaimValueCell = ({
+const ClaimTextCell = ({
   sources,
-  value,
+  text,
 }: {
   sources: SourceProvenance[];
-  value: string;
+  text: string;
 }) => {
   const [showMetadataTooltip, setShowMetadataTooltip] = useState(false);
 
@@ -124,20 +132,22 @@ const ClaimValueCell = ({
             whiteSpace: "nowrap",
           }}
         >
-          {value}
+          {text}
         </Typography>
-        <IconButton
-          aria-describedby={buttonId}
-          onClick={() => setShowMetadataTooltip(true)}
-          sx={{ ml: 1 }}
-        >
-          <CircleInfoIcon
-            sx={{
-              fontSize: 12,
-              fill: ({ palette }) => palette.gray[40],
-            }}
-          />
-        </IconButton>
+        {!!sources.length && (
+          <IconButton
+            aria-describedby={buttonId}
+            onClick={() => setShowMetadataTooltip(true)}
+            sx={{ ml: 1 }}
+          >
+            <CircleInfoIcon
+              sx={{
+                fontSize: 12,
+                fill: ({ palette }) => palette.gray[40],
+              }}
+            />
+          </IconButton>
+        )}
       </Stack>
       <SourcesPopover
         buttonId={buttonId}
@@ -155,11 +165,41 @@ const TableRow = memo(({ row }: { row: ClaimResultRow }) => {
 
   return (
     <>
-      <TableCell sx={cellSx}>{status}</TableCell>
-      <ClaimValueCell sources={sources} value={claim} />
+      <TableCell
+        sx={({ palette }) => ({
+          ...cellSx,
+          background:
+            status === "Processing claim" ? palette.blue[15] : palette.gray[20],
+          color:
+            status === "Processing claim"
+              ? palette.blue[70]
+              : palette.common.black,
+        })}
+      >
+        <Stack direction="row" alignItems="center">
+          <Box
+            aria-hidden
+            component="span"
+            sx={{
+              borderRadius: "50%",
+              background: ({ palette }) =>
+                status === "Processing claim"
+                  ? palette.blue[70]
+                  : palette.green[80],
+              display: "inline-block",
+              minHeight: 6,
+              minWidth: 6,
+              mr: 1,
+            }}
+          />
+          {status}
+        </Stack>
+      </TableCell>
+      <ClaimTextCell sources={sources} text={claim} />
       <TableCell sx={cellSx}>
         <Box
           component="button"
+          disabled={!subject.entityId}
           onClick={() => {
             if (subject.entityId) {
               onEntityClick(subject.entityId);
@@ -170,7 +210,12 @@ const TableRow = memo(({ row }: { row: ClaimResultRow }) => {
             border: "none",
             cursor: subject.entityId ? "pointer" : "default",
             p: 0,
+            maxWidth: "100%",
             textAlign: "left",
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+            display: "block",
           }}
         >
           <ValueChip
@@ -188,6 +233,7 @@ const TableRow = memo(({ row }: { row: ClaimResultRow }) => {
         {object ? (
           <Box
             component="button"
+            disabled={!object.entityId}
             onClick={() => {
               if (object.entityId) {
                 onEntityClick(object.entityId);
@@ -198,7 +244,12 @@ const TableRow = memo(({ row }: { row: ClaimResultRow }) => {
               border: "none",
               cursor: object.entityId ? "pointer" : "default",
               p: 0,
+              maxWidth: "100%",
               textAlign: "left",
+              textOverflow: "ellipsis",
+              overflow: "hidden",
+              whiteSpace: "nowrap",
+              display: "block",
             }}
           >
             <ValueChip
@@ -227,16 +278,12 @@ const createRowContent: CreateVirtualizedRowContentFn<
 > = (_index, row) => <TableRow row={row.data} />;
 
 type ClaimsTableProps = {
-  claimEntityIds: EntityId[];
   onEntityClick: (entityId: EntityId) => void;
-  persistedEntities: PersistedEntity[];
   proposedEntities: ProposedEntityOutput[];
 };
 
 export const ClaimsTable = ({
-  claimEntityIds,
   onEntityClick,
-  persistedEntities,
   proposedEntities,
 }: ClaimsTableProps) => {
   const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
@@ -244,7 +291,7 @@ export const ClaimsTable = ({
     direction: "asc",
   });
 
-  const hasData = !!claimEntityIds.length;
+  const { selectedFlowRun } = useFlowRunsContext();
 
   const { data: claimsData } = useQuery<
     GetEntitySubgraphQuery,
@@ -254,21 +301,42 @@ export const ClaimsTable = ({
       includePermissions: false,
       request: {
         filter: {
-          any: claimEntityIds.map((entityId) =>
-            generateEntityIdFilter({ entityId, includeArchived: false }),
-          ),
+          all: [
+            generateVersionedUrlMatchingFilter(
+              systemEntityTypes.claim.entityTypeId,
+              {
+                ignoreParents: true,
+              },
+            ),
+            {
+              equal: [
+                {
+                  path: ["editionProvenance", "origin", "id"],
+                },
+                {
+                  parameter: selectedFlowRun
+                    ? entityIdFromComponents(
+                        selectedFlowRun.webId,
+                        selectedFlowRun.flowRunId,
+                      )
+                    : "never",
+                },
+              ],
+            },
+          ],
         },
         graphResolveDepths: {
           ...zeroedGraphResolveDepths,
           hasLeftEntity: { incoming: 1, outgoing: 0 },
-          hasRightEntity: { outgoing: 1, incoming: 0 },
+          hasRightEntity: { outgoing: 0, incoming: 0 },
         },
         temporalAxes: currentTimeInstantTemporalAxes,
         includeDrafts: true,
       },
     },
-    skip: !claimEntityIds.length,
-    fetchPolicy: "network-only",
+    pollInterval: selectedFlowRun?.closedAt ? 0 : 2_000,
+    skip: !selectedFlowRun,
+    fetchPolicy: "cache-and-network",
   });
 
   const {
@@ -282,11 +350,11 @@ export const ClaimsTable = ({
       return { rows: rowData };
     }
 
-    const claims = getRoots(
-      deserializeSubgraph<EntityRootType<Claim>>(
-        claimsData.getEntitySubgraph.subgraph,
-      ),
+    const claimsSubgraph = deserializeSubgraph<EntityRootType<Claim>>(
+      claimsData.getEntitySubgraph.subgraph,
     );
+
+    const claims = getRoots(claimsSubgraph);
 
     for (const claim of claims) {
       const claimText =
@@ -305,27 +373,102 @@ export const ClaimsTable = ({
       const objectText =
         claim.properties["https://hash.ai/@hash/types/property-type/object/"];
 
+      const subjectText =
+        claim.properties["https://hash.ai/@hash/types/property-type/subject/"];
+
+      const outgoingLinks = getOutgoingLinksForEntity(
+        claimsSubgraph,
+        claim.entityId,
+      );
+
+      let subjectEntityId: EntityId | undefined = undefined;
+      let objectEntityId: EntityId | undefined = undefined;
+
+      /**
+       * The links will be created once there is an entity persisted in the graph to link the claim to
+       */
+      for (const link of outgoingLinks) {
+        if (
+          link.metadata.entityTypeId ===
+          systemLinkEntityTypes.hasObject.linkEntityTypeId
+        ) {
+          objectEntityId = link.linkData?.rightEntityId;
+        } else if (
+          link.metadata.entityTypeId ===
+          systemLinkEntityTypes.hasSubject.linkEntityTypeId
+        ) {
+          subjectEntityId = link.linkData?.rightEntityId;
+        }
+      }
+
+      /**
+       * If we haven't found a link for the subject of the claim, the entities related to the claim haven't yet been
+       * persisted There may be an entity proposal attached to the claim, so we can check the proposals as a fallback.
+       *
+       * This may still not yield any results if the claims haven't been processed as part of generating proposed
+       * entities yet.
+       */
+      if (!subjectEntityId) {
+        for (const proposedEntity of proposedEntities) {
+          if (
+            proposedEntity.claims.isSubjectOf.some((subjectClaimEntityId) =>
+              claim.entityId.startsWith(subjectClaimEntityId),
+            )
+          ) {
+            subjectEntityId = proposedEntity.localEntityId;
+          }
+
+          if (!objectEntityId) {
+            if (
+              proposedEntity.claims.isObjectOf.some((objectClaimEntityId) =>
+                claim.entityId.startsWith(objectClaimEntityId),
+              )
+            ) {
+              objectEntityId = proposedEntity.localEntityId;
+            }
+          }
+        }
+      }
+
       rowData.push({
         id: claim.metadata.recordId.entityId,
         data: {
           claim: claimText,
           onEntityClick,
           sources: claim.metadata.provenance.edition.sources ?? [],
-          status: "Processing claim",
+          status: subjectEntityId ? "Accepted" : "Processing claim",
           subject: {
-            name: claim.properties[
-              "https://hash.ai/@hash/types/property-type/subject/"
-            ],
+            entityId: subjectEntityId,
+            name: subjectText,
           },
-          object: objectText ? { name: objectText } : undefined,
+          object: objectText
+            ? { entityId: objectEntityId, name: objectText }
+            : undefined,
         },
       });
     }
 
     return {
-      rows: rowData,
+      rows: rowData.sort((a, b) => {
+        const { field, direction } = sort;
+
+        const base = direction === "asc" ? a : b;
+        const target = direction === "asc" ? b : a;
+
+        if (field === "subject" || field === "object") {
+          return (
+            base.data[field]?.name.localeCompare(
+              target.data[field]?.name ?? "ZZZZZZ",
+            ) ?? (target.data[field] ? 1 : 0)
+          );
+        }
+
+        return base.data[field].localeCompare(target.data[field]);
+      }),
     };
-  }, [claimsData, onEntityClick]);
+  }, [claimsData, onEntityClick, proposedEntities, sort]);
+
+  const hasData = !!rows.length;
 
   return (
     <OutputContainer
@@ -333,9 +476,6 @@ export const ClaimsTable = ({
       sx={{
         flex: 1,
         minWidth: 400,
-        "& table": {
-          tableLayout: "auto",
-        },
         "& th:not(:last-child)": {
           borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
         },
@@ -345,7 +485,6 @@ export const ClaimsTable = ({
         <VirtualizedTable
           columns={columns}
           createRowContent={createRowContent}
-          fixedColumns={3}
           rows={rows}
           sort={sort}
           setSort={setSort}

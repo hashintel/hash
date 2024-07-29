@@ -7,18 +7,15 @@ import type {
   EntityId,
   EntityMetadata,
   EntityRecordId,
-  EntityUuid,
   PropertyMetadataObject,
   PropertyObject,
   PropertyValue,
 } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { entityIdFromComponents } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
   getPropertyTypesForEntityType,
@@ -469,12 +466,7 @@ export const EntityResultTable = ({
           onEntityClick,
           onEntityTypeClick,
           persistedEntity: "metadata" in entity ? entity : undefined,
-          proposedEntityId: isProposed
-            ? entityIdFromComponents(
-                "ownedById" as OwnedById,
-                entityId as EntityUuid,
-              )
-            : undefined,
+          proposedEntityId: isProposed ? entityId : undefined,
           properties: entity.properties,
           propertiesMetadata:
             "propertiesMetadata" in entity
