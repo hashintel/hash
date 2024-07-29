@@ -6,7 +6,7 @@ import {
   LinkEntity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
-import { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import {
   getSimplifiedActionInputs,
   type OutputNameForAction,
@@ -19,6 +19,7 @@ import type {
   HasSubject,
 } from "@local/hash-isomorphic-utils/system-types/claim";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 import { backOff } from "exponential-backoff";
@@ -67,6 +68,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
 
   const {
     entityTypeId,
+    localEntityId,
     claims,
     properties,
     linkData,
@@ -85,6 +87,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
   };
 
   const ownedById = webId;
+  const entityUuid = extractEntityUuidFromEntityId(localEntityId);
 
   const isAiGenerated = provenance.actorType === "ai";
 
@@ -243,6 +246,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
               {
                 ...entityValues,
                 draft: createEditionAsDraft,
+                entityUuid,
                 ownedById,
                 relationships: createDefaultAuthorizationRelationships({
                   actorId,

@@ -1,4 +1,5 @@
 import { Entity, flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FailedEntityProposal,
@@ -59,11 +60,11 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
   const persistedFilesByOriginalUrl: Record<string, PersistedEntity> = {};
 
   const failedEntitiesByLocalId: Record<
-    string,
+    EntityId,
     Omit<FailedEntityProposal, "existingEntity"> & { existingEntity?: Entity }
   > = {};
   const persistedEntitiesByLocalId: Record<
-    string,
+    EntityId,
     Omit<PersistedEntity, "entity"> & { entity?: Entity }
   > = {};
 
@@ -75,6 +76,7 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
     const {
       claims,
       entityTypeId,
+      localEntityId,
       properties,
       provenance,
       propertyMetadata,
@@ -85,6 +87,7 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
     const entityWithResolvedLinks: ProposedEntityWithResolvedLinks = {
       claims,
       entityTypeId,
+      localEntityId,
       properties,
       propertyMetadata,
       provenance,

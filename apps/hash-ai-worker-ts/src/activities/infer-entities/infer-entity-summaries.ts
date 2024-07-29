@@ -1,6 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -40,7 +39,6 @@ export const inferEntitySummaries = async (params: {
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
   providedOrRerequestedEntityTypes: Set<VersionedUrl>;
-  existingEntities?: Entity[];
   /**
    * @todo: remove these parameters when the `inferEntities` activity has
    * been deprecated, and access them via `getFlowContext` instead.
@@ -57,7 +55,6 @@ export const inferEntitySummaries = async (params: {
     entityTypes,
     inferenceState,
     providedOrRerequestedEntityTypes,
-    existingEntities,
     userAccountId,
     graphApiClient,
     flowEntityId,
@@ -84,8 +81,6 @@ export const inferEntitySummaries = async (params: {
 
   const tools = generateSummaryTools({
     entityTypes: Object.values(entityTypes),
-    canLinkToExistingEntities:
-      !!existingEntities && existingEntities.length > 0,
   });
 
   const { stepId } = await getFlowContext();
@@ -268,7 +263,6 @@ export const inferEntitySummaries = async (params: {
               parsedJson: proposedEntitySummariesByType,
               entityTypesById: entityTypes,
               existingSummaries: inferenceState.proposedEntitySummaries,
-              existingEntities,
             });
 
           for (const validSummary of validSummaries) {
@@ -335,11 +329,7 @@ export const inferEntitySummaries = async (params: {
               .map(({ schema }) => schema.$id)
               .join(", ")}.
 
-            Please reconsider the input text to see if you can identify any ${missingContentKinds} of those types${
-              existingEntities && existingEntities.length > 0 && isMissingLinks
-                ? ", including whether any links can be created to the existing entities provided."
-                : "."
-            }
+            Please reconsider the input text to see if you can identify any ${missingContentKinds} of those types
           `),
           role: "user",
         });
