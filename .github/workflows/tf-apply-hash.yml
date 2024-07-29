@@ -31,9 +31,9 @@ jobs:
         run: |
           # Only apply the prod environment on merge to main or manual dispatch
           if [[ "$DISPATCH_ENV" == "prod" || "$GITHUB_REF_NAME" == "main" ]]; then
-            echo "matrix=[\"prod\"]" >> $GITHUB_OUTPUT
+            echo "matrix=[\"prod\"]" | tee -a $GITHUB_OUTPUT
           else
-            echo "matrix=[]" >> $GITHUB_OUTPUT
+            echo "matrix=[]" | tee -a $GITHUB_OUTPUT
           fi
 
   terraform:

@@ -1,37 +1,86 @@
 {
   "$schema": "https://turborepo.org/schema.json",
   "tasks": {
+    // Install commands
     "postinstall": {
       "cache": false
     },
+
+    // Development commands
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["codegen"]
+    },
+
+    // Build commands
     "codegen": {
       "dependsOn": ["^build"]
     },
     "build": {
-      "dependsOn": ["^build", "codegen"]
+      "dependsOn": ["codegen"]
     },
+    "build:docker": {
+      "cache": false
+    },
+    "compile": {
+      "cache": false
+    },
+    "compile:release": {
+      "cache": false
+    },
+
+    // Run commands
+    "start:migrate": {
+      "cache": false,
+      "dependsOn": ["build", "^start:healthcheck"]
+    },
+    "start": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["start:migrate"]
+    },
+    "start:healthcheck": {
+      "cache": false,
+      "dependsOn": ["compile:release", "^start:healthcheck"]
+    },
+
+    "start:test:migrate": {
+      "cache": false,
+      "dependsOn": ["build", "^start:test:healthcheck"]
+    },
+    "start:test": {
+      "cache": false,
+      "persistent": true,
+      "dependsOn": ["start:test:migrate"]
+    },
+    "start:test:healthcheck": {
+      "cache": false,
+      "dependsOn": ["compile", "^start:test:healthcheck"]
+    },
+
+    // Test commands
     "test:unit": {
       "dependsOn": ["codegen"],
       "env": ["TEST_COVERAGE"]
     },
     "test:integration": {
-      "dependsOn": ["codegen"],
+      "dependsOn": ["codegen", "^start:test:healthcheck"],
       "env": ["TEST_COVERAGE"]
     },
-    "test:system": {},
     "test:miri": {},
+
+    // Benchmarks
     "bench:unit": {
       "dependsOn": ["codegen"],
       "cache": false
     },
     "bench:integration": {
-      "dependsOn": ["codegen"],
+      "dependsOn": ["codegen", "^start:healthcheck"],
       "cache": false
     },
-    "dev": {
-      "persistent": true,
-      "dependsOn": ["codegen"]
-    },
+
+    // Linting and formatting
     "lint": {
       "dependsOn": ["codegen"]
     },

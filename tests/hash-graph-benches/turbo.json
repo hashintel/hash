@@ -9,6 +9,9 @@
     },
     "test:integration": {
       "dependsOn": []
+    },
+    "bench:integration": {
+      "dependsOn": []
     }
   }
 }

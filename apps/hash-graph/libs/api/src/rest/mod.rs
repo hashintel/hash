@@ -2,13 +2,10 @@
 //!
 //! Handler methods are grouped by routes that make up the REST API.
 
-#[cfg(feature = "test-server")]
-pub mod test_server;
-
 mod api_resource;
 mod json;
-mod middleware;
-mod status;
+pub mod middleware;
+pub mod status;
 mod utoipa_typedef;
 
 mod account;

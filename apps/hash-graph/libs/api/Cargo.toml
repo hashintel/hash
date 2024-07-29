@@ -55,8 +55,5 @@ tracing-opentelemetry = "0.24.0"
 utoipa = "4.2.3"
 uuid = { workspace = true }
 
-[features]
-test-server = ["dep:tokio", "dep:tokio-postgres", "dep:tokio-util", "dep:codec"]
-
 [lints]
 workspace = true

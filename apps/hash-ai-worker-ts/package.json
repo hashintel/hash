@@ -34,11 +34,15 @@
     "lint:tsc": "tsc --noEmit",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org hashintel --project hash-temporal-worker-ai ./dist && sentry-cli sourcemaps upload --org hashintel --project hash-temporal-worker-ai ./dist",
     "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 node ./dist/main.js",
+    "start:healthcheck": "wait-on --timeout 120000 http-get://localhost:4100/health",
+    "start:test": "cross-env NODE_ENV=test NODE_OPTIONS=--max-old-space-size=2048 node ./dist/main.js",
+    "start:test:healthcheck": "wait-on --timeout 120000 http-get://localhost:4100/health",
     "test:unit": "vitest --run  --exclude \"**/*.ai.test.ts\""
   },
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "0.10.0",
     "@anthropic-ai/sdk": "0.24.0",
+    "@apps/hash-graph": "0.0.0-private",
     "@blockprotocol/graph": "0.4.0-canary.0",
     "@blockprotocol/type-system": "0.1.2-canary.0",
     "@local/advanced-types": "0.0.0-private",
