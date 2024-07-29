@@ -36,13 +36,16 @@ const getLinkFollowerNextToolCallsSystemPrompt = dedent(`
   Using the provided tools, you must make a decision on what to do next to fulfill the task.
 
   You can only make a single tool call, which must be one of the following:
+    - complete: complete the research task if the gathered facts fulfill the task
     - exploreLinks: call this tool to explore additional links to gather more facts that may fulfill the task
-    - complete: complete the research task if all the gathered facts fulfill the task
     - terminate: terminate the research task if it cannot be progressed further
     
   If you already have enough facts to meet the research brief, call 'complete'. 
   Don't follow more links unless it is required to meet the goal of the research task.
   </TaskDescription>
+  
+  Balance any need to gather more facts with the need to complete the task in a timely manner.
+  Consider the research task and the facts already gathered when making your decision.
 `);
 
 type GetLinkFollowerNextToolCallsParams = {
@@ -72,24 +75,26 @@ const generateUserMessage = (
         text: dedent(`
 <Task>${task}</Task>
 <PreviouslyVisitedLinks>${previouslyVisitedLinks.map(({ url }) => url).join("\n")}</PreviouslyVisitedLinks>
-<Entities>${JSON.stringify(
-          entitySummaries.map(({ localId, name, summary, entityTypeId }) => {
-            const factsAboutEntity = factsGathered.filter(
-              (fact) => fact.subjectEntityLocalId === localId,
-            );
+<Entities>
+Here is the information about entities you have already gathered:
+${JSON.stringify(
+  entitySummaries.map(({ localId, name, summary, entityTypeId }) => {
+    const factsAboutEntity = factsGathered.filter(
+      (fact) => fact.subjectEntityLocalId === localId,
+    );
 
-            return {
-              name,
-              summary,
-              entityType: entityTypeId,
-              facts: JSON.stringify(
-                factsAboutEntity.map(simplifyFactForLlmConsumption),
-              ),
-            };
-          }),
-          undefined,
-          2,
-        )}</Entities>
+    return {
+      name,
+      summary,
+      entityType: entityTypeId,
+      facts: JSON.stringify(
+        factsAboutEntity.map(simplifyFactForLlmConsumption),
+      ),
+    };
+  }),
+  undefined,
+  2,
+)}</Entities>
 <PossibleNextLinks>
 ${JSON.stringify(
   possibleNextLinks.filter(
@@ -99,6 +104,8 @@ ${JSON.stringify(
   2,
 )}
 </PossibleNextLinks>
+
+Now decide what to do next. If you have gathered enough information about entities to satisfy the task, call 'complete'.
     `),
       },
     ],
@@ -168,7 +175,8 @@ const tools: LlmToolDefinition<ToolName>[] = [
   },
   {
     name: "complete",
-    description: "Complete the research task",
+    description:
+      "Complete the research task, if you have gathered enough facts to satisfy the research goal.",
     inputSchema: {
       type: "object",
       properties: {
@@ -176,7 +184,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
         explanation: {
           type: "string",
           description:
-            "The reason the task is complete based on the facts gathered",
+            "The reason the task is complete based on the facts gathered.",
         },
       },
       required: ["explanation", "suggestionForNextSteps"],

@@ -115,8 +115,8 @@ pub(crate) mod tests {
         equality: JsonEqualityCheck,
     ) -> V::Error
     where
-        for<'de> T: Serialize + Deserialize<'de> + Send + Sync,
-        V: Validator<T, Validated: Debug, Error: Sized> + Send + Sync,
+        for<'de> T: Debug + Serialize + Deserialize<'de> + Send + Sync,
+        V: Validator<T, Error: Sized> + Send + Sync,
     {
         let value = ensure_serialization::<T>(input.clone(), equality);
         validator
@@ -129,10 +129,10 @@ pub(crate) mod tests {
         input: &str,
         validator: V,
         equality: JsonEqualityCheck,
-    ) -> Valid<V::Validated>
+    ) -> Valid<T>
     where
         for<'de> T: Serialize + Deserialize<'de> + Send + Sync,
-        V: Validator<T, Validated: Debug + Sized, Error: Debug> + Send + Sync,
+        V: Validator<T, Error: Debug> + Send + Sync,
     {
         let value = ensure_serialization_from_str::<T>(input, equality);
         validator.validate(value).await.expect("failed to validate")
@@ -142,10 +142,10 @@ pub(crate) mod tests {
         input: serde_json::Value,
         validator: V,
         equality: JsonEqualityCheck,
-    ) -> Valid<V::Validated>
+    ) -> Valid<T>
     where
         for<'de> T: Serialize + Deserialize<'de> + Send + Sync,
-        V: Validator<T, Validated: Debug + Sized, Error: Debug> + Send + Sync,
+        V: Validator<T, Error: Debug> + Send + Sync,
     {
         let value = ensure_serialization::<T>(input.clone(), equality);
         validator.validate(value).await.expect("failed to validate")

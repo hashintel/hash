@@ -100,10 +100,22 @@ export const sanitizeHtmlForLlmConsumption = (params: {
     }
   }
 
-  const sanitizedHtmlWithNoDisallowedTags = document.body.innerHTML
+  let sanitizedHtmlWithNoDisallowedTags = document.body.innerHTML
     // Remove any whitespace between tags
     .replace(/>\s+</g, "><")
     .trim();
+
+  /**
+   * Cut repeated newlines and tabs to a maximum of 2.
+   */
+  sanitizedHtmlWithNoDisallowedTags = sanitizedHtmlWithNoDisallowedTags.replace(
+    /\n{3,}/g,
+    "\n\n",
+  );
+  sanitizedHtmlWithNoDisallowedTags = sanitizedHtmlWithNoDisallowedTags.replace(
+    /\t{3,}$/g,
+    "\t\t",
+  );
 
   const slicedSanitizedHtml = sliceContentForLlmConsumption({
     content: sanitizedHtmlWithNoDisallowedTags,
@@ -113,7 +125,9 @@ export const sanitizeHtmlForLlmConsumption = (params: {
   return slicedSanitizedHtml;
 };
 
-const getWebPageFromPuppeteer = async (url: string): Promise<WebPage> => {
+const getWebPageFromPuppeteer = async (
+  url: string,
+): Promise<WebPage | { error: string }> => {
   /** @todo: consider re-using the same `browser` instance across requests  */
   const browser = await puppeteer.launch({
     args: ["--lang=en-US"],
@@ -127,30 +141,24 @@ const getWebPageFromPuppeteer = async (url: string): Promise<WebPage> => {
   });
 
   try {
-    const timeout = 10_000;
+    const { htmlContent, innerText } = await page
+      .goto(url, {
+        waitUntil: "networkidle2",
+        timeout: 20_000,
+      })
+      .then((response) => {
+        if (!response) {
+          throw new Error("No response");
+        }
 
-    const navigationPromise = page.goto(url, {
-      waitUntil: "networkidle2",
-      timeout: timeout + 10_000,
-    });
-
-    const timeoutPromise = new Promise((resolve) => {
-      setTimeout(() => resolve(undefined), timeout);
-    });
-
-    /**
-     * Obtain the `innerHTML` of the page, whether or
-     * not it has finished loading after the timeout. This means
-     * that for web pages with a significant amount of content,
-     * we are still able to return a partial result.
-     */
-    const { htmlContent, innerText } = await Promise.race([
-      navigationPromise,
-      timeoutPromise,
-    ]).then(async () => ({
-      htmlContent: await page.evaluate(() => document.body.innerHTML),
-      innerText: await page.evaluate(() => document.body.innerText),
-    })); // Return partial content if timeout occurs
+        if (response.status() !== 200) {
+          throw new Error(`${response.status()}: ${response.statusText()}`);
+        }
+      })
+      .then(async () => ({
+        htmlContent: await page.evaluate(() => document.body.innerHTML),
+        innerText: await page.evaluate(() => document.body.innerText),
+      }));
 
     const title = await page.title();
 
@@ -171,18 +179,14 @@ const getWebPageFromPuppeteer = async (url: string): Promise<WebPage> => {
     logger.error(`Failed to load URL ${url} in Puppeteer: ${errMessage}`);
 
     return {
-      /**
-       * @todo H-2604 consider returning this as a structured error that the calling code rather than the LLM can handle
-       */
-      htmlContent: `Could not load page: ${errMessage}`,
-      innerText: `Could not load page: ${errMessage}`,
-      title: `Error loading page: ${errMessage}`,
-      url,
+      error: errMessage,
     };
   }
 };
 
-const getWebPageFromBrowser = async (url: string): Promise<WebPage> => {
+const getWebPageFromBrowser = async (
+  url: string,
+): Promise<WebPage | { error: string }> => {
   const externalResponse = await requestExternalInput({
     requestId: generateUuid(),
     stepId: Context.current().info.activityId,
@@ -235,9 +239,15 @@ export const getWebPageActivity = async (params: {
      */
     process.env.NODE_ENV !== "test";
 
-  const { htmlContent, innerText, title } = shouldAskBrowser
+  const response = shouldAskBrowser
     ? await getWebPageFromBrowser(url)
     : await getWebPageFromPuppeteer(url);
+
+  if ("error" in response) {
+    return response;
+  }
+
+  const { htmlContent, innerText, title } = response;
 
   if (sanitizeForLlm) {
     const sanitizedHtml = sanitizeHtmlForLlmConsumption({ htmlContent });

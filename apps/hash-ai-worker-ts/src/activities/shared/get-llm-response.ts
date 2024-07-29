@@ -9,13 +9,13 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FlowUsageRecordCustomMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { IncurredIn } from "@local/hash-isomorphic-utils/system-types/usagerecord";
-import { StatusCode } from "@local/status";
+// import { StatusCode } from "@local/status";
 import { backOff } from "exponential-backoff";
 
 import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity.js";
 import { logger } from "./activity-logger.js";
 import { getFlowContext } from "./get-flow-context.js";
-import { checkWebServiceUsageNotExceeded } from "./get-llm-response/check-web-service-usage-not-exceeded.js";
+// import { checkWebServiceUsageNotExceeded } from "./get-llm-response/check-web-service-usage-not-exceeded.js";
 import { getAnthropicResponse } from "./get-llm-response/get-anthropic-response.js";
 import { getOpenAiResponse } from "./get-llm-response/get-openai-reponse.js";
 import { logLlmRequest } from "./get-llm-response/log-llm-request.js";
@@ -51,18 +51,18 @@ export const getLlmResponse = async <T extends LlmParams>(
   /**
    * Check whether the web has exceeded its usage limit, before proceeding with the LLM request.
    */
-  const usageLimitExceededCheck = await checkWebServiceUsageNotExceeded({
-    graphApiClient,
-    userAccountId,
-    webId,
-  });
-
-  if (usageLimitExceededCheck.code !== StatusCode.Ok) {
-    return {
-      status: "exceeded-usage-limit",
-      message: usageLimitExceededCheck.message ?? "Usage limit exceeded.",
-    };
-  }
+  // const usageLimitExceededCheck = await checkWebServiceUsageNotExceeded({
+  //   graphApiClient,
+  //   userAccountId,
+  //   webId,
+  // });
+  //
+  // if (usageLimitExceededCheck.code !== StatusCode.Ok) {
+  //   return {
+  //     status: "exceeded-usage-limit",
+  //     message: usageLimitExceededCheck.message ?? "Usage limit exceeded.",
+  //   };
+  // }
 
   const aiAssistantAccountId = await backOff(
     () =>
@@ -116,7 +116,8 @@ export const getLlmResponse = async <T extends LlmParams>(
    */
   if (
     llmResponse.status === "ok" ||
-    llmResponse.status === "exceeded-maximum-retries"
+    llmResponse.status === "exceeded-maximum-retries" ||
+    llmResponse.status === "exceeded-maximum-output-tokens"
   ) {
     const { usage } = llmResponse;
 

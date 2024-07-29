@@ -6972,6 +6972,7 @@ dependencies = [
  "graph-test-data",
  "iso8601-duration",
  "postgres-types",
+ "pretty_assertions",
  "regex",
  "serde",
  "serde_json",

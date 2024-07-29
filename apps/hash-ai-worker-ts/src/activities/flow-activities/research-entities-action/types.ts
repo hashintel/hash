@@ -36,4 +36,5 @@ export type ResourceSummary = {
   url: string;
   title: string;
   summary: string;
+  fromSearchQuery: string;
 };

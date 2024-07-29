@@ -138,7 +138,7 @@
     "eslint": "8.57.0",
     "rimraf": "6.0.1",
     "sass": "1.57.1",
-    "typescript": "5.5.3",
+    "typescript": "5.5.4",
     "webpack": "5.90.3"
   },
   "engines": {

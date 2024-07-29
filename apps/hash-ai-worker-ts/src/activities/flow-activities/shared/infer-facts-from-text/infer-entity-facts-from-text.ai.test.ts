@@ -25,8 +25,11 @@ test.skip(
     const dereferencedEntityType = Object.values(dereferencedEntityTypes)[0]!
       .schema;
 
+    const url =
+      "https://www.londonstockexchange.com/indices/ftse-350/constituents/table";
+
     const webPage = await getWebPageActivity({
-      url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table",
+      url,
       sanitizeForLlm: true,
     });
 
@@ -38,6 +41,8 @@ test.skip(
 
     const { facts } = await inferEntityFactsFromTextAgent({
       text: htmlContent,
+      url,
+      title: webPage.title,
       dereferencedEntityType,
       linkEntityTypesById: {},
       subjectEntities: [
@@ -80,8 +85,11 @@ test.skip(
     const dereferencedEntityType = Object.values(dereferencedEntityTypes)[0]!
       .schema;
 
+    const url =
+      "https://www.nvidia.com/de-de/geforce/graphics-cards/40-series/rtx-4090/";
+
     const webPage = await getWebPageActivity({
-      url: "https://www.nvidia.com/de-de/geforce/graphics-cards/40-series/rtx-4090/",
+      url,
       sanitizeForLlm: true,
     });
 
@@ -93,6 +101,8 @@ test.skip(
 
     const { facts } = await inferEntityFactsFromTextAgent({
       text: htmlContent,
+      url,
+      title: webPage.title,
       dereferencedEntityType,
       linkEntityTypesById: {},
       subjectEntities: [

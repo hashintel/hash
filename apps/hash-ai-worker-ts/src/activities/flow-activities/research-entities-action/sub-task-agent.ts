@@ -152,7 +152,7 @@ const generateSystemPromptPrefix = (params: { input: SubTaskAgentInput }) => {
       }
       ${
         relevantEntities.length > 0
-          ? `- Relevant Entities: a list entities which have already been discovered and may be relevant to the research goal`
+          ? `- Relevant Entities: a list entities which have already been discovered and may be relevant to the research goal. Check this list before making any web searches to discover entities mentioned in the research goal – they may already be provided here.`
           : ""
       }
       ${
@@ -162,6 +162,9 @@ const generateSystemPromptPrefix = (params: { input: SubTaskAgentInput }) => {
       }
 
     You are tasked with finding the facts with the provided tools to satisfy the research goal.
+    
+    The user will also provide you with a progress report of the information discovered and work done to date.
+    Take account of this when deciding your next action.
 
     The "complete" tool should be used once you have gathered sufficient facts to satisfy the research goal.
   `);
@@ -354,15 +357,25 @@ const generateProgressReport = (params: {
     text += dedent(`
         You have already visited the following resources – they may be worth visiting again if you need more information, but don't do so unless you have a clear goal in mind that this page is likely to help with:
         <ResourcesVisited>
-        ${resourceUrlsVisited.join("\n")}
+          ${resourceUrlsVisited.map((resourceUrl) => `<ResourceVisited>${resourceUrl}</ResourceVisited>`).join("\n")}
         </ResourcesVisited>
       `);
   }
   if (resourcesNotVisited.length > 0) {
     text += dedent(`
-        You have not visited the following resources:
+        You have discovered the following resources via web searches but noy yet visited them. It may be worth inferring facts from the URL.
         <ResourcesNotVisited>
-        ${resourcesNotVisited.map((webPage) => `Url: ${webPage.url}\nSummary:${webPage.summary}`).join("\n\n")}
+        ${resourcesNotVisited
+          .map(
+            (webPage) =>
+              `
+<Resource>
+  <Url>${webPage.url}</Url>
+  <Summary>${webPage.summary}</Summary>
+  <FromWebSearch>"${webPage.fromSearchQuery}"</FromWebSearch>
+</Resource>`,
+          )
+          .join("\n")}
         </ResourcesNotVisited>
       `);
   }
@@ -374,6 +387,9 @@ const generateProgressReport = (params: {
         </WebSearchesMade>
       `);
   }
+
+  text +=
+    "Now decide what to do next – if you have already sufficient information to complete the task, call 'complete'.";
 
   return {
     type: "text",
@@ -411,20 +427,11 @@ const getNextToolCalls = async (params: {
 
   const progressReport = generateProgressReport({ input, state });
 
-  const messages: LlmMessage[] = [
-    generateInitialUserMessage({ input }),
-    ...llmMessagesFromPreviousToolCalls.slice(0, -1),
-    lastUserMessage
-      ? ({
-          ...lastUserMessage,
-          content: [
-            ...lastUserMessage.content,
-            // Add the progress report to the most recent user message.
-            progressReport,
-          ],
-        } satisfies LlmUserMessage)
-      : [],
-  ].flat();
+  const userMessage = generateInitialUserMessage({ input });
+
+  userMessage.content.push(progressReport);
+
+  const messages: LlmMessage[] = [userMessage];
 
   const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
     await getFlowContext();
@@ -565,6 +572,15 @@ export const runSubTaskAgent = async (params: {
                   toolCall.input as SubTaskAgentToolCallArguments["webSearch"],
               });
 
+              if ("error" in webPageSummaries) {
+                return {
+                  ...toolCall,
+                  ...nullReturns,
+                  isError: true,
+                  output: webPageSummaries.error,
+                };
+              }
+
               return {
                 ...nullReturns,
                 ...toolCall,
@@ -685,8 +701,8 @@ export const runSubTaskAgent = async (params: {
               const resourceUrlsVisited: string[] = [];
 
               for (const { response } of responsesWithUrl) {
-                inferredFacts.push(...response.facts);
-                entitySummaries.push(...response.existingEntitiesOfInterest);
+                inferredFacts.push(...response.inferredFacts);
+                entitySummaries.push(...response.inferredSummaries);
                 suggestionsForNextStepsMade.push(
                   response.suggestionForNextSteps,
                 );

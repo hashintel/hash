@@ -36,6 +36,8 @@ test.skip(
   async () => {
     const { facts } = await inferFactsFromText({
       text: microsoftWikipediaParagraph,
+      url: null,
+      title: "Microsoft – Wikipedia",
       dereferencedEntityTypes: {},
       existingEntitiesOfInterest: [],
     });
@@ -133,8 +135,11 @@ const _ftse350EntitySummaries: LocalEntitySummary[] = [
 test.skip(
   "Test inferFactsFromText with FTSE350 web page html",
   async () => {
+    const url =
+      "https://www.londonstockexchange.com/indices/ftse-350/constituents/table";
+
     const webPage = await getWebPageActivity({
-      url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table",
+      url,
       sanitizeForLlm: true,
     });
     if ("error" in webPage) {
@@ -158,6 +163,8 @@ test.skip(
 
     const { facts, entitySummaries } = await inferFactsFromText({
       text: htmlContent,
+      url,
+      title: webPage.title,
       dereferencedEntityTypes,
       existingEntitiesOfInterest: [],
     });
@@ -247,6 +254,8 @@ test.skip(
 
     const { facts, entitySummaries } = await inferFactsFromText({
       text,
+      url: "https://www.linkedin.com/in/satyanadella/",
+      title: null,
       dereferencedEntityTypes,
       existingEntitiesOfInterest: [],
       relevantEntitiesPrompt:
@@ -448,6 +457,8 @@ test.skip(
 
     const { facts, entitySummaries } = await inferFactsFromText({
       text,
+      url,
+      title,
       dereferencedEntityTypes,
       existingEntitiesOfInterest: [],
       relevantEntitiesPrompt:

@@ -1,5 +1,6 @@
-use core::iter::once;
-use std::collections::HashSet;
+use alloc::sync::Arc;
+use core::{iter::once, mem};
+use std::collections::{HashMap, HashSet};
 
 use authorization::{
     backend::ModifyRelationshipOperation,
@@ -23,7 +24,7 @@ use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTi
 use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
-    schema::{ClosedDataType, DataTypeValidator},
+    schema::{DataTypeValidator, OntologyTypeResolver},
     url::{OntologyTypeVersion, VersionedUrl},
     Validator,
 };
@@ -41,16 +42,19 @@ use crate::{
         },
         postgres::{
             crud::QueryRecordDecode,
-            ontology::{OntologyId, PostgresOntologyTypeClassificationMetadata},
-            query::{Distinctness, PostgresRecord, SelectCompiler, Table},
+            ontology::{
+                read::OntologyTypeTraversalData, OntologyId,
+                PostgresOntologyTypeClassificationMetadata,
+            },
+            query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
             TraversalContext,
         },
         AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, SubgraphRecord,
         UpdateError,
     },
     subgraph::{
-        edges::GraphResolveDepths,
-        identifier::GraphElementVertexId,
+        edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
+        identifier::{DataTypeVertexId, GraphElementVertexId},
         temporal_axes::{QueryTemporalAxes, VariableAxis},
         Subgraph,
     },
@@ -203,19 +207,83 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     pub(crate) async fn traverse_data_types(
         &self,
-        queue: Vec<(
+        mut data_type_queue: Vec<(
             OntologyId,
             GraphResolveDepths,
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
-        _: &mut TraversalContext,
+        traversal_context: &mut TraversalContext,
         actor_id: AccountId,
-        _: &Zookie<'static>,
-        _: &mut Subgraph,
+        zookie: &Zookie<'static>,
+        subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
-        // TODO: data types currently have no references to other types, so we don't need to do
-        //       anything here
-        //   see https://linear.app/hash/issue/H-3075/allow-traversing-data-type-edges
+        while !data_type_queue.is_empty() {
+            let mut edges_to_traverse =
+                HashMap::<OntologyEdgeKind, OntologyTypeTraversalData>::new();
+
+            for (entity_type_ontology_id, graph_resolve_depths, traversal_interval) in
+                mem::take(&mut data_type_queue)
+            {
+                for edge_kind in [
+                    OntologyEdgeKind::InheritsFrom,
+                    OntologyEdgeKind::ConstrainsValuesOn,
+                ] {
+                    if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                        .decrement_depth_for_edge(edge_kind, EdgeDirection::Outgoing)
+                    {
+                        edges_to_traverse.entry(edge_kind).or_default().push(
+                            entity_type_ontology_id,
+                            new_graph_resolve_depths,
+                            traversal_interval,
+                        );
+                    }
+                }
+            }
+
+            for (edge_kind, table) in [
+                (
+                    OntologyEdgeKind::InheritsFrom,
+                    ReferenceTable::DataTypeInheritsFrom {
+                        // TODO: Use the resolve depths passed to the query
+                        inheritance_depth: Some(0),
+                    },
+                ),
+                (
+                    OntologyEdgeKind::ConstrainsValuesOn,
+                    ReferenceTable::DataTypeConstrainsValuesOn,
+                ),
+            ] {
+                if let Some(traversal_data) = edges_to_traverse.get(&edge_kind) {
+                    data_type_queue.extend(
+                        Self::filter_data_types_by_permission(
+                            self.read_ontology_edges::<DataTypeVertexId, DataTypeVertexId>(
+                                traversal_data,
+                                table,
+                            )
+                            .await?,
+                            actor_id,
+                            &self.authorization_api,
+                            zookie,
+                        )
+                        .await?
+                        .flat_map(|edge| {
+                            subgraph.insert_edge(
+                                &edge.left_endpoint,
+                                edge_kind,
+                                EdgeDirection::Outgoing,
+                                edge.right_endpoint.clone(),
+                            );
+
+                            traversal_context.add_data_type_id(
+                                edge.right_endpoint_ontology_id,
+                                edge.resolve_depths,
+                                edge.traversal_interval,
+                            )
+                        }),
+                    );
+                }
+            }
+        }
 
         Ok(())
     }
@@ -282,8 +350,18 @@ where
         let mut inserted_data_types = Vec::new();
 
         let data_type_validator = DataTypeValidator;
+        let mut ontology_type_resolver = OntologyTypeResolver::default();
 
-        for parameters in params {
+        // TODO: Avoid cloning the schema
+        let (schemas, params): (Vec<_>, Vec<_>) = params
+            .into_iter()
+            .map(|params| (Arc::new(params.schema.clone()), params))
+            .unzip();
+        let schema_metadata = ontology_type_resolver
+            .resolve_data_type_metadata(schemas)
+            .change_context(InsertionError)?;
+
+        for (parameters, schema_metadata) in params.into_iter().zip(schema_metadata) {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
                     created_by_id: EditionCreatedById::new(actor_id),
@@ -341,13 +419,14 @@ where
                     .change_context(InsertionError)?;
                 let closed_schema = data_type_validator
                     .validate(
-                        ClosedDataType::new(schema.clone().into_inner())
+                        ontology_type_resolver
+                            .get_closed_data_type(&schema.id)
                             .change_context(InsertionError)?,
                     )
                     .await
                     .change_context(InsertionError)?;
                 transaction
-                    .insert_data_type_with_id(ontology_id, schema, &closed_schema)
+                    .insert_data_type_with_id(ontology_id, schema, &closed_schema, &schema_metadata)
                     .await?;
                 let metadata = DataTypeMetadata {
                     record_id,
@@ -584,15 +663,26 @@ where
             .validate_ref(&params.schema)
             .await
             .change_context(UpdateError)?;
+
+        let mut ontology_type_resolver = OntologyTypeResolver::default();
+        let [metadata] = ontology_type_resolver
+            .resolve_data_type_metadata([Arc::new(schema.clone().into_inner())])
+            .change_context(UpdateError)?
+            .try_into()
+            .expect("Expected exactly one closed data type metadata");
         let closed_schema = data_type_validator
-            .validate(ClosedDataType::new(schema.clone().into_inner()).change_context(UpdateError)?)
+            .validate(
+                ontology_type_resolver
+                    .get_closed_data_type(&schema.id)
+                    .change_context(UpdateError)?,
+            )
             .await
             .change_context(UpdateError)?;
         let (ontology_id, owned_by_id, temporal_versioning) = transaction
             .update_owned_ontology_id(&schema.id, &provenance.edition)
             .await?;
         transaction
-            .insert_data_type_with_id(ontology_id, schema, &closed_schema)
+            .insert_data_type_with_id(ontology_id, schema, &closed_schema, &metadata)
             .await
             .change_context(UpdateError)?;
 

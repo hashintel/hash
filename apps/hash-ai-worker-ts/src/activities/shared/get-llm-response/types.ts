@@ -1,6 +1,4 @@
-import type { APIError as AnthropicApiError } from "@anthropic-ai/sdk/error";
 import type { OpenAI } from "openai";
-import type { APIError as OpenAiApiError } from "openai/error";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
 import type { PermittedOpenAiModel } from "../openai-client.js";
@@ -123,6 +121,8 @@ export type LlmUsage = {
 export type LlmErrorResponse =
   | {
       status: "exceeded-maximum-retries";
+      lastRequestTime: number;
+      totalRequestTime: number;
       invalidResponses:
         | AnthropicResponse["invalidResponses"]
         | OpenAiResponse["invalidResponses"];
@@ -130,13 +130,15 @@ export type LlmErrorResponse =
     }
   | {
       status: "api-error";
-      openAiApiError?: OpenAiApiError;
-      anthropicApiError?: AnthropicApiError;
+      error?: unknown;
     }
   | {
       status: "exceeded-maximum-output-tokens";
+      lastRequestTime: number;
+      totalRequestTime: number;
       requestMaxTokens?: number;
       response: AnthropicMessagesCreateResponse | OpenAI.ChatCompletion;
+      usage: LlmUsage;
     }
   | {
       status: "exceeded-usage-limit";

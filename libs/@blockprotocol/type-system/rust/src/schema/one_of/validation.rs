@@ -12,7 +12,6 @@ pub struct OneOfSchemaValidator;
 
 impl<T: Sync> Validator<Vec<T>> for OneOfSchemaValidator {
     type Error = OneOfSchemaValidationError;
-    type Validated = Vec<T>;
 
     async fn validate_ref<'v>(&self, value: &'v Vec<T>) -> Result<&'v Valid<Vec<T>>, Self::Error> {
         if value.is_empty() {
@@ -24,7 +23,6 @@ impl<T: Sync> Validator<Vec<T>> for OneOfSchemaValidator {
 
 impl<T: Sync> Validator<OneOfSchema<T>> for OneOfSchemaValidator {
     type Error = OneOfSchemaValidationError;
-    type Validated = OneOfSchema<T>;
 
     async fn validate_ref<'v>(
         &self,
