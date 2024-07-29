@@ -1,0 +1,10 @@
+{
+  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "include": ["src"],
+  "compilerOptions": {
+    "outDir": "dist",
+    "sourceMap": true,
+    "inlineSources": true,
+    "paths": {}
+  }
+}

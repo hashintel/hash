@@ -1,5 +1,6 @@
 config:
   target: http://localhost:5001/graphql
+  processor: ./dist/cjs/main.cjs
   plugins:
     expect:
       expectDefault200: true
@@ -19,7 +20,7 @@ config:
           reportFailuresAsErrors: true
         ensure:
           conditions:
-            - expression: "vusers.failed == 0"
+            - expression: vusers.failed == 0
               strict: true
     local:
       phases:
