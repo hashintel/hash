@@ -1,0 +1,17 @@
+{
+  "name": "@tests/hash-backend-performance",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Performance testing for the HASH backend",
+  "license": "AGPL-3.0",
+  "type": "module",
+  "scripts": {
+    "bench:load-testing": "for file in scenarios/*.yml; do artillery run --config artillery.yml $file --environment local; done",
+    "codegen": "mkdir -p reports && echo '*' > reports/.gitignore",
+    "test:integration": "for file in scenarios/*.yml; do artillery run --config artillery.yml $file --environment functional; done"
+  },
+  "dependencies": {
+    "@apps/hash-api": "0.0.0-private",
+    "artillery": "2.0.18"
+  }
+}

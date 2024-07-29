@@ -1,0 +1,8 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "bench:load-testing": {
+      "dependsOn": ["codegen"]
+    }
+  }
+}

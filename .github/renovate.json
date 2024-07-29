@@ -90,7 +90,9 @@
         "rimraf",
         "turbo",
         "yarn-deduplicate",
-        "@redocly/cli"
+        "@redocly/cli",
+        "^artillery$",
+        "^artillery-"
       ],
       "excludePackageNames": ["prettier-plugin-sql"],
       "dependencyDashboardApproval": false,
