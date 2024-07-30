@@ -125,6 +125,10 @@ impl<'arena> ValueParser<'arena> {
 
 #[cfg(test)]
 mod test {
+    #![expect(
+        clippy::integer_division_remainder_used,
+        reason = "used in test-fuzz macro"
+    )]
     use error_stack::{Frame, Report};
     use hql_cst_lex::Lexer;
 
@@ -136,8 +140,12 @@ mod test {
     };
 
     impl PartialEq<serde_json::Value> for Value<'_, '_> {
-        fn eq(&self, value: &serde_json::Value) -> bool {
-            match (&self.kind, value) {
+        #[expect(
+            clippy::float_arithmetic,
+            reason = "difference comparison for equality"
+        )]
+        fn eq(&self, other: &serde_json::Value) -> bool {
+            match (&self.kind, other) {
                 (ValueKind::Bool(a), serde_json::Value::Bool(b)) => a == b,
                 (ValueKind::Null, serde_json::Value::Null) => true,
                 (ValueKind::Number(a), serde_json::Value::Number(b)) => {
