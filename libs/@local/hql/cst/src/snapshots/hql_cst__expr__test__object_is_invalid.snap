@@ -1,6 +1,6 @@
 ---
 source: libs/@local/hql/cst/src/expr.rs
-expression: result
+expression: "Expr::from_str(&arena, r#\"{\"unknown\": \"key\"}\"#)"
 ---
 Err(
     Error("unknown variant `unknown`, expected one of `fn`, `args`, `const`, `type`, `var`, `sig`", line: 1, column: 10),
