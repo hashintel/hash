@@ -39,11 +39,11 @@ export const refreshSessionToken: BeforeRequest<LoginContext> = async (
   );
 
   if (!context.vars.flowId) {
-    const loginFLow = await oryKratosClient
+    const loginFlow = await oryKratosClient
       .createNativeLoginFlow()
       .then(({ data }) => data);
 
-    context.vars.flowId = loginFLow.id;
+    context.vars.flowId = loginFlow.id;
   }
 
   const fullLogin = await oryKratosClient
