@@ -8,8 +8,8 @@ import type { CoordinatingAgentState } from "./coordinating-agent.js";
 export const coordinatorToolNames = [
   "requestHumanInput",
   "webSearch",
-  "inferFactsFromResources",
-  "startFactGatheringSubTasks",
+  "inferClaimsFromResources",
+  "startClaimGatheringSubTasks",
   "complete",
   "terminate",
   "updatePlan",
@@ -72,10 +72,10 @@ export const generateToolDefinitions = <
         required: ["explanation", "questions"],
       },
     },
-    startFactGatheringSubTasks: {
-      name: "startFactGatheringSubTasks",
+    startClaimGatheringSubTasks: {
+      name: "startClaimGatheringSubTasks",
       description: dedent(`
-      Start fact gathering sub-tasks to gather facts about entities required to complete the research task.
+      Start claim gathering sub-tasks to gather claims about entities required to complete the research task.
       Make use of this tool if the research task needs to be be broken down into smaller, non-overlapping sub-tasks.
       For example: "Find the technical specifications of the product with name X, including specification x, y and z".
       
@@ -83,10 +83,15 @@ export const generateToolDefinitions = <
       
       Subtasks must be independent and not overlap in any way with the information they gather.
       Subtasks run independently, and cannot share information between them.
-      When gathering facts about a specific set of entities in multiple subtasks,
+      When gathering claims about a specific set of entities in multiple subtasks,
         you must name and specify which entities to focus on for each subtask.
       Do not leave it up to the subtasks to decide which entities to focus on,
         as this could result in looking up information about different entities in each subtask.
+        
+      Make sure that the goal of the research task matches the entity types it will seek – don't have a goal
+      which asks to identify entities of types which aren't provided as entityTypeIds.
+      
+      If you need specific properties for the entities, mention those properties by name in the research goal.
     `),
       inputSchema: {
         type: "object",
@@ -113,7 +118,7 @@ export const generateToolDefinitions = <
                     type: "string",
                   },
                   description: dedent(`
-                    The entity type IDs of the kind of entities the sub-task must gather facts about.
+                    The entity type IDs of the kind of entities the sub-task must gather claims about.
                     You must specify at least one.
                 `),
                 },
@@ -123,14 +128,20 @@ export const generateToolDefinitions = <
                     type: "string",
                   },
                   description: dedent(`
-                    The link entity type IDs of the kind of link entities the sub-task must gather facts about.
+                    The link entity type IDs of the kind of link entities the sub-task must gather claims about.
                 `),
                 },
                 goal: {
                   type: "string",
                   description: dedent(`
                   The goal of the sub-task, a detailed description of what is required to be achieved.
-                  For example "Find the technical specifications of the product with name X".
+                  It should focus on the types of entities being asked for, as provided by you under entityTypeIds.
+                  Mention any specific properties required by name.
+                  
+                  For example 
+                  "Find the technical specifications of product X".
+                  "Find the LinkedIn URL for person X"
+                  "Find the release date, director and box office takings for movie X"
                 `),
                 },
                 explanation: {
@@ -169,13 +180,16 @@ export const generateToolDefinitions = <
         required: ["query", "explanation"],
       },
     },
-    inferFactsFromResources: {
-      name: "inferFactsFromResources",
+    inferClaimsFromResources: {
+      name: "inferClaimsFromResources",
       description: dedent(`
-      Infer facts from the content of resources.
-      This tool should be used to gather facts about entities of specific types.
+      Infer claims from the content of resources.
+      This tool should be used to gather claims about entities of specific types.
       The URLs for resources selected must have been provided in the user messages to you,
       or as the result of a previous action (e.g. a web search, or in suggestions for next steps). Don't guess URLs!
+      
+      If you want new information about existing entities, or to find new entities to link to existing entities,
+      be sure to specify the existing entities under 'relevantEntityIds'.
     `),
       inputSchema: {
         type: "object",
@@ -193,11 +207,13 @@ export const generateToolDefinitions = <
                 prompt: {
                   type: "string",
                   description: dedent(`
-                A prompt instructing the inference agent which entities it should gather facts about from the resource.
-                Do not specify any information of the structure of the entities, as this is predefined by
-                  the entity type.
+                A prompt instructing the inference agent which entities it should gather claims about from the resource.
+                Do not specify any information of the structure of the entities, as this is predefined by the entity type.
+                
+                DO specify any particular properties you are looking for by name.
     
-                You must be specific about which and how many entities you need to gather facts about to satisfy the research task.`),
+                You must be specific about which and how many entities you need to gather claims about to satisfy the research task.
+                Don't ask for information on types of entities you haven't specified under entityTypeIds.`),
                 },
                 descriptionOfExpectedContent: {
                   type: "string",
@@ -214,14 +230,14 @@ export const generateToolDefinitions = <
                 reason: {
                   type: "string",
                   description:
-                    "An explanation of why inferring facts from the resource is relevant to the research task.",
+                    "An explanation of why inferring claims from the resource is relevant to the research task.",
                 },
                 entityTypeIds: {
                   type: "array",
                   items: {
                     type: "string",
                     description: dedent(`
-                      The entityTypeIds the kind of entities to infer facts about.
+                      The entityTypeIds the kind of entities to infer claims about.
                       You must specify at least one.
                     `),
                   },
@@ -231,7 +247,7 @@ export const generateToolDefinitions = <
                   items: {
                     type: "string",
                     description:
-                      "The linkEntityTypeIds of the kind of link entities to infer facts about on the web page",
+                      "The linkEntityTypeIds of the kind of link entities to infer claims about on the web page",
                   },
                 },
                 relevantEntityIds: {
@@ -241,6 +257,7 @@ export const generateToolDefinitions = <
                   },
                   description: dedent(`
                   The entityIds of already proposed entities which you are seeking further detail on, if any.
+                  If you expect new entities you are seeking to be linked to already-discovered entities, specify them here.
                 `),
                 },
               },
@@ -306,6 +323,13 @@ export const generateToolDefinitions = <
       description: dedent(`
       Update the plan for the research task.
       You can call this alongside other tool calls to progress towards completing the task.
+      
+      IMPORTANT: the plan should take account of:
+      1. The user's research goal
+      2. The information gathered so far.
+      
+      Don't be afraid to deviate from an earlier plan if you've gathered sufficient information to 
+      meet the user's research goal, and return the information to the user.
     `),
       inputSchema: {
         type: "object",
@@ -350,7 +374,7 @@ export type CoordinatorToolCallArguments = Subtype<
       explanation: string;
       query: string;
     };
-    inferFactsFromResources: {
+    inferClaimsFromResources: {
       explanation: string;
       resources: {
         url: string;
@@ -363,7 +387,7 @@ export type CoordinatorToolCallArguments = Subtype<
         exampleOfExpectedContent: string;
       }[];
     };
-    startFactGatheringSubTasks: {
+    startClaimGatheringSubTasks: {
       subTasks: {
         goal: string;
         explanation: string;

@@ -52,6 +52,13 @@ const getGraphFromFlowDefinition = (
   flowDefinition: FlowDefinitionType,
   showAllDependencies: boolean = false,
 ) => {
+  /**
+   * Flows may organize their steps into 'groups'.
+   * Groups are essentially a way of labelling sets of steps, used to organize the UI into sequentially-executing lanes.
+   * Assigning steps to groups does not affect how the flow runs – it is for user/UI convenience.
+   * The only constraint is that each 'dependency layer' (set of steps that can run in parallel)
+   * must be fully contained in a group, such that only one group is executing at a time.
+   */
   const hasGroups = (flowDefinition.groups ?? []).length > 0;
 
   const { layerByStepId } = groupStepsByDependencyLayer(flowDefinition.steps);
@@ -295,7 +302,12 @@ export const FlowVisualizer = () => {
     proposedEntities: ProposedEntityOutput[];
   }>(() => {
     if (!selectedFlowRun) {
-      return { logs: [], persistedEntities: [], proposedEntities: [] };
+      return {
+        claimEntityIds: [],
+        logs: [],
+        persistedEntities: [],
+        proposedEntities: [],
+      };
     }
 
     const progressLogs: LocalProgressLog[] = [

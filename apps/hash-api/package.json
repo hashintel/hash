@@ -9,14 +9,17 @@
     "build:docker": "docker buildx build --tag hash-api --file ../../infra/docker/api/prod/Dockerfile ../../ --load",
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "dev": "NODE_ENV=development NODE_OPTIONS=--max-old-space-size=2048 tsx watch --clear-screen=false ./src/index.ts",
-    "ensure-system-graph-is-initialized": "tsx ./src/ensure-system-graph-is-initialized.ts",
     "fix:eslint": "eslint --fix .",
     "generate-hash-gpt-schema": "tsx ./src/ai/gpt/generate-hashgpt-schema.ts",
     "generate-ontology-type-ids": "tsx ./src/generate-ontology-type-ids.ts; yarn prettier --write ../../libs/@local/hash-isomorphic-utils/src/ontology-type-ids.ts",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/index.ts",
-    "start-test": "cross-env NODE_ENV=test NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/index.ts",
+    "start:healthcheck": "wait-on --timeout 300000 http://0.0.0.0:5001",
+    "start:migrate": "NODE_ENV=production tsx ./src/ensure-system-graph-is-initialized.ts",
+    "start:test": "cross-env NODE_ENV=test NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/index.ts",
+    "start:test:healthcheck": "wait-on --timeout 300000 http://0.0.0.0:5001",
+    "start:test:migrate": "NODE_ENV=test tsx ./src/ensure-system-graph-is-initialized.ts",
     "test:unit": "vitest --run"
   },
   "dependencies": {
@@ -94,7 +97,7 @@
     "oembed-providers": "1.0.20220105",
     "ts-json-schema-generator": "1.5.0",
     "tsx": "4.16.2",
-    "typescript": "5.5.3",
+    "typescript": "5.5.4",
     "ws": "8.17.1"
   },
   "devDependencies": {
@@ -115,9 +118,9 @@
     "@types/md5": "2.3.5",
     "@types/mime-types": "2.1.1",
     "@types/nodemailer": "6.4.6",
-    "@vitest/coverage-istanbul": "2.0.3",
+    "@vitest/coverage-istanbul": "2.0.4",
     "eslint": "8.57.0",
     "rimraf": "6.0.1",
-    "vitest": "2.0.3"
+    "vitest": "2.0.4"
   }
 }

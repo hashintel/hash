@@ -26,12 +26,11 @@ pub struct PropertyTypeValidator;
 
 impl Validator<PropertyType> for PropertyTypeValidator {
     type Error = PropertyTypeValidationError;
-    type Validated = PropertyType;
 
     async fn validate_ref<'v>(
         &self,
         value: &'v PropertyType,
-    ) -> Result<&'v Valid<Self::Validated>, Self::Error> {
+    ) -> Result<&'v Valid<PropertyType>, Self::Error> {
         OneOfSchemaValidator.validate_ref(&value.one_of).await?;
         for element in &value.one_of {
             self.validate_ref(element).await?;
@@ -42,7 +41,6 @@ impl Validator<PropertyType> for PropertyTypeValidator {
 
 impl Validator<PropertyValues> for PropertyTypeValidator {
     type Error = PropertyTypeValidationError;
-    type Validated = PropertyValues;
 
     #[expect(
         clippy::manual_async_fn,
@@ -51,7 +49,7 @@ impl Validator<PropertyValues> for PropertyTypeValidator {
     fn validate_ref<'v>(
         &self,
         value: &'v PropertyValues,
-    ) -> impl Future<Output = Result<&'v Valid<Self::Validated>, Self::Error>> + Send {
+    ) -> impl Future<Output = Result<&'v Valid<PropertyValues>, Self::Error>> + Send {
         async move {
             match value {
                 PropertyValues::DataTypeReference(_) => {

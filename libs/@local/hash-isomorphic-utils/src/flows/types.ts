@@ -31,17 +31,21 @@ export type WebPage = {
 };
 
 export type LocalOrExistingEntityId =
-  | { kind: "proposed-entity"; localId: string }
+  | { kind: "proposed-entity"; localId: EntityId }
   | { kind: "existing-entity"; entityId: EntityId };
 
 /**
- * @todo sort out mismatch between this and the ProposedEntity type inside infer-entities/
- *    possibly just resolved by removing the latter when browser plugin inference migrated to a Flow
+ * @todo H-3163: remove the ProposedEntity type inside infer-entities, by making the browser plugin flow
+ *    use the same claim -> entity process as other flows
  */
 export type ProposedEntity = {
+  claims: {
+    isSubjectOf: EntityId[];
+    isObjectOf: EntityId[];
+  };
   provenance: EnforcedEntityEditionProvenance;
   propertyMetadata: PropertyMetadataObject;
-  localEntityId: string;
+  localEntityId: EntityId;
   entityTypeId: VersionedUrl;
   summary?: string;
   properties: PropertyObject;
@@ -51,7 +55,7 @@ export type ProposedEntity = {
 
 export type ProposedEntityWithResolvedLinks = Omit<
   ProposedEntity,
-  "localEntityId" | "sourceEntityLocalId" | "targetEntityLocalId"
+  "sourceEntityLocalId" | "targetEntityLocalId"
 > & {
   linkData?: {
     leftEntityId: EntityId;

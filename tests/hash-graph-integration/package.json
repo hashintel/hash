@@ -9,6 +9,7 @@
   },
   "dependencies": {},
   "devDependencies": {
+    "@apps/hash-graph": "0.0.0-private",
     "@blockprotocol/type-system-rs": "0.0.0-private",
     "@rust/authorization": "0.0.0-private",
     "@rust/graph": "0.0.0-private",

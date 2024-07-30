@@ -14,7 +14,10 @@
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org hashintel --project hash-temporal-worker-integration ./dist && sentry-cli sourcemaps upload --org hashintel --project hash-temporal-worker-integration ./dist",
-    "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/main.ts"
+    "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/main.ts",
+    "start:healthcheck": "wait-on --timeout 120000 http-get://localhost:4300/health",
+    "start:test": "cross-env NODE_ENV=test NODE_OPTIONS=--max-old-space-size=2048 tsx ./dist/main.js",
+    "start:test:healthcheck": "wait-on --timeout 120000 http-get://localhost:4300/health"
   },
   "dependencies": {
     "@blockprotocol/graph": "0.4.0-canary.0",
@@ -34,7 +37,7 @@
     "axios": "1.6.0",
     "dotenv-flow": "3.2.0",
     "tsx": "4.16.2",
-    "typescript": "5.5.3"
+    "typescript": "5.5.4"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",

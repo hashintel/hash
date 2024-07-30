@@ -37,7 +37,7 @@ test.skip(
       state: {
         entitySummaries: [],
         hasConductedCheckStep: false,
-        inferredFacts: [],
+        inferredClaims: [],
         plan: "",
         previousCalls: [],
         proposedEntities: [],

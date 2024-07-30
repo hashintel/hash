@@ -67,6 +67,7 @@ import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-i
 import { ensureHashSystemAccountExists } from "./graph/system-account";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
+import { enabledIntegrations } from "./integrations/enabled-integrations";
 import { checkGoogleAccessToken } from "./integrations/google/check-access-token";
 import { getGoogleAccessToken } from "./integrations/google/get-access-token";
 import { googleOAuthCallback } from "./integrations/google/oauth-callback";
@@ -627,7 +628,7 @@ const main = async () => {
     });
   });
 
-  if (realtimeSyncEnabled) {
+  if (realtimeSyncEnabled && enabledIntegrations.linear) {
     const integrationSyncBackWatcher =
       await createIntegrationSyncBackWatcher(graphApi);
 

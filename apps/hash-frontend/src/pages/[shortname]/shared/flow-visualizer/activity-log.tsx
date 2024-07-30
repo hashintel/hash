@@ -280,7 +280,7 @@ const createRowContent: CreateVirtualizedRowContentFn<LocalProgressLog> = (
   row,
 ) => <TableRow index={index} log={row.data} />;
 
-export const ActivityLog = ({ logs }: { logs: LocalProgressLog[] }) => {
+export const ActivityLog = memo(({ logs }: { logs: LocalProgressLog[] }) => {
   const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
     field: "time",
     direction: "asc",
@@ -309,7 +309,7 @@ export const ActivityLog = ({ logs }: { logs: LocalProgressLog[] }) => {
       }));
   }, [logs, sort]);
 
-  const columns = useMemo(() => createColumns(rows.length), [rows]);
+  const columns = useMemo(() => createColumns(rows.length), [rows.length]);
 
   return (
     <>
@@ -327,4 +327,4 @@ export const ActivityLog = ({ logs }: { logs: LocalProgressLog[] }) => {
       </Box>
     </>
   );
-};
+});

@@ -150,4 +150,6 @@ pub struct Edges {
         AdjacencyList<PropertyTypeVertexId, OntologyEdgeKind, HashSet<PropertyTypeVertexId>>,
     pub property_type_to_data_type:
         AdjacencyList<PropertyTypeVertexId, OntologyEdgeKind, HashSet<DataTypeVertexId>>,
+    pub data_type_to_data_type:
+        AdjacencyList<DataTypeVertexId, OntologyEdgeKind, HashSet<DataTypeVertexId>>,
 }

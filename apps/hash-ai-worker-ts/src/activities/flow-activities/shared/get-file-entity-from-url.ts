@@ -27,7 +27,10 @@ import {
   mergePropertyObjectAndMetadata,
   propertyObjectToPatches,
 } from "@local/hash-graph-sdk/entity";
-import type { PropertyMetadataObject } from "@local/hash-graph-types/entity";
+import type {
+  EntityUuid,
+  PropertyMetadataObject,
+} from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { normalizeWhitespace } from "@local/hash-isomorphic-utils/normalize";
@@ -125,6 +128,7 @@ const writeFileToS3URL = async ({
 };
 
 export const getFileEntityFromUrl = async (params: {
+  entityUuid: EntityUuid | null;
   url: string;
   propertyMetadata?: PropertyMetadataObject;
   provenance?: EnforcedEntityEditionProvenance;

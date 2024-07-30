@@ -55,6 +55,12 @@ jobs:
             | jq 'select(.task == "test:system" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
+          DOCKER_PACKAGES_FILTER=$(turbo run build:docker --dry-run=json --filter '...[HEAD^]' | jq -e '.packages | contains(["//"])' > /dev/null && echo '' || echo '--filter ...[HEAD^]')
+          DOCKER_PACKAGES=$(sh -c "turbo run build:docker --dry-run=json $DOCKER_PACKAGES_FILTER" \
+            | jq '.tasks[]' \
+            | jq 'select(.task == "build:docker" and .command != "<NONEXISTENT>")' \
+            | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
+
           PUBLISH_PACKAGES=[]
           PUBLISH_INCLUDES=[]
           while IFS= read -r file; do
@@ -85,40 +91,11 @@ jobs:
           done <<< "$(find . -name 'Cargo.toml' -type f | sed 's|\./||')"
           PUBLISH_PACKAGES=$(jq -c -n --argjson packages "$PUBLISH_PACKAGES" --argjson includes "$PUBLISH_INCLUDES" '{package: $packages, include: $includes}')
 
-          if $(echo $SYSTEM_TEST_PACKAGES | jq -e '.package != []'); then
-            REQUIRES_GRAPH=true
-            REQUIRES_AI_WORKER_TS=true
-            REQUIRES_INTEGRATION_WORKER=true
-            REQUIRES_API=true
-          else
-            REQUIRES_GRAPH=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-graph" and .task == "build")] != []')
-            REQUIRES_AI_WORKER_TS=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-ts" and .task == "build")] != []')
-            REQUIRES_INTEGRATION_WORKER=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-worker-integration" and .task == "build")] != []')
-            REQUIRES_API=$(echo "$INTEGRATION_TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-api" and .task == "build")] != []')
-          fi
-
-          DOCKER_PACKAGES=[]
-          if [[ $REQUIRES_GRAPH == 'true' ]]; then
-            DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-graph"]')
-          fi
-          if [[ $REQUIRES_AI_WORKER_TS == 'true' ]]; then
-            DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-ai-worker-ts"]')
-          fi
-          if [[ $REQUIRES_INTEGRATION_WORKER == 'true' ]]; then
-            DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-integration-worker"]')
-          fi
-          if [[ $REQUIRES_API == 'true' ]]; then
-            DOCKER_PACKAGES=$(echo "$DOCKER_PACKAGES" | jq '. += ["@apps/hash-api"]')
-          fi
-
-          DOCKER_PACKAGES=$(echo $DOCKER_PACKAGES | jq -c '{ include: [{ package: .[] }] }')
-
-          set -x
-          echo "unit-tests=$UNIT_TEST_PACKAGES" >> $GITHUB_OUTPUT
-          echo "integration-tests=$INTEGRATION_TEST_PACKAGES" >> $GITHUB_OUTPUT
-          echo "system-tests=$SYSTEM_TEST_PACKAGES" >> $GITHUB_OUTPUT
-          echo "dockers=$DOCKER_PACKAGES" >> $GITHUB_OUTPUT
-          echo "publish=$PUBLISH_PACKAGES" >> $GITHUB_OUTPUT
+          echo "unit-tests=$UNIT_TEST_PACKAGES" | tee -a $GITHUB_OUTPUT
+          echo "integration-tests=$INTEGRATION_TEST_PACKAGES" | tee -a $GITHUB_OUTPUT
+          echo "system-tests=$SYSTEM_TEST_PACKAGES" | tee -a $GITHUB_OUTPUT
+          echo "dockers=$DOCKER_PACKAGES" | tee -a $GITHUB_OUTPUT
+          echo "publish=$PUBLISH_PACKAGES" | tee -a $GITHUB_OUTPUT
 
   unit-tests:
     name: Unit
@@ -139,15 +116,15 @@ jobs:
         id: tests
         run: |
           HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
-          echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
+          echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
             if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
               RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
             else
               RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
             fi
-            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
-            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
+            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
+            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
           fi
 
       - name: Prune repository
@@ -168,7 +145,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@3e71e7135de310b70bc22dccb4d275acde8e055a # v2.42.0
+        uses: taiki-e/install-action@7277a40b4d8760cc11399bd3f8314c3294e270f5 # v2.42.9
         with:
           tool: just@1.13.0,cargo-hack@0.6.28,cargo-nextest@0.9.68,cargo-llvm-cov@0.6.9
 
@@ -214,7 +191,7 @@ jobs:
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.dockers) }}
       fail-fast: false
-    if: needs.setup.outputs.dockers != '{"include":[]}'
+    if: needs.setup.outputs.dockers != '{"package":[],"include":[]}'
     steps:
       - name: Checkout
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -230,7 +207,7 @@ jobs:
 
   integration-tests:
     name: Integration
-    needs: [setup, build]
+    needs: [setup]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.integration-tests) }}
       fail-fast: false
@@ -243,32 +220,6 @@ jobs:
       - name: Install turbo
         uses: ./.github/actions/install-turbo
 
-      - name: Find test steps to run
-        id: tests
-        run: |
-          TEST_TASKS=$(turbo run test:integration --env-mode=loose --dry-run=json --filter "${{ matrix.package }}" | jq -c '.tasks[]')
-          REQUIRES_GRAPH=$(echo "$TEST_TASKS" | jq -s '[.[] | select((.package == "@apps/hash-graph" or .package == "@rust/graph") and .task == "build")] != []')
-          REQUIRES_AI_WORKER_TS=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-ai-worker-ts" and .task == "build")] != []')
-          REQUIRES_INTEGRATION_WORKER=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-worker-integration" and .task == "build")] != []')
-          REQUIRES_API=$(echo "$TEST_TASKS" | jq -s '[.[] | select(.package == "@apps/hash-api" and .task == "build")] != []')
-
-          HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
-          echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
-          if [[ $HAS_RUST = 'true' ]]; then
-            if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
-              RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
-            else
-              RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
-            fi
-            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
-            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
-          fi
-
-          echo "external-service-graph=$REQUIRES_GRAPH" >> $GITHUB_OUTPUT
-          echo "external-service-ai-worker-ts=$REQUIRES_AI_WORKER_TS" >> $GITHUB_OUTPUT
-          echo "external-service-worker-integration=$REQUIRES_INTEGRATION_WORKER" >> $GITHUB_OUTPUT
-          echo "external-service-api=$REQUIRES_API" >> $GITHUB_OUTPUT
-
       - name: Prune repository
         uses: ./.github/actions/prune-repository
         with:
@@ -276,16 +227,39 @@ jobs:
             ${{ matrix.package }}
             @apps/hash-external-services
 
+      - name: Find test steps to run
+        id: tests
+        run: |
+          TEST_TASKS=$(turbo run test:integration --env-mode=loose --dry-run=json --filter "${{ matrix.package }}" | jq -c '.tasks[]')
+          HAS_BACKGROUND_TASKS=$(turbo run start:test --dry-run json | jq -c '[.tasks[] | select(.command != "<NONEXISTENT>" and .package != "@apps/hash-external-services") | .package] != []' || echo 'false')
+          echo "has-background-tasks=$HAS_BACKGROUND_TASKS" | tee -a $GITHUB_OUTPUT
+
+          HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
+          echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
+
+          if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
+            RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
+          else
+            RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
+          fi
+          echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
+
+          if [[ $HAS_RUST = 'true' ]]; then
+            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
+          fi
+
+      - name: Create temp files and folders
+        run: mkdir -p var/logs
+
       - name: Install Rust toolchain
-        if: always() && steps.tests.outputs.has-rust == 'true'
         uses: ./.github/actions/install-rust-toolchain
         with:
           toolchain: ${{ steps.tests.outputs.rust-toolchain }}
           working-directory: ${{ matrix.directory }}
 
       - name: Install Rust tools
-        if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@3e71e7135de310b70bc22dccb4d275acde8e055a # v2.42.0
+        if: steps.tests.outputs.has-rust == 'true'
+        uses: taiki-e/install-action@7277a40b4d8760cc11399bd3f8314c3294e270f5 # v2.42.9
         with:
           tool: just@1.13.0,cargo-hack@0.6.28,cargo-nextest@0.9.68,cargo-llvm-cov@0.6.9
 
@@ -293,11 +267,19 @@ jobs:
         uses: ./.github/actions/warm-up-repo
 
       - name: Install Protobuf
-        if: always() && steps.tests.outputs.has-rust == 'true'
         run: sudo apt install protobuf-compiler
 
+      - name: Install playwright
+        if: matrix.package == '@tests/hash-playwright'
+        uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
+        with:
+          max_attempts: 3
+          timeout_minutes: 10
+          shell: bash
+          command: npx playwright install --with-deps chromium
+
       - name: Cache Rust dependencies
-        if: always() && steps.tests.outputs.has-rust == 'true'
+        if: steps.tests.outputs.has-rust == 'true'
         uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
         with:
           workspaces: ${{ matrix.directory }}
@@ -306,42 +288,41 @@ jobs:
       - name: Show disk usage
         run: df -h
 
-      - name: Load Docker images
-        uses: ./.github/actions/load-docker-images
-        with:
-          hash-graph: ${{ steps.tests.outputs.external-service-graph == 'true' }}
-          hash-ai-worker-ts: ${{ steps.tests.outputs.external-service-ai-worker-ts == 'true' }}
-          hash-integration-worker: ${{ steps.tests.outputs.external-service-worker-integration == 'true' }}
-          hash-api: ${{ steps.tests.outputs.external-service-api == 'true' }}
-
-      - name: Show disk usage
-        run: df -h
-
       - name: Launch external services
         run: |
-          turbo codegen --filter '@apps/hash-external-services'
+          touch .env.local
 
-          SERVICES="hydra kratos redis spicedb"
+          echo 'OPENAI_API_KEY=dummy' >> .env.local
+          echo 'ANTHROPIC_API_KEY=dummy' >> .env.local
+          echo 'HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID=dummy' >> .env.local
+          echo 'HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY=dummy' >> .env.local
 
-          if [[ ${{ steps.tests.outputs.external-service-graph == 'true' }} == 'true' ]]; then
-            SERVICES="$SERVICES graph"
-          fi
-          if [[ ${{ steps.tests.outputs.external-service-ai-worker-ts }} == 'true' ]]; then
-              echo 'OPENAI_API_KEY=dummy' >> .env.local
-              echo 'ANTHROPIC_API_KEY=dummy' >> .env.local
-              echo 'HASH_TEMPORAL_WORKER_AI_AWS_ACCESS_KEY_ID=dummy' >> .env.local
-              echo 'HASH_TEMPORAL_WORKER_AI_AWS_SECRET_ACCESS_KEY=dummy' >> .env.local
-              SERVICES="$SERVICES hash-temporal-worker-ts"
-          fi
-          if [[ ${{ steps.tests.outputs.external-service-worker-integration }} == 'true' ]]; then
-              SERVICES="$SERVICES hash-temporal-worker-integration"
-          fi
+          echo 'HASH_GRAPH_PG_DATABASE=graph' >> .env.local
 
-          echo "Running services: $SERVICES"
-          yarn workspace @apps/hash-external-services deploy:test up $SERVICES --wait
+          cp .env.local .env.test.local
+          yarn external-services:test up hydra kratos redis spicedb temporal-ui --wait
 
       - name: Show disk usage
         run: df -h
+
+      - name: Start background tasks
+        id: background-tasks
+        if: steps.tests.outputs.has-background-tasks == 'true'
+        run: |
+          # Optimistically compile background tasks. Ideally, we also `build` them but this includes
+          # `@apps/plugin-browser` which needs `build:test` instead. We cannot filter it out because
+          # except when running PlayWright tests, the plugin-browser is already pruned out so the
+          # command would fail.
+          turbo run compile --env-mode=loose
+          mkdir -p logs
+          turbo run start:test --env-mode=loose --log-order stream >var/logs/background-task.log 2>&1 &
+          PID=$!
+          echo "pid=$PID" | tee -a $GITHUB_OUTPUT
+
+          # Not strictly needed to run the healthchecks here as they are also run in the integration
+          # tests but it this way we can fail the job early if the background tasks are not healthy.
+          # Also, the recorded time for the different steps is more accurate.
+          turbo run start:test:healthcheck --env-mode=loose
 
       - name: Run tests
         continue-on-error: ${{ steps.tests.outputs.allow-failure == 'true' }}
@@ -362,160 +343,27 @@ jobs:
         if: ${{ success() || failure() }}
         run: yarn workspace @apps/hash-external-services deploy logs --timestamps
 
-  system-tests:
-    name: System
-    needs: [setup, build]
-    strategy:
-      matrix: ${{ fromJSON(needs.setup.outputs.system-tests) }}
-      fail-fast: false
-    if: needs.setup.outputs.system-tests != '{"package":[],"include":[]}'
-    runs-on: ubuntu-22.04
-    env:
-      TURBO_FORCE: true
-    steps:
-      - name: Checkout
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - name: Create temp files and folders
-        run: mkdir -p var/logs
-
-      - name: Install turbo
-        uses: ./.github/actions/install-turbo
-
-      - name: Find test steps to run
-        id: tests
+      - name: Show background tasks logs
+        if: always() && steps.tests.outputs.has-background-tasks == 'true'
         run: |
-          HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
-          echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
-          if [[ $HAS_RUST = 'true' ]]; then
-            if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
-              RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
-            else
-              RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
-            fi
-            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
-            echo "has-miri=$(yq '.toolchain.components | contains(["miri"])' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Prune repository
-        uses: ./.github/actions/prune-repository
-        with:
-          scope: |
-            ${{ matrix.package }}
-            @apps/hash-external-services
-
-      - name: Install Protobuf
-        if: always() && steps.tests.outputs.has-rust == 'true'
-        run: sudo apt install protobuf-compiler
-
-      - name: Install Rust toolchain
-        if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: ./.github/actions/install-rust-toolchain
-        with:
-          toolchain: ${{ steps.tests.outputs.rust-toolchain }}
-          working-directory: ${{ matrix.directory }}
-
-      - name: Install Rust tools
-        if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@3e71e7135de310b70bc22dccb4d275acde8e055a # v2.42.0
-        with:
-          tool: just@1.13.0,cargo-hack@0.6.28,cargo-nextest@0.9.68,cargo-llvm-cov@0.6.9
-
-      - name: Warm up repository
-        uses: ./.github/actions/warm-up-repo
-
-      - name: Cache Rust dependencies
-        if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: Swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # v2.7.3
-        with:
-          workspaces: ${{ matrix.directory }}
-          save-if: ${{ !startsWith(github.ref, 'refs/heads/gh-readonly-queue') }}
-
-      - name: Install playwright
-        if: matrix.package == '@tests/hash-playwright'
-        uses: nick-fields/retry@7152eba30c6575329ac0576536151aca5a72780e # v3.0.0
-        with:
-          max_attempts: 3
-          timeout_minutes: 10
-          shell: bash
-          command: npx playwright install --with-deps chromium
-
-      - name: Show disk usage
-        run: df -h
-
-      - name: Load Docker images
-        uses: ./.github/actions/load-docker-images
-        with:
-          hash-graph: true
-          hash-ai-worker-ts: true
-          hash-integration-worker: true
-          hash-api: true
-
-      - name: Show disk usage
-        run: df -h
-
-      - name: Launch external services
-        run: |
-          turbo codegen --filter '@apps/hash-external-services'
-          echo 'OPENAI_API_KEY=dummy' >> .env.local
-          echo 'ANTHROPIC_API_KEY=dummy' >> .env.local
-          yarn workspace @apps/hash-external-services deploy up --wait
-
-      - name: Migrate HASH-API
-        run: |
-          turbo run build --env-mode=loose --filter "@apps/hash-api"
-          yarn workspace @apps/hash-api ensure-system-graph-is-initialized
-
-      - name: Launch HASH-API
-        run: |
-          yarn workspace @apps/hash-api start-test 2>&1 | tee var/logs/backend.log &
-          yarn wait-on --timeout 120000 http://0.0.0.0:5001
-
-      - name: Launch frontend
-        run: |
-          turbo run build --env-mode=loose --filter "@apps/hash-frontend"
-          yarn workspace @apps/hash-frontend start 2>&1 | tee var/logs/frontend.log &
-          yarn wait-on --timeout 60000 http://0.0.0.0:3000
-
-      - name: Show disk usage
-        run: df -h
-
-      - name: Run tests
-        run: |
-          turbo run test:system --env-mode=loose --filter "${{ matrix.package }}"
-
-      - name: Show disk usage
-        run: df -h
-
-      - name: Show backend logs
-        if: ${{ success() || failure() }}
-        run: cat var/logs/backend.log
-
-      - name: Show frontend logs
-        if: ${{ success() || failure() }}
-        run: cat var/logs/frontend.log
-
-      - name: Show container logs
-        if: ${{ success() || failure() }}
-        run: yarn workspace @apps/hash-external-services deploy logs --timestamps
+          kill -15 ${{ steps.background-tasks.outputs.pid }} || true
+          cat var/logs/background-task.log
 
       - name: Upload artifact playwright-report
-        if: matrix.package == '@tests/hash-playwright' && ${{ success() || failure() }}
+        if: matrix.package == '@tests/hash-playwright' && success() || failure()
         uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
         with:
-          name: playwright-report
+          name: ${{ env.TRIMMED_PACKAGE_NAME }}-report
           path: tests/hash-playwright/playwright-report
 
-      - name: Upload artifact playwright-var
+      - name: Upload logs
         uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
-        if: matrix.package == '@tests/hash-playwright' && ${{ success() || failure() }}
+        if: success() || failure()
         with:
-          name: playwright-var
+          name: ${{ env.TRIMMED_PACKAGE_NAME }}-logs
           path: |
             var/api
             var/logs
-          ## Getting permission denied for docker volumes (e.g. postgres data)
-          ## https://github.com/actions/upload-artifact/issues/192
 
   publish:
     name: Publish
@@ -533,14 +381,14 @@ jobs:
         id: publish
         run: |
           HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
-          echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
+          echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
             if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
               RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
             else
               RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
             fi
-            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
+            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
           fi
 
       - name: Install Rust toolchain
@@ -567,7 +415,7 @@ jobs:
 
   passed:
     name: Tests passed
-    needs: [setup, unit-tests, build, integration-tests, system-tests, publish]
+    needs: [setup, unit-tests, build, integration-tests, publish]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -583,9 +431,6 @@ jobs:
       - name: Check integration tests
         run: |
           [[ ${{ needs.integration-tests.result }} =~ success|skipped ]]
-      - name: Check system tests
-        run: |
-          [[ ${{ needs.system-tests.result }} =~ success|skipped ]]
       - name: Check publish results
         run: |
           [[ ${{ needs.publish.result }} =~ success|skipped ]]

@@ -12,7 +12,10 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "start": "next start"
+    "start": "next start",
+    "start:healthcheck": "wait-on --timeout 600000 http://0.0.0.0:3000",
+    "start:test": "next start",
+    "start:test:healthcheck": "wait-on --timeout 600000 http://0.0.0.0:3000"
   },
   "dependencies": {
     "@apollo/client": "3.10.5",
@@ -135,7 +138,7 @@
     "eslint": "8.57.0",
     "rimraf": "6.0.1",
     "sass": "1.57.1",
-    "typescript": "5.5.3",
+    "typescript": "5.5.4",
     "webpack": "5.90.3"
   },
   "engines": {

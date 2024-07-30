@@ -4,6 +4,8 @@ import { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
+import type { ManualInferenceTriggerInputName } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-types";
+import type { GoalFlowTriggerInput } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { RunFlowWorkflowParams } from "@local/hash-isomorphic-utils/flows/temporal-types";
 import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
@@ -28,7 +30,7 @@ let _runFlowWorkflowParamsCache: MemoryCache | undefined;
 type PartialRunFlowWorkflowParams = Pick<
   RunFlowWorkflowParams,
   "dataSources" | "webId" | "userAuthentication"
->;
+> & { createEntitiesAsDraft: boolean };
 
 const getCache = async () => {
   _runFlowWorkflowParamsCache =
@@ -98,11 +100,22 @@ const getPartialRunFlowWorkflowParams = async (params: {
     );
   }
 
+  const draftTriggerInputNames: (
+    | GoalFlowTriggerInput
+    | ManualInferenceTriggerInputName
+  )[] = ["Create as draft", "draft"];
+
+  const createEntitiesAsDraft =
+    !!runFlowWorkflowParams.flowTrigger.outputs?.find((output) =>
+      draftTriggerInputNames.includes(output.outputName as "draft"),
+    )?.payload.value;
+
   /**
    * Avoid caching the entire `RunFlowWorkflowParams` object to reduce memory usage
    * of the cache.
    */
   const partialRunFlowWorkflowParams: PartialRunFlowWorkflowParams = {
+    createEntitiesAsDraft,
     dataSources: runFlowWorkflowParams.dataSources,
     userAuthentication: runFlowWorkflowParams.userAuthentication,
     webId: runFlowWorkflowParams.webId,
@@ -117,6 +130,7 @@ const getPartialRunFlowWorkflowParams = async (params: {
 };
 
 type FlowContext = {
+  createEntitiesAsDraft: boolean;
   dataSources: FlowDataSources;
   flowEntityId: EntityId;
   stepId: string;
@@ -136,7 +150,7 @@ export const getFlowContext = async (): Promise<FlowContext> => {
 
   const { workflowId } = activityContext.info.workflowExecution;
 
-  const { dataSources, userAuthentication, webId } =
+  const { createEntitiesAsDraft, dataSources, userAuthentication, webId } =
     await getPartialRunFlowWorkflowParams({
       workflowId,
     });
@@ -149,7 +163,14 @@ export const getFlowContext = async (): Promise<FlowContext> => {
 
   const { activityId: stepId } = Context.current().info;
 
-  return { dataSources, userAuthentication, flowEntityId, webId, stepId };
+  return {
+    createEntitiesAsDraft,
+    dataSources,
+    userAuthentication,
+    flowEntityId,
+    webId,
+    stepId,
+  };
 };
 
 export const getProvidedFiles = async (): Promise<Entity<File>[]> => {

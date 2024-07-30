@@ -39,7 +39,7 @@ jobs:
             | jq 'select(.task == "lint")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
-          echo "packages=$PACKAGES" >> $GITHUB_OUTPUT
+          echo "packages=$PACKAGES" | tee -a $GITHUB_OUTPUT
 
   package:
     name: Package
@@ -64,27 +64,27 @@ jobs:
           set -x
           ESLINT=$(turbo run lint:eslint --filter '${{ matrix.package }}' --dry-run=json \
             | jq '[.tasks[] | select(.task == "lint:eslint" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "eslint=$ESLINT" >> $GITHUB_OUTPUT
+          echo "eslint=$ESLINT" | tee -a $GITHUB_OUTPUT
 
           TSC=$(turbo run lint:tsc --filter '${{ matrix.package }}' --dry-run=json \
             | jq '[.tasks[] | select(.task == "lint:tsc" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "tsc=$TSC" >> $GITHUB_OUTPUT
+          echo "tsc=$TSC" | tee -a $GITHUB_OUTPUT
 
           CODEGEN=$(turbo run codegen --filter '${{ matrix.package }}' --dry-run=json \
             | jq '[.tasks[] | select(.task == "codegen" and .command != "<NONEXISTENT>")] != []' || echo 'false')
-          echo "codegen=$CODEGEN" >> $GITHUB_OUTPUT
+          echo "codegen=$CODEGEN" | tee -a $GITHUB_OUTPUT
 
           HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
-          echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
+          echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
             if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
               RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
             else
               RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
             fi
-            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
-            echo "has-rustfmt=$(yq '.toolchain.components | contains(["rustfmt"])' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
-            echo "has-clippy=$(yq '.toolchain.components | contains(["clippy"])' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
+            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
+            echo "has-rustfmt=$(yq '.toolchain.components | contains(["rustfmt"])' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
+            echo "has-clippy=$(yq '.toolchain.components | contains(["clippy"])' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
           fi
 
       - name: Prune repository
@@ -105,7 +105,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.lints.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@3e71e7135de310b70bc22dccb4d275acde8e055a # v2.42.0
+        uses: taiki-e/install-action@7277a40b4d8760cc11399bd3f8314c3294e270f5 # v2.42.9
         with:
           tool: just@1.13.0,cargo-hack@0.6.28,rust-script@0.23.0,clippy-sarif@0.3.7,sarif-fmt@0.3.7
 
@@ -173,7 +173,7 @@ jobs:
           mv "$tmp" clippy.sarif
 
       - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@4fa2a7953630fd2f3fb380f21be14ede0169dd4f # v3.25.12
+        uses: github/codeql-action/upload-sarif@afb54ba388a7dca6ecae48f608c4ff05ff4cc77a # v3.25.15
         if: always() && steps.lints.outputs.has-clippy == 'true'
         with:
           sarif_file: ${{ matrix.directory }}/clippy.sarif

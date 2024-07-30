@@ -19,7 +19,7 @@ import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { SentryActivityInboundInterceptor } from "@local/hash-backend-utils/temporal/interceptors/activities/sentry";
 import { sentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
 import { createVaultClient } from "@local/hash-backend-utils/vault";
-import type { BundleOptions } from "@temporalio/worker";
+import type { WorkerOptions } from "@temporalio/worker";
 import { defaultSinks, NativeConnection, Worker } from "@temporalio/worker";
 import { config } from "dotenv-flow";
 import { TsconfigPathsPlugin } from "tsconfig-paths-webpack-plugin";
@@ -63,29 +63,38 @@ const createHealthCheckServer = () => {
   return server;
 };
 
-const workflowOptions =
+const workflowOptions: Partial<WorkerOptions> =
   process.env.NODE_ENV === "production"
     ? {
         workflowBundle: {
           codePath: require.resolve("../dist/workflow-bundle.js"),
         },
       }
-    : ({
-        webpackConfigHook: (webpackConfig) => {
-          /* eslint-disable no-param-reassign */
-          webpackConfig.resolve ??= {};
-          webpackConfig.resolve.plugins ??= [];
-          /* eslint-enable no-param-reassign */
-          /**
-           * Because we run TypeScript directly in development, we need to use the 'paths' in the base tsconfig.json
-           * This tells TypeScript where to resolve the imports from, overwriting the 'exports' in local dependencies' package.jsons,
-           * which refer to the transpiled JavaScript code.
-           */
-          webpackConfig.resolve.plugins.push(new TsconfigPathsPlugin());
-          return webpackConfig;
+    : {
+        bundlerOptions: {
+          webpackConfigHook: (webpackConfig) => {
+            return {
+              ...webpackConfig,
+              resolve: {
+                ...webpackConfig.resolve,
+                plugins: [
+                  ...((webpackConfig.plugins as [] | undefined) ?? []),
+                  /**
+                   * Because we run TypeScript directly in development, we need to use the 'paths' in the base tsconfig.json
+                   * This tells TypeScript where to resolve the imports from, overwriting the 'exports' in local dependencies' package.jsons,
+                   * which refer to the transpiled JavaScript code. This plugin converts the 'paths' to webpack 'alias'.
+                   */
+                  new TsconfigPathsPlugin({
+                    configFile:
+                      "../../libs/@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+                  }),
+                ],
+              },
+            };
+          },
         },
         workflowsPath: require.resolve("./workflows"),
-      } satisfies BundleOptions);
+      };
 
 async function run() {
   logToConsole.info("Starting AI worker...");
