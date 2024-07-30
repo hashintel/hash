@@ -10,11 +10,14 @@ scenarios:
               query {
                 me {
                   subgraph {
-                    roots
                     vertices
                   }
                 }
               }
-          match:
-            json: $.data.me
-            as: me
+          capture:
+            - json: $.data.me.subgraph.vertices.*.*.inner.metadata.recordId.entityId
+              as: entityId
+          expect:
+            - equals:
+                - "{{ entityId }}"
+                - "{{ session.ownedById }}~{{ session.ownedById }}"
