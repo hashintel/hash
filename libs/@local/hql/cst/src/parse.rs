@@ -1,5 +1,3 @@
-use core::mem;
-
 use winnow::{
     ascii::multispace0,
     combinator::{delimited, separated_foldl1, trace},
@@ -13,64 +11,69 @@ use crate::arena::{self, Arena};
 enum VecOrOneValue<'a, T> {
     Vec(arena::Vec<'a, T>),
     One(T),
-    None,
 }
 
 impl<'a, T> VecOrOneValue<'a, T> {
-    fn as_vec(&mut self, arena: &'a Arena) -> &mut arena::Vec<'a, T> {
-        let this = mem::replace(self, VecOrOneValue::None);
+    fn as_vec<'this>(
+        this: &'this mut Option<Self>,
+        arena: &'a Arena,
+    ) -> &'this mut arena::Vec<'a, T> {
+        // capacity of 0 will not allocate
+        let value = this
+            .take()
+            .unwrap_or_else(|| VecOrOneValue::Vec(arena.vec(Some(0))));
 
-        let value = match this {
+        let value = match value {
             VecOrOneValue::Vec(value) => value,
             VecOrOneValue::One(value) => {
                 let mut vec = arena.vec(Some(1));
                 vec.push(value);
                 vec
             }
-            VecOrOneValue::None => arena.vec(Some(0)),
         };
 
-        *self = VecOrOneValue::Vec(value);
-
-        match self {
+        let value = this.insert(VecOrOneValue::Vec(value));
+        match value {
             VecOrOneValue::Vec(value) => value,
-            _ => unreachable!(),
+            VecOrOneValue::One(_) => unreachable!(),
         }
     }
 }
 
 pub(crate) struct VecOrOne<'a, T> {
     arena: &'a Arena,
-    value: VecOrOneValue<'a, T>,
+    value: Option<VecOrOneValue<'a, T>>,
 }
 
 impl<'a, T> VecOrOne<'a, T> {
     pub(crate) const fn new(arena: &'a Arena, value: T) -> Self {
         Self {
             arena,
-            value: VecOrOneValue::One(value),
+            value: Some(VecOrOneValue::One(value)),
         }
     }
 
     pub(crate) fn into_boxed_slice(self) -> arena::Box<'a, [T]> {
         match self.value {
-            VecOrOneValue::Vec(vec) => vec.into_boxed_slice(),
-            VecOrOneValue::One(value) => Box::into_boxed_slice(self.arena.boxed(value)),
-            VecOrOneValue::None => self.arena.boxed([]),
+            Some(VecOrOneValue::Vec(vec)) => vec.into_boxed_slice(),
+            Some(VecOrOneValue::One(value)) => Box::into_boxed_slice(self.arena.boxed(value)),
+            None => self.arena.boxed([]),
         }
     }
 
     pub(crate) fn append(&mut self, value: &mut Self) -> &mut Self {
-        let value = mem::replace(&mut value.value, VecOrOneValue::None);
+        let Some(value) = value.value.take() else {
+            return self;
+        };
 
+        let vec = VecOrOneValue::as_vec(&mut self.value, self.arena);
         match value {
-            VecOrOneValue::Vec(mut vec) => {
-                self.value.as_vec(self.arena).append(&mut vec);
+            VecOrOneValue::Vec(mut values) => {
+                vec.append(&mut values);
             }
             VecOrOneValue::One(value) => {
-                self.value.as_vec(self.arena).push(value);
+                vec.push(value);
             }
-            VecOrOneValue::None => {}
         }
 
         self
@@ -89,7 +92,7 @@ where
     Error: ParserError<Input>,
 {
     trace(
-        "separated_list1",
+        "separated_boxed1",
         separated_foldl1(
             parser.map(|generic| VecOrOne::new(arena, generic)),
             sep,
