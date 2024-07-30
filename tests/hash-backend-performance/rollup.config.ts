@@ -19,6 +19,7 @@ const bundles: RollupOptions[] = [
     plugins: [
       commonjs(),
       typescript({
+        declaration: true,
         outDir: OUT_DIR,
         rootDir: "src",
         sourceMap: !PRODUCTION,
