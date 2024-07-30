@@ -1,0 +1,47 @@
+scenarios:
+  - name: Ontology read queries
+    flow:
+      - post:
+          name: Read data type by ID
+          url: /
+          json:
+            query: |
+              query {
+                getDataType(
+                  dataTypeId: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                  constrainsValuesOn: { outgoing: 0 },
+                ) {
+                  roots
+                }
+              }
+      - post:
+          name: Read property type by ID
+          url: /
+          json:
+            query: |
+              query {
+                getPropertyType(
+                  propertyTypeId: "https://blockprotocol.org/@blockprotocol/types/property-type/name/v/1",
+                  constrainsValuesOn: { outgoing: 0 },
+                  constrainsPropertiesOn: { outgoing: 0 },
+                ) {
+                  roots
+                }
+              }
+      - post:
+          name: Read entity type by ID
+          url: /
+          json:
+            query: |
+              query {
+                getEntityType(
+                  entityTypeId: "https://blockprotocol.org/@blockprotocol/types/entity-type/thing/v/1",
+                  constrainsValuesOn: { outgoing: 0 },
+                  constrainsPropertiesOn: { outgoing: 0 },
+                  constrainsLinksOn: { outgoing: 0 },
+                  constrainsLinkDestinationsOn: { outgoing: 0 },
+                  inheritsFrom: { outgoing: 0 },
+                ) {
+                  roots
+                }
+              }

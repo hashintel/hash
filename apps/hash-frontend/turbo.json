@@ -10,9 +10,6 @@
       // "outputs": ["./.next/**"],
       "cache": false,
       "dependsOn": ["^build", "codegen"]
-    },
-    "start": {
-      "dependsOn": ["build"]
     }
   }
 }

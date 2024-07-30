@@ -48,8 +48,8 @@ jobs:
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
           set -x
-          echo "unit=$UNIT_BENCH_PACKAGES" >> $GITHUB_OUTPUT
-          echo "integration=$INTEGRATION_BENCH_PACKAGES" >> $GITHUB_OUTPUT
+          echo "unit=$UNIT_BENCH_PACKAGES" | tee -a $GITHUB_OUTPUT
+          echo "integration=$INTEGRATION_BENCH_PACKAGES" | tee -a $GITHUB_OUTPUT
 
   unit-benches:
     name: Unit
@@ -75,25 +75,25 @@ jobs:
         id: benches
         run: |
           if [[ "${{ github.event_name == 'pull_request' }}" == 'true' ]]; then
-            echo "create-baseline=true" >> $GITHUB_OUTPUT
+            echo "create-baseline=true" | tee -a $GITHUB_OUTPUT
           else
-            echo "create-baseline=false" >> $GITHUB_OUTPUT
+            echo "create-baseline=false" | tee -a $GITHUB_OUTPUT
           fi
 
           HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
-          echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
+          echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
             if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
               RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
             else
               RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
             fi
-            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
+            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
           fi
 
       - name: Install Rust tools
         if: steps.benches.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@3e71e7135de310b70bc22dccb4d275acde8e055a # v2.42.0
+        uses: taiki-e/install-action@7277a40b4d8760cc11399bd3f8314c3294e270f5 # v2.42.9
         with:
           tool: just@1.13.0,critcmp@0.1.8
 
@@ -223,25 +223,25 @@ jobs:
         id: benches
         run: |
           if [[ "${{ github.event_name == 'pull_request' }}" == 'true' ]]; then
-            echo "create-baseline=true" >> $GITHUB_OUTPUT
+            echo "create-baseline=true" | tee -a $GITHUB_OUTPUT
           else
-            echo "create-baseline=false" >> $GITHUB_OUTPUT
+            echo "create-baseline=false" | tee -a $GITHUB_OUTPUT
           fi
 
           HAS_RUST=$([[ -f "${{ matrix.directory }}/Cargo.toml" || ${{ matrix.directory }} = "apps/hash-graph" ]] && echo 'true' || echo 'false')
-          echo "has-rust=$HAS_RUST" >> $GITHUB_OUTPUT
+          echo "has-rust=$HAS_RUST" | tee -a $GITHUB_OUTPUT
           if [[ $HAS_RUST = 'true' ]]; then
             if [[ -f "${{ matrix.directory }}/rust-toolchain.toml" ]]; then
               RUST_TOOLCHAIN_FILE="${{ matrix.directory }}/rust-toolchain.toml"
             else
               RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
             fi
-            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" >> $GITHUB_OUTPUT
+            echo "rust-toolchain=$(yq '.toolchain.channel' $RUST_TOOLCHAIN_FILE)" | tee -a $GITHUB_OUTPUT
           fi
 
       - name: Install Rust tools
         if: steps.benches.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@3e71e7135de310b70bc22dccb4d275acde8e055a # v2.42.0
+        uses: taiki-e/install-action@7277a40b4d8760cc11399bd3f8314c3294e270f5 # v2.42.9
         with:
           tool: just@1.13.0,critcmp@0.1.8
 

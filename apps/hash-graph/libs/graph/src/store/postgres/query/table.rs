@@ -43,6 +43,8 @@ pub enum Table {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum ReferenceTable {
+    DataTypeConstrainsValuesOn,
+    DataTypeInheritsFrom { inheritance_depth: Option<u32> },
     PropertyTypeConstrainsValuesOn,
     PropertyTypeConstrainsPropertiesOn,
     EntityTypeConstrainsPropertiesOn { inheritance_depth: Option<u32> },
@@ -57,6 +59,10 @@ pub enum ReferenceTable {
 impl ReferenceTable {
     pub fn inheritance_depth_column(self) -> Option<Column> {
         match self {
+            Self::DataTypeInheritsFrom { inheritance_depth } => Some(Column::DataTypeInheritsFrom(
+                DataTypeInheritsFrom::Depth,
+                inheritance_depth,
+            )),
             Self::EntityTypeConstrainsPropertiesOn { inheritance_depth }
                 if inheritance_depth != Some(0) =>
             {
@@ -96,6 +102,21 @@ impl ReferenceTable {
 
     pub const fn source_relation(self) -> ForeignKeyReference {
         match self {
+            Self::DataTypeConstrainsValuesOn => ForeignKeyReference::Single {
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                join: Column::DataTypeConstrainsValuesOn(
+                    DataTypeConstrainsValuesOn::SourceDataTypeOntologyId,
+                ),
+                join_type: JoinType::Inner,
+            },
+            Self::DataTypeInheritsFrom { inheritance_depth } => ForeignKeyReference::Single {
+                on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                join: Column::DataTypeInheritsFrom(
+                    DataTypeInheritsFrom::SourceDataTypeOntologyId,
+                    inheritance_depth,
+                ),
+                join_type: JoinType::Inner,
+            },
             Self::PropertyTypeConstrainsValuesOn => ForeignKeyReference::Single {
                 on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
                 join: Column::PropertyTypeConstrainsValuesOn(
@@ -180,6 +201,21 @@ impl ReferenceTable {
 
     pub const fn target_relation(self) -> ForeignKeyReference {
         match self {
+            Self::DataTypeConstrainsValuesOn => ForeignKeyReference::Single {
+                on: Column::DataTypeConstrainsValuesOn(
+                    DataTypeConstrainsValuesOn::TargetDataTypeOntologyId,
+                ),
+                join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                join_type: JoinType::Inner,
+            },
+            Self::DataTypeInheritsFrom { inheritance_depth } => ForeignKeyReference::Single {
+                on: Column::DataTypeInheritsFrom(
+                    DataTypeInheritsFrom::TargetDataTypeOntologyId,
+                    inheritance_depth,
+                ),
+                join: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                join_type: JoinType::Inner,
+            },
             Self::PropertyTypeConstrainsValuesOn => ForeignKeyReference::Single {
                 on: Column::PropertyTypeConstrainsValuesOn(
                     PropertyTypeConstrainsValuesOn::TargetDataTypeOntologyId,
@@ -266,6 +302,10 @@ impl ReferenceTable {
 impl ReferenceTable {
     const fn as_str(self) -> &'static str {
         match self {
+            Self::DataTypeConstrainsValuesOn => "data_type_constrains_values_on",
+            Self::DataTypeInheritsFrom {
+                inheritance_depth: _,
+            } => "data_type_inherits_from",
             Self::PropertyTypeConstrainsValuesOn => "property_type_constrains_values_on",
             Self::PropertyTypeConstrainsPropertiesOn => "property_type_constrains_properties_on",
             Self::EntityTypeConstrainsPropertiesOn {
@@ -773,6 +813,59 @@ impl DatabaseColumn for DataTypeEmbeddings {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum DataTypeConstrainsValuesOn {
+    SourceDataTypeOntologyId,
+    TargetDataTypeOntologyId,
+}
+
+impl DatabaseColumn for DataTypeConstrainsValuesOn {
+    fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::SourceDataTypeOntologyId | Self::TargetDataTypeOntologyId => ParameterType::Uuid,
+        }
+    }
+
+    fn nullable(self) -> bool {
+        false
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::SourceDataTypeOntologyId => "source_data_type_ontology_id",
+            Self::TargetDataTypeOntologyId => "target_data_type_ontology_id",
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum DataTypeInheritsFrom {
+    SourceDataTypeOntologyId,
+    TargetDataTypeOntologyId,
+    Depth,
+}
+
+impl DatabaseColumn for DataTypeInheritsFrom {
+    fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::SourceDataTypeOntologyId | Self::TargetDataTypeOntologyId => ParameterType::Uuid,
+            Self::Depth => ParameterType::I32,
+        }
+    }
+
+    fn nullable(self) -> bool {
+        false
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::SourceDataTypeOntologyId => "source_data_type_ontology_id",
+            Self::TargetDataTypeOntologyId => "target_data_type_ontology_id",
+            Self::Depth => "depth",
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum PropertyTypeEmbeddings {
     OntologyId,
     Embedding,
@@ -1249,6 +1342,8 @@ pub enum Column {
     OntologyAdditionalMetadata(OntologyAdditionalMetadata),
     DataTypes(DataTypes),
     DataTypeEmbeddings(DataTypeEmbeddings),
+    DataTypeConstrainsValuesOn(DataTypeConstrainsValuesOn),
+    DataTypeInheritsFrom(DataTypeInheritsFrom, Option<u32>),
     PropertyTypes(PropertyTypes),
     PropertyTypeEmbeddings(PropertyTypeEmbeddings),
     EntityTypes(EntityTypes),
@@ -1437,6 +1532,12 @@ impl Column {
             Self::EntityTemporalMetadata(_) => Table::EntityTemporalMetadata,
             Self::EntityEditions(_) => Table::EntityEditions,
             Self::EntityEmbeddings(_) => Table::EntityEmbeddings,
+            Self::DataTypeConstrainsValuesOn(_) => {
+                Table::Reference(ReferenceTable::DataTypeConstrainsValuesOn)
+            }
+            Self::DataTypeInheritsFrom(_, inheritance_depth) => {
+                Table::Reference(ReferenceTable::DataTypeInheritsFrom { inheritance_depth })
+            }
             Self::PropertyTypeConstrainsValuesOn(_) => {
                 Table::Reference(ReferenceTable::PropertyTypeConstrainsValuesOn)
             }
@@ -1470,7 +1571,8 @@ impl Column {
 
     pub const fn inheritance_depth(self) -> Option<u32> {
         match self {
-            Self::EntityTypeInheritsFrom(_, inheritance_depth)
+            Self::DataTypeInheritsFrom(_, inheritance_depth)
+            | Self::EntityTypeInheritsFrom(_, inheritance_depth)
             | Self::EntityTypeConstrainsPropertiesOn(_, inheritance_depth)
             | Self::EntityTypeConstrainsLinksOn(_, inheritance_depth)
             | Self::EntityTypeConstrainsLinkDestinationsOn(_, inheritance_depth)
@@ -1497,6 +1599,8 @@ impl DatabaseColumn for Column {
             Self::OntologyAdditionalMetadata(column) => column.parameter_type(),
             Self::DataTypes(column) => column.parameter_type(),
             Self::DataTypeEmbeddings(column) => column.parameter_type(),
+            Self::DataTypeInheritsFrom(column, _) => column.parameter_type(),
+            Self::DataTypeConstrainsValuesOn(column) => column.parameter_type(),
             Self::PropertyTypes(column) => column.parameter_type(),
             Self::PropertyTypeEmbeddings(column) => column.parameter_type(),
             Self::EntityTypes(column) => column.parameter_type(),
@@ -1527,6 +1631,8 @@ impl DatabaseColumn for Column {
             Self::OntologyAdditionalMetadata(column) => column.nullable(),
             Self::DataTypes(column) => column.nullable(),
             Self::DataTypeEmbeddings(column) => column.nullable(),
+            Self::DataTypeInheritsFrom(column, _) => column.nullable(),
+            Self::DataTypeConstrainsValuesOn(column) => column.nullable(),
             Self::PropertyTypes(column) => column.nullable(),
             Self::PropertyTypeEmbeddings(column) => column.nullable(),
             Self::EntityTypes(column) => column.nullable(),
@@ -1557,6 +1663,8 @@ impl DatabaseColumn for Column {
             Self::OntologyAdditionalMetadata(column) => column.as_str(),
             Self::DataTypes(column) => column.as_str(),
             Self::DataTypeEmbeddings(column) => column.as_str(),
+            Self::DataTypeInheritsFrom(column, _) => column.as_str(),
+            Self::DataTypeConstrainsValuesOn(column) => column.as_str(),
             Self::PropertyTypes(column) => column.as_str(),
             Self::PropertyTypeEmbeddings(column) => column.as_str(),
             Self::EntityTypes(column) => column.as_str(),

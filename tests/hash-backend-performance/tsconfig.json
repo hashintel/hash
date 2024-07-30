@@ -1,0 +1,10 @@
+{
+  "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
+  "include": ["src", "rollup.config.ts"],
+  "compilerOptions": {
+    "outDir": "dist",
+    "sourceMap": true,
+    "inlineSources": true,
+    "paths": {}
+  }
+}

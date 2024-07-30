@@ -1,9 +1,6 @@
 {
   "extends": ["//"],
   "tasks": {
-    "build:docker": {
-      "cache": false
-    },
     "build": {
       "outputs": ["./dist/**"]
     }

@@ -86,6 +86,7 @@ const authentication = {
 };
 
 beforeAll(async () => {
+  await resetGraph();
   await restoreSnapshot(path.join(__dirname, "pass", "circular.jsonl"));
 
   graphContext = createTestImpureGraphContext();

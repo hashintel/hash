@@ -16,6 +16,10 @@
     "build:test": {
       "outputs": ["./build/**/*", "./zip/*"],
       "dependsOn": ["codegen"]
+    },
+    "start:test:migrate": {
+      "cache": false,
+      "dependsOn": ["build:test", "^start:test:healthcheck"]
     }
   }
 }

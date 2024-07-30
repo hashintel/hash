@@ -14,10 +14,6 @@ run *arguments:
   cargo run --profile {{profile}} --bin hash-graph -- {{arguments}}
 
 
-# Generates the OpenAPI specifications and the clients
-generate-openapi-specs:
-  just run server --write-openapi-specs
-
 [private]
 test *arguments:
   just test-unit {{arguments}}

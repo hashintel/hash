@@ -8,7 +8,13 @@ use error_stack::{Context, Report};
 use hash_status::{Status, StatusCode};
 use serde::Serialize;
 
-pub(crate) fn status_to_response<T>(status: Status<T>) -> Response
+/// Converts a `Status` into an `axum::Response`.
+///
+/// # Panics
+///
+/// Panics if the `Status` code does not map to a valid HTTP status code.
+#[must_use]
+pub fn status_to_response<T>(status: Status<T>) -> Response
 where
     T: Serialize + Send + Sync + Debug,
 {
