@@ -20,9 +20,25 @@ impl Display for Symbol {
     }
 }
 
+/// Restrictions on the valid symbols that can be used
+///
+/// In certain contexts, such as when parsing generics of signatures, some operator symbols
+/// introduce ambiguity, for example, given `<>() -> Unit` (which is valid), `<` is used to indicate
+/// the start of all generic arguments, but because `>` is a valid identifier character, the parser
+/// assumes that `>` is the name of a generic, and then fails, as no closing `>` is found.
+///
+/// Using parsing restrictions, the signature parser is able to restrict the set of valid symbols to
+/// only valid Rust identifiers, which do not suffer from this ambiguity.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) enum ParseRestriction {
+    /// Any symbol is allowed
+    ///
+    /// This includes:
+    /// - Rust identifiers
+    /// - Operators
+    /// - Safe Operators
     None,
+    /// Only Rust identifiers are allowed
     RustOnly,
 }
 
