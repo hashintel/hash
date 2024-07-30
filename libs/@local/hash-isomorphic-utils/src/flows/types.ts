@@ -407,11 +407,6 @@ export type ViewedFile = {
   type: "ViewedFile";
 };
 
-export type ClaimProgressLog = ProgressLogBase & {
-  claimEntityId: EntityId;
-  type: "Claim";
-};
-
 export type ProposedEntityLog = ProgressLogBase & {
   proposedEntity: Omit<ProposedEntity, "provenance">;
   type: "ProposedEntity";
@@ -424,7 +419,6 @@ export type PersistedEntityLog = ProgressLogBase & {
 
 export type StepProgressLog =
   | CreatedPlanLog
-  | ClaimProgressLog
   | PersistedEntityLog
   | ProposedEntityLog
   | VisitedWebPageLog

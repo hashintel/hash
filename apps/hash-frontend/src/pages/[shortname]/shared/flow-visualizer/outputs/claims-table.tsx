@@ -23,7 +23,7 @@ import {
   getOutgoingLinksForEntity,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { Skeleton, SxProps, Theme } from "@mui/material";
+import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, TableCell, Typography } from "@mui/material";
 import { memo, useMemo, useRef, useState } from "react";
 
