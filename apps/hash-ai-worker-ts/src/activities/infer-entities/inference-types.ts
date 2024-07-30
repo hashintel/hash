@@ -25,11 +25,14 @@ export type DereferencedEntityTypesByTypeId = Record<
   }
 >;
 
+/**
+ * @todo H-3163: remove these types by making the browser plugin flow use the same claim -> entity process as other flows
+ */
 export type ProposedEntitySummary = {
   entityId: number;
   entityTypeId: VersionedUrl;
-  sourceEntityId?: number | string;
-  targetEntityId?: number | string;
+  sourceEntityId?: number;
+  targetEntityId?: number;
   takenFromQueue?: boolean;
   summary: string;
 };

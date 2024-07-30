@@ -1,15 +1,24 @@
 import "../../../../shared/testing-utilities/mock-get-flow-context.js";
 
+import type { EntityUuid } from "@local/hash-graph-types/entity";
+import type { OwnedById } from "@local/hash-graph-types/web";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { entityIdFromComponents } from "@local/hash-subgraph";
 import { expect, test } from "vitest";
 
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
 import { getWebPageActivity } from "../../../get-web-page-activity.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
-import { inferEntityFactsFromTextAgent } from "./infer-entity-facts-from-text-agent.js";
+import { inferEntityClaimsFromTextAgent } from "./infer-entity-claims-from-text-agent.js";
+
+const ownedById = generateUuid();
+
+const generateEntityId = (entityUuid: string) =>
+  entityIdFromComponents(ownedById as OwnedById, entityUuid as EntityUuid);
 
 test.skip(
-  "Test inferEntityFactsFromText with the FTSE350 table",
+  "Test inferEntityClaimsFromText with the FTSE350 table",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -39,15 +48,16 @@ test.skip(
 
     const { htmlContent } = webPage;
 
-    const { facts } = await inferEntityFactsFromTextAgent({
+    const { claims } = await inferEntityClaimsFromTextAgent({
       text: htmlContent,
       url,
       title: webPage.title,
       dereferencedEntityType,
+      contentType: "webpage",
       linkEntityTypesById: {},
       subjectEntities: [
         {
-          localId: "6675a4ca-2282-4823-a4ff-d65d87218ebd",
+          localId: generateEntityId("6675a4ca-2282-4823-a4ff-d65d87218ebd"),
           name: "MOLTEN VENTURES PLC ORD GBP0.01",
           summary:
             "MOLTEN VENTURES PLC is a technology investment company that invests in early-stage technology businesses.",
@@ -59,9 +69,9 @@ test.skip(
     });
 
     // eslint-disable-next-line no-console
-    console.log(JSON.stringify({ facts }, null, 2));
+    console.log(JSON.stringify({ claims }, null, 2));
 
-    expect(facts).toBeDefined();
+    expect(claims).toBeDefined();
   },
   {
     timeout: 5 * 60 * 1000,
@@ -69,7 +79,7 @@ test.skip(
 );
 
 test.skip(
-  "Test inferEntityFactsFromText for the GeForce RTX 4090 graphics card",
+  "Test inferEntityClaimsFromText for the GeForce RTX 4090 graphics card",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -99,15 +109,16 @@ test.skip(
 
     const { htmlContent } = webPage;
 
-    const { facts } = await inferEntityFactsFromTextAgent({
+    const { claims } = await inferEntityClaimsFromTextAgent({
       text: htmlContent,
       url,
       title: webPage.title,
       dereferencedEntityType,
+      contentType: "webpage",
       linkEntityTypesById: {},
       subjectEntities: [
         {
-          localId: "6675a4ca-2282-4823-a4ff-d65d87218ebd",
+          localId: generateEntityId("6675a4ca-2282-4823-a4ff-d65d87218ebd"),
           name: "GeForce RTX 4090",
           summary: "The GeForce RTX 4090 is a high-end graphics card.",
           entityTypeId:
@@ -118,9 +129,9 @@ test.skip(
     });
 
     // eslint-disable-next-line no-console
-    console.log(JSON.stringify({ facts }, null, 2));
+    console.log(JSON.stringify({ claims }, null, 2));
 
-    expect(facts).toBeDefined();
+    expect(claims).toBeDefined();
   },
   {
     timeout: 5 * 60 * 1000,

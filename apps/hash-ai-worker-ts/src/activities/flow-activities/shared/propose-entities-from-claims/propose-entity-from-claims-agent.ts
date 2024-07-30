@@ -5,9 +5,11 @@ import {
   Entity,
   mergePropertyObjectAndMetadata,
 } from "@local/hash-graph-sdk/entity";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { entityIdFromComponents } from "@local/hash-subgraph";
 import dedent from "dedent";
 import type { JSONSchemaDefinition } from "openai/lib/jsonschema";
 
@@ -27,8 +29,8 @@ import type { LlmToolDefinition } from "../../../shared/get-llm-response/types.j
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { stringify } from "../../../shared/stringify.js";
 import type { ExistingEntitySummary } from "../../research-entities-action/summarize-existing-entities.js";
-import type { LocalEntitySummary } from "../infer-facts-from-text/get-entity-summaries-from-text.js";
-import type { Fact } from "../infer-facts-from-text/types.js";
+import type { LocalEntitySummary } from "../infer-claims-from-text/get-entity-summaries-from-text.js";
+import type { Claim } from "../infer-claims-from-text/types.js";
 
 const mapPropertiesSchemaToInputPropertiesSchema = (params: {
   properties: DereferencedEntityType["properties"];
@@ -55,17 +57,17 @@ const mapPropertiesSchemaToInputPropertiesSchema = (params: {
              * @see https://linear.app/hash/issue/H-2755/attach-provenance-information-to-nested-properties-when-proposing
              */
             propertyValue: jsonSchema,
-            factIdsUsedToDetermineValue: {
+            claimIdsUsedToDetermineValue: {
               type: "array",
               items: {
                 type: "string",
               },
               description: dedent(`
-                The fact IDs of the facts used to determine the value of the property.
+                The claim IDs of the claims used to determine the value of the property.
               `),
             },
           },
-          required: ["propertyValue", "factIdsUsedToDetermineValue"],
+          required: ["propertyValue", "claimIdsUsedToDetermineValue"],
         } satisfies JSONSchemaDefinition,
       };
     },
@@ -76,7 +78,7 @@ const mapPropertiesSchemaToInputPropertiesSchema = (params: {
 type InputPropertiesObject = {
   [key: string]: {
     propertyValue: unknown;
-    factIdsUsedToDetermineValue: string[];
+    claimIdsUsedToDetermineValue: string[];
   };
 };
 
@@ -98,10 +100,10 @@ const mapInputPropertiesToPropertiesObject = (params: {
 
 const generatePropertyMetadata = (params: {
   inputProperties: InputPropertiesObject;
-  facts: Fact[];
+  allClaims: Claim[];
   simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
 }): { propertyMetadata: ProposedEntity["propertyMetadata"] } => {
-  const { inputProperties, facts, simplifiedPropertyTypeMappings } = params;
+  const { inputProperties, allClaims, simplifiedPropertyTypeMappings } = params;
 
   const propertyMetadata: NonNullable<ProposedEntity["propertyMetadata"]> = {
     value: {},
@@ -109,17 +111,17 @@ const generatePropertyMetadata = (params: {
 
   for (const [
     simplifiedPropertyKey,
-    { factIdsUsedToDetermineValue },
+    { claimIdsUsedToDetermineValue },
   ] of Object.entries(inputProperties)) {
-    const factsUsedToDetermineValue = facts.filter((fact) =>
-      factIdsUsedToDetermineValue.includes(fact.factId),
+    const claimsUsedToDetermineValue = allClaims.filter((claim) =>
+      claimIdsUsedToDetermineValue.includes(claim.claimId),
     );
 
-    const sourcesUsedToDetermineValue = factsUsedToDetermineValue
+    const sourcesUsedToDetermineValue = claimsUsedToDetermineValue
       .flatMap(({ sources }) => sources ?? [])
       /**
        * Deduplicate sources by URI, as the same source may have been used
-       * to produce multiple facts.
+       * to produce multiple claims.
        */
       .filter((source, index, all) => {
         const sourceLocationUri = source.location?.uri;
@@ -173,7 +175,7 @@ const generateToolDefinitions = (params: {
   return {
     proposeEntity: {
       name: "proposeEntity",
-      description: "Propose an entity based on the provided facts.",
+      description: "Propose an entity based on the provided claims.",
       inputSchema: {
         type: "object",
         title: dereferencedEntityType.title,
@@ -241,13 +243,13 @@ const generateToolDefinitions = (params: {
     abandonEntity: {
       name: "abandonEntity",
       description:
-        "If it is not possible to satisfy the entity's schema based on the provided facts, abandon the entity.",
+        "If it is not possible to satisfy the entity's schema based on the provided claims, abandon the entity.",
       inputSchema: {
         type: "object",
         properties: {
           explanation: {
             description:
-              "The reason why the entity cannot be proposed based on the provided facts.",
+              "The reason why the entity cannot be proposed based on the provided claims.",
             type: "string",
           },
         },
@@ -261,17 +263,17 @@ const generateSystemPrompt = (params: { proposingOutgoingLinks: boolean }) =>
   dedent(`
   You are an entity proposal agent.
 
-  The user will provide you with:
-    - Facts: a list of facts about the entity
+  I will provide you with:
+    - Claims: a list of claims about the entity
     ${
       params.proposingOutgoingLinks
         ? `Possible outgoing link target entities: a list of entities which can be used as target entities when defining outgoing links on the entity`
         : ``
     }
 
-  The user has requested that you fill out as many properties as possible, so please do so. Do not optimize for short responses.
+  Please fill out as many properties as possible – do not optimize for short responses.
 
-  The provided facts are your only source of information, so make sure to extract as much information as possible,
+  The provided claims are your only source of information, so make sure to extract as much information as possible,
     and do not rely on other information about the entities in question you may know.
 
   You must make exactly one tool call. Provide all the properties of the single entity in that single tool call.
@@ -279,9 +281,12 @@ const generateSystemPrompt = (params: { proposingOutgoingLinks: boolean }) =>
 
 const retryMax = 3;
 
-export const proposeEntityFromFactsAgent = async (params: {
+export const proposeEntityFromClaimsAgent = async (params: {
   entitySummary: LocalEntitySummary;
-  facts: Fact[];
+  claims: {
+    isObjectOf: Claim[];
+    isSubjectOf: Claim[];
+  };
   dereferencedEntityType: DereferencedEntityType;
   simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
   proposeOutgoingLinkEntityTypes: {
@@ -312,13 +317,15 @@ export const proposeEntityFromFactsAgent = async (params: {
 > => {
   const {
     entitySummary,
-    facts,
+    claims,
     dereferencedEntityType,
     simplifiedPropertyTypeMappings,
     retryContext,
     proposeOutgoingLinkEntityTypes,
     possibleOutgoingLinkTargetEntitySummaries,
   } = params;
+
+  const allClaims = [...claims.isObjectOf, ...claims.isSubjectOf];
 
   const { userAuthentication, flowEntityId, stepId, webId } =
     await getFlowContext();
@@ -349,7 +356,7 @@ export const proposeEntityFromFactsAgent = async (params: {
               text: dedent(`
                 Entity name: ${entitySummary.name}
                 Entity summary ${entitySummary.summary}
-                Facts about entity: ${JSON.stringify(facts)}
+                Claims about entity: ${JSON.stringify(claims)}
                 ${
                   proposingOutgoingLinks
                     ? `Possible outgoing link target entities: ${JSON.stringify(
@@ -368,7 +375,7 @@ export const proposeEntityFromFactsAgent = async (params: {
     {
       customMetadata: {
         stepId,
-        taskName: "entity-from-facts",
+        taskName: "entity-from-claims",
       },
       userAccountId: userAuthentication.actorId,
       graphApiClient,
@@ -392,7 +399,7 @@ export const proposeEntityFromFactsAgent = async (params: {
       };
     }
 
-    return proposeEntityFromFactsAgent({
+    return proposeEntityFromClaimsAgent({
       ...params,
       retryContext: {
         retryCount: retryCount + 1,
@@ -446,12 +453,12 @@ export const proposeEntityFromFactsAgent = async (params: {
     const retryToolCallMessages: string[] = [];
 
     /**
-     * @todo: consider validating fact IDs specified in the input properties
+     * @todo: consider validating claim IDs specified in the input properties
      */
 
     const { propertyMetadata } = generatePropertyMetadata({
       inputProperties,
-      facts,
+      allClaims,
       simplifiedPropertyTypeMappings,
     });
 
@@ -528,10 +535,16 @@ export const proposeEntityFromFactsAgent = async (params: {
           const { propertyMetadata: outgoingLinkPropertyMetadata } =
             generatePropertyMetadata({
               inputProperties: outgoingLinkInputProperties,
-              facts,
+              allClaims,
               simplifiedPropertyTypeMappings:
                 outgoingLinkSimplifiedPropertyTypeMappings,
             });
+
+          const claimsUsedToToCreateLink = allClaims.filter((claim) =>
+            Object.values(outgoingLink.properties)
+              .flatMap((property) => property.claimIdsUsedToDetermineValue)
+              .includes(claim.claimId),
+          );
 
           try {
             await Entity.validate(graphApiClient, userAuthentication, {
@@ -574,7 +587,25 @@ export const proposeEntityFromFactsAgent = async (params: {
           }
 
           proposedOutgoingLinkEntities.push({
-            localEntityId: generateUuid(),
+            claims: {
+              /**
+               * The claims used to create the link won't express the relationship itself as their subject or object,
+               * but rather have the entity on either side of the link as the explicit subject / object.
+               * The relationship this link entity represents is likely to more of a predicate in the claim, e.g. "Bob _worked at_ Acme Corp.".
+               * For now, we set the relationship as the object of the claim – we could instead
+               * 1. ask an LLM to determine if it's more properly the subject or object
+               * 2. Or/additionally introduce a 'has predicate' relationship from the claim,
+               *    which we either use always or ask an LLM to decide between subject/object/predicate based on the phrasing of the claim.
+               */
+              isObjectOf: claimsUsedToToCreateLink.map(
+                (claim) => claim.claimId,
+              ),
+              isSubjectOf: [],
+            },
+            localEntityId: entityIdFromComponents(
+              webId,
+              generateUuid() as EntityUuid,
+            ),
             summary: `"${dereferencedOutgoingLinkEntityType.title}" link with source ${entitySummary.name} and target ${targetEntitySummary.name}`,
             sourceEntityId: {
               kind: "proposed-entity",
@@ -620,6 +651,10 @@ export const proposeEntityFromFactsAgent = async (params: {
     }
 
     const proposedEntity: ProposedEntity = {
+      claims: {
+        isObjectOf: claims.isObjectOf.map((claim) => claim.claimId),
+        isSubjectOf: claims.isSubjectOf.map((claim) => claim.claimId),
+      },
       localEntityId: entitySummary.localId,
       propertyMetadata,
       summary: entitySummary.summary,

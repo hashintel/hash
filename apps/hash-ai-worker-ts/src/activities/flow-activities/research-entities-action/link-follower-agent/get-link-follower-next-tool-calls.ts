@@ -10,9 +10,9 @@ import type {
   LlmToolDefinition,
 } from "../../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
-import type { LocalEntitySummary } from "../../shared/infer-facts-from-text/get-entity-summaries-from-text.js";
-import type { Fact } from "../../shared/infer-facts-from-text/types.js";
-import { simplifyFactForLlmConsumption } from "../shared/simplify-for-llm-consumption.js";
+import type { LocalEntitySummary } from "../../shared/infer-claims-from-text/get-entity-summaries-from-text.js";
+import type { Claim } from "../../shared/infer-claims-from-text/types.js";
+import { simplifyClaimForLlmConsumption } from "../shared/simplify-for-llm-consumption.js";
 import type { Link } from "./choose-relevant-links-from-content.js";
 
 const defaultModel: LlmParams["model"] = "claude-3-5-sonnet-20240620";
@@ -23,35 +23,35 @@ const getLinkFollowerNextToolCallsSystemPrompt = dedent(`
   <UserMessageDefinition>
   The user will provide you with:
     - Task: a research task you have been instructed to fulfill, based on the contents of a resource (e.g. a webpage)
-    - Previously Visited Links: links to resources which have been previously visited to extract facts
-    - Entities: a list of entities for which facts have been gathered, including:
+    - Previously Visited Links: links to resources which have been previously visited to extract claims
+    - Entities: a list of entities for which claims have been gathered, including:
         - name: the name of the entity
         - summary: a summary of the entity
         - entityType: the type of the entity
-        - facts: the facts that have been gathered about the entity
-    - Possible Next Links: a list of the possible next links which may be explored next to gather more facts and fulfill the task
+        - claims: the claims that have been gathered about the entity
+    - Possible Next Links: a list of the possible next links which may be explored next to gather more claims and fulfill the task
   </UserMessageDefinition>
 
   <TaskDescription>
   Using the provided tools, you must make a decision on what to do next to fulfill the task.
 
   You can only make a single tool call, which must be one of the following:
-    - complete: complete the research task if the gathered facts fulfill the task
-    - exploreLinks: call this tool to explore additional links to gather more facts that may fulfill the task
+    - complete: complete the research task if the gathered claims fulfill the task
+    - exploreLinks: call this tool to explore additional links to gather more claims that may fulfill the task
     - terminate: terminate the research task if it cannot be progressed further
     
-  If you already have enough facts to meet the research brief, call 'complete'. 
+  If you already have enough claims to meet the research brief, call 'complete'. 
   Don't follow more links unless it is required to meet the goal of the research task.
   </TaskDescription>
   
-  Balance any need to gather more facts with the need to complete the task in a timely manner.
-  Consider the research task and the facts already gathered when making your decision.
+  Balance any need to gather more claims with the need to complete the task in a timely manner.
+  Consider the research task and the claims already gathered when making your decision.
 `);
 
 type GetLinkFollowerNextToolCallsParams = {
   task: string;
   entitySummaries: LocalEntitySummary[];
-  factsGathered: Fact[];
+  claimsGathered: Claim[];
   previouslyVisitedLinks: { url: string }[];
   possibleNextLinks: Link[];
 };
@@ -62,7 +62,7 @@ const generateUserMessage = (
   const {
     task,
     entitySummaries,
-    factsGathered,
+    claimsGathered,
     previouslyVisitedLinks,
     possibleNextLinks,
   } = params;
@@ -79,16 +79,16 @@ const generateUserMessage = (
 Here is the information about entities you have already gathered:
 ${JSON.stringify(
   entitySummaries.map(({ localId, name, summary, entityTypeId }) => {
-    const factsAboutEntity = factsGathered.filter(
-      (fact) => fact.subjectEntityLocalId === localId,
+    const claimsAboutEntity = claimsGathered.filter(
+      (claim) => claim.subjectEntityLocalId === localId,
     );
 
     return {
       name,
       summary,
       entityType: entityTypeId,
-      facts: JSON.stringify(
-        factsAboutEntity.map(simplifyFactForLlmConsumption),
+      claims: JSON.stringify(
+        claimsAboutEntity.map(simplifyClaimForLlmConsumption),
       ),
     };
   }),
@@ -119,8 +119,8 @@ type ToolName = (typeof toolNames)[number];
 const suggestionForNextStepsDefinition = {
   type: "string",
   description: dedent(`
-    A suggestion for how to find any relevant facts that could be used to provide values for additional properties.
-    This should be a detailed explanation of how you would go about finding the missing facts from online resources.
+    A suggestion for how to find any relevant claims that could be used to provide values for additional properties.
+    This should be a detailed explanation of how you would go about finding the missing claims from online resources.
     If the you've encountered URLs for web pages which may be relevant, you must include them in the suggestion.
   `),
 };
@@ -129,7 +129,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
   {
     name: "exploreLinks",
     description: dedent(`
-      Explore the links specified to gather more facts and fulfill the task.
+      Explore the links specified to gather more claims and fulfill the task.
       The links must be one of the possible next links provided by the user.
     `),
     inputSchema: {
@@ -176,7 +176,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
   {
     name: "complete",
     description:
-      "Complete the research task, if you have gathered enough facts to satisfy the research goal.",
+      "Complete the research task, if you have gathered enough claims to satisfy the research goal.",
     inputSchema: {
       type: "object",
       properties: {
@@ -184,7 +184,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
         explanation: {
           type: "string",
           description:
-            "The reason the task is complete based on the facts gathered.",
+            "The reason the task is complete based on the claims gathered.",
         },
       },
       required: ["explanation", "suggestionForNextSteps"],
@@ -196,7 +196,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
       Terminate the research task, because it cannot be progressed with the provided tools.
 
       Do not under any circumstances terminate the task if you were able to find some, but
-        not all of the facts requested by the user.
+        not all of the claims requested by the user.
     `),
     inputSchema: {
       type: "object",

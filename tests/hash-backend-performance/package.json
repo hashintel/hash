@@ -6,14 +6,14 @@
   "license": "AGPL-3.0",
   "type": "module",
   "exports": {
-    ".": "./dist/cjs/main.js"
+    ".": "./dist/esm/main.mjs"
   },
-  "main": "./dist/cjs/main.cjs",
-  "types": "./dist/cjs/main.d.ts",
+  "main": "./dist/esm/main.mjs",
+  "types": "./dist/esm/main.d.ts",
   "typesVersions": {
     "*": {
       "*": [
-        "./dist/cjs/main.d.ts"
+        "./dist/esm/main.d.ts"
       ]
     }
   },
@@ -30,6 +30,12 @@
     "test:integration": "for file in scenarios/*.yml; do artillery run --config artillery.yml $file --environment functional; done"
   },
   "dependencies": {
+    "@local/hash-backend-utils": "0.0.0-private",
+    "@local/hash-graph-client": "0.0.0-private",
+    "@local/hash-graph-sdk": "0.0.0-private",
+    "@local/hash-graph-types": "0.0.0-private",
+    "@local/hash-isomorphic-utils": "0.0.0-private",
+    "@local/hash-subgraph": "0.0.0-private",
     "@ory/client": "1.1.41",
     "artillery": "2.0.18"
   },

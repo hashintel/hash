@@ -86,7 +86,7 @@ test(
       input: {
         goal: "Find Ben Werner's Github profile URL",
         relevantEntities: [],
-        existingFactsAboutRelevantEntities: [],
+        existingClaimsAboutRelevantEntities: [],
         entityTypes,
         linkEntityTypes: [],
       },

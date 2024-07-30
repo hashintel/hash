@@ -255,7 +255,109 @@ const migrate: MigrationFunction = async ({
   );
 
   /**
-   * Step 3: create a `Incurred In` link entity type
+   * Step 3: Create a 'Claim' entity type.
+   *
+   * Each claim has a subject, and may have an object.
+   * The subject and object may be only plain text, or potentially also a linked entity if and when one is available.
+   */
+  const objectPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Object",
+        description: "What something is directed towards.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      webShortname: "hash",
+      migrationState,
+    },
+  );
+
+  const subjectPropertyType = await createSystemPropertyTypeIfNotExists(
+    context,
+    authentication,
+    {
+      propertyTypeDefinition: {
+        title: "Subject",
+        description: "A thing or theme that something is about.",
+        possibleValues: [{ primitiveDataType: "text" }],
+      },
+      webShortname: "hash",
+      migrationState,
+    },
+  );
+
+  const hasSubjectEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        allOf: [linkEntityTypeUrl],
+        title: "Has Subject",
+        description: "The subject something has",
+        properties: [],
+      },
+      webShortname: "hash",
+      migrationState,
+      instantiator: anyUserInstantiator,
+    },
+  );
+
+  const hasObjectEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        allOf: [linkEntityTypeUrl],
+        title: "Has Object",
+        description: "The object something has",
+        properties: [],
+      },
+      webShortname: "hash",
+      migrationState,
+      instantiator: anyUserInstantiator,
+    },
+  );
+
+  const _claimEntityType = await createSystemEntityTypeIfNotExists(
+    context,
+    authentication,
+    {
+      entityTypeDefinition: {
+        title: "Claim",
+        description: "A claim made about something.",
+        properties: [
+          {
+            propertyType:
+              blockProtocolPropertyTypes.textualContent.propertyTypeId,
+            required: true,
+          },
+          {
+            propertyType: subjectPropertyType,
+            required: true,
+          },
+          {
+            propertyType: objectPropertyType,
+          },
+        ],
+        outgoingLinks: [
+          {
+            linkEntityType: hasSubjectEntityType,
+          },
+          {
+            linkEntityType: hasObjectEntityType,
+          },
+        ],
+      },
+      webShortname: "hash",
+      migrationState,
+      instantiator: anyUserInstantiator,
+    },
+  );
+
+  /**
+   * Step 4: create a `Incurred In` link entity type
    */
 
   const incurredInLinkEntityType = await createSystemEntityTypeIfNotExists(
