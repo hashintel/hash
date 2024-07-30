@@ -20,15 +20,22 @@ The CST of the language is very basic, only consisting of three different constr
 - Signature: Signature is a special type, which is parsed independently of variables, they have a specific form (specified in the CST crate) and are defined using:
   - `{"sig": ...}`
   - `"sig"`
-  - `"#sig(...)"` (used in case of ambiguity)
 
-The `#` symbol is used to denote a special form instructions and types, and is of form: `#<name>(...)`. Currently only `#sig` is supported for signatures.
+### Future Expansions
 
-In the future these might be expanded upon to allow for more convenient definition of constants, or inputs, e.g.:
+A potential future expansion includes the inclusion of special form values, these are values that are denoted with `#` and are a way to express already existing syntax in a more terse way.
 
-- `{"const": 1, "type": "Int"}` -> `#value(Int, 1)`
-- `{"const": 1}` -> `#value(1)`
-- `["input", "variable"]` -> `#input(variable)`
+These are currently only under consideration, should it be that the current syntax is too cumbersome to write manually, and may never be implemented.
+
+They are denoted by `#` followed by a name, and the arguments to that function.
+
+The following special form values are considered:
+
+- `#value(type, value)` - A constant value of a specific type, corresponds to `{"const": value, "type": type}`
+- `#value(value)` - A constant value, the type is inferred from the value, corresponds to `{"const": value}`
+- `#input(name)` - A variable input, corresponds to `["input", name]`
+- `#var(name)` - A variable, corresponds to `{"var": name}`
+- `#sig(signature)` - A signature, corresponds to `{"sig": signature}`
 
 (This is possible because `#` is not allowed as the start of a valid identifier.)
 
