@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
-use core::iter::once;
-use std::collections::HashSet;
+use core::{iter::once, mem};
+use std::collections::{HashMap, HashSet};
 
 use authorization::{
     backend::ModifyRelationshipOperation,
@@ -42,16 +42,19 @@ use crate::{
         },
         postgres::{
             crud::QueryRecordDecode,
-            ontology::{OntologyId, PostgresOntologyTypeClassificationMetadata},
-            query::{Distinctness, PostgresRecord, SelectCompiler, Table},
+            ontology::{
+                read::OntologyTypeTraversalData, OntologyId,
+                PostgresOntologyTypeClassificationMetadata,
+            },
+            query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
             TraversalContext,
         },
         AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, SubgraphRecord,
         UpdateError,
     },
     subgraph::{
-        edges::GraphResolveDepths,
-        identifier::GraphElementVertexId,
+        edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
+        identifier::{DataTypeVertexId, GraphElementVertexId},
         temporal_axes::{QueryTemporalAxes, VariableAxis},
         Subgraph,
     },
@@ -204,19 +207,83 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     pub(crate) async fn traverse_data_types(
         &self,
-        queue: Vec<(
+        mut data_type_queue: Vec<(
             OntologyId,
             GraphResolveDepths,
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
-        _: &mut TraversalContext,
+        traversal_context: &mut TraversalContext,
         actor_id: AccountId,
-        _: &Zookie<'static>,
-        _: &mut Subgraph,
+        zookie: &Zookie<'static>,
+        subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
-        // TODO: data types currently have no references to other types, so we don't need to do
-        //       anything here
-        //   see https://linear.app/hash/issue/H-3075/allow-traversing-data-type-edges
+        while !data_type_queue.is_empty() {
+            let mut edges_to_traverse =
+                HashMap::<OntologyEdgeKind, OntologyTypeTraversalData>::new();
+
+            for (entity_type_ontology_id, graph_resolve_depths, traversal_interval) in
+                mem::take(&mut data_type_queue)
+            {
+                for edge_kind in [
+                    OntologyEdgeKind::InheritsFrom,
+                    OntologyEdgeKind::ConstrainsValuesOn,
+                ] {
+                    if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                        .decrement_depth_for_edge(edge_kind, EdgeDirection::Outgoing)
+                    {
+                        edges_to_traverse.entry(edge_kind).or_default().push(
+                            entity_type_ontology_id,
+                            new_graph_resolve_depths,
+                            traversal_interval,
+                        );
+                    }
+                }
+            }
+
+            for (edge_kind, table) in [
+                (
+                    OntologyEdgeKind::InheritsFrom,
+                    ReferenceTable::DataTypeInheritsFrom {
+                        // TODO: Use the resolve depths passed to the query
+                        inheritance_depth: Some(0),
+                    },
+                ),
+                (
+                    OntologyEdgeKind::ConstrainsValuesOn,
+                    ReferenceTable::DataTypeConstrainsValuesOn,
+                ),
+            ] {
+                if let Some(traversal_data) = edges_to_traverse.get(&edge_kind) {
+                    data_type_queue.extend(
+                        Self::filter_data_types_by_permission(
+                            self.read_ontology_edges::<DataTypeVertexId, DataTypeVertexId>(
+                                traversal_data,
+                                table,
+                            )
+                            .await?,
+                            actor_id,
+                            &self.authorization_api,
+                            zookie,
+                        )
+                        .await?
+                        .flat_map(|edge| {
+                            subgraph.insert_edge(
+                                &edge.left_endpoint,
+                                edge_kind,
+                                EdgeDirection::Outgoing,
+                                edge.right_endpoint.clone(),
+                            );
+
+                            traversal_context.add_data_type_id(
+                                edge.right_endpoint_ontology_id,
+                                edge.resolve_depths,
+                                edge.traversal_interval,
+                            )
+                        }),
+                    );
+                }
+            }
+        }
 
         Ok(())
     }

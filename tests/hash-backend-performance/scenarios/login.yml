@@ -1,0 +1,20 @@
+scenarios:
+  - name: Login
+    beforeRequest: refreshSessionToken
+    flow:
+      - post:
+          name: Me query
+          url: /
+          json:
+            query: |
+              query {
+                me {
+                  subgraph {
+                    roots
+                    vertices
+                  }
+                }
+              }
+          match:
+            json: $.data.me
+            as: me

@@ -19,7 +19,7 @@ use tower_http::{
 };
 use tracing::field::Empty;
 
-pub(crate) fn span_trace_layer() -> TraceLayer<
+pub fn span_trace_layer() -> TraceLayer<
     SharedClassifier<ServerErrorsAsFailures>,
     impl Fn(&Request<Body>) -> tracing::Span + Clone,
     DefaultOnRequest,

@@ -11,9 +11,8 @@
     "build:temporal:migrate": "docker buildx build --file temporal/migrate.Dockerfile --build-arg TEMPORAL_VERSION=1.23.1.0 temporal --load",
     "build:temporal:setup": "docker buildx build --file temporal/migrate.Dockerfile --build-arg TEMPORAL_VERSION=1.23.1.0 temporal --load",
     "codegen": "touch ../../.env.local",
-    "deploy": "docker compose --project-name hash-external-services --file docker-compose.yml --file docker-compose.dev.yml --file docker-compose.type-fetcher.yml --file docker-compose.ai.yml --env-file ../../.env --env-file ../../.env.development --env-file ../../.env.local",
-    "deploy:offline": "docker compose --project-name hash-external-services --file docker-compose.yml --file docker-compose.dev.yml --file docker-compose.ai.yml --env-file ../../.env  --env-file ../../.env.development --env-file ../../.env.local",
-    "deploy:prod": "docker compose --project-name hash-external-services --file docker-compose.yml --file docker-compose.type-fetcher.yml --file docker-compose.prod.yml --env-file ../../.env --env-file ../../.env.production --env-file ../../.env.local",
-    "deploy:test": "docker compose --project-name hash-external-services --file docker-compose.yml --file docker-compose.test.yml --file docker-compose.ai.yml --env-file ../../.env --env-file ../../.env.test --env-file ../../.env.local"
+    "deploy": "docker compose --project-name hash-external-services --file docker-compose.yml --file docker-compose.dev.yml --env-file ../../.env --env-file ../../.env.development --env-file ../../.env.local",
+    "deploy:prod": "docker compose --project-name hash-external-services --file docker-compose.yml --file docker-compose.prod.yml --env-file ../../.env --env-file ../../.env.production --env-file ../../.env.local",
+    "deploy:test": "docker compose --project-name hash-external-services --file docker-compose.yml --file docker-compose.test.yml --env-file ../../.env --env-file ../../.env.test --env-file ../../.env.local"
   }
 }

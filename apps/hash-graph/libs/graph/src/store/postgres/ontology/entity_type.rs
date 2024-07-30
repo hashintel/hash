@@ -262,7 +262,8 @@ where
                         self.read_ontology_edges::<EntityTypeVertexId, PropertyTypeVertexId>(
                             traversal_data,
                             ReferenceTable::EntityTypeConstrainsPropertiesOn {
-                                inheritance_depth: None,
+                                // TODO: Use the resolve depths passed to the query
+                                inheritance_depth: Some(0),
                             },
                         )
                         .await?,
@@ -292,19 +293,22 @@ where
                 (
                     OntologyEdgeKind::InheritsFrom,
                     ReferenceTable::EntityTypeInheritsFrom {
-                        inheritance_depth: None,
+                        // TODO: Use the resolve depths passed to the query
+                        inheritance_depth: Some(0),
                     },
                 ),
                 (
                     OntologyEdgeKind::ConstrainsLinksOn,
                     ReferenceTable::EntityTypeConstrainsLinksOn {
-                        inheritance_depth: None,
+                        // TODO: Use the resolve depths passed to the query
+                        inheritance_depth: Some(0),
                     },
                 ),
                 (
                     OntologyEdgeKind::ConstrainsLinkDestinationsOn,
                     ReferenceTable::EntityTypeConstrainsLinkDestinationsOn {
-                        inheritance_depth: None,
+                        // TODO: Use the resolve depths passed to the query
+                        inheritance_depth: Some(0),
                     },
                 ),
             ] {
