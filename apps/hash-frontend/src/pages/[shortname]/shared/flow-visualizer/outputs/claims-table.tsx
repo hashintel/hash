@@ -23,7 +23,7 @@ import {
   getOutgoingLinksForEntity,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import type { SxProps, Theme } from "@mui/material";
+import { Skeleton, SxProps, Theme } from "@mui/material";
 import { Box, Stack, TableCell, Typography } from "@mui/material";
 import { memo, useMemo, useRef, useState } from "react";
 
@@ -92,7 +92,7 @@ type ClaimResultRow = {
   };
   onEntityClick: (entityId: EntityId) => void;
   sources: SourceProvenance[];
-  status: "Processing claim" | "Accepted" | "Ignored";
+  status: "Processing claim" | "Processed";
 };
 
 const typographySx = {
@@ -294,7 +294,7 @@ export const ClaimsTable = memo(
 
     const { selectedFlowRun } = useFlowRunsContext();
 
-    const { data: claimsData } = useQuery<
+    const { data: claimsData, loading: claimsDataLoading } = useQuery<
       GetEntitySubgraphQuery,
       GetEntitySubgraphQueryVariables
     >(getEntitySubgraphQuery, {
@@ -447,7 +447,7 @@ export const ClaimsTable = memo(
             claim: claimText,
             onEntityClick,
             sources: claim.metadata.provenance.edition.sources ?? [],
-            status: subjectEntityId ? "Accepted" : "Processing claim",
+            status: subjectEntityId ? "Processed" : "Processing claim",
             subject: {
               entityId: subjectEntityId,
               name: subjectText,
@@ -505,7 +505,11 @@ export const ClaimsTable = memo(
         ) : (
           <EmptyOutputBox
             Icon={outputIcons.table}
-            label="Claims about entities discovered by this flow will appear in a table here"
+            label={
+              claimsDataLoading
+                ? "Checking for claims associated with flow..."
+                : "Claims about entities discovered by this flow will appear in a table here"
+            }
           />
         )}
       </OutputContainer>
