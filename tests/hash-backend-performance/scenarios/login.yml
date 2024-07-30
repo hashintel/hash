@@ -10,7 +10,7 @@ scenarios:
               query {
                 me {
                   subgraph {
-                    roots,
+                    roots
                     vertices
                   }
                 }
