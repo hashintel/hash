@@ -47,7 +47,7 @@ export const useFlowRunsUsage = ({
   pollInterval = 5_000,
 }: {
   flowRunIds: EntityUuid[];
-  pollInterval: number;
+  pollInterval?: number;
 }): {
   isUsageAvailable: boolean;
   loading: boolean;
