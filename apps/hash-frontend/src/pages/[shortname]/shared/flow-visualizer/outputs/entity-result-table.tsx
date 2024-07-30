@@ -369,198 +369,200 @@ type EntityResultTableProps = {
   proposedEntitiesTypesSubgraph?: Subgraph;
 };
 
-export const EntityResultTable = ({
-  onEntityClick,
-  onEntityTypeClick,
-  persistedEntities,
-  persistedEntitiesSubgraph,
-  proposedEntities,
-  proposedEntitiesTypesSubgraph,
-}: EntityResultTableProps) => {
-  const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
-    field: "entityLabel",
-    direction: "asc",
-  });
-
-  const hasData = !!(persistedEntities.length || proposedEntities.length);
-
-  const {
-    rows,
-    entityTypes,
-  }: {
-    rows: VirtualizedTableRow<EntityResultRow>[];
-    entityTypes: EntityType[];
-  } = useMemo(() => {
-    const rowData: VirtualizedTableRow<EntityResultRow>[] = [];
-    const entityTypesById: Record<VersionedUrl, EntityType> = {};
-
-    for (const record of persistedEntities.length
-      ? persistedEntities
-      : proposedEntities) {
-      const isProposed = "localEntityId" in record;
-
-      const entity = isProposed
-        ? record
-        : record.entity
-          ? new Entity(record.entity)
-          : undefined;
-
-      if (!entity) {
-        continue;
-      }
-
-      const entityId =
-        "localEntityId" in entity
-          ? entity.localEntityId
-          : entity.metadata.recordId.entityId;
-
-      const entityTypeId =
-        "entityTypeId" in entity
-          ? entity.entityTypeId
-          : entity.metadata.entityTypeId;
-
-      const entityLabel = generateEntityLabel(
-        persistedEntitiesSubgraph ?? null,
-        {
-          properties: entity.properties,
-          metadata: {
-            recordId: {
-              editionId: "irrelevant-here",
-              entityId: `ownedBy~${entityId}` as EntityId,
-            } satisfies EntityRecordId,
-            entityTypeId: entityTypeId satisfies VersionedUrl,
-          } as EntityMetadata,
-        },
-      );
-
-      const subgraph = isProposed
-        ? proposedEntitiesTypesSubgraph
-        : persistedEntitiesSubgraph;
-
-      if (!subgraph) {
-        continue;
-      }
-
-      let entityType = entityTypesById[entityTypeId];
-      if (!entityType) {
-        const entityTypeWithMetadata = getEntityTypeById(
-          subgraph,
-          entityTypeId,
-        );
-
-        if (!entityTypeWithMetadata) {
-          // The data for the types may not arrive at the same time as the proposal
-          continue;
-        }
-
-        entityType = entityTypeWithMetadata.schema;
-        entityTypesById[entityTypeId] = entityType;
-      }
-
-      rowData.push({
-        id: entityId,
-        data: {
-          entityLabel,
-          entityTypeId,
-          entityType,
-          onEntityClick,
-          onEntityTypeClick,
-          persistedEntity: "metadata" in entity ? entity : undefined,
-          proposedEntityId: isProposed ? entityId : undefined,
-          properties: entity.properties,
-          propertiesMetadata:
-            "propertiesMetadata" in entity
-              ? entity.propertiesMetadata
-              : entity.propertyMetadata,
-          researchOngoing:
-            "researchOngoing" in record && record.researchOngoing,
-          status: isProposed
-            ? "Proposed"
-            : record.operation === "update"
-              ? "Updated"
-              : "Created",
-        },
-      });
-    }
-
-    return {
-      entityTypes: Object.values(entityTypesById),
-      rows: rowData.sort((a, b) => {
-        const field = sort.field;
-        const direction = sort.direction === "asc" ? 1 : -1;
-
-        if (!isFixedField(field)) {
-          /**
-           * This is a property field, so we need to compare the values of the properties
-           */
-          const baseUrl = extractBaseUrl(field);
-
-          return (
-            (a.data.properties[baseUrl]
-              ?.toString()
-              .localeCompare(b.data.properties[baseUrl]?.toString() ?? "") ??
-              0) * direction
-          );
-        }
-
-        return a.data[field].localeCompare(b.data[field]) * direction;
-      }),
-    };
-  }, [
+export const EntityResultTable = memo(
+  ({
     onEntityClick,
     onEntityTypeClick,
     persistedEntities,
     persistedEntitiesSubgraph,
     proposedEntities,
     proposedEntitiesTypesSubgraph,
-    sort,
-  ]);
+  }: EntityResultTableProps) => {
+    const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
+      field: "entityLabel",
+      direction: "asc",
+    });
 
-  const columns = useMemo(
-    () =>
-      generateColumns(
-        entityTypes,
-        persistedEntities.length === 0
-          ? proposedEntitiesTypesSubgraph
-          : persistedEntitiesSubgraph,
-      ),
-    [
+    const hasData = !!(persistedEntities.length || proposedEntities.length);
+
+    const {
+      rows,
       entityTypes,
-      proposedEntitiesTypesSubgraph,
-      persistedEntitiesSubgraph,
-      persistedEntities.length,
-    ],
-  );
+    }: {
+      rows: VirtualizedTableRow<EntityResultRow>[];
+      entityTypes: EntityType[];
+    } = useMemo(() => {
+      const rowData: VirtualizedTableRow<EntityResultRow>[] = [];
+      const entityTypesById: Record<VersionedUrl, EntityType> = {};
 
-  return (
-    <OutputContainer
-      noBorder={hasData}
-      sx={{
-        flex: 1,
-        minWidth: 400,
-        "& table": {
-          tableLayout: "auto",
-        },
-        "& th:not(:last-child)": {
-          borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
-        },
-      }}
-    >
-      {hasData ? (
-        <VirtualizedTable
-          columns={columns}
-          createRowContent={createRowContent}
-          fixedColumns={3}
-          rows={rows}
-          sort={sort}
-          setSort={setSort}
-        />
-      ) : (
-        <EmptyOutputBox
-          Icon={outputIcons.table}
-          label="Entities proposed and affected by this flow will appear in a table here"
-        />
-      )}
-    </OutputContainer>
-  );
-};
+      for (const record of persistedEntities.length
+        ? persistedEntities
+        : proposedEntities) {
+        const isProposed = "localEntityId" in record;
+
+        const entity = isProposed
+          ? record
+          : record.entity
+            ? new Entity(record.entity)
+            : undefined;
+
+        if (!entity) {
+          continue;
+        }
+
+        const entityId =
+          "localEntityId" in entity
+            ? entity.localEntityId
+            : entity.metadata.recordId.entityId;
+
+        const entityTypeId =
+          "entityTypeId" in entity
+            ? entity.entityTypeId
+            : entity.metadata.entityTypeId;
+
+        const entityLabel = generateEntityLabel(
+          persistedEntitiesSubgraph ?? null,
+          {
+            properties: entity.properties,
+            metadata: {
+              recordId: {
+                editionId: "irrelevant-here",
+                entityId: `ownedBy~${entityId}` as EntityId,
+              } satisfies EntityRecordId,
+              entityTypeId: entityTypeId satisfies VersionedUrl,
+            } as EntityMetadata,
+          },
+        );
+
+        const subgraph = isProposed
+          ? proposedEntitiesTypesSubgraph
+          : persistedEntitiesSubgraph;
+
+        if (!subgraph) {
+          continue;
+        }
+
+        let entityType = entityTypesById[entityTypeId];
+        if (!entityType) {
+          const entityTypeWithMetadata = getEntityTypeById(
+            subgraph,
+            entityTypeId,
+          );
+
+          if (!entityTypeWithMetadata) {
+            // The data for the types may not arrive at the same time as the proposal
+            continue;
+          }
+
+          entityType = entityTypeWithMetadata.schema;
+          entityTypesById[entityTypeId] = entityType;
+        }
+
+        rowData.push({
+          id: entityId,
+          data: {
+            entityLabel,
+            entityTypeId,
+            entityType,
+            onEntityClick,
+            onEntityTypeClick,
+            persistedEntity: "metadata" in entity ? entity : undefined,
+            proposedEntityId: isProposed ? entityId : undefined,
+            properties: entity.properties,
+            propertiesMetadata:
+              "propertiesMetadata" in entity
+                ? entity.propertiesMetadata
+                : entity.propertyMetadata,
+            researchOngoing:
+              "researchOngoing" in record && record.researchOngoing,
+            status: isProposed
+              ? "Proposed"
+              : record.operation === "update"
+                ? "Updated"
+                : "Created",
+          },
+        });
+      }
+
+      return {
+        entityTypes: Object.values(entityTypesById),
+        rows: rowData.sort((a, b) => {
+          const field = sort.field;
+          const direction = sort.direction === "asc" ? 1 : -1;
+
+          if (!isFixedField(field)) {
+            /**
+             * This is a property field, so we need to compare the values of the properties
+             */
+            const baseUrl = extractBaseUrl(field);
+
+            return (
+              (a.data.properties[baseUrl]
+                ?.toString()
+                .localeCompare(b.data.properties[baseUrl]?.toString() ?? "") ??
+                0) * direction
+            );
+          }
+
+          return a.data[field].localeCompare(b.data[field]) * direction;
+        }),
+      };
+    }, [
+      onEntityClick,
+      onEntityTypeClick,
+      persistedEntities,
+      persistedEntitiesSubgraph,
+      proposedEntities,
+      proposedEntitiesTypesSubgraph,
+      sort,
+    ]);
+
+    const columns = useMemo(
+      () =>
+        generateColumns(
+          entityTypes,
+          persistedEntities.length === 0
+            ? proposedEntitiesTypesSubgraph
+            : persistedEntitiesSubgraph,
+        ),
+      [
+        entityTypes,
+        proposedEntitiesTypesSubgraph,
+        persistedEntitiesSubgraph,
+        persistedEntities.length,
+      ],
+    );
+
+    return (
+      <OutputContainer
+        noBorder={hasData}
+        sx={{
+          flex: 1,
+          minWidth: 400,
+          "& table": {
+            tableLayout: "auto",
+          },
+          "& th:not(:last-child)": {
+            borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
+          },
+        }}
+      >
+        {hasData ? (
+          <VirtualizedTable
+            columns={columns}
+            createRowContent={createRowContent}
+            fixedColumns={3}
+            rows={rows}
+            sort={sort}
+            setSort={setSort}
+          />
+        ) : (
+          <EmptyOutputBox
+            Icon={outputIcons.table}
+            label="Entities proposed and affected by this flow will appear in a table here"
+          />
+        )}
+      </OutputContainer>
+    );
+  },
+);

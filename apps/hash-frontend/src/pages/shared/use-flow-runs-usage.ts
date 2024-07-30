@@ -44,8 +44,10 @@ type UsageByFlowRunId = {
 
 export const useFlowRunsUsage = ({
   flowRunIds,
+  pollInterval = 5_000,
 }: {
   flowRunIds: EntityUuid[];
+  pollInterval: number;
 }): {
   isUsageAvailable: boolean;
   loading: boolean;
@@ -59,7 +61,7 @@ export const useFlowRunsUsage = ({
     GetEntitySubgraphQuery,
     GetEntitySubgraphQueryVariables
   >(getEntitySubgraphQuery, {
-    pollInterval: 3_000,
+    pollInterval,
     skip: !available,
     fetchPolicy: "network-only",
     variables: {

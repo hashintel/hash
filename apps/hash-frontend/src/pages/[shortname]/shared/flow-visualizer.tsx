@@ -523,7 +523,6 @@ export const FlowVisualizer = () => {
             {selectedFlowRun ? (
               <Outputs
                 key={`${flowRunStateKey}-outputs`}
-                claimEntityIds={claimEntityIds}
                 persistedEntities={persistedEntities}
                 proposedEntities={proposedEntities}
               />

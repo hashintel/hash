@@ -15,7 +15,10 @@ import {
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { Claim } from "@local/hash-isomorphic-utils/system-types/claim";
 import type { EntityRootType } from "@local/hash-subgraph";
-import { entityIdFromComponents } from "@local/hash-subgraph";
+import {
+  entityIdFromComponents,
+  stripDraftIdFromEntityId,
+} from "@local/hash-subgraph";
 import {
   getOutgoingLinksForEntity,
   getRoots,
@@ -282,174 +285,181 @@ type ClaimsTableProps = {
   proposedEntities: ProposedEntityOutput[];
 };
 
-export const ClaimsTable = ({
-  onEntityClick,
-  proposedEntities,
-}: ClaimsTableProps) => {
-  const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
-    field: "subject",
-    direction: "asc",
-  });
+export const ClaimsTable = memo(
+  ({ onEntityClick, proposedEntities }: ClaimsTableProps) => {
+    const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
+      field: "subject",
+      direction: "asc",
+    });
 
-  const { selectedFlowRun } = useFlowRunsContext();
+    const { selectedFlowRun } = useFlowRunsContext();
 
-  const { data: claimsData } = useQuery<
-    GetEntitySubgraphQuery,
-    GetEntitySubgraphQueryVariables
-  >(getEntitySubgraphQuery, {
-    variables: {
-      includePermissions: false,
-      request: {
-        filter: {
-          all: [
-            generateVersionedUrlMatchingFilter(
-              systemEntityTypes.claim.entityTypeId,
+    const { data: claimsData } = useQuery<
+      GetEntitySubgraphQuery,
+      GetEntitySubgraphQueryVariables
+    >(getEntitySubgraphQuery, {
+      variables: {
+        includePermissions: false,
+        request: {
+          filter: {
+            all: [
+              generateVersionedUrlMatchingFilter(
+                systemEntityTypes.claim.entityTypeId,
+                {
+                  ignoreParents: true,
+                },
+              ),
               {
-                ignoreParents: true,
+                equal: [
+                  {
+                    path: ["editionProvenance", "origin", "id"],
+                  },
+                  {
+                    parameter: selectedFlowRun
+                      ? entityIdFromComponents(
+                          selectedFlowRun.webId,
+                          selectedFlowRun.flowRunId,
+                        )
+                      : "never",
+                  },
+                ],
               },
-            ),
-            {
-              equal: [
-                {
-                  path: ["editionProvenance", "origin", "id"],
-                },
-                {
-                  parameter: selectedFlowRun
-                    ? entityIdFromComponents(
-                        selectedFlowRun.webId,
-                        selectedFlowRun.flowRunId,
-                      )
-                    : "never",
-                },
-              ],
-            },
-          ],
+            ],
+          },
+          graphResolveDepths: {
+            ...zeroedGraphResolveDepths,
+            hasLeftEntity: { incoming: 1, outgoing: 0 },
+            hasRightEntity: { outgoing: 0, incoming: 0 },
+          },
+          temporalAxes: currentTimeInstantTemporalAxes,
+          includeDrafts: true,
         },
-        graphResolveDepths: {
-          ...zeroedGraphResolveDepths,
-          hasLeftEntity: { incoming: 1, outgoing: 0 },
-          hasRightEntity: { outgoing: 0, incoming: 0 },
-        },
-        temporalAxes: currentTimeInstantTemporalAxes,
-        includeDrafts: true,
       },
-    },
-    pollInterval: selectedFlowRun?.closedAt ? 0 : 2_000,
-    skip: !selectedFlowRun,
-    fetchPolicy: "cache-and-network",
-  });
+      pollInterval: selectedFlowRun?.closedAt ? 0 : 2_000,
+      skip: !selectedFlowRun,
+      fetchPolicy: "cache-and-network",
+    });
 
-  const {
-    rows,
-  }: {
-    rows: VirtualizedTableRow<ClaimResultRow>[];
-  } = useMemo(() => {
-    const rowData: VirtualizedTableRow<ClaimResultRow>[] = [];
+    const {
+      rows,
+    }: {
+      rows: VirtualizedTableRow<ClaimResultRow>[];
+    } = useMemo(() => {
+      const rowData: VirtualizedTableRow<ClaimResultRow>[] = [];
 
-    if (!claimsData) {
-      return { rows: rowData };
-    }
-
-    const claimsSubgraph = deserializeSubgraph<EntityRootType<Claim>>(
-      claimsData.getEntitySubgraph.subgraph,
-    );
-
-    const claims = getRoots(claimsSubgraph);
-
-    for (const claim of claims) {
-      const claimText =
-        claim.properties[
-          "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"
-        ];
-
-      /**
-       * Our textual-content property is either a string or an array of text tokens for formatted text.
-       * We know we are only setting it as a string, so we can throw an error if it is not.
-       */
-      if (typeof claimText === "object") {
-        throw new Error(`Claim text is not a string: ${claimText}`);
+      if (!claimsData) {
+        return { rows: rowData };
       }
 
-      const objectText =
-        claim.properties["https://hash.ai/@hash/types/property-type/object/"];
-
-      const subjectText =
-        claim.properties["https://hash.ai/@hash/types/property-type/subject/"];
-
-      const outgoingLinks = getOutgoingLinksForEntity(
-        claimsSubgraph,
-        claim.entityId,
+      const claimsSubgraph = deserializeSubgraph<EntityRootType<Claim>>(
+        claimsData.getEntitySubgraph.subgraph,
       );
 
-      let subjectEntityId: EntityId | undefined = undefined;
-      let objectEntityId: EntityId | undefined = undefined;
+      const claims = getRoots(claimsSubgraph);
 
       /**
-       * The links will be created once there is an entity persisted in the graph to link the claim to
+       * We want a record of claimIds -> proposed entities to check when looping over claims,
+       * rather than looping over proposed entities for each claim.
        */
-      for (const link of outgoingLinks) {
-        if (
-          link.metadata.entityTypeId ===
-          systemLinkEntityTypes.hasObject.linkEntityTypeId
-        ) {
-          objectEntityId = link.linkData?.rightEntityId;
-        } else if (
-          link.metadata.entityTypeId ===
-          systemLinkEntityTypes.hasSubject.linkEntityTypeId
-        ) {
-          subjectEntityId = link.linkData?.rightEntityId;
+      const claimToSubjectRecord: Record<EntityId, EntityId> = {};
+      const claimToObjectRecord: Record<EntityId, EntityId> = {};
+      for (const proposedEntity of proposedEntities) {
+        for (const subjectClaimEntityId of proposedEntity.claims.isSubjectOf) {
+          claimToSubjectRecord[subjectClaimEntityId] =
+            proposedEntity.localEntityId;
+        }
+
+        for (const objectClaimEntityId of proposedEntity.claims.isObjectOf) {
+          claimToObjectRecord[objectClaimEntityId] =
+            proposedEntity.localEntityId;
         }
       }
 
-      /**
-       * If we haven't found a link for the subject of the claim, the entities related to the claim haven't yet been
-       * persisted There may be an entity proposal attached to the claim, so we can check the proposals as a fallback.
-       *
-       * This may still not yield any results if the claims haven't been processed as part of generating proposed
-       * entities yet.
-       */
-      if (!subjectEntityId) {
-        for (const proposedEntity of proposedEntities) {
+      for (const claim of claims) {
+        const claimText =
+          claim.properties[
+            "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/"
+          ];
+
+        /**
+         * Our textual-content property is either a string or an array of text tokens for formatted text.
+         * We know we are only setting it as a string, so we can throw an error if it is not.
+         */
+        if (typeof claimText === "object") {
+          throw new Error(`Claim text is not a string: ${claimText}`);
+        }
+
+        const objectText =
+          claim.properties["https://hash.ai/@hash/types/property-type/object/"];
+
+        const subjectText =
+          claim.properties[
+            "https://hash.ai/@hash/types/property-type/subject/"
+          ];
+
+        const outgoingLinks = getOutgoingLinksForEntity(
+          claimsSubgraph,
+          claim.entityId,
+        );
+
+        let subjectEntityId: EntityId | undefined = undefined;
+        let objectEntityId: EntityId | undefined = undefined;
+
+        /**
+         * The links will be created once there is an entity persisted in the graph to link the claim to
+         */
+        for (const link of outgoingLinks) {
           if (
-            proposedEntity.claims.isSubjectOf.some((subjectClaimEntityId) =>
-              claim.entityId.startsWith(subjectClaimEntityId),
-            )
+            link.metadata.entityTypeId ===
+            systemLinkEntityTypes.hasObject.linkEntityTypeId
           ) {
-            subjectEntityId = proposedEntity.localEntityId;
+            objectEntityId = link.linkData?.rightEntityId;
+          } else if (
+            link.metadata.entityTypeId ===
+            systemLinkEntityTypes.hasSubject.linkEntityTypeId
+          ) {
+            subjectEntityId = link.linkData?.rightEntityId;
           }
+        }
+
+        /**
+         * If we haven't found a link for the subject of the claim, the entities related to the claim haven't yet been
+         * persisted There may be an entity proposal attached to the claim, so we can check the proposals as a fallback.
+         *
+         * This may still not yield any results if the claims haven't been processed as part of generating proposed
+         * entities yet.
+         */
+        if (!subjectEntityId) {
+          const claimEntityIdWithoutDraftId = stripDraftIdFromEntityId(
+            claim.entityId,
+          );
+
+          subjectEntityId = claimToSubjectRecord[claimEntityIdWithoutDraftId];
 
           if (!objectEntityId) {
-            if (
-              proposedEntity.claims.isObjectOf.some((objectClaimEntityId) =>
-                claim.entityId.startsWith(objectClaimEntityId),
-              )
-            ) {
-              objectEntityId = proposedEntity.localEntityId;
-            }
+            objectEntityId = claimToObjectRecord[claimEntityIdWithoutDraftId];
           }
         }
+
+        rowData.push({
+          id: claim.metadata.recordId.entityId,
+          data: {
+            claim: claimText,
+            onEntityClick,
+            sources: claim.metadata.provenance.edition.sources ?? [],
+            status: subjectEntityId ? "Accepted" : "Processing claim",
+            subject: {
+              entityId: subjectEntityId,
+              name: subjectText,
+            },
+            object: objectText
+              ? { entityId: objectEntityId, name: objectText }
+              : undefined,
+          },
+        });
       }
 
-      rowData.push({
-        id: claim.metadata.recordId.entityId,
-        data: {
-          claim: claimText,
-          onEntityClick,
-          sources: claim.metadata.provenance.edition.sources ?? [],
-          status: subjectEntityId ? "Accepted" : "Processing claim",
-          subject: {
-            entityId: subjectEntityId,
-            name: subjectText,
-          },
-          object: objectText
-            ? { entityId: objectEntityId, name: objectText }
-            : undefined,
-        },
-      });
-    }
-
-    return {
-      rows: rowData.sort((a, b) => {
+      const sortedRows = rowData.sort((a, b) => {
         const { field, direction } = sort;
 
         const base = direction === "asc" ? a : b;
@@ -464,37 +474,41 @@ export const ClaimsTable = ({
         }
 
         return base.data[field].localeCompare(target.data[field]);
-      }),
-    };
-  }, [claimsData, onEntityClick, proposedEntities, sort]);
+      });
 
-  const hasData = !!rows.length;
+      return {
+        rows: sortedRows,
+      };
+    }, [claimsData, onEntityClick, proposedEntities, sort]);
 
-  return (
-    <OutputContainer
-      noBorder={hasData}
-      sx={{
-        flex: 1,
-        minWidth: 400,
-        "& th:not(:last-child)": {
-          borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
-        },
-      }}
-    >
-      {hasData ? (
-        <VirtualizedTable
-          columns={columns}
-          createRowContent={createRowContent}
-          rows={rows}
-          sort={sort}
-          setSort={setSort}
-        />
-      ) : (
-        <EmptyOutputBox
-          Icon={outputIcons.table}
-          label="Claims about entities discovered by this flow will appear in a table here"
-        />
-      )}
-    </OutputContainer>
-  );
-};
+    const hasData = !!rows.length;
+
+    return (
+      <OutputContainer
+        noBorder={hasData}
+        sx={{
+          flex: 1,
+          minWidth: 400,
+          "& th:not(:last-child)": {
+            borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
+          },
+        }}
+      >
+        {hasData ? (
+          <VirtualizedTable
+            columns={columns}
+            createRowContent={createRowContent}
+            rows={rows}
+            sort={sort}
+            setSort={setSort}
+          />
+        ) : (
+          <EmptyOutputBox
+            Icon={outputIcons.table}
+            label="Claims about entities discovered by this flow will appear in a table here"
+          />
+        )}
+      </OutputContainer>
+    );
+  },
+);

@@ -30,7 +30,7 @@ import {
 import type { SvgIconProps } from "@mui/material";
 import { Box, Stack, Typography } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren } from "react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import type {
   FlowRun,
@@ -372,24 +372,6 @@ export const Outputs = ({
 
       const mockedEntity = mockEntityFromProposedEntity(proposedEntity);
 
-      /**
-       * @todo also handle proposed entities which link to existing persisted entities
-       *   -- requires having fetched them.
-       */
-      const linkedEntities = proposedEntities
-        .filter(
-          (entity) =>
-            (proposedEntity.sourceEntityId?.kind === "proposed-entity" &&
-              proposedEntity.sourceEntityId.localId === entity.localEntityId) ||
-            (proposedEntity.targetEntityId?.kind === "proposed-entity" &&
-              proposedEntity.targetEntityId.localId === entity.localEntityId) ||
-            (entity.sourceEntityId?.kind === "proposed-entity" &&
-              entity.sourceEntityId.localId === selectedEntityId) ||
-            (entity.targetEntityId?.kind === "proposed-entity" &&
-              entity.targetEntityId.localId === selectedEntityId),
-        )
-        .map((linkedEntity) => mockEntityFromProposedEntity(linkedEntity));
-
       const entityTypes = getEntityTypes(proposedEntitiesTypesSubgraph);
       const propertyTypes = getPropertyTypes(proposedEntitiesTypesSubgraph);
       const dataTypes = getDataTypes(proposedEntitiesTypesSubgraph);
@@ -401,7 +383,16 @@ export const Outputs = ({
           dataTypes,
           propertyTypes,
           entityTypes,
-          entities: [mockedEntity, ...linkedEntities],
+
+          /**
+           * @todo H-3162: also handle proposed entities which link to existing persisted entities
+           *   -- requires having fetched them.
+           */
+          entities: proposedEntities.map((entity) =>
+            entity.localEntityId === selectedEntityId
+              ? mockedEntity
+              : mockEntityFromProposedEntity(entity),
+          ),
         },
         [mockedEntity.metadata.recordId],
         {
@@ -503,6 +494,17 @@ export const Outputs = ({
     return entities;
   }, [persistedEntities, proposedEntities]);
 
+  const onEntityClick = useCallback(
+    (entityId: EntityId) => setSlideOver({ type: "entity", entityId }),
+    [],
+  );
+
+  const onEntityTypeClick = useCallback(
+    (entityTypeId: VersionedUrl) =>
+      setSlideOver({ type: "entityType", entityTypeId }),
+    [],
+  );
+
   return (
     <>
       {slideOver?.type === "entityType" && (
@@ -578,12 +580,8 @@ export const Outputs = ({
         {sectionVisibility.entities &&
           (entityDisplay === "table" ? (
             <EntityResultTable
-              onEntityClick={(entityId) =>
-                setSlideOver({ type: "entity", entityId })
-              }
-              onEntityTypeClick={(entityTypeId) =>
-                setSlideOver({ type: "entityType", entityTypeId })
-              }
+              onEntityClick={onEntityClick}
+              onEntityTypeClick={onEntityTypeClick}
               persistedEntities={persistedEntities}
               persistedEntitiesSubgraph={persistedEntitiesSubgraph}
               proposedEntities={proposedEntities}
@@ -591,15 +589,8 @@ export const Outputs = ({
             />
           ) : (
             <EntityResultGraph
-              onEntityClick={(entityId) =>
-                setSlideOver({
-                  type: "entity",
-                  entityId,
-                })
-              }
-              onEntityTypeClick={(entityTypeId) =>
-                setSlideOver({ type: "entityType", entityTypeId })
-              }
+              onEntityClick={onEntityClick}
+              onEntityTypeClick={onEntityTypeClick}
               entities={entitiesForGraph}
               subgraphWithTypes={
                 persistedEntitiesSubgraph ?? proposedEntitiesTypesSubgraph
@@ -608,12 +599,7 @@ export const Outputs = ({
           ))}
         {sectionVisibility.claims && (
           <ClaimsTable
-            onEntityClick={(entityId) =>
-              setSlideOver({
-                type: "entity",
-                entityId,
-              })
-            }
+            onEntityClick={onEntityClick}
             proposedEntities={proposedEntities}
           />
         )}
