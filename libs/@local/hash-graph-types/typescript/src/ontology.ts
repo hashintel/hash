@@ -37,6 +37,23 @@ export const isBaseUrl = (baseUrl: string): baseUrl is BaseUrl => {
   return validateBaseUrl(baseUrl).type === "Ok";
 };
 
+/**
+ * A utility type used when extending multiple interfaces.
+ *
+ * @example type Dog extends All<[Animal, Pet]> {}
+ *
+ * Required because TypeScript will not allow extending multiple interfaces which have non-identical overlapping properties,
+ * even if the properties are compatible. @see https://github.com/microsoft/TypeScript/issues/16936
+ * e.g. you cannot extend `interface A { a: string }` and `interface B { a?: string }` with `interface C extends A, B {}`
+ *
+ * This utility is a workaround with the downside of `&` loses the good bits of interface extension compatibility checking.
+ */
+export type All<T> = T extends [infer A]
+  ? A
+  : T extends [infer A, ...infer B]
+    ? A & All<B>
+    : never;
+
 export type OntologyProvenance = {
   edition: OntologyEditionProvenance;
 };

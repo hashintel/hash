@@ -9,7 +9,9 @@ const replaceIntersectionWithExtends = (
 
   /**
    * Replace multiple parent type aliases with interfaces.
-   * The default code defines an alias of multiple types like so: type C = (A & B)
+   * The default code defines an alias of multiple types like so: type C = (A & B).
+   *
+   * We replace this with type C extends All<A, B> {}
    */
   const regexMultipleParents = /export\s+type\s+(\w+)\s*=\s*\(([\w\s&]+)\)/g;
 
@@ -25,7 +27,7 @@ const replaceIntersectionWithExtends = (
         return match;
       }
 
-      return `export interface ${p1} extends ${parents.join(", ")} {}`;
+      return `export interface ${p1} extends All<[${parents.join(", ")}]> {}`;
     },
   );
 

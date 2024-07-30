@@ -113,11 +113,19 @@ const entityPropertiesSchema: JsonSchema = {
   const: redundantTypePlaceholder,
 };
 
+const allSchema: JsonSchema = {
+  $id: "https://hash.ai/@hash/schemas/all/v/1",
+  title: "All",
+  kind: metadataSchemaKind,
+  const: redundantTypePlaceholder,
+};
+
 export const sharedMetadataSchemas = [
   propertyProvenanceSchema,
   objectMetadataSchema,
   confidenceMetadataSchema,
   arrayMetadataSchema,
+  allSchema,
   propertyObjectSchema,
   propertyObjectValueMetadataSchema,
   entityPropertiesSchema,
