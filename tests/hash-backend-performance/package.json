@@ -22,7 +22,7 @@
   ],
   "scripts": {
     "bench:load-testing": "for file in scenarios/*.yml; do artillery run --config artillery.yml $file --environment local; done",
-    "build": "rimraf dist && rollup -c",
+    "build": "rimraf dist && rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
     "codegen": "mkdir -p reports && echo '*' > reports/.gitignore",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
