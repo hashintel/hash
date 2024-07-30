@@ -1,6 +1,6 @@
 ---
 source: libs/@local/hql/cst/src/expr.rs
-expression: "Expr::from_str(&arena, r#\"{\"fn\": \"func\", \"args\": [\"arg1\", \"arg2\"]}\"#)"
+expression: "{\"fn\": \"func\", \"args\": [\"arg1\", \"arg2\"]}"
 ---
 Ok(
     Call(

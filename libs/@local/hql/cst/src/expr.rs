@@ -53,133 +53,102 @@ mod test {
     use super::Expr;
     use crate::arena::Arena;
 
+    // This needs to be a macro, because we need to get the function name for auto-naming.
+    macro_rules! assert_expr {
+        ($expr:expr) => {{
+            let arena = Arena::new();
+
+            let result = Expr::from_str(&arena, $expr);
+
+            assert_debug_snapshot!(insta::_macro_support::AutoName, result, $expr);
+        }};
+    }
+
     #[test]
     fn fn_is_expr() {
-        let arena = Arena::new();
-
-        assert_debug_snapshot!(Expr::from_str(
-            &arena,
+        assert_expr!(
             r#"[
             ["input", "variable"],
             "arg1",
             "arg2"
-        ]"#,
-        ));
+        ]"#
+        );
     }
 
     #[test]
     fn fn_empty_args() {
-        let arena = Arena::new();
-
-        assert_debug_snapshot!(Expr::from_str(&arena, r#"["func"]"#));
+        assert_expr!(r#"["func"]"#);
     }
 
     #[test]
     fn fn_empty() {
-        let arena = Arena::new();
-
-        assert_debug_snapshot!(Expr::from_str(&arena, "[]"));
+        assert_expr!("[]");
     }
 
     #[test]
     fn string_is_path() {
-        let arena = Arena::new();
+        assert_expr!(r#""symbol""#);
 
-        assert_debug_snapshot!(Expr::from_str(&arena, r#""symbol""#));
-
-        assert_debug_snapshot!(Expr::from_str(&arena, r#""foo::bar""#));
+        assert_expr!(r#""foo::bar""#);
     }
 
     #[test]
     fn string_is_signature() {
-        let arena = Arena::new();
-
-        assert_debug_snapshot!(Expr::from_str(&arena, r#""<T: Int>(a: T) -> T""#));
+        assert_expr!(r#""<T: Int>(a: T) -> T""#);
     }
 
     #[test]
     fn string_is_invalid() {
-        let arena = Arena::new();
-
-        assert_debug_snapshot!(Expr::from_str(&arena, r#""1234""#));
+        assert_expr!(r#""1234""#);
     }
 
     #[test]
     fn object_is_constant() {
-        let arena = Arena::new();
-
-        assert_debug_snapshot!(Expr::from_str(&arena, r#"{"const": 42}"#));
+        assert_expr!(r#"{"const": 42}"#);
     }
 
     #[test]
     fn object_is_constant_with_type() {
-        let arena = Arena::new();
-
-        assert_debug_snapshot!(Expr::from_str(&arena, r#"{"type": "u32", "const": 42}"#));
+        assert_expr!(r#"{"type": "u32", "const": 42}"#);
     }
 
     #[test]
     fn object_is_constant_with_extra_fields() {
-        let arena = Arena::new();
-
-        assert_debug_snapshot!(Expr::from_str(
-            &arena,
-            r#"{"type": "u32", "const": 42, "sig": "() -> Unit"}"#,
-        ));
+        assert_expr!(r#"{"type": "u32", "const": 42, "sig": "() -> Unit"}"#);
     }
 
     #[test]
     fn object_is_call() {
-        let arena = Arena::new();
-
-        assert_debug_snapshot!(Expr::from_str(
-            &arena,
-            r#"{"fn": "func", "args": ["arg1", "arg2"]}"#
-        ));
+        assert_expr!(r#"{"fn": "func", "args": ["arg1", "arg2"]}"#);
     }
 
     #[test]
     fn object_is_args_without_fn() {
-        let arena = Arena::new();
-
-        assert_debug_snapshot!(Expr::from_str(&arena, r#"{"args": ["arg1", "arg2"]}"#));
+        assert_expr!(r#"{"args": ["arg1", "arg2"]}"#);
     }
 
     #[test]
     fn object_is_call_without_args() {
-        let arena = Arena::new();
-
-        assert_debug_snapshot!(Expr::from_str(&arena, r#"{"fn": "func"}"#));
+        assert_expr!(r#"{"fn": "func"}"#);
     }
 
     #[test]
     fn object_is_signature() {
-        let arena = Arena::new();
-
-        assert_debug_snapshot!(Expr::from_str(&arena, r#"{"sig": "<T: Int>(a: T) -> T"}"#));
+        assert_expr!(r#"{"sig": "<T: Int>(a: T) -> T"}"#);
     }
 
     #[test]
     fn object_is_invalid_multiple() {
-        let arena = Arena::new();
-
-        assert_debug_snapshot!(Expr::from_str(
-            &arena,
-            r#"{"sig": "<T: Int>(a: T) -> T", "fn": "func"}"#
-        ));
+        assert_expr!(r#"{"sig": "<T: Int>(a: T) -> T", "fn": "func"}"#);
     }
 
     #[test]
     fn object_is_invalid() {
-        let arena = Arena::new();
-
-        assert_debug_snapshot!(Expr::from_str(&arena, r#"{"unknown": "key"}"#));
+        assert_expr!(r#"{"unknown": "key"}"#);
     }
 
     #[test]
     fn object_is_empty() {
-        let arena = Arena::new();
-
-        assert_debug_snapshot!(Expr::from_str(&arena, "{}"));
+        assert_expr!("{}");
     }
 }

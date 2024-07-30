@@ -1,6 +1,6 @@
 ---
 source: libs/@local/hql/cst/src/expr.rs
-expression: "Expr::from_str(&arena, r#\"\"foo::bar\"\"#)"
+expression: "\"foo::bar\""
 ---
 Ok(
     Path(

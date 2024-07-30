@@ -1,6 +1,6 @@
 ---
 source: libs/@local/hql/cst/src/expr.rs
-expression: "Expr::from_str(&arena, r#\"\"1234\"\"#)"
+expression: "\"1234\""
 ---
 Err(
     Error("invalid value: string \"1234\", expected 1234\n^\nParsing Error: ContextError { context: [], cause: None }", line: 1, column: 6),
