@@ -1,5 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { entityIdFromComponents } from "@local/hash-subgraph";
 import dedent from "dedent";
 
 import type { DereferencedEntityType } from "../../../shared/dereference-entity-type.js";
@@ -13,7 +15,7 @@ import type {
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 
 export type LocalEntitySummary = {
-  localId: string;
+  localId: EntityId;
   name: string;
   summary: string;
   entityTypeId: VersionedUrl;
@@ -197,10 +199,12 @@ export const getEntitySummariesFromText = async (params: {
     };
 
     for (const { name, summary } of toolCallEntitySummaries) {
-      const localId = generateUuid();
+      const entityUuid = generateUuid();
+
+      const entityId = entityIdFromComponents(webId, entityUuid as EntityUuid);
 
       entitySummaries.push({
-        localId,
+        localId: entityId,
         name,
         summary,
         entityTypeId: dereferencedEntityType.$id,

@@ -29,6 +29,11 @@ export const systemEntityTypes = {
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/canvas/" as BaseUrl,
   },
+  claim: {
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/claim/v/1",
+    entityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/claim/" as BaseUrl,
+  },
   comment: {
     entityTypeId: "https://hash.ai/@hash/types/entity-type/comment/v/5",
     entityTypeBaseUrl:
@@ -274,6 +279,11 @@ export const systemLinkEntityTypes = {
     linkEntityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/has-indexed-content/" as BaseUrl,
   },
+  hasObject: {
+    linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/has-object/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/has-object/" as BaseUrl,
+  },
   hasParent: {
     linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/has-parent/v/1",
     linkEntityTypeBaseUrl:
@@ -290,6 +300,11 @@ export const systemLinkEntityTypes = {
       "https://hash.ai/@hash/types/entity-type/has-spatially-positioned-content/v/1",
     linkEntityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/has-spatially-positioned-content/" as BaseUrl,
+  },
+  hasSubject: {
+    linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/has-subject/v/1",
+    linkEntityTypeBaseUrl:
+      "https://hash.ai/@hash/types/entity-type/has-subject/" as BaseUrl,
   },
   hasText: {
     linkEntityTypeId: "https://hash.ai/@hash/types/entity-type/has-text/v/1",
@@ -598,6 +613,11 @@ export const systemPropertyTypes = {
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/manual-inference-configuration/" as BaseUrl,
   },
+  object: {
+    propertyTypeId: "https://hash.ai/@hash/types/property-type/object/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/object/" as BaseUrl,
+  },
   orgSelfRegistrationIsEnabled: {
     propertyTypeId:
       "https://hash.ai/@hash/types/property-type/org-self-registration-is-enabled/v/1",
@@ -710,6 +730,11 @@ export const systemPropertyTypes = {
       "https://hash.ai/@hash/types/property-type/step-definitions/v/1",
     propertyTypeBaseUrl:
       "https://hash.ai/@hash/types/property-type/step-definitions/" as BaseUrl,
+  },
+  subject: {
+    propertyTypeId: "https://hash.ai/@hash/types/property-type/subject/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/subject/" as BaseUrl,
   },
   summary: {
     propertyTypeId: "https://hash.ai/@hash/types/property-type/summary/v/1",

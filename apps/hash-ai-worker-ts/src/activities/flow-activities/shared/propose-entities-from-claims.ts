@@ -8,22 +8,22 @@ import { getFlowContext } from "../../shared/get-flow-context.js";
 import { logProgress } from "../../shared/log-progress.js";
 import { stringify } from "../../shared/stringify.js";
 import type { ExistingEntitySummary } from "../research-entities-action/summarize-existing-entities.js";
-import type { LocalEntitySummary } from "./infer-facts-from-text/get-entity-summaries-from-text.js";
-import type { Fact } from "./infer-facts-from-text/types.js";
-import { proposeEntityFromFactsAgent } from "./propose-entities-from-facts/propose-entity-from-facts-agent.js";
+import type { LocalEntitySummary } from "./infer-claims-from-text/get-entity-summaries-from-text.js";
+import type { Claim } from "./infer-claims-from-text/types.js";
+import { proposeEntityFromClaimsAgent } from "./propose-entities-from-claims/propose-entity-from-claims-agent.js";
 
-export const proposeEntitiesFromFacts = async (params: {
+export const proposeEntitiesFromClaims = async (params: {
   entitySummaries: LocalEntitySummary[];
   potentialLinkTargetEntitySummaries: LocalEntitySummary[];
   existingEntitySummaries?: ExistingEntitySummary[];
-  facts: Fact[];
+  claims: Claim[];
   dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
 }): Promise<{ proposedEntities: ProposedEntity[] }> => {
   const {
     entitySummaries,
     existingEntitySummaries,
     dereferencedEntityTypes,
-    facts,
+    claims,
     potentialLinkTargetEntitySummaries,
   } = params;
 
@@ -50,8 +50,12 @@ export const proposeEntitiesFromFacts = async (params: {
         );
       }
 
-      const factsWithEntityAsSubject = facts.filter(
-        (fact) => fact.subjectEntityLocalId === entitySummary.localId,
+      const claimsWithEntityAsSubject = claims.filter(
+        (claim) => claim.subjectEntityLocalId === entitySummary.localId,
+      );
+
+      const claimsWithEntityAsObject = claims.filter(
+        (claim) => claim.objectEntityLocalId === entitySummary.localId,
       );
 
       const possibleLinkTypesFromEntity: {
@@ -92,12 +96,12 @@ export const proposeEntitiesFromFacts = async (params: {
         ...potentialLinkTargetEntitySummaries,
         ...(existingEntitySummaries ?? []),
       ].filter((potentialTargetEntitySummary) => {
-        const someFactIncludesTargetEntityAsObject =
-          factsWithEntityAsSubject.some((fact) =>
+        const someClaimIncludesTargetEntityAsObject =
+          claimsWithEntityAsSubject.some((claim) =>
             "localId" in potentialTargetEntitySummary
-              ? fact.objectEntityLocalId ===
+              ? claim.objectEntityLocalId ===
                 potentialTargetEntitySummary.localId
-              : fact.objectEntityLocalId ===
+              : claim.objectEntityLocalId ===
                 potentialTargetEntitySummary.entityId,
           );
 
@@ -117,12 +121,12 @@ export const proposeEntitiesFromFacts = async (params: {
           );
         });
 
-        return someFactIncludesTargetEntityAsObject && entityIsValidTarget;
+        return someClaimIncludesTargetEntityAsObject && entityIsValidTarget;
       });
 
       logger.debug(
-        `Proposing "${entitySummary.name}" entity with facts: ${stringify(
-          factsWithEntityAsSubject,
+        `Proposing "${entitySummary.name}" entity with claims: ${stringify(
+          claimsWithEntityAsSubject,
         )}`,
       );
 
@@ -130,9 +134,12 @@ export const proposeEntitiesFromFacts = async (params: {
        * @todo: consider batching requests made to the LLM so we propose multiple entities
        * in a single LLM requests, to reduce the number of requests made to LLM providers.
        */
-      const proposeEntityFromFactsStatus = await proposeEntityFromFactsAgent({
+      const proposeEntityFromClaimsStatus = await proposeEntityFromClaimsAgent({
         entitySummary,
-        facts: factsWithEntityAsSubject,
+        claims: {
+          isObjectOf: claimsWithEntityAsObject,
+          isSubjectOf: claimsWithEntityAsSubject,
+        },
         dereferencedEntityType,
         simplifiedPropertyTypeMappings,
         /**
@@ -146,10 +153,10 @@ export const proposeEntitiesFromFacts = async (params: {
         possibleOutgoingLinkTargetEntitySummaries,
       });
 
-      if (proposeEntityFromFactsStatus.status !== "ok") {
+      if (proposeEntityFromClaimsStatus.status !== "ok") {
         logger.error(
-          `Failed to propose entity from facts: ${stringify(
-            proposeEntityFromFactsStatus,
+          `Failed to propose entity from claims: ${stringify(
+            proposeEntityFromClaimsStatus,
           )}`,
         );
 
@@ -157,7 +164,7 @@ export const proposeEntitiesFromFacts = async (params: {
       }
 
       const { proposedEntity, proposedOutgoingLinkEntities } =
-        proposeEntityFromFactsStatus;
+        proposeEntityFromClaimsStatus;
 
       return [proposedEntity, ...proposedOutgoingLinkEntities];
     }),

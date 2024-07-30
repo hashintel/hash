@@ -10,7 +10,7 @@ import type {
 } from "@local/hash-graph-client";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
-import type { OwnedById } from "@local/hash-graph-types/web";
+import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import {
   currentTimeInstantTemporalAxes,
@@ -21,10 +21,7 @@ import {
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import {
-  entityIdFromComponents,
-  extractEntityUuidFromEntityId,
-} from "@local/hash-subgraph";
+import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
   getDataTypes,
   getEntityTypes,
@@ -33,7 +30,7 @@ import {
 import type { SvgIconProps } from "@mui/material";
 import { Box, Stack, Typography } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren } from "react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import type {
   FlowRun,
@@ -49,6 +46,7 @@ import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import { getFileProperties } from "../../../shared/get-file-properties";
 import { generateEntityRootedSubgraph } from "../../../shared/subgraphs";
 import { EditEntitySlideOver } from "../../entities/[entity-uuid].page/edit-entity-slide-over";
+import { ClaimsTable } from "./outputs/claims-table";
 import { Deliverables } from "./outputs/deliverables";
 import type { DeliverableData } from "./outputs/deliverables/shared/types";
 import { EntityResultGraph } from "./outputs/entity-result-graph";
@@ -173,7 +171,6 @@ const SectionTabButton = ({
 
 const mockEntityFromProposedEntity = (
   proposedEntity: ProposedEntityOutput,
-  webId: OwnedById,
 ): Entity => {
   const editionId = new Date().toISOString();
 
@@ -190,26 +187,17 @@ const mockEntityFromProposedEntity = (
         ? {
             leftEntityId:
               "localId" in sourceEntityId
-                ? entityIdFromComponents(
-                    webId,
-                    sourceEntityId.localId as EntityUuid,
-                  )
+                ? sourceEntityId.localId
                 : sourceEntityId.entityId,
             rightEntityId:
               "localId" in targetEntityId
-                ? entityIdFromComponents(
-                    webId,
-                    targetEntityId.localId as EntityUuid,
-                  )
+                ? targetEntityId.localId
                 : targetEntityId.entityId,
           }
         : undefined,
     metadata: {
       recordId: {
-        entityId: entityIdFromComponents(
-          webId,
-          proposedEntity.localEntityId as EntityUuid,
-        ),
+        entityId: proposedEntity.localEntityId,
         editionId,
       },
       entityTypeIds: [proposedEntity.entityTypeId],
@@ -248,6 +236,7 @@ type OutputsProps = {
 };
 
 type SectionVisibility = {
+  claims: boolean;
   deliverables: boolean;
   entities: boolean;
 };
@@ -257,6 +246,12 @@ export const Outputs = ({
   proposedEntities,
 }: OutputsProps) => {
   const { selectedFlowRun } = useFlowRunsContext();
+
+  const hasClaims =
+    !!selectedFlowRun &&
+    goalFlowDefinitionIds.includes(
+      selectedFlowRun.flowDefinitionId as EntityUuid,
+    );
 
   const deliverables = useMemo(
     () => getDeliverables(selectedFlowRun?.outputs),
@@ -269,7 +264,8 @@ export const Outputs = ({
 
   const [sectionVisibility, setSectionVisibility] = useState<SectionVisibility>(
     {
-      entities: true,
+      claims: hasClaims,
+      entities: !hasClaims,
       deliverables: false,
     },
   );
@@ -366,9 +362,7 @@ export const Outputs = ({
     }
 
     const proposedEntity = proposedEntities.find(
-      (entity) =>
-        entity.localEntityId ===
-        extractEntityUuidFromEntityId(selectedEntityId),
+      (entity) => entity.localEntityId === selectedEntityId,
     );
 
     if (proposedEntity) {
@@ -376,30 +370,7 @@ export const Outputs = ({
         return undefined;
       }
 
-      const mockedEntity = mockEntityFromProposedEntity(
-        proposedEntity,
-        selectedFlowRun.webId,
-      );
-
-      /**
-       * @todo also handle proposed entities which link to existing persisted entities
-       *   -- requires having fetched them.
-       */
-      const linkedEntities = proposedEntities
-        .filter(
-          (entity) =>
-            (proposedEntity.sourceEntityId?.kind === "proposed-entity" &&
-              proposedEntity.sourceEntityId.localId === entity.localEntityId) ||
-            (proposedEntity.targetEntityId?.kind === "proposed-entity" &&
-              proposedEntity.targetEntityId.localId === entity.localEntityId) ||
-            (entity.sourceEntityId?.kind === "proposed-entity" &&
-              entity.sourceEntityId.localId === selectedEntityId) ||
-            (entity.targetEntityId?.kind === "proposed-entity" &&
-              entity.targetEntityId.localId === selectedEntityId),
-        )
-        .map((linkedEntity) =>
-          mockEntityFromProposedEntity(linkedEntity, selectedFlowRun.webId),
-        );
+      const mockedEntity = mockEntityFromProposedEntity(proposedEntity);
 
       const entityTypes = getEntityTypes(proposedEntitiesTypesSubgraph);
       const propertyTypes = getPropertyTypes(proposedEntitiesTypesSubgraph);
@@ -412,7 +383,16 @@ export const Outputs = ({
           dataTypes,
           propertyTypes,
           entityTypes,
-          entities: [mockedEntity, ...linkedEntities],
+
+          /**
+           * @todo H-3162: also handle proposed entities which link to existing persisted entities
+           *   -- requires having fetched them.
+           */
+          entities: proposedEntities.map((entity) =>
+            entity.localEntityId === selectedEntityId
+              ? mockedEntity
+              : mockEntityFromProposedEntity(entity),
+          ),
         },
         [mockedEntity.metadata.recordId],
         {
@@ -493,27 +473,18 @@ export const Outputs = ({
             ? {
                 leftEntityId:
                   "localId" in sourceEntityId
-                    ? entityIdFromComponents(
-                        "ownedById" as OwnedById,
-                        sourceEntityId.localId as EntityUuid,
-                      )
+                    ? sourceEntityId.localId
                     : sourceEntityId.entityId,
                 rightEntityId:
                   "localId" in targetEntityId
-                    ? entityIdFromComponents(
-                        "ownedById" as OwnedById,
-                        targetEntityId.localId as EntityUuid,
-                      )
+                    ? targetEntityId.localId
                     : targetEntityId.entityId,
               }
             : undefined,
         metadata: {
           recordId: {
             editionId,
-            entityId: entityIdFromComponents(
-              "ownedById" as OwnedById,
-              localEntityId as EntityUuid,
-            ),
+            entityId: localEntityId,
           },
           entityTypeId,
         },
@@ -522,6 +493,17 @@ export const Outputs = ({
     }
     return entities;
   }, [persistedEntities, proposedEntities]);
+
+  const onEntityClick = useCallback(
+    (entityId: EntityId) => setSlideOver({ type: "entity", entityId }),
+    [],
+  );
+
+  const onEntityTypeClick = useCallback(
+    (entityTypeId: VersionedUrl) =>
+      setSlideOver({ type: "entityType", entityTypeId }),
+    [],
+  );
 
   return (
     <>
@@ -551,7 +533,10 @@ export const Outputs = ({
           sx={{ top: 5, position: "relative", zIndex: 0 }}
         >
           <SectionTabContainer>
-            {(["entities", "deliverables"] as const).map((section) => (
+            {(hasClaims
+              ? (["entities", "claims", "deliverables"] as const)
+              : (["entities", "deliverables"] as const)
+            ).map((section) => (
               <SectionTabButton
                 key={section}
                 label={section}
@@ -595,12 +580,8 @@ export const Outputs = ({
         {sectionVisibility.entities &&
           (entityDisplay === "table" ? (
             <EntityResultTable
-              onEntityClick={(entityId) =>
-                setSlideOver({ type: "entity", entityId })
-              }
-              onEntityTypeClick={(entityTypeId) =>
-                setSlideOver({ type: "entityType", entityTypeId })
-              }
+              onEntityClick={onEntityClick}
+              onEntityTypeClick={onEntityTypeClick}
               persistedEntities={persistedEntities}
               persistedEntitiesSubgraph={persistedEntitiesSubgraph}
               proposedEntities={proposedEntities}
@@ -608,22 +589,20 @@ export const Outputs = ({
             />
           ) : (
             <EntityResultGraph
-              onEntityClick={(entityId) =>
-                setSlideOver({
-                  type: "entity",
-                  entityId,
-                })
-              }
-              onEntityTypeClick={(entityTypeId) =>
-                setSlideOver({ type: "entityType", entityTypeId })
-              }
+              onEntityClick={onEntityClick}
+              onEntityTypeClick={onEntityTypeClick}
               entities={entitiesForGraph}
               subgraphWithTypes={
                 persistedEntitiesSubgraph ?? proposedEntitiesTypesSubgraph
               }
             />
           ))}
-
+        {sectionVisibility.claims && (
+          <ClaimsTable
+            onEntityClick={onEntityClick}
+            proposedEntities={proposedEntities}
+          />
+        )}
         {sectionVisibility.deliverables && (
           <Deliverables deliverables={deliverables} />
         )}

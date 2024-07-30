@@ -52,13 +52,15 @@ export const FlowRunSidebar = ({
   name,
   showDag,
 }: FlowRunSidebarProps) => {
+  const { selectedFlowRun } = useFlowRunsContext();
+
   const { isUsageAvailable, usageByFlowRun } = useFlowRunsUsage({
     flowRunIds: [flowRunId],
+    pollInterval: selectedFlowRun?.closedAt ? 0 : 5_000,
   });
+
   const [showUsageBreakdown, setShowUsageBreakdown] = useState(false);
   const [showResearchPrompt, setShowResearchPrompt] = useState(false);
-
-  const { selectedFlowRun } = useFlowRunsContext();
 
   const usage = usageByFlowRun[flowRunId];
 

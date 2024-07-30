@@ -1,4 +1,3 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
@@ -13,7 +12,6 @@ import { logger } from "./shared/activity-logger.js";
 import { getFlowContext } from "./shared/get-flow-context.js";
 import { graphApiClient } from "./shared/graph-api-client.js";
 import type { PermittedOpenAiModel } from "./shared/openai-client.js";
-import { simplifyEntity } from "./shared/simplify-entity.js";
 import { stringify } from "./shared/stringify.js";
 
 export const inferEntitiesFromWebPageActivity = async (params: {
@@ -24,7 +22,6 @@ export const inferEntitiesFromWebPageActivity = async (params: {
   model: PermittedOpenAiModel;
   maxTokens?: number | null;
   temperature?: number;
-  existingEntities?: Entity[];
 }) => {
   const {
     webPage,
@@ -34,7 +31,6 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     inferenceState,
     maxTokens,
     temperature,
-    existingEntities,
   } = params;
 
   const { webId, userAuthentication } = await getFlowContext();
@@ -60,7 +56,6 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     model,
     maxTokens,
     temperature,
-    existingEntities,
     userAccountId: userAuthentication.actorId,
     graphApiClient,
     webId,
@@ -101,18 +96,6 @@ export const inferEntitiesFromWebPageActivity = async (params: {
       ensure that the values is stored in the correct unit. Do not
       change units, you must use the units specified in the data.
 
-    ${
-      existingEntities && existingEntities.length > 0
-        ? dedent(`
-          The user has provided these existing entities, which do not need to be inferred again: ${JSON.stringify(
-            existingEntities.map(simplifyEntity),
-          )}
-
-          You are encouraged to link to existing entities from the new entities you propose, where it may be relevant.
-        `)
-        : ""
-    }
-
     You already provided a summary of the ${
       relevantEntitiesPrompt
         ? "relevant entities you inferred"
@@ -129,6 +112,5 @@ export const inferEntitiesFromWebPageActivity = async (params: {
       ...inferenceState,
       iterationCount: inferenceState.iterationCount + 1,
     },
-    existingEntities,
   });
 };

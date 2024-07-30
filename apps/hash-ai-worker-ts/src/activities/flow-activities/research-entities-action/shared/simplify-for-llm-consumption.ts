@@ -10,7 +10,7 @@ import type {
   DereferencedPropertyType,
   MinimalPropertyTypeValue,
 } from "../../../shared/dereference-entity-type.js";
-import type { Fact } from "../../shared/infer-facts-from-text/types.js";
+import type { Claim } from "../../shared/infer-claims-from-text/types.js";
 
 const simplifyMinimalPropertyTypeValueForLlmConsumption = (params: {
   propertyTypeValue: MinimalPropertyTypeValue;
@@ -124,6 +124,6 @@ Missing properties: ${Object.entries(entityType.properties)
   `;
 };
 
-export const simplifyFactForLlmConsumption = (fact: Fact) => {
-  return `${fact.text} ${fact.prepositionalPhrases.join(", ")}`;
+export const simplifyClaimForLlmConsumption = (claim: Claim) => {
+  return `${claim.text} ${claim.prepositionalPhrases.join(", ")}`;
 };
