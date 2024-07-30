@@ -48,6 +48,8 @@ impl<'a> Expr<'a> {
 
 #[cfg(test)]
 mod test {
+    use std::assert_matches::assert_matches;
+
     use insta::assert_debug_snapshot;
 
     use super::Expr;
@@ -55,12 +57,18 @@ mod test {
 
     // This needs to be a macro, because we need to get the function name for auto-naming.
     macro_rules! assert_expr {
-        ($expr:expr) => {{
+        ($expr:expr, $pattern:pat) => {{
             let arena = Arena::new();
 
             let result = Expr::from_str(&arena, $expr);
 
             assert_debug_snapshot!(insta::_macro_support::AutoName, result, $expr);
+
+            assert_matches!(result, $pattern);
+        }};
+
+        ($expr:expr) => {{
+            assert_expr!($expr, _);
         }};
     }
 
@@ -68,87 +76,94 @@ mod test {
     fn fn_is_expr() {
         assert_expr!(
             r#"[
-            ["input", "variable"],
-            "arg1",
-            "arg2"
-        ]"#
+                ["input", "variable"],
+                "arg1",
+                "arg2"
+            ]"#,
+            Ok(Expr::Call(_))
         );
     }
 
     #[test]
     fn fn_empty_args() {
-        assert_expr!(r#"["func"]"#);
+        assert_expr!(r#"["func"]"#, Ok(Expr::Call(_)));
     }
 
     #[test]
     fn fn_empty() {
-        assert_expr!("[]");
+        assert_expr!("[]", Err(_));
     }
 
     #[test]
     fn string_is_path() {
-        assert_expr!(r#""symbol""#);
+        assert_expr!(r#""symbol""#, Ok(Expr::Path(_)));
 
-        assert_expr!(r#""foo::bar""#);
+        assert_expr!(r#""foo::bar""#, Ok(Expr::Path(_)));
     }
 
     #[test]
     fn string_is_signature() {
-        assert_expr!(r#""<T: Int>(a: T) -> T""#);
+        assert_expr!(r#""<T: Int>(a: T) -> T""#, Ok(Expr::Signature(_)));
     }
 
     #[test]
     fn string_is_invalid() {
-        assert_expr!(r#""1234""#);
+        assert_expr!(r#""1234""#, Err(_));
     }
 
     #[test]
     fn object_is_constant() {
-        assert_expr!(r#"{"const": 42}"#);
+        assert_expr!(r#"{"const": 42}"#, Ok(Expr::Constant(_)));
     }
 
     #[test]
     fn object_is_constant_with_type() {
-        assert_expr!(r#"{"type": "u32", "const": 42}"#);
+        assert_expr!(r#"{"type": "u32", "const": 42}"#, Ok(Expr::Constant(_)));
     }
 
     #[test]
     fn object_is_constant_with_extra_fields() {
-        assert_expr!(r#"{"type": "u32", "const": 42, "sig": "() -> Unit"}"#);
+        assert_expr!(
+            r#"{"type": "u32", "const": 42, "sig": "() -> Unit"}"#,
+            Err(_)
+        );
     }
 
     #[test]
     fn object_is_call() {
-        assert_expr!(r#"{"fn": "func", "args": ["arg1", "arg2"]}"#);
+        assert_expr!(
+            r#"{"fn": "func", "args": ["arg1", "arg2"]}"#,
+            Ok(Expr::Call(_))
+        );
     }
 
     #[test]
     fn object_is_args_without_fn() {
-        assert_expr!(r#"{"args": ["arg1", "arg2"]}"#);
+        assert_expr!(r#"{"args": ["arg1", "arg2"]}"#, Err(_));
     }
 
     #[test]
     fn object_is_call_without_args() {
-        assert_expr!(r#"{"fn": "func"}"#);
+        assert_expr!(r#"{"fn": "func"}"#, Ok(Expr::Call(_)));
     }
 
     #[test]
     fn object_is_signature() {
-        assert_expr!(r#"{"sig": "<T: Int>(a: T) -> T"}"#);
+        assert_expr!(r#"{"sig": "<T: Int>(a: T) -> T"}"#, Ok(Expr::Signature(_)));
     }
 
     #[test]
     fn object_is_invalid_multiple() {
-        assert_expr!(r#"{"sig": "<T: Int>(a: T) -> T", "fn": "func"}"#);
+        assert_expr!(r#"{"sig": "<T: Int>(a: T) -> T", "fn": "func"}"#, Err(_));
     }
 
     #[test]
     fn object_is_invalid() {
-        assert_expr!(r#"{"unknown": "key"}"#);
+        assert_expr!(r#"{"unknown": "key"}"#, Err(_));
     }
 
     #[test]
     fn object_is_empty() {
-        assert_expr!("{}");
+        assert_expr!("{}", Err(_));
     }
 }

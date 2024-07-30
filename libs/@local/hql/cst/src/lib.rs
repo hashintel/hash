@@ -1,4 +1,5 @@
 #![feature(allocator_api, box_into_boxed_slice)]
+#![cfg_attr(test, feature(assert_matches))]
 
 extern crate alloc;
 
