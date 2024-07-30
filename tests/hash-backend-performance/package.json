@@ -5,13 +5,45 @@
   "description": "Performance testing for the HASH backend",
   "license": "AGPL-3.0",
   "type": "module",
+  "exports": {
+    ".": "./dist/cjs/main.js"
+  },
+  "main": "./dist/cjs/main.cjs",
+  "types": "./dist/cjs/main.d.ts",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./dist/cjs/main.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "bench:load-testing": "for file in scenarios/*.yml; do artillery run --config artillery.yml $file --environment local; done",
+    "build": "rimraf dist && rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
     "codegen": "mkdir -p reports && echo '*' > reports/.gitignore",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit",
     "test:integration": "for file in scenarios/*.yml; do artillery run --config artillery.yml $file --environment functional; done"
   },
   "dependencies": {
-    "@apps/hash-api": "0.0.0-private",
+    "@ory/client": "1.1.41",
     "artillery": "2.0.18"
+  },
+  "devDependencies": {
+    "@apps/hash-api": "0.0.0-private",
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "@rollup/plugin-commonjs": "26.0.1",
+    "@rollup/plugin-node-resolve": "15.2.3",
+    "@rollup/plugin-typescript": "11.1.6",
+    "@types/artillery": "1.7.4",
+    "eslint": "8.57.0",
+    "rimraf": "6.0.1",
+    "rollup": "4.12.0",
+    "typescript": "5.5.4"
   }
 }

@@ -1,39 +1,20 @@
 scenarios:
   - name: Login
+    beforeRequest: refreshSessionToken
     flow:
-      - get:
-          name: Init response
-          url: http://localhost:5001/auth/self-service/login/api
-          match:
-            json: $.id
-            as: flowId
       - post:
-          name: Login
-          url: http://localhost:5001/auth/self-service/login?flow={{ flowId }}
+          name: Me query
+          url: /
           json:
-            method: password
-            identifier: alice@example.com
-            password: password
-          match:
-            json: $.session_token
-            as: sessionToken
-      - loop:
-          - post:
-              name: Me query
-              url: /
-              headers:
-                Authorization: Bearer {{ sessionToken }}
-              json:
-                query: |
-                  query {
-                    me {
-                      subgraph {
-                        roots,
-                        vertices
-                      }
-                    }
+            query: |
+              query {
+                me {
+                  subgraph {
+                    roots
+                    vertices
                   }
-              match:
-                json: $.data.me
-                as: me
-        count: 10
+                }
+              }
+          match:
+            json: $.data.me
+            as: me

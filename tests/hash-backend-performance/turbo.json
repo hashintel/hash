@@ -2,7 +2,10 @@
   "extends": ["//"],
   "tasks": {
     "bench:load-testing": {
-      "dependsOn": ["codegen"]
+      "dependsOn": ["build", "^start:healthcheck"]
+    },
+    "test:integration": {
+      "dependsOn": ["build", "^start:test:healthcheck"]
     }
   }
 }
