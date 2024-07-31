@@ -1,0 +1,18 @@
+---
+source: libs/@local/hql/cst/src/expr.rs
+expression: "{\"type\": \"u32\", \"const\": 42}"
+---
+Ok(
+    Constant(
+        Constant {
+            value: Number(42),
+            type: Some(
+                Symbol(
+                    Symbol(
+                        "u32",
+                    ),
+                ),
+            ),
+        },
+    ),
+)

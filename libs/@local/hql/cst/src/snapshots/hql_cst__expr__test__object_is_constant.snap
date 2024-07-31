@@ -1,0 +1,12 @@
+---
+source: libs/@local/hql/cst/src/expr.rs
+expression: "{\"const\": 42}"
+---
+Ok(
+    Constant(
+        Constant {
+            value: Number(42),
+            type: None,
+        },
+    ),
+)

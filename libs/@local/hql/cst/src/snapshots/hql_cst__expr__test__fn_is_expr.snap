@@ -1,0 +1,54 @@
+---
+source: libs/@local/hql/cst/src/expr.rs
+expression: "[\n            [\"input\", \"variable\"],\n            \"arg1\",\n            \"arg2\"\n        ]"
+---
+Ok(
+    Call(
+        Call {
+            fn: Call(
+                Call {
+                    fn: Path(
+                        Path(
+                            [
+                                Symbol(
+                                    "input",
+                                ),
+                            ],
+                        ),
+                    ),
+                    args: [
+                        Path(
+                            Path(
+                                [
+                                    Symbol(
+                                        "variable",
+                                    ),
+                                ],
+                            ),
+                        ),
+                    ],
+                },
+            ),
+            args: [
+                Path(
+                    Path(
+                        [
+                            Symbol(
+                                "arg1",
+                            ),
+                        ],
+                    ),
+                ),
+                Path(
+                    Path(
+                        [
+                            Symbol(
+                                "arg2",
+                            ),
+                        ],
+                    ),
+                ),
+            ],
+        },
+    ),
+)
