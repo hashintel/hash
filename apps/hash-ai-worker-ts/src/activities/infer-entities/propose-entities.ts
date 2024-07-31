@@ -592,6 +592,9 @@ export const proposeEntities = async (params: {
                     recordedAt: now,
                     type: "ProposedEntity",
                     stepId: Context.current().info.activityId,
+                    workerType: "Link explorer",
+                    parentInstanceId: null,
+                    workerInstanceId: "browser-plugin-flow",
                   })),
               ),
             );

@@ -523,15 +523,6 @@ const createInitialPlan = async (params: {
     const { plan } =
       updatePlanToolCall.input as CoordinatorToolCallArguments["updatePlan"];
 
-    logProgress([
-      {
-        recordedAt: new Date().toISOString(),
-        stepId: Context.current().info.activityId,
-        type: "CreatedPlan",
-        plan,
-      },
-    ]);
-
     return { plan, questionsAndAnswers };
   }
 

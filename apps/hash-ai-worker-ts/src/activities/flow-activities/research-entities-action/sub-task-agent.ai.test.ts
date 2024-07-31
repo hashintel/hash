@@ -97,6 +97,11 @@ test(
           testName: "github-url",
         }),
       },
+      workerIdentifiers: {
+        workerType: "Subtask",
+        workerInstanceId: "subtask1",
+        parentInstanceId: null,
+      },
     });
 
     expect(status).toBeDefined();

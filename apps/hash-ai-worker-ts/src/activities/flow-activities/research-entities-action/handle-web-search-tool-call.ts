@@ -6,6 +6,7 @@ import {
 import type {
   StepInput,
   WebSearchResult,
+  WorkerIdentifiers,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
@@ -18,8 +19,11 @@ import type { ResourceSummary } from "./types.js";
 
 export const handleWebSearchToolCall = async (params: {
   input: CoordinatorToolCallArguments["webSearch"];
+  workerIdentifiers: WorkerIdentifiers;
 }): Promise<ResourceSummary[] | { error: string }> => {
-  const { query, explanation } = params.input;
+  const { input, workerIdentifiers } = params;
+
+  const { query, explanation } = input;
 
   const response = await webSearchAction({
     inputs: [
@@ -48,6 +52,7 @@ export const handleWebSearchToolCall = async (params: {
       recordedAt: new Date().toISOString(),
       stepId: Context.current().info.activityId,
       explanation,
+      ...workerIdentifiers,
     },
   ]);
 

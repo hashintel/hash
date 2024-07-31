@@ -376,30 +376,86 @@ export type ProgressLogBase = {
   stepId: string;
 };
 
-export type QueriedWebLog = ProgressLogBase & {
+export type WorkerType = "Coordinator" | "Subtask" | "Link explorer";
+
+export type WorkerIdentifiers = {
+  workerType: WorkerType;
+  workerInstanceId: string;
+  parentInstanceId: string | null;
+};
+
+export type WorkerProgressLogBase = ProgressLogBase & WorkerIdentifiers;
+
+export type QueriedWebLog = WorkerProgressLogBase & {
   explanation: string;
   query: string;
   type: "QueriedWeb";
 };
 
-export type CreatedPlanLog = ProgressLogBase & {
+export type CreatedPlanLog = WorkerProgressLogBase & {
   plan: string;
   type: "CreatedPlan";
 };
 
-export type VisitedWebPageLog = ProgressLogBase & {
+export type VisitedWebPageLog = WorkerProgressLogBase & {
   explanation: string;
   webPage: Pick<WebPage, "url" | "title">;
   type: "VisitedWebPage";
 };
 
-export type StartedSubTaskLog = ProgressLogBase & {
+export type StartedSubTaskLog = WorkerProgressLogBase & {
   explanation: string;
-  goal: string;
+  input: {
+    goal: string;
+    entityTypeTitles: string[];
+  };
   type: "StartedSubTask";
 };
 
-export type ViewedFile = {
+export type ClosedSubTaskLog = WorkerProgressLogBase & {
+  errorMessage?: string;
+  explanation: string;
+  goal: string;
+  output: {
+    claimCount: number;
+    entityCount: number;
+  };
+  type: "ClosedSubTask";
+};
+
+export type StartedLinkExplorerTaskLog = WorkerProgressLogBase & {
+  explanation: string;
+  input: {
+    goal: string;
+  };
+  type: "StartedLinkExplorerTask";
+};
+
+export type ClosedLinkExplorerTaskLog = WorkerProgressLogBase & {
+  errorMessage?: string;
+  goal: string;
+  output: {
+    claimCount: number;
+    entityCount: number;
+    resourcesExploredCount: number;
+    suggestionForNextSteps: string;
+  };
+  type: "ClosedLinkExplorerTask";
+};
+
+export type InferredClaimsFromTextLog = WorkerProgressLogBase & {
+  output: {
+    claimCount: number;
+    entityCount: number;
+    resource: {
+      title?: string;
+      url: string;
+    };
+  };
+  type: "InferredClaimsFromText";
+};
+
+export type ViewedFile = WorkerProgressLogBase & {
   explanation: string;
   file: Pick<WebPage, "url" | "title">;
   recordedAt: string;
@@ -407,7 +463,7 @@ export type ViewedFile = {
   type: "ViewedFile";
 };
 
-export type ProposedEntityLog = ProgressLogBase & {
+export type ProposedEntityLog = WorkerProgressLogBase & {
   proposedEntity: Omit<ProposedEntity, "provenance">;
   type: "ProposedEntity";
 };
@@ -418,13 +474,17 @@ export type PersistedEntityLog = ProgressLogBase & {
 };
 
 export type StepProgressLog =
-  | CreatedPlanLog
+  | ClosedLinkExplorerTaskLog
+  | ClosedSubTaskLog
+  | InferredClaimsFromTextLog
   | PersistedEntityLog
   | ProposedEntityLog
-  | VisitedWebPageLog
-  | ViewedFile
   | QueriedWebLog
-  | StartedSubTaskLog;
+  | StartedLinkExplorerTaskLog
+  | StartedSubTaskLog
+  | ViewedFile
+  | VisitedWebPageLog
+  | CreatedPlanLog;
 
 export type ProgressLogSignal = {
   attempt: number;

@@ -60,7 +60,22 @@ export type StateChangeLog = ProgressLogBase & {
   type: "StateChange";
 };
 
-export type LocalProgressLog = StepProgressLog | StateChangeLog;
+export type LogDisplay = "grouped" | "stream";
+
+export type StandaloneLog = (StepProgressLog | StateChangeLog) & {
+  level: number;
+  number: string;
+};
+
+export type LogThread = {
+  level: number;
+  number: string;
+  threadStartedAt?: Date;
+  threadClosedAt?: Date;
+  entries?: LocalProgressLog[];
+};
+
+export type LocalProgressLog = StandaloneLog | LogThread;
 
 export type ProposedEntityOutput = Omit<ProposedEntity, "provenance"> & {
   researchOngoing: boolean;

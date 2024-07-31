@@ -7,7 +7,14 @@ import type {
 } from "@local/hash-graph-types/entity";
 import type { StepProgressLog } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { Box, Stack, TableCell, Tooltip } from "@mui/material";
+import {
+  Box,
+  Stack,
+  Switch,
+  TableCell,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import { format } from "date-fns";
 import type { ReactElement } from "react";
 import { memo, useMemo, useState } from "react";
@@ -24,7 +31,7 @@ import {
   VirtualizedTable,
 } from "../../../shared/virtualized-table";
 import { SectionLabel } from "./section-label";
-import type { LocalProgressLog } from "./shared/types";
+import type { LocalProgressLog, LogDisplay } from "./shared/types";
 
 const getEntityLabelFromLog = (log: StepProgressLog): string => {
   if (log.type !== "ProposedEntity" && log.type !== "PersistedEntity") {
@@ -80,6 +87,10 @@ const getEntityPrefixFromLog = (log: StepProgressLog): string => {
 const visitedWebPagePrefix = "Visited ";
 const viewedPdfFilePrefix = "Viewed PDF file at ";
 const queriedWebPrefix = "Searched web for ";
+const startedSubTaskPrefix = "Started sub-task with goal ";
+const closedSubTaskPrefix = "Finished sub-task with ";
+const startedLinkExplorerTaskPrefix = "Started link explorer task with goal ";
+const closedLinkExplorerTaskPrefix = "Finished link explorer task with ";
 
 const getRawTextFromLog = (log: LocalProgressLog): string => {
   switch (log.type) {
@@ -107,7 +118,20 @@ const getRawTextFromLog = (log: LocalProgressLog): string => {
       return "Created research plan";
     }
     case "StartedSubTask": {
-      return `Started sub-task with goal “${log.goal}”`;
+      return `${startedSubTaskPrefix}“${log.input.goal}”`;
+    }
+    case "ClosedSubTask": {
+      return `${closedSubTaskPrefix} ${log.output.claimCount} claims and ${log.output.entityCount} entities discovered`;
+    }
+    case "StartedLinkExplorerTask": {
+      return `${startedLinkExplorerTaskPrefix}“${log.input.goal}”`;
+    }
+    case "ClosedLinkExplorerTask": {
+      return `${closedLinkExplorerTaskPrefix} ${log.output.claimCount} claims and ${log.output.entityCount} entities discovered`;
+    }
+    case "InferredClaimsFromText": {
+      // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+      return `Inferred ${log.output.claimCount} claims and ${log.output.entityCount} entities from ${log.output.resource.title || log.output.resource.url}`;
     }
   }
 };
@@ -200,9 +224,61 @@ const LogDetail = ({
       return (
         <Stack direction="row" alignItems="center" gap={1}>
           <Box sx={ellipsisOverflow}>
-            Started sub-task with goal <strong>“{log.goal}”</strong>
+            {startedSubTaskPrefix}
+            <strong>“{log.input.goal}”</strong>
           </Box>
           <ModelTooltip text={log.explanation} />
+        </Stack>
+      );
+    }
+    case "ClosedSubTask": {
+      return (
+        <Stack direction="row" alignItems="center" gap={1}>
+          <Box sx={ellipsisOverflow}>
+            {closedSubTaskPrefix}
+            <strong>{log.output.claimCount} claims</strong> and{" "}
+            <strong>{log.output.entityCount}</strong> entities discovered
+          </Box>
+          <ModelTooltip text={log.explanation} />
+        </Stack>
+      );
+    }
+    case "StartedLinkExplorerTask": {
+      return (
+        <Stack direction="row" alignItems="center" gap={1}>
+          <Box sx={ellipsisOverflow}>
+            {startedLinkExplorerTaskPrefix}
+            <strong>“{log.input.goal}”</strong>
+          </Box>
+          <ModelTooltip text={log.explanation} />
+        </Stack>
+      );
+    }
+    case "ClosedLinkExplorerTask": {
+      return (
+        <Stack direction="row" alignItems="center" gap={1}>
+          <Box sx={ellipsisOverflow}>
+            {closedLinkExplorerTaskPrefix}
+            <strong>{log.output.claimCount} claims</strong> and{" "}
+            <strong>{log.output.entityCount}</strong> entities discovered
+          </Box>
+        </Stack>
+      );
+    }
+    case "InferredClaimsFromText": {
+      return (
+        <Stack direction="row" alignItems="center" gap={1}>
+          <Box sx={ellipsisOverflow}>
+            Inferred <strong>{log.output.claimCount} claims</strong> and{" "}
+            <strong>{log.output.entityCount} entities</strong> from{" "}
+            <Link
+              href={log.output.resource.url}
+              sx={{ textDecoration: "none", ...ellipsisOverflow }}
+            >
+              {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing */}
+              {log.output.resource.title || log.output.resource.url}
+            </Link>
+          </Box>
         </Stack>
       );
     }
@@ -236,6 +312,22 @@ const TableRow = memo(
   ({ index, log }: { index: number; log: LocalProgressLog }) => {
     const todaysDate = format(new Date(), "yyyy-MM-dd");
     const logDate = format(new Date(log.recordedAt), "yyyy-MM-dd");
+
+    const [showChildren, setShowChildren] = useState(false);
+
+    const hasChildren = !!log.children?.length;
+
+    const showTimer =
+      log.type === "StartedSubTask" || log.type === "StartedLinkExplorerTask";
+
+    const startedAt = log.startedAt ? new Date(log.startedAt) : null;
+    const endedAt =
+      log.type === "StartedSubTask"
+        ? log.children?.find((log) => log.type === "ClosedSubTask")?.recordedAt
+        : log.type === "StartedLinkExplorerTask"
+          ? log.children?.find((log) => log.type === "ClosedLinkExplorerTask")
+              ?.recordedAt
+          : null;
 
     return (
       <>
@@ -280,51 +372,102 @@ const createRowContent: CreateVirtualizedRowContentFn<LocalProgressLog> = (
   row,
 ) => <TableRow index={index} log={row.data} />;
 
-export const ActivityLog = memo(({ logs }: { logs: LocalProgressLog[] }) => {
-  const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
-    field: "time",
-    direction: "asc",
-  });
+export const ActivityLog = memo(
+  ({
+    logs,
+    logDisplay,
+    setLogDisplay,
+  }: {
+    logs: LocalProgressLog[];
+    logDisplay: LogDisplay;
+    setLogDisplay: (display: LogDisplay) => void;
+  }) => {
+    const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
+      field: "time",
+      direction: "asc",
+    });
 
-  const rows = useMemo(() => {
-    return logs
-      .sort((a, b) => {
-        if (sort.field === "time") {
-          if (sort.direction === "asc") {
+    const rows = useMemo(() => {
+      return logs
+        .sort((a, b) => {
+          if (sort.field === "time") {
+            if (sort.direction === "asc") {
+              return a.recordedAt > b.recordedAt ? 1 : -1;
+            }
+
             return a.recordedAt > b.recordedAt ? 1 : -1;
           }
 
-          return a.recordedAt > b.recordedAt ? 1 : -1;
-        }
+          if (sort.direction === "asc") {
+            return getRawTextFromLog(a) > getRawTextFromLog(b) ? -1 : 1;
+          }
 
-        if (sort.direction === "asc") {
-          return getRawTextFromLog(a) > getRawTextFromLog(b) ? -1 : 1;
-        }
+          return getRawTextFromLog(b) < getRawTextFromLog(a) ? 1 : -1;
+        })
+        .map((log, index) => ({
+          id: `${index}-${log.recordedAt}`,
+          data: log,
+        }));
+    }, [logs, sort]);
 
-        return getRawTextFromLog(b) < getRawTextFromLog(a) ? 1 : -1;
-      })
-      .map((log, index) => ({
-        id: `${index}-${log.recordedAt}`,
-        data: log,
-      }));
-  }, [logs, sort]);
+    const columns = useMemo(() => createColumns(rows.length), [rows.length]);
 
-  const columns = useMemo(() => createColumns(rows.length), [rows.length]);
+    return (
+      <>
+        <Stack
+          alignItems="center"
+          direction="row"
+          justifyContent="space-between"
+          mb={0.5}
+          sx={{ height: 24 }}
+        >
+          <SectionLabel text="Activity log" />
+          <Stack direction="row" alignItems="center" spacing={1} mb={0.4}>
+            <Typography
+              sx={{
+                fontSize: 12,
+                fontWeight: logDisplay === "stream" ? 500 : 400,
 
-  return (
-    <>
-      <Stack alignItems="center" direction="row" mb={0.5} sx={{ height: 24 }}>
-        <SectionLabel text="Activity log" />
-      </Stack>
-      <Box flex={1}>
-        <VirtualizedTable
-          columns={columns}
-          createRowContent={createRowContent}
-          rows={rows}
-          sort={sort}
-          setSort={setSort}
-        />
-      </Box>
-    </>
-  );
-});
+                color: ({ palette }) =>
+                  logDisplay === "stream"
+                    ? palette.common.black
+                    : palette.gray[60],
+              }}
+            >
+              Stream
+            </Typography>
+            <Switch
+              checked={logDisplay === "grouped"}
+              onChange={() =>
+                setLogDisplay(logDisplay === "grouped" ? "stream" : "grouped")
+              }
+              inputProps={{ "aria-label": "controlled" }}
+              size="small"
+            />
+            <Typography
+              sx={{
+                fontSize: 12,
+                fontWeight: logDisplay === "grouped" ? 500 : 400,
+                color: ({ palette }) =>
+                  logDisplay === "grouped"
+                    ? palette.common.black
+                    : palette.gray[60],
+              }}
+            >
+              Grouped
+            </Typography>
+          </Stack>
+        </Stack>
+        <Box flex={1}>
+          <VirtualizedTable
+            columns={columns}
+            createRowContent={createRowContent}
+            rows={rows}
+            sort={sort}
+            setSort={setSort}
+          />
+        </Box>
+      </>
+    );
+  },
+);

@@ -24,6 +24,7 @@ import { chooseRelevantLinksFromContent } from "./link-follower-agent/choose-rel
 import { filterAndRankTextChunksAgent } from "./link-follower-agent/filter-and-rank-text-chunks-agent.js";
 import { getLinkFollowerNextToolCalls } from "./link-follower-agent/get-link-follower-next-tool-calls.js";
 import { indexPdfFile } from "./link-follower-agent/llama-index/index-pdf-file.js";
+import { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 
 type ResourceToExplore = {
   url: string;
@@ -83,6 +84,7 @@ const isContentAtUrlPdfFile = async (params: { url: string }) => {
 const exploreResource = async (params: {
   input: LinkFollowerAgentInput;
   resource: ResourceToExplore;
+  workerIdentifiers: WorkerIdentifiers;
 }): Promise<
   | {
       status: "ok";
@@ -97,7 +99,7 @@ const exploreResource = async (params: {
       reason: string;
     }
 > => {
-  const { resource, input } = params;
+  const { resource, input, workerIdentifiers } = params;
 
   logger.debug(`Exploring resource at URL: ${resource.url}`);
 
@@ -189,6 +191,7 @@ const exploreResource = async (params: {
           url: resource.url,
         },
         explanation: resource.reason,
+        ...workerIdentifiers,
       },
     ]);
 
@@ -292,6 +295,7 @@ const exploreResource = async (params: {
         type: "VisitedWebPage",
         webPage: { url: webPage.url, title: webPage.title },
         explanation: resource.reason,
+        ...workerIdentifiers,
       },
     ]);
 
@@ -349,6 +353,23 @@ const exploreResource = async (params: {
     dereferencedEntityTypes: dereferencedEntityTypesById,
   });
 
+  logProgress([
+    {
+      recordedAt: new Date().toISOString(),
+      stepId,
+      type: "InferredClaimsFromText",
+      output: {
+        claimCount: inferredClaimsFromContent.length,
+        entityCount: inferredEntitySummariesFromContent.length,
+        resource: {
+          url: resource.url,
+          title: resourceTitle,
+        },
+      },
+      ...workerIdentifiers,
+    },
+  ]);
+
   const claimSource: SourceProvenance = {
     entityId: hashEntityForFile?.entityId,
     type: isResourcePdfFile ? SourceType.Document : SourceType.Webpage,
@@ -395,16 +416,18 @@ const exploreResource = async (params: {
   };
 };
 
-export const linkFollowerAgent = async (
-  params: LinkFollowerAgentInput,
-): Promise<{
+export const linkFollowerAgent = async (params: {
+  input: LinkFollowerAgentInput;
+  workerIdentifiers: WorkerIdentifiers;
+}): Promise<{
   status: "ok";
   inferredClaims: Claim[];
   exploredResources: ResourceToExplore[];
   inferredSummaries: LocalEntitySummary[];
   suggestionForNextSteps: string;
 }> => {
-  const { initialResource, existingEntitiesOfInterest, task } = params;
+  const { input, workerIdentifiers } = params;
+  const { initialResource, existingEntitiesOfInterest, task } = input;
 
   const exploredResources: ResourceToExplore[] = [];
 
@@ -425,9 +448,10 @@ export const linkFollowerAgent = async (
         exploreResource({
           resource,
           input: {
-            ...params,
+            ...input,
             existingEntitiesOfInterest: entitiesToProvideExplorer,
           },
+          workerIdentifiers,
         }),
       ),
     );

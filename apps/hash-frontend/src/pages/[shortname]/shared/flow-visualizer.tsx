@@ -9,6 +9,7 @@ import type {
   FlowDefinition as FlowDefinitionType,
   FlowTrigger,
   PersistedEntity,
+  StepProgressLog,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, Stack } from "@mui/material";
 import NotFound from "next/dist/client/components/not-found-error";
@@ -40,6 +41,7 @@ import type {
   EdgeData,
   FlowMaybeGrouped,
   LocalProgressLog,
+  LogDisplay,
   ProposedEntityOutput,
 } from "./flow-visualizer/shared/types";
 import {
@@ -209,6 +211,8 @@ export const FlowRunVisualizerSkeleton = () => (
 export const FlowVisualizer = () => {
   const [showDag, setShowDag] = useState(false);
 
+  const [logDisplay, setLogDisplay] = useState<LogDisplay>("grouped");
+
   const apolloClient = useApolloClient();
 
   const { push } = useRouter();
@@ -310,8 +314,12 @@ export const FlowVisualizer = () => {
       };
     }
 
+    let logNumber = 1;
+
     const progressLogs: LocalProgressLog[] = [
       {
+        number: logNumber.toString(),
+        level: 1,
         message: "Flow run started",
         recordedAt: selectedFlowRun.startedAt,
         stepId: "trigger",
@@ -322,11 +330,89 @@ export const FlowVisualizer = () => {
     const persisted: PersistedEntity[] = [];
     const proposed: ProposedEntityOutput[] = [];
 
+    const workerIdToLog: Record<string, LocalProgressLog> = {};
+
     for (const step of selectedFlowRun.steps) {
       const outputs = step.outputs?.[0]?.contents?.[0]?.outputs ?? [];
 
       for (const log of step.logs) {
-        progressLogs.push(log);
+        if (logDisplay === "grouped") {
+          let parent: LocalProgressLog | undefined;
+
+          /**
+           * If the log has a parentInstanceId, it is a child of another log, which should already have been processed.
+           * Strictly speaking this may not always happen as the order of signal delivery is not guaranteed by Temporal,
+           * but it is an assumption which is yet to be violated.
+           */
+          if ("parentInstanceId" in log && log.parentInstanceId) {
+            parent = workerIdToLog[log.parentInstanceId];
+            if (!parent) {
+              throw new Error(
+                `No parent log found with id ${log.parentInstanceId}`,
+              );
+            }
+
+            /**
+             * If a log has a parentInstanceId, it is a child thread, which will have multiple entries.
+             * Anything without a parentInstanceId belongs to the top-level process and appears alone in the top-level logs array.
+             */
+            const logThread = workerIdToLog[log.workerInstanceId] ?? {
+              level: parent.level,
+              number: parent.number
+            }
+          }
+
+          if (
+            parent &&
+            "parentInstanceId" in parent &&
+            /**
+             * A log might have a parent which does not itself have a parent, in which case this log should appear the top level.
+             * i.e. the top level agent's child logs are the entries of the 'progressLogs' array we are constructing.
+             */
+            parent.parentInstanceId
+          ) {
+            const numberedLog = {
+              ...log,
+              number: `${parent.number}.${parent.children.length + 1}`,
+            };
+
+            if (log.type === "StartedSubTask" || log.type === "StartedLinkExplorerTask") {
+              numberedLog.children =
+            }
+            /**
+             * We add the first child to the parent's
+             */
+            parent.children ??= [];
+
+
+            parent.children.push(numberedLog);
+
+            if ("workerInstanceId" in log) {
+              /**
+               * If the log has a workerInstanceId, it is addressable and may itself have children,
+               * so we want to store it in our record for easier lookup when we want to assign children to it.
+               */
+              workerIdToLog[log.workerInstanceId] = numberedLog;
+            }
+          } else {
+            const numberedLog = {
+              ...log,
+              number: (++logNumber).toString(),
+              level: 1,
+            };
+
+            progressLogs.push(numberedLog);
+
+            if ("workerInstanceId" in log) {
+              workerIdToLog[log.workerInstanceId] = numberedLog;
+            }
+          }
+        } else {
+          progressLogs.push({
+            ...log,
+            number: (++logNumber).toString(),
+          });
+        }
 
         if (outputs.length === 0) {
           if (log.type === "ProposedEntity") {
@@ -385,7 +471,7 @@ export const FlowVisualizer = () => {
       proposedEntities: proposed,
       persistedEntities: persisted,
     };
-  }, [selectedFlowRun]);
+  }, [logDisplay, selectedFlowRun]);
 
   const [startFlow] = useMutation<
     StartFlowMutation,
@@ -548,7 +634,12 @@ export const FlowVisualizer = () => {
               width: "70%",
             }}
           >
-            <ActivityLog key={`${flowRunStateKey}-activity-log`} logs={logs} />
+            <ActivityLog
+              key={`${flowRunStateKey}-activity-log`}
+              logs={logs}
+              logDisplay={logDisplay}
+              setLogDisplay={setLogDisplay}
+            />
           </Stack>
         </Stack>
       </Stack>
