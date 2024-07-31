@@ -196,7 +196,12 @@ export interface PropertyArrayWithMetadata {
   metadata?: PropertyMetadataArray["metadata"];
 }
 
-export interface PropertyObjectValueMetadata {
+interface GraphApiPropertyObjectValueMetadata {
+  [key: string]: PropertyWithMetadata;
+}
+
+export interface PropertyObjectValueMetadata
+  extends GraphApiPropertyObjectValueMetadata {
   [propertyType: BaseUrl]: PropertyWithMetadata;
 }
 
@@ -241,22 +246,22 @@ export type LinkData = Subtype<
   }
 >;
 
-export type EntityProvenance = {
+export interface EntityProvenance {
   createdById: CreatedById;
   createdAtTransactionTime: CreatedAtTransactionTime;
   createdAtDecisionTime: CreatedAtDecisionTime;
   edition: EntityEditionProvenance;
   firstNonDraftCreatedAtDecisionTime?: CreatedAtDecisionTime;
   firstNonDraftCreatedAtTransactionTime?: CreatedAtTransactionTime;
-};
+}
 
-export type EntityEditionProvenance = {
+export interface EntityEditionProvenance {
   createdById: EditionCreatedById;
   archivedById?: EditionArchivedById;
   actorType?: ActorType;
   origin?: ProvidedEntityEditionProvenanceOrigin;
   sources?: Array<SourceProvenance>;
-};
+}
 
 export type AddPropertyPatchOperation = {
   op: "add";

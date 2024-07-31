@@ -73,14 +73,16 @@ export type CreateEntityParameters<
   draft?: boolean;
 };
 
-export type PatchEntityParameters = Omit<
-  GraphApiPatchEntityParams,
-  "entityId" | "entityTypeIds" | "decisionTime" | "properties" | "provenance"
-> & {
+export interface PatchEntityParameters
+  extends Omit<
+    GraphApiPatchEntityParams,
+    "entityId" | "entityTypeIds" | "decisionTime" | "properties" | "provenance"
+  > {
   entityTypeId?: VersionedUrl;
   propertyPatches?: PropertyPatchOperation[];
   provenance: EnforcedEntityEditionProvenance;
-};
+}
+
 const typeId: unique symbol = Symbol.for(
   "@local/hash-graph-sdk/entity/SerializedEntity",
 );
@@ -695,7 +697,7 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
 export class LinkEntity<
   Properties extends EntityProperties = EntityProperties,
 > extends Entity<Properties> {
-  constructor(entity: EntityInput<Properties> | Entity) {
+  constructor(entity: EntityInput<Properties["properties"]> | Entity) {
     const input = (entity instanceof Entity ? entity.toJSON() : entity) as
       | GraphApiEntity
       | EntityData<Properties>;
@@ -706,7 +708,7 @@ export class LinkEntity<
       );
     }
 
-    super(input as EntityInput<Properties>);
+    super(input as EntityInput<Properties["properties"]>);
   }
 
   public static async createMultiple<T extends EntityProperties[]>(
