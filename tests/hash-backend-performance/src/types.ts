@@ -25,7 +25,7 @@ export interface Context<
   scenario: Scenario & ScenarioVariables;
 }
 
-export type BeforeRequest<
+export type BeforeRequestFn<
   Vars extends Record<string, unknown> = Record<string, unknown>,
   Scenario extends Record<string, unknown> = Record<string, unknown>,
 > = (
@@ -34,7 +34,7 @@ export type BeforeRequest<
   events: events.EventEmitter,
 ) => Promise<void>;
 
-export type AfterResponse<
+export type AfterResponseFn<
   Vars extends Record<string, unknown> = Record<string, unknown>,
   Scenario extends Record<string, unknown> = Record<string, unknown>,
 > = (
@@ -44,7 +44,7 @@ export type AfterResponse<
   events: events.EventEmitter,
 ) => Promise<void>;
 
-export type Action<
+export type ActionFn<
   Vars extends Record<string, unknown> = Record<string, unknown>,
   Scenario extends Record<string, unknown> = Record<string, unknown>,
 > = (
@@ -52,12 +52,12 @@ export type Action<
   events: events.EventEmitter,
 ) => Promise<void>;
 
-export type BeforeScenario<
+export type BeforeScenarioFn<
   Vars extends Record<string, unknown> = Record<string, unknown>,
   Scenario extends Record<string, unknown> = Record<string, unknown>,
-> = Action<Vars, Scenario>;
+> = ActionFn<Vars, Scenario>;
 
-export type AfterScenario<
+export type AfterScenarioFn<
   Vars extends Record<string, unknown> = Record<string, unknown>,
   Scenario extends Record<string, unknown> = Record<string, unknown>,
-> = Action<Vars, Scenario>;
+> = ActionFn<Vars, Scenario>;

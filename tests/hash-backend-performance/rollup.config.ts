@@ -8,7 +8,7 @@ const OUT_DIR = "dist/esm";
 
 const bundles: RollupOptions[] = [
   {
-    input: "src/main.ts",
+    input: ["src/main.ts"],
     output: {
       dir: OUT_DIR,
       entryFileNames: "[name].mjs",
