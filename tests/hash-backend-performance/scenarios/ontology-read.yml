@@ -14,6 +14,8 @@ scenarios:
                   roots
                 }
               }
+          expect:
+            - notHasProperty: errors
       - post:
           name: Read property type by ID
           url: /
@@ -28,6 +30,8 @@ scenarios:
                   roots
                 }
               }
+          expect:
+            - notHasProperty: errors
       - post:
           name: Read entity type by ID
           url: /
@@ -45,3 +49,5 @@ scenarios:
                   roots
                 }
               }
+          expect:
+            - notHasProperty: errors
