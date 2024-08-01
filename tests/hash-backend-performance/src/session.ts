@@ -84,7 +84,7 @@ export const refreshSessionToken: BeforeRequestFn<LoginContext> = async (
   if (
     !context.vars.session ||
     (context.vars.session.expiresAt &&
-      context.vars.session.expiresAt > Date.now())
+      context.vars.session.expiresAt < Date.now())
   ) {
     await login(context, events);
   }

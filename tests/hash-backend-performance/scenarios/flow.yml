@@ -29,6 +29,8 @@ scenarios:
                         value: 1000
                         metadata:
                           dataTypeId: https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1
+              expect:
+                - notHasProperty: errors
           - post:
               name: Create entities
               url: http://127.0.0.1:4000/entities/bulk
