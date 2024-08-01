@@ -1,0 +1,18 @@
+scenarios:
+  - name: Read all property types
+    flow:
+      - post:
+          url: /
+          json:
+            query: |
+              query {
+                queryPropertyTypes(
+                  constrainsValuesOn: { outgoing: 0 }
+                  constrainsPropertiesOn: { outgoing: 0 }
+                  includeArchived: true
+                ) {
+                  vertices
+                }
+              }
+          expect:
+            - notHasProperty: errors
