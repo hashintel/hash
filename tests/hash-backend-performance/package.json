@@ -21,7 +21,7 @@
     "dist"
   ],
   "scripts": {
-    "bench:load-testing": "for file in scenarios/*.yml; do artillery run --config artillery.yml $file --environment local; done",
+    "bench:load-testing": "for file in scenarios/*.yml; do artillery run --config artillery.yml $file --output reports/$(basename ${file%.*}).json --quiet --environment local; done",
     "build": "rimraf dist && rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
     "codegen": "mkdir -p reports && echo '*' > reports/.gitignore",
     "fix:eslint": "eslint --fix .",
