@@ -296,6 +296,18 @@ export const researchEntitiesAction: FlowActionActivity<{
 
   const { flowEntityId, stepId, webId } = await getFlowContext();
 
+  logProgress([
+    {
+      type: "StartedCoordinator",
+      input: {
+        goal: input.prompt,
+      },
+      recordedAt: new Date().toISOString(),
+      stepId,
+      ...workerIdentifiers,
+    },
+  ]);
+
   const providedFileEntities = await getProvidedFiles();
 
   const providedFiles: CoordinatingAgentState["resourcesNotVisited"] =
@@ -1104,6 +1116,18 @@ export const researchEntitiesAction: FlowActionActivity<{
 
   logger.debug(`Proposed Entities: ${stringify(allProposedEntities)}`);
   logger.debug(`File Entities Proposed: ${stringify(fileEntityProposals)}`);
+
+  logProgress([
+    {
+      type: "ClosedCoordinator",
+      output: {
+        entityCount: allProposedEntities.length + fileEntityProposals.length,
+      },
+      recordedAt: new Date().toISOString(),
+      stepId,
+      ...workerIdentifiers,
+    },
+  ]);
 
   return {
     code: StatusCode.Ok,

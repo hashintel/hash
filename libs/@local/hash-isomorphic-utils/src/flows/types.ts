@@ -403,6 +403,21 @@ export type VisitedWebPageLog = WorkerProgressLogBase & {
   type: "VisitedWebPage";
 };
 
+export type StartedCoordinatorLog = WorkerProgressLogBase & {
+  input: {
+    goal: string;
+  };
+  type: "StartedCoordinator";
+};
+
+export type ClosedCoordinatorLog = WorkerProgressLogBase & {
+  errorMessage?: string;
+  output: {
+    entityCount: number;
+  };
+  type: "ClosedCoordinator";
+};
+
 export type StartedSubTaskLog = WorkerProgressLogBase & {
   explanation: string;
   input: {
@@ -474,12 +489,14 @@ export type PersistedEntityLog = ProgressLogBase & {
 };
 
 export type StepProgressLog =
+  | ClosedCoordinatorLog
   | ClosedLinkExplorerTaskLog
   | ClosedSubTaskLog
   | InferredClaimsFromTextLog
   | PersistedEntityLog
   | ProposedEntityLog
   | QueriedWebLog
+  | StartedCoordinatorLog
   | StartedLinkExplorerTaskLog
   | StartedSubTaskLog
   | ViewedFile

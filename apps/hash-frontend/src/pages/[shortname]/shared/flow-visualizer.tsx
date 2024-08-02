@@ -9,7 +9,6 @@ import type {
   FlowDefinition as FlowDefinitionType,
   FlowTrigger,
   PersistedEntity,
-  StepProgressLog,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { Box, Stack } from "@mui/material";
 import NotFound from "next/dist/client/components/not-found-error";
@@ -194,6 +193,16 @@ const unrunnableDefinitionIds = [
   manualBrowserInferenceFlowDefinition.flowDefinitionId,
 ];
 
+const incrementLogNumber = (logNumber: string) => {
+  const parts = logNumber.split(".");
+  const lastPart = parts.at(-1)!;
+
+  return parts
+    .slice(0, -1)
+    .concat((parseInt(lastPart, 10) + 1).toString())
+    .join(".");
+};
+
 export const FlowRunVisualizerSkeleton = () => (
   <Stack gap={3} sx={{ height: `calc(100vh - ${HEADER_HEIGHT + 40}px)` }}>
     <Box height={topbarHeight} px={2}>
@@ -330,88 +339,100 @@ export const FlowVisualizer = () => {
     const persisted: PersistedEntity[] = [];
     const proposed: ProposedEntityOutput[] = [];
 
-    const workerIdToLog: Record<string, LocalProgressLog> = {};
+    /**
+     * A map between a workerInstanceId and (1) the list of logs associated with that worker, and (2) the id of its parent
+     * This is used to help build the tree of logs grouped by worker, when 'grouped' log display is selected.
+     */
+    const workerIdToLogsAndParent: Record<
+      string,
+      { logs: LocalProgressLog[]; level: number }
+    > = {};
 
     for (const step of selectedFlowRun.steps) {
       const outputs = step.outputs?.[0]?.contents?.[0]?.outputs ?? [];
 
       for (const log of step.logs) {
-        if (logDisplay === "grouped") {
-          let parent: LocalProgressLog | undefined;
-
+        if (
+          logDisplay === "stream" ||
+          !("parentInstanceId" in log) ||
+          !log.parentInstanceId
+        ) {
           /**
-           * If the log has a parentInstanceId, it is a child of another log, which should already have been processed.
-           * Strictly speaking this may not always happen as the order of signal delivery is not guaranteed by Temporal,
-           * but it is an assumption which is yet to be violated.
+           * If we're in 'stream' display, or if this log doesn't have a parent worker, it should appear at the top level.
            */
-          if ("parentInstanceId" in log && log.parentInstanceId) {
-            parent = workerIdToLog[log.parentInstanceId];
-            if (!parent) {
-              throw new Error(
-                `No parent log found with id ${log.parentInstanceId}`,
-              );
-            }
-
-            /**
-             * If a log has a parentInstanceId, it is a child thread, which will have multiple entries.
-             * Anything without a parentInstanceId belongs to the top-level process and appears alone in the top-level logs array.
-             */
-            const logThread = workerIdToLog[log.workerInstanceId] ?? {
-              level: parent.level,
-              number: parent.number
-            }
-          }
-
-          if (
-            parent &&
-            "parentInstanceId" in parent &&
-            /**
-             * A log might have a parent which does not itself have a parent, in which case this log should appear the top level.
-             * i.e. the top level agent's child logs are the entries of the 'progressLogs' array we are constructing.
-             */
-            parent.parentInstanceId
-          ) {
-            const numberedLog = {
-              ...log,
-              number: `${parent.number}.${parent.children.length + 1}`,
-            };
-
-            if (log.type === "StartedSubTask" || log.type === "StartedLinkExplorerTask") {
-              numberedLog.children =
-            }
-            /**
-             * We add the first child to the parent's
-             */
-            parent.children ??= [];
-
-
-            parent.children.push(numberedLog);
-
-            if ("workerInstanceId" in log) {
-              /**
-               * If the log has a workerInstanceId, it is addressable and may itself have children,
-               * so we want to store it in our record for easier lookup when we want to assign children to it.
-               */
-              workerIdToLog[log.workerInstanceId] = numberedLog;
-            }
-          } else {
-            const numberedLog = {
-              ...log,
-              number: (++logNumber).toString(),
-              level: 1,
-            };
-
-            progressLogs.push(numberedLog);
-
-            if ("workerInstanceId" in log) {
-              workerIdToLog[log.workerInstanceId] = numberedLog;
-            }
-          }
-        } else {
           progressLogs.push({
             ...log,
             number: (++logNumber).toString(),
+            level: 1,
           });
+
+          if ("workerInstanceId" in log) {
+            /**
+             * If the log has a workerInstanceId, it may have groups of logs nested under it,
+             * so we need to record the fact that any child workers should start a group in the top-level logs array.
+             */
+            workerIdToLogsAndParent[log.workerInstanceId] = {
+              level: 1,
+              logs: progressLogs,
+            };
+          }
+        } else {
+          /**
+           * This log has a parent worker, so we need to group it with its siblings.
+           * We also need to add the group to the parent's logs if it doesn't already exist.
+           */
+          const parentLogList = workerIdToLogsAndParent[log.parentInstanceId];
+          if (!parentLogList) {
+            throw new Error(
+              `No parent log found with id ${log.parentInstanceId}`,
+            );
+          }
+
+          const thisThread = workerIdToLogsAndParent[log.workerInstanceId];
+          if (!thisThread) {
+            let threadLabel: string;
+            if (log.type === "StartedSubTask") {
+              threadLabel = `Sub-task with goal ${log.input.goal}`;
+            } else if (log.type === "StartedLinkExplorerTask") {
+              threadLabel = `Link explorer with goal ${log.input.goal}`;
+            } else {
+              throw new Error(
+                `Expect new child worker threads to be started with a StartedSubTask or StartedLinkExplorerTask event, got ${log.type}`,
+              );
+            }
+
+            const threadNumber = incrementLogNumber(
+              parentLogList.logs.at(-1)!.number,
+            );
+
+            const newThread = {
+              type: "Thread" as const,
+              label: threadLabel,
+              level: parentLogList.level,
+              number: incrementLogNumber(parentLogList.logs.at(-1)!.number),
+              threadStartedAt: new Date(log.recordedAt),
+              logs: [
+                {
+                  level: parentLogList.level + 1,
+                  number: `${threadNumber}.1`,
+                  ...log,
+                },
+              ],
+            };
+
+            parentLogList.logs.push(newThread);
+
+            workerIdToLogsAndParent[log.workerInstanceId] = {
+              logs: newThread.logs,
+              level: newThread.level,
+            };
+          } else {
+            thisThread.logs.push({
+              level: parentLogList.level + 1,
+              number: incrementLogNumber(thisThread.logs.at(-1)!.number),
+              ...log,
+            });
+          }
         }
 
         if (outputs.length === 0) {
