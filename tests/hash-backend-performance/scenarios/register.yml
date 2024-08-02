@@ -1,7 +1,9 @@
 scenarios:
-  - name: Login
+  - name: Register
     beforeRequest: refreshSessionToken
     flow:
+      - function: signupUser
+      - function: completeRegistration
       - post:
           name: Me query
           url: /
