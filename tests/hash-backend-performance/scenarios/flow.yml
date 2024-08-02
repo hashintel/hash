@@ -1,6 +1,7 @@
 before:
   flow:
-    - function: login
+    - function: signupUser
+    - function: completeRegistration
 
 scenarios:
   - name: Mimic a flow run
@@ -9,7 +10,7 @@ scenarios:
       - count: 10
         loop:
           - post:
-              name: Create entities
+              name: Create entity in GraphQL
               url: /
               json:
                 query: |
@@ -18,7 +19,7 @@ scenarios:
                   }
                 variables:
                   ownedById: "{{ session.ownedById }}"
-                  entityTypeId: https://hash.ai/@hash/types/entity-type/usage-record/v/2
+                  entityTypeId: https://hash.ai/@hash/types/entity-type/usage-record/v/1
                   properties:
                     value:
                       https://hash.ai/@hash/types/property-type/input-unit-count/:
@@ -32,14 +33,14 @@ scenarios:
               expect:
                 - notHasProperty: errors
           - post:
-              name: Create entities
+              name: Create entity in Graph
               url: http://127.0.0.1:4000/entities/bulk
               headers:
                 X-Authenticated-User-Actor-Id: "{{ session.ownedById }}"
               json:
                 - ownedById: "{{ session.ownedById }}"
                   entityTypeIds:
-                    - https://hash.ai/@hash/types/entity-type/usage-record/v/2
+                    - https://hash.ai/@hash/types/entity-type/usage-record/v/1
                   properties:
                     value:
                       https://hash.ai/@hash/types/property-type/input-unit-count/:

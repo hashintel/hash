@@ -37,7 +37,9 @@
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@ory/client": "1.1.41",
-    "artillery": "2.0.18"
+    "artillery": "2.0.18",
+    "dotenv-flow": "3.2.0",
+    "uuid": "9.0.1"
   },
   "devDependencies": {
     "@apps/hash-api": "0.0.0-private",
@@ -46,6 +48,8 @@
     "@rollup/plugin-commonjs": "26.0.1",
     "@rollup/plugin-node-resolve": "15.2.3",
     "@rollup/plugin-typescript": "11.1.6",
+    "@types/dotenv-flow": "3.2.0",
+    "@types/uuid": "8.3.0",
     "eslint": "8.57.0",
     "rimraf": "6.0.1",
     "rollup": "4.12.0",
