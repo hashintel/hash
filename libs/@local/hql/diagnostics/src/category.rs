@@ -1,6 +1,6 @@
 use core::fmt::Display;
 
-use ariadne::{Color, ReportKind};
+use ariadne::Color;
 
 pub struct Severity {
     id: &'static str,

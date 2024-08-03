@@ -6,7 +6,7 @@ pub mod file;
 pub mod json;
 pub mod storage;
 
-use text_size::{TextRange, TextSize};
+pub use text_size::{TextRange, TextSize};
 
 /// Represents a span of text within a source file.
 ///
@@ -63,8 +63,8 @@ pub struct Span(TextRange);
 
 impl Span {
     #[must_use]
-    pub const fn new(start: u32, end: u32) -> Self {
-        Self(TextRange::new(TextSize::new(start), TextSize::new(end)))
+    pub const fn new(start: TextSize, end: TextSize) -> Self {
+        Self(TextRange::new(start, end))
     }
 
     #[must_use]

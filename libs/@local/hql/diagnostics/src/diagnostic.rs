@@ -1,4 +1,4 @@
-use text_size::TextSize;
+use hql_span::{data::SpanTree, TextSize};
 
 use crate::{
     category::{Category, Severity},
@@ -11,21 +11,19 @@ pub struct Diagnostic<E> {
     pub severity: Severity,
 
     pub message: Box<str>,
-    pub span: Span
+    pub span: SpanTree<E>,
 
-    pub labels: Vec<Label>,
+    pub labels: Vec<Label<E>>,
     pub note: Option<Note>,
-
-    pub extra: E,
 }
 
-impl Diagnostic {
+impl<E> Diagnostic<E> {
     pub fn new(category: Category, severity: Severity, message: impl Into<Box<str>>) -> Self {
         Self {
             category,
             severity,
             message: message.into(),
-            offset: TextSize::new(0),
+            span: SpanTree::empty(TextSize::new(0)),
             labels: Vec::new(),
             note: None,
         }

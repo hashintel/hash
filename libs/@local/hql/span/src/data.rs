@@ -1,4 +1,6 @@
-use crate::Span;
+use text_size::{TextRange, TextSize};
+
+use crate::{file::FileId, Span};
 
 /// Represents additional metadata associated with a `Span`.
 ///
@@ -43,5 +45,25 @@ impl<E> SpanData<E> {
     pub fn set_extra(&mut self, extra: E) -> &mut Self {
         self.extra = Some(extra);
         self
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SpanTree<E> {
+    pub file: FileId,
+    pub span: Span,
+    pub parent: Option<Box<SpanTree<E>>>,
+    pub extra: Option<E>,
+}
+
+impl<E> SpanTree<E> {
+    #[must_use]
+    pub fn empty(offset: TextSize) -> Self {
+        Self {
+            file: FileId::INLINE,
+            span: Span::from(TextRange::empty(offset)),
+            parent: None,
+            extra: None,
+        }
     }
 }

@@ -1,10 +1,9 @@
 use ariadne::Color;
-
-use crate::span::Span;
+use hql_span::data::SpanTree;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Label {
-    span: Span,
+pub struct Label<E> {
+    span: SpanTree<E>,
     message: Box<str>,
 
     order: Option<i32>,
@@ -12,8 +11,8 @@ pub struct Label {
     color: Option<Color>,
 }
 
-impl Label {
-    pub fn new(span: Span, message: impl Into<Box<str>>) -> Self {
+impl<E> Label<E> {
+    pub fn new(span: SpanTree<E>, message: impl Into<Box<str>>) -> Self {
         Self {
             span,
             message: message.into(),

@@ -2818,6 +2818,7 @@ name = "hql-diagnostics"
 version = "0.1.0"
 dependencies = [
  "ariadne",
+ "hql-span",
  "text-size",
 ]
 

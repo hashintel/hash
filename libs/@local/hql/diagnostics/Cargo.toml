@@ -8,6 +8,7 @@ edition.workspace = true
 
 [dependencies]
 ariadne = "0.4.1"
+hql-span = { version = "0.1.0", path = "../span" }
 text-size = "1.1.1"
 
 [lints]
