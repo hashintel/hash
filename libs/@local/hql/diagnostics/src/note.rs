@@ -31,7 +31,7 @@ impl Note {
     }
 
     #[must_use]
-    pub fn colored(&self, enabled: bool) -> impl Display + '_ {
+    pub(crate) fn colored(&self, enabled: bool) -> impl Display + '_ {
         struct DisplayColor<'a> {
             style: anstyle::Style,
             message: &'a str,

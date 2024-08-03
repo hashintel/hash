@@ -29,7 +29,7 @@ impl Help {
     }
 
     #[must_use]
-    pub fn colored(&self, enabled: bool) -> impl core::fmt::Display + '_ {
+    pub(crate) fn colored(&self, enabled: bool) -> impl core::fmt::Display + '_ {
         struct DisplayColor<'a> {
             style: anstyle::Style,
             message: &'a str,
