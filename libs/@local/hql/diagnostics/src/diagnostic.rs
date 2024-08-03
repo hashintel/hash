@@ -1,7 +1,7 @@
 use core::{error::Error, fmt::Display};
 
 use ariadne::ColorGenerator;
-use hql_span::{data::SpanTree, file::FileId, TextSize};
+use hql_span::{file::FileId, tree::SpanTree};
 
 use crate::{
     category::Category, config::ReportConfig, file_span::FileSpan, help::Help, label::Label,
@@ -16,7 +16,7 @@ pub struct Diagnostic<E> {
     pub severity: Severity,
 
     pub message: Box<str>,
-    pub span: SpanTree<E>,
+    pub span: Option<SpanTree<E>>,
 
     pub labels: Vec<Label<E>>,
     pub note: Option<Note>,
@@ -29,7 +29,7 @@ impl<E> Diagnostic<E> {
             category,
             severity,
             message: message.into(),
-            span: SpanTree::empty(TextSize::new(0)),
+            span: None,
             labels: Vec::new(),
             note: None,
             help: None,
@@ -37,13 +37,15 @@ impl<E> Diagnostic<E> {
     }
 
     pub fn report(&self, source: FileId, config: ReportConfig) -> ariadne::Report<FileSpan> {
-        let range = self.span.span.range();
+        let start = self
+            .span
+            .as_ref()
+            .map_or(0, |span| u32::from(span.range.start()));
 
         let mut generator = ColorGenerator::new();
 
-        let mut builder =
-            ariadne::Report::build(self.severity.kind(), source, usize::from(range.start()))
-                .with_code(self.category.canonical_id());
+        let mut builder = ariadne::Report::build(self.severity.kind(), source, start as usize)
+            .with_code(self.category.canonical_id());
 
         builder.set_message(self.message.clone());
 

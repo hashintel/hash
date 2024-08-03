@@ -1,9 +1,9 @@
 use ariadne::Span;
-use hql_span::{data::SpanTree, file::FileId};
+use hql_span::{file::FileId, tree::SpanTree, TextRange};
 
 pub struct FileSpan {
     file: FileId,
-    span: hql_span::Span,
+    range: TextRange,
 }
 
 impl Span for FileSpan {
@@ -14,11 +14,11 @@ impl Span for FileSpan {
     }
 
     fn start(&self) -> usize {
-        usize::from(self.span.start())
+        usize::from(self.range.start())
     }
 
     fn end(&self) -> usize {
-        usize::from(self.span.end())
+        usize::from(self.range.end())
     }
 }
 
@@ -26,7 +26,7 @@ impl<E> From<&SpanTree<E>> for FileSpan {
     fn from(span: &SpanTree<E>) -> Self {
         Self {
             file: span.file,
-            span: span.span,
+            range: span.range,
         }
     }
 }

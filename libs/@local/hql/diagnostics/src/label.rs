@@ -1,6 +1,6 @@
 use anstyle::Color;
 use ariadne::ColorGenerator;
-use hql_span::data::SpanTree;
+use hql_span::tree::SpanTree;
 
 use crate::file_span::FileSpan;
 
