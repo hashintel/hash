@@ -62,12 +62,14 @@ impl SpanId {
     }
 }
 
-/// Represents additional metadata associated with a `Span`.
+/// Represents a full span in a file.
 ///
-/// `SpanData` can store information about the text range, an optional parent span,
-/// and other optional extra data.
+/// A span is a range of text within a file, along with a reference to the file itself, every span
+/// is relative to the parent span, if no parent is provided, the span is considered to be absolute.
 ///
-/// This data is at least 20 bytes in size.
+/// Any span may have additional metadata attached, such as a JSON Pointer, for any JSON based
+/// frontends, this data is always optional, as some spans, for example for malformed code, may not
+/// have any additional data.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Span<E> {
     pub file: FileId,

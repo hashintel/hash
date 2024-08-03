@@ -35,13 +35,19 @@ impl<E> SpanStorage<E> {
         self.arena.get(index)
     }
 
-    pub fn resolve(&self, span: SpanId) -> Option<SpanTree<E>>
+    fn resolve_inner(&self, span: SpanId, visited: &mut Vec<SpanId>) -> Option<SpanTree<E>>
     where
         E: Clone,
     {
+        assert!(!visited.contains(&span), "circular span reference detected");
+
+        visited.push(span);
+
         let current = self.get(span).cloned()?;
 
-        let parent = current.parent.and_then(|parent| self.resolve(parent));
+        let parent = current
+            .parent
+            .and_then(|parent| self.resolve_inner(parent, visited));
 
         Some(SpanTree {
             file: current.file,
@@ -49,6 +55,20 @@ impl<E> SpanStorage<E> {
             parent: parent.map(Box::new),
             extra: current.extra,
         })
+    }
+
+    /// Resolves a span into a full span tree.
+    ///
+    /// # Panics
+    ///
+    /// Panics if a circular span reference is detected.
+    #[must_use]
+    pub fn resolve(&self, span: SpanId) -> Option<SpanTree<E>>
+    where
+        E: Clone,
+    {
+        let mut visited = Vec::new();
+        self.resolve_inner(span, &mut visited)
     }
 
     pub fn get_mut(&mut self, span: SpanId) -> Option<&mut Span<E>> {

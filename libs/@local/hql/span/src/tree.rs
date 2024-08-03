@@ -4,6 +4,9 @@ use text_size::TextRange;
 
 use crate::file::FileId;
 
+/// Represents a full span in a file.
+///
+/// This span is resolved unlike a normal span, where each parent is resolved to a full span.
 #[derive(Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpanTree<E> {
