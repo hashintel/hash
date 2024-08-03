@@ -1,0 +1,13 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "hql-span"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+text-size = "1.1.1"
+
+[lints]
+workspace = true

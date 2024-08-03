@@ -6,15 +6,17 @@ use crate::{
     note::Note,
 };
 
-pub struct Diagnostic {
+pub struct Diagnostic<E> {
     pub category: Category,
     pub severity: Severity,
 
     pub message: Box<str>,
-    pub offset: TextSize,
+    pub span: Span
 
     pub labels: Vec<Label>,
     pub note: Option<Note>,
+
+    pub extra: E,
 }
 
 impl Diagnostic {
