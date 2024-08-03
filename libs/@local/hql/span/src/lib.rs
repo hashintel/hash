@@ -15,7 +15,7 @@ pub use text_size::{TextRange, TextSize};
 /// This struct serves as a reference to a specific range of text within a source file.
 /// The range is 8 bytes in size, allowing it to be stored in a single word and easily
 /// passed around. Each `Span` instance is considered unique, even if spans overlap
-/// exactly, as they refer to the same range of text data.
+/// exactly, as they refer to the same range of text data, therefore to the same data.
 ///
 /// The reason why a `Span` is not just some opaque data, like a JSON Pointer, is that it may refer
 /// to some invalid data, or to something relative in an item, something that one cannot easily
@@ -26,7 +26,7 @@ pub use text_size::{TextRange, TextSize};
 ///
 /// Each span is uniquely identified, making it safe to assume that spans are unique.
 /// This avoids the possibility of associating multiple pieces of information with the
-/// same span under the same id.
+/// same span under the different ids.
 ///
 /// Byte indices are unique in validated data (like a JSON string) and in malformed data as well.
 /// While some spans might carry additional metadata, like JSON pointers, others might not.
@@ -60,6 +60,10 @@ pub use text_size::{TextRange, TextSize};
 /// complex information, while a `SpanData` struct provides additional context. The encoding varies
 /// depending on the present values, making this approach complex but efficient by often avoiding
 /// lookups.
+// TODO: in the future one **might** want to associate a `Span` with a `FileId` to make it easier to
+//      work with spans from different files, but for now it is not necessary, as any span on any
+//      expression can be resolved to a file. The important reason as to why this is not done is
+//      that it is redundant information and would bloat the span from 8 bytes to 12 bytes.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Span(TextRange);
 

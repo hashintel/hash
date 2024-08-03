@@ -37,19 +37,27 @@ impl<E> SpanStorage<E> {
         self.items.get(&span)
     }
 
-    pub fn resolve(&self, span: Span) -> Option<SpanTree<E>>
+    pub fn resolve(&self, span: Span) -> SpanTree<E>
     where
         E: Clone,
     {
-        let current = self.get(span)?.clone();
-        let parent = current.parent.and_then(|parent| self.resolve(parent));
+        let Some(current) = self.get(span).cloned() else {
+            return SpanTree {
+                file: self.file,
+                span,
+                parent: None,
+                extra: None,
+            };
+        };
 
-        Some(SpanTree {
+        let parent = current.parent.map(|parent| self.resolve(parent));
+
+        SpanTree {
             file: self.file,
             span: current.span,
             parent: parent.map(Box::new),
             extra: current.extra,
-        })
+        }
     }
 
     pub fn get_mut(&mut self, span: Span) -> Option<&mut SpanData<E>> {
