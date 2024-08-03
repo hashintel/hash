@@ -1,4 +1,5 @@
 use anstyle::Color;
+use ariadne::ColorGenerator;
 use hql_span::data::SpanTree;
 
 use crate::file_span::FileSpan;
@@ -61,12 +62,13 @@ impl<E> Label<E> {
         self
     }
 
-    pub fn ariadne(&self) -> ariadne::Label<FileSpan> {
+    pub(crate) fn ariadne(&self, generator: &mut ColorGenerator) -> ariadne::Label<FileSpan> {
         let mut label = ariadne::Label::new(FileSpan::from(&self.span)).with_message(&self.message);
 
-        if let Some(color) = self.color {
-            label = label.with_color(anstyle_yansi::to_yansi_color(color));
-        }
+        let color = self
+            .color
+            .map_or_else(|| generator.next(), anstyle_yansi::to_yansi_color);
+        label = label.with_color(color);
 
         if let Some(order) = self.order {
             label = label.with_order(order);

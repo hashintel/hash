@@ -1,5 +1,6 @@
 use core::{error::Error, fmt::Display};
 
+use ariadne::ColorGenerator;
 use hql_span::{data::SpanTree, file::FileId, TextSize};
 
 use crate::{
@@ -38,6 +39,8 @@ impl<E> Diagnostic<E> {
     pub fn report(&self, source: FileId, config: ReportConfig) -> ariadne::Report<FileSpan> {
         let range = self.span.span.range();
 
+        let mut generator = ColorGenerator::new();
+
         let mut builder =
             ariadne::Report::build(self.severity.kind(), source, usize::from(range.start()))
                 .with_code(self.category.canonical_id());
@@ -53,7 +56,7 @@ impl<E> Diagnostic<E> {
         }
 
         for label in &self.labels {
-            builder.add_label(label.ariadne());
+            builder.add_label(label.ariadne(&mut generator));
         }
 
         builder = builder.with_config(config.into());
