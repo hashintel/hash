@@ -1,5 +1,13 @@
 scenarios:
   - name: Read all property types with property references
+    beforeScenario:
+      - initializeTracing
+    beforeRequest:
+      - enterRequestSpan
+    afterResponse:
+      - exitRequestSpan
+    afterScenario:
+      - tearDownTracing
     flow:
       - post:
           url: /

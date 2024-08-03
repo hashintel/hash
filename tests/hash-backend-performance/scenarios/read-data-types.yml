@@ -1,5 +1,13 @@
 scenarios:
   - name: Read all data types
+    beforeScenario:
+      - initializeTracing
+    beforeRequest:
+      - enterRequestSpan
+    afterResponse:
+      - exitRequestSpan
+    afterScenario:
+      - tearDownTracing
     flow:
       - post:
           url: /

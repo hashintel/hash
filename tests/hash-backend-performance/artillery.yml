@@ -9,6 +9,12 @@ config:
     metrics-by-endpoint:
       ignoreUnnamedRequests: true
       useOnlyRequestNames: true
+    publish-metrics:
+      - type: open-telemetry
+        serviceName: Artillery
+        metrics:
+          exporter: otlp-grpc
+          endpoint: http://localhost:4317/v1/metrics
   environments:
     functional:
       phases:
@@ -26,8 +32,8 @@ config:
       phases:
         - name: Warm up
           duration: 15 seconds
-          arrivalRate: 1
-          rampTo: 5
+          arrivalRate: 5
+          rampTo: 10
         - name: Ramp up load
           duration: 60 seconds
           arrivalRate: 5

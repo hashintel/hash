@@ -7,6 +7,8 @@ import type { AccountId } from "@local/hash-graph-types/account";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
+import { createTraceHeaders } from "../tracing/request";
+
 let __graphApi: GraphApi | undefined;
 export const getGraphApiClient = (): GraphApi => {
   if (!__graphApi) {
@@ -15,6 +17,10 @@ export const getGraphApiClient = (): GraphApi => {
       {
         host: getRequiredEnv("HASH_GRAPH_API_HOST"),
         port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),
+        requestInterceptor: (request) => {
+          request.headers.set(createTraceHeaders());
+          return request;
+        },
       },
     );
   }

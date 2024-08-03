@@ -1,6 +1,7 @@
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
 
 import { getUserByKratosIdentityId } from "../graph/user";
+import { createTraceHeaders } from "../tracing/request";
 import type { SessionContext } from "./kratos";
 import { getOryKratosClient } from "./kratos";
 
@@ -9,12 +10,13 @@ export const reauthenticate = async (
 ): Promise<SessionContext["session"]> => {
   const oryKratosClient = getOryKratosClient();
 
-  const loginFlow = await oryKratosClient
-    .createNativeLoginFlow()
-    .then(({ data }) => data);
+  const { data: loginFlow } = await oryKratosClient.createNativeLoginFlow(
+    {},
+    { headers: createTraceHeaders() },
+  );
 
-  const fullLogin = await oryKratosClient
-    .updateLoginFlow({
+  const { data: fullLogin } = await oryKratosClient.updateLoginFlow(
+    {
       flow: loginFlow.id,
       updateLoginFlowBody: {
         method: "password",
@@ -22,8 +24,9 @@ export const reauthenticate = async (
         identifier: session.user.email[0],
         password: session.user.password,
       },
-    })
-    .then(({ data }) => data);
+    },
+    { headers: createTraceHeaders() },
+  );
   if (!fullLogin.session_token) {
     throw new Error("Login failed");
   }
