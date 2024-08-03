@@ -15,7 +15,7 @@ ariadne = "0.4.1"
 derive-where.workspace = true
 hql-span = { version = "0.1.0", path = "../span" }
 serde = { workspace = true, optional = true, features = ["derive"]}
-serde_with = { version = "3.9.0", optional = true }
+serde_with = { version = "3.9.0", optional = true, default-features = false }
 text-size = "1.1.1"
 
 [dev-dependencies]
