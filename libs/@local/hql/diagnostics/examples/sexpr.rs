@@ -48,8 +48,7 @@ fn main() {
         extra: None,
     });
 
-    let mut diagnostic =
-        Diagnostic::new(*INVALID_IDENTIFIER, Severity::ERROR, "invalid identifier");
+    let mut diagnostic = Diagnostic::new(*INVALID_IDENTIFIER, Severity::ERROR);
 
     diagnostic.labels.push(Label::new(
         storage.resolve(span).expect("valid span"),

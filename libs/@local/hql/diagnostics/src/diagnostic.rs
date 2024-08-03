@@ -15,7 +15,7 @@ pub struct Diagnostic<E> {
     pub category: Category,
     pub severity: Severity,
 
-    pub message: Box<str>,
+    pub message: Option<Box<str>>,
     pub span: Option<SpanTree<E>>,
 
     pub labels: Vec<Label<E>>,
@@ -24,11 +24,12 @@ pub struct Diagnostic<E> {
 }
 
 impl<E> Diagnostic<E> {
-    pub fn new(category: Category, severity: Severity, message: impl Into<Box<str>>) -> Self {
+    #[must_use]
+    pub const fn new(category: Category, severity: Severity) -> Self {
         Self {
             category,
             severity,
-            message: message.into(),
+            message: None,
             span: None,
             labels: Vec::new(),
             note: None,
@@ -47,7 +48,7 @@ impl<E> Diagnostic<E> {
         let mut builder = ariadne::Report::build(self.severity.kind(), source, start as usize)
             .with_code(self.category.canonical_id());
 
-        builder.set_message(self.message.clone());
+        builder.set_message(self.message.as_deref().unwrap_or(self.category.name));
 
         if let Some(note) = &self.note {
             builder.set_note(note.colored(config.color));
@@ -69,7 +70,7 @@ impl<E> Diagnostic<E> {
 
 impl<E> Display for Diagnostic<E> {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "[{}] {}", self.severity, self.message)
+        write!(f, "[{}] {}", self.severity, self.category.canonical_name())
     }
 }
 

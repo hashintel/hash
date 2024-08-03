@@ -6,7 +6,7 @@ version = "0.1.0"
 authors.workspace = true
 edition.workspace = true
 license = "AGPL-3.0"
-private = true
+publish = false
 
 [dependencies]
 serde = { workspace = true, optional = true, features = ["derive"]}
