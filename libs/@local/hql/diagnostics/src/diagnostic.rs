@@ -1,11 +1,12 @@
+use core::{error::Error, fmt::Display};
+
 use hql_span::{data::SpanTree, TextSize};
 
-use crate::{
-    category::{Category, Severity},
-    label::Label,
-    note::Note,
-};
+use crate::{category::Category, label::Label, note::Note, severity::Severity};
 
+#[derive_where::derive_where(Debug)]
+#[derive(Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 pub struct Diagnostic<E> {
     pub category: Category,
     pub severity: Severity,
@@ -29,3 +30,11 @@ impl<E> Diagnostic<E> {
         }
     }
 }
+
+impl<E> Display for Diagnostic<E> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "[{}] {}", self.severity, self.message)
+    }
+}
+
+impl<E> Error for Diagnostic<E> {}

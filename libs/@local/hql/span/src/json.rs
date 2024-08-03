@@ -1,6 +1,8 @@
 use core::fmt::Display;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(untagged))]
 pub enum JsonSegment {
     Key(Box<str>),
     Index(usize),
@@ -16,6 +18,8 @@ impl Display for JsonSegment {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct JsonPointer(Vec<JsonSegment>);
 
 impl JsonPointer {

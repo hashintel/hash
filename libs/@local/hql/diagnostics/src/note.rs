@@ -1,7 +1,11 @@
 use ariadne::Color;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", cfg_eval, serde_with::serde_as)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Note {
     message: Box<str>,
+    #[cfg_attr(feature = "serde", serde_as(as = "Option<crate::encoding::Color>"))]
     color: Option<Color>,
 }
 

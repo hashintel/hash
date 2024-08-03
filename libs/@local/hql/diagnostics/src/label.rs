@@ -1,13 +1,17 @@
 use ariadne::Color;
 use hql_span::data::SpanTree;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive_where::derive_where(Debug)]
+#[derive(Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", cfg_eval, serde_with::serde_as)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Label<E> {
     span: SpanTree<E>,
     message: Box<str>,
 
     order: Option<i32>,
     priority: Option<i32>,
+    #[cfg_attr(feature = "serde", serde_as(as = "Option<crate::encoding::Color>"))]
     color: Option<Color>,
 }
 

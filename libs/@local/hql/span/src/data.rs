@@ -1,3 +1,5 @@
+use core::fmt::Debug;
+
 use text_size::{TextRange, TextSize};
 
 use crate::{file::FileId, Span};
@@ -48,7 +50,8 @@ impl<E> SpanData<E> {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpanTree<E> {
     pub file: FileId,
     pub span: Span,
@@ -65,5 +68,15 @@ impl<E> SpanTree<E> {
             parent: None,
             extra: None,
         }
+    }
+}
+
+impl<E> Debug for SpanTree<E> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("SpanTree")
+            .field("file", &self.file)
+            .field("span", &self.span)
+            .field("parent", &self.parent)
+            .finish_non_exhaustive()
     }
 }

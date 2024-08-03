@@ -1,5 +1,6 @@
 /// The ID of a source file.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct FileId(u32);
 
 impl FileId {
