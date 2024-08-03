@@ -8,3 +8,5 @@ export {
   signupUser,
 } from "./authentication/registration";
 export { refreshSessionToken } from "./authentication/session";
+export { enterRequestSpan, exitRequestSpan } from "./tracing/request";
+export { initializeTracing, tearDownTracing } from "./tracing/sdk";

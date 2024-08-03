@@ -1,4 +1,5 @@
 import { publicUserAccountId } from "@local/hash-backend-utils/public-user-account-id";
+import opentelemetry from "@opentelemetry/api";
 
 import { getUserByKratosIdentityId } from "../graph/user";
 import type { SessionContext } from "./kratos";
@@ -8,13 +9,15 @@ export const reauthenticate = async (
   session: SessionContext["session"],
 ): Promise<SessionContext["session"]> => {
   const oryKratosClient = getOryKratosClient();
+  const headers = {};
+  opentelemetry.propagation.inject(opentelemetry.context.active(), headers);
 
-  const loginFlow = await oryKratosClient
-    .createNativeLoginFlow()
-    .then(({ data }) => data);
-
-  const fullLogin = await oryKratosClient
-    .updateLoginFlow({
+  const { data: loginFlow } = await oryKratosClient.createNativeLoginFlow(
+    {},
+    { headers },
+  );
+  const { data: fullLogin } = await oryKratosClient.updateLoginFlow(
+    {
       flow: loginFlow.id,
       updateLoginFlowBody: {
         method: "password",
@@ -22,8 +25,9 @@ export const reauthenticate = async (
         identifier: session.user.email[0],
         password: session.user.password,
       },
-    })
-    .then(({ data }) => data);
+    },
+    { headers },
+  );
   if (!fullLogin.session_token) {
     throw new Error("Login failed");
   }

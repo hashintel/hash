@@ -5,9 +5,17 @@ before:
 
 scenarios:
   - name: Mimic a flow run
-    beforeRequest: refreshSessionToken
+    beforeScenario:
+      - initializeTracing
+    beforeRequest:
+      - enterRequestSpan
+      - refreshSessionToken
+    afterResponse:
+      - exitRequestSpan
+    afterScenario:
+      - tearDownTracing
     flow:
-      - count: 10
+      - count: 2
         loop:
           - post:
               name: Create entity in GraphQL
