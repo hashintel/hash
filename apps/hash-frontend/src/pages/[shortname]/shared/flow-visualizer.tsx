@@ -41,6 +41,7 @@ import type {
   FlowMaybeGrouped,
   LocalProgressLog,
   LogDisplay,
+  LogThread,
   ProposedEntityOutput,
 } from "./flow-visualizer/shared/types";
 import {
@@ -345,7 +346,7 @@ export const FlowVisualizer = () => {
      */
     const workerIdToLogsAndParent: Record<
       string,
-      { logs: LocalProgressLog[]; level: number }
+      { logs: LocalProgressLog[]; level: number; thread?: LogThread }
     > = {};
 
     for (const step of selectedFlowRun.steps) {
@@ -392,9 +393,9 @@ export const FlowVisualizer = () => {
           if (!thisThread) {
             let threadLabel: string;
             if (log.type === "StartedSubTask") {
-              threadLabel = `Sub-task with goal ${log.input.goal}`;
+              threadLabel = `Sub-task: ${log.input.goal}`;
             } else if (log.type === "StartedLinkExplorerTask") {
-              threadLabel = `Link explorer with goal ${log.input.goal}`;
+              threadLabel = `Link explorer: ${log.input.goal}`;
             } else {
               throw new Error(
                 `Expect new child worker threads to be started with a StartedSubTask or StartedLinkExplorerTask event, got ${log.type}`,
@@ -410,7 +411,8 @@ export const FlowVisualizer = () => {
               label: threadLabel,
               level: parentLogList.level,
               number: incrementLogNumber(parentLogList.logs.at(-1)!.number),
-              threadStartedAt: new Date(log.recordedAt),
+              threadStartedAt: log.recordedAt,
+              recordedAt: log.recordedAt,
               logs: [
                 {
                   level: parentLogList.level + 1,
@@ -425,6 +427,7 @@ export const FlowVisualizer = () => {
             workerIdToLogsAndParent[log.workerInstanceId] = {
               logs: newThread.logs,
               level: newThread.level,
+              thread: newThread,
             };
           } else {
             thisThread.logs.push({
@@ -432,6 +435,13 @@ export const FlowVisualizer = () => {
               number: incrementLogNumber(thisThread.logs.at(-1)!.number),
               ...log,
             });
+
+            if (
+              log.type === "ClosedLinkExplorerTask" ||
+              log.type === "ClosedSubTask"
+            ) {
+              thisThread.thread!.threadClosedAt = log.recordedAt;
+            }
           }
         }
 

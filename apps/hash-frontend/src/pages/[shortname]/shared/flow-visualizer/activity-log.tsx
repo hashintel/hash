@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { CaretDownSolidIcon, IconButton } from "@hashintel/design-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
@@ -7,8 +8,10 @@ import type {
 } from "@local/hash-graph-types/entity";
 import type { StepProgressLog } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import type { Theme } from "@mui/material";
 import {
   Box,
+  Collapse,
   Stack,
   Switch,
   TableCell,
@@ -17,7 +20,7 @@ import {
 } from "@mui/material";
 import { format } from "date-fns";
 import type { ReactElement } from "react";
-import { memo, useMemo, useState } from "react";
+import { useEffect, memo, useMemo, useState } from "react";
 
 import { CircleInfoIcon } from "../../../../shared/icons/circle-info-icon";
 import { Link } from "../../../../shared/ui/link";
@@ -31,7 +34,12 @@ import {
   VirtualizedTable,
 } from "../../../shared/virtualized-table";
 import { SectionLabel } from "./section-label";
-import type { LocalProgressLog, LogDisplay } from "./shared/types";
+import type {
+  LocalProgressLog,
+  LogDisplay,
+  LogThread as LogThreadType,
+} from "./shared/types";
+import { formatTimeTaken } from "./shared/format-time-taken";
 
 const getEntityLabelFromLog = (log: StepProgressLog): string => {
   if (log.type !== "ProposedEntity" && log.type !== "PersistedEntity") {
@@ -87,6 +95,8 @@ const getEntityPrefixFromLog = (log: StepProgressLog): string => {
 const visitedWebPagePrefix = "Visited ";
 const viewedPdfFilePrefix = "Viewed PDF file at ";
 const queriedWebPrefix = "Searched web for ";
+const startedCoordinatorPrefix = "Started research coordinator with goal ";
+const closedCoordinatorPrefix = "Finished research coordinator with ";
 const startedSubTaskPrefix = "Started sub-task with goal ";
 const closedSubTaskPrefix = "Finished sub-task with ";
 const startedLinkExplorerTaskPrefix = "Started link explorer task with goal ";
@@ -116,6 +126,15 @@ const getRawTextFromLog = (log: LocalProgressLog): string => {
     }
     case "CreatedPlan": {
       return "Created research plan";
+    }
+    case "Thread": {
+      return log.label;
+    }
+    case "StartedCoordinator": {
+      return `${startedCoordinatorPrefix}“${log.input.goal}”`;
+    }
+    case "ClosedCoordinator": {
+      return `${closedCoordinatorPrefix} ${log.output.entityCount} entities discovered`;
     }
     case "StartedSubTask": {
       return `${startedSubTaskPrefix}“${log.input.goal}”`;
@@ -159,6 +178,9 @@ const LogDetail = ({
   log: LocalProgressLog;
 }): ReactElement | string => {
   switch (log.type) {
+    case "Thread": {
+      throw new Error("Expected a log, but got a thread of logs");
+    }
     case "VisitedWebPage": {
       return (
         <Stack direction="row" alignItems="center" gap={0.5}>
@@ -219,6 +241,26 @@ const LogDetail = ({
     }
     case "StateChange": {
       return log.message;
+    }
+    case "StartedCoordinator": {
+      return (
+        <Stack direction="row" alignItems="center" gap={1}>
+          <Box sx={ellipsisOverflow}>
+            {startedCoordinatorPrefix}
+            <strong>“{log.input.goal}”</strong>
+          </Box>
+        </Stack>
+      );
+    }
+    case "ClosedCoordinator": {
+      return (
+        <Stack direction="row" alignItems="center" gap={1}>
+          <Box sx={ellipsisOverflow}>
+            {closedCoordinatorPrefix}
+            <strong>{log.output.entityCount}</strong> entities discovered
+          </Box>
+        </Stack>
+      );
     }
     case "StartedSubTask": {
       return (
@@ -308,69 +350,140 @@ const createColumns = (rowCount: number): VirtualizedTableColumn<FieldId>[] => [
   },
 ];
 
-const TableRow = memo(
-  ({ index, log }: { index: number; log: LocalProgressLog }) => {
-    const todaysDate = format(new Date(), "yyyy-MM-dd");
-    const logDate = format(new Date(log.recordedAt), "yyyy-MM-dd");
+const TableRow = memo(({ log }: { log: LocalProgressLog }) => {
+  const [showChildren, setShowChildren] = useState(false);
 
-    const [showChildren, setShowChildren] = useState(false);
+  const todaysDate = format(new Date(), "yyyy-MM-dd");
+  const logDate = format(new Date(log.recordedAt), "yyyy-MM-dd");
 
-    const hasChildren = !!log.children?.length;
+  const background = ({ palette }: Theme) =>
+    log.level === 1
+      ? palette.common.white
+      : palette.gray[log.level === 2 ? 10 : 20];
 
-    const showTimer =
-      log.type === "StartedSubTask" || log.type === "StartedLinkExplorerTask";
-
-    const startedAt = log.startedAt ? new Date(log.startedAt) : null;
-    const endedAt =
-      log.type === "StartedSubTask"
-        ? log.children?.find((log) => log.type === "ClosedSubTask")?.recordedAt
-        : log.type === "StartedLinkExplorerTask"
-          ? log.children?.find((log) => log.type === "ClosedLinkExplorerTask")
-              ?.recordedAt
-          : null;
-
-    return (
-      <>
-        <TableCell sx={{ ...defaultCellSx, fontSize: 13 }}>
-          {index + 1}
-        </TableCell>
-        <TableCell
-          sx={{
-            ...defaultCellSx,
-            fontSize: 11,
-            fontFamily: "monospace",
-          }}
+  return (
+    <>
+      <TableCell sx={{ ...defaultCellSx, background, fontSize: 13 }}>
+        {log.number}
+      </TableCell>
+      <TableCell
+        sx={{
+          ...defaultCellSx,
+          background,
+          fontSize: 11,
+          fontFamily: "monospace",
+        }}
+      >
+        {todaysDate !== logDate && (
+          <>
+            {format(new Date(log.recordedAt), "yyyy-MM-dd")}
+            <br />
+          </>
+        )}
+        <Tooltip
+          title={
+            todaysDate === logDate
+              ? format(new Date(log.recordedAt), "yyyy-MM-dd h:mm:ss a")
+              : ""
+          }
         >
-          {todaysDate !== logDate && (
-            <>
-              {format(new Date(log.recordedAt), "yyyy-MM-dd")}
-              <br />
-            </>
-          )}
-          <Tooltip
-            title={
-              todaysDate === logDate
-                ? format(new Date(log.recordedAt), "yyyy-MM-dd h:mm:ss a")
-                : ""
-            }
-          >
-            <strong>{format(new Date(log.recordedAt), "h:mm:ss a")}</strong>
-          </Tooltip>
-        </TableCell>
-        <TableCell sx={{ ...defaultCellSx, fontSize: 13, lineHeight: 1.4 }}>
-          <Box sx={{ position: "relative", pr: 3, maxWidth: "auto" }}>
+          <strong>{format(new Date(log.recordedAt), "h:mm:ss a")}</strong>
+        </Tooltip>
+      </TableCell>
+      <TableCell
+        sx={{ ...defaultCellSx, background, fontSize: 13, lineHeight: 1.4 }}
+      >
+        <Box sx={{ position: "relative", pr: 3, maxWidth: "auto" }}>
+          {log.type === "Thread" ? (
+            // eslint-disable-next-line @typescript-eslint/no-use-before-define -- function will be hoisted
+            <LogThread
+              log={log}
+              showChildren={showChildren}
+              setShowChildren={setShowChildren}
+            />
+          ) : (
             <LogDetail log={log} />
-          </Box>
-        </TableCell>
-      </>
-    );
-  },
-);
+          )}
+        </Box>
+      </TableCell>
+
+      {"logs" in log && (
+        <Collapse in={showChildren}>
+          {log.logs.map((childLog, index) => (
+            // eslint-disable-next-line react/no-array-index-key
+            <TableRow key={index} log={childLog} />
+          ))}
+        </Collapse>
+      )}
+    </>
+  );
+});
+
+// eslint-disable-next-line react/function-component-definition -- needs to be hoisted due to circular references between components
+function LogThread({
+  log,
+  showChildren,
+  setShowChildren,
+}: {
+  log: LogThreadType;
+  showChildren: boolean;
+  setShowChildren: (show: boolean) => void;
+}) {
+  const [timeTaken, setTimeTaken] = useState(
+    formatTimeTaken(log.threadStartedAt, log.threadClosedAt),
+  );
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeTaken(formatTimeTaken(log.threadStartedAt, log.threadClosedAt));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [log.threadStartedAt, log.threadClosedAt]);
+
+  return (
+    <Stack direction="row" alignItems="center" gap={0.5}>
+      <Box sx={ellipsisOverflow}>{log.label}</Box>
+      <Typography
+        sx={{
+          fontSize: 12,
+          fontWeight: 600,
+          color: ({ palette }) =>
+            log.threadClosedAt ? palette.green[80] : palette.blue[70],
+        }}
+      >
+        {timeTaken}
+      </Typography>
+      <IconButton
+        aria-label="Show detailed logs"
+        onClick={(event) => {
+          event.stopPropagation();
+          setShowChildren(!showChildren);
+        }}
+        size="small"
+        unpadded
+        rounded
+        sx={({ transitions }) => ({
+          transform: showChildren ? "none" : "rotate(-90deg)",
+          transition: transitions.create("transform", {
+            duration: 300,
+          }),
+        })}
+      >
+        <CaretDownSolidIcon
+          sx={{
+            color: ({ palette }) => palette.gray[50],
+          }}
+        />
+      </IconButton>
+    </Stack>
+  );
+}
 
 const createRowContent: CreateVirtualizedRowContentFn<LocalProgressLog> = (
-  index,
+  _index,
   row,
-) => <TableRow index={index} log={row.data} />;
+) => <TableRow log={row.data} />;
 
 export const ActivityLog = memo(
   ({

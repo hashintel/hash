@@ -1,9 +1,6 @@
 import { CaretDownSolidIcon } from "@hashintel/design-system";
 import { Box, Collapse, Stack, Typography } from "@mui/material";
-import { differenceInMilliseconds, intervalToDuration } from "date-fns";
 import { useEffect, useMemo, useState } from "react";
-
-import { isNonNullable } from "../../../../../lib/typeguards";
 import { useStatusForSteps } from "../../../../shared/flow-runs-context";
 import type {
   GroupWithEdgesAndNodes,
@@ -16,24 +13,7 @@ import {
   SuccessIcon,
   WaitingIcon,
 } from "./group-status/group-step-status";
-
-const pad = (num: number) => String(num).padStart(2, "0");
-
-const formatTimeTaken = (scheduledAt: string, closedAt?: string) => {
-  const start = new Date(scheduledAt);
-
-  const elapsed = differenceInMilliseconds(
-    closedAt ? new Date(closedAt) : new Date(),
-    start,
-  );
-
-  const duration = intervalToDuration({ start: 0, end: elapsed });
-
-  return [duration.hours, duration.minutes, duration.seconds]
-    .filter(isNonNullable)
-    .map(pad)
-    .join(":");
-};
+import { formatTimeTaken } from "../shared/format-time-taken";
 
 export const GroupStatus = ({
   groupData,
