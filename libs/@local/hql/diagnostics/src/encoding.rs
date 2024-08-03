@@ -1,39 +1,151 @@
-use serde::{de::Visitor, ser::SerializeSeq};
+use core::{
+    fmt::{self, Display},
+    str::FromStr,
+};
+
+use anstyle::{Ansi256Color, AnsiColor};
+use serde::{
+    de::{value::StrDeserializer, Visitor},
+    ser::SerializeSeq,
+    Deserialize, Serialize,
+};
 use serde_with::{DeserializeAs, SerializeAs};
+
+struct AnsiParseError;
+
+impl Display for AnsiParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.write_str("invalid ANSI color, expected:")?;
+
+        for (index, color) in Ansi::ALL.into_iter().enumerate() {
+            if index != 0 {
+                f.write_str(", or")?;
+            }
+
+            write!(f, " `{color}`")?;
+        }
+
+        Ok(())
+    }
+}
+
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    serde_with::SerializeDisplay,
+    serde_with::DeserializeFromStr,
+)]
+struct Ansi(AnsiColor);
+
+impl Ansi {
+    const ALL: [Self; 16] = [
+        Self(AnsiColor::Black),
+        Self(AnsiColor::Red),
+        Self(AnsiColor::Green),
+        Self(AnsiColor::Yellow),
+        Self(AnsiColor::Blue),
+        Self(AnsiColor::Magenta),
+        Self(AnsiColor::Cyan),
+        Self(AnsiColor::White),
+        Self(AnsiColor::BrightBlack),
+        Self(AnsiColor::BrightRed),
+        Self(AnsiColor::BrightGreen),
+        Self(AnsiColor::BrightYellow),
+        Self(AnsiColor::BrightBlue),
+        Self(AnsiColor::BrightMagenta),
+        Self(AnsiColor::BrightCyan),
+        Self(AnsiColor::BrightWhite),
+    ];
+}
+
+impl Display for Ansi {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self.0 {
+            AnsiColor::Black => f.write_str("black"),
+            AnsiColor::Red => f.write_str("red"),
+            AnsiColor::Green => f.write_str("green"),
+            AnsiColor::Yellow => f.write_str("yellow"),
+            AnsiColor::Blue => f.write_str("blue"),
+            AnsiColor::Magenta => f.write_str("magenta"),
+            AnsiColor::Cyan => f.write_str("cyan"),
+            AnsiColor::White => f.write_str("white"),
+            AnsiColor::BrightBlack => f.write_str("bright-black"),
+            AnsiColor::BrightRed => f.write_str("bright-red"),
+            AnsiColor::BrightGreen => f.write_str("bright-green"),
+            AnsiColor::BrightYellow => f.write_str("bright-yellow"),
+            AnsiColor::BrightBlue => f.write_str("bright-blue"),
+            AnsiColor::BrightMagenta => f.write_str("bright-magenta"),
+            AnsiColor::BrightCyan => f.write_str("bright-cyan"),
+            AnsiColor::BrightWhite => f.write_str("bright-white"),
+        }
+    }
+}
+
+impl FromStr for Ansi {
+    type Err = AnsiParseError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let color = if s.eq_ignore_ascii_case("black") {
+            AnsiColor::Black
+        } else if s.eq_ignore_ascii_case("red") {
+            AnsiColor::Red
+        } else if s.eq_ignore_ascii_case("green") {
+            AnsiColor::Green
+        } else if s.eq_ignore_ascii_case("yellow") {
+            AnsiColor::Yellow
+        } else if s.eq_ignore_ascii_case("blue") {
+            AnsiColor::Blue
+        } else if s.eq_ignore_ascii_case("magenta") {
+            AnsiColor::Magenta
+        } else if s.eq_ignore_ascii_case("cyan") {
+            AnsiColor::Cyan
+        } else if s.eq_ignore_ascii_case("white") {
+            AnsiColor::White
+        } else if s.eq_ignore_ascii_case("bright-black") {
+            AnsiColor::BrightBlack
+        } else if s.eq_ignore_ascii_case("bright-red") {
+            AnsiColor::BrightRed
+        } else if s.eq_ignore_ascii_case("bright-green") {
+            AnsiColor::BrightGreen
+        } else if s.eq_ignore_ascii_case("bright-yellow") {
+            AnsiColor::BrightYellow
+        } else if s.eq_ignore_ascii_case("bright-blue") {
+            AnsiColor::BrightBlue
+        } else if s.eq_ignore_ascii_case("bright-magenta") {
+            AnsiColor::BrightMagenta
+        } else if s.eq_ignore_ascii_case("bright-cyan") {
+            AnsiColor::BrightCyan
+        } else if s.eq_ignore_ascii_case("bright-white") {
+            AnsiColor::BrightWhite
+        } else {
+            return Err(AnsiParseError);
+        };
+
+        Ok(Self(color))
+    }
+}
 
 pub(crate) struct Color;
 
-impl SerializeAs<ariadne::Color> for Color {
-    fn serialize_as<S>(source: &ariadne::Color, serializer: S) -> Result<S::Ok, S::Error>
+impl SerializeAs<anstyle::Color> for Color {
+    fn serialize_as<S>(source: &anstyle::Color, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: serde::Serializer,
     {
         match source {
-            ariadne::Color::Fixed(value) => serializer.serialize_u8(*value),
-            ariadne::Color::Rgb(r, g, b) => {
+            anstyle::Color::Ansi(color) => Ansi(*color).serialize(serializer),
+            anstyle::Color::Ansi256(color) => serializer.serialize_u8(color.0),
+            anstyle::Color::Rgb(anstyle::RgbColor(r, g, b)) => {
                 let mut seq = serializer.serialize_seq(Some(3))?;
                 seq.serialize_element(r)?;
                 seq.serialize_element(g)?;
                 seq.serialize_element(b)?;
                 seq.end()
             }
-            ariadne::Color::Primary => serializer.serialize_str("primary"),
-            ariadne::Color::Black => serializer.serialize_str("black"),
-            ariadne::Color::Red => serializer.serialize_str("red"),
-            ariadne::Color::Green => serializer.serialize_str("green"),
-            ariadne::Color::Yellow => serializer.serialize_str("yellow"),
-            ariadne::Color::Blue => serializer.serialize_str("blue"),
-            ariadne::Color::Magenta => serializer.serialize_str("magenta"),
-            ariadne::Color::Cyan => serializer.serialize_str("cyan"),
-            ariadne::Color::White => serializer.serialize_str("white"),
-            ariadne::Color::BrightBlack => serializer.serialize_str("bright-black"),
-            ariadne::Color::BrightRed => serializer.serialize_str("bright-red"),
-            ariadne::Color::BrightGreen => serializer.serialize_str("bright-green"),
-            ariadne::Color::BrightYellow => serializer.serialize_str("bright-yellow"),
-            ariadne::Color::BrightBlue => serializer.serialize_str("bright-blue"),
-            ariadne::Color::BrightMagenta => serializer.serialize_str("bright-magenta"),
-            ariadne::Color::BrightCyan => serializer.serialize_str("bright-cyan"),
-            ariadne::Color::BrightWhite => serializer.serialize_str("bright-white"),
         }
     }
 }
@@ -41,17 +153,17 @@ impl SerializeAs<ariadne::Color> for Color {
 struct ColorVisitor;
 
 impl<'de> Visitor<'de> for ColorVisitor {
-    type Value = ariadne::Color;
+    type Value = anstyle::Color;
 
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str("a color")
     }
 
-    fn visit_u8<E>(self, value: u8) -> Result<ariadne::Color, E> {
-        Ok(ariadne::Color::Fixed(value))
+    fn visit_u8<E>(self, v: u8) -> Result<anstyle::Color, E> {
+        Ok(anstyle::Color::Ansi256(Ansi256Color(v)))
     }
 
-    fn visit_seq<A>(self, mut seq: A) -> Result<ariadne::Color, A::Error>
+    fn visit_seq<A>(self, mut seq: A) -> Result<anstyle::Color, A::Error>
     where
         A: serde::de::SeqAccess<'de>,
     {
@@ -65,59 +177,21 @@ impl<'de> Visitor<'de> for ColorVisitor {
             .next_element()?
             .ok_or_else(|| serde::de::Error::invalid_length(2, &"3"))?;
 
-        Ok(ariadne::Color::Rgb(r, g, b))
+        Ok(anstyle::Color::Rgb(anstyle::RgbColor(r, g, b)))
     }
 
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
     where
         E: serde::de::Error,
     {
-        match v {
-            "primary" => Ok(ariadne::Color::Primary),
-            "black" => Ok(ariadne::Color::Black),
-            "red" => Ok(ariadne::Color::Red),
-            "green" => Ok(ariadne::Color::Green),
-            "yellow" => Ok(ariadne::Color::Yellow),
-            "blue" => Ok(ariadne::Color::Blue),
-            "magenta" => Ok(ariadne::Color::Magenta),
-            "cyan" => Ok(ariadne::Color::Cyan),
-            "white" => Ok(ariadne::Color::White),
-            "bright-black" => Ok(ariadne::Color::BrightBlack),
-            "bright-red" => Ok(ariadne::Color::BrightRed),
-            "bright-green" => Ok(ariadne::Color::BrightGreen),
-            "bright-yellow" => Ok(ariadne::Color::BrightYellow),
-            "bright-blue" => Ok(ariadne::Color::BrightBlue),
-            "bright-magenta" => Ok(ariadne::Color::BrightMagenta),
-            "bright-cyan" => Ok(ariadne::Color::BrightCyan),
-            "bright-white" => Ok(ariadne::Color::BrightWhite),
-            _ => Err(serde::de::Error::unknown_variant(
-                v,
-                &[
-                    "primary",
-                    "black",
-                    "red",
-                    "green",
-                    "yellow",
-                    "blue",
-                    "magenta",
-                    "cyan",
-                    "white",
-                    "bright-black",
-                    "bright-red",
-                    "bright-green",
-                    "bright-yellow",
-                    "bright-blue",
-                    "bright-magenta",
-                    "bright-cyan",
-                    "bright-white",
-                ],
-            )),
-        }
+        Ansi::deserialize(StrDeserializer::new(v))
+            .map(|color| color.0)
+            .map(anstyle::Color::Ansi)
     }
 }
 
-impl<'de> DeserializeAs<'de, ariadne::Color> for Color {
-    fn deserialize_as<D>(deserializer: D) -> Result<ariadne::Color, D::Error>
+impl<'de> DeserializeAs<'de, anstyle::Color> for Color {
+    fn deserialize_as<D>(deserializer: D) -> Result<anstyle::Color, D::Error>
     where
         D: serde::Deserializer<'de>,
     {

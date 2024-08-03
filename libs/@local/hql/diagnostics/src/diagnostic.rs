@@ -1,8 +1,11 @@
 use core::{error::Error, fmt::Display};
 
-use hql_span::{data::SpanTree, TextSize};
+use hql_span::{data::SpanTree, file::FileId, TextSize};
 
-use crate::{category::Category, label::Label, note::Note, severity::Severity};
+use crate::{
+    category::Category, config::ReportConfig, file_span::FileSpan, help::Help, label::Label,
+    note::Note, severity::Severity,
+};
 
 #[derive_where::derive_where(Debug)]
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -16,6 +19,7 @@ pub struct Diagnostic<E> {
 
     pub labels: Vec<Label<E>>,
     pub note: Option<Note>,
+    pub help: Option<Help>,
 }
 
 impl<E> Diagnostic<E> {
@@ -27,7 +31,34 @@ impl<E> Diagnostic<E> {
             span: SpanTree::empty(TextSize::new(0)),
             labels: Vec::new(),
             note: None,
+            help: None,
         }
+    }
+
+    pub fn report(&self, source: FileId, config: ReportConfig) -> ariadne::Report<FileSpan> {
+        let range = self.span.span.range();
+
+        let mut builder =
+            ariadne::Report::build(self.severity.kind(), source, usize::from(range.start()))
+                .with_code(self.category.canonical_id());
+
+        builder.set_message(self.message.clone());
+
+        if let Some(note) = &self.note {
+            builder.set_note(note.colored(config.color));
+        }
+
+        if let Some(help) = &self.help {
+            builder.set_help(help.colored(config.color));
+        }
+
+        for label in &self.labels {
+            builder.add_label(label.ariadne());
+        }
+
+        builder = builder.with_config(config.into());
+
+        builder.finish()
     }
 }
 

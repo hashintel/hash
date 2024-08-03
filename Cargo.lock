@@ -129,9 +129,9 @@ dependencies = [
 
 [[package]]
 name = "anstyle"
-version = "1.0.7"
+version = "1.0.8"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "038dfcf04a5feb68e9c60b21c9625a54c2c0616e79b72b0fd87075a056ae1d1b"
+checksum = "1bec1de6f59aedf83baf9ff929c98f2ad654b97c9510f4e70cf6f661d49fd5b1"
 
 [[package]]
 name = "anstyle-parse"
@@ -159,6 +159,16 @@ checksum = "61a38449feb7068f52bb06c12759005cf459ee52bb4adc1d5a7c4322d716fb19"
 dependencies = [
  "anstyle",
  "windows-sys 0.52.0",
+]
+
+[[package]]
+name = "anstyle-yansi"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1af14b921ec25d7309dc3144f22ed17d0d16b711c451f7eed5f955444b2d17fd"
+dependencies = [
+ "anstyle",
+ "yansi 1.0.1",
 ]
 
 [[package]]
@@ -2870,6 +2880,8 @@ dependencies = [
 name = "hql-diagnostics"
 version = "0.1.0"
 dependencies = [
+ "anstyle",
+ "anstyle-yansi",
  "ariadne",
  "derive-where",
  "hql-span",

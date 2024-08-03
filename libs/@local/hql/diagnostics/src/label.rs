@@ -1,5 +1,7 @@
-use ariadne::Color;
+use anstyle::Color;
 use hql_span::data::SpanTree;
+
+use crate::file_span::FileSpan;
 
 #[derive_where::derive_where(Debug)]
 #[derive(Clone, PartialEq, Eq, Hash)]
@@ -57,5 +59,23 @@ impl<E> Label<E> {
     pub fn set_color(&mut self, color: Color) -> &mut Self {
         self.color = Some(color);
         self
+    }
+
+    pub fn ariadne(&self) -> ariadne::Label<FileSpan> {
+        let mut label = ariadne::Label::new(FileSpan::from(&self.span)).with_message(&self.message);
+
+        if let Some(color) = self.color {
+            label = label.with_color(anstyle_yansi::to_yansi_color(color));
+        }
+
+        if let Some(order) = self.order {
+            label = label.with_order(order);
+        }
+
+        if let Some(priority) = self.priority {
+            label = label.with_priority(priority);
+        }
+
+        label
     }
 }

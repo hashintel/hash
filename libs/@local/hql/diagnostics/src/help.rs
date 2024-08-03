@@ -1,17 +1,15 @@
-use core::fmt::Display;
-
 use anstyle::Color;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", cfg_eval, serde_with::serde_as)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Note {
+pub struct Help {
     message: Box<str>,
     #[cfg_attr(feature = "serde", serde_as(as = "Option<crate::encoding::Color>"))]
     color: Option<Color>,
 }
 
-impl Note {
+impl Help {
     pub fn new(message: impl Into<Box<str>>) -> Self {
         Self {
             message: message.into(),
@@ -31,17 +29,17 @@ impl Note {
     }
 
     #[must_use]
-    pub fn colored(&self, enabled: bool) -> impl Display + '_ {
+    pub fn colored(&self, enabled: bool) -> impl core::fmt::Display + '_ {
         struct DisplayColor<'a> {
             style: anstyle::Style,
             message: &'a str,
         }
 
-        impl Display for DisplayColor<'_> {
+        impl core::fmt::Display for DisplayColor<'_> {
             fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-                Display::fmt(&self.style.render(), f)?;
-                Display::fmt(self.message, f)?;
-                Display::fmt(&self.style.render_reset(), f)
+                core::fmt::Display::fmt(&self.style.render(), f)?;
+                core::fmt::Display::fmt(self.message, f)?;
+                core::fmt::Display::fmt(&self.style.render_reset(), f)
             }
         }
 

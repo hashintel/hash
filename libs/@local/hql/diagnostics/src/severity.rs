@@ -1,6 +1,6 @@
 use core::fmt::Display;
 
-use ariadne::Color;
+use anstyle::{Ansi256Color, AnsiColor, Color};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", cfg_eval, serde_with::serde_as)]
@@ -21,21 +21,21 @@ impl Severity {
         name: "Critical",
         priority: 0,
 
-        color: Color::Red,
+        color: Color::Ansi(AnsiColor::Red),
     };
     pub const ERROR: Self = Self {
         id: "error",
         name: "Error",
         priority: 1,
 
-        color: Color::Red,
+        color: Color::Ansi(AnsiColor::Red),
     };
     pub const WARNING: Self = Self {
         id: "warning",
         name: "Warning",
         priority: 2,
 
-        color: Color::Yellow,
+        color: Color::Ansi(AnsiColor::Yellow),
     };
 }
 
@@ -45,7 +45,7 @@ impl Severity {
         name: "Note",
         priority: 400,
 
-        color: Color::Fixed(147),
+        color: Color::Ansi256(Ansi256Color(147)),
     };
 }
 
@@ -63,6 +63,10 @@ impl Severity {
     #[must_use]
     pub const fn code(&self) -> i32 {
         self.priority
+    }
+
+    pub(crate) fn kind(&self) -> ariadne::ReportKind {
+        ariadne::ReportKind::Custom(self.name, anstyle_yansi::to_yansi_color(self.color))
     }
 }
 
