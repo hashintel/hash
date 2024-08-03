@@ -1,10 +1,12 @@
-use std::collections::HashMap;
+extern crate alloc;
 
-use text_size::TextRange;
+pub mod data;
+pub mod file;
+#[cfg(feature = "json")]
+pub mod json;
+pub mod storage;
 
-/// The ID of a source file.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct FileId(u32);
+use text_size::{TextRange, TextSize};
 
 /// Represents a span of text within a source file.
 ///
@@ -59,84 +61,30 @@ pub struct FileId(u32);
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Span(TextRange);
 
-/// Represents additional metadata associated with a `Span`.
-///
-/// `SpanData` can store information about the text range, an optional parent span,
-/// and other optional extra data.
-///
-/// This data is at least 20 bytes in size.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct SpanData<E> {
-    span: Span,
-    parent: Option<Span>,
-    extra: Option<E>,
-}
-
-impl<E> SpanData<E> {
+impl Span {
     #[must_use]
-    pub const fn new(span: Span) -> Self {
-        Self {
-            span,
-            parent: None,
-            extra: None,
-        }
+    pub const fn new(start: u32, end: u32) -> Self {
+        Self(TextRange::new(TextSize::new(start), TextSize::new(end)))
     }
 
     #[must_use]
-    pub const fn with_parent(mut self, parent: Span) -> Self {
-        self.parent = Some(parent);
-        self
-    }
-
-    pub fn set_parent(&mut self, parent: Span) -> &mut Self {
-        self.parent = Some(parent);
-        self
+    pub const fn start(self) -> TextSize {
+        self.0.start()
     }
 
     #[must_use]
-    pub fn with_extra(mut self, extra: E) -> Self {
-        self.extra = Some(extra);
-        self
+    pub const fn end(self) -> TextSize {
+        self.0.end()
     }
 
-    pub fn set_extra(&mut self, extra: E) -> &mut Self {
-        self.extra = Some(extra);
-        self
+    #[must_use]
+    pub const fn range(self) -> TextRange {
+        self.0
     }
 }
 
-/// A collection of spans within a single source file.
-///
-/// This struct is used to store information about multiple spans within a single source file.
-pub struct SpanArena<E> {
-    file: FileId,
-    items: HashMap<Span, SpanData<E>>,
-}
-
-impl<E> SpanArena<E> {
-    #[must_use]
-    pub fn new(file: FileId) -> Self {
-        Self {
-            file,
-            items: HashMap::new(),
-        }
-    }
-
-    #[must_use]
-    pub const fn file(&self) -> FileId {
-        self.file
-    }
-
-    pub fn insert(&mut self, span: SpanData<E>) {
-        self.items.insert(span.span, span);
-    }
-
-    #[must_use]
-    pub fn get(&self, span: Span) -> Option<&SpanData<E>> {
-        self.items.get(&span)
-    }
-
-    pub fn get_mut(&mut self, span: Span) -> Option<&mut SpanData<E>> {
-        self.items.get_mut(&span)
+impl From<TextRange> for Span {
+    fn from(range: TextRange) -> Self {
+        Self(range)
     }
 }

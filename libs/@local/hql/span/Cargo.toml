@@ -9,5 +9,8 @@ edition.workspace = true
 [dependencies]
 text-size = "1.1.1"
 
+[features]
+json = []
+
 [lints]
 workspace = true
