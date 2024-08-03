@@ -1,0 +1,9 @@
+{
+  "name": "@rust/hql-diagnostics",
+  "version": "0.1.0",
+  "private": false,
+  "dependencies": {
+    "@rust/hql-span": "0.1.0"
+  },
+  "devDependencies": {}
+}
