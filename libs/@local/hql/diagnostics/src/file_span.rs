@@ -24,9 +24,11 @@ impl Span for FileSpan {
 
 impl<E> From<&SpanTree<E>> for FileSpan {
     fn from(span: &SpanTree<E>) -> Self {
+        let range = span.absolute();
+
         Self {
             file: span.file,
-            range: span.range,
+            range,
         }
     }
 }

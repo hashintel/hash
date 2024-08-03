@@ -1,6 +1,6 @@
 use core::fmt::Debug;
 
-use text_size::TextRange;
+use text_size::{TextRange, TextSize};
 
 use crate::file::FileId;
 
@@ -15,6 +15,18 @@ pub struct SpanTree<E> {
     pub range: TextRange,
     pub parent: Option<Box<SpanTree<E>>>,
     pub extra: Option<E>,
+}
+
+impl<E> SpanTree<E> {
+    /// Convert the potentially relative span into an absolute span.
+    pub fn absolute(&self) -> TextRange {
+        let parent_offset = self
+            .parent
+            .as_ref()
+            .map_or_else(|| TextSize::from(0), |parent| parent.absolute().start());
+
+        self.range + parent_offset
+    }
 }
 
 impl<E> Debug for SpanTree<E> {

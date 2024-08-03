@@ -40,7 +40,7 @@ impl<E> Diagnostic<E> {
         let start = self
             .span
             .as_ref()
-            .map_or(0, |span| u32::from(span.range.start()));
+            .map_or(0, |span| u32::from(span.absolute().start()));
 
         let mut generator = ColorGenerator::new();
 
