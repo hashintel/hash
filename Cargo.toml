@@ -22,6 +22,7 @@ members = [
     "libs/@local/harpc/net",
     "libs/@local/harpc/tower",
     "libs/@local/hql/*",
+    "libs/@local/hql/frontend/*",
     "libs/antsi",
     "libs/deer",
     "libs/deer/desert",
@@ -30,6 +31,9 @@ members = [
     "libs/error-stack",
     "libs/error-stack/macros",
     "libs/sarif",
+]
+exclude = [
+    "libs/@local/hql/frontend/"
 ]
 default-members = [
     "apps/hash-graph/bins/*",

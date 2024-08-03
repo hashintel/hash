@@ -1,0 +1,10 @@
+[package]
+name = "hql-frontend-jexpr"
+version = "0.1.0"
+authors.workspace = true
+edition.workspace = true
+
+[dependencies]
+
+[lints]
+workspace = true
