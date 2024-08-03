@@ -2885,6 +2885,7 @@ dependencies = [
  "ariadne",
  "derive-where",
  "hql-span",
+ "jsonptr",
  "serde",
  "serde_json",
  "serde_with",
@@ -3392,6 +3393,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "29c15563dc2726973df627357ce0c9ddddbea194836909d655df6a75d2cf296d"
 dependencies = [
  "wasm-bindgen",
+]
+
+[[package]]
+name = "jsonptr"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d71259ee688a462beeac976f9bede505d1b42db27c0f811a99ad1086d499aebc"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]

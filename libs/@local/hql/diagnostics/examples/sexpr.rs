@@ -6,12 +6,8 @@ use hql_diagnostics::{
     category::Category, config::ReportConfig, help::Help, label::Label, severity::Severity,
     Diagnostic,
 };
-use hql_span::{
-    file::FileId,
-    json::{JsonPointer, JsonSegment},
-    storage::SpanStorage,
-    Span, TextRange,
-};
+use hql_span::{file::FileId, storage::SpanStorage, Span, TextRange};
+use jsonptr::PointerBuf;
 
 // The error is at the `-`
 const SOURCE: &str = r#"["let", "x-y", {"const": 2}]"#;
@@ -42,7 +38,7 @@ fn main() {
         file: FileId::INLINE,
         range: TextRange::new(8.into(), 13.into()),
         parent: None,
-        extra: Some(JsonPointer::new([JsonSegment::Index(1)])),
+        extra: Some(PointerBuf::try_from("/1").expect("should be valid pointer")),
     });
 
     let span = storage.insert(Span {

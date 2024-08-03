@@ -3,8 +3,6 @@ extern crate alloc;
 #[cfg(feature = "serde")]
 pub(crate) mod encoding;
 pub mod file;
-#[cfg(feature = "json")]
-pub mod json;
 pub mod storage;
 pub mod tree;
 
