@@ -387,13 +387,27 @@ pub trait SpanEncode: Sized {
         None
     }
 
+    /// Encode the span into a map
+    ///
+    /// # Errors
+    ///
+    /// If the serializer fails to encode the span
     fn encode<M>(&self, map: &mut M) -> Result<(), M::Error>
     where
         M: SerializeMap;
 
     /// Decode a span from a map
     ///
-    /// The deserializer will always be a map deserializer
+    /// To bridge the gap between [`MapAccess`] and [`Deserialize`], one can utilize the
+    /// [`MapAccessDeserializer`]
+    ///
+    /// # Errors
+    ///
+    /// If the deserializer fails to decode the span
+    ///
+    /// [`MapAccess`]: serde::de::MapAccess
+    /// [`Deserialize`]: serde::de::Deserialize
+    /// [`MapAccessDeserializer`]: crate::serde::MapAccessDeserializer
     fn decode<'de, A>(map: A) -> Result<Self, A::Error>
     where
         A: MapAccess<'de>,
