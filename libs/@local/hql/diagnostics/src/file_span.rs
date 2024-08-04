@@ -1,16 +1,14 @@
-use ariadne::Span;
-use hql_span::{file::FileId, tree::SpanTree, TextRange};
+use hql_span::{tree::SpanNode, Span, TextRange};
 
 pub struct FileSpan {
-    file: FileId,
     range: TextRange,
 }
 
-impl Span for FileSpan {
-    type SourceId = FileId;
+impl ariadne::Span for FileSpan {
+    type SourceId = ();
 
     fn source(&self) -> &Self::SourceId {
-        &self.file
+        &()
     }
 
     fn start(&self) -> usize {
@@ -22,13 +20,13 @@ impl Span for FileSpan {
     }
 }
 
-impl<E> From<&SpanTree<E>> for FileSpan {
-    fn from(span: &SpanTree<E>) -> Self {
+impl<S> From<&SpanNode<S>> for FileSpan
+where
+    S: Span,
+{
+    fn from(span: &SpanNode<S>) -> Self {
         let range = span.absolute();
 
-        Self {
-            file: span.file,
-            range,
-        }
+        Self { range }
     }
 }

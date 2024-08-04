@@ -10,6 +10,5 @@ pub mod help;
 pub mod label;
 pub mod note;
 pub mod severity;
-pub mod source;
 
 pub use diagnostic::Diagnostic;

@@ -1,15 +1,14 @@
 use anstyle::Color;
 use ariadne::ColorGenerator;
-use hql_span::tree::SpanTree;
+use hql_span::{tree::SpanNode, Span};
 
 use crate::file_span::FileSpan;
 
-#[derive_where::derive_where(Debug)]
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", cfg_eval, serde_with::serde_as)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct Label<E> {
-    span: SpanTree<E>,
+pub struct Label<S> {
+    span: SpanNode<S>,
     message: Box<str>,
 
     order: Option<i32>,
@@ -18,8 +17,8 @@ pub struct Label<E> {
     color: Option<Color>,
 }
 
-impl<E> Label<E> {
-    pub fn new(span: SpanTree<E>, message: impl Into<Box<str>>) -> Self {
+impl<S> Label<S> {
+    pub fn new(span: SpanNode<S>, message: impl Into<Box<str>>) -> Self {
         Self {
             span,
             message: message.into(),
@@ -61,7 +60,12 @@ impl<E> Label<E> {
         self.color = Some(color);
         self
     }
+}
 
+impl<S> Label<S>
+where
+    S: Span,
+{
     pub(crate) fn ariadne(&self, generator: &mut ColorGenerator) -> ariadne::Label<FileSpan> {
         let mut label = ariadne::Label::new(FileSpan::from(&self.span)).with_message(&self.message);
 

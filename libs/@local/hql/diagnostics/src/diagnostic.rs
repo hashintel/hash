@@ -1,29 +1,31 @@
-use core::{error::Error, fmt::Display};
+use core::{
+    error::Error,
+    fmt::{Debug, Display},
+};
 
 use ariadne::ColorGenerator;
-use hql_span::{file::FileId, tree::SpanTree};
+use hql_span::{tree::SpanNode, Span};
 
 use crate::{
     category::Category, config::ReportConfig, file_span::FileSpan, help::Help, label::Label,
     note::Note, severity::Severity,
 };
 
-#[derive_where::derive_where(Debug)]
-#[derive(Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize))]
-pub struct Diagnostic<E> {
+pub struct Diagnostic<S> {
     pub category: Category,
     pub severity: Severity,
 
     pub message: Option<Box<str>>,
-    pub span: Option<SpanTree<E>>,
+    pub span: Option<SpanNode<S>>,
 
-    pub labels: Vec<Label<E>>,
+    pub labels: Vec<Label<S>>,
     pub note: Option<Note>,
     pub help: Option<Help>,
 }
 
-impl<E> Diagnostic<E> {
+impl<S> Diagnostic<S> {
     #[must_use]
     pub const fn new(category: Category, severity: Severity) -> Self {
         Self {
@@ -36,8 +38,13 @@ impl<E> Diagnostic<E> {
             help: None,
         }
     }
+}
 
-    pub fn report(&self, source: FileId, config: ReportConfig) -> ariadne::Report<FileSpan> {
+impl<S> Diagnostic<S>
+where
+    S: Span,
+{
+    pub fn report(&self, config: ReportConfig) -> ariadne::Report<FileSpan> {
         let start = self
             .span
             .as_ref()
@@ -45,7 +52,7 @@ impl<E> Diagnostic<E> {
 
         let mut generator = ColorGenerator::new();
 
-        let mut builder = ariadne::Report::build(self.severity.kind(), source, start as usize)
+        let mut builder = ariadne::Report::build(self.severity.kind(), (), start as usize)
             .with_code(self.category.canonical_id());
 
         builder.set_message(self.message.as_deref().unwrap_or(self.category.name));
@@ -68,10 +75,13 @@ impl<E> Diagnostic<E> {
     }
 }
 
-impl<E> Display for Diagnostic<E> {
+impl<S> Display for Diagnostic<S>
+where
+    S: Display,
+{
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "[{}] {}", self.severity, self.category.canonical_name())
     }
 }
 
-impl<E> Error for Diagnostic<E> {}
+impl<S> Error for Diagnostic<S> where S: Debug + Display {}

@@ -103,7 +103,8 @@ mod test {
 
     use crate::{encoding::SpanEncode, Span};
 
-    #[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize)]
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    #[cfg_attr(feature = "serde", derive(serde::Deserialize))]
     struct ExampleSpan {
         range: TextRange,
     }
@@ -118,6 +119,7 @@ mod test {
         }
     }
 
+    #[cfg(feature = "serde")]
     impl SpanEncode for ExampleSpan {
         fn encode<M>(&self, map: &mut M) -> Result<(), M::Error>
         where
@@ -209,7 +211,7 @@ mod test {
 
         assert_eq!(
             error.to_string(),
-            "duplicate field `parent` at line 1 column 39"
+            "duplicate field `parent` at line 1 column 38"
         );
     }
 }
