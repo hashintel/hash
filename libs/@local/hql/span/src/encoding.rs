@@ -407,7 +407,7 @@ pub trait SpanEncode: Sized {
     ///
     /// [`MapAccess`]: serde::de::MapAccess
     /// [`Deserialize`]: serde::de::Deserialize
-    /// [`MapAccessDeserializer`]: crate::serde::MapAccessDeserializer
+    /// [`MapAccessDeserializer`]: serde::de::value::MapAccessDeserializer
     fn decode<'de, A>(map: A) -> Result<Self, A::Error>
     where
         A: MapAccess<'de>,
