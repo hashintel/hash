@@ -1,8 +1,5 @@
-use alloc::collections::BTreeMap;
-use core::fmt::Debug;
+use core::fmt::{self, Debug};
 
-use serde::de::IntoDeserializer;
-use serde_value::Value;
 use text_size::{TextRange, TextSize};
 
 use crate::Span;
@@ -52,23 +49,49 @@ where
 impl<'de, Span> serde::Deserialize<'de> for SpanNode<Span>
 where
     Span: crate::encoding::SpanEncode,
+    Self: 'de,
 {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
     {
-        // in theory this could be made allocation free (mostly), by having a `SpanKey<O>`, then
-        // having a delegate function, but that would be a lot more involved.
-        let mut value = BTreeMap::<Value, Value>::deserialize(deserializer)?;
-        let Some(parent) = value.remove(&Value::String("parent".to_owned())) else {
-            return Err(serde::de::Error::missing_field("parent"));
-        };
+        struct NodeVisitor<Span> {
+            _marker: core::marker::PhantomData<fn() -> *const Span>,
+        }
 
-        let parent = Option::<Box<Self>>::deserialize(parent).map_err(serde::de::Error::custom)?;
+        impl<'de, Span> serde::de::Visitor<'de> for NodeVisitor<Span>
+        where
+            Span: crate::encoding::SpanEncode,
+            Self: 'de,
+        {
+            type Value = SpanNode<Span>;
 
-        let value = value.into_deserializer();
-        let value = Span::decode(value).map_err(serde::de::Error::custom)?;
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("a span node with a parent field")
+            }
 
-        Ok(Self { value, parent })
+            fn visit_map<A>(self, map: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::MapAccess<'de>,
+            {
+                let mut parent = None;
+
+                let access = crate::encoding::SpanAccessDeserializer {
+                    access: map,
+                    parent: &mut parent,
+                };
+
+                let value = Span::decode(access)?;
+                let Some(parent) = parent else {
+                    return Err(serde::de::Error::missing_field("parent"));
+                };
+
+                Ok(SpanNode { value, parent })
+            }
+        }
+
+        deserializer.deserialize_map(NodeVisitor {
+            _marker: core::marker::PhantomData,
+        })
     }
 }
