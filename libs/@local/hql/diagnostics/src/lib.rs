@@ -6,10 +6,10 @@ pub mod diagnostic;
 #[cfg(feature = "serde")]
 pub(crate) mod encoding;
 pub mod error;
-pub mod file_span;
 pub mod help;
 pub mod label;
 pub mod note;
 pub mod severity;
+pub mod span;
 
 pub use diagnostic::Diagnostic;

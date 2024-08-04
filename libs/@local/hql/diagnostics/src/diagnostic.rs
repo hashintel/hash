@@ -8,8 +8,14 @@ use error_stack::{Report, Result};
 use hql_span::{storage::SpanStorage, tree::SpanNode, Span, SpanId};
 
 use crate::{
-    category::Category, config::ReportConfig, error::ResolveError, file_span::FileSpan, help::Help,
-    label::Label, note::Note, severity::Severity,
+    category::Category,
+    config::ReportConfig,
+    error::ResolveError,
+    help::Help,
+    label::Label,
+    note::Note,
+    severity::Severity,
+    span::{absolute_span, AbsoluteDiagnosticSpan, TransformSpan},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -94,15 +100,14 @@ impl Diagnostic<SpanId> {
     }
 }
 
-impl<S> Diagnostic<SpanNode<S>>
-where
-    S: Span,
-{
-    pub fn report(&self, config: ReportConfig) -> ariadne::Report<FileSpan> {
-        let start = self
-            .span
-            .as_ref()
-            .map_or(0, |span| u32::from(span.absolute().start()));
+impl<S> Diagnostic<SpanNode<S>> {
+    pub fn report(
+        &self,
+        mut config: ReportConfig<impl TransformSpan<S>>,
+    ) -> ariadne::Report<AbsoluteDiagnosticSpan> {
+        let start = self.span.as_ref().map_or(0, |span| {
+            u32::from(absolute_span(span, &mut config.transform_span).start())
+        });
 
         let mut generator = ColorGenerator::new();
 
@@ -120,7 +125,7 @@ where
         }
 
         for label in &self.labels {
-            builder.add_label(label.ariadne(&mut generator));
+            builder.add_label(label.ariadne(&mut generator, &mut config.transform_span));
         }
 
         builder = builder.with_config(config.into());

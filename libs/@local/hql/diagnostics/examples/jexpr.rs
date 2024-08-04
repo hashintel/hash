@@ -3,17 +3,12 @@ use std::io::stdout;
 
 use hql_diagnostics::{
     category::Category, config::ReportConfig, help::Help, label::Label, severity::Severity,
-    Diagnostic,
+    span::DiagnosticSpan, Diagnostic,
 };
-use hql_span::{encoding::SpanEncode, storage::SpanStorage, Span, SpanId, TextRange};
+use hql_span::{storage::SpanStorage, Span, SpanId, TextRange};
 use jsonptr::PointerBuf;
-use serde::{
-    de::{value::MapAccessDeserializer, MapAccess},
-    ser::SerializeMap,
-    Deserialize,
-};
 
-#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 struct JsonSpan {
     range: TextRange,
     pointer: Option<PointerBuf>,
@@ -21,32 +16,8 @@ struct JsonSpan {
 }
 
 impl Span for JsonSpan {
-    fn range(&self) -> TextRange {
-        self.range
-    }
-
     fn parent_id(&self) -> Option<SpanId> {
         self.parent_id
-    }
-}
-
-impl SpanEncode for JsonSpan {
-    fn encode<M>(&self, map: &mut M) -> Result<(), M::Error>
-    where
-        M: SerializeMap,
-    {
-        map.serialize_entry("range", &self.range)?;
-        map.serialize_entry("pointer", &self.pointer)?;
-        map.serialize_entry("parent_id", &self.parent_id)
-    }
-
-    fn decode<'de, A>(map: A) -> Result<Self, A::Error>
-    where
-        A: MapAccess<'de>,
-        Self: 'de,
-    {
-        let deserializer = MapAccessDeserializer::new(map);
-        Self::deserialize(deserializer)
     }
 }
 
@@ -92,7 +63,13 @@ fn main() {
          +, -, *, /, %, =, <, >",
     ));
 
-    let report = diagnostic.report(ReportConfig::default());
+    let report = diagnostic.report(ReportConfig::default().with_transform_span(
+        |span: &JsonSpan| DiagnosticSpan {
+            range: span.range,
+            parent_id: span.parent_id,
+        },
+    ));
+
     report
         .write_for_stdout(ariadne::Source::from(SOURCE), stdout())
         .expect("should be able to write report");

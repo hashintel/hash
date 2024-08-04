@@ -5,7 +5,7 @@ use ariadne::{CharSet, IndexType, LabelAttach};
 /// This is needed for access to the `ariadne::Config` struct
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 #[expect(clippy::struct_excessive_bools, reason = "mirror of ariadne::Config")]
-pub struct ReportConfig {
+pub struct ReportConfig<F> {
     pub cross_gap: bool,
     pub label_attach: LabelAttach,
     pub compact: bool,
@@ -15,10 +15,29 @@ pub struct ReportConfig {
     pub tab_width: usize,
     pub char_set: CharSet,
     pub index_type: IndexType,
+    pub transform_span: F,
 }
 
-impl From<ReportConfig> for ariadne::Config {
-    fn from(config: ReportConfig) -> Self {
+impl<F> ReportConfig<F> {
+    // just makes creating it easier
+    pub fn with_transform_span<G>(self, transform_span: G) -> ReportConfig<G> {
+        ReportConfig {
+            cross_gap: self.cross_gap,
+            label_attach: self.label_attach,
+            compact: self.compact,
+            underlines: self.underlines,
+            multiline_arrows: self.multiline_arrows,
+            color: self.color,
+            tab_width: self.tab_width,
+            char_set: self.char_set,
+            index_type: self.index_type,
+            transform_span,
+        }
+    }
+}
+
+impl<F> From<ReportConfig<F>> for ariadne::Config {
+    fn from(config: ReportConfig<F>) -> Self {
         Self::default()
             .with_cross_gap(config.cross_gap)
             .with_label_attach(config.label_attach)
@@ -32,7 +51,7 @@ impl From<ReportConfig> for ariadne::Config {
     }
 }
 
-impl Default for ReportConfig {
+impl Default for ReportConfig<()> {
     fn default() -> Self {
         Self {
             cross_gap: true,
@@ -44,6 +63,7 @@ impl Default for ReportConfig {
             tab_width: 4,
             char_set: CharSet::Unicode,
             index_type: IndexType::Char,
+            transform_span: (),
         }
     }
 }

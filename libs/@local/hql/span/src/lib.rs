@@ -1,8 +1,6 @@
 #![feature(never_type)]
 extern crate alloc;
 
-#[cfg(feature = "serde")]
-pub mod encoding;
 pub mod storage;
 pub mod tree;
 
@@ -68,9 +66,6 @@ impl SpanId {
 /// frontends, this data is always optional, as some spans, for example for malformed code, may not
 /// have any additional data.
 pub trait Span {
-    /// The file this span is in.
-    fn range(&self) -> TextRange;
-
     /// Optional parent span, if any.
     fn parent_id(&self) -> Option<SpanId>;
 }

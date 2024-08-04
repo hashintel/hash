@@ -3,7 +3,10 @@ use ariadne::ColorGenerator;
 use error_stack::{Report, Result};
 use hql_span::{storage::SpanStorage, tree::SpanNode, Span, SpanId};
 
-use crate::{error::ResolveError, file_span::FileSpan};
+use crate::{
+    error::ResolveError,
+    span::{AbsoluteDiagnosticSpan, TransformSpan},
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", cfg_eval, serde_with::serde_as)]
@@ -85,12 +88,14 @@ impl Label<SpanId> {
     }
 }
 
-impl<S> Label<SpanNode<S>>
-where
-    S: Span,
-{
-    pub(crate) fn ariadne(&self, generator: &mut ColorGenerator) -> ariadne::Label<FileSpan> {
-        let mut label = ariadne::Label::new(FileSpan::from(&self.span)).with_message(&self.message);
+impl<S> Label<SpanNode<S>> {
+    pub(crate) fn ariadne(
+        &self,
+        generator: &mut ColorGenerator,
+        transform: &mut impl TransformSpan<S>,
+    ) -> ariadne::Label<AbsoluteDiagnosticSpan> {
+        let mut label = ariadne::Label::new(AbsoluteDiagnosticSpan::new(&self.span, transform))
+            .with_message(&self.message);
 
         let color = self
             .color
