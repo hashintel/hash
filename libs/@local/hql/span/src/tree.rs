@@ -107,7 +107,7 @@ mod test {
     use text_size::TextRange;
 
     #[cfg(feature = "serde")]
-    use crate::tree::SpanNode;
+    use crate::encoding::SpanEncode;
     use crate::Span;
 
     #[derive(Debug, Clone, PartialEq, Eq)]
