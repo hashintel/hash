@@ -79,6 +79,10 @@ impl ariadne::Span for AbsoluteDiagnosticSpan {
         self.range.is_empty()
     }
 
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "Text will never be larger than u32::MAX (4GiB) due to the use of `TextSize`"
+    )]
     fn contains(&self, offset: usize) -> bool {
         self.range.contains(TextSize::from(offset as u32))
     }
