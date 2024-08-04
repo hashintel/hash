@@ -1,7 +1,6 @@
 use core::fmt::Debug;
 use std::io::stdout;
 
-use ariadne::FnCache;
 use hql_diagnostics::{
     category::Category, config::ReportConfig, help::Help, label::Label, severity::Severity,
     Diagnostic,
@@ -11,7 +10,7 @@ use jsonptr::PointerBuf;
 use serde::{
     de::{value::MapAccessDeserializer, MapAccess},
     ser::SerializeMap,
-    Deserialize, Serialize,
+    Deserialize,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize)]
