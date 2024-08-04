@@ -1,3 +1,5 @@
+use core::fmt;
+
 use serde::{
     de::{
         value::{EnumAccessDeserializer, MapAccessDeserializer, SeqAccessDeserializer},
@@ -32,7 +34,7 @@ where
 {
     type Value = SpanField<S, S::Value>;
 
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
         formatter.write_str("a span field")
     }
 
@@ -318,9 +320,14 @@ where
     }
 }
 
+#[expect(
+    clippy::option_option,
+    reason = "We need to be able to distinguish between `None` and `Some(None)`, e.g. `null` vs. \
+              absent"
+)]
 pub(crate) struct SpanAccessDeserializer<'a, A, P> {
     pub access: A,
-    pub parent: &'a mut Option<P>,
+    pub parent: &'a mut Option<Option<P>>,
 }
 
 impl<'a, 'de, A, P> MapAccess<'de> for SpanAccessDeserializer<'a, A, P>
@@ -380,7 +387,7 @@ pub trait SpanEncode: Sized {
         None
     }
 
-    fn encode<M>(&self, map: &mut M) -> Result<M::Ok, M::Error>
+    fn encode<M>(&self, map: &mut M) -> Result<(), M::Error>
     where
         M: SerializeMap;
 

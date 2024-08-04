@@ -51,7 +51,7 @@ where
         let current = self.get(span).cloned()?;
 
         let parent = current
-            .parent()
+            .parent_id()
             .and_then(|parent| self.resolve_inner(parent, visited));
 
         Some(SpanNode {

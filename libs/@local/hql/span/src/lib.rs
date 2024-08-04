@@ -71,5 +71,5 @@ pub trait Span {
     fn range(&self) -> TextRange;
 
     /// Optional parent span, if any.
-    fn parent(&self) -> Option<SpanId>;
+    fn parent_id(&self) -> Option<SpanId>;
 }

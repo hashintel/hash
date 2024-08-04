@@ -82,16 +82,134 @@ where
                 };
 
                 let value = Span::decode(access)?;
-                let Some(parent) = parent else {
-                    return Err(serde::de::Error::missing_field("parent"));
-                };
 
-                Ok(SpanNode { value, parent })
+                Ok(SpanNode {
+                    value,
+                    parent: parent.flatten(),
+                })
             }
         }
 
         deserializer.deserialize_map(NodeVisitor {
             _marker: core::marker::PhantomData,
         })
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use serde::de::{value::MapAccessDeserializer, Deserialize};
+    use text_size::TextRange;
+
+    use crate::{encoding::SpanEncode, Span};
+
+    #[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize)]
+    struct ExampleSpan {
+        range: TextRange,
+    }
+
+    impl Span for ExampleSpan {
+        fn range(&self) -> TextRange {
+            self.range
+        }
+
+        fn parent_id(&self) -> Option<crate::SpanId> {
+            None
+        }
+    }
+
+    impl SpanEncode for ExampleSpan {
+        fn encode<M>(&self, map: &mut M) -> Result<(), M::Error>
+        where
+            M: serde::ser::SerializeMap,
+        {
+            map.serialize_entry("range", &self.range)
+        }
+
+        fn decode<'de, A>(map: A) -> Result<Self, A::Error>
+        where
+            A: serde::de::MapAccess<'de>,
+            Self: 'de,
+        {
+            let de = MapAccessDeserializer::new(map);
+            Self::deserialize(de)
+        }
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn deserialize_span() {
+        use crate::tree::SpanNode;
+
+        let span = r#"{"range":[0, 5],"parent":null}"#;
+        let span: SpanNode<ExampleSpan> = serde_json::from_str(span).expect("should be valid JSON");
+
+        assert_eq!(
+            span,
+            SpanNode {
+                value: ExampleSpan {
+                    range: TextRange::new(0.into(), 5.into())
+                },
+                parent: None,
+            }
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn deserialize_nested_span() {
+        use crate::tree::SpanNode;
+
+        let span = r#"{"range":[0, 5],"parent":{"range":[5, 10],"parent":null}}"#;
+        let span: SpanNode<ExampleSpan> = serde_json::from_str(span).expect("should be valid JSON");
+
+        assert_eq!(
+            span,
+            SpanNode {
+                value: ExampleSpan {
+                    range: TextRange::new(0.into(), 5.into())
+                },
+                parent: Some(Box::new(SpanNode {
+                    value: ExampleSpan {
+                        range: TextRange::new(5.into(), 10.into())
+                    },
+                    parent: None,
+                })),
+            }
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn deserialize_missing_parent() {
+        use crate::tree::SpanNode;
+
+        let span = r#"{"range":[0, 5]}"#;
+        let span: SpanNode<ExampleSpan> = serde_json::from_str(span).expect("should be valid JSON");
+
+        assert_eq!(
+            span,
+            SpanNode {
+                value: ExampleSpan {
+                    range: TextRange::new(0.into(), 5.into())
+                },
+                parent: None,
+            }
+        );
+    }
+
+    #[test]
+    #[cfg(feature = "serde")]
+    fn deserialize_duplicate_null_parent() {
+        use crate::tree::SpanNode;
+
+        let span = r#"{"range":[0, 5],"parent":null,"parent":null}"#;
+        let error = serde_json::from_str::<SpanNode<ExampleSpan>>(span)
+            .expect_err("should error on duplicate keys");
+
+        assert_eq!(
+            error.to_string(),
+            "duplicate field `parent` at line 1 column 39"
+        );
     }
 }
