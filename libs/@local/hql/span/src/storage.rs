@@ -1,27 +1,32 @@
-use crate::{tree::SpanTree, Span, SpanId};
+use crate::{tree::SpanNode, Span, SpanId};
 
 /// A collection of spans within a single source file.
 ///
 /// This struct is used to store information about multiple spans within a single source file.
-pub struct SpanStorage<E> {
-    arena: Vec<Span<E>>,
+pub struct SpanStorage<S> {
+    arena: Vec<S>,
 }
 
-impl<E> SpanStorage<E> {
+impl<S> SpanStorage<S> {
     #[must_use]
     pub const fn new() -> Self {
         Self { arena: Vec::new() }
     }
+}
 
+impl<S> SpanStorage<S>
+where
+    S: Span,
+{
     #[expect(
         clippy::cast_possible_truncation,
-        reason = "The arena is not expected to be large"
+        reason = "The arena is not expected to be larger than u32::MAX"
     )]
     fn next_id(&self) -> SpanId {
         SpanId::new(self.arena.len() as u32)
     }
 
-    pub fn insert(&mut self, span: Span<E>) -> SpanId {
+    pub fn insert(&mut self, span: S) -> SpanId {
         let id = self.next_id();
         self.arena.push(span);
 
@@ -29,15 +34,15 @@ impl<E> SpanStorage<E> {
     }
 
     #[must_use]
-    pub fn get(&self, span: SpanId) -> Option<&Span<E>> {
+    pub fn get(&self, span: SpanId) -> Option<&S> {
         let index = span.value() as usize;
 
         self.arena.get(index)
     }
 
-    fn resolve_inner(&self, span: SpanId, visited: &mut Vec<SpanId>) -> Option<SpanTree<E>>
+    fn resolve_inner(&self, span: SpanId, visited: &mut Vec<SpanId>) -> Option<SpanNode<S>>
     where
-        E: Clone,
+        S: Clone,
     {
         assert!(!visited.contains(&span), "circular span reference detected");
 
@@ -46,14 +51,12 @@ impl<E> SpanStorage<E> {
         let current = self.get(span).cloned()?;
 
         let parent = current
-            .parent
+            .parent()
             .and_then(|parent| self.resolve_inner(parent, visited));
 
-        Some(SpanTree {
-            file: current.file,
-            range: current.range,
+        Some(SpanNode {
+            value: current,
             parent: parent.map(Box::new),
-            extra: current.extra,
         })
     }
 
@@ -63,15 +66,15 @@ impl<E> SpanStorage<E> {
     ///
     /// Panics if a circular span reference is detected.
     #[must_use]
-    pub fn resolve(&self, span: SpanId) -> Option<SpanTree<E>>
+    pub fn resolve(&self, span: SpanId) -> Option<SpanNode<S>>
     where
-        E: Clone,
+        S: Clone,
     {
         let mut visited = Vec::new();
         self.resolve_inner(span, &mut visited)
     }
 
-    pub fn get_mut(&mut self, span: SpanId) -> Option<&mut Span<E>> {
+    pub fn get_mut(&mut self, span: SpanId) -> Option<&mut S> {
         let index = span.value() as usize;
 
         self.arena.get_mut(index)

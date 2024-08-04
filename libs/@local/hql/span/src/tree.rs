@@ -1,23 +1,23 @@
 use core::fmt::Debug;
 
+use serde::de::value::MapAccessDeserializer;
 use text_size::{TextRange, TextSize};
 
-use crate::file::FileId;
+use crate::Span;
 
 /// Represents a full span in a file.
 ///
 /// This span is resolved unlike a normal span, where each parent is resolved to a full span.
-#[derive(Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
-pub struct SpanTree<E> {
-    pub file: FileId,
-    #[cfg_attr(feature = "serde", serde(with = "crate::encoding::text_range"))]
-    pub range: TextRange,
-    pub parent: Option<Box<SpanTree<E>>>,
-    pub extra: Option<E>,
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SpanNode<S> {
+    pub value: S,
+    pub parent: Option<Box<SpanNode<S>>>,
 }
 
-impl<E> SpanTree<E> {
+impl<S> SpanNode<S>
+where
+    S: Span,
+{
     /// Convert the potentially relative span into an absolute span.
     pub fn absolute(&self) -> TextRange {
         let parent_offset = self
@@ -25,17 +25,62 @@ impl<E> SpanTree<E> {
             .as_ref()
             .map_or_else(|| TextSize::from(0), |parent| parent.absolute().start());
 
-        self.range + parent_offset
+        self.value.range() + parent_offset
     }
 }
 
-impl<E> Debug for SpanTree<E> {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.debug_struct("SpanTree")
-            .field("file", &self.file)
-            .field("span", &self.range)
-            .field("parent", &self.parent)
-            .field("extra", &"..")
-            .finish_non_exhaustive()
+impl<Span> serde::Serialize for SpanNode<Span>
+where
+    Span: crate::encoding::SpanEncode,
+{
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::SerializeMap;
+
+        let size_hint = self.value.size_hint().map(|hint| hint + 1);
+        let mut map = serializer.serialize_map(size_hint)?;
+        self.value.encode(&mut map)?;
+        map.serialize_entry("parent", &self.parent)?;
+        map.end()
+    }
+}
+
+impl<'de, Span> serde::Deserialize<'de> for SpanNode<Span>
+where
+    Span: crate::encoding::SpanEncode,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        use serde::de::MapAccess;
+
+        struct SpanNodeVisitor<Span> {
+            _phantom: core::marker::PhantomData<Span>,
+        }
+
+        impl<'de, Span> serde::de::Visitor<'de> for SpanNodeVisitor<Span>
+        where
+            Span: crate::encoding::SpanEncode,
+        {
+            type Value = SpanNode<Span>;
+
+            fn expecting(&self, formatter: &mut core::fmt::Formatter) -> core::fmt::Result {
+                formatter.write_str("a span node")
+            }
+
+            fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+            where
+                A: MapAccess<'de>,
+            {
+                Ok(SpanNode { value, parent })
+            }
+        }
+
+        deserializer.deserialize_map(SpanNodeVisitor {
+            _phantom: core::marker::PhantomData,
+        })
     }
 }

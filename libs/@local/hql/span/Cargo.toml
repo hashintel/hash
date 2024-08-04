@@ -10,10 +10,12 @@ publish = false
 
 [dependencies]
 serde = { workspace = true, optional = true, features = ["derive"]}
+sval = "2.13.0"
 text-size = "1.1.1"
 
 [features]
-serde = ["dep:serde"]
+default = ["serde"]
+serde = ["dep:serde", "text-size/serde"]
 
 [lints]
 workspace = true

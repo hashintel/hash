@@ -1,121 +1,265 @@
-pub(crate) mod text_range {
-    use core::fmt;
+use core::marker::PhantomData;
 
-    use serde::{de::Visitor, ser::SerializeMap};
-    use text_size::{TextRange, TextSize};
+use serde::{
+    de::{
+        value::{EnumAccessDeserializer, MapAccessDeserializer, SeqAccessDeserializer},
+        DeserializeSeed, IntoDeserializer, MapAccess,
+    },
+    ser::SerializeMap,
+    Deserialize, Deserializer,
+};
 
-    #[expect(clippy::trivially_copy_pass_by_ref, reason = "serde API")]
-    pub(crate) fn serialize<S>(range: &TextRange, serializer: S) -> Result<S::Ok, S::Error>
+enum SpanKey<O> {
+    Parent,
+    Other(O),
+}
+
+impl<'de, O> Deserialize<'de> for SpanKey<O>
+where
+    O: Deserialize<'de>,
+{
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        S: serde::Serializer,
+        D: Deserializer<'de>,
     {
-        let mut map = serializer.serialize_map(Some(2))?;
-        map.serialize_entry("start", &u32::from(range.start()))?;
-        map.serialize_entry("end", &u32::from(range.end()))?;
-        map.end()
-    }
+        struct KeyVisitor<O>(PhantomData<O>);
 
-    struct TextRangeVisitor;
-
-    impl<'de> Visitor<'de> for TextRangeVisitor {
-        type Value = TextRange;
-
-        fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-            formatter.write_str("a span object with start and end fields")
-        }
-
-        fn visit_map<A>(self, mut map: A) -> Result<Self::Value, A::Error>
+        impl<'de, O> serde::de::Visitor<'de> for KeyVisitor<O>
         where
-            A: serde::de::MapAccess<'de>,
+            O: Deserialize<'de>,
         {
-            #[derive(serde::Deserialize)]
-            #[serde(field_identifier, rename_all = "lowercase")]
-            enum Field {
-                Start,
-                End,
+            type Value = SpanKey<O>;
+
+            fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+                formatter.write_str("a span key")
             }
 
-            let mut start = None;
-            let mut end = None;
+            fn visit_bool<E>(self, v: bool) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                O::deserialize(v.into_deserializer()).map(SpanKey::Other)
+            }
 
-            while let Some(key) = map.next_key()? {
-                match key {
-                    Field::Start => {
-                        if start.is_some() {
-                            return Err(serde::de::Error::duplicate_field("start"));
-                        }
-                        start = Some(map.next_value()?);
-                    }
-                    Field::End => {
-                        if end.is_some() {
-                            return Err(serde::de::Error::duplicate_field("end"));
-                        }
-                        end = Some(map.next_value()?);
-                    }
+            fn visit_i8<E>(self, v: i8) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                O::deserialize(v.into_deserializer()).map(SpanKey::Other)
+            }
+
+            fn visit_i16<E>(self, v: i16) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                O::deserialize(v.into_deserializer()).map(SpanKey::Other)
+            }
+
+            fn visit_i32<E>(self, v: i32) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                O::deserialize(v.into_deserializer()).map(SpanKey::Other)
+            }
+
+            fn visit_i64<E>(self, v: i64) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                O::deserialize(v.into_deserializer()).map(SpanKey::Other)
+            }
+
+            fn visit_i128<E>(self, v: i128) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                O::deserialize(v.into_deserializer()).map(SpanKey::Other)
+            }
+
+            fn visit_u8<E>(self, v: u8) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                O::deserialize(v.into_deserializer()).map(SpanKey::Other)
+            }
+
+            fn visit_u16<E>(self, v: u16) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                O::deserialize(v.into_deserializer()).map(SpanKey::Other)
+            }
+
+            fn visit_u32<E>(self, v: u32) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                O::deserialize(v.into_deserializer()).map(SpanKey::Other)
+            }
+
+            fn visit_u64<E>(self, v: u64) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                O::deserialize(v.into_deserializer()).map(SpanKey::Other)
+            }
+
+            fn visit_u128<E>(self, v: u128) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                O::deserialize(v.into_deserializer()).map(SpanKey::Other)
+            }
+
+            fn visit_f32<E>(self, v: f32) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                O::deserialize(v.into_deserializer()).map(SpanKey::Other)
+            }
+
+            fn visit_f64<E>(self, v: f64) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                O::deserialize(v.into_deserializer()).map(SpanKey::Other)
+            }
+
+            fn visit_char<E>(self, v: char) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                O::deserialize(v.into_deserializer()).map(SpanKey::Other)
+            }
+
+            fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                if v.eq_ignore_ascii_case("parent") {
+                    Ok(SpanKey::Parent)
+                } else {
+                    O::deserialize(v.into_deserializer()).map(SpanKey::Other)
                 }
             }
 
-            let start: u32 = start.ok_or_else(|| serde::de::Error::missing_field("start"))?;
-            let end: u32 = end.ok_or_else(|| serde::de::Error::missing_field("end"))?;
+            fn visit_borrowed_str<E>(self, v: &'de str) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                if v.eq_ignore_ascii_case("parent") {
+                    Ok(SpanKey::Parent)
+                } else {
+                    O::deserialize(v.into_deserializer()).map(SpanKey::Other)
+                }
+            }
 
-            Ok(TextRange::new(TextSize::from(start), TextSize::from(end)))
+            fn visit_string<E>(self, v: String) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                if v.eq_ignore_ascii_case("parent") {
+                    Ok(SpanKey::Parent)
+                } else {
+                    O::deserialize(v.into_deserializer()).map(SpanKey::Other)
+                }
+            }
+
+            fn visit_bytes<E>(self, v: &[u8]) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                if v.eq_ignore_ascii_case(b"parent") {
+                    Ok(SpanKey::Parent)
+                } else {
+                    O::deserialize(v.into_deserializer()).map(SpanKey::Other)
+                }
+            }
+
+            fn visit_borrowed_bytes<E>(self, v: &'de [u8]) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                if v.eq_ignore_ascii_case(b"parent") {
+                    Ok(SpanKey::Parent)
+                } else {
+                    O::deserialize(v.into_deserializer()).map(SpanKey::Other)
+                }
+            }
+
+            fn visit_byte_buf<E>(self, v: Vec<u8>) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                if v.eq_ignore_ascii_case(b"parent") {
+                    Ok(SpanKey::Parent)
+                } else {
+                    O::deserialize(v.into_deserializer()).map(SpanKey::Other)
+                }
+            }
+
+            // visit_none and visit_some are not implemented, because they don't have a
+            // `serde::de::value` Deserializer, see: https://github.com/serde-rs/serde/issues/1899
+
+            fn visit_unit<E>(self) -> Result<Self::Value, E>
+            where
+                E: serde::de::Error,
+            {
+                O::deserialize(().into_deserializer()).map(SpanKey::Other)
+            }
+
+            fn visit_newtype_struct<D>(self, deserializer: D) -> Result<Self::Value, D::Error>
+            where
+                D: Deserializer<'de>,
+            {
+                O::deserialize(deserializer).map(SpanKey::Other)
+            }
+
+            fn visit_seq<A>(self, seq: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::SeqAccess<'de>,
+            {
+                O::deserialize(SeqAccessDeserializer::new(seq)).map(SpanKey::Other)
+            }
+
+            fn visit_map<A>(self, map: A) -> Result<Self::Value, A::Error>
+            where
+                A: MapAccess<'de>,
+            {
+                O::deserialize(MapAccessDeserializer::new(map)).map(SpanKey::Other)
+            }
+
+            fn visit_enum<A>(self, data: A) -> Result<Self::Value, A::Error>
+            where
+                A: serde::de::EnumAccess<'de>,
+            {
+                O::deserialize(EnumAccessDeserializer::new(data)).map(SpanKey::Other)
+            }
         }
-    }
 
-    pub(crate) fn deserialize<'de, D>(deserializer: D) -> Result<TextRange, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        deserializer.deserialize_map(TextRangeVisitor)
+        deserializer.deserialize_any(KeyVisitor(PhantomData))
     }
 }
 
-#[cfg(test)]
-mod test {
-    use text_size::{TextRange, TextSize};
-
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
-    struct Span(#[serde(with = "super::text_range")] TextRange);
-
-    impl Span {
-        const fn new(start: TextSize, end: TextSize) -> Self {
-            Self(TextRange::new(start, end))
-        }
+pub trait SpanEncode: Sized {
+    fn size_hint(&self) -> Option<usize> {
+        None
     }
 
-    #[test]
-    fn span_serialize() {
-        let span = Span::new(TextSize::from(10), TextSize::from(20));
-        let json = serde_json::to_string(&span).expect("valid json");
-        assert_eq!(json, r#"{"start":10,"end":20}"#);
-    }
+    fn encode<M>(&self, serializer: &mut M) -> Result<M::Ok, M::Error>
+    where
+        M: SerializeMap;
 
-    #[test]
-    fn span_deserialize() {
-        let json = r#"{"start":10,"end":20}"#;
-        let span: Span = serde_json::from_str(json).expect("valid json");
-        assert_eq!(span, Span::new(TextSize::from(10), TextSize::from(20)));
-    }
-
-    #[test]
-    fn span_deserialize_missing_key() {
-        let json = r#"{"start":10}"#;
-        let error = serde_json::from_str::<'_, Span>(json).expect_err("missing end key");
-        assert!(error.to_string().starts_with("missing field `end`"));
-
-        let json = r#"{"end":20}"#;
-        let error = serde_json::from_str::<'_, Span>(json).expect_err("missing start key");
-        assert!(error.to_string().starts_with("missing field `start`"));
-    }
-
-    #[test]
-    fn span_deserialize_duplicate_key() {
-        let json = r#"{"start":10,"start":20}"#;
-        let error = serde_json::from_str::<'_, Span>(json).expect_err("duplicate start key");
-        assert!(error.to_string().starts_with("duplicate field `start`"));
-
-        let json = r#"{"end":10,"end":20}"#;
-        let error = serde_json::from_str::<'_, Span>(json).expect_err("duplicate end key");
-        assert!(error.to_string().starts_with("duplicate field `end`"));
-    }
+    /// Decode a span from a map
+    ///
+    /// Certain keys are reserved for internal use, and are passed to the delegate function, these
+    /// keys should be deserialized using the delegate function.
+    fn decode<'de, A, S>(
+        deserializer: &mut A,
+        delegate: impl FnMut(SpanKey) -> S,
+    ) -> Result<Self, A::Error>
+    where
+        A: MapAccess<'de>,
+        S: DeserializeSeed<'de, Value = ()>,
+        Self: 'de;
 }

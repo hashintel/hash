@@ -2,13 +2,10 @@ extern crate alloc;
 
 #[cfg(feature = "serde")]
 pub(crate) mod encoding;
-pub mod file;
 pub mod storage;
 pub mod tree;
 
 pub use text_size::{TextRange, TextSize};
-
-use self::file::FileId;
 
 /// Represents a unique identifier for a span of text within a source file.
 ///
@@ -68,44 +65,10 @@ impl SpanId {
 /// Any span may have additional metadata attached, such as a JSON Pointer, for any JSON based
 /// frontends, this data is always optional, as some spans, for example for malformed code, may not
 /// have any additional data.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct Span<E> {
-    pub file: FileId,
-    pub range: TextRange,
-    pub parent: Option<SpanId>,
-    pub extra: Option<E>,
-}
+pub trait Span {
+    /// The file this span is in.
+    fn range(&self) -> TextRange;
 
-impl<E> Span<E> {
-    #[must_use]
-    pub const fn new(file: FileId, span: TextRange) -> Self {
-        Self {
-            file,
-            range: span,
-            parent: None,
-            extra: None,
-        }
-    }
-
-    #[must_use]
-    pub const fn with_parent(mut self, parent: SpanId) -> Self {
-        self.parent = Some(parent);
-        self
-    }
-
-    pub fn set_parent(&mut self, parent: SpanId) -> &mut Self {
-        self.parent = Some(parent);
-        self
-    }
-
-    #[must_use]
-    pub fn with_extra(mut self, extra: E) -> Self {
-        self.extra = Some(extra);
-        self
-    }
-
-    pub fn set_extra(&mut self, extra: E) -> &mut Self {
-        self.extra = Some(extra);
-        self
-    }
+    /// Optional parent span, if any.
+    fn parent(&self) -> Option<SpanId>;
 }
