@@ -4,11 +4,12 @@ use core::{
 };
 
 use ariadne::ColorGenerator;
-use hql_span::{tree::SpanNode, Span};
+use error_stack::{Report, Result};
+use hql_span::{storage::SpanStorage, tree::SpanNode, Span, SpanId};
 
 use crate::{
-    category::Category, config::ReportConfig, file_span::FileSpan, help::Help, label::Label,
-    note::Note, severity::Severity,
+    category::Category, config::ReportConfig, error::ResolveError, file_span::FileSpan, help::Help,
+    label::Label, note::Note, severity::Severity,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -18,7 +19,7 @@ pub struct Diagnostic<S> {
     pub severity: Severity,
 
     pub message: Option<Box<str>>,
-    pub span: Option<SpanNode<S>>,
+    pub span: Option<S>,
 
     pub labels: Vec<Label<S>>,
     pub note: Option<Note>,
@@ -40,7 +41,60 @@ impl<S> Diagnostic<S> {
     }
 }
 
-impl<S> Diagnostic<S>
+impl Diagnostic<SpanId> {
+    /// Resolve the diagnostic, into a proper diagnostic with span nodes.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if the span id is not found in the span storage.
+    pub fn resolve<S>(
+        self,
+        storage: &SpanStorage<S>,
+    ) -> Result<Diagnostic<SpanNode<S>>, ResolveError>
+    where
+        S: Span + Clone,
+    {
+        let span = self
+            .span
+            .map(|id| {
+                storage
+                    .resolve(id)
+                    .ok_or_else(|| Report::new(ResolveError::UnknownSpan { id }))
+            })
+            .transpose();
+
+        let (span, labels) = self
+            .labels
+            .into_iter()
+            .map(|label| label.resolve(storage))
+            .fold(span.map(|node| (node, Vec::new())), |acc, label| {
+                match (acc, label) {
+                    (Ok((span, mut labels)), Ok(label)) => {
+                        labels.push(label);
+                        Ok((span, labels))
+                    }
+                    (Err(mut acc), Err(error)) => {
+                        acc.extend_one(error);
+                        Err(acc)
+                    }
+                    (Err(acc), _) => Err(acc),
+                    (_, Err(error)) => Err(error),
+                }
+            })?;
+
+        Ok(Diagnostic {
+            category: self.category,
+            severity: self.severity,
+            message: self.message,
+            span,
+            labels,
+            note: self.note,
+            help: self.help,
+        })
+    }
+}
+
+impl<S> Diagnostic<SpanNode<S>>
 where
     S: Span,
 {

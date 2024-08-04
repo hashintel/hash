@@ -1,4 +1,6 @@
-use core::fmt::{self, Debug};
+#[cfg(feature = "serde")]
+use core::fmt;
+use core::fmt::Debug;
 
 use text_size::{TextRange, TextSize};
 
@@ -28,6 +30,7 @@ where
     }
 }
 
+#[cfg(feature = "serde")]
 impl<Span> serde::Serialize for SpanNode<Span>
 where
     Span: crate::encoding::SpanEncode,
@@ -46,6 +49,7 @@ where
     }
 }
 
+#[cfg(feature = "serde")]
 impl<'de, Span> serde::Deserialize<'de> for SpanNode<Span>
 where
     Span: crate::encoding::SpanEncode,
@@ -98,10 +102,13 @@ where
 
 #[cfg(test)]
 mod test {
+    #[cfg(feature = "serde")]
     use serde::de::{value::MapAccessDeserializer, Deserialize};
     use text_size::TextRange;
 
-    use crate::{encoding::SpanEncode, Span};
+    #[cfg(feature = "serde")]
+    use crate::encoding::SpanNode;
+    use crate::Span;
 
     #[derive(Debug, Clone, PartialEq, Eq)]
     #[cfg_attr(feature = "serde", derive(serde::Deserialize))]

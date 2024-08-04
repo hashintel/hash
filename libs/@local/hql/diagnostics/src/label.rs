@@ -1,14 +1,15 @@
 use anstyle::Color;
 use ariadne::ColorGenerator;
-use hql_span::{tree::SpanNode, Span};
+use error_stack::{Report, Result};
+use hql_span::{storage::SpanStorage, tree::SpanNode, Span, SpanId};
 
-use crate::file_span::FileSpan;
+use crate::{error::ResolveError, file_span::FileSpan};
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", cfg_eval, serde_with::serde_as)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct Label<S> {
-    span: SpanNode<S>,
+    span: S,
     message: Box<str>,
 
     order: Option<i32>,
@@ -18,7 +19,7 @@ pub struct Label<S> {
 }
 
 impl<S> Label<S> {
-    pub fn new(span: SpanNode<S>, message: impl Into<Box<str>>) -> Self {
+    pub fn new(span: S, message: impl Into<Box<str>>) -> Self {
         Self {
             span,
             message: message.into(),
@@ -62,7 +63,29 @@ impl<S> Label<S> {
     }
 }
 
-impl<S> Label<S>
+impl Label<SpanId> {
+    pub(crate) fn resolve<S>(
+        self,
+        storage: &SpanStorage<S>,
+    ) -> Result<Label<SpanNode<S>>, ResolveError>
+    where
+        S: Span + Clone,
+    {
+        let span = storage
+            .resolve(self.span)
+            .ok_or_else(|| Report::new(ResolveError::UnknownSpan { id: self.span }))?;
+
+        Ok(Label {
+            span,
+            message: self.message,
+            order: self.order,
+            priority: self.priority,
+            color: self.color,
+        })
+    }
+}
+
+impl<S> Label<SpanNode<S>>
 where
     S: Span,
 {

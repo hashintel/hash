@@ -2,7 +2,7 @@
 extern crate alloc;
 
 #[cfg(feature = "serde")]
-pub(crate) mod encoding;
+pub mod encoding;
 pub mod storage;
 pub mod tree;
 
@@ -46,6 +46,7 @@ pub use text_size::{TextRange, TextSize};
 ///
 /// [`SpanStorage`]: self::storage::SpanStorage
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpanId(u32);
 
 impl SpanId {

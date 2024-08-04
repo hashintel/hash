@@ -15,7 +15,6 @@ sval = "2.13.0"
 text-size = "1.1.1"
 
 [features]
-default = ["serde"]
 serde = ["dep:serde", "dep:serde-value", "text-size/serde"]
 
 [lints]
