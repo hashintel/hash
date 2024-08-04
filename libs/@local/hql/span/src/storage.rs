@@ -73,12 +73,6 @@ where
         let mut visited = Vec::new();
         self.resolve_inner(span, &mut visited)
     }
-
-    pub fn get_mut(&mut self, span: SpanId) -> Option<&mut S> {
-        let index = span.value() as usize;
-
-        self.arena.get_mut(index)
-    }
 }
 
 impl<E> Default for SpanStorage<E> {
