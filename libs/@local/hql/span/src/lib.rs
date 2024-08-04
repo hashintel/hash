@@ -1,3 +1,4 @@
+#![feature(never_type)]
 extern crate alloc;
 
 #[cfg(feature = "serde")]
