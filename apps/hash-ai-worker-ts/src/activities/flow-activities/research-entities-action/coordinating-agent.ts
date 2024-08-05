@@ -4,7 +4,6 @@ import type {
   ProposedEntity,
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
-import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 
 import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity.js";
@@ -24,7 +23,6 @@ import type {
   ParsedLlmToolCall,
 } from "../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
-import { logProgress } from "../../shared/log-progress.js";
 import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-entities-to-entities.js";
 import { stringify } from "../../shared/stringify.js";
 import type { LocalEntitySummary } from "../shared/infer-claims-from-text/get-entity-summaries-from-text.js";
@@ -522,15 +520,6 @@ const createInitialPlan = async (params: {
   if (updatePlanToolCall) {
     const { plan } =
       updatePlanToolCall.input as CoordinatorToolCallArguments["updatePlan"];
-
-    logProgress([
-      {
-        recordedAt: new Date().toISOString(),
-        stepId: Context.current().info.activityId,
-        type: "CreatedPlan",
-        plan,
-      },
-    ]);
 
     return { plan, questionsAndAnswers };
   }

@@ -20,17 +20,24 @@ test.skip(
     });
 
     const status = await linkFollowerAgent({
-      task: "Obtain the full list of current members of Church Lab",
-      entityTypes: Object.values(dereferencedEntityTypes).map(
-        ({ schema }) => schema,
-      ),
-      existingEntitiesOfInterest: [],
-      initialResource: {
-        url: "https://churchlab.hms.harvard.edu/index.php/lab-members#current",
-        exampleOfExpectedContent: "Current Members: ...",
-        descriptionOfExpectedContent:
-          "The current members of the lab are listed on the page.",
-        reason: "The page should include the current members of the lab.",
+      input: {
+        task: "Obtain the full list of current members of Church Lab",
+        entityTypes: Object.values(dereferencedEntityTypes).map(
+          ({ schema }) => schema,
+        ),
+        existingEntitiesOfInterest: [],
+        initialResource: {
+          url: "https://churchlab.hms.harvard.edu/index.php/lab-members#current",
+          exampleOfExpectedContent: "Current Members: ...",
+          descriptionOfExpectedContent:
+            "The current members of the lab are listed on the page.",
+          reason: "The page should include the current members of the lab.",
+        },
+      },
+      workerIdentifiers: {
+        workerType: "Link explorer",
+        workerInstanceId: "linkFollowerAgent",
+        parentInstanceId: null,
       },
     });
 
@@ -57,17 +64,24 @@ test.skip(
     });
 
     const status = await linkFollowerAgent({
-      task: 'Obtain the full list of authors of the Sora article titled "Video Generation Models as World Simulators"',
-      entityTypes: Object.values(dereferencedEntityTypes).map(
-        ({ schema }) => schema,
-      ),
-      existingEntitiesOfInterest: [],
-      initialResource: {
-        url: "https://openai.com/index/video-generation-models-as-world-simulators/",
-        exampleOfExpectedContent: "Authors: ...",
-        descriptionOfExpectedContent:
-          "The authors of the article are listed at the bottom of the page.",
-        reason: "The article should include the authors.",
+      input: {
+        task: 'Obtain the full list of authors of the Sora article titled "Video Generation Models as World Simulators"',
+        entityTypes: Object.values(dereferencedEntityTypes).map(
+          ({ schema }) => schema,
+        ),
+        existingEntitiesOfInterest: [],
+        initialResource: {
+          url: "https://openai.com/index/video-generation-models-as-world-simulators/",
+          exampleOfExpectedContent: "Authors: ...",
+          descriptionOfExpectedContent:
+            "The authors of the article are listed at the bottom of the page.",
+          reason: "The article should include the authors.",
+        },
+      },
+      workerIdentifiers: {
+        workerType: "Link explorer",
+        workerInstanceId: "linkFollowerAgent",
+        parentInstanceId: null,
       },
     });
 
@@ -96,17 +110,24 @@ test.skip(
     });
 
     const status = await linkFollowerAgent({
-      task: "Get all the stock market constituents of the FTSE350.",
-      entityTypes: Object.values(dereferencedEntityTypes).map(
-        ({ schema }) => schema,
-      ),
-      existingEntitiesOfInterest: [],
-      initialResource: {
-        url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table",
-        exampleOfExpectedContent: "Constituents: ...",
-        descriptionOfExpectedContent:
-          "The constituents of the FTSE350 are listed on the page.",
-        reason: "The page should include the constituents of the FTSE350.",
+      input: {
+        task: "Get all the stock market constituents of the FTSE350.",
+        entityTypes: Object.values(dereferencedEntityTypes).map(
+          ({ schema }) => schema,
+        ),
+        existingEntitiesOfInterest: [],
+        initialResource: {
+          url: "https://www.londonstockexchange.com/indices/ftse-350/constituents/table",
+          exampleOfExpectedContent: "Constituents: ...",
+          descriptionOfExpectedContent:
+            "The constituents of the FTSE350 are listed on the page.",
+          reason: "The page should include the constituents of the FTSE350.",
+        },
+      },
+      workerIdentifiers: {
+        workerType: "Link explorer",
+        workerInstanceId: "linkFollowerAgent",
+        parentInstanceId: null,
       },
     });
 
@@ -135,18 +156,25 @@ test.skip(
     });
 
     const status = await linkFollowerAgent({
-      task: "Identify the top 3 graphics cards suitable for AI model processing, including their specifications and features.",
-      entityTypes: Object.values(dereferencedEntityTypes).map(
-        ({ schema }) => schema,
-      ),
-      existingEntitiesOfInterest: [],
-      initialResource: {
-        url: "https://www.gpu-mart.com/blog/best-gpus-for-deep-learning-2023",
-        exampleOfExpectedContent: "Graphics Cards: ...",
-        descriptionOfExpectedContent:
-          "The top 3 graphics cards for AI model processing are listed on the page.",
-        reason:
-          "The page should include the top 3 graphics cards for AI model processing.",
+      input: {
+        task: "Identify the top 3 graphics cards suitable for AI model processing, including their specifications and features.",
+        entityTypes: Object.values(dereferencedEntityTypes).map(
+          ({ schema }) => schema,
+        ),
+        existingEntitiesOfInterest: [],
+        initialResource: {
+          url: "https://www.gpu-mart.com/blog/best-gpus-for-deep-learning-2023",
+          exampleOfExpectedContent: "Graphics Cards: ...",
+          descriptionOfExpectedContent:
+            "The top 3 graphics cards for AI model processing are listed on the page.",
+          reason:
+            "The page should include the top 3 graphics cards for AI model processing.",
+        },
+      },
+      workerIdentifiers: {
+        workerType: "Link explorer",
+        workerInstanceId: "linkFollowerAgent",
+        parentInstanceId: null,
       },
     });
 
@@ -175,17 +203,25 @@ test.skip(
     });
 
     const status = await linkFollowerAgent({
-      task: "Get the list of investors of Marks and Spencer's, based on the 2023 annual investors report PDF file.",
-      entityTypes: Object.values(dereferencedEntityTypes).map(
-        ({ schema }) => schema,
-      ),
-      existingEntitiesOfInterest: [],
-      initialResource: {
-        url: "https://corporate.marksandspencer.com/investors",
-        exampleOfExpectedContent: "Investors: ...",
-        descriptionOfExpectedContent:
-          "The investors of Marks and Spencer's are listed on the page.",
-        reason: "The page should include the investors of Marks and Spencer's.",
+      input: {
+        task: "Get the list of investors of Marks and Spencer's, based on the 2023 annual investors report PDF file.",
+        entityTypes: Object.values(dereferencedEntityTypes).map(
+          ({ schema }) => schema,
+        ),
+        existingEntitiesOfInterest: [],
+        initialResource: {
+          url: "https://corporate.marksandspencer.com/investors",
+          exampleOfExpectedContent: "Investors: ...",
+          descriptionOfExpectedContent:
+            "The investors of Marks and Spencer's are listed on the page.",
+          reason:
+            "The page should include the investors of Marks and Spencer's.",
+        },
+      },
+      workerIdentifiers: {
+        workerType: "Link explorer",
+        workerInstanceId: "linkFollowerAgent",
+        parentInstanceId: null,
       },
     });
 

@@ -1,5 +1,8 @@
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  ProposedEntity,
+  WorkerIdentifiers,
+} from "@local/hash-isomorphic-utils/flows/types";
 
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types.js";
 import { logger } from "../../shared/activity-logger.js";
@@ -18,6 +21,7 @@ export const proposeEntitiesFromClaims = async (params: {
   existingEntitySummaries?: ExistingEntitySummary[];
   claims: Claim[];
   dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
+  workerIdentifiers: WorkerIdentifiers;
 }): Promise<{ proposedEntities: ProposedEntity[] }> => {
   const {
     entitySummaries,
@@ -25,6 +29,7 @@ export const proposeEntitiesFromClaims = async (params: {
     dereferencedEntityTypes,
     claims,
     potentialLinkTargetEntitySummaries,
+    workerIdentifiers,
   } = params;
 
   const { stepId } = await getFlowContext();
@@ -178,6 +183,7 @@ export const proposeEntitiesFromClaims = async (params: {
       proposedEntity: entity,
       stepId,
       recordedAt: now,
+      ...workerIdentifiers,
     })),
   );
 

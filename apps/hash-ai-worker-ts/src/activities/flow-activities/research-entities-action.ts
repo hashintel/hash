@@ -4,7 +4,10 @@ import { SourceType } from "@local/hash-graph-client";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
 import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 import type { OutputNameForAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  ProposedEntity,
+  WorkerIdentifiers,
+} from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -98,8 +101,10 @@ const updateStateFromInferredClaims = async (params: {
   state: CoordinatingAgentState;
   newClaims: Claim[];
   newEntitySummaries: LocalEntitySummary[];
+  workerIdentifiers: WorkerIdentifiers;
 }) => {
-  const { input, state, newEntitySummaries, newClaims } = params;
+  const { input, state, newEntitySummaries, newClaims, workerIdentifiers } =
+    params;
 
   /**
    * Step 1: Deduplication (if necessary)
@@ -195,7 +200,8 @@ const updateStateFromInferredClaims = async (params: {
    * We want to (re)propose entities which may have new information, via one of:
    * 1. Appearing as a new summary
    * 2. Being the subject or object of a new claim
-   * 3. Having been identified as the canonical version of a new duplicate (which means it may have had new claims discovered)
+   * 3. Having been identified as the canonical version of a new duplicate (which means it may have had new claims
+   * discovered)
    */
   const entityIdsToPropose = [
     ...new Set([
@@ -244,6 +250,7 @@ const updateStateFromInferredClaims = async (params: {
       existingEntitySummaries: input.existingEntitySummaries,
       claims: relevantClaims,
       potentialLinkTargetEntitySummaries,
+      workerIdentifiers,
     });
 
   state.proposedEntities = [
@@ -279,9 +286,27 @@ export const researchEntitiesAction: FlowActionActivity<{
     testingParams,
   });
 
+  const workerIdentifiers: WorkerIdentifiers = {
+    workerType: "Coordinator",
+    workerInstanceId: generateUuid(),
+    parentInstanceId: null,
+  };
+
   let state: CoordinatingAgentState;
 
   const { flowEntityId, stepId, webId } = await getFlowContext();
+
+  logProgress([
+    {
+      type: "StartedCoordinator",
+      input: {
+        goal: input.prompt,
+      },
+      recordedAt: new Date().toISOString(),
+      stepId,
+      ...workerIdentifiers,
+    },
+  ]);
 
   const providedFileEntities = await getProvidedFiles();
 
@@ -320,6 +345,16 @@ export const researchEntitiesAction: FlowActionActivity<{
         providedFiles,
         questionsAndAnswers: null,
       });
+
+    logProgress([
+      {
+        recordedAt: new Date().toISOString(),
+        stepId: Context.current().info.activityId,
+        type: "CreatedPlan",
+        plan: initialPlan,
+        ...workerIdentifiers,
+      },
+    ]);
 
     state = {
       entitySummaries: [],
@@ -423,6 +458,7 @@ export const researchEntitiesAction: FlowActionActivity<{
             const webPageSummaries = await handleWebSearchToolCall({
               input:
                 toolCall.input as CoordinatorToolCallArguments["webSearch"],
+              workerIdentifiers,
             });
 
             if ("error" in webPageSummaries) {
@@ -521,30 +557,69 @@ export const researchEntitiesAction: FlowActionActivity<{
                     ({ localId }) => relevantEntityIds?.includes(localId),
                   );
 
-                  const response = await linkFollowerAgent({
-                    initialResource: {
-                      url,
-                      descriptionOfExpectedContent,
-                      exampleOfExpectedContent,
-                      reason,
+                  const linkExplorerIdentifiers: WorkerIdentifiers = {
+                    workerType: "Link explorer",
+                    workerInstanceId: generateUuid(),
+                    parentInstanceId: workerIdentifiers.workerInstanceId,
+                  };
+
+                  logProgress([
+                    {
+                      stepId,
+                      recordedAt: new Date().toISOString(),
+                      type: "StartedLinkExplorerTask",
+                      input: {
+                        goal: prompt,
+                      },
+                      explanation: reason,
+                      ...linkExplorerIdentifiers,
                     },
-                    task: prompt,
-                    existingEntitiesOfInterest: relevantEntities,
-                    entityTypes: input.entityTypes.filter(
-                      ({ $id }) =>
-                        entityTypeIds.includes($id) ||
-                        relevantEntities.some(
-                          (entity) => entity.entityTypeId === $id,
-                        ),
-                    ),
-                    linkEntityTypes: input.linkEntityTypes?.filter(
-                      ({ $id }) =>
-                        !!linkEntityTypeIds?.includes($id) ||
-                        relevantEntities.some(
-                          (entity) => entity.entityTypeId === $id,
-                        ),
-                    ),
+                  ]);
+
+                  const response = await linkFollowerAgent({
+                    workerIdentifiers: linkExplorerIdentifiers,
+                    input: {
+                      initialResource: {
+                        url,
+                        descriptionOfExpectedContent,
+                        exampleOfExpectedContent,
+                        reason,
+                      },
+                      task: prompt,
+                      existingEntitiesOfInterest: relevantEntities,
+                      entityTypes: input.entityTypes.filter(
+                        ({ $id }) =>
+                          entityTypeIds.includes($id) ||
+                          relevantEntities.some(
+                            (entity) => entity.entityTypeId === $id,
+                          ),
+                      ),
+                      linkEntityTypes: input.linkEntityTypes?.filter(
+                        ({ $id }) =>
+                          !!linkEntityTypeIds?.includes($id) ||
+                          relevantEntities.some(
+                            (entity) => entity.entityTypeId === $id,
+                          ),
+                      ),
+                    },
                   });
+
+                  logProgress([
+                    {
+                      stepId,
+                      recordedAt: new Date().toISOString(),
+                      type: "ClosedLinkExplorerTask",
+                      goal: prompt,
+                      output: {
+                        claimCount: response.inferredClaims.length,
+                        entityCount: response.inferredSummaries.length,
+                        resourcesExploredCount:
+                          response.exploredResources.length,
+                        suggestionForNextSteps: response.suggestionForNextSteps,
+                      },
+                      ...linkExplorerIdentifiers,
+                    },
+                  ]);
 
                   return { response, url };
                 },
@@ -636,13 +711,26 @@ export const researchEntitiesAction: FlowActionActivity<{
                       relevantEntityIds?.includes(subjectEntityLocalId),
                     );
 
+                  const subTaskIdentifiers: WorkerIdentifiers = {
+                    workerType: "Subtask",
+                    workerInstanceId: generateUuid(),
+                    parentInstanceId: workerIdentifiers.workerInstanceId,
+                  };
+
                   logProgress([
                     {
                       type: "StartedSubTask",
                       explanation,
-                      goal,
+                      input: {
+                        entityTypeTitles: [
+                          ...entityTypes.map((type) => type.title),
+                          ...(linkEntityTypes ?? []).map((type) => type.title),
+                        ],
+                        goal,
+                      },
                       recordedAt: new Date().toISOString(),
                       stepId,
+                      ...subTaskIdentifiers,
                     },
                   ]);
 
@@ -654,7 +742,31 @@ export const researchEntitiesAction: FlowActionActivity<{
                       entityTypes,
                       linkEntityTypes,
                     },
+                    workerIdentifiers: subTaskIdentifiers,
                   });
+
+                  logProgress([
+                    {
+                      type: "ClosedSubTask",
+                      errorMessage:
+                        response.status !== "ok" ? response.reason : undefined,
+                      explanation:
+                        response.status === "ok"
+                          ? response.explanation
+                          : response.reason,
+                      goal,
+                      output:
+                        response.status === "ok"
+                          ? {
+                              claimCount: response.discoveredClaims.length,
+                              entityCount: response.discoveredEntities.length,
+                            }
+                          : { claimCount: 0, entityCount: 0 },
+                      recordedAt: new Date().toISOString(),
+                      stepId,
+                      ...subTaskIdentifiers,
+                    },
+                  ]);
 
                   return { response, subTask };
                 }),
@@ -857,6 +969,7 @@ export const researchEntitiesAction: FlowActionActivity<{
       state,
       newClaims,
       newEntitySummaries,
+      workerIdentifiers,
     });
 
     const isCompleted = toolCalls.some(
@@ -997,11 +1110,24 @@ export const researchEntitiesAction: FlowActionActivity<{
       proposedEntity: proposedFileEntity,
       recordedAt: now,
       stepId,
+      ...workerIdentifiers,
     })),
   );
 
   logger.debug(`Proposed Entities: ${stringify(allProposedEntities)}`);
   logger.debug(`File Entities Proposed: ${stringify(fileEntityProposals)}`);
+
+  logProgress([
+    {
+      type: "ClosedCoordinator",
+      output: {
+        entityCount: allProposedEntities.length + fileEntityProposals.length,
+      },
+      recordedAt: new Date().toISOString(),
+      stepId,
+      ...workerIdentifiers,
+    },
+  ]);
 
   return {
     code: StatusCode.Ok,

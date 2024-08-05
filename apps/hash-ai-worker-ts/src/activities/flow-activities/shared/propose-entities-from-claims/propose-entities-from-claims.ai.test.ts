@@ -601,6 +601,11 @@ test.skip(
       claims,
       dereferencedEntityTypes,
       potentialLinkTargetEntitySummaries: [],
+      workerIdentifiers: {
+        workerInstanceId: generateUuid(),
+        parentInstanceId: null,
+        workerType: "Coordinator",
+      },
     });
 
     // eslint-disable-next-line no-console

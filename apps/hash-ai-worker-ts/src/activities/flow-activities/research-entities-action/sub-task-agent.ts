@@ -1,6 +1,10 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
-import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  FlowDataSources,
+  WorkerIdentifiers,
+} from "@local/hash-isomorphic-utils/flows/types";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import dedent from "dedent";
 
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
@@ -18,6 +22,7 @@ import type {
   ParsedLlmToolCall,
 } from "../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
+import { logProgress } from "../../shared/log-progress.js";
 import { stringify } from "../../shared/stringify.js";
 import type { LocalEntitySummary } from "../shared/infer-claims-from-text/get-entity-summaries-from-text.js";
 import type { Claim } from "../shared/infer-claims-from-text/types.js";
@@ -484,6 +489,7 @@ export const runSubTaskAgent = async (params: {
     persistState: (state: SubTaskAgentState) => void;
     resumeFromState?: SubTaskAgentState;
   };
+  workerIdentifiers: WorkerIdentifiers;
 }): Promise<
   | {
       status: "ok";
@@ -498,7 +504,9 @@ export const runSubTaskAgent = async (params: {
       discoveredClaims: Claim[];
     }
 > => {
-  const { testingParams, input } = params;
+  const { testingParams, input, workerIdentifiers } = params;
+
+  const { stepId } = await getFlowContext();
 
   let state: SubTaskAgentState;
 
@@ -570,6 +578,7 @@ export const runSubTaskAgent = async (params: {
               const webPageSummaries = await handleWebSearchToolCall({
                 input:
                   toolCall.input as SubTaskAgentToolCallArguments["webSearch"],
+                workerIdentifiers,
               });
 
               if ("error" in webPageSummaries) {
@@ -665,30 +674,72 @@ export const runSubTaskAgent = async (params: {
                     exampleOfExpectedContent,
                     reason,
                   }) => {
-                    const response = await linkFollowerAgent({
-                      existingEntitiesOfInterest: input.relevantEntities,
-                      initialResource: {
-                        url,
-                        descriptionOfExpectedContent,
-                        exampleOfExpectedContent,
-                        reason,
+                    const linkFollowerInstanceId = generateUuid();
+
+                    const linkFollowerIdentifiers: WorkerIdentifiers = {
+                      workerType: "Link explorer",
+                      parentInstanceId: workerIdentifiers.workerInstanceId,
+                      workerInstanceId: linkFollowerInstanceId,
+                    };
+
+                    logProgress([
+                      {
+                        stepId,
+                        recordedAt: new Date().toISOString(),
+                        type: "StartedLinkExplorerTask",
+                        input: {
+                          goal: prompt,
+                        },
+                        explanation: reason,
+                        ...linkFollowerIdentifiers,
                       },
-                      task: prompt,
-                      entityTypes: input.entityTypes.filter(
-                        ({ $id }) =>
-                          entityTypeIds.includes($id) ||
-                          input.relevantEntities.some(
-                            (entity) => entity.entityTypeId === $id,
-                          ),
-                      ),
-                      linkEntityTypes: input.linkEntityTypes?.filter(
-                        ({ $id }) =>
-                          !!linkEntityTypeIds?.includes($id) ||
-                          input.relevantEntities.some(
-                            (entity) => entity.entityTypeId === $id,
-                          ),
-                      ),
+                    ]);
+
+                    const response = await linkFollowerAgent({
+                      workerIdentifiers: linkFollowerIdentifiers,
+                      input: {
+                        existingEntitiesOfInterest: input.relevantEntities,
+                        initialResource: {
+                          url,
+                          descriptionOfExpectedContent,
+                          exampleOfExpectedContent,
+                          reason,
+                        },
+                        task: prompt,
+                        entityTypes: input.entityTypes.filter(
+                          ({ $id }) =>
+                            entityTypeIds.includes($id) ||
+                            input.relevantEntities.some(
+                              (entity) => entity.entityTypeId === $id,
+                            ),
+                        ),
+                        linkEntityTypes: input.linkEntityTypes?.filter(
+                          ({ $id }) =>
+                            !!linkEntityTypeIds?.includes($id) ||
+                            input.relevantEntities.some(
+                              (entity) => entity.entityTypeId === $id,
+                            ),
+                        ),
+                      },
                     });
+
+                    logProgress([
+                      {
+                        stepId,
+                        recordedAt: new Date().toISOString(),
+                        type: "ClosedLinkExplorerTask",
+                        goal: prompt,
+                        output: {
+                          claimCount: response.inferredClaims.length,
+                          entityCount: response.inferredSummaries.length,
+                          resourcesExploredCount:
+                            response.exploredResources.length,
+                          suggestionForNextSteps:
+                            response.suggestionForNextSteps,
+                        },
+                        ...linkFollowerIdentifiers,
+                      },
+                    ]);
 
                     return { response, url };
                   },

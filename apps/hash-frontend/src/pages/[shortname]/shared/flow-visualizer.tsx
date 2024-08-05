@@ -40,6 +40,8 @@ import type {
   EdgeData,
   FlowMaybeGrouped,
   LocalProgressLog,
+  LogDisplay,
+  LogThread,
   ProposedEntityOutput,
 } from "./flow-visualizer/shared/types";
 import {
@@ -184,7 +186,7 @@ const getGraphFromFlowDefinition = (
   };
 };
 
-const logHeight = 350;
+const logHeight = 400;
 
 const containerHeight = `calc(100vh - ${HEADER_HEIGHT}px)`;
 
@@ -208,6 +210,8 @@ export const FlowRunVisualizerSkeleton = () => (
 
 export const FlowVisualizer = () => {
   const [showDag, setShowDag] = useState(false);
+
+  const [logDisplay, setLogDisplay] = useState<LogDisplay>("grouped");
 
   const apolloClient = useApolloClient();
 
@@ -312,6 +316,7 @@ export const FlowVisualizer = () => {
 
     const progressLogs: LocalProgressLog[] = [
       {
+        level: 1,
         message: "Flow run started",
         recordedAt: selectedFlowRun.startedAt,
         stepId: "trigger",
@@ -322,11 +327,110 @@ export const FlowVisualizer = () => {
     const persisted: PersistedEntity[] = [];
     const proposed: ProposedEntityOutput[] = [];
 
+    /**
+     * A map between a workerInstanceId and (1) the list of logs associated with that worker, and (2) the id of its parent
+     * This is used to help build the tree of logs grouped by worker, when 'grouped' log display is selected.
+     */
+    const workerIdToLogsAndParent: Record<
+      string,
+      { logs: LocalProgressLog[]; level: number; thread?: LogThread }
+    > = {};
+
     for (const step of selectedFlowRun.steps) {
       const outputs = step.outputs?.[0]?.contents?.[0]?.outputs ?? [];
 
       for (const log of step.logs) {
-        progressLogs.push(log);
+        if (
+          logDisplay === "stream" ||
+          !("parentInstanceId" in log) ||
+          !log.parentInstanceId
+        ) {
+          /**
+           * If we're in 'stream' display, or if this log doesn't have a parent worker, it should appear at the top level.
+           */
+          progressLogs.push({
+            ...log,
+            level: 1,
+          });
+
+          if ("workerInstanceId" in log) {
+            /**
+             * If the log has a workerInstanceId, it may have groups of logs nested under it,
+             * so we need to record the fact that any child workers should start a group in the top-level logs array.
+             */
+            workerIdToLogsAndParent[log.workerInstanceId] = {
+              level: 1,
+              logs: progressLogs,
+            };
+          }
+        } else {
+          /**
+           * This log has a parent worker, so we need to group it with its siblings.
+           * We also need to add the group to the parent's logs if it doesn't already exist.
+           */
+          const parentLogList = workerIdToLogsAndParent[log.parentInstanceId];
+          if (!parentLogList) {
+            throw new Error(
+              `No parent log found with id ${log.parentInstanceId}`,
+            );
+          }
+
+          const thisThread = workerIdToLogsAndParent[log.workerInstanceId];
+          if (!thisThread) {
+            let threadLabel: string;
+            if (log.type === "StartedSubTask") {
+              threadLabel = `Sub-task: ${log.input.goal}`;
+            } else if (log.type === "StartedLinkExplorerTask") {
+              threadLabel = `Link explorer: ${log.input.goal}`;
+            } else {
+              throw new Error(
+                `Expect new child worker threads to be started with a StartedSubTask or StartedLinkExplorerTask event, got ${log.type}`,
+              );
+            }
+
+            const newThread = {
+              type: "Thread" as const,
+              label: threadLabel,
+              level: parentLogList.level,
+              threadStartedAt: log.recordedAt,
+              /**
+               * Default to closing the thread at the time the flow run was closed.
+               * If we have a specific, earlier closed event for the thread it will be overwritten when we process that child log.
+               */
+              threadClosedAt: selectedFlowRun.closedAt ?? undefined,
+              closedDueToFlowClosure: !!selectedFlowRun.closedAt,
+              threadWorkerId: log.workerInstanceId,
+              recordedAt: log.recordedAt,
+              logs: [
+                {
+                  level: parentLogList.level + 1,
+                  ...log,
+                },
+              ],
+            };
+
+            parentLogList.logs.push(newThread);
+
+            workerIdToLogsAndParent[log.workerInstanceId] = {
+              logs: newThread.logs,
+              level: newThread.level,
+              thread: newThread,
+            };
+          } else {
+            thisThread.logs.push({
+              level: parentLogList.level + 1,
+              ...log,
+            });
+
+            if (
+              log.type === "ClosedLinkExplorerTask" ||
+              log.type === "ClosedSubTask"
+            ) {
+              thisThread.thread!.threadClosedAt = log.recordedAt;
+              thisThread.thread!.closedDueToFlowClosure = false;
+            }
+          }
+        }
 
         if (outputs.length === 0) {
           if (log.type === "ProposedEntity") {
@@ -380,12 +484,23 @@ export const FlowVisualizer = () => {
         }
       }
     }
+
+    if (selectedFlowRun.closedAt) {
+      progressLogs.push({
+        level: 1,
+        message: `Flow run closed: ${selectedFlowRun.status.toLowerCase()}`,
+        recordedAt: selectedFlowRun.closedAt,
+        stepId: "closure",
+        type: "StateChange",
+      });
+    }
+
     return {
       logs: progressLogs,
       proposedEntities: proposed,
       persistedEntities: persisted,
     };
-  }, [selectedFlowRun]);
+  }, [logDisplay, selectedFlowRun]);
 
   const [startFlow] = useMutation<
     StartFlowMutation,
@@ -533,7 +648,7 @@ export const FlowVisualizer = () => {
             background: palette.gray[10],
             borderTop: `2px solid ${palette.gray[20]}`,
             height: logHeight,
-            maxHeight: "30%",
+            maxHeight: "40%",
             maxWidth: "100%",
             px: 3,
             width: "100%",
@@ -548,7 +663,12 @@ export const FlowVisualizer = () => {
               width: "70%",
             }}
           >
-            <ActivityLog key={`${flowRunStateKey}-activity-log`} logs={logs} />
+            <ActivityLog
+              key={`${flowRunStateKey}-activity-log`}
+              logs={logs}
+              logDisplay={logDisplay}
+              setLogDisplay={setLogDisplay}
+            />
           </Stack>
         </Stack>
       </Stack>
