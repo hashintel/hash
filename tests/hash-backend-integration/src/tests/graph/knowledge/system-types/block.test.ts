@@ -23,7 +23,7 @@ import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestUser } from "../../../util";
 
 const logger = new Logger({
-  mode: "dev",
+  environment: "dev",
   level: "debug",
   serviceName: "integration-tests",
 });

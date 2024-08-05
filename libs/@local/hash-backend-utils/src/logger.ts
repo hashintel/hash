@@ -9,7 +9,7 @@ export const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
 export type LogLevel = (typeof LOG_LEVELS)[number];
 
 export type LoggerConfig = {
-  mode: "dev" | "prod";
+  environment: "development" | "production" | "test";
   level?: LogLevel;
   serviceName: string;
   metadata?: Record<string, string>;
@@ -33,15 +33,22 @@ export class Logger {
   constructor(private cfg: LoggerConfig) {
     this.cfg = cfg;
 
+    this.cfg.metadata = {
+      ...(this.cfg.metadata ?? {}),
+      environment: cfg.environment,
+    };
+
+    const level = cfg.level ?? getDefaultLoggerLevel();
+
     const logger = winston.createLogger({
-      level: cfg.level ?? getDefaultLoggerLevel(),
+      level,
       format: winston.format.combine(
         winston.format.errors({ stack: true }),
         winston.format.json(),
       ),
-      defaultMeta: { service: cfg.serviceName, ...(cfg.metadata ?? {}) },
+      defaultMeta: { service: cfg.serviceName, ...this.cfg.metadata },
     });
-    if (cfg.mode === "dev") {
+    if (cfg.environment === "development") {
       logger.add(
         new winston.transports.Console({
           level: cfg.level,
@@ -54,12 +61,9 @@ export class Logger {
         }),
       );
     } else {
-      // TODO: add production logging transport here
-      // Datadog: https://github.com/winstonjs/winston/blob/master/docs/transports.md#datadog-transport
-      // Just output to console for now
       logger.add(
         new winston.transports.Console({
-          level: cfg.level,
+          level,
           format: winston.format.combine(
             winston.format.timestamp(),
             winston.format.json(),
@@ -68,6 +72,20 @@ export class Logger {
         }),
       );
     }
+
+    if (process.env.DATADOG_API_KEY) {
+      console.log("Adding Datadog transport", cfg);
+      logger.add(
+        new winston.transports.Http({
+          level,
+          format: winston.format.json(),
+          host: "http-intake.logs.datadoghq.com",
+          level,
+          path: `/api/v2/logs?dd-api-key=${process.env.DATADOG_API_KEY}&ddsource=nodejs&service=${cfg.serviceName}`,
+        }),
+      );
+    }
+
     this.silly = logger.silly.bind(logger);
     this.debug = logger.debug.bind(logger);
     this.info = logger.info.bind(logger);

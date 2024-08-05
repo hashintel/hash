@@ -19,7 +19,10 @@ let graphApi: GraphApi | undefined;
 const getGraphApiClient = () => {
   if (!graphApi) {
     graphApi = createGraphClient(
-      new Logger({ mode: "dev", serviceName: "hash-backend-performance" }),
+      new Logger({
+        environment: "development",
+        serviceName: "hash-backend-performance",
+      }),
       {
         host: GRAPH_API_HOST,
         port: GRAPH_API_PORT,

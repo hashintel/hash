@@ -191,7 +191,6 @@ const main = async () => {
       method: req.method,
       ip: req.ip,
       path: req.path,
-      message: "request",
       userAgent: req.headers["user-agent"],
       graphqlClient: req.headers["apollographql-client-name"],
     });

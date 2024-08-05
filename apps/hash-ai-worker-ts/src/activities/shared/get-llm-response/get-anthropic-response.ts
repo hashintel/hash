@@ -154,7 +154,7 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
   let currentProvider: AnthropicApiProvider = initialProvider;
 
   try {
-    return await backOff(
+    const response = await backOff(
       () =>
         createAnthropicMessagesWithTools({
           payload,
@@ -169,6 +169,8 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
            * Only retry further requests with an exponential back-off if a server error
            * was encountered.
            */
+          logger.error(stringify({ currentProvider, ...response }));
+
           if (isServerError(error)) {
             const otherProvider = switchProvider(currentProvider);
             const priorRateLimitErrorForOtherProvider =
@@ -198,6 +200,10 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
         },
       },
     );
+
+    logger.debug(stringify({ currentProvider, ...response }));
+
+    return response;
   } catch (currentProviderError) {
     if (
       isErrorAnthropicRateLimitingError(currentProviderError) &&
@@ -324,11 +330,7 @@ export const getAnthropicResponse = async <ToolName extends string>(
     anthropicResponse = await createAnthropicMessagesWithToolsWithBackoff({
       payload,
     });
-
-    logger.debug(`Anthropic API response: ${stringify(anthropicResponse)}`);
   } catch (error) {
-    logger.error(`Anthropic API error: ${stringify(error)}`);
-
     return {
       status: "api-error",
       error,

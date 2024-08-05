@@ -144,9 +144,11 @@ export const createApolloServer = ({
                 ctx.context.req.headers["user-agent"]?.split(" ")[0];
 
               const msg = {
-                message: "graphql",
                 operation: willSendResponseCtx.operationName,
                 elapsed: `${elapsed.toFixed(2)}ms`,
+                graphqlClient:
+                  ctx.context.req.headers["apollographql-client-name"],
+                ip: ctx.context.req.ip,
                 userAgent,
               };
               if (willSendResponseCtx.errors) {
