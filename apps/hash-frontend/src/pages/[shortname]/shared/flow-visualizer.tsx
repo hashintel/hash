@@ -186,23 +186,13 @@ const getGraphFromFlowDefinition = (
   };
 };
 
-const logHeight = 350;
+const logHeight = 400;
 
 const containerHeight = `calc(100vh - ${HEADER_HEIGHT}px)`;
 
 const unrunnableDefinitionIds = [
   manualBrowserInferenceFlowDefinition.flowDefinitionId,
 ];
-
-const incrementLogNumber = (logNumber: string) => {
-  const parts = logNumber.split(".");
-  const lastPart = parts.at(-1)!;
-
-  return parts
-    .slice(0, -1)
-    .concat((parseInt(lastPart, 10) + 1).toString())
-    .join(".");
-};
 
 export const FlowRunVisualizerSkeleton = () => (
   <Stack gap={3} sx={{ height: `calc(100vh - ${HEADER_HEIGHT + 40}px)` }}>
@@ -324,11 +314,8 @@ export const FlowVisualizer = () => {
       };
     }
 
-    let logNumber = 1;
-
     const progressLogs: LocalProgressLog[] = [
       {
-        number: logNumber.toString(),
         level: 1,
         message: "Flow run started",
         recordedAt: selectedFlowRun.startedAt,
@@ -363,7 +350,6 @@ export const FlowVisualizer = () => {
            */
           progressLogs.push({
             ...log,
-            number: (++logNumber).toString(),
             level: 1,
           });
 
@@ -402,21 +388,22 @@ export const FlowVisualizer = () => {
               );
             }
 
-            const threadNumber = incrementLogNumber(
-              parentLogList.logs.at(-1)!.number,
-            );
-
             const newThread = {
               type: "Thread" as const,
               label: threadLabel,
               level: parentLogList.level,
-              number: incrementLogNumber(parentLogList.logs.at(-1)!.number),
               threadStartedAt: log.recordedAt,
+              /**
+               * Default to closing the thread at the time the flow run was closed.
+               * If we have a specific, earlier closed event for the thread it will be overwritten when we process that child log.
+               */
+              threadClosedAt: selectedFlowRun.closedAt ?? undefined,
+              closedDueToFlowClosure: !!selectedFlowRun.closedAt,
+              threadWorkerId: log.workerInstanceId,
               recordedAt: log.recordedAt,
               logs: [
                 {
                   level: parentLogList.level + 1,
-                  number: `${threadNumber}.1`,
                   ...log,
                 },
               ],
@@ -432,7 +419,6 @@ export const FlowVisualizer = () => {
           } else {
             thisThread.logs.push({
               level: parentLogList.level + 1,
-              number: incrementLogNumber(thisThread.logs.at(-1)!.number),
               ...log,
             });
 
@@ -441,6 +427,7 @@ export const FlowVisualizer = () => {
               log.type === "ClosedSubTask"
             ) {
               thisThread.thread!.threadClosedAt = log.recordedAt;
+              thisThread.thread!.closedDueToFlowClosure = false;
             }
           }
         }
@@ -497,6 +484,17 @@ export const FlowVisualizer = () => {
         }
       }
     }
+
+    if (selectedFlowRun.closedAt) {
+      progressLogs.push({
+        level: 1,
+        message: `Flow run closed: ${selectedFlowRun.status.toLowerCase()}`,
+        recordedAt: selectedFlowRun.closedAt,
+        stepId: "closure",
+        type: "StateChange",
+      });
+    }
+
     return {
       logs: progressLogs,
       proposedEntities: proposed,
@@ -650,7 +648,7 @@ export const FlowVisualizer = () => {
             background: palette.gray[10],
             borderTop: `2px solid ${palette.gray[20]}`,
             height: logHeight,
-            maxHeight: "30%",
+            maxHeight: "40%",
             maxWidth: "100%",
             px: 3,
             width: "100%",

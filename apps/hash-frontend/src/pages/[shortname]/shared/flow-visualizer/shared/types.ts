@@ -64,7 +64,6 @@ export type LogDisplay = "grouped" | "stream";
 
 type CommonLogFields = {
   level: number;
-  number: string;
 };
 
 export type StandaloneLog = (StepProgressLog | StateChangeLog) &
@@ -74,8 +73,10 @@ export type LogThread = {
   label: string;
   type: "Thread";
   recordedAt: string;
+  threadWorkerId: string;
   threadStartedAt: string;
   threadClosedAt?: string;
+  closedDueToFlowClosure?: boolean;
   logs: LocalProgressLog[];
 } & CommonLogFields;
 

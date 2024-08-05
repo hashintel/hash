@@ -11,7 +11,6 @@ import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entit
 import type { Theme } from "@mui/material";
 import {
   Box,
-  Collapse,
   Stack,
   Switch,
   TableCell,
@@ -20,13 +19,14 @@ import {
 } from "@mui/material";
 import { format } from "date-fns";
 import type { ReactElement } from "react";
-import { useEffect, memo, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 
 import { CircleInfoIcon } from "../../../../shared/icons/circle-info-icon";
 import { Link } from "../../../../shared/ui/link";
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
+  VirtualizedTableRow,
   VirtualizedTableSort,
 } from "../../../shared/virtualized-table";
 import {
@@ -34,12 +34,8 @@ import {
   VirtualizedTable,
 } from "../../../shared/virtualized-table";
 import { SectionLabel } from "./section-label";
-import type {
-  LocalProgressLog,
-  LogDisplay,
-  LogThread as LogThreadType,
-} from "./shared/types";
 import { formatTimeTaken } from "./shared/format-time-taken";
+import type { LocalProgressLog, LogDisplay } from "./shared/types";
 
 const getEntityLabelFromLog = (log: StepProgressLog): string => {
   if (log.type !== "ProposedEntity" && log.type !== "PersistedEntity") {
@@ -309,18 +305,18 @@ const LogDetail = ({
     }
     case "InferredClaimsFromText": {
       return (
-        <Stack direction="row" alignItems="center" gap={1}>
+        <Stack direction="row" alignItems="center" gap={0.5}>
           <Box sx={ellipsisOverflow}>
             Inferred <strong>{log.output.claimCount} claims</strong> and{" "}
-            <strong>{log.output.entityCount} entities</strong> from{" "}
-            <Link
-              href={log.output.resource.url}
-              sx={{ textDecoration: "none", ...ellipsisOverflow }}
-            >
-              {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing */}
-              {log.output.resource.title || log.output.resource.url}
-            </Link>
+            <strong>{log.output.entityCount} entities</strong> from
           </Box>
+          <Link
+            href={log.output.resource.url}
+            sx={{ textDecoration: "none", ...ellipsisOverflow }}
+          >
+            {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing */}
+            {log.output.resource.title || log.output.resource.url}
+          </Link>
         </Stack>
       );
     }
@@ -350,16 +346,80 @@ const createColumns = (rowCount: number): VirtualizedTableColumn<FieldId>[] => [
   },
 ];
 
-const TableRow = memo(({ log }: { log: LocalProgressLog }) => {
-  const [showChildren, setShowChildren] = useState(false);
+const LogThread = ({
+  log,
+}: {
+  log: LogWithThreadSettings & { type: "Thread" };
+}) => {
+  const [timeTaken, setTimeTaken] = useState(
+    formatTimeTaken(log.threadStartedAt, log.threadClosedAt),
+  );
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTimeTaken(formatTimeTaken(log.threadStartedAt, log.threadClosedAt));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [log.threadStartedAt, log.threadClosedAt]);
+
+  const { isOpen, setIsOpen } = log;
+
+  if (!setIsOpen) {
+    throw new Error("Expected setIsOpen to be defined for Thread");
+  }
+
+  return (
+    <Stack direction="row" alignItems="center" gap={0.5}>
+      <Box sx={ellipsisOverflow}>{log.label}</Box>
+      <Typography
+        sx={{
+          fontSize: 12,
+          fontWeight: 600,
+          color: ({ palette }) =>
+            log.closedDueToFlowClosure
+              ? palette.red[80]
+              : log.threadClosedAt
+                ? palette.green[80]
+                : palette.blue[70],
+        }}
+      >
+        {timeTaken}
+      </Typography>
+      <IconButton
+        aria-label="Show detailed logs"
+        onClick={(event) => {
+          event.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
+        size="small"
+        unpadded
+        rounded
+        sx={({ transitions }) => ({
+          transform: isOpen ? "none" : "rotate(-90deg)",
+          transition: transitions.create("transform", {
+            duration: 300,
+          }),
+        })}
+      >
+        <CaretDownSolidIcon
+          sx={{
+            color: ({ palette }) => palette.gray[50],
+          }}
+        />
+      </IconButton>
+    </Stack>
+  );
+};
+
+const TableRow = memo(({ log }: { log: LogWithThreadSettings }) => {
   const todaysDate = format(new Date(), "yyyy-MM-dd");
   const logDate = format(new Date(log.recordedAt), "yyyy-MM-dd");
 
   const background = ({ palette }: Theme) =>
     log.level === 1
       ? palette.common.white
-      : palette.gray[log.level === 2 ? 10 : 20];
+      : palette.gray[log.level === 2 ? 15 : 20];
 
   return (
     <>
@@ -395,95 +455,54 @@ const TableRow = memo(({ log }: { log: LocalProgressLog }) => {
       >
         <Box sx={{ position: "relative", pr: 3, maxWidth: "auto" }}>
           {log.type === "Thread" ? (
-            // eslint-disable-next-line @typescript-eslint/no-use-before-define -- function will be hoisted
-            <LogThread
-              log={log}
-              showChildren={showChildren}
-              setShowChildren={setShowChildren}
-            />
+            <LogThread log={log} />
           ) : (
             <LogDetail log={log} />
           )}
         </Box>
       </TableCell>
-
-      {"logs" in log && (
-        <Collapse in={showChildren}>
-          {log.logs.map((childLog, index) => (
-            // eslint-disable-next-line react/no-array-index-key
-            <TableRow key={index} log={childLog} />
-          ))}
-        </Collapse>
-      )}
     </>
   );
 });
 
-// eslint-disable-next-line react/function-component-definition -- needs to be hoisted due to circular references between components
-function LogThread({
-  log,
-  showChildren,
-  setShowChildren,
-}: {
-  log: LogThreadType;
-  showChildren: boolean;
-  setShowChildren: (show: boolean) => void;
-}) {
-  const [timeTaken, setTimeTaken] = useState(
-    formatTimeTaken(log.threadStartedAt, log.threadClosedAt),
-  );
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTimeTaken(formatTimeTaken(log.threadStartedAt, log.threadClosedAt));
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [log.threadStartedAt, log.threadClosedAt]);
-
-  return (
-    <Stack direction="row" alignItems="center" gap={0.5}>
-      <Box sx={ellipsisOverflow}>{log.label}</Box>
-      <Typography
-        sx={{
-          fontSize: 12,
-          fontWeight: 600,
-          color: ({ palette }) =>
-            log.threadClosedAt ? palette.green[80] : palette.blue[70],
-        }}
-      >
-        {timeTaken}
-      </Typography>
-      <IconButton
-        aria-label="Show detailed logs"
-        onClick={(event) => {
-          event.stopPropagation();
-          setShowChildren(!showChildren);
-        }}
-        size="small"
-        unpadded
-        rounded
-        sx={({ transitions }) => ({
-          transform: showChildren ? "none" : "rotate(-90deg)",
-          transition: transitions.create("transform", {
-            duration: 300,
-          }),
-        })}
-      >
-        <CaretDownSolidIcon
-          sx={{
-            color: ({ palette }) => palette.gray[50],
-          }}
-        />
-      </IconButton>
-    </Stack>
-  );
-}
-
-const createRowContent: CreateVirtualizedRowContentFn<LocalProgressLog> = (
+const createRowContent: CreateVirtualizedRowContentFn<LogWithThreadSettings> = (
   _index,
   row,
 ) => <TableRow log={row.data} />;
+
+type LogWithThreadSettings = LocalProgressLog & {
+  number: string;
+  parentNumber?: string;
+  isOpen?: boolean;
+  setIsOpen?: (isOpen: boolean) => void;
+  owningThreadId?: string;
+};
+
+const sortLogs = (
+  a: LocalProgressLog,
+  b: LocalProgressLog,
+  sort: VirtualizedTableSort<FieldId>,
+) => {
+  if (sort.field === "time") {
+    if (a.recordedAt === b.recordedAt) {
+      return 0;
+    }
+    if (sort.direction === "asc") {
+      return a.recordedAt > b.recordedAt ? 1 : -1;
+    }
+
+    return a.recordedAt > b.recordedAt ? -1 : 1;
+  }
+
+  const aText = getRawTextFromLog(a);
+  const bText = getRawTextFromLog(b);
+
+  if (sort.direction === "asc") {
+    return aText.localeCompare(bText);
+  }
+
+  return bText.localeCompare(aText);
+};
 
 export const ActivityLog = memo(
   ({
@@ -500,28 +519,102 @@ export const ActivityLog = memo(
       direction: "asc",
     });
 
-    const rows = useMemo(() => {
-      return logs
-        .sort((a, b) => {
-          if (sort.field === "time") {
-            if (sort.direction === "asc") {
-              return a.recordedAt > b.recordedAt ? 1 : -1;
+    const [openThreads, setOpenThreads] = useState<Set<string>>(new Set());
+
+    const rows = useMemo<VirtualizedTableRow<LogWithThreadSettings>[]>(() => {
+      /**
+       * Sort the parents first, because we want to keep the children as appearing directly after their parent in all cases.
+       */
+      const sortedParents = logs.sort((a, b) => sortLogs(a, b, sort));
+
+      const logsWithThreadSettings: VirtualizedTableRow<LogWithThreadSettings>[] =
+        [];
+
+      /**
+       * Child logs may themselves have children, so we need to declare a function we can call recursively.
+       */
+      const addPossibleThread = ({
+        log,
+        number,
+        parentNumber,
+      }: {
+        log: LocalProgressLog;
+        number: string;
+        parentNumber?: string;
+      }) => {
+        if (log.type === "Thread") {
+          const isOpen = openThreads.has(log.threadWorkerId);
+
+          logsWithThreadSettings.push({
+            id: number,
+            data: {
+              ...log,
+              number,
+              parentNumber,
+              isOpen,
+              setIsOpen: (shouldBeOpen) =>
+                setOpenThreads((prevSet) => {
+                  const newSet = new Set(prevSet);
+                  if (shouldBeOpen) {
+                    newSet.add(log.threadWorkerId);
+                  } else {
+                    newSet.delete(log.threadWorkerId);
+                  }
+                  return newSet;
+                }),
+            },
+          });
+
+          if (isOpen) {
+            for (const [childIndex, childLog] of log.logs
+              /**
+               * Children will be sorted as an individual group, e.g. so that if 'time / ascending' sort is selected,
+               * the child logs will appear latest first, after their parent.
+               */
+              .sort((a, b) => sortLogs(a, b, sort))
+              .entries()) {
+              addPossibleThread({
+                log: childLog,
+                number: `${number}.${childIndex + 1}`,
+                parentNumber: number,
+              });
             }
-
-            return a.recordedAt > b.recordedAt ? 1 : -1;
+            if (log.closedDueToFlowClosure) {
+              const childNumber = `${number}.${log.logs.length}`;
+              logsWithThreadSettings.push({
+                id: childNumber,
+                data: {
+                  number: childNumber,
+                  level: log.level + 1,
+                  message: "Flow ended while task was processing",
+                  recordedAt: log.threadClosedAt ?? new Date().toISOString(),
+                  stepId: "closure",
+                  type: "StateChange",
+                },
+              });
+            }
           }
+        } else {
+          logsWithThreadSettings.push({
+            id: number,
+            data: {
+              ...log,
+              number,
+              parentNumber,
+            },
+          });
+        }
+      };
 
-          if (sort.direction === "asc") {
-            return getRawTextFromLog(a) > getRawTextFromLog(b) ? -1 : 1;
-          }
+      for (const [index, log] of sortedParents.entries()) {
+        addPossibleThread({
+          log,
+          number: `${index + 1}`,
+        });
+      }
 
-          return getRawTextFromLog(b) < getRawTextFromLog(a) ? 1 : -1;
-        })
-        .map((log, index) => ({
-          id: `${index}-${log.recordedAt}`,
-          data: log,
-        }));
-    }, [logs, sort]);
+      return logsWithThreadSettings;
+    }, [logs, openThreads, sort]);
 
     const columns = useMemo(() => createColumns(rows.length), [rows.length]);
 
