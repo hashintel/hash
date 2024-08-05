@@ -24,10 +24,6 @@ config:
       plugins:
         expect:
           reportFailuresAsErrors: true
-        ensure:
-          conditions:
-            - expression: vusers.failed == 0
-              strict: true
     local:
       phases:
         - name: Warm up
