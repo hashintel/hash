@@ -2,6 +2,7 @@ import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import type { SourceProvenance } from "@local/hash-graph-client";
 import { SourceType } from "@local/hash-graph-client";
+import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 import dedent from "dedent";
 import { MetadataMode } from "llamaindex";
 
@@ -24,7 +25,6 @@ import { chooseRelevantLinksFromContent } from "./link-follower-agent/choose-rel
 import { filterAndRankTextChunksAgent } from "./link-follower-agent/filter-and-rank-text-chunks-agent.js";
 import { getLinkFollowerNextToolCalls } from "./link-follower-agent/get-link-follower-next-tool-calls.js";
 import { indexPdfFile } from "./link-follower-agent/llama-index/index-pdf-file.js";
-import { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 
 type ResourceToExplore = {
   url: string;
