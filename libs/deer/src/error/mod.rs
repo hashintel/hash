@@ -316,6 +316,7 @@ fn impl_debug<E: Variant>(error: &Box<dyn Any + Send + Sync>, fmt: &mut Formatte
 }
 
 #[cfg(nightly)]
+#[expect(clippy::incompatible_msrv, reason = "This is gated behind nightly")]
 fn impl_provide<'a, E: Variant>(error: &'a Box<dyn Any + Send + Sync>, request: &mut Request<'a>) {
     let error: &E = error
         .downcast_ref()
