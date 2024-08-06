@@ -115,7 +115,6 @@ impl<'a> WorkspaceMember<'a> {
             return format!("@blockprotocol/{}-rs", self.package.name);
         }
 
-
         format!("@rust/{}", self.package.name)
     }
 
