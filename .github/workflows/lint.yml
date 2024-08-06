@@ -160,14 +160,22 @@ jobs:
             | tee clippy.sarif \
             | sarif-fmt
 
+          echo "TRIMMED_PACKAGE_NAME=$(echo "${{ matrix.package }}" | sed 's|@||g' | sed 's|/|.|g')" >> $GITHUB_ENV
           jq -e '.runs[].results == []' clippy.sarif> /dev/null
+
+      - name: Upload artifact playwright-report
+        if: always() && steps.lints.outputs.has-clippy == 'true'
+        uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b # v4.3.4
+        with:
+          name: ${{ env.TRIMMED_PACKAGE_NAME }}
+          path: ${{ matrix.directory }}/clippy.sarif
 
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@afb54ba388a7dca6ecae48f608c4ff05ff4cc77a # v3.25.15
         if: always() && steps.lints.outputs.has-clippy == 'true'
         with:
           sarif_file: ${{ matrix.directory }}/clippy.sarif
-          category: ${{ matrix.name }}
+          category: ${{ matrix.package }}
 
       - name: Check public documentation
         if: always() && steps.lints.outputs.has-rust == 'true'
