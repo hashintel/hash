@@ -2,10 +2,11 @@ cargo-features = ["edition2024"]
 
 [package]
 name = "hash-tracing"
-authors.workspace = true
+version.workspace = true
 edition.workspace = true
-version = "0.0.0"
-publish = false
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
 
 [dependencies]
 error-stack = { workspace = true }

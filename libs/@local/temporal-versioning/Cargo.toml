@@ -2,10 +2,11 @@ cargo-features = ["edition2024"]
 
 [package]
 name = "temporal-versioning"
-authors.workspace = true
+version.workspace = true
 edition.workspace = true
-version = "0.0.0"
-publish = false
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
 
 [dependencies]
 codec = { workspace = true, features = ["serde"] }

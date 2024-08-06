@@ -2,11 +2,11 @@ cargo-features = ["edition2024"]
 
 [package]
 name = "harpc-tower"
-version = "0.0.0"
-license = "AGPL-3.0"
-authors.workspace = true
+version.workspace = true
 edition.workspace = true
-publish = false
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
 
 [dependencies]
 bytes.workspace = true
@@ -26,3 +26,6 @@ tokio-util = { workspace = true, features = ["time"] }
 tower-test = "0.4.0"
 harpc-net = { workspace = true, features = ["test-utils"] }
 tokio-test = "0.4.4"
+
+[lints]
+workspace = true

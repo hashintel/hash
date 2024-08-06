@@ -1,7 +1,7 @@
 [package]
 name = "sarif"
 version = "0.0.0-reserved"
-authors = ["HASH"]
+authors.workspace = true
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Representation of the SARIF specification in Rust"
