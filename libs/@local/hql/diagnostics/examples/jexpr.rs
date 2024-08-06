@@ -73,6 +73,15 @@ fn main() {
         },
     ));
 
+    // [syntax::invalid-identifier] Error: Invalid Identifier
+    //    ╭─[<unknown>:1:1]
+    //    │
+    //  1 │ ["let", "x-y", {"const": 2}]
+    //    │           ┬
+    //    │           ╰── unexpected character
+    //    │
+    //    │ Help: Identifiers must start with a letter or underscore, ...
+    // ───╯
     report
         .write_for_stdout(ariadne::Source::from(SOURCE), stdout())
         .expect("should be able to write report");
