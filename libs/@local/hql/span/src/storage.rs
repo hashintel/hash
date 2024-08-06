@@ -65,6 +65,10 @@ where
 
     /// Resolves a span into a full span tree.
     ///
+    /// This has a time complexity of O(n), where n is the depth of the span tree.
+    /// Tolerable, as `SpanNode`s are expected to only be used on report generation, and are
+    /// supposed to be shallow in depth.
+    ///
     /// # Panics
     ///
     /// Panics if a circular span reference is detected.
