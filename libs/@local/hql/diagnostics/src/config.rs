@@ -17,10 +17,13 @@ pub struct ReportConfig<F> {
     pub tab_width: usize,
     pub char_set: CharSet,
     pub index_type: IndexType,
-    /// Transform any span contained in a `SpanNode` into a `DiagnosticSpan`
+    /// Transform any span contained in a [`SpanNode`] into a `DiagnosticSpan`
     ///
     /// This must implement [`TransformSpan<S>`], where `S` is the type of the span contained in
-    /// the `SpanNode`.
+    /// the [`SpanNode`].
+    ///
+    /// [`TransformSpan<S>`]: crate::span::TransformSpan
+    /// [`SpanNode`]: hql_span::tree::SpanNode
     pub transform_span: F,
 }
 
