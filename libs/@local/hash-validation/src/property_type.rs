@@ -14,7 +14,7 @@ use type_system::{
 
 use crate::{
     error::{Actual, Expected},
-    OntologyTypeProvider, Schema, Validate, ValidateEntityComponents,
+    OntologyTypeProvider, Schema, ValidateEntityComponents,
 };
 
 macro_rules! extend_report {
@@ -74,6 +74,8 @@ pub enum PropertyValidationError {
         actual: VersionedUrl,
         expected: VersionedUrl,
     },
+    #[error("The property provided is ambiguous")]
+    AmbiguousProperty { actual: PropertyWithMetadata },
 }
 
 impl<P> Schema<PropertyWithMetadata, P> for PropertyType
@@ -101,22 +103,6 @@ where
     }
 }
 
-impl<P> Validate<PropertyType, P> for PropertyWithMetadata
-where
-    P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
-{
-    type Error = PropertyValidationError;
-
-    async fn validate(
-        &self,
-        schema: &PropertyType,
-        components: ValidateEntityComponents,
-        context: &P,
-    ) -> Result<(), Report<Self::Error>> {
-        schema.validate_value(self, components, context).await
-    }
-}
-
 impl<P> Schema<PropertyWithMetadata, P> for PropertyTypeReference
 where
     P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
@@ -140,22 +126,6 @@ where
             .await
             .attach_lazy(|| Expected::PropertyType(property_type.borrow().clone()))
             .attach_lazy(|| Actual::Property(value.clone()))
-    }
-}
-
-impl<P> Validate<PropertyTypeReference, P> for PropertyWithMetadata
-where
-    P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
-{
-    type Error = PropertyValidationError;
-
-    async fn validate(
-        &self,
-        schema: &PropertyTypeReference,
-        components: ValidateEntityComponents,
-        context: &P,
-    ) -> Result<(), Report<Self::Error>> {
-        schema.validate_value(self, components, context).await
     }
 }
 
@@ -211,32 +181,40 @@ where
     }
 }
 
-impl<V, P, S> Schema<V, P> for OneOfSchema<S>
+impl<P> Schema<PropertyWithMetadata, P> for OneOfSchema<PropertyValues>
 where
-    V: Sync,
-    P: Sync,
-    S: Schema<V, P> + Sync,
+    P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
 {
-    type Error = S::Error;
+    type Error = PropertyValidationError;
 
     async fn validate_value<'a>(
         &'a self,
-        value: &'a V,
+        value: &'a PropertyWithMetadata,
         components: ValidateEntityComponents,
         provider: &'a P,
     ) -> Result<(), Report<Self::Error>> {
-        let mut status: Result<(), Report<S::Error>> = Ok(());
+        let mut status: Result<(), Report<Self::Error>> = Ok(());
 
+        let mut passed = 0;
         for schema in &self.possibilities {
             if let Err(error) = schema.validate_value(value, components, provider).await {
                 extend_report!(status, error);
             } else {
-                // Only one schema must match
-                return Ok(());
+                passed += 1;
             }
         }
-
-        status
+        if passed == 1 {
+            Ok(())
+        } else if passed > 1 {
+            // TODO: Remove when data type ID is required
+            //   see https://linear.app/hash/issue/H-2800/validate-that-a-data-type-id-is-always-specified
+            Err(Report::new(PropertyValidationError::AmbiguousProperty {
+                actual: value.clone(),
+            })
+            .attach(Actual::Property(value.clone())))
+        } else {
+            status
+        }
     }
 }
 
@@ -336,68 +314,72 @@ where
         provider: &'a P,
     ) -> impl Future<Output = Result<(), Report<Self::Error>>> + Send + '_ {
         Box::pin(async move {
-            match (value, self) {
-                (PropertyWithMetadata::Value(property), Self::DataTypeReference(reference)) => {
-                    if let Some(data_type_id) = &property.metadata.data_type_id {
-                        ensure!(
-                            reference.url == *data_type_id,
-                            PropertyValidationError::InvalidDataType {
-                                actual: data_type_id.clone(),
-                                expected: reference.url.clone(),
-                            }
-                        );
+            match self {
+                Self::DataTypeReference(reference) => match value {
+                    PropertyWithMetadata::Value(property) => {
+                        if let Some(data_type_id) = &property.metadata.data_type_id {
+                            ensure!(
+                                reference.url == *data_type_id,
+                                PropertyValidationError::InvalidDataType {
+                                    actual: data_type_id.clone(),
+                                    expected: reference.url.clone(),
+                                }
+                            );
+                        }
+                        reference
+                            .validate_value(property, components, provider)
+                            .await
+                            .change_context(PropertyValidationError::DataTypeValidation {
+                                id: reference.url.clone(),
+                            })
                     }
-                    reference
-                        .validate_value(property, components, provider)
-                        .await
-                        .change_context(PropertyValidationError::DataTypeValidation {
-                            id: reference.url.clone(),
-                        })
-                }
-                (
-                    PropertyWithMetadata::Array { value, metadata: _ },
-                    Self::ArrayOfPropertyValues(schema),
-                ) => schema.validate_value(value, components, provider).await,
-                (PropertyWithMetadata::Array { .. }, Self::PropertyTypeObject(_)) => {
-                    Err(Report::new(PropertyValidationError::InvalidType {
-                        actual: JsonSchemaValueType::Array,
-                        expected: JsonSchemaValueType::Object,
-                    }))
-                }
-                (
-                    PropertyWithMetadata::Object { value, metadata: _ },
-                    Self::PropertyTypeObject(schema),
-                ) => schema.validate_value(value, components, provider).await,
-                (PropertyWithMetadata::Object { .. }, Self::ArrayOfPropertyValues(_)) => {
-                    Err(Report::new(PropertyValidationError::InvalidType {
-                        actual: JsonSchemaValueType::Object,
-                        expected: JsonSchemaValueType::Array,
-                    }))
-                }
-                (PropertyWithMetadata::Value { .. }, Self::ArrayOfPropertyValues(_)) => {
-                    Err(Report::new(PropertyValidationError::InvalidType {
-                        actual: value.json_type(),
-                        expected: JsonSchemaValueType::Array,
-                    }))
-                }
-                (PropertyWithMetadata::Value { .. }, Self::PropertyTypeObject(_)) => {
-                    Err(Report::new(PropertyValidationError::InvalidType {
-                        actual: value.json_type(),
-                        expected: JsonSchemaValueType::Object,
-                    }))
-                }
-                (PropertyWithMetadata::Array { .. }, Self::DataTypeReference(reference)) => {
-                    Err(Report::new(PropertyValidationError::ExpectedValue {
-                        actual: JsonSchemaValueType::Array,
-                        expected: reference.url.clone(),
-                    }))
-                }
-                (PropertyWithMetadata::Object { .. }, Self::DataTypeReference(reference)) => {
-                    Err(Report::new(PropertyValidationError::ExpectedValue {
-                        actual: JsonSchemaValueType::Object,
-                        expected: reference.url.clone(),
-                    }))
-                }
+                    PropertyWithMetadata::Array { .. } => {
+                        Err(Report::new(PropertyValidationError::ExpectedValue {
+                            actual: JsonSchemaValueType::Array,
+                            expected: reference.url.clone(),
+                        }))
+                    }
+                    PropertyWithMetadata::Object { .. } => {
+                        Err(Report::new(PropertyValidationError::ExpectedValue {
+                            actual: JsonSchemaValueType::Object,
+                            expected: reference.url.clone(),
+                        }))
+                    }
+                },
+                Self::ArrayOfPropertyValues(schema) => match value {
+                    PropertyWithMetadata::Value { .. } => {
+                        Err(Report::new(PropertyValidationError::InvalidType {
+                            actual: value.json_type(),
+                            expected: JsonSchemaValueType::Array,
+                        }))
+                    }
+                    PropertyWithMetadata::Array { value, metadata: _ } => {
+                        schema.validate_value(value, components, provider).await
+                    }
+                    PropertyWithMetadata::Object { .. } => {
+                        Err(Report::new(PropertyValidationError::InvalidType {
+                            actual: JsonSchemaValueType::Object,
+                            expected: JsonSchemaValueType::Array,
+                        }))
+                    }
+                },
+                Self::PropertyTypeObject(schema) => match value {
+                    PropertyWithMetadata::Value { .. } => {
+                        Err(Report::new(PropertyValidationError::InvalidType {
+                            actual: value.json_type(),
+                            expected: JsonSchemaValueType::Object,
+                        }))
+                    }
+                    PropertyWithMetadata::Array { .. } => {
+                        Err(Report::new(PropertyValidationError::InvalidType {
+                            actual: JsonSchemaValueType::Array,
+                            expected: JsonSchemaValueType::Object,
+                        }))
+                    }
+                    PropertyWithMetadata::Object { value, metadata: _ } => {
+                        schema.validate_value(value, components, provider).await
+                    }
+                },
             }
         })
     }

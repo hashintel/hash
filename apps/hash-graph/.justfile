@@ -30,3 +30,5 @@ test-integration *arguments:
   @just yarn graph:reset-database
   @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/circular-links.http
   @just yarn graph:reset-database
+  @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/ambiguous.http
+  @just yarn graph:reset-database
