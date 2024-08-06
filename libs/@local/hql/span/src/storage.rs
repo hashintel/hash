@@ -4,13 +4,13 @@ use crate::{tree::SpanNode, Span, SpanId};
 ///
 /// This struct is used to store information about multiple spans within a single source file.
 pub struct SpanStorage<S> {
-    arena: Vec<S>,
+    inner: Vec<S>,
 }
 
 impl<S> SpanStorage<S> {
     #[must_use]
     pub const fn new() -> Self {
-        Self { arena: Vec::new() }
+        Self { inner: Vec::new() }
     }
 }
 
@@ -20,15 +20,18 @@ where
 {
     #[expect(
         clippy::cast_possible_truncation,
-        reason = "The arena is not expected to be larger than u32::MAX"
+        reason = "The arena is not expected to be larger than u32::MAX + debug assertions"
     )]
-    fn next_id(&self) -> SpanId {
-        SpanId::new(self.arena.len() as u32)
-    }
-
     pub fn insert(&mut self, span: S) -> SpanId {
-        let id = self.next_id();
-        self.arena.push(span);
+        let length = self.inner.len() as u32;
+
+        // The `as` here is safe, because if we're at `u32::MAX` elements, the next push would
+        // overflow.
+        debug_assert!(length != u32::MAX, "Arena is full");
+
+        let id = SpanId::new(length);
+
+        self.inner.push(span);
 
         id
     }
@@ -37,7 +40,7 @@ where
     pub fn get(&self, span: SpanId) -> Option<&S> {
         let index = span.value() as usize;
 
-        self.arena.get(index)
+        self.inner.get(index)
     }
 
     fn resolve_inner(&self, span: SpanId, visited: &mut Vec<SpanId>) -> Option<SpanNode<S>>
