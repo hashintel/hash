@@ -14,15 +14,16 @@ use crate::{
     help::Help,
     label::Label,
     note::Note,
+    rob::RefOrBox,
     severity::Severity,
     span::{absolute_span, AbsoluteDiagnosticSpan, TransformSpan},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize))]
-pub struct Diagnostic<S> {
-    pub category: Category,
-    pub severity: Severity,
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct Diagnostic<'a, S> {
+    pub category: RefOrBox<'a, Category<'a>>,
+    pub severity: RefOrBox<'a, Severity<'a>>,
 
     pub message: Option<Box<str>>,
     pub span: Option<S>,
@@ -32,12 +33,15 @@ pub struct Diagnostic<S> {
     pub help: Option<Help>,
 }
 
-impl<S> Diagnostic<S> {
+impl<'a, S> Diagnostic<'a, S> {
     #[must_use]
-    pub const fn new(category: Category, severity: Severity) -> Self {
+    pub fn new(
+        category: impl Into<RefOrBox<'a, Category<'a>>>,
+        severity: impl Into<RefOrBox<'a, Severity<'a>>>,
+    ) -> Self {
         Self {
-            category,
-            severity,
+            category: category.into(),
+            severity: severity.into(),
             message: None,
             span: None,
             labels: Vec::new(),
@@ -47,7 +51,7 @@ impl<S> Diagnostic<S> {
     }
 }
 
-impl Diagnostic<SpanId> {
+impl<'a> Diagnostic<'a, SpanId> {
     /// Resolve the diagnostic, into a proper diagnostic with span nodes.
     ///
     /// # Errors
@@ -56,7 +60,7 @@ impl Diagnostic<SpanId> {
     pub fn resolve<S>(
         self,
         storage: &SpanStorage<S>,
-    ) -> Result<Diagnostic<SpanNode<S>>, ResolveError>
+    ) -> Result<Diagnostic<'a, SpanNode<S>>, ResolveError>
     where
         S: Span + Clone,
     {
@@ -100,7 +104,7 @@ impl Diagnostic<SpanId> {
     }
 }
 
-impl<S> Diagnostic<SpanNode<S>> {
+impl<S> Diagnostic<'_, SpanNode<S>> {
     pub fn report(
         &self,
         mut config: ReportConfig<impl TransformSpan<S>>,
@@ -111,10 +115,14 @@ impl<S> Diagnostic<SpanNode<S>> {
 
         let mut generator = ColorGenerator::new();
 
-        let mut builder = ariadne::Report::build(self.severity.kind(), (), start as usize)
-            .with_code(self.category.canonical_id());
+        let mut builder = ariadne::Report::build(self.severity.as_ref().kind(), (), start as usize)
+            .with_code(self.category.as_ref().canonical_id());
 
-        builder.set_message(self.message.as_deref().unwrap_or(self.category.name));
+        builder.set_message(
+            self.message
+                .as_deref()
+                .unwrap_or(&self.category.as_ref().name),
+        );
 
         if let Some(note) = &self.note {
             builder.set_note(note.colored(config.color));
@@ -134,13 +142,18 @@ impl<S> Diagnostic<SpanNode<S>> {
     }
 }
 
-impl<S> Display for Diagnostic<S>
+impl<S> Display for Diagnostic<'_, S>
 where
     S: Display,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "[{}] {}", self.severity, self.category.canonical_name())
+        write!(
+            f,
+            "[{}] {}",
+            self.severity,
+            self.category.as_ref().canonical_name()
+        )
     }
 }
 
-impl<S> Error for Diagnostic<S> where S: Debug + Display {}
+impl<S> Error for Diagnostic<'_, S> where S: Debug + Display {}

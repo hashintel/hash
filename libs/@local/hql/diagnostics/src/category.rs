@@ -1,24 +1,28 @@
+use alloc::borrow::Cow;
 use core::fmt::Display;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize))]
-pub struct Category {
-    pub id: &'static str,
-    pub name: &'static str,
-    pub parent: Option<&'static Category>,
+use crate::rob::RefOrBox;
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+pub struct Category<'a> {
+    pub id: Cow<'a, str>,
+    pub name: Cow<'a, str>,
+    pub parent: Option<RefOrBox<'a, Category<'a>>>,
 }
 
-impl Category {
+impl Category<'_> {
     #[must_use]
     pub fn canonical_id(&self) -> impl Display + '_ {
-        struct DisplayCategoryId<'a>(&'a Category);
+        struct DisplayCategoryId<'a, 'b>(&'a Category<'b>);
 
-        impl<'a> Display for DisplayCategoryId<'a> {
+        impl<'a, 'b> Display for DisplayCategoryId<'a, 'b> {
             fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-                if let Some(parent) = self.0.parent {
-                    DisplayCategoryId(parent).fmt(f)?;
+                if let Some(parent) = &self.0.parent {
+                    DisplayCategoryId(parent.as_ref()).fmt(f)?;
                     f.write_str("::")?;
                 };
+
                 Display::fmt(&self.0.id, f)
             }
         }
@@ -28,14 +32,15 @@ impl Category {
 
     #[must_use]
     pub fn canonical_name(&self) -> impl Display + '_ {
-        struct DisplayCategoryName<'a>(&'a Category);
+        struct DisplayCategoryName<'a, 'b>(&'a Category<'b>);
 
-        impl<'a> Display for DisplayCategoryName<'a> {
+        impl<'a, 'b> Display for DisplayCategoryName<'a, 'b> {
             fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-                if let Some(parent) = self.0.parent {
-                    DisplayCategoryName(parent).fmt(f)?;
+                if let Some(parent) = &self.0.parent {
+                    DisplayCategoryName(parent.as_ref()).fmt(f)?;
                     f.write_str(" / ")?;
                 }
+
                 Display::fmt(&self.0.name, f)
             }
         }

@@ -1,5 +1,7 @@
 #![feature(cfg_eval)]
 
+extern crate alloc;
+
 pub mod category;
 pub mod config;
 pub mod diagnostic;
@@ -12,5 +14,6 @@ pub mod span;
 
 #[cfg(feature = "serde")]
 pub(crate) mod encoding;
+pub mod rob;
 
 pub use diagnostic::Diagnostic;

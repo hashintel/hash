@@ -1,9 +1,12 @@
+extern crate alloc;
+
+use alloc::borrow::Cow;
 use core::fmt::Debug;
 use std::io::stdout;
 
 use hql_diagnostics::{
-    category::Category, config::ReportConfig, help::Help, label::Label, severity::Severity,
-    span::DiagnosticSpan, Diagnostic,
+    category::Category, config::ReportConfig, help::Help, label::Label, rob::RefOrBox,
+    severity::Severity, span::DiagnosticSpan, Diagnostic,
 };
 use hql_span::{storage::SpanStorage, Span, SpanId, TextRange};
 use jsonptr::PointerBuf;
@@ -25,15 +28,15 @@ impl Span for JsonSpan {
 const SOURCE: &str = r#"["let", "x-y", {"const": 2}]"#;
 
 const SYNTAX_CATEGORY: &Category = &Category {
-    id: "syntax",
-    name: "Syntax",
+    id: Cow::Borrowed("syntax"),
+    name: Cow::Borrowed("Syntax"),
     parent: None,
 };
 
 const INVALID_IDENTIFIER: &Category = &Category {
-    id: "invalid-identifier",
-    name: "Invalid Identifier",
-    parent: Some(SYNTAX_CATEGORY),
+    id: Cow::Borrowed("invalid-identifier"),
+    name: Cow::Borrowed("Invalid Identifier"),
+    parent: Some(RefOrBox::Ref(SYNTAX_CATEGORY)),
 };
 
 fn main() {
@@ -51,7 +54,7 @@ fn main() {
         pointer: None,
     });
 
-    let mut diagnostic = Diagnostic::new(*INVALID_IDENTIFIER, Severity::ERROR);
+    let mut diagnostic = Diagnostic::new(INVALID_IDENTIFIER, Severity::ERROR);
 
     diagnostic.labels.push(Label::new(
         storage.resolve(span).expect("valid span"),
