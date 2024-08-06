@@ -1,8 +1,8 @@
 use core::fmt::Debug;
 
-/// Represents a full span in a file.
+/// A fully quantified span.
 ///
-/// This span is resolved unlike a normal span, where each parent is resolved to a full span.
+/// A span, which has all of its parent spans resolved.
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 pub struct SpanNode<S> {
