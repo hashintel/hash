@@ -162,16 +162,6 @@ jobs:
 
           jq -e '.runs[].results == []' clippy.sarif> /dev/null
 
-      - name: Process SARIF file
-        working-directory: ${{ matrix.directory }}
-        if: always() && steps.lints.outputs.has-clippy == 'true'
-        run: |
-          tmp=$(mktemp)
-
-          jq --arg pwd "${{ matrix.directory }}" '.runs[].results[].locations[].physicalLocation.artifactLocation.uri |= $pwd + "/" + .' clippy.sarif > "$tmp"
-
-          mv "$tmp" clippy.sarif
-
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@afb54ba388a7dca6ecae48f608c4ff05ff4cc77a # v3.25.15
         if: always() && steps.lints.outputs.has-clippy == 'true'
