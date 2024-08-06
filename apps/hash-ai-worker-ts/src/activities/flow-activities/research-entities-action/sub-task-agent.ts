@@ -360,7 +360,7 @@ const generateProgressReport = (params: {
 
   if (resourceUrlsVisited.length > 0) {
     text += dedent(`
-        You have already visited the following resources – they may be worth visiting again if you need more information, but don't do so unless you have a clear goal in mind that this page is likely to help with:
+        You have already visited the following resources – do not visit them again. They are included for your reference for work done only:
         <ResourcesVisited>
           ${resourceUrlsVisited.map((resourceUrl) => `<ResourceVisited>${resourceUrl}</ResourceVisited>`).join("\n")}
         </ResourcesVisited>
@@ -804,6 +804,10 @@ export const runSubTaskAgent = async (params: {
       );
 
     state.resourcesNotVisited.push(...newWebPages);
+
+    state.resourcesNotVisited = state.resourcesNotVisited.filter(
+      ({ url }) => !state.resourceUrlsVisited.includes(url),
+    );
 
     state.webQueriesMade.push(
       ...completedToolCalls.flatMap(
