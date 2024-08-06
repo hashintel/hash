@@ -203,17 +203,19 @@ where
                 passed += 1;
             }
         }
-        if passed == 1 {
-            Ok(())
-        } else if passed > 1 {
-            // TODO: Remove when data type ID is required
-            //   see https://linear.app/hash/issue/H-2800/validate-that-a-data-type-id-is-always-specified
-            Err(Report::new(PropertyValidationError::AmbiguousProperty {
+
+        match passed {
+            // `OneOfSchema` requires at least one element, so if none passed, it's an error
+            0 => status,
+            1 => Ok(()),
+            // `oneOf` requires exactly one element to pass, so if more than one passed, it's an
+            // error
+            // TODO: Remove this branch when changing to `anyOf` in the schema.
+            //   see https://linear.app/hash/issue/BP-105/fix-type-system-to-use-anyof-instead-of-oneof
+            _ => Err(Report::new(PropertyValidationError::AmbiguousProperty {
                 actual: value.clone(),
             })
-            .attach(Actual::Property(value.clone())))
-        } else {
-            status
+            .attach(Actual::Property(value.clone()))),
         }
     }
 }
