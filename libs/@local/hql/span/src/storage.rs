@@ -1,8 +1,10 @@
 use crate::{tree::SpanNode, Span, SpanId};
 
-/// A collection of spans within a single source file.
+/// A collection of spans within a single source.
 ///
-/// This struct is used to store information about multiple spans within a single source file.
+/// The storage is append-only and does not support the removal or modification of spans.
+/// Once inserted spans are to be considered immutable and can be referred to via their `SpanId`,
+/// which is returned on insertion.
 pub struct SpanStorage<S> {
     inner: Vec<S>,
 }

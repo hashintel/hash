@@ -6,7 +6,10 @@ pub mod tree;
 
 pub use text_size::{TextRange, TextSize};
 
-/// Represents a unique identifier for a span of text within a source file.
+/// Represents a unique identifier for a span in some source.
+///
+/// This span might either be a byte offset, a line/column pair, or some other form of identifier,
+/// such as a JSON Pointer.
 ///
 /// This struct serves as an opaque unique identifier that can be used to reference a specific
 /// span, which needs to be looked up in the storage system.
@@ -41,6 +44,10 @@ pub use text_size::{TextRange, TextSize};
 /// rustc splits span information between `Span` and `SpanData`, where `Span` is more complex
 /// but also contains more intricate encoding. Our `SpanId` is simpler and references data
 /// stored elsewhere.
+/// The size of the `rustc` type is 8 bytes, but instead of storing the data in a separate
+/// storage, it tries to agressively inline the information. Doing so allows the inlining of a vast
+/// majority of spans (99.9%+), making it more efficient to look up the span information.
+/// Implementating a similar approach is left up to a future iteration of the library.
 ///
 /// [`SpanStorage`]: self::storage::SpanStorage
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
