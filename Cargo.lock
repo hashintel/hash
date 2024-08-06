@@ -2619,7 +2619,7 @@ dependencies = [
 
 [[package]]
 name = "harpc-tower"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "bytes",
  "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2865,7 +2865,7 @@ dependencies = [
 
 [[package]]
 name = "hql-cst"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "bumpalo",
  "insta",
@@ -2878,7 +2878,7 @@ dependencies = [
 
 [[package]]
 name = "hql-diagnostics"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "anstyle",
  "anstyle-yansi",
@@ -2895,7 +2895,7 @@ dependencies = [
 
 [[package]]
 name = "hql-span"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "serde",
  "serde-value",

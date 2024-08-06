@@ -9,6 +9,5 @@
   },
   "dependencies": {
     "@local/status": "0.0.0-private"
-  },
-  "devDependencies": {}
+  }
 }

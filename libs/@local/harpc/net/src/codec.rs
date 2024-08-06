@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use std::error::Error;
+use core::error::Error;
 
 use bytes::Bytes;
 use error_stack::{Context, Report, Result};

@@ -74,6 +74,12 @@ jobs:
                 continue
               fi
 
+              if [[ "$(yq '.package.publish.workspace' -p toml -oy "$file")" == "true" ]]; then
+                if [[ "$(yq '.workspace.package.publish' -p toml -oy "Cargo.toml")" == "false" ]]; then
+                  continue
+                fi
+              fi
+
               OLD_VERSION=$(git show HEAD^:"$file" | yq '.package.version' -p toml)
               if [[ "$OLD_VERSION" == "null" ]]; then
                 continue

@@ -16,6 +16,5 @@
     "@rust/temporal-client": "0.0.0-private",
     "@rust/temporal-versioning": "0.0.0-private",
     "@rust/validation": "0.0.0-private"
-  },
-  "devDependencies": {}
+  }
 }

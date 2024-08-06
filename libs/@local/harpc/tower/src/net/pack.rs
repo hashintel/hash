@@ -18,7 +18,7 @@ struct PartialTransactionError {
 
 impl From<PartialTransactionError> for TransactionError {
     fn from(error: PartialTransactionError) -> Self {
-        TransactionError {
+        Self {
             code: error.code,
             bytes: error.bytes.freeze(),
         }
@@ -38,7 +38,7 @@ impl<B> Pack<B>
 where
     B: Body<Control: AsRef<ResponseKind>, Error = !>,
 {
-    pub fn new(inner: B) -> Self {
+    pub const fn new(inner: B) -> Self {
         Self {
             inner,
             error: None,
@@ -93,27 +93,23 @@ where
                     ResponseKind::Err(code) => {
                         // if we have a previous error, finish said error and return it, otherwise
                         // wait for the next frame to populate it
-                        let active = this.error.replace(PartialTransactionError {
-                            code,
-                            bytes: BytesMut::new(),
-                        });
-
-                        if let Some(active) = active {
-                            ControlFlow::Break(Poll::Ready(Some(Err(active.into()))))
-                        } else {
-                            ControlFlow::Continue(())
-                        }
+                        this.error
+                            .replace(PartialTransactionError {
+                                code,
+                                bytes: BytesMut::new(),
+                            })
+                            .map_or_else(
+                                || ControlFlow::Continue(()),
+                                |active| ControlFlow::Break(Poll::Ready(Some(Err(active.into())))),
+                            )
                     }
                     ResponseKind::Ok => {
                         // take the old error and return it (if it exists), otherwise pending
                         // if we wouldn't do that we would concatenate valid values to the error
-                        let error = this.error.take();
-
-                        if let Some(error) = error {
-                            ControlFlow::Break(Poll::Ready(Some(Err(error.into()))))
-                        } else {
-                            ControlFlow::Continue(())
-                        }
+                        this.error.take().map_or_else(
+                            || ControlFlow::Continue(()),
+                            |error| ControlFlow::Break(Poll::Ready(Some(Err(error.into())))),
+                        )
                     }
                 }
             }

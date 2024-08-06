@@ -152,32 +152,30 @@ jobs:
 
       - name: Run clippy
         if: always() && steps.lints.outputs.has-clippy == 'true'
-        working-directory: ${{ matrix.directory }}
         run: |
+          pushd ${{ matrix.directory }}
           just clippy --message-format=json \
             | clippy-sarif \
             | jq '.runs[].results |= unique' \
-            | tee clippy.sarif \
-            | sarif-fmt
+            > clippy.sarif
+          popd
+          cat ${{ matrix.directory }}/clippy.sarif | sarif-fmt
 
-          jq -e '.runs[].results == []' clippy.sarif> /dev/null
+          jq -e '.runs[].results == []' ${{ matrix.directory }}/clippy.sarif> /dev/null
 
-      - name: Process SARIF file
-        working-directory: ${{ matrix.directory }}
-        if: always() && steps.lints.outputs.has-clippy == 'true'
+      - name: Print clippy errors to summary
+        if: failure() && steps.lints.outputs.has-clippy == 'true'
         run: |
-          tmp=$(mktemp)
-
-          jq --arg pwd "${{ matrix.directory }}" '.runs[].results[].locations[].physicalLocation.artifactLocation.uri |= $pwd + "/" + .' clippy.sarif > "$tmp"
-
-          mv "$tmp" clippy.sarif
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat ${{ matrix.directory }}/clippy.sarif | sarif-fmt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@afb54ba388a7dca6ecae48f608c4ff05ff4cc77a # v3.25.15
-        if: always() && steps.lints.outputs.has-clippy == 'true'
+        if: failure() && steps.lints.outputs.has-clippy == 'true'
         with:
           sarif_file: ${{ matrix.directory }}/clippy.sarif
-          category: ${{ matrix.name }}
+          category: ${{ matrix.package }}
 
       - name: Check public documentation
         if: always() && steps.lints.outputs.has-rust == 'true'

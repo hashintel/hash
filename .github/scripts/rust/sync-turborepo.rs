@@ -239,7 +239,21 @@ impl<'a> WorkspaceMember<'a> {
     }
 
     fn is_ignored(&self) -> bool {
-        self.is_blockprotocol()
+        let Some(sync) = self.package.metadata.get("sync") else {
+            return false;
+        };
+
+        let Some(turborepo) = sync.get("turborepo") else {
+            return false;
+        };
+
+        let Some(ignored) = turborepo.get("ignore") else {
+            return false;
+        };
+
+        ignored
+            .as_bool()
+            .expect("extra-dev-dependencies should be an array")
     }
 
     fn is_private(&self) -> bool {
@@ -306,7 +320,19 @@ impl<'a> WorkspaceMember<'a> {
         self.package_dev_dependencies(ctx, &mut package_json.dev_dependencies);
 
         // write the package.json file back to disk
-        let package_json = serde_json::to_string_pretty(&package_json)
+        let mut package_json_value = serde_json::to_value(&package_json)
+            .expect("package.json should be serializable");
+        if let Some(dependencies) =  package_json_value["dependencies"].as_object() {
+            if dependencies.is_empty() {
+                package_json_value.as_object_mut().unwrap().remove("dependencies");
+            }
+        }
+        if let Some(dev_dependencies) =  package_json_value["devDependencies"].as_object() {
+            if dev_dependencies.is_empty() {
+                package_json_value.as_object_mut().unwrap().remove("devDependencies");
+            }
+        }
+        let package_json = serde_json::to_string_pretty(&package_json_value)
             .expect("package.json should be serializable");
         fs::write(&path, package_json).expect("package.json should be writable");
 

@@ -7,7 +7,6 @@
     "lint:clippy": "just clippy",
     "test:integration": "cargo nextest run --all-features --all-targets"
   },
-  "dependencies": {},
   "devDependencies": {
     "@apps/hash-graph": "0.0.0-private",
     "@blockprotocol/type-system-rs": "0.0.0-private",

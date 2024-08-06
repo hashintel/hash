@@ -1,6 +1,6 @@
 {
   "name": "@rust/hql-diagnostics",
-  "version": "0.1.0",
+  "version": "0.0.0-private",
   "private": true,
   "license": "AGPL-3.0",
   "scripts": {
@@ -9,7 +9,6 @@
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
   },
   "dependencies": {
-    "@rust/hql-span": "0.1.0"
-  },
-  "devDependencies": {}
+    "@rust/hql-span": "0.0.0-private"
+  }
 }

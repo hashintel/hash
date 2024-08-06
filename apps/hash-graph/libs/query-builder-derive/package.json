@@ -4,7 +4,5 @@
   "private": true,
   "scripts": {
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
-  },
-  "dependencies": {},
-  "devDependencies": {}
+  }
 }

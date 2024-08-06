@@ -2,10 +2,11 @@ cargo-features = ["edition2024"]
 
 [package]
 name = "hash-graph"
-version = "0.0.0"
+version.workspace = true
 edition.workspace = true
-authors = ["HASH"]
-publish = false
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
 description = "The entity-graph query-layer for the HASH datastore"
 
 
@@ -19,7 +20,7 @@ temporal-client = { workspace = true }
 authorization = { workspace = true }
 codec = { workspace = true }
 hash-tracing = { workspace = true, features = ["clap"] }
-test-server = { workspace = true, optional = true}
+test-server = { workspace = true, optional = true }
 
 error-stack = { workspace = true }
 type-system = { workspace = true }

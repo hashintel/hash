@@ -10,6 +10,5 @@
   },
   "dependencies": {
     "@blockprotocol/type-system-rs": "0.0.0-private"
-  },
-  "devDependencies": {}
+  }
 }
