@@ -103,8 +103,6 @@ impl Display for TypeError {
 
 #[cfg(test)]
 mod tests {
-    use alloc::vec;
-
     use error_stack::Report;
     use serde_json::json;
 
