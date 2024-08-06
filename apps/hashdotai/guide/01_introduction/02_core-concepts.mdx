@@ -63,7 +63,7 @@ We recommend having a quick scan of this page as you start out, and returning to
 
 We use the term 'account' to refer to both users and organizations (aka. "orgs") in HASH.
 
-All users and orgs have an account name, such as **@example**. This can be used to access an account's public profile, such as at [hash.ai/@example](/@example).
+All users and orgs have an account name, such as **@example**. This can be used to access an account's public profile, such as at [hash.ai/@example](https://app.hash.ai/@example).
 </ParagraphIconWrapper>
 
 <ParagraphIconWrapper boxContent={<CircleNodesIcon />}>
@@ -82,8 +82,9 @@ You can access any number of shared webs, in addition to your own personal web.
 ## Entities
 
 Data in a web exists in the form of [entities](/guide/entities). Entities have:
-- An <ins>entity type</ins> which describes “what they are” and what kinds of attributes may be associated with them
-- Any number of <ins>attribute values</ins> which contain an entity’s properties and links (structured data)
+
+- An [entity type](#entity-types) which describes “what they are” and what kinds of attributes may be associated with them
+- Any number of attribute values</ins> which contain an entity’s properties and links (structured data)
 - Any number of <ins>observations</ins> (facts, statements or beliefs about an entity that don’t fit into its existing/available attributes)
 - Any number of <ins>notes</ins>, which allow completely unstructured information to be associated with an entity.
 </ParagraphIconWrapper>
@@ -97,33 +98,33 @@ An individual entity may have one or more [entity types](/guide/types/entity-typ
 <ParagraphIconWrapper boxContent={<DatabaseIcon />}>
 ## Attributes
 
-[Attributes](/guide/entities/attributes) are structured information stored on an entity’s record. They are either **properties** (which contain data) or **links** (which point to other entities).
+[Attributes](/guide/entities/attributes) are structured information stored on an entity’s record. Their values are either **properties** (which contain data) or **links** (which point to other entities).
 </ParagraphIconWrapper>
 
 <ParagraphIconWrapper boxContent={<LinkIcon />}>
 ## Link Types
 
-A <ins>link type</ins> describes a link attribute, giving it a label and providing it with meaning.
+Every **link** attribute has a [link type](/guide/types/link-types) which describes what its value refers to and provides it with a label.
 
-The specific (or type of) entities that are allowed to be stored in a link may also be constrained through the link’s type.
+Constraints on the specific entities, or type(s) of entities that a link may point to, are also defined by the link’s type.
 
-**Example link type:**  <code>Employed By</code>
+**Example link type:**  <code>Employed By</code> (may point to `Company`)
 </ParagraphIconWrapper>
 
 <ParagraphIconWrapper boxContent={<TagIcon />}>
 ## Property Types
 
-A <ins>property type</ins> provides a semantic description about what a value is, and outlines the <ins>data types</ins> (formats of data) that it accepts.
+Every **property** attribute has a [property type](/guide/types/property-types) which describes what its value refers to, and outlines the format(s) of data (i.e. the [data types](#data-types)) that it accepts.
 
-**Example property type:**  <code>Temperature</code>
+**Example property type:**  <code>Average Temperature</code>
 </ParagraphIconWrapper>
 
 <ParagraphIconWrapper boxContent={<BarcodeIcon />}>
 ## Data Types
 
-While property types describe data semantically, data types define data structurally, and specify what label(s) should be used in conjunction with it.
+While property types provide semantic meaning to property values, [data types](/guide/types/data-types) define the range of accepted values, and specify the labels that should be shown in conjunction with them.
 
-**Example data type:**  <code>Celcius</code> or <code>Farenheit</code>
+**Example data types:**  <code>Celcius</code> and <code>Farenheit</code>
 </ParagraphIconWrapper>
 
 <ParagraphIconWrapper boxContent={<ClockRotateLeftIcon />}>
@@ -131,11 +132,9 @@ While property types describe data semantically, data types define data structur
 
 [History](/guide/webs/history) in HASH refers to three things:
 
-**1.  change tracking:** a complete record of all the changes to an entity or type over time
-
-**2.  versioning:** the ability to inspect, access and even use older versions of an entity or type
-
-**3.  provenance:** the ability to see where information and changes originated, as well as what caused them
+**1. change tracking:** a complete record of all the changes to an entity or type over time
+**2. versioning:** the ability to inspect, access and even use older versions of an entity or type
+**3. provenance:** the ability to see where information and changes originated, as well as what caused them
 </ParagraphIconWrapper>
 
 # Using HASH
@@ -143,7 +142,7 @@ While property types describe data semantically, data types define data structur
 <ParagraphIconWrapper boxContent={<ZapThinIcon />}>
 ## Workers
 
-HASH <ins>workers</ins> are AI agents which work for you. They perform tasks on your behalf, helping grow your web with useful information, and keep it up to date.
+HASH [workers](/guide/workers) are AI agents which work for you. They perform tasks on your behalf, helping grow your web with useful information, and keep it up to date.
 
 You can ask also ask your worker questions about the data in your web, helping you find and use relevant information more effectively.
 </ParagraphIconWrapper>
@@ -151,9 +150,9 @@ You can ask also ask your worker questions about the data in your web, helping y
 <ParagraphIconWrapper boxContent={<BullsEyeIcon />}>
 ## Goals
 
-Workers can be given <ins>goals</ins>. When provided with a goal, available workers will analyze your aims, develop a plan, and execute it autonomously upon your behalf, much as a capable human colleague might.
+Workers can be given [goals](/guide/workers/goals). When provided with a goal, available workers will analyze your aims, develop a plan, and execute it autonomously upon your behalf, much as a capable human colleague might.
 
-Right now, HASH lets you provide **research and analysis** goals (with support for more planned in the future).
+Right now, HASH supports **research and analysis** goals, helping you capture and process information about the world.
 </ParagraphIconWrapper>
 
 <ParagraphIconWrapper boxContent={<InfinityIcon />}>
@@ -175,9 +174,9 @@ For example, if a worker requires you to clarify some part of a stated goal, a q
 <ParagraphIconWrapper boxContent={<PlugRegularIcon />}>
 ## Plugins
 
-<ins>Plugins</ins> allow you to interact with your web within other applications, and typically provide HASH with additional capabilities.
+[Plugins](/guide/plugins) allow you to interact with your web within other applications, and typically provide HASH with additional capabilities.
 
-For example, installing the <ins>HASH browser extension</ins> lets you (optionally) allow workers to browse websites using any accounts you may be logged into. This can let them bypass paywalls, and access other protected content.
+For example, installing the [HASH browser extension](/download) lets you (optionally) allow workers to browse websites using any accounts you may be logged into. This can let them bypass paywalls, and access other protected content.
 </ParagraphIconWrapper>
 
 # Other features
