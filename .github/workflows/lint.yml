@@ -166,8 +166,6 @@ jobs:
       - name: Print clippy errors to summary
         if: failure() && steps.lints.outputs.has-clippy == 'true'
         run: |
-          echo '## Clippy errors for `${{ matrix.package }}`' >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           cat ${{ matrix.directory }}/clippy.sarif | sarif-fmt >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
