@@ -87,8 +87,7 @@ impl<'a> Diagnostic<'a, SpanId> {
                         acc.extend_one(error);
                         Err(acc)
                     }
-                    (Err(acc), _) => Err(acc),
-                    (_, Err(error)) => Err(error),
+                    (Err(error), _) | (_, Err(error)) => Err(error),
                 }
             })?;
 
