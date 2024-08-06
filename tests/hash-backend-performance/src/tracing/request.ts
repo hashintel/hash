@@ -1,19 +1,16 @@
-import type { SpanContext } from "@opentelemetry/api";
+import type { Context, SpanContext } from "@opentelemetry/api";
 import opentelemetry from "@opentelemetry/api";
 
 import type { AfterResponseFn, BeforeRequestFn } from "../types";
 import type { TracingContext } from "./sdk";
 
 export const createTraceHeaders = (
-  spanContext: SpanContext | undefined = opentelemetry.trace
-    .getActiveSpan()
-    ?.spanContext(),
-): { traceparent?: string } =>
-  spanContext
-    ? {
-        traceparent: `00-${spanContext.traceId}-${spanContext.spanId}-${`0${spanContext.traceFlags.toString(16)}`.slice(-2)}`,
-      }
-    : {};
+  context: Context | undefined = opentelemetry.context.active(),
+): { traceparent?: string } => {
+  const traceHeaders = {};
+  opentelemetry.propagation.inject(context, traceHeaders);
+  return traceHeaders;
+};
 
 export const enterRequestSpan: BeforeRequestFn<
   Record<string, never>,
@@ -27,15 +24,10 @@ export const enterRequestSpan: BeforeRequestFn<
   context.scenario.tracing.startRequest(
     requestParams.name ?? requestParams.url,
   );
-
-  const span = opentelemetry.trace.getSpan(context.scenario.tracing.context);
-  if (span) {
-    // eslint-disable-next-line no-param-reassign
-    requestParams.headers = {
-      ...(requestParams.headers ?? {}),
-      ...createTraceHeaders(span.spanContext()),
-    };
-  }
+  opentelemetry.propagation.inject(
+    context.scenario.tracing.context,
+    requestParams.headers,
+  );
 };
 
 export const exitRequestSpan: AfterResponseFn<

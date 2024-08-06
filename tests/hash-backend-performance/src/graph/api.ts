@@ -6,8 +6,7 @@ import type { GraphApi } from "@local/hash-graph-client";
 import type { AccountId } from "@local/hash-graph-types/account";
 import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-
-import { createTraceHeaders } from "../tracing/request";
+import opentelemetry from "@opentelemetry/api";
 
 let __graphApi: GraphApi | undefined;
 export const getGraphApiClient = (): GraphApi => {
@@ -17,10 +16,13 @@ export const getGraphApiClient = (): GraphApi => {
       {
         host: getRequiredEnv("HASH_GRAPH_API_HOST"),
         port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),
-        requestInterceptor: (request) => {
-          request.headers.set(createTraceHeaders());
-          return request;
-        },
+        // requestInterceptor: (request) => {
+        //   opentelemetry.propagation.inject(
+        //     opentelemetry.context.active(),
+        //     request.headers,
+        //   );
+        //   return request;
+        // },
       },
     );
   }
