@@ -10,6 +10,7 @@ use anstyle::{Ansi256Color, AnsiColor, Color};
 /// A severity can be referred to by its `id` or `code`.
 ///
 /// Any code over `400` is considered fatal.
+// See: https://docs.rs/serde_with/3.9.0/serde_with/guide/serde_as/index.html#gating-serde_as-on-features
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 #[cfg_attr(feature = "serde", cfg_eval, serde_with::serde_as)]
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
