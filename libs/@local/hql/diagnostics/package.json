@@ -1,7 +1,7 @@
 {
   "name": "@rust/hql-diagnostics",
   "version": "0.1.0",
-  "private": false,
+  "private": true,
   "license": "AGPL-3.0",
   "scripts": {
     "fix:clippy": "just clippy --fix",

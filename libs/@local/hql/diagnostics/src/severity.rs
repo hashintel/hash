@@ -51,21 +51,21 @@ impl Severity {
 
 impl Severity {
     #[must_use]
-    pub const fn id(&self) -> &str {
+    pub const fn id(self) -> &str {
         self.id
     }
 
     #[must_use]
-    pub const fn name(&self) -> &str {
+    pub const fn name(self) -> &str {
         self.name
     }
 
     #[must_use]
-    pub const fn code(&self) -> i32 {
+    pub const fn code(self) -> i32 {
         self.priority
     }
 
-    pub(crate) fn kind(&self) -> ariadne::ReportKind {
+    pub(crate) fn kind(self) -> ariadne::ReportKind {
         ariadne::ReportKind::Custom(self.name, anstyle_yansi::to_yansi_color(self.color))
     }
 }

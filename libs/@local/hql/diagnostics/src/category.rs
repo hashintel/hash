@@ -15,12 +15,10 @@ impl Category {
 
         impl<'a> Display for DisplayCategoryId<'a> {
             fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-                let Some(parent) = self.0.parent else {
-                    return Display::fmt(&self.0.id, f);
+                if let Some(parent) = self.0.parent {
+                    DisplayCategoryId(parent).fmt(f)?;
+                    f.write_str("::")?;
                 };
-
-                DisplayCategoryId(parent).fmt(f)?;
-                f.write_str("::")?;
                 Display::fmt(&self.0.id, f)
             }
         }
@@ -34,12 +32,10 @@ impl Category {
 
         impl<'a> Display for DisplayCategoryName<'a> {
             fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-                let Some(parent) = self.0.parent else {
-                    return Display::fmt(&self.0.name, f);
-                };
-
-                DisplayCategoryName(parent).fmt(f)?;
-                f.write_str(" / ")?;
+                if let Some(parent) = self.0.parent {
+                    DisplayCategoryName(parent).fmt(f)?;
+                    f.write_str(" / ")?;
+                }
                 Display::fmt(&self.0.name, f)
             }
         }
