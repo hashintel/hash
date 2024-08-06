@@ -318,7 +318,7 @@ pub struct TransactionStream {
 }
 
 impl TransactionStream {
-    fn new(sender: tachyonix::Receiver<Request>, permit: Arc<TransactionPermit>) -> Self {
+    const fn new(sender: tachyonix::Receiver<Request>, permit: Arc<TransactionPermit>) -> Self {
         Self {
             state: TransactionStreamState::Open {
                 sender,

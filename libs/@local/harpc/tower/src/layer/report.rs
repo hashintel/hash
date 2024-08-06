@@ -19,7 +19,7 @@ pub struct HandleReportLayer<E> {
 }
 
 impl<E> HandleReportLayer<E> {
-    pub fn new(encoder: E) -> Self {
+    pub const fn new(encoder: E) -> Self {
         Self { encoder }
     }
 }
@@ -68,7 +68,7 @@ where
         let encoder = self.encoder.clone();
 
         let clone = self.inner.clone();
-        let inner = std::mem::replace(&mut self.inner, clone);
+        let inner = core::mem::replace(&mut self.inner, clone);
 
         let session = req.session();
 

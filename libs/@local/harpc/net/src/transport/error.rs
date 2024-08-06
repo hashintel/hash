@@ -20,7 +20,7 @@ impl Display for OpenStreamError {
     }
 }
 
-impl std::error::Error for OpenStreamError {}
+impl core::error::Error for OpenStreamError {}
 
 impl From<stream::OpenStreamError> for OpenStreamError {
     fn from(err: stream::OpenStreamError) -> Self {

@@ -1,4 +1,4 @@
-use std::{
+use core::{
     pin::Pin,
     task::{Context, Poll},
 };
@@ -55,7 +55,7 @@ pub enum Either<L, R> {
 }
 
 impl<L, R> Either<L, R> {
-    pub fn left(&self) -> Option<&L> {
+    pub const fn left(&self) -> Option<&L> {
         match self {
             Self::Left(left) => Some(left),
             Self::Right(_) => None,
@@ -76,7 +76,7 @@ impl<L, R> Either<L, R> {
         }
     }
 
-    pub fn right(&self) -> Option<&R> {
+    pub const fn right(&self) -> Option<&R> {
         match self {
             Self::Left(_) => None,
             Self::Right(right) => Some(right),
