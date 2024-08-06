@@ -10163,15 +10163,6 @@
   resolved "https://registry.yarnpkg.com/@types/aria-query/-/aria-query-4.2.2.tgz#ed4e0ad92306a704f9fb132a0cfcf77486dbe2bc"
   integrity "sha1-7U4K2SMGpwT5+xMqDPz3dIbb4rw= sha512-HnYpAE1Y6kRyKM/XkEuiRQhTHvkzMBurTHnpFLYLBGPIylZNPs9jJcuOOYWxPLJCSEtmZT0Y8rHDokKN7rRTig=="
 
-"@types/artillery@1.7.4":
-  version "1.7.4"
-  resolved "https://registry.yarnpkg.com/@types/artillery/-/artillery-1.7.4.tgz#683140e7a0915a42377fd9ca6473ed09cf516ebb"
-  integrity sha512-nqT0ixMaWyy8eVyvVLfbea/8q9TRnzO6UlpEVejTTy49YKUaax3KL/Pp/36BFkGL9c0WYc8Ea9Yhy7CahNnQBA==
-  dependencies:
-    "@types/node" "*"
-    "@types/tough-cookie" "*"
-    got "^11.8.5"
-
 "@types/babel__core@^7.0.0":
   version "7.1.20"
   resolved "https://registry.yarnpkg.com/@types/babel__core/-/babel__core-7.1.20.tgz#e168cdd612c92a2d335029ed62ac94c95b362359"
