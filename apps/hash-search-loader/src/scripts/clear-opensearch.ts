@@ -16,7 +16,7 @@ if (process.env.HASH_OPENSEARCH_ENABLED !== "true") {
 
 const logger = new Logger({
   serviceName: "clear-opensearch",
-  environment: process.env.NODE_ENV,
+  environment: process.env.NODE_ENV as "development" | "production" | "test",
 });
 
 // Add all indices in the search cluster here

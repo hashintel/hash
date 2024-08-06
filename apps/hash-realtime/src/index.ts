@@ -43,7 +43,7 @@ const INSTANCE_ID = crypto.randomUUID();
 const OWNERSHIP_EXPIRY_MILLIS = 10_000;
 
 const logger = new Logger({
-  environment: process.env.NODE_ENV,
+  environment: process.env.NODE_ENV as "development" | "production" | "test",
   level: process.env.NODE_ENV === "development" ? "debug" : "info",
   serviceName: "realtime",
   metadata: { instanceId: INSTANCE_ID },

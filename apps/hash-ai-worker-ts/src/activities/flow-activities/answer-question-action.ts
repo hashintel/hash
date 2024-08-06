@@ -187,8 +187,6 @@ const callModel = async (
     },
   );
 
-  logger.debug(`Open AI Response received: ${stringify(llmResponse)}`);
-
   if (llmResponse.status !== "ok") {
     return {
       code: StatusCode.Internal,

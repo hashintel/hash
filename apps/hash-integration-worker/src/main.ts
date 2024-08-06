@@ -41,7 +41,7 @@ export const monorepoRootDir = path.resolve(__dirname, "../../..");
 config({ silent: true, path: monorepoRootDir });
 
 export const logger = new Logger({
-  environment: process.env.NODE_ENV,
+  environment: process.env.NODE_ENV as "development" | "production" | "test",
   serviceName: "integration-worker",
 });
 

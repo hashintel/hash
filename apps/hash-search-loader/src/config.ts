@@ -20,6 +20,6 @@ if (!["development", "production", "test"].includes(NODE_ENV)) {
 // Configure the logger
 export const logger = new Logger({
   serviceName: "search-loader",
-  environment: NODE_ENV,
+  environment: NODE_ENV as "development" | "production" | "test",
   metadata: { instanceId: INSTANCE_ID },
 });

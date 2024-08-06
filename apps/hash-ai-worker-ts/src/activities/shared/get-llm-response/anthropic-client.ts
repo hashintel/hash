@@ -69,6 +69,7 @@ export type AnthropicMessagesCreateResponse = Omit<
 > & {
   stop_reason: Message["stop_reason"] | "tool_use";
   content: AnthropicMessagesCreateResponseContent[];
+  provider: AnthropicApiProvider;
 };
 
 const awsAccessKey = getRequiredEnv(

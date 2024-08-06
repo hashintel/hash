@@ -74,10 +74,8 @@ export class Logger {
     }
 
     if (process.env.DATADOG_API_KEY) {
-      console.log("Adding Datadog transport", cfg);
       logger.add(
         new winston.transports.Http({
-          level,
           format: winston.format.json(),
           host: "http-intake.logs.datadoghq.com",
           level,

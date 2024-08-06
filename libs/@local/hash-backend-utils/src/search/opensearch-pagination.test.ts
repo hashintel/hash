@@ -15,7 +15,11 @@ const stub = {
 };
 const openSearch: OpenSearch = new OpenSearch(
   stub as unknown as Client,
-  new Logger({ level: "debug", environment: "dev", serviceName: "dbg" }),
+  new Logger({
+    level: "debug",
+    environment: "development",
+    serviceName: "dbg",
+  }),
 );
 
 const generateSearchHit = (searchIndex: string, itemId: number) => ({

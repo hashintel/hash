@@ -31,9 +31,11 @@ import {
   mapAnthropicMessageToLlmMessage,
   mapLlmMessageToAnthropicMessage,
 } from "./llm-message.js";
+import { logLlmRequest, logLlmServerError } from "./log-llm-request.js";
 import type {
   AnthropicLlmParams,
   AnthropicResponse,
+  LlmRequestMetadata,
   LlmResponse,
   LlmStopReason,
   LlmToolDefinition,
@@ -139,21 +141,25 @@ const switchProvider = (
   provider === "anthropic" ? "amazon-bedrock" : "anthropic";
 
 const createAnthropicMessagesWithToolsWithBackoff = async (params: {
+  metadata: LlmRequestMetadata;
   payload: AnthropicMessagesCreateParams;
-  initialProvider?: AnthropicApiProvider;
+  initialProvider: AnthropicApiProvider;
   retryCount?: number;
   priorRateLimitError?: Partial<Record<AnthropicApiProvider, RateLimitError>>;
 }): Promise<AnthropicMessagesCreateResponse> => {
   const {
+    metadata,
     payload,
     retryCount = 1,
-    initialProvider = "anthropic",
+    initialProvider,
     priorRateLimitError,
   } = params;
 
   let currentProvider: AnthropicApiProvider = initialProvider;
 
   try {
+    const now = Date.now();
+
     const response = await backOff(
       () =>
         createAnthropicMessagesWithTools({
@@ -165,12 +171,22 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
         jitter: "full",
         numOfAttempts: maximumExponentialBackoffRetries,
         retry: (error) => {
+          const then = Date.now();
+
+          const numberOfSeconds = (then - now) / 1000;
+
+          logLlmServerError({
+            ...metadata,
+            provider: currentProvider,
+            response: error as unknown,
+            request: payload,
+            secondsTaken: numberOfSeconds,
+          });
+
           /**
            * Only retry further requests with an exponential back-off if a server error
-           * was encountered.
+           * was encountered. Otherwise, fall out of backOff to check for a rate-limiting error.
            */
-          logger.error(stringify({ currentProvider, ...response }));
-
           if (isServerError(error)) {
             const otherProvider = switchProvider(currentProvider);
             const priorRateLimitErrorForOtherProvider =
@@ -201,9 +217,10 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
       },
     );
 
-    logger.debug(stringify({ currentProvider, ...response }));
-
-    return response;
+    return {
+      ...response,
+      provider: currentProvider,
+    };
   } catch (currentProviderError) {
     if (
       isErrorAnthropicRateLimitingError(currentProviderError) &&
@@ -220,6 +237,7 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
           `Encountered rate limit error with provider "${currentProvider}", retrying directly with provider "${otherProvider}".`,
         );
         return createAnthropicMessagesWithToolsWithBackoff({
+          metadata,
           payload,
           initialProvider: otherProvider,
           retryCount: retryCount + 1,
@@ -267,6 +285,7 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
         }
 
         return createAnthropicMessagesWithToolsWithBackoff({
+          metadata,
           payload,
           initialProvider: smallerStartingDelayProvider,
           retryCount: retryCount + 1,
@@ -284,6 +303,7 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
 
 export const getAnthropicResponse = async <ToolName extends string>(
   params: AnthropicLlmParams<ToolName>,
+  metadata: LlmRequestMetadata,
 ): Promise<LlmResponse<AnthropicLlmParams>> => {
   const {
     tools,
@@ -326,13 +346,18 @@ export const getAnthropicResponse = async <ToolName extends string>(
       : undefined,
   };
 
+  const initialProvider = "anthropic";
+
   try {
     anthropicResponse = await createAnthropicMessagesWithToolsWithBackoff({
       payload,
+      metadata,
+      initialProvider,
     });
   } catch (error) {
     return {
       status: "api-error",
+      provider: initialProvider,
       error,
     };
   }
@@ -363,6 +388,7 @@ export const getAnthropicResponse = async <ToolName extends string>(
   if (anthropicResponse.stop_reason === "max_tokens") {
     return {
       status: "exceeded-maximum-output-tokens",
+      provider: anthropicResponse.provider,
       lastRequestTime,
       totalRequestTime,
       requestMaxTokens: maxTokens,
@@ -371,6 +397,10 @@ export const getAnthropicResponse = async <ToolName extends string>(
     };
   }
 
+  const stopReason = mapAnthropicStopReasonToLlmStopReason(
+    anthropicResponse.stop_reason,
+  );
+
   const retry = async (retryParams: {
     successfullyParsedToolCalls: ParsedLlmToolCall<ToolName>[];
     retryMessageContent: LlmUserMessage["content"];
@@ -378,6 +408,7 @@ export const getAnthropicResponse = async <ToolName extends string>(
     if (retryCount > maxRetryCount) {
       return {
         status: "exceeded-maximum-retries",
+        provider: anthropicResponse.provider,
         invalidResponses: previousInvalidResponses ?? [],
         lastRequestTime,
         totalRequestTime,
@@ -406,39 +437,60 @@ export const getAnthropicResponse = async <ToolName extends string>(
       },
     });
 
-    return getAnthropicResponse({
-      ...params,
-      messages: [
-        ...params.messages,
-        responseMessage,
-        {
-          role: "user",
-          content: retryParams.retryMessageContent,
-        },
-      ],
-      previousInvalidResponses: [
-        ...(previousInvalidResponses ?? []),
-        { ...anthropicResponse, requestTime: currentRequestTime },
-      ],
-      retryContext: {
-        retryCount: retryCount + 1,
-        previousUsage: usage,
-        previousSuccessfulToolCalls: [
-          ...(retryContext?.previousSuccessfulToolCalls ?? []),
-          ...retryParams.successfullyParsedToolCalls,
-        ],
+    if (responseMessage.role === "user") {
+      throw new Error("Unexpected user message in response");
+    }
+
+    logLlmRequest({
+      ...metadata,
+      finalized: false,
+      secondsTaken: lastRequestTime,
+      provider: anthropicResponse.provider,
+      response: {
+        ...anthropicResponse,
+        status: "ok",
+        stopReason,
+        lastRequestTime,
+        totalRequestTime,
+        usage,
+        message: responseMessage,
+        invalidResponses: previousInvalidResponses ?? [],
       },
+      request: params,
     });
+
+    return getAnthropicResponse(
+      {
+        ...params,
+        messages: [
+          ...params.messages,
+          responseMessage,
+          {
+            role: "user",
+            content: retryParams.retryMessageContent,
+          },
+        ],
+        previousInvalidResponses: [
+          ...(previousInvalidResponses ?? []),
+          { ...anthropicResponse, requestTime: currentRequestTime },
+        ],
+        retryContext: {
+          retryCount: retryCount + 1,
+          previousUsage: usage,
+          previousSuccessfulToolCalls: [
+            ...(retryContext?.previousSuccessfulToolCalls ?? []),
+            ...retryParams.successfullyParsedToolCalls,
+          ],
+        },
+      },
+      metadata,
+    );
   };
 
   const parsedToolCalls: ParsedLlmToolCall<ToolName>[] = [];
 
   const unvalidatedParsedToolCalls =
     parseToolCallsFromAnthropicResponse(anthropicResponse);
-
-  const stopReason = mapAnthropicStopReasonToLlmStopReason(
-    anthropicResponse.stop_reason,
-  );
 
   if (stopReason === "tool_use" && unvalidatedParsedToolCalls.length > 0) {
     const retryMessageContent: LlmUserMessage["content"] = [];
@@ -525,11 +577,7 @@ export const getAnthropicResponse = async <ToolName extends string>(
     message,
     usage,
     invalidResponses: previousInvalidResponses ?? [],
-    lastRequestTime: currentRequestTime,
-    totalRequestTime:
-      previousInvalidResponses?.reduce(
-        (acc, { requestTime }) => acc + requestTime,
-        currentRequestTime,
-      ) ?? currentRequestTime,
+    lastRequestTime,
+    totalRequestTime,
   };
 };
