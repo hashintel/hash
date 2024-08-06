@@ -45,3 +45,6 @@ arbitrary-precision = []
 
 [lints]
 workspace = true
+
+[package.metadata.sync.turborepo]
+ignore = true

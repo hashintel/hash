@@ -9,8 +9,5 @@
     "lint:clippy": "just clippy",
     "test:miri": "just miri",
     "test:unit": "just test-or-coverage"
-  },
-  "devDependencies": {
-    "@rust/deer-desert": "0.0.0-private"
   }
 }

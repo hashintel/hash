@@ -239,7 +239,21 @@ impl<'a> WorkspaceMember<'a> {
     }
 
     fn is_ignored(&self) -> bool {
-        self.is_blockprotocol()
+        let Some(sync) = self.package.metadata.get("sync") else {
+            return false;
+        };
+
+        let Some(turborepo) = sync.get("turborepo") else {
+            return false;
+        };
+
+        let Some(ignored) = turborepo.get("ignore") else {
+            return false;
+        };
+
+        ignored
+            .as_bool()
+            .expect("extra-dev-dependencies should be an array")
     }
 
     fn is_private(&self) -> bool {
