@@ -10,6 +10,7 @@ readme = "README.md"
 repository = "https://github.com/hashintel/hash/tree/main/libs/sarif"
 keywords = ["no_std", "sarif", "codeql", "serde", "static-analysis", "tools"]
 categories = ["no-std", "data-structures", "development-tools", "parsing"]
+publish = false
 
 [dependencies]
 serde = { version = "1", default-features = false, features = ["derive"], optional = true }

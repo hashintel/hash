@@ -11,6 +11,7 @@ readme = "../README.md"
 repository = "https://github.com/hashintel/hash/tree/main/libs/error-stack"
 keywords = ["errorstack", "error-handling", "macro", "derive", "no_std"]
 categories = ["rust-patterns", "no-std"]
+publish = false
 
 [lib]
 proc-macro = true

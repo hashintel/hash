@@ -1,5 +1,5 @@
 {
-  "name": "@rust/graph-test-server",
+  "name": "@rust/test-server",
   "version": "0.0.0-private",
   "private": true,
   "scripts": {
@@ -15,6 +15,5 @@
     "@rust/graph-api": "0.0.0-private",
     "@rust/graph-types": "0.0.0-private",
     "@rust/hash-status": "0.0.0-private"
-  },
-  "devDependencies": {}
+  }
 }

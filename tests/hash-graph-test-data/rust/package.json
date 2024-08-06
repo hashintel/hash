@@ -5,7 +5,5 @@
   "scripts": {
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy"
-  },
-  "dependencies": {},
-  "devDependencies": {}
+  }
 }
