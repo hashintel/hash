@@ -2,6 +2,7 @@
   "name": "@rust/test-server",
   "version": "0.0.0-private",
   "private": true,
+  "license": "AGPL-3",
   "scripts": {
     "start": "../../../../target/release/hash-graph test-server --api-port 4001",
     "start:healthcheck": "../../../../target/release/hash-graph test-server --api-port 4001 --healthcheck --wait --timeout 600 --logging-console-level=warn",
