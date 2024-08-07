@@ -10,7 +10,7 @@ use utoipa::ToSchema;
 use crate::{
     ontology::PropertyTypeQueryPath,
     store::query::{JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath},
-    subgraph::edges::OntologyEdgeKind,
+    subgraph::edges::{EdgeDirection, OntologyEdgeKind},
 };
 
 /// A path to a [`DataType`] field.
@@ -150,6 +150,36 @@ pub enum DataTypeQueryPath<'p> {
     OntologyId,
     /// Only used internally and not available for deserialization.
     Schema(Option<JsonPath<'p>>),
+    /// An edge between two [`DataType`]s using an [`OntologyEdgeKind`].
+    ///
+    /// Allowed edge kinds are:
+    /// - [`InheritsFrom`]
+    ///
+    /// [`InheritsFrom`]: OntologyEdgeKind::InheritsFrom
+    /// [`DataType`]: type_system::schema::DataType
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::DataTypeQueryPath;
+    /// # use graph::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
+    /// let path = DataTypeQueryPath::deserialize(json!(["dataTypes", "*", "title"]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     DataTypeQueryPath::DataTypeEdge {
+    ///         edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///         path: Box::new(DataTypeQueryPath::Title),
+    ///         direction: EdgeDirection::Outgoing,
+    ///     }
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    DataTypeEdge {
+        edge_kind: OntologyEdgeKind,
+        path: Box<Self>,
+        direction: EdgeDirection,
+        inheritance_depth: Option<u32>,
+    },
     /// A reversed edge from a [`PropertyType`] to this [`DataType`] using an [`OntologyEdgeKind`].
     ///
     /// The corresponding edge is [`PropertyTypeQueryPath::DataTypeEdge`].
@@ -221,6 +251,7 @@ impl QueryPath for DataTypeQueryPath<'_> {
             Self::Description | Self::Title | Self::Type => ParameterType::Text,
             Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
             Self::EditionProvenance(_) => ParameterType::Any,
+            Self::DataTypeEdge { path, .. } => path.expected_type(),
             Self::PropertyTypeEdge { path, .. } => path.expected_type(),
         }
     }
@@ -244,6 +275,13 @@ impl fmt::Display for DataTypeQueryPath<'_> {
             Self::EditionProvenance(Some(path)) => write!(fmt, "editionProvenance.{path}"),
             Self::EditionProvenance(None) => fmt.write_str("editionProvenance"),
             Self::Embedding => fmt.write_str("embedding"),
+            Self::DataTypeEdge {
+                edge_kind, path, ..
+            } => {
+                fmt.write_char('<')?;
+                edge_kind.serialize(&mut *fmt)?;
+                write!(fmt, ">.{path}")
+            }
             Self::PropertyTypeEdge {
                 edge_kind, path, ..
             } => {
@@ -375,6 +413,17 @@ impl DataTypeQueryPath<'_> {
             Self::EditionProvenance(path) => {
                 DataTypeQueryPath::EditionProvenance(path.map(JsonPath::into_owned))
             }
+            Self::DataTypeEdge {
+                path,
+                edge_kind,
+                direction,
+                inheritance_depth,
+            } => DataTypeQueryPath::DataTypeEdge {
+                path: Box::new(path.into_owned()),
+                edge_kind,
+                direction,
+                inheritance_depth,
+            },
             Self::PropertyTypeEdge { path, edge_kind } => DataTypeQueryPath::PropertyTypeEdge {
                 path: Box::new(path.into_owned()),
                 edge_kind,

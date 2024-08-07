@@ -208,7 +208,7 @@ where
     pub(crate) async fn traverse_data_types(
         &self,
         mut data_type_queue: Vec<(
-            OntologyId,
+            DataTypeId,
             GraphResolveDepths,
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
@@ -221,7 +221,7 @@ where
             let mut edges_to_traverse =
                 HashMap::<OntologyEdgeKind, OntologyTypeTraversalData>::new();
 
-            for (entity_type_ontology_id, graph_resolve_depths, traversal_interval) in
+            for (data_type_ontology_id, graph_resolve_depths, traversal_interval) in
                 mem::take(&mut data_type_queue)
             {
                 for edge_kind in [
@@ -232,7 +232,7 @@ where
                         .decrement_depth_for_edge(edge_kind, EdgeDirection::Outgoing)
                     {
                         edges_to_traverse.entry(edge_kind).or_default().push(
-                            entity_type_ontology_id,
+                            OntologyId::from(data_type_ontology_id),
                             new_graph_resolve_depths,
                             traversal_interval,
                         );
@@ -275,7 +275,7 @@ where
                             );
 
                             traversal_context.add_data_type_id(
-                                edge.right_endpoint_ontology_id,
+                                DataTypeId::from(edge.right_endpoint_ontology_id),
                                 edge.resolve_depths,
                                 edge.traversal_interval,
                             )
@@ -587,7 +587,7 @@ where
                 .into_iter()
                 .map(|id| {
                     (
-                        OntologyId::from(id),
+                        id,
                         subgraph.depths,
                         subgraph.temporal_axes.resolved.variable_interval(),
                     )

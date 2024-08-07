@@ -4,7 +4,8 @@ use core::{fmt, mem, str::FromStr};
 use derive_where::derive_where;
 use error_stack::{bail, Context, Report, ResultExt};
 use graph_types::{
-    knowledge::entity::{Entity, EntityId},
+    knowledge::entity::{Entity, EntityEditionId, EntityId},
+    ontology::{DataTypeId, DataTypeWithMetadata, EntityTypeId, PropertyTypeId},
     Embedding,
 };
 use serde::Deserialize;
@@ -15,12 +16,15 @@ use uuid::Uuid;
 
 use crate::{
     knowledge::EntityQueryPath,
-    ontology::EntityTypeQueryPath,
+    ontology::{DataTypeQueryPath, EntityTypeQueryPath},
     store::{
         query::{OntologyQueryPath, ParameterType, QueryPath},
         QueryRecord, SubgraphRecord,
     },
-    subgraph::{edges::SharedEdgeKind, identifier::VertexId},
+    subgraph::{
+        edges::{EdgeDirection, OntologyEdgeKind, SharedEdgeKind},
+        identifier::VertexId,
+    },
 };
 
 /// A set of conditions used for queries.
@@ -81,6 +85,43 @@ where
                 ))),
             ),
         ])
+    }
+}
+
+impl<'p> Filter<'p, DataTypeWithMetadata> {
+    #[must_use]
+    pub fn for_data_type_parents(
+        data_type_ids: &'p [DataTypeId],
+        inheritance_depth: Option<u32>,
+    ) -> Self {
+        Filter::In(
+            FilterExpression::Path(DataTypeQueryPath::DataTypeEdge {
+                edge_kind: OntologyEdgeKind::InheritsFrom,
+                direction: EdgeDirection::Incoming,
+                inheritance_depth,
+                path: Box::new(DataTypeQueryPath::OntologyId),
+            }),
+            ParameterList::DataTypeIds(data_type_ids),
+        )
+    }
+
+    #[must_use]
+    pub fn for_data_type_children(
+        versioned_url: &VersionedUrl,
+        inheritance_depth: Option<u32>,
+    ) -> Self {
+        let data_type_id = DataTypeId::from_url(versioned_url);
+        Filter::Equal(
+            Some(FilterExpression::Path(DataTypeQueryPath::DataTypeEdge {
+                edge_kind: OntologyEdgeKind::InheritsFrom,
+                direction: EdgeDirection::Outgoing,
+                inheritance_depth,
+                path: Box::new(DataTypeQueryPath::OntologyId),
+            })),
+            Some(FilterExpression::Parameter(Parameter::Uuid(
+                data_type_id.into_uuid(),
+            ))),
+        )
     }
 }
 
@@ -195,7 +236,10 @@ where
             Self::In(lhs, rhs) => {
                 if let FilterExpression::Parameter(parameter) = lhs {
                     match rhs {
-                        ParameterList::Uuid(_) => {
+                        ParameterList::DataTypeIds(_)
+                        | ParameterList::PropertyTypeIds(_)
+                        | ParameterList::EntityTypeIds(_)
+                        | ParameterList::EntityEditionIds(_) => {
                             parameter.convert_to_parameter_type(ParameterType::Uuid)?;
                         }
                     }
@@ -249,7 +293,10 @@ pub enum Parameter<'p> {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ParameterList<'p> {
-    Uuid(&'p [Uuid]),
+    DataTypeIds(&'p [DataTypeId]),
+    PropertyTypeIds(&'p [PropertyTypeId]),
+    EntityTypeIds(&'p [EntityTypeId]),
+    EntityEditionIds(&'p [EntityEditionId]),
 }
 
 impl<'p> Parameter<'p> {
