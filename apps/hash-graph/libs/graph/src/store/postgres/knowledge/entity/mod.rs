@@ -204,7 +204,7 @@ where
                         );
 
                         traversal_context.add_entity_type_id(
-                            edge.right_endpoint_ontology_id,
+                            EntityTypeId::from(edge.right_endpoint_ontology_id),
                             edge.resolve_depths,
                             edge.traversal_interval,
                         )
@@ -850,15 +850,11 @@ where
                 EntityValidationType::ClosedSchema(schema) => schema,
                 EntityValidationType::Schema(schemas) => Cow::Owned(schemas.into_iter().collect()),
                 EntityValidationType::Id(entity_type_url) => {
-                    let (ontology_type_ids, ontology_type_uuids): (Vec<_>, Vec<_>) =
-                        entity_type_url
-                            .as_ref()
-                            .iter()
-                            .map(|url| {
-                                let id = EntityTypeId::from_url(url);
-                                (id, id.into_uuid())
-                            })
-                            .unzip();
+                    let ontology_type_ids = entity_type_url
+                        .as_ref()
+                        .iter()
+                        .map(EntityTypeId::from_url)
+                        .collect::<Vec<_>>();
 
                     if !self
                         .authorization_api
@@ -883,7 +879,7 @@ where
                         .read_closed_schemas(
                             &Filter::In(
                                 FilterExpression::Path(EntityTypeQueryPath::OntologyId),
-                                ParameterList::Uuid(&ontology_type_uuids),
+                                ParameterList::EntityTypeIds(&ontology_type_ids),
                             ),
                             Some(
                                 &QueryTemporalAxesUnresolved::DecisionTime {

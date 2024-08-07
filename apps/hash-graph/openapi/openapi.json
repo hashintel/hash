@@ -3376,6 +3376,8 @@
           "title",
           "description",
           "type",
+          "inheritsFrom",
+          "children",
           "editionProvenance",
           "embedding"
         ]

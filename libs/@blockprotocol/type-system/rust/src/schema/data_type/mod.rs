@@ -750,10 +750,10 @@ mod tests {
                 value.id.to_string(): value,
             })
         );
-        // DataTypeValidator
-        //     .validate_ref(&closed_number)
-        //     .await
-        //     .expect("Failed to validate closed data type");
+        DataTypeValidator
+            .validate_ref(&closed_number)
+            .await
+            .expect("Failed to validate closed data type");
 
         let closed_integer = resolver
             .get_closed_data_type(&integer.id)
@@ -770,10 +770,10 @@ mod tests {
                 number.id.to_string(): number,
             })
         );
-        // DataTypeValidator
-        //     .validate_ref(&closed_integer)
-        //     .await
-        //     .expect("Failed to validate closed data type");
+        DataTypeValidator
+            .validate_ref(&closed_integer)
+            .await
+            .expect("Failed to validate closed data type");
 
         let closed_unsigned_number = resolver
             .get_closed_data_type(&unsigned_number.id)
@@ -790,10 +790,10 @@ mod tests {
                 number.id.to_string(): number,
             })
         );
-        // DataTypeValidator
-        //     .validate_ref(&closed_unsigned_number)
-        //     .await
-        //     .expect("Failed to validate closed data type");
+        DataTypeValidator
+            .validate_ref(&closed_unsigned_number)
+            .await
+            .expect("Failed to validate closed data type");
 
         let closed_unsigned_integer = resolver
             .get_closed_data_type(&unsigned_integer.id)
@@ -820,10 +820,10 @@ mod tests {
                 integer.id.to_string(): integer,
             })
         );
-        // DataTypeValidator
-        //     .validate_ref(&closed_unsigned_integer)
-        //     .await
-        //     .expect("Failed to validate closed data type");
+        DataTypeValidator
+            .validate_ref(&closed_unsigned_integer)
+            .await
+            .expect("Failed to validate closed data type");
 
         let mut resolver = OntologyTypeResolver::default();
         resolver.add_closed(Arc::clone(&number), Arc::clone(&closed_number_metadata));

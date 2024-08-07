@@ -1,4 +1,7 @@
-use core::fmt::{self, Write};
+use core::{
+    fmt::{self, Write},
+    str::FromStr,
+};
 
 use serde::{
     de::{self, Deserializer, SeqAccess, Visitor},
@@ -8,9 +11,11 @@ use serde::{
 use utoipa::ToSchema;
 
 use crate::{
-    ontology::PropertyTypeQueryPath,
-    store::query::{JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath},
-    subgraph::edges::OntologyEdgeKind,
+    ontology::{PropertyTypeQueryPath, Selector},
+    store::query::{
+        parse_query_token, JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath,
+    },
+    subgraph::edges::{EdgeDirection, OntologyEdgeKind},
 };
 
 /// A path to a [`DataType`] field.
@@ -150,6 +155,118 @@ pub enum DataTypeQueryPath<'p> {
     OntologyId,
     /// Only used internally and not available for deserialization.
     Schema(Option<JsonPath<'p>>),
+    /// An edge between two [`DataType`]s using an [`OntologyEdgeKind`].
+    ///
+    /// Allowed edge kinds are:
+    /// - [`InheritsFrom`]
+    ///
+    /// [`DataType`]: type_system::schema::DataType
+    /// [`InheritsFrom`]: OntologyEdgeKind::InheritsFrom
+    ///
+    ///
+    /// ## Inheritance
+    ///
+    /// Currently, does not correspond to any field of [`DataType`].
+    ///
+    /// In the future, this will most likely correspond to something like
+    /// `DataType::inherits_from()`.
+    ///
+    /// As an [`DataType`] can inherit from multiple [`DataType`]s, the deserialized path
+    /// requires an additional selector to identify the [`DataType`] to query. Currently,
+    /// only the `*` selector is available, so the path will be deserialized as
+    /// `["inheritsFrom", "*", ...]` where `...` is the path to the desired field of the
+    /// [`DataType`].
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::DataTypeQueryPath;
+    /// # use graph::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
+    /// let path = DataTypeQueryPath::deserialize(json!(["inheritsFrom", "*", "baseUrl"]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     DataTypeQueryPath::DataTypeEdge {
+    ///         edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///         path: Box::new(DataTypeQueryPath::BaseUrl),
+    ///         direction: EdgeDirection::Outgoing,
+    ///         inheritance_depth: None,
+    ///     }
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// It's also possible to create a query path for the reversed direction:
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::DataTypeQueryPath;
+    /// # use graph::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
+    /// let path = DataTypeQueryPath::deserialize(json!(["children", "*", "baseUrl"]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     DataTypeQueryPath::DataTypeEdge {
+    ///         edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///         path: Box::new(DataTypeQueryPath::BaseUrl),
+    ///         direction: EdgeDirection::Incoming,
+    ///         inheritance_depth: None,
+    ///     }
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// ### Specifying the inheritance depth
+    ///
+    /// By passing `inheritanceDepth` as a parameter it's possible to limit the searched depth:
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::DataTypeQueryPath;
+    /// # use graph::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
+    /// let path = DataTypeQueryPath::deserialize(json!([
+    ///     "inheritsFrom(inheritanceDepth=10)",
+    ///     "*",
+    ///     "baseUrl"
+    /// ]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     DataTypeQueryPath::DataTypeEdge {
+    ///         edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///         path: Box::new(DataTypeQueryPath::BaseUrl),
+    ///         direction: EdgeDirection::Outgoing,
+    ///         inheritance_depth: Some(10),
+    ///     }
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// and similary for the reversed direction:
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::ontology::DataTypeQueryPath;
+    /// # use graph::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
+    /// let path =
+    ///     DataTypeQueryPath::deserialize(json!(["children(inheritanceDepth=10)", "*", "baseUrl"]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     DataTypeQueryPath::DataTypeEdge {
+    ///         edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///         path: Box::new(DataTypeQueryPath::BaseUrl),
+    ///         direction: EdgeDirection::Incoming,
+    ///         inheritance_depth: Some(10),
+    ///     }
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    DataTypeEdge {
+        edge_kind: OntologyEdgeKind,
+        path: Box<Self>,
+        direction: EdgeDirection,
+        inheritance_depth: Option<u32>,
+    },
     /// A reversed edge from a [`PropertyType`] to this [`DataType`] using an [`OntologyEdgeKind`].
     ///
     /// The corresponding edge is [`PropertyTypeQueryPath::DataTypeEdge`].
@@ -221,6 +338,7 @@ impl QueryPath for DataTypeQueryPath<'_> {
             Self::Description | Self::Title | Self::Type => ParameterType::Text,
             Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
             Self::EditionProvenance(_) => ParameterType::Any,
+            Self::DataTypeEdge { path, .. } => path.expected_type(),
             Self::PropertyTypeEdge { path, .. } => path.expected_type(),
         }
     }
@@ -244,6 +362,13 @@ impl fmt::Display for DataTypeQueryPath<'_> {
             Self::EditionProvenance(Some(path)) => write!(fmt, "editionProvenance.{path}"),
             Self::EditionProvenance(None) => fmt.write_str("editionProvenance"),
             Self::Embedding => fmt.write_str("embedding"),
+            Self::DataTypeEdge {
+                edge_kind, path, ..
+            } => {
+                fmt.write_char('<')?;
+                edge_kind.serialize(&mut *fmt)?;
+                write!(fmt, ">.{path}")
+            }
             Self::PropertyTypeEdge {
                 edge_kind, path, ..
             } => {
@@ -267,6 +392,8 @@ pub enum DataTypeQueryToken {
     Title,
     Description,
     Type,
+    InheritsFrom,
+    Children,
     EditionProvenance,
     Embedding,
     #[serde(skip)]
@@ -280,9 +407,9 @@ pub struct DataTypeQueryPathVisitor {
 }
 
 impl DataTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `baseUrl`, `version`, `versionedUrl`, \
-                                         `ownedById`, `title`, `description`, `type`, \
-                                         `editionProvenance`, `embedding`";
+    pub const EXPECTING: &'static str =
+        "one of `baseUrl`, `version`, `versionedUrl`, `ownedById`, `title`, `description`, \
+         `type`, `inheritsFrom`, `children`, `editionProvenance`, `embedding`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -301,9 +428,10 @@ impl<'de> Visitor<'de> for DataTypeQueryPathVisitor {
     where
         A: SeqAccess<'de>,
     {
-        let token = seq
+        let query_token: String = seq
             .next_element()?
             .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
+        let (token, mut parameters) = parse_query_token(&query_token)?;
         self.position += 1;
 
         Ok(match token {
@@ -314,6 +442,38 @@ impl<'de> Visitor<'de> for DataTypeQueryPathVisitor {
             DataTypeQueryToken::Title => DataTypeQueryPath::Title,
             DataTypeQueryToken::Description => DataTypeQueryPath::Description,
             DataTypeQueryToken::Type => DataTypeQueryPath::Type,
+            DataTypeQueryToken::InheritsFrom => {
+                seq.next_element::<Selector>()?
+                    .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
+                self.position += 1;
+
+                DataTypeQueryPath::DataTypeEdge {
+                    edge_kind: OntologyEdgeKind::InheritsFrom,
+                    path: Box::new(Self::new(self.position).visit_seq(seq)?),
+                    direction: EdgeDirection::Outgoing,
+                    inheritance_depth: parameters
+                        .remove("inheritanceDepth")
+                        .map(u32::from_str)
+                        .transpose()
+                        .map_err(de::Error::custom)?,
+                }
+            }
+            DataTypeQueryToken::Children => {
+                seq.next_element::<Selector>()?
+                    .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
+                self.position += 1;
+
+                DataTypeQueryPath::DataTypeEdge {
+                    edge_kind: OntologyEdgeKind::InheritsFrom,
+                    path: Box::new(Self::new(self.position).visit_seq(seq)?),
+                    direction: EdgeDirection::Incoming,
+                    inheritance_depth: parameters
+                        .remove("inheritanceDepth")
+                        .map(u32::from_str)
+                        .transpose()
+                        .map_err(de::Error::custom)?,
+                }
+            }
             DataTypeQueryToken::Embedding => DataTypeQueryPath::Embedding,
             DataTypeQueryToken::Schema => {
                 let mut path_tokens = Vec::new();
@@ -375,6 +535,17 @@ impl DataTypeQueryPath<'_> {
             Self::EditionProvenance(path) => {
                 DataTypeQueryPath::EditionProvenance(path.map(JsonPath::into_owned))
             }
+            Self::DataTypeEdge {
+                path,
+                edge_kind,
+                direction,
+                inheritance_depth,
+            } => DataTypeQueryPath::DataTypeEdge {
+                path: Box::new(path.into_owned()),
+                edge_kind,
+                direction,
+                inheritance_depth,
+            },
             Self::PropertyTypeEdge { path, edge_kind } => DataTypeQueryPath::PropertyTypeEdge {
                 path: Box::new(path.into_owned()),
                 edge_kind,

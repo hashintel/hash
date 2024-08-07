@@ -4,7 +4,10 @@ use std::collections::HashMap;
 use error_stack::Result;
 use graph_types::{
     knowledge::entity::{Entity, EntityEditionId},
-    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
+    ontology::{
+        DataTypeId, DataTypeWithMetadata, EntityTypeId, EntityTypeWithMetadata, PropertyTypeId,
+        PropertyTypeWithMetadata,
+    },
 };
 use temporal_versioning::RightBoundedTemporalInterval;
 
@@ -13,7 +16,6 @@ use crate::{
     ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
     store::{
         crud::Read,
-        postgres::ontology::OntologyId,
         query::{Filter, FilterExpression, ParameterList},
         AsClient, PostgresStore, QueryError, SubgraphRecord,
     },
@@ -25,22 +27,17 @@ where
     C: AsClient,
     A: Send + Sync,
 {
-    #[tracing::instrument(level = "info", skip(self, vertex_ids, subgraph))]
+    #[tracing::instrument(level = "info", skip(self, data_type_ids, subgraph))]
     async fn read_data_types_by_ids(
         &self,
-        vertex_ids: impl IntoIterator<Item = OntologyId, IntoIter: Send> + Send,
+        data_type_ids: &[DataTypeId],
         subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
-        let ids = vertex_ids
-            .into_iter()
-            .map(OntologyId::into_uuid)
-            .collect::<Vec<_>>();
-
         for data_type in <Self as Read<DataTypeWithMetadata>>::read_vec(
             self,
             &Filter::<DataTypeWithMetadata>::In(
                 FilterExpression::Path(DataTypeQueryPath::OntologyId),
-                ParameterList::Uuid(&ids),
+                ParameterList::DataTypeIds(data_type_ids),
             ),
             Some(&subgraph.temporal_axes.resolved),
             false,
@@ -56,22 +53,17 @@ where
         Ok(())
     }
 
-    #[tracing::instrument(level = "info", skip(self, vertex_ids, subgraph))]
+    #[tracing::instrument(level = "info", skip(self, property_type_ids, subgraph))]
     async fn read_property_types_by_ids(
         &self,
-        vertex_ids: impl IntoIterator<Item = OntologyId, IntoIter: Send> + Send,
+        property_type_ids: &[PropertyTypeId],
         subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
-        let ids = vertex_ids
-            .into_iter()
-            .map(OntologyId::into_uuid)
-            .collect::<Vec<_>>();
-
         for property_type in <Self as Read<PropertyTypeWithMetadata>>::read_vec(
             self,
             &Filter::<PropertyTypeWithMetadata>::In(
                 FilterExpression::Path(PropertyTypeQueryPath::OntologyId),
-                ParameterList::Uuid(&ids),
+                ParameterList::PropertyTypeIds(property_type_ids),
             ),
             Some(&subgraph.temporal_axes.resolved),
             false,
@@ -87,22 +79,17 @@ where
         Ok(())
     }
 
-    #[tracing::instrument(level = "info", skip(self, vertex_ids, subgraph))]
+    #[tracing::instrument(level = "info", skip(self, entity_type_ids, subgraph))]
     async fn read_entity_types_by_ids(
         &self,
-        vertex_ids: impl IntoIterator<Item = OntologyId, IntoIter: Send> + Send,
+        entity_type_ids: &[EntityTypeId],
         subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
-        let ids = vertex_ids
-            .into_iter()
-            .map(OntologyId::into_uuid)
-            .collect::<Vec<_>>();
-
         for entity_type in <Self as Read<EntityTypeWithMetadata>>::read_vec(
             self,
             &Filter::<EntityTypeWithMetadata>::In(
                 FilterExpression::Path(EntityTypeQueryPath::OntologyId),
-                ParameterList::Uuid(&ids),
+                ParameterList::EntityTypeIds(entity_type_ids),
             ),
             Some(&subgraph.temporal_axes.resolved),
             false,
@@ -121,20 +108,15 @@ where
     #[tracing::instrument(level = "info", skip(self, edition_ids, subgraph))]
     async fn read_entities_by_ids(
         &self,
-        edition_ids: impl IntoIterator<Item = EntityEditionId, IntoIter: Send> + Send,
+        edition_ids: &[EntityEditionId],
         subgraph: &mut Subgraph,
         include_drafts: bool,
     ) -> Result<(), QueryError> {
-        let ids = edition_ids
-            .into_iter()
-            .map(EntityEditionId::into_uuid)
-            .collect::<Vec<_>>();
-
         let entities = <Self as Read<Entity>>::read_vec(
             self,
             &Filter::<Entity>::In(
                 FilterExpression::Path(EntityQueryPath::EditionId),
-                ParameterList::Uuid(&ids),
+                ParameterList::EntityEditionIds(edition_ids),
             ),
             Some(&subgraph.temporal_axes.resolved),
             include_drafts,
@@ -180,9 +162,25 @@ pub type AddIdReturn<K> = impl Iterator<
     ),
 >;
 
-pub type AddOntologyIdReturn = impl Iterator<
+pub type AddDataTypeIdReturn = impl Iterator<
     Item = (
-        OntologyId,
+        DataTypeId,
+        GraphResolveDepths,
+        RightBoundedTemporalInterval<VariableAxis>,
+    ),
+>;
+
+pub type AddPropertyTypeIdReturn = impl Iterator<
+    Item = (
+        PropertyTypeId,
+        GraphResolveDepths,
+        RightBoundedTemporalInterval<VariableAxis>,
+    ),
+>;
+
+pub type AddEntityTypeIdReturn = impl Iterator<
+    Item = (
+        EntityTypeId,
         GraphResolveDepths,
         RightBoundedTemporalInterval<VariableAxis>,
     ),
@@ -232,39 +230,52 @@ impl<K: Eq + Hash + Copy> TraversalContextMap<K> {
 
 #[derive(Debug, Default)]
 pub struct TraversalContext {
-    data_types: TraversalContextMap<OntologyId>,
-    property_types: TraversalContextMap<OntologyId>,
-    entity_types: TraversalContextMap<OntologyId>,
+    data_types: TraversalContextMap<DataTypeId>,
+    property_types: TraversalContextMap<PropertyTypeId>,
+    entity_types: TraversalContextMap<EntityTypeId>,
     entities: TraversalContextMap<EntityEditionId>,
 }
 
 impl TraversalContext {
     #[tracing::instrument(level = "info", skip(self, store, subgraph))]
     pub async fn read_traversed_vertices<C: AsClient, A: Send + Sync>(
-        &self,
+        self,
         store: &PostgresStore<C, A>,
         subgraph: &mut Subgraph,
         include_drafts: bool,
     ) -> Result<(), QueryError> {
         if !self.data_types.0.is_empty() {
             store
-                .read_data_types_by_ids(self.data_types.0.keys().copied(), subgraph)
+                .read_data_types_by_ids(
+                    &self.data_types.0.into_keys().collect::<Vec<_>>(),
+                    subgraph,
+                )
                 .await?;
         }
         if !self.property_types.0.is_empty() {
             store
-                .read_property_types_by_ids(self.property_types.0.keys().copied(), subgraph)
+                .read_property_types_by_ids(
+                    &self.property_types.0.into_keys().collect::<Vec<_>>(),
+                    subgraph,
+                )
                 .await?;
         }
         if !self.entity_types.0.is_empty() {
             store
-                .read_entity_types_by_ids(self.entity_types.0.keys().copied(), subgraph)
+                .read_entity_types_by_ids(
+                    &self.entity_types.0.into_keys().collect::<Vec<_>>(),
+                    subgraph,
+                )
                 .await?;
         }
 
         if !self.entities.0.is_empty() {
             store
-                .read_entities_by_ids(self.entities.0.keys().copied(), subgraph, include_drafts)
+                .read_entities_by_ids(
+                    &self.entities.0.into_keys().collect::<Vec<_>>(),
+                    subgraph,
+                    include_drafts,
+                )
                 .await?;
         }
 
@@ -273,32 +284,32 @@ impl TraversalContext {
 
     pub fn add_data_type_id(
         &mut self,
-        ontology_id: OntologyId,
+        data_type_id: DataTypeId,
         graph_resolve_depths: GraphResolveDepths,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
-    ) -> AddOntologyIdReturn {
+    ) -> AddDataTypeIdReturn {
         self.data_types
-            .add_id(ontology_id, graph_resolve_depths, traversal_interval)
+            .add_id(data_type_id, graph_resolve_depths, traversal_interval)
     }
 
     pub fn add_property_type_id(
         &mut self,
-        ontology_id: OntologyId,
+        property_type_id: PropertyTypeId,
         graph_resolve_depths: GraphResolveDepths,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
-    ) -> AddOntologyIdReturn {
+    ) -> AddPropertyTypeIdReturn {
         self.property_types
-            .add_id(ontology_id, graph_resolve_depths, traversal_interval)
+            .add_id(property_type_id, graph_resolve_depths, traversal_interval)
     }
 
     pub fn add_entity_type_id(
         &mut self,
-        ontology_id: OntologyId,
+        entity_type_id: EntityTypeId,
         graph_resolve_depths: GraphResolveDepths,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
-    ) -> AddOntologyIdReturn {
+    ) -> AddEntityTypeIdReturn {
         self.entity_types
-            .add_id(ontology_id, graph_resolve_depths, traversal_interval)
+            .add_id(entity_type_id, graph_resolve_depths, traversal_interval)
     }
 
     pub fn add_entity_id(

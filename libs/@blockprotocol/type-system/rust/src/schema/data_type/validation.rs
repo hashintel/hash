@@ -20,8 +20,6 @@ pub enum ValidateDataTypeError {
     MissingDataType { data_type_id: VersionedUrl },
     #[error("Cyclic data type reference detected for type `{data_type_id}`")]
     CyclicDataTypeReference { data_type_id: VersionedUrl },
-    #[error("Data type inheritance is not supported yet")]
-    InheritanceNotSupported,
 }
 
 pub struct DataTypeValidator;
@@ -78,10 +76,6 @@ impl Validator<ClosedDataType> for DataTypeValidator {
                     .data_type_references()
                     .map(|(reference, _)| reference),
             );
-        }
-
-        if !value.schema.all_of.is_empty() {
-            return Err(ValidateDataTypeError::InheritanceNotSupported);
         }
 
         // TODO: Implement validation for data types
