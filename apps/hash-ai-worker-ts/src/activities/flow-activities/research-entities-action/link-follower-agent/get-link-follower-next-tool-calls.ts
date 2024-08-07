@@ -15,7 +15,7 @@ import type { Claim } from "../../shared/infer-claims-from-text/types.js";
 import { simplifyClaimForLlmConsumption } from "../shared/simplify-for-llm-consumption.js";
 import type { Link } from "./choose-relevant-links-from-content.js";
 
-const defaultModel: LlmParams["model"] = "claude-3-5-sonnet-20240620";
+const defaultModel: LlmParams["model"] = "gpt-4o-2024-08-06";
 
 const getLinkFollowerNextToolCallsSystemPrompt = dedent(`
   You are a link follower agent.
@@ -74,7 +74,9 @@ const generateUserMessage = (
         type: "text",
         text: dedent(`
 <Task>${task}</Task>
-<PreviouslyVisitedLinks>${previouslyVisitedLinks.map(({ url }) => url).join("\n")}</PreviouslyVisitedLinks>
+<PreviouslyVisitedLinks>${previouslyVisitedLinks
+          .map(({ url }) => url)
+          .join("\n")}</PreviouslyVisitedLinks>
 <Entities>
 Here is the information about entities you have already gathered:
 ${JSON.stringify(
@@ -134,11 +136,13 @@ const tools: LlmToolDefinition<ToolName>[] = [
     `),
     inputSchema: {
       type: "object",
+      additionalProperties: false,
       properties: {
         links: {
           type: "array",
           items: {
             type: "object",
+            additionalProperties: false,
             properties: {
               url: {
                 type: "string",
@@ -179,6 +183,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
       "Complete the research task, if you have gathered enough claims to satisfy the research goal.",
     inputSchema: {
       type: "object",
+      additionalProperties: false,
       properties: {
         suggestionForNextSteps: suggestionForNextStepsDefinition,
         explanation: {
@@ -200,6 +205,7 @@ const tools: LlmToolDefinition<ToolName>[] = [
     `),
     inputSchema: {
       type: "object",
+      additionalProperties: false,
       properties: {
         suggestionForNextSteps: suggestionForNextStepsDefinition,
         explanation: {

@@ -44,7 +44,7 @@ import type { CompletedCoordinatorToolCall } from "./types.js";
 import { nullReturns } from "./types.js";
 import { mapPreviousCallsToLlmMessages } from "./util.js";
 
-const model: LlmParams["model"] = "claude-3-5-sonnet-20240620";
+const model: LlmParams["model"] = "gpt-4o-2024-08-06";
 
 const omittedCoordinatorToolNames = [
   "complete",
@@ -88,6 +88,7 @@ const generateToolDefinitions = <
         "Terminate the sub-task, because you cannot find the required information to complete it.",
       inputSchema: {
         type: "object",
+        additionalProperties: false,
         properties: {
           reason: {
             type: "string",
@@ -102,6 +103,7 @@ const generateToolDefinitions = <
       description: "Complete the sub-task.",
       inputSchema: {
         type: "object",
+        additionalProperties: false,
         properties: {
           explanation: {
             type: "string",
@@ -220,7 +222,15 @@ ${entityTypes
   .map((entityType) => simplifyEntityTypeForLlmConsumption({ entityType }))
   .join("\n")}
 </EntityTypes>
-${linkEntityTypes ? `<LinkTypes>${linkEntityTypes.map((linkType) => simplifyEntityTypeForLlmConsumption({ entityType: linkType })).join("\n")}</LinkTypes>` : ""}
+${
+  linkEntityTypes
+    ? `<LinkTypes>${linkEntityTypes
+        .map((linkType) =>
+          simplifyEntityTypeForLlmConsumption({ entityType: linkType }),
+        )
+        .join("\n")}</LinkTypes>`
+    : ""
+}
 ${
   relevantEntities.length > 0
     ? `<RelevantEntities>${relevantEntities
@@ -234,7 +244,12 @@ ${
             Name: ${name}
             Summary: ${summary}
             EntityType: ${entityTypeId}
-            Claims known at start of task: ${claimsAboutEntity.map((claim) => `<Claim>${simplifyClaimForLlmConsumption(claim)}</Claim>`).join("\n")}
+            Claims known at start of task: ${claimsAboutEntity
+              .map(
+                (claim) =>
+                  `<Claim>${simplifyClaimForLlmConsumption(claim)}</Claim>`,
+              )
+              .join("\n")}
           </Entity>`);
         })
         .join("\n")}</RelevantEntities>`
@@ -351,7 +366,9 @@ const generateProgressReport = (params: {
     Name: ${name}
     Summary: ${summary}
     EntityType: ${entityTypeId}
-    Claims: ${claimsAboutEntity.map((claim) => `<Claim>${simplifyClaimForLlmConsumption(claim)}</Claim>`).join("\n")}
+    Claims: ${claimsAboutEntity
+      .map((claim) => `<Claim>${simplifyClaimForLlmConsumption(claim)}</Claim>`)
+      .join("\n")}
     </Entity>`);
         })
         .join("\n")}</Entities>
@@ -362,7 +379,12 @@ const generateProgressReport = (params: {
     text += dedent(`
         You have already visited the following resources – do not visit them again. They are included for your reference for work done only:
         <ResourcesVisited>
-          ${resourceUrlsVisited.map((resourceUrl) => `<ResourceVisited>${resourceUrl}</ResourceVisited>`).join("\n")}
+          ${resourceUrlsVisited
+            .map(
+              (resourceUrl) =>
+                `<ResourceVisited>${resourceUrl}</ResourceVisited>`,
+            )
+            .join("\n")}
         </ResourcesVisited>
       `);
   }

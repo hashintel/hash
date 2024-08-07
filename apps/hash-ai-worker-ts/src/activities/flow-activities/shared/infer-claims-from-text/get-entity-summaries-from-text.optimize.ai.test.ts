@@ -109,7 +109,17 @@ const metrics: MetricDefinition[] = testData.map((testItem) => {
 
       return {
         score,
-        naturalLanguageReport: `The LLM extracted ${entitySummaries.length} entity summaries in total. They identified ${wrongTypeEntitiesIdentified.size} entities of an incorrect type, identified ${goldEntitiesTestSet.size - missingGoldEntities.size} out of a possible ${goldEntitiesTestSet.size} target entities, and identified ${irrelevantEntitiesIdentified.size} entities which were of the right type but didn't meet the research prompt.`,
+        naturalLanguageReport: `The LLM extracted ${
+          entitySummaries.length
+        } entity summaries in total. They identified ${
+          wrongTypeEntitiesIdentified.size
+        } entities of an incorrect type, identified ${
+          goldEntitiesTestSet.size - missingGoldEntities.size
+        } out of a possible ${
+          goldEntitiesTestSet.size
+        } target entities, and identified ${
+          irrelevantEntitiesIdentified.size
+        } entities which were of the right type but didn't meet the research prompt.`,
         testingParams,
       };
     },
@@ -130,14 +140,14 @@ test(
     const models: LlmParams["model"][] = ["claude-3-haiku-20240307"];
 
     await optimizeSystemPrompt({
-      attemptsPerPrompt: 3,
+      attemptsPerPrompt: 1,
       models,
       initialSystemPrompt: generateSystemPrompt({
         includesRelevantEntitiesPrompt: true,
       }),
       directoryPath: baseDirectoryPath,
       metrics,
-      promptIterations: 4,
+      promptIterations: 3,
     });
   },
   {

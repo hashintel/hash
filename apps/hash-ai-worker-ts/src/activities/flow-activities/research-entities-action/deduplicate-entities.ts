@@ -62,11 +62,13 @@ const deduplicationAgentTool: LlmToolDefinition<typeof toolName> = {
   `),
   inputSchema: {
     type: "object",
+    additionalProperties: false,
     properties: {
       duplicates: {
         type: "array",
         items: {
           type: "object",
+          additionalProperties: false,
           properties: {
             canonicalId: {
               type: "string",
@@ -132,7 +134,11 @@ export const deduplicateEntities = async (params: {
                     </Entity>`,
                   )
                   .join("\n")}
-                  ${exceededMaxTokensAttempt ? "Your previous response exceeded the maximum input tokens. Please try again, aiming for brevity, and omitting any duplicate reports you aren't 100% certain of." : ""}
+                  ${
+                    exceededMaxTokensAttempt
+                      ? "Your previous response exceeded the maximum input tokens. Please try again, aiming for brevity, and omitting any duplicate reports you aren't 100% certain of."
+                      : ""
+                  }
                   `),
             },
           ],

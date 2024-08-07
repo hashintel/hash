@@ -44,10 +44,12 @@ const answerTools: LlmToolDefinition[] = [
     description:
       "Submit the answer, or an explanation of why the question cannot be answered using the available data",
     inputSchema: {
+      additionalProperties: false,
       type: "object",
       properties: {
         answer: {
           type: "object",
+          additionalProperties: false,
           description: "The answer to the question, if one can be provided.",
           properties: {
             format: {
@@ -81,6 +83,7 @@ const answerTools: LlmToolDefinition[] = [
     description:
       "Run Python code to help analyze the data. Your code should output the values you need to stdout. You should explain your reasoning for the approach taken in the 'explanation' field.",
     inputSchema: {
+      additionalProperties: false,
       type: "object",
       properties: {
         code: {
@@ -309,8 +312,8 @@ const callModel = async (
         const toolResponseMessage = stderr
           ? `The code you provided generated an error, and you now work to fix it: ${stderr}`
           : !stdout
-            ? "There was no stdout from the code – you may have forgotten to print the values you require"
-            : dedent(`
+          ? "There was no stdout from the code – you may have forgotten to print the values you require"
+          : dedent(`
         The Python code ran successfully.
         The stdout from your code was: ${stdout}
         The following artifacts were generated:\n${artifacts.join("\n")}

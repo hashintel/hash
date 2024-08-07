@@ -7,7 +7,7 @@ const permittedOpenAiModels = [
   "gpt-4-turbo",
   "gpt-4",
   "gpt-4o",
-  "gpt-4o-2024-05-13",
+  "gpt-4o-2024-08-06",
 ] as const;
 
 export type PermittedOpenAiModel = (typeof permittedOpenAiModels)[number];
@@ -25,7 +25,7 @@ export const modelToContextWindow: Record<PermittedOpenAiModel, number> = {
   "gpt-4-turbo": 128_000,
   "gpt-4": 8_192,
   "gpt-4o": 128_000,
-  "gpt-4o-2024-05-13": 128_000,
+  "gpt-4o-2024-08-06": 128_000,
 };
 
 export const isPermittedModel = (

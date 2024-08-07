@@ -33,11 +33,13 @@ const generateToolDefinitions = (params: {
     description: `Register the relevant entity summaries for all entities which are of type "${params.dereferencedEntityType.title}".`,
     inputSchema: {
       type: "object",
+      additionalProperties: false,
       properties: {
         entitySummaries: {
           type: "array",
           items: {
             type: "object",
+            additionalProperties: false,
             properties: {
               name: {
                 type: "string",
@@ -73,8 +75,16 @@ The user will provide you with:
     }
     
 Your task:
-1. Carefully analyze the text to identify all entities of the requested type${params.includesRelevantEntitiesPrompt ? " that are relevant to the provided prompt." : "."}
-2. Strictly adhere to the specified entity type${params.includesRelevantEntitiesPrompt ? ", regardless of the relevant entities prompt." : "."} Never include entities of a different type, even if they seem relevant.
+1. Carefully analyze the text to identify all entities of the requested type${
+    params.includesRelevantEntitiesPrompt
+      ? " that are relevant to the provided prompt."
+      : "."
+  }
+2. Strictly adhere to the specified entity type${
+    params.includesRelevantEntitiesPrompt
+      ? ", regardless of the relevant entities prompt."
+      : "."
+  } Never include entities of a different type, even if they seem relevant.
 3. For each relevant entity of the correct type, provide:
    - "name": The exact name or identifier of the entity as it appears in the text.
    - "summary": A concise, one-sentence description of the entity based solely on the information provided in the text. Do not include any external knowledge.
@@ -153,7 +163,9 @@ export const getEntitySummariesFromText = async (params: {
                   existingSummaries.length
                     ? dedent(`<ExistingEntities>
                 We already have summaries for the following entities – please don't include them in your response:
-                ${existingSummaries.map((summary) => `Name: ${summary.name}`).join("\n")}
+                ${existingSummaries
+                  .map((summary) => `Name: ${summary.name}`)
+                  .join("\n")}
                 </ExistingEntities>`)
                     : ""
                 } 
