@@ -32,6 +32,7 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
+    "sanitize-html": "NODE_ENV=development yarn exe ./scripts/sanitize-html.ts",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org hashintel --project hash-temporal-worker-ai ./dist && sentry-cli sourcemaps upload --org hashintel --project hash-temporal-worker-ai ./dist",
     "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 node ./dist/main.js",
     "start:healthcheck": "wait-on --timeout 120000 http-get://localhost:4100/health",
@@ -77,7 +78,7 @@
     "md5": "2.3.0",
     "mime-types": "2.1.35",
     "officeparser": "4.0.6",
-    "openai": "4.47.1",
+    "openai": "4.55.0",
     "openai-chat-tokens": "0.2.8",
     "papaparse": "5.4.1",
     "puppeteer": "22.3.0",
@@ -111,3 +112,4 @@
     "vitest": "2.0.5"
   }
 }
+
