@@ -2,8 +2,8 @@
  * Structured logging library based on winston.
  */
 import { format } from "logform";
-import * as winston from "winston";
 import type { LeveledLogMethod } from "winston";
+import * as winston from "winston";
 
 export const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
 
