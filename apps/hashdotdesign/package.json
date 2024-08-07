@@ -10,6 +10,7 @@
   },
   "devDependencies": {
     "@babel/preset-env": "7.23.9",
+    "@babel/preset-react": "7.24.7",
     "@babel/preset-typescript": "7.23.3",
     "@hashintel/block-design-system": "0.0.2",
     "@hashintel/design-system": "0.0.8",
@@ -37,3 +38,4 @@
     "react-dom": "^18.2.0"
   }
 }
+

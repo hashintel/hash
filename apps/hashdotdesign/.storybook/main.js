@@ -11,8 +11,15 @@ module.exports = {
     getAbsolutePath("@storybook/addon-links"),
     getAbsolutePath("@storybook/addon-essentials"),
     getAbsolutePath("@storybook/addon-interactions"),
-    "@storybook/addon-webpack5-compiler-babel"
+    "@storybook/addon-webpack5-compiler-babel",
   ],
+
+  babel: async (options) => {
+    return {
+      ...options,
+      presets: [...options.presets, "@babel/preset-react"],
+    };
+  },
 
   framework: {
     name: getAbsolutePath("@storybook/react-webpack5"),
@@ -28,8 +35,8 @@ module.exports = {
   },
 
   typescript: {
-    reactDocgen: "react-docgen-typescript"
-  }
+    reactDocgen: "react-docgen-typescript",
+  },
 };
 
 function getAbsolutePath(value) {
