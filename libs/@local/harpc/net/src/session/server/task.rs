@@ -21,18 +21,18 @@ use crate::{
 };
 
 pub(crate) struct Task<E> {
-    pub(crate) id: SessionIdProducer,
+    pub id: SessionIdProducer,
 
-    pub(crate) config: SessionConfig,
+    pub config: SessionConfig,
 
-    pub(crate) active: Arc<Semaphore>,
+    pub active: Arc<Semaphore>,
 
-    pub(crate) output: mpsc::Sender<Transaction>,
-    pub(crate) events: broadcast::Sender<SessionEvent>,
-    pub(crate) encoder: E,
+    pub output: mpsc::Sender<Transaction>,
+    pub events: broadcast::Sender<SessionEvent>,
+    pub encoder: E,
 
     // significant because of the Drop, if dropped this will stop the task automatically
-    pub(crate) _transport: TransportLayer,
+    pub _transport: TransportLayer,
 }
 
 impl<E> Task<E>
@@ -132,13 +132,14 @@ where
             return;
         }
 
-        // we wait for all connections to finish, this is done by just acquiring all possible
-        // permits
-        if let Err(error) = self
+        let permits = self
             .active
             .acquire_many(self.config.concurrent_connection_limit.as_u32())
-            .await
-        {
+            .await;
+
+        // we wait for all connections to finish, this is done by just acquiring all possible
+        // permits
+        if let Err(error) = permits {
             tracing::error!(?error, "failed to reclaim all connections");
         }
     }

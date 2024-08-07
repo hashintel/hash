@@ -49,3 +49,6 @@ tokio = { workspace = true, features = ["rt-multi-thread"] }
 
 [features]
 test-utils = []
+
+[lints]
+workspace = true

@@ -53,7 +53,7 @@ where
     fn size_hint(&self) -> SizeHint {
         self.data.as_ref().map_or_else(
             || SizeHint::with_exact(0),
-            |data| SizeHint::with_exact(u64::try_from(data.remaining()).unwrap()),
+            |data| SizeHint::with_exact(data.remaining() as u64),
         )
     }
 }

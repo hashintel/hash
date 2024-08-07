@@ -5,9 +5,9 @@ use libp2p_stream as stream;
 // imported.
 #[derive(NetworkBehaviour)]
 pub(crate) struct TransportBehaviour {
-    pub(crate) stream: stream::Behaviour,
-    pub(crate) identify: identify::Behaviour,
-    pub(crate) ping: ping::Behaviour,
+    pub stream: stream::Behaviour,
+    pub identify: identify::Behaviour,
+    pub ping: ping::Behaviour,
 }
 
 pub(crate) type TransportSwarm = Swarm<TransportBehaviour>;

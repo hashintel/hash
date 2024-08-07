@@ -177,7 +177,7 @@ impl TransportLayer {
             .accept(PROTOCOL_NAME)
             .change_context(TransportError::AlreadyListening)?;
 
-        Ok(IncomingConnections { inner: incoming })
+        Ok(IncomingConnections::new(incoming))
     }
 
     /// Dial a peer.
