@@ -40,6 +40,7 @@ const proposeSystemPromptToolDefinition: LlmToolDefinition<"proposeSystemPrompt"
       "Propose an improved system prompt based on the previous system prompt and metric results.",
     inputSchema: {
       type: "object",
+      additionalProperties: false,
       properties: {
         improvedSystemPrompt: {
           type: "string",

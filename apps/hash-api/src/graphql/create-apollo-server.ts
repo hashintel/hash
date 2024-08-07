@@ -152,19 +152,21 @@ export const createApolloServer = ({
                 userAgent,
               };
               if (willSendResponseCtx.errors) {
-                willSendResponseCtx.logger.error({
-                  ...msg,
-                  errors: willSendResponseCtx.errors,
-                  stack: willSendResponseCtx.errors
-                    .map((err) => err.stack)
-                    // Filter stacks caused by an apollo Forbidden error to prevent cluttering logs
-                    // with errors caused by a user being logged out.
-                    .filter(
-                      (stack) => stack && !stack.startsWith("ForbiddenError"),
-                    ),
-                });
+                willSendResponseCtx.logger.error(
+                  JSON.stringify({
+                    ...msg,
+                    errors: willSendResponseCtx.errors,
+                    stack: willSendResponseCtx.errors
+                      .map((err) => err.stack)
+                      // Filter stacks caused by an apollo Forbidden error to prevent cluttering logs
+                      // with errors caused by a user being logged out.
+                      .filter(
+                        (stack) => stack && !stack.startsWith("ForbiddenError"),
+                      ),
+                  }),
+                );
               } else {
-                willSendResponseCtx.logger.info(msg);
+                willSendResponseCtx.logger.info(JSON.stringify(msg));
                 if (willSendResponseCtx.operationName) {
                   statsd?.timing(
                     willSendResponseCtx.operationName,

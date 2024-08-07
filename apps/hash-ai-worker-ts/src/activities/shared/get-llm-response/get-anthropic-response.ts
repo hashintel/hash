@@ -135,9 +135,7 @@ const isServerError = (error: unknown): error is APIError =>
   error.status >= 500 &&
   error.status < 600;
 
-const switchProvider = (
-  provider: AnthropicApiProvider,
-): AnthropicApiProvider =>
+const switchProvider = (provider: AnthropicApiProvider): AnthropicApiProvider =>
   provider === "anthropic" ? "amazon-bedrock" : "anthropic";
 
 const createAnthropicMessagesWithToolsWithBackoff = async (params: {
@@ -447,15 +445,19 @@ export const getAnthropicResponse = async <ToolName extends string>(
       secondsTaken: lastRequestTime,
       provider: anthropicResponse.provider,
       response: {
-        ...anthropicResponse,
         status: "ok",
+        id: anthropicResponse.id,
+        model: anthropicResponse.model,
+        provider: anthropicResponse.provider,
+        type: anthropicResponse.type,
+        stop_sequence: anthropicResponse.stop_sequence,
         stopReason,
         lastRequestTime,
         totalRequestTime,
         usage,
         message: responseMessage,
         invalidResponses: previousInvalidResponses ?? [],
-      },
+      } satisfies LlmResponse<AnthropicLlmParams>,
       request: params,
     });
 
@@ -571,8 +573,12 @@ export const getAnthropicResponse = async <ToolName extends string>(
   }
 
   return {
-    ...anthropicResponse,
     status: "ok",
+    id: anthropicResponse.id,
+    model: anthropicResponse.model,
+    provider: anthropicResponse.provider,
+    type: anthropicResponse.type,
+    stop_sequence: anthropicResponse.stop_sequence,
     stopReason,
     message,
     usage,

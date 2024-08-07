@@ -15,6 +15,7 @@ export type LlmToolDefinition<ToolName extends string = string> = {
   name: ToolName;
   description: string;
   inputSchema: Omit<JSONSchema, "type"> & {
+    additionalProperties: false;
     type: "object";
   };
   sanitizeInputBeforeValidation?: (rawInput: object) => object;
@@ -102,7 +103,7 @@ export type AnthropicResponse = Omit<
 
 export type OpenAiResponse = Omit<
   OpenAI.ChatCompletion,
-  "usage" | "choices"
+  "usage" | "choices" | "object"
 > & {
   invalidResponses: (OpenAI.ChatCompletion & { requestTime: number })[];
 };
@@ -199,5 +200,7 @@ export type LlmResponse<T extends LlmParams> =
             : never
           : string
       >;
-    } & (T extends AnthropicLlmParams ? AnthropicResponse : OpenAiResponse))
+    } & (T extends AnthropicLlmParams
+      ? Omit<AnthropicResponse, "stop_reason">
+      : OpenAiResponse))
   | LlmErrorResponse;

@@ -1,8 +1,9 @@
 /**
  * Structured logging library based on winston.
  */
-import type { LeveledLogMethod } from "winston";
+import { format } from "logform";
 import * as winston from "winston";
+import type { LeveledLogMethod } from "winston";
 
 export const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
 
@@ -22,6 +23,26 @@ const getDefaultLoggerLevel = () => {
   const envLogLevel = process.env.LOG_LEVEL;
   return envLogLevel && tbdIsLogLevel(envLogLevel) ? envLogLevel : "info";
 };
+
+/**
+ * In some places we want to prefix a console log with a specific string,
+ * without having this pollute the structured log when it's recorded elsewhere.
+ */
+const prependConsolePrefix = format(({ message, ...restInfo }) => {
+  if (typeof message === "string") {
+    return { message, ...restInfo };
+  }
+
+  const { consolePrefix, ...restOfLog } = message as Record<string, string>;
+
+  return {
+    ...restInfo,
+    message: {
+      ...restOfLog,
+      message: `${consolePrefix ?? ""}${restOfLog.message}`,
+    },
+  };
+});
 
 export class Logger {
   silly: LeveledLogMethod;
@@ -55,6 +76,7 @@ export class Logger {
           format: winston.format.combine(
             winston.format.timestamp(),
             winston.format.json(),
+            prependConsolePrefix(),
             winston.format.colorize(),
             winston.format.simple(),
           ),
@@ -67,6 +89,7 @@ export class Logger {
           format: winston.format.combine(
             winston.format.timestamp(),
             winston.format.json(),
+            prependConsolePrefix(),
             winston.format.simple(),
           ),
         }),
@@ -76,7 +99,13 @@ export class Logger {
     if (process.env.DATADOG_API_KEY) {
       logger.add(
         new winston.transports.Http({
-          format: winston.format.json(),
+          format: winston.format.combine(
+            winston.format.json(),
+            /**
+             * Ignore the `consolePrefix` field in the logs, if one is provided
+             */
+            format(({ consolePrefix: _, ...rest }) => rest)(),
+          ),
           host: "http-intake.logs.datadoghq.com",
           level,
           path: `/api/v2/logs?dd-api-key=${process.env.DATADOG_API_KEY}&ddsource=nodejs&service=${cfg.serviceName}`,

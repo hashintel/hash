@@ -54,8 +54,9 @@ export const createOrUpdateMailchimpUser = async (params: {
      * mailchimp errors don't block entity updates.
      */
     logger.error(
-      `There was an error creating or updating a mailchimp user with email "${email}"`,
-      error,
+      `There was an error creating or updating a mailchimp user with email "${email}": ${
+        error as string
+      }`,
     );
   }
 };

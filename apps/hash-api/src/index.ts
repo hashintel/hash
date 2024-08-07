@@ -186,14 +186,16 @@ const main = async () => {
   app.use((req, res, next) => {
     const requestId = nanoid();
     res.set("x-hash-request-id", requestId);
-    logger.info({
-      requestId,
-      method: req.method,
-      ip: req.ip,
-      path: req.path,
-      userAgent: req.headers["user-agent"],
-      graphqlClient: req.headers["apollographql-client-name"],
-    });
+    logger.info(
+      JSON.stringify({
+        requestId,
+        method: req.method,
+        ip: req.ip,
+        path: req.path,
+        userAgent: req.headers["user-agent"],
+        graphqlClient: req.headers["apollographql-client-name"],
+      }),
+    );
 
     next();
   });
@@ -441,18 +443,18 @@ const main = async () => {
             : undefined,
         })
       : process.env.AWS_REGION
-        ? new AwsSesEmailTransporter({
-            from: `${getRequiredEnv(
-              "SYSTEM_EMAIL_SENDER_NAME",
-            )} <${getRequiredEnv("SYSTEM_EMAIL_ADDRESS")}>`,
-            region: getAwsRegion(),
-            subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
-          })
-        : ({
-            sendMail: (mail) => {
-              logger.info(`Tried to send mail to ${mail.to}:\n${mail.html}`);
-            },
-          } as EmailTransporter);
+      ? new AwsSesEmailTransporter({
+          from: `${getRequiredEnv(
+            "SYSTEM_EMAIL_SENDER_NAME",
+          )} <${getRequiredEnv("SYSTEM_EMAIL_ADDRESS")}>`,
+          region: getAwsRegion(),
+          subjectPrefix: isProdEnv ? undefined : "[DEV SITE] ",
+        })
+      : ({
+          sendMail: (mail) => {
+            logger.info(`Tried to send mail to ${mail.to}:\n${mail.html}`);
+          },
+        } as EmailTransporter);
 
   let search: OpenSearch | undefined;
   if (process.env.HASH_OPENSEARCH_ENABLED === "true") {
@@ -520,16 +522,18 @@ const main = async () => {
     const requestId = nanoid();
     res.set("x-hash-request-id", requestId);
     if (isProdEnv) {
-      logger.info({
-        requestId,
-        method: req.method,
-        origin: req.headers.origin,
-        ip: req.ip,
-        path: req.path,
-        message: "request",
-        userAgent: req.headers["user-agent"],
-        graphqlClient: req.headers["apollographql-client-name"],
-      });
+      logger.info(
+        JSON.stringify({
+          requestId,
+          method: req.method,
+          origin: req.headers.origin,
+          ip: req.ip,
+          path: req.path,
+          message: "request",
+          userAgent: req.headers["user-agent"],
+          graphqlClient: req.headers["apollographql-client-name"],
+        }),
+      );
     }
     next();
   });
@@ -628,8 +632,9 @@ const main = async () => {
   });
 
   if (realtimeSyncEnabled && enabledIntegrations.linear) {
-    const integrationSyncBackWatcher =
-      await createIntegrationSyncBackWatcher(graphApi);
+    const integrationSyncBackWatcher = await createIntegrationSyncBackWatcher(
+      graphApi,
+    );
 
     void integrationSyncBackWatcher.start();
 

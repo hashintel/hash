@@ -400,9 +400,11 @@ export const getOpenAiResponse = async <ToolName extends string>(
       secondsTaken: currentRequestTime,
       request: params,
       response: {
-        ...openAiResponse,
         status: "ok",
         provider: "openai",
+        model: openAiResponse.model,
+        id: openAiResponse.id,
+        created: openAiResponse.created,
         message: (responseMessages?.[0] ?? {}) as LlmAssistantMessage,
         stopReason,
         usage,
@@ -612,7 +614,9 @@ export const getOpenAiResponse = async <ToolName extends string>(
   }
 
   const response: LlmResponse<OpenAiLlmParams> = {
-    ...openAiResponse,
+    model: openAiResponse.model,
+    id: openAiResponse.id,
+    created: openAiResponse.created,
     status: "ok",
     provider: "openai",
     message: responseMessage,

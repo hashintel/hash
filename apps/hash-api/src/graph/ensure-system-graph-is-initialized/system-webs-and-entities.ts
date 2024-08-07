@@ -120,6 +120,8 @@ export const getOrCreateOwningAccountGroupId = async (
 
   logger.info(
     `Created accountGroup for web with shortname ${webShortname}, accountGroupId: ${accountGroupId}`,
+  );
+  logger.info(
     `Created machine actor for web with shortname ${webShortname}, machineActorId: ${machineActorIdForWeb}`,
   );
 

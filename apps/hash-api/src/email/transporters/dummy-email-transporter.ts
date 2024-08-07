@@ -223,7 +223,7 @@ export class DummyEmailTransporter implements EmailTransporter {
 
       await fs.writeFile(this.config.filePath, yamlFileContents, "utf-8");
     } catch (error) {
-      logger.error(error);
+      logger.error(error as string);
     }
   }
 }
