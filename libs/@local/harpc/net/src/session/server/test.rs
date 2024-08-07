@@ -225,7 +225,13 @@ impl EchoService {
 
     fn spawn(self, mut server: ListenStream) {
         tokio::spawn(async move {
-            while let Some(transaction) = server.next().await {
+            // you may ask yourself: why not `while let`?
+            //  significant drop in scrutiny clippy warning.
+            loop {
+                let Some(transaction) = server.next().await else {
+                    break;
+                };
+
                 let (_, sink, stream) = transaction.into_parts();
 
                 self.accept(sink, stream);

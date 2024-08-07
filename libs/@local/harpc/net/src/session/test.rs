@@ -30,8 +30,8 @@ use crate::{
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct Descriptor {
-    pub(crate) service: ServiceDescriptor,
-    pub(crate) procedure: ProcedureDescriptor,
+    pub service: ServiceDescriptor,
+    pub procedure: ProcedureDescriptor,
 }
 
 impl Default for Descriptor {
@@ -121,7 +121,12 @@ impl SimpleEchoService {
 
     fn spawn(mut server: ListenStream) {
         tokio::spawn(async move {
-            while let Some(transaction) = server.next().await {
+            // not a while let loop because of "significant scrutinee in drop" clippy lint
+            loop {
+                let Some(transaction) = server.next().await else {
+                    break;
+                };
+
                 let (_, sink, stream) = transaction.into_parts();
                 Self::accept(sink, stream);
             }

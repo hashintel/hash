@@ -59,7 +59,7 @@ struct Running {
 impl Running {
     fn poll_exhausted(
         stream: ResponseStream,
-        current: impl TransactionStream,
+        current: &impl TransactionStream,
     ) -> (State, ControlFlow<Poll<Option<BodyFrameResult<Unpack>>>>) {
         // we have exhausted the stream, check if we're complete, in that case we're
         // done
@@ -103,7 +103,7 @@ impl Running {
         };
 
         let Some(bytes) = value else {
-            return Self::poll_exhausted(stream, current);
+            return Self::poll_exhausted(stream, &current);
         };
 
         (

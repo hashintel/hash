@@ -15,8 +15,8 @@ use crate::session::{
 
 #[derive(Debug, Clone)]
 pub(crate) struct TransactionState {
-    pub(crate) sender: tachyonix::Sender<Response>,
-    pub(crate) cancel: CancellationToken,
+    pub sender: tachyonix::Sender<Response>,
+    pub cancel: CancellationToken,
 }
 
 impl IsCancelled for TransactionState {
