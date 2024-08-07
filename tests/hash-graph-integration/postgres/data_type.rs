@@ -125,7 +125,7 @@ async fn inheritance() {
     }
 
     let mut database = DatabaseTestWrapper::new().await;
-    let api = database
+    let mut api = database
         .seed(
             // TODO: Ensure that an arbitrary order is possible
             //   see https://linear.app/hash/issue/H-3222/make-sure-data-types-inheriting-from-each-other-can-be-passed-in

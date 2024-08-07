@@ -384,6 +384,7 @@ where
     /// [`OwnedById`], and [`EditionCreatedById`] into the database.
     ///
     /// [`EditionCreatedById`]: graph_types::account::EditionCreatedById
+    /// [`DataType`]: type_system::schema::DataType
     ///
     /// # Errors
     ///
