@@ -2,6 +2,7 @@
   "name": "@rust/hash-graph",
   "version": "0.0.0-private",
   "private": true,
+  "license": "AGPL-3",
   "dependencies": {
     "@blockprotocol/type-system-rs": "0.0.0-private",
     "@rust/authorization": "0.0.0-private",

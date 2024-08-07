@@ -1,7 +1,7 @@
 {
   "name": "@rust/error-stack",
   "version": "0.5.0",
-  "private": false,
+  "private": true,
   "description": "This is a Rust crate – look at Cargo.toml for details",
   "license": "MIT OR Apache-2.0",
   "scripts": {

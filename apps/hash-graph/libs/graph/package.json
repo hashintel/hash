@@ -2,6 +2,7 @@
   "name": "@rust/graph",
   "version": "0.0.0-private",
   "private": true,
+  "license": "AGPL-3",
   "scripts": {
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
   },
