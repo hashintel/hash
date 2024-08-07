@@ -117,7 +117,7 @@ export const improveSystemPrompt = async (params: {
 
   const response = await getLlmResponse(
     {
-      model: "claude-3-5-sonnet-20240620",
+      model: "gpt-4o-2024-08-06",
       messages: [userMessage],
       toolChoice: proposeSystemPromptToolDefinition.name,
       tools: [proposeSystemPromptToolDefinition],

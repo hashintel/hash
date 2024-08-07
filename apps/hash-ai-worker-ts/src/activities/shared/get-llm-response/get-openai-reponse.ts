@@ -44,6 +44,14 @@ const mapLlmToolDefinitionToOpenAiToolDefinition = (
 ): OpenAI.Chat.Completions.ChatCompletionTool => ({
   type: "function",
   function: {
+    /**
+     * Ideally we would enable 'strict' mode, but this enforces that every object in a tool definition return
+     * specifies a 'required' array that lists _all_ properties, i.e. you cannot have an object with optional properties.
+     * @todo H-3227 we can work around this by making all optional properties be 'or null' instead.
+     *
+     * @see https://openai.com/index/introducing-structured-outputs-in-the-api/ for strict mode introduction blog
+     */
+    strict: false,
     name: tool.name,
     parameters: tool.inputSchema as OpenAI.FunctionParameters,
     description: tool.description,
