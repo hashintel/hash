@@ -1,4 +1,5 @@
-use std::{assert_matches::debug_assert_matches, borrow::Cow};
+use alloc::borrow::Cow;
+use std::assert_matches::debug_assert_matches;
 
 use hql_diagnostics::{help::Help, note::Note, Diagnostic};
 use hql_span::{SpanId, TextRange};

@@ -65,6 +65,7 @@ mod test {
     use crate::parser::{string::ParseState, symbol::ParseRestriction};
 
     #[track_caller]
+    #[expect(clippy::type_complexity, reason = "test code")]
     fn parse<'arena, 'spans, 'input>(
         state: ParseState<'arena, 'spans>,
         input: &'input str,
@@ -84,7 +85,7 @@ mod test {
     }
 
     #[track_caller]
-    fn parse_ok<'arena, 'spans>(state: ParseState<'arena, 'spans>, input: &str) -> Path<'arena> {
+    fn parse_ok<'arena>(state: ParseState<'arena, '_>, input: &str) -> Path<'arena> {
         parse(state, input).expect("should be valid path")
     }
 

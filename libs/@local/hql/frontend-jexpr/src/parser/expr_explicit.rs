@@ -129,7 +129,7 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for ConstantState<'arena, 'so
                             parent_id: Some(span),
                         },
                     })
-                    .map_err(|error| invalid_type(span, error))?;
+                    .map_err(|error| invalid_type(span, &error))?;
 
                 this.r#type = Some(r#type);
             }

@@ -173,6 +173,7 @@ mod test {
     use crate::parser::string::ParseState;
 
     #[track_caller]
+    #[expect(clippy::type_complexity, reason = "test code")]
     fn parse<'arena, 'spans, 'input>(
         state: ParseState<'arena, 'spans>,
         input: &'input str,
@@ -193,11 +194,7 @@ mod test {
     }
 
     #[track_caller]
-    fn parse_ok<'arena, 'spans, 'input>(
-        state: ParseState<'arena, 'spans>,
-        input: &'input str,
-        restriction: ParseRestriction,
-    ) -> Symbol {
+    fn parse_ok(state: ParseState<'_, '_>, input: &str, restriction: ParseRestriction) -> Symbol {
         parse(state, input, restriction).expect("should be valid symbol")
     }
 

@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use alloc::borrow::Cow;
 
 use hql_diagnostics::{
     category::Category, help::Help, label::Label, rob::RefOrBox, severity::Severity, Diagnostic,
@@ -140,7 +140,7 @@ pub(crate) fn unexpected_token(
 
 pub(crate) fn invalid_identifier<I>(
     span: SpanId,
-    error: ParseError<I, ErrMode<ContextError>>,
+    error: &ParseError<I, ErrMode<ContextError>>,
 ) -> Diagnostic<'static, SpanId> {
     let mut diagnostic = Diagnostic::new(INVALID_IDENTIFIER, Severity::ERROR);
 
@@ -153,7 +153,7 @@ pub(crate) fn invalid_identifier<I>(
 
 pub(crate) fn invalid_signature<I>(
     span: SpanId,
-    error: ParseError<I, ErrMode<ContextError>>,
+    error: &ParseError<I, ErrMode<ContextError>>,
 ) -> Diagnostic<'static, SpanId> {
     let mut diagnostic = Diagnostic::new(INVALID_SIGNATURE, Severity::ERROR);
 
@@ -166,7 +166,7 @@ pub(crate) fn invalid_signature<I>(
 
 pub(crate) fn invalid_type<I>(
     span: SpanId,
-    error: ParseError<I, ErrMode<ContextError>>,
+    error: &ParseError<I, ErrMode<ContextError>>,
 ) -> Diagnostic<'static, SpanId> {
     let mut diagnostic = Diagnostic::new(INVALID_TYPE, Severity::ERROR);
 
@@ -225,7 +225,7 @@ pub(crate) fn unknown_key(
         .push(Label::new(span, format!("Unknown key `{}`", key.as_ref())));
 
     let expected = expected
-        .into_iter()
+        .iter()
         .enumerate()
         .fold(String::new(), |mut acc, (index, key)| {
             if index != 0 {
@@ -241,7 +241,7 @@ pub(crate) fn unknown_key(
             acc
         });
 
-    diagnostic.help = Some(Help::new(format!("Expected {}", expected)));
+    diagnostic.help = Some(Help::new(format!("Expected {expected}")));
 
     diagnostic
 }

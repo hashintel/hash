@@ -50,24 +50,6 @@ impl<'source> TokenKind<'source> {
     }
 }
 
-impl<'source> TokenKind<'source> {
-    #[must_use]
-    pub(crate) fn into_owned(self) -> TokenKind<'static> {
-        match self {
-            Self::Bool(bool) => TokenKind::Bool(bool),
-            Self::Null => TokenKind::Null,
-            Self::LBrace => TokenKind::LBrace,
-            Self::RBrace => TokenKind::RBrace,
-            Self::LBracket => TokenKind::LBracket,
-            Self::RBracket => TokenKind::RBracket,
-            Self::Colon => TokenKind::Colon,
-            Self::Comma => TokenKind::Comma,
-            Self::Number(number) => TokenKind::Number(Cow::Owned(number.into_owned())),
-            Self::String(string) => TokenKind::String(Cow::Owned(string.into_owned())),
-        }
-    }
-}
-
 impl Display for TokenKind<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {

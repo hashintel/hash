@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use alloc::borrow::Cow;
 
 use hql_cst::expr::{call::Call, Expr, ExprKind};
 use hql_diagnostics::Diagnostic;
@@ -36,7 +36,7 @@ pub(crate) fn parse_expr<'arena, 'source>(
     };
 
     match token.kind {
-        TokenKind::String(value) => parse_string(stream, value, token.span),
+        TokenKind::String(value) => parse_string(stream, &value, token.span),
         TokenKind::LBracket => parse_call(stream, token),
         TokenKind::LBrace => parse_expr_explicit(stream, token),
         _ => {
@@ -94,8 +94,8 @@ fn parse_call<'arena, 'source>(
 }
 
 fn parse_string<'arena, 'source>(
-    stream: &mut TokenStream<'arena, 'source>,
-    value: Cow<'source, str>,
+    stream: &TokenStream<'arena, 'source>,
+    value: &Cow<'source, str>,
     span: TextRange,
 ) -> Result<Expr<'arena, 'source>, Diagnostic<'static, SpanId>> {
     enum ParseDecision {
@@ -165,10 +165,6 @@ fn parse_string<'arena, 'source>(
         Err((decision, error)) => (decision, error),
     };
 
-    #[expect(
-        clippy::cast_possible_truncation,
-        reason = "lexer ensures input is never larger than 4GiB"
-    )]
     let span = {
         let start = error.offset();
         let end = value.len().min(start);
@@ -183,8 +179,8 @@ fn parse_string<'arena, 'source>(
     let span = stream.insert_span(span);
 
     let diagnostic = match decision {
-        ParseDecision::Path => invalid_identifier(span, error),
-        ParseDecision::Signature => invalid_signature(span, error),
+        ParseDecision::Path => invalid_identifier(span, &error),
+        ParseDecision::Signature => invalid_signature(span, &error),
     };
 
     Err(diagnostic)
@@ -192,23 +188,81 @@ fn parse_string<'arena, 'source>(
 
 #[cfg(test)]
 mod test {
+    #![expect(clippy::string_lit_as_bytes, reason = "macro code")]
     use std::assert_matches::assert_matches;
 
+    use hql_cst::arena::Arena;
+    use hql_diagnostics::{config::ReportConfig, span::DiagnosticSpan};
+    use hql_span::storage::SpanStorage;
     use insta::assert_debug_snapshot;
 
     use super::ExprKind;
+    use crate::{
+        lexer::Lexer,
+        parser::{parse_expr, TokenStream},
+        span::Span,
+    };
 
     // This needs to be a macro, because we need to get the function name for auto-naming.
     macro_rules! assert_expr {
+        ($expr:expr,Err(_)) => {{
+            let arena = Arena::new();
+            let spans = SpanStorage::new();
+            let lexer = Lexer::new($expr.as_bytes(), spans.clone());
+
+            let diagnostic = parse_expr(
+                &mut TokenStream {
+                    arena: &arena,
+                    lexer,
+                    spans: spans.clone(),
+                    stack: Some(Vec::new()),
+                },
+                None,
+            )
+            .expect_err("should not be able to parse expression");
+
+            let diagnostic = diagnostic
+                .resolve(&spans)
+                .expect("should be able to resolve all spans");
+
+            let report = diagnostic.report(
+                ReportConfig {
+                    color: false,
+                    ..Default::default()
+                }
+                .with_transform_span(|span: &Span| DiagnosticSpan::from(span)),
+            );
+
+            let mut buffer = Vec::new();
+            report
+                .write_for_stdout(ariadne::Source::from($expr), &mut buffer)
+                .expect("should be able to write to buffer");
+
+            let output =
+                String::from_utf8(buffer).expect("should be able to convert buffer to string");
+
+            assert_debug_snapshot!(insta::_macro_support::AutoName, output, $expr);
+        }};
+
         ($expr:expr, $pattern:pat) => {{
-            todo!();
-            // let arena = Arena::new();
+            let arena = Arena::new();
+            let spans = SpanStorage::new();
+            let lexer = Lexer::new($expr.as_bytes(), spans.clone());
 
-            // let result = Expr::from_str(&arena, $expr);
+            let expr = parse_expr(
+                &mut TokenStream {
+                    arena: &arena,
+                    lexer,
+                    spans,
+                    stack: Some(Vec::new()),
+                },
+                None,
+            )
+            .expect("should be able to parse expression");
 
-            // assert_debug_snapshot!(insta::_macro_support::AutoName, result, $expr);
+            assert_debug_snapshot!(insta::_macro_support::AutoName, expr, $expr);
 
-            // assert_matches!(result, $pattern);
+            assert_matches!(expr.kind, $pattern);
         }};
 
         ($expr:expr) => {{
@@ -224,13 +278,13 @@ mod test {
                 "arg1",
                 "arg2"
             ]"#,
-            Ok(ExprKind::Call(_))
+            ExprKind::Call(_)
         );
     }
 
     #[test]
     fn fn_empty_args() {
-        assert_expr!(r#"["func"]"#, Ok(ExprKind::Call(_)));
+        assert_expr!(r#"["func"]"#, ExprKind::Call(_));
     }
 
     #[test]
@@ -240,14 +294,14 @@ mod test {
 
     #[test]
     fn string_is_path() {
-        assert_expr!(r#""symbol""#, Ok(ExprKind::Path(_)));
+        assert_expr!(r#""symbol""#, ExprKind::Path(_));
 
-        assert_expr!(r#""foo::bar""#, Ok(ExprKind::Path(_)));
+        assert_expr!(r#""foo::bar""#, ExprKind::Path(_));
     }
 
     #[test]
     fn string_is_signature() {
-        assert_expr!(r#""<T: Int>(a: T) -> T""#, Ok(ExprKind::Signature(_)));
+        assert_expr!(r#""<T: Int>(a: T) -> T""#, ExprKind::Signature(_));
     }
 
     #[test]
@@ -257,12 +311,12 @@ mod test {
 
     #[test]
     fn object_is_constant() {
-        assert_expr!(r#"{"const": 42}"#, Ok(ExprKind::Constant(_)));
+        assert_expr!(r#"{"const": 42}"#, ExprKind::Constant(_));
     }
 
     #[test]
     fn object_is_constant_with_type() {
-        assert_expr!(r#"{"type": "u32", "const": 42}"#, Ok(ExprKind::Constant(_)));
+        assert_expr!(r#"{"type": "u32", "const": 42}"#, ExprKind::Constant(_));
     }
 
     #[test]
@@ -277,7 +331,7 @@ mod test {
     fn object_is_call() {
         assert_expr!(
             r#"{"fn": "func", "args": ["arg1", "arg2"]}"#,
-            Ok(ExprKind::Call(_))
+            ExprKind::Call(_)
         );
     }
 
@@ -288,15 +342,12 @@ mod test {
 
     #[test]
     fn object_is_call_without_args() {
-        assert_expr!(r#"{"fn": "func"}"#, Ok(ExprKind::Call(_)));
+        assert_expr!(r#"{"fn": "func"}"#, ExprKind::Call(_));
     }
 
     #[test]
     fn object_is_signature() {
-        assert_expr!(
-            r#"{"sig": "<T: Int>(a: T) -> T"}"#,
-            Ok(ExprKind::Signature(_))
-        );
+        assert_expr!(r#"{"sig": "<T: Int>(a: T) -> T"}"#, ExprKind::Signature(_));
     }
 
     #[test]

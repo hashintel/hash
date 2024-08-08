@@ -6,12 +6,15 @@ mod expr;
 mod expr_explicit;
 mod object;
 mod path;
+mod program;
 mod signature;
 mod stream;
 mod string;
 mod symbol;
 mod r#type;
 mod value;
+
+pub(crate) use self::{expr::parse_expr, program::parse_program, stream::TokenStream};
 
 trait IntoTextRange {
     /// Convert the range into a text range.
@@ -22,6 +25,10 @@ trait IntoTextRange {
 }
 
 impl IntoTextRange for core::ops::Range<usize> {
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "The range is always less than `u32::MAX`"
+    )]
     fn range_trunc(self) -> TextRange {
         TextRange::new(
             TextSize::from(self.start as u32),
@@ -31,6 +38,10 @@ impl IntoTextRange for core::ops::Range<usize> {
 }
 
 impl IntoTextRange for core::range::Range<usize> {
+    #[expect(
+        clippy::cast_possible_truncation,
+        reason = "The range is always less than `u32::MAX`"
+    )]
     fn range_trunc(self) -> TextRange {
         TextRange::new(
             TextSize::from(self.start as u32),

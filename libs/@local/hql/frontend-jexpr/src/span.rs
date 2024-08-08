@@ -11,7 +11,7 @@ pub struct Span {
 }
 
 impl Span {
-    pub(crate) fn new(range: TextRange) -> Self {
+    pub(crate) const fn new(range: TextRange) -> Self {
         Self {
             range,
             pointer: None,

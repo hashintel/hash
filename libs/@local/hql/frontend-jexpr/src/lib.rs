@@ -1,8 +1,65 @@
 #![feature(assert_matches, new_range_api, box_into_boxed_slice)]
 
+use hql_cst::{arena::Arena, expr::Expr, Program};
+use hql_diagnostics::Diagnostic;
+use hql_span::{storage::SpanStorage, SpanId};
+
+use self::{parser::TokenStream, span::Span};
+
 extern crate alloc;
 
 pub mod error;
 pub(crate) mod lexer;
 pub(crate) mod parser;
 pub mod span;
+
+pub struct Parser<'arena> {
+    arena: &'arena Arena,
+    spans: SpanStorage<Span>,
+}
+
+impl<'arena> Parser<'arena> {
+    pub const fn new(arena: &'arena Arena, spans: SpanStorage<Span>) -> Self {
+        Self { arena, spans }
+    }
+
+    /// Parse an expression from the given source.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the source is not a valid J-Expr expression.
+    pub fn parse_expr<'source>(
+        &self,
+        source: &'source [u8],
+    ) -> Result<Expr<'arena, 'source>, Diagnostic<'static, SpanId>> {
+        let lexer = lexer::Lexer::new(source, self.spans.clone());
+        let mut stream = TokenStream {
+            arena: self.arena,
+            lexer,
+            spans: self.spans.clone(),
+            stack: Some(Vec::new()),
+        };
+
+        parser::parse_expr(&mut stream, None)
+    }
+
+    /// Parse a program from the given source.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the source is not a valid J-Expr program.
+    pub fn parse_program<'source>(
+        &self,
+        source: &'source [u8],
+    ) -> Result<Program<'arena, 'source>, Diagnostic<'static, SpanId>> {
+        let lexer = lexer::Lexer::new(source, self.spans.clone());
+        let mut stream = TokenStream {
+            arena: self.arena,
+            lexer,
+            spans: self.spans.clone(),
+            stack: Some(Vec::new()),
+        };
+
+        parser::parse_program(&mut stream)
+    }
+}

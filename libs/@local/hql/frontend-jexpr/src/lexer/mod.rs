@@ -32,7 +32,7 @@ impl<'source> Lexer<'source> {
     ///
     /// Panics if the source is larger than 4GiB.
     #[must_use]
-    pub(crate) fn new(source: &'source [u8]) -> Self {
+    pub(crate) fn new(source: &'source [u8], storage: SpanStorage<Span>) -> Self {
         assert!(
             u32::try_from(source.len()).is_ok(),
             "source is larger than 4GiB"
@@ -40,7 +40,7 @@ impl<'source> Lexer<'source> {
 
         Self {
             inner: logos::Lexer::new(source).spanned(),
-            spans: SpanStorage::new(),
+            spans: storage,
         }
     }
 
@@ -102,6 +102,7 @@ mod test {
     use core::fmt::Write;
 
     use hql_diagnostics::{config::ReportConfig, span::DiagnosticSpan};
+    use hql_span::storage::SpanStorage;
     use insta::assert_snapshot;
 
     use super::Lexer;
@@ -120,7 +121,7 @@ mod test {
             }
         "#;
 
-        let tokens: Vec<_> = Lexer::new(input.as_bytes())
+        let tokens: Vec<_> = Lexer::new(input.as_bytes(), SpanStorage::new())
             .map(|result| result.map(|token| token.kind))
             .collect::<Result<_, _>>()
             .expect("no malformed tokens");
@@ -135,7 +136,7 @@ mod test {
     }
 
     fn parse_err(input: &str, skip: usize) -> String {
-        let mut lexer = Lexer::new(input.as_bytes());
+        let mut lexer = Lexer::new(input.as_bytes(), SpanStorage::new());
 
         for _ in 0..skip {
             lexer.next();

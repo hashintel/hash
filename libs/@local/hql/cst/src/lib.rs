@@ -11,7 +11,6 @@ pub mod r#type;
 pub mod value;
 
 use hql_span::SpanId;
-use text_size::TextRange;
 
 use self::expr::Expr;
 
@@ -20,6 +19,12 @@ pub trait Spanned {
 }
 
 pub struct Program<'arena, 'source> {
-    pub expr: arena::Vec<'arena, Expr<'arena, 'source>>,
-    pub span: TextRange,
+    pub expressions: arena::Vec<'arena, Expr<'arena, 'source>>,
+    pub span: SpanId,
+}
+
+impl<'arena, 'source> Spanned for Program<'arena, 'source> {
+    fn span(&self) -> SpanId {
+        self.span
+    }
 }

@@ -35,23 +35,9 @@ impl Iterator for SyntaxKindSetIter {
 pub(crate) struct SyntaxKindSet(u128);
 
 impl SyntaxKindSet {
-    pub(crate) fn new(iter: impl IntoIterator<Item = SyntaxKind>) -> Self {
-        iter.into_iter().collect()
-    }
-
-    #[must_use]
-    pub(crate) const fn contains(&self, kind: SyntaxKind) -> bool {
-        self.0 & kind.into_u128() != 0
-    }
-
     #[must_use]
     pub(crate) const fn len(&self) -> usize {
         self.0.count_ones() as usize
-    }
-
-    #[must_use]
-    pub(crate) const fn is_empty(&self) -> bool {
-        self.0 == 0
     }
 }
 
