@@ -18,13 +18,7 @@ export const initSentry = (app: Router) => {
     integrations: [
       // Listen to routes specified in `app`
       new Sentry.Integrations.Express({ app }),
-      // Hooks into Node's internal http module
-      new Sentry.Integrations.Http({ tracing: true }),
-      // Create spans for resolvers
-      // TODO: Sentry's ApolloServer integration does not yet work when constructing the ApolloServer with a 'schema'
-      //       property
-      //   see https://github.com/getsentry/sentry-javascript/issues/8227
-      // new Sentry.Integrations.Apollo({ useNestjs: true }),
+      Sentry.httpIntegration({ tracing: true }),
     ],
 
     tracesSampleRate: 1.0,
