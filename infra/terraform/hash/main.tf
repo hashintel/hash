@@ -30,10 +30,6 @@ locals {
   region_az_names = module.variables_hash.region_az_names
 }
 
-provider "cloudflare" {
-  api_token = "TODO"
-}
-
 provider "vault" {
   # Uses the VAULT_TOKEN environment variable OR ~/.vault-token file to authenticate.
   # This is using the vault at VAULT_ADDR
