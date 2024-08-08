@@ -16,10 +16,13 @@ mod property_type;
 use core::borrow::Borrow;
 
 use error_stack::{Context, Report};
-use graph_types::knowledge::entity::{Entity, EntityId};
+use graph_types::{
+    knowledge::entity::{Entity, EntityId},
+    ontology::DataTypeId,
+};
 use serde::Deserialize;
 use type_system::{
-    schema::ClosedEntityType,
+    schema::{ClosedEntityType, DataType},
     url::{BaseUrl, VersionedUrl},
 };
 
@@ -95,6 +98,18 @@ pub trait OntologyTypeProvider<O> {
         &self,
         type_id: &VersionedUrl,
     ) -> impl Future<Output = Result<impl Borrow<O> + Send, Report<impl Context>>> + Send;
+}
+
+pub trait DataTypeProvider: OntologyTypeProvider<DataType> {
+    fn is_parent_of(
+        &self,
+        child: &VersionedUrl,
+        parent: &BaseUrl,
+    ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
+    fn has_children(
+        &self,
+        data_type: DataTypeId,
+    ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
 }
 
 pub trait EntityTypeProvider: OntologyTypeProvider<ClosedEntityType> {
@@ -252,6 +267,29 @@ mod tests {
         }
     }
 
+    impl DataTypeProvider for Provider {
+        #[expect(refining_impl_trait)]
+        async fn is_parent_of(
+            &self,
+            child: &VersionedUrl,
+            parent: &BaseUrl,
+        ) -> Result<bool, Report<InvalidDataType>> {
+            Ok(OntologyTypeProvider::<DataType>::provide_type(self, child)
+                .await?
+                .all_of
+                .iter()
+                .any(|id| id.url.base_url == *parent))
+        }
+
+        #[expect(refining_impl_trait)]
+        async fn has_children(
+            &self,
+            _data_type: DataTypeId,
+        ) -> Result<bool, Report<InvalidEntityType>> {
+            unimplemented!()
+        }
+    }
+
     pub(crate) async fn validate_entity(
         entity: &'static str,
         entity_type: &'static str,
@@ -327,6 +365,8 @@ mod tests {
     ) -> Result<(), Report<DataValidationError>> {
         install_error_stack_hooks();
 
+        let provider = Provider::new([], [], [], []);
+
         let data_type: DataType =
             serde_json::from_str(data_type).expect("failed to parse data type");
 
@@ -338,7 +378,7 @@ mod tests {
                 confidence: None,
             },
         }
-        .validate(&data_type, components, &())
+        .validate(&data_type, components, &provider)
         .await
     }
 }

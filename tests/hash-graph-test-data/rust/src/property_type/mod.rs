@@ -1,7 +1,7 @@
 pub const ADDRESS_LINE_1_V1: &str = include_str!("address_line_1.json");
 pub const AGE_V1: &str = include_str!("age.json");
-pub const BUILT_AT: &str = include_str!("built_at.json");
 pub const BLURB_V1: &str = include_str!("blurb.json");
+pub const BUILT_AT: &str = include_str!("built_at.json");
 pub const CITY_V1: &str = include_str!("city.json");
 pub const CONTACT_INFORMATION_V1: &str = include_str!("contact_information.json");
 pub const CONTRIVED_PROPERTY_V1: &str = include_str!("contrived_property.json");
@@ -11,6 +11,7 @@ pub const FAVORITE_QUOTE_V1: &str = include_str!("favorite_quote.json");
 pub const FAVORITE_SONG_V1: &str = include_str!("favorite_song.json");
 pub const HOBBY_V1: &str = include_str!("hobby.json");
 pub const INTERESTS_V1: &str = include_str!("interests.json");
+pub const LENGTH_V1: &str = include_str!("length.json");
 pub const NAME_V1: &str = include_str!("name.json");
 pub const NUMBERS_V1: &str = include_str!("numbers.json");
 pub const PHONE_NUMBER_V1: &str = include_str!("phone_number.json");

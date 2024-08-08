@@ -1,0 +1,15 @@
+{
+  "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+  "kind": "propertyType",
+  "$id": "http://localhost:3000/@alice/types/property-type/length/v/1",
+  "title": "Length",
+  "description": "A length",
+  "oneOf": [
+    {
+      "$ref": "https://hash.ai/@hash/types/data-type/length/v/1"
+    },
+    {
+      "$ref": "https://hash.ai/@hash/types/data-type/meter/v/1"
+    }
+  ]
+}
