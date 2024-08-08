@@ -187,7 +187,6 @@ mod test {
     use insta::assert_debug_snapshot;
 
     use super::ExprKind;
-    use crate::arena::Arena;
 
     // This needs to be a macro, because we need to get the function name for auto-naming.
     macro_rules! assert_expr {

@@ -96,7 +96,7 @@ where
     trace(
         "separated_boxed1",
         separated_foldl1(
-            parser.map(|generic| VecOrOne::new(arena, generic)),
+            parser.map(|value| VecOrOne::new(arena, value)),
             sep,
             |mut left, _, mut right| {
                 left.append(&mut right);
@@ -123,6 +123,7 @@ where
     )
 }
 
+#[derive(Debug)]
 pub(crate) struct ParseState<'arena, 'span> {
     pub arena: &'arena Arena,
     pub spans: &'span mut SpanStorage<Span>,

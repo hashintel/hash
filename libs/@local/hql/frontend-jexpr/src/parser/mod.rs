@@ -1,5 +1,3 @@
-use core::range::Range;
-
 use hql_span::{TextRange, TextSize};
 
 mod array;
@@ -21,7 +19,7 @@ trait IntoTextRange {
     fn range_trunc(self) -> TextRange;
 }
 
-impl IntoTextRange for Range<usize> {
+impl IntoTextRange for core::ops::Range<usize> {
     fn range_trunc(self) -> TextRange {
         TextRange::new(
             TextSize::from(self.start as u32),
@@ -30,7 +28,22 @@ impl IntoTextRange for Range<usize> {
     }
 }
 
-impl IntoTextRange for Range<TextSize> {
+impl IntoTextRange for core::range::Range<usize> {
+    fn range_trunc(self) -> TextRange {
+        TextRange::new(
+            TextSize::from(self.start as u32),
+            TextSize::from(self.end as u32),
+        )
+    }
+}
+
+impl IntoTextRange for core::ops::Range<TextSize> {
+    fn range_trunc(self) -> TextRange {
+        TextRange::new(self.start, self.end)
+    }
+}
+
+impl IntoTextRange for core::range::Range<TextSize> {
     fn range_trunc(self) -> TextRange {
         TextRange::new(self.start, self.end)
     }
@@ -40,6 +53,6 @@ impl IntoTextRange for (usize, usize) {
     fn range_trunc(self) -> TextRange {
         let (start, end) = self;
 
-        Range { start, end }.range_trunc()
+        core::range::Range { start, end }.range_trunc()
     }
 }

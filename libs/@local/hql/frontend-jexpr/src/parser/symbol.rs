@@ -1,10 +1,17 @@
+use ecow::EcoString;
 use hql_cst::symbol::Symbol;
+use unicode_ident::{is_xid_continue, is_xid_start};
 use winnow::{
+    combinator::{delimited, empty, fail, opt, peek},
     dispatch,
     error::ParserError,
-    stream::{AsChar, Compare, Stream, StreamIsPartial},
-    Parser,
+    stream::{AsChar, Compare, Location, Stream, StreamIsPartial},
+    token::{any, one_of, take_while},
+    PResult, Parser, Stateful,
 };
+
+use super::{string::ParseState, IntoTextRange};
+use crate::span::Span;
 
 /// Restrictions on the valid symbols that can be used
 ///
@@ -49,17 +56,18 @@ impl ParseRestriction {
 /// operator = "+" / "-" / "*" / "/" / "|" / "&" / "^" / "==" / "!=" / ">" / ">=" / "<" / "<="
 /// operatorSafe = "`" operators "`"
 /// ```
-pub(crate) fn parse_symbol<Input, Error>(
+pub(crate) fn parse_symbol<'arena, 'span, Input, Error>(
     restriction: ParseRestriction,
-) -> impl Parser<Input, Symbol, Error>
+) -> impl Parser<Stateful<Input, ParseState<'arena, 'span>>, Symbol, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
         + Compare<char>
-        + for<'a> Compare<&'a str>,
-    Error: ParserError<Input>,
+        + for<'a> Compare<&'a str>
+        + Location,
+    Error: ParserError<Stateful<Input, ParseState<'arena, 'span>>>,
 {
-    move |input: &mut Input| {
+    move |input: &mut Stateful<Input, ParseState<'arena, 'span>>| {
         dispatch! {peek(any).map(|token: Input::Token| token.as_char());
             char if is_xid_start(char) => parse_rust_identifier,
             '_' => parse_rust_identifier,
@@ -67,8 +75,18 @@ where
             '`' => parse_safe_operator,
             _ => fail
         }
-        .map(|value: Input::Slice| EcoString::from(value.as_ref()))
-        .map(Symbol)
+        .with_span()
+        .map(|(value, span): (Input::Slice, _)| {
+            let value =
+            EcoString::from(value.as_ref());
+            let span = input.state.spans.insert(Span {
+                range: span.range_trunc(),
+                pointer: None,
+                parent_id: input.state.parent_id,
+            });
+
+            Symbol { value, span }
+        })
         .parse_next(input)
     }
 }

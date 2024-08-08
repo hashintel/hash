@@ -1,4 +1,4 @@
-#![feature(assert_matches)]
+#![feature(assert_matches, new_range_api)]
 
 extern crate alloc;
 

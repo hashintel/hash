@@ -7,7 +7,7 @@ use crate::{arena, symbol::Symbol, Spanned};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Path<'arena> {
-    pub value: arena::Box<'arena, [Symbol]>,
+    pub segments: arena::Box<'arena, [Symbol]>,
 
     pub span: SpanId,
 }
@@ -20,7 +20,7 @@ impl Spanned for Path<'_> {
 
 impl Display for Path<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for (i, symbol) in self.value.iter().enumerate() {
+        for (i, symbol) in self.segments.iter().enumerate() {
             if i > 0 {
                 f.write_str("::")?;
             }

@@ -3,13 +3,12 @@ use std::borrow::Cow;
 use hql_diagnostics::{
     category::Category, help::Help, label::Label, rob::RefOrBox, severity::Severity, Diagnostic,
 };
-use hql_span::{SpanId, TextRange};
+use hql_span::SpanId;
 use winnow::error::{ContextError, ErrMode, ParseError};
 
 use crate::{
     error::CATEGORY,
     lexer::{syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet},
-    span::Span,
 };
 
 pub(crate) const PARSE: &Category = &Category {

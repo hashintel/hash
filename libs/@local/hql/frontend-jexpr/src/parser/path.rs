@@ -1,15 +1,18 @@
 use hql_cst::{arena::Arena, expr::path::Path};
 use winnow::{
+    combinator::trace,
     error::ParserError,
-    stream::{AsChar, Compare, StreamIsPartial},
+    stream::{AsChar, Compare, Location, Stream, StreamIsPartial},
     Parser, Stateful,
 };
 
 use super::{
     stream::TokenStream,
-    string::separated_boxed1,
+    string::{separated_boxed1, ParseState},
     symbol::{parse_symbol, ParseRestriction},
+    IntoTextRange,
 };
+use crate::span::Span;
 
 /// Implementation of Path parsing
 ///
@@ -18,20 +21,35 @@ use super::{
 /// ```abnf
 /// path = symbol *("::" symbol)
 /// ```
-pub(crate) fn parse_path<'arena, Input, Error>(
+pub(crate) fn parse_path<'arena, 'span, Input, Error>(
     restriction: ParseRestriction,
-) -> impl Parser<Stateful<Input, &'arena Arena>, Path<'arena>, Error>
+) -> impl Parser<Stateful<Input, ParseState<'arena, 'span>>, Path<'arena>, Error>
 where
     Input: StreamIsPartial
-        + TokenStream<Token: AsChar + Clone, Slice: AsRef<str>>
+        + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
         + Compare<char>
-        + for<'a> Compare<&'a str>,
-    Error: ParserError<Stateful<Input, &'arena Arena>>,
+        + for<'a> Compare<&'a str>
+        + Location,
+    Error: ParserError<Stateful<Input, ParseState<'arena, 'span>>>,
 {
-    move |input: &mut Stateful<Input, &'arena Arena>| {
+    move |input: &mut Stateful<Input, ParseState<'arena, 'span>>| {
+        let start = input.location();
+        let arena = input.state.arena;
+
         trace(
             "path",
-            separated_boxed1(input.state, parse_symbol(restriction), "::").map(Path),
+            separated_boxed1(arena, parse_symbol(restriction), "::").map(move |segments| {
+                let end = input.location();
+
+                Path {
+                    segments,
+                    span: input.state.spans.insert(Span {
+                        range: (start, end).range_trunc(),
+                        pointer: None,
+                        parent_id: input.state.parent_id,
+                    }),
+                }
+            }),
         )
         .parse_next(input)
     }
