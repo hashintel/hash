@@ -67,15 +67,12 @@ where
         });
 
         let stream = match kind {
-            ResponseKind::Ok => Ok(ValueStream {
-                inner: TerminatedChannelStream::new(rx),
-                state: internal,
-            }),
-            ResponseKind::Err(code) => Err(ErrorStream {
+            ResponseKind::Ok => Ok(ValueStream::new(TerminatedChannelStream::new(rx), internal)),
+            ResponseKind::Err(code) => Err(ErrorStream::new(
                 code,
-                inner: TerminatedChannelStream::new(rx),
-                state: internal,
-            }),
+                TerminatedChannelStream::new(rx),
+                internal,
+            )),
         };
 
         if self.tx.send(stream).await.is_err() {
@@ -247,17 +244,17 @@ where
 }
 
 pub(crate) struct TransactionTask<S, P> {
-    pub(crate) config: SessionConfig,
-    pub(crate) permit: P,
+    pub config: SessionConfig,
+    pub permit: P,
 
-    pub(crate) service: ServiceDescriptor,
-    pub(crate) procedure: ProcedureDescriptor,
+    pub service: ServiceDescriptor,
+    pub procedure: ProcedureDescriptor,
 
-    pub(crate) response_rx: tachyonix::Receiver<Response>,
-    pub(crate) response_tx: mpsc::Sender<Result<ValueStream, ErrorStream>>,
+    pub response_rx: tachyonix::Receiver<Response>,
+    pub response_tx: mpsc::Sender<Result<ValueStream, ErrorStream>>,
 
-    pub(crate) request_rx: S,
-    pub(crate) request_tx: mpsc::Sender<Request>,
+    pub request_rx: S,
+    pub request_tx: mpsc::Sender<Request>,
 }
 
 impl<S, P> TransactionTask<S, P>

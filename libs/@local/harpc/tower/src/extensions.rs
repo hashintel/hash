@@ -147,7 +147,13 @@ impl Extensions {
             .get_or_insert_with(Box::default)
             .entry(TypeId::of::<T>())
             .or_insert_with(|| Box::new(f()));
-        (**out).as_any_mut().downcast_mut().unwrap()
+
+        (**out).as_any_mut().downcast_mut().unwrap_or_else(|| {
+            unreachable!(
+                "the value is guaranteed to be of the given type, as each key corresponds to the \
+                 type of the value contained in the entry"
+            )
+        })
     }
 
     /// Get a mutable reference to a type, inserting the type's default value if not already present

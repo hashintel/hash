@@ -33,7 +33,14 @@ pub struct IncomingConnection {
 pin_project_lite::pin_project! {
     pub struct IncomingConnections {
         #[pin]
-        pub(crate) inner: libp2p_stream::IncomingStreams
+        inner: libp2p_stream::IncomingStreams
+    }
+}
+
+impl IncomingConnections {
+    #[must_use]
+    pub(crate) const fn new(inner: libp2p_stream::IncomingStreams) -> Self {
+        Self { inner }
     }
 }
 

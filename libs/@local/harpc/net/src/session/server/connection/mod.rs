@@ -65,16 +65,16 @@ where
 }
 
 pub(crate) struct ConnectionTask<E> {
-    pub(crate) peer: PeerId,
-    pub(crate) session: SessionId,
+    pub peer: PeerId,
+    pub session: SessionId,
 
-    pub(crate) transactions: TransactionCollection,
-    pub(crate) output: mpsc::Sender<Transaction>,
-    pub(crate) events: broadcast::Sender<SessionEvent>,
+    pub transactions: TransactionCollection,
+    pub output: mpsc::Sender<Transaction>,
+    pub events: broadcast::Sender<SessionEvent>,
 
-    pub(crate) config: SessionConfig,
-    pub(crate) encoder: E,
-    pub(crate) _permit: OwnedSemaphorePermit,
+    pub config: SessionConfig,
+    pub encoder: E,
+    pub _permit: OwnedSemaphorePermit,
 }
 
 impl<E> ConnectionTask<E>

@@ -81,7 +81,9 @@ name = "detect"
 required-features = ['std']
 doc-scrape-examples = true
 
-
 [[test]]
 name = "common"
 test = false
+
+[package.metadata.sync.turborepo]
+ignore = true
