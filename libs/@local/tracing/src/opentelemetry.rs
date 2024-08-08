@@ -69,7 +69,9 @@ where
     //   - OTEL_SPAN_EVENT_COUNT_LIMIT
     //   - OTEL_SPAN_LINK_COUNT_LIMIT
     let trace_config = opentelemetry_sdk::trace::config()
-        .with_sampler(Sampler::AlwaysOn)
+        .with_sampler(Sampler::ParentBased(Box::new(Sampler::TraceIdRatioBased(
+            0.1,
+        ))))
         .with_id_generator(RandomIdGenerator::default())
         .with_resource(Resource::new(vec![KeyValue::new("service.name", "graph")]));
 

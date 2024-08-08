@@ -1,5 +1,13 @@
 scenarios:
   - name: Ontology read queries
+    beforeScenario:
+      - initializeTracing
+    beforeRequest:
+      - enterRequestSpan
+    afterResponse:
+      - exitRequestSpan
+    afterScenario:
+      - tearDownTracing
     flow:
       - post:
           name: Read data type by ID

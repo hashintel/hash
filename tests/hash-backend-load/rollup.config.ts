@@ -13,7 +13,7 @@ const bundles: RollupOptions[] = [
       dir: OUT_DIR,
       entryFileNames: "[name].mjs",
       format: "module",
-      name: "hash-backend-performance",
+      name: "hash-backend-load",
       sourcemap: !PRODUCTION,
     },
     plugins: [
@@ -28,7 +28,13 @@ const bundles: RollupOptions[] = [
       }),
       nodeResolve(),
     ],
-    external: ["@ory/client", /^@local\/.*/],
+    external: [
+      /^@local\/.*/,
+      /^@ory\/.*/,
+      /^@opentelemetry\/.*/,
+      "dotenv-flow",
+      "uuid",
+    ],
   },
 ];
 export default bundles;

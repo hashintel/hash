@@ -1,5 +1,13 @@
 scenarios:
   - name: Read all entity types with parents
+    beforeScenario:
+      - initializeTracing
+    beforeRequest:
+      - enterRequestSpan
+    afterResponse:
+      - exitRequestSpan
+    afterScenario:
+      - tearDownTracing
     flow:
       - post:
           url: /
