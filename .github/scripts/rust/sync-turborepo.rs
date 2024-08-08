@@ -311,7 +311,12 @@ impl<'a> WorkspaceMember<'a> {
         // set the package to private if the crate is private
         package_json.other_fields.insert(
             "private".to_string(),
-            json!(self.is_private()),
+            json!(
+                package_json
+                    .name
+                    .map_or(false, |name| name.starts_with("@rust/"))
+                    || self.is_private()
+            ),
         );
 
         // set the name of the package.json
