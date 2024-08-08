@@ -9,12 +9,6 @@ config:
     metrics-by-endpoint:
       ignoreUnnamedRequests: true
       useOnlyRequestNames: true
-    publish-metrics:
-      - type: open-telemetry
-        serviceName: Artillery
-        metrics:
-          exporter: otlp-grpc
-          endpoint: http://localhost:4317/v1/metrics
   environments:
     functional:
       phases:
