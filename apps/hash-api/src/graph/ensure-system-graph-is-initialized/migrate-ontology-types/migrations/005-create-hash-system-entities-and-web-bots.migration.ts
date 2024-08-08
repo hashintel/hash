@@ -7,18 +7,18 @@ import {
 import type { AccountId } from "@local/hash-graph-types/account";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
-import { logger } from "../../../../logger";
-import { createHashInstance } from "../../../knowledge/system-types/hash-instance";
-import { systemAccountId } from "../../../system-account";
+import { logger } from "../../../../logger.js";
+import { createHashInstance } from "../../../knowledge/system-types/hash-instance.js";
+import { systemAccountId } from "../../../system-account.js";
 import {
   ensureSystemWebEntitiesExist,
   owningWebs,
-} from "../../system-webs-and-entities";
-import type { MigrationFunction } from "../types";
+} from "../../system-webs-and-entities.js";
+import type { MigrationFunction } from "../types.js";
 import {
   getCurrentHashSystemEntityTypeId,
   getExistingUsersAndOrgs,
-} from "../util";
+} from "../util.js";
 
 const migrate: MigrationFunction = async ({
   authentication,

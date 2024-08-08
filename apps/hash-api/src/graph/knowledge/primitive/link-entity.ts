@@ -9,13 +9,13 @@ import type {
   PropertyPatchOperation,
 } from "@local/hash-graph-types/entity";
 
-import type { ImpureGraphFunction } from "../../context-types";
+import type { ImpureGraphFunction } from "../../context-types.js";
 import {
   getEntityTypeById,
   isEntityTypeLinkEntityType,
-} from "../../ontology/primitive/entity-type";
-import { getLatestEntityById } from "./entity";
-import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
+} from "../../ontology/primitive/entity-type.js";
+import { getLatestEntityById } from "./entity.js";
+import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks.js";
 
 export const isEntityLinkEntity = (entity: Entity): entity is LinkEntity =>
   !!entity.linkData;

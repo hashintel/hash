@@ -3,12 +3,12 @@ import type { FeatureFlag } from "@local/hash-isomorphic-utils/feature-flags";
 import { featureFlags } from "@local/hash-isomorphic-utils/feature-flags";
 import type { AxiosError } from "axios";
 
-import { createKratosIdentity } from "../auth/ory-kratos";
-import type { ImpureGraphContext } from "../graph/context-types";
-import type { User } from "../graph/knowledge/system-types/user";
-import { createUser } from "../graph/knowledge/system-types/user";
-import { systemAccountId } from "../graph/system-account";
-import { isDevEnv, isTestEnv } from "../lib/env-config";
+import { createKratosIdentity } from "../auth/ory-kratos.js";
+import type { ImpureGraphContext } from "../graph/context-types.js";
+import type { User } from "../graph/knowledge/system-types/user.js";
+import { createUser } from "../graph/knowledge/system-types/user.js";
+import { systemAccountId } from "../graph/system-account.js";
+import { isDevEnv, isTestEnv } from "../lib/env-config.js";
 
 type SeededUser = {
   email: string;

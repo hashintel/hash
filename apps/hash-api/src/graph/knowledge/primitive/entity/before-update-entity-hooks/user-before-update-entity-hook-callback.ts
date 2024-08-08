@@ -7,19 +7,19 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import { ApolloError, UserInputError } from "apollo-server-express";
 
-import { userHasAccessToHash } from "../../../../../shared/user-has-access-to-hash";
-import type { ImpureGraphContext } from "../../../../context-types";
-import { modifyWebAuthorizationRelationships } from "../../../../ontology/primitive/util";
-import { systemAccountId } from "../../../../system-account";
+import { userHasAccessToHash } from "../../../../../shared/user-has-access-to-hash.js";
+import type { ImpureGraphContext } from "../../../../context-types.js";
+import { modifyWebAuthorizationRelationships } from "../../../../ontology/primitive/util.js";
+import { systemAccountId } from "../../../../system-account.js";
 import {
   shortnameContainsInvalidCharacter,
   shortnameIsRestricted,
   shortnameIsTaken,
   shortnameMaximumLength,
   shortnameMinimumLength,
-} from "../../../system-types/account.fields";
-import { getUserFromEntity } from "../../../system-types/user";
-import type { BeforeUpdateEntityHookCallback } from "../update-entity-hooks";
+} from "../../../system-types/account.fields.js";
+import { getUserFromEntity } from "../../../system-types/user.js";
+import type { BeforeUpdateEntityHookCallback } from "../update-entity-hooks.js";
 
 const validateAccountShortname = async (
   context: ImpureGraphContext,

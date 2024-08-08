@@ -3,15 +3,15 @@ import { ApolloError } from "apollo-server-express";
 import {
   getPageById,
   setPageParentPage,
-} from "../../../../graph/knowledge/system-types/page";
+} from "../../../../graph/knowledge/system-types/page.js";
 import type {
   MutationSetParentPageArgs,
   ResolverFn,
-} from "../../../api-types.gen";
-import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
-import type { UnresolvedPageGQL } from "../graphql-mapping";
-import { mapPageToGQL } from "../graphql-mapping";
+} from "../../../api-types.gen.js";
+import type { LoggedInGraphQLContext } from "../../../context.js";
+import { graphQLContextToImpureGraphContext } from "../../util.js";
+import type { UnresolvedPageGQL } from "../graphql-mapping.js";
+import { mapPageToGQL } from "../graphql-mapping.js";
 
 export const setParentPageResolver: ResolverFn<
   Promise<UnresolvedPageGQL>,

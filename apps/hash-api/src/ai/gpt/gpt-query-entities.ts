@@ -25,10 +25,10 @@ import {
 } from "@local/hash-subgraph";
 import type { RequestHandler } from "express";
 
-import { getLatestEntityById } from "../../graph/knowledge/primitive/entity";
-import { stringifyResults } from "./shared/stringify-results";
-import type { SimpleWeb } from "./shared/webs";
-import { getUserSimpleWebs } from "./shared/webs";
+import { getLatestEntityById } from "../../graph/knowledge/primitive/entity.js";
+import { stringifyResults } from "./shared/stringify-results.js";
+import type { SimpleWeb } from "./shared/webs.js";
+import { getUserSimpleWebs } from "./shared/webs.js";
 
 export type GptQueryEntitiesRequestBody = {
   /**

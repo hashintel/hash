@@ -28,7 +28,7 @@ import {
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
-} from "../../context-types";
+} from "../../context-types.js";
 
 export type LinearUserSecret = {
   connectionSourceName: string;

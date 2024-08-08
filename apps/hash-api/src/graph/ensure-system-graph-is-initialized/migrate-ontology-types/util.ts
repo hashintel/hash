@@ -74,26 +74,26 @@ import {
   CACHED_DATA_TYPE_SCHEMAS,
   CACHED_ENTITY_TYPE_SCHEMAS,
   CACHED_PROPERTY_TYPE_SCHEMAS,
-} from "../../../seed-data";
-import type { ImpureGraphFunction } from "../../context-types";
-import { getEntities } from "../../knowledge/primitive/entity";
+} from "../../../seed-data/index.js";
+import type { ImpureGraphFunction } from "../../context-types.js";
+import { getEntities } from "../../knowledge/primitive/entity.js";
 import {
   createDataType,
   getDataTypeById,
-} from "../../ontology/primitive/data-type";
+} from "../../ontology/primitive/data-type.js";
 import {
   createEntityType,
   getEntityTypeById,
-} from "../../ontology/primitive/entity-type";
+} from "../../ontology/primitive/entity-type.js";
 import {
   createPropertyType,
   getPropertyTypeById,
-} from "../../ontology/primitive/property-type";
-import type { PrimitiveDataTypeKey } from "../system-webs-and-entities";
-import { getOrCreateOwningAccountGroupId } from "../system-webs-and-entities";
-import type { MigrationState } from "./types";
-import { upgradeWebEntities } from "./util/upgrade-entities";
-import { upgradeEntityTypeDependencies } from "./util/upgrade-entity-type-dependencies";
+} from "../../ontology/primitive/property-type.js";
+import type { PrimitiveDataTypeKey } from "../system-webs-and-entities.js";
+import { getOrCreateOwningAccountGroupId } from "../system-webs-and-entities.js";
+import type { MigrationState } from "./types.js";
+import { upgradeWebEntities } from "./util/upgrade-entities.js";
+import { upgradeEntityTypeDependencies } from "./util/upgrade-entity-type-dependencies.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

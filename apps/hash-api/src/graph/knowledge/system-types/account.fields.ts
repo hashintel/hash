@@ -1,9 +1,9 @@
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
-} from "../../context-types";
-import { getOrgByShortname } from "./org";
-import { getUserByShortname } from "./user";
+} from "../../context-types.js";
+import { getOrgByShortname } from "./org.js";
+import { getUserByShortname } from "./user.js";
 
 /** @todo: enable admins to expand upon restricted shortnames block list */
 export const RESTRICTED_SHORTNAMES = [

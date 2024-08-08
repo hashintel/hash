@@ -24,8 +24,8 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import type { Client } from "@temporalio/client";
 
-import type { User } from "../../graph/knowledge/system-types/user";
-import { FlowRunStatus } from "../../graphql/api-types.gen";
+import type { User } from "../../graph/knowledge/system-types/user.js";
+import { FlowRunStatus } from "../../graphql/api-types.gen.js";
 
 export const handleInferEntitiesRequest = async ({
   graphApiClient,

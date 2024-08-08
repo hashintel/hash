@@ -1,7 +1,7 @@
-import { getCommentText } from "../../../../graph/knowledge/system-types/comment";
-import type { CommentResolvers } from "../../../api-types.gen";
-import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
+import { getCommentText } from "../../../../graph/knowledge/system-types/comment.js";
+import type { CommentResolvers } from "../../../api-types.gen.js";
+import type { LoggedInGraphQLContext } from "../../../context.js";
+import { graphQLContextToImpureGraphContext } from "../../util.js";
 
 export const commentTextUpdatedAtResolver: CommentResolvers<LoggedInGraphQLContext>["textUpdatedAt"] =
   async ({ metadata }, _, graphQLContext) => {

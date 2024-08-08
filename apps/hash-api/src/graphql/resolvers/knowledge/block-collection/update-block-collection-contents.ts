@@ -1,20 +1,20 @@
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import { UserInputError } from "apollo-server-errors";
 
-import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entity";
+import { getLatestEntityById } from "../../../../graph/knowledge/primitive/entity.js";
 import {
   addBlockToBlockCollection,
   moveBlockInBlockCollection,
   removeBlockFromBlockCollection,
-} from "../../../../graph/knowledge/system-types/block-collection";
-import { exactlyOne } from "../../../../util";
+} from "../../../../graph/knowledge/system-types/block-collection.js";
+import { exactlyOne } from "../../../../util.js";
 import type {
   MutationUpdateBlockCollectionContentsArgs,
   ResolverFn,
   UpdateBlockCollectionContentsResult,
-} from "../../../api-types.gen";
-import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
+} from "../../../api-types.gen.js";
+import type { LoggedInGraphQLContext } from "../../../context.js";
+import { graphQLContextToImpureGraphContext } from "../../util.js";
 import {
   createEntityWithPlaceholdersFn,
   filterForAction,
@@ -23,7 +23,7 @@ import {
   handleSwapBlockData,
   handleUpdateEntity,
   PlaceholderResultsMap,
-} from "./update-block-collection-actions";
+} from "./update-block-collection-actions.js";
 
 /**
  * @todo This operation should ideally be atomic in nature, either we do all

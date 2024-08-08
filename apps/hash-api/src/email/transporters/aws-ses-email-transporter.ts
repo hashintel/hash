@@ -4,11 +4,11 @@ import { convert } from "html-to-text";
 import nodemailer from "nodemailer";
 import type SESTransport from "nodemailer/lib/ses-transport";
 
-import { logger } from "../../logger";
+import { logger } from "../../logger.js";
 import type {
   EmailTransporter,
   EmailTransporterSendMailOptions,
-} from "./types";
+} from "./types.js";
 
 export interface AwsSesEmailTransporterConfig {
   from: string;

@@ -43,9 +43,9 @@ import {
   ontologyTypeRecordIdToVersionedUrl,
 } from "@local/hash-subgraph";
 
-import type { ImpureGraphFunction } from "../../context-types";
-import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";
-import { getWebShortname, isExternalTypeId } from "./util";
+import type { ImpureGraphFunction } from "../../context-types.js";
+import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter.js";
+import { getWebShortname, isExternalTypeId } from "./util.js";
 
 export const getEntityTypeAuthorizationRelationships: ImpureGraphFunction<
   { entityTypeId: VersionedUrl },

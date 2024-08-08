@@ -17,14 +17,14 @@ import type { LinearIntegrationPropertiesWithMetadata } from "@local/hash-isomor
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type { RequestHandler } from "express";
 
-import { createEntity } from "../../graph/knowledge/primitive/entity";
-import type { LinearIntegration } from "../../graph/knowledge/system-types/linear-integration-entity";
+import { createEntity } from "../../graph/knowledge/primitive/entity.js";
+import type { LinearIntegration } from "../../graph/knowledge/system-types/linear-integration-entity.js";
 import {
   getLinearIntegrationByLinearOrgId,
   getLinearIntegrationFromEntity,
-} from "../../graph/knowledge/system-types/linear-integration-entity";
-import { isUserMemberOfOrg } from "../../graph/knowledge/system-types/user";
-import { createUserSecret } from "../../graph/knowledge/system-types/user-secret";
+} from "../../graph/knowledge/system-types/linear-integration-entity.js";
+import { isUserMemberOfOrg } from "../../graph/knowledge/system-types/user.js";
+import { createUserSecret } from "../../graph/knowledge/system-types/user-secret.js";
 
 const linearClientId = process.env.LINEAR_CLIENT_ID;
 const linearClientSecret = process.env.LINEAR_CLIENT_SECRET;

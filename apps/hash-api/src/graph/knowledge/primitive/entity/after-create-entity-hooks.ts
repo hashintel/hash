@@ -10,35 +10,35 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import type { UserProperties } from "@local/hash-isomorphic-utils/system-types/user";
 import { entityIdFromComponents } from "@local/hash-subgraph";
 
-import { isProdEnv } from "../../../../lib/env-config";
-import { createOrUpdateMailchimpUser } from "../../../../mailchimp";
+import { isProdEnv } from "../../../../lib/env-config.js";
+import { createOrUpdateMailchimpUser } from "../../../../mailchimp.js";
 import {
   getBlockCollectionByBlock,
   getBlockFromEntity,
-} from "../../system-types/block";
+} from "../../system-types/block.js";
 import {
   getCommentAncestorBlock,
   getCommentAuthor,
   getCommentFromEntity,
   getCommentParent,
-} from "../../system-types/comment";
+} from "../../system-types/comment.js";
 import {
   createCommentNotification,
   createMentionNotification,
   getMentionNotification,
-} from "../../system-types/notification";
-import { getPageFromEntity } from "../../system-types/page";
+} from "../../system-types/notification.js";
+import { getPageFromEntity } from "../../system-types/page.js";
 import {
   getMentionedUsersInTextualContent,
   getTextById,
-} from "../../system-types/text";
-import { getUserById } from "../../system-types/user";
-import { checkPermissionsOnEntity } from "../entity";
+} from "../../system-types/text.js";
+import { getUserById } from "../../system-types/user.js";
+import { checkPermissionsOnEntity } from "../entity.js";
 import type {
   AfterCreateEntityHook,
   AfterCreateEntityHookCallback,
-} from "./create-entity-hooks";
-import { getTextUpdateOccurredIn } from "./shared/mention-notification";
+} from "./create-entity-hooks.js";
+import { getTextUpdateOccurredIn } from "./shared/mention-notification.js";
 
 /**
  * This after create `Comment` entity hook is responsible for creating

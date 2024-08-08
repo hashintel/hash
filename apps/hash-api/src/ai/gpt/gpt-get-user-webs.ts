@@ -1,7 +1,7 @@
 import type { RequestHandler } from "express";
 
-import type { SimpleWeb } from "./shared/webs";
-import { getUserSimpleWebs } from "./shared/webs";
+import type { SimpleWeb } from "./shared/webs.js";
+import { getUserSimpleWebs } from "./shared/webs.js";
 
 export type GptGetUserWebsResponseBody =
   | { error: string }

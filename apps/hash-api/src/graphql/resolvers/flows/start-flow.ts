@@ -6,8 +6,8 @@ import type {
 import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
-import type { MutationStartFlowArgs, ResolverFn } from "../../api-types.gen";
-import type { LoggedInGraphQLContext } from "../../context";
+import type { MutationStartFlowArgs, ResolverFn } from "../../api-types.gen.js";
+import type { LoggedInGraphQLContext } from "../../context.js";
 
 export const startFlow: ResolverFn<
   Promise<EntityUuid>,

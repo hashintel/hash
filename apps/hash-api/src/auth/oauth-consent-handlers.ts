@@ -1,6 +1,6 @@
 import type { RequestHandler } from "express";
 
-import { hydraAdmin } from "./ory-hydra";
+import { hydraAdmin } from "./ory-hydra.js";
 
 /**
  * @see https://github.com/ory/hydra-login-consent-node/tree/master

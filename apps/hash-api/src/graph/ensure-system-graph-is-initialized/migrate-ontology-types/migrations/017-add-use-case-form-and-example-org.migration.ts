@@ -7,13 +7,13 @@ import {
 import {
   createOrg,
   getOrgByShortname,
-} from "../../../knowledge/system-types/org";
-import type { MigrationFunction } from "../types";
+} from "../../../knowledge/system-types/org.js";
+import type { MigrationFunction } from "../types.js";
 import {
   anyUserInstantiator,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
-} from "../util";
+} from "../util.js";
 
 const migrate: MigrationFunction = async ({
   context,

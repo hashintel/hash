@@ -27,31 +27,34 @@ import {
 import type {
   KratosUserIdentity,
   KratosUserIdentityTraits,
-} from "../../../auth/ory-kratos";
-import { kratosIdentityApi } from "../../../auth/ory-kratos";
-import { createAccount, createWeb } from "../../account-permission-management";
+} from "../../../auth/ory-kratos.js";
+import { kratosIdentityApi } from "../../../auth/ory-kratos.js";
+import {
+  createAccount,
+  createWeb,
+} from "../../account-permission-management.js";
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
-} from "../../context-types";
-import { systemAccountId } from "../../system-account";
+} from "../../context-types.js";
+import { systemAccountId } from "../../system-account.js";
 import {
   createEntity,
   getEntityOutgoingLinks,
   getLatestEntityById,
-} from "../primitive/entity";
+} from "../primitive/entity.js";
 import {
   shortnameIsInvalid,
   shortnameIsRestricted,
   shortnameIsTaken,
-} from "./account.fields";
-import { addHashInstanceAdmin } from "./hash-instance";
-import type { OrgMembership } from "./org-membership";
+} from "./account.fields.js";
+import { addHashInstanceAdmin } from "./hash-instance.js";
+import type { OrgMembership } from "./org-membership.js";
 import {
   createOrgMembership,
   getOrgMembershipFromLinkEntity,
   getOrgMembershipOrg,
-} from "./org-membership";
+} from "./org-membership.js";
 
 export type User = {
   accountId: AccountId;

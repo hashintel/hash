@@ -37,10 +37,10 @@ import {
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
-} from "../../context-types";
-import { systemAccountId } from "../../system-account";
-import { getLatestEntityById, updateEntity } from "../primitive/entity";
-import { createLinkEntity } from "../primitive/link-entity";
+} from "../../context-types.js";
+import { systemAccountId } from "../../system-account.js";
+import { getLatestEntityById, updateEntity } from "../primitive/entity.js";
+import { createLinkEntity } from "../primitive/link-entity.js";
 
 export type LinearIntegration = {
   linearOrgId: string;

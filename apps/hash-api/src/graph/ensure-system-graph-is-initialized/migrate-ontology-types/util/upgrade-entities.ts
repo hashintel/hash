@@ -21,13 +21,13 @@ import {
 } from "@local/hash-subgraph/type-system-patch";
 import isEqual from "lodash/isEqual";
 
-import type { ImpureGraphContext } from "../../../context-types";
+import type { ImpureGraphContext } from "../../../context-types.js";
 import {
   getEntitySubgraph,
   updateEntity,
-} from "../../../knowledge/primitive/entity";
-import { systemAccountId } from "../../../system-account";
-import type { MigrationState } from "../types";
+} from "../../../knowledge/primitive/entity.js";
+import { systemAccountId } from "../../../system-account.js";
+import type { MigrationState } from "../types.js";
 
 export const upgradeWebEntities = async ({
   authentication,

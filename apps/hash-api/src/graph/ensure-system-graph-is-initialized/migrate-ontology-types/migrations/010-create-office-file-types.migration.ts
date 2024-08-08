@@ -1,9 +1,9 @@
-import type { MigrationFunction } from "../types";
+import type { MigrationFunction } from "../types.js";
 import {
   anyUserInstantiator,
   createSystemEntityTypeIfNotExists,
   getCurrentHashSystemEntityTypeId,
-} from "../util";
+} from "../util.js";
 
 const migrate: MigrationFunction = async ({
   context,

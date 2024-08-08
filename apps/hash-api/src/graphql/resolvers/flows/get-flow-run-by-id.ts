@@ -7,9 +7,9 @@ import type {
   FlowRun,
   QueryGetFlowRunByIdArgs,
   ResolverFn,
-} from "../../api-types.gen";
-import type { GraphQLContext } from "../../context";
-import { wereDetailedFieldsRequested } from "./shared/were-detailed-fields-requested";
+} from "../../api-types.gen.js";
+import type { GraphQLContext } from "../../context.js";
+import { wereDetailedFieldsRequested } from "./shared/were-detailed-fields-requested.js";
 
 export const getFlowRunByIdResolver: ResolverFn<
   FlowRun | SparseFlowRun,

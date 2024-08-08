@@ -18,8 +18,8 @@ import type { UserSecret } from "@local/hash-isomorphic-utils/system-types/share
 import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 import type { Auth } from "googleapis";
 
-import { createEntity } from "../primitive/entity";
-import { createLinkEntity } from "../primitive/link-entity";
+import { createEntity } from "../primitive/entity.js";
+import { createLinkEntity } from "../primitive/link-entity.js";
 
 type CreateUserSecretParams<T extends object> = {
   /**

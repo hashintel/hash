@@ -3,8 +3,8 @@ import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { CancelInferEntitiesWebsocketRequestMessage } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type { Client } from "@temporalio/client";
 
-import type { GraphApi } from "../../graph/context-types";
-import type { User } from "../../graph/knowledge/system-types/user";
+import type { GraphApi } from "../../graph/context-types.js";
+import type { User } from "../../graph/knowledge/system-types/user.js";
 
 export const handleCancelInferEntitiesRequest = async ({
   graphApiClient,

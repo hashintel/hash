@@ -4,14 +4,14 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { ProspectiveUser } from "@local/hash-isomorphic-utils/system-types/prospectiveuser";
 
-import { createEntity } from "../../../../graph/knowledge/primitive/entity";
-import { systemAccountId } from "../../../../graph/system-account";
+import { createEntity } from "../../../../graph/knowledge/primitive/entity.js";
+import { systemAccountId } from "../../../../graph/system-account.js";
 import type {
   MutationSubmitEarlyAccessFormArgs,
   ResolverFn,
-} from "../../../api-types.gen";
-import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
+} from "../../../api-types.gen.js";
+import type { LoggedInGraphQLContext } from "../../../context.js";
+import { graphQLContextToImpureGraphContext } from "../../util.js";
 
 export const submitEarlyAccessFormResolver: ResolverFn<
   Promise<boolean>,

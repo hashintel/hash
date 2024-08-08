@@ -1,13 +1,13 @@
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-types/shared";
 
-import { createFileFromExternalUrl } from "../../../../graph/knowledge/system-types/file";
+import { createFileFromExternalUrl } from "../../../../graph/knowledge/system-types/file.js";
 import type {
   MutationCreateFileFromUrlArgs,
   ResolverFn,
-} from "../../../api-types.gen";
-import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
+} from "../../../api-types.gen.js";
+import type { LoggedInGraphQLContext } from "../../../context.js";
+import { graphQLContextToImpureGraphContext } from "../../util.js";
 
 export const createFileFromUrl: ResolverFn<
   Promise<Entity<FileEntity>>,

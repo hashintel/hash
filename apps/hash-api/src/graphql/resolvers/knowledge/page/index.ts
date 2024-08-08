@@ -1,1 +1,1 @@
-export { pageContents } from "./page-contents";
+export { pageContents } from "./page-contents.js";

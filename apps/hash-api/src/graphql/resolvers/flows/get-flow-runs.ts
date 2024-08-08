@@ -5,9 +5,9 @@ import type {
   FlowRun,
   QueryGetFlowRunsArgs,
   ResolverFn,
-} from "../../api-types.gen";
-import type { GraphQLContext } from "../../context";
-import { wereDetailedFieldsRequested } from "./shared/were-detailed-fields-requested";
+} from "../../api-types.gen.js";
+import type { GraphQLContext } from "../../context.js";
+import { wereDetailedFieldsRequested } from "./shared/were-detailed-fields-requested.js";
 
 export const getFlowRunsResolver: ResolverFn<
   FlowRun[] | SparseFlowRun[],

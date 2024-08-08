@@ -11,14 +11,14 @@ import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type { RequestHandler } from "express";
 
-import type { ImpureGraphContext } from "../../graph/context-types";
+import type { ImpureGraphContext } from "../../graph/context-types.js";
 import {
   getAllLinearIntegrationsWithLinearOrgId,
   getSyncedWorkspacesForLinearIntegration,
-} from "../../graph/knowledge/system-types/linear-integration-entity";
-import { getLinearSecretValueByHashWorkspaceId } from "../../graph/knowledge/system-types/linear-user-secret";
-import { systemAccountId } from "../../graph/system-account";
-import { logger } from "../../logger";
+} from "../../graph/knowledge/system-types/linear-integration-entity.js";
+import { getLinearSecretValueByHashWorkspaceId } from "../../graph/knowledge/system-types/linear-user-secret.js";
+import { systemAccountId } from "../../graph/system-account.js";
+import { logger } from "../../logger.js";
 
 type LinearWebhookPayload = {
   action: "create" | "update" | "delete";

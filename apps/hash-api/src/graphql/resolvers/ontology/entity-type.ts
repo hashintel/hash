@@ -22,7 +22,7 @@ import {
   getEntityTypeSubgraphById,
   unarchiveEntityType,
   updateEntityType,
-} from "../../../graph/ontology/primitive/entity-type";
+} from "../../../graph/ontology/primitive/entity-type.js";
 import type {
   MutationArchiveEntityTypeArgs,
   MutationCreateEntityTypeArgs,
@@ -32,9 +32,9 @@ import type {
   QueryGetEntityTypeArgs,
   QueryQueryEntityTypesArgs,
   ResolverFn,
-} from "../../api-types.gen";
-import type { GraphQLContext, LoggedInGraphQLContext } from "../../context";
-import { graphQLContextToImpureGraphContext } from "../util";
+} from "../../api-types.gen.js";
+import type { GraphQLContext, LoggedInGraphQLContext } from "../../context.js";
+import { graphQLContextToImpureGraphContext } from "../util.js";
 
 export const createEntityTypeResolver: ResolverFn<
   Promise<EntityTypeWithMetadata>,

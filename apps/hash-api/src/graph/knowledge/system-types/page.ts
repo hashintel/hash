@@ -36,22 +36,22 @@ import { generateKeyBetween } from "fractional-indexing";
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
-} from "../../context-types";
+} from "../../context-types.js";
 import {
   createEntity,
   getEntities,
   getEntityOutgoingLinks,
   getLatestEntityById,
   updateEntity,
-} from "../primitive/entity";
+} from "../primitive/entity.js";
 import {
   createLinkEntity,
   getLinkEntityRightEntity,
-} from "../primitive/link-entity";
-import type { Block } from "./block";
-import { getBlockComments, getBlockFromEntity } from "./block";
-import { addBlockToBlockCollection } from "./block-collection";
-import type { Comment } from "./comment";
+} from "../primitive/link-entity.js";
+import type { Block } from "./block.js";
+import { getBlockComments, getBlockFromEntity } from "./block.js";
+import { addBlockToBlockCollection } from "./block-collection.js";
+import type { Comment } from "./comment.js";
 
 export type Page = {
   title: string;

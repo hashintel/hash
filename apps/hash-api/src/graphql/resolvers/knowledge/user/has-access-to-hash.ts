@@ -1,6 +1,6 @@
-import { userHasAccessToHash } from "../../../../shared/user-has-access-to-hash";
-import type { Query, ResolverFn } from "../../../api-types.gen";
-import type { LoggedInGraphQLContext } from "../../../context";
+import { userHasAccessToHash } from "../../../../shared/user-has-access-to-hash.js";
+import type { Query, ResolverFn } from "../../../api-types.gen.js";
+import type { LoggedInGraphQLContext } from "../../../context.js";
 
 export const hasAccessToHashResolver: ResolverFn<
   Query["hasAccessToHash"],

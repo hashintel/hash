@@ -1,8 +1,8 @@
-import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity";
-import type { Query, QueryMeArgs, ResolverFn } from "../../../api-types.gen";
-import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
-import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";
+import { getLatestEntityRootedSubgraph } from "../../../../graph/knowledge/primitive/entity.js";
+import type { Query, QueryMeArgs, ResolverFn } from "../../../api-types.gen.js";
+import type { LoggedInGraphQLContext } from "../../../context.js";
+import { graphQLContextToImpureGraphContext } from "../../util.js";
+import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return.js";
 
 export const meResolver: ResolverFn<
   Query["me"],

@@ -11,20 +11,20 @@ import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-
 import { ApolloError, UserInputError } from "apollo-server-errors";
 import produce from "immer";
 
-import type { ImpureGraphContext } from "../../../../graph/context-types";
-import type { PropertyValue } from "../../../../graph/knowledge/primitive/entity";
+import type { ImpureGraphContext } from "../../../../graph/context-types.js";
+import type { PropertyValue } from "../../../../graph/knowledge/primitive/entity.js";
 import {
   createEntityWithLinks,
   getLatestEntityById,
   updateEntity,
-} from "../../../../graph/knowledge/primitive/entity";
-import type { Block } from "../../../../graph/knowledge/system-types/block";
+} from "../../../../graph/knowledge/primitive/entity.js";
+import type { Block } from "../../../../graph/knowledge/system-types/block.js";
 import {
   createBlock,
   getBlockById,
   updateBlockDataEntity,
-} from "../../../../graph/knowledge/system-types/block";
-import type { User } from "../../../../graph/knowledge/system-types/user";
+} from "../../../../graph/knowledge/system-types/block.js";
+import type { User } from "../../../../graph/knowledge/system-types/user.js";
 import type {
   CreateEntityAction,
   EntityDefinition,
@@ -32,7 +32,7 @@ import type {
   SwapBlockDataAction,
   UpdateBlockCollectionAction,
   UpdateEntityAction,
-} from "../../../api-types.gen";
+} from "../../../api-types.gen.js";
 
 export const createEntityWithPlaceholdersFn =
   (

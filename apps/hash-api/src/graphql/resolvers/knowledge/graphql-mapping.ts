@@ -1,11 +1,11 @@
-import type { Block } from "../../../graph/knowledge/system-types/block";
-import type { Comment } from "../../../graph/knowledge/system-types/comment";
-import type { Page } from "../../../graph/knowledge/system-types/page";
+import type { Block } from "../../../graph/knowledge/system-types/block.js";
+import type { Comment } from "../../../graph/knowledge/system-types/comment.js";
+import type { Page } from "../../../graph/knowledge/system-types/page.js";
 import type {
   Block as GQLBlock,
   Comment as GQLComment,
   Page as GQLPage,
-} from "../../api-types.gen";
+} from "../../api-types.gen.js";
 
 export type ExternalPageResolversGQL =
   | "contents"

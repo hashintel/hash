@@ -5,13 +5,13 @@ import {
   mimeTypePropertyTypeUrl,
 } from "@local/hash-subgraph";
 
-import { systemAccountId } from "../../../system-account";
-import type { MigrationFunction } from "../types";
+import { systemAccountId } from "../../../system-account.js";
+import type { MigrationFunction } from "../types.js";
 import {
   anyUserInstantiator,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
-} from "../util";
+} from "../util.js";
 
 const migrate: MigrationFunction = async ({
   context,

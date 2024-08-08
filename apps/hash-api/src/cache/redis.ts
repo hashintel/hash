@@ -3,7 +3,7 @@ import type { RedisSocketConfig } from "@local/hash-backend-utils/redis";
 import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
 import { DataSource } from "apollo-datasource";
 
-import type { CacheAdapter } from "./adapter";
+import type { CacheAdapter } from "./adapter.js";
 
 export class RedisCache extends DataSource implements CacheAdapter {
   private client: AsyncRedisClient;

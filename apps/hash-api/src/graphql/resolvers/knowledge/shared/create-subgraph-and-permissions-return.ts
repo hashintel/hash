@@ -5,10 +5,10 @@ import type { GraphQLResolveInfo } from "graphql";
 import type { ResolveTree } from "graphql-parse-resolve-info";
 import { parseResolveInfo } from "graphql-parse-resolve-info";
 
-import { checkPermissionsOnEntitiesInSubgraph } from "../../../../graph/knowledge/primitive/entity";
-import type { SubgraphAndPermissions } from "../../../api-types.gen";
-import type { GraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
+import { checkPermissionsOnEntitiesInSubgraph } from "../../../../graph/knowledge/primitive/entity.js";
+import type { SubgraphAndPermissions } from "../../../api-types.gen.js";
+import type { GraphQLContext } from "../../../context.js";
+import { graphQLContextToImpureGraphContext } from "../../util.js";
 
 const werePermissionsRequested = (info: GraphQLResolveInfo) => {
   const parsedResolveInfoFragment = parseResolveInfo(info);

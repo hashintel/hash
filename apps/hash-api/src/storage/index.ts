@@ -23,13 +23,13 @@ import type { File as FileEntity } from "@local/hash-isomorphic-utils/system-typ
 import { isEntityId, splitEntityId } from "@local/hash-subgraph";
 import type { Express } from "express";
 
-import { getActorIdFromRequest } from "../auth/get-actor-id";
-import type { CacheAdapter } from "../cache";
-import type { ImpureGraphContext } from "../graph/context-types";
-import { getEntities } from "../graph/knowledge/primitive/entity";
-import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config";
-import { logger } from "../logger";
-import { LocalFileSystemStorageProvider } from "./local-file-storage";
+import { getActorIdFromRequest } from "../auth/get-actor-id.js";
+import type { CacheAdapter } from "../cache/index.js";
+import type { ImpureGraphContext } from "../graph/context-types.js";
+import { getEntities } from "../graph/knowledge/primitive/entity.js";
+import { LOCAL_FILE_UPLOAD_PATH } from "../lib/config.js";
+import { logger } from "../logger.js";
+import { LocalFileSystemStorageProvider } from "./local-file-storage.js";
 
 // S3-like APIs have a upper bound.
 // 7 days.

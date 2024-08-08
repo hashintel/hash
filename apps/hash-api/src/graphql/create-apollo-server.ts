@@ -13,12 +13,12 @@ import { ApolloServerPluginLandingPageGraphQLPlayground } from "apollo-server-co
 import { ApolloServer } from "apollo-server-express";
 import type { StatsD } from "hot-shots";
 
-import { getActorIdFromRequest } from "../auth/get-actor-id";
-import type { CacheAdapter } from "../cache";
-import type { EmailTransporter } from "../email/transporters";
-import type { GraphApi } from "../graph/context-types";
-import type { GraphQLContext } from "./context";
-import { resolvers } from "./resolvers";
+import { getActorIdFromRequest } from "../auth/get-actor-id.js";
+import type { CacheAdapter } from "../cache/index.js";
+import type { EmailTransporter } from "../email/transporters/index.js";
+import type { GraphApi } from "../graph/context-types.js";
+import type { GraphQLContext } from "./context.js";
+import { resolvers } from "./resolvers/index.js";
 
 export interface CreateApolloServerParams {
   graphApi: GraphApi;

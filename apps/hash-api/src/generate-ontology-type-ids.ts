@@ -23,15 +23,15 @@ import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type {
   ImpureGraphContext,
   ImpureGraphFunction,
-} from "./graph/context-types";
-import type { Org } from "./graph/knowledge/system-types/org";
-import { getOrgByShortname } from "./graph/knowledge/system-types/org";
-import { getDataTypes } from "./graph/ontology/primitive/data-type";
+} from "./graph/context-types.js";
+import type { Org } from "./graph/knowledge/system-types/org.js";
+import { getOrgByShortname } from "./graph/knowledge/system-types/org.js";
+import { getDataTypes } from "./graph/ontology/primitive/data-type.js";
 import {
   getEntityTypes,
   isEntityTypeLinkEntityType,
-} from "./graph/ontology/primitive/entity-type";
-import { getPropertyTypes } from "./graph/ontology/primitive/property-type";
+} from "./graph/ontology/primitive/entity-type.js";
+import { getPropertyTypes } from "./graph/ontology/primitive/property-type.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

@@ -21,17 +21,17 @@ import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
-} from "../../context-types";
-import { getEntities, getLatestEntityById } from "../primitive/entity";
-import { isEntityLinkEntity } from "../primitive/link-entity";
-import type { Block } from "./block";
-import { getBlockById } from "./block";
-import type { Comment } from "./comment";
-import { getCommentById } from "./comment";
-import type { Page } from "./page";
-import { getPageFromEntity } from "./page";
-import type { User } from "./user";
-import { getUserById } from "./user";
+} from "../../context-types.js";
+import { getEntities, getLatestEntityById } from "../primitive/entity.js";
+import { isEntityLinkEntity } from "../primitive/link-entity.js";
+import type { Block } from "./block.js";
+import { getBlockById } from "./block.js";
+import type { Comment } from "./comment.js";
+import { getCommentById } from "./comment.js";
+import type { Page } from "./page.js";
+import { getPageFromEntity } from "./page.js";
+import type { User } from "./user.js";
+import { getUserById } from "./user.js";
 
 export type Text = {
   textualContent: TextToken[];

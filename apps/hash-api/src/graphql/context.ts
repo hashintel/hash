@@ -6,10 +6,10 @@ import type { VaultClient } from "@local/hash-backend-utils/vault";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 
-import type { CacheAdapter } from "../cache";
-import type { EmailTransporter } from "../email/transporters";
-import type { GraphApi } from "../graph/context-types";
-import type { User } from "../graph/knowledge/system-types/user";
+import type { CacheAdapter } from "../cache/index.js";
+import type { EmailTransporter } from "../email/transporters/index.js";
+import type { GraphApi } from "../graph/context-types.js";
+import type { User } from "../graph/knowledge/system-types/user.js";
 
 /**
  * Apollo context object with dataSources. For details see:

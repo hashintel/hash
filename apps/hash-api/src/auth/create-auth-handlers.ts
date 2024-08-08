@@ -6,16 +6,16 @@ import type { Session } from "@ory/client";
 import type { AxiosError } from "axios";
 import type { Express, Request, RequestHandler } from "express";
 
-import type { ImpureGraphContext } from "../graph/context-types";
-import type { User } from "../graph/knowledge/system-types/user";
+import type { ImpureGraphContext } from "../graph/context-types.js";
+import type { User } from "../graph/knowledge/system-types/user.js";
 import {
   createUser,
   getUserByKratosIdentityId,
-} from "../graph/knowledge/system-types/user";
-import { systemAccountId } from "../graph/system-account";
-import { hydraAdmin } from "./ory-hydra";
-import type { KratosUserIdentity } from "./ory-kratos";
-import { kratosFrontendApi } from "./ory-kratos";
+} from "../graph/knowledge/system-types/user.js";
+import { systemAccountId } from "../graph/system-account.js";
+import { hydraAdmin } from "./ory-hydra.js";
+import type { KratosUserIdentity } from "./ory-kratos.js";
+import { kratosFrontendApi } from "./ory-kratos.js";
 
 const KRATOS_API_KEY = getRequiredEnv("KRATOS_API_KEY");
 

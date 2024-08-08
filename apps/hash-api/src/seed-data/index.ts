@@ -2,17 +2,17 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Logger } from "@local/hash-backend-utils/logger";
 import type { OwnedById } from "@local/hash-graph-types/web";
 
-import type { ImpureGraphContext } from "../graph/context-types";
-import type { Org } from "../graph/knowledge/system-types/org";
+import type { ImpureGraphContext } from "../graph/context-types.js";
+import type { Org } from "../graph/knowledge/system-types/org.js";
 import {
   createOrg,
   getOrgByShortname,
-} from "../graph/knowledge/system-types/org";
-import type { User } from "../graph/knowledge/system-types/user";
-import { joinOrg } from "../graph/knowledge/system-types/user";
-import type { PageDefinition } from "./seed-pages";
-import { seedPages } from "./seed-pages";
-import { ensureUsersAreSeeded } from "./seed-users";
+} from "../graph/knowledge/system-types/org.js";
+import type { User } from "../graph/knowledge/system-types/user.js";
+import { joinOrg } from "../graph/knowledge/system-types/user.js";
+import type { PageDefinition } from "./seed-pages.js";
+import { seedPages } from "./seed-pages.js";
+import { ensureUsersAreSeeded } from "./seed-users.js";
 
 export const CACHED_DATA_TYPE_SCHEMAS: Record<VersionedUrl, string> = {
   "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1":

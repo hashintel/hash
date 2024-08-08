@@ -3,11 +3,11 @@ import type { SerializedEntity } from "@local/hash-graph-sdk/entity";
 import {
   getBlockById,
   getBlockData,
-} from "../../../../graph/knowledge/system-types/block";
-import type { ResolverFn } from "../../../api-types.gen";
-import type { GraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
-import type { UnresolvedBlockGQL } from "../graphql-mapping";
+} from "../../../../graph/knowledge/system-types/block.js";
+import type { ResolverFn } from "../../../api-types.gen.js";
+import type { GraphQLContext } from "../../../context.js";
+import { graphQLContextToImpureGraphContext } from "../../util.js";
+import type { UnresolvedBlockGQL } from "../graphql-mapping.js";
 
 export const blockChildEntityResolver: ResolverFn<
   Promise<SerializedEntity>,

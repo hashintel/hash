@@ -6,8 +6,8 @@ import { ApolloError } from "apollo-server-errors";
 import type {
   MutationSubmitExternalInputResponseArgs,
   ResolverFn,
-} from "../../api-types.gen";
-import type { LoggedInGraphQLContext } from "../../context";
+} from "../../api-types.gen.js";
+import type { LoggedInGraphQLContext } from "../../context.js";
 
 export const submitExternalInputResponse: ResolverFn<
   Promise<boolean>,

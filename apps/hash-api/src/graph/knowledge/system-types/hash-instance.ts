@@ -8,12 +8,12 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { HASHInstance as HashInstanceEntity } from "@local/hash-isomorphic-utils/system-types/hashinstance";
 
-import { createAccountGroup } from "../../account-permission-management";
-import type { ImpureGraphFunction } from "../../context-types";
-import { modifyEntityTypeAuthorizationRelationships } from "../../ontology/primitive/entity-type";
-import { createEntity } from "../primitive/entity";
-import { getOrgByShortname } from "./org";
-import type { User } from "./user";
+import { createAccountGroup } from "../../account-permission-management.js";
+import type { ImpureGraphFunction } from "../../context-types.js";
+import { modifyEntityTypeAuthorizationRelationships } from "../../ontology/primitive/entity-type.js";
+import { createEntity } from "../primitive/entity.js";
+import { getOrgByShortname } from "./org.js";
+import type { User } from "./user.js";
 
 /**
  * Create the hash instance entity.

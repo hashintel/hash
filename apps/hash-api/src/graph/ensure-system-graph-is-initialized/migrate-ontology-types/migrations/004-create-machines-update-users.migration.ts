@@ -2,9 +2,9 @@ import type { EntityType } from "@blockprotocol/type-system";
 import { atLeastOne } from "@blockprotocol/type-system";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
-import { systemAccountId } from "../../../system-account";
-import type { MigrationFunction } from "../types";
+import { getEntityTypeById } from "../../../ontology/primitive/entity-type.js";
+import { systemAccountId } from "../../../system-account.js";
+import type { MigrationFunction } from "../types.js";
 import {
   anyUserInstantiator,
   createSystemEntityTypeIfNotExists,
@@ -13,7 +13,7 @@ import {
   getCurrentHashSystemEntityTypeId,
   updateSystemEntityType,
   upgradeDependenciesInHashEntityType,
-} from "../util";
+} from "../util.js";
 
 const migrate: MigrationFunction = async ({
   context,

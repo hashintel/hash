@@ -1,5 +1,6 @@
 /* eslint-disable import/first */
 
+import { getAwsRegion } from "@local/hash-backend-utils/aws-config";
 import {
   getRequiredEnv,
   monorepoRootDir,
@@ -16,7 +17,6 @@ import http from "node:http";
 import path from "node:path";
 import { promisify } from "node:util";
 
-import { getAwsRegion } from "@local/hash-backend-utils/aws-config";
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { OpenSearch } from "@local/hash-backend-utils/search/opensearch";
 import { GracefulShutdown } from "@local/hash-backend-utils/shutdown";
@@ -36,59 +36,62 @@ import { StatsD } from "hot-shots";
 import httpTerminator from "http-terminator";
 import { customAlphabet } from "nanoid";
 
-import { gptGetUserWebs } from "./ai/gpt/gpt-get-user-webs";
-import { gptQueryEntities } from "./ai/gpt/gpt-query-entities";
-import { gptQueryTypes } from "./ai/gpt/gpt-query-types";
-import { upsertGptOauthClient } from "./ai/gpt/upsert-gpt-oauth-client";
-import { openInferEntitiesWebSocket } from "./ai/infer-entities-websocket";
+import { gptGetUserWebs } from "./ai/gpt/gpt-get-user-webs.js";
+import { gptQueryEntities } from "./ai/gpt/gpt-query-entities.js";
+import { gptQueryTypes } from "./ai/gpt/gpt-query-types.js";
+import { upsertGptOauthClient } from "./ai/gpt/upsert-gpt-oauth-client.js";
+import { openInferEntitiesWebSocket } from "./ai/infer-entities-websocket.js";
 import {
   addKratosAfterRegistrationHandler,
   createAuthMiddleware,
-} from "./auth/create-auth-handlers";
-import { getActorIdFromRequest } from "./auth/get-actor-id";
+} from "./auth/create-auth-handlers.js";
+import { getActorIdFromRequest } from "./auth/get-actor-id.js";
 import {
   oauthConsentRequestHandler,
   oauthConsentSubmissionHandler,
-} from "./auth/oauth-consent-handlers";
-import { hydraPublicUrl } from "./auth/ory-hydra";
-import { kratosPublicUrl } from "./auth/ory-kratos";
-import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy";
-import { RedisCache } from "./cache";
-import type { EmailTransporter } from "./email/transporters";
+} from "./auth/oauth-consent-handlers.js";
+import { hydraPublicUrl } from "./auth/ory-hydra.js";
+import { kratosPublicUrl } from "./auth/ory-kratos.js";
+import { setupBlockProtocolExternalServiceMethodProxy } from "./block-protocol-external-service-method-proxy.js";
+import { RedisCache } from "./cache/index.js";
+import type { EmailTransporter } from "./email/transporters/index.js";
 import {
   AwsSesEmailTransporter,
   DummyEmailTransporter,
-} from "./email/transporters";
-import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
-import { ensureHashSystemAccountExists } from "./graph/system-account";
-import { createApolloServer } from "./graphql/create-apollo-server";
-import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
-import { enabledIntegrations } from "./integrations/enabled-integrations";
-import { checkGoogleAccessToken } from "./integrations/google/check-access-token";
-import { getGoogleAccessToken } from "./integrations/google/get-access-token";
-import { googleOAuthCallback } from "./integrations/google/oauth-callback";
-import { oAuthLinear, oAuthLinearCallback } from "./integrations/linear/oauth";
-import { linearWebhook } from "./integrations/linear/webhook";
-import { createIntegrationSyncBackWatcher } from "./integrations/sync-back-watcher";
+} from "./email/transporters/index.js";
+import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized.js";
+import { ensureHashSystemAccountExists } from "./graph/system-account.js";
+import { createApolloServer } from "./graphql/create-apollo-server.js";
+import { registerOpenTelemetryTracing } from "./graphql/opentelemetry.js";
+import { enabledIntegrations } from "./integrations/enabled-integrations.js";
+import { checkGoogleAccessToken } from "./integrations/google/check-access-token.js";
+import { getGoogleAccessToken } from "./integrations/google/get-access-token.js";
+import { googleOAuthCallback } from "./integrations/google/oauth-callback.js";
+import {
+  oAuthLinear,
+  oAuthLinearCallback,
+} from "./integrations/linear/oauth.js";
+import { linearWebhook } from "./integrations/linear/webhook.js";
+import { createIntegrationSyncBackWatcher } from "./integrations/sync-back-watcher.js";
 import {
   CORS_CONFIG,
   getEnvStorageType,
   LOCAL_FILE_UPLOAD_PATH,
-} from "./lib/config";
+} from "./lib/config.js";
 import {
   isDevEnv,
   isProdEnv,
   isStatsDEnabled,
   isTestEnv,
   port,
-} from "./lib/env-config";
-import { logger } from "./logger";
-import { seedOrgsAndUsers } from "./seed-data";
+} from "./lib/env-config.js";
+import { logger } from "./logger.js";
+import { seedOrgsAndUsers } from "./seed-data/index.js";
 import {
   setupFileDownloadProxyHandler,
   setupStorageProviders,
-} from "./storage";
-import { setupTelemetry } from "./telemetry/snowplow-setup";
+} from "./storage/index.js";
+import { setupTelemetry } from "./telemetry/snowplow-setup.js";
 
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 

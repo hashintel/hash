@@ -5,7 +5,7 @@ import {
 } from "@local/hash-backend-utils/google";
 import type { Request, Response } from "express";
 
-import { enabledIntegrations } from "../../enabled-integrations";
+import { enabledIntegrations } from "../../enabled-integrations.js";
 
 /**
  * Shared function to retrieve a Google access token for an Express request,

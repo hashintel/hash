@@ -22,24 +22,24 @@ import type { EntityRelationAndSubject } from "@local/hash-subgraph";
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
-} from "../../context-types";
+} from "../../context-types.js";
 import {
   createEntity,
   getEntityIncomingLinks,
   getEntityOutgoingLinks,
   getLatestEntityById,
   updateEntity,
-} from "../primitive/entity";
+} from "../primitive/entity.js";
 import {
   getLinkEntityLeftEntity,
   getLinkEntityRightEntity,
-} from "../primitive/link-entity";
-import type { Block } from "./block";
-import { getBlockFromEntity } from "./block";
-import type { Text } from "./text";
-import { getTextFromEntity } from "./text";
-import type { User } from "./user";
-import { getUserFromEntity } from "./user";
+} from "../primitive/link-entity.js";
+import type { Block } from "./block.js";
+import { getBlockFromEntity } from "./block.js";
+import type { Text } from "./text.js";
+import { getTextFromEntity } from "./text.js";
+import type { User } from "./user.js";
+import { getUserFromEntity } from "./user.js";
 
 export type Comment = {
   /**
