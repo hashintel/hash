@@ -5,6 +5,9 @@
       // Outputs of GraphQL generation
       "outputs": ["./src/**/*.gen.*"],
       "dependsOn": ["^codegen"]
+    },
+    "build": {
+      "outputs": ["dist"]
     }
   }
 }
