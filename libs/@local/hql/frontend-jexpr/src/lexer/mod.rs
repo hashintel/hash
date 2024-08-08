@@ -45,7 +45,7 @@ impl<'source> Lexer<'source> {
     }
 
     #[must_use]
-    fn span(&self) -> TextRange {
+    pub(crate) fn span(&self) -> TextRange {
         let span = self.inner.span();
 
         // The constructor verifies that the span is always less than `u32::MAX`.

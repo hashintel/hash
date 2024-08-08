@@ -7,10 +7,12 @@ use hql_diagnostics::{
 use hql_span::SpanId;
 use text_size::TextRange;
 
+use crate::error::CATEGORY;
+
 const LEXING: &Category = &Category {
     id: Cow::Borrowed("lexing"),
     name: Cow::Borrowed("Lexing"),
-    parent: None,
+    parent: Some(RefOrBox::Ref(CATEGORY)),
 };
 
 const INVALID_STRING: &Category = &Category {
