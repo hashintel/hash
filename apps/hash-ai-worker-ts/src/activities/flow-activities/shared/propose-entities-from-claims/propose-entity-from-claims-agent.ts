@@ -49,6 +49,7 @@ const mapPropertiesSchemaToInputPropertiesSchema = (params: {
         ...prev,
         [simplifiedPropertyKey]: {
           type: "object",
+          additionalProperties: false,
           properties: {
             /**
              * @todo: attach provenance information to nested properties which have corresponding
@@ -178,6 +179,7 @@ const generateToolDefinitions = (params: {
       description: "Propose an entity based on the provided claims.",
       inputSchema: {
         type: "object",
+        additionalProperties: false,
         title: dereferencedEntityType.title,
         description: dereferencedEntityType.description,
         properties: {
@@ -185,6 +187,7 @@ const generateToolDefinitions = (params: {
             description: "The properties to set on the entity",
             default: {},
             type: "object",
+            additionalProperties: false,
             properties: mapPropertiesSchemaToInputPropertiesSchema({
               properties: dereferencedEntityType.properties,
             }),
@@ -197,6 +200,7 @@ const generateToolDefinitions = (params: {
                     oneOf: proposeOutgoingLinkEntityTypes.map(
                       ({ schema: dereferencedOutgoingLinkEntityType }) => ({
                         type: "object",
+                        additionalProperties: false,
                         properties: {
                           entityTypeId: {
                             type: "string",
@@ -213,6 +217,7 @@ const generateToolDefinitions = (params: {
                               "The properties to set on the outgoing link",
                             default: {},
                             type: "object",
+                            additionalProperties: false,
                             properties:
                               mapPropertiesSchemaToInputPropertiesSchema({
                                 properties:
@@ -246,6 +251,7 @@ const generateToolDefinitions = (params: {
         "If it is not possible to satisfy the entity's schema based on the provided claims, abandon the entity.",
       inputSchema: {
         type: "object",
+        additionalProperties: false,
         properties: {
           explanation: {
             description:
@@ -336,7 +342,7 @@ export const proposeEntityFromClaimsAgent = async (params: {
 
   const llmResponse = await getLlmResponse(
     {
-      model: "gpt-4o-2024-05-13",
+      model: "gpt-4o-2024-08-06",
       tools: Object.values(
         generateToolDefinitions({
           dereferencedEntityType,

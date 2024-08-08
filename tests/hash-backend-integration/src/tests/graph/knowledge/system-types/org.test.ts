@@ -12,7 +12,7 @@ import { resetGraph } from "../../../test-server";
 import { createTestImpureGraphContext, createTestOrg } from "../../../util";
 
 const logger = new Logger({
-  mode: "dev",
+  environment: "test",
   level: "debug",
   serviceName: "integration-tests",
 });

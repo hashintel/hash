@@ -1,6 +1,7 @@
 import type { EntityId } from "@local/hash-graph-types/entity";
 import dedent from "dedent";
 
+import { logger } from "../../shared/activity-logger.js";
 import { getFlowContext } from "../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../shared/get-llm-response.js";
 import type { AnthropicMessageModel } from "../../shared/get-llm-response/anthropic-client.js";
@@ -62,11 +63,13 @@ const deduplicationAgentTool: LlmToolDefinition<typeof toolName> = {
   `),
   inputSchema: {
     type: "object",
+    additionalProperties: false,
     properties: {
       duplicates: {
         type: "array",
         items: {
           type: "object",
+          additionalProperties: false,
           properties: {
             canonicalId: {
               type: "string",
@@ -89,6 +92,10 @@ const deduplicationAgentTool: LlmToolDefinition<typeof toolName> = {
   },
 };
 
+/**
+ * We are using Sonnet here rather than the cheaper (as of 08/08/2025) GPT-4o model because Sonnet has a max context
+ * window of 200k tokens vs 128k for GPT-4o, and we've encountered 'max-token' responses here before.
+ */
 const defaultModel: LlmParams["model"] = "claude-3-5-sonnet-20240620";
 
 export const deduplicateEntities = async (params: {
@@ -132,7 +139,11 @@ export const deduplicateEntities = async (params: {
                     </Entity>`,
                   )
                   .join("\n")}
-                  ${exceededMaxTokensAttempt ? "Your previous response exceeded the maximum input tokens. Please try again, aiming for brevity, and omitting any duplicate reports you aren't 100% certain of." : ""}
+                  ${
+                    exceededMaxTokensAttempt
+                      ? "Your previous response exceeded the maximum tokens. Please try again, aiming for brevity, and omitting any duplicate reports you aren't 100% certain of."
+                      : ""
+                  }
                   `),
             },
           ],
@@ -153,7 +164,8 @@ export const deduplicateEntities = async (params: {
   );
 
   if (llmResponse.status !== "ok") {
-    if (llmResponse.status === "exceeded-maximum-output-tokens") {
+    if (llmResponse.status === "max-tokens") {
+      logger.warn("Max tokens exceeded in deduplicateEntities");
       if (exceededMaxTokensAttempt && exceededMaxTokensAttempt > 2) {
         return {
           duplicates: [],

@@ -7,6 +7,7 @@ import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FlowUsageRecordCustomMetadata } from "@local/hash-isomorphic-utils/flows/types";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { IncurredIn } from "@local/hash-isomorphic-utils/system-types/usagerecord";
 // import { StatusCode } from "@local/status";
@@ -19,7 +20,11 @@ import { getFlowContext } from "./get-flow-context.js";
 import { getAnthropicResponse } from "./get-llm-response/get-anthropic-response.js";
 import { getOpenAiResponse } from "./get-llm-response/get-openai-reponse.js";
 import { logLlmRequest } from "./get-llm-response/log-llm-request.js";
-import type { LlmParams, LlmResponse } from "./get-llm-response/types.js";
+import type {
+  LlmParams,
+  LlmRequestMetadata,
+  LlmResponse,
+} from "./get-llm-response/types.js";
 import { isLlmParamsAnthropicLlmParams } from "./get-llm-response/types.js";
 import { stringify } from "./stringify.js";
 
@@ -82,10 +87,15 @@ export const getLlmResponse = async <T extends LlmParams>(
     return {
       status: "internal-error",
       message: `Failed to retrieve AI assistant account ID ${userAccountId}`,
+      provider: isLlmParamsAnthropicLlmParams(llmParams)
+        ? "anthropic"
+        : "openai",
     };
   }
 
   const timeBeforeApiCall = Date.now();
+
+  const requestId = generateUuid();
 
   const { flowEntityId, stepId } = await getFlowContext();
 
@@ -99,10 +109,16 @@ export const getLlmResponse = async <T extends LlmParams>(
 
   logger.debug(debugMessage);
 
+  const metadata: LlmRequestMetadata = {
+    requestId,
+    taskName,
+    stepId,
+  };
+
   const llmResponse = (
     isLlmParamsAnthropicLlmParams(llmParams)
-      ? await getAnthropicResponse(llmParams)
-      : await getOpenAiResponse(llmParams)
+      ? await getAnthropicResponse(llmParams, metadata)
+      : await getOpenAiResponse(llmParams, metadata)
   ) as LlmResponse<T>;
 
   const timeAfterApiCall = Date.now();
@@ -117,7 +133,7 @@ export const getLlmResponse = async <T extends LlmParams>(
   if (
     llmResponse.status === "ok" ||
     llmResponse.status === "exceeded-maximum-retries" ||
-    llmResponse.status === "exceeded-maximum-output-tokens"
+    llmResponse.status === "max-tokens"
   ) {
     const { usage } = llmResponse;
 
@@ -151,6 +167,7 @@ export const getLlmResponse = async <T extends LlmParams>(
       return {
         status: "internal-error",
         message: `Failed to create usage record: ${stringify(error)}`,
+        provider: llmResponse.provider,
       };
     }
 
@@ -229,6 +246,7 @@ export const getLlmResponse = async <T extends LlmParams>(
       if (errors.length > 0) {
         return {
           status: "internal-error",
+          provider: llmResponse.provider,
           message: `Failed to link usage record to entities: ${stringify(
             errors,
           )}`,
@@ -237,9 +255,16 @@ export const getLlmResponse = async <T extends LlmParams>(
     }
   }
 
-  if (["development", "test"].includes(process.env.NODE_ENV ?? "")) {
-    logLlmRequest({ customMetadata, llmParams, llmResponse });
-  }
+  logLlmRequest({
+    requestId,
+    provider: llmResponse.provider,
+    finalized: true,
+    taskName,
+    stepId,
+    secondsTaken: numberOfSeconds,
+    request: llmParams,
+    response: llmResponse,
+  });
 
   return llmResponse;
 };

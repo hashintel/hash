@@ -60,6 +60,7 @@ export const generateProposeEntitiesTools = (params: {
       description: "Create entities inferred from the provided text",
       inputSchema: {
         type: "object",
+        additionalProperties: false,
         properties: entityTypes.reduce<Record<string, JSONSchema>>(
           (acc, { schema, isLink }) => {
             const entityTypeId = schema.$id;
@@ -80,6 +81,7 @@ export const generateProposeEntitiesTools = (params: {
               title: `${schema.title} entities to create`,
               items: {
                 type: "object",
+                additionalProperties: false,
                 title: schema.title,
                 description: schema.description,
                 properties: {
@@ -93,6 +95,7 @@ export const generateProposeEntitiesTools = (params: {
                     description: "The properties to set on the entity",
                     default: {},
                     type: "object",
+                    additionalProperties: false,
                     properties: stripIdsFromDereferencedProperties({
                       properties: schema.properties,
                     }),
@@ -117,6 +120,7 @@ export const generateProposeEntitiesTools = (params: {
         "Give up trying to create, following failures which you cannot correct",
       inputSchema: {
         type: "object",
+        additionalProperties: false,
         properties: {
           entityIds: {
             type: "array",

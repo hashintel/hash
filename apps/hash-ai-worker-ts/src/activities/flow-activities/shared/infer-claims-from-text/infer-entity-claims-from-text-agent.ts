@@ -38,11 +38,13 @@ const generateToolDefinitions = (params: {
     `),
     inputSchema: {
       type: "object",
+      additionalProperties: false,
       properties: {
         claims: {
           type: "array",
           items: {
             type: "object",
+            additionalProperties: false,
             properties: {
               subjectEntityLocalId: {
                 type: "string",
@@ -225,7 +227,9 @@ description: ${description}</Property>`),
             .join("\n")}
           </PotentialObjectEntities>
           <SubjectEntities>
-          These are the entities which claims can be about. For example, a claim might start '${subjectEntities[0]?.name} acquired...'.
+          These are the entities which claims can be about. For example, a claim might start '${
+            subjectEntities[0]?.name
+          } acquired...'.
           ${subjectEntities
             .map(({ localId, name, summary }) =>
               dedent(`<SubjectEntity>
@@ -237,8 +241,14 @@ summary: ${summary}</SubjectEntity>`),
           </SubjectEntities>
 
           Please now submit claims, remembering these key points:
-            - Each claim MUST start with and be about one of the subject entities: ${subjectEntities.map(({ name }) => name).join(", ")}
-            - We are particularly interested in claims related to the following properties: ${relevantProperties.map((property) => property.title).join(", ")}. You must include claims about these properties if they are present in the text.
+            - Each claim MUST start with and be about one of the subject entities: ${subjectEntities
+              .map(({ name }) => name)
+              .join(", ")}
+            - We are particularly interested in claims related to the following properties: ${relevantProperties
+              .map((property) => property.title)
+              .join(
+                ", ",
+              )}. You must include claims about these properties if they are present in the text.
 `),
       },
     ],
@@ -276,7 +286,9 @@ export const inferEntityClaimsFromTextAgent = async (params: {
   } = params;
 
   logger.debug(
-    `Inferring claims from text for entities ${subjectEntities.map(({ name }) => name).join(", ")}`,
+    `Inferring claims from text for entities ${subjectEntities
+      .map(({ name }) => name)
+      .join(", ")}`,
   );
 
   const {
@@ -352,7 +364,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
     });
   };
 
-  if (llmResponse.status === "exceeded-maximum-output-tokens") {
+  if (llmResponse.status === "max-tokens") {
     /**
      * @todo: ideally instead of retrying and asking for fewer claims, we would either:
      *  - provide information on which claims are relevant, so that these aren't omitted
@@ -540,7 +552,11 @@ export const inferEntityClaimsFromTextAgent = async (params: {
                         sources: provenance.sources,
                       },
                     },
-                    value: `${claim.text}${claim.prepositionalPhrases.length ? `– ${claim.prepositionalPhrases.join(", ")}` : ""}`,
+                    value: `${claim.text}${
+                      claim.prepositionalPhrases.length
+                        ? `– ${claim.prepositionalPhrases.join(", ")}`
+                        : ""
+                    }`,
                   },
                 "https://hash.ai/@hash/types/property-type/subject/": {
                   metadata: {
@@ -624,7 +640,9 @@ export const inferEntityClaimsFromTextAgent = async (params: {
             text: ${invalidClaim.text}
             subjectEntityId: ${invalidClaim.subjectEntityLocalId}
             objectEntityId: ${invalidClaim.objectEntityLocalId}
-            prepositionalPhrases: ${stringify(invalidClaim.prepositionalPhrases)}
+            prepositionalPhrases: ${stringify(
+              invalidClaim.prepositionalPhrases,
+            )}
             
             Invalid because: ${invalidClaim.invalidReason}
             Please correct this!

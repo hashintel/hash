@@ -28,7 +28,7 @@ import {
 } from "../../../util";
 
 const logger = new Logger({
-  mode: "dev",
+  environment: "test",
   level: "debug",
   serviceName: "integration-tests",
 });

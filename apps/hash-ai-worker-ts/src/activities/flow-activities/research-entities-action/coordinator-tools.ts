@@ -53,6 +53,7 @@ export const generateToolDefinitions = <
         "Ask the user questions to gather information required to complete the research task, which include clarifying the research brief, or asking for advice on how to proceed if difficulties are encountered.",
       inputSchema: {
         type: "object",
+        additionalProperties: false,
         properties: {
           explanation: {
             type: "string",
@@ -77,29 +78,27 @@ export const generateToolDefinitions = <
       description: dedent(`
       Start claim gathering sub-tasks to gather claims about entities required to complete the research task.
       Make use of this tool if the research task needs to be be broken down into smaller, non-overlapping sub-tasks.
-      For example: "Find the technical specifications of the product with name X, including specification x, y and z".
       
       IMPORTANT: Make sure sub-tasks align with the user's research prompt, clarified by any questions they have subsequently answered.
       
-      Subtasks must be independent and not overlap in any way with the information they gather.
-      Subtasks run independently, and cannot share information between them.
+      Subtasks must be independent and not overlap in any way with the information they gather. They cannot share information.
       When gathering claims about a specific set of entities in multiple subtasks,
         you must name and specify which entities to focus on for each subtask.
-      Do not leave it up to the subtasks to decide which entities to focus on,
-        as this could result in looking up information about different entities in each subtask.
         
       Make sure that the goal of the research task matches the entity types it will seek – don't have a goal
-      which asks to identify entities of types which aren't provided as entityTypeIds.
+      which asks to identify entities of types which aren't provided.
       
       If you need specific properties for the entities, mention those properties by name in the research goal.
     `),
       inputSchema: {
         type: "object",
+        additionalProperties: false,
         properties: {
           subTasks: {
             type: "array",
             items: {
               type: "object",
+              additionalProperties: false,
               properties: {
                 relevantEntityIds: {
                   type: "array",
@@ -109,7 +108,13 @@ export const generateToolDefinitions = <
                   description: dedent(`
                   The entity IDs of the proposed entities which the sub-task is relevant to.
                   
-                  ${params.state?.entitySummaries.length ? `The possible values are: ${params.state.entitySummaries.map(({ localId }) => localId).join(", ")}` : ""}
+                  ${
+                    params.state?.entitySummaries.length
+                      ? `The possible values are: ${params.state.entitySummaries
+                          .map(({ localId }) => localId)
+                          .join(", ")}`
+                      : ""
+                  }
                 `),
                 },
                 entityTypeIds: {
@@ -166,6 +171,7 @@ export const generateToolDefinitions = <
         "Perform a web search via a web search engine, returning a list of URLs. For best results, the query should be specific and concise.",
       inputSchema: {
         type: "object",
+        additionalProperties: false,
         properties: {
           query: {
             type: "string",
@@ -193,12 +199,14 @@ export const generateToolDefinitions = <
     `),
       inputSchema: {
         type: "object",
+        additionalProperties: false,
         properties: {
           explanation: explanationDefinition,
           resources: {
             type: "array",
             items: {
               type: "object",
+              additionalProperties: false,
               properties: {
                 url: {
                   type: "string",
@@ -282,6 +290,7 @@ export const generateToolDefinitions = <
           `),
       inputSchema: {
         type: "object",
+        additionalProperties: false,
         properties: {
           explanation: {
             type: "string",
@@ -312,6 +321,7 @@ export const generateToolDefinitions = <
         "Terminate the research task, because it cannot be completed with the provided tools.",
       inputSchema: {
         type: "object",
+        additionalProperties: false,
         properties: {
           explanation: explanationDefinition,
         },
@@ -333,6 +343,7 @@ export const generateToolDefinitions = <
     `),
       inputSchema: {
         type: "object",
+        additionalProperties: false,
         properties: {
           explanation: {
             type: "string",

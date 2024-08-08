@@ -35,11 +35,13 @@ const registerEntitySummariesToolDefinition: LlmToolDefinition<
   description: "Register entity summaries",
   inputSchema: {
     type: "object",
+    additionalProperties: false,
     properties: {
       entitySummaries: {
         type: "array",
         items: {
           type: "object",
+          additionalProperties: false,
           properties: {
             entityId: {
               type: "string",
@@ -94,7 +96,7 @@ export const summarizeExistingEntities = async (params: {
           ],
         },
       ],
-      model: "gpt-4o-2024-05-13",
+      model: "gpt-4o-2024-08-06",
     },
     {
       customMetadata: {

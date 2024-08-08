@@ -23,6 +23,7 @@ const tools: LlmToolDefinition[] = [
     name: "propose_query",
     description: "Propose a web search query",
     inputSchema: {
+      additionalProperties: false,
       type: "object",
       properties: {
         query: {

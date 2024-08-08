@@ -187,15 +187,16 @@ const main = async () => {
   app.use((req, res, next) => {
     const requestId = nanoid();
     res.set("x-hash-request-id", requestId);
-    logger.info({
-      requestId,
-      method: req.method,
-      ip: req.ip,
-      path: req.path,
-      message: "request",
-      userAgent: req.headers["user-agent"],
-      graphqlClient: req.headers["apollographql-client-name"],
-    });
+    logger.info(
+      JSON.stringify({
+        requestId,
+        method: req.method,
+        ip: req.ip,
+        path: req.path,
+        userAgent: req.headers["user-agent"],
+        graphqlClient: req.headers["apollographql-client-name"],
+      }),
+    );
 
     next();
   });
@@ -527,16 +528,18 @@ const main = async () => {
     const requestId = nanoid();
     res.set("x-hash-request-id", requestId);
     if (isProdEnv) {
-      logger.info({
-        requestId,
-        method: req.method,
-        origin: req.headers.origin,
-        ip: req.ip,
-        path: req.path,
-        message: "request",
-        userAgent: req.headers["user-agent"],
-        graphqlClient: req.headers["apollographql-client-name"],
-      });
+      logger.info(
+        JSON.stringify({
+          requestId,
+          method: req.method,
+          origin: req.headers.origin,
+          ip: req.ip,
+          path: req.path,
+          message: "request",
+          userAgent: req.headers["user-agent"],
+          graphqlClient: req.headers["apollographql-client-name"],
+        }),
+      );
     }
     next();
   });

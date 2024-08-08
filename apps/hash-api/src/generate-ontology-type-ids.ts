@@ -179,7 +179,7 @@ const serializeTypes: ImpureGraphFunction<
 
 const generateOntologyIds = async () => {
   const logger = new Logger({
-    mode: "dev",
+    environment: "development",
     level: "debug",
     serviceName: "generate-ontology-ids",
   });

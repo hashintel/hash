@@ -178,6 +178,7 @@ export const generateSummaryTools = (params: {
         "Returns a warning to the user explaining why no entities could have been inferred from the provided text",
       inputSchema: {
         type: "object",
+        additionalProperties: false,
         properties: {
           reason: {
             type: "string",
@@ -193,6 +194,7 @@ export const generateSummaryTools = (params: {
         "Register a short summary for each entity that can be inferred from the providing text",
       inputSchema: {
         type: "object",
+        additionalProperties: false,
         properties: entityTypes.reduce<Record<VersionedUrl, JSONSchema>>(
           (acc, { schema, isLink }) => {
             acc[schema.$id] = {
@@ -209,6 +211,7 @@ export const generateSummaryTools = (params: {
                 type: "object",
                 title: schema.title,
                 description: schema.description,
+                additionalProperties: false,
                 properties: {
                   entityId: {
                     description:
