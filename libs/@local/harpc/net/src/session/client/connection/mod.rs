@@ -241,9 +241,9 @@ where
 }
 
 pub(crate) struct ConnectionParts<'a> {
-    pub(crate) config: SessionConfig,
-    pub(crate) tasks: &'a TaskTracker,
-    pub(crate) cancel: CancellationToken,
+    pub config: SessionConfig,
+    pub tasks: &'a TaskTracker,
+    pub cancel: CancellationToken,
 }
 
 pub struct Connection {

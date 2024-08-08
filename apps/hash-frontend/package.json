@@ -12,7 +12,10 @@
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
-    "start": "next start"
+    "start": "next start",
+    "start:healthcheck": "wait-on --timeout 600000 http://0.0.0.0:3000",
+    "start:test": "next start",
+    "start:test:healthcheck": "wait-on --timeout 600000 http://0.0.0.0:3000"
   },
   "dependencies": {
     "@apollo/client": "3.10.5",
@@ -49,8 +52,8 @@
     "@ory/client": "1.1.41",
     "@ory/integrations": "1.1.4",
     "@popperjs/core": "2.11.8",
-    "@sentry/nextjs": "7.116.0",
-    "@sentry/react": "7.116.0",
+    "@sentry/nextjs": "7.118.0",
+    "@sentry/react": "7.118.0",
     "@svgr/webpack": "8.1.0",
     "@tldraw/editor": "2.0.0-alpha.12",
     "@tldraw/primitives": "2.0.0-alpha.12",
@@ -131,10 +134,11 @@
     "@types/react-dom": "18.2.25",
     "@types/url-regex-safe": "1.0.0",
     "@types/uuid": "8.3.0",
+    "@welldone-software/why-did-you-render": "8.0.3",
     "eslint": "8.57.0",
     "rimraf": "6.0.1",
     "sass": "1.57.1",
-    "typescript": "5.5.3",
+    "typescript": "5.5.4",
     "webpack": "5.90.3"
   },
   "engines": {

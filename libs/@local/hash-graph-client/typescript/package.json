@@ -19,11 +19,11 @@
     "@apps/hash-graph": "0.0.0-private",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@redocly/cli": "1.18.0",
+    "@redocly/cli": "1.19.0",
     "@types/node": "20.12.3",
     "eslint": "8.57.0",
     "fix-esm-import-path": "1.10.0",
     "rimraf": "6.0.1",
-    "typescript": "5.5.3"
+    "typescript": "5.5.4"
   }
 }

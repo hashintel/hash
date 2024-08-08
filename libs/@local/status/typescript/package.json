@@ -18,7 +18,7 @@
   "dependencies": {
     "execa": "5.1.1",
     "lodash-es": "4.17.21",
-    "typescript": "5.5.3",
+    "typescript": "5.5.4",
     "yargs": "17.7.1"
   },
   "devDependencies": {

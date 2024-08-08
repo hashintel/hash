@@ -1,20 +1,21 @@
 import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 import type { EntityType } from "@blockprotocol/type-system/slim";
+import { IconButton } from "@hashintel/design-system";
+import type { ValueMetadata } from "@local/hash-graph-client/api";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   EntityMetadata,
   EntityRecordId,
+  PropertyMetadataObject,
   PropertyObject,
+  PropertyValue,
 } from "@local/hash-graph-types/entity";
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type {
-  EntityRootType,
-  EntityTypeRootType,
-  Subgraph,
-} from "@local/hash-subgraph";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
   getPropertyTypesForEntityType,
@@ -22,8 +23,9 @@ import {
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, TableCell, Typography } from "@mui/material";
-import { memo, useMemo, useState } from "react";
+import { memo, useMemo, useRef, useState } from "react";
 
+import { CircleInfoIcon } from "../../../../../shared/icons/circle-info-icon";
 import { ValueChip } from "../../../../shared/value-chip";
 import type {
   CreateVirtualizedRowContentFn,
@@ -39,6 +41,7 @@ import type { ProposedEntityOutput } from "../shared/types";
 import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
+import { SourcesPopover } from "./shared/sources-popover";
 
 const fixedFieldIds = ["status", "entityTypeId", "entityLabel"] as const;
 
@@ -118,10 +121,12 @@ type EntityResultRow = {
   entityLabel: string;
   entityTypeId: VersionedUrl;
   entityType: EntityType;
-  onEntityClick: (entity: Entity) => void;
+  proposedEntityId?: EntityId;
+  onEntityClick: (entityId: EntityId) => void;
   onEntityTypeClick: (entityTypeId: VersionedUrl) => void;
   persistedEntity?: Entity;
   properties: PropertyObject;
+  propertiesMetadata: PropertyMetadataObject;
   researchOngoing: boolean;
   status: "Proposed" | "Created" | "Updated";
 };
@@ -140,6 +145,58 @@ const cellSx = {
     borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
   },
 } as const satisfies SxProps<Theme>;
+
+const PropertyValueCell = ({
+  metadata,
+  value,
+}: {
+  metadata?: ValueMetadata;
+  value: PropertyValue;
+}) => {
+  const [showMetadataTooltip, setShowMetadataTooltip] = useState(false);
+
+  const stringifiedValue = stringifyPropertyValue(value);
+  const cellRef = useRef<HTMLDivElement>(null);
+
+  const buttonId = generateUuid();
+
+  return (
+    <TableCell sx={{ ...cellSx, maxWidth: 700 }} ref={cellRef}>
+      <Stack direction="row" alignItems="center">
+        <Typography
+          sx={{
+            ...typographySx,
+            lineHeight: 1,
+            textOverflow: "ellipsis",
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {stringifiedValue}
+        </Typography>
+        <IconButton
+          aria-describedby={buttonId}
+          onClick={() => setShowMetadataTooltip(true)}
+          sx={{ ml: 1 }}
+        >
+          <CircleInfoIcon
+            sx={{
+              fontSize: 12,
+              fill: ({ palette }) => palette.gray[40],
+            }}
+          />
+        </IconButton>
+      </Stack>
+      <SourcesPopover
+        buttonId={buttonId}
+        open={showMetadataTooltip}
+        cellRef={cellRef}
+        onClose={() => setShowMetadataTooltip(false)}
+        sources={metadata?.provenance?.sources ?? []}
+      />
+    </TableCell>
+  );
+};
 
 const TableRow = memo(
   ({
@@ -190,31 +247,33 @@ const TableRow = memo(
             zIndex: 1,
           }}
         >
-          {row.persistedEntity ? (
-            <Box
-              component="button"
-              onClick={() => row.onEntityClick(row.persistedEntity!)}
-              sx={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
+          <Box
+            component="button"
+            onClick={() =>
+              row.onEntityClick(
+                row.persistedEntity
+                  ? row.persistedEntity.metadata.recordId.entityId
+                  : row.proposedEntityId!,
+              )
+            }
+            sx={{
+              background: "none",
+              border: "none",
+              cursor: "pointer",
 
-                p: 0,
-                textAlign: "left",
+              p: 0,
+              textAlign: "left",
+            }}
+          >
+            <ValueChip
+              sx={{
+                ...typographySx,
+                color: ({ palette }) => palette.blue[70],
               }}
             >
-              <ValueChip
-                sx={{
-                  ...typographySx,
-                  color: ({ palette }) => palette.blue[70],
-                }}
-              >
-                {row.entityLabel}
-              </ValueChip>
-            </Box>
-          ) : (
-            <ValueChip sx={typographySx}>{row.entityLabel}</ValueChip>
-          )}
+              {row.entityLabel}
+            </ValueChip>
+          </Box>
         </TableCell>
         {columns.slice(fixedFieldIds.length).map((column) => {
           const appliesToEntity = column.metadata?.appliesToEntityTypeIds.some(
@@ -236,10 +295,10 @@ const TableRow = memo(
             );
           }
 
-          const entityValue =
+          const propertyValue =
             row.properties[extractBaseUrl(column.id as VersionedUrl)];
 
-          if (entityValue === undefined || entityValue === "") {
+          if (propertyValue === undefined || propertyValue === "") {
             if (row.researchOngoing) {
               return (
                 <TableCell
@@ -275,25 +334,17 @@ const TableRow = memo(
             );
           }
 
-          const value = stringifyPropertyValue(entityValue);
+          const metadata =
+            row.propertiesMetadata.value[
+              extractBaseUrl(column.id as VersionedUrl)
+            ]?.metadata;
 
           return (
-            <TableCell key={column.id} sx={cellSx}>
-              {!!value.length && (
-                <Typography
-                  sx={{
-                    ...typographySx,
-                    maxWidth: 700,
-                    lineHeight: 1,
-                    textOverflow: "ellipsis",
-                    overflow: "hidden",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {value}
-                </Typography>
-              )}
-            </TableCell>
+            <PropertyValueCell
+              key={column.id}
+              metadata={metadata}
+              value={propertyValue}
+            />
           );
         })}
       </>
@@ -310,201 +361,208 @@ const createRowContent: CreateVirtualizedRowContentFn<
 );
 
 type EntityResultTableProps = {
-  onEntityClick: (entity: Entity) => void;
+  onEntityClick: (entityId: EntityId) => void;
   onEntityTypeClick: (entityTypeId: VersionedUrl) => void;
   persistedEntities: PersistedEntity[];
   persistedEntitiesSubgraph?: Subgraph<EntityRootType>;
   proposedEntities: ProposedEntityOutput[];
-  proposedEntitiesTypesSubgraph?: Subgraph<EntityTypeRootType>;
+  proposedEntitiesTypesSubgraph?: Subgraph;
 };
 
-export const EntityResultTable = ({
-  onEntityClick,
-  onEntityTypeClick,
-  persistedEntities,
-  persistedEntitiesSubgraph,
-  proposedEntities,
-  proposedEntitiesTypesSubgraph,
-}: EntityResultTableProps) => {
-  const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
-    field: "entityLabel",
-    direction: "asc",
-  });
-
-  const hasData = !!(persistedEntities.length || proposedEntities.length);
-
-  const {
-    rows,
-    entityTypes,
-  }: {
-    rows: VirtualizedTableRow<EntityResultRow>[];
-    entityTypes: EntityType[];
-  } = useMemo(() => {
-    const rowData: VirtualizedTableRow<EntityResultRow>[] = [];
-    const entityTypesById: Record<VersionedUrl, EntityType> = {};
-
-    for (const record of persistedEntities.length
-      ? persistedEntities
-      : proposedEntities) {
-      const isProposed = "localEntityId" in record;
-
-      const entity = isProposed
-        ? record
-        : record.entity
-          ? new Entity(record.entity)
-          : undefined;
-
-      if (!entity) {
-        continue;
-      }
-
-      const entityId =
-        "localEntityId" in entity
-          ? entity.localEntityId
-          : entity.metadata.recordId.entityId;
-
-      const entityTypeId =
-        "entityTypeId" in entity
-          ? entity.entityTypeId
-          : entity.metadata.entityTypeId;
-
-      const entityLabel = generateEntityLabel(
-        persistedEntitiesSubgraph ?? null,
-        {
-          properties: entity.properties,
-          metadata: {
-            recordId: {
-              editionId: "irrelevant-here",
-              entityId: `ownedBy~${entityId}` as EntityId,
-            } satisfies EntityRecordId,
-            entityTypeId: entityTypeId satisfies VersionedUrl,
-          } as EntityMetadata,
-        },
-      );
-
-      const subgraph = isProposed
-        ? proposedEntitiesTypesSubgraph
-        : persistedEntitiesSubgraph;
-
-      if (!subgraph) {
-        continue;
-      }
-
-      let entityType = entityTypesById[entityTypeId];
-      if (!entityType) {
-        const entityTypeWithMetadata = getEntityTypeById(
-          subgraph,
-          entityTypeId,
-        );
-
-        if (!entityTypeWithMetadata) {
-          // The data for the types may not arrive at the same time as the proposal
-          continue;
-        }
-
-        entityType = entityTypeWithMetadata.schema;
-        entityTypesById[entityTypeId] = entityType;
-      }
-
-      rowData.push({
-        id: entityId,
-        data: {
-          entityLabel,
-          entityTypeId,
-          entityType,
-          onEntityClick,
-          onEntityTypeClick,
-          persistedEntity: "metadata" in entity ? entity : undefined,
-          properties: entity.properties,
-          researchOngoing:
-            "researchOngoing" in record && record.researchOngoing,
-          status: isProposed
-            ? "Proposed"
-            : record.operation === "update"
-              ? "Updated"
-              : "Created",
-        },
-      });
-    }
-
-    return {
-      entityTypes: Object.values(entityTypesById),
-      rows: rowData.sort((a, b) => {
-        const field = sort.field;
-        const direction = sort.direction === "asc" ? 1 : -1;
-
-        if (!isFixedField(field)) {
-          /**
-           * This is a property field, so we need to compare the values of the properties
-           */
-          const baseUrl = extractBaseUrl(field);
-
-          return (
-            (a.data.properties[baseUrl]
-              ?.toString()
-              .localeCompare(b.data.properties[baseUrl]?.toString() ?? "") ??
-              0) * direction
-          );
-        }
-
-        return a.data[field].localeCompare(b.data[field]) * direction;
-      }),
-    };
-  }, [
+export const EntityResultTable = memo(
+  ({
     onEntityClick,
     onEntityTypeClick,
     persistedEntities,
     persistedEntitiesSubgraph,
     proposedEntities,
     proposedEntitiesTypesSubgraph,
-    sort,
-  ]);
+  }: EntityResultTableProps) => {
+    const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
+      field: "entityLabel",
+      direction: "asc",
+    });
 
-  const columns = useMemo(
-    () =>
-      generateColumns(
-        entityTypes,
-        persistedEntities.length === 0
-          ? proposedEntitiesTypesSubgraph
-          : persistedEntitiesSubgraph,
-      ),
-    [
+    const hasData = !!(persistedEntities.length || proposedEntities.length);
+
+    const {
+      rows,
       entityTypes,
-      proposedEntitiesTypesSubgraph,
-      persistedEntitiesSubgraph,
-      persistedEntities.length,
-    ],
-  );
+    }: {
+      rows: VirtualizedTableRow<EntityResultRow>[];
+      entityTypes: EntityType[];
+    } = useMemo(() => {
+      const rowData: VirtualizedTableRow<EntityResultRow>[] = [];
+      const entityTypesById: Record<VersionedUrl, EntityType> = {};
 
-  return (
-    <OutputContainer
-      noBorder={hasData}
-      sx={{
-        flex: 1,
-        minWidth: 400,
-        "& table": {
-          tableLayout: "auto",
-        },
-        "& th:not(:last-child)": {
-          borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
-        },
-      }}
-    >
-      {hasData ? (
-        <VirtualizedTable
-          columns={columns}
-          createRowContent={createRowContent}
-          fixedColumns={3}
-          rows={rows}
-          sort={sort}
-          setSort={setSort}
-        />
-      ) : (
-        <EmptyOutputBox
-          Icon={outputIcons.table}
-          label="Entities proposed and affected by this flow will appear in a table here"
-        />
-      )}
-    </OutputContainer>
-  );
-};
+      for (const record of persistedEntities.length
+        ? persistedEntities
+        : proposedEntities) {
+        const isProposed = "localEntityId" in record;
+
+        const entity = isProposed
+          ? record
+          : record.entity
+            ? new Entity(record.entity)
+            : undefined;
+
+        if (!entity) {
+          continue;
+        }
+
+        const entityId =
+          "localEntityId" in entity
+            ? entity.localEntityId
+            : entity.metadata.recordId.entityId;
+
+        const entityTypeId =
+          "entityTypeId" in entity
+            ? entity.entityTypeId
+            : entity.metadata.entityTypeId;
+
+        const entityLabel = generateEntityLabel(
+          persistedEntitiesSubgraph ?? null,
+          {
+            properties: entity.properties,
+            metadata: {
+              recordId: {
+                editionId: "irrelevant-here",
+                entityId: `ownedBy~${entityId}` as EntityId,
+              } satisfies EntityRecordId,
+              entityTypeId: entityTypeId satisfies VersionedUrl,
+            } as EntityMetadata,
+          },
+        );
+
+        const subgraph = isProposed
+          ? proposedEntitiesTypesSubgraph
+          : persistedEntitiesSubgraph;
+
+        if (!subgraph) {
+          continue;
+        }
+
+        let entityType = entityTypesById[entityTypeId];
+        if (!entityType) {
+          const entityTypeWithMetadata = getEntityTypeById(
+            subgraph,
+            entityTypeId,
+          );
+
+          if (!entityTypeWithMetadata) {
+            // The data for the types may not arrive at the same time as the proposal
+            continue;
+          }
+
+          entityType = entityTypeWithMetadata.schema;
+          entityTypesById[entityTypeId] = entityType;
+        }
+
+        rowData.push({
+          id: entityId,
+          data: {
+            entityLabel,
+            entityTypeId,
+            entityType,
+            onEntityClick,
+            onEntityTypeClick,
+            persistedEntity: "metadata" in entity ? entity : undefined,
+            proposedEntityId: isProposed ? entityId : undefined,
+            properties: entity.properties,
+            propertiesMetadata:
+              "propertiesMetadata" in entity
+                ? entity.propertiesMetadata
+                : entity.propertyMetadata,
+            researchOngoing:
+              "researchOngoing" in record && record.researchOngoing,
+            status: isProposed
+              ? "Proposed"
+              : record.operation === "update"
+                ? "Updated"
+                : "Created",
+          },
+        });
+      }
+
+      return {
+        entityTypes: Object.values(entityTypesById),
+        rows: rowData.sort((a, b) => {
+          const field = sort.field;
+          const direction = sort.direction === "asc" ? 1 : -1;
+
+          if (!isFixedField(field)) {
+            /**
+             * This is a property field, so we need to compare the values of the properties
+             */
+            const baseUrl = extractBaseUrl(field);
+
+            return (
+              (a.data.properties[baseUrl]
+                ?.toString()
+                .localeCompare(b.data.properties[baseUrl]?.toString() ?? "") ??
+                0) * direction
+            );
+          }
+
+          return a.data[field].localeCompare(b.data[field]) * direction;
+        }),
+      };
+    }, [
+      onEntityClick,
+      onEntityTypeClick,
+      persistedEntities,
+      persistedEntitiesSubgraph,
+      proposedEntities,
+      proposedEntitiesTypesSubgraph,
+      sort,
+    ]);
+
+    const columns = useMemo(
+      () =>
+        generateColumns(
+          entityTypes,
+          persistedEntities.length === 0
+            ? proposedEntitiesTypesSubgraph
+            : persistedEntitiesSubgraph,
+        ),
+      [
+        entityTypes,
+        proposedEntitiesTypesSubgraph,
+        persistedEntitiesSubgraph,
+        persistedEntities.length,
+      ],
+    );
+
+    return (
+      <OutputContainer
+        noBorder={hasData}
+        sx={{
+          flex: 1,
+          minWidth: 400,
+          "& table": {
+            tableLayout: "auto",
+          },
+          "& th:not(:last-child)": {
+            borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
+          },
+        }}
+      >
+        {hasData ? (
+          <VirtualizedTable
+            columns={columns}
+            createRowContent={createRowContent}
+            fixedColumns={3}
+            rows={rows}
+            sort={sort}
+            setSort={setSort}
+          />
+        ) : (
+          <EmptyOutputBox
+            Icon={outputIcons.table}
+            label="Entities proposed and affected by this flow will appear in a table here"
+          />
+        )}
+      </OutputContainer>
+    );
+  },
+);

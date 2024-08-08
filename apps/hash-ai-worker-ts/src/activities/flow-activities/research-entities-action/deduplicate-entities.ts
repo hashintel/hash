@@ -1,6 +1,7 @@
 import type { EntityId } from "@local/hash-graph-types/entity";
 import dedent from "dedent";
 
+import { logger } from "../../shared/activity-logger.js";
 import { getFlowContext } from "../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../shared/get-llm-response.js";
 import type { AnthropicMessageModel } from "../../shared/get-llm-response/anthropic-client.js";
@@ -12,7 +13,7 @@ import type {
 } from "../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
 import type { PermittedOpenAiModel } from "../../shared/openai-client.js";
-import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text.js";
+import type { LocalEntitySummary } from "../shared/infer-claims-from-text/get-entity-summaries-from-text.js";
 import type { ExistingEntitySummary } from "./summarize-existing-entities.js";
 
 /**
@@ -48,8 +49,8 @@ export const deduplicationAgentSystemPrompt = `
 `;
 
 export type DuplicateReport = {
-  canonicalId: string | EntityId;
-  duplicateIds: (string | EntityId)[];
+  canonicalId: EntityId;
+  duplicateIds: EntityId[];
 };
 
 const toolName = "reportDuplicates";
@@ -62,11 +63,13 @@ const deduplicationAgentTool: LlmToolDefinition<typeof toolName> = {
   `),
   inputSchema: {
     type: "object",
+    additionalProperties: false,
     properties: {
       duplicates: {
         type: "array",
         items: {
           type: "object",
+          additionalProperties: false,
           properties: {
             canonicalId: {
               type: "string",
@@ -89,18 +92,23 @@ const deduplicationAgentTool: LlmToolDefinition<typeof toolName> = {
   },
 };
 
+/**
+ * We are using Sonnet here rather than the cheaper (as of 08/08/2025) GPT-4o model because Sonnet has a max context
+ * window of 200k tokens vs 128k for GPT-4o, and we've encountered 'max-token' responses here before.
+ */
 const defaultModel: LlmParams["model"] = "claude-3-5-sonnet-20240620";
 
 export const deduplicateEntities = async (params: {
   entities: (LocalEntitySummary | ExistingEntitySummary)[];
   model?: PermittedOpenAiModel | AnthropicMessageModel;
+  exceededMaxTokensAttempt?: number | null;
 }): Promise<
   { duplicates: DuplicateReport[] } & {
     usage: LlmUsage;
     totalRequestTime: number;
   }
 > => {
-  const { entities, model } = params;
+  const { entities, model, exceededMaxTokensAttempt } = params;
 
   const { flowEntityId, userAuthentication, stepId, webId } =
     await getFlowContext();
@@ -116,10 +124,10 @@ export const deduplicateEntities = async (params: {
           content: [
             {
               type: "text",
-              text: dedent(
-                entities
+              text: dedent(`Here are the entities to deduplicate:
+                ${entities
                   .map(
-                    (entitySummary) => `
+                    (entitySummary) => `<Entity>
                     Name: ${entitySummary.name}
                     Type: ${entitySummary.entityTypeId}
                     Summary: ${entitySummary.summary}
@@ -128,10 +136,15 @@ export const deduplicateEntities = async (params: {
                         ? entitySummary.localId
                         : entitySummary.entityId
                     }
-                    `,
+                    </Entity>`,
                   )
-                  .join("\n"),
-              ),
+                  .join("\n")}
+                  ${
+                    exceededMaxTokensAttempt
+                      ? "Your previous response exceeded the maximum tokens. Please try again, aiming for brevity, and omitting any duplicate reports you aren't 100% certain of."
+                      : ""
+                  }
+                  `),
             },
           ],
         },
@@ -151,6 +164,21 @@ export const deduplicateEntities = async (params: {
   );
 
   if (llmResponse.status !== "ok") {
+    if (llmResponse.status === "max-tokens") {
+      logger.warn("Max tokens exceeded in deduplicateEntities");
+      if (exceededMaxTokensAttempt && exceededMaxTokensAttempt > 2) {
+        return {
+          duplicates: [],
+          totalRequestTime: llmResponse.totalRequestTime,
+          usage: llmResponse.usage,
+        };
+      }
+
+      return deduplicateEntities({
+        ...params,
+        exceededMaxTokensAttempt: (exceededMaxTokensAttempt ?? 0) + 1,
+      });
+    }
     return deduplicateEntities(params);
   }
 

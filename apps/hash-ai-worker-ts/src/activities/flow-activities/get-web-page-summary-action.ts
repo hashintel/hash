@@ -21,7 +21,8 @@ const generateSummarizeWebPageSystemPrompt = (params: {
     You are a Web Page Summarizer.
     The user provides you with the URL, the title, and the HTML content of a web page,
     and you must respond with a ${params.numberOfSentences} sentence summary of 
-    the web page.
+    the contents of the web page. Describe what information the web page includes.
+    Don't include any prefix, introduction, or other surrounding text – just the summary directly.
   `);
 
 export const getWebPageSummaryAction: FlowActionActivity = async ({

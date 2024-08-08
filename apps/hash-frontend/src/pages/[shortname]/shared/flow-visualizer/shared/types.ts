@@ -60,11 +60,28 @@ export type StateChangeLog = ProgressLogBase & {
   type: "StateChange";
 };
 
-export type LocalProgressLog = StepProgressLog | StateChangeLog;
+export type LogDisplay = "grouped" | "stream";
 
-export type ProposedEntityOutput = Omit<
-  ProposedEntity,
-  "provenance" | "propertyMetadata"
-> & {
+type CommonLogFields = {
+  level: number;
+};
+
+export type StandaloneLog = (StepProgressLog | StateChangeLog) &
+  CommonLogFields;
+
+export type LogThread = {
+  label: string;
+  type: "Thread";
+  recordedAt: string;
+  threadWorkerId: string;
+  threadStartedAt: string;
+  threadClosedAt?: string;
+  closedDueToFlowClosure?: boolean;
+  logs: LocalProgressLog[];
+} & CommonLogFields;
+
+export type LocalProgressLog = StandaloneLog | LogThread;
+
+export type ProposedEntityOutput = Omit<ProposedEntity, "provenance"> & {
   researchOngoing: boolean;
 };

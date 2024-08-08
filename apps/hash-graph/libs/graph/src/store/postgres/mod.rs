@@ -23,7 +23,7 @@ use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::{AccountGroupId, AccountId, EditionArchivedById},
     ontology::{
-        OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
+        DataTypeId, OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, OntologyTypeRecordId,
     },
     owned_by_id::OwnedById,
@@ -34,7 +34,7 @@ use time::OffsetDateTime;
 use tokio_postgres::{error::SqlState, GenericClient};
 use type_system::{
     schema::{
-        ClosedDataType, ClosedEntityType, DataType, DataTypeReference, EntityType,
+        ClosedDataType, ClosedDataTypeMetadata, ClosedEntityType, DataTypeReference, EntityType,
         EntityTypeReference, PropertyType, PropertyTypeReference,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
@@ -384,6 +384,7 @@ where
     /// [`OwnedById`], and [`EditionCreatedById`] into the database.
     ///
     /// [`EditionCreatedById`]: graph_types::account::EditionCreatedById
+    /// [`DataType`]: type_system::schema::DataType
     ///
     /// # Errors
     ///
@@ -392,10 +393,10 @@ where
     async fn insert_data_type_with_id(
         &self,
         ontology_id: OntologyId,
-        data_type: &Valid<DataType>,
         closed_data_type: &Valid<ClosedDataType>,
+        metadata: &ClosedDataTypeMetadata,
     ) -> Result<Option<OntologyId>, InsertionError> {
-        Ok(self
+        let ontology_id = self
             .as_client()
             .query_opt(
                 "
@@ -407,11 +408,37 @@ where
                     ON CONFLICT DO NOTHING
                     RETURNING ontology_id;
                 ",
-                &[&ontology_id, data_type, closed_data_type],
+                &[&ontology_id, closed_data_type.data_type(), closed_data_type],
             )
             .await
             .change_context(InsertionError)?
-            .map(|row| row.get(0)))
+            .map(|row| row.get(0));
+
+        for (target, &depth) in &metadata.inheritance_depths {
+            self.as_client()
+                .query(
+                    "
+                        INSERT INTO data_type_inherits_from (
+                            source_data_type_ontology_id,
+                            target_data_type_ontology_id,
+                            depth
+                        ) VALUES (
+                            $1,
+                            $2,
+                            $3
+                        );
+                    ",
+                    &[
+                        &ontology_id,
+                        &DataTypeId::from_url(target),
+                        &i32::try_from(depth).change_context(InsertionError)?,
+                    ],
+                )
+                .await
+                .change_context(InsertionError)?;
+        }
+
+        Ok(ontology_id)
     }
 
     /// Inserts a [`PropertyType`] identified by [`OntologyId`], and associated with an

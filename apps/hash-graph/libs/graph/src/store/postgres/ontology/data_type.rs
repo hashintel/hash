@@ -1,5 +1,6 @@
-use core::iter::once;
-use std::collections::HashSet;
+use alloc::sync::Arc;
+use core::{iter::once, mem};
+use std::collections::{HashMap, HashSet};
 
 use authorization::{
     backend::ModifyRelationshipOperation,
@@ -23,7 +24,7 @@ use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTi
 use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
-    schema::{ClosedDataType, DataTypeValidator},
+    schema::{DataTypeValidator, OntologyTypeResolver},
     url::{OntologyTypeVersion, VersionedUrl},
     Validator,
 };
@@ -41,17 +42,24 @@ use crate::{
         },
         postgres::{
             crud::QueryRecordDecode,
-            ontology::{OntologyId, PostgresOntologyTypeClassificationMetadata},
-            query::{Distinctness, PostgresRecord, SelectCompiler, Table},
+            ontology::{
+                read::OntologyTypeTraversalData, OntologyId,
+                PostgresOntologyTypeClassificationMetadata,
+            },
+            query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
             TraversalContext,
         },
+        query::{Filter, FilterExpression, ParameterList},
         AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, SubgraphRecord,
         UpdateError,
     },
     subgraph::{
-        edges::GraphResolveDepths,
-        identifier::GraphElementVertexId,
-        temporal_axes::{QueryTemporalAxes, VariableAxis},
+        edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
+        identifier::{DataTypeVertexId, GraphElementVertexId},
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
+            VariableAxis, VariableTemporalAxisUnresolved,
+        },
         Subgraph,
     },
 };
@@ -203,19 +211,83 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     pub(crate) async fn traverse_data_types(
         &self,
-        queue: Vec<(
-            OntologyId,
+        mut data_type_queue: Vec<(
+            DataTypeId,
             GraphResolveDepths,
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
-        _: &mut TraversalContext,
+        traversal_context: &mut TraversalContext,
         actor_id: AccountId,
-        _: &Zookie<'static>,
-        _: &mut Subgraph,
+        zookie: &Zookie<'static>,
+        subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
-        // TODO: data types currently have no references to other types, so we don't need to do
-        //       anything here
-        //   see https://linear.app/hash/issue/H-3075/allow-traversing-data-type-edges
+        while !data_type_queue.is_empty() {
+            let mut edges_to_traverse =
+                HashMap::<OntologyEdgeKind, OntologyTypeTraversalData>::new();
+
+            for (data_type_ontology_id, graph_resolve_depths, traversal_interval) in
+                mem::take(&mut data_type_queue)
+            {
+                for edge_kind in [
+                    OntologyEdgeKind::InheritsFrom,
+                    OntologyEdgeKind::ConstrainsValuesOn,
+                ] {
+                    if let Some(new_graph_resolve_depths) = graph_resolve_depths
+                        .decrement_depth_for_edge(edge_kind, EdgeDirection::Outgoing)
+                    {
+                        edges_to_traverse.entry(edge_kind).or_default().push(
+                            OntologyId::from(data_type_ontology_id),
+                            new_graph_resolve_depths,
+                            traversal_interval,
+                        );
+                    }
+                }
+            }
+
+            for (edge_kind, table) in [
+                (
+                    OntologyEdgeKind::InheritsFrom,
+                    ReferenceTable::DataTypeInheritsFrom {
+                        // TODO: Use the resolve depths passed to the query
+                        inheritance_depth: Some(0),
+                    },
+                ),
+                (
+                    OntologyEdgeKind::ConstrainsValuesOn,
+                    ReferenceTable::DataTypeConstrainsValuesOn,
+                ),
+            ] {
+                if let Some(traversal_data) = edges_to_traverse.get(&edge_kind) {
+                    data_type_queue.extend(
+                        Self::filter_data_types_by_permission(
+                            self.read_ontology_edges::<DataTypeVertexId, DataTypeVertexId>(
+                                traversal_data,
+                                table,
+                            )
+                            .await?,
+                            actor_id,
+                            &self.authorization_api,
+                            zookie,
+                        )
+                        .await?
+                        .flat_map(|edge| {
+                            subgraph.insert_edge(
+                                &edge.left_endpoint,
+                                edge_kind,
+                                EdgeDirection::Outgoing,
+                                edge.right_endpoint.clone(),
+                            );
+
+                            traversal_context.add_data_type_id(
+                                DataTypeId::from(edge.right_endpoint_ontology_id),
+                                edge.resolve_depths,
+                                edge.traversal_interval,
+                            )
+                        }),
+                    );
+                }
+            }
+        }
 
         Ok(())
     }
@@ -280,8 +352,7 @@ where
 
         let mut inserted_data_type_metadata = Vec::new();
         let mut inserted_data_types = Vec::new();
-
-        let data_type_validator = DataTypeValidator;
+        let mut data_type_reference_ids = HashSet::new();
 
         for parameters in params {
             let provenance = OntologyProvenance {
@@ -326,7 +397,7 @@ where
                     .map(|relation_and_subject| (data_type_id, relation_and_subject)),
             );
 
-            if let Some((ontology_id, temporal_versioning)) = transaction
+            if let Some((_ontology_id, temporal_versioning)) = transaction
                 .create_ontology_metadata(
                     &record_id,
                     &parameters.classification,
@@ -335,34 +406,84 @@ where
                 )
                 .await?
             {
-                let schema = data_type_validator
-                    .validate_ref(&parameters.schema)
-                    .await
-                    .change_context(InsertionError)?;
-                let closed_schema = data_type_validator
-                    .validate(
-                        ClosedDataType::new(schema.clone().into_inner())
-                            .change_context(InsertionError)?,
-                    )
-                    .await
-                    .change_context(InsertionError)?;
-                transaction
-                    .insert_data_type_with_id(ontology_id, schema, &closed_schema)
-                    .await?;
-                let metadata = DataTypeMetadata {
+                data_type_reference_ids.extend(
+                    parameters
+                        .schema
+                        .data_type_references()
+                        .map(|(reference, _)| DataTypeId::from_url(&reference.url)),
+                );
+                inserted_data_types.push(Arc::new(parameters.schema));
+                inserted_data_type_metadata.push(DataTypeMetadata {
                     record_id,
                     classification: parameters.classification,
                     temporal_versioning,
                     provenance,
-                };
-                if transaction.temporal_client.is_some() {
-                    inserted_data_types.push(DataTypeWithMetadata {
-                        schema: parameters.schema,
-                        metadata: metadata.clone(),
-                    });
-                }
-                inserted_data_type_metadata.push(metadata);
+                });
             }
+        }
+
+        let mut ontology_type_resolver = OntologyTypeResolver::default();
+
+        let required_parent_ids = data_type_reference_ids.into_iter().collect::<Vec<_>>();
+        // TODO: Read the closed schemas directly instead
+        //   see https://linear.app/hash/issue/H-3082/allow-querying-of-closed-data-schema
+        transaction
+            .get_data_types(
+                actor_id,
+                GetDataTypesParams {
+                    filter: Filter::Any(vec![
+                        // We need need the parents itself ...
+                        Filter::In(
+                            FilterExpression::Path(DataTypeQueryPath::OntologyId),
+                            ParameterList::DataTypeIds(&required_parent_ids),
+                        ),
+                        // ... and their parents (recursively)
+                        Filter::for_data_type_parents(&required_parent_ids, None),
+                    ]),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
+                    after: None,
+                    limit: None,
+                    include_count: false,
+                },
+            )
+            .await
+            .change_context(InsertionError)
+            .attach_printable("Could not read parent data types")?
+            .data_types
+            .into_iter()
+            .for_each(|data_type| {
+                ontology_type_resolver.add_open(Arc::new(data_type.schema));
+            });
+
+        let schema_metadata = ontology_type_resolver
+            .resolve_data_type_metadata(inserted_data_types.iter().cloned())
+            .change_context(InsertionError)?;
+
+        let data_type_validator = DataTypeValidator;
+        for (schema_metadata, data_type) in schema_metadata.into_iter().zip(&inserted_data_types) {
+            let closed_schema = data_type_validator
+                .validate(
+                    ontology_type_resolver
+                        .get_closed_data_type(&data_type.id)
+                        .change_context(InsertionError)?,
+                )
+                .await
+                .change_context(InsertionError)?;
+            let schema = data_type_validator
+                .validate_ref(&closed_schema.schema)
+                .await
+                .change_context(InsertionError)?;
+            transaction
+                .insert_data_type_with_id(
+                    OntologyId::from(DataTypeId::from_url(&schema.id)),
+                    &closed_schema,
+                    &schema_metadata,
+                )
+                .await?;
         }
 
         #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
@@ -407,7 +528,17 @@ where
         } else {
             if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
-                    .start_update_data_type_embeddings_workflow(actor_id, &inserted_data_types)
+                    .start_update_data_type_embeddings_workflow(
+                        actor_id,
+                        &inserted_data_types
+                            .iter()
+                            .zip(&inserted_data_type_metadata)
+                            .map(|(schema, metadata)| DataTypeWithMetadata {
+                                schema: (**schema).clone(),
+                                metadata: metadata.clone(),
+                            })
+                            .collect::<Vec<_>>(),
+                    )
                     .await
                     .change_context(InsertionError)?;
             }
@@ -508,7 +639,7 @@ where
                 .into_iter()
                 .map(|id| {
                     (
-                        OntologyId::from(id),
+                        id,
                         subgraph.depths,
                         subgraph.temporal_axes.resolved.variable_interval(),
                     )
@@ -584,15 +715,65 @@ where
             .validate_ref(&params.schema)
             .await
             .change_context(UpdateError)?;
+
+        let mut ontology_type_resolver = OntologyTypeResolver::default();
+
+        let required_parent_ids = schema
+            .data_type_references()
+            .map(|(reference, _)| DataTypeId::from_url(&reference.url))
+            .collect::<Vec<_>>();
+        // TODO: Read the closed schemas directly instead
+        //   see https://linear.app/hash/issue/H-3082/allow-querying-of-closed-data-schema
+        transaction
+            .get_data_types(
+                actor_id,
+                GetDataTypesParams {
+                    filter: Filter::Any(vec![
+                        // We need need the parents itself ...
+                        Filter::In(
+                            FilterExpression::Path(DataTypeQueryPath::OntologyId),
+                            ParameterList::DataTypeIds(&required_parent_ids),
+                        ),
+                        // ... and their parents (recursively)
+                        Filter::for_data_type_parents(&required_parent_ids, None),
+                    ]),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
+                    },
+                    include_drafts: false,
+                    after: None,
+                    limit: None,
+                    include_count: false,
+                },
+            )
+            .await
+            .change_context(UpdateError)
+            .attach_printable("Could not read parent data types")?
+            .data_types
+            .into_iter()
+            .for_each(|data_type| {
+                ontology_type_resolver.add_open(Arc::new(data_type.schema));
+            });
+
+        let [metadata] = ontology_type_resolver
+            .resolve_data_type_metadata([Arc::new(schema.clone().into_inner())])
+            .change_context(UpdateError)?
+            .try_into()
+            .expect("Expected exactly one closed data type metadata");
         let closed_schema = data_type_validator
-            .validate(ClosedDataType::new(schema.clone().into_inner()).change_context(UpdateError)?)
+            .validate(
+                ontology_type_resolver
+                    .get_closed_data_type(&schema.id)
+                    .change_context(UpdateError)?,
+            )
             .await
             .change_context(UpdateError)?;
         let (ontology_id, owned_by_id, temporal_versioning) = transaction
             .update_owned_ontology_id(&schema.id, &provenance.edition)
             .await?;
         transaction
-            .insert_data_type_with_id(ontology_id, schema, &closed_schema)
+            .insert_data_type_with_id(ontology_id, &closed_schema, &metadata)
             .await
             .change_context(UpdateError)?;
 

@@ -20,7 +20,36 @@ const log = (
     // no id in context for some reason
   }
 
-  const logMessage = `[Request ${requestId} – ${new Date().toISOString()}] ${message}`;
+  const consolePrefix = `[Request ${requestId} – ${new Date().toISOString()}]`;
+
+  let logObject: object;
+  try {
+    const parsedLogObject = JSON.parse(message) as unknown;
+
+    if (
+      typeof parsedLogObject !== "object" ||
+      Array.isArray(parsedLogObject) ||
+      parsedLogObject === null
+    ) {
+      // not a JSON object
+      logObject = {
+        consolePrefix,
+        message,
+      };
+    }
+    logObject = {
+      consolePrefix,
+      ...(parsedLogObject as object),
+    };
+  } catch {
+    // not valid JSON
+    logObject = {
+      consolePrefix,
+      message,
+    };
+  }
+
+  const logMessage = JSON.stringify(logObject);
   const logFolderPath = path.join(__dirname, "logs");
 
   if (["test", "development"].includes(process.env.NODE_ENV ?? "")) {

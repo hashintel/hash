@@ -24,15 +24,15 @@ impl<B> Response<B>
 where
     B: Body<Control: AsRef<ResponseKind>>,
 {
-    pub fn from_parts(parts: Parts, body: B) -> Self {
+    pub const fn from_parts(parts: Parts, body: B) -> Self {
         Self { head: parts, body }
     }
 
-    pub fn session(&self) -> SessionId {
+    pub const fn session(&self) -> SessionId {
         self.head.session
     }
 
-    pub fn body(&self) -> &B {
+    pub const fn body(&self) -> &B {
         &self.body
     }
 
@@ -44,7 +44,7 @@ where
         self.body
     }
 
-    pub fn extensions(&self) -> &Extensions {
+    pub const fn extensions(&self) -> &Extensions {
         &self.head.extensions
     }
 

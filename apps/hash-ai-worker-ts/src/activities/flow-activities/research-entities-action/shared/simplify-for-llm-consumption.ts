@@ -1,3 +1,4 @@
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type {
   LocalOrExistingEntityId,
   ProposedEntity,
@@ -9,7 +10,7 @@ import type {
   DereferencedPropertyType,
   MinimalPropertyTypeValue,
 } from "../../../shared/dereference-entity-type.js";
-import type { Fact } from "../../shared/infer-facts-from-text/types.js";
+import type { Claim } from "../../shared/infer-claims-from-text/types.js";
 
 const simplifyMinimalPropertyTypeValueForLlmConsumption = (params: {
   propertyTypeValue: MinimalPropertyTypeValue;
@@ -85,8 +86,9 @@ const getIdForLinkEndpoint = (endpoint: LocalOrExistingEntityId) =>
 
 export const simplifyProposedEntityForLlmConsumption = (params: {
   proposedEntity: ProposedEntity;
+  entityType: DereferencedEntityType;
 }) => {
-  const { proposedEntity } = params;
+  const { proposedEntity, entityType } = params;
 
   const {
     entityTypeId,
@@ -112,10 +114,16 @@ ${Object.entries(properties)
         ? `\n<LinkData>SourceEntityId: ${getIdForLinkEndpoint(sourceEntityId)}\nTargetEntityId: ${getIdForLinkEndpoint(targetEntityId)}</LinkData>`
         : ""
     }
+Missing properties: ${Object.entries(entityType.properties)
+    .filter(([baseUrl]) => properties[baseUrl as BaseUrl] === undefined)
+    .map(([_baseUrl, schema]) =>
+      "items" in schema ? schema.items.title : schema.title,
+    )
+    .join(", ")}
 </Entity>
   `;
 };
 
-export const simplifyFactForLlmConsumption = (fact: Fact) => {
-  return `${fact.text} ${fact.prepositionalPhrases.join(", ")}`;
+export const simplifyClaimForLlmConsumption = (claim: Claim) => {
+  return `${claim.text} ${claim.prepositionalPhrases.join(", ")}`;
 };

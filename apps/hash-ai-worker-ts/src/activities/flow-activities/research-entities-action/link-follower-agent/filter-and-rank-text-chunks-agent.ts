@@ -45,11 +45,13 @@ const tools: LlmToolDefinition<
       "Submit all the text chunks that contain information the user is looking for, in a single tool call.",
     inputSchema: {
       type: "object",
+      additionalProperties: false,
       properties: {
         relevantTextChunks: {
           type: "array",
           items: {
             type: "object",
+            additionalProperties: false,
             properties: {
               explanation: {
                 type: "string",
@@ -80,11 +82,13 @@ const tools: LlmToolDefinition<
       "If none of the text chunks match the description of what hte user is looking for, terminate the process.",
     inputSchema: {
       type: "object",
+      additionalProperties: false,
       properties: {
         reasons: {
           type: "array",
           items: {
             type: "object",
+            additionalProperties: false,
             properties: {
               chunkId: {
                 type: "string",
@@ -145,7 +149,7 @@ export const filterAndRankTextChunksAgent = async (params: {
 
   const llmResponse = await getLlmResponse(
     {
-      model: "claude-3-5-sonnet-20240620",
+      model: "gpt-4o-2024-08-06",
       messages: [
         {
           role: "user",

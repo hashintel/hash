@@ -2,10 +2,11 @@ cargo-features = ["edition2024"]
 
 [package]
 name = "graph-test-data"
-version = "0.0.0"
-edition = "2024"
-authors = ["HASH"]
-publish = false
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
 
 [lints]
 workspace = true

@@ -36,7 +36,7 @@ locals {
     cpu              = 0 # let ECS divvy up the available CPU
     mountPoints      = []
     volumesFrom      = []
-    command          = ["ensure-system-graph-is-initialized"]
+    command          = ["start:migrate"]
     dependsOn   = [
       { condition = "HEALTHY", containerName = local.kratos_service_container_def.name },
     ]

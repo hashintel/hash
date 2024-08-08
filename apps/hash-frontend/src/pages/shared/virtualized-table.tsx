@@ -243,7 +243,7 @@ type VirtualizedTableProps<
   rows: VirtualizedTableRow<D>[];
 } & TableSortProps<S>;
 
-const height = "100%";
+const heightStyle = { height: "100%" };
 
 export const VirtualizedTable = <
   D extends Data,
@@ -276,7 +276,7 @@ export const VirtualizedTable = <
   const context = useMemo(() => ({ columns: columns ?? [] }), [columns]);
 
   return (
-    <Box style={{ borderRadius, height, width: "100%" }}>
+    <Box style={{ borderRadius, width: "100%", ...heightStyle }}>
       <TableVirtuoso
         context={context}
         data={rows}
@@ -285,7 +285,8 @@ export const VirtualizedTable = <
         followOutput="smooth"
         increaseViewportBy={50}
         itemContent={createRowContent}
-        style={{ height }}
+        overscan={{ main: 100, reverse: 100 }}
+        style={heightStyle}
       />
     </Box>
   );

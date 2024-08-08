@@ -569,6 +569,7 @@ mod full {
     }
 
     #[cfg(nightly)]
+    #[expect(clippy::incompatible_msrv, reason = "This is gated behind nightly")]
     impl Error for ContextD {
         fn provide<'a>(&'a self, request: &mut Request<'a>) {
             request.provide_ref(&self.code);

@@ -7,7 +7,7 @@ import { AsyncRedisClient } from "@local/hash-backend-utils/redis";
 
 const logger = new Logger({
   serviceName: "clear-redis-queues",
-  mode: "dev",
+  environment: "development",
 });
 
 /**

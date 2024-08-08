@@ -90,7 +90,9 @@
         "rimraf",
         "turbo",
         "yarn-deduplicate",
-        "@redocly/cli"
+        "@redocly/cli",
+        "^artillery$",
+        "^artillery-"
       ],
       "excludePackageNames": ["prettier-plugin-sql"],
       "dependencyDashboardApproval": false,
@@ -99,7 +101,7 @@
     {
       "groupName": "LLM provider SDK npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@openai/", "^@anthropic/", "groq-sdk"],
+      "matchPackagePatterns": ["^@openai/", "^@anthropic-ai/", "groq-sdk"],
       "automerge": false,
       "dependencyDashboardApproval": false,
       "minimumReleaseAge": "0 days",
@@ -133,6 +135,12 @@
       "matchPackagePatterns": ["^@graphql/", "^graphql-", "graphql$"]
     },
     {
+      "description": "Exclude tldraw from updates due to non-OSS license in later releases",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@tldraw/"],
+      "enabled": false
+    },
+    {
       "automerge": false,
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["typescript"],
@@ -151,10 +159,25 @@
       "dependencyDashboardApproval": false
     },
     {
+      "groupName": "emoji-mart npm packages",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@emoji-mart/", "^emoji-mart", "emoji-mart$"]
+    },
+    {
+      "groupName": "Lodash npm packages",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@types/lodash", "^lodash", "lodash$"]
+    },
+    {
       "groupName": "OpenTelemetry npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@opentelemetry/"],
       "assignees": ["TimDiekmann"]
+    },
+    {
+      "groupName": "changesets npm packages",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@changesets/"]
     },
     {
       "groupName": "Playwright npm packages",
@@ -261,8 +284,7 @@
     {
       "fileMatch": ["(^|/)README\\.md$", "(^|/)src/lib\\.rs$"],
       "matchStrings": [
-        "https:\\/\\/img\\.shields\\.io\\/static\\/v1\\?label=Rust\\&message=\\d+\\.\\d+\\.\\d+\\/nightly-(?<currentValue>\\d+-\\d+-\\d+)\\&color=blue",
-        "## ≥ (?<currentValue>\\d+-\\d+-\\d+) \\(If installed through rustup, this will automatically install the required toolchain\\)"
+        "https:\\/\\/img\\.shields\\.io\\/static\\/v1\\?label=Rust\\&message=\\d+\\.\\d+\\.\\d+\\/nightly-(?<currentValue>\\d+-\\d+-\\d+)\\&color=blue"
       ],
       "depNameTemplate": "rust",
       "packageNameTemplate": "rust-lang/rust-analyzer",

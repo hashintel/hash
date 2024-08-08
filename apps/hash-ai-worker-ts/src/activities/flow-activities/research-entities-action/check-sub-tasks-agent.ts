@@ -51,7 +51,9 @@ export const checkSubTasksAgent = async (params: {
     Here is the current plan for addressing the research task: ${state.plan}
 
     The research task can only output information as entities and links, which are defined by the following types:
-    ${input.entityTypes.map((entityType) => simplifyEntityTypeForLlmConsumption({ entityType })).join("\n")}
+    ${input.entityTypes
+      .map((entityType) => simplifyEntityTypeForLlmConsumption({ entityType }))
+      .join("\n")}
     ${
       /**
        * @todo: simplify link type definitions, potentially by moving them to an "Outgoing Links" field
@@ -98,12 +100,14 @@ export const checkSubTasksAgent = async (params: {
     name: "submitVerdict",
     description: "Submit the verdict of which subTasks to accept or reject",
     inputSchema: {
+      additionalProperties: false,
       type: "object",
       properties: subTasks.reduce(
         (acc, subTask) => ({
           ...acc,
           [subTask.subTaskId]: {
             type: "object",
+            additionalProperties: false,
             properties: {
               accept: {
                 type: "boolean",
@@ -126,7 +130,7 @@ export const checkSubTasksAgent = async (params: {
 
   const response = await getLlmResponse(
     {
-      model: "claude-3-5-sonnet-20240620",
+      model: "gpt-4o-2024-08-06",
       systemPrompt,
       tools: [submitVerdictToolDefinition],
       messages: [
@@ -136,7 +140,9 @@ export const checkSubTasksAgent = async (params: {
             {
               type: "text",
               text: dedent(`
-                Here are the subtasks for the research task: ${JSON.stringify(subTasks)}
+                Here are the subtasks for the research task: ${JSON.stringify(
+                  subTasks,
+                )}
             `),
             },
           ],

@@ -98,6 +98,17 @@ impl EdgeKind<PropertyTypeVertexId, DataTypeVertexId> for OntologyEdgeKind {
     }
 }
 
+impl EdgeKind<DataTypeVertexId, DataTypeVertexId> for OntologyEdgeKind {
+    type EdgeSet = HashSet<DataTypeVertexId>;
+
+    fn subgraph_entry_mut<'a>(
+        &self,
+        edges: &'a mut Edges,
+    ) -> &'a mut AdjacencyList<DataTypeVertexId, Self, Self::EdgeSet> {
+        &mut edges.data_type_to_data_type
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -292,5 +303,16 @@ impl GraphResolveDepths {
         let depths = kind.depth_mut(direction, &mut self);
         *depths = depths.checked_sub(1)?;
         Some(self)
+    }
+
+    #[must_use]
+    pub fn zero_depth_for_edge(
+        mut self,
+        kind: impl GraphResolveDepthIndex,
+        direction: EdgeDirection,
+    ) -> Self {
+        let depths = kind.depth_mut(direction, &mut self);
+        *depths = 0;
+        self
     }
 }

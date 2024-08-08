@@ -33,7 +33,7 @@ type MinimalDataType = Omit<CustomDataType, "$id" | "$schema" | "kind">;
 
 type MinimalPropertyObject = ObjectSchema<
   ValueOrArray<DereferencedPropertyType>
->;
+> & { additionalProperties: false };
 
 export type MinimalPropertyTypeValue =
   | MinimalDataType
@@ -48,11 +48,12 @@ export type DereferencedPropertyType = Pick<
 
 export type DereferencedEntityType<
   PropertyTypeKey extends string | BaseUrl = BaseUrl,
-> = Pick<EntityType, "$id" | "description" | "links" | "title"> & {
+> = Pick<EntityType, "$id" | "description" | "links" | "required" | "title"> & {
   properties: Record<
     PropertyTypeKey,
     DereferencedPropertyType | ArraySchema<DereferencedPropertyType>
   >;
+  additionalProperties: false;
 } & Pick<EntityTypeMetadata, "labelProperty">;
 
 const dereferencePropertyTypeValue = (params: {
@@ -178,6 +179,7 @@ const dereferencePropertyTypeValue = (params: {
               )
             : undefined
           : valueReference.required,
+        additionalProperties: false,
         type: "object",
       },
       updatedSimplifiedPropertyTypeMappings: simplifiedPropertyTypeMappings,
@@ -290,7 +292,13 @@ export const dereferenceEntityType = <
     string | BaseUrl
   >["properties"] = {};
 
+  const requiredProperties: Set<BaseUrl> = new Set();
+
   for (const entityType of entityTypeWithAncestors) {
+    for (const requiredProp of entityType.schema.required ?? []) {
+      requiredProperties.add(requiredProp as BaseUrl);
+    }
+
     /**
      * Take the label property from the first entity type in the inheritance chain which has one.
      * The first item in the array is the entity type itself.
@@ -376,7 +384,7 @@ export const dereferenceEntityType = <
     for (const [versionedUrl, linkSchema] of typedEntries(
       entityType.schema.links ?? {},
     )) {
-      mergedLinks[versionedUrl] = linkSchema;
+      mergedLinks[versionedUrl] ??= linkSchema;
     }
   }
 
@@ -396,6 +404,8 @@ export const dereferenceEntityType = <
     labelProperty,
     links: mergedLinks,
     properties: mergedProperties,
+    additionalProperties: false,
+    required: atLeastOne([...requiredProperties]),
   };
 
   return {

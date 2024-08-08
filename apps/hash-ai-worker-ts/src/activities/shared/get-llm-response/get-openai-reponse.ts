@@ -16,6 +16,7 @@ import {
   serverErrorRetryStartingDelay,
 } from "./constants.js";
 import type {
+  LlmAssistantMessage,
   LlmMessageToolUseContent,
   LlmUserMessage,
 } from "./llm-message.js";
@@ -23,7 +24,9 @@ import {
   mapLlmMessageToOpenAiMessages,
   mapOpenAiMessagesToLlmMessages,
 } from "./llm-message.js";
+import { logLlmRequest, logLlmServerError } from "./log-llm-request.js";
 import type {
+  LlmRequestMetadata,
   LlmResponse,
   LlmStopReason,
   LlmToolDefinition,
@@ -41,6 +44,14 @@ const mapLlmToolDefinitionToOpenAiToolDefinition = (
 ): OpenAI.Chat.Completions.ChatCompletionTool => ({
   type: "function",
   function: {
+    /**
+     * Ideally we would enable 'strict' mode, but this enforces that every object in a tool definition return
+     * specifies a 'required' array that lists _all_ properties, i.e. you cannot have an object with optional properties.
+     * @todo H-3227 we can work around this by making all optional properties be 'or null' instead.
+     *
+     * @see https://openai.com/index/introducing-structured-outputs-in-the-api/ for strict mode introduction blog
+     */
+    strict: false,
     name: tool.name,
     parameters: tool.inputSchema as OpenAI.FunctionParameters,
     description: tool.description,
@@ -116,30 +127,48 @@ const isServerError = (error: unknown): error is APIError =>
 
 const openAiChatCompletionWithBackoff = async (params: {
   completionPayload: OpenAI.ChatCompletionCreateParamsNonStreaming;
+  metadata: LlmRequestMetadata;
   retryCount?: number;
 }): Promise<OpenAI.ChatCompletion> => {
-  const { completionPayload, retryCount = 0 } = params;
+  const { completionPayload, metadata, retryCount = 0 } = params;
+
+  const timeBeforeRequest = Date.now();
 
   try {
-    return backOff(() => openai.chat.completions.create(completionPayload), {
-      startingDelay: serverErrorRetryStartingDelay,
-      jitter: "full",
-      numOfAttempts: maximumExponentialBackoffRetries,
-      retry: (error) => {
-        /**
-         * Only retry further requests with an exponential back-off if a server error
-         * was encountered.
-         */
-        if (isServerError(error)) {
-          logger.debug(
-            `Encountered server error with OpenAI, retrying with exponential backoff.`,
-          );
-          return true;
-        }
+    return await backOff(
+      () => openai.chat.completions.create(completionPayload),
+      {
+        startingDelay: serverErrorRetryStartingDelay,
+        jitter: "full",
+        numOfAttempts: maximumExponentialBackoffRetries,
+        retry: (error) => {
+          const timeAfterRequest = Date.now();
 
-        return false;
+          const numberOfSeconds = (timeAfterRequest - timeBeforeRequest) / 1000;
+
+          logLlmServerError({
+            ...metadata,
+            provider: "openai",
+            response: error as unknown,
+            request: completionPayload,
+            secondsTaken: numberOfSeconds,
+          });
+
+          /**
+           * Only retry further requests with an exponential back-off if a server error
+           * was encountered.
+           */
+          if (isServerError(error)) {
+            logger.debug(
+              `Encountered server error with OpenAI, retrying with exponential backoff.`,
+            );
+            return true;
+          }
+
+          return false;
+        },
       },
-    });
+    );
   } catch (error) {
     if (
       error instanceof RateLimitError &&
@@ -158,6 +187,7 @@ const openAiChatCompletionWithBackoff = async (params: {
 
       return openAiChatCompletionWithBackoff({
         completionPayload,
+        metadata,
         retryCount: retryCount + 1,
       });
     }
@@ -168,6 +198,7 @@ const openAiChatCompletionWithBackoff = async (params: {
 
 export const getOpenAiResponse = async <ToolName extends string>(
   params: OpenAiLlmParams<ToolName>,
+  metadata: LlmRequestMetadata,
 ): Promise<LlmResponse<OpenAiLlmParams>> => {
   const {
     tools,
@@ -265,13 +296,15 @@ export const getOpenAiResponse = async <ToolName extends string>(
   try {
     openAiResponse = await openAiChatCompletionWithBackoff({
       completionPayload,
+      metadata,
     });
   } catch (error: unknown) {
     logger.error(`OpenAI API error: ${stringify(error)}`);
 
     return {
       status: "api-error",
-      openAiApiError: error instanceof APIError ? error : undefined,
+      provider: "openai",
+      error,
     };
   }
 
@@ -306,6 +339,22 @@ export const getOpenAiResponse = async <ToolName extends string>(
       (openAiResponse.usage?.total_tokens ?? 0),
   };
 
+  const lastRequestTime = currentRequestTime;
+  const totalRequestTime =
+    previousInvalidResponses?.reduce(
+      (acc, { requestTime }) => acc + requestTime,
+      currentRequestTime,
+    ) ?? currentRequestTime;
+
+  /**
+   * @todo: consider accounting for `choices` in the unified LLM response
+   */
+  const firstChoice = openAiResponse.choices[0];
+
+  const stopReason = !firstChoice
+    ? "stop"
+    : mapOpenAiFinishReasonToLlmStopReason(firstChoice.finish_reason);
+
   const retry = async (retryParams: {
     successfullyParsedToolCalls: ParsedLlmToolCall<ToolName>[];
     retryMessageContent: LlmUserMessage["content"];
@@ -313,16 +362,13 @@ export const getOpenAiResponse = async <ToolName extends string>(
     if (retryCount > maxRetryCount) {
       return {
         status: "exceeded-maximum-retries",
+        provider: "openai",
         invalidResponses: previousInvalidResponses ?? [],
+        lastRequestTime,
+        totalRequestTime,
         usage,
       };
     }
-
-    logger.debug(
-      `Retrying OpenAI call with the following retry message content: ${stringify(
-        retryParams.retryMessageContent,
-      )}`,
-    );
 
     const openAiResponseMessage = openAiResponse.choices[0]?.message;
 
@@ -347,35 +393,64 @@ export const getOpenAiResponse = async <ToolName extends string>(
         })
       : undefined;
 
-    return getOpenAiResponse({
-      ...params,
-      messages: [
-        ...params.messages,
-        ...(responseMessages ?? []),
-        {
-          role: "user",
-          content: retryParams.retryMessageContent,
-        },
-      ],
-      previousInvalidResponses: [
-        ...(previousInvalidResponses ?? []),
-        { ...openAiResponse, requestTime: currentRequestTime },
-      ],
-      retryContext: {
-        retryCount: retryCount + 1,
-        previousSuccessfulToolCalls: [
-          ...(retryContext?.previousSuccessfulToolCalls ?? []),
-          ...retryParams.successfullyParsedToolCalls,
-        ],
-        previousUsage: usage,
+    logLlmRequest({
+      ...metadata,
+      finalized: false,
+      provider: "openai",
+      secondsTaken: currentRequestTime,
+      request: params,
+      response: {
+        status: "ok",
+        provider: "openai",
+        model: openAiResponse.model,
+        id: openAiResponse.id,
+        created: openAiResponse.created,
+        message: (responseMessages?.[0] ?? {}) as LlmAssistantMessage,
+        stopReason,
+        usage,
+        invalidResponses: previousInvalidResponses ?? [],
+        lastRequestTime: currentRequestTime,
+        totalRequestTime:
+          previousInvalidResponses?.reduce(
+            (acc, { requestTime }) => acc + requestTime,
+            currentRequestTime,
+          ) ?? currentRequestTime,
       },
     });
-  };
 
-  /**
-   * @todo: consider accounting for `choices` in the unified LLM response
-   */
-  const firstChoice = openAiResponse.choices[0];
+    logger.debug(
+      `Retrying OpenAI call with the following retry message content: ${stringify(
+        retryParams.retryMessageContent,
+      )}`,
+    );
+
+    return getOpenAiResponse(
+      {
+        ...params,
+        messages: [
+          ...params.messages,
+          ...(responseMessages ?? []),
+          {
+            role: "user",
+            content: retryParams.retryMessageContent,
+          },
+        ],
+        previousInvalidResponses: [
+          ...(previousInvalidResponses ?? []),
+          { ...openAiResponse, requestTime: currentRequestTime },
+        ],
+        retryContext: {
+          retryCount: retryCount + 1,
+          previousSuccessfulToolCalls: [
+            ...(retryContext?.previousSuccessfulToolCalls ?? []),
+            ...retryParams.successfullyParsedToolCalls,
+          ],
+          previousUsage: usage,
+        },
+      },
+      metadata,
+    );
+  };
 
   if (!firstChoice) {
     return retry({
@@ -391,9 +466,13 @@ export const getOpenAiResponse = async <ToolName extends string>(
 
   if (firstChoice.finish_reason === "length") {
     return {
-      status: "exceeded-maximum-output-tokens",
+      status: "max-tokens",
+      provider: "openai",
       response: openAiResponse,
       requestMaxTokens: params.max_tokens ?? undefined,
+      lastRequestTime,
+      totalRequestTime,
+      usage,
     };
   }
 
@@ -484,10 +563,6 @@ export const getOpenAiResponse = async <ToolName extends string>(
     });
   }
 
-  const stopReason = mapOpenAiFinishReasonToLlmStopReason(
-    firstChoice.finish_reason,
-  );
-
   if (!openAiResponse.usage) {
     logger.error(`OpenAI returned no usage information for call`);
   } else {
@@ -539,8 +614,11 @@ export const getOpenAiResponse = async <ToolName extends string>(
   }
 
   const response: LlmResponse<OpenAiLlmParams> = {
-    ...openAiResponse,
+    model: openAiResponse.model,
+    id: openAiResponse.id,
+    created: openAiResponse.created,
     status: "ok",
+    provider: "openai",
     message: responseMessage,
     stopReason,
     usage,

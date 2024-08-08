@@ -227,7 +227,14 @@ where
     let mut metadata = store
         .create_data_types(
             actor_id,
-            schema.into_iter().map(|schema| {
+            schema.into_iter().inspect(|schema| {
+                // TODO: Enable data type inheritance
+                //   see https://linear.app/hash/issue/H-3221/enable-data-type-inheritance-in-graph-api
+                assert!(
+                    schema.all_of.is_empty(),
+                    "Data Type schema contains `allOf` which is not supported, yet"
+                );
+            }).map(|schema| {
                 domain_validator.validate(&schema).map_err(|report| {
                     tracing::error!(error=?report, id=%schema.id, "Data Type ID failed to validate");
                     StatusCode::UNPROCESSABLE_ENTITY
@@ -357,6 +364,13 @@ where
                     vec![],
                 )));
             }
+
+            // TODO: Enable data type inheritance
+            //   see https://linear.app/hash/issue/H-3221/enable-data-type-inheritance-in-graph-api
+            assert!(
+                schema.all_of.is_empty(),
+                "Data Type schema contains `allOf` which is not supported, yet"
+            );
 
             Ok(Json(
                 store

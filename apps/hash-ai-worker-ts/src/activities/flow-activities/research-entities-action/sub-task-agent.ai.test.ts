@@ -86,7 +86,7 @@ test(
       input: {
         goal: "Find Ben Werner's Github profile URL",
         relevantEntities: [],
-        existingFactsAboutRelevantEntities: [],
+        existingClaimsAboutRelevantEntities: [],
         entityTypes,
         linkEntityTypes: [],
       },
@@ -96,6 +96,11 @@ test(
         resumeFromState: retrievePreviousState({
           testName: "github-url",
         }),
+      },
+      workerIdentifiers: {
+        workerType: "Subtask",
+        workerInstanceId: "subtask1",
+        parentInstanceId: null,
       },
     });
 

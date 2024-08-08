@@ -158,15 +158,15 @@ where
 }
 
 pub(crate) struct TransactionParts<P> {
-    pub(crate) peer: PeerId,
-    pub(crate) session: SessionId,
+    pub peer: PeerId,
+    pub session: SessionId,
 
-    pub(crate) config: SessionConfig,
+    pub config: SessionConfig,
 
-    pub(crate) rx: tachyonix::Receiver<Request>,
-    pub(crate) tx: mpsc::Sender<Response>,
+    pub rx: tachyonix::Receiver<Request>,
+    pub tx: mpsc::Sender<Response>,
 
-    pub(crate) permit: P,
+    pub permit: P,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -318,7 +318,7 @@ pub struct TransactionStream {
 }
 
 impl TransactionStream {
-    fn new(sender: tachyonix::Receiver<Request>, permit: Arc<TransactionPermit>) -> Self {
+    const fn new(sender: tachyonix::Receiver<Request>, permit: Arc<TransactionPermit>) -> Self {
         Self {
             state: TransactionStreamState::Open {
                 sender,

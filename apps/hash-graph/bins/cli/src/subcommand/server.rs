@@ -29,10 +29,10 @@ use tokio_postgres::NoTls;
 
 use crate::{
     error::{GraphError, HealthcheckError},
-    subcommand::type_fetcher::TypeFetcherAddress,
+    subcommand::{type_fetcher::TypeFetcherAddress, wait_healthcheck},
 };
 
-#[derive(Debug, Parser)]
+#[derive(Debug, Clone, Parser)]
 pub struct ApiAddress {
     /// The host the REST client is listening at.
     #[clap(long, default_value = "127.0.0.1", env = "HASH_GRAPH_API_HOST")]
@@ -61,6 +61,7 @@ impl TryFrom<ApiAddress> for SocketAddr {
 }
 
 #[derive(Debug, Parser)]
+#[expect(clippy::struct_excessive_bools, reason = "This is a CLI struct")]
 pub struct ServerArgs {
     #[clap(flatten)]
     pub db_info: DatabaseConnectionInfo,
@@ -100,6 +101,14 @@ pub struct ServerArgs {
     #[clap(long, default_value_t = false)]
     pub healthcheck: bool,
 
+    /// Waits for the healthcheck to become healthy
+    #[clap(long, default_value_t = false, requires = "healthcheck")]
+    pub wait: bool,
+
+    /// Timeout for the wait flag in seconds
+    #[clap(long, requires = "wait")]
+    pub timeout: Option<u64>,
+
     /// Starts a server that only serves the OpenAPI spec.
     #[clap(long, default_value_t = false)]
     pub write_openapi_specs: bool,
@@ -131,11 +140,16 @@ pub struct ServerArgs {
     pub temporal_port: u16,
 }
 
+#[expect(clippy::too_many_lines)]
 pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
     if args.healthcheck {
-        return healthcheck(args.api_address)
-            .await
-            .change_context(GraphError);
+        return wait_healthcheck(
+            || healthcheck(args.api_address.clone()),
+            args.wait,
+            args.timeout.map(Duration::from_secs),
+        )
+        .await
+        .change_context(GraphError);
     }
 
     if args.write_openapi_specs {

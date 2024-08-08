@@ -1,0 +1,43 @@
+---
+source: libs/@local/hql/cst/src/expr.rs
+expression: "\"<T: Int>(a: T) -> T\""
+---
+Ok(
+    Signature(
+        Signature {
+            generics: [
+                Generic {
+                    name: Symbol(
+                        "T",
+                    ),
+                    bound: Some(
+                        Symbol(
+                            Symbol(
+                                "Int",
+                            ),
+                        ),
+                    ),
+                },
+            ],
+            arguments: [
+                Argument {
+                    name: Symbol(
+                        "a",
+                    ),
+                    type: Symbol(
+                        Symbol(
+                            "T",
+                        ),
+                    ),
+                },
+            ],
+            return: Return {
+                type: Symbol(
+                    Symbol(
+                        "T",
+                    ),
+                ),
+            },
+        },
+    ),
+)

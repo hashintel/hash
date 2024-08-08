@@ -23,6 +23,8 @@ pub struct SessionId(usize);
 pub(crate) mod test_utils {
     use super::SessionId;
 
+    #[must_use]
+    #[cfg_attr(not(feature = "test-utils"), expect(unreachable_pub))]
     pub const fn mock_session_id(id: usize) -> SessionId {
         SessionId(id)
     }

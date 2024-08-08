@@ -4,7 +4,6 @@ import type {
   ProposedEntity,
   ProposedEntitySchemaOrData,
 } from "@local/hash-isomorphic-utils/ai-inference-types";
-import dedent from "dedent";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
@@ -27,52 +26,14 @@ export type ProposedEntityToolCreationsByType = Record<
   ProposedEntityWithSimplifiedProperties[]
 >;
 
-export const generateToolLinkFields = (params: {
-  canLinkToExistingEntities?: boolean;
-}) => ({
+export const generateToolLinkFields = () => ({
   sourceEntityId: {
-    description: dedent(`
-      The entityId of the source entity of the link.
-      ${
-        params.canLinkToExistingEntities
-          ? "If the source is an existing entity, it must be a string. If it is a proposed entity, it must be a number."
-          : ""
-      }
-    `),
-    ...(params.canLinkToExistingEntities
-      ? {
-          oneOf: [
-            {
-              type: "number",
-            },
-            {
-              type: "string",
-            },
-          ],
-        }
-      : { type: "number" }),
+    description: "The entityId of the source entity of the link.",
+    type: "number",
   },
   targetEntityId: {
-    description: dedent(`
-      The entityId of the target entity of the link.
-      ${
-        params.canLinkToExistingEntities
-          ? "If the target is an existing entity, it must be a string. If it is a proposed entity, it must be a number."
-          : ""
-      }
-    `),
-    ...(params.canLinkToExistingEntities
-      ? {
-          oneOf: [
-            {
-              type: "number",
-            },
-            {
-              type: "string",
-            },
-          ],
-        }
-      : { type: "number" }),
+    description: "The entityId of the target entity of the link.",
+    type: "number",
   },
 });
 
@@ -85,12 +46,11 @@ export const generateProposeEntitiesTools = (params: {
     schema: DereferencedEntityType<string>;
     isLink: boolean;
   }[];
-  canLinkToExistingEntities: boolean;
 }): {
   tools: LlmToolDefinition<ProposeEntitiesToolName>[];
   simplifiedEntityTypeIdMappings: Record<string, VersionedUrl>;
 } => {
-  const { entityTypes, canLinkToExistingEntities } = params;
+  const { entityTypes } = params;
 
   let simplifiedEntityTypeIdMappings: Record<string, VersionedUrl> = {};
 
@@ -100,6 +60,7 @@ export const generateProposeEntitiesTools = (params: {
       description: "Create entities inferred from the provided text",
       inputSchema: {
         type: "object",
+        additionalProperties: false,
         properties: entityTypes.reduce<Record<string, JSONSchema>>(
           (acc, { schema, isLink }) => {
             const entityTypeId = schema.$id;
@@ -120,6 +81,7 @@ export const generateProposeEntitiesTools = (params: {
               title: `${schema.title} entities to create`,
               items: {
                 type: "object",
+                additionalProperties: false,
                 title: schema.title,
                 description: schema.description,
                 properties: {
@@ -128,13 +90,12 @@ export const generateProposeEntitiesTools = (params: {
                       "Your numerical identifier for the entity, unique among the inferred entities in this conversation",
                     type: "number",
                   },
-                  ...(isLink
-                    ? generateToolLinkFields({ canLinkToExistingEntities })
-                    : {}),
+                  ...(isLink ? generateToolLinkFields() : {}),
                   properties: {
                     description: "The properties to set on the entity",
                     default: {},
                     type: "object",
+                    additionalProperties: false,
                     properties: stripIdsFromDereferencedProperties({
                       properties: schema.properties,
                     }),
@@ -159,6 +120,7 @@ export const generateProposeEntitiesTools = (params: {
         "Give up trying to create, following failures which you cannot correct",
       inputSchema: {
         type: "object",
+        additionalProperties: false,
         properties: {
           entityIds: {
             type: "array",

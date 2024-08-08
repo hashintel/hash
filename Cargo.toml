@@ -21,6 +21,7 @@ members = [
     "libs/@local/harpc/types",
     "libs/@local/harpc/net",
     "libs/@local/harpc/tower",
+    "libs/@local/hql/*",
     "libs/antsi",
     "libs/deer",
     "libs/deer/desert",
@@ -37,8 +38,10 @@ resolver = "3"
 
 [workspace.package]
 authors = ["HASH"]
+version = "0.0.0"
 edition = "2024"
-
+license = "AGPL-3"
+publish = false
 
 [workspace.dependencies]
 # Workspace members
@@ -52,13 +55,13 @@ temporal-versioning.path = "libs/@local/temporal-versioning"
 type-fetcher.path = "apps/hash-graph/libs/type-fetcher"
 graph.path = "apps/hash-graph/libs/graph"
 graph-api.path = "apps/hash-graph/libs/api"
+test-server.path = "apps/hash-graph/libs/test-server"
 validation.path = "libs/@local/hash-validation"
 hash-tracing.path = "libs/@local/tracing"
 type-system.path = "libs/@blockprotocol/type-system/rust"
 harpc-types.path = "libs/@local/harpc/types"
 harpc-wire-protocol.path = "libs/@local/harpc/wire-protocol"
 harpc-net.path = "libs/@local/harpc/net"
-harpc-tower.path = "libs/@local/harpc/tower"
 repo-chores.path = "libs/@local/repo-chores/rust"
 
 # External dependencies owned by HASH

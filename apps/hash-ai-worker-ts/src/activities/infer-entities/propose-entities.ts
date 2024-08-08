@@ -1,8 +1,8 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/ai-inference-types";
+import { entityIdFromComponents } from "@local/hash-subgraph";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
@@ -31,10 +31,8 @@ import { generateProposeEntitiesTools } from "./shared/generate-propose-entities
 import { mapSimplifiedPropertiesToProperties } from "./shared/map-simplified-properties-to-properties.js";
 
 /**
- * This method is based on the logic from the existing `persistEntities` method, which
- * would ideally be reconciled to reduce code duplication. The primary difference
- * is that instead of persisting entities in the graph (by creating or updating an existing
- * entity), it pushes the entities to the `proposedEntities` array in the `InferenceState`.
+ * This method is used by the 'infer-entities-from-web-page-activity', which is used by the browser plugin inference flow.
+ * @todo H-3163 make the browser plugin Flow use the same 'claims first, then entity proposals' system as other flows.
  */
 export const proposeEntities = async (params: {
   maxTokens?: number;
@@ -42,7 +40,6 @@ export const proposeEntities = async (params: {
   previousMessages?: LlmMessage[];
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
-  existingEntities?: Entity[];
 }): Promise<Status<InferenceState>> => {
   const {
     maxTokens,
@@ -50,7 +47,6 @@ export const proposeEntities = async (params: {
     entityTypes,
     inferenceState,
     firstUserMessage,
-    existingEntities,
   } = params;
 
   const {
@@ -116,8 +112,6 @@ export const proposeEntities = async (params: {
   const { tools, simplifiedEntityTypeIdMappings } =
     generateProposeEntitiesTools({
       entityTypes: Object.values(entityTypes),
-      canLinkToExistingEntities:
-        !!existingEntities && existingEntities.length > 0,
     });
 
   const entitiesToUpdate = inProgressEntityIds.filter(
@@ -186,7 +180,7 @@ export const proposeEntities = async (params: {
 
   const llmResponse = await getLlmResponse(
     {
-      model: "claude-3-5-sonnet-20240620",
+      model: "gpt-4o-2024-08-06",
       maxTokens,
       systemPrompt: inferEntitiesSystemPrompt,
       messages,
@@ -557,37 +551,50 @@ export const proposeEntities = async (params: {
                   entities.map((entity) => ({
                     proposedEntity: {
                       ...entity,
-                      localEntityId: entity.entityId.toString(),
+                      claims: {
+                        isSubjectOf: [],
+                        isObjectOf: [],
+                      },
+                      localEntityId: entityIdFromComponents(
+                        webId,
+                        /**
+                         * @todo H-3163: this is not a valid UUID, but it's only used in a progress log so won't be used
+                         *    as the entity's UUID when persisting it. this file in its entirety will be removed as part of H-3163
+                         *    when we migrate the browser plugin flows to use the same claims -> entity process as other flows.
+                         *    The same applies to the sourceEntityId and targetEntityId below.
+                         */
+                        entity.entityId.toString() as EntityUuid,
+                      ),
                       entityTypeId: entityTypeId as VersionedUrl,
                       properties: entity.properties ?? {},
+                      propertyMetadata: { value: {} },
                       sourceEntityId:
                         "sourceEntityId" in entity
-                          ? typeof entity.sourceEntityId === "number"
-                            ? {
-                                kind: "proposed-entity",
-                                localId: entity.sourceEntityId.toString(),
-                              }
-                            : {
-                                kind: "existing-entity",
-                                entityId: entity.sourceEntityId as EntityId,
-                              }
+                          ? {
+                              kind: "proposed-entity",
+                              localId: entityIdFromComponents(
+                                webId,
+                                entity.sourceEntityId.toString() as EntityUuid,
+                              ),
+                            }
                           : undefined,
                       targetEntityId:
                         "targetEntityId" in entity
-                          ? typeof entity.targetEntityId === "number"
-                            ? {
-                                kind: "proposed-entity",
-                                localId: entity.targetEntityId.toString(),
-                              }
-                            : {
-                                kind: "existing-entity",
-                                entityId: entity.targetEntityId as EntityId,
-                              }
+                          ? {
+                              kind: "proposed-entity",
+                              localId: entityIdFromComponents(
+                                webId,
+                                entity.targetEntityId.toString() as EntityUuid,
+                              ),
+                            }
                           : undefined,
                     },
                     recordedAt: now,
                     type: "ProposedEntity",
                     stepId: Context.current().info.activityId,
+                    workerType: "Link explorer",
+                    parentInstanceId: null,
+                    workerInstanceId: "browser-plugin-flow",
                   })),
               ),
             );

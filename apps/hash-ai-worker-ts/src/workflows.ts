@@ -40,7 +40,7 @@ const aiActivities = proxyActivities<ReturnType<typeof createAiActivities>>({
 const graphActivities = proxyActivities<
   ReturnType<typeof createGraphActivities>
 >({
-  startToCloseTimeout: "10 second",
+  startToCloseTimeout: "20 second",
   retry: {
     maximumAttempts: 3,
   },

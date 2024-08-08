@@ -13,10 +13,17 @@ import type { TooltipComponentOption } from "echarts/components";
 import { GridComponent, TooltipComponent } from "echarts/components";
 import * as echarts from "echarts/core";
 import { SVGRenderer } from "echarts/renderers";
+import type {
+  GraphEdgeItemOption,
+  GraphNodeItemOption,
+} from "echarts/types/src/chart/graph/GraphSeries";
 import type { FunctionComponent } from "react";
 import { useEffect, useRef, useState } from "react";
 
 export type Chart = echarts.ECharts;
+
+export type GraphNode = GraphNodeItemOption;
+export type GraphEdge = GraphEdgeItemOption;
 
 export type SeriesOption =
   | LineSeriesOption
@@ -89,7 +96,10 @@ export const EChart: FunctionComponent<GraphProps> = ({
 
   return (
     <Box
-      sx={[{ width: "100%", height: 500 }, ...(Array.isArray(sx) ? sx : [sx])]}
+      sx={[
+        { width: "100%", height: "100%" },
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
       ref={wrapperRef}
     />
   );

@@ -20,6 +20,7 @@ use crate::{
 pub struct BoxedError(Box<dyn Error + Send + Sync + 'static>);
 
 impl BoxedError {
+    #[must_use]
     pub fn into_inner(self) -> Box<dyn Error + Send + Sync + 'static> {
         self.0
     }
@@ -43,7 +44,7 @@ impl Error for BoxedError {
     }
 
     fn provide<'a>(&'a self, request: &mut std::error::Request<'a>) {
-        self.0.provide(request)
+        self.0.provide(request);
     }
 }
 
@@ -66,7 +67,7 @@ pub struct HandleErrorLayer<E> {
 }
 
 impl<E> HandleErrorLayer<E> {
-    pub fn new(encoder: E) -> Self {
+    pub const fn new(encoder: E) -> Self {
         Self { encoder }
     }
 }
@@ -115,7 +116,7 @@ where
         let encoder = self.encoder.clone();
 
         let clone = self.inner.clone();
-        let inner = std::mem::replace(&mut self.inner, clone);
+        let inner = core::mem::replace(&mut self.inner, clone);
 
         let session = req.session();
 
@@ -217,13 +218,13 @@ pub(crate) mod test {
     pub(crate) struct GenericError(ErrorCode);
 
     impl GenericError {
-        pub(crate) fn new(code: ErrorCode) -> Self {
+        pub(crate) const fn new(code: ErrorCode) -> Self {
             Self(code)
         }
     }
 
     impl Display for GenericError {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
             f.write_str("generic error")
         }
     }

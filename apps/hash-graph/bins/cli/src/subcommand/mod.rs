@@ -6,9 +6,11 @@ mod snapshot;
 mod test_server;
 mod type_fetcher;
 
-use error_stack::Result;
+use core::time::Duration;
+
+use error_stack::{ensure, Result};
 use hash_tracing::{init_tracing, TracingConfig};
-use tokio::runtime::Handle;
+use tokio::{runtime::Handle, time::sleep};
 
 #[cfg(feature = "test-server")]
 pub use self::test_server::{test_server, TestServerArgs};
@@ -19,7 +21,7 @@ pub use self::{
     snapshot::{snapshot, SnapshotArgs},
     type_fetcher::{type_fetcher, TypeFetcherArgs},
 };
-use crate::error::GraphError;
+use crate::error::{GraphError, HealthcheckError};
 
 /// Subcommand for the program.
 #[derive(Debug, clap::Subcommand)]
@@ -70,5 +72,30 @@ impl Subcommand {
             #[cfg(feature = "test-server")]
             Self::TestServer(args) => block_on(test_server(args), tracing_config),
         }
+    }
+}
+
+pub async fn wait_healthcheck<F, Ret>(
+    func: F,
+    wait: bool,
+    wait_timeout: Option<Duration>,
+) -> Result<(), HealthcheckError>
+where
+    F: Fn() -> Ret + Send,
+    Ret: Future<Output = Result<(), HealthcheckError>> + Send,
+{
+    let expected_end_time = wait_timeout.map(|timeout| std::time::Instant::now() + timeout);
+
+    loop {
+        if func().await.is_ok() {
+            return Ok(());
+        }
+        ensure!(wait, HealthcheckError::NotHealthy);
+        if let Some(end_time) = expected_end_time {
+            if std::time::Instant::now() > end_time {
+                return Err(HealthcheckError::Timeout.into());
+            }
+        }
+        sleep(Duration::from_secs(1)).await;
     }
 }

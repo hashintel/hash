@@ -1,0 +1,9 @@
+{
+  "name": "@rust/deer-json",
+  "version": "0.0.0-reserved-private",
+  "private": true,
+  "license": "MIT OR Apache-2.0",
+  "dependencies": {
+    "@rust/deer": "0.0.0-reserved-private"
+  }
+}

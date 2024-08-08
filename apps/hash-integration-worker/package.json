@@ -14,7 +14,10 @@
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org hashintel --project hash-temporal-worker-integration ./dist && sentry-cli sourcemaps upload --org hashintel --project hash-temporal-worker-integration ./dist",
-    "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/main.ts"
+    "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/main.ts",
+    "start:healthcheck": "wait-on --timeout 120000 http-get://localhost:4300/health",
+    "start:test": "cross-env NODE_ENV=test NODE_OPTIONS=--max-old-space-size=2048 tsx ./dist/main.js",
+    "start:test:healthcheck": "wait-on --timeout 120000 http-get://localhost:4300/health"
   },
   "dependencies": {
     "@blockprotocol/graph": "0.4.0-canary.0",
@@ -26,7 +29,7 @@
     "@local/hash-graph-sdk": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
-    "@sentry/node": "7.116.0",
+    "@sentry/node": "7.118.0",
     "@temporalio/activity": "1.10.1",
     "@temporalio/worker": "1.10.1",
     "@temporalio/workflow": "1.10.1",
@@ -34,12 +37,12 @@
     "axios": "1.6.0",
     "dotenv-flow": "3.2.0",
     "tsx": "4.16.2",
-    "typescript": "5.5.3"
+    "typescript": "5.5.4"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@sentry/cli": "2.31.0",
+    "@sentry/cli": "2.33.1",
     "@types/dotenv-flow": "3.2.0",
     "eslint": "8.57.0",
     "rimraf": "6.0.1"

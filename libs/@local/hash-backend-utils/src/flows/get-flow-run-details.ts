@@ -18,11 +18,12 @@ import { StatusCode } from "@local/status";
 import type { Client as TemporalClient } from "@temporalio/client";
 import proto from "@temporalio/proto";
 
+import { temporalNamespace } from "../temporal.js";
 import { parseHistoryItemPayload } from "../temporal/parse-history-item-payload.js";
 
-const eventTimeIsoStringFromEvent = (
-  event?: proto.temporal.api.history.v1.IHistoryEvent,
-) => {
+type IHistoryEvent = proto.temporal.api.history.v1.IHistoryEvent;
+
+const eventTimeIsoStringFromEvent = (event?: IHistoryEvent) => {
   const { eventTime } = event ?? {};
   if (!eventTime?.seconds) {
     return;
@@ -37,9 +38,7 @@ const eventTimeIsoStringFromEvent = (
 /**
  * Get details from an ActivityTaskScheduledEvent
  */
-const getActivityScheduledDetails = (
-  event: proto.temporal.api.history.v1.IHistoryEvent,
-) => {
+const getActivityScheduledDetails = (event: IHistoryEvent) => {
   if (
     event.eventType !==
     proto.temporal.api.enums.v1.EventType.EVENT_TYPE_ACTIVITY_TASK_SCHEDULED
@@ -77,7 +76,7 @@ const getActivityScheduledDetails = (
  * and tells us when it was last scheduled.
  */
 const getActivityStartedDetails = (
-  events: proto.temporal.api.history.v1.IHistoryEvent[],
+  events: IHistoryEvent[],
   attributes:
     | proto.temporal.api.history.v1.IActivityTaskStartedEventAttributes
     | proto.temporal.api.history.v1.IActivityTaskCompletedEventAttributes
@@ -134,10 +133,36 @@ const getFlowRunDetailedFields = async ({
   const handle = temporalClient.workflow.getHandle(workflowId);
 
   const workflow = await handle.describe();
-  const { events } = await handle.fetchHistory();
+
+  /**
+   * we need to paginate manually because the event history size can be larger than the 4MB gRPC message limit,
+   * which is not configurable in Temporal.
+   * @see https://github.com/temporalio/sdk-typescript/issues/1469
+   */
+  let nextPageToken: Uint8Array | undefined;
+  const events: IHistoryEvent[] = [];
+  do {
+    const response =
+      await temporalClient.workflowService.getWorkflowExecutionHistory({
+        execution: {
+          workflowId,
+        },
+        maximumPageSize: 100,
+        namespace: temporalNamespace,
+        nextPageToken,
+      });
+
+    nextPageToken = response.nextPageToken;
+
+    events.push(...(response.history?.events ?? []));
+    /**
+     * nextPageToken should be null if there are no more pages, but it's actually an empty Array
+     */
+    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+  } while (nextPageToken?.length);
 
   const workflowInputs = parseHistoryItemPayload(
-    events?.find(
+    events.find(
       (event) =>
         event.eventType ===
         proto.temporal.api.enums.v1.EventType
@@ -146,7 +171,7 @@ const getFlowRunDetailedFields = async ({
   ) as FlowInputs | undefined;
 
   const workflowOutputs = parseHistoryItemPayload(
-    events?.find(
+    events.find(
       (event) =>
         event.eventType ===
         proto.temporal.api.enums.v1.EventType
@@ -160,8 +185,7 @@ const getFlowRunDetailedFields = async ({
    * Collect all progress signal events when building the step map,
    * and assign them to the appropriate step afterwards.
    */
-  const progressSignalEvents: proto.temporal.api.history.v1.IHistoryEvent[] =
-    [];
+  const progressSignalEvents: IHistoryEvent[] = [];
 
   const inputRequestsById: Record<string, ExternalInputRequest> = {};
 
@@ -172,7 +196,7 @@ const getFlowRunDetailedFields = async ({
     "FAILED",
   ].includes(workflow.status.name);
 
-  if (events?.length) {
+  if (events.length) {
     /*
      * Walk backwards from the most recent event until we have populated the latest state data for each step
      */

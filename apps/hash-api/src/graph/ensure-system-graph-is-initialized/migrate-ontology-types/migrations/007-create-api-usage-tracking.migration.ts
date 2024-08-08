@@ -327,6 +327,12 @@ const migrate: MigrationFunction = async ({
       inputUnitCost: 0.000005,
       outputUnitCost: 0.000015,
     },
+    {
+      serviceName: "OpenAI",
+      featureName: "gpt-4o-2024-08-06",
+      inputUnitCost: 0.0000025,
+      outputUnitCost: 0.00001,
+    },
     /** @see https://www.anthropic.com/api */
     {
       serviceName: "Anthropic",

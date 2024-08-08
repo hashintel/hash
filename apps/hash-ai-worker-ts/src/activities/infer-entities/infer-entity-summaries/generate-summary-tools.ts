@@ -3,7 +3,6 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import { validateVersionedUrl } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
@@ -30,13 +29,11 @@ export const validateEntitySummariesByType = (params: {
   parsedJson: JsonObject;
   entityTypesById: DereferencedEntityTypesByTypeId;
   existingSummaries: ProposedEntitySummary[];
-  existingEntities?: Entity[];
 }): {
   errorMessage?: string;
   validSummaries: ProposedEntitySummary[];
 } => {
-  const { parsedJson, entityTypesById, existingSummaries, existingEntities } =
-    params;
+  const { parsedJson, entityTypesById, existingSummaries } = params;
   const errorMessages: string[] = [];
 
   const validSummariesWithLinksUnchecked: ProposedEntitySummary[] = [
@@ -108,14 +105,8 @@ export const validateEntitySummariesByType = (params: {
         validSummariesWithLinksUnchecked.push({
           entityId: entitySummary.entityId as number,
           summary: entitySummary.summary as string,
-          sourceEntityId: entitySummary.sourceEntityId as
-            | number
-            | string
-            | undefined,
-          targetEntityId: entitySummary.targetEntityId as
-            | number
-            | string
-            | undefined,
+          sourceEntityId: entitySummary.sourceEntityId as number | undefined,
+          targetEntityId: entitySummary.targetEntityId as number | undefined,
           entityTypeId: entityTypeId as VersionedUrl,
         });
       }
@@ -129,25 +120,12 @@ export const validateEntitySummariesByType = (params: {
     if (!entityType.isLink) {
       validSummaries.push(potentiallyLinkEntity);
     } else {
-      const source =
-        validSummariesWithLinksUnchecked.find(
-          (entity) => entity.entityId === potentiallyLinkEntity.sourceEntityId,
-        ) ??
-        existingEntities?.find(
-          (entity) =>
-            entity.metadata.recordId.entityId ===
-            potentiallyLinkEntity.sourceEntityId,
-        );
-
-      const target =
-        validSummariesWithLinksUnchecked.find(
-          (entity) => entity.entityId === potentiallyLinkEntity.targetEntityId,
-        ) ??
-        existingEntities?.find(
-          (entity) =>
-            entity.metadata.recordId.entityId ===
-            potentiallyLinkEntity.targetEntityId,
-        );
+      const source = validSummariesWithLinksUnchecked.find(
+        (entity) => entity.entityId === potentiallyLinkEntity.sourceEntityId,
+      );
+      const target = validSummariesWithLinksUnchecked.find(
+        (entity) => entity.entityId === potentiallyLinkEntity.targetEntityId,
+      );
 
       if (!source) {
         errorMessages.push(
@@ -190,9 +168,8 @@ export const generateSummaryTools = (params: {
     schema: DereferencedEntityType;
     isLink: boolean;
   }[];
-  canLinkToExistingEntities: boolean;
 }): LlmToolDefinition[] => {
-  const { entityTypes, canLinkToExistingEntities } = params;
+  const { entityTypes } = params;
 
   return [
     {
@@ -201,6 +178,7 @@ export const generateSummaryTools = (params: {
         "Returns a warning to the user explaining why no entities could have been inferred from the provided text",
       inputSchema: {
         type: "object",
+        additionalProperties: false,
         properties: {
           reason: {
             type: "string",
@@ -216,6 +194,7 @@ export const generateSummaryTools = (params: {
         "Register a short summary for each entity that can be inferred from the providing text",
       inputSchema: {
         type: "object",
+        additionalProperties: false,
         properties: entityTypes.reduce<Record<VersionedUrl, JSONSchema>>(
           (acc, { schema, isLink }) => {
             acc[schema.$id] = {
@@ -232,6 +211,7 @@ export const generateSummaryTools = (params: {
                 type: "object",
                 title: schema.title,
                 description: schema.description,
+                additionalProperties: false,
                 properties: {
                   entityId: {
                     description:
@@ -243,9 +223,7 @@ export const generateSummaryTools = (params: {
                       "A short summary of the entity that can be used to uniquely identify it in the provided text. It need not be human-readable or user-friendly, it is only for use by AI Assistants.",
                     type: "string",
                   },
-                  ...(isLink
-                    ? generateToolLinkFields({ canLinkToExistingEntities })
-                    : {}),
+                  ...(isLink ? generateToolLinkFields() : {}),
                 },
                 required: [
                   "entityId",

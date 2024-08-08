@@ -24,7 +24,7 @@ import {
 } from "../../../util";
 
 const logger = new Logger({
-  mode: "dev",
+  environment: "test",
   level: "debug",
   serviceName: "integration-tests",
 });
@@ -51,14 +51,14 @@ describe("User model class", () => {
 
     const identity = await createKratosIdentity({
       traits: {
-        emails: ["alice@example.com"],
+        emails: ["test-user@example.com"],
       },
     });
 
     kratosIdentityId = identity.id;
 
     createdUser = await createUser(graphContext, authentication, {
-      emails: ["alice@example.com"],
+      emails: ["test-user@example.com"],
       kratosIdentityId,
       shortname,
       displayName: "Alice",

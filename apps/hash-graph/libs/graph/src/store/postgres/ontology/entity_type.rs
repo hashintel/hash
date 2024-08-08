@@ -17,6 +17,7 @@ use graph_types::{
         DataTypeId, EntityTypeId, EntityTypeMetadata, EntityTypeWithMetadata,
         OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, OntologyTypeRecordId, PartialEntityTypeMetadata,
+        PropertyTypeId,
     },
     Embedding,
 };
@@ -29,7 +30,6 @@ use type_system::{
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     Validator,
 };
-use uuid::Uuid;
 
 use crate::{
     ontology::EntityTypeQueryPath,
@@ -215,7 +215,7 @@ where
     pub(crate) async fn traverse_entity_types(
         &self,
         mut entity_type_queue: Vec<(
-            OntologyId,
+            EntityTypeId,
             GraphResolveDepths,
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
@@ -244,7 +244,7 @@ where
                         .decrement_depth_for_edge(edge_kind, EdgeDirection::Outgoing)
                     {
                         edges_to_traverse.entry(edge_kind).or_default().push(
-                            entity_type_ontology_id,
+                            OntologyId::from(entity_type_ontology_id),
                             new_graph_resolve_depths,
                             traversal_interval,
                         );
@@ -262,7 +262,8 @@ where
                         self.read_ontology_edges::<EntityTypeVertexId, PropertyTypeVertexId>(
                             traversal_data,
                             ReferenceTable::EntityTypeConstrainsPropertiesOn {
-                                inheritance_depth: None,
+                                // TODO: Use the resolve depths passed to the query
+                                inheritance_depth: Some(0),
                             },
                         )
                         .await?,
@@ -280,7 +281,7 @@ where
                         );
 
                         traversal_context.add_property_type_id(
-                            edge.right_endpoint_ontology_id,
+                            PropertyTypeId::from(edge.right_endpoint_ontology_id),
                             edge.resolve_depths,
                             edge.traversal_interval,
                         )
@@ -292,19 +293,22 @@ where
                 (
                     OntologyEdgeKind::InheritsFrom,
                     ReferenceTable::EntityTypeInheritsFrom {
-                        inheritance_depth: None,
+                        // TODO: Use the resolve depths passed to the query
+                        inheritance_depth: Some(0),
                     },
                 ),
                 (
                     OntologyEdgeKind::ConstrainsLinksOn,
                     ReferenceTable::EntityTypeConstrainsLinksOn {
-                        inheritance_depth: None,
+                        // TODO: Use the resolve depths passed to the query
+                        inheritance_depth: Some(0),
                     },
                 ),
                 (
                     OntologyEdgeKind::ConstrainsLinkDestinationsOn,
                     ReferenceTable::EntityTypeConstrainsLinkDestinationsOn {
-                        inheritance_depth: None,
+                        // TODO: Use the resolve depths passed to the query
+                        inheritance_depth: Some(0),
                     },
                 ),
             ] {
@@ -330,7 +334,7 @@ where
                             );
 
                             traversal_context.add_entity_type_id(
-                                edge.right_endpoint_ontology_id,
+                                EntityTypeId::from(edge.right_endpoint_ontology_id),
                                 edge.resolve_depths,
                                 edge.traversal_interval,
                             )
@@ -447,20 +451,15 @@ where
     ) -> Result<Vec<EntityTypeInsertion>, QueryError> {
         let entity_types = entity_types
             .into_iter()
-            .map(|entity_type| {
-                (
-                    EntityTypeId::from_url(&entity_type.id).into_uuid(),
-                    entity_type,
-                )
-            })
-            .collect::<Vec<(Uuid, EntityType)>>();
+            .map(|entity_type| (EntityTypeId::from_url(&entity_type.id), entity_type))
+            .collect::<Vec<_>>();
 
         // We need all types that the provided types inherit from so we can create the closed
         // schemas
         let parent_entity_type_ids = entity_types
             .iter()
             .flat_map(|(_, schema)| &schema.all_of)
-            .map(|reference| EntityTypeId::from_url(&reference.url).into_uuid())
+            .map(|reference| EntityTypeId::from_url(&reference.url))
             .collect::<Vec<_>>();
 
         // We read all relevant schemas from the graph
@@ -468,7 +467,7 @@ where
             .read_closed_schemas(
                 &Filter::In(
                     FilterExpression::Path(EntityTypeQueryPath::OntologyId),
-                    ParameterList::Uuid(&parent_entity_type_ids),
+                    ParameterList::EntityTypeIds(&parent_entity_type_ids),
                 ),
                 Some(
                     &QueryTemporalAxesUnresolved::DecisionTime {
@@ -485,12 +484,7 @@ where
         // The types we check either come from the graph or are provided by the user
         let mut available_schemas: HashMap<_, _> = entity_types
             .iter()
-            .map(|(id, schema)| {
-                (
-                    EntityTypeId::new(*id),
-                    ClosedEntityType::from(schema.clone()),
-                )
-            })
+            .map(|(id, schema)| (*id, ClosedEntityType::from(schema.clone())))
             .chain(parent_schemas)
             .collect();
 
@@ -500,7 +494,7 @@ where
                 Ok(EntityTypeInsertion {
                     schema,
                     closed_schema: Self::create_closed_entity_type(
-                        EntityTypeId::new(entity_type_id),
+                        entity_type_id,
                         &mut available_schemas,
                     )?,
                 })
@@ -809,7 +803,7 @@ where
                 .into_iter()
                 .map(|id| {
                     (
-                        OntologyId::from(id),
+                        id,
                         subgraph.depths,
                         subgraph.temporal_axes.resolved.variable_interval(),
                     )

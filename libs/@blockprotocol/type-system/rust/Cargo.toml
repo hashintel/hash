@@ -3,11 +3,11 @@ cargo-features = ["edition2024"]
 [package]
 name = "type-system"
 description = "Definitions of types within the Block Protocol Type System"
-version = "0.0.0"
+version.workspace = true
 edition.workspace = true
-authors = ["HASH"]
-publish = false
 license = "MIT OR Apache-2.0"
+publish.workspace = true
+authors.workspace = true
 repository = "https://github.com/hashintel/hash/tree/main/libs/@blockprotocol/type-system/rust"
 
 [lib]
@@ -18,7 +18,7 @@ crate-type = ["cdylib", "rlib"]
 codec = { workspace = true, features = ["serde"] }
 
 postgres-types = { workspace = true, features = ["derive", "with-serde_json-1"], optional = true }
-serde = { workspace = true, features = ["derive"] }
+serde = { workspace = true, features = ["derive", "rc"] }
 serde_json = { workspace = true }
 thiserror = "1.0.61"
 tsify = "0.4.5"
@@ -33,6 +33,7 @@ email_address = { version = "0.2.5", default-features = false }
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt"] }
 graph-test-data = { workspace = true }
+pretty_assertions = "1.4.0"
 
 [features]
 postgres = ["dep:postgres-types"]

@@ -24,23 +24,23 @@ impl<B> Request<B>
 where
     B: Body<Control = !>,
 {
-    pub fn from_parts(parts: Parts, body: B) -> Self {
+    pub const fn from_parts(parts: Parts, body: B) -> Self {
         Self { head: parts, body }
     }
 
-    pub fn service(&self) -> ServiceDescriptor {
+    pub const fn service(&self) -> ServiceDescriptor {
         self.head.service
     }
 
-    pub fn procedure(&self) -> ProcedureDescriptor {
+    pub const fn procedure(&self) -> ProcedureDescriptor {
         self.head.procedure
     }
 
-    pub fn session(&self) -> SessionId {
+    pub const fn session(&self) -> SessionId {
         self.head.session
     }
 
-    pub fn body(&self) -> &B {
+    pub const fn body(&self) -> &B {
         &self.body
     }
 
@@ -52,7 +52,7 @@ where
         self.body
     }
 
-    pub fn extensions(&self) -> &Extensions {
+    pub const fn extensions(&self) -> &Extensions {
         &self.head.extensions
     }
 

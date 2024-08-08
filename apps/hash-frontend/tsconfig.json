@@ -5,13 +5,13 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "target": "es6",
     "noEmit": true,
     "plugins": [
       {
         "name": "next"
       }
-    ]
+    ],
+    "target": "ES2021"
   },
   "include": [
     "assets.d.ts",

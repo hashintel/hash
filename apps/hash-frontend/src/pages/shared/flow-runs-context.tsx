@@ -41,7 +41,7 @@ export const FlowRunsContextProvider = ({
     useQuery<GetFlowRunByIdQuery, GetFlowRunByIdQueryVariables>(
       getFlowRunById,
       {
-        pollInterval: 1_000,
+        pollInterval: 2_000,
         skip: !selectedFlowRunId,
         variables: {
           flowRunId: selectedFlowRunId ?? "",

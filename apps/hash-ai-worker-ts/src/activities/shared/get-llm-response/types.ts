@@ -1,10 +1,9 @@
-import type { APIError as AnthropicApiError } from "@anthropic-ai/sdk/error";
 import type { OpenAI } from "openai";
-import type { APIError as OpenAiApiError } from "openai/error";
 import type { JSONSchema } from "openai/lib/jsonschema";
 
 import type { PermittedOpenAiModel } from "../openai-client.js";
 import type {
+  AnthropicApiProvider,
   AnthropicMessageModel,
   AnthropicMessagesCreateParams,
   AnthropicMessagesCreateResponse,
@@ -16,6 +15,7 @@ export type LlmToolDefinition<ToolName extends string = string> = {
   name: ToolName;
   description: string;
   inputSchema: Omit<JSONSchema, "type"> & {
+    additionalProperties: false;
     type: "object";
   };
   sanitizeInputBeforeValidation?: (rawInput: object) => object;
@@ -62,6 +62,32 @@ export type LlmParams<ToolName extends string = string> =
   | AnthropicLlmParams<ToolName>
   | OpenAiLlmParams<ToolName>;
 
+export type LlmRequestMetadata = {
+  requestId: string;
+  stepId?: string;
+  taskName?: string;
+};
+
+export type LlmProvider = AnthropicApiProvider | "openai";
+
+export type LlmLog = LlmRequestMetadata & {
+  finalized: boolean;
+  provider: LlmProvider;
+  request: LlmParams;
+  response: LlmResponse<LlmParams>;
+  secondsTaken: number;
+};
+
+export type LlmServerErrorLog = LlmRequestMetadata & {
+  provider: LlmProvider;
+  response: unknown;
+  request:
+    | LlmParams
+    | AnthropicMessagesCreateParams
+    | OpenAI.ChatCompletionCreateParamsNonStreaming;
+  secondsTaken: number;
+};
+
 export const isLlmParamsAnthropicLlmParams = (
   params: LlmParams,
 ): params is AnthropicLlmParams => isAnthropicMessageModel(params.model);
@@ -77,7 +103,7 @@ export type AnthropicResponse = Omit<
 
 export type OpenAiResponse = Omit<
   OpenAI.ChatCompletion,
-  "usage" | "choices"
+  "usage" | "choices" | "object"
 > & {
   invalidResponses: (OpenAI.ChatCompletion & { requestTime: number })[];
 };
@@ -90,9 +116,12 @@ export type ParsedLlmToolCall<ToolName extends string = string> = {
 
 /**
  * A unified definition of the stop reason for the LLM, one of:
- * - `"stop"`: the model reached a natural stopping point (equivalent to `end_turn` in the Anthropic API, or `stop` in the OpenAI API)
- * - `"tool_use"`: the model called one or more tools (equivalent to `tool_use` in the Anthropic API, or `tool_calls` in the OpenAI API)
- * - `"length"`: the model reached the maximum token length (equivalent to `max_tokens` in the Anthropic API, or `length` in the OpenAI API)
+ * - `"stop"`: the model reached a natural stopping point (equivalent to `end_turn` in the Anthropic API, or `stop` in
+ * the OpenAI API)
+ * - `"tool_use"`: the model called one or more tools (equivalent to `tool_use` in the Anthropic API, or `tool_calls`
+ * in the OpenAI API)
+ * - `"length"`: the model reached the maximum token length (equivalent to `max_tokens` in the Anthropic API, or
+ * `length` in the OpenAI API)
  * - `"content_filters"`: if content was omitted due to a flag from our content filters (OpenAI specific)
  * - `"stop_sequence"`: one of your provided custom `stop_sequences` was generated (Anthropic specific)
  */
@@ -123,6 +152,9 @@ export type LlmUsage = {
 export type LlmErrorResponse =
   | {
       status: "exceeded-maximum-retries";
+      provider: LlmProvider;
+      lastRequestTime: number;
+      totalRequestTime: number;
       invalidResponses:
         | AnthropicResponse["invalidResponses"]
         | OpenAiResponse["invalidResponses"];
@@ -130,20 +162,26 @@ export type LlmErrorResponse =
     }
   | {
       status: "api-error";
-      openAiApiError?: OpenAiApiError;
-      anthropicApiError?: AnthropicApiError;
+      provider: LlmProvider;
+      error?: unknown;
     }
   | {
-      status: "exceeded-maximum-output-tokens";
+      status: "max-tokens";
+      provider: LlmProvider;
+      lastRequestTime: number;
+      totalRequestTime: number;
       requestMaxTokens?: number;
       response: AnthropicMessagesCreateResponse | OpenAI.ChatCompletion;
+      usage: LlmUsage;
     }
   | {
       status: "exceeded-usage-limit";
+      provider: LlmProvider;
       message: string;
     }
   | {
       status: "internal-error";
+      provider: LlmProvider;
       message: string;
     };
 
@@ -151,6 +189,7 @@ export type LlmResponse<T extends LlmParams> =
   | ({
       status: "ok";
       stopReason: LlmStopReason;
+      provider: LlmProvider;
       usage: LlmUsage;
       lastRequestTime: number;
       totalRequestTime: number;
@@ -161,5 +200,7 @@ export type LlmResponse<T extends LlmParams> =
             : never
           : string
       >;
-    } & (T extends AnthropicLlmParams ? AnthropicResponse : OpenAiResponse))
+    } & (T extends AnthropicLlmParams
+      ? Omit<AnthropicResponse, "stop_reason">
+      : OpenAiResponse))
   | LlmErrorResponse;

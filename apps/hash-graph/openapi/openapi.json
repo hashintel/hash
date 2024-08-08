@@ -7,7 +7,7 @@
       "name": "HASH"
     },
     "license": {
-      "name": ""
+      "name": "AGPL-3"
     },
     "version": "0.0.0"
   },
@@ -3376,6 +3376,8 @@
           "title",
           "description",
           "type",
+          "inheritsFrom",
+          "children",
           "editionProvenance",
           "embedding"
         ]

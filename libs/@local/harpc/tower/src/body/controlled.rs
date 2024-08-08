@@ -1,7 +1,6 @@
-use core::task::ready;
-use std::{
+use core::{
     pin::Pin,
-    task::{Context, Poll},
+    task::{ready, Context, Poll},
 };
 
 use super::{Body, BodyState, Frame, SizeHint};
@@ -16,7 +15,7 @@ pin_project_lite::pin_project! {
 }
 
 impl<C, B> Controlled<C, B> {
-    pub fn new(control: C, body: B) -> Self {
+    pub const fn new(control: C, body: B) -> Self {
         Self {
             control: Some(control),
             body,
@@ -113,7 +112,7 @@ mod test {
     fn size_hint() {
         let bytes = Bytes::from("hello");
 
-        let mut body = Controlled::new(Control, Full::new(bytes.clone()));
+        let mut body = Controlled::new(Control, Full::new(bytes));
         assert_eq!(body.size_hint(), SizeHint::with_exact(5));
 
         let _ = poll_frame_unpin(&mut body);

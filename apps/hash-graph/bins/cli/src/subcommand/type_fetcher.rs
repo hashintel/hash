@@ -14,9 +14,12 @@ use type_fetcher::{
     fetcher_server::FetchServer,
 };
 
-use crate::error::{GraphError, HealthcheckError};
+use crate::{
+    error::{GraphError, HealthcheckError},
+    subcommand::wait_healthcheck,
+};
 
-#[derive(Debug, Parser)]
+#[derive(Debug, Clone, Parser)]
 pub struct TypeFetcherAddress {
     /// The host the type fetcher RPC server is listening at.
     #[clap(
@@ -39,11 +42,25 @@ pub struct TypeFetcherArgs {
     /// Runs the healthcheck for the type fetcher.
     #[clap(long, default_value_t = false)]
     pub healthcheck: bool,
+
+    /// Waits for the healthcheck to become healthy
+    #[clap(long, default_value_t = false, requires = "healthcheck")]
+    pub wait: bool,
+
+    /// Timeout for the wait flag in seconds
+    #[clap(long, requires = "wait")]
+    pub timeout: Option<u64>,
 }
 
 pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), GraphError> {
     if args.healthcheck {
-        return healthcheck(args.address).await.change_context(GraphError);
+        return wait_healthcheck(
+            || healthcheck(args.address.clone()),
+            args.wait,
+            args.timeout.map(Duration::from_secs),
+        )
+        .await
+        .change_context(GraphError);
     }
 
     let mut listener = tarpc::serde_transport::tcp::listen(

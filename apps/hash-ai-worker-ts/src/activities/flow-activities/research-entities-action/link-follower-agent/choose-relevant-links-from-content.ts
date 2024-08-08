@@ -54,11 +54,13 @@ const submitLinksTool: LlmToolDefinition<"submitLinks"> = {
   description: "Submit the relevant links from the text",
   inputSchema: {
     type: "object",
+    additionalProperties: false,
     properties: {
       links: {
         type: "array",
         items: {
           type: "object",
+          additionalProperties: false,
           properties: {
             url: {
               type: "string",
@@ -97,7 +99,9 @@ const extractLinksFromHtml = (html: string) => {
 
   let linksList = "";
   for (const link of links) {
-    linksList += `${link.innerText ? `${link.innerText}: ` : ""}${link.href}\n`;
+    linksList += `${
+      link.innerText ? `<LinkText>${link.innerText}</LinkText>` : ""
+    }<LinkUrl>${link.href}</LinkUrl>\n`;
   }
 
   return linksList;

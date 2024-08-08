@@ -26,6 +26,19 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
             Self::AdditionalMetadata => vec![Relation::OntologyAdditionalMetadata],
             Self::Embedding => vec![Relation::DataTypeEmbeddings],
             Self::TransactionTime | Self::EditionProvenance(_) => vec![],
+            Self::DataTypeEdge {
+                edge_kind: OntologyEdgeKind::InheritsFrom,
+                path,
+                direction,
+                inheritance_depth,
+            } => once(Relation::Reference {
+                table: ReferenceTable::DataTypeInheritsFrom {
+                    inheritance_depth: *inheritance_depth,
+                },
+                direction: *direction,
+            })
+            .chain(path.relations())
+            .collect(),
             Self::PropertyTypeEdge {
                 edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
                 path,
@@ -35,7 +48,9 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
             })
             .chain(path.relations())
             .collect(),
-            Self::PropertyTypeEdge { .. } => unreachable!("Invalid path: {self}"),
+            Self::DataTypeEdge { .. } | Self::PropertyTypeEdge { .. } => {
+                unreachable!("Invalid path: {self}")
+            }
         }
     }
 
@@ -76,6 +91,7 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
                 Column::DataTypes(DataTypes::Schema),
                 Some(JsonField::StaticText("description")),
             ),
+            Self::DataTypeEdge { path, .. } => path.terminating_column(),
             Self::PropertyTypeEdge { path, .. } => path.terminating_column(),
             Self::AdditionalMetadata => (
                 Column::OntologyAdditionalMetadata(OntologyAdditionalMetadata::AdditionalMetadata),

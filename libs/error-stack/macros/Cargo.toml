@@ -1,7 +1,7 @@
 [package]
 name = "error-stack-macros"
 version = "0.0.0-reserved"
-authors = ["HASH"]
+authors.workspace = true
 edition = "2021"
 rust-version = "1.63.0"
 license = "MIT OR Apache-2.0"
@@ -11,6 +11,7 @@ readme = "../README.md"
 repository = "https://github.com/hashintel/hash/tree/main/libs/error-stack"
 keywords = ["errorstack", "error-handling", "macro", "derive", "no_std"]
 categories = ["rust-patterns", "no-std"]
+publish = false
 
 [lib]
 proc-macro = true

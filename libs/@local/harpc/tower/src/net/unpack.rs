@@ -59,7 +59,7 @@ struct Running {
 impl Running {
     fn poll_exhausted(
         stream: ResponseStream,
-        current: impl TransactionStream,
+        current: &impl TransactionStream,
     ) -> (State, ControlFlow<Poll<Option<BodyFrameResult<Unpack>>>>) {
         // we have exhausted the stream, check if we're complete, in that case we're
         // done
@@ -94,7 +94,7 @@ impl Running {
             // we're just propagating the underlying stream `Pending`, this means we need to
             // register any waker
             return (
-                State::Running(Running {
+                State::Running(Self {
                     stream,
                     current: pack(current),
                 }),
@@ -103,11 +103,11 @@ impl Running {
         };
 
         let Some(bytes) = value else {
-            return Self::poll_exhausted(stream, current);
+            return Self::poll_exhausted(stream, &current);
         };
 
         (
-            State::Running(Running {
+            State::Running(Self {
                 stream,
                 current: pack(current),
             }),
@@ -134,15 +134,15 @@ enum State {
 }
 
 impl State {
-    fn poll(self, cx: &mut Context) -> (State, ControlFlow<Poll<Option<BodyFrameResult<Unpack>>>>) {
+    fn poll(self, cx: &mut Context) -> (Self, ControlFlow<Poll<Option<BodyFrameResult<Unpack>>>>) {
         match self {
-            State::Waiting(waiting) => {
+            Self::Waiting(waiting) => {
                 let (state, poll) = waiting.poll(cx);
                 (state, ControlFlow::Break(poll))
             }
-            State::Running(running) => running.poll(cx),
-            State::Finished(finished) => (
-                State::Finished(finished),
+            Self::Running(running) => running.poll(cx),
+            Self::Finished(finished) => (
+                Self::Finished(finished),
                 ControlFlow::Break(Poll::Ready(None)),
             ),
         }
@@ -154,7 +154,8 @@ pub struct Unpack {
 }
 
 impl Unpack {
-    pub fn new(stream: ResponseStream) -> Self {
+    #[must_use]
+    pub const fn new(stream: ResponseStream) -> Self {
         Self {
             state: State::Waiting(Waiting { stream }),
         }
@@ -193,11 +194,11 @@ impl Body for Unpack {
 
     fn state(&self) -> Option<BodyState> {
         match self.state {
-            State::Waiting(_) => None,
-            State::Running(_) => None,
-            State::Finished(Finished { complete }) => Some(match complete {
-                true => BodyState::Complete,
-                false => BodyState::Incomplete,
+            State::Running(_) | State::Waiting(_) => None,
+            State::Finished(Finished { complete }) => Some(if complete {
+                BodyState::Complete
+            } else {
+                BodyState::Incomplete
             }),
         }
     }

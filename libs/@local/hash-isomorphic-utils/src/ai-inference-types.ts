@@ -54,8 +54,8 @@ type BaseProposedEntity = {
 };
 
 export type ProposedEntityLinkFields = {
-  sourceEntityId: number | string;
-  targetEntityId: number | string;
+  sourceEntityId: number;
+  targetEntityId: number;
 };
 
 export type ProposedEntity =

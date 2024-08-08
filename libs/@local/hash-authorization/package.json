@@ -2,6 +2,7 @@
   "name": "@rust/authorization",
   "version": "0.0.0-private",
   "private": true,
+  "license": "AGPL-3",
   "scripts": {
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
@@ -12,6 +13,5 @@
     "@blockprotocol/type-system-rs": "0.0.0-private",
     "@rust/codec": "0.0.0-private",
     "@rust/graph-types": "0.0.0-private"
-  },
-  "devDependencies": {}
+  }
 }
