@@ -806,6 +806,7 @@ const expectedResult = {
   isLink: false,
   schema: {
     $id: "https://hash.ai/@test/types/entity-type/property-values-demo/v/4",
+    additionalProperties: false,
     title: "Property Values Demo",
     description:
       "A type with various permutations of expected property value types",
@@ -846,6 +847,7 @@ const expectedResult = {
           "A property object which contains an array of notes, and a summary",
         oneOf: [
           {
+            additionalProperties: false,
             properties: {
               "https://hash.ai/@d/types/property-type/notes/": {
                 type: "array",
@@ -906,6 +908,7 @@ const expectedResult = {
                   type: "number",
                 },
                 {
+                  additionalProperties: false,
                   properties: {
                     "https://hash.ai/@hash/types/property-type/expired-at/": {
                       type: "array",
@@ -964,6 +967,7 @@ const expectedResult = {
             type: "boolean",
           },
           {
+            additionalProperties: false,
             properties: {
               "https://hash.ai/@hash/types/property-type/organization-name/": {
                 type: "array",
