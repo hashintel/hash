@@ -125,14 +125,13 @@ async fn inheritance() {
     }
 
     let mut database = DatabaseTestWrapper::new().await;
-    let api = database
+    let mut api = database
         .seed(
             // TODO: Ensure that an arbitrary order is possible
             //   see https://linear.app/hash/issue/H-3222/make-sure-data-types-inheriting-from-each-other-can-be-passed-in
             [
                 graph_test_data::data_type::NUMBER_V1,
                 graph_test_data::data_type::LENGTH_V1,
-                graph_test_data::data_type::CENTIMETER_V1,
                 graph_test_data::data_type::METER_V1,
             ],
             [],
@@ -141,14 +140,28 @@ async fn inheritance() {
         .await
         .expect("could not seed database");
 
-    let number_url = VersionedUrl::from_str(
-        "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+    let centimeter_dt_v1: DataType =
+        serde_json::from_str(graph_test_data::data_type::CENTIMETER_V1)
+            .expect("could not parse data type representation");
+    let centimeter_dt_v2: DataType =
+        serde_json::from_str(graph_test_data::data_type::CENTIMETER_V2)
+            .expect("could not parse data type representation");
+
+    api.create_data_type(
+        api.account_id,
+        CreateDataTypeParams {
+            schema: centimeter_dt_v1.clone(),
+            classification: OntologyTypeClassificationMetadata::Owned {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            },
+            relationships: data_type_relationships(),
+            conflict_behavior: ConflictBehavior::Fail,
+            provenance: ProvidedOntologyEditionProvenance::default(),
+        },
     )
-    .expect("could not parse versioned url");
-    let centimeter_id = DataTypeId::from_url(
-        &VersionedUrl::from_str("https://hash.ai/@hash/types/data-type/centimeter/v/1")
-            .expect("could not parse versioned url"),
-    );
+    .await
+    .expect("could not create data type");
+    let centimeter_id = DataTypeId::from_url(&centimeter_dt_v1.id);
 
     assert_eq!(
         api.get_data_types(
@@ -189,6 +202,10 @@ async fn inheritance() {
         "expected one data type"
     );
 
+    let number_url = VersionedUrl::from_str(
+        "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+    )
+    .expect("could not parse versioned url");
     assert_eq!(
         api.get_data_types(
             api.account_id,
@@ -227,6 +244,17 @@ async fn inheritance() {
         3,
         "expected one data type"
     );
+
+    api.update_data_type(
+        api.account_id,
+        UpdateDataTypesParams {
+            schema: centimeter_dt_v2.clone(),
+            relationships: data_type_relationships(),
+            provenance: ProvidedOntologyEditionProvenance::default(),
+        },
+    )
+    .await
+    .expect("could not update data type");
 }
 
 #[tokio::test]

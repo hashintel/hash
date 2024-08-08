@@ -1,4 +1,7 @@
-import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  FlowInternetAccessSettings,
+  WebPage,
+} from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { Context } from "@temporalio/activity";
 import { JSDOM } from "jsdom";
@@ -221,16 +224,29 @@ export const getWebPageActivity = async (params: {
     return { error: errorMsg };
   }
 
-  const {
-    dataSources: {
-      internetAccess: { browserPlugin },
-    },
-  } = await getFlowContext();
+  /**
+   * We also use this function directly in sanitize-html.ts, where we don't have access to the Flow context.
+   * We can bypass the requirement here if it's unavailable.
+   */
+  let browserPluginSettings: FlowInternetAccessSettings["browserPlugin"];
+  try {
+    const {
+      dataSources: {
+        internetAccess: { browserPlugin },
+      },
+    } = await getFlowContext();
+    browserPluginSettings = browserPlugin;
+  } catch {
+    browserPluginSettings = {
+      enabled: false,
+      domains: [],
+    };
+  }
 
   const shouldAskBrowser =
-    browserPlugin.enabled &&
-    (browserPlugin.domains.includes(urlObject.host) ||
-      browserPlugin.domains.some((domain) =>
+    browserPluginSettings.enabled &&
+    (browserPluginSettings.domains.includes(urlObject.host) ||
+      browserPluginSettings.domains.some((domain) =>
         urlObject.host.endsWith(`.${domain}`),
       )) &&
     /**

@@ -12,7 +12,10 @@ let __graphApi: GraphApi | undefined;
 export const getGraphApiClient = (): GraphApi => {
   if (!__graphApi) {
     __graphApi = createGraphClient(
-      new Logger({ mode: "dev", serviceName: "hash-backend-performance" }),
+      new Logger({
+        environment: "development",
+        serviceName: "hash-backend-performance",
+      }),
       {
         host: getRequiredEnv("HASH_GRAPH_API_HOST"),
         port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),

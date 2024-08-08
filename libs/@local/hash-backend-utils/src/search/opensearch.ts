@@ -145,14 +145,16 @@ export class OpenSearch extends DataSource implements SearchAdapter {
         return new OpenSearch(client, logger);
       } catch (err) {
         connErr = err;
-        logger.info({
-          message: `Unable to connect to OpenSearch cluster at ${node} (attempt ${
-            i + 1
-          }/${attempts}). Trying again in ${
-            retryIntervalMillis / 1000
-          } seconds`,
-          error: err,
-        });
+        logger.info(
+          JSON.stringify({
+            message: `Unable to connect to OpenSearch cluster at ${node} (attempt ${
+              i + 1
+            }/${attempts}). Trying again in ${
+              retryIntervalMillis / 1000
+            } seconds`,
+            error: err,
+          }),
+        );
         await sleep(retryIntervalMillis);
       }
     }

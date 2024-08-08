@@ -290,10 +290,17 @@ export const mapOpenAiMessagesToLlmMessages = (params: {
           } satisfies LlmUserMessage,
         ];
       } else if (currentMessage.role === "tool") {
+        const textualContent =
+          typeof currentMessage.content === "string"
+            ? currentMessage.content
+            : currentMessage.content
+                .map((contentPart) => contentPart.text)
+                .join("\n");
+
         const toolResultContent: LlmMessageToolResultContent = {
           type: "tool_result",
           tool_use_id: currentMessage.tool_call_id,
-          content: currentMessage.content,
+          content: textualContent,
         };
 
         const previousLlmMessage = previousLlmMessages.slice(-1)[0];

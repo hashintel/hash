@@ -33,7 +33,7 @@ type MinimalDataType = Omit<CustomDataType, "$id" | "$schema" | "kind">;
 
 type MinimalPropertyObject = ObjectSchema<
   ValueOrArray<DereferencedPropertyType>
->;
+> & { additionalProperties: false };
 
 export type MinimalPropertyTypeValue =
   | MinimalDataType
@@ -53,6 +53,7 @@ export type DereferencedEntityType<
     PropertyTypeKey,
     DereferencedPropertyType | ArraySchema<DereferencedPropertyType>
   >;
+  additionalProperties: false;
 } & Pick<EntityTypeMetadata, "labelProperty">;
 
 const dereferencePropertyTypeValue = (params: {
@@ -178,6 +179,7 @@ const dereferencePropertyTypeValue = (params: {
               )
             : undefined
           : valueReference.required,
+        additionalProperties: false,
         type: "object",
       },
       updatedSimplifiedPropertyTypeMappings: simplifiedPropertyTypeMappings,
@@ -402,6 +404,7 @@ export const dereferenceEntityType = <
     labelProperty,
     links: mergedLinks,
     properties: mergedProperties,
+    additionalProperties: false,
     required: atLeastOne([...requiredProperties]),
   };
 

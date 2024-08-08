@@ -42,7 +42,7 @@ import { summarizeExistingEntities } from "./summarize-existing-entities.js";
 import type { CompletedCoordinatorToolCall, ResourceSummary } from "./types.js";
 import { mapPreviousCallsToLlmMessages } from "./util.js";
 
-const model: LlmParams["model"] = "claude-3-5-sonnet-20240620";
+const model: LlmParams["model"] = "gpt-4o-2024-08-06";
 
 export type CoordinatingAgentInput = {
   humanInputCanBeRequested: boolean;
@@ -129,9 +129,15 @@ const generateInitialUserMessage = (params: {
     type: "text",
     text: dedent(`
 <ResearchPrompt>${prompt}</ResearchPrompt>
-${reportSpecification ? `<ReportSpecification>${reportSpecification}<ReportSpecification>` : ""}
+${
+  reportSpecification
+    ? `<ReportSpecification>${reportSpecification}<ReportSpecification>`
+    : ""
+}
 <EntityTypes>
-${entityTypes.map((entityType) => simplifyEntityTypeForLlmConsumption({ entityType })).join("\n")}
+${entityTypes
+  .map((entityType) => simplifyEntityTypeForLlmConsumption({ entityType }))
+  .join("\n")}
 </EntityTypes>
 ${
   /**
@@ -141,10 +147,18 @@ ${
    * @see https://linear.app/hash/issue/H-2826/simplify-property-values-for-llm-consumption
    */
   linkEntityTypes
-    ? `<LinkTypes>${linkEntityTypes.map((linkType) => simplifyEntityTypeForLlmConsumption({ entityType: linkType })).join("\n")}</LinkTypes>`
+    ? `<LinkTypes>${linkEntityTypes
+        .map((linkType) =>
+          simplifyEntityTypeForLlmConsumption({ entityType: linkType }),
+        )
+        .join("\n")}</LinkTypes>`
     : ""
 }
-${existingEntities ? `Existing Entities: ${JSON.stringify(existingEntities)}` : ""}
+${
+  existingEntities
+    ? `Existing Entities: ${JSON.stringify(existingEntities)}`
+    : ""
+}
       `),
   };
 };
@@ -270,7 +284,9 @@ const generateProgressReport = (params: {
       progressReport += dedent(`
         You have not visited the following resources:
         <ResourcesNotVisited>
-        ${resourcesNotVisited.map((webPage) => `Url: ${webPage.url}\nSummary:${webPage.summary}`).join("\n\n")}
+        ${resourcesNotVisited
+          .map((webPage) => `Url: ${webPage.url}\nSummary:${webPage.summary}`)
+          .join("\n\n")}
         </ResourcesNotVisited>
       `);
     }
@@ -427,11 +443,20 @@ const createInitialPlan = async (params: {
       providedFiles.length
         ? dedent(`
       The user has provided you with the following resources which can be used to infer claims from:
-      ${providedFiles.map((file) => `<Resource>Url: ${file.url}\nTitle: ${file.title}</Resource>`).join("\n\n")}`)
+      ${providedFiles
+        .map(
+          (file) =>
+            `<Resource>Url: ${file.url}\nTitle: ${file.title}</Resource>`,
+        )
+        .join("\n\n")}`)
         : ""
     }
     
-    ${dataSources.internetAccess.enabled ? "You can also conduct web searches and visit public web pages." : "Public internet access is disabled – you must rely on the provided resources."}
+    ${
+      dataSources.internetAccess.enabled
+        ? "You can also conduct web searches and visit public web pages."
+        : "Public internet access is disabled – you must rely on the provided resources."
+    }
 
     ${
       input.humanInputCanBeRequested

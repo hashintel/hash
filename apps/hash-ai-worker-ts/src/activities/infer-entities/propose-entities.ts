@@ -180,7 +180,7 @@ export const proposeEntities = async (params: {
 
   const llmResponse = await getLlmResponse(
     {
-      model: "claude-3-5-sonnet-20240620",
+      model: "gpt-4o-2024-08-06",
       maxTokens,
       systemPrompt: inferEntitiesSystemPrompt,
       messages,

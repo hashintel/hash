@@ -25,6 +25,7 @@ import { chooseRelevantLinksFromContent } from "./link-follower-agent/choose-rel
 import { filterAndRankTextChunksAgent } from "./link-follower-agent/filter-and-rank-text-chunks-agent.js";
 import { getLinkFollowerNextToolCalls } from "./link-follower-agent/get-link-follower-next-tool-calls.js";
 import { indexPdfFile } from "./link-follower-agent/llama-index/index-pdf-file.js";
+import { areUrlsEqual } from "./shared/are-urls-equal.js";
 
 type ResourceToExplore = {
   url: string;
@@ -75,7 +76,9 @@ const isContentAtUrlPdfFile = async (params: { url: string }) => {
     }
   } catch (error) {
     logger.error(
-      `Error encountered when checking if content at URL ${url} is a PDF file: ${stringify(error)}`,
+      `Error encountered when checking if content at URL ${url} is a PDF file: ${stringify(
+        error,
+      )}`,
     );
   }
   return false;
@@ -261,7 +264,9 @@ const exploreResource = async (params: {
     );
 
     content = dedent(`
-      Here is a list of the most relevant sections of the PDF file with file URL ${resource.url}:
+      Here is a list of the most relevant sections of the PDF file with file URL ${
+        resource.url
+      }:
       ${orderedRelevantTextChunks
         .map((text, index) => `Relevant section ${index + 1}: ${text}`)
         .join("\n")}
@@ -319,7 +324,9 @@ const exploreResource = async (params: {
   });
 
   logger.debug(
-    `Extracted relevant links from the content of the resource with URL ${resource.url}: ${stringify(relevantLinksFromContent)}`,
+    `Extracted relevant links from the content of the resource with URL ${
+      resource.url
+    }: ${stringify(relevantLinksFromContent)}`,
   );
 
   const dereferencedEntityTypesById = {
@@ -432,6 +439,7 @@ export const linkFollowerAgent = async (params: {
   const exploredResources: ResourceToExplore[] = [];
 
   let resourcesToExplore: ResourceToExplore[] = [initialResource];
+  let possibleNextLinks: Link[] = [];
 
   let allInferredEntitySummaries: LocalEntitySummary[] = [];
   let allInferredClaims: Claim[] = [];
@@ -456,7 +464,6 @@ export const linkFollowerAgent = async (params: {
       ),
     );
 
-    let possibleNextLinks: Link[] = [];
     const inferredClaims: Claim[] = [];
     const inferredEntitySummaries: LocalEntitySummary[] = [];
 
@@ -464,18 +471,7 @@ export const linkFollowerAgent = async (params: {
       exploredResources.push(response.resource);
 
       if (response.status === "ok") {
-        possibleNextLinks = [
-          ...possibleNextLinks,
-          ...response.possibleNextLinks,
-        ].filter(
-          /**
-           * Filter duplicate URLs (possible next links that were encountered on
-           * different resources).
-           */
-          (possibleNextLink, index, all) =>
-            all.findIndex((link) => link.url === possibleNextLink.url) ===
-            index,
-        );
+        possibleNextLinks.push(...response.possibleNextLinks);
 
         inferredClaims.push(...response.inferredClaims);
         inferredEntitySummaries.push(...response.inferredEntitySummaries);
@@ -549,6 +545,21 @@ export const linkFollowerAgent = async (params: {
     const previouslyVisitedLinks = exploredResources.map((visitedResource) => ({
       url: visitedResource.url,
     }));
+
+    possibleNextLinks = possibleNextLinks.filter(
+      (link, index, all) =>
+        /**
+         * Don't provide links that have already been visited
+         */
+        !previouslyVisitedLinks.some((visitedResource) =>
+          areUrlsEqual(visitedResource.url, link.url),
+        ) &&
+        /**
+         * Don't include duplicates
+         */
+        all.findIndex((innerLink) => areUrlsEqual(link.url, innerLink.url)) ===
+          index,
+    );
 
     const { nextToolCall } = await getLinkFollowerNextToolCalls({
       task,

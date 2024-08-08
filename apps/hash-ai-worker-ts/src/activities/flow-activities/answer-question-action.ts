@@ -44,10 +44,12 @@ const answerTools: LlmToolDefinition[] = [
     description:
       "Submit the answer, or an explanation of why the question cannot be answered using the available data",
     inputSchema: {
+      additionalProperties: false,
       type: "object",
       properties: {
         answer: {
           type: "object",
+          additionalProperties: false,
           description: "The answer to the question, if one can be provided.",
           properties: {
             format: {
@@ -81,6 +83,7 @@ const answerTools: LlmToolDefinition[] = [
     description:
       "Run Python code to help analyze the data. Your code should output the values you need to stdout. You should explain your reasoning for the approach taken in the 'explanation' field.",
     inputSchema: {
+      additionalProperties: false,
       type: "object",
       properties: {
         code: {
@@ -186,8 +189,6 @@ const callModel = async (
       webId,
     },
   );
-
-  logger.debug(`Open AI Response received: ${stringify(llmResponse)}`);
 
   if (llmResponse.status !== "ok") {
     return {
