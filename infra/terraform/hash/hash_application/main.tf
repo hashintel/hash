@@ -122,7 +122,8 @@ resource "aws_security_group" "alb_sg" {
     from_port        = 443
     to_port          = 443
     protocol         = "TCP"
-    cidr_blocks      = toset(data.cloudflare_ip_ranges.cloudflare.ipv4_cidr_blocks) # only allow incoming traffic via Cloudflare
+    description      = "Allow incoming traffic via Cloudflare IP ranges"
+    cidr_blocks      = toset(data.cloudflare_ip_ranges.cloudflare.ipv4_cidr_blocks)
     ipv6_cidr_blocks = toset(data.cloudflare_ip_ranges.cloudflare.ipv6_cidr_blocks)
   }
 
