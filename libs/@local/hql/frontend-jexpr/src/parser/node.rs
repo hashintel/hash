@@ -1,6 +1,9 @@
 use std::borrow::Cow;
 
-use hql_cst::{expr::Expr, Node};
+use hql_cst::{
+    expr::{call::Call, Expr},
+    Node,
+};
 use hql_diagnostics::Diagnostic;
 use hql_span::{SpanId, TextRange, TextSize};
 use jsonptr::PointerBuf;
@@ -12,11 +15,11 @@ use winnow::{
     BStr, Located, Parser,
 };
 
-use super::stream::TokenStream;
+use super::{array::parse_array, stream::TokenStream};
 use crate::{
     lexer::{syntax_kind_set::SyntaxKindSet, token::Token, token_kind::TokenKind},
     parser::{
-        error::{invalid_identifier, invalid_signature},
+        error::{expected_callee, invalid_identifier, invalid_signature},
         path::parse_path,
         signature::parse_signature,
         symbol::ParseRestriction,
@@ -57,7 +60,42 @@ pub(crate) fn parse_node<'arena, 'lexer, 'source>(
     }
 }
 
-pub(crate) fn parse_string<'arena, 'lexer, 'source>(
+fn parse_call<'arena, 'lexer, 'source>(
+    stream: &mut TokenStream<'arena, 'lexer, 'source>,
+    token: Token<'source>,
+) -> Result<Node<'arena, 'source>, Diagnostic<'static, SpanId>> {
+    let mut r#fn = None;
+    let mut args = stream.arena.vec(None);
+
+    let span = parse_array(stream, true, |stream, token| {
+        let node = parse_node(stream, token)?;
+
+        match r#fn {
+            Some(r#fn) => args.push(Some(node)),
+            None => r#fn = Some(node),
+        }
+
+        Ok(())
+    })?;
+
+    let span = stream.insert_span(Span {
+        range: span,
+        pointer: Some(PointerBuf::from_tokens(stream.stack.clone())),
+        parent_id: None,
+    });
+
+    let r#fn = r#fn.ok_or_else(|| expected_callee(span))?;
+
+    Ok(Node {
+        expr: Expr::Call(Call {
+            r#fn: self.arena.boxed(r#fn),
+            args: args.into_boxed_slice(),
+        }),
+        span,
+    })
+}
+
+fn parse_string<'arena, 'lexer, 'source>(
     stream: &mut TokenStream<'arena, 'lexer, 'source>,
     value: Cow<'source, str>,
     span: TextRange,

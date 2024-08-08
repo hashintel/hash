@@ -48,6 +48,18 @@ pub(crate) const INVALID_SIGNATURE: &Category = &Category {
     parent: Some(RefOrBox::Ref(STRING)),
 };
 
+pub(crate) const ARRAY: &Category = &Category {
+    id: Cow::Borrowed("array"),
+    name: Cow::Borrowed("Array"),
+    parent: Some(RefOrBox::Ref(PARSE)),
+};
+
+pub(crate) const EXPECTED_CALLEE: &Category = &Category {
+    id: Cow::Borrowed("expected-callee"),
+    name: Cow::Borrowed("Expected callee"),
+    parent: Some(RefOrBox::Ref(ARRAY)),
+};
+
 pub(crate) fn unexpected_eof(span: SpanId) -> Diagnostic<'static, SpanId> {
     let mut diagnostic = Diagnostic::new(UNEXPECTED_EOF, Severity::ERROR);
 
@@ -113,6 +125,18 @@ pub(crate) fn invalid_signature<I>(
     diagnostic
         .labels
         .push(Label::new(span, Cow::Owned(error.inner().to_string())));
+
+    diagnostic
+}
+
+pub(crate) fn expected_callee(span: SpanId) -> Diagnostic<'static, SpanId> {
+    let mut diagnostic = Diagnostic::new(EXPECTED_CALLEE, Severity::ERROR);
+
+    diagnostic.labels.push(Label::new(span, "Expected callee"));
+
+    diagnostic.help = Some(Help::new(
+        "The callee is always the first argument in the array",
+    ));
 
     diagnostic
 }
