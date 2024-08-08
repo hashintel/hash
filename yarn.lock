@@ -202,10 +202,10 @@
   dependencies:
     node-fetch "^2.6.1"
 
-"@artilleryio/int-commons@2.9.0":
-  version "2.9.0"
-  resolved "https://registry.yarnpkg.com/@artilleryio/int-commons/-/int-commons-2.9.0.tgz#da51626a412ffe608d5a69d05608d14e6408a3dc"
-  integrity sha512-ubudPoVW9qmaKiEeFgxwXK2AhMOksy+33CcQQJW/vqfRkrmdszaKxPcqBEzTTz7+7ZrgRHU+JfBpRXG6bUfkUw==
+"@artilleryio/int-commons@2.10.0":
+  version "2.10.0"
+  resolved "https://registry.yarnpkg.com/@artilleryio/int-commons/-/int-commons-2.10.0.tgz#c6b932bbd72ba0055f89cd1f0278f10ea0eec3fc"
+  integrity sha512-CukRix3yxcsbjPTPhIyXN7qZ6f/3W+LQtF96RxuZ7L3P0F7y7t4NswPSll2+zDkAMvvBgFojgPL+bFf2EDIiOA==
   dependencies:
     async "^2.6.4"
     cheerio "^1.0.0-rc.10"
@@ -216,12 +216,12 @@
     lodash "^4.17.19"
     ms "^2.1.3"
 
-"@artilleryio/int-core@2.13.0":
-  version "2.13.0"
-  resolved "https://registry.yarnpkg.com/@artilleryio/int-core/-/int-core-2.13.0.tgz#ffeea1204aed0678b73f242a03ced8183270f9ec"
-  integrity sha512-MR2IphsQc97y8Lmtoid0FD4ph+4ym4G05/9K/GAQg1vfHXcLwNguhDdo9V4YrBpDZllcGpEHsRjdkb2s6Ap6lg==
+"@artilleryio/int-core@2.14.0":
+  version "2.14.0"
+  resolved "https://registry.yarnpkg.com/@artilleryio/int-core/-/int-core-2.14.0.tgz#218a32b3d709b41735b2b7b202621d350c5a66d2"
+  integrity sha512-u0q5p5aWE7DRNRnfmj8JzXqNFitoBKQ4/N/Uur4PXcZCPzB7yQWppRPRJqFUh14zmC/UybDMui1EnbDhBqGGIg==
   dependencies:
-    "@artilleryio/int-commons" "2.9.0"
+    "@artilleryio/int-commons" "2.10.0"
     "@artilleryio/sketches-js" "^2.1.1"
     agentkeepalive "^4.1.0"
     arrivals "^2.1.2"
@@ -1854,6 +1854,202 @@
   integrity sha512-TqELu4mOuSIKQCqj63fGVs86Yh+vBx5nHRpWKNUNhB2nPTpfbziTs5c1X358be3peVWA4wPxW7Nt53KIg1tnNw==
   dependencies:
     tslib "^2.5.0"
+
+"@azure/abort-controller@^1.0.0":
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/@azure/abort-controller/-/abort-controller-1.1.0.tgz#788ee78457a55af8a1ad342acb182383d2119249"
+  integrity sha512-TrRLIoSQVzfAJX9H1JeFjzAoDGcoK1IYX1UImfceTZpsyYfWr09Ss1aHW1y5TrrR3iq6RZLBwJ3E24uwPhwahw==
+  dependencies:
+    tslib "^2.2.0"
+
+"@azure/abort-controller@^2.0.0":
+  version "2.1.2"
+  resolved "https://registry.yarnpkg.com/@azure/abort-controller/-/abort-controller-2.1.2.tgz#42fe0ccab23841d9905812c58f1082d27784566d"
+  integrity sha512-nBrLsEWm4J2u5LpAPjxADTlq3trDgVZZXHNKabeXZtpq3d3AbN/KGO82R87rdDz5/lYB024rtEf10/q0urNgsA==
+  dependencies:
+    tslib "^2.6.2"
+
+"@azure/arm-containerinstance@^9.1.0":
+  version "9.1.0"
+  resolved "https://registry.yarnpkg.com/@azure/arm-containerinstance/-/arm-containerinstance-9.1.0.tgz#4654f8e406ffaafd208ac9ac1ad7567773cc4a80"
+  integrity sha512-N9T3/HJwWXvJuz7tin+nO+DYYCTGHILJ5Die3TtdF8Wd1ITfXGqB0vY/wOnspUu/AGojhaIKGmawAfPdw2kX8w==
+  dependencies:
+    "@azure/abort-controller" "^1.0.0"
+    "@azure/core-auth" "^1.3.0"
+    "@azure/core-client" "^1.7.0"
+    "@azure/core-lro" "^2.5.0"
+    "@azure/core-paging" "^1.2.0"
+    "@azure/core-rest-pipeline" "^1.8.0"
+    tslib "^2.2.0"
+
+"@azure/core-auth@^1.3.0", "@azure/core-auth@^1.4.0", "@azure/core-auth@^1.5.0":
+  version "1.7.2"
+  resolved "https://registry.yarnpkg.com/@azure/core-auth/-/core-auth-1.7.2.tgz#558b7cb7dd12b00beec07ae5df5907d74df1ebd9"
+  integrity sha512-Igm/S3fDYmnMq1uKS38Ae1/m37B3zigdlZw+kocwEhh5GjyKjPrXKO2J6rzpC1wAxrNil/jX9BJRqBshyjnF3g==
+  dependencies:
+    "@azure/abort-controller" "^2.0.0"
+    "@azure/core-util" "^1.1.0"
+    tslib "^2.6.2"
+
+"@azure/core-client@^1.3.0", "@azure/core-client@^1.6.2", "@azure/core-client@^1.7.0", "@azure/core-client@^1.9.2":
+  version "1.9.2"
+  resolved "https://registry.yarnpkg.com/@azure/core-client/-/core-client-1.9.2.tgz#6fc69cee2816883ab6c5cdd653ee4f2ff9774f74"
+  integrity sha512-kRdry/rav3fUKHl/aDLd/pDLcB+4pOFwPPTVEExuMyaI5r+JBbMWqRbCY1pn5BniDaU3lRxO9eaQ1AmSMehl/w==
+  dependencies:
+    "@azure/abort-controller" "^2.0.0"
+    "@azure/core-auth" "^1.4.0"
+    "@azure/core-rest-pipeline" "^1.9.1"
+    "@azure/core-tracing" "^1.0.0"
+    "@azure/core-util" "^1.6.1"
+    "@azure/logger" "^1.0.0"
+    tslib "^2.6.2"
+
+"@azure/core-http-compat@^2.0.0":
+  version "2.1.2"
+  resolved "https://registry.yarnpkg.com/@azure/core-http-compat/-/core-http-compat-2.1.2.tgz#d1585ada24ba750dc161d816169b33b35f762f0d"
+  integrity sha512-5MnV1yqzZwgNLLjlizsU3QqOeQChkIXw781Fwh1xdAqJR5AA32IUaq6xv1BICJvfbHoa+JYcaij2HFkhLbNTJQ==
+  dependencies:
+    "@azure/abort-controller" "^2.0.0"
+    "@azure/core-client" "^1.3.0"
+    "@azure/core-rest-pipeline" "^1.3.0"
+
+"@azure/core-lro@^2.2.0", "@azure/core-lro@^2.5.0":
+  version "2.7.2"
+  resolved "https://registry.yarnpkg.com/@azure/core-lro/-/core-lro-2.7.2.tgz#787105027a20e45c77651a98b01a4d3b01b75a08"
+  integrity sha512-0YIpccoX8m/k00O7mDDMdJpbr6mf1yWo2dfmxt5A8XVZVVMz2SSKaEbMCeJRvgQ0IaSlqhjT47p4hVIRRy90xw==
+  dependencies:
+    "@azure/abort-controller" "^2.0.0"
+    "@azure/core-util" "^1.2.0"
+    "@azure/logger" "^1.0.0"
+    tslib "^2.6.2"
+
+"@azure/core-paging@^1.1.1", "@azure/core-paging@^1.2.0":
+  version "1.6.2"
+  resolved "https://registry.yarnpkg.com/@azure/core-paging/-/core-paging-1.6.2.tgz#40d3860dc2df7f291d66350b2cfd9171526433e7"
+  integrity sha512-YKWi9YuCU04B55h25cnOYZHxXYtEvQEbKST5vqRga7hWY9ydd3FZHdeQF8pyh+acWZvppw13M/LMGx0LABUVMA==
+  dependencies:
+    tslib "^2.6.2"
+
+"@azure/core-rest-pipeline@^1.1.0", "@azure/core-rest-pipeline@^1.10.1", "@azure/core-rest-pipeline@^1.3.0", "@azure/core-rest-pipeline@^1.8.0", "@azure/core-rest-pipeline@^1.9.1":
+  version "1.16.3"
+  resolved "https://registry.yarnpkg.com/@azure/core-rest-pipeline/-/core-rest-pipeline-1.16.3.tgz#bde3bc3ebad7f885ddd9de6af5e5a8fc254b287e"
+  integrity sha512-VxLk4AHLyqcHsfKe4MZ6IQ+D+ShuByy+RfStKfSjxJoL3WBWq17VNmrz8aT8etKzqc2nAeIyLxScjpzsS4fz8w==
+  dependencies:
+    "@azure/abort-controller" "^2.0.0"
+    "@azure/core-auth" "^1.4.0"
+    "@azure/core-tracing" "^1.0.1"
+    "@azure/core-util" "^1.9.0"
+    "@azure/logger" "^1.0.0"
+    http-proxy-agent "^7.0.0"
+    https-proxy-agent "^7.0.0"
+    tslib "^2.6.2"
+
+"@azure/core-tracing@^1.0.0", "@azure/core-tracing@^1.0.1", "@azure/core-tracing@^1.1.2":
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/@azure/core-tracing/-/core-tracing-1.1.2.tgz#065dab4e093fb61899988a1cdbc827d9ad90b4ee"
+  integrity sha512-dawW9ifvWAWmUm9/h+/UQ2jrdvjCJ7VJEuCJ6XVNudzcOwm53BFZH4Q845vjfgoUAM8ZxokvVNxNxAITc502YA==
+  dependencies:
+    tslib "^2.6.2"
+
+"@azure/core-util@^1.1.0", "@azure/core-util@^1.2.0", "@azure/core-util@^1.3.0", "@azure/core-util@^1.6.1", "@azure/core-util@^1.9.0":
+  version "1.9.2"
+  resolved "https://registry.yarnpkg.com/@azure/core-util/-/core-util-1.9.2.tgz#1dc37dc5b0dae34c578be62cf98905ba7c0cafe7"
+  integrity sha512-l1Qrqhi4x1aekkV+OlcqsJa4AnAkj5p0JV8omgwjaV9OAbP41lvrMvs+CptfetKkeEaGRGSzby7sjPZEX7+kkQ==
+  dependencies:
+    "@azure/abort-controller" "^2.0.0"
+    tslib "^2.6.2"
+
+"@azure/core-xml@^1.3.2":
+  version "1.4.3"
+  resolved "https://registry.yarnpkg.com/@azure/core-xml/-/core-xml-1.4.3.tgz#a74f37a0e584fee7e9adae19f51016d4b59e9ca2"
+  integrity sha512-D6G7FEmDiTctPKuWegX2WTrS1enKZwqYwdKTO6ZN6JMigcCehlT0/CYl+zWpI9vQ9frwwp7GQT3/owaEXgnOsA==
+  dependencies:
+    fast-xml-parser "^4.3.2"
+    tslib "^2.6.2"
+
+"@azure/identity@^4.2.0":
+  version "4.4.1"
+  resolved "https://registry.yarnpkg.com/@azure/identity/-/identity-4.4.1.tgz#490fa2ad26786229afa36411892bb53dfa3478d3"
+  integrity sha512-DwnG4cKFEM7S3T+9u05NstXU/HN0dk45kPOinUyNKsn5VWwpXd9sbPKEg6kgJzGbm1lMuhx9o31PVbCtM5sfBA==
+  dependencies:
+    "@azure/abort-controller" "^1.0.0"
+    "@azure/core-auth" "^1.5.0"
+    "@azure/core-client" "^1.9.2"
+    "@azure/core-rest-pipeline" "^1.1.0"
+    "@azure/core-tracing" "^1.0.0"
+    "@azure/core-util" "^1.3.0"
+    "@azure/logger" "^1.0.0"
+    "@azure/msal-browser" "^3.14.0"
+    "@azure/msal-node" "^2.9.2"
+    events "^3.0.0"
+    jws "^4.0.0"
+    open "^8.0.0"
+    stoppable "^1.1.0"
+    tslib "^2.2.0"
+
+"@azure/logger@^1.0.0":
+  version "1.1.4"
+  resolved "https://registry.yarnpkg.com/@azure/logger/-/logger-1.1.4.tgz#223cbf2b424dfa66478ce9a4f575f59c6f379768"
+  integrity sha512-4IXXzcCdLdlXuCG+8UKEwLA1T1NHqUfanhXYHiQTn+6sfWCZXduqbtXDGceg3Ce5QxTGo7EqmbV6Bi+aqKuClQ==
+  dependencies:
+    tslib "^2.6.2"
+
+"@azure/msal-browser@^3.14.0":
+  version "3.20.0"
+  resolved "https://registry.yarnpkg.com/@azure/msal-browser/-/msal-browser-3.20.0.tgz#12ae45d0d398dac25b2b37710277103539c23994"
+  integrity sha512-ErsxbfCGIwdqD8jipqdxpfAGiUEQS7MWUe39Rjhl0ZVPsb1JEe9bZCe2+0g23HDH6DGyCAtnTNN9scPtievrMQ==
+  dependencies:
+    "@azure/msal-common" "14.14.0"
+
+"@azure/msal-common@14.14.0":
+  version "14.14.0"
+  resolved "https://registry.yarnpkg.com/@azure/msal-common/-/msal-common-14.14.0.tgz#31a015070d5864ebcf9ebb988fcbc5c5536f22d1"
+  integrity sha512-OxcOk9H1/1fktHh6//VCORgSNJc2dCQObTm6JNmL824Z6iZSO6eFo/Bttxe0hETn9B+cr7gDouTQtsRq3YPuSQ==
+
+"@azure/msal-node@^2.9.2":
+  version "2.12.0"
+  resolved "https://registry.yarnpkg.com/@azure/msal-node/-/msal-node-2.12.0.tgz#57ee6b6011a320046d72dc0828fec46278f2ab2c"
+  integrity sha512-jmk5Im5KujRA2AcyCb0awA3buV8niSrwXZs+NBJWIvxOz76RvNlusGIqi43A0h45BPUy93Qb+CPdpJn82NFTIg==
+  dependencies:
+    "@azure/msal-common" "14.14.0"
+    jsonwebtoken "^9.0.0"
+    uuid "^8.3.0"
+
+"@azure/storage-blob@^12.18.0":
+  version "12.24.0"
+  resolved "https://registry.yarnpkg.com/@azure/storage-blob/-/storage-blob-12.24.0.tgz#d4ae1e29574b4a19d90eaf082cfde95f996d3f9b"
+  integrity sha512-l8cmWM4C7RoNCBOImoFMxhTXe1Lr+8uQ/IgnhRNMpfoA9bAFWoLG4XrWm6O5rKXortreVQuD+fc1hbzWklOZbw==
+  dependencies:
+    "@azure/abort-controller" "^1.0.0"
+    "@azure/core-auth" "^1.4.0"
+    "@azure/core-client" "^1.6.2"
+    "@azure/core-http-compat" "^2.0.0"
+    "@azure/core-lro" "^2.2.0"
+    "@azure/core-paging" "^1.1.1"
+    "@azure/core-rest-pipeline" "^1.10.1"
+    "@azure/core-tracing" "^1.1.2"
+    "@azure/core-util" "^1.6.1"
+    "@azure/core-xml" "^1.3.2"
+    "@azure/logger" "^1.0.0"
+    events "^3.0.0"
+    tslib "^2.2.0"
+
+"@azure/storage-queue@^12.22.0":
+  version "12.23.0"
+  resolved "https://registry.yarnpkg.com/@azure/storage-queue/-/storage-queue-12.23.0.tgz#56d0c40bfb8ada176cd1f898e07b223c61f496d2"
+  integrity sha512-koVDpx/lXl3bx6GiyitIsLZ4rtywpTlfwKXiuTDif+dY6PhgSyN9mrq9AsHXaHQnx2CCpmoIzRSV5n4GoQGcmg==
+  dependencies:
+    "@azure/abort-controller" "^1.0.0"
+    "@azure/core-auth" "^1.4.0"
+    "@azure/core-client" "^1.6.2"
+    "@azure/core-http-compat" "^2.0.0"
+    "@azure/core-paging" "^1.1.1"
+    "@azure/core-rest-pipeline" "^1.10.1"
+    "@azure/core-tracing" "^1.1.2"
+    "@azure/core-util" "^1.6.1"
+    "@azure/core-xml" "^1.3.2"
+    "@azure/logger" "^1.0.0"
+    tslib "^2.2.0"
 
 "@babel/cli@^7.17.6", "@babel/cli@^7.21.0":
   version "7.24.1"
@@ -6376,19 +6572,12 @@
   resolved "https://registry.yarnpkg.com/@pkgr/core/-/core-0.1.0.tgz#7d8dacb7fdef0e4387caf7396cbd77f179867d06"
   integrity sha512-Zwq5OCzuwJC2jwqmpEQt7Ds1DTi6BWSwoGkbb1n9pO3hzb35BoJELx7c0T23iDkBGkh2e7tvOtjF3tr3OaQHDQ==
 
-"@playwright/browser-chromium@1.45.2":
-  version "1.45.2"
-  resolved "https://registry.yarnpkg.com/@playwright/browser-chromium/-/browser-chromium-1.45.2.tgz#ba5bec86da71a746f7a2dbe44d1ba376a40d2623"
-  integrity sha512-oYWP32mCpEtPCE26uY+e82oF/oHa8y6Hx9EPN7ljrHyo6hb+/NDXp6OoJEZ/bwnGHEMKxfeD4yre0iXxBOLTxA==
+"@playwright/browser-chromium@1.45.3":
+  version "1.45.3"
+  resolved "https://registry.yarnpkg.com/@playwright/browser-chromium/-/browser-chromium-1.45.3.tgz#b93735c5cfb4b7b8ae816f1f5092bc3e19fe945b"
+  integrity sha512-UVPW8HveE8SghaahoMy8CfG0QdJ2mO0BZLOcPT8nlQh7Z97Gkv4e3Ad69D1oCqM3m3zYkDPAiGB+hOASNS0d/g==
   dependencies:
-    playwright-core "1.45.2"
-
-"@playwright/test@1.45.2":
-  version "1.45.2"
-  resolved "https://registry.yarnpkg.com/@playwright/test/-/test-1.45.2.tgz#e1b8512e20916720de1c5f5e89a362a252ea78ca"
-  integrity sha512-JxG9eq92ET75EbVi3s+4sYbcG7q72ECeZNbdBlaMkGcNbiDQ4cAi8U2QP5oKkOx+1gpaiL1LDStmzCaEM1Z6fQ==
-  dependencies:
-    playwright "1.45.2"
+    playwright-core "1.45.3"
 
 "@playwright/test@1.45.3":
   version "1.45.3"
@@ -12585,60 +12774,60 @@ arrivals@^2.1.2:
     debug "^4.0.1"
     nanotimer "0.3.14"
 
-artillery-engine-playwright@1.15.0:
-  version "1.15.0"
-  resolved "https://registry.yarnpkg.com/artillery-engine-playwright/-/artillery-engine-playwright-1.15.0.tgz#98495529e493d5e455c255a995502a27dd52b96d"
-  integrity sha512-OZ9fhp+GFkK5dcZkCCIi41RluskCyhVONA1iA8F0X4a6DUlW50AZ4wgxfSUD4ogaiKkZQjBPWyzOZe0S4bUpGw==
+artillery-engine-playwright@1.16.0:
+  version "1.16.0"
+  resolved "https://registry.yarnpkg.com/artillery-engine-playwright/-/artillery-engine-playwright-1.16.0.tgz#be096fdc5be57ff0da3c08338517787980a9eae2"
+  integrity sha512-90Gka/neaKABygcWANL/wOrI3U75Xll4yAZmBywQiTONorGL3SIizEEujGXosHLUeOgzc+3OEldP5qXfCynMOg==
   dependencies:
-    "@playwright/browser-chromium" "1.45.2"
-    "@playwright/test" "1.45.2"
+    "@playwright/browser-chromium" "1.45.3"
+    "@playwright/test" "1.45.3"
     debug "^4.3.2"
-    playwright "1.45.2"
+    playwright "1.45.3"
 
-artillery-plugin-apdex@1.9.0:
-  version "1.9.0"
-  resolved "https://registry.yarnpkg.com/artillery-plugin-apdex/-/artillery-plugin-apdex-1.9.0.tgz#377bb63bd61480b46f8c8d8c3b61d9b8bc0240a1"
-  integrity sha512-tZ7iNvDYess9RXSWhTbTzw6lp6TMeALsxcI7k0K0tWn6iqmyNmQydZcbm6wa6Z1Lx71tFYjEatRoE2RYHYrjqw==
+artillery-plugin-apdex@1.10.0:
+  version "1.10.0"
+  resolved "https://registry.yarnpkg.com/artillery-plugin-apdex/-/artillery-plugin-apdex-1.10.0.tgz#cc49562ad89303b2079b40c9e5744b3d9eb69f74"
+  integrity sha512-TabM/LXhp5n3AKiCXQHl3ivwCuh7QfdV5vjYpT8di32Rd42f9AahFiOIje4aInW9u5S8qNsB78UU3ov084GxwA==
   dependencies:
     tap "^19.0.2"
 
-artillery-plugin-ensure@1.12.0:
-  version "1.12.0"
-  resolved "https://registry.yarnpkg.com/artillery-plugin-ensure/-/artillery-plugin-ensure-1.12.0.tgz#f79e4ecb3e4ce7c6ea2298e1fe3e00efa70d3e55"
-  integrity sha512-zJUn8iIWKGCaNT6NowmGvFNRYGcEzRGkcbdk57bKrCpYUyWSymQTs7j+TBb7cu+8XXaNVTD+pI8AhZtQy41Nog==
+artillery-plugin-ensure@1.13.0:
+  version "1.13.0"
+  resolved "https://registry.yarnpkg.com/artillery-plugin-ensure/-/artillery-plugin-ensure-1.13.0.tgz#18d51298da97bd6b9a09b3c7d3c7dd3a1c87f8c3"
+  integrity sha512-/FwOj4a2npaUkNsB+dtHGa5euRqi1ly0mvcqz2UawNia+5SQXVJauL0ue84uQrU0O8ercH/gzsb7cG2/RKYkwg==
   dependencies:
     chalk "^2.4.2"
     debug "^4.3.3"
     filtrex "^2.2.3"
 
-artillery-plugin-expect@2.12.0:
-  version "2.12.0"
-  resolved "https://registry.yarnpkg.com/artillery-plugin-expect/-/artillery-plugin-expect-2.12.0.tgz#8416d423117b1c7f9b31724d4844698fe3719da4"
-  integrity sha512-CfL84q4zP3Uo3YXnVFJFepM6PluxL2Wqawz6OiIonV0FvXx55TopQ+i22JyIMDt9eHNKuDTeJkKDO/JAZoVjPw==
+artillery-plugin-expect@2.13.0:
+  version "2.13.0"
+  resolved "https://registry.yarnpkg.com/artillery-plugin-expect/-/artillery-plugin-expect-2.13.0.tgz#63ef9962c8941a80e4177eb1048b132a96bcbdca"
+  integrity sha512-j7beHovPaR9b4tKxn6gq6QXXK+XXtZ2B6DzX3PERqPcZPA07zSPrTJfzmtbwmnAGvQZYLK5jucQ6H+ZzyimiQg==
   dependencies:
     chalk "^4.1.2"
     debug "^4.3.2"
     jmespath "^0.16.0"
     lodash "^4.17.21"
 
-artillery-plugin-fake-data@1.9.0:
-  version "1.9.0"
-  resolved "https://registry.yarnpkg.com/artillery-plugin-fake-data/-/artillery-plugin-fake-data-1.9.0.tgz#d7863b4cf0de2c93bee660429432780ee187dc6a"
-  integrity sha512-tzG08TxvuqZEVVc5QtN5BUM7pmuvLwAUxd1cUvPRB5/CKek9a/wS+Hx8aElK5NpBhywwTiYY1mDL5CdXK9lrjA==
+artillery-plugin-fake-data@1.10.0:
+  version "1.10.0"
+  resolved "https://registry.yarnpkg.com/artillery-plugin-fake-data/-/artillery-plugin-fake-data-1.10.0.tgz#2b4e1a2e9924c8d4cf0363dcc662c9370bf7cd39"
+  integrity sha512-EQeeiIGJfxpXszn1zH91EyNprblpkME/HuHYloILExTc6My9+tcY5fezd1SEBbQ+jJ4qKB5KJyqQ6RS6HE+oBQ==
   dependencies:
     "@ngneat/falso" "^7.1.1"
 
-artillery-plugin-metrics-by-endpoint@1.12.0:
-  version "1.12.0"
-  resolved "https://registry.yarnpkg.com/artillery-plugin-metrics-by-endpoint/-/artillery-plugin-metrics-by-endpoint-1.12.0.tgz#8f39c0dea9db9af1199f60ec628bad318b05c0c9"
-  integrity sha512-yz+whnrFROOpA73IfdmkvU7cdOTXspCZGhhSTusp6QT+rWkhh+qcPwS5CF6j8h9ccSNAvhN9M7cVa0HVsc/m8A==
+artillery-plugin-metrics-by-endpoint@1.13.0:
+  version "1.13.0"
+  resolved "https://registry.yarnpkg.com/artillery-plugin-metrics-by-endpoint/-/artillery-plugin-metrics-by-endpoint-1.13.0.tgz#61c30561937bead3059b2ac7c736600f22a9e3ac"
+  integrity sha512-1zKp+kIZusPDLIcYE9Yheua5RYekAMNkJr/fQ2odQaeJdSkWyS/gURvroORhYAv41LKRfAvYazW668uUY6WkKA==
   dependencies:
     debug "^4.3.2"
 
-artillery-plugin-publish-metrics@2.23.0:
-  version "2.23.0"
-  resolved "https://registry.yarnpkg.com/artillery-plugin-publish-metrics/-/artillery-plugin-publish-metrics-2.23.0.tgz#6390982a7135c33073aa486ba424f55c3841eb8c"
-  integrity sha512-CJWGgi/3rtbi1xtKRPm3WaN4aA9bjidflT+2Ot4vTmUpawz6DTqsrcfXQ6TuTagb35mISy40E5CtANEJ8VxWvg==
+artillery-plugin-publish-metrics@2.24.0:
+  version "2.24.0"
+  resolved "https://registry.yarnpkg.com/artillery-plugin-publish-metrics/-/artillery-plugin-publish-metrics-2.24.0.tgz#7dc108927b2c517b55b2568e594eae8e55bfc19a"
+  integrity sha512-7a6vykigjZ5zdk41ma8supGmownU31SdQRD9hxfpKv8gLIOAlTTD25OxnjGmddF4JArhztSAqrPb+J8s/7xXRw==
   dependencies:
     "@aws-sdk/client-cloudwatch" "^3.370.0"
     "@opentelemetry/api" "^1.4.1"
@@ -12666,34 +12855,38 @@ artillery-plugin-publish-metrics@2.23.0:
     semver "^7.3.5"
     uuid "^8.3.2"
 
-artillery-plugin-slack@1.7.0:
-  version "1.7.0"
-  resolved "https://registry.yarnpkg.com/artillery-plugin-slack/-/artillery-plugin-slack-1.7.0.tgz#1421a51c9a4a9d3cab0c2b3379f43eb725b5e3a1"
-  integrity sha512-whdtsI4MsCiiJ+Ftt2j5bER/a65lMetxR2FqlsHLGFh08BazDU6iWvEqPkLrVKIBdvgAHUPAmxoNjFX2TUiFCA==
+artillery-plugin-slack@1.8.0:
+  version "1.8.0"
+  resolved "https://registry.yarnpkg.com/artillery-plugin-slack/-/artillery-plugin-slack-1.8.0.tgz#da0c32c47e67c457c433c26ca4b95207fbfc7db6"
+  integrity sha512-BpZZonGQRBZo1oXw0XNx7itoGKlZDClE+SzNt3SDTTFcQuvdPD6FD05Y9hDfSfG3zdEuuc9joAtCuKMmZALaeg==
   dependencies:
     debug "^4.3.4"
     got "^11.8.5"
 
-artillery@2.0.18:
-  version "2.0.18"
-  resolved "https://registry.yarnpkg.com/artillery/-/artillery-2.0.18.tgz#1fba8f2be16658dd70d09dbb3a9b05c46a66aabd"
-  integrity sha512-3OA8L4FN2TMLHZgmYn5cqb1WT+3x/1gWRxTELytBLMDH/gQnWz9hJIGIhGUcEXHJXVbv1lYMh5Pulw+D327UpQ==
+artillery@2.0.19:
+  version "2.0.19"
+  resolved "https://registry.yarnpkg.com/artillery/-/artillery-2.0.19.tgz#49fea02f43bc76c5a797c677046660e8da76b4f6"
+  integrity sha512-NeD5+D7U5l8hZ3lHtUseFTwqxILN2qfl4XlQt4cH0PukA/wsOri7cR0Qg2925usCa5EkD240Dfh9r9wYvuHxlw==
   dependencies:
-    "@artilleryio/int-commons" "2.9.0"
-    "@artilleryio/int-core" "2.13.0"
+    "@artilleryio/int-commons" "2.10.0"
+    "@artilleryio/int-core" "2.14.0"
     "@aws-sdk/credential-providers" "^3.127.0"
+    "@azure/arm-containerinstance" "^9.1.0"
+    "@azure/identity" "^4.2.0"
+    "@azure/storage-blob" "^12.18.0"
+    "@azure/storage-queue" "^12.22.0"
     "@oclif/core" "^2.8.11"
     "@oclif/plugin-help" "^5.2.11"
     "@oclif/plugin-not-found" "^2.3.1"
     archiver "^5.3.1"
-    artillery-engine-playwright "1.15.0"
-    artillery-plugin-apdex "1.9.0"
-    artillery-plugin-ensure "1.12.0"
-    artillery-plugin-expect "2.12.0"
-    artillery-plugin-fake-data "1.9.0"
-    artillery-plugin-metrics-by-endpoint "1.12.0"
-    artillery-plugin-publish-metrics "2.23.0"
-    artillery-plugin-slack "1.7.0"
+    artillery-engine-playwright "1.16.0"
+    artillery-plugin-apdex "1.10.0"
+    artillery-plugin-ensure "1.13.0"
+    artillery-plugin-expect "2.13.0"
+    artillery-plugin-fake-data "1.10.0"
+    artillery-plugin-metrics-by-endpoint "1.13.0"
+    artillery-plugin-publish-metrics "2.24.0"
+    artillery-plugin-slack "1.8.0"
     async "^2.6.4"
     aws-sdk "^2.1338.0"
     chalk "^2.4.2"
@@ -17253,7 +17446,7 @@ events@1.1.1:
   resolved "https://registry.yarnpkg.com/events/-/events-1.1.1.tgz#9ebdb7635ad099c70dcc4c2a1f5004288e8bd924"
   integrity sha512-kEcvvCBByWXGnZy6JUlgAp2gBIUjfCAV6P6TgT1/aaQKcmuAEC4OZTV1I4EWQLz2gxZw76atuVyvHhTxvi0Flw==
 
-events@^3.2.0, events@^3.3.0:
+events@^3.0.0, events@^3.2.0, events@^3.3.0:
   version "3.3.0"
   resolved "https://registry.yarnpkg.com/events/-/events-3.3.0.tgz#31a95ad0a924e2d2c419a813aeb2c4e878ea7400"
   integrity "sha1-Mala0Kkk4tLEGagTrrLE6HjqdAA= sha512-mQw+2fkQbALzQ7V0MY0IqdnXNOeTtP4r0lN9z7AAawCXgqea7bDii20AYrIBrFd/Hx0M2Ocz6S111CaFkUcb0Q=="
@@ -17561,6 +17754,13 @@ fast-xml-parser@4.2.5:
   version "4.2.5"
   resolved "https://registry.yarnpkg.com/fast-xml-parser/-/fast-xml-parser-4.2.5.tgz#a6747a09296a6cb34f2ae634019bf1738f3b421f"
   integrity sha512-B9/wizE4WngqQftFPmdaMYlXoJlJOYxGQOanC77fq9k8+Z0v5dDSVh+3glErdIROP//s/jgb7ZuxKfB8nVyo0g==
+  dependencies:
+    strnum "^1.0.5"
+
+fast-xml-parser@^4.3.2:
+  version "4.4.1"
+  resolved "https://registry.yarnpkg.com/fast-xml-parser/-/fast-xml-parser-4.4.1.tgz#86dbf3f18edf8739326447bcaac31b4ae7f6514f"
+  integrity sha512-xkjOecfnKGkSsOwtZ5Pz7Us/T6mrbPQrq0nh+aCO5V9nk5NLWmasAHumTKjiPJPWANe+kAZ84Jc8ooJkzZ88Sw==
   dependencies:
     strnum "^1.0.5"
 
@@ -21081,7 +21281,7 @@ jsonschema@1.4.0:
   resolved "https://registry.yarnpkg.com/jsonschema/-/jsonschema-1.4.0.tgz#1afa34c4bc22190d8e42271ec17ac8b3404f87b2"
   integrity "sha1-Gvo0xLwiGQ2OQicewXrIs0BPh7I= sha512-/YgW6pRMr6M7C+4o8kS+B/2myEpHCrxO4PEWnqJNBFMjn7EWXqlQ4tGwL6xTHeRplwuZmcAncdvfOad1nT2yMw=="
 
-jsonwebtoken@^9.0.1:
+jsonwebtoken@^9.0.0, jsonwebtoken@^9.0.1:
   version "9.0.2"
   resolved "https://registry.yarnpkg.com/jsonwebtoken/-/jsonwebtoken-9.0.2.tgz#65ff91f4abef1784697d40952bb1998c504caaf3"
   integrity sha512-PRp66vJ865SSqOlgqS8hujT5U4AOgMfhrwYIuIhfKaoSCZcirrmASQr8CX7cUg+RMih+hgznrjp99o+W4pJLHQ==
@@ -24607,7 +24807,7 @@ open@^7.0.3, open@^7.4.2:
     is-docker "^2.0.0"
     is-wsl "^2.1.1"
 
-open@^8.0.9, open@^8.4.0, open@^8.4.2:
+open@^8.0.0, open@^8.0.9, open@^8.4.0, open@^8.4.2:
   version "8.4.2"
   resolved "https://registry.yarnpkg.com/open/-/open-8.4.2.tgz#5b5ffe2a8f793dcd2aad73e550cb87b59cb084f9"
   integrity sha512-7x81NCL719oNbsq/3mh+hVrAWmFuEYUqrq/Iw3kUzH8ReypT9QQ0BLoJS7/G9k6N81XjW4qHWtjWwe/9eLy1EQ==
@@ -25435,24 +25635,10 @@ platform@^1.3.6:
   resolved "https://registry.yarnpkg.com/platform/-/platform-1.3.6.tgz#48b4ce983164b209c2d45a107adb31f473a6e7a7"
   integrity sha512-fnWVljUchTro6RiCFvCXBbNhJc2NijN7oIQxbwsyL0buWJPG85v81ehlHI9fXrJsMNgTofEoWIQeClKpgxFLrg==
 
-playwright-core@1.45.2:
-  version "1.45.2"
-  resolved "https://registry.yarnpkg.com/playwright-core/-/playwright-core-1.45.2.tgz#c8b8b7f66eda47fb2bd24e5435c92d1163022df8"
-  integrity sha512-ha175tAWb0dTK0X4orvBIqi3jGEt701SMxMhyujxNrgd8K0Uy5wMSwwcQHtyB4om7INUkfndx02XnQ2p6dvLDw==
-
 playwright-core@1.45.3:
   version "1.45.3"
   resolved "https://registry.yarnpkg.com/playwright-core/-/playwright-core-1.45.3.tgz#e77bc4c78a621b96c3e629027534ee1d25faac93"
   integrity sha512-+ym0jNbcjikaOwwSZycFbwkWgfruWvYlJfThKYAlImbxUgdWFO2oW70ojPm4OpE4t6TAo2FY/smM+hpVTtkhDA==
-
-playwright@1.45.2:
-  version "1.45.2"
-  resolved "https://registry.yarnpkg.com/playwright/-/playwright-1.45.2.tgz#21082072120a2c8a7e3bbb2792e81e8aa367b7a7"
-  integrity sha512-ReywF2t/0teRvNBpfIgh5e4wnrI/8Su8ssdo5XsQKpjxJj+jspm00jSoz9BTg91TT0c9HRjXO7LBNVrgYj9X0g==
-  dependencies:
-    playwright-core "1.45.2"
-  optionalDependencies:
-    fsevents "2.3.2"
 
 playwright@1.45.3:
   version "1.45.3"
@@ -28850,6 +29036,11 @@ stickyfill@^1.1.1:
   resolved "https://registry.yarnpkg.com/stickyfill/-/stickyfill-1.1.1.tgz#39413fee9d025c74a7e59ceecb23784cc0f17f02"
   integrity sha512-GCp7vHAfpao+Qh/3Flh9DXEJ/qSi0KJwJw6zYlZOtRYXWUIpMM6mC2rIep/dK8RQqwW0KxGJIllmjPIBOGN8AA==
 
+stoppable@^1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/stoppable/-/stoppable-1.1.0.tgz#32da568e83ea488b08e4d7ea2c3bcc9d75015d5b"
+  integrity sha512-KXDYZ9dszj6bzvnEMRYvxgeTHU74QBFL54XKtP3nyMuJ81CFYtABZ3bAzL2EdFUaEwJOBOgENyFj3R7oTzDyyw==
+
 store2@^2.14.2:
   version "2.14.2"
   resolved "https://registry.yarnpkg.com/store2/-/store2-2.14.2.tgz#56138d200f9fe5f582ad63bc2704dbc0e4a45068"
@@ -28957,7 +29148,7 @@ string-trim-spaces-only@^5.0.10:
   resolved "https://registry.yarnpkg.com/string-trim-spaces-only/-/string-trim-spaces-only-5.0.10.tgz#62f1d32ff8191cbfccb43c08e645c38444d61b77"
   integrity sha512-MhmjE5jNqb1Ylo+BARPRlsdChGLrnPpAUWrT1VOxo9WhWwKVUU6CbZTfjwKaQPYTGS/wsX/4Zek88FM2rEb5iA==
 
-"string-width-cjs@npm:string-width@^4.2.0", "string-width@^1.0.2 || 2 || 3 || 4", string-width@^4.0.0, string-width@^4.1.0, string-width@^4.2.0, string-width@^4.2.2, string-width@^4.2.3:
+"string-width-cjs@npm:string-width@^4.2.0":
   version "4.2.3"
   resolved "https://registry.yarnpkg.com/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
   integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==
@@ -28974,6 +29165,15 @@ string-width@^1.0.1:
     code-point-at "^1.0.0"
     is-fullwidth-code-point "^1.0.0"
     strip-ansi "^3.0.0"
+
+"string-width@^1.0.2 || 2 || 3 || 4", string-width@^4.0.0, string-width@^4.1.0, string-width@^4.2.0, string-width@^4.2.2, string-width@^4.2.3:
+  version "4.2.3"
+  resolved "https://registry.yarnpkg.com/string-width/-/string-width-4.2.3.tgz#269c7117d27b05ad2e536830a8ec895ef9c6d010"
+  integrity sha512-wKyQRQpjJ0sIp62ErSZdGsjMJWsap5oRNihHhu6G7JVO/9jIB6UyevL+tXuOqrng8j/cxKTWyWUwvSTriiZz/g==
+  dependencies:
+    emoji-regex "^8.0.0"
+    is-fullwidth-code-point "^3.0.0"
+    strip-ansi "^6.0.1"
 
 string-width@^2.0.0, string-width@^2.1.1:
   version "2.1.1"
@@ -29095,7 +29295,7 @@ stringify-object@^5.0.0:
     is-obj "^3.0.0"
     is-regexp "^3.1.0"
 
-"strip-ansi-cjs@npm:strip-ansi@^6.0.1", strip-ansi@^6.0.0, strip-ansi@^6.0.1:
+"strip-ansi-cjs@npm:strip-ansi@^6.0.1":
   version "6.0.1"
   resolved "https://registry.yarnpkg.com/strip-ansi/-/strip-ansi-6.0.1.tgz#9e26c63d30f53443e9489495b2105d37b67a85d9"
   integrity sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==
@@ -29115,6 +29315,13 @@ strip-ansi@^4.0.0:
   integrity sha512-4XaJ2zQdCzROZDivEVIDPkcQn8LMFSa8kj8Gxb/Lnwzv9A8VctNZ+lfivC/sV3ivW8ElJTERXZoPBRrZKkNKow==
   dependencies:
     ansi-regex "^3.0.0"
+
+strip-ansi@^6.0.0, strip-ansi@^6.0.1:
+  version "6.0.1"
+  resolved "https://registry.yarnpkg.com/strip-ansi/-/strip-ansi-6.0.1.tgz#9e26c63d30f53443e9489495b2105d37b67a85d9"
+  integrity sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==
+  dependencies:
+    ansi-regex "^5.0.1"
 
 strip-ansi@^7.0.1, strip-ansi@^7.1.0:
   version "7.1.0"
@@ -30141,10 +30348,10 @@ tslib@^1.11.1, tslib@^1.8.1, tslib@^1.9.0:
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-1.14.1.tgz#cf2d38bdc34a134bcaf1091c41f6619e2f672d00"
   integrity "sha1-zy04vcNKE0vK8QkcQfZhni9nLQA= sha512-Xni35NKzjgMrwevysHTCArtLDpPvye8zV/0E4EyYn43P7/7qvQwPh9BGkHewbMulVntbigmcT7rdX3BNo9wRJg=="
 
-tslib@^2.0.0, tslib@^2.0.1, tslib@^2.0.3, tslib@^2.1.0, tslib@^2.3.0, tslib@^2.3.1, tslib@^2.4.0, tslib@^2.4.1, tslib@^2.5.0, tslib@^2.6.0, tslib@^2.6.2:
-  version "2.6.2"
-  resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.6.2.tgz#703ac29425e7b37cd6fd456e92404d46d1f3e4ae"
-  integrity sha512-AEYxH93jGFPn/a2iVAwW87VuUIkR1FVUKB77NwMF7nBTDkDrrT/Hpt/IrCJ0QXhW27jTBDcf5ZY7w6RiqTMw2Q==
+tslib@^2.0.0, tslib@^2.0.1, tslib@^2.0.3, tslib@^2.1.0, tslib@^2.2.0, tslib@^2.3.0, tslib@^2.3.1, tslib@^2.4.0, tslib@^2.4.1, tslib@^2.5.0, tslib@^2.6.0, tslib@^2.6.2:
+  version "2.6.3"
+  resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.6.3.tgz#0438f810ad7a9edcde7a241c3d80db693c8cbfe0"
+  integrity sha512-xNvxJEOUiWPGhUuUdQgAJPKOOJfGnIyKySOc09XkKsgdUV/3E2zvwZYdejjmRgPCgcym1juLH3226yA7sEFJKQ==
 
 tslib@~2.5.0:
   version "2.5.0"
@@ -31818,7 +32025,7 @@ worker-timers@^7.1.4:
     worker-timers-broker "^6.1.8"
     worker-timers-worker "^7.0.71"
 
-"wrap-ansi-cjs@npm:wrap-ansi@^7.0.0", wrap-ansi@^7.0.0:
+"wrap-ansi-cjs@npm:wrap-ansi@^7.0.0":
   version "7.0.0"
   resolved "https://registry.yarnpkg.com/wrap-ansi/-/wrap-ansi-7.0.0.tgz#67e145cff510a6a6984bdf1152911d69d2eb9e43"
   integrity sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==
@@ -31839,6 +32046,15 @@ wrap-ansi@^6.2.0:
   version "6.2.0"
   resolved "https://registry.yarnpkg.com/wrap-ansi/-/wrap-ansi-6.2.0.tgz#e9393ba07102e6c91a3b221478f0257cd2856e53"
   integrity "sha1-6Tk7oHEC5skaOyIUePAlfNKFblM= sha512-r6lPcBGxZXlIcymEu7InxDMhdW0KDxpLgoFLcguasxCaJ/SOIZwINatK9KY/tf+ZrlywOKU0UDj3ATXUBfxJXA=="
+  dependencies:
+    ansi-styles "^4.0.0"
+    string-width "^4.1.0"
+    strip-ansi "^6.0.0"
+
+wrap-ansi@^7.0.0:
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/wrap-ansi/-/wrap-ansi-7.0.0.tgz#67e145cff510a6a6984bdf1152911d69d2eb9e43"
+  integrity sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==
   dependencies:
     ansi-styles "^4.0.0"
     string-width "^4.1.0"
