@@ -1,9 +1,10 @@
 use std::borrow::Cow;
 
 use hql_diagnostics::{
-    category::Category, help::Help, rob::RefOrBox, severity::Severity, Diagnostic,
+    category::Category, help::Help, label::Label, rob::RefOrBox, severity::Severity, Diagnostic,
 };
 use hql_span::{SpanId, TextRange};
+use winnow::error::{ContextError, ErrMode, ParseError};
 
 use crate::{
     error::CATEGORY,
@@ -86,6 +87,32 @@ pub(crate) fn unexpected_token(
         });
 
     diagnostic.help = Some(Help::new(format!("Expected {expected}",)));
+
+    diagnostic
+}
+
+pub(crate) fn invalid_identifier<I>(
+    span: SpanId,
+    error: ParseError<I, ErrMode<ContextError>>,
+) -> Diagnostic<'static, SpanId> {
+    let mut diagnostic = Diagnostic::new(INVALID_IDENTIFIER, Severity::ERROR);
+
+    diagnostic
+        .labels
+        .push(Label::new(span, Cow::Owned(error.inner().to_string())));
+
+    diagnostic
+}
+
+pub(crate) fn invalid_signature<I>(
+    span: SpanId,
+    error: ParseError<I, ErrMode<ContextError>>,
+) -> Diagnostic<'static, SpanId> {
+    let mut diagnostic = Diagnostic::new(INVALID_SIGNATURE, Severity::ERROR);
+
+    diagnostic
+        .labels
+        .push(Label::new(span, Cow::Owned(error.inner().to_string())));
 
     diagnostic
 }

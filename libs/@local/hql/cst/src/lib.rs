@@ -11,6 +11,7 @@ pub mod r#type;
 pub mod value;
 
 use error_stack::Result;
+use hql_span::SpanId;
 use text_size::TextRange;
 
 use self::{
@@ -24,13 +25,13 @@ use self::{
 };
 
 pub trait Spanned {
-    fn span(&self) -> TextRange;
+    fn span(&self) -> SpanId;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Node<'arena, 'source> {
     pub expr: Expr<'arena, 'source>,
-    pub span: TextRange,
+    pub span: SpanId,
 }
 
 impl<'arena, 'source> Node<'arena, 'source> {
@@ -45,7 +46,7 @@ impl<'arena, 'source> Node<'arena, 'source> {
 }
 
 impl Spanned for Node<'_, '_> {
-    fn span(&self) -> TextRange {
+    fn span(&self) -> SpanId {
         self.span
     }
 }
