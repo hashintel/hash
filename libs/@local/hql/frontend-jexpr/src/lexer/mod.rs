@@ -20,7 +20,7 @@ mod syntax_kind_set;
 mod token;
 mod token_kind;
 
-pub struct Lexer<'source> {
+pub(crate) struct Lexer<'source> {
     inner: SpannedIter<'source, TokenKind<'source>>,
     spans: SpanStorage<Span>,
 }
@@ -32,7 +32,7 @@ impl<'source> Lexer<'source> {
     ///
     /// Panics if the source is larger than 4GiB.
     #[must_use]
-    pub fn new(source: &'source str) -> Self {
+    pub(crate) fn new(source: &'source str) -> Self {
         assert!(
             u32::try_from(source.len()).is_ok(),
             "source is larger than 4GiB"
@@ -55,11 +55,13 @@ impl<'source> Lexer<'source> {
         TextRange::new(start, end)
     }
 
-    pub fn spans_mut(&mut self) -> &mut SpanStorage<Span> {
+    pub(crate) fn spans_mut(&mut self) -> &mut SpanStorage<Span> {
         &mut self.spans
     }
 
-    pub fn advance(&mut self) -> Option<Result<Token<'source>, Diagnostic<'static, SpanId>>> {
+    pub(crate) fn advance(
+        &mut self,
+    ) -> Option<Result<Token<'source>, Diagnostic<'static, SpanId>>> {
         let (kind, span) = self.inner.next()?;
 
         let span = {

@@ -1,5 +1,4 @@
-use alloc::sync::Arc;
-use std::borrow::Cow;
+use alloc::{borrow::Cow, sync::Arc};
 
 use hql_diagnostics::{
     category::Category, help::Help, label::Label, rob::RefOrBox, severity::Severity,
