@@ -90,13 +90,17 @@
         "rimraf",
         "turbo",
         "yarn-deduplicate",
-        "@redocly/cli",
-        "^artillery$",
-        "^artillery-"
+        "@redocly/cli"
       ],
       "excludePackageNames": ["prettier-plugin-sql"],
       "dependencyDashboardApproval": false,
       "assignees": ["TimDiekmann"]
+    },
+    {
+      "groupName": "Artillery npm packages",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@artilleryio/", "^artillery$", "^artillery-"],
+      "automerge": false
     },
     {
       "groupName": "LLM provider SDK npm packages",
