@@ -132,6 +132,7 @@ const main = async () => {
   logger.info("Type System initialized");
 
   registerOpenTelemetryTracing(process.env.HASH_OTLP_ENDPOINT ?? null);
+  Sentry.validateOpenTelemetrySetup();
 
   if (process.env.HASH_TELEMETRY_ENABLED === "true") {
     logger.info("Starting [Snowplow] telemetry");

@@ -1,5 +1,5 @@
 import { ApolloError } from "apollo-server-errors";
-import oEmbedData from "oembed-providers/providers.json" with { type: "json" };
+import oEmbedData from "oembed-providers/providers.json" assert { type: "json" };
 
 import type {
   Embed,
