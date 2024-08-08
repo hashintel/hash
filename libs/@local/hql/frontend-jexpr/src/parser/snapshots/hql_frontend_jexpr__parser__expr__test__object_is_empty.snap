@@ -1,0 +1,11 @@
+---
+source: libs/@local/hql/frontend-jexpr/src/parser/expr.rs
+expression: "{}"
+---
+[31m[jexpr::parse::object::expected-non-empty] Error:[0m Expected Non-Empty
+   ╭─[<unknown>:1:1]
+   │
+ 1 │ {}
+   │ ─┬  
+   │  ╰── Expected a non-empty object
+───╯

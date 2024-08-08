@@ -2,7 +2,7 @@
 source: libs/@local/hql/frontend-jexpr/src/lexer/mod.rs
 expression: "\"hello"
 ---
-[31m[lexing::invalid-string] Error:[0m Invalid String Literal
+[31m[jexpr::lexing::invalid-string] Error:[0m Invalid String Literal
    ╭─[<unknown>:1:1]
    │
  1 │ "hello

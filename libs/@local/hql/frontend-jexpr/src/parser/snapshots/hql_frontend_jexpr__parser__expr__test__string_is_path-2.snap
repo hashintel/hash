@@ -1,0 +1,30 @@
+---
+source: libs/@local/hql/frontend-jexpr/src/parser/expr.rs
+expression: "\"foo::bar\""
+---
+Expr {
+    kind: Path(
+        Path {
+            segments: [
+                Symbol {
+                    value: "foo",
+                    span: SpanId(
+                        1,
+                    ),
+                },
+                Symbol {
+                    value: "bar",
+                    span: SpanId(
+                        2,
+                    ),
+                },
+            ],
+            span: SpanId(
+                3,
+            ),
+        },
+    ),
+    span: SpanId(
+        0,
+    ),
+}

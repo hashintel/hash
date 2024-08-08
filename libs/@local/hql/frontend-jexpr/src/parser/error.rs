@@ -138,6 +138,16 @@ pub(crate) fn unexpected_token(
     diagnostic
 }
 
+// TODO: add context!
+fn parse_error_display<I>(error: &ParseError<I, ErrMode<ContextError>>) -> String {
+    // `ErrMode` redirects to debug for display purposes, so we use Display instead
+    match error.inner() {
+        ErrMode::Cut(c) => format!("Parsing Failure: {c}"),
+        ErrMode::Backtrack(c) => format!("Parsing Error: {c}"),
+        other @ ErrMode::Incomplete(_) => other.to_string(),
+    }
+}
+
 pub(crate) fn invalid_identifier<I>(
     span: SpanId,
     error: &ParseError<I, ErrMode<ContextError>>,
@@ -146,7 +156,7 @@ pub(crate) fn invalid_identifier<I>(
 
     diagnostic
         .labels
-        .push(Label::new(span, Cow::Owned(error.inner().to_string())));
+        .push(Label::new(span, Cow::Owned(parse_error_display(error))));
 
     diagnostic
 }
@@ -159,7 +169,7 @@ pub(crate) fn invalid_signature<I>(
 
     diagnostic
         .labels
-        .push(Label::new(span, Cow::Owned(error.inner().to_string())));
+        .push(Label::new(span, Cow::Owned(parse_error_display(error))));
 
     diagnostic
 }
@@ -172,7 +182,7 @@ pub(crate) fn invalid_type<I>(
 
     diagnostic
         .labels
-        .push(Label::new(span, Cow::Owned(error.inner().to_string())));
+        .push(Label::new(span, Cow::Owned(parse_error_display(error))));
 
     diagnostic
 }

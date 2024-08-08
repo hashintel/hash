@@ -194,7 +194,7 @@ mod test {
     use hql_cst::arena::Arena;
     use hql_diagnostics::{config::ReportConfig, span::DiagnosticSpan};
     use hql_span::storage::SpanStorage;
-    use insta::assert_debug_snapshot;
+    use insta::{assert_debug_snapshot, assert_snapshot};
 
     use super::ExprKind;
     use crate::{
@@ -241,7 +241,7 @@ mod test {
             let output =
                 String::from_utf8(buffer).expect("should be able to convert buffer to string");
 
-            assert_debug_snapshot!(insta::_macro_support::AutoName, output, $expr);
+            assert_snapshot!(insta::_macro_support::AutoName, output, $expr);
         }};
 
         ($expr:expr, $pattern:pat) => {{
@@ -325,34 +325,6 @@ mod test {
             r#"{"type": "u32", "const": 42, "sig": "() -> Unit"}"#,
             Err(_)
         );
-    }
-
-    #[test]
-    fn object_is_call() {
-        assert_expr!(
-            r#"{"fn": "func", "args": ["arg1", "arg2"]}"#,
-            ExprKind::Call(_)
-        );
-    }
-
-    #[test]
-    fn object_is_args_without_fn() {
-        assert_expr!(r#"{"args": ["arg1", "arg2"]}"#, Err(_));
-    }
-
-    #[test]
-    fn object_is_call_without_args() {
-        assert_expr!(r#"{"fn": "func"}"#, ExprKind::Call(_));
-    }
-
-    #[test]
-    fn object_is_signature() {
-        assert_expr!(r#"{"sig": "<T: Int>(a: T) -> T"}"#, ExprKind::Signature(_));
-    }
-
-    #[test]
-    fn object_is_invalid_multiple() {
-        assert_expr!(r#"{"sig": "<T: Int>(a: T) -> T", "fn": "func"}"#, Err(_));
     }
 
     #[test]

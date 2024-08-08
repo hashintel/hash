@@ -1,0 +1,11 @@
+---
+source: libs/@local/hql/frontend-jexpr/src/parser/expr.rs
+expression: "\"1234\""
+---
+[31m[jexpr::parse::string::invalid-identifier] Error:[0m Invalid Identifier
+   ╭─[<unknown>:1:1]
+   │
+ 1 │ "1234"
+   │ │ 
+   │ ╰─ Parsing Error: 
+───╯

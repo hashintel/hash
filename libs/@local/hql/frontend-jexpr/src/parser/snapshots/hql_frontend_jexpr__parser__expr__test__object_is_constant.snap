@@ -1,0 +1,22 @@
+---
+source: libs/@local/hql/frontend-jexpr/src/parser/expr.rs
+expression: "{\"const\": 42}"
+---
+Expr {
+    kind: Constant(
+        Constant {
+            value: Value {
+                kind: Number(
+                    "42",
+                ),
+                span: SpanId(
+                    0,
+                ),
+            },
+            type: None,
+        },
+    ),
+    span: SpanId(
+        1,
+    ),
+}
