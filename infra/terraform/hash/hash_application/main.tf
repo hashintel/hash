@@ -76,6 +76,15 @@ locals {
   ]
 }
 
+terraform {
+  required_providers {
+    cloudflare = {
+      source  = "cloudflare/cloudflare"
+      version = "~> 4.0"
+    }
+  }
+}
+
 resource "aws_service_discovery_private_dns_namespace" "app" {
   name = local.prefix
   vpc  = var.vpc.id
