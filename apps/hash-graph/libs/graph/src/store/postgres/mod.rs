@@ -392,9 +392,8 @@ where
     #[tracing::instrument(level = "debug", skip(self))]
     async fn insert_data_type_with_id(
         &self,
-        ontology_id: OntologyId,
+        ontology_id: DataTypeId,
         closed_data_type: &Valid<ClosedDataType>,
-        metadata: &ClosedDataTypeMetadata,
     ) -> Result<Option<OntologyId>, InsertionError> {
         let ontology_id = self
             .as_client()
@@ -414,6 +413,15 @@ where
             .change_context(InsertionError)?
             .map(|row| row.get(0));
 
+        Ok(ontology_id)
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    async fn insert_data_type_references(
+        &self,
+        ontology_id: DataTypeId,
+        metadata: &ClosedDataTypeMetadata,
+    ) -> Result<(), InsertionError> {
         for (target, &depth) in &metadata.inheritance_depths {
             self.as_client()
                 .query(
@@ -438,7 +446,7 @@ where
                 .change_context(InsertionError)?;
         }
 
-        Ok(ontology_id)
+        Ok(())
     }
 
     /// Inserts a [`PropertyType`] identified by [`OntologyId`], and associated with an

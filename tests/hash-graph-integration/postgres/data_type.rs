@@ -127,11 +127,10 @@ async fn inheritance() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
         .seed(
-            // TODO: Ensure that an arbitrary order is possible
-            //   see https://linear.app/hash/issue/H-3222/make-sure-data-types-inheriting-from-each-other-can-be-passed-in
+            // The order of the data types can be arbitrary
             [
-                graph_test_data::data_type::NUMBER_V1,
                 graph_test_data::data_type::LENGTH_V1,
+                graph_test_data::data_type::NUMBER_V1,
                 graph_test_data::data_type::METER_V1,
             ],
             [],
