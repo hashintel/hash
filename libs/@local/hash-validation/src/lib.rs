@@ -285,8 +285,8 @@ mod tests {
         async fn has_children(
             &self,
             _data_type: DataTypeId,
-        ) -> Result<bool, Report<InvalidEntityType>> {
-            unimplemented!()
+        ) -> Result<bool, Report<InvalidDataType>> {
+            Ok(false)
         }
     }
 
