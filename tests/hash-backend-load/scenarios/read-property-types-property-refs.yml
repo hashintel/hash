@@ -1,5 +1,13 @@
 scenarios:
-  - name: Read all property types
+  - name: Read all property types with property references
+    beforeScenario:
+      - initializeTracing
+    beforeRequest:
+      - enterRequestSpan
+    afterResponse:
+      - exitRequestSpan
+    afterScenario:
+      - tearDownTracing
     flow:
       - post:
           url: /
@@ -8,7 +16,7 @@ scenarios:
               query {
                 queryPropertyTypes(
                   constrainsValuesOn: { outgoing: 0 }
-                  constrainsPropertiesOn: { outgoing: 0 }
+                  constrainsPropertiesOn: { outgoing: 255 }
                   includeArchived: true
                 ) {
                   vertices

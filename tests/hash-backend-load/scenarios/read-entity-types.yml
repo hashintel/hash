@@ -1,5 +1,13 @@
 scenarios:
-  - name: Read all entity types with entity type references
+  - name: Read all entity types
+    beforeScenario:
+      - initializeTracing
+    beforeRequest:
+      - enterRequestSpan
+    afterResponse:
+      - exitRequestSpan
+    afterScenario:
+      - tearDownTracing
     flow:
       - post:
           url: /
@@ -9,9 +17,9 @@ scenarios:
                 queryEntityTypes(
                   constrainsValuesOn: { outgoing: 0 }
                   constrainsPropertiesOn: { outgoing: 0 }
-                  constrainsLinksOn: { outgoing: 255 }
-                  constrainsLinkDestinationsOn: { outgoing: 255 }
-                  inheritsFrom: { outgoing: 255 }
+                  constrainsLinksOn: { outgoing: 0 }
+                  constrainsLinkDestinationsOn: { outgoing: 0 }
+                  inheritsFrom: { outgoing: 0 }
                   includeArchived: true
                 ) {
                   vertices

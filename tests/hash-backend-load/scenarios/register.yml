@@ -1,6 +1,14 @@
 scenarios:
   - name: Register
-    beforeRequest: refreshSessionToken
+    beforeScenario:
+      - initializeTracing
+    beforeRequest:
+      - enterRequestSpan
+      - refreshSessionToken
+    afterResponse:
+      - exitRequestSpan
+    afterScenario:
+      - tearDownTracing
     flow:
       - function: signupUser
       - function: completeRegistration

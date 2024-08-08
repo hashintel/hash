@@ -98,7 +98,7 @@ import { setupTelemetry } from "./telemetry/snowplow-setup";
 const shutdown = new GracefulShutdown(logger, "SIGINT", "SIGTERM");
 
 const baseRateLimitOptions: Partial<RateLimitOptions> = {
-  windowMs: process.env.NODE_ENV === "test" ? 1000 : 1000 * 30, // 30 seconds
+  windowMs: process.env.NODE_ENV === "test" ? 10 : 1000 * 30, // 30 seconds
   limit: 10, // Limit each IP to 10 requests every 30 seconds
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers

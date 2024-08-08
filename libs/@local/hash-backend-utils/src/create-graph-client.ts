@@ -9,7 +9,7 @@ import { convertHttpCodeToStatusCode, isStatus } from "@local/status";
 import type { ErrorInfo } from "@local/status/type-defs/status-payloads/error-info";
 import HttpAgent, { HttpsAgent } from "agentkeepalive";
 import type { DataSource } from "apollo-datasource";
-import type { AxiosError } from "axios";
+import type { AxiosError, InternalAxiosRequestConfig } from "axios";
 import axios from "axios";
 
 import type { Logger } from "./logger.js";
@@ -79,13 +79,26 @@ class GraphApiError extends Error {
 
 export const createGraphClient = (
   _logger: Logger,
-  { host, port }: { host: string; port: number },
+  {
+    host,
+    port,
+    requestInterceptor,
+  }: {
+    host: string;
+    port: number;
+    requestInterceptor?: (
+      value: InternalAxiosRequestConfig,
+    ) => InternalAxiosRequestConfig | Promise<InternalAxiosRequestConfig>;
+  },
 ): GraphApi => {
   const axiosInstance = axios.create({
     httpAgent,
     httpsAgent,
   });
 
+  if (requestInterceptor) {
+    axiosInstance.interceptors.request.use(requestInterceptor);
+  }
   axiosInstance.interceptors.response.use(
     (response) => response,
     (error: Error) => {

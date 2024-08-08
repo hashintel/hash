@@ -1,11 +1,14 @@
 {
   "extends": ["//"],
   "tasks": {
+    "build": {
+      "outputs": ["dist"]
+    },
     "bench:load-testing": {
       "dependsOn": ["build", "^start:healthcheck"]
     },
     "test:integration": {
-      "dependsOn": ["build", "^start:test:healthcheck"]
+      "dependsOn": ["build"]
     }
   }
 }
