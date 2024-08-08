@@ -1,9 +1,0 @@
----
-source: libs/@local/hql/cst/src/parse/json/node.rs
-expression: result
----
-Err(
-    [1mcall expression array, requires at least a single item, the function to be called.[22m
-    ├╴at [3mlibs/@local/hql/cst/src/parse/json/node.rs:117:24[23m
-    ╰╴1 additional opaque attachment,
-)
