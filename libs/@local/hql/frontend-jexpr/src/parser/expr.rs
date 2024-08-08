@@ -191,13 +191,14 @@ mod test {
     // This needs to be a macro, because we need to get the function name for auto-naming.
     macro_rules! assert_expr {
         ($expr:expr, $pattern:pat) => {{
-            let arena = Arena::new();
+            todo!();
+            // let arena = Arena::new();
 
-            let result = Expr::from_str(&arena, $expr);
+            // let result = Expr::from_str(&arena, $expr);
 
-            assert_debug_snapshot!(insta::_macro_support::AutoName, result, $expr);
+            // assert_debug_snapshot!(insta::_macro_support::AutoName, result, $expr);
 
-            assert_matches!(result, $pattern);
+            // assert_matches!(result, $pattern);
         }};
 
         ($expr:expr) => {{

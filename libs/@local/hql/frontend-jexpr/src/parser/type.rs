@@ -1,16 +1,12 @@
-use core::fmt::{self, Display};
-
-use hql_cst::{
-    arena::{self, Arena},
-    expr::path::Path,
-    r#type::Type,
-};
+use hql_cst::{arena::Arena, r#type::Type};
 use winnow::{
     combinator::{alt, delimited, preceded, repeat},
     error::ParserError,
     stream::{AsChar, Compare, Stream, StreamIsPartial},
     PResult, Parser, Stateful,
 };
+
+use super::{path::parse_path, string, symbol::ParseRestriction};
 
 /// Implementation of [`Type`] parsing
 ///
@@ -136,6 +132,7 @@ where
 
 #[cfg(test)]
 mod test {
+    use hql_cst::arena::Arena;
     use insta::assert_snapshot;
     use winnow::{
         error::{ContextError, ErrMode, ParseError},
@@ -143,7 +140,6 @@ mod test {
     };
 
     use super::Type;
-    use crate::arena::Arena;
 
     #[track_caller]
     fn parse<'a, 'b>(

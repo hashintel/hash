@@ -5,7 +5,7 @@ use hql_cst::{
 use winnow::{
     combinator::{delimited, opt, preceded, trace},
     error::ParserError,
-    stream::{Compare, Location, Stream, StreamIsPartial},
+    stream::{AsChar, Compare, Location, Stream, StreamIsPartial},
     PResult, Parser, Stateful,
 };
 
@@ -72,7 +72,7 @@ where
 
 fn parse_generic<'arena, 'span, Input, Error>(
     input: &mut Stateful<Input, ParseState<'arena, 'span>>,
-) -> PResult<Generic<'a>, Error>
+) -> PResult<Generic<'arena>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
