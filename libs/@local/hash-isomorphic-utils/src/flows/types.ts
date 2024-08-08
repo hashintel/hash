@@ -12,12 +12,12 @@ import type {
   PropertyObject,
 } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
-import type { FlowRun } from "@local/hash-isomorphic-utils/graphql/api-types.gen";
-import type { ActorTypeDataType } from "@local/hash-isomorphic-utils/system-types/google/googlesheetsfile";
 import type { Status } from "@local/status";
 
-import type { ActionDefinitionId } from "./action-definitions";
-import type { TriggerDefinitionId } from "./trigger-definitions";
+import type { FlowRun } from "../graphql/api-types.gen.js";
+import type { ActorTypeDataType } from "../system-types/google/googlesheetsfile.js";
+import type { ActionDefinitionId } from "./action-definitions.js";
+import type { TriggerDefinitionId } from "./trigger-definitions.js";
 
 export type DeepReadOnly<T> = {
   readonly [key in keyof T]: DeepReadOnly<T[key]>;
@@ -31,17 +31,21 @@ export type WebPage = {
 };
 
 export type LocalOrExistingEntityId =
-  | { kind: "proposed-entity"; localId: string }
+  | { kind: "proposed-entity"; localId: EntityId }
   | { kind: "existing-entity"; entityId: EntityId };
 
 /**
- * @todo sort out mismatch between this and the ProposedEntity type inside infer-entities/
- *    possibly just resolved by removing the latter when browser plugin inference migrated to a Flow
+ * @todo H-3163: remove the ProposedEntity type inside infer-entities, by making the browser plugin flow
+ *    use the same claim -> entity process as other flows
  */
 export type ProposedEntity = {
+  claims: {
+    isSubjectOf: EntityId[];
+    isObjectOf: EntityId[];
+  };
   provenance: EnforcedEntityEditionProvenance;
   propertyMetadata: PropertyMetadataObject;
-  localEntityId: string;
+  localEntityId: EntityId;
   entityTypeId: VersionedUrl;
   summary?: string;
   properties: PropertyObject;
@@ -51,7 +55,7 @@ export type ProposedEntity = {
 
 export type ProposedEntityWithResolvedLinks = Omit<
   ProposedEntity,
-  "localEntityId" | "sourceEntityLocalId" | "targetEntityLocalId"
+  "sourceEntityLocalId" | "targetEntityLocalId"
 > & {
   linkData?: {
     leftEntityId: EntityId;
@@ -372,30 +376,101 @@ export type ProgressLogBase = {
   stepId: string;
 };
 
-export type QueriedWebLog = ProgressLogBase & {
+export type WorkerType = "Coordinator" | "Subtask" | "Link explorer";
+
+export type WorkerIdentifiers = {
+  workerType: WorkerType;
+  workerInstanceId: string;
+  parentInstanceId: string | null;
+};
+
+export type WorkerProgressLogBase = ProgressLogBase & WorkerIdentifiers;
+
+export type QueriedWebLog = WorkerProgressLogBase & {
   explanation: string;
   query: string;
   type: "QueriedWeb";
 };
 
-export type CreatedPlanLog = ProgressLogBase & {
+export type CreatedPlanLog = WorkerProgressLogBase & {
   plan: string;
   type: "CreatedPlan";
 };
 
-export type VisitedWebPageLog = ProgressLogBase & {
+export type VisitedWebPageLog = WorkerProgressLogBase & {
   explanation: string;
   webPage: Pick<WebPage, "url" | "title">;
   type: "VisitedWebPage";
 };
 
-export type StartedSubTaskLog = ProgressLogBase & {
+export type StartedCoordinatorLog = WorkerProgressLogBase & {
+  input: {
+    goal: string;
+  };
+  type: "StartedCoordinator";
+};
+
+export type ClosedCoordinatorLog = WorkerProgressLogBase & {
+  errorMessage?: string;
+  output: {
+    entityCount: number;
+  };
+  type: "ClosedCoordinator";
+};
+
+export type StartedSubTaskLog = WorkerProgressLogBase & {
   explanation: string;
-  goal: string;
+  input: {
+    goal: string;
+    entityTypeTitles: string[];
+  };
   type: "StartedSubTask";
 };
 
-export type ViewedFile = {
+export type ClosedSubTaskLog = WorkerProgressLogBase & {
+  errorMessage?: string;
+  explanation: string;
+  goal: string;
+  output: {
+    claimCount: number;
+    entityCount: number;
+  };
+  type: "ClosedSubTask";
+};
+
+export type StartedLinkExplorerTaskLog = WorkerProgressLogBase & {
+  explanation: string;
+  input: {
+    goal: string;
+  };
+  type: "StartedLinkExplorerTask";
+};
+
+export type ClosedLinkExplorerTaskLog = WorkerProgressLogBase & {
+  errorMessage?: string;
+  goal: string;
+  output: {
+    claimCount: number;
+    entityCount: number;
+    resourcesExploredCount: number;
+    suggestionForNextSteps: string;
+  };
+  type: "ClosedLinkExplorerTask";
+};
+
+export type InferredClaimsFromTextLog = WorkerProgressLogBase & {
+  output: {
+    claimCount: number;
+    entityCount: number;
+    resource: {
+      title?: string;
+      url: string;
+    };
+  };
+  type: "InferredClaimsFromText";
+};
+
+export type ViewedFile = WorkerProgressLogBase & {
   explanation: string;
   file: Pick<WebPage, "url" | "title">;
   recordedAt: string;
@@ -403,8 +478,8 @@ export type ViewedFile = {
   type: "ViewedFile";
 };
 
-export type ProposedEntityLog = ProgressLogBase & {
-  proposedEntity: Omit<ProposedEntity, "provenance" | "propertyMetadata">;
+export type ProposedEntityLog = WorkerProgressLogBase & {
+  proposedEntity: Omit<ProposedEntity, "provenance">;
   type: "ProposedEntity";
 };
 
@@ -414,13 +489,19 @@ export type PersistedEntityLog = ProgressLogBase & {
 };
 
 export type StepProgressLog =
-  | CreatedPlanLog
+  | ClosedCoordinatorLog
+  | ClosedLinkExplorerTaskLog
+  | ClosedSubTaskLog
+  | InferredClaimsFromTextLog
   | PersistedEntityLog
   | ProposedEntityLog
-  | VisitedWebPageLog
-  | ViewedFile
   | QueriedWebLog
-  | StartedSubTaskLog;
+  | StartedCoordinatorLog
+  | StartedLinkExplorerTaskLog
+  | StartedSubTaskLog
+  | ViewedFile
+  | VisitedWebPageLog
+  | CreatedPlanLog;
 
 export type ProgressLogSignal = {
   attempt: number;
@@ -474,7 +555,9 @@ export type ExternalInputResponseWithoutUser = DistributiveOmit<
   "resolvedBy"
 >;
 
-export type ExternalInputRequest = ExternalInputRequestSignal & {
+export type ExternalInputRequest<
+  RequestType extends ExternalInputRequestType = ExternalInputRequestType,
+> = ExternalInputRequestSignal<RequestType> & {
   /** The answers given by the human, if it was a request for human input */
   answers?: string[];
   /** The time at which the request was resolved */

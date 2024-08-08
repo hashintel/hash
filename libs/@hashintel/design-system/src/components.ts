@@ -75,6 +75,7 @@ export * from "./icon-shapes-regular";
 export * from "./icon-sparkles-light";
 export * from "./icon-table-light";
 export * from "./icon-terminal-light";
+export * from "./icon-thought-bubble-light";
 export * from "./icon-wand-magic-sparkles";
 export * from "./icon-x-twitter";
 export * from "./image-with-checked-background";

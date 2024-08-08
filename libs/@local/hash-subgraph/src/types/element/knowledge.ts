@@ -9,7 +9,7 @@ import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { EntityId, EntityRecordId } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 
-import { isEntityId } from "../shared";
+import { isEntityId } from "../shared.js";
 
 // This isn't necessary, it just _could_ provide greater clarity that this corresponds to an exact vertex and can be
 // used in a direct lookup and not a search in the vertices

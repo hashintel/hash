@@ -2,54 +2,53 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { OriginProvenance } from "@local/hash-graph-client";
 import { SourceType } from "@local/hash-graph-client";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
-import type { EntityId } from "@local/hash-graph-types/entity";
+import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
 import type { OutputNameForAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
-import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  ProposedEntity,
+  WorkerIdentifiers,
+} from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
+import { entityIdFromComponents } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
+import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 
-import { logger } from "../shared/activity-logger";
+import { logger } from "../shared/activity-logger.js";
 import {
   areUrlsTheSameAfterNormalization,
   getFlowContext,
   getProvidedFiles,
-} from "../shared/get-flow-context";
-import type { ParsedLlmToolCall } from "../shared/get-llm-response/types";
-import { logProgress } from "../shared/log-progress";
-import { stringify } from "../shared/stringify";
-import { checkSubTasksAgent } from "./research-entities-action/check-sub-tasks-agent";
+} from "../shared/get-flow-context.js";
+import type { ParsedLlmToolCall } from "../shared/get-llm-response/types.js";
+import { logProgress } from "../shared/log-progress.js";
+import { stringify } from "../shared/stringify.js";
+import { checkSubTasksAgent } from "./research-entities-action/check-sub-tasks-agent.js";
 import type {
   CoordinatingAgentInput,
   CoordinatingAgentState,
-} from "./research-entities-action/coordinating-agent";
-import { coordinatingAgent } from "./research-entities-action/coordinating-agent";
+} from "./research-entities-action/coordinating-agent.js";
+import { coordinatingAgent } from "./research-entities-action/coordinating-agent.js";
 import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
-} from "./research-entities-action/coordinator-tools";
-import type { DuplicateReport } from "./research-entities-action/deduplicate-entities";
-import { deduplicateEntities } from "./research-entities-action/deduplicate-entities";
-import { getAnswersFromHuman } from "./research-entities-action/get-answers-from-human";
-import { handleWebSearchToolCall } from "./research-entities-action/handle-web-search-tool-call";
-import { linkFollowerAgent } from "./research-entities-action/link-follower-agent";
-import { runSubTaskAgent } from "./research-entities-action/sub-task-agent";
-import type { CompletedCoordinatorToolCall } from "./research-entities-action/types";
-import { nullReturns } from "./research-entities-action/types";
-import type { LocalEntitySummary } from "./shared/infer-facts-from-text/get-entity-summaries-from-text";
-import type { Fact } from "./shared/infer-facts-from-text/types";
-import { proposeEntitiesFromFacts } from "./shared/propose-entities-from-facts";
-import type { FlowActionActivity } from "./types";
-
-export type AccessedRemoteFile = {
-  entityTypeId: VersionedUrl;
-  url: string;
-  loadedAt: string;
-};
+} from "./research-entities-action/coordinator-tools.js";
+import type { DuplicateReport } from "./research-entities-action/deduplicate-entities.js";
+import { deduplicateEntities } from "./research-entities-action/deduplicate-entities.js";
+import { getAnswersFromHuman } from "./research-entities-action/get-answers-from-human.js";
+import { handleWebSearchToolCall } from "./research-entities-action/handle-web-search-tool-call.js";
+import { linkFollowerAgent } from "./research-entities-action/link-follower-agent.js";
+import { runSubTaskAgent } from "./research-entities-action/sub-task-agent.js";
+import type { CompletedCoordinatorToolCall } from "./research-entities-action/types.js";
+import { nullReturns } from "./research-entities-action/types.js";
+import type { LocalEntitySummary } from "./shared/infer-claims-from-text/get-entity-summaries-from-text.js";
+import type { Claim } from "./shared/infer-claims-from-text/types.js";
+import { proposeEntitiesFromClaims } from "./shared/propose-entities-from-claims.js";
+import type { FlowActionActivity } from "./types.js";
 
 const adjustDuplicates = (params: {
   duplicates: DuplicateReport[];
@@ -59,14 +58,12 @@ const adjustDuplicates = (params: {
 
   const adjustedDuplicates = duplicates.map<DuplicateReport>(
     ({ canonicalId, duplicateIds }) => {
-      if (
-        entityIdsWhichCannotBeDeduplicated.includes(canonicalId as EntityId)
-      ) {
+      if (entityIdsWhichCannotBeDeduplicated.includes(canonicalId)) {
         return { canonicalId, duplicateIds };
       }
 
       const existingEntityIdMarkedAsDuplicate = duplicateIds.find((id) =>
-        entityIdsWhichCannotBeDeduplicated.includes(id as EntityId),
+        entityIdsWhichCannotBeDeduplicated.includes(id),
       );
 
       /**
@@ -93,19 +90,21 @@ const adjustDuplicates = (params: {
 };
 
 /**
- * Given newly discovered facts and entity summaries:
+ * Given newly discovered claims and entity summaries:
  * 1. Deduplicate entities
- * 2. Update the state with the new facts and entity summaries
- * 3. Create or update proposals for (1) new entities and (2) existing entities with new facts
+ * 2. Update the state with the new claims and entity summaries
+ * 3. Create or update proposals for (1) new entities and (2) existing entities with new claims
  * 4. Update the state with the new and updated proposals
  */
-const updateStateFromInferredFacts = async (params: {
+const updateStateFromInferredClaims = async (params: {
   input: CoordinatingAgentInput;
   state: CoordinatingAgentState;
-  newFacts: Fact[];
+  newClaims: Claim[];
   newEntitySummaries: LocalEntitySummary[];
+  workerIdentifiers: WorkerIdentifiers;
 }) => {
-  const { input, state, newEntitySummaries, newFacts } = params;
+  const { input, state, newEntitySummaries, newClaims, workerIdentifiers } =
+    params;
 
   /**
    * Step 1: Deduplication (if necessary)
@@ -148,8 +147,8 @@ const updateStateFromInferredFacts = async (params: {
       ...adjustedDuplicates.map(({ canonicalId }) => canonicalId),
     );
 
-    const inferredFactsWithDeduplicatedEntities = newFacts.map((fact) => {
-      const { subjectEntityLocalId, objectEntityLocalId } = fact;
+    const inferredClaimsWithDeduplicatedEntities = newClaims.map((claim) => {
+      const { subjectEntityLocalId, objectEntityLocalId } = claim;
       const subjectDuplicate = adjustedDuplicates.find(({ duplicateIds }) =>
         duplicateIds.includes(subjectEntityLocalId),
       );
@@ -161,15 +160,15 @@ const updateStateFromInferredFacts = async (params: {
         : undefined;
 
       return {
-        ...fact,
+        ...claim,
         subjectEntityLocalId:
-          subjectDuplicate?.canonicalId ?? fact.subjectEntityLocalId,
+          subjectDuplicate?.canonicalId ?? claim.subjectEntityLocalId,
         objectEntityLocalId:
           objectDuplicate?.canonicalId ?? objectEntityLocalId,
       };
     });
 
-    state.inferredFacts.push(...inferredFactsWithDeduplicatedEntities);
+    state.inferredClaims.push(...inferredClaimsWithDeduplicatedEntities);
     state.entitySummaries = [
       ...state.entitySummaries,
       ...newEntitySummaries,
@@ -194,19 +193,20 @@ const updateStateFromInferredFacts = async (params: {
   }
 
   /**
-   * Step 2: Create or update proposals for new entities and existing entities with new facts
+   * Step 2: Create or update proposals for new entities and existing entities with new claims
    */
 
   /**
    * We want to (re)propose entities which may have new information, via one of:
    * 1. Appearing as a new summary
-   * 2. Being the subject or object of a new fact
-   * 3. Having been identified as the canonical version of a new duplicate (which means it may have had new facts discovered)
+   * 2. Being the subject or object of a new claim
+   * 3. Having been identified as the canonical version of a new duplicate (which means it may have had new claims
+   * discovered)
    */
   const entityIdsToPropose = [
     ...new Set([
       ...newEntitySummaries.map(({ localId }) => localId),
-      ...newFacts.flatMap(({ subjectEntityLocalId, objectEntityLocalId }) =>
+      ...newClaims.flatMap(({ subjectEntityLocalId, objectEntityLocalId }) =>
         [subjectEntityLocalId, objectEntityLocalId].filter(isNotNullish),
       ),
       ...canonicalEntityIdsForNewDuplicates,
@@ -214,18 +214,18 @@ const updateStateFromInferredFacts = async (params: {
   ];
 
   /**
-   * Gather the facts which relate to the entities that are being proposed
+   * Gather the claims which relate to the entities that are being proposed
    */
   const entitySummaries = state.entitySummaries.filter(({ localId }) =>
     entityIdsToPropose.includes(localId),
   );
 
-  const relevantFacts = state.inferredFacts.filter(
+  const relevantClaims = state.inferredClaims.filter(
     ({ subjectEntityLocalId, objectEntityLocalId }) =>
       entityIdsToPropose.includes(subjectEntityLocalId) ||
       /**
-       * Facts where the entity is the object may contain information which is useful in constructing it,
-       * or a link from it – the fact may be expressed in the reverse direction to that of the target entity types.
+       * Claims where the entity is the object may contain information which is useful in constructing it,
+       * or a link from it – the claim may be expressed in the reverse direction to that of the target entity types.
        */
       (objectEntityLocalId && entityIdsToPropose.includes(objectEntityLocalId)),
   );
@@ -235,7 +235,7 @@ const updateStateFromInferredFacts = async (params: {
    */
   const potentialLinkTargetEntitySummaries = state.entitySummaries.filter(
     ({ localId }) =>
-      relevantFacts.some(
+      relevantClaims.some(
         ({ objectEntityLocalId }) => localId === objectEntityLocalId,
       ),
   );
@@ -244,17 +244,18 @@ const updateStateFromInferredFacts = async (params: {
    * Get the updated proposals
    */
   const { proposedEntities: newProposedEntities } =
-    await proposeEntitiesFromFacts({
+    await proposeEntitiesFromClaims({
       dereferencedEntityTypes: input.allDereferencedEntityTypesById,
       entitySummaries,
       existingEntitySummaries: input.existingEntitySummaries,
-      facts: relevantFacts,
+      claims: relevantClaims,
       potentialLinkTargetEntitySummaries,
+      workerIdentifiers,
     });
 
   state.proposedEntities = [
     /**
-     * Filter out any previous proposed entities that have been re-proposed with new facts.
+     * Filter out any previous proposed entities that have been re-proposed with new claims.
      */
     ...state.proposedEntities.filter(
       ({ localEntityId }) =>
@@ -266,6 +267,12 @@ const updateStateFromInferredFacts = async (params: {
     ...newProposedEntities,
   ];
 };
+
+type ActivityHeartbeatDetails =
+  | {
+      state?: CoordinatingAgentState;
+    }
+  | undefined;
 
 export const researchEntitiesAction: FlowActionActivity<{
   testingParams?: {
@@ -279,9 +286,27 @@ export const researchEntitiesAction: FlowActionActivity<{
     testingParams,
   });
 
+  const workerIdentifiers: WorkerIdentifiers = {
+    workerType: "Coordinator",
+    workerInstanceId: generateUuid(),
+    parentInstanceId: null,
+  };
+
   let state: CoordinatingAgentState;
 
-  const { flowEntityId, stepId } = await getFlowContext();
+  const { flowEntityId, stepId, webId } = await getFlowContext();
+
+  logProgress([
+    {
+      type: "StartedCoordinator",
+      input: {
+        goal: input.prompt,
+      },
+      recordedAt: new Date().toISOString(),
+      stepId,
+      ...workerIdentifiers,
+    },
+  ]);
 
   const providedFileEntities = await getProvidedFiles();
 
@@ -298,10 +323,16 @@ export const researchEntitiesAction: FlowActionActivity<{
         url: unsignedUrl,
         title: displayName ?? fileName ?? unsignedUrl.split("/").pop()!,
         summary: description ?? "",
+        fromSearchQuery: "User-provided resource",
       };
     });
 
-  if (testingParams?.resumeFromState) {
+  const stateBeforeRetry = Context.current().info
+    .heartbeatDetails as ActivityHeartbeatDetails;
+
+  if (stateBeforeRetry?.state) {
+    state = stateBeforeRetry.state;
+  } else if (testingParams?.resumeFromState) {
     state = testingParams.resumeFromState;
   } else {
     /**
@@ -315,10 +346,20 @@ export const researchEntitiesAction: FlowActionActivity<{
         questionsAndAnswers: null,
       });
 
+    logProgress([
+      {
+        recordedAt: new Date().toISOString(),
+        stepId: Context.current().info.activityId,
+        type: "CreatedPlan",
+        plan: initialPlan,
+        ...workerIdentifiers,
+      },
+    ]);
+
     state = {
       entitySummaries: [],
       hasConductedCheckStep: false,
-      inferredFacts: [],
+      inferredClaims: [],
       plan: initialPlan,
       previousCalls: [],
       proposedEntities: [],
@@ -334,6 +375,8 @@ export const researchEntitiesAction: FlowActionActivity<{
     if (testingParams?.persistState) {
       testingParams.persistState(state);
     }
+
+    Context.current().heartbeat({ state });
   }
 
   const { toolCalls: initialToolCalls } =
@@ -415,7 +458,17 @@ export const researchEntitiesAction: FlowActionActivity<{
             const webPageSummaries = await handleWebSearchToolCall({
               input:
                 toolCall.input as CoordinatorToolCallArguments["webSearch"],
+              workerIdentifiers,
             });
+
+            if ("error" in webPageSummaries) {
+              return {
+                ...toolCall,
+                ...nullReturns,
+                isError: true,
+                output: webPageSummaries.error,
+              };
+            }
 
             return {
               ...nullReturns,
@@ -423,9 +476,9 @@ export const researchEntitiesAction: FlowActionActivity<{
               output: "Search successful",
               webPagesFromSearchQuery: webPageSummaries,
             };
-          } else if (toolCall.name === "inferFactsFromResources") {
+          } else if (toolCall.name === "inferClaimsFromResources") {
             const { resources } =
-              toolCall.input as CoordinatorToolCallArguments["inferFactsFromResources"];
+              toolCall.input as CoordinatorToolCallArguments["inferClaimsFromResources"];
 
             const validEntityTypeIds = input.entityTypes.map(({ $id }) => $id);
 
@@ -504,44 +557,83 @@ export const researchEntitiesAction: FlowActionActivity<{
                     ({ localId }) => relevantEntityIds?.includes(localId),
                   );
 
-                  const response = await linkFollowerAgent({
-                    initialResource: {
-                      url,
-                      descriptionOfExpectedContent,
-                      exampleOfExpectedContent,
-                      reason,
+                  const linkExplorerIdentifiers: WorkerIdentifiers = {
+                    workerType: "Link explorer",
+                    workerInstanceId: generateUuid(),
+                    parentInstanceId: workerIdentifiers.workerInstanceId,
+                  };
+
+                  logProgress([
+                    {
+                      stepId,
+                      recordedAt: new Date().toISOString(),
+                      type: "StartedLinkExplorerTask",
+                      input: {
+                        goal: prompt,
+                      },
+                      explanation: reason,
+                      ...linkExplorerIdentifiers,
                     },
-                    task: prompt,
-                    existingEntitiesOfInterest: relevantEntities,
-                    entityTypes: input.entityTypes.filter(
-                      ({ $id }) =>
-                        entityTypeIds.includes($id) ||
-                        relevantEntities.some(
-                          (entity) => entity.entityTypeId === $id,
-                        ),
-                    ),
-                    linkEntityTypes: input.linkEntityTypes?.filter(
-                      ({ $id }) =>
-                        !!linkEntityTypeIds?.includes($id) ||
-                        relevantEntities.some(
-                          (entity) => entity.entityTypeId === $id,
-                        ),
-                    ),
+                  ]);
+
+                  const response = await linkFollowerAgent({
+                    workerIdentifiers: linkExplorerIdentifiers,
+                    input: {
+                      initialResource: {
+                        url,
+                        descriptionOfExpectedContent,
+                        exampleOfExpectedContent,
+                        reason,
+                      },
+                      task: prompt,
+                      existingEntitiesOfInterest: relevantEntities,
+                      entityTypes: input.entityTypes.filter(
+                        ({ $id }) =>
+                          entityTypeIds.includes($id) ||
+                          relevantEntities.some(
+                            (entity) => entity.entityTypeId === $id,
+                          ),
+                      ),
+                      linkEntityTypes: input.linkEntityTypes?.filter(
+                        ({ $id }) =>
+                          !!linkEntityTypeIds?.includes($id) ||
+                          relevantEntities.some(
+                            (entity) => entity.entityTypeId === $id,
+                          ),
+                      ),
+                    },
                   });
+
+                  logProgress([
+                    {
+                      stepId,
+                      recordedAt: new Date().toISOString(),
+                      type: "ClosedLinkExplorerTask",
+                      goal: prompt,
+                      output: {
+                        claimCount: response.inferredClaims.length,
+                        entityCount: response.inferredSummaries.length,
+                        resourcesExploredCount:
+                          response.exploredResources.length,
+                        suggestionForNextSteps: response.suggestionForNextSteps,
+                      },
+                      ...linkExplorerIdentifiers,
+                    },
+                  ]);
 
                   return { response, url };
                 },
               ),
             );
 
-            const inferredFacts: Fact[] = [];
+            const inferredClaims: Claim[] = [];
             const entitySummaries: LocalEntitySummary[] = [];
             const suggestionsForNextStepsMade: string[] = [];
             const resourceUrlsVisited: string[] = [];
 
             for (const { response } of responsesWithUrl) {
-              inferredFacts.push(...response.facts);
-              entitySummaries.push(...response.existingEntitiesOfInterest);
+              inferredClaims.push(...response.inferredClaims);
+              entitySummaries.push(...response.inferredSummaries);
               suggestionsForNextStepsMade.push(response.suggestionForNextSteps);
               resourceUrlsVisited.push(
                 ...response.exploredResources.map(({ url }) => url),
@@ -551,18 +643,18 @@ export const researchEntitiesAction: FlowActionActivity<{
             return {
               ...toolCall,
               ...nullReturns,
-              inferredFacts,
+              inferredClaims,
               entitySummaries,
               suggestionsForNextStepsMade,
               resourceUrlsVisited,
               output:
                 entitySummaries.length > 0
                   ? "Entities inferred from web page"
-                  : "No facts were inferred about any relevant entities.",
+                  : "No claims were inferred about any relevant entities.",
             };
-          } else if (toolCall.name === "startFactGatheringSubTasks") {
+          } else if (toolCall.name === "startClaimGatheringSubTasks") {
             const { subTasks } =
-              toolCall.input as CoordinatorToolCallArguments["startFactGatheringSubTasks"];
+              toolCall.input as CoordinatorToolCallArguments["startClaimGatheringSubTasks"];
 
             let counter = 0;
 
@@ -614,18 +706,31 @@ export const researchEntitiesAction: FlowActionActivity<{
                       ),
                   );
 
-                  const existingFactsAboutRelevantEntities =
-                    state.inferredFacts.filter(({ subjectEntityLocalId }) =>
+                  const existingClaimsAboutRelevantEntities =
+                    state.inferredClaims.filter(({ subjectEntityLocalId }) =>
                       relevantEntityIds?.includes(subjectEntityLocalId),
                     );
+
+                  const subTaskIdentifiers: WorkerIdentifiers = {
+                    workerType: "Subtask",
+                    workerInstanceId: generateUuid(),
+                    parentInstanceId: workerIdentifiers.workerInstanceId,
+                  };
 
                   logProgress([
                     {
                       type: "StartedSubTask",
                       explanation,
-                      goal,
+                      input: {
+                        entityTypeTitles: [
+                          ...entityTypes.map((type) => type.title),
+                          ...(linkEntityTypes ?? []).map((type) => type.title),
+                        ],
+                        goal,
+                      },
                       recordedAt: new Date().toISOString(),
                       stepId,
+                      ...subTaskIdentifiers,
                     },
                   ]);
 
@@ -633,17 +738,41 @@ export const researchEntitiesAction: FlowActionActivity<{
                     input: {
                       goal,
                       relevantEntities,
-                      existingFactsAboutRelevantEntities,
+                      existingClaimsAboutRelevantEntities,
                       entityTypes,
                       linkEntityTypes,
                     },
+                    workerIdentifiers: subTaskIdentifiers,
                   });
+
+                  logProgress([
+                    {
+                      type: "ClosedSubTask",
+                      errorMessage:
+                        response.status !== "ok" ? response.reason : undefined,
+                      explanation:
+                        response.status === "ok"
+                          ? response.explanation
+                          : response.reason,
+                      goal,
+                      output:
+                        response.status === "ok"
+                          ? {
+                              claimCount: response.discoveredClaims.length,
+                              entityCount: response.discoveredEntities.length,
+                            }
+                          : { claimCount: 0, entityCount: 0 },
+                      recordedAt: new Date().toISOString(),
+                      stepId,
+                      ...subTaskIdentifiers,
+                    },
+                  ]);
 
                   return { response, subTask };
                 }),
             );
 
-            const inferredFacts: Fact[] = [];
+            const inferredClaims: Claim[] = [];
             const entitySummaries: LocalEntitySummary[] = [];
             const subTasksCompleted: string[] = [];
 
@@ -651,7 +780,7 @@ export const researchEntitiesAction: FlowActionActivity<{
 
             for (const { response, subTask } of responsesWithSubTask) {
               entitySummaries.push(...response.discoveredEntities);
-              inferredFacts.push(...response.discoveredFacts);
+              inferredClaims.push(...response.discoveredClaims);
 
               if (response.status === "ok") {
                 subTasksCompleted.push(subTask.goal);
@@ -671,7 +800,7 @@ export const researchEntitiesAction: FlowActionActivity<{
             return {
               ...toolCall,
               ...nullReturns,
-              inferredFacts,
+              inferredClaims,
               entitySummaries,
               subTasksCompleted,
               output: errorMessage || "Sub-tasks all completed.",
@@ -827,19 +956,20 @@ export const researchEntitiesAction: FlowActionActivity<{
     const newEntitySummaries = completedToolCalls.flatMap(
       ({ entitySummaries }) => entitySummaries ?? [],
     );
-    const newFacts = completedToolCalls.flatMap(
-      ({ inferredFacts }) => inferredFacts ?? [],
+    const newClaims = completedToolCalls.flatMap(
+      ({ inferredClaims }) => inferredClaims ?? [],
     );
 
     /**
-     * Update the state with the new facts and entity summaries inferred from the tool calls,
-     * which includes the deduplication of entities and the conversion of facts into proposed entities.
+     * Update the state with the new claims and entity summaries inferred from the tool calls,
+     * which includes the deduplication of entities and the conversion of claims into proposed entities.
      */
-    await updateStateFromInferredFacts({
+    await updateStateFromInferredClaims({
       input,
       state,
-      newFacts,
+      newClaims,
       newEntitySummaries,
+      workerIdentifiers,
     });
 
     const isCompleted = toolCalls.some(
@@ -852,6 +982,7 @@ export const researchEntitiesAction: FlowActionActivity<{
      */
     if (isCompleted) {
       if (state.hasConductedCheckStep) {
+        Context.current().heartbeat({ state });
         return;
       } else {
         state.hasConductedCheckStep = true;
@@ -863,6 +994,8 @@ export const researchEntitiesAction: FlowActionActivity<{
     if (testingParams?.persistState) {
       testingParams.persistState(state);
     }
+
+    Context.current().heartbeat({ state });
 
     const { toolCalls: nextToolCalls } =
       await coordinatingAgent.getNextToolCalls({
@@ -947,6 +1080,10 @@ export const researchEntitiesAction: FlowActionActivity<{
    */
   const fileEntityProposals: ProposedEntity[] = filesUsedToProposeEntities.map(
     ({ url, entityTypeId }) => ({
+      claims: {
+        isObjectOf: [],
+        isSubjectOf: [],
+      },
       /**
        * @todo: H-2728 set the web page this file was discovered in (if applicable) in the property provenance
        * for the `fileUrl`
@@ -954,7 +1091,10 @@ export const researchEntitiesAction: FlowActionActivity<{
       propertyMetadata: { value: {} },
       provenance: fileEditionProvenance,
       entityTypeId,
-      localEntityId: generateUuid(),
+      localEntityId: entityIdFromComponents(
+        webId,
+        generateUuid() as EntityUuid,
+      ),
       properties: {
         "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
           url,
@@ -970,11 +1110,24 @@ export const researchEntitiesAction: FlowActionActivity<{
       proposedEntity: proposedFileEntity,
       recordedAt: now,
       stepId,
+      ...workerIdentifiers,
     })),
   );
 
   logger.debug(`Proposed Entities: ${stringify(allProposedEntities)}`);
   logger.debug(`File Entities Proposed: ${stringify(fileEntityProposals)}`);
+
+  logProgress([
+    {
+      type: "ClosedCoordinator",
+      output: {
+        entityCount: allProposedEntities.length + fileEntityProposals.length,
+      },
+      recordedAt: new Date().toISOString(),
+      stepId,
+      ...workerIdentifiers,
+    },
+  ]);
 
   return {
     code: StatusCode.Ok,

@@ -21,10 +21,6 @@ import type {
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
-import {
-  systemEntityTypes,
-  systemPropertyTypes,
-} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type {
   KnowledgeGraphVertex,
   SerializedKnowledgeGraphVertex,
@@ -39,6 +35,8 @@ import {
   isEntityId,
   isEntityVertex,
 } from "@local/hash-subgraph";
+
+import { systemEntityTypes, systemPropertyTypes } from "./ontology-type-ids.js";
 
 const restrictedPropertyBaseUrls: string[] = [
   systemPropertyTypes.email.propertyTypeBaseUrl,

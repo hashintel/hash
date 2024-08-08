@@ -1,6 +1,5 @@
 /* eslint-disable import/first */
 
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import {
   getRequiredEnv,
   monorepoRootDir,
@@ -69,6 +68,7 @@ import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-i
 import { ensureHashSystemAccountExists } from "./graph/system-account";
 import { createApolloServer } from "./graphql/create-apollo-server";
 import { registerOpenTelemetryTracing } from "./graphql/opentelemetry";
+import { enabledIntegrations } from "./integrations/enabled-integrations";
 import { checkGoogleAccessToken } from "./integrations/google/check-access-token";
 import { getGoogleAccessToken } from "./integrations/google/get-access-token";
 import { googleOAuthCallback } from "./integrations/google/oauth-callback";
@@ -117,8 +117,8 @@ const userIdentifierRateLimiter = rateLimit({
   keyGenerator: (req) => {
     if (req.body.identifier) {
       /**
-       * 'identifier' is the field which identifies the user on a login attempt.
-       * We use this as a rate limiting key if present to mitigate brute force login attempts spread across multiple IPs.
+       * 'identifier' is the field which identifies the user on a signin attempt.
+       * We use this as a rate limiting key if present to mitigate brute force signin attempts spread across multiple IPs.
        */
       return req.body.identifier;
     }
@@ -131,7 +131,6 @@ const hydraProxy = proxy(hydraPublicUrl ?? "", {
 });
 
 const main = async () => {
-  await TypeSystemInitializer.initialize();
   logger.info("Type System initialized");
 
   registerOpenTelemetryTracing(process.env.HASH_OTLP_ENDPOINT ?? null);
@@ -635,7 +634,7 @@ const main = async () => {
     });
   });
 
-  if (realtimeSyncEnabled) {
+  if (realtimeSyncEnabled && enabledIntegrations.linear) {
     const integrationSyncBackWatcher =
       await createIntegrationSyncBackWatcher(graphApi);
 

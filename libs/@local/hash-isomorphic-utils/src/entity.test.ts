@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { flatMapTree } from "./util";
+import { flatMapTree } from "./util.js";
 
 describe("flatMapTree", () => {
   it("can flatmap simple properties", () => {

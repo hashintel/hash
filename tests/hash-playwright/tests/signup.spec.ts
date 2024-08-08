@@ -44,5 +44,5 @@ test("user can sign up", async ({ page }) => {
 
   await page.waitForURL("/");
 
-  await expect(page.locator("text=Welcome to HASH")).toBeVisible();
+  await expect(page.locator("text=Get support")).toBeVisible();
 });

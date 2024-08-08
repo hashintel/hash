@@ -107,11 +107,11 @@ async fn transaction_permit_drop_removes_entry() {
     let cloned = Arc::clone(&permit);
 
     drop(permit);
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
     assert_eq!(collection.storage().len(), 1);
 
     drop(cloned);
-    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+    tokio::time::sleep(Duration::from_millis(100)).await;
     assert_eq!(collection.storage().len(), 0);
 }
 

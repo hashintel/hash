@@ -1,7 +1,9 @@
 import * as Sentry from "@sentry/node";
 import type { Context } from "@temporalio/activity";
-import type { ActivityInboundCallsInterceptor } from "@temporalio/worker";
-import type { ActivityExecuteInput } from "@temporalio/worker/src/interceptors";
+import type {
+  ActivityExecuteInput,
+  ActivityInboundCallsInterceptor,
+} from "@temporalio/worker";
 import type { Next } from "@temporalio/workflow";
 
 export class SentryActivityInboundInterceptor

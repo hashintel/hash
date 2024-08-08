@@ -6,37 +6,19 @@
     },
     "deploy": {
       "cache": false,
-      "dependsOn": [
-        "@apps/hash-graph#build:docker",
-        "@apps/hash-ai-worker-ts#build:docker",
-        "@apps/hash-integration-worker#build:docker",
-        "codegen"
-      ]
+      "dependsOn": ["codegen"]
     },
     "deploy:test": {
       "cache": false,
-      "dependsOn": [
-        "@apps/hash-graph#build:docker:test",
-        "@apps/hash-ai-worker-ts#build:docker",
-        "@apps/hash-integration-worker#build:docker",
-        "codegen"
-      ]
+      "dependsOn": ["codegen"]
     },
     "deploy:offline": {
       "cache": false,
-      "dependsOn": [
-        "@apps/hash-graph#build:docker:offline",
-        "@apps/hash-ai-worker-ts#build:docker",
-        "@apps/hash-integration-worker#build:docker",
-        "codegen"
-      ]
+      "dependsOn": ["codegen"]
     },
     "deploy:prod": {
       "cache": false,
-      "dependsOn": ["@apps/hash-graph#build:docker:prod", "codegen"]
-    },
-    "deploy:prototype": {
-      "cache": false
+      "dependsOn": ["codegen"]
     }
   }
 }

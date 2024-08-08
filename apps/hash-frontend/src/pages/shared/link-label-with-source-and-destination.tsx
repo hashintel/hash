@@ -84,7 +84,9 @@ const LeftOrRightEntity: FunctionComponent<{
       return undefined;
     }
 
-    const { shortname: entityNamespace } = getOwnerForEntity({ entity });
+    const { shortname: entityNamespace } = getOwnerForEntity({
+      entityId: entity.metadata.recordId.entityId,
+    });
 
     return `/@${entityNamespace}/entities/${extractEntityUuidFromEntityId(
       entity.metadata.recordId.entityId,
@@ -119,7 +121,7 @@ const LeftOrRightEntity: FunctionComponent<{
         }}
       >
         {entityType ? (
-          entityType.metadata.icon ?? <AsteriskRegularIcon />
+          (entityType.metadata.icon ?? <AsteriskRegularIcon />)
         ) : (
           <EyeSlashIconRegular />
         )}

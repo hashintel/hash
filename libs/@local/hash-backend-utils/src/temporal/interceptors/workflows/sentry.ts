@@ -1,11 +1,12 @@
-import type { SentrySinks } from "@local/hash-backend-utils/temporal/sinks/sentry";
 import type {
   Next,
+  WorkflowExecuteInput,
   WorkflowInboundCallsInterceptor,
   WorkflowInterceptors,
 } from "@temporalio/workflow";
 import { proxySinks, workflowInfo } from "@temporalio/workflow";
-import type { WorkflowExecuteInput } from "@temporalio/workflow/lib/interceptors";
+
+import type { SentrySinks } from "../../sinks/sentry.js";
 
 const { sentry } = proxySinks<SentrySinks>();
 

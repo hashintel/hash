@@ -15,8 +15,8 @@ pub(crate) trait IsCancelled {
 /// This isn't strictly required, as it should never happen, but in the case that there are
 /// connections that are not cleaned up properly, this will remove them.
 pub(crate) struct ConnectionGarbageCollectorTask<C> {
-    pub(crate) every: Duration,
-    pub(crate) index: Arc<HashIndex<RequestId, C>>,
+    pub every: Duration,
+    pub index: Arc<HashIndex<RequestId, C>>,
 }
 
 impl<C> ConnectionGarbageCollectorTask<C>

@@ -7,9 +7,9 @@ import type {
 } from "@local/hash-isomorphic-utils/ai-inference-types";
 import type OpenAI from "openai";
 
-import type { DereferencedEntityType } from "../shared/dereference-entity-type";
-import type { LlmUsage } from "../shared/get-llm-response/types";
-import type { PermittedOpenAiModel } from "../shared/openai-client";
+import type { DereferencedEntityType } from "../shared/dereference-entity-type.js";
+import type { LlmUsage } from "../shared/get-llm-response/types.js";
+import type { PermittedOpenAiModel } from "../shared/openai-client.js";
 
 export type CompletionPayload = Omit<
   OpenAI.ChatCompletionCreateParams,
@@ -25,11 +25,14 @@ export type DereferencedEntityTypesByTypeId = Record<
   }
 >;
 
+/**
+ * @todo H-3163: remove these types by making the browser plugin flow use the same claim -> entity process as other flows
+ */
 export type ProposedEntitySummary = {
   entityId: number;
   entityTypeId: VersionedUrl;
-  sourceEntityId?: number | string;
-  targetEntityId?: number | string;
+  sourceEntityId?: number;
+  targetEntityId?: number;
   takenFromQueue?: boolean;
   summary: string;
 };

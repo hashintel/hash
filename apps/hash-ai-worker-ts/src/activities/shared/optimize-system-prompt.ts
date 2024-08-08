@@ -1,15 +1,15 @@
-import "../../shared/testing-utilities/mock-get-flow-context";
+import "../../shared/testing-utilities/mock-get-flow-context.js";
 
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
-import type { LlmParams } from "./get-llm-response/types";
-import { improveSystemPrompt } from "./optimize-system-prompt/improve-system-prompt";
+import type { LlmParams } from "./get-llm-response/types.js";
+import { improveSystemPrompt } from "./optimize-system-prompt/improve-system-prompt.js";
 import type {
   MetricDefinition,
   MetricResultsForModel,
   MetricResultsForSystemPrompt,
-} from "./optimize-system-prompt/types";
+} from "./optimize-system-prompt/types.js";
 
 const escapeCSV = (value: string) => {
   if (value.includes(",") || value.includes('"') || value.includes("\n")) {
@@ -93,8 +93,8 @@ const saveSummaryToCSV = (params: {
     "Iteration",
     "System Prompt",
     "Overall Score",
-    ...models.map((model) => `Average Score for ${model}`),
-    ...metrics.map((metric) => `Average Score for ${metric.name}`),
+    ...models.map((model) => `"Average Score for ${model}"`),
+    ...metrics.map((metric) => `"Average Score for ${metric.name}"`),
   ];
 
   const rows = results.map(
@@ -113,11 +113,11 @@ const saveSummaryToCSV = (params: {
 
       const metricAverageScores = metrics.map((metric) => {
         const scores = metricResultsForModels.flatMap(({ metricResults }) => {
-          const result = metricResults.find(
+          const metricResultsForPrompt = metricResults.filter(
             ({ metric: currentMetric }) => currentMetric.name === metric.name,
           );
 
-          return result ? [result.result.score] : [];
+          return metricResultsForPrompt.map(({ result }) => result.score);
         });
 
         return scores.length > 0
@@ -147,37 +147,46 @@ const saveSummaryToCSV = (params: {
 };
 
 const runMetricsForModels = async (params: {
+  attemptsPerPrompt: number;
   metrics: MetricDefinition[];
   models: LlmParams["model"][];
   systemPrompt: string;
 }): Promise<MetricResultsForModel[]> => {
-  const { metrics, models, systemPrompt } = params;
+  const { attemptsPerPrompt, metrics, models, systemPrompt } = params;
 
   const results = await Promise.all<MetricResultsForModel>(
     models.map(async (model) => {
-      const metricResults = await Promise.all(
-        metrics.map(async (metricDefinition) => {
-          const startTime = new Date();
+      const metricResults = (
+        await Promise.all(
+          metrics.map(async (metricDefinition) => {
+            const iterationResults: MetricResultsForModel["metricResults"] = [];
 
-          const result = await metricDefinition.executeMetric({
-            testingParams: {
-              model,
-              systemPrompt,
-            },
-          });
+            for (let i = 0; i < attemptsPerPrompt; i++) {
+              const startTime = new Date();
 
-          const endTime = new Date();
+              const result = await metricDefinition.executeMetric({
+                testingParams: {
+                  model,
+                  systemPrompt,
+                },
+              });
 
-          const responseTimeInSeconds =
-            (endTime.getTime() - startTime.getTime()) / 1000;
+              const endTime = new Date();
 
-          return {
-            metric: metricDefinition,
-            responseTimeInSeconds,
-            result,
-          };
-        }),
-      );
+              const responseTimeInSeconds =
+                (endTime.getTime() - startTime.getTime()) / 1000;
+
+              iterationResults.push({
+                metric: metricDefinition,
+                responseTimeInSeconds,
+                result,
+              });
+            }
+
+            return iterationResults;
+          }),
+        )
+      ).flat();
 
       return { metricResults, model };
     }),
@@ -187,17 +196,19 @@ const runMetricsForModels = async (params: {
 };
 
 export const optimizeSystemPrompt = async (params: {
+  attemptsPerPrompt: number;
   models: LlmParams["model"][];
   metrics: MetricDefinition[];
   initialSystemPrompt: string;
-  numberOfIterations: number;
+  promptIterations: number;
   directoryPath: string;
 }) => {
   const {
+    attemptsPerPrompt,
     metrics,
     models,
     initialSystemPrompt,
-    numberOfIterations,
+    promptIterations,
     directoryPath,
   } = params;
 
@@ -212,11 +223,12 @@ export const optimizeSystemPrompt = async (params: {
     mkdirSync(directoryPath, { recursive: true });
   }
 
-  while (currentIteration <= numberOfIterations) {
+  while (currentIteration <= promptIterations) {
     /**
      * Run the metrics for all models using the current system prompt.
      */
     const metricResultsForModels = await runMetricsForModels({
+      attemptsPerPrompt,
       metrics,
       models,
       systemPrompt: currentSystemPrompt,
@@ -246,7 +258,7 @@ export const optimizeSystemPrompt = async (params: {
      * If the current iteration is greater than the number of iterations, there
      * is no need to improve the system prompt further.
      */
-    if (currentIteration > numberOfIterations) {
+    if (currentIteration > promptIterations) {
       break;
     }
 

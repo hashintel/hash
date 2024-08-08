@@ -94,20 +94,20 @@ where
     }
 
     fn size_hint(&self) -> SizeHint {
-        match u64::try_from(self.remaining) {
-            Ok(n) => {
+        u64::try_from(self.remaining).map_or_else(
+            |_| self.inner.size_hint(),
+            |n| {
                 let mut hint = self.inner.size_hint();
                 if hint.lower() >= n {
-                    hint.set_exact(n)
+                    hint.set_exact(n);
                 } else if let Some(max) = hint.upper() {
-                    hint.set_upper(n.min(max))
+                    hint.set_upper(n.min(max));
                 } else {
-                    hint.set_upper(n)
+                    hint.set_upper(n);
                 }
                 hint
-            }
-            Err(_) => self.inner.size_hint(),
-        }
+            },
+        )
     }
 }
 

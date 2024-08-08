@@ -1,18 +1,16 @@
 import type { GraphApi } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
 import dedent from "dedent";
 
-import type { PermittedOpenAiModel } from "../shared/openai-client";
-import { simplifyEntity } from "../shared/simplify-entity";
-import { inferEntitySummaries } from "./infer-entity-summaries";
+import type { PermittedOpenAiModel } from "../shared/openai-client.js";
+import { inferEntitySummaries } from "./infer-entity-summaries.js";
 import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
-} from "./inference-types";
+} from "./inference-types.js";
 
 export const inferEntitySummariesFromWebPage = async (params: {
   webPage: WebPage | string;
@@ -22,7 +20,6 @@ export const inferEntitySummariesFromWebPage = async (params: {
   temperature?: number;
   inferenceState: InferenceState;
   entityTypes: DereferencedEntityTypesByTypeId;
-  existingEntities?: Entity[];
   /**
    * @todo: remove these parameters when the `inferEntities` activity has
    * been deprecated, and access them via `getFlowContext` instead.
@@ -42,7 +39,6 @@ export const inferEntitySummariesFromWebPage = async (params: {
     temperature,
     entityTypes,
     inferenceState,
-    existingEntities,
     userAccountId,
     graphApiClient,
     flowEntityId,
@@ -75,17 +71,7 @@ export const inferEntitySummariesFromWebPage = async (params: {
         Pay particular attention to providing responses for entities which are most prominent in the page,
         and any which are mentioned in the title or URL – but include as many other entities as you can find also.`)
   }
-  ${
-    existingEntities && existingEntities.length > 0
-      ? dedent(`
-        The user has provided these existing entities, which do not need to be inferred again: ${JSON.stringify(
-          existingEntities.map(simplifyEntity),
-        )}
 
-        Do not provide summaries for entities which are already in this list.
-      `)
-      : ""
-  }
   Here is the website content:
   ${typeof webPage === "string" ? webPage : webPage.htmlContent}
   ---WEBSITE CONTENT ENDS---
@@ -108,7 +94,6 @@ export const inferEntitySummariesFromWebPage = async (params: {
     entityTypes,
     inferenceState,
     providedOrRerequestedEntityTypes: new Set(),
-    existingEntities,
     userAccountId,
     graphApiClient,
     flowEntityId,

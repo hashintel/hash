@@ -18,7 +18,6 @@ import {
   setPageParentPage,
 } from "@apps/hash-api/src/graph/knowledge/system-types/page";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -46,7 +45,6 @@ describe("Page", () => {
   let testUser: User;
 
   beforeAll(async () => {
-    await TypeSystemInitializer.initialize();
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
     testUser = await createTestUser(graphContext, "pageTest", logger);

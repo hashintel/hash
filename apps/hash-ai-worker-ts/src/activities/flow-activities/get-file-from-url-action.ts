@@ -5,9 +5,9 @@ import {
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 
-import { logProgress } from "../shared/log-progress";
-import { getFileEntityFromUrl } from "./shared/get-file-entity-from-url";
-import type { FlowActionActivity } from "./types";
+import { logProgress } from "../shared/log-progress.js";
+import { getFileEntityFromUrl } from "./shared/get-file-entity-from-url.js";
+import type { FlowActionActivity } from "./types.js";
 
 export const getFileFromUrlAction: FlowActionActivity = async ({ inputs }) => {
   const {
@@ -20,6 +20,7 @@ export const getFileFromUrlAction: FlowActionActivity = async ({ inputs }) => {
   });
 
   const getFileEntityFromUrlStatus = await getFileEntityFromUrl({
+    entityUuid: null,
     url: originalUrl,
     description,
     displayName,

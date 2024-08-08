@@ -1,3 +1,3 @@
-import { entityEditionTableName } from "@local/hash-backend-utils/pg-tables";
+import { entityEditionTableName } from "./pg-tables.js";
 
 export const supportedRealtimeTables = [entityEditionTableName];

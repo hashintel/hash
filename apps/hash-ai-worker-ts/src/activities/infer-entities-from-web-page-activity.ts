@@ -1,20 +1,18 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { WebPage } from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
-import { inferEntitySummariesFromWebPage } from "./infer-entities/infer-entity-summaries-from-web-page";
+import { inferEntitySummariesFromWebPage } from "./infer-entities/infer-entity-summaries-from-web-page.js";
 import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
-} from "./infer-entities/inference-types";
-import { proposeEntities } from "./infer-entities/propose-entities";
-import { logger } from "./shared/activity-logger";
-import { getFlowContext } from "./shared/get-flow-context";
-import { graphApiClient } from "./shared/graph-api-client";
-import type { PermittedOpenAiModel } from "./shared/openai-client";
-import { simplifyEntity } from "./shared/simplify-entity";
-import { stringify } from "./shared/stringify";
+} from "./infer-entities/inference-types.js";
+import { proposeEntities } from "./infer-entities/propose-entities.js";
+import { logger } from "./shared/activity-logger.js";
+import { getFlowContext } from "./shared/get-flow-context.js";
+import { graphApiClient } from "./shared/graph-api-client.js";
+import type { PermittedOpenAiModel } from "./shared/openai-client.js";
+import { stringify } from "./shared/stringify.js";
 
 export const inferEntitiesFromWebPageActivity = async (params: {
   webPage: WebPage | string;
@@ -24,7 +22,6 @@ export const inferEntitiesFromWebPageActivity = async (params: {
   model: PermittedOpenAiModel;
   maxTokens?: number | null;
   temperature?: number;
-  existingEntities?: Entity[];
 }) => {
   const {
     webPage,
@@ -34,7 +31,6 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     inferenceState,
     maxTokens,
     temperature,
-    existingEntities,
   } = params;
 
   const { webId, userAuthentication } = await getFlowContext();
@@ -60,7 +56,6 @@ export const inferEntitiesFromWebPageActivity = async (params: {
     model,
     maxTokens,
     temperature,
-    existingEntities,
     userAccountId: userAuthentication.actorId,
     graphApiClient,
     webId,
@@ -101,18 +96,6 @@ export const inferEntitiesFromWebPageActivity = async (params: {
       ensure that the values is stored in the correct unit. Do not
       change units, you must use the units specified in the data.
 
-    ${
-      existingEntities && existingEntities.length > 0
-        ? dedent(`
-          The user has provided these existing entities, which do not need to be inferred again: ${JSON.stringify(
-            existingEntities.map(simplifyEntity),
-          )}
-
-          You are encouraged to link to existing entities from the new entities you propose, where it may be relevant.
-        `)
-        : ""
-    }
-
     You already provided a summary of the ${
       relevantEntitiesPrompt
         ? "relevant entities you inferred"
@@ -129,6 +112,5 @@ export const inferEntitiesFromWebPageActivity = async (params: {
       ...inferenceState,
       iterationCount: inferenceState.iterationCount + 1,
     },
-    existingEntities,
   });
 };

@@ -1,6 +1,7 @@
 import type { BlockMetadata } from "@blockprotocol/core";
 import type {
   BlockGraphProperties,
+  EntityRootType,
   GraphEmbedderMessageCallbacks,
 } from "@blockprotocol/graph";
 import { useGraphEmbedderModule } from "@blockprotocol/graph/react";
@@ -177,7 +178,9 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
 
   const blockHasMissingHasQueryLinks = useMemo(() => {
     if (blockSchemaRequiresOutgoingHasQueryLinks) {
-      const blockEntity = getRoots(graphProperties.blockEntitySubgraph)[0];
+      const blockEntity = getRoots<EntityRootType>(
+        graphProperties.blockEntitySubgraph,
+      )[0];
 
       if (blockEntity) {
         const outgoingLinks = getOutgoingLinksForEntity(

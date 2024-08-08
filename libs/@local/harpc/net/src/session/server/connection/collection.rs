@@ -44,8 +44,8 @@ impl ConcurrencyLimit {
 pub(crate) struct TransactionState {
     generation: u64,
 
-    pub(crate) sender: tachyonix::Sender<Request>,
-    pub(crate) cancel: CancellationToken,
+    pub sender: tachyonix::Sender<Request>,
+    pub cancel: CancellationToken,
 }
 
 impl IsCancelled for TransactionState {

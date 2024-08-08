@@ -2,10 +2,9 @@
   "name": "@rust/hash-tracing",
   "version": "0.0.0-private",
   "private": true,
+  "license": "AGPL-3",
   "scripts": {
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy"
-  },
-  "dependencies": {},
-  "devDependencies": {}
+  }
 }

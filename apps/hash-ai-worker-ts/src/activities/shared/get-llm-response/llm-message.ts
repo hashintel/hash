@@ -1,13 +1,8 @@
 import type {
   MessageParam as AnthropicMessage,
   ToolResultBlockParam as AnthropicToolResultBlockParam,
-} from "@anthropic-ai/sdk/resources";
-import type {
-  ChatCompletionAssistantMessageParam,
-  ChatCompletionMessageParam as OpenAiMessage,
-  ChatCompletionToolMessageParam,
-  ChatCompletionUserMessageParam,
-} from "openai/resources";
+} from "@anthropic-ai/sdk/resources/messages";
+import type { OpenAI } from "openai";
 
 export type LlmMessageTextContent = {
   type: "text";
@@ -172,13 +167,13 @@ export const getTextContentFromLlmMessage = (params: {
 
 export const mapLlmMessageToOpenAiMessages = (params: {
   message: LlmMessage;
-}): OpenAiMessage[] => {
+}): OpenAI.ChatCompletionMessageParam[] => {
   const { message } = params;
 
   if (message.role === "assistant") {
     const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
 
-    const assistantMessage: ChatCompletionAssistantMessageParam = {
+    const assistantMessage: OpenAI.ChatCompletionAssistantMessageParam = {
       role: message.role,
       content: getTextContentFromLlmMessage({ message }) ?? null,
       tool_calls: toolCalls.map((toolCall) => ({
@@ -199,14 +194,14 @@ export const mapLlmMessageToOpenAiMessages = (params: {
       return {
         role: "user",
         content: content.text,
-      } satisfies ChatCompletionUserMessageParam;
+      } satisfies OpenAI.ChatCompletionUserMessageParam;
     }
 
     return {
       role: "tool",
       tool_call_id: content.tool_use_id,
       content: content.content,
-    } satisfies ChatCompletionToolMessageParam;
+    } satisfies OpenAI.ChatCompletionToolMessageParam;
   });
 };
 
@@ -219,7 +214,7 @@ const sanitizeToolCallName = (toolName: string): string => {
 };
 
 export const mapOpenAiMessagesToLlmMessages = (params: {
-  messages: OpenAiMessage[];
+  messages: OpenAI.ChatCompletionMessageParam[];
 }): LlmMessage[] => {
   const { messages } = params;
 

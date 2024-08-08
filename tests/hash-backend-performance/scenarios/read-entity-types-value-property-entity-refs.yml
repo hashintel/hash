@@ -1,0 +1,21 @@
+scenarios:
+  - name: Read all entity types with all type references
+    flow:
+      - post:
+          url: /
+          json:
+            query: |
+              query {
+                queryEntityTypes(
+                  constrainsValuesOn: { outgoing: 255 }
+                  constrainsPropertiesOn: { outgoing: 255 }
+                  constrainsLinksOn: { outgoing: 255 }
+                  constrainsLinkDestinationsOn: { outgoing: 255 }
+                  inheritsFrom: { outgoing: 255 }
+                  includeArchived: true
+                ) {
+                  vertices
+                }
+              }
+          expect:
+            - notHasProperty: errors

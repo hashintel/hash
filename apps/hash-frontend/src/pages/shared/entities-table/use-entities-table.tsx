@@ -96,9 +96,9 @@ export const useEntitiesTable = (params: {
     const columns: SizedGridColumn[] = [
       {
         title: entitiesHaveSameType
-          ? entityTypes?.find(
+          ? (entityTypes?.find(
               ({ $id }) => $id === entities?.[0]?.metadata.entityTypeId,
-            )?.title ?? "Entity"
+            )?.title ?? "Entity")
           : "Entity",
         id: "entityLabel",
         width: 252,
@@ -156,7 +156,7 @@ export const useEntitiesTable = (params: {
             );
 
             const { shortname: entityNamespace } = getOwnerForEntity({
-              entity,
+              entityId: entity.metadata.recordId.entityId,
             });
 
             const entityId = entity.metadata.recordId.entityId;

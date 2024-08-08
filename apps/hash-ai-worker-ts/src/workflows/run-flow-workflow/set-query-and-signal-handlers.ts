@@ -6,8 +6,8 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import { proxySinks, setHandler } from "@temporalio/workflow";
 
-import { getExternalInputResponseQuery } from "../../shared/queries";
-import { externalInputRequestSignal } from "../../shared/signals";
+import { getExternalInputResponseQuery } from "../../shared/queries.js";
+import { externalInputRequestSignal } from "../../shared/signals.js";
 
 const sinks = proxySinks<SentrySinks>();
 

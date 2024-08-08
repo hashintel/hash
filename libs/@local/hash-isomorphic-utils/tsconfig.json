@@ -1,11 +1,13 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-  "include": ["./src/", "codegen.config.ts"],
+  "include": ["src", "codegen.config.ts", "/**/*.gen.json"],
   "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     /**
      * @todo ideally we wouldn't specify 'dom' as this library is supposed to be usable across environments,
      *   but we have some functions which reference DOM APIs – these should be moved out
      */
-    "lib": ["dom", "esnext"]
+    "lib": ["dom", "ES2023"]
   }
 }

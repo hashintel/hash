@@ -1,6 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { GraphApi } from "@local/hash-graph-client";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -9,38 +8,37 @@ import { StatusCode } from "@local/status";
 import dedent from "dedent";
 import type OpenAI from "openai";
 
-import { logger } from "../shared/activity-logger";
-import { getFlowContext } from "../shared/get-flow-context";
-import { getLlmResponse } from "../shared/get-llm-response";
+import { logger } from "../shared/activity-logger.js";
+import { getFlowContext } from "../shared/get-flow-context.js";
+import { getLlmResponse } from "../shared/get-llm-response.js";
 import {
   getTextContentFromLlmMessage,
   getToolCallsFromLlmAssistantMessage,
   mapLlmMessageToOpenAiMessages,
   mapOpenAiMessagesToLlmMessages,
-} from "../shared/get-llm-response/llm-message";
-import { stringify } from "../shared/stringify";
-import { inferEntitiesSystemPrompt } from "./infer-entities-system-prompt";
+} from "../shared/get-llm-response/llm-message.js";
+import { stringify } from "../shared/stringify.js";
+import { inferEntitiesSystemPrompt } from "./infer-entities-system-prompt.js";
 import type {
   CouldNotInferEntitiesReturn,
   ProposedEntitySummariesByType,
-} from "./infer-entity-summaries/generate-summary-tools";
+} from "./infer-entity-summaries/generate-summary-tools.js";
 import {
   generateSummaryTools,
   validateEntitySummariesByType,
-} from "./infer-entity-summaries/generate-summary-tools";
+} from "./infer-entity-summaries/generate-summary-tools.js";
 import type {
   CompletionPayload,
   DereferencedEntityTypesByTypeId,
   InferenceState,
   ProposedEntitySummary,
-} from "./inference-types";
+} from "./inference-types.js";
 
 export const inferEntitySummaries = async (params: {
   completionPayload: CompletionPayload;
   entityTypes: DereferencedEntityTypesByTypeId;
   inferenceState: InferenceState;
   providedOrRerequestedEntityTypes: Set<VersionedUrl>;
-  existingEntities?: Entity[];
   /**
    * @todo: remove these parameters when the `inferEntities` activity has
    * been deprecated, and access them via `getFlowContext` instead.
@@ -57,7 +55,6 @@ export const inferEntitySummaries = async (params: {
     entityTypes,
     inferenceState,
     providedOrRerequestedEntityTypes,
-    existingEntities,
     userAccountId,
     graphApiClient,
     flowEntityId,
@@ -84,8 +81,6 @@ export const inferEntitySummaries = async (params: {
 
   const tools = generateSummaryTools({
     entityTypes: Object.values(entityTypes),
-    canLinkToExistingEntities:
-      !!existingEntities && existingEntities.length > 0,
   });
 
   const { stepId } = await getFlowContext();
@@ -268,7 +263,6 @@ export const inferEntitySummaries = async (params: {
               parsedJson: proposedEntitySummariesByType,
               entityTypesById: entityTypes,
               existingSummaries: inferenceState.proposedEntitySummaries,
-              existingEntities,
             });
 
           for (const validSummary of validSummaries) {
@@ -335,11 +329,7 @@ export const inferEntitySummaries = async (params: {
               .map(({ schema }) => schema.$id)
               .join(", ")}.
 
-            Please reconsider the input text to see if you can identify any ${missingContentKinds} of those types${
-              existingEntities && existingEntities.length > 0 && isMissingLinks
-                ? ", including whether any links can be created to the existing entities provided."
-                : "."
-            }
+            Please reconsider the input text to see if you can identify any ${missingContentKinds} of those types
           `),
           role: "user",
         });

@@ -1,3 +1,5 @@
+use core::str::FromStr;
+
 use graph::{
     store::{
         error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
@@ -10,12 +12,15 @@ use graph::{
     },
 };
 use graph_types::{
-    ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
+    ontology::{
+        DataTypeId, DataTypeWithMetadata, OntologyTypeClassificationMetadata,
+        ProvidedOntologyEditionProvenance,
+    },
     owned_by_id::OwnedById,
 };
 use temporal_versioning::TemporalBound;
 use time::OffsetDateTime;
-use type_system::schema::DataType;
+use type_system::{schema::DataType, url::VersionedUrl};
 
 use crate::{data_type_relationships, DatabaseTestWrapper};
 
@@ -100,6 +105,128 @@ async fn query() {
         "expected one data type, got {data_types:?}"
     );
     assert_eq!(data_types[0].schema.id, empty_list_dt.id);
+}
+
+#[tokio::test]
+#[expect(clippy::too_many_lines)]
+async fn inheritance() {
+    fn create_params(filter: Filter<DataTypeWithMetadata>) -> GetDataTypesParams {
+        GetDataTypesParams {
+            filter,
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
+            },
+            after: None,
+            limit: None,
+            include_drafts: false,
+            include_count: false,
+        }
+    }
+
+    let mut database = DatabaseTestWrapper::new().await;
+    let api = database
+        .seed(
+            // TODO: Ensure that an arbitrary order is possible
+            //   see https://linear.app/hash/issue/H-3222/make-sure-data-types-inheriting-from-each-other-can-be-passed-in
+            [
+                graph_test_data::data_type::NUMBER_V1,
+                graph_test_data::data_type::LENGTH_V1,
+                graph_test_data::data_type::CENTIMETER_V1,
+                graph_test_data::data_type::METER_V1,
+            ],
+            [],
+            [],
+        )
+        .await
+        .expect("could not seed database");
+
+    let number_url = VersionedUrl::from_str(
+        "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+    )
+    .expect("could not parse versioned url");
+    let centimeter_id = DataTypeId::from_url(
+        &VersionedUrl::from_str("https://hash.ai/@hash/types/data-type/centimeter/v/1")
+            .expect("could not parse versioned url"),
+    );
+
+    assert_eq!(
+        api.get_data_types(
+            api.account_id,
+            create_params(Filter::for_data_type_parents(&[centimeter_id], None))
+        )
+        .await
+        .expect("could not get data type")
+        .data_types
+        .len(),
+        2,
+        "expected two data types"
+    );
+
+    assert_eq!(
+        api.get_data_types(
+            api.account_id,
+            create_params(Filter::for_data_type_parents(&[centimeter_id], Some(0)))
+        )
+        .await
+        .expect("could not get data type")
+        .data_types
+        .len(),
+        1,
+        "expected one data type"
+    );
+
+    assert_eq!(
+        api.get_data_types(
+            api.account_id,
+            create_params(Filter::for_data_type_parents(&[centimeter_id], Some(1)))
+        )
+        .await
+        .expect("could not get data type")
+        .data_types
+        .len(),
+        2,
+        "expected one data type"
+    );
+
+    assert_eq!(
+        api.get_data_types(
+            api.account_id,
+            create_params(Filter::for_data_type_children(&number_url, None))
+        )
+        .await
+        .expect("could not get data type")
+        .data_types
+        .len(),
+        3,
+        "expected two data types"
+    );
+
+    assert_eq!(
+        api.get_data_types(
+            api.account_id,
+            create_params(Filter::for_data_type_children(&number_url, Some(0)))
+        )
+        .await
+        .expect("could not get data type")
+        .data_types
+        .len(),
+        1,
+        "expected one data type"
+    );
+
+    assert_eq!(
+        api.get_data_types(
+            api.account_id,
+            create_params(Filter::for_data_type_children(&number_url, Some(1)))
+        )
+        .await
+        .expect("could not get data type")
+        .data_types
+        .len(),
+        3,
+        "expected one data type"
+    );
 }
 
 #[tokio::test]

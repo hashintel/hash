@@ -1,10 +1,10 @@
-import type { InferenceModelName } from "../ai-inference-types";
+import type { InferenceModelName } from "../ai-inference-types.js";
 import type {
   ActionDefinition,
   DeepReadOnly,
   PayloadKindValues,
   StepInput,
-} from "./types";
+} from "./types.js";
 
 const actionDefinitionIds = [
   "answerQuestion",
@@ -182,12 +182,6 @@ const actionDefinitionsAsConst = {
         name: "relevantEntitiesPrompt",
         required: false,
         array: false,
-      },
-      {
-        oneOfPayloadKinds: ["Entity", "PersistedEntities"],
-        name: "existingEntities",
-        required: false,
-        array: true,
       },
     ],
     outputs: [

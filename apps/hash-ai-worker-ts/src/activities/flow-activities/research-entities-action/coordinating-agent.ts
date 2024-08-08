@@ -4,45 +4,43 @@ import type {
   ProposedEntity,
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
-import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 
-import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
-import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
-import { logger } from "../../shared/activity-logger";
-import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
-import { getFlowContext } from "../../shared/get-flow-context";
-import { getLlmResponse } from "../../shared/get-llm-response";
+import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity.js";
+import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types.js";
+import { logger } from "../../shared/activity-logger.js";
+import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
+import { getFlowContext } from "../../shared/get-flow-context.js";
+import { getLlmResponse } from "../../shared/get-llm-response.js";
 import type {
   LlmMessage,
   LlmMessageTextContent,
   LlmUserMessage,
-} from "../../shared/get-llm-response/llm-message";
-import { getToolCallsFromLlmAssistantMessage } from "../../shared/get-llm-response/llm-message";
+} from "../../shared/get-llm-response/llm-message.js";
+import { getToolCallsFromLlmAssistantMessage } from "../../shared/get-llm-response/llm-message.js";
 import type {
   LlmParams,
   ParsedLlmToolCall,
-} from "../../shared/get-llm-response/types";
-import { graphApiClient } from "../../shared/graph-api-client";
-import { logProgress } from "../../shared/log-progress";
-import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-entities-to-entities";
-import { stringify } from "../../shared/stringify";
-import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text";
-import type { Fact } from "../shared/infer-facts-from-text/types";
+} from "../../shared/get-llm-response/types.js";
+import { graphApiClient } from "../../shared/graph-api-client.js";
+import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-entities-to-entities.js";
+import { stringify } from "../../shared/stringify.js";
+import type { LocalEntitySummary } from "../shared/infer-claims-from-text/get-entity-summaries-from-text.js";
+import type { Claim } from "../shared/infer-claims-from-text/types.js";
 import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
-} from "./coordinator-tools";
-import { generateToolDefinitions } from "./coordinator-tools";
-import { getAnswersFromHuman } from "./get-answers-from-human";
+} from "./coordinator-tools.js";
+import { generateToolDefinitions } from "./coordinator-tools.js";
+import { getAnswersFromHuman } from "./get-answers-from-human.js";
 import {
   simplifyEntityTypeForLlmConsumption,
   simplifyProposedEntityForLlmConsumption,
-} from "./shared/simplify-for-llm-consumption";
-import type { ExistingEntitySummary } from "./summarize-existing-entities";
-import { summarizeExistingEntities } from "./summarize-existing-entities";
-import type { CompletedCoordinatorToolCall, ResourceSummary } from "./types";
-import { mapPreviousCallsToLlmMessages } from "./util";
+} from "./shared/simplify-for-llm-consumption.js";
+import type { ExistingEntitySummary } from "./summarize-existing-entities.js";
+import { summarizeExistingEntities } from "./summarize-existing-entities.js";
+import type { CompletedCoordinatorToolCall, ResourceSummary } from "./types.js";
+import { mapPreviousCallsToLlmMessages } from "./util.js";
 
 const model: LlmParams["model"] = "claude-3-5-sonnet-20240620";
 
@@ -66,10 +64,10 @@ const generateSystemPromptPrefix = (params: {
   return dedent(`
     You are a coordinating agent for a research task.
     The user provides you with a research brief, and the types of entities that are relevant.
-    Your job is to do research to gather facts about those types of entities, consistent with the research brief,
+    Your job is to do research to gather claims about those types of entities, consistent with the research brief,
     as well as relevant entities that they link to – forming a graph.
     
-    You will have tools provided to you to gather facts, which will be automatically converted into entities.
+    You will have tools provided to you to gather claims, which will be automatically converted into entities.
 
     The user provides you with:
       - Prompt: the text prompt you need to satisfy to complete the research task
@@ -102,9 +100,9 @@ const generateSystemPromptPrefix = (params: {
       as many properties as possible.
 
     This may well involve:
-      - inferring facts from more than one data source
+      - inferring claims from more than one data source
       - conducting multiple searches
-      - starting sub-tasks to find additional relevant facts about specific entities
+      - starting sub-tasks to find additional relevant claims about specific entities
 
     If it would be useful to split up the task into sub-tasks to find detailed information on specific entities, do so. 
     Don't start sub-tasks in parallel which duplicate or overlap, or where one will depend on the result of another (do it in sequence).
@@ -142,7 +140,9 @@ ${
    *
    * @see https://linear.app/hash/issue/H-2826/simplify-property-values-for-llm-consumption
    */
-  linkEntityTypes ? `Link Types: ${JSON.stringify(linkEntityTypes)}` : ""
+  linkEntityTypes
+    ? `<LinkTypes>${linkEntityTypes.map((linkType) => simplifyEntityTypeForLlmConsumption({ entityType: linkType })).join("\n")}</LinkTypes>`
+    : ""
 }
 ${existingEntities ? `Existing Entities: ${JSON.stringify(existingEntities)}` : ""}
       `),
@@ -155,7 +155,7 @@ export type CoordinatingAgentState = {
     completedToolCalls: CompletedCoordinatorToolCall<CoordinatorToolName>[];
   }[];
   entitySummaries: LocalEntitySummary[];
-  inferredFacts: Fact[];
+  inferredClaims: Claim[];
   proposedEntities: ProposedEntity[];
   subTasksCompleted: string[];
   suggestionsForNextStepsMade: string[];
@@ -171,7 +171,7 @@ const generateProgressReport = (params: {
   input: CoordinatingAgentInput;
   state: CoordinatingAgentState;
 }): LlmMessageTextContent => {
-  const { state } = params;
+  const { state, input } = params;
 
   const {
     subTasksCompleted,
@@ -180,6 +180,8 @@ const generateProgressReport = (params: {
     resourceUrlsVisited,
     webQueriesMade,
   } = state;
+
+  const { allDereferencedEntityTypesById } = input;
 
   const proposedEntities = state.proposedEntities.filter(
     (proposedEntity) => !("sourceEntityId" in proposedEntity),
@@ -204,24 +206,41 @@ const generateProgressReport = (params: {
     if (proposedEntities.length > 0) {
       progressReport += dedent(`
       <DiscoveredEntities>
-      ${proposedEntities.map((proposedEntity) => simplifyProposedEntityForLlmConsumption({ proposedEntity })).join("\n")}
+      ${proposedEntities
+        .map((proposedEntity) =>
+          simplifyProposedEntityForLlmConsumption({
+            proposedEntity,
+            entityType:
+              allDereferencedEntityTypesById[proposedEntity.entityTypeId]!
+                .schema,
+          }),
+        )
+        .join("\n")}
       </DiscoveredEntities>
     `);
     }
     if (proposedLinks.length > 0) {
       progressReport += dedent(`
       <DiscoveredLinks>
-      ${proposedLinks.map((proposedLink) => simplifyProposedEntityForLlmConsumption({ proposedEntity: proposedLink })).join("\n")}
+      ${proposedLinks
+        .map((proposedLink) =>
+          simplifyProposedEntityForLlmConsumption({
+            proposedEntity: proposedLink,
+            entityType:
+              allDereferencedEntityTypesById[proposedLink.entityTypeId]!.schema,
+          }),
+        )
+        .join("\n")}
       </DiscoveredLinks>
     `);
     }
 
     progressReport += dedent`
     If further research is needed to fill more properties of any entities or links,
-      consider defining them as sub-tasks via the "startFactGatheringSubTasks" tool.
+      consider defining them as sub-tasks via the "startClaimGatheringSubTasks" tool.
 
     Do not sequentially conduct additional actions for each of the entities,
-      instead start multiple sub-tasks via the "startFactGatheringSubTasks" tool to
+      instead start multiple sub-tasks via the "startClaimGatheringSubTasks" tool to
       conduct additional research per entity in parallel.`;
   }
   if (
@@ -231,10 +250,20 @@ const generateProgressReport = (params: {
   ) {
     if (resourceUrlsVisited.length > 0) {
       progressReport += dedent(`
-        You have already visited the following resources – they may be worth visiting again if you need more information:
-        <ResourcesVisited>
-        ${resourceUrlsVisited.join("\n")}
-        </ResourcesVisited>
+        You have discovered the following resources via web searches but noy yet visited them. It may be worth inferring claims from the URL.
+        <ResourcesNotVisited>
+        ${resourcesNotVisited
+          .map(
+            (webPage) =>
+              `
+<Resource>
+  <Url>${webPage.url}</Url>
+  <Summary>${webPage.summary}</Summary>
+  <FromWebSearch>"${webPage.fromSearchQuery}"</FromWebSearch>
+</Resource>`,
+          )
+          .join("\n")}
+        </ResourcesNotVisited>
       `);
     }
     if (resourcesNotVisited.length > 0) {
@@ -272,6 +301,10 @@ const generateProgressReport = (params: {
       </SubTasksCompleted>
     `);
   }
+
+  progressReport += dedent(`
+    Now decide what to do next. Pay close attention to any missing properties on entities, and consider doing work to populate them.
+  `);
 
   return {
     type: "text",
@@ -323,8 +356,7 @@ const getNextToolCalls = async (params: {
         progressReport,
       ],
     } satisfies LlmUserMessage,
-    ...llmMessagesFromPreviousToolCalls,
-  ].flat();
+  ];
 
   const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
     await getFlowContext();
@@ -394,7 +426,7 @@ const createInitialPlan = async (params: {
     ${
       providedFiles.length
         ? dedent(`
-      The user has provided you with the following resources which can be used to infer facts from:
+      The user has provided you with the following resources which can be used to infer claims from:
       ${providedFiles.map((file) => `<Resource>Url: ${file.url}\nTitle: ${file.title}</Resource>`).join("\n\n")}`)
         : ""
     }
@@ -488,15 +520,6 @@ const createInitialPlan = async (params: {
   if (updatePlanToolCall) {
     const { plan } =
       updatePlanToolCall.input as CoordinatorToolCallArguments["updatePlan"];
-
-    logProgress([
-      {
-        recordedAt: new Date().toISOString(),
-        stepId: Context.current().info.activityId,
-        type: "CreatedPlan",
-        plan,
-      },
-    ]);
 
     return { plan, questionsAndAnswers };
   }

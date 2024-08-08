@@ -1,4 +1,4 @@
-import "../../../shared/testing-utilities/mock-get-flow-context";
+import "../../../shared/testing-utilities/mock-get-flow-context.js";
 
 import {
   existsSync,
@@ -12,11 +12,11 @@ import { fileURLToPath } from "node:url";
 
 import { expect, test } from "vitest";
 
-import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
-import { getFlowContext } from "../../shared/get-flow-context";
-import { graphApiClient } from "../../shared/graph-api-client";
-import type { SubTaskAgentState } from "./sub-task-agent";
-import { runSubTaskAgent } from "./sub-task-agent";
+import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity.js";
+import { getFlowContext } from "../../shared/get-flow-context.js";
+import { graphApiClient } from "../../shared/graph-api-client.js";
+import type { SubTaskAgentState } from "./sub-task-agent.js";
+import { runSubTaskAgent } from "./sub-task-agent.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -86,7 +86,7 @@ test(
       input: {
         goal: "Find Ben Werner's Github profile URL",
         relevantEntities: [],
-        existingFactsAboutRelevantEntities: [],
+        existingClaimsAboutRelevantEntities: [],
         entityTypes,
         linkEntityTypes: [],
       },
@@ -96,6 +96,11 @@ test(
         resumeFromState: retrievePreviousState({
           testName: "github-url",
         }),
+      },
+      workerIdentifiers: {
+        workerType: "Subtask",
+        workerInstanceId: "subtask1",
+        parentInstanceId: null,
       },
     });
 

@@ -1,0 +1,20 @@
+---
+source: libs/@local/hql/cst/src/expr.rs
+expression: "[\"func\"]"
+---
+Ok(
+    Call(
+        Call {
+            fn: Path(
+                Path(
+                    [
+                        Symbol(
+                            "func",
+                        ),
+                    ],
+                ),
+            ),
+            args: [],
+        },
+    ),
+)

@@ -2,20 +2,37 @@
   "$schema": "http://json.schemastore.org/tsconfig",
   "compilerOptions": {
     "allowJs": true,
+    "checkJs": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "lib": ["esnext"],
+    "lib": ["ES2023"],
     "module": "esnext",
     "moduleResolution": "node",
+    "noFallthroughCasesInSwitch": true,
     "noUncheckedIndexedAccess": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "strict": true,
-    "target": "esnext",
+    "target": "ES2022",
     "baseUrl": ".",
     "paths": {
-      "@local/hash-backend-utils/*": ["../hash-backend-utils/src/*"],
-      "@local/hash-isomorphic-utils/*": ["../hash-isomorphic-utils/src/*"]
+      "@blockprotocol/graph": ["../../@blockprotocol/graph/src/main.ts"],
+      "@blockprotocol/graph/*": ["../../@blockprotocol/graph/src/*.ts"],
+      "@blockprotocol/type-system": [
+        "../../@blockprotocol/type-system/typescript/src/main.ts"
+      ],
+      "@blockprotocol/type-system/slim": [
+        "../../@blockprotocol/type-system/typescript/src/main-slim.ts"
+      ],
+      "@local/advanced-types/*": ["../advanced-types/src/*.ts"],
+      "@local/hash-backend-utils/*": ["../hash-backend-utils/src/*.ts"],
+      "@local/hash-graph-client/*": ["../hash-graph-client/typescript/*.ts"],
+      "@local/hash-graph-sdk/*": ["../hash-graph-sdk/typescript/src/*.ts"],
+      "@local/hash-graph-types/*": ["../hash-graph-types/typescript/src/*.ts"],
+      "@local/hash-isomorphic-utils/*": ["../hash-isomorphic-utils/src/*.ts"],
+      "@local/status": ["../status/typescript/pkg/src/main.ts"],
+      "@local/hash-subgraph": ["../hash-subgraph/src/main.ts"],
+      "@local/hash-subgraph/*": ["../hash-subgraph/src/*.ts"]
     }
   },
   "ts-node": {

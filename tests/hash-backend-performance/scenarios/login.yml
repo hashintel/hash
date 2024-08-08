@@ -1,0 +1,23 @@
+scenarios:
+  - name: Login
+    beforeRequest: refreshSessionToken
+    flow:
+      - post:
+          name: Me query
+          url: /
+          json:
+            query: |
+              query {
+                me {
+                  subgraph {
+                    vertices
+                  }
+                }
+              }
+          capture:
+            - json: $.data.me.subgraph.vertices.*.*.inner.metadata.recordId.entityId
+              as: entityId
+          expect:
+            - equals:
+                - "{{ entityId }}"
+                - "{{ session.ownedById }}~{{ session.ownedById }}"

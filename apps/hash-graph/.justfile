@@ -14,10 +14,6 @@ run *arguments:
   cargo run --profile {{profile}} --bin hash-graph -- {{arguments}}
 
 
-# Generates the OpenAPI specifications and the clients
-generate-openapi-specs:
-  just run server --write-openapi-specs
-
 [private]
 test *arguments:
   just test-unit {{arguments}}
@@ -33,4 +29,6 @@ test-integration *arguments:
   @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/friendship.http
   @just yarn graph:reset-database
   @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/circular-links.http
+  @just yarn graph:reset-database
+  @just yarn httpyac send --all {{repo}}/apps/hash-graph/tests/ambiguous.http
   @just yarn graph:reset-database

@@ -124,7 +124,7 @@ import type {
   UploadCompletedAtPropertyValueWithMetadata,
   WebsiteURLPropertyValue,
   WebsiteURLPropertyValueWithMetadata,
-} from "./shared";
+} from "./shared.js";
 
 export type {
   Block,

@@ -105,7 +105,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   {
     id: "11",
     heading: "Basic Authentication",
-    body: "Implement login/logout/signup atop Kratos",
+    body: "Implement sign up/in/out atop Kratos",
     parentIds: ["8"],
     status: "done",
     useCases: ["general"],
@@ -943,7 +943,7 @@ export const technologyTreeData: TechnologyTreeNodeData[] = [
   },
   {
     id: "94",
-    heading: "Login with HASH",
+    heading: "Sign in with HASH",
     body: "Authenticate users with external services via their hash.ai accounts",
     parentIds: ["91"],
     status: "done",

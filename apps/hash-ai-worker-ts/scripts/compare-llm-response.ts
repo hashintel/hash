@@ -4,14 +4,14 @@ import { fileURLToPath } from "node:url";
 
 import { type OwnedById } from "@local/hash-graph-types/web";
 
-import { getLlmResponse } from "../src/activities/shared/get-llm-response";
+import { getLlmResponse } from "../src/activities/shared/get-llm-response.js";
 import type {
   LlmParams,
   LlmResponse,
-} from "../src/activities/shared/get-llm-response/types";
-import { graphApiClient } from "../src/activities/shared/graph-api-client";
-import { getAliceUserAccountId } from "../src/shared/testing-utilities/get-alice-user-account-id";
-import type { CompareLlmResponseConfig } from "./compare-llm-response/types";
+} from "../src/activities/shared/get-llm-response/types.js";
+import { graphApiClient } from "../src/activities/shared/graph-api-client.js";
+import { getAliceUserAccountId } from "../src/shared/testing-utilities/get-alice-user-account-id.js";
+import type { CompareLlmResponseConfig } from "./compare-llm-response/types.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

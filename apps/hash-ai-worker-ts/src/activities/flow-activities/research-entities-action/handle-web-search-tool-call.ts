@@ -6,20 +6,24 @@ import {
 import type {
   StepInput,
   WebSearchResult,
+  WorkerIdentifiers,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 
-import { logProgress } from "../../shared/log-progress";
-import { getWebPageSummaryAction } from "../get-web-page-summary-action";
-import { webSearchAction } from "../web-search-action";
-import type { CoordinatorToolCallArguments } from "./coordinator-tools";
-import type { ResourceSummary } from "./types";
+import { logProgress } from "../../shared/log-progress.js";
+import { getWebPageSummaryAction } from "../get-web-page-summary-action.js";
+import { webSearchAction } from "../web-search-action.js";
+import type { CoordinatorToolCallArguments } from "./coordinator-tools.js";
+import type { ResourceSummary } from "./types.js";
 
 export const handleWebSearchToolCall = async (params: {
   input: CoordinatorToolCallArguments["webSearch"];
-}): Promise<ResourceSummary[]> => {
-  const { query, explanation } = params.input;
+  workerIdentifiers: WorkerIdentifiers;
+}): Promise<ResourceSummary[] | { error: string }> => {
+  const { input, workerIdentifiers } = params;
+
+  const { query, explanation } = input;
 
   const response = await webSearchAction({
     inputs: [
@@ -36,9 +40,9 @@ export const handleWebSearchToolCall = async (params: {
   });
 
   if (response.code !== StatusCode.Ok) {
-    throw new Error(
-      `Failed to perform web search: ${JSON.stringify(response)}`,
-    );
+    return {
+      error: `Failed to perform web search: ${JSON.stringify(response)}`,
+    };
   }
 
   logProgress([
@@ -48,6 +52,7 @@ export const handleWebSearchToolCall = async (params: {
       recordedAt: new Date().toISOString(),
       stepId: Context.current().info.activityId,
       explanation,
+      ...workerIdentifiers,
     },
   ]);
 
@@ -60,69 +65,67 @@ export const handleWebSearchToolCall = async (params: {
   );
 
   if (!webPageUrlsOutput) {
-    throw new Error(
-      `No web page URLs output was found when calling "webSearch" for the query ${query}.`,
-    );
+    return {
+      error: `No web page URLs output was found when calling "webSearch" for the query ${query}.`,
+    };
   }
 
   const searchResults = webPageUrlsOutput.payload.value as WebSearchResult[];
 
-  const webPageUrlsWithSummaries = await Promise.all(
-    searchResults.map(async (webPage) => {
-      const { url, title } = webPage;
+  const webPageUrlsWithSummaries = (
+    await Promise.all(
+      searchResults.map(async (webPage) => {
+        const { url, title } = webPage;
 
-      const webPageSummaryResponse = await getWebPageSummaryAction({
-        inputs: [
-          {
-            inputName: "url" satisfies InputNameForAction<"getWebPageSummary">,
-            payload: { kind: "Text", value: url },
-          },
-          ...actionDefinitions.getWebPageSummary.inputs.flatMap<StepInput>(
-            ({ name, default: defaultValue }) =>
-              !defaultValue || name === "url"
-                ? []
-                : [{ inputName: name, payload: defaultValue }],
-          ),
-        ],
-      });
+        const webPageSummaryResponse = await getWebPageSummaryAction({
+          inputs: [
+            {
+              inputName:
+                "url" satisfies InputNameForAction<"getWebPageSummary">,
+              payload: { kind: "Text", value: url },
+            },
+            ...actionDefinitions.getWebPageSummary.inputs.flatMap<StepInput>(
+              ({ name, default: defaultValue }) =>
+                !defaultValue || name === "url"
+                  ? []
+                  : [{ inputName: name, payload: defaultValue }],
+            ),
+          ],
+        });
 
-      /**
-       * @todo: potential optimization, if the content of the web page cannot be accessed it probably
-       * isn't relevant to provide as a search result for the agent. We could consider filtering these
-       * out, and instead returning additional other web search results.
-       */
-      if (response.code !== StatusCode.Ok) {
-        return {
-          url,
-          title,
-          summary: `An unexpected error occurred trying to summarize the web page at url ${url}.`,
-        };
-      }
+        if (response.code !== StatusCode.Ok) {
+          return {
+            error: `An unexpected error occurred trying to summarize the web page at url ${url}.`,
+          };
+        }
 
-      const { outputs: webPageSummaryOutputs } =
-        webPageSummaryResponse.contents[0]!;
+        const responseContent = webPageSummaryResponse.contents[0];
 
-      const summaryOutput = webPageSummaryOutputs.find(
-        ({ outputName }) =>
-          outputName ===
-          ("summary" satisfies OutputNameForAction<"getWebPageSummary">),
-      );
+        const webPageSummaryOutputs = responseContent?.outputs;
 
-      if (!summaryOutput) {
-        throw new Error(
-          `No summary output was found when calling "getSummariesOfWebPages" for the web page at url ${url}.`,
+        const summaryOutput = webPageSummaryOutputs?.find(
+          ({ outputName }) =>
+            outputName ===
+            ("summary" satisfies OutputNameForAction<"getWebPageSummary">),
         );
-      }
 
-      const summary = summaryOutput.payload.value as string;
+        if (!summaryOutput) {
+          return {
+            error: `An unexpected error occurred trying to summarize the web page at url ${url}.`,
+          };
+        }
 
-      return {
-        title,
-        url,
-        summary,
-      };
-    }),
-  );
+        const summary = summaryOutput.payload.value as string;
+
+        return {
+          fromSearchQuery: query,
+          title,
+          url,
+          summary,
+        };
+      }),
+    )
+  ).filter((result): result is ResourceSummary => !("error" in result));
 
   return webPageUrlsWithSummaries;
 };

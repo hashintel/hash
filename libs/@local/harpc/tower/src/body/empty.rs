@@ -14,6 +14,7 @@ pub struct Empty<B> {
 }
 
 impl<B> Empty<B> {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             _marker: PhantomData,

@@ -212,7 +212,7 @@ where
     pub(crate) async fn traverse_property_types(
         &self,
         mut property_type_queue: Vec<(
-            OntologyId,
+            PropertyTypeId,
             GraphResolveDepths,
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
@@ -239,7 +239,7 @@ where
                         .decrement_depth_for_edge(edge_kind, EdgeDirection::Outgoing)
                     {
                         edges_to_traverse.entry(edge_kind).or_default().push(
-                            property_type_ontology_id,
+                            OntologyId::from(property_type_ontology_id),
                             new_graph_resolve_depths,
                             traversal_interval,
                         );
@@ -271,7 +271,7 @@ where
                         );
 
                         traversal_context.add_data_type_id(
-                            edge.right_endpoint_ontology_id,
+                            DataTypeId::from(edge.right_endpoint_ontology_id),
                             edge.resolve_depths,
                             edge.traversal_interval,
                         )
@@ -303,7 +303,7 @@ where
                         );
 
                         traversal_context.add_property_type_id(
-                            edge.right_endpoint_ontology_id,
+                            PropertyTypeId::from(edge.right_endpoint_ontology_id),
                             edge.resolve_depths,
                             edge.traversal_interval,
                         )
@@ -624,7 +624,7 @@ where
                 .into_iter()
                 .map(|id| {
                     (
-                        OntologyId::from(id),
+                        id,
                         subgraph.depths,
                         subgraph.temporal_axes.resolved.variable_interval(),
                     )

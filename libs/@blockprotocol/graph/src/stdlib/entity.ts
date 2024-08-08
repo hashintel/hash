@@ -1,6 +1,6 @@
-import type { Entity, Subgraph } from "../types";
-import { getEntityTypeById } from "./subgraph/element/entity-type";
-import { getPropertyTypesByBaseUrl } from "./subgraph/element/property-type";
+import type { Entity, Subgraph } from "../types.js";
+import { getEntityTypeById } from "./subgraph/element/entity-type.js";
+import { getPropertyTypesByBaseUrl } from "./subgraph/element/property-type.js";
 
 export const parseLabelFromEntity = (
   entityToLabel: Entity,

@@ -14,7 +14,7 @@ import type {
   StepInput,
 } from "@local/hash-isomorphic-utils/flows/types";
 
-import { getAllStepsInFlow } from "./get-all-steps-in-flow";
+import { getAllStepsInFlow } from "./get-all-steps-in-flow.js";
 
 export const initializeActionStep = (params: {
   flowTrigger: FlowTrigger;
@@ -69,7 +69,7 @@ export const initializeActionStep = (params: {
 
             const sourceStepOutputs =
               sourceStep?.kind === "action"
-                ? sourceStep.outputs ?? []
+                ? (sourceStep.outputs ?? [])
                 : sourceStep?.aggregateOutput
                   ? [sourceStep.aggregateOutput]
                   : [];

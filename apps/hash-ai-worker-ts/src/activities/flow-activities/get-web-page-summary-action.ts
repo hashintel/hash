@@ -6,13 +6,13 @@ import {
 import { StatusCode } from "@local/status";
 import dedent from "dedent";
 
-import { getWebPageActivity } from "../get-web-page-activity";
-import { getFlowContext } from "../shared/get-flow-context";
-import { getLlmResponse } from "../shared/get-llm-response";
-import { getTextContentFromLlmMessage } from "../shared/get-llm-response/llm-message";
-import { graphApiClient } from "../shared/graph-api-client";
-import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model";
-import type { FlowActionActivity } from "./types";
+import { getWebPageActivity } from "../get-web-page-activity.js";
+import { getFlowContext } from "../shared/get-flow-context.js";
+import { getLlmResponse } from "../shared/get-llm-response.js";
+import { getTextContentFromLlmMessage } from "../shared/get-llm-response/llm-message.js";
+import { graphApiClient } from "../shared/graph-api-client.js";
+import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model.js";
+import type { FlowActionActivity } from "./types.js";
 
 const generateSummarizeWebPageSystemPrompt = (params: {
   numberOfSentences: number;
@@ -21,7 +21,8 @@ const generateSummarizeWebPageSystemPrompt = (params: {
     You are a Web Page Summarizer.
     The user provides you with the URL, the title, and the HTML content of a web page,
     and you must respond with a ${params.numberOfSentences} sentence summary of 
-    the web page.
+    the contents of the web page. Describe what information the web page includes.
+    Don't include any prefix, introduction, or other surrounding text – just the summary directly.
   `);
 
 export const getWebPageSummaryAction: FlowActionActivity = async ({

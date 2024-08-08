@@ -24,7 +24,7 @@
     }
   },
   "scripts": {
-    "build": "tsc --build && yarn exe ./scripts/bundle-workflow-code.ts",
+    "build": "rimraf ./dist/ && tsc -p tsconfig.build.json && yarn exe ./scripts/bundle-workflow-code.ts",
     "build:docker": "docker buildx build --tag hash-ai-worker-ts --file ./docker/Dockerfile ../../ --load",
     "compare-llm-response": "NODE_ENV=development yarn exe ./scripts/compare-llm-response.ts",
     "dev": "LOG_LEVEL=debug NODE_ENV=development NODE_OPTIONS=--max-old-space-size=2048 tsx watch --clear-screen=false ./src/main.ts",
@@ -33,12 +33,16 @@
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "sentry:sourcemaps": "sentry-cli sourcemaps inject --org hashintel --project hash-temporal-worker-ai ./dist && sentry-cli sourcemaps upload --org hashintel --project hash-temporal-worker-ai ./dist",
-    "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 tsx ./src/main.ts",
+    "start": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=2048 node ./dist/main.js",
+    "start:healthcheck": "wait-on --timeout 120000 http-get://localhost:4100/health",
+    "start:test": "cross-env NODE_ENV=test NODE_OPTIONS=--max-old-space-size=2048 node ./dist/main.js",
+    "start:test:healthcheck": "wait-on --timeout 120000 http-get://localhost:4100/health",
     "test:unit": "vitest --run  --exclude \"**/*.ai.test.ts\""
   },
   "dependencies": {
     "@anthropic-ai/bedrock-sdk": "0.10.0",
     "@anthropic-ai/sdk": "0.24.0",
+    "@apps/hash-graph": "0.0.0-private",
     "@blockprotocol/graph": "0.4.0-canary.0",
     "@blockprotocol/type-system": "0.1.2-canary.0",
     "@local/advanced-types": "0.0.0-private",
@@ -54,7 +58,7 @@
     "@temporalio/common": "1.10.1",
     "@temporalio/worker": "1.10.1",
     "@temporalio/workflow": "1.10.1",
-    "ajv": "^8.12.0",
+    "ajv": "8.12.0",
     "ajv-formats": "3.0.1",
     "axios": "1.6.0",
     "cache-manager": "5.5.2",
@@ -63,7 +67,7 @@
     "e2b": "0.13.1",
     "exponential-backoff": "3.1.1",
     "googleapis": "133.0.0",
-    "is-docker": "2.2.1",
+    "is-docker": "3.0.0",
     "jsdom": "24.1.0",
     "llamaindex": "0.2.10",
     "lodash.debounce": "4.0.8",
@@ -80,8 +84,9 @@
     "puppeteer-extra": "3.3.6",
     "puppeteer-extra-plugin-stealth": "2.11.2",
     "sanitize-html": "2.13.0",
-    "tsx": "3.13.0",
-    "typescript": "5.5.3"
+    "tsconfig-paths-webpack-plugin": "4.1.0",
+    "tsx": "4.16.2",
+    "typescript": "5.5.4"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
@@ -99,8 +104,10 @@
     "@types/node": "20.12.3",
     "@types/papaparse": "5.3.14",
     "@types/sanitize-html": "2.11.0",
-    "@vitest/coverage-istanbul": "2.0.3",
+    "@vitest/coverage-istanbul": "2.0.5",
     "eslint": "8.57.0",
-    "vitest": "2.0.3"
+    "rimraf": "6.0.1",
+    "vite-tsconfig-paths": "4.3.2",
+    "vitest": "2.0.5"
   }
 }

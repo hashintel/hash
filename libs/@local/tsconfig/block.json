@@ -4,8 +4,9 @@
     "allowJs": true,
     "isolatedModules": true,
     "jsx": "preserve",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": ["dom", "dom.iterable", "ESNext"],
     "noEmit": true,
-    "target": "es2015"
+    "paths": {},
+    "target": "ES2021"
   }
 }

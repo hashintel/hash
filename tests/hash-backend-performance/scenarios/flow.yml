@@ -1,0 +1,58 @@
+before:
+  flow:
+    - function: login
+
+scenarios:
+  - name: Mimic a flow run
+    beforeRequest: refreshSessionToken
+    flow:
+      - count: 10
+        loop:
+          - post:
+              name: Create entities
+              url: /
+              json:
+                query: |
+                  mutation createEntity($ownedById: OwnedById!, $entityTypeId: VersionedUrl!, $properties: PropertyObjectWithMetadata!) {
+                    createEntity(ownedById: $ownedById, entityTypeId: $entityTypeId, properties: $properties)
+                  }
+                variables:
+                  ownedById: "{{ session.ownedById }}"
+                  entityTypeId: https://hash.ai/@hash/types/entity-type/usage-record/v/2
+                  properties:
+                    value:
+                      https://hash.ai/@hash/types/property-type/input-unit-count/:
+                        value: 1000
+                        metadata:
+                          dataTypeId: https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1
+                      https://hash.ai/@hash/types/property-type/output-unit-count/:
+                        value: 1000
+                        metadata:
+                          dataTypeId: https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1
+              expect:
+                - notHasProperty: errors
+          - post:
+              name: Create entities
+              url: http://127.0.0.1:4000/entities/bulk
+              headers:
+                X-Authenticated-User-Actor-Id: "{{ session.ownedById }}"
+              json:
+                - ownedById: "{{ session.ownedById }}"
+                  entityTypeIds:
+                    - https://hash.ai/@hash/types/entity-type/usage-record/v/2
+                  properties:
+                    value:
+                      https://hash.ai/@hash/types/property-type/input-unit-count/:
+                        value: 1000
+                        metadata:
+                          dataTypeId: https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1
+                      https://hash.ai/@hash/types/property-type/output-unit-count/:
+                        value: 1000
+                        metadata:
+                          dataTypeId: https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1
+                  draft: false
+                  relationships:
+                    - relation: setting
+                      subject:
+                        kind: setting
+                        subjectId: administratorFromWeb

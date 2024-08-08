@@ -1,9 +1,9 @@
-import AnthropicBedrock from "@anthropic-ai/bedrock-sdk";
+import { AnthropicBedrock } from "@anthropic-ai/bedrock-sdk";
 import Anthropic from "@anthropic-ai/sdk";
-import type { MessageCreateParamsNonStreaming } from "@anthropic-ai/sdk/resources";
 import type {
   Message,
   MessageCreateParamsBase,
+  MessageCreateParamsNonStreaming,
   MessageParam,
   ToolUseBlock,
 } from "@anthropic-ai/sdk/resources/messages";
@@ -18,7 +18,6 @@ export const anthropic = new Anthropic({
 const anthropicMessageModels = [
   "claude-3-5-sonnet-20240620",
   "claude-3-opus-20240229",
-  "claude-3-sonnet-20240229",
   "claude-3-haiku-20240307",
 ] satisfies MessageCreateParamsBase["model"][];
 
@@ -35,7 +34,6 @@ export const anthropicMessageModelToContextWindow: Record<
   number
 > = {
   "claude-3-haiku-20240307": 200_000,
-  "claude-3-sonnet-20240229": 200_000,
   "claude-3-opus-20240229": 200_000,
   "claude-3-5-sonnet-20240620": 200_000,
 };
@@ -46,9 +44,8 @@ export const anthropicMessageModelToMaxOutput: Record<
   number
 > = {
   "claude-3-haiku-20240307": 4096,
-  "claude-3-sonnet-20240229": 4096,
   "claude-3-opus-20240229": 4096,
-  "claude-3-5-sonnet-20240620": 4096,
+  "claude-3-5-sonnet-20240620": 8192,
 };
 
 export type AnthropicMessagesCreateParams = {
@@ -85,14 +82,14 @@ const awsSecretKey = getRequiredEnv(
  */
 const awsRegion = "us-west-2";
 
-const anthropicBedrockClient = new AnthropicBedrock({
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
+const anthropicBedrockClient: AnthropicBedrock = new AnthropicBedrock({
   awsAccessKey,
   awsSecretKey,
   awsRegion,
 });
 
 const anthropicBedrockModels = [
-  "anthropic.claude-3-sonnet-20240229-v1:0",
   "anthropic.claude-3-haiku-20240307-v1:0",
   "anthropic.claude-3-opus-20240229-v1:0",
   "anthropic.claude-3-5-sonnet-20240620-v1:0",
@@ -105,7 +102,6 @@ export const anthropicModelToBedrockModel: Record<
   AnthropicMessageModel,
   AnthropicBedrockModel
 > = {
-  "claude-3-sonnet-20240229": "anthropic.claude-3-sonnet-20240229-v1:0",
   "claude-3-haiku-20240307": "anthropic.claude-3-haiku-20240307-v1:0",
   "claude-3-opus-20240229": "anthropic.claude-3-opus-20240229-v1:0",
   "claude-3-5-sonnet-20240620": "anthropic.claude-3-5-sonnet-20240620-v1:0",
@@ -133,6 +129,7 @@ export const createAnthropicMessagesWithTools = async (params: {
    */
   if (provider === "amazon-bedrock") {
     const bedrockModel = anthropicModelToBedrockModel[payload.model];
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     response = (await anthropicBedrockClient.messages.create(
       {
         /**
@@ -144,7 +141,7 @@ export const createAnthropicMessagesWithTools = async (params: {
       },
       {
         headers: {
-          "anthropic-beta": "tools-2024-05-16",
+          "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
         },
       },
     )) as AnthropicMessagesCreateResponse;
@@ -153,7 +150,7 @@ export const createAnthropicMessagesWithTools = async (params: {
       payload as MessageCreateParamsNonStreaming,
       {
         headers: {
-          "anthropic-beta": "tools-2024-05-16",
+          "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
         },
       },
     )) as AnthropicMessagesCreateResponse;

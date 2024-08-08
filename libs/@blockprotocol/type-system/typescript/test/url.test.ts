@@ -1,13 +1,12 @@
-import { beforeAll, describe, expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
 
-import type { BaseUrl, VersionedUrl } from "../src/main";
+import type { BaseUrl, VersionedUrl } from "../src/main.js";
 import {
   extractBaseUrl,
   extractVersion,
   validateBaseUrl,
   validateVersionedUrl,
-} from "../src/main";
-import { initialize } from "./shared";
+} from "../src/main.js";
 
 const invalidBaseUrlCases: string[] = [
   "http://example.com",
@@ -91,10 +90,6 @@ const extractVersionCases: [VersionedUrl, number][] = [
   ["file://localhost/documents/myfolder/v/10", 10],
   ["ftp://rms@example.com/foo/v/5", 5],
 ];
-
-beforeAll(async () => {
-  await initialize();
-});
 
 describe("extractVersion", () => {
   test.each(extractVersionCases)(

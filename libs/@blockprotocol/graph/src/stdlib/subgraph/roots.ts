@@ -5,13 +5,16 @@ import type {
   PropertyTypeRootType,
   Subgraph,
   SubgraphRootType,
-} from "../../types/subgraph";
-import { isEntityVertexId, isOntologyTypeVertexId } from "../../types/subgraph";
-import { mustBeDefined } from "../../util";
-import { getDataTypeByVertexId } from "./element/data-type";
-import { getEntityRevision } from "./element/entity";
-import { getEntityTypeByVertexId } from "./element/entity-type";
-import { getPropertyTypeByVertexId } from "./element/property-type";
+} from "../../types/subgraph.js";
+import {
+  isEntityVertexId,
+  isOntologyTypeVertexId,
+} from "../../types/subgraph.js";
+import { mustBeDefined } from "../../util.js";
+import { getDataTypeByVertexId } from "./element/data-type.js";
+import { getEntityRevision } from "./element/entity.js";
+import { getEntityTypeByVertexId } from "./element/entity-type.js";
+import { getPropertyTypeByVertexId } from "./element/property-type.js";
 
 /**
  * Returns all root elements.

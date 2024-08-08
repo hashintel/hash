@@ -3,10 +3,11 @@ import type {
   QueryTemporalAxesUnresolved as QueryTemporalAxesUnresolvedGraphApi,
 } from "@local/hash-graph-client";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
+
 import type {
   QueryTemporalAxes,
   QueryTemporalAxesUnresolved,
-} from "@local/hash-subgraph";
+} from "../../src/main.js";
 
 const mapVariableTemporalAxisUnresolvedInterval = (
   interval: QueryTemporalAxesUnresolvedGraphApi["variable"]["interval"],

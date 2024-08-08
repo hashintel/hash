@@ -186,11 +186,11 @@ export const ShareEntitySection: FunctionComponent<{
         .sort((a, b) => {
           const aLabel =
             a.account.kind === "user"
-              ? a.account.displayName ?? "Unknown"
+              ? (a.account.displayName ?? "Unknown")
               : a.account.name;
           const bLabel =
             b.account.kind === "user"
-              ? b.account.displayName ?? "Unknown"
+              ? (b.account.displayName ?? "Unknown")
               : b.account.name;
 
           return aLabel.localeCompare(bLabel);
@@ -216,11 +216,11 @@ export const ShareEntitySection: FunctionComponent<{
         .sort((a, b) => {
           const aLabel =
             a.account.kind === "user"
-              ? a.account.displayName ?? "Unknown"
+              ? (a.account.displayName ?? "Unknown")
               : a.account.name;
           const bLabel =
             b.account.kind === "user"
-              ? b.account.displayName ?? "Unknown"
+              ? (b.account.displayName ?? "Unknown")
               : b.account.name;
 
           return aLabel.localeCompare(bLabel);

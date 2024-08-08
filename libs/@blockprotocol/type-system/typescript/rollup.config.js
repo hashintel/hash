@@ -20,7 +20,7 @@ const rolls = (fmt, env) => ({
   output: {
     dir: outdir(fmt, env),
     format: fmt,
-    entryFileNames: `[name].${fmt === "cjs" ? "cjs" : "js"}`,
+    entryFileNames: `[name].js`,
     name: "type-system",
     sourcemap: !production,
   },
@@ -56,11 +56,4 @@ const rolls = (fmt, env) => ({
   ],
 });
 
-export default [
-  rolls("umd", "fat"),
-  rolls("es", "fat"),
-  rolls("cjs", "fat"),
-  rolls("cjs", "node"),
-  rolls("es", "slim"),
-  rolls("cjs", "slim"),
-];
+export default [rolls("es", "fat"), rolls("es", "slim")];

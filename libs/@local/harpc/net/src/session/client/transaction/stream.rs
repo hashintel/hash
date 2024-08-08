@@ -60,14 +60,22 @@ impl StreamState {
 
 #[derive(Debug)]
 pub struct ErrorStream {
-    pub(crate) code: ErrorCode,
+    code: ErrorCode,
+    inner: TerminatedChannelStream<Bytes>,
 
-    pub(crate) inner: TerminatedChannelStream<Bytes>,
-
-    pub(crate) state: StreamState,
+    state: StreamState,
 }
 
 impl ErrorStream {
+    #[must_use]
+    pub(crate) const fn new(
+        code: ErrorCode,
+        inner: TerminatedChannelStream<Bytes>,
+        state: StreamState,
+    ) -> Self {
+        Self { code, inner, state }
+    }
+
     #[must_use]
     pub const fn code(&self) -> ErrorCode {
         self.code
@@ -88,9 +96,9 @@ impl Stream for ErrorStream {
     type Item = Bytes;
 
     fn poll_next(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Option<Self::Item>> {
+        mut self: core::pin::Pin<&mut Self>,
+        cx: &mut core::task::Context<'_>,
+    ) -> core::task::Poll<Option<Self::Item>> {
         self.inner.poll_next_unpin(cx)
     }
 }
@@ -103,9 +111,16 @@ impl FusedStream for ErrorStream {
 
 #[derive(Debug)]
 pub struct ValueStream {
-    pub(crate) inner: TerminatedChannelStream<Bytes>,
+    inner: TerminatedChannelStream<Bytes>,
 
-    pub(crate) state: StreamState,
+    state: StreamState,
+}
+
+impl ValueStream {
+    #[must_use]
+    pub(crate) const fn new(inner: TerminatedChannelStream<Bytes>, state: StreamState) -> Self {
+        Self { inner, state }
+    }
 }
 
 impl TransactionStream for ValueStream {
@@ -122,9 +137,9 @@ impl Stream for ValueStream {
     type Item = Bytes;
 
     fn poll_next(
-        mut self: std::pin::Pin<&mut Self>,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Option<Self::Item>> {
+        mut self: core::pin::Pin<&mut Self>,
+        cx: &mut core::task::Context<'_>,
+    ) -> core::task::Poll<Option<Self::Item>> {
         self.inner.poll_next_unpin(cx)
     }
 }

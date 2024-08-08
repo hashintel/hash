@@ -6,6 +6,7 @@ import type {
 } from "@local/hash-graph-client";
 import type {
   EntityId,
+  EntityUuid,
   PropertyMetadataObject,
 } from "@local/hash-graph-types/entity";
 import { isInferenceModelName } from "@local/hash-isomorphic-utils/ai-inference-types";
@@ -15,21 +16,21 @@ import {
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type { ProposedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { entityIdFromComponents } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 
-import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity";
-import { getDereferencedEntityTypesActivity } from "../get-dereferenced-entity-types-activity";
+import { getAiAssistantAccountIdActivity } from "../get-ai-assistant-account-id-activity.js";
+import { getDereferencedEntityTypesActivity } from "../get-dereferenced-entity-types-activity.js";
 import type {
   DereferencedEntityTypesByTypeId,
   InferenceState,
-} from "../infer-entities/inference-types";
-import { inferEntitiesFromWebPageActivity } from "../infer-entities-from-web-page-activity";
-import { getFlowContext } from "../shared/get-flow-context";
-import { graphApiClient } from "../shared/graph-api-client";
-import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model";
-import { mapActionInputEntitiesToEntities } from "../shared/map-action-input-entities-to-entities";
-import { isPermittedOpenAiModel } from "../shared/openai-client";
-import type { FlowActionActivity } from "./types";
+} from "../infer-entities/inference-types.js";
+import { inferEntitiesFromWebPageActivity } from "../infer-entities-from-web-page-activity.js";
+import { getFlowContext } from "../shared/get-flow-context.js";
+import { graphApiClient } from "../shared/graph-api-client.js";
+import { inferenceModelAliasToSpecificModel } from "../shared/inference-model-alias-to-llm-model.js";
+import { isPermittedOpenAiModel } from "../shared/openai-client.js";
+import type { FlowActionActivity } from "./types.js";
 
 export const inferEntitiesFromContentAction: FlowActionActivity = async ({
   inputs,
@@ -39,15 +40,10 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
     entityTypeIds,
     model: modelAlias,
     relevantEntitiesPrompt,
-    existingEntities: inputExistingEntities,
   } = getSimplifiedActionInputs({
     inputs,
     actionType: "inferEntitiesFromContent",
   });
-
-  const existingEntities = inputExistingEntities
-    ? mapActionInputEntitiesToEntities({ inputEntities: inputExistingEntities })
-    : [];
 
   const { flowEntityId, userAuthentication, stepId, webId } =
     await getFlowContext();
@@ -69,12 +65,7 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
   const dereferencedEntityTypesWithExistingEntitiesTypes =
     await getDereferencedEntityTypesActivity({
       graphApiClient,
-      entityTypeIds: [
-        ...entityTypeIds,
-        ...existingEntities.map(({ metadata }) => metadata.entityTypeId),
-      ].filter(
-        (entityTypeId, index, all) => all.indexOf(entityTypeId) === index,
-      ),
+      entityTypeIds,
       actorId: userAuthentication.actorId,
       simplifyPropertyKeys: true,
     });
@@ -124,7 +115,6 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
     model,
     entityTypes,
     inferenceState: webPageInferenceState,
-    existingEntities,
   });
 
   if (status.code !== StatusCode.Ok) {
@@ -134,8 +124,6 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
       message: status.message,
     };
   }
-
-  const actionIdPrefix = generateUuid();
 
   webPageInferenceState = status.contents[0]!;
 
@@ -150,6 +138,20 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
           },
         }
       : { type: "document", loadedAt: processBeginTime };
+
+  /**
+   * We want to rewrite the numerical identifiers the LLM generates to real EntityIds
+   * We need to record these first to be able to replace the source/target entity ids when we encounter links
+   */
+  const localIdToEntityId: Record<number, EntityId> = {};
+  for (const proposal of Object.values(
+    webPageInferenceState.proposedEntityCreationsByType,
+  ).flat()) {
+    localIdToEntityId[proposal.entityId] = entityIdFromComponents(
+      webId,
+      generateUuid() as EntityUuid,
+    );
+  }
 
   const proposedEntities = Object.entries(
     webPageInferenceState.proposedEntityCreationsByType,
@@ -170,8 +172,12 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
       };
 
       return {
-        localEntityId: `${actionIdPrefix}-${proposal.entityId}`,
+        localEntityId: localIdToEntityId[proposal.entityId]!,
         entityTypeId: entityTypeId as VersionedUrl,
+        claims: {
+          isObjectOf: [],
+          isSubjectOf: [],
+        },
         summary,
         properties: proposal.properties ?? {},
         propertyMetadata: typedKeys(
@@ -189,27 +195,17 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
         provenance,
         sourceEntityId:
           "sourceEntityId" in proposal
-            ? typeof proposal.sourceEntityId === "number"
-              ? {
-                  kind: "proposed-entity",
-                  localId: `${actionIdPrefix}-${proposal.sourceEntityId}`,
-                }
-              : {
-                  kind: "existing-entity",
-                  entityId: proposal.sourceEntityId as EntityId,
-                }
+            ? {
+                kind: "proposed-entity",
+                localId: localIdToEntityId[proposal.sourceEntityId]!,
+              }
             : undefined,
         targetEntityId:
           "targetEntityId" in proposal
-            ? typeof proposal.targetEntityId === "number"
-              ? {
-                  kind: "proposed-entity",
-                  localId: `${actionIdPrefix}-${proposal.targetEntityId}`,
-                }
-              : {
-                  kind: "existing-entity",
-                  entityId: proposal.targetEntityId as EntityId,
-                }
+            ? {
+                kind: "proposed-entity",
+                localId: localIdToEntityId[proposal.targetEntityId]!,
+              }
             : undefined,
       };
     }),

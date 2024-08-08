@@ -5,7 +5,6 @@ import {
   createFileFromUploadRequest,
 } from "@apps/hash-api/src/graph/knowledge/system-types/file";
 import type { User } from "@apps/hash-api/src/graph/knowledge/system-types/user";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
@@ -26,7 +25,6 @@ describe("File", () => {
 
   beforeAll(async () => {
     const graphContext = createTestImpureGraphContext();
-    await TypeSystemInitializer.initialize();
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
 
     testUser = await createTestUser(graphContext, "fileTest", logger);

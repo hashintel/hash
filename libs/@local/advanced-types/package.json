@@ -6,16 +6,17 @@
   "license": "(MIT OR Apache-2.0)",
   "type": "module",
   "exports": {
-    "./*": "./src/*.ts"
+    "./*": "./dist/*.js"
   },
   "typesVersions": {
     "*": {
       "*": [
-        "./src/*.ts"
+        "./dist/*.d.ts"
       ]
     }
   },
   "scripts": {
+    "build": "rimraf dist && tsc --build tsconfig.build.json",
     "fix:eslint": "eslint --fix .",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit"
@@ -27,6 +28,6 @@
     "eslint": "8.57.0",
     "react": "18.2.0",
     "rimraf": "6.0.1",
-    "typescript": "5.5.3"
+    "typescript": "5.5.4"
   }
 }

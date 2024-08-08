@@ -21,9 +21,15 @@ import type {
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 
-import type { OntologyTypeVertexId, Subgraph } from "../../../main";
-import { getJsonSchemaTypeFromValue, mustGetDataTypeById } from "./data-type";
-import { getEntityTypeAndParentsById, getEntityTypeById } from "./entity-type";
+import type { OntologyTypeVertexId, Subgraph } from "../../../main.js";
+import {
+  getJsonSchemaTypeFromValue,
+  mustGetDataTypeById,
+} from "./data-type.js";
+import {
+  getEntityTypeAndParentsById,
+  getEntityTypeById,
+} from "./entity-type.js";
 
 /**
  * Returns all `PropertyTypeWithMetadata`s within the vertices of the subgraph

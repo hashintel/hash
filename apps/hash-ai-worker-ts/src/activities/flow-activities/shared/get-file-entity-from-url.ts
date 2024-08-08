@@ -27,7 +27,10 @@ import {
   mergePropertyObjectAndMetadata,
   propertyObjectToPatches,
 } from "@local/hash-graph-sdk/entity";
-import type { PropertyMetadataObject } from "@local/hash-graph-types/entity";
+import type {
+  EntityUuid,
+  PropertyMetadataObject,
+} from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { normalizeWhitespace } from "@local/hash-isomorphic-utils/normalize";
@@ -38,10 +41,10 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import mime from "mime-types";
 
-import { getAiAssistantAccountIdActivity } from "../../get-ai-assistant-account-id-activity";
-import { logger } from "../../shared/activity-logger";
-import { getFlowContext } from "../../shared/get-flow-context";
-import { graphApiClient } from "../../shared/graph-api-client";
+import { getAiAssistantAccountIdActivity } from "../../get-ai-assistant-account-id-activity.js";
+import { logger } from "../../shared/activity-logger.js";
+import { getFlowContext } from "../../shared/get-flow-context.js";
+import { graphApiClient } from "../../shared/graph-api-client.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -125,6 +128,7 @@ const writeFileToS3URL = async ({
 };
 
 export const getFileEntityFromUrl = async (params: {
+  entityUuid: EntityUuid | null;
   url: string;
   propertyMetadata?: PropertyMetadataObject;
   provenance?: EnforcedEntityEditionProvenance;

@@ -1,4 +1,3 @@
-import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import type { GraphApi } from "@local/hash-graph-client";
 import {
   type EnforcedEntityEditionProvenance,
@@ -17,6 +16,8 @@ import type {
   OccurredInEntity,
 } from "@local/hash-isomorphic-utils/system-types/graphchangenotification";
 import type { EntityRelationAndSubject } from "@local/hash-subgraph";
+
+import { getWebMachineActorId } from "./machine-actors.js";
 
 export const createNotificationEntityPermissions = ({
   machineActorId,

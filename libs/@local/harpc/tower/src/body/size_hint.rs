@@ -15,15 +15,17 @@ pub struct SizeHint {
 impl SizeHint {
     /// Returns a new `SizeHint` with default values
     #[inline]
-    pub fn new() -> SizeHint {
-        SizeHint::default()
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Returns a new `SizeHint` with both upper and lower bounds set to the
     /// given value.
     #[inline]
-    pub fn with_exact(value: u64) -> SizeHint {
-        SizeHint {
+    #[must_use]
+    pub const fn with_exact(value: u64) -> Self {
+        Self {
             lower: value,
             upper: Some(value),
         }
@@ -32,7 +34,8 @@ impl SizeHint {
     /// Returns the lower bound of data that the `Body` will yield before
     /// completing.
     #[inline]
-    pub fn lower(&self) -> u64 {
+    #[must_use]
+    pub const fn lower(&self) -> u64 {
         self.lower
     }
 
@@ -50,7 +53,8 @@ impl SizeHint {
     /// Returns the upper bound of data the `Body` will yield before
     /// completing, or `None` if the value is unknown.
     #[inline]
-    pub fn upper(&self) -> Option<u64> {
+    #[must_use]
+    pub const fn upper(&self) -> Option<u64> {
         self.upper
     }
 
@@ -69,6 +73,7 @@ impl SizeHint {
     /// Returns the exact size of data that will be yielded **if** the
     /// `lower` and `upper` bounds are equal.
     #[inline]
+    #[must_use]
     pub fn exact(&self) -> Option<u64> {
         if Some(self.lower) == self.upper {
             self.upper

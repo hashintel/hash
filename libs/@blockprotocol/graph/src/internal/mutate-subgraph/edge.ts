@@ -6,8 +6,8 @@ import {
 } from "@blockprotocol/type-system/slim";
 import isEqual from "lodash.isequal";
 
-import { unionOfIntervals } from "../../stdlib";
-import type { EntityId } from "../../types/entity";
+import { unionOfIntervals } from "../../stdlib.js";
+import type { EntityId } from "../../types/entity.js";
 import type {
   EntityIdWithInterval,
   EntityVertexId,
@@ -15,12 +15,12 @@ import type {
   OntologyTypeVertexId,
   OutwardEdge,
   Subgraph,
-} from "../../types/subgraph";
+} from "../../types/subgraph.js";
 import {
   isEntityTypeVertex,
   isEntityVertex,
   isPropertyTypeVertex,
-} from "../../types/subgraph";
+} from "../../types/subgraph.js";
 
 /**
  * Looking to build a subgraph? You probably want {@link buildSubgraph} from `@blockprotocol/graph/stdlib`

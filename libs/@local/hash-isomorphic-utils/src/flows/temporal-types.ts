@@ -7,7 +7,7 @@ import type {
   FlowDefinition,
   FlowTrigger,
   LocalFlowRun,
-} from "./types";
+} from "./types.js";
 
 export type RunFlowWorkflowParams = {
   dataSources: FlowDataSources;

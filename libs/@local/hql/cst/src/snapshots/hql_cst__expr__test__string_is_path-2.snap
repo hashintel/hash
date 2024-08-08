@@ -1,0 +1,18 @@
+---
+source: libs/@local/hql/cst/src/expr.rs
+expression: "\"foo::bar\""
+---
+Ok(
+    Path(
+        Path(
+            [
+                Symbol(
+                    "foo",
+                ),
+                Symbol(
+                    "bar",
+                ),
+            ],
+        ),
+    ),
+)

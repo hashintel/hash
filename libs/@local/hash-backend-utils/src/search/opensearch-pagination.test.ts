@@ -3,8 +3,8 @@ import { randomUUID } from "node:crypto";
 import type { Client } from "@opensearch-project/opensearch";
 import { describe, expect, it, vi } from "vitest";
 
-import { Logger } from "../logger";
-import { OpenSearch } from "./opensearch";
+import { Logger } from "../logger.js";
+import { OpenSearch } from "./opensearch.js";
 
 const ENTITIES_SEARCH_INDEX = "entities";
 

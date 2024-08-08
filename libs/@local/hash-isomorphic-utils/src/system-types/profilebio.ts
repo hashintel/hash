@@ -41,7 +41,7 @@ import type {
   ProfileBioPropertiesWithMetadata,
   TextDataType,
   TextDataTypeWithMetadata,
-} from "./shared";
+} from "./shared.js";
 
 export type {
   Block,

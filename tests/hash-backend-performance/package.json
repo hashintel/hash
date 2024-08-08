@@ -1,0 +1,54 @@
+{
+  "name": "@tests/hash-backend-performance",
+  "version": "0.0.0-private",
+  "private": true,
+  "description": "Performance testing for the HASH backend",
+  "license": "AGPL-3.0",
+  "type": "module",
+  "exports": {
+    ".": "./dist/esm/main.mjs"
+  },
+  "main": "./dist/esm/main.mjs",
+  "types": "./dist/esm/main.d.ts",
+  "typesVersions": {
+    "*": {
+      "*": [
+        "./dist/esm/main.d.ts"
+      ]
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "bench:load-testing": "for file in scenarios/*.yml; do artillery run --config artillery.yml $file --output reports/$(basename ${file%.*}).json --quiet --environment local; done",
+    "build": "rimraf dist && rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
+    "codegen": "mkdir -p reports && echo '*' > reports/.gitignore",
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit",
+    "test:integration": "for file in scenarios/*.yml; do artillery run --config artillery.yml $file --environment functional; done"
+  },
+  "dependencies": {
+    "@local/hash-backend-utils": "0.0.0-private",
+    "@local/hash-graph-client": "0.0.0-private",
+    "@local/hash-graph-sdk": "0.0.0-private",
+    "@local/hash-graph-types": "0.0.0-private",
+    "@local/hash-isomorphic-utils": "0.0.0-private",
+    "@local/hash-subgraph": "0.0.0-private",
+    "@ory/client": "1.1.41",
+    "artillery": "2.0.18"
+  },
+  "devDependencies": {
+    "@apps/hash-api": "0.0.0-private",
+    "@local/eslint-config": "0.0.0-private",
+    "@local/tsconfig": "0.0.0-private",
+    "@rollup/plugin-commonjs": "26.0.1",
+    "@rollup/plugin-node-resolve": "15.2.3",
+    "@rollup/plugin-typescript": "11.1.6",
+    "eslint": "8.57.0",
+    "rimraf": "6.0.1",
+    "rollup": "4.12.0",
+    "typescript": "5.5.4"
+  }
+}

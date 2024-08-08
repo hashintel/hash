@@ -1,5 +1,4 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import { NotFoundError } from "@local/hash-backend-utils/error";
 import type { GraphApi } from "@local/hash-graph-client";
 import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
@@ -14,6 +13,8 @@ import { systemTypeWebShortnames } from "@local/hash-isomorphic-utils/ontology-t
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { Machine } from "@local/hash-isomorphic-utils/system-types/machine";
 import { backOff } from "exponential-backoff";
+
+import { NotFoundError } from "./error.js";
 
 export type WebMachineActorIdentifier = `system-${OwnedById}`;
 

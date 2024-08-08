@@ -2,28 +2,29 @@ import { getAwsS3Config } from "@local/hash-backend-utils/aws-config";
 import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws-s3-storage-provider";
 import type { SourceProvenance } from "@local/hash-graph-client";
 import { SourceType } from "@local/hash-graph-client";
+import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 import dedent from "dedent";
 import { MetadataMode } from "llamaindex";
 
-import { getWebPageActivity } from "../../get-web-page-activity";
-import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types";
-import { logger } from "../../shared/activity-logger";
-import type { DereferencedEntityType } from "../../shared/dereference-entity-type";
+import { getWebPageActivity } from "../../get-web-page-activity.js";
+import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types.js";
+import { logger } from "../../shared/activity-logger.js";
+import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
 import {
   getFlowContext,
   getProvidedFileByUrl,
-} from "../../shared/get-flow-context";
-import { logProgress } from "../../shared/log-progress";
-import { stringify } from "../../shared/stringify";
-import { inferFactsFromText } from "../shared/infer-facts-from-text";
-import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text";
-import type { Fact } from "../shared/infer-facts-from-text/types";
-import { deduplicateEntities } from "./deduplicate-entities";
-import type { Link } from "./link-follower-agent/extract-links-from-content";
-import { extractLinksFromContent } from "./link-follower-agent/extract-links-from-content";
-import { filterAndRankTextChunksAgent } from "./link-follower-agent/filter-and-rank-text-chunks-agent";
-import { getLinkFollowerNextToolCalls } from "./link-follower-agent/get-link-follower-next-tool-calls";
-import { indexPdfFile } from "./link-follower-agent/llama-index/index-pdf-file";
+} from "../../shared/get-flow-context.js";
+import { logProgress } from "../../shared/log-progress.js";
+import { stringify } from "../../shared/stringify.js";
+import { inferClaimsFromText } from "../shared/infer-claims-from-text.js";
+import type { LocalEntitySummary } from "../shared/infer-claims-from-text/get-entity-summaries-from-text.js";
+import type { Claim } from "../shared/infer-claims-from-text/types.js";
+import { deduplicateEntities } from "./deduplicate-entities.js";
+import type { Link } from "./link-follower-agent/choose-relevant-links-from-content.js";
+import { chooseRelevantLinksFromContent } from "./link-follower-agent/choose-relevant-links-from-content.js";
+import { filterAndRankTextChunksAgent } from "./link-follower-agent/filter-and-rank-text-chunks-agent.js";
+import { getLinkFollowerNextToolCalls } from "./link-follower-agent/get-link-follower-next-tool-calls.js";
+import { indexPdfFile } from "./link-follower-agent/llama-index/index-pdf-file.js";
 
 type ResourceToExplore = {
   url: string;
@@ -83,12 +84,13 @@ const isContentAtUrlPdfFile = async (params: { url: string }) => {
 const exploreResource = async (params: {
   input: LinkFollowerAgentInput;
   resource: ResourceToExplore;
+  workerIdentifiers: WorkerIdentifiers;
 }): Promise<
   | {
       status: "ok";
       resource: ResourceToExplore;
       possibleNextLinks: Link[];
-      inferredFacts: Fact[];
+      inferredClaims: Claim[];
       inferredEntitySummaries: LocalEntitySummary[];
     }
   | {
@@ -97,7 +99,7 @@ const exploreResource = async (params: {
       reason: string;
     }
 > => {
-  const { resource, input } = params;
+  const { resource, input, workerIdentifiers } = params;
 
   logger.debug(`Exploring resource at URL: ${resource.url}`);
 
@@ -189,6 +191,7 @@ const exploreResource = async (params: {
           url: resource.url,
         },
         explanation: resource.reason,
+        ...workerIdentifiers,
       },
     ]);
 
@@ -275,6 +278,12 @@ const exploreResource = async (params: {
         reason: webPage.error,
         resource,
       };
+    } else if (!webPage.htmlContent.trim()) {
+      return {
+        status: "not-explored",
+        reason: "Could not retrieve web page content",
+        resource,
+      };
     }
 
     resourceTitle = webPage.title;
@@ -286,6 +295,7 @@ const exploreResource = async (params: {
         type: "VisitedWebPage",
         webPage: { url: webPage.url, title: webPage.title },
         explanation: resource.reason,
+        ...workerIdentifiers,
       },
     ]);
 
@@ -295,8 +305,9 @@ const exploreResource = async (params: {
   const { task, existingEntitiesOfInterest, entityTypes, linkEntityTypes } =
     input;
 
-  const relevantLinksFromContent = await extractLinksFromContent({
+  const relevantLinksFromContent = await chooseRelevantLinksFromContent({
     contentUrl: resource.url,
+    contentType: isResourcePdfFile ? "text" : "html",
     content,
     prompt: task,
   }).then((response) => {
@@ -329,17 +340,37 @@ const exploreResource = async (params: {
   };
 
   const {
-    facts: inferredFactsFromContent,
+    claims: inferredClaimsFromContent,
     entitySummaries: inferredEntitySummariesFromContent,
-  } = await inferFactsFromText({
+  } = await inferClaimsFromText({
     existingEntitiesOfInterest,
     text: content,
+    url: resource.url,
+    contentType: isResourcePdfFile ? "document" : "webpage",
+    title: resourceTitle ?? null,
     /** @todo: consider whether this should be a dedicated input */
     relevantEntitiesPrompt: task,
     dereferencedEntityTypes: dereferencedEntityTypesById,
   });
 
-  const factSource: SourceProvenance = {
+  logProgress([
+    {
+      recordedAt: new Date().toISOString(),
+      stepId,
+      type: "InferredClaimsFromText",
+      output: {
+        claimCount: inferredClaimsFromContent.length,
+        entityCount: inferredEntitySummariesFromContent.length,
+        resource: {
+          url: resource.url,
+          title: resourceTitle,
+        },
+      },
+      ...workerIdentifiers,
+    },
+  ]);
+
+  const claimSource: SourceProvenance = {
     entityId: hashEntityForFile?.entityId,
     type: isResourcePdfFile ? SourceType.Document : SourceType.Webpage,
     location: {
@@ -371,48 +402,62 @@ const exploreResource = async (params: {
     lastUpdated: undefined,
   };
 
-  const inferredFactsWithSource = inferredFactsFromContent.map((fact) => ({
-    ...fact,
-    sources: [...(fact.sources ?? []), factSource],
+  const inferredClaimsWithSource = inferredClaimsFromContent.map((claim) => ({
+    ...claim,
+    sources: [...(claim.sources ?? []), claimSource],
   }));
 
   return {
     status: "ok",
     resource,
     possibleNextLinks: relevantLinksFromContent,
-    inferredFacts: inferredFactsWithSource,
+    inferredClaims: inferredClaimsWithSource,
     inferredEntitySummaries: inferredEntitySummariesFromContent,
   };
 };
 
-export const linkFollowerAgent = async (
-  params: LinkFollowerAgentInput,
-): Promise<{
+export const linkFollowerAgent = async (params: {
+  input: LinkFollowerAgentInput;
+  workerIdentifiers: WorkerIdentifiers;
+}): Promise<{
   status: "ok";
-  facts: Fact[];
+  inferredClaims: Claim[];
   exploredResources: ResourceToExplore[];
-  existingEntitiesOfInterest: LocalEntitySummary[];
+  inferredSummaries: LocalEntitySummary[];
   suggestionForNextSteps: string;
 }> => {
-  const { initialResource, task } = params;
+  const { input, workerIdentifiers } = params;
+  const { initialResource, existingEntitiesOfInterest, task } = input;
 
   const exploredResources: ResourceToExplore[] = [];
 
   let resourcesToExplore: ResourceToExplore[] = [initialResource];
 
-  let allEntitySummaries: LocalEntitySummary[] = [];
-  let allFacts: Fact[] = [];
+  let allInferredEntitySummaries: LocalEntitySummary[] = [];
+  let allInferredClaims: Claim[] = [];
   let suggestionForNextSteps = "";
 
   while (resourcesToExplore.length > 0) {
+    const entitiesToProvideExplorer = [
+      ...allInferredEntitySummaries,
+      ...existingEntitiesOfInterest,
+    ];
+
     const exploredResourcesResponses = await Promise.all(
       resourcesToExplore.map((resource) =>
-        exploreResource({ resource, input: params }),
+        exploreResource({
+          resource,
+          input: {
+            ...input,
+            existingEntitiesOfInterest: entitiesToProvideExplorer,
+          },
+          workerIdentifiers,
+        }),
       ),
     );
 
     let possibleNextLinks: Link[] = [];
-    const inferredFacts: Fact[] = [];
+    const inferredClaims: Claim[] = [];
     const inferredEntitySummaries: LocalEntitySummary[] = [];
 
     for (const response of exploredResourcesResponses) {
@@ -432,7 +477,7 @@ export const linkFollowerAgent = async (
             index,
         );
 
-        inferredFacts.push(...response.inferredFacts);
+        inferredClaims.push(...response.inferredClaims);
         inferredEntitySummaries.push(...response.inferredEntitySummaries);
       } else {
         logger.debug(
@@ -442,24 +487,27 @@ export const linkFollowerAgent = async (
     }
 
     if (inferredEntitySummaries.length > 0) {
-      if (allEntitySummaries.length === 0 && resourcesToExplore.length === 1) {
+      if (
+        allInferredEntitySummaries.length === 0 &&
+        resourcesToExplore.length === 1
+      ) {
         /**
          * If we previously haven't encountered any entities, and we only explored
          * a single resource, we can safely assume that any entities inferred
          * are unique and don't require deduplication.
          */
-        allEntitySummaries.push(...inferredEntitySummaries);
-        allFacts.push(...inferredFacts);
+        allInferredEntitySummaries.push(...inferredEntitySummaries);
+        allInferredClaims.push(...inferredClaims);
       } else {
         /**
          * Otherwise we need to deduplicate the entities.
          */
         const { duplicates } = await deduplicateEntities({
-          entities: [...inferredEntitySummaries, ...allEntitySummaries],
+          entities: [...inferredEntitySummaries, ...allInferredEntitySummaries],
         });
 
-        allEntitySummaries = [
-          ...allEntitySummaries,
+        allInferredEntitySummaries = [
+          ...allInferredEntitySummaries,
           ...inferredEntitySummaries,
         ].filter(
           ({ localId }) =>
@@ -468,26 +516,28 @@ export const linkFollowerAgent = async (
             ),
         );
 
-        allFacts = [...allFacts, ...inferredFacts].map((fact) => {
-          const { subjectEntityLocalId, objectEntityLocalId } = fact;
-          const subjectDuplicate = duplicates.find(({ duplicateIds }) =>
-            duplicateIds.includes(subjectEntityLocalId),
-          );
+        allInferredClaims = [...allInferredClaims, ...inferredClaims].map(
+          (claim) => {
+            const { subjectEntityLocalId, objectEntityLocalId } = claim;
+            const subjectDuplicate = duplicates.find(({ duplicateIds }) =>
+              duplicateIds.includes(subjectEntityLocalId),
+            );
 
-          const objectDuplicate = objectEntityLocalId
-            ? duplicates.find(({ duplicateIds }) =>
-                duplicateIds.includes(objectEntityLocalId),
-              )
-            : undefined;
+            const objectDuplicate = objectEntityLocalId
+              ? duplicates.find(({ duplicateIds }) =>
+                  duplicateIds.includes(objectEntityLocalId),
+                )
+              : undefined;
 
-          return {
-            ...fact,
-            subjectEntityLocalId:
-              subjectDuplicate?.canonicalId ?? fact.subjectEntityLocalId,
-            objectEntityLocalId:
-              objectDuplicate?.canonicalId ?? objectEntityLocalId,
-          };
-        });
+            return {
+              ...claim,
+              subjectEntityLocalId:
+                subjectDuplicate?.canonicalId ?? claim.subjectEntityLocalId,
+              objectEntityLocalId:
+                objectDuplicate?.canonicalId ?? objectEntityLocalId,
+            };
+          },
+        );
       }
     }
 
@@ -502,8 +552,8 @@ export const linkFollowerAgent = async (
 
     const { nextToolCall } = await getLinkFollowerNextToolCalls({
       task,
-      entitySummaries: allEntitySummaries,
-      factsGathered: allFacts,
+      entitySummaries: allInferredEntitySummaries,
+      claimsGathered: allInferredClaims,
       previouslyVisitedLinks,
       possibleNextLinks,
     });
@@ -526,8 +576,8 @@ export const linkFollowerAgent = async (
 
   return {
     status: "ok",
-    facts: allFacts,
-    existingEntitiesOfInterest: allEntitySummaries,
+    inferredClaims: allInferredClaims,
+    inferredSummaries: allInferredEntitySummaries,
     suggestionForNextSteps,
     exploredResources,
   };

@@ -333,11 +333,11 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
                                       }}
                                     />
                                   ) : (
-                                    entityTypeIcons[field.schema.$id] ?? (
+                                    (entityTypeIcons[field.schema.$id] ?? (
                                       <AsteriskRegularIcon
                                         sx={{ fontSize: 12 }}
                                       />
-                                    )
+                                    ))
                                   ))}
                               </Box>
                               <Typography

@@ -1,9 +1,9 @@
-import type { ParsedLlmToolCall } from "../../shared/get-llm-response/types";
-import type { LocalEntitySummary } from "../shared/infer-facts-from-text/get-entity-summaries-from-text";
-import type { Fact } from "../shared/infer-facts-from-text/types";
+import type { ParsedLlmToolCall } from "../../shared/get-llm-response/types.js";
+import type { LocalEntitySummary } from "../shared/infer-claims-from-text/get-entity-summaries-from-text.js";
+import type { Claim } from "../shared/infer-claims-from-text/types.js";
 
 export type CompletedCoordinatorToolCall<ToolId extends string> = {
-  inferredFacts: Fact[] | null;
+  inferredClaims: Claim[] | null;
   entitySummaries: LocalEntitySummary[] | null;
   subTasksCompleted?: string[] | null;
   suggestionsForNextStepsMade?: string[] | null;
@@ -23,7 +23,7 @@ export const nullReturns: Omit<
   CompletedCoordinatorToolCall<string>,
   "output" | "isError" | keyof ParsedLlmToolCall
 > = {
-  inferredFacts: null,
+  inferredClaims: null,
   entitySummaries: null,
   subTasksCompleted: null,
   suggestionsForNextStepsMade: null,
@@ -36,4 +36,5 @@ export type ResourceSummary = {
   url: string;
   title: string;
   summary: string;
+  fromSearchQuery: string;
 };

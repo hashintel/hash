@@ -34,14 +34,14 @@
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/react-datepicker": "^4.8.0",
+    "@types/react-datepicker": "4.8.0",
     "@types/react-dom": "18.2.25",
     "block-scripts": "0.3.4",
     "eslint": "8.57.0",
     "mock-block-dock": "0.1.9",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "typescript": "5.5.3"
+    "typescript": "5.5.4"
   },
   "peerDependencies": {
     "react": "^18.2.0",

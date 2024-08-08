@@ -1,10 +1,9 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-  "include": ["./src/", "./scripts/"],
+  "include": ["src", "scripts"],
   "compilerOptions": {
-    "outDir": "./dist",
-    "sourceMap": true,
-    "inlineSources": true,
-    "sourceRoot": "/"
+    "lib": ["ESNext"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext"
   }
 }

@@ -313,9 +313,10 @@ mod tests {
         let property_type: PropertyType =
             serde_json::from_str(property_type).expect("failed to parse property type");
 
-        PropertyWithMetadata::from_parts(property, None)
-            .expect("failed to create property with metadata")
-            .validate(&property_type, components, &provider)
+        let property = PropertyWithMetadata::from_parts(property, None)
+            .expect("failed to create property with metadata");
+        property_type
+            .validate_value(&property, components, &provider)
             .await
     }
 

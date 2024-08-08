@@ -1,7 +1,6 @@
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityMetadata, Property } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
@@ -9,10 +8,12 @@ import {
   getRoots,
 } from "@local/hash-subgraph/stdlib";
 
+import { simplifyProperties } from "./simplify-properties.js";
+
 const getLabelPropertyValue = (
   entityToLabel: {
     properties: Entity["properties"];
-    metadata: EntityMetadata;
+    metadata: Pick<EntityMetadata, "recordId" | "entityTypeId">;
   },
   entityType: EntityTypeWithMetadata,
 ) => {
@@ -32,7 +33,10 @@ const getFallbackLabel = ({
   entity,
 }: {
   entityType?: EntityTypeWithMetadata;
-  entity: { properties: Entity["properties"]; metadata: EntityMetadata };
+  entity: {
+    properties: Entity["properties"];
+    metadata: Pick<EntityMetadata, "recordId" | "entityTypeId">;
+  };
 }) => {
   // fallback to the entity type and a few characters of the entityUuid
   const entityId = entity.metadata.recordId.entityId;
@@ -45,19 +49,45 @@ const getFallbackLabel = ({
   )}`;
 };
 
+export function generateEntityLabel(
+  entitySubgraph: Subgraph<EntityRootType>,
+  entity?: {
+    properties: Entity["properties"];
+    metadata: Pick<EntityMetadata, "recordId" | "entityTypeId">;
+  },
+): string;
+export function generateEntityLabel(
+  entitySubgraph: Subgraph | null,
+  entity: {
+    properties: Entity["properties"];
+    metadata: Pick<EntityMetadata, "recordId" | "entityTypeId">;
+  },
+): string;
 /**
  * Generate a display label for an entity
  * Prefers the BP-specified labelProperty if it exists.
  * @see https://blockprotocol.org/docs/spec/graph-service-specification#json-schema-extensions
+ *
+ * If 'entity' is not provided, the Subgraph must be entity-rooted, and the first root is taken as the entity.
+ * Otherwise, the subgraph need only contain the types for the entity.
  */
-export const generateEntityLabel = (
-  entitySubgraph: Subgraph<EntityRootType> | null,
-  entity?: { properties: Entity["properties"]; metadata: EntityMetadata },
-): string => {
+export function generateEntityLabel(
+  entitySubgraph: Subgraph | null,
+  entity?: {
+    properties: Entity["properties"];
+    metadata: Pick<EntityMetadata, "recordId" | "entityTypeId">;
+  },
+): string {
   if (!entitySubgraph && !entity) {
     throw new Error(`One of entitySubgraph or entity must be provided`);
   }
   const entityToLabel = entity ?? getRoots(entitySubgraph!)[0]!;
+
+  if (!("properties" in entityToLabel)) {
+    throw new Error(
+      `Either one of 'entity' or an entity rooted subgraph must be provided`,
+    );
+  }
 
   let entityType: EntityTypeWithMetadata | undefined;
   if (entitySubgraph) {
@@ -152,4 +182,4 @@ export const generateEntityLabel = (
   }
 
   return getFallbackLabel({ entityType, entity: entityToLabel });
-};
+}

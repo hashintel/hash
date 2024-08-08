@@ -2,7 +2,7 @@ import type { Subgraph as SubgraphBp } from "@blockprotocol/graph";
 import { getLatestInstantIntervalForSubgraph as getLatestInstantIntervalForSubgraphBp } from "@blockprotocol/graph/stdlib";
 import type { BoundedTimeInterval } from "@local/hash-graph-types/temporal-versioning";
 
-import type { Subgraph } from "../../main";
+import type { Subgraph } from "../../main.js";
 
 /**
  * For a given {@link Subgraph} that supports temporal versioning, this returns a {@link TimeInterval} that spans

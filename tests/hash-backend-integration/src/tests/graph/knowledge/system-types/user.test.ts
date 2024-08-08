@@ -12,7 +12,6 @@ import {
   joinOrg,
 } from "@apps/hash-api/src/graph/knowledge/system-types/user";
 import { systemAccountId } from "@apps/hash-api/src/graph/system-account";
-import { TypeSystemInitializer } from "@blockprotocol/type-system";
 import { Logger } from "@local/hash-backend-utils/logger";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -36,7 +35,6 @@ const shortname = generateRandomShortname("userTest");
 
 describe("User model class", () => {
   beforeAll(async () => {
-    await TypeSystemInitializer.initialize();
     await ensureSystemGraphIsInitialized({ logger, context: graphContext });
   });
 
@@ -53,14 +51,14 @@ describe("User model class", () => {
 
     const identity = await createKratosIdentity({
       traits: {
-        emails: ["alice@example.com"],
+        emails: ["test-user@example.com"],
       },
     });
 
     kratosIdentityId = identity.id;
 
     createdUser = await createUser(graphContext, authentication, {
-      emails: ["alice@example.com"],
+      emails: ["test-user@example.com"],
       kratosIdentityId,
       shortname,
       displayName: "Alice",

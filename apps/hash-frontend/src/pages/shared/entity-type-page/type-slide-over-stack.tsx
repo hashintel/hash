@@ -41,7 +41,7 @@ export const TypeSlideOverStack: FunctionComponent<{
       setAnimateOut(false);
       setItems([]);
       onClose();
-    }, 300);
+    }, 200);
   }, [setAnimateOut, setItems, onClose]);
 
   return (

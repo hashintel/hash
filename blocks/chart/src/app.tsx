@@ -8,11 +8,8 @@ import {
   useEntitySubgraph,
   useGraphBlockModule,
 } from "@blockprotocol/graph/react";
-import {
-  getOutgoingLinkAndTargetEntities,
-  getRoots,
-} from "@blockprotocol/graph/stdlib";
-import { EntitiesGraphChart, GearIcon } from "@hashintel/block-design-system";
+import { getOutgoingLinkAndTargetEntities } from "@blockprotocol/graph/stdlib";
+import { GearIcon } from "@hashintel/block-design-system";
 import { theme } from "@hashintel/design-system/theme";
 import {
   Box,
@@ -365,19 +362,20 @@ export const App: BlockComponent<BlockEntity> = ({
               />
             ) : null
           ) : (
-            /** @todo: account for multiple query results */
-            <EntitiesGraphChart
-              // @ts-expect-error -- The chart requires a temporal subgraph: BP-103
-              subgraph={queryResult}
-              isPrimaryEntity={(entity) =>
-                !!queryResult &&
-                getRoots(queryResult).some(
-                  (rootEntity) =>
-                    entity.metadata.recordId.entityId ===
-                    rootEntity.metadata.recordId.entityId,
-                )
-              }
-            />
+            <Box>Unimplemented</Box>
+            /** @todo: fix usage of new EntitiesGraphChart */
+            // <EntitiesGraphChart
+            //   // @ts-expect-error -- The chart requires a temporal subgraph: BP-103
+            //   subgraphWithTypes={queryResult}
+            //   isPrimaryEntity={(entity) =>
+            //     !!queryResult &&
+            //     getRoots(queryResult).some(
+            //       (rootEntity) =>
+            //         entity.metadata.recordId.entityId ===
+            //         rootEntity.metadata.recordId.entityId,
+            //     )
+            //   }
+            // />
           )
         ) : null}
         <Collapse in={displayEditChartDefinition}>

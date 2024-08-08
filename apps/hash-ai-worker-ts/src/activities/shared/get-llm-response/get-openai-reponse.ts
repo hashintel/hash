@@ -1,32 +1,28 @@
 import dedent from "dedent";
 import { backOff } from "exponential-backoff";
-import type OpenAI from "openai";
+import type { OpenAI } from "openai";
 import type { Headers } from "openai/core";
 import { APIError, RateLimitError } from "openai/error";
-import type {
-  ChatCompletion,
-  ChatCompletion as OpenAiChatCompletion,
-  ChatCompletionCreateParamsNonStreaming,
-  ChatCompletionMessageParam,
-  FunctionParameters as OpenAiFunctionParameters,
-} from "openai/resources";
 import { promptTokensEstimate } from "openai-chat-tokens";
 
-import { logger } from "../activity-logger";
-import { modelToContextWindow, openai } from "../openai-client";
-import { stringify } from "../stringify";
+import { logger } from "../activity-logger.js";
+import { modelToContextWindow, openai } from "../openai-client.js";
+import { stringify } from "../stringify.js";
 import {
   defaultRateLimitRetryDelay,
   maximumExponentialBackoffRetries,
   maximumRateLimitRetries,
   maxRetryCount,
   serverErrorRetryStartingDelay,
-} from "./constants";
-import type { LlmMessageToolUseContent, LlmUserMessage } from "./llm-message";
+} from "./constants.js";
+import type {
+  LlmMessageToolUseContent,
+  LlmUserMessage,
+} from "./llm-message.js";
 import {
   mapLlmMessageToOpenAiMessages,
   mapOpenAiMessagesToLlmMessages,
-} from "./llm-message";
+} from "./llm-message.js";
 import type {
   LlmResponse,
   LlmStopReason,
@@ -34,11 +30,11 @@ import type {
   LlmUsage,
   OpenAiLlmParams,
   ParsedLlmToolCall,
-} from "./types";
+} from "./types.js";
 import {
   getInputValidationErrors,
   sanitizeInputBeforeValidation,
-} from "./validation";
+} from "./validation.js";
 
 const mapLlmToolDefinitionToOpenAiToolDefinition = (
   tool: LlmToolDefinition,
@@ -46,13 +42,13 @@ const mapLlmToolDefinitionToOpenAiToolDefinition = (
   type: "function",
   function: {
     name: tool.name,
-    parameters: tool.inputSchema as OpenAiFunctionParameters,
+    parameters: tool.inputSchema as OpenAI.FunctionParameters,
     description: tool.description,
   },
 });
 
 const mapOpenAiFinishReasonToLlmStopReason = (
-  finishReason: OpenAiChatCompletion["choices"][0]["finish_reason"],
+  finishReason: OpenAI.ChatCompletion["choices"][0]["finish_reason"],
 ): LlmStopReason => {
   switch (finishReason) {
     case "stop":
@@ -119,31 +115,34 @@ const isServerError = (error: unknown): error is APIError =>
   error.status < 600;
 
 const openAiChatCompletionWithBackoff = async (params: {
-  completionPayload: ChatCompletionCreateParamsNonStreaming;
+  completionPayload: OpenAI.ChatCompletionCreateParamsNonStreaming;
   retryCount?: number;
-}): Promise<ChatCompletion> => {
+}): Promise<OpenAI.ChatCompletion> => {
   const { completionPayload, retryCount = 0 } = params;
 
   try {
-    return backOff(() => openai.chat.completions.create(completionPayload), {
-      startingDelay: serverErrorRetryStartingDelay,
-      jitter: "full",
-      numOfAttempts: maximumExponentialBackoffRetries,
-      retry: (error) => {
-        /**
-         * Only retry further requests with an exponential back-off if a server error
-         * was encountered.
-         */
-        if (isServerError(error)) {
-          logger.debug(
-            `Encountered server error with OpenAI, retrying with exponential backoff.`,
-          );
-          return true;
-        }
+    return await backOff(
+      () => openai.chat.completions.create(completionPayload),
+      {
+        startingDelay: serverErrorRetryStartingDelay,
+        jitter: "full",
+        numOfAttempts: maximumExponentialBackoffRetries,
+        retry: (error) => {
+          /**
+           * Only retry further requests with an exponential back-off if a server error
+           * was encountered.
+           */
+          if (isServerError(error)) {
+            logger.debug(
+              `Encountered server error with OpenAI, retrying with exponential backoff.`,
+            );
+            return true;
+          }
 
-        return false;
+          return false;
+        },
       },
-    });
+    );
   } catch (error) {
     if (
       error instanceof RateLimitError &&
@@ -186,7 +185,7 @@ export const getOpenAiResponse = async <ToolName extends string>(
 
   const openAiTools = tools?.map(mapLlmToolDefinitionToOpenAiToolDefinition);
 
-  const openAiMessages: ChatCompletionMessageParam[] = [
+  const openAiMessages: OpenAI.ChatCompletionMessageParam[] = [
     ...(systemPrompt
       ? [
           {
@@ -200,7 +199,7 @@ export const getOpenAiResponse = async <ToolName extends string>(
     ),
   ];
 
-  const completionPayload: ChatCompletionCreateParamsNonStreaming = {
+  const completionPayload: OpenAI.ChatCompletionCreateParamsNonStreaming = {
     ...remainingParams,
     messages: openAiMessages,
     tools: openAiTools,
@@ -262,7 +261,7 @@ export const getOpenAiResponse = async <ToolName extends string>(
     } while (excessTokens > 9);
   }
 
-  let openAiResponse: ChatCompletion;
+  let openAiResponse: OpenAI.ChatCompletion;
 
   const timeBeforeRequest = Date.now();
 
@@ -275,7 +274,7 @@ export const getOpenAiResponse = async <ToolName extends string>(
 
     return {
       status: "api-error",
-      openAiApiError: error instanceof APIError ? error : undefined,
+      error,
     };
   }
 
@@ -310,6 +309,13 @@ export const getOpenAiResponse = async <ToolName extends string>(
       (openAiResponse.usage?.total_tokens ?? 0),
   };
 
+  const lastRequestTime = currentRequestTime;
+  const totalRequestTime =
+    previousInvalidResponses?.reduce(
+      (acc, { requestTime }) => acc + requestTime,
+      currentRequestTime,
+    ) ?? currentRequestTime;
+
   const retry = async (retryParams: {
     successfullyParsedToolCalls: ParsedLlmToolCall<ToolName>[];
     retryMessageContent: LlmUserMessage["content"];
@@ -318,6 +324,8 @@ export const getOpenAiResponse = async <ToolName extends string>(
       return {
         status: "exceeded-maximum-retries",
         invalidResponses: previousInvalidResponses ?? [],
+        lastRequestTime,
+        totalRequestTime,
         usage,
       };
     }
@@ -398,6 +406,9 @@ export const getOpenAiResponse = async <ToolName extends string>(
       status: "exceeded-maximum-output-tokens",
       response: openAiResponse,
       requestMaxTokens: params.max_tokens ?? undefined,
+      lastRequestTime,
+      totalRequestTime,
+      usage,
     };
   }
 

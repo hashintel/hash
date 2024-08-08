@@ -17,7 +17,7 @@ import type {
 import type {
   KnowledgeGraphOutwardEdge,
   OntologyOutwardEdge,
-} from "./variants";
+} from "./variants.js";
 
 /**
  * A simple tuple type which identifies an {@link Entity} by its {@link EntityId}, at a given {@link Timestamp}.

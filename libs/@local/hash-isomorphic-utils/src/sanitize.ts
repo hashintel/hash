@@ -1,4 +1,4 @@
-import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
+import { frontendUrl } from "./environment.js";
 
 export const sanitizeHref = (url?: string) => {
   if (!url) {

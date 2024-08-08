@@ -1,4 +1,5 @@
 import { Entity, flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   FailedEntityProposal,
@@ -11,8 +12,8 @@ import { StatusCode } from "@local/status";
 import {
   fileEntityTypeIds,
   persistEntityAction,
-} from "./persist-entity-action";
-import type { FlowActionActivity } from "./types";
+} from "./persist-entity-action.js";
+import type { FlowActionActivity } from "./types.js";
 
 export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
   const { draft, proposedEntities } = getSimplifiedActionInputs({
@@ -59,11 +60,11 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
   const persistedFilesByOriginalUrl: Record<string, PersistedEntity> = {};
 
   const failedEntitiesByLocalId: Record<
-    string,
+    EntityId,
     Omit<FailedEntityProposal, "existingEntity"> & { existingEntity?: Entity }
   > = {};
   const persistedEntitiesByLocalId: Record<
-    string,
+    EntityId,
     Omit<PersistedEntity, "entity"> & { entity?: Entity }
   > = {};
 
@@ -73,7 +74,9 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
    */
   for (const unresolvedEntity of entitiesWithDependenciesSortedLast) {
     const {
+      claims,
       entityTypeId,
+      localEntityId,
       properties,
       provenance,
       propertyMetadata,
@@ -82,7 +85,9 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
     } = unresolvedEntity;
 
     const entityWithResolvedLinks: ProposedEntityWithResolvedLinks = {
+      claims,
       entityTypeId,
+      localEntityId,
       properties,
       propertyMetadata,
       provenance,

@@ -1,11 +1,11 @@
-import "../../../shared/testing-utilities/mock-get-flow-context";
+import "../../../shared/testing-utilities/mock-get-flow-context.js";
 
 import { expect, test } from "vitest";
 
-import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity";
-import { getFlowContext } from "../../shared/get-flow-context";
-import { graphApiClient } from "../../shared/graph-api-client";
-import { checkSubTasksAgent } from "./check-sub-tasks-agent";
+import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity.js";
+import { getFlowContext } from "../../shared/get-flow-context.js";
+import { graphApiClient } from "../../shared/graph-api-client.js";
+import { checkSubTasksAgent } from "./check-sub-tasks-agent.js";
 
 test.skip(
   "Test checkSubTasksAgent",
@@ -37,7 +37,7 @@ test.skip(
       state: {
         entitySummaries: [],
         hasConductedCheckStep: false,
-        inferredFacts: [],
+        inferredClaims: [],
         plan: "",
         previousCalls: [],
         proposedEntities: [],

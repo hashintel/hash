@@ -390,7 +390,7 @@ export const App: BlockComponent<BlockEntity> = ({
                     ) : null
                   }
 
-                  {introEntity ?? !readonly ? (
+                  {(introEntity ?? !readonly) ? (
                     <Box>
                       <Collapse
                         in={!readonly && !introEntity && !introAnimatingOut}

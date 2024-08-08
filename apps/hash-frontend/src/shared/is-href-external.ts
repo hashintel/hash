@@ -3,8 +3,9 @@ import { frontendUrl } from "@local/hash-isomorphic-utils/environment";
 
 export const isHrefExternal = (href: string) =>
   !!href &&
-  (href === "/discord" ||
+  (href === "/cases" ||
     href === "/contact" ||
+    href === "/guide" ||
     !/^(mailto:|#|\/)/.test(href)) &&
   !href.startsWith(frontendUrl) &&
   // To be removed in H-1172: Temporary provision to serve types with a https://hash.ai URL from https://app.hash.ai

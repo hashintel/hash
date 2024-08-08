@@ -10,7 +10,6 @@ import {
 import type { ComponentProps, FunctionComponent, ReactNode } from "react";
 
 import { SITE_DESCRIPTION } from "../config";
-import { DiscordIcon } from "./icons/discord-icon";
 import { FontAwesomeIcon } from "./icons/font-awesome-icon";
 import { GithubIcon } from "./icons/github-icon";
 import { XTwitterIcon } from "./icons/x-twitter-icon";
@@ -156,9 +155,6 @@ export const Footer: FunctionComponent = () => (
               </Link>
               <Link href="https://x.com/hashintel">
                 <XTwitterIcon fontSize="inherit" />
-              </Link>
-              <Link href="https://hash.ai/discord">
-                <DiscordIcon fontSize="inherit" />
               </Link>
             </Stack>
           </Typography>

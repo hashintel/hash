@@ -2,11 +2,11 @@ cargo-features = ["edition2024"]
 
 [package]
 name = "harpc-net"
-version = "0.0.0"
-license = "AGPL-3.0"
-publish = false
-authors.workspace = true
+version.workspace = true
 edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
 
 [dependencies]
 bytes.workspace = true
@@ -49,3 +49,6 @@ tokio = { workspace = true, features = ["rt-multi-thread"] }
 
 [features]
 test-utils = []
+
+[lints]
+workspace = true

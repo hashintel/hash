@@ -6,7 +6,7 @@ import {
 import { StatusCode } from "@local/status";
 import { backOff } from "exponential-backoff";
 
-import type { FlowActionActivity } from "./types";
+import type { FlowActionActivity } from "./types.js";
 
 export const webSearchAction: FlowActionActivity = async ({ inputs }) => {
   const { query, numberOfSearchResults } = getSimplifiedActionInputs({

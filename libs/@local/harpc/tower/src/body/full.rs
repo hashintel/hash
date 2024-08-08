@@ -51,10 +51,10 @@ where
     }
 
     fn size_hint(&self) -> SizeHint {
-        self.data
-            .as_ref()
-            .map(|data| SizeHint::with_exact(u64::try_from(data.remaining()).unwrap()))
-            .unwrap_or_else(|| SizeHint::with_exact(0))
+        self.data.as_ref().map_or_else(
+            || SizeHint::with_exact(0),
+            |data| SizeHint::with_exact(data.remaining() as u64),
+        )
     }
 }
 
@@ -86,7 +86,7 @@ mod test {
     fn poll_frame_empty_returns_none() {
         let bytes = Bytes::new();
 
-        let mut body = Full::new(bytes.clone());
+        let mut body = Full::new(bytes);
 
         let frame = poll_frame_unpin(&mut body);
         assert_eq!(frame, Poll::Ready(None));
@@ -96,7 +96,7 @@ mod test {
     fn is_complete() {
         let bytes = Bytes::from("hello");
 
-        let mut body = Full::new(bytes.clone());
+        let mut body = Full::new(bytes);
         assert_eq!(body.state(), None);
 
         let _ = poll_frame_unpin(&mut body);
@@ -107,7 +107,7 @@ mod test {
     fn size_hint() {
         let bytes = Bytes::from("hello");
 
-        let mut body = Full::new(bytes.clone());
+        let mut body = Full::new(bytes);
         assert_eq!(body.size_hint(), SizeHint::with_exact(5));
 
         let _ = poll_frame_unpin(&mut body);

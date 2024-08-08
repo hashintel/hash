@@ -3,20 +3,20 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { TimeInterval } from "@local/hash-graph-types/temporal-versioning";
 
-import type { LinkEntityAndRightEntity, Subgraph } from "../../../main";
+import type { LinkEntityAndRightEntity, Subgraph } from "../../../main.js";
 import {
   isHasLeftEntityEdge,
   isHasRightEntityEdge,
   isIncomingLinkEdge,
   isOutgoingLinkEdge,
   stripDraftIdFromEntityId,
-} from "../../../main";
-import { getEntityRevisionsByEntityId } from "../../../stdlib";
+} from "../../../main.js";
+import { getEntityRevisionsByEntityId } from "../../../stdlib.js";
 import {
   intervalForTimestamp,
   intervalIntersectionWithInterval,
   intervalIsStrictlyAfterInterval,
-} from "../../interval";
+} from "../../interval.js";
 
 // Copied from `@blockprotocol/graph`
 const getUniqueEntitiesFilter = () => {

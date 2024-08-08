@@ -1,8 +1,8 @@
-import "../../shared/testing-utilities/mock-get-flow-context";
+import "../../shared/testing-utilities/mock-get-flow-context.js";
 
 import { expect, test } from "vitest";
 
-import { createAnthropicMessagesWithTools } from "./get-llm-response/anthropic-client";
+import { createAnthropicMessagesWithTools } from "./get-llm-response/anthropic-client.js";
 
 test.skip(
   "Test rate limit with amazon bedrock",

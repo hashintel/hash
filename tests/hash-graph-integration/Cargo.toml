@@ -2,9 +2,11 @@ cargo-features = ["edition2024"]
 
 [package]
 name = "graph-integration"
-version = "0.0.0"
+version.workspace = true
 edition.workspace = true
-publish = false
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
 
 [dev-dependencies]
 graph = { workspace = true }
@@ -35,3 +37,6 @@ workspace = true
 [[test]]
 name = "postgres"
 path = "postgres/lib.rs"
+
+[package.metadata.sync.turborepo]
+extra-dev-dependencies = [{ name = "@apps/hash-graph", version = "0.0.0-private" }]

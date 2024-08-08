@@ -14,8 +14,8 @@ import type {
   Subgraph,
   SubgraphRootType,
   Vertex,
-} from "../../main";
-import { mustBeDefined } from "../../shared/invariant";
+} from "../../main.js";
+import { mustBeDefined } from "../../shared/invariant.js";
 
 /**
  * Returns all root elements.

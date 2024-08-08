@@ -31,7 +31,7 @@ const mapFlowRunToMinimalFlowRun = (
   flowRun: GetMinimalFlowRunsQuery["getFlowRuns"][number],
 ): MinimalFlowRun => {
   const persistedEntities = (flowRun.outputs ?? []).flatMap((output) =>
-    output.contents[0].outputs.flatMap(({ outputName, payload }) => {
+    (output.contents[0]?.outputs ?? []).flatMap(({ outputName, payload }) => {
       if (
         outputName ===
         ("persistedEntities" satisfies (typeof browserInferenceFlowOutput)["name"])

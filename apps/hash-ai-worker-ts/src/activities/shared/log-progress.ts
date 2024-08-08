@@ -4,8 +4,8 @@ import { Context } from "@temporalio/activity";
 import type { Client as TemporalClient } from "@temporalio/client";
 import debounce from "lodash.debounce";
 
-import { logProgressSignal } from "../../shared/signals";
-import { logger } from "./activity-logger";
+import { logProgressSignal } from "../../shared/signals.js";
+import { logger } from "./activity-logger.js";
 
 let temporalClient: TemporalClient | undefined;
 

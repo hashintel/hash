@@ -101,8 +101,8 @@ export const InviteAccountForm: FunctionComponent<{
         onChange={(_, account) => setSelectedAccount(account)}
         getOptionLabel={(option) =>
           option?.kind === "user"
-            ? option.displayName ?? ""
-            : option?.name ?? ""
+            ? (option.displayName ?? "")
+            : (option?.name ?? "")
         }
         renderOption={(props, option) => {
           if (!option) {

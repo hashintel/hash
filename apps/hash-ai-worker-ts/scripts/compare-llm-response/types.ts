@@ -4,7 +4,7 @@ import type {
   AnthropicLlmParams,
   LlmParams,
   OpenAiLlmParams,
-} from "../../src/activities/shared/get-llm-response/types";
+} from "../../src/activities/shared/get-llm-response/types.js";
 
 export type CompareLlmResponseConfig = {
   models: LlmParams["model"][];

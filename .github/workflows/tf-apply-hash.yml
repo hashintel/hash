@@ -31,9 +31,9 @@ jobs:
         run: |
           # Only apply the prod environment on merge to main or manual dispatch
           if [[ "$DISPATCH_ENV" == "prod" || "$GITHUB_REF_NAME" == "main" ]]; then
-            echo "matrix=[\"prod\"]" >> $GITHUB_OUTPUT
+            echo "matrix=[\"prod\"]" | tee -a $GITHUB_OUTPUT
           else
-            echo "matrix=[]" >> $GITHUB_OUTPUT
+            echo "matrix=[]" | tee -a $GITHUB_OUTPUT
           fi
 
   terraform:
@@ -67,7 +67,7 @@ jobs:
         if: ${{ failure() }}
         env:
           SLACK_LINK_NAMES: true
-          SLACK_MESSAGE: "Error applying Terraform configuration <@U0143NL4GMP> <@U027NPY8Y3X> <@U02NLJY0FGX>"
+          SLACK_MESSAGE: "Error applying Terraform configuration <@U0143NL4GMP> <@U027NPY8Y3X> <@U02NLJY0FGX>" # Notifies C & T
           SLACK_TITLE: Terraform apply failed
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
           SLACK_USERNAME: GitHub

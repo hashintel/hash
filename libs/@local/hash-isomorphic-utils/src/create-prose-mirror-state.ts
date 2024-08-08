@@ -1,19 +1,19 @@
 import type { OwnedById } from "@local/hash-graph-types/web";
-import cloneDeep from "lodash/cloneDeep";
+import { cloneDeep } from "lodash-es";
 import { baseKeymap } from "prosemirror-commands";
 import { dropCursor } from "prosemirror-dropcursor";
 import type { Node, Schema } from "prosemirror-model";
 import type { Plugin } from "prosemirror-state";
 import { EditorState } from "prosemirror-state";
 
-import { createEntityStorePlugin } from "./entity-store-plugin";
+import { createEntityStorePlugin } from "./entity-store-plugin.js";
 import {
   createSchema,
   formatKeymap,
   pageEditorNodes,
   textTokenNodes,
-} from "./prosemirror";
-import { wrapEntitiesPlugin } from "./wrap-entities-plugin";
+} from "./prosemirror.js";
+import { wrapEntitiesPlugin } from "./wrap-entities-plugin.js";
 
 const nodes = {
   doc: {
