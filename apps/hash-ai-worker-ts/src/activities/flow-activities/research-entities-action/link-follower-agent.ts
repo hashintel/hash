@@ -25,6 +25,7 @@ import { chooseRelevantLinksFromContent } from "./link-follower-agent/choose-rel
 import { filterAndRankTextChunksAgent } from "./link-follower-agent/filter-and-rank-text-chunks-agent.js";
 import { getLinkFollowerNextToolCalls } from "./link-follower-agent/get-link-follower-next-tool-calls.js";
 import { indexPdfFile } from "./link-follower-agent/llama-index/index-pdf-file.js";
+import { areUrlsEqual } from "./shared/are-urls-equal.js";
 
 type ResourceToExplore = {
   url: string;
@@ -421,21 +422,6 @@ const exploreResource = async (params: {
     inferredEntitySummaries: inferredEntitySummariesFromContent,
   };
 };
-
-const stripHashFromUrl = (url: string) => {
-  try {
-    const urlObject = new URL(url);
-
-    urlObject.hash = "";
-
-    return urlObject.toString();
-  } catch {
-    return url;
-  }
-};
-
-const areUrlsEqual = (urlA: string, urlB: string) =>
-  stripHashFromUrl(urlA) === stripHashFromUrl(urlB);
 
 export const linkFollowerAgent = async (params: {
   input: LinkFollowerAgentInput;

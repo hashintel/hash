@@ -36,6 +36,7 @@ import type { DuplicateReport } from "./deduplicate-entities.js";
 import { deduplicateEntities } from "./deduplicate-entities.js";
 import { handleWebSearchToolCall } from "./handle-web-search-tool-call.js";
 import { linkFollowerAgent } from "./link-follower-agent.js";
+import { areUrlsEqual } from "./shared/are-urls-equal.js";
 import {
   simplifyClaimForLlmConsumption,
   simplifyEntityTypeForLlmConsumption,
@@ -828,7 +829,10 @@ export const runSubTaskAgent = async (params: {
     state.resourcesNotVisited.push(...newWebPages);
 
     state.resourcesNotVisited = state.resourcesNotVisited.filter(
-      ({ url }) => !state.resourceUrlsVisited.includes(url),
+      ({ url }) =>
+        !state.resourceUrlsVisited.some((visitedUrl) =>
+          areUrlsEqual(visitedUrl, url),
+        ),
     );
 
     state.webQueriesMade.push(
