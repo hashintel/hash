@@ -122,7 +122,7 @@ resource "aws_security_group" "alb_sg" {
     from_port        = 443
     to_port          = 443
     protocol         = "TCP"
-    source_ranges    = data.cloudflare_ip_ranges.cloudflare.cidr_blocks
+    cidr_blocks      = [data.cloudflare_ip_ranges.cloudflare.cidr_blocks]
   }
 
   ingress {

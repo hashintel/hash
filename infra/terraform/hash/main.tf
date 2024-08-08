@@ -36,7 +36,7 @@ provider "vault" {
 }
 
 provider "cloudflare" {
-  api_token = "dummy"
+  api_token = "dummy-key-we-dont-need-privileged-access"
 }
 
 data "vault_kv_secret_v2" "secrets" {
