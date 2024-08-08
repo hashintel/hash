@@ -6,17 +6,20 @@
 import type {
   ExternalInputRequestSignal,
   FlowCheckpointSignal,
+  FlowSignalType,
   ProgressLogSignal,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { defineSignal } from "@temporalio/workflow";
 
 /** Record progress logs from an activity to allow for inspection of work before the activity completes */
-export const logProgressSignal =
-  defineSignal<[ProgressLogSignal]>("logProgress");
+export const logProgressSignal = defineSignal<[ProgressLogSignal]>(
+  "logProgress" satisfies FlowSignalType,
+);
 
 export const externalInputRequestSignal = defineSignal<
   [ExternalInputRequestSignal]
->("externalInputRequest");
+>("externalInputRequest" satisfies FlowSignalType);
 
-export const checkpointSignal =
-  defineSignal<[FlowCheckpointSignal]>("checkpoint");
+export const checkpointSignal = defineSignal<[FlowCheckpointSignal]>(
+  "checkpoint" satisfies FlowSignalType,
+);

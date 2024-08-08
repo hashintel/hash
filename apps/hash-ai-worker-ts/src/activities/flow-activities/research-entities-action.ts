@@ -42,8 +42,10 @@ import { deduplicateEntities } from "./research-entities-action/deduplicate-enti
 import { getAnswersFromHuman } from "./research-entities-action/get-answers-from-human.js";
 import { handleWebSearchToolCall } from "./research-entities-action/handle-web-search-tool-call.js";
 import { linkFollowerAgent } from "./research-entities-action/link-follower-agent.js";
-import { getProgress } from "./research-entities-action/saved-progress.js";
-import { createCheckpoint } from "./research-entities-action/state-checkpoint.js";
+import {
+  createCheckpoint,
+  getLastCheckpoint,
+} from "./research-entities-action/state-checkpoint.js";
 import { runSubTaskAgent } from "./research-entities-action/sub-task-agent.js";
 import type { CompletedCoordinatorToolCall } from "./research-entities-action/types.js";
 import { nullReturns } from "./research-entities-action/types.js";
@@ -324,7 +326,7 @@ export const researchEntitiesAction: FlowActionActivity<{
       };
     });
 
-  const stateBeforeRetry = getProgress();
+  const stateBeforeRetry = getLastCheckpoint();
 
   if (stateBeforeRetry?.state) {
     state = stateBeforeRetry.state;
