@@ -1,15 +1,21 @@
 use hql_cst::{
     arena::{self, Arena},
-    expr::signature::{Generic, Signature},
+    expr::signature::{Argument, Generic, List, Signature},
 };
 use winnow::{
-    combinator::{opt, preceded},
+    combinator::{delimited, opt, preceded, trace},
     error::ParserError,
-    stream::{Compare, Stream, StreamIsPartial},
-    PResult, Stateful,
+    stream::{Compare, Location, Stream, StreamIsPartial},
+    PResult, Parser, Stateful,
 };
 
-use super::{string, symbol::parse_symbol};
+use super::{
+    string::{self, ParseState},
+    symbol::{self, parse_symbol},
+    r#type::parse_type,
+    IntoTextRange,
+};
+use crate::span::Span;
 
 /// Implementation of [`Signature`] parsing
 ///
@@ -22,18 +28,20 @@ use super::{string, symbol::parse_symbol};
 /// generics = "<" symbol-rust [":" type ] ">"
 /// argument = symbol-rust ":" type
 /// ```
-pub(crate) fn parse_signature<'a, Input, Error>(
-    input: &mut Stateful<Input, &'a Arena>,
-) -> PResult<Signature<'a>, Error>
+pub(crate) fn parse_signature<'arena, 'span, Input, Error>(
+    input: &mut Stateful<Input, ParseState<'arena, 'span>>,
+) -> PResult<Signature<'arena>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
         + Compare<char>
-        + for<'b> Compare<&'b str>,
-    Error: ParserError<Stateful<Input, &'a Arena>>,
+        + for<'b> Compare<&'b str>
+        + Location,
+    Error: ParserError<Stateful<Input, ParseState<'arena, 'span>>>,
 {
     let arena = input.state;
 
+    let start = input.location();
     trace(
         "signature",
         (
@@ -41,32 +49,56 @@ where
             parse_arguments,
             parse_return,
         )
-            .map(|(generics, arguments, r#return)| Signature {
-                generics,
-                arguments,
-                r#return,
+            .map(|(generics, arguments, r#return)| {
+                let end = input.location();
+
+                let span = input.state.spans.insert(Span {
+                    range: (start, end).range_trunc(),
+                    pointer: None,
+                    parent_id: input.state.parent_id,
+                });
+
+                Signature {
+                    generics,
+                    arguments,
+                    r#return,
+
+                    span,
+                }
             }),
     )
     .parse_next(input)
 }
 
-fn parse_generic<'a, Input, Error>(
-    input: &mut Stateful<Input, &'a Arena>,
+fn parse_generic<'arena, 'span, Input, Error>(
+    input: &mut Stateful<Input, ParseState<'arena, 'span>>,
 ) -> PResult<Generic<'a>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
         + Compare<char>
-        + for<'b> Compare<&'b str>,
-    Error: ParserError<Stateful<Input, &'a Arena>>,
+        + for<'b> Compare<&'b str>
+        + Location,
+    Error: ParserError<Stateful<Input, ParseState<'arena, 'span>>>,
 {
+    let start = input.location();
+
     trace(
         "generic",
         (
             parse_symbol(symbol::ParseRestriction::SafeOnly),
             opt(preceded(string::ws(':'), parse_type)),
         )
-            .map(|(name, bound)| Generic { name, bound }),
+            .map(|(name, bound)| {
+                let end = input.location();
+                let span = input.state.spans.insert(Span {
+                    range: (start, end).range_trunc(),
+                    pointer: None,
+                    parent_id: input.state.parent_id,
+                });
+
+                Generic { name, bound, span }
+            }),
     )
     .parse_next(input)
 }
@@ -79,29 +111,28 @@ where
 /// ```abnf
 /// generics = "<" symbol [":" type ] ">"
 /// ```
-fn parse_generics<'a, Input, Error>(
-    input: &mut Stateful<Input, &'a Arena>,
-) -> PResult<arena::Box<'a, [Generic<'a>]>, Error>
+fn parse_generics<'arena, 'span, Input, Error>(
+    input: &mut Stateful<Input, ParseState<'arena, 'span>>,
+) -> PResult<List<Generic<'arena>>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
         + Compare<char>
-        + for<'b> Compare<&'b str>,
-    Error: ParserError<Stateful<Input, &'a Arena>>,
+        + for<'b> Compare<&'b str>
+        + Location,
+    Error: ParserError<Stateful<Input, ParseState<'arena, 'span>>>,
 {
-    let arena = input.state;
-
     trace(
         "generics",
         delimited(
             string::ws('<'),
             opt((
-                string::separated_boxed1(arena, parse_generic, string::ws(',')),
+                string::separated_boxed1(input.state.arena, parse_generic, string::ws(',')),
                 opt(string::ws(',')).void(),
             ))
             .map(|generics| match generics {
                 Some((generics, ())) => generics,
-                None => arena.boxed([]),
+                None => input.state.arena.boxed([]),
             }),
             string::ws('>'),
         ),
@@ -116,16 +147,18 @@ where
 /// ```abnf
 /// argument = symbol ":" type
 /// ```
-fn parse_argument<'a, Input, Error>(
-    input: &mut Stateful<Input, &'a Arena>,
-) -> PResult<Argument<'a>, Error>
+fn parse_argument<'arena, 'span, Input, Error>(
+    input: &mut Stateful<Input, ParseState<'arena, 'span>>,
+) -> PResult<Argument<'arena>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
         + Compare<char>
-        + for<'b> Compare<&'b str>,
-    Error: ParserError<Stateful<Input, &'a Arena>>,
+        + for<'b> Compare<&'b str>
+        + Location,
+    Error: ParserError<Stateful<Input, ParseState<'arena, 'span>>>,
 {
+    let start = input.location();
     trace(
         "argument",
         separated_pair(
@@ -133,7 +166,16 @@ where
             string::ws(':'),
             parse_type,
         )
-        .map(|(name, r#type)| Argument { name, r#type }),
+        .map(|(name, r#type)| {
+            let end = input.location();
+            let span = input.state.spans.insert(Span {
+                range: (start, end).range_trunc(),
+                pointer: None,
+                parent_id: input.state.parent_id,
+            });
+
+            Argument { name, r#type, span }
+        }),
     )
     .parse_next(input)
 }
@@ -146,24 +188,25 @@ where
 /// arguments = "(" [ argument *("," argument) ] ")"
 /// argument = symbol ":" type
 /// ```
-fn parse_arguments<'a, Input, Error>(
-    input: &mut Stateful<Input, &'a Arena>,
-) -> PResult<arena::Box<'a, [Argument<'a>]>, Error>
+fn parse_arguments<'arena, 'span, Input, Error>(
+    input: &mut Stateful<Input, ParseState<'arena, 'span>>,
+) -> PResult<List<'arena, Argument<'arena>>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
         + Compare<char>
-        + for<'b> Compare<&'b str>,
-    Error: ParserError<Stateful<Input, &'a Arena>>,
+        + for<'b> Compare<&'b str>
+        + Location,
+    Error: ParserError<Stateful<Input, ParseState<'arena, 'span>>>,
 {
-    let arena = input.state;
+    let start = input.location();
 
     trace(
         "argument list",
         delimited(
             string::ws('('),
             opt((
-                string::separated_boxed1(arena, parse_argument, string::ws(',')),
+                string::separated_boxed1(input.state.arena, parse_argument, string::ws(',')),
                 opt(string::ws(',')).void(),
             ))
             .map(|value| match value {
@@ -184,14 +227,14 @@ where
 /// return-type = "->" type
 /// ```
 fn parse_return<'a, Input, Error>(
-    input: &mut Stateful<Input, &'a Arena>,
+    input: &mut Stateful<Input, ParseState<'arena, 'span>>,
 ) -> PResult<Return<'a>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
         + Compare<char>
         + for<'b> Compare<&'b str>,
-    Error: ParserError<Stateful<Input, &'a Arena>>,
+    Error: ParserError<Stateful<Input, ParseState<'arena, 'span>>>,
 {
     trace(
         "return",

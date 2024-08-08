@@ -6,11 +6,31 @@ use super::ExprKind;
 use crate::{arena, symbol::Symbol, r#type::Type, Spanned};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct List<'arena, T> {
+    pub items: arena::Box<'arena, [T]>,
+    pub span: SpanId,
+}
+
+impl<'arena, T> List<'arena, T> {
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.items.is_empty()
+    }
+}
+
+impl<T> Spanned for List<'_, T> {
+    fn span(&self) -> SpanId {
+        self.span
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Signature<'arena> {
-    pub generics: arena::Box<'arena, [Generic<'arena>]>,
-
-    pub arguments: arena::Box<'arena, [Argument<'arena>]>,
-
+    pub generics: List<'arena, Generic<'arena>>,
+    pub arguments: List<'arena, Argument<'arena>>,
     pub r#return: Return<'arena>,
 
     pub span: SpanId,

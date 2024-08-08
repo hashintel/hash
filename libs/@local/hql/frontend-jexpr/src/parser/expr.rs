@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use hql_cst::{
-    expr::{call::Call, ExprKind},
+    expr::{call::Call, Expr, ExprKind},
     Node,
 };
 use hql_diagnostics::Diagnostic;
@@ -30,7 +30,7 @@ use crate::{
 pub(crate) fn parse_node<'arena, 'lexer, 'source>(
     stream: &mut TokenStream<'arena, 'lexer, 'source>,
     token: Option<Token<'source>>,
-) -> Result<Node<'arena, 'source>, Diagnostic<'static, SpanId>> {
+) -> Result<Expr<'arena, 'source>, Diagnostic<'static, SpanId>> {
     let token = if let Some(token) = token {
         token
     } else {
@@ -63,7 +63,7 @@ pub(crate) fn parse_node<'arena, 'lexer, 'source>(
 fn parse_call<'arena, 'lexer, 'source>(
     stream: &mut TokenStream<'arena, 'lexer, 'source>,
     token: Token<'source>,
-) -> Result<Node<'arena, 'source>, Diagnostic<'static, SpanId>> {
+) -> Result<Expr<'arena, 'source>, Diagnostic<'static, SpanId>> {
     let mut r#fn = None;
     let mut args = stream.arena.vec(None);
 
@@ -99,7 +99,7 @@ fn parse_string<'arena, 'lexer, 'source>(
     stream: &mut TokenStream<'arena, 'lexer, 'source>,
     value: Cow<'source, str>,
     span: TextRange,
-) -> Result<Node<'arena, 'source>, Diagnostic<'static, SpanId>> {
+) -> Result<Expr<'arena, 'source>, Diagnostic<'static, SpanId>> {
     enum ParseDecision {
         Path,
         Signature,

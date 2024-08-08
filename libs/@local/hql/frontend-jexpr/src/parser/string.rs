@@ -1,4 +1,5 @@
 use hql_cst::arena::{self, Arena};
+use hql_span::{storage::SpanStorage, SpanId};
 use winnow::{
     ascii::multispace0,
     combinator::{delimited, separated_foldl1, trace},
@@ -6,6 +7,8 @@ use winnow::{
     stream::{AsChar, Stream, StreamIsPartial},
     Parser,
 };
+
+use crate::span::Span;
 
 enum VecOrOneValue<'a, T> {
     Vec(arena::Vec<'a, T>),
@@ -118,4 +121,11 @@ where
         "ws", //
         delimited(multispace0, parser, multispace0),
     )
+}
+
+pub(crate) struct ParseState<'arena, 'span> {
+    pub arena: &'arena Arena,
+    pub spans: &'span mut SpanStorage<Span>,
+
+    pub parent_id: Option<SpanId>,
 }
