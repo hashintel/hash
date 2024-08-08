@@ -5,7 +5,7 @@ use hql_span::{SpanId, TextRange};
 
 use super::stream::TokenStream;
 use crate::{
-    lexer::{syntax_kind::SyntaxKind, token_kind::TokenKind},
+    lexer::{syntax_kind::SyntaxKind, token::Token, token_kind::TokenKind},
     parser::error::unexpected_token,
     span::Span,
 };
@@ -19,9 +19,14 @@ use crate::{
 /// Panics if the lexer has not consumed the opening bracket.
 // TODO: test `[]`, `[1]`, `[1, 2]`, error on `[1,]`, `[1, 2,]`, `[,1]`, `[,]`
 // TODO: quickcheck
+#[expect(
+    clippy::needless_pass_by_value,
+    reason = "API contract, we want to signify to the user, we're now proceeding with this \
+              specific token. Not that we hold it temporary, but instead that we consume it."
+)]
 pub(crate) fn parse_array<'arena, 'lexer, 'source>(
     stream: &mut TokenStream<'arena, 'lexer, 'source>,
-    tracked: bool,
+    token: Token<'source>,
     mut on_item: impl FnMut(
         &mut TokenStream<'arena, 'lexer, 'source>,
         Option<Token<'source>>,
@@ -43,7 +48,7 @@ pub(crate) fn parse_array<'arena, 'lexer, 'source>(
         // This is where we diverge, in case we're first, we don't need to consume a comma
         // and can simply give the token to `on_item`, otherwise, expect a comma, and then just
         // parse next token
-        let relay = if index == 0 {
+        let peeked = if index == 0 {
             Some(token)
         } else if token.kind == TokenKind::Comma {
             None
@@ -56,29 +61,14 @@ pub(crate) fn parse_array<'arena, 'lexer, 'source>(
                 parent_id: None,
             };
 
-            // ensure even if we unwind, that we unwind the stack correctly
-            if tracked {
-                stream.stack.pop();
-            }
-
             return Err(unexpected_token(
                 span,
                 [SyntaxKind::Comma, SyntaxKind::RBracket],
             ));
         };
 
-        // we only track if requested, as some consumers may not require tracking at all
-        if tracked {
-            stream.stack.push(jsonptr::Token::from(index));
-        }
+        stream.descend(|| index, |stream| on_item(stream, peeked));
 
-        let result = on_item(stream, relay);
-
-        if tracked {
-            stream.stack.pop();
-        }
-
-        result?;
         index += 1;
 
         token = stream.next_or_err()?;

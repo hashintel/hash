@@ -1,23 +1,17 @@
 use std::borrow::Cow;
 
-use hql_cst::{
-    expr::{call::Call, Expr, ExprKind},
-    Node,
-};
+use hql_cst::expr::{call::Call, Expr, ExprKind};
 use hql_diagnostics::Diagnostic;
 use hql_span::{SpanId, TextRange, TextSize};
 use jsonptr::PointerBuf;
 use winnow::{
-    combinator::{alt, cond, cut_err, peek},
-    dispatch,
-    error::{ContextError, ErrMode, ParseError, ParserError},
-    token::any,
+    error::{ContextError, ErrMode, ParseError},
     BStr, Located, Parser,
 };
 
-use super::{array::parse_array, stream::TokenStream};
+use super::{array::parse_array, error::unexpected_token, stream::TokenStream};
 use crate::{
-    lexer::{syntax_kind_set::SyntaxKindSet, token::Token, token_kind::TokenKind},
+    lexer::{syntax_kind::SyntaxKind, token::Token, token_kind::TokenKind},
     parser::{
         error::{expected_callee, invalid_identifier, invalid_signature},
         path::parse_path,
@@ -27,7 +21,7 @@ use crate::{
     span::Span,
 };
 
-pub(crate) fn parse_node<'arena, 'lexer, 'source>(
+pub(crate) fn parse_expr<'arena, 'lexer, 'source>(
     stream: &mut TokenStream<'arena, 'lexer, 'source>,
     token: Option<Token<'source>>,
 ) -> Result<Expr<'arena, 'source>, Diagnostic<'static, SpanId>> {
@@ -40,7 +34,7 @@ pub(crate) fn parse_node<'arena, 'lexer, 'source>(
     match &token.kind {
         TokenKind::String(value) => parse_string(stream, value, token.span),
         TokenKind::LBracket => parse_call(stream, token),
-        TokenKind::LBrace => parse_object(stream, token),
+        TokenKind::LBrace => parse_explicit(stream, token),
         _ => {
             // even if we're nested, this is a parsing error, therefore always absolute, as we're
             // not operating "on" an item
@@ -67,8 +61,8 @@ fn parse_call<'arena, 'lexer, 'source>(
     let mut r#fn = None;
     let mut args = stream.arena.vec(None);
 
-    let span = parse_array(stream, true, |stream, token| {
-        let node = parse_node(stream, token)?;
+    let span = parse_array(stream, token, |stream, token| {
+        let node = parse_expr(stream, token)?;
 
         match r#fn {
             Some(r#fn) => args.push(Some(node)),
@@ -86,9 +80,9 @@ fn parse_call<'arena, 'lexer, 'source>(
 
     let r#fn = r#fn.ok_or_else(|| expected_callee(span))?;
 
-    Ok(Node {
-        expr: ExprKind::Call(Call {
-            r#fn: self.arena.boxed(r#fn),
+    Ok(Expr {
+        kind: ExprKind::Call(Call {
+            r#fn: stream.arena.boxed(r#fn),
             args: args.into_boxed_slice(),
         }),
         span,
@@ -157,7 +151,7 @@ fn parse_string<'arena, 'lexer, 'source>(
     let span = stream.insert_span(span);
 
     let (decision, error): (_, ParseError<_, ErrMode<ContextError>>) = match result {
-        Ok(expr) => return Ok(Node { expr, span }),
+        Ok(kind) => return Ok(Expr { kind, span }),
         Err((decision, error)) => (decision, error),
     };
 
@@ -188,170 +182,125 @@ fn parse_string<'arena, 'lexer, 'source>(
 
 #[cfg(test)]
 mod test {
+    use std::assert_matches::assert_matches;
+
     use insta::assert_debug_snapshot;
 
-    use crate::{arena::Arena, parse::json::node::NodeParser};
+    use super::ExprKind;
+    use crate::arena::Arena;
+
+    // This needs to be a macro, because we need to get the function name for auto-naming.
+    macro_rules! assert_expr {
+        ($expr:expr, $pattern:pat) => {{
+            let arena = Arena::new();
+
+            let result = Expr::from_str(&arena, $expr);
+
+            assert_debug_snapshot!(insta::_macro_support::AutoName, result, $expr);
+
+            assert_matches!(result, $pattern);
+        }};
+
+        ($expr:expr) => {{
+            assert_expr!($expr, _);
+        }};
+    }
 
     #[test]
     fn fn_is_expr() {
-        let arena = Arena::new();
-
-        let result = NodeParser::new(&arena).parse(
+        assert_expr!(
             r#"[
-            ["input", "variable"],
-            "arg1",
-            "arg2"
-        ]"#,
+                ["input", "variable"],
+                "arg1",
+                "arg2"
+            ]"#,
+            Ok(ExprKind::Call(_))
         );
-
-        assert_debug_snapshot!(result);
     }
 
     #[test]
     fn fn_empty_args() {
-        let arena = Arena::new();
-
-        let result = NodeParser::new(&arena).parse(r#"["func"]"#);
-
-        assert_debug_snapshot!(result);
+        assert_expr!(r#"["func"]"#, Ok(ExprKind::Call(_)));
     }
 
     #[test]
     fn fn_empty() {
-        let arena = Arena::new();
-
-        let result = NodeParser::new(&arena).parse("[]");
-
-        assert_debug_snapshot!(result);
+        assert_expr!("[]", Err(_));
     }
 
     #[test]
     fn string_is_path() {
-        let arena = Arena::new();
+        assert_expr!(r#""symbol""#, Ok(ExprKind::Path(_)));
 
-        let result = NodeParser::new(&arena).parse(r#""symbol""#);
-        assert_debug_snapshot!(result);
-
-        let result = NodeParser::new(&arena).parse(r#""foo::bar""#);
-        assert_debug_snapshot!(result);
+        assert_expr!(r#""foo::bar""#, Ok(ExprKind::Path(_)));
     }
 
     #[test]
     fn string_is_signature() {
-        let arena = Arena::new();
-
-        let result = NodeParser::new(&arena).parse(r#""<T: Int>(a: T) -> T""#);
-
-        assert_debug_snapshot!(result);
+        assert_expr!(r#""<T: Int>(a: T) -> T""#, Ok(ExprKind::Signature(_)));
     }
 
     #[test]
     fn string_is_invalid() {
-        let arena = Arena::new();
-
-        let result = NodeParser::new(&arena).parse(r#""1234""#);
-
-        assert_debug_snapshot!(result);
+        assert_expr!(r#""1234""#, Err(_));
     }
 
     #[test]
     fn object_is_constant() {
-        let arena = Arena::new();
-
-        let result = NodeParser::new(&arena).parse(r#"{"const": 42}"#);
-
-        assert_debug_snapshot!(result);
+        assert_expr!(r#"{"const": 42}"#, Ok(ExprKind::Constant(_)));
     }
 
     #[test]
     fn object_is_constant_with_type() {
-        let arena = Arena::new();
-
-        let result = NodeParser::new(&arena).parse(r#"{"type": "u32", "const": 42}"#);
-
-        assert_debug_snapshot!(result);
+        assert_expr!(r#"{"type": "u32", "const": 42}"#, Ok(ExprKind::Constant(_)));
     }
 
     #[test]
     fn object_is_constant_with_extra_fields() {
-        let arena = Arena::new();
-
-        let result =
-            NodeParser::new(&arena).parse(r#"{"type": "u32", "const": 42, "sig": "() -> Unit"}"#);
-
-        assert_debug_snapshot!(result);
+        assert_expr!(
+            r#"{"type": "u32", "const": 42, "sig": "() -> Unit"}"#,
+            Err(_)
+        );
     }
 
     #[test]
     fn object_is_call() {
-        let arena = Arena::new();
-
-        let result = NodeParser::new(&arena).parse(r#"{"fn": "func", "args": ["arg1", "arg2"]}"#);
-
-        assert_debug_snapshot!(result);
+        assert_expr!(
+            r#"{"fn": "func", "args": ["arg1", "arg2"]}"#,
+            Ok(ExprKind::Call(_))
+        );
     }
 
     #[test]
     fn object_is_args_without_fn() {
-        let arena = Arena::new();
-
-        let result = NodeParser::new(&arena).parse(r#"{"args": ["arg1", "arg2"]}"#);
-
-        assert_debug_snapshot!(result);
+        assert_expr!(r#"{"args": ["arg1", "arg2"]}"#, Err(_));
     }
 
     #[test]
     fn object_is_call_without_args() {
-        let arena = Arena::new();
-
-        let result = NodeParser::new(&arena).parse(r#"{"fn": "func"}"#);
-
-        assert_debug_snapshot!(result);
+        assert_expr!(r#"{"fn": "func"}"#, Ok(ExprKind::Call(_)));
     }
 
     #[test]
     fn object_is_signature() {
-        let arena = Arena::new();
-
-        let result = NodeParser::new(&arena).parse(r#"{"sig": "<T: Int>(a: T) -> T"}"#);
-
-        assert_debug_snapshot!(result);
+        assert_expr!(
+            r#"{"sig": "<T: Int>(a: T) -> T"}"#,
+            Ok(ExprKind::Signature(_))
+        );
     }
 
     #[test]
     fn object_is_invalid_multiple() {
-        let arena = Arena::new();
-
-        let result =
-            NodeParser::new(&arena).parse(r#"{"sig": "<T: Int>(a: T) -> T", "fn": "func"}"#);
-
-        assert_debug_snapshot!(result);
-    }
-
-    #[test]
-    fn object_is_invalid_duplicate_key() {
-        let arena = Arena::new();
-
-        let result = NodeParser::new(&arena).parse(r#"{"fn": "func", "fn": "func"}"#);
-
-        assert_debug_snapshot!(result);
+        assert_expr!(r#"{"sig": "<T: Int>(a: T) -> T", "fn": "func"}"#, Err(_));
     }
 
     #[test]
     fn object_is_invalid() {
-        let arena = Arena::new();
-
-        let result = NodeParser::new(&arena).parse(r#"{"unknown": "key"}"#);
-
-        assert_debug_snapshot!(result);
+        assert_expr!(r#"{"unknown": "key"}"#, Err(_));
     }
 
     #[test]
     fn object_is_empty() {
-        let arena = Arena::new();
-
-        let result = NodeParser::new(&arena).parse("{}");
-
-        assert_debug_snapshot!(result);
+        assert_expr!("{}", Err(_));
     }
 }

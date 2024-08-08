@@ -1,8 +1,7 @@
 use alloc::{borrow::Cow, sync::Arc};
 
 use hql_diagnostics::{
-    category::Category, help::Help, label::Label, rob::RefOrBox, severity::Severity,
-    span::DiagnosticSpan, Diagnostic,
+    category::Category, help::Help, label::Label, rob::RefOrBox, severity::Severity, Diagnostic,
 };
 use hql_span::SpanId;
 use text_size::TextRange;

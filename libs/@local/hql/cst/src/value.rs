@@ -2,7 +2,6 @@ use alloc::borrow::Cow;
 
 use hql_cst_lex::Number;
 use hql_span::SpanId;
-use text_size::TextRange;
 
 use crate::{arena, Spanned};
 

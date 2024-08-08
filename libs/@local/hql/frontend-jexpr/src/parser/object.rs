@@ -22,7 +22,6 @@ pub(crate) struct Key {
 )]
 pub(crate) fn parse_object<'arena, 'lexer, 'source>(
     stream: &mut TokenStream<'arena, 'lexer, 'source>,
-    tracked: bool,
     token: Token<'source>,
     mut on_entry: impl FnMut(
         &mut TokenStream<'arena, 'lexer, 'source>,
@@ -101,27 +100,21 @@ pub(crate) fn parse_object<'arena, 'lexer, 'source>(
             return Err(diagnostic);
         }
 
-        // we only track if requested, as some consumers might not care about the keys
-        if tracked {
-            stream.stack.push(match key.clone() {
+        stream.descend(
+            || match key.clone() {
                 Cow::Borrowed(key) => jsonptr::Token::from(key),
                 Cow::Owned(key) => jsonptr::Token::from(key),
-            });
-        }
-
-        let result = on_entry(
-            stream,
-            Key {
-                span: key_span,
-                value: key,
             },
-        );
-
-        if tracked {
-            stream.stack.pop();
-        }
-
-        result?;
+            |stream| {
+                on_entry(
+                    stream,
+                    Key {
+                        span: key_span,
+                        value: key,
+                    },
+                )
+            },
+        )?;
 
         token = stream.next_or_err()?;
     }

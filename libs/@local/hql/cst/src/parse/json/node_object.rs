@@ -13,14 +13,14 @@ use crate::{
     arena::{self, Arena},
     expr::{
         call::Call,
-        constant::{Constant, ConstantType},
+        constant::Constant,
         path::{parse_path, Path},
         signature::{parse_signature, Signature},
         ExprKind,
     },
     parse::json::util::EofParser,
     symbol::ParseRestriction,
-    r#type::parse_type,
+    r#type::{parse_type, Type},
     value::Value,
     Node,
 };
@@ -188,7 +188,7 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for CallState<'arena, 'source
 
 struct ConstantState<'arena, 'source> {
     r#const: Option<Value<'arena, 'source>>,
-    r#type: Option<ConstantType<'arena>>,
+    r#type: Option<Type<'arena>>,
 }
 
 impl<'arena, 'source> ObjectState<'arena, 'source> for ConstantState<'arena, 'source> {

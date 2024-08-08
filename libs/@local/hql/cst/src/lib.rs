@@ -5,41 +5,21 @@ extern crate alloc;
 
 pub mod arena;
 pub mod expr;
-pub mod parse;
+// pub mod parse;
 pub mod symbol;
 pub mod r#type;
 pub mod value;
 
-use error_stack::Result;
 use hql_span::SpanId;
 use text_size::TextRange;
 
-use self::{
-    arena::Arena,
-    expr::ExprKind,
-    parse::json::{
-        node::{NodeParseError, NodeParser},
-        program::ProgramParser,
-        ProgramParseError,
-    },
-};
+use self::expr::Expr;
 
 pub trait Spanned {
     fn span(&self) -> SpanId;
 }
 
 pub struct Program<'arena, 'source> {
-    pub nodes: arena::Vec<'arena, Node<'arena, 'source>>,
+    pub expr: arena::Vec<'arena, Expr<'arena, 'source>>,
     pub span: TextRange,
-}
-
-impl<'arena, 'source> Program<'arena, 'source> {
-    /// Deserialize a program from a JSON string.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the input is not valid JSON, or a malformed program.
-    pub fn from_str(arena: &'arena Arena, value: &'source str) -> Result<Self, ProgramParseError> {
-        ProgramParser::new(arena).parse(value)
-    }
 }
