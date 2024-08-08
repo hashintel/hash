@@ -35,6 +35,10 @@ provider "vault" {
   # This is using the vault at VAULT_ADDR
 }
 
+provider "cloudflare" {
+  api_token = "dummy"
+}
+
 data "vault_kv_secret_v2" "secrets" {
   mount = "automation"
   # Remove leading and trailing slashes from the path so we ensure it's a path and not a file
@@ -213,6 +217,7 @@ module "temporal_worker_integration_ecr" {
 
 module "application" {
   depends_on                   = [module.networking, module.postgres]
+  providers                    = { cloudflare = cloudflare }
   source                       = "./hash_application"
   subnets                      = module.networking.snpub
   env                          = local.env
