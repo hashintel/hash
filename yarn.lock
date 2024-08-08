@@ -19145,10 +19145,10 @@ hoist-non-react-statics@^3.3.0, hoist-non-react-statics@^3.3.1, hoist-non-react-
   dependencies:
     react-is "^16.7.0"
 
-hookpoint@4.0.1:
-  version "4.0.1"
-  resolved "https://registry.yarnpkg.com/hookpoint/-/hookpoint-4.0.1.tgz#3a54aba8f70086ea022a8b12823339548a7c7bef"
-  integrity sha512-UlBVczwQ6YVJoj3qHimdWMt0s7RapDhI8jm11hDIEzlSFapg3MoQ8OrecEdC4TetwN2AQYSLD2omJHSb705UHg==
+hookpoint@4.1.0:
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/hookpoint/-/hookpoint-4.1.0.tgz#1914c0516a9a86d020367e34e647f5699cd3b427"
+  integrity sha512-nKlElb27LmBWAVWirkcX8cQNGAPLsBe0pk4uTBt9faaOTFyUsMCWtKq6gAx8GlapPTGQ0rOnbIJQFSWqX1xIuw==
 
 hosted-git-info@^2.1.4:
   version "2.8.9"
@@ -19485,10 +19485,10 @@ https-proxy-agent@^7.0.0, https-proxy-agent@^7.0.1, https-proxy-agent@^7.0.2, ht
     agent-base "^7.0.2"
     debug "4"
 
-httpyac@6.14.0:
-  version "6.14.0"
-  resolved "https://registry.yarnpkg.com/httpyac/-/httpyac-6.14.0.tgz#009299e8069937867a5406b996029161d3972920"
-  integrity sha512-B9fpiR0VyKGr1XPo0DnjBZtaOBfyv5J/D5A/Wx/G6pu5euyJaM9vTTPReYCWHM3dpY+wJ2Kyc7NLZEnRCi9SNA==
+httpyac@6.15.0:
+  version "6.15.0"
+  resolved "https://registry.yarnpkg.com/httpyac/-/httpyac-6.15.0.tgz#cb0daaaa34832f59688024315712433578fb5c6a"
+  integrity sha512-U6d04CVw8QGRr9zXuc2TzIMNjFvpkFRxFpJArH2SgytDgiEL8N14ysw1RpZFWXt9NtjmK1QYOOCBFvBUPz1cAw==
   dependencies:
     "@cloudamqp/amqp-client" "^2.1.1"
     "@grpc/grpc-js" "^1.10.7"
@@ -19508,7 +19508,7 @@ httpyac@6.14.0:
     google-protobuf "^3.21.2"
     got "^11.8.6"
     grpc-js-reflection-client "^1.2.14"
-    hookpoint "4.0.1"
+    hookpoint "4.1.0"
     http-proxy-agent "^7.0.2"
     https-proxy-agent "^7.0.4"
     inquirer "^9.2.20"
@@ -19518,7 +19518,7 @@ httpyac@6.14.0:
     open "^8.4.2"
     socks-proxy-agent "^8.0.3"
     tough-cookie "^4.1.4"
-    uuid "^9.0.1"
+    uuid "^10.0.0"
     ws "^8.17.0"
     xmldom-format "^1.1.1"
     xpath "^0.0.34"
@@ -31076,6 +31076,11 @@ uuid@9.0.1, uuid@^9.0.0, uuid@^9.0.1:
   version "9.0.1"
   resolved "https://registry.yarnpkg.com/uuid/-/uuid-9.0.1.tgz#e188d4c8853cc722220392c424cd637f32293f30"
   integrity sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA==
+
+uuid@^10.0.0:
+  version "10.0.0"
+  resolved "https://registry.yarnpkg.com/uuid/-/uuid-10.0.0.tgz#5a95aa454e6e002725c79055fd42aaba30ca6294"
+  integrity sha512-8XkAphELsDnEGrDxUOHB3RGvXz6TeuYSGEZBOjtTtPm2lwhGBjLgOzLHB63IUWfBpNucQjND6d3AOudO+H3RWQ==
 
 uuid@^3.3.2, uuid@^3.4.0:
   version "3.4.0"
