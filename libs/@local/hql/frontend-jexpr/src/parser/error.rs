@@ -47,6 +47,12 @@ pub(crate) const INVALID_SIGNATURE: &Category = &Category {
     parent: Some(RefOrBox::Ref(STRING)),
 };
 
+pub(crate) const INVALID_TYPE: &Category = &Category {
+    id: Cow::Borrowed("invalid-type"),
+    name: Cow::Borrowed("Invalid Type"),
+    parent: Some(RefOrBox::Ref(STRING)),
+};
+
 pub(crate) const ARRAY: &Category = &Category {
     id: Cow::Borrowed("array"),
     name: Cow::Borrowed("Array"),
@@ -55,8 +61,38 @@ pub(crate) const ARRAY: &Category = &Category {
 
 pub(crate) const EXPECTED_CALLEE: &Category = &Category {
     id: Cow::Borrowed("expected-callee"),
-    name: Cow::Borrowed("Expected callee"),
+    name: Cow::Borrowed("Expected Callee"),
     parent: Some(RefOrBox::Ref(ARRAY)),
+};
+
+pub(crate) const OBJECT: &Category = &Category {
+    id: Cow::Borrowed("object"),
+    name: Cow::Borrowed("Object"),
+    parent: Some(RefOrBox::Ref(PARSE)),
+};
+
+pub(crate) const DUPLICATE_KEY: &Category = &Category {
+    id: Cow::Borrowed("duplicate-key"),
+    name: Cow::Borrowed("Duplicate Key"),
+    parent: Some(RefOrBox::Ref(OBJECT)),
+};
+
+pub(crate) const REQUIRED_KEY: &Category = &Category {
+    id: Cow::Borrowed("required-key"),
+    name: Cow::Borrowed("Required Key"),
+    parent: Some(RefOrBox::Ref(OBJECT)),
+};
+
+pub(crate) const UNKNOWN_KEY: &Category = &Category {
+    id: Cow::Borrowed("unknown-key"),
+    name: Cow::Borrowed("Unknown Key"),
+    parent: Some(RefOrBox::Ref(OBJECT)),
+};
+
+pub(crate) const EXPECTED_NON_EMPTY_OBJECT: &Category = &Category {
+    id: Cow::Borrowed("expected-non-empty"),
+    name: Cow::Borrowed("Expected Non-Empty"),
+    parent: Some(RefOrBox::Ref(OBJECT)),
 };
 
 pub(crate) fn unexpected_eof(span: SpanId) -> Diagnostic<'static, SpanId> {
@@ -128,6 +164,19 @@ pub(crate) fn invalid_signature<I>(
     diagnostic
 }
 
+pub(crate) fn invalid_type<I>(
+    span: SpanId,
+    error: ParseError<I, ErrMode<ContextError>>,
+) -> Diagnostic<'static, SpanId> {
+    let mut diagnostic = Diagnostic::new(INVALID_TYPE, Severity::ERROR);
+
+    diagnostic
+        .labels
+        .push(Label::new(span, Cow::Owned(error.inner().to_string())));
+
+    diagnostic
+}
+
 pub(crate) fn expected_callee(span: SpanId) -> Diagnostic<'static, SpanId> {
     let mut diagnostic = Diagnostic::new(EXPECTED_CALLEE, Severity::ERROR);
 
@@ -136,6 +185,73 @@ pub(crate) fn expected_callee(span: SpanId) -> Diagnostic<'static, SpanId> {
     diagnostic.help = Some(Help::new(
         "The callee is always the first argument in the array",
     ));
+
+    diagnostic
+}
+
+pub(crate) fn duplicate_key(span: SpanId, duplicate: SpanId) -> Diagnostic<'static, SpanId> {
+    let mut diagnostic = Diagnostic::new(DUPLICATE_KEY, Severity::ERROR);
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "This is a duplicate"));
+
+    diagnostic
+        .labels
+        .push(Label::new(duplicate, "... of this key"));
+
+    diagnostic
+}
+
+pub(crate) fn required_key(span: SpanId, key: impl AsRef<str>) -> Diagnostic<'static, SpanId> {
+    let mut diagnostic = Diagnostic::new(REQUIRED_KEY, Severity::ERROR);
+
+    diagnostic.labels.push(Label::new(
+        span,
+        format!("Requires the key `{}`", key.as_ref()),
+    ));
+
+    diagnostic
+}
+pub(crate) fn unknown_key(
+    span: SpanId,
+    key: impl AsRef<str>,
+    expected: &[&'static str],
+) -> Diagnostic<'static, SpanId> {
+    let mut diagnostic = Diagnostic::new(UNKNOWN_KEY, Severity::ERROR);
+
+    diagnostic
+        .labels
+        .push(Label::new(span, format!("Unknown key `{}`", key.as_ref())));
+
+    let expected = expected
+        .into_iter()
+        .enumerate()
+        .fold(String::new(), |mut acc, (index, key)| {
+            if index != 0 {
+                acc.push_str(", ");
+            }
+
+            if index == expected.len() - 1 {
+                acc.push_str("or ");
+            }
+
+            acc.push_str(key);
+
+            acc
+        });
+
+    diagnostic.help = Some(Help::new(format!("Expected {}", expected)));
+
+    diagnostic
+}
+
+pub(crate) fn expected_non_empty_object(span: SpanId) -> Diagnostic<'static, SpanId> {
+    let mut diagnostic = Diagnostic::new(EXPECTED_NON_EMPTY_OBJECT, Severity::ERROR);
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Expected a non-empty object"));
 
     diagnostic
 }

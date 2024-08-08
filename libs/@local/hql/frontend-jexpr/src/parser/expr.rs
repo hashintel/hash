@@ -8,7 +8,10 @@ use winnow::{
     Located, Parser,
 };
 
-use super::{array::parse_array, error::unexpected_token, stream::TokenStream};
+use super::{
+    array::parse_array, error::unexpected_token, expr_explicit::parse_expr_explicit,
+    stream::TokenStream,
+};
 use crate::{
     lexer::{syntax_kind::SyntaxKind, token::Token, token_kind::TokenKind},
     parser::{
@@ -35,7 +38,7 @@ pub(crate) fn parse_expr<'arena, 'source>(
     match token.kind {
         TokenKind::String(value) => parse_string(stream, value, token.span),
         TokenKind::LBracket => parse_call(stream, token),
-        TokenKind::LBrace => parse_explicit(stream, token),
+        TokenKind::LBrace => parse_expr_explicit(stream, token),
         _ => {
             // even if we're nested, this is a parsing error, therefore always absolute, as we're
             // not operating "on" an item

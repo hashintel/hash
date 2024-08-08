@@ -3,6 +3,7 @@ use hql_span::{TextRange, TextSize};
 mod array;
 mod error;
 mod expr;
+mod expr_explicit;
 mod object;
 mod path;
 mod signature;
@@ -10,6 +11,7 @@ mod stream;
 mod string;
 mod symbol;
 mod r#type;
+mod value;
 
 trait IntoTextRange {
     /// Convert the range into a text range.

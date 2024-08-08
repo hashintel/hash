@@ -67,10 +67,11 @@ pub(crate) fn parse_array<'arena, 'source>(
             ));
         };
 
-        stream.push(index);
-        let result = on_item(stream, peeked);
-        stream.pop();
-        result?;
+        stream.descend(
+            peeked,
+            |_| jsonptr::Token::from(index),
+            |stream, peeked| on_item(stream, peeked),
+        )?;
 
         index += 1;
 

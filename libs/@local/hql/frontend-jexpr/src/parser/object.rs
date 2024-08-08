@@ -10,9 +10,9 @@ use crate::{
     span::Span,
 };
 
-pub(crate) struct Key {
+pub(crate) struct Key<'source> {
     pub span: TextRange,
-    pub value: Cow<'static, str>,
+    pub value: Cow<'source, str>,
 }
 
 #[expect(
@@ -25,7 +25,7 @@ pub(crate) fn parse_object<'arena, 'source>(
     token: Token<'source>,
     mut on_entry: impl FnMut(
         &mut TokenStream<'arena, 'source>,
-        Key,
+        Key<'source>,
     ) -> Result<(), Diagnostic<'static, SpanId>>,
 ) -> Result<TextRange, Diagnostic<'static, SpanId>> {
     debug_assert_matches!(token.kind, TokenKind::LBrace);
@@ -100,20 +100,15 @@ pub(crate) fn parse_object<'arena, 'source>(
             return Err(diagnostic);
         }
 
+        let key = Key {
+            span: key_span,
+            value: key,
+        };
+
         stream.descend(
-            match key.clone() {
-                Cow::Borrowed(key) => jsonptr::Token::from(key),
-                Cow::Owned(key) => jsonptr::Token::from(key),
-            },
-            |stream| {
-                on_entry(
-                    stream,
-                    Key {
-                        span: key_span,
-                        value: key,
-                    },
-                )
-            },
+            key,
+            |key| jsonptr::Token::from(key.value.clone().into_owned()),
+            |stream, key| on_entry(stream, key),
         )?;
 
         token = stream.next_or_err()?;
