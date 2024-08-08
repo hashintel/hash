@@ -2933,18 +2933,9 @@ version = "0.0.0"
 dependencies = [
  "bumpalo",
  "ecow",
- "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "hashbrown 0.14.5",
- "hql-cst-lex",
  "hql-span",
- "insta",
- "serde",
- "serde_json",
- "test-fuzz",
- "text-size",
- "thiserror",
- "unicode-ident",
- "winnow",
+ "json-number",
 ]
 
 [[package]]
@@ -2991,6 +2982,9 @@ dependencies = [
  "json-number",
  "jsonptr",
  "logos",
+ "serde",
+ "serde_json",
+ "test-fuzz",
  "text-size",
  "thiserror",
  "unicode-ident",

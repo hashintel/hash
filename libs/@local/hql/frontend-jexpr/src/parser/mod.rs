@@ -1,7 +1,7 @@
 use hql_span::{TextRange, TextSize};
 
 mod array;
-mod error;
+pub(crate) mod error;
 mod expr;
 mod expr_explicit;
 mod object;

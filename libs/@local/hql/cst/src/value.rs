@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
 
-use hql_cst_lex::Number;
 use hql_span::SpanId;
+use json_number::Number;
 
 use crate::{arena, Spanned};
 

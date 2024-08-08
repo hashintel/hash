@@ -11,20 +11,9 @@ authors.workspace = true
 [dependencies]
 bumpalo = { version = "3.16.0", features = ["allocator_api"] }
 ecow = "0.2.2"
-error-stack.workspace = true
 hashbrown = { version = "0.14.5", features = ["nightly"] }
-hql-cst-lex.workspace = true
 hql-span = { version = "0.0.0", path = "../span" }
-text-size = "1.1.1"
-thiserror = "1.0.63"
-unicode-ident = "1.0.12"
-winnow = { version = "0.6.14", features = ["simd"] }
+json-number = "0.4.8"
 
 [lints]
 workspace = true
-
-[dev-dependencies]
-insta = "1.39.0"
-serde.workspace = true
-serde_json.workspace = true
-test-fuzz = "5.2.2"

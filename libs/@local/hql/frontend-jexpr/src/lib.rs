@@ -4,7 +4,10 @@ use hql_cst::{arena::Arena, expr::Expr, Program};
 use hql_diagnostics::Diagnostic;
 use hql_span::{storage::SpanStorage, SpanId};
 
-use self::{parser::TokenStream, span::Span};
+use self::{
+    parser::{error::expected_eof, TokenStream},
+    span::Span,
+};
 
 extern crate alloc;
 
@@ -40,7 +43,19 @@ impl<'arena> Parser<'arena> {
             stack: Some(Vec::new()),
         };
 
-        parser::parse_expr(&mut stream, None)
+        let expr = parser::parse_expr(&mut stream, None)?;
+
+        if stream.lexer.advance().is_some() {
+            let span = stream.spans.insert(Span {
+                range: stream.lexer.span(),
+                pointer: None,
+                parent_id: None,
+            });
+
+            return Err(expected_eof(span));
+        }
+
+        Ok(expr)
     }
 
     /// Parse a program from the given source.
@@ -60,6 +75,18 @@ impl<'arena> Parser<'arena> {
             stack: Some(Vec::new()),
         };
 
-        parser::parse_program(&mut stream)
+        let program = parser::parse_program(&mut stream)?;
+
+        if stream.lexer.advance().is_some() {
+            let span = stream.spans.insert(Span {
+                range: stream.lexer.span(),
+                pointer: None,
+                parent_id: None,
+            });
+
+            return Err(expected_eof(span));
+        }
+
+        Ok(program)
     }
 }

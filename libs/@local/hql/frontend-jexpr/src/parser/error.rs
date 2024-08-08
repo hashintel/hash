@@ -23,6 +23,12 @@ pub(crate) const UNEXPECTED_EOF: &Category = &Category {
     parent: Some(RefOrBox::Ref(PARSE)),
 };
 
+pub(crate) const EXPECTED_EOF: &Category = &Category {
+    id: Cow::Borrowed("expected-eof"),
+    name: Cow::Borrowed("Expected end of input"),
+    parent: Some(RefOrBox::Ref(PARSE)),
+};
+
 pub(crate) const UNEXPECTED_TOKEN: &Category = &Category {
     id: Cow::Borrowed("unexpected-token"),
     name: Cow::Borrowed("Unexpected token"),
@@ -101,6 +107,16 @@ pub(crate) fn unexpected_eof(span: SpanId) -> Diagnostic<'static, SpanId> {
     diagnostic
         .labels
         .push(Label::new(span, "Unexpected end of input"));
+
+    diagnostic
+}
+
+pub(crate) fn expected_eof(span: SpanId) -> Diagnostic<'static, SpanId> {
+    let mut diagnostic = Diagnostic::new(EXPECTED_EOF, Severity::ERROR);
+
+    diagnostic
+        .labels
+        .push(Label::new(span, "Expected end of input"));
 
     diagnostic
 }
