@@ -155,7 +155,7 @@
     {
       "groupName": "emoji-mart npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@emoji-mart/", "^emoji-mart", "emoji-mart$"],
+      "matchPackagePatterns": ["^@emoji-mart/", "^emoji-mart", "emoji-mart$"]
     },
     {
       "groupName": "OpenTelemetry npm packages",
