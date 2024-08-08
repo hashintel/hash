@@ -1,4 +1,7 @@
 /* eslint-disable import/first */
+import "./instrument";
+
+/* eslint-disable import/first */
 import "./_app.page/why-did-you-render";
 
 // @todo have webpack polyfill this

@@ -1,3 +1,4 @@
+/* eslint-disable import/first */
 import "./instrument";
 
 import * as http from "node:http";
