@@ -1,16 +1,11 @@
 use error_stack::{Report, Result, ResultExt};
-use hql_cst_lex::{Lexer, Location, SyntaxKind, SyntaxKindSet, Token, TokenKind};
+use hql_cst::Node;
+use jsonptr::PointerBuf;
 use winnow::{combinator::alt, Parser};
 
-use super::{
-    node_object::NodeObjectParser,
-    util::{ArrayParser, EofParser},
-    WinnowError,
-};
-use crate::{
-    arena::Arena,
-    expr::{call::Call, path::parse_path, signature::parse_signature, Expr},
-    Node,
+use crate::lexer::{
+    syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet, token::Token, token_kind::TokenKind,
+    Lexer,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
@@ -34,13 +29,19 @@ pub enum NodeParseError {
     ExpectedEndOfInput { received: SyntaxKind },
 }
 
+// TODO: use winnow instead :peepo:
+
 pub(crate) struct NodeParser<'arena> {
     arena: &'arena Arena,
+    pointer: Vec<jsonptr::Token<'static>>,
 }
 
 impl<'arena> NodeParser<'arena> {
     pub(crate) const fn new(arena: &'arena Arena) -> Self {
-        Self { arena }
+        Self {
+            arena,
+            pointer: Vec::new(),
+        }
     }
 
     pub(crate) fn parse<'source>(

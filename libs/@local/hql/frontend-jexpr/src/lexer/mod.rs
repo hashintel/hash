@@ -15,10 +15,10 @@ use crate::span::Span;
 
 mod error;
 mod parse;
-mod syntax_kind;
-mod syntax_kind_set;
-mod token;
-mod token_kind;
+pub(crate) mod syntax_kind;
+pub(crate) mod syntax_kind_set;
+pub(crate) mod token;
+pub(crate) mod token_kind;
 
 pub(crate) struct Lexer<'source> {
     inner: SpannedIter<'source, TokenKind<'source>>,

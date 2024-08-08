@@ -23,7 +23,7 @@ use self::{
     },
 };
 
-pub trait Span {
+pub trait Spanned {
     fn span(&self) -> TextRange;
 }
 
@@ -44,7 +44,7 @@ impl<'arena, 'source> Node<'arena, 'source> {
     }
 }
 
-impl Span for Node<'_, '_> {
+impl Spanned for Node<'_, '_> {
     fn span(&self) -> TextRange {
         self.span
     }

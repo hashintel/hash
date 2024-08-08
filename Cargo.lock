@@ -2982,6 +2982,7 @@ dependencies = [
  "ariadne",
  "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "hifijson 0.2.2",
+ "hql-cst",
  "hql-diagnostics",
  "hql-span",
  "insta",
@@ -2990,6 +2991,7 @@ dependencies = [
  "logos",
  "text-size",
  "thiserror",
+ "winnow",
 ]
 
 [[package]]
@@ -8091,9 +8093,9 @@ checksum = "589f6da84c646204747d1270a2a5661ea66ed1cced2631d546fdfb155959f9ec"
 
 [[package]]
 name = "winnow"
-version = "0.6.14"
+version = "0.6.18"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "374ec40a2d767a3c1b4972d9475ecd557356637be906f2cb3f7fe17a6eb5e22f"
+checksum = "68a9bda4691f099d435ad181000724da8e5899daa10713c2d432552b9ccd3a6f"
 dependencies = [
  "memchr",
 ]

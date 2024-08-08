@@ -1,7 +1,7 @@
 use text_size::TextRange;
 
 use super::Expr;
-use crate::{r#type::Type, value::Value, Span};
+use crate::{r#type::Type, value::Value, Spanned};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ConstantType<'arena> {
@@ -9,7 +9,7 @@ pub struct ConstantType<'arena> {
     pub span: TextRange,
 }
 
-impl Span for ConstantType<'_> {
+impl Spanned for ConstantType<'_> {
     fn span(&self) -> TextRange {
         self.span
     }
