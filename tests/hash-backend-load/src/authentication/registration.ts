@@ -21,7 +21,7 @@ export const signupUser: ActionFn<SessionContext, TracingContext> = async (
     const startTime = Date.now();
     const oryKratosClient = getOryKratosClient();
     const tracer = opentelemetry.trace.getTracer(
-      "@tests/hash-backend-performance/authentication/registration",
+      "@tests/hash-backend-load/authentication/registration",
     );
     const headers = {};
     opentelemetry.propagation.inject(opentelemetry.context.active(), headers);

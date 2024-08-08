@@ -1,5 +1,5 @@
 {
-  "name": "@tests/hash-backend-performance",
+  "name": "@tests/hash-backend-load",
   "version": "0.0.0-private",
   "private": true,
   "description": "Performance testing for the HASH backend",

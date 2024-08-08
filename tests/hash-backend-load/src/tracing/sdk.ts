@@ -20,7 +20,7 @@ class Tracing {
 
   startScenario(name: string, options?: SpanOptions): Span {
     const span = opentelemetry.trace
-      .getTracer("@tests/hash-backend-performance/tracing/scenario")
+      .getTracer("@tests/hash-backend-load/tracing/scenario")
       .startSpan(
         name,
         {
@@ -46,7 +46,7 @@ class Tracing {
   startRequest(name: string, options?: SpanOptions): OtelContext {
     const currentContext = this.#scenario?.context ?? ROOT_CONTEXT;
     const span = opentelemetry.trace
-      .getTracer("@tests/hash-backend-performance/tracing/scenario")
+      .getTracer("@tests/hash-backend-load/tracing/scenario")
       .startSpan(
         name,
         {
@@ -87,7 +87,7 @@ export const startSpan = async <
   fn: () => Promise<void>,
 ) =>
   opentelemetry.trace
-    .getTracer("@tests/hash-backend-performance/tracing/sdk")
+    .getTracer("@tests/hash-backend-load/tracing/sdk")
     .startActiveSpan(
       name,
       {
@@ -118,7 +118,7 @@ export const initializeTracing: ActionFn<
   const sdk = new NodeSDK({
     resource: Resource.default().merge(
       new Resource({
-        [SEMRESATTRS_SERVICE_NAME]: "Artillery",
+        [SEMRESATTRS_SERVICE_NAME]: "Load tests",
       }),
     ),
     traceExporter: new OTLPTraceExporter(),
@@ -129,8 +129,13 @@ export const initializeTracing: ActionFn<
   context.scenario.tracing = tracing;
 
   sdkShutdown = async () => {
-    tracing.endScenario();
-    await sdk.shutdown();
+    try {
+      tracing.endScenario();
+      await sdk.shutdown();
+    } catch (error) {
+      // eslint-disable-next-line no-console
+      console.error("Error shutting down tracing SDK", error);
+    }
   };
 };
 

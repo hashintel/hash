@@ -13,7 +13,7 @@ const bundles: RollupOptions[] = [
       dir: OUT_DIR,
       entryFileNames: "[name].mjs",
       format: "module",
-      name: "hash-backend-performance",
+      name: "hash-backend-load",
       sourcemap: !PRODUCTION,
     },
     plugins: [

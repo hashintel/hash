@@ -14,7 +14,7 @@ export const getGraphApiClient = (): GraphApi => {
     __graphApi = createGraphClient(
       new Logger({
         environment: "development",
-        serviceName: "hash-backend-performance",
+        serviceName: "hash-backend-load",
       }),
       {
         host: getRequiredEnv("HASH_GRAPH_API_HOST"),

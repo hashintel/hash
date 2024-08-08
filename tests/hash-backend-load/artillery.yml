@@ -26,8 +26,8 @@ config:
       phases:
         - name: Warm up
           duration: 15 seconds
-          arrivalRate: 5
-          rampTo: 10
+          arrivalRate: 1
+          rampTo: 5
         - name: Ramp up load
           duration: 60 seconds
           arrivalRate: 5
