@@ -312,8 +312,8 @@ const callModel = async (
         const toolResponseMessage = stderr
           ? `The code you provided generated an error, and you now work to fix it: ${stderr}`
           : !stdout
-          ? "There was no stdout from the code – you may have forgotten to print the values you require"
-          : dedent(`
+            ? "There was no stdout from the code – you may have forgotten to print the values you require"
+            : dedent(`
         The Python code ran successfully.
         The stdout from your code was: ${stdout}
         The following artifacts were generated:\n${artifacts.join("\n")}

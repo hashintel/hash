@@ -135,7 +135,9 @@ const isServerError = (error: unknown): error is APIError =>
   error.status >= 500 &&
   error.status < 600;
 
-const switchProvider = (provider: AnthropicApiProvider): AnthropicApiProvider =>
+const switchProvider = (
+  provider: AnthropicApiProvider,
+): AnthropicApiProvider =>
   provider === "anthropic" ? "amazon-bedrock" : "anthropic";
 
 const createAnthropicMessagesWithToolsWithBackoff = async (params: {
