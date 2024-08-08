@@ -133,7 +133,7 @@ export const getLlmResponse = async <T extends LlmParams>(
   if (
     llmResponse.status === "ok" ||
     llmResponse.status === "exceeded-maximum-retries" ||
-    llmResponse.status === "exceeded-maximum-output-tokens"
+    llmResponse.status === "max-tokens"
   ) {
     const { usage } = llmResponse;
 

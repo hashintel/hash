@@ -466,7 +466,7 @@ export const getOpenAiResponse = async <ToolName extends string>(
 
   if (firstChoice.finish_reason === "length") {
     return {
-      status: "exceeded-maximum-output-tokens",
+      status: "max-tokens",
       provider: "openai",
       response: openAiResponse,
       requestMaxTokens: params.max_tokens ?? undefined,

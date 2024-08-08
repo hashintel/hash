@@ -14,6 +14,7 @@ import { graphApiClient } from "../../shared/graph-api-client.js";
 import type { PermittedOpenAiModel } from "../../shared/openai-client.js";
 import type { LocalEntitySummary } from "../shared/infer-claims-from-text/get-entity-summaries-from-text.js";
 import type { ExistingEntitySummary } from "./summarize-existing-entities.js";
+import { logger } from "../../shared/activity-logger.js";
 
 /**
  * @todo
@@ -92,9 +93,8 @@ const deduplicationAgentTool: LlmToolDefinition<typeof toolName> = {
 };
 
 /**
- * We are using Sonnet here rather than the cheaper (as of 08/08/2025) GPT-4o model because Sonnet has max output of 8k vs 4k tokens,
- * and we've encountered 'too long' responses here before.
- * @todo try switching later, or try and figure out why a list of duplicates would result in 4k+ tokens (intuitively it shouldn't)
+ * We are using Sonnet here rather than the cheaper (as of 08/08/2025) GPT-4o model because Sonnet has a max context
+ * window of 200k tokens vs 128k for GPT-4o, and we've encountered 'max-token' responses here before.
  */
 const defaultModel: LlmParams["model"] = "claude-3-5-sonnet-20240620";
 
@@ -141,7 +141,7 @@ export const deduplicateEntities = async (params: {
                   .join("\n")}
                   ${
                     exceededMaxTokensAttempt
-                      ? "Your previous response exceeded the maximum input tokens. Please try again, aiming for brevity, and omitting any duplicate reports you aren't 100% certain of."
+                      ? "Your previous response exceeded the maximum tokens. Please try again, aiming for brevity, and omitting any duplicate reports you aren't 100% certain of."
                       : ""
                   }
                   `),
@@ -164,7 +164,8 @@ export const deduplicateEntities = async (params: {
   );
 
   if (llmResponse.status !== "ok") {
-    if (llmResponse.status === "exceeded-maximum-output-tokens") {
+    if (llmResponse.status === "max-tokens") {
+      logger.warn("Max tokens exceeded in deduplicateEntities");
       if (exceededMaxTokensAttempt && exceededMaxTokensAttempt > 2) {
         return {
           duplicates: [],

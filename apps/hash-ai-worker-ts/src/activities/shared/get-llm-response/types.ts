@@ -166,7 +166,7 @@ export type LlmErrorResponse =
       error?: unknown;
     }
   | {
-      status: "exceeded-maximum-output-tokens";
+      status: "max-tokens";
       provider: LlmProvider;
       lastRequestTime: number;
       totalRequestTime: number;

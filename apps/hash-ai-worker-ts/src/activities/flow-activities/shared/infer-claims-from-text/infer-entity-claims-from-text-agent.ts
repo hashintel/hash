@@ -364,7 +364,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
     });
   };
 
-  if (llmResponse.status === "exceeded-maximum-output-tokens") {
+  if (llmResponse.status === "max-tokens") {
     /**
      * @todo: ideally instead of retrying and asking for fewer claims, we would either:
      *  - provide information on which claims are relevant, so that these aren't omitted

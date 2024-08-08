@@ -387,7 +387,7 @@ export const getAnthropicResponse = async <ToolName extends string>(
 
   if (anthropicResponse.stop_reason === "max_tokens") {
     return {
-      status: "exceeded-maximum-output-tokens",
+      status: "max-tokens",
       provider: anthropicResponse.provider,
       lastRequestTime,
       totalRequestTime,
