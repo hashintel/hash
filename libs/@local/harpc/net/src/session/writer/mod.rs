@@ -46,7 +46,7 @@ pub(crate) struct WriterOptions {
     /// Additionally, if `no_delay` is set, an empty `EndOfPacket` frame is sent to signal that the
     /// packet transmission is finished. When `no_delay` is disabled, the frame containing the
     /// remaining buffer will be tagged with `EndOfPacket` instead.
-    pub(crate) no_delay: bool,
+    pub no_delay: bool,
 }
 
 pub(crate) trait NetworkPacket {
@@ -60,10 +60,10 @@ pub(crate) trait NetworkPacket {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct RequestContext {
-    pub(crate) id: RequestId,
+    pub id: RequestId,
 
-    pub(crate) service: ServiceDescriptor,
-    pub(crate) procedure: ProcedureDescriptor,
+    pub service: ServiceDescriptor,
+    pub procedure: ProcedureDescriptor,
 }
 
 fn new_request_header(context: RequestContext) -> RequestHeader {
@@ -106,8 +106,8 @@ impl NetworkPacket for Request {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub(crate) struct ResponseContext {
-    pub(crate) id: RequestId,
-    pub(crate) kind: ResponseKind,
+    pub id: RequestId,
+    pub kind: ResponseKind,
 }
 
 fn new_response_header(context: ResponseContext) -> ResponseHeader {

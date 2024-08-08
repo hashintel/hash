@@ -17,7 +17,7 @@ pub(crate) struct TerminatedChannelStream<T> {
 }
 
 impl<T> TerminatedChannelStream<T> {
-    pub(crate) fn new(sender: tachyonix::Receiver<T>) -> Self {
+    pub(crate) const fn new(sender: tachyonix::Receiver<T>) -> Self {
         Self {
             state: TerminatedChannelStreamState::Open { sender },
         }

@@ -17,7 +17,7 @@ pin_project_lite::pin_project! {
 }
 
 impl<B, F> MapData<B, F> {
-    pub fn new(inner: B, map: F) -> Self {
+    pub const fn new(inner: B, map: F) -> Self {
         Self { inner, map }
     }
 }
@@ -69,7 +69,7 @@ pin_project_lite::pin_project! {
 }
 
 impl<B, F> MapControl<B, F> {
-    pub fn new(inner: B, map: F) -> Self {
+    pub const fn new(inner: B, map: F) -> Self {
         Self { inner, map }
     }
 }
@@ -121,7 +121,7 @@ pin_project_lite::pin_project! {
 }
 
 impl<B, F> MapError<B, F> {
-    pub fn new(body: B, map: F) -> Self {
+    pub const fn new(body: B, map: F) -> Self {
         Self { inner: body, map }
     }
 }

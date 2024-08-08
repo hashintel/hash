@@ -60,6 +60,11 @@ impl<D, C> Frame<D, C> {
         }
     }
 
+    /// Consumes self into the buffer of the data frame.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Err`] containing the original [`Frame`] when the frame is not a data frame.
     pub fn into_data(self) -> Result<D, Self> {
         match self {
             Self::Data(data) => Ok(data),
@@ -88,6 +93,11 @@ impl<D, C> Frame<D, C> {
         }
     }
 
+    /// Comsumes self into the control information of the control frame.
+    ///
+    /// # Errors
+    ///
+    /// Returns an [`Err`] containing the original [`Frame`] when the frame is not a control frame.
     pub fn into_control(self) -> Result<C, Self> {
         match self {
             Self::Data(data) => Err(Self::new_data(data)),

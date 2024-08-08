@@ -1,7 +1,8 @@
 {
-  "name": "@rust/graph-test-server",
+  "name": "@rust/test-server",
   "version": "0.0.0-private",
   "private": true,
+  "license": "AGPL-3",
   "scripts": {
     "start": "../../../../target/release/hash-graph test-server --api-port 4001",
     "start:healthcheck": "../../../../target/release/hash-graph test-server --api-port 4001 --healthcheck --wait --timeout 600 --logging-console-level=warn",
@@ -15,6 +16,5 @@
     "@rust/graph-api": "0.0.0-private",
     "@rust/graph-types": "0.0.0-private",
     "@rust/hash-status": "0.0.0-private"
-  },
-  "devDependencies": {}
+  }
 }

@@ -1,7 +1,6 @@
-use core::task::ready;
-use std::{
+use core::{
     pin::Pin,
-    task::{Context, Poll},
+    task::{ready, Context, Poll},
 };
 
 use bytes::Buf;
@@ -19,7 +18,7 @@ pin_project_lite::pin_project! {
 }
 
 impl<S> StreamBody<S> {
-    pub fn new(stream: S) -> Self {
+    pub const fn new(stream: S) -> Self {
         Self {
             stream: Some(stream),
         }
@@ -68,7 +67,7 @@ pin_project_lite::pin_project! {
 }
 
 impl<B> BodyStream<B> {
-    pub fn new(inner: B) -> Self {
+    pub const fn new(inner: B) -> Self {
         Self { inner }
     }
 

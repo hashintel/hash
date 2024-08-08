@@ -2,10 +2,11 @@ cargo-features = ["edition2024"]
 
 [package]
 name = "hql-cst"
-version = "0.1.0"
-authors.workspace = true
+version.workspace = true
 edition.workspace = true
-license = "AGPL-3.0"
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
 
 [dependencies]
 bumpalo = { version = "3.16.0", features = ["allocator_api"] }

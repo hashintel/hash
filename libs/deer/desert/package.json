@@ -1,0 +1,8 @@
+{
+  "name": "@rust/deer-desert",
+  "version": "0.0.0-private",
+  "private": true,
+  "dependencies": {
+    "@rust/deer": "0.0.0-reserved-private"
+  }
+}

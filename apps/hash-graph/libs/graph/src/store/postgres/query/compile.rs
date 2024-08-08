@@ -886,7 +886,19 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         parameters: &'p ParameterList<'f>,
     ) -> (Expression, ParameterType) {
         let parameter_type = match parameters {
-            ParameterList::Uuid(uuids) => {
+            ParameterList::DataTypeIds(uuids) => {
+                self.artifacts.parameters.push(uuids);
+                ParameterType::Uuid
+            }
+            ParameterList::PropertyTypeIds(uuids) => {
+                self.artifacts.parameters.push(uuids);
+                ParameterType::Uuid
+            }
+            ParameterList::EntityTypeIds(uuids) => {
+                self.artifacts.parameters.push(uuids);
+                ParameterType::Uuid
+            }
+            ParameterList::EntityEditionIds(uuids) => {
                 self.artifacts.parameters.push(uuids);
                 ParameterType::Uuid
             }

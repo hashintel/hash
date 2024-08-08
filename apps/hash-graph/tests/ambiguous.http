@@ -1,0 +1,229 @@
+# This file either runs with JetBrains' http requests or using httpYac (https://httpyac.github.io).
+
+### Create account
+POST http://127.0.0.1:4000/accounts
+Content-Type: application/json
+X-Authenticated-User-Actor-Id: 00000000-0000-0000-0000-000000000000
+
+{}
+
+> {%
+  client.test("status", function() {
+    client.assert(response.status === 200, "Response status is not 200");
+  });
+  client.global.set("account_id", response.body.toString());
+%}
+
+### Create account web
+POST http://127.0.0.1:4000/webs
+Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+   "ownedById": "{{account_id}}",
+   "owner": {
+       "kind": "account",
+       "subjectId": "{{account_id}}"
+    }
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 204, "Response status is not 204");
+    });
+%}
+
+### Insert data types
+POST http://127.0.0.1:4000/data-types
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "schema": [
+      {
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "kind": "dataType",
+        "$id": "http://localhost:3000/@alice/types/data-type/meter/v/1",
+        "title": "Meter",
+        "type": "number",
+        "description": "A unit of length",
+        "minimum": 0
+      },
+      {
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "kind": "dataType",
+        "$id": "http://localhost:3000/@alice/types/data-type/inch/v/1",
+        "title": "Inch",
+        "type": "number",
+        "description": "A unit of length",
+        "minimum": 0
+      }
+  ],
+  "relationships": [{
+    "relation": "viewer",
+    "subject": {
+      "kind": "public"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+
+### Insert property types
+POST http://127.0.0.1:4000/property-types
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type",
+    "kind": "propertyType",
+    "$id": "http://localhost:3000/@alice/types/property-type/length/v/1",
+    "title": "Length",
+    "description": "A length",
+    "oneOf": [
+      {
+        "$ref": "http://localhost:3000/@alice/types/data-type/meter/v/1"
+      },
+      {
+        "$ref": "http://localhost:3000/@alice/types/data-type/inch/v/1"
+      }
+    ]
+  },
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+      "kind": "setting",
+      "subjectId": "updateFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+
+### Insert Friendship entity link type
+POST http://127.0.0.1:4000/entity-types
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/entity-type",
+    "kind": "entityType",
+    "$id": "http://localhost:3000/@alice/types/entity-type/line/v/1",
+    "type": "object",
+    "title": "Line",
+    "description": "A line with a length",
+    "properties": {
+      "http://localhost:3000/@alice/types/property-type/length/": {
+        "$ref": "http://localhost:3000/@alice/types/property-type/length/v/1"
+      }
+    }
+  },
+  "relationships": [
+    {
+      "relation": "setting",
+      "subject": {
+        "kind": "setting",
+        "subjectId": "updateFromWeb"
+      }
+    },
+    {
+      "relation": "instantiator",
+      "subject": {
+        "kind": "account",
+        "subjectId": "{{account_id}}"
+      }
+    }
+  ]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert ambiuous entity
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/line/v/1"],
+  "properties": {
+    "value": {
+      "http://localhost:3000/@alice/types/property-type/length/": {
+        "value": 10,
+        "metadata": {}
+      }
+    }
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+       "kind": "setting",
+       "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 400, "Response status is not 200");
+    });
+%}
+
+### Insert entity
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/line/v/1"],
+  "properties": {
+    "value": {
+      "http://localhost:3000/@alice/types/property-type/length/": {
+        "value": 10,
+        "metadata": {
+          "dataTypeId": "http://localhost:3000/@alice/types/data-type/meter/v/1"
+        }
+      }
+    }
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+       "kind": "setting",
+       "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}

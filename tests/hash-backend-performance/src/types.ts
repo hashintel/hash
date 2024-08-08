@@ -1,5 +1,15 @@
 import type events from "node:events";
 
+type Value =
+  | boolean
+  | number
+  | string
+  | null
+  | Value[]
+  | {
+      [key: string]: Value;
+    };
+
 export interface ContextVariables {
   $env: Record<string, string>;
   $testId: string;
@@ -9,7 +19,7 @@ export interface ContextVariables {
 }
 
 export interface ScenarioVariables {
-  $uuid: string;
+  $uuid?: string;
 }
 
 // @todo: Add missing types -- Currently, only the types that are used are added.
@@ -18,25 +28,25 @@ export interface RequestParams {
 }
 
 export interface Context<
-  Vars extends Record<string, unknown> = Record<string, unknown>,
-  Scenario extends Record<string, unknown> = Record<string, unknown>,
+  Vars extends Record<string, Value | undefined> = Record<string, never>,
+  Scenario extends Record<string, Value | undefined> = Record<string, never>,
 > {
   vars: Vars & ContextVariables;
   scenario: Scenario & ScenarioVariables;
 }
 
-export type BeforeRequest<
-  Vars extends Record<string, unknown> = Record<string, unknown>,
-  Scenario extends Record<string, unknown> = Record<string, unknown>,
+export type BeforeRequestFn<
+  Vars extends Record<string, Value | undefined> = Record<string, never>,
+  Scenario extends Record<string, Value | undefined> = Record<string, never>,
 > = (
   requestParams: RequestParams,
   context: Context<Partial<Vars>, Partial<Scenario>>,
   events: events.EventEmitter,
 ) => Promise<void>;
 
-export type AfterResponse<
-  Vars extends Record<string, unknown> = Record<string, unknown>,
-  Scenario extends Record<string, unknown> = Record<string, unknown>,
+export type AfterResponseFn<
+  Vars extends Record<string, Value | undefined> = Record<string, never>,
+  Scenario extends Record<string, Value | undefined> = Record<string, never>,
 > = (
   requestParams: RequestParams,
   response: Record<string, unknown>,
@@ -44,20 +54,20 @@ export type AfterResponse<
   events: events.EventEmitter,
 ) => Promise<void>;
 
-export type Action<
-  Vars extends Record<string, unknown> = Record<string, unknown>,
-  Scenario extends Record<string, unknown> = Record<string, unknown>,
+export type ActionFn<
+  Vars extends Record<string, Value | undefined> = Record<string, never>,
+  Scenario extends Record<string, Value | undefined> = Record<string, never>,
 > = (
   context: Context<Partial<Vars>, Partial<Scenario>>,
   events: events.EventEmitter,
 ) => Promise<void>;
 
-export type BeforeScenario<
-  Vars extends Record<string, unknown> = Record<string, unknown>,
-  Scenario extends Record<string, unknown> = Record<string, unknown>,
-> = Action<Vars, Scenario>;
+export type BeforeScenarioFn<
+  Vars extends Record<string, Value | undefined> = Record<string, never>,
+  Scenario extends Record<string, Value | undefined> = Record<string, never>,
+> = ActionFn<Vars, Scenario>;
 
-export type AfterScenario<
-  Vars extends Record<string, unknown> = Record<string, unknown>,
-  Scenario extends Record<string, unknown> = Record<string, unknown>,
-> = Action<Vars, Scenario>;
+export type AfterScenarioFn<
+  Vars extends Record<string, Value | undefined> = Record<string, never>,
+  Scenario extends Record<string, Value | undefined> = Record<string, never>,
+> = ActionFn<Vars, Scenario>;

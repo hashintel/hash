@@ -2,9 +2,11 @@ cargo-features = ["edition2024"]
 
 [package]
 name = "query-builder-derive"
-version = "0.0.0"
+version.workspace = true
 edition.workspace = true
-publish = false
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
 
 [lib]
 proc-macro = true

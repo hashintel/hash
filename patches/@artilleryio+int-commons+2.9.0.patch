@@ -1,0 +1,76 @@
+diff --git a/node_modules/@artilleryio/int-commons/engine_util.js b/node_modules/@artilleryio/int-commons/engine_util.js
+index 8e5dc73..31a9a01 100644
+--- a/node_modules/@artilleryio/int-commons/engine_util.js
++++ b/node_modules/@artilleryio/int-commons/engine_util.js
+@@ -6,7 +6,6 @@
+ 
+ const async = require('async');
+ const debug = require('debug')('engine_util');
+-const deepForEach = require('deep-for-each');
+ const espree = require('espree');
+ const L = require('lodash');
+ const vm = require('vm');
+@@ -257,42 +256,36 @@ function template(o, context, inPlace) {
+ }
+ 
+ // Mutates the object in place
+-function templateObjectOrArray(o, context) {
+-  deepForEach(o, (value, key, subj, path) => {
+-    const newPath = template(path, context, true);
+-
+-    let newValue;
++function templateObject(o, context) {
++  Object.entries(o).forEach(([key, value]) => {
+     if (value && value.constructor !== Object && value.constructor !== Array) {
+-      newValue = template(value, context, true);
++      o[key] = template(o[key], context, true);
+     } else {
+-      newValue = value;
+-    }
+-
+-    debug(
+-      `path = ${path} ; value = ${JSON.stringify(
+-        value
+-      )} (${typeof value}) ; (subj type: ${
+-        subj.length ? 'list' : 'hash'
+-      }) ; newValue = ${JSON.stringify(newValue)} ; newPath = ${newPath}`
+-    );
+-
+-    // If path has changed, we need to unset the original path and
+-    // explicitly walk down the new subtree from this path:
+-    if (path !== newPath) {
+-      L.unset(o, path);
+-      newValue = template(value, context, true);
++      templateObjectOrArray(value, context);
+     }
++  });
++}
+ 
+-    if (newPath.endsWith(key)) {
+-      const keyIndex = newPath.lastIndexOf(key);
+-      const prefix = newPath.substr(0, keyIndex - 1);
+-      L.set(o, `${prefix}["${key}"]`, newValue);
++// Mutates the array in place
++function templateArray(o, context) {
++  o.forEach((value, index) => {
++    if (value && value.constructor !== Object && value.constructor !== Array) {
++      o[index] = template(o[index], context, true);
+     } else {
+-      L.set(o, newPath, newValue);
++      templateObjectOrArray(value, context);
+     }
+   });
+ }
+ 
++// Mutates the object or array in place
++function templateObjectOrArray(o, context) {
++  if (o.constructor === Array) {
++    templateArray(o, context);
++  } else {
++    templateObject(o, context);
++  }
++}
++
+ function renderVariables(str, vars) {
+   const RX = /{{{?[\s$\w\.\[\]\'\"-]+}}}?/g;
+   let rxmatch;

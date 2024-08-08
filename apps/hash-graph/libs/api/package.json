@@ -2,6 +2,7 @@
   "name": "@rust/graph-api",
   "version": "0.0.0-private",
   "private": true,
+  "license": "AGPL-3",
   "scripts": {
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
   },
@@ -16,6 +17,5 @@
     "@rust/temporal-client": "0.0.0-private",
     "@rust/temporal-versioning": "0.0.0-private",
     "@rust/validation": "0.0.0-private"
-  },
-  "devDependencies": {}
+  }
 }
