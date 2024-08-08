@@ -48,7 +48,7 @@ pub(crate) fn from_hifijson_str_error(
 
     let message = match error {
         hifijson::str::Error::Control => "Invalid ASCII control character",
-        hifijson::str::Error::Escape(_) => "Invalid Escape sequence",
+        hifijson::str::Error::Escape(_) => "Invalid escape sequence",
         hifijson::str::Error::Eof => "Unterminated string literal",
         hifijson::str::Error::Utf8(_) => "Invalid UTF-8 sequence",
     };

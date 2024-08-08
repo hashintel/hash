@@ -9,6 +9,7 @@ use crate::lexer::parse::{parse_number, parse_string};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Logos)]
 #[logos(error = LexingError)]
+#[logos(source = [u8])]
 #[logos(skip r"[ \t\r\n\f]+")]
 pub(crate) enum TokenKind<'source> {
     #[token("false", |_| false)]
@@ -73,7 +74,7 @@ impl Display for TokenKind<'_> {
             Self::Colon => f.write_str(":"),
             Self::Comma => f.write_str(","),
             Self::Number(number) => Display::fmt(number, f),
-            Self::String(string) => Display::fmt(string, f),
+            Self::String(string) => write!(f, "\"{string}\""),
         }
     }
 }

@@ -2979,10 +2979,12 @@ dependencies = [
 name = "hql-frontend-jexpr"
 version = "0.0.0"
 dependencies = [
+ "ariadne",
  "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "hifijson 0.2.2",
  "hql-diagnostics",
  "hql-span",
+ "insta",
  "json-number",
  "jsonptr",
  "logos",

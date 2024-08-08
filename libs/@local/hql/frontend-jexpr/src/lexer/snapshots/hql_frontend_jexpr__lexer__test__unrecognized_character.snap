@@ -1,0 +1,11 @@
+---
+source: libs/@local/hql/frontend-jexpr/src/lexer/mod.rs
+expression: "{\"ferris\": 🦀}"
+---
+[31m[lexing::invalid-character] Error:[0m Invalid Character
+   ╭─[<unknown>:1:1]
+   │
+ 1 │ {"ferris": 🦀}
+   │            ┬─  
+   │            ╰─── Unrecognized character
+───╯

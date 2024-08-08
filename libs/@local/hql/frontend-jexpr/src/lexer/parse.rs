@@ -21,7 +21,7 @@ pub(crate) fn parse_string<'source>(
 ) -> Result<Cow<'source, str>, LexingError> {
     // the first character is '"' so we can skip it
     let slice = lexer.remainder();
-    let mut lex = SliceLexer::new(slice.as_bytes());
+    let mut lex = SliceLexer::new(slice);
 
     let value = lex.str_string().map_err(|error| {
         let span = lexer.span();
@@ -39,7 +39,6 @@ pub(crate) fn parse_string<'source>(
     Ok(value)
 }
 
-#[expect(clippy::string_slice, reason = "UTF-8 boundary is always valid")]
 #[expect(
     clippy::cast_possible_truncation,
     reason = "4GiB limit enforced by lexer "
@@ -49,7 +48,7 @@ pub(crate) fn parse_number<'source>(
 ) -> Result<Cow<'source, Number>, LexingError> {
     let span = lexer.span();
     // this time we cannot automatically exclude the first character
-    let slice = lexer.source()[span.start..].as_bytes();
+    let slice = &lexer.source()[span.start..];
     let mut lex = SliceLexer::new(slice);
     let (value, _) = lex.num_string().map_err(|error| {
         let consumed = ptr_offset(slice.as_ptr(), lex.as_slice().as_ptr());

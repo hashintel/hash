@@ -1,0 +1,13 @@
+---
+source: libs/@local/hql/frontend-jexpr/src/lexer/mod.rs
+expression: "\"\\z\""
+---
+[31m[lexing::invalid-string] Error:[0m Invalid String Literal
+   ╭─[<unknown>:1:1]
+   │
+ 1 │ "\z"
+   │    │ 
+   │    ╰─ Invalid escape sequence
+   │ 
+   │ Help: unknown escape sequence type
+───╯

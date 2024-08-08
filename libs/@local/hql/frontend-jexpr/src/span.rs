@@ -2,6 +2,7 @@ use hql_diagnostics::span::DiagnosticSpan;
 use hql_span::{SpanId, TextRange};
 use jsonptr::PointerBuf;
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct Span {
     pub range: TextRange,
     pub pointer: Option<PointerBuf>,

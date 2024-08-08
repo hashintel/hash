@@ -21,3 +21,7 @@ thiserror = "1.0.63"
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+ariadne = "0.4.1"
+insta = "1.39.0"
