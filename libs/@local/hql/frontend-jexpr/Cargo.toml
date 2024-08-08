@@ -1,0 +1,23 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "hql-frontend-jexpr"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+error-stack.workspace = true
+hifijson = "0.2.2"
+hql-diagnostics = { version = "0.0.0", path = "../diagnostics" }
+hql-span = { version = "0.0.0", path = "../span" }
+json-number = "0.4.8"
+jsonptr = "0.5.1"
+logos = "0.14.1"
+text-size = "1.1.1"
+thiserror = "1.0.63"
+
+[lints]
+workspace = true
