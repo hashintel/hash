@@ -10,12 +10,7 @@ import type { ErrorRequestHandler } from "express";
 import express, { raw } from "express";
 import { create as handlebarsCreate } from "express-handlebars";
 
-// eslint-disable-next-line import/order
-import { initSentry } from "./sentry";
-
 const app = express();
-
-initSentry(app);
 
 import http from "node:http";
 import path from "node:path";
@@ -172,14 +167,6 @@ const main = async () => {
   } catch (err) {
     logger.error(`Could not start StatsD client: ${err}`);
   }
-
-  // Configure Sentry error / trace handling
-  app.use(
-    Sentry.Handlers.requestHandler({
-      ip: true,
-    }),
-  );
-  app.use(Sentry.Handlers.tracingHandler());
 
   app.use(cors(CORS_CONFIG));
 
@@ -581,16 +568,14 @@ const main = async () => {
    * 1. Come AFTER all non-error controllers
    * 2. Come BEFORE all error controllers/middleware
    */
-  app.use(
-    Sentry.Handlers.errorHandler({
-      shouldHandleError(_error) {
-        /**
-         * Capture all errors for now – we can selectively filter out errors based on code if needed.
-         */
-        return true;
-      },
-    }),
-  );
+  Sentry.setupExpressErrorHandler(app, {
+    shouldHandleError(_error) {
+      /**
+       * Capture all errors for now – we can selectively filter out errors based on code if needed.
+       */
+      return true;
+    },
+  });
 
   // Fallback error handler for errors that haven't been caught and sent as a response already
   const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
