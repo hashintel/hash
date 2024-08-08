@@ -29,7 +29,7 @@
     "@local/hash-graph-sdk": "0.0.0-private",
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
-    "@sentry/node": "7.116.0",
+    "@sentry/node": "7.118.0",
     "@temporalio/activity": "1.10.1",
     "@temporalio/worker": "1.10.1",
     "@temporalio/workflow": "1.10.1",
@@ -42,7 +42,7 @@
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@sentry/cli": "2.31.0",
+    "@sentry/cli": "2.33.1",
     "@types/dotenv-flow": "3.2.0",
     "eslint": "8.57.0",
     "rimraf": "6.0.1"
