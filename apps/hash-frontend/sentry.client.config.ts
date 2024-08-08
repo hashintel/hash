@@ -14,7 +14,7 @@ Sentry.init({
   dsn: SENTRY_DSN,
   enabled: !!SENTRY_DSN,
   environment: VERCEL_ENV || "development",
-  integrations: [new Sentry.Replay({ stickySession: true })],
+  integrations: [Sentry.replayIntegration({ stickySession: true })],
   release: buildStamp,
   replaysOnErrorSampleRate: 1,
   replaysSessionSampleRate: parseFloat(

@@ -18,7 +18,7 @@ import type { User } from "@local/hash-isomorphic-utils/system-types/user";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { CssBaseline, GlobalStyles, ThemeProvider } from "@mui/material";
-import { configureScope, ErrorBoundary } from "@sentry/nextjs";
+import { getCurrentScope, ErrorBoundary } from "@sentry/nextjs";
 import type { AppProps as NextAppProps } from "next/app";
 import { useRouter } from "next/router";
 import { SnackbarProvider } from "notistack";
