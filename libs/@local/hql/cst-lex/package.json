@@ -1,7 +1,0 @@
-{
-  "name": "@rust/hql-cst-lex",
-  "version": "0.1.0",
-  "private": false,
-  "dependencies": {},
-  "devDependencies": {}
-}

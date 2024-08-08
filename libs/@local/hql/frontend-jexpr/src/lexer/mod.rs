@@ -109,11 +109,7 @@ impl<'source> Iterator for Lexer<'source> {
 mod test {
     use core::fmt::Write;
 
-    use ariadne::Report;
-    use hql_diagnostics::{
-        config::ReportConfig,
-        span::{AbsoluteDiagnosticSpan, DiagnosticSpan},
-    };
+    use hql_diagnostics::{config::ReportConfig, span::DiagnosticSpan};
     use insta::assert_snapshot;
 
     use super::Lexer;
