@@ -212,7 +212,7 @@ mod test {
         let arena = Arena::new();
         let spans = SpanStorage::new();
 
-        let value_result = parse_complete(&arena, spans.clone(), input);
+        let value_result = parse_complete(&arena, spans, input);
         let serde_result = serde_json::from_str::<serde_json::Value>(input);
 
         if let Err(error) = &serde_result {

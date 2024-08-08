@@ -2869,11 +2869,6 @@ dependencies = [
 
 [[package]]
 name = "hifijson"
-version = "0.2.1"
-source = "git+https://github.com/indietyp/hifijson.git?branch=offset#09f7bb872230f6a05a90506260c985a4481e2225"
-
-[[package]]
-name = "hifijson"
 version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9958ab3ce3170c061a27679916bd9b969eceeb5e8b120438e6751d0987655c42"
@@ -2939,18 +2934,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "hql-cst-lex"
-version = "0.1.0"
-dependencies = [
- "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "hifijson 0.2.1",
- "json-number",
- "logos",
- "text-size",
- "thiserror",
-]
-
-[[package]]
 name = "hql-diagnostics"
 version = "0.0.0"
 dependencies = [
@@ -2974,7 +2957,7 @@ dependencies = [
  "ariadne",
  "ecow",
  "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "hifijson 0.2.2",
+ "hifijson",
  "hql-cst",
  "hql-diagnostics",
  "hql-span",
