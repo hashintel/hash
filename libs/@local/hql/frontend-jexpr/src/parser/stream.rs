@@ -12,7 +12,7 @@ pub(crate) struct TokenStream<'arena, 'lexer, 'source> {
     pub arena: &'arena Arena,
     pub lexer: &'lexer mut Lexer<'source>,
 
-    pub stack: Vec<jsonptr::Token<'static>>,
+    pub stack: Vec<jsonptr::Token<'source>>,
 }
 
 impl<'arena, 'lexer, 'source> TokenStream<'arena, 'lexer, 'source> {
@@ -31,5 +31,9 @@ impl<'arena, 'lexer, 'source> TokenStream<'arena, 'lexer, 'source> {
         self.lexer.next().ok_or_else(|| {
             Diagnostic::new_error("unexpected end of input").attach(self.lexer.span())
         })
+    }
+
+    pub(crate) fn insert_span(&mut self, span: Span) -> SpanId {
+        self.lexer.spans_mut().insert(span)
     }
 }

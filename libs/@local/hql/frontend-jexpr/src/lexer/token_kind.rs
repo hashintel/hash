@@ -4,7 +4,7 @@ use core::fmt::{self, Display};
 use json_number::Number;
 use logos::Logos;
 
-use super::error::LexingError;
+use super::{error::LexingError, syntax_kind::SyntaxKind};
 use crate::lexer::parse::{parse_number, parse_string};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Logos)]
@@ -42,6 +42,12 @@ pub(crate) enum TokenKind<'source> {
 
     #[token(r#"""#, parse_string)]
     String(Cow<'source, str>),
+}
+
+impl<'source> TokenKind<'source> {
+    pub(crate) fn syntax(&self) -> SyntaxKind {
+        SyntaxKind::from(self)
+    }
 }
 
 impl<'source> TokenKind<'source> {

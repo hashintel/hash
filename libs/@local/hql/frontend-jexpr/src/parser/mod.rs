@@ -1,5 +1,7 @@
+mod array;
 mod error;
 mod node;
+mod object;
 mod path;
 mod signature;
 mod stream;
