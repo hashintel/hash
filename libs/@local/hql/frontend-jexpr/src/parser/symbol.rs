@@ -56,18 +56,20 @@ impl ParseRestriction {
 /// operator = "+" / "-" / "*" / "/" / "|" / "&" / "^" / "==" / "!=" / ">" / ">=" / "<" / "<="
 /// operatorSafe = "`" operators "`"
 /// ```
-pub(crate) fn parse_symbol<'arena, 'span, Input, Error>(
+pub(crate) fn parse_symbol<'arena, 'spans, Input, Error>(
     restriction: ParseRestriction,
-) -> impl Parser<Stateful<Input, ParseState<'arena, 'span>>, Symbol, Error>
+) -> impl Parser<Stateful<Input, ParseState<'arena, 'spans>>, Symbol, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
         + Compare<char>
         + for<'a> Compare<&'a str>
         + Location,
-    Error: ParserError<Stateful<Input, ParseState<'arena, 'span>>>,
+    Error: ParserError<Stateful<Input, ParseState<'arena, 'spans>>>,
 {
-    move |input: &mut Stateful<Input, ParseState<'arena, 'span>>| {
+    move |input: &mut Stateful<Input, ParseState<'arena, 'spans>>| {
+        let state = input.state;
+
         dispatch! {peek(any).map(|token: Input::Token| token.as_char());
             char if is_xid_start(char) => parse_rust_identifier,
             '_' => parse_rust_identifier,
@@ -76,13 +78,13 @@ where
             _ => fail
         }
         .with_span()
-        .map(|(value, span): (Input::Slice, _)| {
+        .map(move |(value, span): (Input::Slice, _)| {
             let value =
             EcoString::from(value.as_ref());
-            let span = input.state.spans.insert(Span {
+            let span = state.spans.insert(Span {
                 range: span.range_trunc(),
                 pointer: None,
-                parent_id: input.state.parent_id,
+                parent_id: state.parent_id,
             });
 
             Symbol { value, span }
@@ -113,7 +115,7 @@ where
         }),
         take_while(0.., |c: Input::Token| is_xid_continue(c.as_char())),
     )
-        .recognize()
+        .take()
         .parse_next(input)
 }
 
@@ -138,7 +140,7 @@ where
         '=' | '!' | '>' | '<' => opt('=').void(),
         _ => empty.void()
     }
-    .recognize()
+    .take()
     .parse_next(input)
 }
 
@@ -159,48 +161,82 @@ mod test {
         clippy::non_ascii_literal,
         reason = "using umlaute for XID_START testing purposes"
     )]
+    use hql_cst::arena::Arena;
+    use hql_span::storage::SpanStorage;
     use insta::{assert_debug_snapshot, assert_snapshot};
     use winnow::{
         error::{ContextError, ErrMode, ParseError},
-        Parser,
+        Located, Parser, Stateful,
     };
 
     use super::{ParseRestriction, Symbol};
+    use crate::parser::string::ParseState;
 
     #[track_caller]
-    fn parse(
-        value: &str,
+    fn parse<'arena, 'spans, 'input>(
+        state: ParseState<'arena, 'spans>,
+        input: &'input str,
         restriction: ParseRestriction,
-    ) -> Result<Symbol, ParseError<&str, ErrMode<ContextError>>> {
-        let cursor = value;
+    ) -> Result<
+        Symbol,
+        ParseError<
+            Stateful<Located<&'input str>, ParseState<'arena, 'spans>>,
+            ErrMode<ContextError>,
+        >,
+    > {
+        let state = Stateful {
+            input: Located::new(input),
+            state,
+        };
 
-        super::parse_symbol(restriction).parse(cursor)
+        super::parse_symbol(restriction).parse(state)
     }
 
     #[track_caller]
-    fn parse_ok(value: &str, restriction: ParseRestriction) -> Symbol {
-        parse(value, restriction).expect("should be valid symbol")
+    fn parse_ok<'arena, 'spans, 'input>(
+        state: ParseState<'arena, 'spans>,
+        input: &'input str,
+        restriction: ParseRestriction,
+    ) -> Symbol {
+        parse(state, input, restriction).expect("should be valid symbol")
     }
 
     #[track_caller]
-    fn parse_err(
-        value: &str,
+    fn parse_err<'arena, 'spans, 'input>(
+        state: ParseState<'arena, 'spans>,
+        input: &'input str,
         restriction: ParseRestriction,
-    ) -> ParseError<&str, ErrMode<ContextError>> {
-        parse(value, restriction).expect_err("should be invalid symbol")
+    ) -> ParseError<Stateful<Located<&'input str>, ParseState<'arena, 'spans>>, ErrMode<ContextError>>
+    {
+        parse(state, input, restriction).expect_err("should be invalid symbol")
+    }
+
+    macro_rules! setup {
+        ($state:ident) => {
+            let arena = Arena::new();
+            let spans = SpanStorage::new();
+
+            let $state = ParseState {
+                arena: &arena,
+                spans: &spans,
+                parent_id: None,
+            };
+        };
     }
 
     #[test]
     fn rust() {
-        assert_snapshot!(parse_ok("m", ParseRestriction::None), @"m");
-        assert_snapshot!(parse_ok("main", ParseRestriction::None), @"main");
-        assert_snapshot!(parse_ok("main_", ParseRestriction::None), @"main_");
-        assert_snapshot!(parse_ok("main_123", ParseRestriction::None), @"main_123");
-        assert_snapshot!(parse_ok("übung", ParseRestriction::None), @"übung");
-        assert_snapshot!(parse_ok("_", ParseRestriction::None), @"_");
-        assert_snapshot!(parse_ok("_test", ParseRestriction::None), @"_test");
+        setup!(state);
 
-        assert_debug_snapshot!(parse_err("123", ParseRestriction::None), @r###"
+        assert_snapshot!(parse_ok(state, "m", ParseRestriction::None), @"m");
+        assert_snapshot!(parse_ok(state, "main", ParseRestriction::None), @"main");
+        assert_snapshot!(parse_ok(state, "main_", ParseRestriction::None), @"main_");
+        assert_snapshot!(parse_ok(state, "main_123", ParseRestriction::None), @"main_123");
+        assert_snapshot!(parse_ok(state, "übung", ParseRestriction::None), @"übung");
+        assert_snapshot!(parse_ok(state, "_", ParseRestriction::None), @"_");
+        assert_snapshot!(parse_ok(state, "_test", ParseRestriction::None), @"_test");
+
+        assert_debug_snapshot!(parse_err(state, "123", ParseRestriction::None), @r###"
         ParseError {
             input: "123",
             offset: 0,
@@ -216,14 +252,18 @@ mod test {
 
     #[test]
     fn rust_ignored() {
-        assert_snapshot!(parse_ok("_", ParseRestriction::None), @"_");
-        assert_snapshot!(parse_ok("_test", ParseRestriction::None), @"_test");
+        setup!(state);
+
+        assert_snapshot!(parse_ok(state, "_", ParseRestriction::None), @"_");
+        assert_snapshot!(parse_ok(state, "_test", ParseRestriction::None), @"_test");
     }
 
     #[test]
     fn safe_mode() {
-        assert_snapshot!(parse_ok("übung", ParseRestriction::SafeOnly), @"übung");
-        assert_debug_snapshot!(parse_err("+", ParseRestriction::SafeOnly), @r###"
+        setup!(state);
+
+        assert_snapshot!(parse_ok(state, "übung", ParseRestriction::SafeOnly), @"übung");
+        assert_debug_snapshot!(parse_err(state, "+", ParseRestriction::SafeOnly), @r###"
         ParseError {
             input: "+",
             offset: 0,
@@ -235,45 +275,49 @@ mod test {
             ),
         }
         "###);
-        assert_snapshot!(parse_ok("`+`", ParseRestriction::SafeOnly), @"+");
+        assert_snapshot!(parse_ok(state, "`+`", ParseRestriction::SafeOnly), @"+");
     }
 
     #[test]
     fn operators() {
-        assert_snapshot!(parse_ok("+", ParseRestriction::None), @"+");
-        assert_snapshot!(parse_ok("-", ParseRestriction::None), @"-");
-        assert_snapshot!(parse_ok("*", ParseRestriction::None), @"*");
-        assert_snapshot!(parse_ok("/", ParseRestriction::None), @"/");
-        assert_snapshot!(parse_ok("|", ParseRestriction::None), @"|");
-        assert_snapshot!(parse_ok("&", ParseRestriction::None), @"&");
-        assert_snapshot!(parse_ok("^", ParseRestriction::None), @"^");
-        assert_snapshot!(parse_ok("==", ParseRestriction::None), @"==");
-        assert_snapshot!(parse_ok("!", ParseRestriction::None), @"!");
-        assert_snapshot!(parse_ok("!=", ParseRestriction::None), @"!=");
-        assert_snapshot!(parse_ok(">", ParseRestriction::None), @">");
-        assert_snapshot!(parse_ok(">=", ParseRestriction::None), @">=");
-        assert_snapshot!(parse_ok("<", ParseRestriction::None), @"<");
-        assert_snapshot!(parse_ok("<=", ParseRestriction::None), @"<=");
+        setup!(state);
+
+        assert_snapshot!(parse_ok(state, "+", ParseRestriction::None), @"+");
+        assert_snapshot!(parse_ok(state, "-", ParseRestriction::None), @"-");
+        assert_snapshot!(parse_ok(state, "*", ParseRestriction::None), @"*");
+        assert_snapshot!(parse_ok(state, "/", ParseRestriction::None), @"/");
+        assert_snapshot!(parse_ok(state, "|", ParseRestriction::None), @"|");
+        assert_snapshot!(parse_ok(state, "&", ParseRestriction::None), @"&");
+        assert_snapshot!(parse_ok(state, "^", ParseRestriction::None), @"^");
+        assert_snapshot!(parse_ok(state, "==", ParseRestriction::None), @"==");
+        assert_snapshot!(parse_ok(state, "!", ParseRestriction::None), @"!");
+        assert_snapshot!(parse_ok(state, "!=", ParseRestriction::None), @"!=");
+        assert_snapshot!(parse_ok(state, ">", ParseRestriction::None), @">");
+        assert_snapshot!(parse_ok(state, ">=", ParseRestriction::None), @">=");
+        assert_snapshot!(parse_ok(state, "<", ParseRestriction::None), @"<");
+        assert_snapshot!(parse_ok(state, "<=", ParseRestriction::None), @"<=");
     }
 
     #[test]
     fn operators_safe() {
-        assert_snapshot!(parse_ok("`+`", ParseRestriction::None), @"+");
-        assert_snapshot!(parse_ok("`-`", ParseRestriction::None), @"-");
-        assert_snapshot!(parse_ok("`*`", ParseRestriction::None), @"*");
-        assert_snapshot!(parse_ok("`/`", ParseRestriction::None), @"/");
-        assert_snapshot!(parse_ok("`|`", ParseRestriction::None), @"|");
-        assert_snapshot!(parse_ok("`&`", ParseRestriction::None), @"&");
-        assert_snapshot!(parse_ok("`^`", ParseRestriction::None), @"^");
-        assert_snapshot!(parse_ok("`==`", ParseRestriction::None), @"==");
-        assert_snapshot!(parse_ok("`!`", ParseRestriction::None), @"!");
-        assert_snapshot!(parse_ok("`!=`", ParseRestriction::None), @"!=");
-        assert_snapshot!(parse_ok("`>`", ParseRestriction::None), @">");
-        assert_snapshot!(parse_ok("`>=`", ParseRestriction::None), @">=");
-        assert_snapshot!(parse_ok("`<`", ParseRestriction::None), @"<");
-        assert_snapshot!(parse_ok("`<=`", ParseRestriction::None), @"<=");
+        setup!(state);
 
-        assert_debug_snapshot!(parse_err("`ü`", ParseRestriction::None), @r###"
+        assert_snapshot!(parse_ok(state, "`+`", ParseRestriction::None), @"+");
+        assert_snapshot!(parse_ok(state, "`-`", ParseRestriction::None), @"-");
+        assert_snapshot!(parse_ok(state, "`*`", ParseRestriction::None), @"*");
+        assert_snapshot!(parse_ok(state, "`/`", ParseRestriction::None), @"/");
+        assert_snapshot!(parse_ok(state, "`|`", ParseRestriction::None), @"|");
+        assert_snapshot!(parse_ok(state, "`&`", ParseRestriction::None), @"&");
+        assert_snapshot!(parse_ok(state, "`^`", ParseRestriction::None), @"^");
+        assert_snapshot!(parse_ok(state, "`==`", ParseRestriction::None), @"==");
+        assert_snapshot!(parse_ok(state, "`!`", ParseRestriction::None), @"!");
+        assert_snapshot!(parse_ok(state, "`!=`", ParseRestriction::None), @"!=");
+        assert_snapshot!(parse_ok(state, "`>`", ParseRestriction::None), @">");
+        assert_snapshot!(parse_ok(state, "`>=`", ParseRestriction::None), @">=");
+        assert_snapshot!(parse_ok(state, "`<`", ParseRestriction::None), @"<");
+        assert_snapshot!(parse_ok(state, "`<=`", ParseRestriction::None), @"<=");
+
+        assert_debug_snapshot!(parse_err(state, "`ü`", ParseRestriction::None), @r###"
         ParseError {
             input: "`ü`",
             offset: 1,

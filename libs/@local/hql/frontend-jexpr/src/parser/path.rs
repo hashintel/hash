@@ -1,4 +1,4 @@
-use hql_cst::{arena::Arena, expr::path::Path};
+use hql_cst::expr::path::Path;
 use winnow::{
     combinator::trace,
     error::ParserError,
@@ -7,7 +7,6 @@ use winnow::{
 };
 
 use super::{
-    stream::TokenStream,
     string::{separated_boxed1, ParseState},
     symbol::{parse_symbol, ParseRestriction},
     IntoTextRange,
@@ -33,23 +32,20 @@ where
     Error: ParserError<Stateful<Input, ParseState<'arena, 'span>>>,
 {
     move |input: &mut Stateful<Input, ParseState<'arena, 'span>>| {
-        let start = input.location();
-        let arena = input.state.arena;
+        let state = input.state;
 
         trace(
             "path",
-            separated_boxed1(arena, parse_symbol(restriction), "::").map(move |segments| {
-                let end = input.location();
-
-                Path {
+            separated_boxed1(state.arena, parse_symbol(restriction), "::")
+                .with_span()
+                .map(move |(segments, range)| Path {
                     segments,
-                    span: input.state.spans.insert(Span {
-                        range: (start, end).range_trunc(),
+                    span: state.spans.insert(Span {
+                        range: range.range_trunc(),
                         pointer: None,
-                        parent_id: input.state.parent_id,
+                        parent_id: state.parent_id,
                     }),
-                }
-            }),
+                }),
         )
         .parse_next(input)
     }
@@ -57,54 +53,76 @@ where
 
 #[cfg(test)]
 mod test {
+    use hql_cst::arena::Arena;
+    use hql_span::storage::SpanStorage;
     use insta::{assert_debug_snapshot, assert_snapshot};
     use winnow::{
         error::{ContextError, ErrMode, ParseError},
-        Parser, Stateful,
+        Located, Parser, Stateful,
     };
 
     use super::{parse_path, Path};
-    use crate::{arena::Arena, symbol::ParseRestriction};
+    use crate::parser::{string::ParseState, symbol::ParseRestriction};
 
     #[track_caller]
-    fn parse<'a, 'b>(
-        arena: &'a Arena,
-        value: &'b str,
-    ) -> Result<Path<'a>, ParseError<Stateful<&'b str, &'a Arena>, ErrMode<ContextError>>> {
-        let state = Stateful {
-            input: value,
-            state: arena,
+    fn parse<'arena, 'spans, 'input>(
+        state: ParseState<'arena, 'spans>,
+        input: &'input str,
+    ) -> Result<
+        Path<'arena>,
+        ParseError<
+            Stateful<Located<&'input str>, ParseState<'arena, 'spans>>,
+            ErrMode<ContextError>,
+        >,
+    > {
+        let input = Stateful {
+            input: Located::new(input),
+            state,
         };
 
-        parse_path(ParseRestriction::None).parse(state)
+        parse_path(ParseRestriction::None).parse(input)
     }
 
     #[track_caller]
-    fn parse_ok<'a>(arena: &'a Arena, value: &str) -> Path<'a> {
-        parse(arena, value).expect("should be valid path")
+    fn parse_ok<'arena, 'spans>(state: ParseState<'arena, 'spans>, input: &str) -> Path<'arena> {
+        parse(state, input).expect("should be valid path")
     }
 
-    fn parse_err<'a, 'b>(
-        arena: &'a Arena,
-        value: &'b str,
-    ) -> ParseError<Stateful<&'b str, &'a Arena>, ErrMode<ContextError>> {
-        parse(arena, value).expect_err("should be invalid path")
+    fn parse_err<'arena, 'spans, 'input>(
+        state: ParseState<'arena, 'spans>,
+        input: &'input str,
+    ) -> ParseError<Stateful<Located<&'input str>, ParseState<'arena, 'spans>>, ErrMode<ContextError>>
+    {
+        parse(state, input).expect_err("should be invalid path")
+    }
+
+    macro_rules! setup {
+        ($state:ident) => {
+            let arena = Arena::new();
+            let spans = SpanStorage::new();
+
+            let $state = ParseState {
+                arena: &arena,
+                spans: &spans,
+                parent_id: None,
+            };
+        };
     }
 
     #[test]
     fn should_parse() {
-        let arena = Arena::new();
+        setup!(state);
 
-        assert_snapshot!(parse_ok(&arena, "foo"), @"foo");
-        assert_snapshot!(parse_ok(&arena, "foo::bar"), @"foo::bar");
-        assert_snapshot!(parse_ok(&arena, "foo::bar::baz"), @"foo::bar::baz");
+        assert_snapshot!(parse_ok(state, "foo"), @"foo");
+        assert_snapshot!(parse_ok(state, "foo::bar"), @"foo::bar");
+        assert_snapshot!(parse_ok(state, "foo::bar::baz"), @"foo::bar::baz");
     }
 
     #[test]
     fn no_trailing_colon_colon() {
-        let arena = Arena::new();
+        setup!(state);
 
-        assert_debug_snapshot!(parse_err(&arena, "foo::"), @r###"
+        assert_debug_snapshot!(parse_err(state, "foo::"), @r###"
         ParseError {
             input: "foo::",
             offset: 3,
@@ -120,8 +138,8 @@ mod test {
 
     #[test]
     fn non_rust_identifiers() {
-        let arena = Arena::new();
+        setup!(state);
 
-        assert_snapshot!(parse_ok(&arena, "+::+::-::`*`"), @"+::+::-::*");
+        assert_snapshot!(parse_ok(state, "+::+::-::`*`"), @"+::+::-::*");
     }
 }

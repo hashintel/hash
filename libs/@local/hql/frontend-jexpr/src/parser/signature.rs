@@ -1,9 +1,6 @@
-use hql_cst::{
-    arena::{self, Arena},
-    expr::signature::{Argument, Generic, List, Signature},
-};
+use hql_cst::expr::signature::{Argument, Generic, List, Return, Signature};
 use winnow::{
-    combinator::{delimited, opt, preceded, trace},
+    combinator::{delimited, opt, preceded, separated_pair, trace},
     error::ParserError,
     stream::{AsChar, Compare, Location, Stream, StreamIsPartial},
     PResult, Parser, Stateful,
@@ -39,23 +36,36 @@ where
         + Location,
     Error: ParserError<Stateful<Input, ParseState<'arena, 'span>>>,
 {
-    let arena = input.state;
+    let state = input.state;
 
-    let start = input.location();
     trace(
         "signature",
         (
-            opt(parse_generics).map(|generics| generics.unwrap_or_else(|| arena.boxed([]))),
+            opt(parse_generics)
+                .with_span()
+                .map(move |(generics, range)| {
+                    generics.unwrap_or_else(|| {
+                        let span = state.spans.insert(Span {
+                            range: range.range_trunc(),
+                            pointer: None,
+                            parent_id: state.parent_id,
+                        });
+
+                        List {
+                            items: state.arena.boxed([]),
+                            span,
+                        }
+                    })
+                }),
             parse_arguments,
             parse_return,
         )
-            .map(|(generics, arguments, r#return)| {
-                let end = input.location();
-
-                let span = input.state.spans.insert(Span {
-                    range: (start, end).range_trunc(),
+            .with_span()
+            .map(move |((generics, arguments, r#return), range)| {
+                let span = state.spans.insert(Span {
+                    range: range.range_trunc(),
                     pointer: None,
-                    parent_id: input.state.parent_id,
+                    parent_id: state.parent_id,
                 });
 
                 Signature {
@@ -81,7 +91,7 @@ where
         + Location,
     Error: ParserError<Stateful<Input, ParseState<'arena, 'span>>>,
 {
-    let start = input.location();
+    let state = input.state;
 
     trace(
         "generic",
@@ -89,12 +99,12 @@ where
             parse_symbol(symbol::ParseRestriction::SafeOnly),
             opt(preceded(string::ws(':'), parse_type)),
         )
-            .map(|(name, bound)| {
-                let end = input.location();
-                let span = input.state.spans.insert(Span {
-                    range: (start, end).range_trunc(),
+            .with_span()
+            .map(move |((name, bound), range)| {
+                let span = state.spans.insert(Span {
+                    range: range.range_trunc(),
                     pointer: None,
-                    parent_id: input.state.parent_id,
+                    parent_id: state.parent_id,
                 });
 
                 Generic { name, bound, span }
@@ -111,28 +121,41 @@ where
 /// ```abnf
 /// generics = "<" symbol [":" type ] ">"
 /// ```
-fn parse_generics<'arena, 'span, Input, Error>(
-    input: &mut Stateful<Input, ParseState<'arena, 'span>>,
-) -> PResult<List<Generic<'arena>>, Error>
+fn parse_generics<'arena, 'spans, Input, Error>(
+    input: &mut Stateful<Input, ParseState<'arena, 'spans>>,
+) -> PResult<List<'arena, Generic<'arena>>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
         + Compare<char>
         + for<'b> Compare<&'b str>
         + Location,
-    Error: ParserError<Stateful<Input, ParseState<'arena, 'span>>>,
+    Error: ParserError<Stateful<Input, ParseState<'arena, 'spans>>>,
 {
+    let state = input.state;
+
     trace(
         "generics",
         delimited(
             string::ws('<'),
             opt((
-                string::separated_boxed1(input.state.arena, parse_generic, string::ws(',')),
+                string::separated_boxed1(state.arena, parse_generic, string::ws(',')),
                 opt(string::ws(',')).void(),
             ))
-            .map(|generics| match generics {
-                Some((generics, ())) => generics,
-                None => input.state.arena.boxed([]),
+            .with_span()
+            .map(move |(generics, range)| {
+                let items = match generics {
+                    Some((generics, ())) => generics,
+                    None => state.arena.boxed([]),
+                };
+
+                let span = state.spans.insert(Span {
+                    range: range.range_trunc(),
+                    pointer: None,
+                    parent_id: state.parent_id,
+                });
+
+                List { items, span }
             }),
             string::ws('>'),
         ),
@@ -147,8 +170,8 @@ where
 /// ```abnf
 /// argument = symbol ":" type
 /// ```
-fn parse_argument<'arena, 'span, Input, Error>(
-    input: &mut Stateful<Input, ParseState<'arena, 'span>>,
+fn parse_argument<'arena, 'spans, Input, Error>(
+    input: &mut Stateful<Input, ParseState<'arena, 'spans>>,
 ) -> PResult<Argument<'arena>, Error>
 where
     Input: StreamIsPartial
@@ -156,9 +179,10 @@ where
         + Compare<char>
         + for<'b> Compare<&'b str>
         + Location,
-    Error: ParserError<Stateful<Input, ParseState<'arena, 'span>>>,
+    Error: ParserError<Stateful<Input, ParseState<'arena, 'spans>>>,
 {
-    let start = input.location();
+    let state = input.state;
+
     trace(
         "argument",
         separated_pair(
@@ -166,12 +190,12 @@ where
             string::ws(':'),
             parse_type,
         )
-        .map(|(name, r#type)| {
-            let end = input.location();
-            let span = input.state.spans.insert(Span {
-                range: (start, end).range_trunc(),
+        .with_span()
+        .map(move |((name, r#type), span)| {
+            let span = state.spans.insert(Span {
+                range: span.range_trunc(),
                 pointer: None,
-                parent_id: input.state.parent_id,
+                parent_id: state.parent_id,
             });
 
             Argument { name, r#type, span }
@@ -188,8 +212,8 @@ where
 /// arguments = "(" [ argument *("," argument) ] ")"
 /// argument = symbol ":" type
 /// ```
-fn parse_arguments<'arena, 'span, Input, Error>(
-    input: &mut Stateful<Input, ParseState<'arena, 'span>>,
+fn parse_arguments<'arena, 'spans, Input, Error>(
+    input: &mut Stateful<Input, ParseState<'arena, 'spans>>,
 ) -> PResult<List<'arena, Argument<'arena>>, Error>
 where
     Input: StreamIsPartial
@@ -197,9 +221,9 @@ where
         + Compare<char>
         + for<'b> Compare<&'b str>
         + Location,
-    Error: ParserError<Stateful<Input, ParseState<'arena, 'span>>>,
+    Error: ParserError<Stateful<Input, ParseState<'arena, 'spans>>>,
 {
-    let start = input.location();
+    let state = input.state;
 
     trace(
         "argument list",
@@ -209,9 +233,20 @@ where
                 string::separated_boxed1(input.state.arena, parse_argument, string::ws(',')),
                 opt(string::ws(',')).void(),
             ))
-            .map(|value| match value {
-                Some((arguments, ())) => arguments,
-                None => arena.boxed([]),
+            .with_span()
+            .map(move |(value, range)| {
+                let items = match value {
+                    Some((arguments, ())) => arguments,
+                    None => state.arena.boxed([]),
+                };
+
+                let span = state.spans.insert(Span {
+                    range: range.range_trunc(),
+                    pointer: None,
+                    parent_id: state.parent_id,
+                });
+
+                List { items, span }
             }),
             string::ws(')'),
         ),
@@ -226,97 +261,133 @@ where
 /// ```abnf
 /// return-type = "->" type
 /// ```
-fn parse_return<'a, Input, Error>(
-    input: &mut Stateful<Input, ParseState<'arena, 'span>>,
-) -> PResult<Return<'a>, Error>
+fn parse_return<'arena, 'spans, Input, Error>(
+    input: &mut Stateful<Input, ParseState<'arena, 'spans>>,
+) -> PResult<Return<'arena>, Error>
 where
     Input: StreamIsPartial
         + Stream<Token: AsChar + Clone, Slice: AsRef<str>>
         + Compare<char>
-        + for<'b> Compare<&'b str>,
-    Error: ParserError<Stateful<Input, ParseState<'arena, 'span>>>,
+        + for<'b> Compare<&'b str>
+        + Location,
+    Error: ParserError<Stateful<Input, ParseState<'arena, 'spans>>>,
 {
+    let state = input.state;
+
     trace(
         "return",
-        preceded(string::ws("->"), parse_type).map(|r#type| Return { r#type }),
+        preceded(string::ws("->"), parse_type)
+            .with_span()
+            .map(move |(r#type, range)| {
+                let span = state.spans.insert(Span {
+                    range: range.range_trunc(),
+                    pointer: None,
+                    parent_id: state.parent_id,
+                });
+
+                Return { r#type, span }
+            }),
     )
     .parse_next(input)
 }
 
 #[cfg(test)]
 mod test {
+    use hql_cst::arena::Arena;
+    use hql_span::storage::SpanStorage;
     use insta::assert_snapshot;
     use winnow::{
         error::{ContextError, ErrMode, ParseError},
-        Parser, Stateful,
+        Located, Parser, Stateful,
     };
 
     use super::Signature;
-    use crate::arena::Arena;
+    use crate::parser::string::ParseState;
 
     #[track_caller]
-    fn parse<'a, 'b>(
-        arena: &'a Arena,
-        value: &'b str,
-    ) -> Result<Signature<'a>, ParseError<Stateful<&'b str, &'a Arena>, ErrMode<ContextError>>>
-    {
+    fn parse<'arena, 'spans, 'input>(
+        state: ParseState<'arena, 'spans>,
+        input: &'input str,
+    ) -> Result<
+        Signature<'arena>,
+        ParseError<
+            Stateful<Located<&'input str>, ParseState<'arena, 'spans>>,
+            ErrMode<ContextError>,
+        >,
+    > {
         let state = Stateful {
-            input: value,
-            state: arena,
+            input: Located::new(input),
+            state,
         };
 
         super::parse_signature.parse(state)
     }
 
     #[track_caller]
-    fn parse_ok<'a>(arena: &'a Arena, value: &str) -> Signature<'a> {
-        parse(arena, value).expect("should be valid symbol")
+    fn parse_ok<'arena, 'spans>(
+        state: ParseState<'arena, 'spans>,
+        value: &str,
+    ) -> Signature<'arena> {
+        parse(state, value).expect("should be valid symbol")
+    }
+
+    macro_rules! setup {
+        ($state:ident) => {
+            let arena = Arena::new();
+            let spans = SpanStorage::new();
+
+            let $state = ParseState {
+                arena: &arena,
+                spans: &spans,
+                parent_id: None,
+            };
+        };
     }
 
     #[test]
     fn bare() {
-        let arena = Arena::new();
+        setup!(state);
 
-        assert_snapshot!(parse_ok(&arena, "() -> Int"), @"() -> Int");
+        assert_snapshot!(parse_ok(state, "() -> Int"), @"() -> Int");
     }
 
     #[test]
     fn empty_generics() {
-        let arena = Arena::new();
+        setup!(state);
 
-        assert_snapshot!(parse_ok(&arena, "<>() -> Int"), @"() -> Int");
+        assert_snapshot!(parse_ok(state, "<>() -> Int"), @"() -> Int");
     }
 
     #[test]
     fn generics() {
-        let arena = Arena::new();
+        setup!(state);
 
-        assert_snapshot!(parse_ok(&arena, " <T> () -> Int"), @"<T>() -> Int");
-        assert_snapshot!(parse_ok(&arena, "<T>() -> Int"), @"<T>() -> Int");
-        assert_snapshot!(parse_ok(&arena, "<T: Int>() -> Int"), @"<T: Int>() -> Int");
-        assert_snapshot!(parse_ok(&arena, "<T:Int>() -> Int"), @"<T: Int>() -> Int");
-        assert_snapshot!(parse_ok(&arena, "<T: Int, U>() -> Int"), @"<T: Int, U>() -> Int");
-        assert_snapshot!(parse_ok(&arena, "<T,U>() -> Int"), @"<T, U>() -> Int");
-        assert_snapshot!(parse_ok(&arena, "<T,U,>() -> Int"), @"<T, U>() -> Int");
+        assert_snapshot!(parse_ok(state, " <T> () -> Int"), @"<T>() -> Int");
+        assert_snapshot!(parse_ok(state, "<T>() -> Int"), @"<T>() -> Int");
+        assert_snapshot!(parse_ok(state, "<T: Int>() -> Int"), @"<T: Int>() -> Int");
+        assert_snapshot!(parse_ok(state, "<T:Int>() -> Int"), @"<T: Int>() -> Int");
+        assert_snapshot!(parse_ok(state, "<T: Int, U>() -> Int"), @"<T: Int, U>() -> Int");
+        assert_snapshot!(parse_ok(state, "<T,U>() -> Int"), @"<T, U>() -> Int");
+        assert_snapshot!(parse_ok(state, "<T,U,>() -> Int"), @"<T, U>() -> Int");
     }
 
     #[test]
     fn arguments() {
-        let arena = Arena::new();
+        setup!(state);
 
-        assert_snapshot!(parse_ok(&arena, "() -> Int"), @"() -> Int");
-        assert_snapshot!(parse_ok(&arena, "(a: Int) -> Int"), @"(a: Int) -> Int");
-        assert_snapshot!(parse_ok(&arena, "(a:Int) -> Int"), @"(a: Int) -> Int");
-        assert_snapshot!(parse_ok(&arena, "(a: Int, b: Int) -> Int"), @"(a: Int, b: Int) -> Int");
-        assert_snapshot!(parse_ok(&arena, "(a: Int,) -> Int"), @"(a: Int) -> Int");
+        assert_snapshot!(parse_ok(state, "() -> Int"), @"() -> Int");
+        assert_snapshot!(parse_ok(state, "(a: Int) -> Int"), @"(a: Int) -> Int");
+        assert_snapshot!(parse_ok(state, "(a:Int) -> Int"), @"(a: Int) -> Int");
+        assert_snapshot!(parse_ok(state, "(a: Int, b: Int) -> Int"), @"(a: Int, b: Int) -> Int");
+        assert_snapshot!(parse_ok(state, "(a: Int,) -> Int"), @"(a: Int) -> Int");
     }
 
     #[test]
     fn return_type() {
-        let arena = Arena::new();
+        setup!(state);
 
-        assert_snapshot!(parse_ok(&arena, "() -> Int"), @"() -> Int");
-        assert_snapshot!(parse_ok(&arena, "() -> Int | Bool"), @"() -> (Int | Bool)");
-        assert_snapshot!(parse_ok(&arena, "() -> Int | Bool & Float"), @"() -> ((Int | Bool) & Float)");
+        assert_snapshot!(parse_ok(state, "() -> Int"), @"() -> Int");
+        assert_snapshot!(parse_ok(state, "() -> Int | Bool"), @"() -> (Int | Bool)");
+        assert_snapshot!(parse_ok(state, "() -> Int | Bool & Float"), @"() -> ((Int | Bool) & Float)");
     }
 }

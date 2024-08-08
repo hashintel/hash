@@ -9,6 +9,7 @@ publish.workspace = true
 authors.workspace = true
 
 [dependencies]
+orx-concurrent-vec = "2.2.0"
 serde = { workspace = true, optional = true, features = ["derive"] }
 serde-value = { version = "0.7.0", optional = true }
 sval = "2.13.0"

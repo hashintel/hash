@@ -2,11 +2,10 @@ use std::borrow::Cow;
 
 use hql_cst::expr::{call::Call, Expr, ExprKind};
 use hql_diagnostics::Diagnostic;
-use hql_span::{SpanId, TextRange, TextSize};
-use jsonptr::PointerBuf;
+use hql_span::{SpanId, TextRange};
 use winnow::{
     error::{ContextError, ErrMode, ParseError},
-    BStr, Located, Parser,
+    Located, Parser,
 };
 
 use super::{array::parse_array, error::unexpected_token, stream::TokenStream};
@@ -16,7 +15,9 @@ use crate::{
         error::{expected_callee, invalid_identifier, invalid_signature},
         path::parse_path,
         signature::parse_signature,
+        string::ParseState,
         symbol::ParseRestriction,
+        IntoTextRange,
     },
     span::Span,
 };
@@ -31,7 +32,7 @@ pub(crate) fn parse_expr<'arena, 'lexer, 'source>(
         stream.next_or_err()?
     };
 
-    match &token.kind {
+    match token.kind {
         TokenKind::String(value) => parse_string(stream, value, token.span),
         TokenKind::LBracket => parse_call(stream, token),
         TokenKind::LBrace => parse_explicit(stream, token),
@@ -65,7 +66,7 @@ fn parse_call<'arena, 'lexer, 'source>(
         let node = parse_expr(stream, token)?;
 
         match r#fn {
-            Some(r#fn) => args.push(Some(node)),
+            Some(..) => args.push(node),
             None => r#fn = Some(node),
         }
 
@@ -74,7 +75,7 @@ fn parse_call<'arena, 'lexer, 'source>(
 
     let span = stream.insert_span(Span {
         range: span,
-        pointer: Some(PointerBuf::from_tokens(stream.stack.clone())),
+        pointer: stream.pointer(),
         parent_id: None,
     });
 
@@ -106,12 +107,20 @@ fn parse_string<'arena, 'lexer, 'source>(
     // The following is a valid path: `<::...`, `<` (where ... is any valid path), while `<>() ->
     // Unit` is a valid signature.
 
-    let mut is_path = false;
-    let mut is_signature = false;
+    let span = Span {
+        range: span,
+        pointer: stream.pointer(),
+        parent_id: None,
+    };
+    let parent_id = stream.insert_span(span);
 
     let input = winnow::Stateful {
-        input: Located::new(BStr::from(value)),
-        state: stream.arena,
+        input: Located::new(value.as_ref()),
+        state: ParseState {
+            arena: stream.arena,
+            spans: &stream.spans,
+            parent_id: Some(parent_id),
+        },
     };
 
     let result = if value.starts_with('<') {
@@ -143,15 +152,13 @@ fn parse_string<'arena, 'lexer, 'source>(
             .map_err(|error| (ParseDecision::Path, error))
     };
 
-    let span = Span {
-        range: span,
-        pointer: Some(PointerBuf::from_tokens(stream.stack.clone())),
-        parent_id: None,
-    };
-    let span = stream.insert_span(span);
-
     let (decision, error): (_, ParseError<_, ErrMode<ContextError>>) = match result {
-        Ok(kind) => return Ok(Expr { kind, span }),
+        Ok(kind) => {
+            return Ok(Expr {
+                kind,
+                span: parent_id,
+            });
+        }
         Err((decision, error)) => (decision, error),
     };
 
@@ -160,13 +167,13 @@ fn parse_string<'arena, 'lexer, 'source>(
         reason = "lexer ensures input is never larger than 4GiB"
     )]
     let span = {
-        let start = TextSize::from(error.offset() as u32);
-        let end = TextSize::from(value.len() as u32);
+        let start = error.offset();
+        let end = value.len().min(start);
 
         Span {
-            range: TextRange::new(start, end.min(start)),
-            pointer: span.pointer,
-            parent_id: span.parent_id,
+            range: (start, end).range_trunc(),
+            pointer: None,
+            parent_id: Some(parent_id),
         }
     };
 

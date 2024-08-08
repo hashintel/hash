@@ -55,11 +55,11 @@ pub(crate) fn parse_array<'arena, 'lexer, 'source>(
         } else {
             // not using a parent here, because it malformed JSON, and therefore any pointer
             // information is useless
-            let span = Span {
+            let span = stream.insert_span(Span {
                 range: token.span,
                 pointer: None,
                 parent_id: None,
-            };
+            });
 
             return Err(unexpected_token(
                 span,
@@ -67,7 +67,7 @@ pub(crate) fn parse_array<'arena, 'lexer, 'source>(
             ));
         };
 
-        stream.descend(|| index, |stream| on_item(stream, peeked));
+        stream.descend(index, |stream| on_item(stream, peeked));
 
         index += 1;
 

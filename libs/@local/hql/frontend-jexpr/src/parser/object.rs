@@ -101,7 +101,7 @@ pub(crate) fn parse_object<'arena, 'lexer, 'source>(
         }
 
         stream.descend(
-            || match key.clone() {
+            match key.clone() {
                 Cow::Borrowed(key) => jsonptr::Token::from(key),
                 Cow::Owned(key) => jsonptr::Token::from(key),
             },

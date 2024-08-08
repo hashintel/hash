@@ -123,10 +123,10 @@ where
     )
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub(crate) struct ParseState<'arena, 'span> {
     pub arena: &'arena Arena,
-    pub spans: &'span mut SpanStorage<Span>,
+    pub spans: &'span SpanStorage<Span>,
 
     pub parent_id: Option<SpanId>,
 }

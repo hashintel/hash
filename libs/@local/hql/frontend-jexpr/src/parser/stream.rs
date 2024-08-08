@@ -1,6 +1,6 @@
 use hql_cst::arena::Arena;
-use hql_diagnostics::{label::Label, severity::Severity, Diagnostic};
-use hql_span::SpanId;
+use hql_diagnostics::Diagnostic;
+use hql_span::{storage::SpanStorage, SpanId};
 
 use super::error::unexpected_eof;
 use crate::{
@@ -12,6 +12,7 @@ pub(crate) struct TokenStream<'arena, 'lexer, 'source> {
     pub arena: &'arena Arena,
     pub lexer: &'lexer mut Lexer<'source>,
 
+    pub spans: SpanStorage<Span>,
     pub stack: Option<Vec<jsonptr::Token<'source>>>,
 }
 
@@ -23,28 +24,23 @@ impl<'arena, 'lexer, 'source> TokenStream<'arena, 'lexer, 'source> {
                 pointer: None,
                 parent_id: None,
             };
-            let span = self.lexer.spans_mut().insert(span);
+            let span = self.spans.insert(span);
 
             return Err(unexpected_eof(span));
         };
 
-        self.lexer.next().ok_or_else(|| {
-            Diagnostic::new_error("unexpected end of input").attach(self.lexer.span())
-        })
+        token
     }
 
-    pub(crate) fn insert_span(&mut self, span: Span) -> SpanId {
-        self.lexer.spans_mut().insert(span)
+    pub(crate) fn insert_span(&self, span: Span) -> SpanId {
+        self.spans.insert(span)
     }
 
-    pub(crate) fn descend<T, U>(
+    pub(crate) fn descend<T>(
         &mut self,
-        token: impl FnOnce() -> T,
-        f: impl FnOnce(&mut Self) -> U,
-    ) -> U
-    where
-        T: Into<jsonptr::Token<'source>>,
-    {
+        token: impl Into<jsonptr::Token<'source>>,
+        f: impl FnOnce(&mut Self) -> T,
+    ) -> T {
         if let Some(stack) = self.stack.as_mut() {
             stack.push(token.into());
         }

@@ -1,4 +1,4 @@
-#![feature(assert_matches, new_range_api)]
+#![feature(assert_matches, new_range_api, box_into_boxed_slice)]
 
 extern crate alloc;
 

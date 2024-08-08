@@ -55,14 +55,6 @@ impl<'source> Lexer<'source> {
         TextRange::new(start, end)
     }
 
-    pub(crate) fn spans_mut(&mut self) -> &mut SpanStorage<Span> {
-        &mut self.spans
-    }
-
-    pub(crate) fn into_spans(self) -> SpanStorage<Span> {
-        self.spans
-    }
-
     pub(crate) fn advance(
         &mut self,
     ) -> Option<Result<Token<'source>, Diagnostic<'static, SpanId>>> {
