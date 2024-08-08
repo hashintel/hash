@@ -1,4 +1,4 @@
-import "./instrument";
+import "./instrument.ts";
 /* eslint-disable import/first */
 import "./_app.page/why-did-you-render";
 

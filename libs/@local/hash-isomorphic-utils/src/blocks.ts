@@ -224,12 +224,7 @@ export const blockProtocolHubOrigin =
  *   – this will also be required for block versioning, where we'll want different source locations for the same componentId
  */
 export const componentIdBase = `https://blockprotocol${
-  !(
-    // TODO(sentry): Could not automatically migrate - see https://github.com/getsentry/sentry-javascript/blob/develop/MIGRATION.md#deprecate-hub
-    blockProtocolHubOrigin.includes("blockprotocol.org")
-  )
-    ? "-preview"
-    : ""
+  !blockProtocolHubOrigin.includes("blockprotocol.org") ? "-preview" : ""
 }.hashai.workers.dev`;
 
 export const paragraphBlockComponentId = `${componentIdBase}/blocks/hash/paragraph`;
