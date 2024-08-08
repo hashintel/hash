@@ -42,6 +42,8 @@ import { deduplicateEntities } from "./research-entities-action/deduplicate-enti
 import { getAnswersFromHuman } from "./research-entities-action/get-answers-from-human.js";
 import { handleWebSearchToolCall } from "./research-entities-action/handle-web-search-tool-call.js";
 import { linkFollowerAgent } from "./research-entities-action/link-follower-agent.js";
+import { getProgress } from "./research-entities-action/saved-progress.js";
+import { createCheckpoint } from "./research-entities-action/state-checkpoint.js";
 import { runSubTaskAgent } from "./research-entities-action/sub-task-agent.js";
 import type { CompletedCoordinatorToolCall } from "./research-entities-action/types.js";
 import { nullReturns } from "./research-entities-action/types.js";
@@ -268,12 +270,6 @@ const updateStateFromInferredClaims = async (params: {
   ];
 };
 
-type ActivityHeartbeatDetails =
-  | {
-      state?: CoordinatingAgentState;
-    }
-  | undefined;
-
 export const researchEntitiesAction: FlowActionActivity<{
   testingParams?: {
     humanInputCanBeRequested?: boolean;
@@ -327,8 +323,7 @@ export const researchEntitiesAction: FlowActionActivity<{
       };
     });
 
-  const stateBeforeRetry = Context.current().info
-    .heartbeatDetails as ActivityHeartbeatDetails;
+  const stateBeforeRetry = getProgress();
 
   if (stateBeforeRetry?.state) {
     state = stateBeforeRetry.state;
@@ -376,7 +371,7 @@ export const researchEntitiesAction: FlowActionActivity<{
       testingParams.persistState(state);
     }
 
-    Context.current().heartbeat({ state });
+    await createCheckpoint({ state });
   }
 
   const { toolCalls: initialToolCalls } =
@@ -982,7 +977,7 @@ export const researchEntitiesAction: FlowActionActivity<{
      */
     if (isCompleted) {
       if (state.hasConductedCheckStep) {
-        Context.current().heartbeat({ state });
+        await createCheckpoint({ state });
         return;
       } else {
         state.hasConductedCheckStep = true;
@@ -995,7 +990,7 @@ export const researchEntitiesAction: FlowActionActivity<{
       testingParams.persistState(state);
     }
 
-    Context.current().heartbeat({ state });
+    await createCheckpoint({ state });
 
     const { toolCalls: nextToolCalls } =
       await coordinatingAgent.getNextToolCalls({

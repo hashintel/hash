@@ -362,6 +362,16 @@ export type FlowDataSources = {
   internetAccess: FlowInternetAccessSettings;
 };
 
+export type FlowCheckpointSignal = {
+  description?: string;
+};
+
+export type FlowCheckpoint = {
+  checkpointId: number;
+  recordedAt: string;
+  description: string;
+};
+
 export type LocalFlowRun = {
   name: string;
   flowRunId: EntityUuid;
@@ -574,6 +584,7 @@ export type FlowUsageRecordCustomMetadata = {
 };
 
 export const detailedFlowFields = [
+  "checkpoints",
   "inputs",
   "inputRequests",
   "outputs",

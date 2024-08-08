@@ -75,6 +75,7 @@ export const scalars = {
 
   OntologyTemporalMetadata: "@local/hash-graph-client#OntologyTemporalMetadata",
 
+  FlowCheckpoint: "@local/hash-isomorphic-utils/flows/types#FlowCheckpoint",
   FlowTrigger: "@local/hash-isomorphic-utils/flows/types#FlowTrigger",
   FlowDataSources: "@local/hash-isomorphic-utils/flows/types#FlowDataSources",
   FlowDefinition: "@local/hash-isomorphic-utils/flows/types#FlowDefinition",

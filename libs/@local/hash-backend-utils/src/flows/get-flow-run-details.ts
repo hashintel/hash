@@ -1,6 +1,7 @@
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type {
+  DetailedFlowField,
   ExternalInputRequest,
   ExternalInputRequestSignal,
   ExternalInputResponseSignal,
@@ -87,6 +88,8 @@ const getActivityStartedDetails = (
 ) => {
   const { scheduledEventId } = attributes;
 
+  console.log({ scheduledEventId }, typeof scheduledEventId);
+
   const scheduledEvent = events.findLast(
     (item) =>
       item.eventId?.toString() === scheduledEventId?.toString() &&
@@ -127,9 +130,7 @@ const getFlowRunDetailedFields = async ({
 }: {
   workflowId: string;
   temporalClient: TemporalClient;
-}): Promise<
-  Pick<FlowRun, "inputs" | "inputRequests" | "outputs" | "steps">
-> => {
+}): Promise<Pick<FlowRun, DetailedFlowField>> => {
   const handle = temporalClient.workflow.getHandle(workflowId);
 
   const workflow = await handle.describe();
@@ -487,6 +488,7 @@ const getFlowRunDetailedFields = async ({
   }
 
   return {
+    checkpoints: [],
     inputs: workflowInputs,
     outputs: workflowOutputs,
     inputRequests: Object.values(inputRequestsById),
