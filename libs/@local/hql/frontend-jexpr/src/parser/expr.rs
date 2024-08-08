@@ -22,8 +22,8 @@ use crate::{
     span::Span,
 };
 
-pub(crate) fn parse_expr<'arena, 'lexer, 'source>(
-    stream: &mut TokenStream<'arena, 'lexer, 'source>,
+pub(crate) fn parse_expr<'arena, 'source>(
+    stream: &mut TokenStream<'arena, 'source>,
     token: Option<Token<'source>>,
 ) -> Result<Expr<'arena, 'source>, Diagnostic<'static, SpanId>> {
     let token = if let Some(token) = token {
@@ -55,8 +55,8 @@ pub(crate) fn parse_expr<'arena, 'lexer, 'source>(
     }
 }
 
-fn parse_call<'arena, 'lexer, 'source>(
-    stream: &mut TokenStream<'arena, 'lexer, 'source>,
+fn parse_call<'arena, 'source>(
+    stream: &mut TokenStream<'arena, 'source>,
     token: Token<'source>,
 ) -> Result<Expr<'arena, 'source>, Diagnostic<'static, SpanId>> {
     let mut r#fn = None;
@@ -90,8 +90,8 @@ fn parse_call<'arena, 'lexer, 'source>(
     })
 }
 
-fn parse_string<'arena, 'lexer, 'source>(
-    stream: &mut TokenStream<'arena, 'lexer, 'source>,
+fn parse_string<'arena, 'source>(
+    stream: &mut TokenStream<'arena, 'source>,
     value: Cow<'source, str>,
     span: TextRange,
 ) -> Result<Expr<'arena, 'source>, Diagnostic<'static, SpanId>> {

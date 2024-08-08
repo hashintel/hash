@@ -24,11 +24,11 @@ use crate::{
     reason = "API contract, we want to signify to the user, we're now proceeding with this \
               specific token. Not that we hold it temporary, but instead that we consume it."
 )]
-pub(crate) fn parse_array<'arena, 'lexer, 'source>(
-    stream: &mut TokenStream<'arena, 'lexer, 'source>,
+pub(crate) fn parse_array<'arena, 'source>(
+    stream: &mut TokenStream<'arena, 'source>,
     token: Token<'source>,
     mut on_item: impl FnMut(
-        &mut TokenStream<'arena, 'lexer, 'source>,
+        &mut TokenStream<'arena, 'source>,
         Option<Token<'source>>,
     ) -> Result<(), Diagnostic<'static, SpanId>>,
 ) -> Result<TextRange, Diagnostic<'static, SpanId>> {
@@ -67,7 +67,10 @@ pub(crate) fn parse_array<'arena, 'lexer, 'source>(
             ));
         };
 
-        stream.descend(index, |stream| on_item(stream, peeked));
+        stream.push(index);
+        let result = on_item(stream, peeked);
+        stream.pop();
+        result?;
 
         index += 1;
 

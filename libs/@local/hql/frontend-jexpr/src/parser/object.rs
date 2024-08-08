@@ -20,11 +20,11 @@ pub(crate) struct Key {
     reason = "API contract, we want to signify to the user, we're now proceeding with this \
               specific token. Not that we hold it temporary, but instead that we consume it."
 )]
-pub(crate) fn parse_object<'arena, 'lexer, 'source>(
-    stream: &mut TokenStream<'arena, 'lexer, 'source>,
+pub(crate) fn parse_object<'arena, 'source>(
+    stream: &mut TokenStream<'arena, 'source>,
     token: Token<'source>,
     mut on_entry: impl FnMut(
-        &mut TokenStream<'arena, 'lexer, 'source>,
+        &mut TokenStream<'arena, 'source>,
         Key,
     ) -> Result<(), Diagnostic<'static, SpanId>>,
 ) -> Result<TextRange, Diagnostic<'static, SpanId>> {

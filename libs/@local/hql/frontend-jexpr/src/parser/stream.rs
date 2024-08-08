@@ -8,15 +8,15 @@ use crate::{
     span::Span,
 };
 
-pub(crate) struct TokenStream<'arena, 'lexer, 'source> {
+pub(crate) struct TokenStream<'arena, 'source> {
     pub arena: &'arena Arena,
-    pub lexer: &'lexer mut Lexer<'source>,
+    pub lexer: Lexer<'source>,
 
     pub spans: SpanStorage<Span>,
     pub stack: Option<Vec<jsonptr::Token<'source>>>,
 }
 
-impl<'arena, 'lexer, 'source> TokenStream<'arena, 'lexer, 'source> {
+impl<'arena, 'source> TokenStream<'arena, 'source> {
     pub(crate) fn next_or_err(&mut self) -> Result<Token<'source>, Diagnostic<'static, SpanId>> {
         let Some(token) = self.lexer.next() else {
             let span = Span {
@@ -36,11 +36,23 @@ impl<'arena, 'lexer, 'source> TokenStream<'arena, 'lexer, 'source> {
         self.spans.insert(span)
     }
 
-    pub(crate) fn descend<T>(
+    pub(crate) fn push(&mut self, token: impl Into<jsonptr::Token<'source>>) {
+        if let Some(stack) = self.stack.as_mut() {
+            stack.push(token.into());
+        }
+    }
+
+    pub(crate) fn pop(&mut self) {
+        if let Some(stack) = self.stack.as_mut() {
+            stack.pop();
+        }
+    }
+
+    pub(crate) fn descend(
         &mut self,
         token: impl Into<jsonptr::Token<'source>>,
-        f: impl FnOnce(&mut Self) -> T,
-    ) -> T {
+        f: impl FnOnce(&mut Self) -> Result<(), Diagnostic<'static, SpanId>>,
+    ) -> Result<(), Diagnostic<'static, SpanId>> {
         if let Some(stack) = self.stack.as_mut() {
             stack.push(token.into());
         }
