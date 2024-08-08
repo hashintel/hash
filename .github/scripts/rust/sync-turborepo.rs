@@ -6,9 +6,9 @@ cargo-features = ["edition2024"]
 edition = "2024"
 
 [dependencies]
-serde = {version = "*", features = ["derive"]}
-serde_json = {version = "*", features = ["preserve_order"]}
-cargo_metadata = {version = "*"}
+serde = { version = "*", features = ["derive"] }
+serde_json = { version = "*", features = ["preserve_order"] }
+cargo_metadata = { version = "*" }
 nodejs_package_json = { version = "*", features = ["serialize"] }
 ---
 
@@ -20,6 +20,7 @@ use std::{
 
 use cargo_metadata::{DependencyKind, Metadata, MetadataCommand, Package, PackageId};
 use nodejs_package_json::PackageJson;
+use serde_json::json;
 
 // take the metadata of the current package (indicated by the first argument)
 fn collect_metadata(cwd: &Path) -> Metadata {
@@ -308,9 +309,15 @@ impl<'a> WorkspaceMember<'a> {
         }
 
         // set the package to private if the crate is private
-        package_json
-            .other_fields
-            .insert("private".to_string(), self.is_private().into());
+        package_json.other_fields.insert(
+            "private".to_string(),
+            json!(
+                package_json
+                    .name
+                    .map_or(false, |name| name.starts_with("@rust/"))
+                    || self.is_private()
+            ),
+        );
 
         // set the name of the package.json
         package_json.name = Some(self.package_name());
@@ -320,16 +327,22 @@ impl<'a> WorkspaceMember<'a> {
         self.package_dev_dependencies(ctx, &mut package_json.dev_dependencies);
 
         // write the package.json file back to disk
-        let mut package_json_value = serde_json::to_value(&package_json)
-            .expect("package.json should be serializable");
-        if let Some(dependencies) =  package_json_value["dependencies"].as_object() {
+        let mut package_json_value =
+            serde_json::to_value(&package_json).expect("package.json should be serializable");
+        if let Some(dependencies) = package_json_value["dependencies"].as_object() {
             if dependencies.is_empty() {
-                package_json_value.as_object_mut().unwrap().remove("dependencies");
+                package_json_value
+                    .as_object_mut()
+                    .unwrap()
+                    .remove("dependencies");
             }
         }
-        if let Some(dev_dependencies) =  package_json_value["devDependencies"].as_object() {
+        if let Some(dev_dependencies) = package_json_value["devDependencies"].as_object() {
             if dev_dependencies.is_empty() {
-                package_json_value.as_object_mut().unwrap().remove("devDependencies");
+                package_json_value
+                    .as_object_mut()
+                    .unwrap()
+                    .remove("devDependencies");
             }
         }
         let package_json = serde_json::to_string_pretty(&package_json_value)
