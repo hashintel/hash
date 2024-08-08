@@ -16,7 +16,7 @@ use text_size::TextRange;
 
 use self::{
     arena::Arena,
-    expr::Expr,
+    expr::ExprKind,
     parse::json::{
         node::{NodeParseError, NodeParser},
         program::ProgramParser,
@@ -26,29 +26,6 @@ use self::{
 
 pub trait Spanned {
     fn span(&self) -> SpanId;
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Node<'arena, 'source> {
-    pub expr: Expr<'arena, 'source>,
-    pub span: SpanId,
-}
-
-impl<'arena, 'source> Node<'arena, 'source> {
-    /// Deserialize an expression from a JSON string.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the input is not valid JSON, or a malformed expression.
-    pub fn from_str(arena: &'arena Arena, value: &'source str) -> Result<Self, NodeParseError> {
-        NodeParser::new(arena).parse(value)
-    }
-}
-
-impl Spanned for Node<'_, '_> {
-    fn span(&self) -> SpanId {
-        self.span
-    }
 }
 
 pub struct Program<'arena, 'source> {

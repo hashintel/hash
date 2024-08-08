@@ -1,16 +1,30 @@
 use core::fmt::{self, Display};
 
-use crate::{arena, expr::path::Path};
+use hql_span::SpanId;
+
+use crate::{arena, expr::path::Path, Spanned};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Type<'arena> {
+pub enum TypeKind<'arena> {
     Path(Path<'arena>),
 
     Union(arena::Box<'arena, [Type<'arena>]>),
     Intersection(arena::Box<'arena, [Type<'arena>]>),
 }
 
-impl Display for Type<'_> {
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Type<'arena> {
+    pub kind: TypeKind<'arena>,
+    pub span: SpanId,
+}
+
+impl Spanned for Type<'_> {
+    fn span(&self) -> SpanId {
+        self.span
+    }
+}
+
+impl Display for TypeKind<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Path(path) => Display::fmt(path, f),
@@ -53,5 +67,11 @@ impl Display for Type<'_> {
                 Ok(())
             }
         }
+    }
+}
+
+impl Display for Type<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.kind, f)
     }
 }

@@ -1,6 +1,7 @@
 use alloc::borrow::Cow;
 
 use hql_cst_lex::Number;
+use hql_span::SpanId;
 use text_size::TextRange;
 
 use crate::{arena, Spanned};
@@ -29,11 +30,11 @@ pub enum ValueKind<'arena, 'source> {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Value<'arena, 'source> {
     pub kind: ValueKind<'arena, 'source>,
-    pub span: TextRange,
+    pub span: SpanId,
 }
 
 impl Spanned for Value<'_, '_> {
-    fn span(&self) -> TextRange {
+    fn span(&self) -> SpanId {
         self.span
     }
 }

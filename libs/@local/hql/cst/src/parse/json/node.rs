@@ -9,7 +9,7 @@ use super::{
 };
 use crate::{
     arena::Arena,
-    expr::{call::Call, path::parse_path, signature::parse_signature, Expr},
+    expr::{call::Call, path::parse_path, signature::parse_signature, ExprKind},
     Node,
 };
 
@@ -117,7 +117,7 @@ impl<'arena> NodeParser<'arena> {
         };
 
         Ok(Node {
-            expr: Expr::Call(Call {
+            expr: ExprKind::Call(Call {
                 r#fn: self.arena.boxed(r#fn),
                 args: args.into_boxed_slice(),
             }),
@@ -151,8 +151,8 @@ impl<'arena> NodeParser<'arena> {
 
         // TODO: offset error
         let expr = alt((
-            parse_signature.map(Expr::Signature),
-            parse_path(ParseRestriction::None).map(Expr::Path),
+            parse_signature.map(ExprKind::Signature),
+            parse_path(ParseRestriction::None).map(ExprKind::Path),
         ))
         .parse(winnow::Stateful {
             input: value.as_ref(),

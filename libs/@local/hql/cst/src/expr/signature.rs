@@ -1,19 +1,9 @@
 use core::{fmt, fmt::Display};
 
-use winnow::{
-    combinator::{delimited, opt, preceded, separated_pair, trace},
-    error::ParserError,
-    stream::{AsChar, Compare, Stream, StreamIsPartial},
-    PResult, Parser, Stateful,
-};
+use hql_span::SpanId;
 
-use super::Expr;
-use crate::{
-    arena::{self, Arena},
-    parse::string,
-    symbol::{self, parse_symbol, Symbol},
-    r#type::{parse_type, Type},
-};
+use super::ExprKind;
+use crate::{arena, symbol::Symbol, r#type::Type, Spanned};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Signature<'arena> {
@@ -22,6 +12,14 @@ pub struct Signature<'arena> {
     pub arguments: arena::Box<'arena, [Argument<'arena>]>,
 
     pub r#return: Return<'arena>,
+
+    pub span: SpanId,
+}
+
+impl Spanned for Signature<'_> {
+    fn span(&self) -> SpanId {
+        self.span
+    }
 }
 
 impl<'a> Display for Signature<'a> {
@@ -54,16 +52,24 @@ impl<'a> Display for Signature<'a> {
     }
 }
 
-impl<'arena, 'source> From<Signature<'arena>> for Expr<'arena, 'source> {
+impl<'arena, 'source> From<Signature<'arena>> for ExprKind<'arena, 'source> {
     fn from(signature: Signature<'arena>) -> Self {
         Self::Signature(signature)
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Generic<'a> {
+pub struct Generic<'arena> {
     pub name: Symbol,
-    pub bound: Option<Type<'a>>,
+    pub bound: Option<Type<'arena>>,
+
+    pub span: SpanId,
+}
+
+impl<'arena> Spanned for Generic<'arena> {
+    fn span(&self) -> SpanId {
+        self.span
+    }
 }
 
 impl<'a> Display for Generic<'a> {
@@ -80,12 +86,20 @@ impl<'a> Display for Generic<'a> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Argument<'a> {
+pub struct Argument<'arena> {
     pub name: Symbol,
-    pub r#type: Type<'a>,
+    pub r#type: Type<'arena>,
+
+    pub span: SpanId,
 }
 
-impl<'a> Display for Argument<'a> {
+impl<'arena> Spanned for Argument<'arena> {
+    fn span(&self) -> SpanId {
+        self.span
+    }
+}
+
+impl<'arena> Display for Argument<'arena> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.name, f)?;
         f.write_str(": ")?;
@@ -94,11 +108,19 @@ impl<'a> Display for Argument<'a> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Return<'a> {
-    pub r#type: Type<'a>,
+pub struct Return<'arena> {
+    pub r#type: Type<'arena>,
+
+    pub span: SpanId,
 }
 
-impl<'a> Display for Return<'a> {
+impl<'arena> Spanned for Return<'arena> {
+    fn span(&self) -> SpanId {
+        self.span
+    }
+}
+
+impl<'arena> Display for Return<'arena> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.r#type, f)
     }

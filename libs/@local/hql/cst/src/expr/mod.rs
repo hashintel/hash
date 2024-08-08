@@ -3,14 +3,40 @@ pub mod constant;
 pub mod path;
 pub mod signature;
 
+use hql_span::SpanId;
+
 use self::{call::Call, constant::Constant, path::Path, signature::Signature};
+use crate::Spanned;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Expr<'arena, 'source> {
+pub enum ExprKind<'arena, 'source> {
     Call(Call<'arena, 'source>),
     Signature(Signature<'arena>),
     Path(Path<'arena>),
     Constant(Constant<'arena, 'source>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Expr<'arena, 'source> {
+    pub kind: ExprKind<'arena, 'source>,
+    pub span: SpanId,
+}
+
+impl<'arena, 'source> Expr<'arena, 'source> {
+    /// Deserialize an expression from a JSON string.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the input is not valid JSON, or a malformed expression.
+    pub fn from_str(arena: &'arena Arena, value: &'source str) -> Result<Self, NodeParseError> {
+        NodeParser::new(arena).parse(value)
+    }
+}
+
+impl Spanned for Expr<'_, '_> {
+    fn span(&self) -> SpanId {
+        self.span
+    }
 }
 
 #[cfg(test)]
@@ -19,7 +45,7 @@ mod test {
 
     use insta::assert_debug_snapshot;
 
-    use super::Expr;
+    use super::ExprKind;
     use crate::arena::Arena;
 
     // This needs to be a macro, because we need to get the function name for auto-naming.
@@ -47,13 +73,13 @@ mod test {
                 "arg1",
                 "arg2"
             ]"#,
-            Ok(Expr::Call(_))
+            Ok(ExprKind::Call(_))
         );
     }
 
     #[test]
     fn fn_empty_args() {
-        assert_expr!(r#"["func"]"#, Ok(Expr::Call(_)));
+        assert_expr!(r#"["func"]"#, Ok(ExprKind::Call(_)));
     }
 
     #[test]
@@ -63,14 +89,14 @@ mod test {
 
     #[test]
     fn string_is_path() {
-        assert_expr!(r#""symbol""#, Ok(Expr::Path(_)));
+        assert_expr!(r#""symbol""#, Ok(ExprKind::Path(_)));
 
-        assert_expr!(r#""foo::bar""#, Ok(Expr::Path(_)));
+        assert_expr!(r#""foo::bar""#, Ok(ExprKind::Path(_)));
     }
 
     #[test]
     fn string_is_signature() {
-        assert_expr!(r#""<T: Int>(a: T) -> T""#, Ok(Expr::Signature(_)));
+        assert_expr!(r#""<T: Int>(a: T) -> T""#, Ok(ExprKind::Signature(_)));
     }
 
     #[test]
@@ -80,12 +106,12 @@ mod test {
 
     #[test]
     fn object_is_constant() {
-        assert_expr!(r#"{"const": 42}"#, Ok(Expr::Constant(_)));
+        assert_expr!(r#"{"const": 42}"#, Ok(ExprKind::Constant(_)));
     }
 
     #[test]
     fn object_is_constant_with_type() {
-        assert_expr!(r#"{"type": "u32", "const": 42}"#, Ok(Expr::Constant(_)));
+        assert_expr!(r#"{"type": "u32", "const": 42}"#, Ok(ExprKind::Constant(_)));
     }
 
     #[test]
@@ -100,7 +126,7 @@ mod test {
     fn object_is_call() {
         assert_expr!(
             r#"{"fn": "func", "args": ["arg1", "arg2"]}"#,
-            Ok(Expr::Call(_))
+            Ok(ExprKind::Call(_))
         );
     }
 
@@ -111,12 +137,15 @@ mod test {
 
     #[test]
     fn object_is_call_without_args() {
-        assert_expr!(r#"{"fn": "func"}"#, Ok(Expr::Call(_)));
+        assert_expr!(r#"{"fn": "func"}"#, Ok(ExprKind::Call(_)));
     }
 
     #[test]
     fn object_is_signature() {
-        assert_expr!(r#"{"sig": "<T: Int>(a: T) -> T"}"#, Ok(Expr::Signature(_)));
+        assert_expr!(
+            r#"{"sig": "<T: Int>(a: T) -> T"}"#,
+            Ok(ExprKind::Signature(_))
+        );
     }
 
     #[test]

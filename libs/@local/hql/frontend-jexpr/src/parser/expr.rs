@@ -1,7 +1,7 @@
 use std::borrow::Cow;
 
 use hql_cst::{
-    expr::{call::Call, Expr},
+    expr::{call::Call, ExprKind},
     Node,
 };
 use hql_diagnostics::Diagnostic;
@@ -87,7 +87,7 @@ fn parse_call<'arena, 'lexer, 'source>(
     let r#fn = r#fn.ok_or_else(|| expected_callee(span))?;
 
     Ok(Node {
-        expr: Expr::Call(Call {
+        expr: ExprKind::Call(Call {
             r#fn: self.arena.boxed(r#fn),
             args: args.into_boxed_slice(),
         }),
@@ -126,26 +126,26 @@ fn parse_string<'arena, 'lexer, 'source>(
             // (`<::` is not a valid signature, as `::` is not a valid identifier)
             parse_path(ParseRestriction::None)
                 .parse(input)
-                .map(Expr::Path)
+                .map(ExprKind::Path)
                 .map_err(|error| (ParseDecision::Path, error))
         } else {
             // guaranteed to be a signature
             parse_signature
                 .parse(input)
-                .map(Expr::Signature)
+                .map(ExprKind::Signature)
                 .map_err(|error| (ParseDecision::Signature, error))
         }
     } else if value.starts_with('(') {
         // guaranteed to be a signature (generics are optional, arguments are not)
         parse_signature
             .parse(input)
-            .map(Expr::Signature)
+            .map(ExprKind::Signature)
             .map_err(|error| (ParseDecision::Signature, error))
     } else {
         // guaranteed to be a path
         parse_path(ParseRestriction::None)
             .parse(input)
-            .map(Expr::Path)
+            .map(ExprKind::Path)
             .map_err(|error| (ParseDecision::Path, error))
     };
 

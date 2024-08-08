@@ -16,7 +16,7 @@ use crate::{
         constant::{Constant, ConstantType},
         path::{parse_path, Path},
         signature::{parse_signature, Signature},
-        Expr,
+        ExprKind,
     },
     parse::json::util::EofParser,
     symbol::ParseRestriction,
@@ -177,7 +177,7 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for CallState<'arena, 'source
             .unwrap_or_else(|| arena.boxed([]));
 
         Ok(Node {
-            expr: Expr::Call(Call {
+            expr: ExprKind::Call(Call {
                 r#fn: arena.boxed(r#fn),
                 args,
             }),
@@ -285,7 +285,7 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for ConstantState<'arena, 'so
         let r#type = self.r#type;
 
         Ok(Node {
-            expr: Expr::Constant(Constant {
+            expr: ExprKind::Constant(Constant {
                 value: r#const,
                 r#type,
             }),
@@ -367,7 +367,7 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for VariableState<'arena> {
         })?;
 
         Ok(Node {
-            expr: Expr::Path(var),
+            expr: ExprKind::Path(var),
             span,
         })
     }
@@ -446,7 +446,7 @@ impl<'arena, 'source> ObjectState<'arena, 'source> for SignatureState<'arena> {
         })?;
 
         Ok(Node {
-            expr: Expr::Signature(sig),
+            expr: ExprKind::Signature(sig),
             span,
         })
     }
