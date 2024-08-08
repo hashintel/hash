@@ -135,6 +135,12 @@
       "matchPackagePatterns": ["^@graphql/", "^graphql-", "graphql$"]
     },
     {
+      "description": "Exclude tldraw from updates due to non-OSS license in later releases",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@tldraw/"],
+      "enabled": false
+    },
+    {
       "automerge": false,
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["typescript"],
