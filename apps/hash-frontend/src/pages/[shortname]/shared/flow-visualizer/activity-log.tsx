@@ -97,6 +97,7 @@ const startedSubTaskPrefix = "Started sub-task with goal ";
 const closedSubTaskPrefix = "Finished sub-task with ";
 const startedLinkExplorerTaskPrefix = "Started link explorer task with goal ";
 const closedLinkExplorerTaskPrefix = "Finished link explorer task with ";
+const activityFailedPrefix = "Activity failed: ";
 
 const getRawTextFromLog = (log: LocalProgressLog): string => {
   switch (log.type) {
@@ -147,6 +148,9 @@ const getRawTextFromLog = (log: LocalProgressLog): string => {
     case "InferredClaimsFromText": {
       // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       return `Inferred ${log.output.claimCount} claims and ${log.output.entityCount} entities from ${log.output.resource.title || log.output.resource.url}`;
+    }
+    case "ActivityFailed": {
+      return `${activityFailedPrefix}${log.message}`;
     }
   }
 };
@@ -242,6 +246,7 @@ const LogDetail = ({
       return (
         <Stack direction="row" alignItems="center" gap={1}>
           <Box sx={ellipsisOverflow}>
+            {log.attempt > 1 ? `[${log.attempt}] ` : ""}
             {startedCoordinatorPrefix}
             <strong>“{log.input.goal}”</strong>
           </Box>
@@ -317,6 +322,23 @@ const LogDetail = ({
             {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing */}
             {log.output.resource.title || log.output.resource.url}
           </Link>
+        </Stack>
+      );
+    }
+    case "ActivityFailed": {
+      return (
+        <Stack direction="row" alignItems="center" gap={0.5}>
+          {activityFailedPrefix}
+          <Box
+            component="span"
+            sx={{
+              ...ellipsisOverflow,
+              color: ({ palette }) => palette.red[80],
+              fontWeight: 600,
+            }}
+          >
+            {log.message}
+          </Box>
         </Stack>
       );
     }
@@ -523,7 +545,8 @@ export const ActivityLog = memo(
 
     const rows = useMemo<VirtualizedTableRow<LogWithThreadSettings>[]>(() => {
       /**
-       * Sort the parents first, because we want to keep the children as appearing directly after their parent in all cases.
+       * Sort the parents first, because we want to keep the children as appearing directly after their parent in all
+       * cases.
        */
       const sortedParents = logs.sort((a, b) => sortLogs(a, b, sort));
 

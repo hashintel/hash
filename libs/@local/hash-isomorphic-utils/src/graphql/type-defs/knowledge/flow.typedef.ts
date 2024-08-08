@@ -160,6 +160,10 @@ export const flowTypedef = gql`
     """
     closedAt: String
     """
+    The reason the run failed, if it did
+    """
+    failureMessage: String
+    """
     Checkpoints during the flow, which can be used to reset it to a specific point in time
     """
     checkpoints: [FlowCheckpoint!]!

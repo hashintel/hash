@@ -414,6 +414,7 @@ export type VisitedWebPageLog = WorkerProgressLogBase & {
 };
 
 export type StartedCoordinatorLog = WorkerProgressLogBase & {
+  attempt: number;
   input: {
     goal: string;
   };
@@ -498,6 +499,12 @@ export type PersistedEntityLog = ProgressLogBase & {
   type: "PersistedEntity";
 };
 
+export type ActivityFailedLog = ProgressLogBase & {
+  message: string;
+  retrying: boolean;
+  type: "ActivityFailed";
+};
+
 export type StepProgressLog =
   | ClosedCoordinatorLog
   | ClosedLinkExplorerTaskLog
@@ -511,7 +518,17 @@ export type StepProgressLog =
   | StartedSubTaskLog
   | ViewedFile
   | VisitedWebPageLog
-  | CreatedPlanLog;
+  | CreatedPlanLog
+  | ActivityFailedLog;
+
+const flowSignalTypes = [
+  "externalInputRequest",
+  "externalInputResponse",
+  "checkpoint",
+  "logProgress",
+] as const;
+
+export type FlowSignalType = (typeof flowSignalTypes)[number];
 
 export type ProgressLogSignal = {
   attempt: number;
@@ -585,6 +602,7 @@ export type FlowUsageRecordCustomMetadata = {
 
 export const detailedFlowFields = [
   "checkpoints",
+  "failureMessage",
   "inputs",
   "inputRequests",
   "outputs",

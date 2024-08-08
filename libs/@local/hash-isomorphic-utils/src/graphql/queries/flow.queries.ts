@@ -34,6 +34,8 @@ export const getFlowRunById = gql`
       name
       flowDefinitionId
       flowRunId
+      failureMessage
+      checkpoints
       webId
       status
       startedAt

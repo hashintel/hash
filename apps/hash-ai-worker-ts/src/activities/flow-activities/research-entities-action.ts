@@ -295,6 +295,7 @@ export const researchEntitiesAction: FlowActionActivity<{
   logProgress([
     {
       type: "StartedCoordinator",
+      attempt: Context.current().info.attempt,
       input: {
         goal: input.prompt,
       },
