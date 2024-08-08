@@ -203,6 +203,12 @@ jobs:
       - name: Warm up repository
         uses: ./.github/actions/warm-up-repo
 
+      - name: Validate package.json generated from Cargo.toml
+        if: ${{ success() || failure() }}
+        run: |
+          cargo -Zscript run --manifest-path ".github/scripts/rust/sync-turborepo.rs" . | xargs yarn prettier --write >/dev/null
+          git --no-pager diff --exit-code --color '**/package.json'
+
       - name: Run yarn lint:dependency-version-consistency
         if: ${{ success() || failure() }}
         run: |
