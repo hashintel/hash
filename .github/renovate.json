@@ -101,7 +101,7 @@
     {
       "groupName": "LLM provider SDK npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@openai/", "^@anthropic/", "groq-sdk"],
+      "matchPackagePatterns": ["^@openai/", "^@anthropic-ai/", "groq-sdk"],
       "automerge": false,
       "dependencyDashboardApproval": false,
       "minimumReleaseAge": "0 days",
@@ -158,10 +158,20 @@
       "matchPackagePatterns": ["^@emoji-mart/", "^emoji-mart", "emoji-mart$"]
     },
     {
+      "groupName": "Lodash npm packages",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@types/lodash", "^lodash", "lodash$"]
+    },
+    {
       "groupName": "OpenTelemetry npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^@opentelemetry/"],
       "assignees": ["TimDiekmann"]
+    },
+    {
+      "groupName": "changesets npm packages",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@changesets/"]
     },
     {
       "groupName": "Playwright npm packages",
