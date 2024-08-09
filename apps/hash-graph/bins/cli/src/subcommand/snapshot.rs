@@ -61,7 +61,7 @@ pub struct SnapshotDumpArgs {
 #[derive(Debug, Parser)]
 pub struct SnapshotRestoreArgs {
     /// Whether to skip the validation checks.
-    #[clap(long, global = true)]
+    #[clap(long)]
     pub skip_validation: bool,
 
     /// Whether to skip the authorization restoring.
