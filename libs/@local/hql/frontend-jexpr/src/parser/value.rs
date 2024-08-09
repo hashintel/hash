@@ -140,8 +140,9 @@ mod test {
         arena::Arena,
         value::{Value, ValueKind},
     };
-    use hql_diagnostics::Diagnostic;
+    use hql_diagnostics::{config::ReportConfig, span::DiagnosticSpan, Diagnostic};
     use hql_span::{storage::SpanStorage, SpanId};
+    use insta::assert_snapshot;
 
     use super::parse_value;
     use crate::{
@@ -294,5 +295,46 @@ mod test {
         assert_eq_serde("{}");
         assert_eq_serde("{}}");
         assert_eq_serde(r#"{12: "12"}"#);
+    }
+
+    fn expect_err(expr: &str) -> String {
+        let arena = Arena::new();
+        let spans = SpanStorage::new();
+
+        let diagnostic = parse_complete(&arena, spans.clone(), expr)
+            .expect_err("number should not be a valid key");
+
+        let diagnostic = diagnostic
+            .resolve(&spans)
+            .expect("should have all spans in storage");
+
+        let report = diagnostic.report(
+            ReportConfig {
+                color: false,
+                ..ReportConfig::default()
+            }
+            .with_transform_span(|span: &Span| DiagnosticSpan::from(span)),
+        );
+
+        let mut output = Vec::new();
+        report
+            .write_for_stdout(ariadne::Source::from(expr), &mut output)
+            .expect("should be able to output to vec");
+
+        String::from_utf8(output).expect("should be valid utf8")
+    }
+
+    #[test]
+    fn key_is_number() {
+        let expr = r#"{12: "12"}"#;
+
+        assert_snapshot!(insta::_macro_support::AutoName, expect_err(expr), expr);
+    }
+
+    #[test]
+    fn duplicate_key() {
+        let expr = r#"{"a": 1, "a": b}"#;
+
+        assert_snapshot!(insta::_macro_support::AutoName, expect_err(expr), expr);
     }
 }
