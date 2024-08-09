@@ -249,6 +249,24 @@ impl<C, A> SnapshotStore<C, A> {
     }
 }
 
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "This is a configuration struct"
+)]
+#[derive(Debug, Copy, Clone)]
+pub struct SnapshotDumpSettings {
+    pub chunk_size: usize,
+    pub dump_webs: bool,
+    pub dump_accounts: bool,
+    pub dump_account_groups: bool,
+    pub dump_entities: bool,
+    pub dump_entity_types: bool,
+    pub dump_property_types: bool,
+    pub dump_data_types: bool,
+    pub dump_embeddings: bool,
+    pub dump_relations: bool,
+}
+
 impl PostgresStorePool {
     async fn read_accounts(
         &self,
@@ -517,49 +535,55 @@ impl PostgresStorePool {
         &self,
         sink: impl Sink<SnapshotEntry, Error = Report<impl Context>> + Send + 'static,
         authorization_api: &(impl ZanzibarBackend + Sync),
-        chunk_size: usize,
+        settings: SnapshotDumpSettings,
     ) -> Result<(), SnapshotDumpError> {
-        let (snapshot_record_tx, snapshot_record_rx) = mpsc::channel(chunk_size);
+        let (snapshot_record_tx, snapshot_record_rx) = mpsc::channel(settings.chunk_size);
         let snapshot_record_tx = snapshot_record_tx
             .sink_map_err(|error| Report::new(error).change_context(SnapshotDumpError::Write));
 
-        let ((), results) =
-            TokioScope::scope_and_block(|scope| {
-                scope.spawn(snapshot_record_rx.map(Ok).forward(
-                    sink.sink_map_err(|report| report.change_context(SnapshotDumpError::Write)),
-                ));
+        let ((), results) = TokioScope::scope_and_block(|scope| {
+            scope.spawn(snapshot_record_rx.map(Ok).forward(
+                sink.sink_map_err(|report| report.change_context(SnapshotDumpError::Write)),
+            ));
 
-                scope.spawn(
-                    stream::once(ready(Ok(SnapshotEntry::Snapshot(SnapshotMetadata {
-                        block_protocol_module_versions: BlockProtocolModuleVersions {
-                            graph: semver::Version::new(0, 3, 0),
-                        },
-                        custom: CustomGlobalMetadata,
-                    }))))
-                    .forward(snapshot_record_tx.clone()),
-                );
+            scope.spawn(
+                stream::once(ready(Ok(SnapshotEntry::Snapshot(SnapshotMetadata {
+                    block_protocol_module_versions: BlockProtocolModuleVersions {
+                        graph: semver::Version::new(0, 3, 0),
+                    },
+                    custom: CustomGlobalMetadata,
+                }))))
+                .forward(snapshot_record_tx.clone()),
+            );
 
+            if settings.dump_webs {
                 scope.spawn(
                     self.read_webs(authorization_api)
                         .try_flatten_stream()
                         .map_ok(SnapshotEntry::Web)
                         .forward(snapshot_record_tx.clone()),
                 );
+            }
 
+            if settings.dump_accounts {
                 scope.spawn(
                     self.read_accounts()
                         .try_flatten_stream()
                         .map_ok(SnapshotEntry::Account)
                         .forward(snapshot_record_tx.clone()),
                 );
+            }
 
+            if settings.dump_account_groups {
                 scope.spawn(
                     self.read_account_groups(authorization_api)
                         .try_flatten_stream()
                         .map_ok(SnapshotEntry::AccountGroup)
                         .forward(snapshot_record_tx.clone()),
                 );
+            }
 
+            if settings.dump_data_types {
                 scope.spawn(
                     self.create_dump_stream::<DataTypeWithMetadata>()
                         .try_flatten_stream()
@@ -584,57 +608,63 @@ impl PostgresStorePool {
                         })
                         .forward(snapshot_record_tx.clone()),
                 );
+            }
 
+            if settings.dump_property_types {
                 scope.spawn(
-                    self.create_dump_stream::<PropertyTypeWithMetadata>()
-                        .try_flatten_stream()
-                        .and_then(move |record| async move {
-                            Ok(SnapshotEntry::PropertyType(Box::new(PropertyTypeSnapshotRecord {
-                            schema: record.schema,
-                            relations: authorization_api
-                                .read_relations::<(PropertyTypeId, PropertyTypeRelationAndSubject)>(
-                                    RelationshipFilter::from_resource(PropertyTypeId::from_url(
-                                        &VersionedUrl::from(record.metadata.record_id.clone()),
-                                    )),
-                                    Consistency::FullyConsistent,
-                                )
-                                .await
-                                .change_context(SnapshotDumpError::Query)?
-                                .map_ok(|(_, relation)| relation)
-                                .try_collect()
-                                .await
-                                .change_context(SnapshotDumpError::Query)?,
-                            metadata: record.metadata,
-                        })))
-                        })
-                        .forward(snapshot_record_tx.clone()),
-                );
+                        self.create_dump_stream::<PropertyTypeWithMetadata>()
+                            .try_flatten_stream()
+                            .and_then(move |record| async move {
+                                Ok(SnapshotEntry::PropertyType(Box::new(PropertyTypeSnapshotRecord {
+                                    schema: record.schema,
+                                    relations: authorization_api
+                                        .read_relations::<(PropertyTypeId, PropertyTypeRelationAndSubject)>(
+                                            RelationshipFilter::from_resource(PropertyTypeId::from_url(
+                                                &VersionedUrl::from(record.metadata.record_id.clone()),
+                                            )),
+                                            Consistency::FullyConsistent,
+                                        )
+                                        .await
+                                        .change_context(SnapshotDumpError::Query)?
+                                        .map_ok(|(_, relation)| relation)
+                                        .try_collect()
+                                        .await
+                                        .change_context(SnapshotDumpError::Query)?,
+                                    metadata: record.metadata,
+                                })))
+                            })
+                            .forward(snapshot_record_tx.clone()),
+                    );
+            }
 
+            if settings.dump_entity_types {
                 scope.spawn(
-                    self.create_dump_stream::<EntityTypeWithMetadata>()
-                        .try_flatten_stream()
-                        .and_then(move |record| async move {
-                            Ok(SnapshotEntry::EntityType(Box::new(EntityTypeSnapshotRecord {
-                            schema: record.schema,
-                            relations: authorization_api
-                                .read_relations::<(EntityTypeId, EntityTypeRelationAndSubject)>(
-                                    RelationshipFilter::from_resource(EntityTypeId::from_url(
-                                        &VersionedUrl::from(record.metadata.record_id.clone()),
-                                    )),
-                                    Consistency::FullyConsistent,
-                                )
-                                .await
-                                .change_context(SnapshotDumpError::Query)?
-                                .map_ok(|(_, relation)| relation)
-                                .try_collect()
-                                .await
-                                .change_context(SnapshotDumpError::Query)?,
-                            metadata: record.metadata,
-                        })))
-                        })
-                        .forward(snapshot_record_tx.clone()),
-                );
+                        self.create_dump_stream::<EntityTypeWithMetadata>()
+                            .try_flatten_stream()
+                            .and_then(move |record| async move {
+                                Ok(SnapshotEntry::EntityType(Box::new(EntityTypeSnapshotRecord {
+                                    schema: record.schema,
+                                    relations: authorization_api
+                                        .read_relations::<(EntityTypeId, EntityTypeRelationAndSubject)>(
+                                            RelationshipFilter::from_resource(EntityTypeId::from_url(
+                                                &VersionedUrl::from(record.metadata.record_id.clone()),
+                                            )),
+                                            Consistency::FullyConsistent,
+                                        )
+                                        .await
+                                        .change_context(SnapshotDumpError::Query)?
+                                        .map_ok(|(_, relation)| relation)
+                                        .try_collect()
+                                        .await
+                                        .change_context(SnapshotDumpError::Query)?,
+                                    metadata: record.metadata,
+                                })))
+                            })
+                            .forward(snapshot_record_tx.clone()),
+                    );
+            }
 
+            if settings.dump_entities {
                 scope.spawn(
                     self.create_dump_stream::<Entity>()
                         .try_flatten_stream()
@@ -647,31 +677,41 @@ impl PostgresStorePool {
                         })
                         .forward(snapshot_record_tx.clone()),
                 );
+            }
 
+            if settings.dump_data_types && settings.dump_embeddings {
                 scope.spawn(
                     self.create_data_type_embedding_stream()
                         .try_flatten_stream()
                         .forward(snapshot_record_tx.clone()),
                 );
+            }
 
+            if settings.dump_property_types && settings.dump_embeddings {
                 scope.spawn(
                     self.create_property_type_embedding_stream()
                         .try_flatten_stream()
                         .forward(snapshot_record_tx.clone()),
                 );
+            }
 
+            if settings.dump_entity_types && settings.dump_embeddings {
                 scope.spawn(
                     self.create_entity_type_embedding_stream()
                         .try_flatten_stream()
                         .forward(snapshot_record_tx.clone()),
                 );
+            }
 
+            if settings.dump_entities && settings.dump_embeddings {
                 scope.spawn(
                     self.create_entity_embedding_stream()
                         .try_flatten_stream()
                         .forward(snapshot_record_tx.clone()),
                 );
+            }
 
+            if settings.dump_entities && settings.dump_relations {
                 scope.spawn(
                     authorization_api
                         .read_relations::<(EntityUuid, EntityRelationAndSubject)>(
@@ -690,7 +730,8 @@ impl PostgresStorePool {
                         })
                         .forward(snapshot_record_tx),
                 );
-            });
+            }
+        });
 
         for result in results {
             result.change_context(SnapshotDumpError::Read)??;
