@@ -4,6 +4,8 @@ import { ApolloError } from "apollo-server-errors";
 import { ForbiddenError } from "apollo-server-express";
 import Long from "long";
 
+import { temporalNamespace } from "@local/hash-backend-utils/temporal";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { checkEntityPermission } from "../../../graph/knowledge/primitive/entity";
 import type { MutationResetFlowArgs, ResolverFn } from "../../api-types.gen";
 import type { LoggedInGraphQLContext } from "../../context";
@@ -42,9 +44,11 @@ export const resetFlow: ResolverFn<
   }
 
   await temporal.workflowService.resetWorkflowExecution({
+    namespace: temporalNamespace,
     workflowExecution: {
       workflowId: flowUuid,
     },
+    requestId: generateUuid(),
     workflowTaskFinishEventId: Long.fromInt(checkpointId),
   });
 

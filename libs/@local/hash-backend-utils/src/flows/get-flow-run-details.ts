@@ -221,25 +221,6 @@ const getFlowRunDetailedFields = async ({
 
       if (event.workflowExecutionSignaledEventAttributes?.signalName) {
         switch (signalName as FlowSignalType) {
-          case "checkpoint": {
-            const time = eventTimeIsoStringFromEvent(event);
-            if (!time) {
-              throw new Error(
-                `No eventTime on checkpoint signal event ${event.eventId?.toInt()}`,
-              );
-            }
-
-            if (!event.eventId) {
-              throw new Error("No eventId on checkpoint signal event");
-            }
-
-            checkpoints.push({
-              description: "Testing",
-              checkpointId: event.eventId.toInt(),
-              recordedAt: time,
-            });
-            continue;
-          }
           case "logProgress": {
             progressSignalEvents.push(event);
             continue;
@@ -515,6 +496,21 @@ const getFlowRunDetailedFields = async ({
       }
 
       activityRecord.logs.push(log);
+
+      if (log.type === "Checkpoint") {
+        const checkpointId = progressSignalEvent.eventId?.toInt();
+
+        if (!checkpointId) {
+          throw new Error(
+            `No eventId on signal event: ${JSON.stringify(progressSignalEvent)}`,
+          );
+        }
+
+        checkpoints.push({
+          ...log,
+          checkpointId: checkpointId + 2,
+        });
+      }
     }
   }
 

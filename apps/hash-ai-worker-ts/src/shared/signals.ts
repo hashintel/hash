@@ -5,7 +5,6 @@
 
 import type {
   ExternalInputRequestSignal,
-  FlowCheckpointSignal,
   FlowSignalType,
   ProgressLogSignal,
 } from "@local/hash-isomorphic-utils/flows/types";
@@ -19,7 +18,3 @@ export const logProgressSignal = defineSignal<[ProgressLogSignal]>(
 export const externalInputRequestSignal = defineSignal<
   [ExternalInputRequestSignal]
 >("externalInputRequest" satisfies FlowSignalType);
-
-export const checkpointSignal = defineSignal<[FlowCheckpointSignal]>(
-  "checkpoint" satisfies FlowSignalType,
-);

@@ -91,6 +91,7 @@ import {
   unarchivePropertyTypeResolver,
   updatePropertyTypeResolver,
 } from "./ontology/property-type";
+import { resetFlow } from "./flows/reset-flow";
 
 export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
   Query: Required<QueryResolvers>;
@@ -193,6 +194,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
       removeEntityViewerResolver,
     ),
 
+    resetFlow: loggedInAndSignedUpMiddleware(resetFlow),
     startFlow: loggedInAndSignedUpMiddleware(startFlow),
     submitExternalInputResponse: loggedInAndSignedUpMiddleware(
       submitExternalInputResponse,

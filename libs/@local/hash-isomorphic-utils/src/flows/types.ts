@@ -362,16 +362,6 @@ export type FlowDataSources = {
   internetAccess: FlowInternetAccessSettings;
 };
 
-export type FlowCheckpointSignal = {
-  description?: string;
-};
-
-export type FlowCheckpoint = {
-  checkpointId: number;
-  recordedAt: string;
-  description: string;
-};
-
 export type LocalFlowRun = {
   name: string;
   flowRunId: EntityUuid;
@@ -505,10 +495,21 @@ export type ActivityFailedLog = ProgressLogBase & {
   type: "ActivityFailed";
 };
 
+export type CheckpointLog = ProgressLogBase & {
+  type: "Checkpoint";
+};
+
+export type FlowCheckpoint = CheckpointLog & {
+  checkpointId: number;
+};
+
 export type StepProgressLog =
+  | ActivityFailedLog
+  | CheckpointLog
   | ClosedCoordinatorLog
   | ClosedLinkExplorerTaskLog
   | ClosedSubTaskLog
+  | CreatedPlanLog
   | InferredClaimsFromTextLog
   | PersistedEntityLog
   | ProposedEntityLog
@@ -517,14 +518,11 @@ export type StepProgressLog =
   | StartedLinkExplorerTaskLog
   | StartedSubTaskLog
   | ViewedFile
-  | VisitedWebPageLog
-  | CreatedPlanLog
-  | ActivityFailedLog;
+  | VisitedWebPageLog;
 
 const flowSignalTypes = [
   "externalInputRequest",
   "externalInputResponse",
-  "checkpoint",
   "logProgress",
 ] as const;
 
