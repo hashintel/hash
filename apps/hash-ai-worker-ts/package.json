@@ -106,7 +106,7 @@
     "@types/papaparse": "5.3.14",
     "@types/sanitize-html": "2.11.0",
     "@vitest/coverage-istanbul": "2.0.5",
-    "eslint": "8.57.0",
+    "eslint": "9.8.0",
     "rimraf": "6.0.1",
     "vite-tsconfig-paths": "4.3.2",
     "vitest": "2.0.5"
