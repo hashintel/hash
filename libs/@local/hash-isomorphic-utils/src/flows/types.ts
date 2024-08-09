@@ -496,11 +496,9 @@ export type ActivityFailedLog = ProgressLogBase & {
 };
 
 export type CheckpointLog = ProgressLogBase & {
-  type: "Checkpoint";
-};
-
-export type FlowCheckpoint = CheckpointLog & {
-  checkpointId: number;
+  type: "ResearchActionCheckpoint";
+  checkpointId: string;
+  eventId: number;
 };
 
 export type StepProgressLog =
@@ -524,6 +522,7 @@ const flowSignalTypes = [
   "externalInputRequest",
   "externalInputResponse",
   "logProgress",
+  "researchActionCheckpoint",
 ] as const;
 
 export type FlowSignalType = (typeof flowSignalTypes)[number];
@@ -599,7 +598,6 @@ export type FlowUsageRecordCustomMetadata = {
 };
 
 export const detailedFlowFields = [
-  "checkpoints",
   "failureMessage",
   "inputs",
   "inputRequests",

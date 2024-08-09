@@ -50,7 +50,6 @@ export const flowTypedef = gql`
   scalar ArbitraryJsonData
   scalar EntityUuid
   scalar ExternalInputRequest
-  scalar FlowCheckpoint
   scalar FlowInputs
   scalar StepInput
   scalar StepRunOutput
@@ -164,10 +163,6 @@ export const flowTypedef = gql`
     """
     failureMessage: String
     """
-    Checkpoints during the flow, which can be used to reset it to a specific point in time
-    """
-    checkpoints: [FlowCheckpoint!]!
-    """
     Inputs to the flow run
     """
     inputs: FlowInputs!
@@ -222,7 +217,7 @@ export const flowTypedef = gql`
     This does _NOT_ roll back any database mutations made as part of the flow so far.
     Any usage incurred to date will still be recorded.
     """
-    resetFlow(flowUuid: ID!, checkpointId: Int!): Boolean!
+    resetFlow(flowUuid: ID!, checkpointId: ID!, eventId: Int!): Boolean!
 
     """
     Submit a response to a request from a flow step for external input

@@ -44,7 +44,7 @@ import { handleWebSearchToolCall } from "./research-entities-action/handle-web-s
 import { linkFollowerAgent } from "./research-entities-action/link-follower-agent.js";
 import {
   createCheckpoint,
-  getLastCheckpoint,
+  getCheckpoint,
 } from "./research-entities-action/state-checkpoint.js";
 import { runSubTaskAgent } from "./research-entities-action/sub-task-agent.js";
 import type { CompletedCoordinatorToolCall } from "./research-entities-action/types.js";
@@ -326,7 +326,7 @@ export const researchEntitiesAction: FlowActionActivity<{
       };
     });
 
-  const stateBeforeRetry = getLastCheckpoint();
+  const stateBeforeRetry = getCheckpoint();
 
   if (stateBeforeRetry?.state) {
     state = stateBeforeRetry.state;

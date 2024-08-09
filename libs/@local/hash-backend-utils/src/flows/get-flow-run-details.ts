@@ -1,11 +1,11 @@
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type {
+  CheckpointLog,
   DetailedFlowField,
   ExternalInputRequest,
   ExternalInputRequestSignal,
   ExternalInputResponseSignal,
-  FlowCheckpoint,
   FlowInputs,
   FlowSignalType,
   ProgressLogSignal,
@@ -195,7 +195,7 @@ const getFlowRunDetailedFields = async ({
    */
   const progressSignalEvents: IHistoryEvent[] = [];
 
-  const checkpoints: FlowCheckpoint[] = [];
+  const checkpointLogs: CheckpointLog[] = [];
 
   const inputRequestsById: Record<string, ExternalInputRequest> = {};
 
@@ -205,6 +205,8 @@ const getFlowRunDetailedFields = async ({
     "TIMED_OUT",
     "FAILED",
   ].includes(workflow.status.name);
+
+  let cancelEventTime: string | null = null;
 
   if (events.length) {
     /*
@@ -216,13 +218,71 @@ const getFlowRunDetailedFields = async ({
         throw new Error("Somehow out of bounds for events array");
       }
 
+      if (
+        event.eventType ===
+        proto.temporal.api.enums.v1.EventType.EVENT_TYPE_WORKFLOW_TASK_FAILED
+      ) {
+        if (
+          event.workflowTaskFailedEventAttributes?.cause ===
+          proto.temporal.api.enums.v1.WorkflowTaskFailedCause
+            .WORKFLOW_TASK_FAILED_CAUSE_RESET_WORKFLOW
+        ) {
+          /**
+           * The workflow was reset at this point, so we shouldn't process any events registered prior to the reset.
+           */
+          cancelEventTime = eventTimeIsoStringFromEvent(event)!;
+          continue;
+        }
+      }
+
       const signalName =
         event.workflowExecutionSignaledEventAttributes?.signalName;
 
       if (event.workflowExecutionSignaledEventAttributes?.signalName) {
+        const time = eventTimeIsoStringFromEvent(event);
+        if (!time) {
+          throw new Error(
+            `No eventTime on checkpoint signal event ${event.eventId?.toInt()}`,
+          );
+        }
+
+        if (cancelEventTime && time > cancelEventTime) {
+          /**
+           * Don't include progress logs that appeared prior to the cancellation time
+           */
+          continue;
+        }
+
         switch (signalName as FlowSignalType) {
           case "logProgress": {
             progressSignalEvents.push(event);
+            continue;
+          }
+          case "researchActionCheckpoint": {
+            if (!event.eventId) {
+              throw new Error("No eventId on checkpoint signal event");
+            }
+
+            const signalData = parseHistoryItemPayload(
+              event.workflowExecutionSignaledEventAttributes.input,
+              /**
+               * @todo sort out types
+               */
+            )?.[0] as Omit<CheckpointLog, "eventId"> | undefined;
+
+            if (!signalData) {
+              throw new Error(
+                `No signal data on researchActionCheckpoint signal event with id ${event.eventId.toInt()}`,
+              );
+            }
+
+            checkpointLogs.push({
+              checkpointId: signalData.checkpointId,
+              eventId: event.eventId.toInt() + 2,
+              recordedAt: signalData.recordedAt,
+              stepId: signalData.stepId,
+              type: "ResearchActionCheckpoint",
+            });
             continue;
           }
           case "externalInputRequest": {
@@ -445,6 +505,17 @@ const getFlowRunDetailedFields = async ({
     }
   }
 
+  for (const checkpoint of checkpointLogs) {
+    const step = stepMap[checkpoint.stepId];
+    if (!step) {
+      throw new Error(
+        `Could not find step with id ${checkpoint.stepId} for checkpoint with id ${checkpoint.checkpointId}`,
+      );
+    }
+
+    step.logs.push(checkpoint);
+  }
+
   /**
    * Assign logs to the appropriate step. The earliest logs will be at the end of the array,
    * as we walked the events from latest to earliest. We want the logs in ascending order, so go backwards again.
@@ -496,21 +567,6 @@ const getFlowRunDetailedFields = async ({
       }
 
       activityRecord.logs.push(log);
-
-      if (log.type === "Checkpoint") {
-        const checkpointId = progressSignalEvent.eventId?.toInt();
-
-        if (!checkpointId) {
-          throw new Error(
-            `No eventId on signal event: ${JSON.stringify(progressSignalEvent)}`,
-          );
-        }
-
-        checkpoints.push({
-          ...log,
-          checkpointId: checkpointId + 2,
-        });
-      }
     }
   }
 
@@ -536,7 +592,6 @@ const getFlowRunDetailedFields = async ({
   }
 
   return {
-    checkpoints,
     failureMessage: workflowFailureMessage,
     inputs: workflowInputs,
     outputs: workflowOutputs,

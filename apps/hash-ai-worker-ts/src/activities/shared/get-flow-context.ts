@@ -42,7 +42,7 @@ const getCache = async () => {
   return _runFlowWorkflowParamsCache;
 };
 
-const getTemporalClient = async () => {
+export const getTemporalClient = async () => {
   _temporalClient = _temporalClient ?? (await createTemporalClient());
   return _temporalClient;
 };

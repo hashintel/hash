@@ -168,7 +168,7 @@ const getRawTextFromLog = (log: LocalProgressLog): string => {
     case "ActivityFailed": {
       return `${activityFailedPrefix}${log.message}`;
     }
-    case "Checkpoint": {
+    case "ResearchActionCheckpoint": {
       return checkpointPrefix;
     }
   }
@@ -207,24 +207,14 @@ const Checkpoint = ({ log }: { log: CheckpointLog }) => {
     );
   }
 
-  const checkpointId = selectedFlowRun.checkpoints.find(
-    /** @todo there is a small chance this is the wrong checkpoint – generate a uuid for matching instead */
-    (checkpoint) => checkpoint.recordedAt === log.recordedAt,
-  )?.checkpointId;
-
-  if (!checkpointId) {
-    throw new Error(
-      `Could not find checkpoint matching checkpoint log recorded at ${log.recordedAt}`,
-    );
-  }
-
   const triggerReset = () => {
     setIsResetting(true);
 
     void resetFlow({
       variables: {
         flowUuid: selectedFlowRun.flowRunId,
-        checkpointId,
+        checkpointId: log.checkpointId,
+        eventId: log.eventId,
       },
     }).finally(() => setIsResetting(false));
   };
@@ -409,7 +399,7 @@ const LogDetail = ({
         </Stack>
       );
     }
-    case "Checkpoint": {
+    case "ResearchActionCheckpoint": {
       return <Checkpoint log={log} />;
     }
   }
