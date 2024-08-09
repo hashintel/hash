@@ -133,7 +133,7 @@ const hydraProxy = proxy(hydraPublicUrl ?? "", {
 const main = async () => {
   logger.info("Type System initialized");
 
-  // registerOpenTelemetryTracing(process.env.HASH_OTLP_ENDPOINT ?? null);
+  registerOpenTelemetryTracing(process.env.HASH_OTLP_ENDPOINT ?? null);
 
   if (process.env.HASH_TELEMETRY_ENABLED === "true") {
     logger.info("Starting [Snowplow] telemetry");
