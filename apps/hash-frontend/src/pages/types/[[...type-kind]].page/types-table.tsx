@@ -127,13 +127,17 @@ export const TypesTable: FunctionComponent<{
         title: "Web",
         width: 280,
       },
-      {
-        id: "archived",
-        title: "Archived",
-        width: 200,
-      },
+      ...(filterState.includeArchived
+        ? [
+            {
+              id: "archived",
+              title: "Archived",
+              width: 200,
+            } as const,
+          ]
+        : []),
     ],
-    [kind],
+    [filterState.includeArchived, kind],
   );
 
   const { users } = useUsers();
