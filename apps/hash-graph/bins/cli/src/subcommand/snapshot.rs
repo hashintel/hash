@@ -1,12 +1,12 @@
 use authorization::{
     backend::{SpiceDbOpenApi, ZanzibarBackend},
     zanzibar::ZanzibarClient,
-    AuthorizationApi,
+    AuthorizationApi, NoAuthorization,
 };
 use clap::Parser;
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, ResultExt};
 use graph::{
-    snapshot::{SnapshotEntry, SnapshotStore},
+    snapshot::{SnapshotDumpSettings, SnapshotEntry, SnapshotStore},
     store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, StorePool},
 };
 use tokio::io;
@@ -15,13 +15,53 @@ use tokio_util::codec::{FramedRead, FramedWrite};
 
 use crate::error::GraphError;
 
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "This is a configuration struct"
+)]
 #[derive(Debug, Parser)]
-pub struct SnapshotDumpArgs;
+pub struct SnapshotDumpArgs {
+    /// Whether to skip dumping the webs.
+    #[clap(long)]
+    pub no_webs: bool,
+
+    /// Whether to skip dumping the accounts.
+    #[clap(long)]
+    pub no_accounts: bool,
+
+    /// Whether to skip dumping the account groups.
+    #[clap(long)]
+    pub no_account_groups: bool,
+
+    /// Whether to skip dumping the entities.
+    #[clap(long)]
+    pub no_entities: bool,
+
+    /// Whether to skip dumping the entity types.
+    #[clap(long)]
+    pub no_entity_types: bool,
+
+    /// Whether to skip dumping the property types.
+    #[clap(long)]
+    pub no_property_types: bool,
+
+    /// Whether to skip dumping the data types.
+    #[clap(long)]
+    pub no_data_types: bool,
+
+    /// Whether to skip dumping the embeddings.
+    #[clap(long)]
+    pub no_embeddings: bool,
+
+    /// Whether to skip dumping the relations.
+    #[clap(long)]
+    pub no_relations: bool,
+}
 
 #[derive(Debug, Parser)]
 pub struct SnapshotRestoreArgs {
     /// Whether to skip the validation checks.
-    #[clap(long)]
+    #[clap(long, global = true)]
     pub skip_validation: bool,
 }
 
@@ -43,6 +83,15 @@ pub struct SnapshotArgs {
     #[clap(flatten)]
     pub pool_config: DatabasePoolConfig,
 
+    /// Whether to skip the authorization checks.
+    // Cannot mark as conflict as typically the SpiceDB-parameters are set through environment
+    // variables:
+    // #[clap(long, conflicts_with_all = [
+    //     "spicedb_host", "spicedb_http_port", "spicedb_grpc_preshared_key"
+    // ])]
+    #[clap(long)]
+    pub skip_authorization: bool,
+
     /// The host the Spice DB server is listening at.
     #[clap(long, env = "HASH_SPICEDB_HOST")]
     pub spicedb_host: String,
@@ -56,7 +105,7 @@ pub struct SnapshotArgs {
     pub spicedb_grpc_preshared_key: Option<String>,
 }
 
-pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
+pub async fn snapshot(args: SnapshotArgs) -> Result<(), Report<GraphError>> {
     SnapshotEntry::install_error_stack_hook();
 
     let pool = PostgresStorePool::new(&args.db_info, &args.pool_config, NoTls)
@@ -67,55 +116,82 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), GraphError> {
             report
         })?;
 
-    let mut spicedb_client = SpiceDbOpenApi::new(
-        format!("{}:{}", args.spicedb_host, args.spicedb_http_port),
-        args.spicedb_grpc_preshared_key.as_deref(),
-    )
-    .change_context(GraphError)?;
-    spicedb_client
-        .import_schema(include_str!(
-            "../../../../../../libs/@local/hash-authorization/schemas/v1__initial_schema.zed"
-        ))
-        .await
+    let authorization = if args.skip_authorization {
+        None
+    } else {
+        let mut spicedb_client = SpiceDbOpenApi::new(
+            format!("{}:{}", args.spicedb_host, args.spicedb_http_port),
+            args.spicedb_grpc_preshared_key.as_deref(),
+        )
         .change_context(GraphError)?;
+        spicedb_client
+            .import_schema(include_str!(
+                "../../../../../../libs/@local/hash-authorization/schemas/v1__initial_schema.zed"
+            ))
+            .await
+            .change_context(GraphError)?;
 
-    let mut zanzibar_client = ZanzibarClient::new(spicedb_client);
-    zanzibar_client.seed().await.change_context(GraphError)?;
+        let mut zanzibar_client = ZanzibarClient::new(spicedb_client);
+        zanzibar_client.seed().await.change_context(GraphError)?;
+        Some(zanzibar_client)
+    };
 
     match args.command {
-        SnapshotCommand::Dump(_) => {
-            pool.dump_snapshot(
-                FramedWrite::new(
-                    io::BufWriter::new(io::stdout()),
-                    codec::bytes::JsonLinesEncoder::default(),
-                ),
-                &zanzibar_client,
-                10_000,
-            )
+        SnapshotCommand::Dump(args) => {
+            let write = FramedWrite::new(
+                io::BufWriter::new(io::stdout()),
+                codec::bytes::JsonLinesEncoder::default(),
+            );
+            let settings = SnapshotDumpSettings {
+                chunk_size: 10_000,
+                dump_webs: !args.no_webs,
+                dump_accounts: !args.no_accounts,
+                dump_account_groups: !args.no_account_groups,
+                dump_entities: !args.no_entities,
+                dump_entity_types: !args.no_entity_types,
+                dump_property_types: !args.no_property_types,
+                dump_data_types: !args.no_data_types,
+                dump_embeddings: !args.no_embeddings,
+                dump_relations: !args.no_relations,
+            };
+
+            if let Some(authorization) = authorization {
+                pool.dump_snapshot(write, &authorization, settings)
+            } else {
+                pool.dump_snapshot(write, &NoAuthorization, settings)
+            }
             .change_context(GraphError)
             .attach_printable("Failed to produce snapshot dump")?;
 
             tracing::info!("Snapshot dumped successfully");
         }
         SnapshotCommand::Restore(args) => {
-            SnapshotStore::new(
-                pool.acquire(zanzibar_client, None)
+            let read = FramedRead::new(
+                io::BufReader::new(io::stdin()),
+                codec::bytes::JsonLinesDecoder::default(),
+            );
+            if let Some(authorization) = authorization {
+                SnapshotStore::new(
+                    pool.acquire(authorization, None)
+                        .await
+                        .change_context(GraphError)
+                        .map_err(|report| {
+                            tracing::error!(error = ?report, "Failed to acquire database connection");
+                            report
+                        })?,
+                )
+                    .restore_snapshot(read, 10_000, !args.skip_validation)
                     .await
+            } else {
+                SnapshotStore::new(pool.acquire(NoAuthorization, None).await
                     .change_context(GraphError)
                     .map_err(|report| {
                         tracing::error!(error = ?report, "Failed to acquire database connection");
                         report
-                    })?,
-            )
-            .restore_snapshot(
-                FramedRead::new(
-                    io::BufReader::new(io::stdin()),
-                    codec::bytes::JsonLinesDecoder::default(),
-                ),
-                10_000,
-                !args.skip_validation,
-            )
-            .await
+                    })?)
+                    .restore_snapshot(read, 10_000, !args.skip_validation)
+                    .await
+            }
             .change_context(GraphError)
             .attach_printable("Failed to restore snapshot")?;
 
