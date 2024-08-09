@@ -92,6 +92,7 @@ impl Label<SpanId> {
 impl<S> Label<SpanNode<S>> {
     pub(crate) fn ariadne(
         &self,
+        enable_color: bool,
         generator: &mut ColorGenerator,
         transform: &mut impl TransformSpan<S>,
     ) -> ariadne::Label<AbsoluteDiagnosticSpan> {
@@ -101,7 +102,10 @@ impl<S> Label<SpanNode<S>> {
         let color = self
             .color
             .map_or_else(|| generator.next(), anstyle_yansi::to_yansi_color);
-        label = label.with_color(color);
+
+        if enable_color {
+            label = label.with_color(color);
+        }
 
         if let Some(order) = self.order {
             label = label.with_order(order);
