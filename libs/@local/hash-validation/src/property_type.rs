@@ -2,7 +2,8 @@ use core::borrow::Borrow;
 use std::collections::HashMap;
 
 use error_stack::{bail, Report, ResultExt};
-use graph_types::knowledge::PropertyWithMetadata;
+use graph_types::knowledge::{PropertyWithMetadata, ValueMetadata, ValueWithMetadata};
+use serde_json::{json, Value as JsonValue};
 use thiserror::Error;
 use type_system::{
     schema::{
@@ -337,18 +338,52 @@ where
                         .change_context(PropertyValidationError::DataTypeValidation {
                             id: reference.url.clone(),
                         }),
-                    PropertyWithMetadata::Array { .. } => {
-                        Err(Report::new(PropertyValidationError::ExpectedValue {
-                            actual: JsonSchemaValueType::Array,
-                            expected: reference.url.clone(),
-                        }))
-                    }
-                    PropertyWithMetadata::Object { .. } => {
-                        Err(Report::new(PropertyValidationError::ExpectedValue {
-                            actual: JsonSchemaValueType::Object,
-                            expected: reference.url.clone(),
-                        }))
-                    }
+                    PropertyWithMetadata::Array { value, metadata } => reference
+                        .validate_value(
+                            &ValueWithMetadata {
+                                value: JsonValue::Array(
+                                    value
+                                        .iter()
+                                        .map(|value| json!(value.clone().into_parts().0))
+                                        .collect(),
+                                ),
+                                metadata: ValueMetadata {
+                                    provenance: metadata.provenance.clone(),
+                                    confidence: metadata.confidence,
+                                    data_type_id: None,
+                                },
+                            },
+                            components,
+                            provider,
+                        )
+                        .await
+                        .change_context(PropertyValidationError::DataTypeValidation {
+                            id: reference.url.clone(),
+                        }),
+                    PropertyWithMetadata::Object { value, metadata } => reference
+                        .validate_value(
+                            &ValueWithMetadata {
+                                value: JsonValue::Object(
+                                    value
+                                        .iter()
+                                        .map(|(key, value)| {
+                                            (key.to_string(), json!(value.clone().into_parts().0))
+                                        })
+                                        .collect(),
+                                ),
+                                metadata: ValueMetadata {
+                                    provenance: metadata.provenance.clone(),
+                                    confidence: metadata.confidence,
+                                    data_type_id: None,
+                                },
+                            },
+                            components,
+                            provider,
+                        )
+                        .await
+                        .change_context(PropertyValidationError::DataTypeValidation {
+                            id: reference.url.clone(),
+                        }),
                 },
                 Self::ArrayOfPropertyValues(schema) => match value {
                     PropertyWithMetadata::Value { .. } => {
