@@ -1,3 +1,5 @@
+use alloc::sync::Arc;
+
 use hql_cst::arena::Arena;
 use hql_diagnostics::Diagnostic;
 use hql_span::{storage::SpanStorage, SpanId};
@@ -12,7 +14,7 @@ pub(crate) struct TokenStream<'arena, 'source> {
     pub arena: &'arena Arena,
     pub lexer: Lexer<'source>,
 
-    pub spans: SpanStorage<Span>,
+    pub spans: Arc<SpanStorage<Span>>,
     pub stack: Option<Vec<jsonptr::Token<'static>>>,
 }
 

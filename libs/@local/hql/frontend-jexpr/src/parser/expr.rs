@@ -189,6 +189,7 @@ fn parse_string<'arena, 'source>(
 #[cfg(test)]
 mod test {
     #![expect(clippy::string_lit_as_bytes, reason = "macro code")]
+    use alloc::sync::Arc;
     use std::assert_matches::assert_matches;
 
     use hql_cst::arena::Arena;
@@ -207,14 +208,14 @@ mod test {
     macro_rules! assert_expr {
         ($expr:expr,Err(_)) => {{
             let arena = Arena::new();
-            let spans = SpanStorage::new();
-            let lexer = Lexer::new($expr.as_bytes(), spans.clone());
+            let spans = Arc::new(SpanStorage::new());
+            let lexer = Lexer::new($expr.as_bytes(), Arc::clone(&spans));
 
             let diagnostic = parse_expr(
                 &mut TokenStream {
                     arena: &arena,
                     lexer,
-                    spans: spans.clone(),
+                    spans: Arc::clone(&spans),
                     stack: Some(Vec::new()),
                 },
                 None,
@@ -246,8 +247,8 @@ mod test {
 
         ($expr:expr, $pattern:pat) => {{
             let arena = Arena::new();
-            let spans = SpanStorage::new();
-            let lexer = Lexer::new($expr.as_bytes(), spans.clone());
+            let spans = Arc::new(SpanStorage::new());
+            let lexer = Lexer::new($expr.as_bytes(), Arc::clone(&spans));
 
             let expr = parse_expr(
                 &mut TokenStream {

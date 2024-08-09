@@ -1,5 +1,7 @@
 #![feature(assert_matches, new_range_api, box_into_boxed_slice)]
 
+use alloc::sync::Arc;
+
 use hql_cst::{arena::Arena, expr::Expr, Program};
 use hql_diagnostics::Diagnostic;
 use hql_span::{storage::SpanStorage, SpanId};
@@ -18,12 +20,15 @@ pub mod span;
 
 pub struct Parser<'arena> {
     arena: &'arena Arena,
-    spans: SpanStorage<Span>,
+    spans: Arc<SpanStorage<Span>>,
 }
 
 impl<'arena> Parser<'arena> {
-    pub const fn new(arena: &'arena Arena, spans: SpanStorage<Span>) -> Self {
-        Self { arena, spans }
+    pub fn new(arena: &'arena Arena, spans: impl Into<Arc<SpanStorage<Span>>>) -> Self {
+        Self {
+            arena,
+            spans: spans.into(),
+        }
     }
 
     /// Parse an expression from the given source.
@@ -35,11 +40,11 @@ impl<'arena> Parser<'arena> {
         &self,
         source: &'source [u8],
     ) -> Result<Expr<'arena, 'source>, Diagnostic<'static, SpanId>> {
-        let lexer = lexer::Lexer::new(source, self.spans.clone());
+        let lexer = lexer::Lexer::new(source, Arc::clone(&self.spans));
         let mut stream = TokenStream {
             arena: self.arena,
             lexer,
-            spans: self.spans.clone(),
+            spans: Arc::clone(&self.spans),
             stack: Some(Vec::new()),
         };
 
@@ -67,11 +72,11 @@ impl<'arena> Parser<'arena> {
         &self,
         source: &'source [u8],
     ) -> Result<Program<'arena, 'source>, Diagnostic<'static, SpanId>> {
-        let lexer = lexer::Lexer::new(source, self.spans.clone());
+        let lexer = lexer::Lexer::new(source, Arc::clone(&self.spans));
         let mut stream = TokenStream {
             arena: self.arena,
             lexer,
-            spans: self.spans.clone(),
+            spans: Arc::clone(&self.spans),
             stack: Some(Vec::new()),
         };
 

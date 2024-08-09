@@ -220,11 +220,11 @@ pub(crate) fn duplicate_key(span: SpanId, duplicate: SpanId) -> Diagnostic<'stat
 
     diagnostic
         .labels
-        .push(Label::new(span, "This is a duplicate"));
+        .push(Label::new(duplicate, "... of this key"));
 
     diagnostic
         .labels
-        .push(Label::new(duplicate, "... of this key"));
+        .push(Label::new(span, "This is a duplicate").with_order(-1));
 
     diagnostic
 }

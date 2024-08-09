@@ -1,3 +1,5 @@
+use alloc::sync::Arc;
+
 use hql_diagnostics::Diagnostic;
 use hql_span::{storage::SpanStorage, SpanId};
 use logos::SpannedIter;
@@ -22,7 +24,7 @@ pub(crate) mod token_kind;
 
 pub(crate) struct Lexer<'source> {
     inner: SpannedIter<'source, TokenKind<'source>>,
-    spans: SpanStorage<Span>,
+    spans: Arc<SpanStorage<Span>>,
 }
 
 impl<'source> Lexer<'source> {
@@ -32,7 +34,7 @@ impl<'source> Lexer<'source> {
     ///
     /// Panics if the source is larger than 4GiB.
     #[must_use]
-    pub(crate) fn new(source: &'source [u8], storage: SpanStorage<Span>) -> Self {
+    pub(crate) fn new(source: &'source [u8], storage: impl Into<Arc<SpanStorage<Span>>>) -> Self {
         assert!(
             u32::try_from(source.len()).is_ok(),
             "source is larger than 4GiB"
@@ -40,7 +42,7 @@ impl<'source> Lexer<'source> {
 
         Self {
             inner: logos::Lexer::new(source).spanned(),
-            spans: storage,
+            spans: storage.into(),
         }
     }
 

@@ -2,7 +2,7 @@ use alloc::borrow::Cow;
 
 use hql_cst::{
     arena,
-    value::{Value, ValueKind},
+    value::{Entry, Value, ValueKind},
 };
 use hql_diagnostics::Diagnostic;
 use hql_span::SpanId;
@@ -97,22 +97,28 @@ fn parse_value_object<'arena, 'source>(
     stream: &mut TokenStream<'arena, 'source>,
     token: Token<'source>,
 ) -> Result<Value<'arena, 'source>, Diagnostic<'static, SpanId>> {
-    let mut object: arena::HashMap<Cow<'source, str>, Value<'arena, 'source>> =
+    let mut object: arena::HashMap<Cow<'source, str>, Entry<'arena, 'source>> =
         stream.arena.hash_map(None);
 
     let span = parse_object(stream, token, |stream, key| {
-        if let Some(value) = object.get(&key.value) {
+        if let Some(entry) = object.get(&key.value) {
             let span = stream.insert_span(Span {
                 range: key.span,
                 pointer: stream.pointer(),
                 parent_id: None,
             });
 
-            return Err(duplicate_key(span, value.span));
+            return Err(duplicate_key(span, entry.key_span));
         }
 
+        let key_span = stream.insert_span(Span {
+            range: key.span,
+            pointer: stream.pointer(),
+            parent_id: None,
+        });
+
         let value = parse_value(stream, None)?;
-        object.insert(key.value, value);
+        object.insert(key.value, Entry { key_span, value });
         Ok(())
     })?;
 
@@ -128,14 +134,14 @@ fn parse_value_object<'arena, 'source>(
     })
 }
 
-// TODO: test duplicate key
-
 #[cfg(test)]
 mod test {
     #![expect(
         clippy::integer_division_remainder_used,
         reason = "used in test-fuzz macro"
     )]
+    use alloc::sync::Arc;
+
     use hql_cst::{
         arena::Arena,
         value::{Value, ValueKind},
@@ -175,19 +181,19 @@ mod test {
             }
             (ValueKind::Object(a), serde_json::Value::Object(b)) => a
                 .iter()
-                .all(|(k, v)| b.get(k.as_ref()).map_or(false, |b| partial_eq(v, b))),
+                .all(|(k, v)| b.get(k.as_ref()).map_or(false, |b| partial_eq(&v.value, b))),
             _ => false,
         }
     }
 
     fn parse_complete<'arena, 'source>(
         arena: &'arena Arena,
-        spans: SpanStorage<Span>,
+        spans: Arc<SpanStorage<Span>>,
         source: &'source str,
     ) -> Result<Value<'arena, 'source>, Diagnostic<'static, SpanId>> {
         let mut stream = TokenStream {
             arena,
-            lexer: Lexer::new(source.as_bytes(), spans.clone()),
+            lexer: Lexer::new(source.as_bytes(), Arc::clone(&spans)),
             spans,
             stack: Some(Vec::new()),
         };
@@ -211,7 +217,7 @@ mod test {
     fn assert_eq_serde(input: &str) {
         let input = input.trim_end(); // we ignore whitespace, serde_json does not
         let arena = Arena::new();
-        let spans = SpanStorage::new();
+        let spans = Arc::new(SpanStorage::new());
 
         let value_result = parse_complete(&arena, spans, input);
         let serde_result = serde_json::from_str::<serde_json::Value>(input);
@@ -299,9 +305,9 @@ mod test {
 
     fn expect_err(expr: &str) -> String {
         let arena = Arena::new();
-        let spans = SpanStorage::new();
+        let spans = Arc::new(SpanStorage::new());
 
-        let diagnostic = parse_complete(&arena, spans.clone(), expr)
+        let diagnostic = parse_complete(&arena, Arc::clone(&spans), expr)
             .expect_err("number should not be a valid key");
 
         let diagnostic = diagnostic
