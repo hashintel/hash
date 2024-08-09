@@ -216,6 +216,7 @@ export const EntitiesTable: FunctionComponent<{
     entityTypes,
     propertyTypes,
     subgraph,
+    hidePageArchivedColumn: !filterState.includeArchived,
     hideEntityTypeVersionColumn,
     hidePropertiesColumns,
     isViewingPages,

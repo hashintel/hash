@@ -41,6 +41,7 @@ export const useEntitiesTable = (params: {
   entityTypes?: EntityType[];
   propertyTypes?: PropertyType[];
   subgraph?: Subgraph<EntityRootType>;
+  hidePageArchivedColumn?: boolean;
   hideEntityTypeVersionColumn?: boolean;
   hidePropertiesColumns: boolean;
   isViewingPages?: boolean;
@@ -50,6 +51,7 @@ export const useEntitiesTable = (params: {
     entityTypes,
     propertyTypes,
     subgraph,
+    hidePageArchivedColumn = false,
     hideEntityTypeVersionColumn = false,
     hidePropertiesColumns,
     isViewingPages = false,
@@ -118,7 +120,7 @@ export const useEntitiesTable = (params: {
         id: "namespace",
         width: 250,
       },
-      ...(isViewingPages
+      ...(isViewingPages && !hidePageArchivedColumn
         ? [
             {
               title: "Archived",
