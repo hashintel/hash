@@ -1,12 +1,4 @@
-/* eslint-disable import/first */
-
-import * as Sentry from "@sentry/node";
-
-Sentry.init({
-  dsn: process.env.HASH_TEMPORAL_WORKER_INTEGRATION_SENTRY_DSN,
-  enabled: !!process.env.HASH_TEMPORAL_WORKER_INTEGRATION_SENTRY_DSN,
-  tracesSampleRate: 1.0,
-});
+import "./instrument";
 
 import * as http from "node:http";
 import { createRequire } from "node:module";

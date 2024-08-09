@@ -54,7 +54,7 @@
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@local/status": "0.0.0-private",
-    "@sentry/node": "7.118.0",
+    "@sentry/node": "8.23.0",
     "@temporalio/activity": "1.10.1",
     "@temporalio/common": "1.10.1",
     "@temporalio/worker": "1.10.1",

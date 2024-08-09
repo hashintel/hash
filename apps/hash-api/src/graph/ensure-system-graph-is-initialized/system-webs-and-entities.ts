@@ -14,16 +14,16 @@ import type { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontolo
 import type { SystemTypeWebShortname } from "@local/hash-isomorphic-utils/ontology-types";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 
-import { enabledIntegrations } from "../../integrations/enabled-integrations";
-import { logger } from "../../logger";
+import { enabledIntegrations } from "../../integrations/enabled-integrations.js";
+import { logger } from "../../logger.js";
 import {
   createAccount,
   createAccountGroup,
   createWeb,
-} from "../account-permission-management";
-import type { ImpureGraphContext } from "../context-types";
-import { createOrg, getOrgByShortname } from "../knowledge/system-types/org";
-import { systemAccountId } from "../system-account";
+} from "../account-permission-management.js";
+import type { ImpureGraphContext } from "../context-types.js";
+import { createOrg, getOrgByShortname } from "../knowledge/system-types/org.js";
+import { systemAccountId } from "../system-account.js";
 
 export const owningWebs: Record<
   SystemTypeWebShortname,

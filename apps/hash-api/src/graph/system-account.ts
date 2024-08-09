@@ -4,9 +4,9 @@ import type { AccountId } from "@local/hash-graph-types/account";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 
-import { createAccount } from "./account-permission-management";
-import type { ImpureGraphContext } from "./context-types";
-import { getEntityTypeById } from "./ontology/primitive/entity-type";
+import { createAccount } from "./account-permission-management.js";
+import type { ImpureGraphContext } from "./context-types.js";
+import { getEntityTypeById } from "./ontology/primitive/entity-type.js";
 
 // eslint-disable-next-line import/no-mutable-exports
 export let systemAccountId: AccountId;

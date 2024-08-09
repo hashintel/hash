@@ -1,13 +1,13 @@
 import {
   shortnameIsRestricted,
   shortnameIsTaken,
-} from "../../../../graph/knowledge/system-types/account.fields";
+} from "../../../../graph/knowledge/system-types/account.fields.js";
 import type {
   QueryIsShortnameTakenArgs,
   ResolverFn,
-} from "../../../api-types.gen";
-import type { GraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
+} from "../../../api-types.gen.js";
+import type { GraphQLContext } from "../../../context.js";
+import { graphQLContextToImpureGraphContext } from "../../util.js";
 
 export const isShortnameTakenResolver: ResolverFn<
   Promise<boolean>,

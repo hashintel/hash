@@ -2,9 +2,9 @@ import { createGraphClient } from "@local/hash-backend-utils/create-graph-client
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 import { createTemporalClient } from "@local/hash-backend-utils/temporal";
 
-import type { ImpureGraphContext } from "./graph/context-types";
-import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized";
-import { logger } from "./logger";
+import type { ImpureGraphContext } from "./graph/context-types.js";
+import { ensureSystemGraphIsInitialized } from "./graph/ensure-system-graph-is-initialized.js";
+import { logger } from "./logger.js";
 
 const context: ImpureGraphContext<false, true> = {
   provenance: {

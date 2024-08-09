@@ -4,17 +4,17 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import type { ServiceFeature } from "@local/hash-isomorphic-utils/system-types/shared";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 
-import { logger } from "../../../../logger";
-import { createEntity } from "../../../knowledge/primitive/entity";
-import { getOrgByShortname } from "../../../knowledge/system-types/org";
-import type { MigrationFunction } from "../types";
+import { logger } from "../../../../logger.js";
+import { createEntity } from "../../../knowledge/primitive/entity.js";
+import { getOrgByShortname } from "../../../knowledge/system-types/org.js";
+import type { MigrationFunction } from "../types.js";
 import {
   anyUserInstantiator,
   createSystemEntityTypeIfNotExists,
   createSystemPropertyTypeIfNotExists,
   getCurrentHashDataTypeId,
   getEntitiesByType,
-} from "../util";
+} from "../util.js";
 
 const migrate: MigrationFunction = async ({
   context,

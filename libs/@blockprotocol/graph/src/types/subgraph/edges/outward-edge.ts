@@ -1,6 +1,6 @@
+import { isOntologyTypeRecordId } from "../../../types.js";
 import type { EntityId } from "../../entity.js";
 import { isEntityRecordId } from "../../entity.js";
-import { isOntologyTypeRecordId } from "../../ontology.js";
 import type {
   LimitedTemporalBound,
   TemporalBound,

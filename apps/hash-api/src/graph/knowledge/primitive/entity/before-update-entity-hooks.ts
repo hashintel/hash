@@ -1,7 +1,7 @@
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { userBeforeEntityUpdateHookCallback } from "./before-update-entity-hooks/user-before-update-entity-hook-callback";
-import type { BeforeUpdateEntityHook } from "./update-entity-hooks";
+import { userBeforeEntityUpdateHookCallback } from "./before-update-entity-hooks/user-before-update-entity-hook-callback.js";
+import type { BeforeUpdateEntityHook } from "./update-entity-hooks.js";
 
 export const beforeUpdateEntityHooks: BeforeUpdateEntityHook[] = [
   {

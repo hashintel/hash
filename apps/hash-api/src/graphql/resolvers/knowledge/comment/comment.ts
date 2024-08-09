@@ -1,14 +1,14 @@
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
-import { createComment } from "../../../../graph/knowledge/system-types/comment";
+import { createComment } from "../../../../graph/knowledge/system-types/comment.js";
 import type {
   MutationCreateCommentArgs,
   ResolverFn,
-} from "../../../api-types.gen";
-import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
-import type { UnresolvedCommentGQL } from "../graphql-mapping";
-import { mapCommentToGQL } from "../graphql-mapping";
+} from "../../../api-types.gen.js";
+import type { LoggedInGraphQLContext } from "../../../context.js";
+import { graphQLContextToImpureGraphContext } from "../../util.js";
+import type { UnresolvedCommentGQL } from "../graphql-mapping.js";
+import { mapCommentToGQL } from "../graphql-mapping.js";
 
 export const createCommentResolver: ResolverFn<
   Promise<UnresolvedCommentGQL>,

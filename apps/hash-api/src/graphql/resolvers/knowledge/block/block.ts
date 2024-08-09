@@ -1,8 +1,8 @@
-import { getBlockById } from "../../../../graph/knowledge/system-types/block";
-import type { QueryBlocksArgs, ResolverFn } from "../../../api-types.gen";
-import type { GraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
-import type { UnresolvedBlockGQL } from "../graphql-mapping";
+import { getBlockById } from "../../../../graph/knowledge/system-types/block.js";
+import type { QueryBlocksArgs, ResolverFn } from "../../../api-types.gen.js";
+import type { GraphQLContext } from "../../../context.js";
+import { graphQLContextToImpureGraphContext } from "../../util.js";
+import type { UnresolvedBlockGQL } from "../graphql-mapping.js";
 
 export const blocksResolver: ResolverFn<
   Promise<UnresolvedBlockGQL[]>,

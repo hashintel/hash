@@ -2,12 +2,12 @@ import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
 import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils/system-types/canvas";
 import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
 
-import { getBlockCollectionBlocks } from "../../../../graph/knowledge/system-types/block-collection";
-import type { ResolverFn } from "../../../api-types.gen";
-import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
-import type { UnresolvedBlockGQL } from "../graphql-mapping";
-import { mapBlockToGQL } from "../graphql-mapping";
+import { getBlockCollectionBlocks } from "../../../../graph/knowledge/system-types/block-collection.js";
+import type { ResolverFn } from "../../../api-types.gen.js";
+import type { LoggedInGraphQLContext } from "../../../context.js";
+import { graphQLContextToImpureGraphContext } from "../../util.js";
+import type { UnresolvedBlockGQL } from "../graphql-mapping.js";
+import { mapBlockToGQL } from "../graphql-mapping.js";
 
 export const blockCollectionContents: ResolverFn<
   {

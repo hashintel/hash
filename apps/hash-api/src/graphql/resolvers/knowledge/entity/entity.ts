@@ -37,12 +37,12 @@ import {
   removeEntityAdministrator,
   removeEntityEditor,
   updateEntity,
-} from "../../../../graph/knowledge/primitive/entity";
+} from "../../../../graph/knowledge/primitive/entity.js";
 import {
   createLinkEntity,
   isEntityLinkEntity,
   updateLinkEntity,
-} from "../../../../graph/knowledge/primitive/link-entity";
+} from "../../../../graph/knowledge/primitive/link-entity.js";
 import type {
   AuthorizationViewerInput,
   EntityAuthorizationRelationship,
@@ -62,15 +62,18 @@ import type {
   QueryIsEntityPublicArgs,
   QueryResolvers,
   ResolverFn,
-} from "../../../api-types.gen";
+} from "../../../api-types.gen.js";
 import {
   AccountGroupAuthorizationSubjectRelation,
   AuthorizationSubjectKind,
   EntityAuthorizationRelation,
-} from "../../../api-types.gen";
-import type { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
-import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return";
+} from "../../../api-types.gen.js";
+import type {
+  GraphQLContext,
+  LoggedInGraphQLContext,
+} from "../../../context.js";
+import { graphQLContextToImpureGraphContext } from "../../util.js";
+import { createSubgraphAndPermissionsReturn } from "../shared/create-subgraph-and-permissions-return.js";
 
 export const createEntityResolver: ResolverFn<
   Promise<Entity>,

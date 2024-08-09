@@ -4,13 +4,13 @@ import { fileURLToPath } from "node:url";
 
 import type { Logger } from "@local/hash-backend-utils/logger";
 
-import { isProdEnv } from "../../lib/env-config";
-import type { ImpureGraphContext } from "../context-types";
-import { systemAccountId } from "../system-account";
+import { isProdEnv } from "../../lib/env-config.js";
+import type { ImpureGraphContext } from "../context-types.js";
+import { systemAccountId } from "../system-account.js";
 import type {
   MigrationFunction,
   MigrationState,
-} from "./migrate-ontology-types/types";
+} from "./migrate-ontology-types/types.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);

@@ -10,7 +10,7 @@ import { Resource } from "@opentelemetry/resources";
 import { SimpleSpanProcessor } from "@opentelemetry/sdk-trace-base";
 import { NodeTracerProvider } from "@opentelemetry/sdk-trace-node";
 
-import { logger } from "../logger";
+import { logger } from "../logger.js";
 
 const traceTimeout = 5000;
 

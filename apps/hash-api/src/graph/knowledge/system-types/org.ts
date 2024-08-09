@@ -26,21 +26,21 @@ import {
 import {
   createAccountGroup,
   createWeb,
-} from "../../account-permission-management";
+} from "../../account-permission-management.js";
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
-} from "../../context-types";
+} from "../../context-types.js";
 import {
   createEntity,
   getLatestEntityById,
   updateEntity,
-} from "../primitive/entity";
+} from "../primitive/entity.js";
 import {
   shortnameIsInvalid,
   shortnameIsRestricted,
   shortnameIsTaken,
-} from "./account.fields";
+} from "./account.fields.js";
 
 export type Org = {
   accountGroupId: AccountGroupId;

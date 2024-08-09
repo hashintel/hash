@@ -3,34 +3,34 @@ import { JSONObjectResolver } from "graphql-scalars";
 import {
   addAccountGroupMember,
   removeAccountGroupMember,
-} from "../../graph/account-permission-management";
+} from "../../graph/account-permission-management.js";
 import type {
   EntityAuthorizationSubject,
   MutationResolvers,
   QueryResolvers,
   Resolvers,
-} from "../api-types.gen";
-import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
-import { embedCode } from "./embed";
-import { getFlowRunByIdResolver } from "./flows/get-flow-run-by-id";
-import { getFlowRunsResolver } from "./flows/get-flow-runs";
-import { startFlow } from "./flows/start-flow";
-import { submitExternalInputResponse } from "./flows/submit-external-input-response";
-import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
-import { syncLinearIntegrationWithWorkspacesMutation } from "./integrations/linear/sync-workspaces-with-teams";
-import { blocksResolver } from "./knowledge/block/block";
-import { blockChildEntityResolver } from "./knowledge/block/data-entity";
-import { blockCollectionContents } from "./knowledge/block-collection/block-collection-contents";
-import { updateBlockCollectionContents } from "./knowledge/block-collection/update-block-collection-contents";
-import { commentAuthorResolver } from "./knowledge/comment/author";
-import { createCommentResolver } from "./knowledge/comment/comment";
-import { deleteCommentResolver } from "./knowledge/comment/delete";
-import { commentHasTextResolver } from "./knowledge/comment/has-text";
-import { commentParentResolver } from "./knowledge/comment/parent";
-import { commentRepliesResolver } from "./knowledge/comment/replies";
-import { resolveCommentResolver } from "./knowledge/comment/resolve";
-import { commentTextUpdatedAtResolver } from "./knowledge/comment/text-updated-at";
-import { updateCommentTextResolver } from "./knowledge/comment/update-text";
+} from "../api-types.gen.js";
+import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block.js";
+import { embedCode } from "./embed/index.js";
+import { getFlowRunByIdResolver } from "./flows/get-flow-run-by-id.js";
+import { getFlowRunsResolver } from "./flows/get-flow-runs.js";
+import { startFlow } from "./flows/start-flow.js";
+import { submitExternalInputResponse } from "./flows/submit-external-input-response.js";
+import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization.js";
+import { syncLinearIntegrationWithWorkspacesMutation } from "./integrations/linear/sync-workspaces-with-teams.js";
+import { blocksResolver } from "./knowledge/block/block.js";
+import { blockChildEntityResolver } from "./knowledge/block/data-entity.js";
+import { blockCollectionContents } from "./knowledge/block-collection/block-collection-contents.js";
+import { updateBlockCollectionContents } from "./knowledge/block-collection/update-block-collection-contents.js";
+import { commentAuthorResolver } from "./knowledge/comment/author.js";
+import { createCommentResolver } from "./knowledge/comment/comment.js";
+import { deleteCommentResolver } from "./knowledge/comment/delete.js";
+import { commentHasTextResolver } from "./knowledge/comment/has-text.js";
+import { commentParentResolver } from "./knowledge/comment/parent.js";
+import { commentRepliesResolver } from "./knowledge/comment/replies.js";
+import { resolveCommentResolver } from "./knowledge/comment/resolve.js";
+import { commentTextUpdatedAtResolver } from "./knowledge/comment/text-updated-at.js";
+import { updateCommentTextResolver } from "./knowledge/comment/update-text.js";
 import {
   addEntityEditorResolver,
   addEntityOwnerResolver,
@@ -48,32 +48,32 @@ import {
   removeEntityViewerResolver,
   updateEntitiesResolver,
   updateEntityResolver,
-} from "./knowledge/entity/entity";
-import { getEntityDiffsResolver } from "./knowledge/entity/get-entity-diffs";
-import { createFileFromUrl } from "./knowledge/file/create-file-from-url";
-import { requestFileUpload } from "./knowledge/file/request-file-upload";
-import { hashInstanceSettingsResolver } from "./knowledge/hash-instance/hash-instance";
-import { createOrgResolver } from "./knowledge/org/create-org";
-import { pageContents } from "./knowledge/page";
+} from "./knowledge/entity/entity.js";
+import { getEntityDiffsResolver } from "./knowledge/entity/get-entity-diffs.js";
+import { createFileFromUrl } from "./knowledge/file/create-file-from-url.js";
+import { requestFileUpload } from "./knowledge/file/request-file-upload.js";
+import { hashInstanceSettingsResolver } from "./knowledge/hash-instance/hash-instance.js";
+import { createOrgResolver } from "./knowledge/org/create-org.js";
+import { pageContents } from "./knowledge/page/index.js";
 import {
   createPageResolver,
   pageCommentsResolver,
-} from "./knowledge/page/page";
-import { setParentPageResolver } from "./knowledge/page/set-parent-page";
-import { updatePageResolver } from "./knowledge/page/update-page";
+} from "./knowledge/page/page.js";
+import { setParentPageResolver } from "./knowledge/page/set-parent-page.js";
+import { updatePageResolver } from "./knowledge/page/update-page.js";
 import {
   canUserEdit,
   checkUserPermissionsOnEntity,
-} from "./knowledge/shared/check-permissions";
-import { getUsageRecordsResolver } from "./knowledge/user/get-usage-records";
-import { getWaitlistPositionResolver } from "./knowledge/user/get-waitlist-position";
-import { hasAccessToHashResolver } from "./knowledge/user/has-access-to-hash";
-import { isShortnameTakenResolver } from "./knowledge/user/is-shortname-taken";
-import { meResolver } from "./knowledge/user/me";
-import { submitEarlyAccessFormResolver } from "./knowledge/user/submit-early-access-form";
-import { loggedInMiddleware } from "./middlewares/logged-in";
-import { loggedInAndSignedUpMiddleware } from "./middlewares/logged-in-and-signed-up";
-import { getDataType, queryDataTypes } from "./ontology/data-type";
+} from "./knowledge/shared/check-permissions.js";
+import { getUsageRecordsResolver } from "./knowledge/user/get-usage-records.js";
+import { getWaitlistPositionResolver } from "./knowledge/user/get-waitlist-position.js";
+import { hasAccessToHashResolver } from "./knowledge/user/has-access-to-hash.js";
+import { isShortnameTakenResolver } from "./knowledge/user/is-shortname-taken.js";
+import { meResolver } from "./knowledge/user/me.js";
+import { submitEarlyAccessFormResolver } from "./knowledge/user/submit-early-access-form.js";
+import { loggedInMiddleware } from "./middlewares/logged-in.js";
+import { loggedInAndSignedUpMiddleware } from "./middlewares/logged-in-and-signed-up.js";
+import { getDataType, queryDataTypes } from "./ontology/data-type.js";
 import {
   archiveEntityTypeResolver,
   checkUserPermissionsOnEntityTypeResolver,
@@ -82,7 +82,7 @@ import {
   queryEntityTypesResolver,
   unarchiveEntityTypeResolver,
   updateEntityTypeResolver,
-} from "./ontology/entity-type";
+} from "./ontology/entity-type.js";
 import {
   archivePropertyTypeResolver,
   createPropertyTypeResolver,
@@ -90,7 +90,7 @@ import {
   queryPropertyTypesResolver,
   unarchivePropertyTypeResolver,
   updatePropertyTypeResolver,
-} from "./ontology/property-type";
+} from "./ontology/property-type.js";
 
 export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
   Query: Required<QueryResolvers>;

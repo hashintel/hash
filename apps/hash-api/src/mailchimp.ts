@@ -1,7 +1,7 @@
 import mailchimp from "@mailchimp/mailchimp_marketing";
 import md5 from "md5";
 
-import { logger } from "./logger";
+import { logger } from "./logger.js";
 
 mailchimp.setConfig({
   apiKey: process.env.MAILCHIMP_API_KEY,

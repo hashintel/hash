@@ -9,12 +9,12 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import { fullDecisionTimeAxis } from "@local/hash-isomorphic-utils/graph-queries";
 import { mapGraphApiEntityToEntity } from "@local/hash-isomorphic-utils/subgraph-mapping";
 
-import { systemAccountId } from "../graph/system-account";
-import { logger } from "../logger";
+import { systemAccountId } from "../graph/system-account.js";
+import { logger } from "../logger.js";
 import {
   processEntityChange as processLinearEntityChange,
   supportedLinearTypeIds,
-} from "./linear/sync-back";
+} from "./linear/sync-back.js";
 
 const sendEntityToRelevantProcessor = (
   entity: Entity,

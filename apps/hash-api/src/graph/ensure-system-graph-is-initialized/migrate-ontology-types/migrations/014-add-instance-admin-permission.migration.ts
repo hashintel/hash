@@ -5,8 +5,8 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import {
   getEntities,
   modifyEntityAuthorizationRelationships,
-} from "../../../knowledge/primitive/entity";
-import type { MigrationFunction } from "../types";
+} from "../../../knowledge/primitive/entity.js";
+import type { MigrationFunction } from "../types.js";
 
 const migrate: MigrationFunction = async ({
   context,

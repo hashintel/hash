@@ -22,29 +22,29 @@ import type { EntityTypeRelationAndSubject } from "@local/hash-subgraph";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 
-import type { ImpureGraphFunction } from "../graph/context-types";
+import type { ImpureGraphFunction } from "../graph/context-types.js";
 import type {
   EntityTypeDefinition,
   PropertyTypeDefinition,
-} from "../graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
+} from "../graph/ensure-system-graph-is-initialized/migrate-ontology-types/util.js";
 import {
   generateSystemEntityTypeSchema,
   generateSystemPropertyTypeSchema,
   generateSystemTypeBaseUrl,
-} from "../graph/ensure-system-graph-is-initialized/migrate-ontology-types/util";
+} from "../graph/ensure-system-graph-is-initialized/migrate-ontology-types/util.js";
 import {
   createOrg,
   getOrgByShortname,
-} from "../graph/knowledge/system-types/org";
+} from "../graph/knowledge/system-types/org.js";
 import {
   createEntityType,
   getEntityTypeById,
-} from "../graph/ontology/primitive/entity-type";
+} from "../graph/ontology/primitive/entity-type.js";
 import {
   createPropertyType,
   getPropertyTypeById,
-} from "../graph/ontology/primitive/property-type";
-import { logger } from "../logger";
+} from "../graph/ontology/primitive/property-type.js";
+import { logger } from "../logger.js";
 
 const provenance: EnforcedEntityEditionProvenance = {
   actorType: "machine",

@@ -22,7 +22,7 @@ import {
   getPropertyTypeSubgraphById,
   unarchivePropertyType,
   updatePropertyType,
-} from "../../../graph/ontology/primitive/property-type";
+} from "../../../graph/ontology/primitive/property-type.js";
 import type {
   MutationArchivePropertyTypeArgs,
   MutationCreatePropertyTypeArgs,
@@ -31,9 +31,9 @@ import type {
   QueryGetPropertyTypeArgs,
   QueryQueryPropertyTypesArgs,
   ResolverFn,
-} from "../../api-types.gen";
-import type { GraphQLContext, LoggedInGraphQLContext } from "../../context";
-import { graphQLContextToImpureGraphContext } from "../util";
+} from "../../api-types.gen.js";
+import type { GraphQLContext, LoggedInGraphQLContext } from "../../context.js";
+import { graphQLContextToImpureGraphContext } from "../util.js";
 
 export const createPropertyTypeResolver: ResolverFn<
   Promise<PropertyTypeWithMetadata>,

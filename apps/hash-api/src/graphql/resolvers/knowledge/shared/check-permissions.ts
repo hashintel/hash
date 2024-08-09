@@ -4,10 +4,13 @@ import type { UserPermissions } from "@local/hash-isomorphic-utils/types";
 import {
   checkEntityPermission,
   checkPermissionsOnEntity,
-} from "../../../../graph/knowledge/primitive/entity";
-import type { ResolverFn } from "../../../api-types.gen";
-import type { GraphQLContext, LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
+} from "../../../../graph/knowledge/primitive/entity.js";
+import type { ResolverFn } from "../../../api-types.gen.js";
+import type {
+  GraphQLContext,
+  LoggedInGraphQLContext,
+} from "../../../context.js";
+import { graphQLContextToImpureGraphContext } from "../../util.js";
 
 export const checkUserPermissionsOnEntity: ResolverFn<
   UserPermissions,

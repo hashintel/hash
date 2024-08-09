@@ -4,13 +4,13 @@ import {
   CACHED_DATA_TYPE_SCHEMAS,
   CACHED_ENTITY_TYPE_SCHEMAS,
   CACHED_PROPERTY_TYPE_SCHEMAS,
-} from "../../../../seed-data";
-import type { MigrationFunction } from "../types";
+} from "../../../../seed-data/index.js";
+import type { MigrationFunction } from "../types.js";
 import {
   loadExternalDataTypeIfNotExists,
   loadExternalEntityTypeIfNotExists,
   loadExternalPropertyTypeIfNotExists,
-} from "../util";
+} from "../util.js";
 
 const migrate: MigrationFunction = async ({
   context,

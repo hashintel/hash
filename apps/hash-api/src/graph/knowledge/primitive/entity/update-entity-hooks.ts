@@ -3,7 +3,7 @@ import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { PropertyPatchOperation } from "@local/hash-graph-types/entity";
 
-import type { ImpureGraphContext } from "../../../context-types";
+import type { ImpureGraphContext } from "../../../context-types.js";
 
 type UpdateEntityHookCallbackBaseParams = {
   context: ImpureGraphContext<false, true>;

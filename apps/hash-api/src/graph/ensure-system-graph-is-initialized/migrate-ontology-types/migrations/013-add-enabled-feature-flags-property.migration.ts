@@ -3,15 +3,15 @@ import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 
-import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
-import type { MigrationFunction } from "../types";
+import { getEntityTypeById } from "../../../ontology/primitive/entity-type.js";
+import type { MigrationFunction } from "../types.js";
 import {
   createSystemPropertyTypeIfNotExists,
   getCurrentHashSystemEntityTypeId,
   updateSystemEntityType,
   upgradeDependenciesInHashEntityType,
   upgradeEntitiesToNewTypeVersion,
-} from "../util";
+} from "../util.js";
 
 const migrate: MigrationFunction = async ({
   context,

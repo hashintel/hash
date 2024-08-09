@@ -15,7 +15,7 @@ import type { PDFDocument } from "@local/hash-isomorphic-utils/system-types/pdfd
 import type { PPTXPresentation } from "@local/hash-isomorphic-utils/system-types/pptxpresentation";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
-import type { AfterUpdateEntityHookCallback } from "../update-entity-hooks";
+import type { AfterUpdateEntityHookCallback } from "../update-entity-hooks.js";
 
 export const entityTypesToParseTextFrom: VersionedUrl[] = [
   systemEntityTypes.docxDocument.entityTypeId,

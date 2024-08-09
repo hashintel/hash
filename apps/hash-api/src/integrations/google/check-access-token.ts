@@ -4,7 +4,7 @@ import type {
 } from "@local/hash-isomorphic-utils/google-integration";
 import type { RequestHandler } from "express";
 
-import { getGoogleAccessTokenForExpressRequest } from "./shared/get-or-check-access-token";
+import { getGoogleAccessTokenForExpressRequest } from "./shared/get-or-check-access-token.js";
 
 /**
  * Check if a valid access token is present for the requested Google Account.

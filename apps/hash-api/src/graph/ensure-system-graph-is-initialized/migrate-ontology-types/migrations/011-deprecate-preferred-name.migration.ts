@@ -6,15 +6,15 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { getEntityTypeById } from "../../../ontology/primitive/entity-type";
-import type { MigrationFunction } from "../types";
+import { getEntityTypeById } from "../../../ontology/primitive/entity-type.js";
+import type { MigrationFunction } from "../types.js";
 import {
   getCurrentHashSystemEntityTypeId,
   updateSystemEntityType,
   upgradeDependenciesInHashEntityType,
   upgradeEntitiesToNewTypeVersion,
-} from "../util";
-import { upgradeEntityTypeDependencies } from "../util/upgrade-entity-type-dependencies";
+} from "../util.js";
+import { upgradeEntityTypeDependencies } from "../util/upgrade-entity-type-dependencies.js";
 
 const migrate: MigrationFunction = async ({
   context,

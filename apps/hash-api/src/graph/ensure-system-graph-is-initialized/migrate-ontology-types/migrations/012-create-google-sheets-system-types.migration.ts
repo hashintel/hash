@@ -1,8 +1,8 @@
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 
-import { enabledIntegrations } from "../../../../integrations/enabled-integrations";
-import type { MigrationFunction } from "../types";
+import { enabledIntegrations } from "../../../../integrations/enabled-integrations.js";
+import type { MigrationFunction } from "../types.js";
 import {
   anyUserInstantiator,
   createSystemDataTypeIfNotExists,
@@ -11,7 +11,7 @@ import {
   getCurrentHashLinkEntityTypeId,
   getCurrentHashPropertyTypeId,
   getCurrentHashSystemEntityTypeId,
-} from "../util";
+} from "../util.js";
 
 const migrate: MigrationFunction = async ({
   context,

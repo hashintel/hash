@@ -41,18 +41,18 @@ import {
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
-} from "../../context-types";
+} from "../../context-types.js";
 import {
   createEntity,
   getEntitySubgraph,
   updateEntity,
-} from "../primitive/entity";
-import { createLinkEntity } from "../primitive/link-entity";
-import type { Block } from "./block";
-import type { Comment } from "./comment";
-import type { Page } from "./page";
-import type { Text } from "./text";
-import type { User } from "./user";
+} from "../primitive/entity.js";
+import { createLinkEntity } from "../primitive/link-entity.js";
+import type { Block } from "./block.js";
+import type { Comment } from "./comment.js";
+import type { Page } from "./page.js";
+import type { Text } from "./text.js";
+import type { User } from "./user.js";
 
 type Notification = {
   archived?: boolean;

@@ -27,22 +27,22 @@ import {
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
-} from "../../context-types";
+} from "../../context-types.js";
 import {
   createEntity,
   getEntities,
   getEntityIncomingLinks,
   getEntityOutgoingLinks,
   getLatestEntityById,
-} from "../primitive/entity";
+} from "../primitive/entity.js";
 import {
   createLinkEntity,
   getLinkEntityLeftEntity,
   getLinkEntityRightEntity,
   isEntityLinkEntity,
-} from "../primitive/link-entity";
-import type { Comment } from "./comment";
-import { getCommentFromEntity } from "./comment";
+} from "../primitive/link-entity.js";
+import type { Comment } from "./comment.js";
+import { getCommentFromEntity } from "./comment.js";
 
 export type Block = {
   componentId: string;

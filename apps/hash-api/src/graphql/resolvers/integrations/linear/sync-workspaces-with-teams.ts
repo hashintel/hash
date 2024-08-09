@@ -15,21 +15,21 @@ import {
 import {
   getLatestEntityById,
   modifyEntityAuthorizationRelationships,
-} from "../../../../graph/knowledge/primitive/entity";
+} from "../../../../graph/knowledge/primitive/entity.js";
 import {
   getLinearIntegrationById,
   getSyncedWorkspacesForLinearIntegration,
   linkIntegrationToWorkspace,
-} from "../../../../graph/knowledge/system-types/linear-integration-entity";
-import { getLinearUserSecretByLinearOrgId } from "../../../../graph/knowledge/system-types/linear-user-secret";
-import { systemAccountId } from "../../../../graph/system-account";
-import { Linear } from "../../../../integrations/linear";
+} from "../../../../graph/knowledge/system-types/linear-integration-entity.js";
+import { getLinearUserSecretByLinearOrgId } from "../../../../graph/knowledge/system-types/linear-user-secret.js";
+import { systemAccountId } from "../../../../graph/system-account.js";
+import { Linear } from "../../../../integrations/linear.js";
 import type {
   MutationSyncLinearIntegrationWithWorkspacesArgs,
   ResolverFn,
-} from "../../../api-types.gen";
-import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
+} from "../../../api-types.gen.js";
+import type { LoggedInGraphQLContext } from "../../../context.js";
+import { graphQLContextToImpureGraphContext } from "../../util.js";
 
 export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
   Promise<Entity>,

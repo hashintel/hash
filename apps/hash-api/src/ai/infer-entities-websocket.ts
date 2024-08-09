@@ -17,12 +17,12 @@ import type { Client } from "@temporalio/client";
 import type { WebSocket } from "ws";
 import { WebSocketServer } from "ws";
 
-import { getUserAndSession } from "../auth/create-auth-handlers";
-import type { GraphApi, ImpureGraphContext } from "../graph/context-types";
-import type { User } from "../graph/knowledge/system-types/user";
-import { FlowRunStatus } from "../graphql/api-types.gen";
-import { handleCancelInferEntitiesRequest } from "./infer-entities-websocket/handle-cancel-infer-entities-request";
-import { handleInferEntitiesRequest } from "./infer-entities-websocket/handle-infer-entities-request";
+import { getUserAndSession } from "../auth/create-auth-handlers.js";
+import type { GraphApi, ImpureGraphContext } from "../graph/context-types.js";
+import type { User } from "../graph/knowledge/system-types/user.js";
+import { FlowRunStatus } from "../graphql/api-types.gen.js";
+import { handleCancelInferEntitiesRequest } from "./infer-entities-websocket/handle-cancel-infer-entities-request.js";
+import { handleInferEntitiesRequest } from "./infer-entities-websocket/handle-infer-entities-request.js";
 
 const inferEntitiesMessageHandler = async ({
   socket,

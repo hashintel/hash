@@ -19,16 +19,16 @@ import mime from "mime-types";
 import type {
   MutationCreateFileFromUrlArgs,
   MutationRequestFileUploadArgs,
-} from "../../../graphql/api-types.gen";
+} from "../../../graphql/api-types.gen.js";
 import type {
   ImpureGraphContext,
   ImpureGraphFunction,
-} from "../../context-types";
+} from "../../context-types.js";
 import {
   createEntity,
   getLatestEntityById,
   updateEntity,
-} from "../primitive/entity";
+} from "../primitive/entity.js";
 
 // 1800 seconds
 const UPLOAD_URL_EXPIRATION_SECONDS = 60 * 30;

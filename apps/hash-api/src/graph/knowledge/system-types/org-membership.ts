@@ -18,16 +18,16 @@ import {
 import type {
   ImpureGraphFunction,
   PureGraphFunction,
-} from "../../context-types";
+} from "../../context-types.js";
 import {
   createLinkEntity,
   getLinkEntityLeftEntity,
   getLinkEntityRightEntity,
-} from "../primitive/link-entity";
-import type { Org } from "./org";
-import { getOrgFromEntity } from "./org";
-import type { User } from "./user";
-import { getUserFromEntity } from "./user";
+} from "../primitive/link-entity.js";
+import type { Org } from "./org.js";
+import { getOrgFromEntity } from "./org.js";
+import type { User } from "./user.js";
+import { getUserFromEntity } from "./user.js";
 
 export type OrgMembership = {
   linkEntity: LinkEntity<IsMemberOf>;

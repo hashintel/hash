@@ -1,13 +1,13 @@
 import { UserInputError } from "apollo-server-errors";
 
-import { createFileFromUploadRequest } from "../../../../graph/knowledge/system-types/file";
+import { createFileFromUploadRequest } from "../../../../graph/knowledge/system-types/file.js";
 import type {
   MutationRequestFileUploadArgs,
   RequestFileUploadResponse,
   ResolverFn,
-} from "../../../api-types.gen";
-import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
+} from "../../../api-types.gen.js";
+import type { LoggedInGraphQLContext } from "../../../context.js";
+import { graphQLContextToImpureGraphContext } from "../../util.js";
 
 /**
  * We want to limit the size of files that can be uploaded to account

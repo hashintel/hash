@@ -5,7 +5,7 @@ import {
   linkedTreeFlatten,
   topologicalSort,
   treeFromParentReferences,
-} from "./util";
+} from "./util.js";
 
 describe("topological sort", () => {
   it("can do topological sort", () => {

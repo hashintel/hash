@@ -1,11 +1,11 @@
-import { calculateEntityDiff } from "../../../../graph/knowledge/primitive/entity";
+import { calculateEntityDiff } from "../../../../graph/knowledge/primitive/entity.js";
 import type {
   EntityDiff,
   Query,
   QueryGetEntityDiffsArgs,
   ResolverFn,
-} from "../../../api-types.gen";
-import type { GraphQLContext } from "../../../context";
+} from "../../../api-types.gen.js";
+import type { GraphQLContext } from "../../../context.js";
 
 export const getEntityDiffsResolver: ResolverFn<
   Query["getEntityDiffs"],

@@ -12,14 +12,14 @@ import type { AccountEntityId } from "@local/hash-subgraph";
 import { extractAccountId } from "@local/hash-subgraph";
 import { ForbiddenError } from "apollo-server-express";
 
-import { getEntities } from "../../../../graph/knowledge/primitive/entity";
+import { getEntities } from "../../../../graph/knowledge/primitive/entity.js";
 import type {
   Query,
   ResolverFn,
   UserUsageRecords,
-} from "../../../api-types.gen";
-import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
+} from "../../../api-types.gen.js";
+import type { LoggedInGraphQLContext } from "../../../context.js";
+import { graphQLContextToImpureGraphContext } from "../../util.js";
 
 export const getUsageRecordsResolver: ResolverFn<
   Query["getUsageRecords"],

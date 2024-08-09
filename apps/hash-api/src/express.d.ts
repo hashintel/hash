@@ -1,8 +1,8 @@
 import type { VaultClient } from "@local/hash-backend-utils/vault";
 import type { Session } from "@ory/client";
 
-import type { ImpureGraphContext } from "./graph/context-types";
-import type { User } from "./graph/knowledge/system-types/user";
+import type { ImpureGraphContext } from "./graph/context-types.js";
+import type { User } from "./graph/knowledge/system-types/user.js";
 
 declare global {
   namespace Express {

@@ -13,9 +13,9 @@ import type { Account as GoogleAccount } from "@local/hash-isomorphic-utils/syst
 import type { RequestHandler } from "express";
 import { google } from "googleapis";
 
-import { createEntity } from "../../graph/knowledge/primitive/entity";
-import { createUserSecret } from "../../graph/knowledge/system-types/user-secret";
-import { enabledIntegrations } from "../enabled-integrations";
+import { createEntity } from "../../graph/knowledge/primitive/entity.js";
+import { createUserSecret } from "../../graph/knowledge/system-types/user-secret.js";
+import { enabledIntegrations } from "../enabled-integrations.js";
 
 export const googleOAuthCallback: RequestHandler<
   Record<string, never>,

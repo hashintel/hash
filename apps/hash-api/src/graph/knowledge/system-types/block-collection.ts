@@ -15,19 +15,19 @@ import type { HasSpatiallyPositionedContent } from "@local/hash-isomorphic-utils
 import type { HasIndexedContent } from "@local/hash-isomorphic-utils/system-types/shared";
 import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
 
-import type { PositionInput } from "../../../graphql/api-types.gen";
-import type { ImpureGraphFunction } from "../../context-types";
+import type { PositionInput } from "../../../graphql/api-types.gen.js";
+import type { ImpureGraphFunction } from "../../context-types.js";
 import {
   getEntityOutgoingLinks,
   getLatestEntityById,
-} from "../primitive/entity";
+} from "../primitive/entity.js";
 import {
   createLinkEntity,
   getLinkEntityRightEntity,
   updateLinkEntity,
-} from "../primitive/link-entity";
-import type { Block } from "./block";
-import { getBlockFromEntity } from "./block";
+} from "../primitive/link-entity.js";
+import type { Block } from "./block.js";
+import { getBlockFromEntity } from "./block.js";
 
 /**
  * Get the blocks in this blockCollection.

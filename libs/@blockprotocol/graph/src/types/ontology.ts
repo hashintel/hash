@@ -1,5 +1,4 @@
 import type { BaseUrl } from "@blockprotocol/type-system/slim";
-import { validateBaseUrl } from "@blockprotocol/type-system/slim";
 
 export * from "./ontology/data-type.js";
 export * from "./ontology/entity-type.js";
@@ -17,21 +16,6 @@ export type OntologyTypeRecordId = {
   baseUrl: BaseUrl;
   version: number;
 };
-
-export const isOntologyTypeRecordId = (
-  recordId: unknown,
-): recordId is OntologyTypeRecordId => {
-  return (
-    recordId != null &&
-    typeof recordId === "object" &&
-    "baseUrl" in recordId &&
-    typeof recordId.baseUrl === "string" &&
-    validateBaseUrl(recordId.baseUrl).type === "Ok" &&
-    "version" in recordId &&
-    typeof recordId.version === "number"
-  );
-};
-
 /**
  * The second component of the [{@link BaseUrl}, RevisionId] tuple needed to identify a specific ontology type vertex
  * within a {@link Subgraph}. This should be the version number as a string.

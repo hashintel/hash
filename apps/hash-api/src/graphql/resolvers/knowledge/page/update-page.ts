@@ -1,19 +1,19 @@
 import { mergePropertiesAndMetadata } from "@local/hash-graph-sdk/entity";
 import { systemPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 
-import { updateEntity } from "../../../../graph/knowledge/primitive/entity";
+import { updateEntity } from "../../../../graph/knowledge/primitive/entity.js";
 import {
   getPageById,
   getPageFromEntity,
-} from "../../../../graph/knowledge/system-types/page";
+} from "../../../../graph/knowledge/system-types/page.js";
 import type {
   MutationUpdatePageArgs,
   ResolverFn,
-} from "../../../api-types.gen";
-import type { LoggedInGraphQLContext } from "../../../context";
-import { graphQLContextToImpureGraphContext } from "../../util";
-import type { UnresolvedPageGQL } from "../graphql-mapping";
-import { mapPageToGQL } from "../graphql-mapping";
+} from "../../../api-types.gen.js";
+import type { LoggedInGraphQLContext } from "../../../context.js";
+import { graphQLContextToImpureGraphContext } from "../../util.js";
+import type { UnresolvedPageGQL } from "../graphql-mapping.js";
+import { mapPageToGQL } from "../graphql-mapping.js";
 
 export const updatePageResolver: ResolverFn<
   Promise<UnresolvedPageGQL>,

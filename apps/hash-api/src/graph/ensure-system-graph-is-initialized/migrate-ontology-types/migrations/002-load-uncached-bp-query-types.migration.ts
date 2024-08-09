@@ -1,5 +1,5 @@
-import type { MigrationFunction } from "../types";
-import { loadExternalEntityTypeIfNotExists } from "../util";
+import type { MigrationFunction } from "../types.js";
+import { loadExternalEntityTypeIfNotExists } from "../util.js";
 
 const migrate: MigrationFunction = async ({
   context,

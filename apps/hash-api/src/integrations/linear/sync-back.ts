@@ -16,10 +16,10 @@ import {
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
 
-import type { ImpureGraphContext } from "../../graph/context-types";
-import { getLatestEntityById } from "../../graph/knowledge/primitive/entity";
-import { getLinearSecretValueByHashWorkspaceId } from "../../graph/knowledge/system-types/linear-user-secret";
-import { systemAccountId } from "../../graph/system-account";
+import type { ImpureGraphContext } from "../../graph/context-types.js";
+import { getLatestEntityById } from "../../graph/knowledge/primitive/entity.js";
+import { getLinearSecretValueByHashWorkspaceId } from "../../graph/knowledge/system-types/linear-user-secret.js";
+import { systemAccountId } from "../../graph/system-account.js";
 
 const supportedLinearEntityTypeIds = linearTypeMappings.map(
   ({ hashEntityTypeId }) => hashEntityTypeId as VersionedUrl,

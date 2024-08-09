@@ -13,7 +13,7 @@ export const initializeSentry = () =>
     enabled: !!SENTRY_DSN,
     environment: ENVIRONMENT,
     integrations: [
-      new Sentry.BrowserTracing({
+      Sentry.browserTracingIntegration({
         // Which URLs distributed tracing is enabled for
         tracePropagationTargets: ["localhost", /^https:\/\/(?:.*\.)?hash\.ai/],
       }),
@@ -22,7 +22,8 @@ export const initializeSentry = () =>
   });
 
 export const setSentryUser = (user?: LocalStorage["user"] | null) => {
-  Sentry.configureScope((scope) => {
+  {
+    const scope = Sentry.getCurrentScope();
     const sentryUser = scope.getUser();
     if (!user && sentryUser) {
       scope.setUser(null);
@@ -32,5 +33,5 @@ export const setSentryUser = (user?: LocalStorage["user"] | null) => {
         email: user.properties.email[0],
       });
     }
-  });
+  }
 };

@@ -60,16 +60,16 @@ import { ApolloError } from "apollo-server-errors";
 import type {
   EntityDefinition,
   LinkedEntityDefinition,
-} from "../../../graphql/api-types.gen";
-import { isTestEnv } from "../../../lib/env-config";
-import { linkedTreeFlatten } from "../../../util";
-import type { ImpureGraphFunction } from "../../context-types";
-import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter";
-import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
-import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks";
-import { beforeCreateEntityHooks } from "./entity/before-create-entity-hooks";
-import { beforeUpdateEntityHooks } from "./entity/before-update-entity-hooks";
-import { createLinkEntity, isEntityLinkEntity } from "./link-entity";
+} from "../../../graphql/api-types.gen.js";
+import { isTestEnv } from "../../../lib/env-config.js";
+import { linkedTreeFlatten } from "../../../util.js";
+import type { ImpureGraphFunction } from "../../context-types.js";
+import { rewriteSemanticFilter } from "../../shared/rewrite-semantic-filter.js";
+import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks.js";
+import { afterUpdateEntityHooks } from "./entity/after-update-entity-hooks.js";
+import { beforeCreateEntityHooks } from "./entity/before-create-entity-hooks.js";
+import { beforeUpdateEntityHooks } from "./entity/before-update-entity-hooks.js";
+import { createLinkEntity, isEntityLinkEntity } from "./link-entity.js";
 
 /** @todo: potentially directly export this from the subgraph package */
 export type PropertyValue = PropertyObject[BaseUrl];

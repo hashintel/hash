@@ -9,15 +9,15 @@ import {
   archiveNotification,
   createMentionNotification,
   getMentionNotification,
-} from "../../../system-types/notification";
+} from "../../../system-types/notification.js";
 import {
   getMentionedUsersInTextualContent,
   getTextFromEntity,
-} from "../../../system-types/text";
-import { getUserById } from "../../../system-types/user";
-import { checkPermissionsOnEntity } from "../../entity";
-import { getTextUpdateOccurredIn } from "../shared/mention-notification";
-import type { AfterUpdateEntityHookCallback } from "../update-entity-hooks";
+} from "../../../system-types/text.js";
+import { getUserById } from "../../../system-types/user.js";
+import { checkPermissionsOnEntity } from "../../entity.js";
+import { getTextUpdateOccurredIn } from "../shared/mention-notification.js";
+import type { AfterUpdateEntityHookCallback } from "../update-entity-hooks.js";
 
 /**
  * This after update `Text` entity hook is responsible for creating

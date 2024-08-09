@@ -1,5 +1,5 @@
-import type { MigrationFunction } from "../types";
-import { createSystemDataTypeIfNotExists } from "../util";
+import type { MigrationFunction } from "../types.js";
+import { createSystemDataTypeIfNotExists } from "../util.js";
 
 const migrate: MigrationFunction = async ({
   context,

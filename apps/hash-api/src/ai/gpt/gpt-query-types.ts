@@ -10,7 +10,7 @@ import { currentTimeInstantTemporalAxes } from "@local/hash-isomorphic-utils/gra
 import { mapGraphApiSubgraphToSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { RequestHandler } from "express";
 
-import { stringifyResults } from "./shared/stringify-results";
+import { stringifyResults } from "./shared/stringify-results.js";
 
 export type GptQueryTypesRequestBody = {
   /**
