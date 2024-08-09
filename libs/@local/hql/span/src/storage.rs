@@ -11,7 +11,6 @@ use crate::{tree::SpanNode, Span, SpanId};
 /// which is returned on insertion.
 #[derive(Debug)]
 pub struct SpanStorage<S> {
-    // ConcurrentVec is also used by salsa / nikomatsakis
     inner: Arc<ConcurrentVec<S>>,
 }
 
