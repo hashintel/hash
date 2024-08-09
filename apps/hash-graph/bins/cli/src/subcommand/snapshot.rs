@@ -63,6 +63,10 @@ pub struct SnapshotRestoreArgs {
     /// Whether to skip the validation checks.
     #[clap(long, global = true)]
     pub skip_validation: bool,
+
+    /// Whether to skip the authorization restoring.
+    #[clap(long)]
+    pub skip_authorization: bool,
 }
 
 #[derive(Debug, Parser)]
@@ -82,15 +86,6 @@ pub struct SnapshotArgs {
 
     #[clap(flatten)]
     pub pool_config: DatabasePoolConfig,
-
-    /// Whether to skip the authorization checks.
-    // Cannot mark as conflict as typically the SpiceDB-parameters are set through environment
-    // variables:
-    // #[clap(long, conflicts_with_all = [
-    //     "spicedb_host", "spicedb_http_port", "spicedb_grpc_preshared_key"
-    // ])]
-    #[clap(long)]
-    pub skip_authorization: bool,
 
     /// The host the Spice DB server is listening at.
     #[clap(long, env = "HASH_SPICEDB_HOST")]
@@ -116,7 +111,12 @@ pub async fn snapshot(args: SnapshotArgs) -> Result<(), Report<GraphError>> {
             report
         })?;
 
-    let authorization = if args.skip_authorization {
+    let skip_authorization = match &args.command {
+        SnapshotCommand::Dump(args) => args.no_relations,
+        SnapshotCommand::Restore(args) => args.skip_authorization,
+    };
+
+    let authorization = if skip_authorization {
         None
     } else {
         let mut spicedb_client = SpiceDbOpenApi::new(
