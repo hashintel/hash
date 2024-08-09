@@ -6,6 +6,13 @@ use json_number::Number;
 use crate::{arena, Spanned};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Entry<'arena, 'source> {
+    pub key_span: SpanId,
+
+    pub value: Value<'arena, 'source>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ValueKind<'arena, 'source> {
     /// Represents a JSON null value
     Null,
@@ -23,7 +30,7 @@ pub enum ValueKind<'arena, 'source> {
     Array(arena::Vec<'arena, Value<'arena, 'source>>),
 
     /// Represents a JSON object
-    Object(arena::HashMap<'arena, Cow<'source, str>, Value<'arena, 'source>>),
+    Object(arena::HashMap<'arena, Cow<'source, str>, Entry<'arena, 'source>>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
