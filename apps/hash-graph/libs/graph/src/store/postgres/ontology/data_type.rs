@@ -464,7 +464,7 @@ where
             .change_context(InsertionError)?;
 
         let data_type_validator = DataTypeValidator;
-        for (schema_metadata, data_type) in schema_metadata.into_iter().zip(&inserted_data_types) {
+        for data_type in &inserted_data_types {
             let closed_schema = data_type_validator
                 .validate(
                     ontology_type_resolver
@@ -478,11 +478,12 @@ where
                 .await
                 .change_context(InsertionError)?;
             transaction
-                .insert_data_type_with_id(
-                    OntologyId::from(DataTypeId::from_url(&schema.id)),
-                    &closed_schema,
-                    &schema_metadata,
-                )
+                .insert_data_type_with_id(DataTypeId::from_url(&schema.id), &closed_schema)
+                .await?;
+        }
+        for (schema_metadata, data_type) in schema_metadata.iter().zip(&inserted_data_types) {
+            transaction
+                .insert_data_type_references(DataTypeId::from_url(&data_type.id), schema_metadata)
                 .await?;
         }
 
@@ -772,12 +773,17 @@ where
         let (ontology_id, owned_by_id, temporal_versioning) = transaction
             .update_owned_ontology_id(&schema.id, &provenance.edition)
             .await?;
-        transaction
-            .insert_data_type_with_id(ontology_id, &closed_schema, &metadata)
-            .await
-            .change_context(UpdateError)?;
 
         let data_type_id = DataTypeId::from(ontology_id);
+
+        transaction
+            .insert_data_type_with_id(data_type_id, &closed_schema)
+            .await
+            .change_context(UpdateError)?;
+        transaction
+            .insert_data_type_references(data_type_id, &metadata)
+            .await
+            .change_context(UpdateError)?;
 
         let relationships = params
             .relationships
