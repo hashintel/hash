@@ -11,14 +11,14 @@ use crate::{tree::SpanNode, Span, SpanId};
 /// which is returned on insertion.
 #[derive(Debug)]
 pub struct SpanStorage<S> {
-    inner: Arc<ConcurrentVec<S>>,
+    inner: ConcurrentVec<S>,
 }
 
 impl<S> SpanStorage<S> {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            inner: Arc::new(ConcurrentVec::new()),
+            inner: ConcurrentVec::new(),
         }
     }
 }
@@ -86,14 +86,6 @@ where
     {
         let mut visited = Vec::new();
         self.resolve_inner(span, &mut visited)
-    }
-}
-
-impl<S> Clone for SpanStorage<S> {
-    fn clone(&self) -> Self {
-        Self {
-            inner: Arc::clone(&self.inner),
-        }
     }
 }
 
