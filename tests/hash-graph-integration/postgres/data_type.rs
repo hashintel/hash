@@ -1,26 +1,36 @@
 use core::str::FromStr;
+use std::collections::{HashMap, HashSet};
 
 use graph::{
     store::{
         error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
+        knowledge::CreateEntityParams,
         ontology::{CreateDataTypeParams, GetDataTypesParams, UpdateDataTypesParams},
         query::Filter,
-        BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore,
+        BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore, EntityStore,
     },
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
 };
 use graph_types::{
+    knowledge::{
+        entity::ProvidedEntityEditionProvenance, ObjectMetadata, PropertyProvenance,
+        PropertyWithMetadata, PropertyWithMetadataObject, ValueMetadata, ValueWithMetadata,
+    },
     ontology::{
         DataTypeId, DataTypeWithMetadata, OntologyTypeClassificationMetadata,
         ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
 };
+use serde_json::json;
 use temporal_versioning::TemporalBound;
 use time::OffsetDateTime;
-use type_system::{schema::DataType, url::VersionedUrl};
+use type_system::{
+    schema::DataType,
+    url::{BaseUrl, VersionedUrl},
+};
 
 use crate::{data_type_relationships, DatabaseTestWrapper};
 
@@ -133,8 +143,8 @@ async fn inheritance() {
                 graph_test_data::data_type::NUMBER_V1,
                 graph_test_data::data_type::METER_V1,
             ],
-            [],
-            [],
+            [graph_test_data::property_type::LENGTH_V1],
+            [graph_test_data::entity_type::LINE_V1],
         )
         .await
         .expect("could not seed database");
@@ -145,6 +155,8 @@ async fn inheritance() {
     let centimeter_dt_v2: DataType =
         serde_json::from_str(graph_test_data::data_type::CENTIMETER_V2)
             .expect("could not parse data type representation");
+    let meter_dt_v1: DataType = serde_json::from_str(graph_test_data::data_type::METER_V1)
+        .expect("could not parse data type representation");
 
     api.create_data_type(
         api.account_id,
@@ -254,6 +266,127 @@ async fn inheritance() {
     )
     .await
     .expect("could not update data type");
+
+    // No data type is provided. Validation for `length` fails as it's ambiguous, validation for
+    // `meter` passes. However, the creation fails as `length` has children and it could potentially
+    // be a child of `length`. Without a data type ID being specified we can't know which one to
+    // choose.
+    _ = api
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([VersionedUrl::from_str(
+                    "http://localhost:3000/@alice/types/entity-type/line/v/1",
+                )
+                .expect("couldn't construct Base URL")]),
+                properties: PropertyWithMetadataObject {
+                    value: HashMap::from([(
+                        BaseUrl::new(
+                            "http://localhost:3000/@alice/types/property-type/length/".to_owned(),
+                        )
+                        .expect("couldn't construct Base URL"),
+                        PropertyWithMetadata::Value(ValueWithMetadata {
+                            value: json!(5),
+                            metadata: ValueMetadata {
+                                provenance: PropertyProvenance::default(),
+                                confidence: None,
+                                data_type_id: None,
+                            },
+                        }),
+                    )]),
+                    metadata: ObjectMetadata::default(),
+                },
+                confidence: None,
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
+        .await
+        .expect_err("could create ambiguous entity");
+
+    // We specify `meter` as data type, it could be the child of `length` or `meter` but only one is
+    // allowed. This is expected to be lifted in the future.
+    _ = api
+        .create_entity(
+            api.account_id,
+            CreateEntityParams {
+                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+                entity_uuid: None,
+                decision_time: None,
+                entity_type_ids: HashSet::from([VersionedUrl::from_str(
+                    "http://localhost:3000/@alice/types/entity-type/line/v/1",
+                )
+                .expect("couldn't construct Base URL")]),
+                properties: PropertyWithMetadataObject {
+                    value: HashMap::from([(
+                        BaseUrl::new(
+                            "http://localhost:3000/@alice/types/property-type/length/".to_owned(),
+                        )
+                        .expect("couldn't construct Base URL"),
+                        PropertyWithMetadata::Value(ValueWithMetadata {
+                            value: json!(10),
+                            metadata: ValueMetadata {
+                                provenance: PropertyProvenance::default(),
+                                confidence: None,
+                                data_type_id: Some(meter_dt_v1.id.clone()),
+                            },
+                        }),
+                    )]),
+                    metadata: ObjectMetadata::default(),
+                },
+                confidence: None,
+                link_data: None,
+                draft: false,
+                relationships: [],
+                provenance: ProvidedEntityEditionProvenance::default(),
+            },
+        )
+        .await
+        .expect_err("could create ambiguous entity");
+
+    // We specify `centimeter` as data type, so the validation for `length` passes, the validation
+    // for `meter` fails, and the entity is created.
+    api.create_entity(
+        api.account_id,
+        CreateEntityParams {
+            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            entity_uuid: None,
+            decision_time: None,
+            entity_type_ids: HashSet::from([VersionedUrl::from_str(
+                "http://localhost:3000/@alice/types/entity-type/line/v/1",
+            )
+            .expect("couldn't construct Base URL")]),
+            properties: PropertyWithMetadataObject {
+                value: HashMap::from([(
+                    BaseUrl::new(
+                        "http://localhost:3000/@alice/types/property-type/length/".to_owned(),
+                    )
+                    .expect("couldn't construct Base URL"),
+                    PropertyWithMetadata::Value(ValueWithMetadata {
+                        value: json!(10),
+                        metadata: ValueMetadata {
+                            provenance: PropertyProvenance::default(),
+                            confidence: None,
+                            data_type_id: Some(centimeter_dt_v2.id.clone()),
+                        },
+                    }),
+                )]),
+                metadata: ObjectMetadata::default(),
+            },
+            confidence: None,
+            link_data: None,
+            draft: false,
+            relationships: [],
+            provenance: ProvidedEntityEditionProvenance::default(),
+        },
+    )
+    .await
+    .expect("could not create entity with child data type");
 }
 
 #[tokio::test]

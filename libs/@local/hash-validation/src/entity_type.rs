@@ -16,7 +16,7 @@ use type_system::{
 
 use crate::{
     error::{Actual, Expected},
-    EntityProvider, EntityTypeProvider, OntologyTypeProvider, Schema, Validate,
+    DataTypeProvider, EntityProvider, EntityTypeProvider, OntologyTypeProvider, Schema, Validate,
     ValidateEntityComponents,
 };
 
@@ -54,7 +54,7 @@ pub enum EntityValidationError {
 
 impl<P> Schema<PropertyWithMetadataObject, P> for ClosedEntityType
 where
-    P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
+    P: OntologyTypeProvider<PropertyType> + DataTypeProvider + Sync,
 {
     type Error = EntityValidationError;
 
@@ -81,7 +81,7 @@ where
 
 impl<P> Validate<ClosedEntityType, P> for PropertyWithMetadataObject
 where
-    P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
+    P: OntologyTypeProvider<PropertyType> + DataTypeProvider + Sync,
 {
     type Error = EntityValidationError;
 
@@ -150,7 +150,7 @@ where
     P: EntityProvider
         + EntityTypeProvider
         + OntologyTypeProvider<PropertyType>
-        + OntologyTypeProvider<DataType>
+        + DataTypeProvider
         + Sync,
 {
     type Error = EntityValidationError;

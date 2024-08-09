@@ -1,12 +1,12 @@
 use core::borrow::Borrow;
 use std::collections::HashMap;
 
-use error_stack::{bail, ensure, Report, ResultExt};
+use error_stack::{bail, Report, ResultExt};
 use graph_types::knowledge::PropertyWithMetadata;
 use thiserror::Error;
 use type_system::{
     schema::{
-        ArraySchema, DataType, JsonSchemaValueType, ObjectSchema, OneOfSchema, PropertyType,
+        ArraySchema, JsonSchemaValueType, ObjectSchema, OneOfSchema, PropertyType,
         PropertyTypeReference, PropertyValues, ValueOrArray,
     },
     url::{BaseUrl, VersionedUrl},
@@ -14,7 +14,7 @@ use type_system::{
 
 use crate::{
     error::{Actual, Expected},
-    OntologyTypeProvider, Schema, ValidateEntityComponents,
+    DataTypeProvider, DataValidationError, OntologyTypeProvider, Schema, ValidateEntityComponents,
 };
 
 macro_rules! extend_report {
@@ -66,21 +66,13 @@ pub enum PropertyValidationError {
         actual: JsonSchemaValueType,
         expected: VersionedUrl,
     },
-    #[error(
-        "The provided data type is not allowed on the property, expected `{expected}`, got \
-         `{actual}`"
-    )]
-    InvalidDataType {
-        actual: VersionedUrl,
-        expected: VersionedUrl,
-    },
     #[error("The property provided is ambiguous")]
     AmbiguousProperty { actual: PropertyWithMetadata },
 }
 
 impl<P> Schema<PropertyWithMetadata, P> for PropertyType
 where
-    P: OntologyTypeProvider<Self> + OntologyTypeProvider<DataType> + Sync,
+    P: OntologyTypeProvider<Self> + DataTypeProvider + Sync,
 {
     type Error = PropertyValidationError;
 
@@ -105,7 +97,7 @@ where
 
 impl<P> Schema<PropertyWithMetadata, P> for PropertyTypeReference
 where
-    P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
+    P: OntologyTypeProvider<PropertyType> + DataTypeProvider + Sync,
 {
     type Error = PropertyValidationError;
 
@@ -183,7 +175,7 @@ where
 
 impl<P> Schema<PropertyWithMetadata, P> for OneOfSchema<PropertyValues>
 where
-    P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
+    P: OntologyTypeProvider<PropertyType> + DataTypeProvider + Sync,
 {
     type Error = PropertyValidationError;
 
@@ -196,26 +188,47 @@ where
         let mut status: Result<(), Report<Self::Error>> = Ok(());
 
         let mut passed = 0;
+        let mut candidates = 0;
         for schema in &self.possibilities {
             if let Err(error) = schema.validate_value(value, components, provider).await {
+                // If a data type is ambiguous because of a missing data type ID in the metadata we
+                // cannot validate it. We must not treat this as a failed validation, because the
+                // data type might be a child of the expected data type, which we cannot know
+                // without the data type ID.
+                // This is only interesting if there are two data types possible, one is a match
+                // and one is ambiguous. In this case we want to return an error, because the
+                // ambiguous data type might match expected data type.
+                if error.frames().any(|frame| {
+                    matches!(
+                        frame.downcast_ref::<DataValidationError>(),
+                        Some(DataValidationError::AmbiguousDataType { .. })
+                    )
+                }) {
+                    candidates += 1;
+                }
                 extend_report!(status, error);
             } else {
                 passed += 1;
             }
         }
 
-        match passed {
+        match (passed, candidates) {
             // `OneOfSchema` requires at least one element, so if none passed, it's an error
-            0 => status,
-            1 => Ok(()),
+            (0, _) => status,
+            (1, 0) => Ok(()),
             // `oneOf` requires exactly one element to pass, so if more than one passed, it's an
             // error
             // TODO: Remove this branch when changing to `anyOf` in the schema.
             //   see https://linear.app/hash/issue/BP-105/fix-type-system-to-use-anyof-instead-of-oneof
-            _ => Err(Report::new(PropertyValidationError::AmbiguousProperty {
-                actual: value.clone(),
-            })
-            .attach(Actual::Property(value.clone()))),
+            _ => {
+                extend_report!(
+                    status,
+                    PropertyValidationError::AmbiguousProperty {
+                        actual: value.clone(),
+                    }
+                );
+                status
+            }
         }
     }
 }
@@ -253,7 +266,7 @@ where
 impl<P> Schema<HashMap<BaseUrl, PropertyWithMetadata>, P>
     for ObjectSchema<ValueOrArray<PropertyTypeReference>>
 where
-    P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
+    P: OntologyTypeProvider<PropertyType> + DataTypeProvider + Sync,
 {
     type Error = PropertyValidationError;
 
@@ -305,7 +318,7 @@ where
 
 impl<P> Schema<PropertyWithMetadata, P> for PropertyValues
 where
-    P: OntologyTypeProvider<PropertyType> + OntologyTypeProvider<DataType> + Sync,
+    P: OntologyTypeProvider<PropertyType> + DataTypeProvider + Sync,
 {
     type Error = PropertyValidationError;
 
@@ -318,23 +331,12 @@ where
         Box::pin(async move {
             match self {
                 Self::DataTypeReference(reference) => match value {
-                    PropertyWithMetadata::Value(property) => {
-                        if let Some(data_type_id) = &property.metadata.data_type_id {
-                            ensure!(
-                                reference.url == *data_type_id,
-                                PropertyValidationError::InvalidDataType {
-                                    actual: data_type_id.clone(),
-                                    expected: reference.url.clone(),
-                                }
-                            );
-                        }
-                        reference
-                            .validate_value(property, components, provider)
-                            .await
-                            .change_context(PropertyValidationError::DataTypeValidation {
-                                id: reference.url.clone(),
-                            })
-                    }
+                    PropertyWithMetadata::Value(property) => reference
+                        .validate_value(property, components, provider)
+                        .await
+                        .change_context(PropertyValidationError::DataTypeValidation {
+                            id: reference.url.clone(),
+                        }),
                     PropertyWithMetadata::Array { .. } => {
                         Err(Report::new(PropertyValidationError::ExpectedValue {
                             actual: JsonSchemaValueType::Array,
