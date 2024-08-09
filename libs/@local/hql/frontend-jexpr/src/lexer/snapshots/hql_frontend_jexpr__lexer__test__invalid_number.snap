@@ -1,0 +1,11 @@
+---
+source: libs/@local/hql/frontend-jexpr/src/lexer/mod.rs
+expression: "{\"number\": 42.}"
+---
+[31m[jexpr::lexing::invalid-number] Error:[0m Invalid Number Literal
+   ╭─[<unknown>:1:1]
+   │
+ 1 │ {"number": 42.}
+   │            │ 
+   │            ╰─ Expected a digit
+───╯

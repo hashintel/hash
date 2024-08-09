@@ -1,0 +1,15 @@
+---
+source: libs/@local/hql/frontend-jexpr/src/parser/value.rs
+expression: "{12: \"12\"}"
+---
+[31m[jexpr::parse::unexpected-token] Error:[0m Unexpected token
+   ╭─[<unknown>:1:1]
+   │
+ 1 │ {12: "12"}
+   │  ─┬  
+   │   ╰── Unexpected token
+   │ 
+   │ Help: Did you mean to use a string instead of a number?
+   │ 
+   │ Note: Numbers are not valid keys in JSON.
+───╯

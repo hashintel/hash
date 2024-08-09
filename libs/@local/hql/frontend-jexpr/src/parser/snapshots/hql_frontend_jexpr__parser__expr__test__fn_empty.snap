@@ -1,0 +1,13 @@
+---
+source: libs/@local/hql/frontend-jexpr/src/parser/expr.rs
+expression: "[]"
+---
+[31m[jexpr::parse::array::expected-callee] Error:[0m Expected Callee
+   ╭─[<unknown>:1:1]
+   │
+ 1 │ []
+   │ ─┬  
+   │  ╰── Expected callee
+   │ 
+   │ Help: The callee is always the first argument in the array
+───╯
