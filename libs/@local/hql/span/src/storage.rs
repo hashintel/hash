@@ -1,5 +1,3 @@
-use alloc::sync::Arc;
-
 use orx_concurrent_vec::ConcurrentVec;
 
 use crate::{tree::SpanNode, Span, SpanId};
