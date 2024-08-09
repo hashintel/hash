@@ -1,12 +1,20 @@
+import { useMutation } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import { CaretDownSolidIcon, IconButton } from "@hashintel/design-system";
+import {
+  CaretDownSolidIcon,
+  IconButton,
+  RotateIconRegular,
+} from "@hashintel/design-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   EntityMetadata,
   EntityRecordId,
 } from "@local/hash-graph-types/entity";
-import type { StepProgressLog } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  CheckpointLog,
+  StepProgressLog,
+} from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { Theme } from "@mui/material";
 import {
@@ -21,8 +29,15 @@ import { format } from "date-fns";
 import type { ReactElement } from "react";
 import { memo, useEffect, useMemo, useState } from "react";
 
+import type {
+  ResetFlowMutation,
+  ResetFlowMutationVariables,
+} from "../../../../graphql/api-types.gen";
+import { resetFlowMutation } from "../../../../graphql/queries/knowledge/flow.queries";
 import { CircleInfoIcon } from "../../../../shared/icons/circle-info-icon";
 import { Link } from "../../../../shared/ui/link";
+import { useFlowRunsContext } from "../../../shared/flow-runs-context";
+import { GrayToBlueIconButton } from "../../../shared/gray-to-blue-icon-button";
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
@@ -98,6 +113,7 @@ const closedSubTaskPrefix = "Finished sub-task with ";
 const startedLinkExplorerTaskPrefix = "Started link explorer task with goal ";
 const closedLinkExplorerTaskPrefix = "Finished link explorer task with ";
 const activityFailedPrefix = "Activity failed: ";
+const checkpointPrefix = "Checkpoint recorded";
 
 const getRawTextFromLog = (log: LocalProgressLog): string => {
   switch (log.type) {
@@ -152,6 +168,9 @@ const getRawTextFromLog = (log: LocalProgressLog): string => {
     case "ActivityFailed": {
       return `${activityFailedPrefix}${log.message}`;
     }
+    case "Checkpoint": {
+      return checkpointPrefix;
+    }
   }
 };
 
@@ -170,6 +189,54 @@ const ellipsisOverflow = {
   textOverflow: "ellipsis",
   overflow: "hidden",
   whiteSpace: "nowrap",
+};
+
+const Checkpoint = ({ log }: { log: CheckpointLog }) => {
+  const { selectedFlowRun } = useFlowRunsContext();
+
+  const [resetFlow] = useMutation<
+    ResetFlowMutation,
+    ResetFlowMutationVariables
+  >(resetFlowMutation);
+
+  const [isResetting, setIsResetting] = useState(false);
+
+  if (!selectedFlowRun) {
+    throw new Error(
+      "Expected Checkpoint log to be rendered with a Flow Run selected",
+    );
+  }
+
+  const checkpointId = selectedFlowRun.checkpoints.find(
+    /** @todo there is a small chance this is the wrong checkpoint – generate a uuid for matching instead */
+    (checkpoint) => checkpoint.recordedAt === log.recordedAt,
+  )?.checkpointId;
+
+  if (!checkpointId) {
+    throw new Error(
+      `Could not find checkpoint matching checkpoint log recorded at ${log.recordedAt}`,
+    );
+  }
+
+  const triggerReset = () => {
+    setIsResetting(true);
+
+    void resetFlow({
+      variables: {
+        flowUuid: selectedFlowRun.flowRunId,
+        checkpointId,
+      },
+    }).finally(() => setIsResetting(false));
+  };
+
+  return (
+    <Stack direction="row" alignItems="center" gap={1}>
+      {checkpointPrefix}
+      <GrayToBlueIconButton disabled={isResetting} onClick={triggerReset}>
+        <RotateIconRegular sx={{ width: 13, height: 13 }} />
+      </GrayToBlueIconButton>
+    </Stack>
+  );
 };
 
 const LogDetail = ({
@@ -341,6 +408,9 @@ const LogDetail = ({
           </Box>
         </Stack>
       );
+    }
+    case "Checkpoint": {
+      return <Checkpoint log={log} />;
     }
   }
 };
