@@ -1,0 +1,13 @@
+---
+source: libs/@local/hql/frontend-jexpr/src/parser/expr.rs
+expression: "{\"unknown\": \"key\"}"
+---
+[31m[jexpr::parse::object::unknown-key] Error:[0m Unknown Key
+   ╭─[<unknown>:1:1]
+   │
+ 1 │ {"unknown": "key"}
+   │  ────┬────  
+   │      ╰────── Unknown key `unknown`
+   │ 
+   │ Help: Expected const, or type
+───╯

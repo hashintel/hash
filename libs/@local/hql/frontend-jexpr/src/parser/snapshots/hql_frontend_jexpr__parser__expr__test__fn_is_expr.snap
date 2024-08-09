@@ -1,0 +1,106 @@
+---
+source: libs/@local/hql/frontend-jexpr/src/parser/expr.rs
+expression: "[\n                [\"input\", \"variable\"],\n                \"arg1\",\n                \"arg2\"\n            ]"
+---
+Expr {
+    kind: Call(
+        Call {
+            fn: Expr {
+                kind: Call(
+                    Call {
+                        fn: Expr {
+                            kind: Path(
+                                Path {
+                                    segments: [
+                                        Symbol {
+                                            value: "input",
+                                            span: SpanId(
+                                                1,
+                                            ),
+                                        },
+                                    ],
+                                    span: SpanId(
+                                        2,
+                                    ),
+                                },
+                            ),
+                            span: SpanId(
+                                0,
+                            ),
+                        },
+                        args: [
+                            Expr {
+                                kind: Path(
+                                    Path {
+                                        segments: [
+                                            Symbol {
+                                                value: "variable",
+                                                span: SpanId(
+                                                    4,
+                                                ),
+                                            },
+                                        ],
+                                        span: SpanId(
+                                            5,
+                                        ),
+                                    },
+                                ),
+                                span: SpanId(
+                                    3,
+                                ),
+                            },
+                        ],
+                    },
+                ),
+                span: SpanId(
+                    6,
+                ),
+            },
+            args: [
+                Expr {
+                    kind: Path(
+                        Path {
+                            segments: [
+                                Symbol {
+                                    value: "arg1",
+                                    span: SpanId(
+                                        8,
+                                    ),
+                                },
+                            ],
+                            span: SpanId(
+                                9,
+                            ),
+                        },
+                    ),
+                    span: SpanId(
+                        7,
+                    ),
+                },
+                Expr {
+                    kind: Path(
+                        Path {
+                            segments: [
+                                Symbol {
+                                    value: "arg2",
+                                    span: SpanId(
+                                        11,
+                                    ),
+                                },
+                            ],
+                            span: SpanId(
+                                12,
+                            ),
+                        },
+                    ),
+                    span: SpanId(
+                        10,
+                    ),
+                },
+            ],
+        },
+    ),
+    span: SpanId(
+        13,
+    ),
+}
