@@ -40,7 +40,7 @@ const INVALID_IDENTIFIER: &Category = &Category {
 };
 
 fn main() {
-    let mut storage = SpanStorage::new();
+    let storage = SpanStorage::new();
 
     let parent_span = storage.insert(JsonSpan {
         range: TextRange::new(8.into(), 13.into()),

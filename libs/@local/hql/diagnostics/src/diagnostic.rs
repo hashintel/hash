@@ -132,7 +132,11 @@ impl<S> Diagnostic<'_, SpanNode<S>> {
         }
 
         for label in &self.labels {
-            builder.add_label(label.ariadne(&mut generator, &mut config.transform_span));
+            builder.add_label(label.ariadne(
+                config.color,
+                &mut generator,
+                &mut config.transform_span,
+            ));
         }
 
         builder = builder.with_config(config.into());
