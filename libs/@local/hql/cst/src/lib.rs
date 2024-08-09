@@ -4,17 +4,26 @@
 extern crate alloc;
 
 pub mod arena;
-pub mod call;
-pub(crate) mod codec;
-pub mod constant;
 pub mod expr;
-pub(crate) mod parse;
-pub mod path;
-pub mod signature;
 pub mod symbol;
 pub mod r#type;
+pub mod value;
 
-pub use self::{
-    arena::Arena, call::Call, constant::Constant, expr::Expr, path::Path, signature::Signature,
-    symbol::Symbol, r#type::Type,
-};
+use hql_span::SpanId;
+
+use self::expr::Expr;
+
+pub trait Spanned {
+    fn span(&self) -> SpanId;
+}
+
+pub struct Program<'arena, 'source> {
+    pub expressions: arena::Vec<'arena, Expr<'arena, 'source>>,
+    pub span: SpanId,
+}
+
+impl<'arena, 'source> Spanned for Program<'arena, 'source> {
+    fn span(&self) -> SpanId {
+        self.span
+    }
+}
