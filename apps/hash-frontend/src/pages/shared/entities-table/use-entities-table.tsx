@@ -28,6 +28,8 @@ export interface TypeEntitiesRow {
   archived?: boolean;
   lastEdited: string;
   lastEditedBy?: MinimalActor;
+  created: string;
+  createdBy?: MinimalActor;
   properties?: {
     [k: string]: string;
   };
@@ -139,6 +141,16 @@ export const useEntitiesTable = (params: {
         id: "lastEditedBy",
         width: 200,
       },
+      {
+        title: "Created",
+        id: "created",
+        width: 200,
+      },
+      {
+        title: "Created By",
+        id: "createdBy",
+        width: 200,
+      },
       /** @todo: uncomment this when we have additional types for entities */
       // {
       //   title: "Additional Types",
@@ -182,13 +194,23 @@ export const useEntitiesTable = (params: {
                 accountId === entity.metadata.provenance.edition.createdById,
             );
 
+            const created = format(
+              new Date(entity.metadata.provenance.createdAtDecisionTime),
+              "yyyy-MM-dd HH:mm",
+            );
+
+            const createdBy = actors?.find(
+              ({ accountId }) =>
+                accountId === entity.metadata.provenance.createdById,
+            );
+
             return {
               rowId: entityId,
               entityId,
               entity,
               entityLabel,
               entityTypeVersion: entityType
-                ? `v${extractVersion(entityType.$id)} ${entityType.title}`
+                ? `${entityType.title} v${extractVersion(entityType.$id)}`
                 : "",
               namespace: `@${entityNamespace}`,
               archived: isPage
@@ -197,6 +219,8 @@ export const useEntitiesTable = (params: {
                 : undefined,
               lastEdited,
               lastEditedBy,
+              created,
+              createdBy,
               /** @todo: uncomment this when we have additional types for entities */
               // additionalTypes: "",
               ...propertyColumns.reduce((fields, column) => {
@@ -226,6 +250,7 @@ export const useEntitiesTable = (params: {
     subgraph,
     entitiesHaveSameType,
     hideEntityTypeVersionColumn,
+    hidePageArchivedColumn,
     hidePropertiesColumns,
     isViewingPages,
     actors,

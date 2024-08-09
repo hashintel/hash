@@ -44,7 +44,7 @@ import { GridSolidIcon } from "../../shared/icons/grid-solid-icon";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import type { FilterState } from "../../shared/table-header";
 import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
-import { isAiMachineActor } from "../../shared/use-actors";
+import { isAiMachineActor, MinimalActor } from "../../shared/use-actors";
 import { useEntityTypeEntities } from "../../shared/use-entity-type-entities";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { renderChipCell } from "./chip-cell";
@@ -301,15 +301,23 @@ export const EntitiesTable: FunctionComponent<{
               displayData: String(row.lastEdited),
               data: row.lastEdited,
             };
-          } else if (columnId === "lastEditedBy") {
-            const { lastEditedBy } = row;
-            const lastEditedByName = lastEditedBy
-              ? lastEditedBy.displayName
-              : undefined;
+          } else if (columnId === "created") {
+            return {
+              kind: GridCellKind.Text,
+              readonly: true,
+              allowOverlay: false,
+              displayData: String(row.created),
+              data: row.lastEdited,
+            };
+          } else if (columnId === "lastEditedBy" || columnId === "createdBy") {
+            const actor =
+              columnId === "lastEditedBy" ? row.lastEditedBy : row.createdBy;
 
-            const lastEditedByIcon = lastEditedBy
-              ? ((lastEditedBy.kind === "machine"
-                  ? isAiMachineActor(lastEditedBy)
+            const actorName = actor ? actor.displayName : undefined;
+
+            const actorIcon = actor
+              ? ((actor.kind === "machine"
+                  ? isAiMachineActor(actor)
                     ? "wandMagicSparklesRegular"
                     : "hashSolid"
                   : "userRegular") satisfies CustomIcon)
@@ -319,14 +327,14 @@ export const EntitiesTable: FunctionComponent<{
               kind: GridCellKind.Custom,
               readonly: true,
               allowOverlay: false,
-              copyData: String(lastEditedByName),
+              copyData: String(actorName),
               data: {
                 kind: "chip-cell",
-                chips: lastEditedByName
+                chips: actorName
                   ? [
                       {
-                        text: lastEditedByName,
-                        icon: lastEditedByIcon,
+                        text: actorName,
+                        icon: actorIcon,
                       },
                     ]
                   : [],
@@ -415,27 +423,40 @@ export const EntitiesTable: FunctionComponent<{
     ("archived" | "not-archived")[]
   >(["archived", "not-archived"]);
 
-  const lastEditedByActors = useMemo(
-    () =>
-      rows
-        ?.map(({ lastEditedBy }) => lastEditedBy ?? [])
-        .flat()
-        .filter(
-          (actor, index, all) =>
-            all.findIndex(({ accountId }) => accountId === actor.accountId) ===
-            index,
-        ) ?? [],
-    [rows],
-  );
+  const { createdByActors, lastEditedByActors } = useMemo(() => {
+    const lastEditedBySet = new Set<MinimalActor>();
+    const createdBySet = new Set<MinimalActor>();
+    for (const row of rows ?? []) {
+      if (row.lastEditedBy) {
+        lastEditedBySet.add(row.lastEditedBy);
+      }
+      if (row.createdBy) {
+        createdBySet.add(row.createdBy);
+      }
+    }
+    return {
+      lastEditedByActors: [...lastEditedBySet],
+      createdByActors: [...createdBySet],
+    };
+  }, [rows]);
 
   const [selectedLastEditedByAccountIds, setSelectedLastEditedByAccountIds] =
     useState<string[]>(lastEditedByActors.map(({ accountId }) => accountId));
+
+  const [selectedCreatedByAccountIds, setSelectedCreatedByAccountIds] =
+    useState<string[]>(createdByActors.map(({ accountId }) => accountId));
 
   useEffect(() => {
     setSelectedLastEditedByAccountIds(
       lastEditedByActors.map(({ accountId }) => accountId),
     );
   }, [lastEditedByActors]);
+
+  useEffect(() => {
+    setSelectedCreatedByAccountIds(
+      createdByActors.map(({ accountId }) => accountId),
+    );
+  }, [createdByActors]);
 
   const columnFilters = useMemo<ColumnFilter<string, TypeEntitiesRow>[]>(
     () => [
@@ -497,13 +518,28 @@ export const EntitiesTable: FunctionComponent<{
               )
             : false,
       },
+      {
+        columnKey: "createdBy",
+        filterItems: createdByActors.map((actor) => ({
+          id: actor.accountId,
+          label: actor.displayName ?? "Unknown Actor",
+        })),
+        selectedFilterItemIds: selectedCreatedByAccountIds,
+        setSelectedFilterItemIds: setSelectedCreatedByAccountIds,
+        isRowFiltered: (row) =>
+          row.createdBy
+            ? !selectedCreatedByAccountIds.includes(row.createdBy.accountId)
+            : false,
+      },
     ],
     [
+      createdByActors,
       namespaces,
       selectedNamespaces,
       entityTypeVersions,
       selectedEntityTypeVersions,
       lastEditedByActors,
+      selectedCreatedByAccountIds,
       selectedLastEditedByAccountIds,
       selectedArchivedStatus,
     ],
