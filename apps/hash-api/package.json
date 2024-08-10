@@ -108,7 +108,7 @@
     "@graphql-codegen/typescript-resolvers": "2.7.12",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/app-root-path": "1.2.4",
+    "@types/app-root-path": "1.2.8",
     "@types/dedent": "0.7.0",
     "@types/express-http-proxy": "1.6.3",
     "@types/html-to-text": "8.1.1",

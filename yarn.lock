@@ -10153,10 +10153,10 @@
   dependencies:
     "@types/estree" "*"
 
-"@types/app-root-path@1.2.4":
-  version "1.2.4"
-  resolved "https://registry.yarnpkg.com/@types/app-root-path/-/app-root-path-1.2.4.tgz#a78b703282b32ac54de768f5512ecc3569919dc7"
-  integrity "sha1-p4twMoKzKsVN52j1US7MNWmRncc= sha512-yhURoXmWN/zfw2MXXcOdUTwe5CWhzRWtb4Rs2+JwGpuhm2hxLCzjASi/aIuyVeJB3Iyks1teaHyOEfNNmltdvQ=="
+"@types/app-root-path@1.2.8":
+  version "1.2.8"
+  resolved "https://registry.yarnpkg.com/@types/app-root-path/-/app-root-path-1.2.8.tgz#497a11b2409e8445d6d2ad914bde5be60047e0eb"
+  integrity sha512-l12miuN6JXAi3yuADZNhRKbyN7IIyaUP9hFVZ/BbHhWYpBkHLbOaX2WkQoXGJyAgMcP9iZ0S9+tz/FN40VrwWQ==
 
 "@types/aria-query@^4.2.0":
   version "4.2.2"
