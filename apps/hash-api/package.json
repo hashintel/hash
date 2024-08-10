@@ -110,7 +110,7 @@
     "@local/tsconfig": "0.0.0-private",
     "@types/app-root-path": "1.2.4",
     "@types/dedent": "0.7.0",
-    "@types/express-http-proxy": "1.6.3",
+    "@types/express-http-proxy": "1.6.6",
     "@types/html-to-text": "8.1.1",
     "@types/jsonpath": "0.2.0",
     "@types/lodash": "4.17.4",
