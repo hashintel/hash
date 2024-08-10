@@ -73,7 +73,7 @@
     "@types/html-to-text": "9.0.4",
     "@types/md5": "2.3.2",
     "@types/node": "20.12.2",
-    "@types/prismjs": "1.26.0",
+    "@types/prismjs": "1.26.4",
     "@types/react": "18.2.68",
     "@types/react-dom": "18.2.25",
     "@types/react-html-parser": "2.0.2",
