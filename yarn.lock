@@ -10853,10 +10853,10 @@
   resolved "https://registry.yarnpkg.com/@types/long/-/long-4.0.2.tgz#b74129719fc8d11c01868010082d483b7545591a"
   integrity "sha1-t0EpcZ/I0RwBhoAQCC1IO3VFWRo= sha512-MqTGEo5bj5t157U6fA/BiDynNkn0YknVdh48CMPkTSpFTVmvao5UQmm7uEF6xBEo7qIMAlY/JSleYaE6VOdpaA=="
 
-"@types/mailchimp__mailchimp_marketing@3.0.17":
-  version "3.0.17"
-  resolved "https://registry.yarnpkg.com/@types/mailchimp__mailchimp_marketing/-/mailchimp__mailchimp_marketing-3.0.17.tgz#eec8e40340daed0ca90c7a121584ae92aa72e230"
-  integrity sha512-j0rZvpHMhIBzzvvnc4aPeqffgN1enw7gSthEX6Bc9I+GLhuSiU07TCuftbL4FhMqRvSxFSWn9OhHGDtV5z6UCg==
+"@types/mailchimp__mailchimp_marketing@3.0.20":
+  version "3.0.20"
+  resolved "https://registry.yarnpkg.com/@types/mailchimp__mailchimp_marketing/-/mailchimp__mailchimp_marketing-3.0.20.tgz#1089b83c281c9c79a45581a19c33f7c74c790c1c"
+  integrity sha512-fg7iKnnbfBxyVjh6WZy39sXscuhaYv9K5DRAok/ykHMJeh3la4qSv+v4i5x0IgE3fGWTRZpixhCfkkzEDUImhw==
 
 "@types/md5@2.3.2":
   version "2.3.2"
