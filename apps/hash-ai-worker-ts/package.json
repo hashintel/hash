@@ -101,7 +101,7 @@
     "@types/lodash.ismatch": "4.4.9",
     "@types/lodash.pickby": "4.6.0",
     "@types/md5": "2.3.5",
-    "@types/mime-types": "2.1.1",
+    "@types/mime-types": "2.1.4",
     "@types/node": "20.12.3",
     "@types/papaparse": "5.3.14",
     "@types/sanitize-html": "2.11.0",
