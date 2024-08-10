@@ -10680,10 +10680,10 @@
   dependencies:
     "@types/node" "*"
 
-"@types/iframe-resizer@3.5.9":
-  version "3.5.9"
-  resolved "https://registry.yarnpkg.com/@types/iframe-resizer/-/iframe-resizer-3.5.9.tgz#75c4cda33cee5f4da4c7693a0d9ad1ccb0c5ee98"
-  integrity "sha1-dcTNozzuX02kx2k6DZrRzLDF7pg= sha512-RQUBI75F+uXruB95BFpC/8V8lPgJg4MQ6HxOCtAZYBB/h0FNCfrFfb4I+u2pZJIV7sKeszZbFqy1UnGeBMrvsA=="
+"@types/iframe-resizer@3.5.13":
+  version "3.5.13"
+  resolved "https://registry.yarnpkg.com/@types/iframe-resizer/-/iframe-resizer-3.5.13.tgz#b9bf74679d519a1a6afd3f1536b48d04e13a0aa7"
+  integrity sha512-/Np2ntlOWd/NOHs23Mj7QlNEnZ6SL02AWWdYZLm4RQNukDdpqpagfMAdin5FvQDLngR8LWfh/qUnYxuDmR8BCg==
 
 "@types/is-ci@^3.0.0":
   version "3.0.0"
