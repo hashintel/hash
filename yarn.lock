@@ -30310,10 +30310,10 @@ tweetnacl@^0.14.3, tweetnacl@~0.14.0:
   resolved "https://registry.yarnpkg.com/tweetnacl/-/tweetnacl-0.14.5.tgz#5ae68177f192d4456269d108afa93ff8743f4f64"
   integrity "sha1-WuaBd/GS1EViadEIr6k/+HQ/T2Q= sha512-KXXFFdAbFXY4geFIwoyNK+f5Z1b7swfXABfL7HXCmoIWMKU3dmS26672A4EeQtDzLKy7SXmfBu51JolvEKwtGA=="
 
-twind@0.16.17:
-  version "0.16.17"
-  resolved "https://registry.yarnpkg.com/twind/-/twind-0.16.17.tgz#ca8434d7570cd4246ea2f9d6269aa597e00730aa"
-  integrity sha512-dBKm8+ncJcIALiqBRLxA/krFEwUSjnzR+N73eKgqPtVPJqfLpkajWwKWL5xEpEQ5ypS3ffa0jJjH3/eIeuA3pw==
+twind@0.16.19:
+  version "0.16.19"
+  resolved "https://registry.yarnpkg.com/twind/-/twind-0.16.19.tgz#3338dd33c0e9dbb7e976b843b328d9dba0c39a7d"
+  integrity sha512-/9H7I/Xzji6UZ+x1V8/llcQSAI0bINqpZtvAqqTzuU/qAdzRCnrpaME8x57k8tUu2KbosjSQE85sSwcLBGD1DQ==
   dependencies:
     csstype "^3.0.5"
     htmlparser2 "^6.0.0"
