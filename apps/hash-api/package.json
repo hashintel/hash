@@ -112,7 +112,7 @@
     "@types/dedent": "0.7.2",
     "@types/express-http-proxy": "1.6.6",
     "@types/html-to-text": "8.1.1",
-    "@types/jsonpath": "0.2.0",
+    "@types/jsonpath": "0.2.4",
     "@types/lodash": "4.17.4",
     "@types/mailchimp__mailchimp_marketing": "3.0.20",
     "@types/md5": "2.3.5",
