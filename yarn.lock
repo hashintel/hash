@@ -24225,10 +24225,10 @@ notion-md-crawler@^0.0.2:
     "@notionhq/client" "^2.2.12"
     md-utils-ts "^2.0.0"
 
-notistack@2.0.5:
-  version "2.0.5"
-  resolved "https://registry.yarnpkg.com/notistack/-/notistack-2.0.5.tgz#8eb53720453f6e02182cd0e6784ced630a7bb7e6"
-  integrity "sha1-jrU3IEU/bgIYLNDmeEztYwp7t+Y= sha512-Ig2T1Muqkc1PaSQcEDrK7diKv6cBxw02Iq6uv074ySfgq524TV5lK41diAb6OSsaiWfp3aRt+T3+0MF8m2EcJQ=="
+notistack@2.0.8:
+  version "2.0.8"
+  resolved "https://registry.yarnpkg.com/notistack/-/notistack-2.0.8.tgz#78cdf34c64e311bf1d1d71c2123396bcdea5e95b"
+  integrity sha512-/IY14wkFp5qjPgKNvAdfL5Jp6q90+MjgKTPh4c81r/lW70KeuX6b9pE/4f8L4FG31cNudbN9siiFS5ql1aSLRw==
   dependencies:
     clsx "^1.1.0"
     hoist-non-react-statics "^3.3.0"
