@@ -126,7 +126,7 @@
     "@types/google.accounts": "0.0.14",
     "@types/google.picker": "0.0.42",
     "@types/iframe-resizer": "3.5.13",
-    "@types/jsonpath": "0.2.0",
+    "@types/jsonpath": "0.2.4",
     "@types/lodash": "4.17.4",
     "@types/papaparse": "5.3.14",
     "@types/react": "18.2.68",
