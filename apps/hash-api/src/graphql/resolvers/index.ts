@@ -37,6 +37,7 @@ import {
   addEntityViewerResolver,
   archiveEntitiesResolver,
   archiveEntityResolver,
+  countEntitiesResolver,
   createEntityResolver,
   getEntityAuthorizationRelationshipsResolver,
   getEntityResolver,
@@ -126,6 +127,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
     getEntityAuthorizationRelationships: loggedInAndSignedUpMiddleware(
       getEntityAuthorizationRelationshipsResolver,
     ),
+    countEntities: countEntitiesResolver,
     getEntitySubgraph: getEntitySubgraphResolver,
     hashInstanceSettings: hashInstanceSettingsResolver,
     // Integration

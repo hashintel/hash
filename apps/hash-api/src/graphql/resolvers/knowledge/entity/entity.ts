@@ -29,6 +29,7 @@ import {
   addEntityEditor,
   canUserReadEntity,
   checkEntityPermission,
+  countEntities,
   createEntityWithLinks,
   getEntityAuthorizationRelationships,
   getEntitySubgraph,
@@ -57,6 +58,7 @@ import type {
   MutationUpdateEntitiesArgs,
   MutationUpdateEntityArgs,
   Query,
+  QueryCountEntitiesArgs,
   QueryGetEntityArgs,
   QueryGetEntitySubgraphArgs,
   QueryIsEntityPublicArgs,
@@ -202,6 +204,18 @@ export const queryEntitiesResolver: NonNullable<
     info,
     entitySubgraph,
   );
+};
+
+export const countEntitiesResolver: ResolverFn<
+  Promise<number>,
+  Record<string, never>,
+  LoggedInGraphQLContext,
+  QueryCountEntitiesArgs
+> = async (_, args, graphQLContext) => {
+  const { authentication } = graphQLContext;
+  const context = graphQLContextToImpureGraphContext(graphQLContext);
+
+  return await countEntities(context, authentication, args.request);
 };
 
 export const getEntitySubgraphResolver: ResolverFn<

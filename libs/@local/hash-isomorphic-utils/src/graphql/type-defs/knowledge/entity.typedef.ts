@@ -8,6 +8,7 @@ export const entityTypedef = gql`
   scalar PropertyObjectWithMetadata
   scalar EntityMetadata
   scalar EntityRelationAndSubject
+  scalar CountEntitiesParams
   scalar GetEntitySubgraphRequest
   scalar LinkData
   scalar QueryOperationInput
@@ -111,6 +112,8 @@ export const entityTypedef = gql`
       hasRightEntity: EdgeResolveDepthsInput!
       includeDrafts: Boolean
     ): SubgraphAndPermissions!
+
+    countEntities(request: CountEntitiesParams!): Int!
 
     getEntitySubgraph(
       request: GetEntitySubgraphRequest!
