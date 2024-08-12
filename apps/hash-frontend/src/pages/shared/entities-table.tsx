@@ -28,6 +28,7 @@ import { useRouter } from "next/router";
 import type { FunctionComponent, ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import type { GridProps } from "../../components/grid/grid";
 import {
   Grid,
   gridHeaderHeightWithBorder,
@@ -424,6 +425,54 @@ export const EntitiesTable: FunctionComponent<{
     setSelectedNamespaces(namespaces);
   }, [namespaces]);
 
+  const sortRows = useCallback<
+    NonNullable<GridProps<TypeEntitiesRow>["sortRows"]>
+  >((unsortedRows, sort, previousSort) => {
+    return unsortedRows.toSorted((a, b) => {
+      const isActorSort = ["lastEditedBy", "createdBy"].includes(
+        sort.columnKey,
+      );
+
+      const value1: string = isActorSort
+        ? a[sort.columnKey].displayName
+        : String(a[sort.columnKey]);
+
+      const value2: string = isActorSort
+        ? b[sort.columnKey].displayName
+        : String(b[sort.columnKey]);
+
+      const previousSortWasActorSort =
+        previousSort &&
+        ["lastEditedBy", "createdBy"].includes(previousSort.columnKey);
+
+      const previousValue1: string = previousSort?.columnKey
+        ? previousSortWasActorSort
+          ? a[previousSort.columnKey].displayName
+          : String(a[previousSort.columnKey])
+        : undefined;
+
+      const previousValue2: string = previousSort?.columnKey
+        ? previousSortWasActorSort
+          ? b[previousSort.columnKey].displayName
+          : String(b[previousSort.columnKey])
+        : undefined;
+
+      let comparison = value1.localeCompare(value2);
+
+      if (comparison === 0 && previousValue1 && previousValue2) {
+        // if the two keys are equal, we sort by the previous sort
+        comparison = previousValue1.localeCompare(previousValue2);
+      }
+
+      if (sort.direction === "desc") {
+        // reverse if descending
+        comparison = -comparison;
+      }
+
+      return comparison;
+    });
+  }, []);
+
   const entityTypeVersions = useMemo(
     () =>
       rows
@@ -731,6 +780,7 @@ export const EntitiesTable: FunctionComponent<{
             onSelectedRowsChange={(updatedSelectedRows) =>
               setSelectedRows(updatedSelectedRows)
             }
+            sortRows={sortRows}
             firstColumnLeftPadding={16}
             height={`
                min(

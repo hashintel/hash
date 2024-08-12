@@ -22,6 +22,7 @@ import {
   Grid,
   gridHeaderHeightWithBorder,
   gridHorizontalScrollbarHeight,
+  type GridProps,
 } from "../../../components/grid/grid";
 import type { CustomIcon } from "../../../components/grid/utils/custom-grid-icons";
 import { useOrgs } from "../../../components/hooks/use-orgs";
@@ -258,6 +259,49 @@ export const TypesTable: FunctionComponent<{
     ],
   );
 
+  const sortRows = useCallback<
+    NonNullable<GridProps<TypesTableRow>["sortRows"]>
+  >((unsortedRows, sort, previousSort) => {
+    return unsortedRows.toSorted((a, b) => {
+      const isActorSort = (key: string): key is "lastEditedBy" | "createdBy" =>
+        ["lastEditedBy", "createdBy"].includes(key);
+
+      const value1: string = isActorSort(sort.columnKey)
+        ? (a[sort.columnKey]?.displayName ?? "")
+        : String(a[sort.columnKey]);
+
+      const value2: string = isActorSort(sort.columnKey)
+        ? (b[sort.columnKey]?.displayName ?? "")
+        : String(b[sort.columnKey]);
+
+      const previousValue1: string | undefined = previousSort
+        ? isActorSort(previousSort.columnKey)
+          ? (a[previousSort.columnKey]?.displayName ?? "")
+          : String(a[previousSort.columnKey])
+        : undefined;
+
+      const previousValue2: string | undefined = previousSort?.columnKey
+        ? isActorSort(previousSort.columnKey)
+          ? (b[previousSort.columnKey]?.displayName ?? "")
+          : String(b[previousSort.columnKey])
+        : undefined;
+
+      let comparison = value1.localeCompare(value2);
+
+      if (comparison === 0 && previousValue1 && previousValue2) {
+        // if the two keys are equal, we sort by the previous sort
+        comparison = previousValue1.localeCompare(previousValue2);
+      }
+
+      if (sort.direction === "desc") {
+        // reverse if descending
+        comparison = -comparison;
+      }
+
+      return comparison;
+    });
+  }, []);
+
   const createGetCellContent = useCallback(
     (rows: TypesTableRow[]) =>
       ([colIndex, rowIndex]: Item): TextCell | TextIconCell | ChipCell => {
@@ -412,6 +456,7 @@ export const TypesTable: FunctionComponent<{
             setSelectedRows(updatedSelectedRows)
           }
           sortable
+          sortRows={sortRows}
           firstColumnLeftPadding={16}
           createGetCellContent={createGetCellContent}
           // define max height if there are lots of rows
