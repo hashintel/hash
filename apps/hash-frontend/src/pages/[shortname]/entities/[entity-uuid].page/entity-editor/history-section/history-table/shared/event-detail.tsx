@@ -1,10 +1,10 @@
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
 
 import { ValueChip } from "../../../../../../../shared/value-chip";
 import type { HistoryEvent } from "../../shared/types";
-import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 
 export const EventDetail = ({
   event,
