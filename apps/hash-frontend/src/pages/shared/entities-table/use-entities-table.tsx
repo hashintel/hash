@@ -1,4 +1,8 @@
-import type { EntityType, PropertyType } from "@blockprotocol/type-system";
+import type {
+  EntityType,
+  PropertyType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { extractVersion } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -23,6 +27,7 @@ export interface TypeEntitiesRow {
   entityId: EntityId;
   entity: Entity;
   entityLabel: string;
+  entityTypeId: VersionedUrl;
   entityTypeVersion: string;
   namespace: string;
   archived?: boolean;
@@ -59,13 +64,16 @@ export const useEntitiesTable = (params: {
     isViewingPages = false,
   } = params;
 
-  const lastEditedByAccountIds = useMemo(
+  const editorActorIds = useMemo(
     () =>
-      entities?.map(({ metadata }) => metadata.provenance.edition.createdById),
+      entities?.flatMap(({ metadata }) => [
+        metadata.provenance.edition.createdById,
+        metadata.provenance.createdById,
+      ]),
     [entities],
   );
 
-  const { actors } = useActors({ accountIds: lastEditedByAccountIds });
+  const { actors } = useActors({ accountIds: editorActorIds });
 
   const getOwnerForEntity = useGetOwnerForEntity();
 
@@ -169,6 +177,12 @@ export const useEntitiesTable = (params: {
               (type) => type.$id === entity.metadata.entityTypeId,
             );
 
+            if (!entityType) {
+              throw new Error(
+                `Could not find entity type with id ${entity.metadata.entityTypeId} in subgraph`,
+              );
+            }
+
             const { shortname: entityNamespace } = getOwnerForEntity({
               entityId: entity.metadata.recordId.entityId,
             });
@@ -209,9 +223,8 @@ export const useEntitiesTable = (params: {
               entityId,
               entity,
               entityLabel,
-              entityTypeVersion: entityType
-                ? `${entityType.title} v${extractVersion(entityType.$id)}`
-                : "",
+              entityTypeId: entityType.$id,
+              entityTypeVersion: `${entityType.title} v${extractVersion(entityType.$id)}`,
               namespace: `@${entityNamespace}`,
               archived: isPage
                 ? simplifyProperties(entity.properties as PageProperties)

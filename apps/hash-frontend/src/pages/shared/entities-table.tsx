@@ -10,13 +10,14 @@ import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-typ
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
+  type EntityRootType,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
+  type Subgraph,
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import {
   Box,
-  Skeleton,
   ToggleButton,
   toggleButtonClasses,
   ToggleButtonGroup,
@@ -36,7 +37,6 @@ import type { BlankCell } from "../../components/grid/utils";
 import { blankCell } from "../../components/grid/utils";
 import type { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
 import type { ColumnFilter } from "../../components/grid/utils/filtering";
-import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
 import { useEntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { ChartNetworkRegularIcon } from "../../shared/icons/chart-network-regular-icon";
@@ -44,8 +44,10 @@ import { GridSolidIcon } from "../../shared/icons/grid-solid-icon";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import type { FilterState } from "../../shared/table-header";
 import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
-import { isAiMachineActor, MinimalActor } from "../../shared/use-actors";
+import type { MinimalActor } from "../../shared/use-actors";
+import { isAiMachineActor } from "../../shared/use-actors";
 import { useEntityTypeEntities } from "../../shared/use-entity-type-entities";
+import { EditEntitySlideOver } from "../[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { renderChipCell } from "./chip-cell";
 import { GridView } from "./entities-table/grid-view";
@@ -54,6 +56,8 @@ import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
 import type { TypeEntitiesRow } from "./entities-table/use-entities-table";
 import { useEntitiesTable } from "./entities-table/use-entities-table";
 import { useGetEntitiesTableAdditionalCsvData } from "./entities-table/use-get-entities-table-additional-csv-data";
+import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
+import { generateEntityRootedSubgraph } from "./subgraphs";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 
 /**
@@ -100,6 +104,9 @@ export const EntitiesTable: FunctionComponent<{
     includeGlobal: false,
   });
   const [showSearch, setShowSearch] = useState<boolean>(false);
+
+  const [selectedEntityTypeId, setSelectedEntityTypeId] =
+    useState<VersionedUrl | null>(null);
 
   const {
     entityTypeBaseUrl,
@@ -224,6 +231,26 @@ export const EntitiesTable: FunctionComponent<{
 
   const [selectedRows, setSelectedRows] = useState<TypeEntitiesRow[]>([]);
 
+  const [selectedEntitySubgraph, setSelectedEntitySubgraph] =
+    useState<Subgraph<EntityRootType> | null>(null);
+
+  const handleEntityClick = useCallback(
+    (entityId: EntityId) => {
+      if (subgraph) {
+        const entitySubgraph = generateEntityRootedSubgraph(entityId, subgraph);
+
+        if (!entitySubgraph) {
+          throw new Error(
+            `Could not find entity with id ${entityId} in subgraph`,
+          );
+        }
+
+        setSelectedEntitySubgraph(entitySubgraph);
+      }
+    },
+    [subgraph],
+  );
+
   const createGetCellContent = useCallback(
     (entityRows: TypeEntitiesRow[]) =>
       ([colIndex, rowIndex]: Item):
@@ -261,28 +288,41 @@ export const EntitiesTable: FunctionComponent<{
                 kind: "text-icon-cell",
                 icon: "bpAsterisk",
                 value: row.entityLabel,
-                onClick: () =>
-                  router.push(
-                    isViewingPages
-                      ? `/${row.namespace}/${extractEntityUuidFromEntityId(
-                          row.entityId,
-                        )}`
-                      : `/${
-                          row.namespace
-                        }/entities/${extractEntityUuidFromEntityId(
-                          row.entityId,
-                        )}`,
-                  ),
+                onClick: () => {
+                  if (isViewingPages) {
+                    void router.push(
+                      `/${row.namespace}/${extractEntityUuidFromEntityId(
+                        row.entityId,
+                      )}`,
+                    );
+                  } else {
+                    handleEntityClick(row.entityId);
+                  }
+                },
               },
             };
           } else if (["namespace", "entityTypeVersion"].includes(columnId)) {
             const cellValue = row[columnId];
+            const stringValue = String(cellValue);
+
             return {
-              kind: GridCellKind.Text,
-              allowOverlay: true,
+              kind: GridCellKind.Custom,
+              allowOverlay: false,
               readonly: true,
-              displayData: String(cellValue),
-              data: cellValue,
+              cursor: "pointer",
+              copyData: stringValue,
+              data: {
+                kind: "text-icon-cell",
+                icon: null,
+                value: stringValue,
+                onClick: () => {
+                  if (columnId === "namespace") {
+                    void router.push(`/${cellValue}`);
+                  } else {
+                    setSelectedEntityTypeId(row.entityTypeId);
+                  }
+                },
+              },
             };
           } else if (columnId === "archived") {
             const value = row.archived ? "Yes" : "No";
@@ -359,31 +399,10 @@ export const EntitiesTable: FunctionComponent<{
 
         return blankCell;
       },
-    [columns, router, isViewingPages],
+    [columns, handleEntityClick, router, isViewingPages],
   );
 
   const theme = useTheme();
-
-  const getOwnerForEntity = useGetOwnerForEntity();
-
-  const handleEntityClick = useCallback(
-    (entityId: EntityId) => {
-      const { shortname: entityNamespace } = getOwnerForEntity({
-        entityId,
-      });
-
-      if (entityNamespace === "") {
-        return;
-      }
-
-      void router.push(
-        `/@${entityNamespace}/entities/${extractEntityUuidFromEntityId(
-          entityId,
-        )}`,
-      );
-    },
-    [router, getOwnerForEntity],
-  );
 
   const namespaces = useMemo(
     () =>
@@ -559,137 +578,157 @@ export const EntitiesTable: FunctionComponent<{
     });
 
   return (
-    <Box>
-      <TableHeader
-        internalWebIds={internalWebIds}
-        itemLabelPlural={isViewingPages ? "pages" : "entities"}
-        items={entities}
-        selectedItems={
-          entities?.filter((entity) =>
-            selectedRows.some(
-              ({ entityId }) => entity.metadata.recordId.entityId === entityId,
-            ),
-          ) ?? []
-        }
-        title="Entities"
-        columns={columns}
-        currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-        getAdditionalCsvData={getEntitiesTableAdditionalCsvData}
-        endAdornment={
-          <ToggleButtonGroup
-            value={view}
-            exclusive
-            onChange={(_, updatedView) => {
-              if (updatedView) {
-                setView(updatedView);
-              }
-            }}
-            aria-label="view"
-            size="small"
-            sx={{
-              [`.${toggleButtonClasses.root}`]: {
-                backgroundColor: ({ palette }) => palette.common.white,
-                "&:not(:last-of-type)": {
-                  borderRightColor: ({ palette }) => palette.gray[20],
-                  borderRightStyle: "solid",
-                  borderRightWidth: 2,
-                },
-                "&:hover": {
-                  backgroundColor: ({ palette }) => palette.common.white,
-                  svg: {
-                    color: ({ palette }) => palette.gray[80],
-                  },
-                },
-                [`&.${toggleButtonClasses.selected}`]: {
-                  backgroundColor: ({ palette }) => palette.common.white,
-                  svg: {
-                    color: ({ palette }) => palette.gray[90],
-                  },
-                },
-                svg: {
-                  transition: ({ transitions }) => transitions.create("color"),
-                  color: ({ palette }) => palette.gray[50],
-                },
-              },
-            }}
-          >
-            {(
-              [
-                "Table",
-                ...(supportGridView ? (["Grid"] as const) : []),
-                "Graph",
-              ] satisfies EntityTableView[]
-            ).map((viewName) => (
-              <ToggleButton
-                key={viewName}
-                disableRipple
-                value={viewName}
-                aria-label={viewName}
-              >
-                <Tooltip title={`${viewName} view`} placement="top">
-                  <Box sx={{ lineHeight: 0 }}>
-                    {entitiesTableViewIcons[viewName]}
-                  </Box>
-                </Tooltip>
-              </ToggleButton>
-            ))}
-          </ToggleButtonGroup>
-        }
-        filterState={filterState}
-        setFilterState={setFilterState}
-        toggleSearch={view === "Table" ? () => setShowSearch(true) : undefined}
-        onBulkActionCompleted={() => setSelectedRows([])}
-      />
-      {!subgraph ? (
-        <Skeleton sx={{ height: 400 }} />
-      ) : view === "Graph" ? (
-        <EntitiesGraphChart
-          entities={entities}
-          isPrimaryEntity={(entity) =>
-            entityTypeBaseUrl
-              ? extractBaseUrl(entity.metadata.entityTypeId) ===
-                entityTypeBaseUrl
-              : entityTypeId
-                ? entityTypeId === entity.metadata.entityTypeId
-                : true
-          }
-          filterEntity={(entity) =>
-            filterState.includeGlobal
-              ? true
-              : internalWebIds.includes(
-                  extractOwnedByIdFromEntityId(
-                    entity.metadata.recordId.entityId,
-                  ),
-                )
-          }
-          onEntityClick={handleEntityClick}
-          sx={{
-            background: ({ palette }) => palette.common.white,
-            height: `calc(100vh - (${
-              HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 179 + tableHeaderHeight
-            }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`,
-            borderBottomRightRadius: 6,
-            borderBottomLeftRadius: 6,
-          }}
-          subgraphWithTypes={subgraph}
+    <>
+      {selectedEntityTypeId && (
+        <TypeSlideOverStack
+          rootTypeId={selectedEntityTypeId}
+          onClose={() => setSelectedEntityTypeId(null)}
         />
-      ) : view === "Grid" ? (
-        <GridView entities={entities} />
-      ) : (
-        <Grid
-          showSearch={showSearch}
-          onSearchClose={() => setShowSearch(false)}
-          columns={columns}
-          columnFilters={columnFilters}
-          dataLoading={loading}
-          rows={rows}
-          enableCheckboxSelection
-          selectedRows={selectedRows}
-          onSelectedRowsChange={(updatedSelectedRows) =>
-            setSelectedRows(updatedSelectedRows)
+      )}
+      {selectedEntitySubgraph ? (
+        <EditEntitySlideOver
+          open
+          entitySubgraph={selectedEntitySubgraph}
+          onClose={() => setSelectedEntitySubgraph(null)}
+          readonly
+          onSubmit={() => {
+            throw new Error(`Editing not yet supported from this screen`);
+          }}
+        />
+      ) : null}
+      <Box>
+        <TableHeader
+          internalWebIds={internalWebIds}
+          itemLabelPlural={isViewingPages ? "pages" : "entities"}
+          items={entities}
+          selectedItems={
+            entities?.filter((entity) =>
+              selectedRows.some(
+                ({ entityId }) =>
+                  entity.metadata.recordId.entityId === entityId,
+              ),
+            ) ?? []
           }
-          firstColumnLeftPadding={16}
-          height={`
+          title="Entities"
+          columns={columns}
+          currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+          getAdditionalCsvData={getEntitiesTableAdditionalCsvData}
+          endAdornment={
+            <ToggleButtonGroup
+              value={view}
+              exclusive
+              onChange={(_, updatedView) => {
+                if (updatedView) {
+                  setView(updatedView);
+                }
+              }}
+              aria-label="view"
+              size="small"
+              sx={{
+                [`.${toggleButtonClasses.root}`]: {
+                  backgroundColor: ({ palette }) => palette.common.white,
+                  "&:not(:last-of-type)": {
+                    borderRightColor: ({ palette }) => palette.gray[20],
+                    borderRightStyle: "solid",
+                    borderRightWidth: 2,
+                  },
+                  "&:hover": {
+                    backgroundColor: ({ palette }) => palette.common.white,
+                    svg: {
+                      color: ({ palette }) => palette.gray[80],
+                    },
+                  },
+                  [`&.${toggleButtonClasses.selected}`]: {
+                    backgroundColor: ({ palette }) => palette.common.white,
+                    svg: {
+                      color: ({ palette }) => palette.gray[90],
+                    },
+                  },
+                  svg: {
+                    transition: ({ transitions }) =>
+                      transitions.create("color"),
+                    color: ({ palette }) => palette.gray[50],
+                  },
+                },
+              }}
+            >
+              {(
+                [
+                  "Table",
+                  ...(supportGridView ? (["Grid"] as const) : []),
+                  "Graph",
+                ] satisfies EntityTableView[]
+              ).map((viewName) => (
+                <ToggleButton
+                  key={viewName}
+                  disableRipple
+                  value={viewName}
+                  aria-label={viewName}
+                >
+                  <Tooltip title={`${viewName} view`} placement="top">
+                    <Box sx={{ lineHeight: 0 }}>
+                      {entitiesTableViewIcons[viewName]}
+                    </Box>
+                  </Tooltip>
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+          }
+          filterState={filterState}
+          setFilterState={setFilterState}
+          toggleSearch={
+            view === "Table" ? () => setShowSearch(true) : undefined
+          }
+          onBulkActionCompleted={() => setSelectedRows([])}
+        />
+        {view === "Graph" && subgraph ? (
+          <EntitiesGraphChart
+            entities={entities}
+            isPrimaryEntity={(entity) =>
+              entityTypeBaseUrl
+                ? extractBaseUrl(entity.metadata.entityTypeId) ===
+                  entityTypeBaseUrl
+                : entityTypeId
+                  ? entityTypeId === entity.metadata.entityTypeId
+                  : true
+            }
+            filterEntity={(entity) =>
+              filterState.includeGlobal
+                ? true
+                : internalWebIds.includes(
+                    extractOwnedByIdFromEntityId(
+                      entity.metadata.recordId.entityId,
+                    ),
+                  )
+            }
+            onEntityClick={handleEntityClick}
+            sx={{
+              background: ({ palette }) => palette.common.white,
+              height: `calc(100vh - (${
+                HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 179 + tableHeaderHeight
+              }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`,
+              borderBottomRightRadius: 6,
+              borderBottomLeftRadius: 6,
+            }}
+            subgraphWithTypes={subgraph}
+          />
+        ) : view === "Grid" ? (
+          <GridView entities={entities} />
+        ) : (
+          <Grid
+            showSearch={showSearch}
+            onSearchClose={() => setShowSearch(false)}
+            columns={columns}
+            columnFilters={columnFilters}
+            dataLoading={loading}
+            rows={rows}
+            enableCheckboxSelection
+            selectedRows={selectedRows}
+            onSelectedRowsChange={(updatedSelectedRows) =>
+              setSelectedRows(updatedSelectedRows)
+            }
+            firstColumnLeftPadding={16}
+            height={`
                min(
                  calc(100vh - (${
                    HEADER_HEIGHT +
@@ -702,15 +741,16 @@ export const EntitiesTable: FunctionComponent<{
                  (${rows ? rows.length : 1} * ${gridRowHeight}px) +
                  ${gridHorizontalScrollbarHeight}px)
                )`}
-          createGetCellContent={createGetCellContent}
-          customRenderers={[
-            createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
-            renderChipCell,
-          ]}
-          freezeColumns={1}
-          currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-        />
-      )}
-    </Box>
+            createGetCellContent={createGetCellContent}
+            customRenderers={[
+              createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
+              renderChipCell,
+            ]}
+            freezeColumns={1}
+            currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+          />
+        )}
+      </Box>
+    </>
   );
 };
