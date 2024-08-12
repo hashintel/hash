@@ -134,7 +134,10 @@ export const EntitiesTable: FunctionComponent<{
       /**
        * Otherwise we check the fetched `entityTypes` as a fallback.
        */
-      entityTypes?.every(({ $id }) => isSpecialEntityTypeLookup?.[$id]?.isFile),
+      (entityTypes?.length &&
+        entityTypes.every(
+          ({ $id }) => isSpecialEntityTypeLookup?.[$id]?.isFile,
+        )),
     [entityTypeBaseUrl, entityTypeId, entityTypes, isSpecialEntityTypeLookup],
   );
 
@@ -180,7 +183,8 @@ export const EntitiesTable: FunctionComponent<{
 
   const isViewingPages = useMemo(
     () =>
-      entities?.every(({ metadata }) =>
+      !!entities?.length &&
+      entities.every(({ metadata }) =>
         isPageEntityTypeId(metadata.entityTypeId),
       ),
     [entities],
@@ -738,7 +742,7 @@ export const EntitiesTable: FunctionComponent<{
                  }px + ${theme.spacing(5)} + ${theme.spacing(5)})),
                 calc(
                  ${gridHeaderHeightWithBorder}px +
-                 (${rows ? rows.length : 1} * ${gridRowHeight}px) +
+                 (${rows?.length ? rows.length : 1} * ${gridRowHeight}px) +
                  ${gridHorizontalScrollbarHeight}px)
                )`}
             createGetCellContent={createGetCellContent}
