@@ -87,7 +87,7 @@
     "terser-webpack-plugin": "5.3.6",
     "ts-loader": "9.4.2",
     "tsconfig-paths-webpack-plugin": "4.1.0",
-    "type-fest": "3.5.2",
+    "type-fest": "3.13.1",
     "typescript": "5.5.4",
     "webpack": "5.90.3",
     "webpack-cli": "4.10.0",
