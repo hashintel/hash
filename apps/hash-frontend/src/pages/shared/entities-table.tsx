@@ -296,7 +296,7 @@ export const EntitiesTable: FunctionComponent<{
                 onClick: () => {
                   if (isViewingPages) {
                     void router.push(
-                      `/${row.namespace}/${extractEntityUuidFromEntityId(
+                      `/${row.web}/${extractEntityUuidFromEntityId(
                         row.entityId,
                       )}`,
                     );
@@ -306,7 +306,7 @@ export const EntitiesTable: FunctionComponent<{
                 },
               },
             };
-          } else if (["namespace", "entityTypeVersion"].includes(columnId)) {
+          } else if (["web", "entityTypeVersion"].includes(columnId)) {
             const cellValue = row[columnId];
             const stringValue = String(cellValue);
 
@@ -321,7 +321,7 @@ export const EntitiesTable: FunctionComponent<{
                 icon: null,
                 value: stringValue,
                 onClick: () => {
-                  if (columnId === "namespace") {
+                  if (columnId === "web") {
                     void router.push(`/${cellValue}`);
                   } else {
                     setSelectedEntityTypeId(row.entityTypeId);
@@ -409,21 +409,19 @@ export const EntitiesTable: FunctionComponent<{
 
   const theme = useTheme();
 
-  const namespaces = useMemo(
+  const webs = useMemo(
     () =>
       rows
-        ?.map(({ namespace }) => namespace)
-        .filter((namespace, index, all) => all.indexOf(namespace) === index) ??
-      [],
+        ?.map(({ web }) => web)
+        .filter((web, index, all) => all.indexOf(web) === index) ?? [],
     [rows],
   );
 
-  const [selectedNamespaces, setSelectedNamespaces] =
-    useState<string[]>(namespaces);
+  const [selectedWebs, setSelectedWebs] = useState<string[]>(webs);
 
   useEffect(() => {
-    setSelectedNamespaces(namespaces);
-  }, [namespaces]);
+    setSelectedWebs(webs);
+  }, [webs]);
 
   const sortRows = useCallback<
     NonNullable<GridProps<TypeEntitiesRow>["sortRows"]>
@@ -533,14 +531,14 @@ export const EntitiesTable: FunctionComponent<{
   const columnFilters = useMemo<ColumnFilter<string, TypeEntitiesRow>[]>(
     () => [
       {
-        columnKey: "namespace",
-        filterItems: namespaces.map((namespace) => ({
-          id: namespace,
-          label: namespace,
+        columnKey: "web",
+        filterItems: webs.map((web) => ({
+          id: web,
+          label: web,
         })),
-        selectedFilterItemIds: selectedNamespaces,
-        setSelectedFilterItemIds: setSelectedNamespaces,
-        isRowFiltered: (row) => !selectedNamespaces.includes(row.namespace),
+        selectedFilterItemIds: selectedWebs,
+        setSelectedFilterItemIds: setSelectedWebs,
+        isRowFiltered: (row) => !selectedWebs.includes(row.web),
       },
       {
         columnKey: "entityTypeVersion",
@@ -606,8 +604,8 @@ export const EntitiesTable: FunctionComponent<{
     ],
     [
       createdByActors,
-      namespaces,
-      selectedNamespaces,
+      webs,
+      selectedWebs,
       entityTypeVersions,
       selectedEntityTypeVersions,
       lastEditedByActors,

@@ -29,12 +29,12 @@ export interface TypeEntitiesRow {
   entityLabel: string;
   entityTypeId: VersionedUrl;
   entityTypeVersion: string;
-  namespace: string;
   archived?: boolean;
   lastEdited: string;
   lastEditedBy?: MinimalActor;
   created: string;
   createdBy?: MinimalActor;
+  web: string;
   properties?: {
     [k: string]: string;
   };
@@ -126,9 +126,9 @@ export const useEntitiesTable = (params: {
             },
           ]),
       {
-        title: "Namespace",
-        id: "namespace",
-        width: 250,
+        title: "Web",
+        id: "web",
+        width: 200,
       },
       ...(isViewingPages && !hidePageArchivedColumn
         ? [
@@ -225,7 +225,7 @@ export const useEntitiesTable = (params: {
               entityLabel,
               entityTypeId: entityType.$id,
               entityTypeVersion: `${entityType.title} v${extractVersion(entityType.$id)}`,
-              namespace: `@${entityNamespace}`,
+              web: `@${entityNamespace}`,
               archived: isPage
                 ? simplifyProperties(entity.properties as PageProperties)
                     .archived
