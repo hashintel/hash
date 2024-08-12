@@ -512,7 +512,7 @@ export const Grid = <T extends Row & { rowId: string }>({
         drawHeader={drawHeader ?? defaultDrawHeader}
         onHeaderClicked={handleHeaderClicked}
         getCellContent={
-          sortedAndFilteredRows
+          sortedAndFilteredRows?.length
             ? createGetCellContent(sortedAndFilteredRows)
             : getSkeletonCellContent
         }
@@ -521,7 +521,7 @@ export const Grid = <T extends Row & { rowId: string }>({
             ? createOnCellEdited?.(sortedAndFilteredRows)
             : undefined
         }
-        rows={sortedAndFilteredRows ? sortedAndFilteredRows.length : 1}
+        rows={sortedAndFilteredRows?.length ? sortedAndFilteredRows.length : 1}
         maxColumnWidth={1000}
         verticalBorder={
           typeof rest.verticalBorder === "undefined"
