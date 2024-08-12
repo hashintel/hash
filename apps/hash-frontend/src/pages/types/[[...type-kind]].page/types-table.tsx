@@ -352,11 +352,19 @@ export const TypesTable: FunctionComponent<{
               : typeNamespaceFromTypeId(row.typeId);
 
             return {
-              kind: GridCellKind.Text,
-              readonly: true,
+              kind: GridCellKind.Custom,
               allowOverlay: false,
-              displayData: String(value),
-              data: value,
+              readonly: true,
+              cursor: "pointer",
+              copyData: value,
+              data: {
+                kind: "text-icon-cell",
+                icon: null,
+                value,
+                onClick: () => {
+                  void router.push(`/${value}`);
+                },
+              },
             };
           }
           case "archived": {
