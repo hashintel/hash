@@ -56,7 +56,7 @@
     "remark-gfm": "3.0.1",
     "remark-mdx": "2.1.2",
     "remark-mdx-disable-explicit-jsx": "0.1.0",
-    "remark-parse": "10.0.1",
+    "remark-parse": "10.0.2",
     "sharp": "0.32.6",
     "slugify": "1.6.5",
     "typescript": "5.5.4",
