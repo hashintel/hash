@@ -443,6 +443,7 @@ export type StartedLinkExplorerTaskLog = WorkerProgressLogBase & {
   explanation: string;
   input: {
     goal: string;
+    initialUrl: string;
   };
   type: "StartedLinkExplorerTask";
 };

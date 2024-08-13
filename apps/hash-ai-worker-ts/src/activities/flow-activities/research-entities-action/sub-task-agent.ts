@@ -712,6 +712,7 @@ export const runSubTaskAgent = async (params: {
                         type: "StartedLinkExplorerTask",
                         input: {
                           goal: prompt,
+                          initialUrl: url,
                         },
                         explanation: reason,
                         ...linkFollowerIdentifiers,

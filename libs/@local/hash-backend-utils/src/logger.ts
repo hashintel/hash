@@ -27,22 +27,26 @@ const getDefaultLoggerLevel = () => {
 /**
  * In some places we want to prefix a console log with a specific string,
  * without having this pollute the structured log when it's recorded elsewhere.
+ * This function takes the consolePrefix (if it exists) and prepends the message with it for the console transport.
+ * A corresponding format is used to remove the consolePrefix from the message in the Http transport.
  */
-const prependConsolePrefix = format(({ message, ...restInfo }) => {
-  if (typeof message === "string") {
-    return { message, ...restInfo };
-  }
+const prependConsolePrefix = format(
+  (original: winston.Logform.TransformableInfo & { message: unknown }) => {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const { message, ...metadata } = original;
 
-  const { consolePrefix, ...restOfLog } = message as Record<string, string>;
+    const { consolePrefix, ...restMetadata } = metadata;
 
-  return {
-    ...restInfo,
-    message: {
-      ...restOfLog,
-      message: `${consolePrefix ?? ""}${restOfLog.message}`,
-    },
-  };
-});
+    if (!consolePrefix) {
+      return original;
+    }
+
+    return {
+      message: `${consolePrefix} ${typeof message === "string" ? message : JSON.stringify(message)}`,
+      ...restMetadata,
+    };
+  },
+);
 
 export class Logger {
   silly: LeveledLogMethod;
@@ -75,8 +79,8 @@ export class Logger {
           level: cfg.level,
           format: winston.format.combine(
             winston.format.timestamp(),
-            winston.format.json(),
             prependConsolePrefix(),
+            winston.format.json(),
             winston.format.colorize(),
             winston.format.simple(),
           ),
@@ -88,8 +92,8 @@ export class Logger {
           level,
           format: winston.format.combine(
             winston.format.timestamp(),
-            winston.format.json(),
             prependConsolePrefix(),
+            winston.format.json(),
             winston.format.simple(),
           ),
         }),

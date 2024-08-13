@@ -24,23 +24,24 @@ const log = (
 
   let logObject: object;
   try {
-    const parsedLogObject = JSON.parse(message) as unknown;
+    const parsedLogMessage = JSON.parse(message) as unknown;
 
     if (
-      typeof parsedLogObject !== "object" ||
-      Array.isArray(parsedLogObject) ||
-      parsedLogObject === null
+      typeof parsedLogMessage !== "object" ||
+      Array.isArray(parsedLogMessage) ||
+      parsedLogMessage === null
     ) {
       // not a JSON object
       logObject = {
         consolePrefix,
         message,
       };
+    } else {
+      logObject = {
+        consolePrefix,
+        message: parsedLogMessage,
+      };
     }
-    logObject = {
-      consolePrefix,
-      ...(parsedLogObject as object),
-    };
   } catch {
     // not valid JSON
     logObject = {
@@ -49,7 +50,7 @@ const log = (
     };
   }
 
-  const logMessage = JSON.stringify(logObject);
+  const stringifiedMessage = JSON.stringify(logObject);
   const logFolderPath = path.join(__dirname, "logs");
 
   if (["test", "development"].includes(process.env.NODE_ENV ?? "")) {
@@ -57,14 +58,14 @@ const log = (
       fs.mkdirSync(logFolderPath);
     }
     const logFilePath = path.join(logFolderPath, `${requestId}.log`);
-    fs.appendFileSync(logFilePath, `${logMessage}\n`);
+    fs.appendFileSync(logFilePath, `${stringifiedMessage}\n`);
   }
 
   if (process.env.NODE_ENV === "test") {
     // eslint-disable-next-line no-console
-    console.log(logMessage);
+    console.log(stringifiedMessage);
   } else {
-    logToConsole[level](logMessage);
+    logToConsole[level](logObject);
   }
 };
 
