@@ -156,6 +156,7 @@ const getFlowRunDetailedFields = async ({
     nextPageToken = response.nextPageToken;
 
     events.push(...(response.history?.events ?? []));
+
     /**
      * nextPageToken should be null if there are no more pages, but it's actually an empty Array
      */
@@ -206,8 +207,6 @@ const getFlowRunDetailedFields = async ({
     "FAILED",
   ].includes(workflow.status.name);
 
-  let cancelEventTime: string | null = null;
-
   if (events.length) {
     /*
      * Walk backwards from the most recent event until we have populated the latest state data for each step
@@ -216,23 +215,6 @@ const getFlowRunDetailedFields = async ({
       const event = events[i];
       if (!event) {
         throw new Error("Somehow out of bounds for events array");
-      }
-
-      if (
-        event.eventType ===
-        proto.temporal.api.enums.v1.EventType.EVENT_TYPE_WORKFLOW_TASK_FAILED
-      ) {
-        if (
-          event.workflowTaskFailedEventAttributes?.cause ===
-          proto.temporal.api.enums.v1.WorkflowTaskFailedCause
-            .WORKFLOW_TASK_FAILED_CAUSE_RESET_WORKFLOW
-        ) {
-          /**
-           * The workflow was reset at this point, so we shouldn't process any events registered prior to the reset.
-           */
-          cancelEventTime = eventTimeIsoStringFromEvent(event)!;
-          continue;
-        }
       }
 
       const signalName =
@@ -244,13 +226,6 @@ const getFlowRunDetailedFields = async ({
           throw new Error(
             `No eventTime on checkpoint signal event ${event.eventId?.toInt()}`,
           );
-        }
-
-        if (cancelEventTime && time > cancelEventTime) {
-          /**
-           * Don't include progress logs that appeared prior to the cancellation time
-           */
-          continue;
         }
 
         switch (signalName as FlowSignalType) {

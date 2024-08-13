@@ -294,18 +294,22 @@ export const researchEntitiesAction: FlowActionActivity<{
 
   const { flowEntityId, stepId, webId } = await getFlowContext();
 
-  logProgress([
-    {
-      type: "StartedCoordinator",
-      attempt: Context.current().info.attempt,
-      input: {
-        goal: input.prompt,
+  const stateAtResetCheckpoint = await getCheckpoint();
+
+  if (!stateAtResetCheckpoint) {
+    logProgress([
+      {
+        type: "StartedCoordinator",
+        attempt: Context.current().info.attempt,
+        input: {
+          goal: input.prompt,
+        },
+        recordedAt: new Date().toISOString(),
+        stepId,
+        ...workerIdentifiers,
       },
-      recordedAt: new Date().toISOString(),
-      stepId,
-      ...workerIdentifiers,
-    },
-  ]);
+    ]);
+  }
 
   const providedFileEntities = await getProvidedFiles();
 
@@ -326,10 +330,8 @@ export const researchEntitiesAction: FlowActionActivity<{
       };
     });
 
-  const stateBeforeRetry = getCheckpoint();
-
-  if (stateBeforeRetry?.state) {
-    state = stateBeforeRetry.state;
+  if (stateAtResetCheckpoint?.state) {
+    state = stateAtResetCheckpoint.state;
   } else if (testingParams?.resumeFromState) {
     state = testingParams.resumeFromState;
   } else {
@@ -568,6 +570,7 @@ export const researchEntitiesAction: FlowActionActivity<{
                       type: "StartedLinkExplorerTask",
                       input: {
                         goal: prompt,
+                        initialUrl: url,
                       },
                       explanation: reason,
                       ...linkExplorerIdentifiers,
