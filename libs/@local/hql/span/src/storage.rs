@@ -1,3 +1,5 @@
+use orx_concurrent_vec::ConcurrentVec;
+
 use crate::{tree::SpanNode, Span, SpanId};
 
 /// A collection of spans within a single source.
@@ -5,14 +7,17 @@ use crate::{tree::SpanNode, Span, SpanId};
 /// The storage is append-only and does not support the removal or modification of spans.
 /// Once inserted spans are to be considered immutable and can be referred to via their `SpanId`,
 /// which is returned on insertion.
+#[derive(Debug)]
 pub struct SpanStorage<S> {
-    inner: Vec<S>,
+    inner: ConcurrentVec<S>,
 }
 
 impl<S> SpanStorage<S> {
     #[must_use]
-    pub const fn new() -> Self {
-        Self { inner: Vec::new() }
+    pub fn new() -> Self {
+        Self {
+            inner: ConcurrentVec::new(),
+        }
     }
 }
 
@@ -24,18 +29,16 @@ where
         clippy::cast_possible_truncation,
         reason = "The arena is not expected to be larger than u32::MAX + debug assertions"
     )]
-    pub fn insert(&mut self, span: S) -> SpanId {
-        let length = self.inner.len() as u32;
+    pub fn insert(&self, span: S) -> SpanId {
+        const MAX_LEN: usize = u32::MAX as usize;
+
+        let index = self.inner.push(span);
 
         // The `as` here is safe, because if we're at `u32::MAX` elements, the next push would
         // overflow.
-        debug_assert!(length != u32::MAX, "Arena is full");
+        debug_assert!(index <= MAX_LEN, "Arena is full");
 
-        let id = SpanId::new(length);
-
-        self.inner.push(span);
-
-        id
+        SpanId::new(index as u32)
     }
 
     #[must_use]
@@ -84,7 +87,7 @@ where
     }
 }
 
-impl<E> Default for SpanStorage<E> {
+impl<S> Default for SpanStorage<S> {
     fn default() -> Self {
         Self::new()
     }

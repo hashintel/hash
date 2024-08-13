@@ -1,7 +1,0 @@
----
-source: libs/@local/hql/cst/src/expr.rs
-expression: "{\"type\": \"u32\", \"const\": 42, \"sig\": \"() -> Unit\"}"
----
-Err(
-    Error("unknown field `sig`, expected `r#type`", line: 1, column: 49),
-)

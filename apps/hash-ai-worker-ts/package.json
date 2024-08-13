@@ -93,7 +93,7 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@sentry/cli": "2.33.1",
-    "@types/dedent": "0.7.0",
+    "@types/dedent": "0.7.2",
     "@types/dotenv-flow": "3.2.0",
     "@types/jsdom": "21.1.7",
     "@types/lodash.debounce": "4.0.9",
@@ -101,14 +101,14 @@
     "@types/lodash.ismatch": "4.4.9",
     "@types/lodash.pickby": "4.6.0",
     "@types/md5": "2.3.5",
-    "@types/mime-types": "2.1.1",
+    "@types/mime-types": "2.1.4",
     "@types/node": "20.12.3",
     "@types/papaparse": "5.3.14",
     "@types/sanitize-html": "2.11.0",
     "@vitest/coverage-istanbul": "2.0.5",
     "eslint": "8.57.0",
     "rimraf": "6.0.1",
-    "vite-tsconfig-paths": "4.3.2",
+    "vite-tsconfig-paths": "5.0.0",
     "vitest": "2.0.5"
   }
 }
