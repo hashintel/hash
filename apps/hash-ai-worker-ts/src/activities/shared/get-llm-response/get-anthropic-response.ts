@@ -5,6 +5,7 @@ import dedent from "dedent";
 import { backOff } from "exponential-backoff";
 
 import { logger } from "../activity-logger.js";
+import { isActivityCancelled } from "../get-flow-context.js";
 import { stringify } from "../stringify.js";
 import type {
   AnthropicApiProvider,
@@ -355,8 +356,12 @@ export const getAnthropicResponse = async <ToolName extends string>(
       initialProvider,
     });
   } catch (error) {
+    logger.error(
+      `Anthropic API error: ${"message" in (error as Error) ? (error as Error).message : String(error)}`,
+    );
+
     return {
-      status: "api-error",
+      status: isActivityCancelled() ? "aborted" : "api-error",
       provider: initialProvider,
       error,
     };

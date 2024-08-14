@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 
 import { Context } from "@temporalio/activity";
 
-import { logToConsole } from "../../shared/logger.js";
+import { logger as baseLogger } from "../../shared/logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -65,7 +65,7 @@ const log = (
     // eslint-disable-next-line no-console
     console.log(stringifiedMessage);
   } else {
-    logToConsole[level](logObject);
+    baseLogger[level](logObject);
   }
 };
 

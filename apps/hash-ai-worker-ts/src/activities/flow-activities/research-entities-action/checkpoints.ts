@@ -8,9 +8,47 @@ import type {
   ResearchActionCheckpointState,
 } from "../../../shared/signals.js";
 import { researchActionCheckpointSignal } from "../../../shared/signals.js";
+import { logger } from "../../shared/activity-logger.js";
 import { getTemporalClient } from "../../shared/get-flow-context.js";
-import { flushLogs } from "../../shared/log-progress.js";
+import { flushLogs, logProgress } from "../../shared/log-progress.js";
+import type { CoordinatingAgentState } from "./coordinating-agent.js";
 
+/**
+ * Start a frequent heartbeat so that the activity is known to be still going.
+ * Because this is a long-running activity, it needs a long startToCloseTimeout, but we can set a shorter
+ * heartbeatTimeout.
+ *
+ * This is important to ensure that the activity is known to be not running, e.g. if the Temporal worker restarts.
+ * Without a heartbeatTimeout, if the Temporal worker is restarted the workflow will do nothing until the
+ * startToCloseTimeout is reached. With a heartbeatTimeout, if the Temporal worker is restarted the activity will error
+ * out quickly and be restarted.
+ */
+export const heartbeatAndWaitCancellation = async (
+  state: CoordinatingAgentState,
+) => {
+  const heartbeatInterval = setInterval(() => {
+    Context.current().heartbeat({
+      state,
+    } satisfies ResearchActionCheckpointState);
+  }, 5_000);
+
+  return Context.current().cancelled.catch((err) => {
+    logger.error(`Cancellation received: ${err}`);
+    clearInterval(heartbeatInterval);
+    throw err;
+  });
+};
+
+/**
+ * Create a checkpoint from which the activity can be restored.
+ * Temporal's heartbeat feature is only designed for an activity to resume from its last heartbeated state,
+ * e.g. in the case of activity failure and retry, and prior heartbeats are not retrievable.
+ * This stores prior checkpoint state by way of sending a signal so it is discoverable via the event history.
+ *
+ * @todo H-3129: this is only required because so much work is being done in a single long-running activity
+ *   – the better and more idiomatic Temporal solution is to split it up into multiple activities,
+ *     probably with the 'researchEntitiesAction' becoming a child workflow that calls activities (or its own child workflows).
+ */
 export const createCheckpoint = async (
   checkpointData: ResearchActionCheckpointState,
 ) => {
@@ -62,6 +100,13 @@ export const getCheckpoint = async () => {
           "checkpointId" in parsedSignal &&
           parsedSignal.checkpointId === checkpointId
         ) {
+          logProgress([
+            {
+              type: "ResetToCheckpoint",
+              stepId: Context.current().info.activityId,
+              recordedAt: new Date().toISOString(),
+            },
+          ]);
           return parsedSignal.data;
         }
       }

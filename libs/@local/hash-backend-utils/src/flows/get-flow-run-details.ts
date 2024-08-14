@@ -130,7 +130,7 @@ const getFlowRunDetailedFields = async ({
 }: {
   workflowId: string;
   temporalClient: TemporalClient;
-}): Promise<Pick<FlowRun, DetailedFlowField>> => {
+}): Promise<Pick<FlowRun, DetailedFlowField | "startedAt">> => {
   const handle = temporalClient.workflow.getHandle(workflowId);
 
   const workflow = await handle.describe();
@@ -163,14 +163,36 @@ const getFlowRunDetailedFields = async ({
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   } while (nextPageToken?.length);
 
+  const workflowExecutionStartedEventAttributes = events.find(
+    (event) =>
+      event.eventType ===
+      proto.temporal.api.enums.v1.EventType
+        .EVENT_TYPE_WORKFLOW_EXECUTION_STARTED,
+  )?.workflowExecutionStartedEventAttributes;
+
   const workflowInputs = parseHistoryItemPayload(
-    events.find(
-      (event) =>
-        event.eventType ===
-        proto.temporal.api.enums.v1.EventType
-          .EVENT_TYPE_WORKFLOW_EXECUTION_STARTED,
-    )?.workflowExecutionStartedEventAttributes?.input,
+    workflowExecutionStartedEventAttributes?.input,
   ) as FlowInputs | undefined;
+
+  /**
+   * If this workflow run has been started after the original was reset or 'continue-as-new'd,
+   * its start time will be the point at which it was reset/continued.
+   * We can check if it has a different firstExecutionRunId and if so, get the start time of the original run.
+   */
+  let workflowStartedAt = workflow.startTime;
+  const firstExecutionRunId =
+    workflowExecutionStartedEventAttributes?.firstExecutionRunId;
+
+  if (firstExecutionRunId && firstExecutionRunId !== workflow.runId) {
+    const originalRunHandle = temporalClient.workflow.getHandle(
+      workflowId,
+      firstExecutionRunId,
+    );
+
+    const originalRun = await originalRunHandle.describe();
+
+    workflowStartedAt = originalRun.startTime;
+  }
 
   const workflowOutputs = parseHistoryItemPayload(
     events.find(
@@ -572,6 +594,7 @@ const getFlowRunDetailedFields = async ({
     outputs: workflowOutputs,
     inputRequests: Object.values(inputRequestsById),
     steps: Object.values(stepMap),
+    startedAt: workflowStartedAt.toISOString(),
   };
 };
 

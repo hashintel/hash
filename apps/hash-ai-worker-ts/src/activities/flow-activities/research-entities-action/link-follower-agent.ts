@@ -561,13 +561,23 @@ export const linkFollowerAgent = async (params: {
           index,
     );
 
-    const { nextToolCall } = await getLinkFollowerNextToolCalls({
+    const toolCallResponse = await getLinkFollowerNextToolCalls({
       task,
       entitySummaries: allInferredEntitySummaries,
       claimsGathered: allInferredClaims,
       previouslyVisitedLinks,
       possibleNextLinks,
     });
+
+    if (toolCallResponse.status === "aborted") {
+      /**
+       * The flow has been cancelled or otherwise closed
+       * – we just need the activity functions to end, there is no workflow to do anything with their returns.
+       */
+      break;
+    }
+
+    const { nextToolCall } = toolCallResponse;
 
     if (nextToolCall.name === "exploreLinks") {
       const { links } = nextToolCall.input;

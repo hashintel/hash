@@ -496,6 +496,10 @@ export type ActivityFailedLog = ProgressLogBase & {
   type: "ActivityFailed";
 };
 
+export type ResetToCheckpointLog = ProgressLogBase & {
+  type: "ResetToCheckpoint";
+};
+
 export type CheckpointLog = ProgressLogBase & {
   type: "ResearchActionCheckpoint";
   checkpointId: string;
@@ -513,6 +517,7 @@ export type StepProgressLog =
   | PersistedEntityLog
   | ProposedEntityLog
   | QueriedWebLog
+  | ResetToCheckpointLog
   | StartedCoordinatorLog
   | StartedLinkExplorerTaskLog
   | StartedSubTaskLog

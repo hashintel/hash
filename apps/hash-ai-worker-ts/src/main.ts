@@ -26,7 +26,7 @@ import { TsconfigPathsPlugin } from "tsconfig-paths-webpack-plugin";
 
 import { createAiActivities, createGraphActivities } from "./activities.js";
 import { createFlowActivities } from "./activities/flow-activities.js";
-import { logToConsole } from "./shared/logger.js";
+import { logger } from "./shared/logger.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -97,26 +97,26 @@ const workflowOptions: Partial<WorkerOptions> =
       };
 
 async function run() {
-  logToConsole.info("Starting AI worker...");
+  logger.info("Starting AI worker...");
 
-  const graphApiClient = createGraphClient(logToConsole, {
+  const graphApiClient = createGraphClient(logger, {
     host: getRequiredEnv("HASH_GRAPH_API_HOST"),
     port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),
   });
 
-  logToConsole.info("Created Graph client");
+  logger.info("Created Graph client");
 
   const vaultClient = createVaultClient();
   if (!vaultClient) {
     throw new Error("Vault client not created");
   }
 
-  logToConsole.info("Created Vault client");
+  logger.info("Created Vault client");
 
   const connection = await NativeConnection.connect({
     address: `${TEMPORAL_HOST}:${TEMPORAL_PORT}`,
   });
-  logToConsole.info("Created Temporal connection");
+  logger.info("Created Temporal connection");
 
   const worker = await Worker.create({
     ...workflowOptions,
@@ -147,21 +147,21 @@ async function run() {
   const port = 4100;
   httpServer.listen({ host: "::", port });
 
-  logToConsole.info(`HTTP server listening on port ${port}`);
+  logger.info(`HTTP server listening on port ${port}`);
 
   await worker.run();
 }
 
 process.on("SIGINT", () => {
-  logToConsole.info("Received SIGINT, exiting...");
+  logger.info("Received SIGINT, exiting...");
   process.exit(1);
 });
 process.on("SIGTERM", () => {
-  logToConsole.info("Received SIGTERM, exiting...");
+  logger.info("Received SIGTERM, exiting...");
   process.exit(1);
 });
 
 run().catch((err) => {
-  logToConsole.error(`Error running worker: ${err}`);
+  logger.error(`Error running worker: ${err}`);
   process.exit(1);
 });

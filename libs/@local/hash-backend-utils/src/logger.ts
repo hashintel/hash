@@ -33,7 +33,7 @@ const getDefaultLoggerLevel = () => {
 const prependConsolePrefix = format(
   (original: winston.Logform.TransformableInfo & { message: unknown }) => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const { message, ...metadata } = original;
+    const { message: fullMessage, ...metadata } = original;
 
     const { consolePrefix, ...restMetadata } = metadata;
 
@@ -41,8 +41,19 @@ const prependConsolePrefix = format(
       return original;
     }
 
+    let message: string;
+    if (typeof fullMessage === "string") {
+      message = fullMessage;
+    } else {
+      /**
+       * @todo move the option to remove the request field to the calling function
+       */
+      const { request: _, ...restMessage } = fullMessage;
+      message = JSON.stringify(restMessage);
+    }
+
     return {
-      message: `${consolePrefix} ${typeof message === "string" ? message : JSON.stringify(message)}`,
+      message: `${consolePrefix} ${message}`,
       ...restMetadata,
     };
   },

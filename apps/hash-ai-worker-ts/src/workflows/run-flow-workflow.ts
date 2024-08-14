@@ -134,9 +134,13 @@ const doesFlowStepHaveSatisfiedDependencies = (params: {
   }
 };
 
-const proxyFlowActivity = <
-  ActionId extends keyof ReturnType<typeof createFlowActivities>,
->(params: {
+type FlowActivityId = keyof ReturnType<typeof createFlowActivities>;
+
+const activitiesHandlingCancellation: FlowActivityId[] = [
+  "researchEntitiesAction",
+];
+
+const proxyFlowActivity = <ActionId extends FlowActivityId>(params: {
   actionId: ActionId;
   maximumAttempts: number;
   activityId: string;
@@ -146,15 +150,19 @@ const proxyFlowActivity = <
   const { [actionId]: action } = proxyActivities<
     ReturnType<typeof createFlowActivities>
   >({
-    /** @todo H-2545 switch to WAIT_CANCELLATION_COMPLETED and handle cancellation cleanup in activities */
-    cancellationType: ActivityCancellationType.TRY_CANCEL,
+    cancellationType: activitiesHandlingCancellation.includes(actionId)
+      ? ActivityCancellationType.WAIT_CANCELLATION_COMPLETED
+      : ActivityCancellationType.ABANDON,
     /**
      * @todo H-2575 – decide what to do about timeouts, in light of potentially having to wait for user input
      *    – ideally we'd be able to wait on the workflow level, so that it's put to sleep until the response is
      *   received, but this requires refactoring the research task such that all tool calls are activities.
      * @see https://docs.temporal.io/dev-guide/typescript/features#asynchronous-design-patterns
      */
-    startToCloseTimeout: "14400 second", // 4 hours
+    startToCloseTimeout: "14400 second",
+    heartbeatTimeout: activitiesHandlingCancellation.includes(actionId)
+      ? "10 second"
+      : undefined,
     retry: { maximumAttempts },
     activityId,
   });

@@ -10,7 +10,10 @@ import dedent from "dedent";
 import { getAiAssistantAccountIdActivity } from "../../../get-ai-assistant-account-id-activity.js";
 import { logger } from "../../../shared/activity-logger.js";
 import type { DereferencedEntityType } from "../../../shared/dereference-entity-type.js";
-import { getFlowContext } from "../../../shared/get-flow-context.js";
+import {
+  getFlowContext,
+  isActivityCancelled,
+} from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
 import type {
   LlmMessage,
@@ -273,6 +276,13 @@ export const inferEntityClaimsFromTextAgent = async (params: {
     retryCount: number;
   };
 }): Promise<{ claims: Claim[] }> => {
+  if (isActivityCancelled()) {
+    /**
+     * In case we've
+     */
+    return { claims: [] };
+  }
+
   const {
     subjectEntities,
     potentialObjectEntities,
@@ -518,6 +528,13 @@ export const inferEntityClaimsFromTextAgent = async (params: {
           sources,
         };
 
+        if (isActivityCancelled()) {
+          /**
+           * Check if the activity has been cancelled before creating any claim entities.
+           */
+          return { claims: [] };
+        }
+
         /**
          * @todo H-3162: when we pass existing entities to Flows, we can link them directly to the claim here
          */
@@ -613,7 +630,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
 
   /** @todo: check if there are subject entities for which no claims have been provided */
 
-  if (invalidClaims.length > 0) {
+  if (invalidClaims.length > 0 && !isActivityCancelled()) {
     const toolCallResponses = toolCalls.map<LlmMessageToolResultContent>(
       (toolCall) => {
         const invalidClaimsProvidedInToolCall = invalidClaims.filter(

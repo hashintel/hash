@@ -37,7 +37,6 @@ import { resetFlowMutation } from "../../../../graphql/queries/knowledge/flow.qu
 import { CircleInfoIcon } from "../../../../shared/icons/circle-info-icon";
 import { Link } from "../../../../shared/ui/link";
 import { useFlowRunsContext } from "../../../shared/flow-runs-context";
-import { GrayToBlueIconButton } from "../../../shared/gray-to-blue-icon-button";
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
@@ -114,6 +113,7 @@ const startedLinkExplorerTaskPrefix = "Started link explorer task with goal ";
 const closedLinkExplorerTaskPrefix = "Finished link explorer task with ";
 const activityFailedPrefix = "Activity failed: ";
 const checkpointPrefix = "Checkpoint recorded";
+const checkpointResetMessage = "Flow resumed from checkpoint";
 
 const getRawTextFromLog = (log: LocalProgressLog): string => {
   switch (log.type) {
@@ -171,6 +171,9 @@ const getRawTextFromLog = (log: LocalProgressLog): string => {
     case "ResearchActionCheckpoint": {
       return checkpointPrefix;
     }
+    case "ResetToCheckpoint": {
+      return checkpointResetMessage;
+    }
   }
 };
 
@@ -220,11 +223,17 @@ const Checkpoint = ({ log }: { log: CheckpointLog }) => {
   };
 
   return (
-    <Stack direction="row" alignItems="center" gap={1}>
+    <Stack direction="row" alignItems="center" gap={0.5}>
       {checkpointPrefix}
-      <GrayToBlueIconButton disabled={isResetting} onClick={triggerReset}>
-        <RotateIconRegular sx={{ width: 13, height: 13 }} />
-      </GrayToBlueIconButton>
+      {!selectedFlowRun.closedAt && (
+        <IconButton
+          disabled={isResetting}
+          onClick={triggerReset}
+          sx={{ p: 0.6, borderRadius: "50%" }}
+        >
+          <RotateIconRegular sx={{ width: 13, height: 13 }} />
+        </IconButton>
+      )}
     </Stack>
   );
 };
@@ -401,6 +410,18 @@ const LogDetail = ({
     }
     case "ResearchActionCheckpoint": {
       return <Checkpoint log={log} />;
+    }
+    case "ResetToCheckpoint": {
+      return (
+        <Box
+          component="span"
+          sx={{
+            color: ({ palette }) => palette.orange[60],
+          }}
+        >
+          {checkpointResetMessage}
+        </Box>
+      );
     }
   }
 };
