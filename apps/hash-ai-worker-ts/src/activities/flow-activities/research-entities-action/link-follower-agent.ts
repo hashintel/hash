@@ -324,9 +324,9 @@ const exploreResource = async (params: {
   });
 
   logger.debug(
-    `Extracted relevant links from the content of the resource with URL ${
+    `Extracted relevant ${relevantLinksFromContent.length} links from the content of the resource with URL ${
       resource.url
-    }: ${stringify(relevantLinksFromContent)}`,
+    }`,
   );
 
   const dereferencedEntityTypesById = {

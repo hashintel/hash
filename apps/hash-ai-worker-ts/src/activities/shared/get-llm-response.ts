@@ -101,7 +101,7 @@ export const getLlmResponse = async <T extends LlmParams>(
   const { flowEntityId, stepId } = await getFlowContext();
 
   const { taskName } = customMetadata ?? {};
-  let debugMessage = `Getting LLM response for model ${llmParams.model}`;
+  let debugMessage = `[LLM Request ${requestId}] Getting response for model ${llmParams.model}`;
   if (taskName) {
     debugMessage += ` for task ${taskName}`;
   }
@@ -126,7 +126,9 @@ export const getLlmResponse = async <T extends LlmParams>(
 
   const numberOfSeconds = (timeAfterApiCall - timeBeforeApiCall) / 1000;
 
-  logger.debug(`LLM API call time: ${numberOfSeconds} seconds`);
+  logger.debug(
+    `[LLM Request ${requestId}]: Total call time including retries: ${numberOfSeconds} seconds`,
+  );
 
   /**
    * Capture incurred usage in a usage record.

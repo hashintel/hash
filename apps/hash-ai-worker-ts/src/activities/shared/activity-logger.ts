@@ -30,7 +30,14 @@ const log = (
   let logObject: {
     consolePrefix: string;
     message: string | object;
+    workflowExecution: {
+      workflowId: string;
+      runId: string;
+    };
   };
+
+  const workflowExecution = Context.current().info.workflowExecution;
+
   try {
     const parsedLogMessage = JSON.parse(message) as unknown;
 
@@ -43,11 +50,13 @@ const log = (
       logObject = {
         consolePrefix,
         message,
+        workflowExecution,
       };
     } else {
       logObject = {
         consolePrefix,
         message: parsedLogMessage,
+        workflowExecution,
       };
     }
   } catch {
@@ -55,6 +64,7 @@ const log = (
     logObject = {
       consolePrefix,
       message,
+      workflowExecution,
     };
   }
 

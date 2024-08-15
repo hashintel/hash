@@ -129,11 +129,7 @@ export const proposeEntitiesFromClaims = async (params: {
         return someClaimIncludesTargetEntityAsObject && entityIsValidTarget;
       });
 
-      logger.debug(
-        `Proposing "${entitySummary.name}" entity with claims: ${stringify(
-          claimsWithEntityAsSubject,
-        )}`,
-      );
+      logger.debug(`Proposing "${entitySummary.name}" entity with claims`);
 
       /**
        * @todo: consider batching requests made to the LLM so we propose multiple entities

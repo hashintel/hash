@@ -1016,7 +1016,7 @@ const execResearchEntitiesAction: FlowActionActivity<{
    * - pass them to future steps
    */
   const _submittedEntities = getSubmittedEntities();
-  logger.debug(`Submitted Entities: ${stringify(_submittedEntities)}`);
+  logger.debug(`Submitted ${_submittedEntities.length} entities`);
 
   const allProposedEntities = state.proposedEntities;
 

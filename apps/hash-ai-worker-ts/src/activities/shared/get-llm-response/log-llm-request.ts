@@ -39,6 +39,7 @@ export const logLlmServerError = (log: LlmServerErrorLog) => {
     response: log.response,
     request: log.request,
     secondsTaken: log.secondsTaken,
+    detailFields: ["response", "request"],
   };
 
   logger.error(JSON.stringify(orderedLog));
@@ -51,7 +52,6 @@ export const logLlmServerError = (log: LlmServerErrorLog) => {
 export const logLlmRequest = (log: LlmLog) => {
   const orderedLog = {
     requestId: log.requestId,
-    workflowExecution: Context.current().info.workflowExecution,
     finalized: log.finalized,
     provider: log.provider,
     taskName: log.taskName,

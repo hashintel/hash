@@ -314,21 +314,6 @@ export const getOpenAiResponse = async <ToolName extends string>(
     };
   }
 
-  /**
-   * Avoid logging logprobs, as they clutter the output. The `logprobs` will
-   * be persisted in the LLM Request logs instead.
-   */
-  const choicesWithoutLogProbs = openAiResponse.choices.map(
-    ({ logprobs: _logprobs, ...choice }) => choice,
-  );
-
-  logger.debug(
-    `OpenAI response: ${stringify({
-      ...openAiResponse,
-      choices: choicesWithoutLogProbs,
-    })}`,
-  );
-
   const currentRequestTime = Date.now() - timeBeforeRequest;
 
   const { previousUsage, retryCount = 0 } = retryContext ?? {};
