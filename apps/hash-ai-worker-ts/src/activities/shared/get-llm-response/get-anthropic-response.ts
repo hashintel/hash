@@ -1,6 +1,7 @@
 import type { Headers } from "@anthropic-ai/sdk/core";
 import type { APIError, RateLimitError } from "@anthropic-ai/sdk/error";
 import type { Tool } from "@anthropic-ai/sdk/resources/messages";
+import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import dedent from "dedent";
 import { backOff } from "exponential-backoff";
 
@@ -356,9 +357,7 @@ export const getAnthropicResponse = async <ToolName extends string>(
       initialProvider,
     });
   } catch (error) {
-    logger.error(
-      `Anthropic API error: ${"message" in (error as Error) ? (error as Error).message : String(error)}`,
-    );
+    logger.error(`Anthropic API error: ${stringifyError(error)}`);
 
     return {
       status: isActivityCancelled() ? "aborted" : "api-error",

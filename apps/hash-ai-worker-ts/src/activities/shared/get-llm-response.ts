@@ -9,6 +9,7 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FlowUsageRecordCustomMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import type { IncurredIn } from "@local/hash-isomorphic-utils/system-types/usagerecord";
 // import { StatusCode } from "@local/status";
 import { backOff } from "exponential-backoff";
@@ -166,7 +167,7 @@ export const getLlmResponse = async <T extends LlmParams>(
     } catch (error) {
       return {
         status: "internal-error",
-        message: `Failed to create usage record: ${stringify(error)}`,
+        message: `Failed to create usage record: ${stringifyError(error)}`,
         provider: llmResponse.provider,
       };
     }

@@ -12,6 +12,7 @@ import type {
   StepOutput,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { validateFlowDefinition } from "@local/hash-isomorphic-utils/flows/util";
+import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import type { Status } from "@local/status";
 import { StatusCode } from "@local/status";
 import {
@@ -301,7 +302,7 @@ export const runFlowWorkflow = async (
         log(
           `Step ${currentStepId}: encountered runtime error executing "${
             currentStep.actionDefinitionId
-          }" action: ${stringify(error)}`,
+          }" action: ${stringifyError(error)}`,
         );
 
         actionResponse = {
@@ -309,7 +310,7 @@ export const runFlowWorkflow = async (
           code: StatusCode.Internal,
           message: `Error executing action ${
             currentStep.actionDefinitionId
-          }: ${stringify(error)}`,
+          }: ${stringifyError(error)}`,
         };
 
         processStepErrors[currentStepId] = actionResponse;
