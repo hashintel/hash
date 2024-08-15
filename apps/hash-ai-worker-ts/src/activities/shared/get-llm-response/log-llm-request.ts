@@ -59,6 +59,7 @@ export const logLlmRequest = (log: LlmLog) => {
     secondsTaken: log.secondsTaken,
     response: log.response,
     request: log.request,
+    detailedFields: ["response", "request"],
   };
 
   if (log.response.status === "ok") {

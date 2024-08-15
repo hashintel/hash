@@ -29,8 +29,10 @@ const getDefaultLoggerLevel = () => {
  * without having this pollute the structured log when it's recorded elsewhere.
  * This function takes the consolePrefix (if it exists) and prepends the message with it for the console transport.
  * A corresponding format is used to remove the consolePrefix from the message in the Http transport.
+ *
+ * This also removes any 'detailedFields' from the message if any are specified.
  */
-const prependConsolePrefix = format(
+const rewriteForConsole = format(
   (original: winston.Logform.TransformableInfo & { message: unknown }) => {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const { message: fullMessage, ...metadata } = original;
@@ -42,14 +44,25 @@ const prependConsolePrefix = format(
     }
 
     let message: string;
-    if (typeof fullMessage === "string") {
-      message = fullMessage;
+    if (typeof fullMessage === "object" && fullMessage !== null) {
+      const { detailedFields, ...restMessage } = fullMessage as {
+        detailedFields?: string[];
+        [key: string]: unknown;
+      };
+
+      message = JSON.stringify(restMessage, (key, value) => {
+        /**
+         * Don't include any 'detailedFields' in the console if provided
+         * - if provided, they will appear in other destinations (e.g. DataDog).
+         */
+        if (detailedFields?.includes(key)) {
+          return undefined;
+        }
+
+        return value as unknown;
+      });
     } else {
-      /**
-       * @todo move the option to remove the request field to the calling function
-       */
-      const { request: _, ...restMessage } = fullMessage;
-      message = JSON.stringify(restMessage);
+      message = fullMessage as string;
     }
 
     return {
@@ -90,7 +103,7 @@ export class Logger {
           level: cfg.level,
           format: winston.format.combine(
             winston.format.timestamp(),
-            prependConsolePrefix(),
+            rewriteForConsole(),
             winston.format.json(),
             winston.format.colorize(),
             winston.format.simple(),
@@ -103,7 +116,7 @@ export class Logger {
           level,
           format: winston.format.combine(
             winston.format.timestamp(),
-            prependConsolePrefix(),
+            rewriteForConsole(),
             winston.format.json(),
             winston.format.simple(),
           ),
