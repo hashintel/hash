@@ -35,7 +35,6 @@ export type SelectorAutocompleteOptionProps = {
   draft?: boolean;
 };
 
-// This assumes a hash.ai/blockprotocol.org type URL format ending in [slugified-title]/v/[number]
 const slugToTitleCase = (slug?: string) =>
   slug
     ? slug
