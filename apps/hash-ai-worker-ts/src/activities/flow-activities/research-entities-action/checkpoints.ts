@@ -3,6 +3,7 @@ import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { Context } from "@temporalio/activity";
 import proto from "@temporalio/proto";
 
+import { heartbeatTimeoutSeconds } from "../../../shared/heartbeats.js";
 import type {
   FlowSignal,
   ResearchActionCheckpointState,
@@ -15,22 +16,29 @@ import type { CoordinatingAgentState } from "./coordinating-agent.js";
 
 /**
  * Start a frequent heartbeat so that the activity is known to be still going.
- * Because this is a long-running activity, it needs a long startToCloseTimeout, but we can set a shorter
- * heartbeatTimeout.
+ * Because this is a long-running activity, it needs a long startToCloseTimeout, but we can set a shorter heartbeatTimeout.
  *
  * This is important to ensure that the activity is known to be not running, e.g. if the Temporal worker restarts.
  * Without a heartbeatTimeout, if the Temporal worker is restarted the workflow will do nothing until the
  * startToCloseTimeout is reached. With a heartbeatTimeout, if the Temporal worker is restarted the activity will error
  * out quickly and be restarted.
+ *
+ * Note that heartbeat processing are throttled to the lower of:
+ * 1. 80% of the heartbeatTimeout set when proxying an activity
+ * 2 the maxHeartbeatTimeout
+ *
+ * This means that state updates are not guaranteed to be processed at the same rate as the heartbeatTimeout.
  */
 export const heartbeatAndWaitCancellation = async (
   state: CoordinatingAgentState,
 ) => {
+  const secondsBetweenHeartbeats = heartbeatTimeoutSeconds - 2;
+
   const heartbeatInterval = setInterval(() => {
     Context.current().heartbeat({
       state,
     } satisfies ResearchActionCheckpointState);
-  }, 5_000);
+  }, secondsBetweenHeartbeats * 1000);
 
   return Context.current().cancelled.catch((err) => {
     logger.error(`Cancellation received: ${err}`);

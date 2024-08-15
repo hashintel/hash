@@ -23,7 +23,7 @@ import {
 } from "@temporalio/workflow";
 
 import type { createFlowActivities } from "../activities/flow-activities.js";
-import { stringify } from "../activities/shared/stringify.js";
+import { heartbeatTimeoutSeconds } from "../shared/heartbeats.js";
 import { getAllStepsInFlow } from "./run-flow-workflow/get-all-steps-in-flow.js";
 import { getStepDefinitionFromFlowDefinition } from "./run-flow-workflow/get-step-definition-from-flow.js";
 import {
@@ -137,6 +137,13 @@ const doesFlowStepHaveSatisfiedDependencies = (params: {
 
 type FlowActivityId = keyof ReturnType<typeof createFlowActivities>;
 
+/**
+ * Activities which handle cancellation gracefully, i.e.
+ * - the activity sends a frequent heartbeat to ensure it is known to be still running
+ * - the activity catches the cancellation error (Context.current().cancelled) and re-throws it after any cleanup
+ * - [ideally] the activity has checks for cancellation at appropriate points in its execution and bails out of work
+ * - [ideally] the activity includes state with its heartbeat and checks the lastHeartbeatDetails to resume from previous state
+ */
 const activitiesHandlingCancellation: FlowActivityId[] = [
   "researchEntitiesAction",
 ];
@@ -154,15 +161,29 @@ const proxyFlowActivity = <ActionId extends FlowActivityId>(params: {
     cancellationType: activitiesHandlingCancellation.includes(actionId)
       ? ActivityCancellationType.WAIT_CANCELLATION_COMPLETED
       : ActivityCancellationType.ABANDON,
+
+    startToCloseTimeout: activitiesHandlingCancellation.includes(actionId)
+      ? /**
+         * @todo H-3129 – research tasks can take a long time, and waiting for user input takes an indefinite amount of time.
+         *    - we need to be able to sleep at the workflow level and have activities that take a bounded, shorter amount of time.
+         *    this involves refactoring actions which run a long time or wait for user input to be child workflows instead.
+         */
+        "36000 second" // 10 hours
+      : /**
+         * If an activity doesn't heartbeat and handle cancellation, we assume it doesn't need long to complete
+         * @todo make more activities handle cancellation and lower this
+         */
+        "300 second", // 5 minutes
     /**
-     * @todo H-2575 – decide what to do about timeouts, in light of potentially having to wait for user input
-     *    – ideally we'd be able to wait on the workflow level, so that it's put to sleep until the response is
-     *   received, but this requires refactoring the research task such that all tool calls are activities.
-     * @see https://docs.temporal.io/dev-guide/typescript/features#asynchronous-design-patterns
+     * The heartbeat timeout is the time elapsed without a heartbeat after which the activity is considered to have failed.
+     * Note that:
+     *  - heartbeat-ing activities can receive notification when a flow is cancelled/closed, by catching Context.current().cancelled
+     *  - notification will only be received when the next heartbeat is processed, and so the activity should heartbeat frequently
+     *  - heartbeats are throttled by default to 80% of the heartbeatTimeout, so sending a heartbeat does not mean it will be processed then
+     *  - maxHeartbeatThrottleInterval can be set in WorkerOptions, and otherwise defaults to 60s
      */
-    startToCloseTimeout: "14400 second",
     heartbeatTimeout: activitiesHandlingCancellation.includes(actionId)
-      ? "10 second"
+      ? `${heartbeatTimeoutSeconds} second`
       : undefined,
     retry: { maximumAttempts },
     activityId,

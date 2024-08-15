@@ -130,6 +130,12 @@ async function run() {
       ...createFlowActivities({ vaultClient }),
     },
     connection,
+    /**
+     * The maximum time that may elapse between heartbeats being processed by the server.
+     * The default maxHeartbeatThrottleInterval is 60s.
+     * Throttling is also capped at 80% of the heartbeatTimeout set when proxying an activity.
+     */
+    maxHeartbeatThrottleInterval: "10 seconds",
     namespace: "HASH",
     taskQueue: "ai",
     sinks: { ...defaultSinks(), ...sentrySinks() },
