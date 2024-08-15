@@ -27,7 +27,7 @@ import type { CoordinatingAgentState } from "./coordinating-agent.js";
  * 1. 80% of the heartbeatTimeout set when proxying an activity
  * 2 the maxHeartbeatTimeout
  *
- * This means that state updates are not guaranteed to be processed at the same rate as the heartbeatTimeout.
+ * This means that heartbeats (and the included details) may be recorded at a lower frequency than the interval here.
  */
 export const heartbeatAndWaitCancellation = async (
   state: CoordinatingAgentState,
