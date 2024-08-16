@@ -168,7 +168,12 @@ export const generateToolDefinitions = <
     webSearch: {
       name: "webSearch",
       description:
-        "Perform a web search via a web search engine, returning a list of URLs. For best results, the query should be specific and concise.",
+        dedent(`Perform a web search via a web search engine, returning a list of URLs. 
+        For best results, the query should be specific and concise.
+        Bear in mind that all the information you require may not be available via a single web search 
+        – if you have various attributes to gather about specific entities, it may be worth performing multiple searches
+        for each entity, or for each entity's attribute, until you find suitable results.
+        `),
       inputSchema: {
         type: "object",
         additionalProperties: false,
@@ -194,7 +199,7 @@ export const generateToolDefinitions = <
       The URLs for resources selected must have been provided in the user messages to you,
       or as the result of a previous action (e.g. a web search, or in suggestions for next steps). Don't guess URLs!
       
-      If you want new information about existing entities, or to find new entities to link to existing entities,
+      If you want additional information about entities you already know about, or to find new entities to link to existing entities,
       be sure to specify the existing entities under 'relevantEntityIds'.
     `),
       inputSchema: {

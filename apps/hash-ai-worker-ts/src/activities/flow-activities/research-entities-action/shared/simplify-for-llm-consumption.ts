@@ -77,7 +77,7 @@ const urlToTitleCase = (url?: string) =>
   url
     ? url
         .split("/")
-        .at(-2)!
+        .at(url.endsWith("/") ? -2 : -3)!
         .split("-")
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(" ")
@@ -102,24 +102,26 @@ export const simplifyProposedEntityForLlmConsumption = (params: {
 
   return `
 <Entity>
-EntityId: ${localEntityId}
-EntityType: ${urlToTitleCase(entityTypeId)}
-Properties:
+<EntityId>${localEntityId}</EntityId>
+<EntityType>EntityType: ${urlToTitleCase(entityTypeId)}</EntityType>
+<Properties>
 ${Object.entries(properties)
   .map(
     ([baseUrl, value]) =>
-      `${urlToTitleCase(baseUrl)}: ${stringifyPropertyValue(value)}`,
+      `<Property>${urlToTitleCase(baseUrl)}: ${stringifyPropertyValue(value)}</Property>`,
   )
   .join("\n")}
+</Properties>
     ${
       sourceEntityId && targetEntityId
         ? `\n<LinkData>SourceEntityId: ${getIdForLinkEndpoint(sourceEntityId)}\nTargetEntityId: ${getIdForLinkEndpoint(targetEntityId)}</LinkData>`
         : ""
     }
-Missing properties: ${Object.entries(entityType.properties)
+<MissingPropertes>${Object.entries(entityType.properties)
     .filter(([baseUrl]) => properties[baseUrl as BaseUrl] === undefined)
-    .map(([_baseUrl, schema]) =>
-      "items" in schema ? schema.items.title : schema.title,
+    .map(
+      ([_baseUrl, schema]) =>
+        `<MissingProperty>${"items" in schema ? schema.items.title : schema.title}</MissingProperty>`,
     )
     .join(", ")}
 </Entity>
