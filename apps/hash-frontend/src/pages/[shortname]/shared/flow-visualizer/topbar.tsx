@@ -1,3 +1,4 @@
+import { useMutation } from "@apollo/client";
 import {
   AngleRightRegularIcon,
   InfinityLightIcon,
@@ -9,15 +10,28 @@ import {
   generateFlowDefinitionPath,
   generateWorkerRunPath,
 } from "@local/hash-isomorphic-utils/flows/frontend-paths";
-import type { SxProps, Theme } from "@mui/material";
-import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
+import type { SvgIconProps, SxProps, Theme } from "@mui/material";
+import {
+  Box,
+  CircularProgress,
+  outlinedInputClasses,
+  Stack,
+  Typography,
+} from "@mui/material";
 import { format } from "date-fns";
 import { useRouter } from "next/router";
-import { useMemo } from "react";
+import type { FunctionComponent } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 import { useGetOwnerForEntity } from "../../../../components/hooks/use-get-owner-for-entity";
-import type { FlowRun } from "../../../../graphql/api-types.gen";
+import type {
+  CancelFlowMutation,
+  CancelFlowMutationVariables,
+  FlowRun,
+} from "../../../../graphql/api-types.gen";
+import { cancelFlowMutation } from "../../../../graphql/queries/knowledge/flow.queries";
 import { BoltLightIcon } from "../../../../shared/icons/bolt-light-icon";
+import { StopIconSolid } from "../../../../shared/icons/stop-icon-solid";
 import { Button } from "../../../../shared/ui/button";
 import { Link } from "../../../../shared/ui/link";
 import { MenuItem } from "../../../../shared/ui/menu-item";
@@ -63,6 +77,77 @@ const generateRunLabel = (run: Pick<FlowRun, "closedAt">) =>
       : " – in progress"
   }`;
 
+const TopbarButton = ({
+  background,
+  Icon,
+  onClick,
+  pending,
+  text,
+}: {
+  background: "blue" | "black";
+  Icon: FunctionComponent<SvgIconProps>;
+  onClick: () => void;
+  pending: boolean;
+  text: string;
+}) => {
+  return (
+    <Button
+      disabled={pending}
+      onClick={onClick}
+      size="xs"
+      sx={({ palette, transitions }) => ({
+        background:
+          background === "black" ? palette.common.black : palette.blue[70],
+        pl: "14px",
+        pr: 2,
+        "&:disabled": {
+          background: palette.gray[50],
+        },
+        "&:before": { background: "transparent" },
+        "&:hover": {
+          background: background === "black" ? palette.red[80] : undefined,
+        },
+        "&:hover svg": {
+          color: palette.common.white,
+          fill: palette.common.white,
+        },
+        transition: transitions.create("background"),
+      })}
+    >
+      {pending ? (
+        <CircularProgress
+          size={14}
+          sx={{
+            color: ({ palette }) => palette.common.white,
+            mr: 1,
+          }}
+          thickness={5}
+          variant="indeterminate"
+        />
+      ) : (
+        <Icon
+          sx={{
+            fill: ({ palette }) =>
+              background === "black" ? palette.gray[70] : palette.blue[30],
+            fontSize: 14,
+            mr: 1,
+            transition: ({ transitions }) => transitions.create("fill"),
+          }}
+        />
+      )}
+      <Typography
+        sx={{
+          color: ({ palette }) => palette.common.white,
+          fontSize: 13,
+          fontWeight: 600,
+        }}
+      >
+        {text}
+      </Typography>
+    </Button>
+  );
+};
+
 export const Topbar = ({
   handleRunFlowClicked,
   readonly,
@@ -74,10 +159,45 @@ export const Topbar = ({
 }) => {
   const { push } = useRouter();
 
+  const [cancelling, setCancelling] = useState(false);
+  const [waitingToRun, setWaitingToRun] = useState(false);
+
   const { flowDefinitions, selectedFlowDefinitionId } =
     useFlowDefinitionsContext();
 
   const { flowRuns, selectedFlowRunId, selectedFlowRun } = useFlowRunsContext();
+
+  const [cancelFlow] = useMutation<
+    CancelFlowMutation,
+    CancelFlowMutationVariables
+  >(cancelFlowMutation);
+
+  const onCancelFlowClicked = useCallback(async () => {
+    if (selectedFlowRunId) {
+      setCancelling(true);
+
+      try {
+        await cancelFlow({ variables: { flowUuid: selectedFlowRunId } });
+      } catch {
+        /**
+         * We don't nee to worry about the success case because the cancel flow button will disappear
+         */
+        setCancelling(false);
+      }
+    }
+  }, [cancelFlow, selectedFlowRunId]);
+
+  const onRunFlowClicked = useCallback(() => {
+    setWaitingToRun(true);
+    try {
+      handleRunFlowClicked();
+    } catch {
+      /**
+       * We don't need to worry about the success case because the user will be sent to the new flow run's page
+       */
+      setWaitingToRun(false);
+    }
+  }, [handleRunFlowClicked]);
 
   const getOwner = useGetOwnerForEntity();
 
@@ -225,37 +345,23 @@ export const Topbar = ({
           </>
         )}
       </Stack>
-      {showRunButton && (
-        <Button
-          onClick={handleRunFlowClicked}
-          size="xs"
-          sx={{
-            px: "14px",
-            "&:before": { background: "transparent" },
-            "&:hover svg": {
-              fill: ({ palette }) => palette.common.white,
-            },
-          }}
-        >
-          <PlayIconSolid
-            sx={{
-              fill: ({ palette }) => palette.blue[40],
-              fontSize: 14,
-              mr: 1,
-              transition: ({ transitions }) => transitions.create("fill"),
-            }}
-          />
-          <Typography
-            sx={{
-              color: ({ palette }) => palette.common.white,
-              fontSize: 13,
-              fontWeight: 500,
-            }}
-          >
-            Run
-          </Typography>
-        </Button>
-      )}
+      {selectedFlowRun && !selectedFlowRun.closedAt ? (
+        <TopbarButton
+          background="black"
+          Icon={StopIconSolid}
+          onClick={onCancelFlowClicked}
+          pending={cancelling}
+          text="Stop"
+        />
+      ) : showRunButton ? (
+        <TopbarButton
+          background="blue"
+          Icon={PlayIconSolid}
+          onClick={onRunFlowClicked}
+          pending={waitingToRun}
+          text={selectedFlowRun ? "Re-run" : "Run"}
+        />
+      ) : null}
     </Stack>
   );
 };

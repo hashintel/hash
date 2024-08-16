@@ -7,6 +7,7 @@ import { manualBrowserInferenceFlowDefinition } from "@local/hash-isomorphic-uti
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import type {
   FlowDefinition as FlowDefinitionType,
+  FlowInputs,
   FlowTrigger,
   PersistedEntity,
 } from "@local/hash-isomorphic-utils/flows/types";
@@ -15,6 +16,7 @@ import NotFound from "next/dist/client/components/not-found-error";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
 
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import type {
   StartFlowMutation,
@@ -507,9 +509,83 @@ export const FlowVisualizer = () => {
     StartFlowMutationVariables
   >(startFlowMutation);
 
-  const handleRunFlowClicked = useCallback(() => {
+  const runFlow = useCallback(
+    async (
+      args:
+        | { outputs: FlowTrigger["outputs"]; webId: OwnedById }
+        | { reRun: true },
+    ) => {
+      let flowInputs: FlowInputs[number];
+
+      if (!selectedFlowDefinition) {
+        throw new Error("Can't start flow with no flow definition selected");
+      }
+
+      if ("reRun" in args) {
+        if (!selectedFlowRun) {
+          throw new Error("Can't re-run flow with no flow run selected");
+        }
+
+        const { inputs } = selectedFlowRun;
+        flowInputs = inputs[0];
+      } else {
+        const { webId, outputs } = args;
+        flowInputs = {
+          dataSources: {
+            files: { fileEntityIds: [] },
+            internetAccess: {
+              browserPlugin: {
+                domains: defaultBrowserPluginDomains,
+                enabled: true,
+              },
+              enabled: true,
+            },
+          },
+          flowDefinition: selectedFlowDefinition,
+          flowTrigger: {
+            outputs,
+            triggerDefinitionId: "userTrigger",
+          },
+          webId,
+        };
+      }
+
+      const { data } = await startFlow({
+        variables: flowInputs,
+      });
+
+      const flowRunId = data?.startFlow;
+      if (!flowRunId) {
+        throw new Error("Failed to start flow");
+      }
+
+      await apolloClient.refetchQueries({
+        include: ["getFlowRuns"],
+      });
+
+      setShowRunModal(false);
+
+      const { shortname } = getOwner({ ownedById: flowInputs.webId });
+
+      void push(generateWorkerRunPath({ shortname, flowRunId }));
+    },
+    [
+      apolloClient,
+      getOwner,
+      push,
+      selectedFlowDefinition,
+      selectedFlowRun,
+      startFlow,
+    ],
+  );
+
+  const handleRunFlowClicked = useCallback(async () => {
+    if (selectedFlowRun) {
+      await runFlow({ reRun: true });
+      return;
+    }
     setShowRunModal(true);
-  }, []);
+  }, [runFlow, selectedFlowRun]);
 
   if (!selectedFlowDefinition) {
     if (selectedFlowDefinitionId) {
@@ -549,41 +625,7 @@ export const FlowVisualizer = () => {
             open={showRunModal}
             onClose={() => setShowRunModal(false)}
             runFlow={async (outputs: FlowTrigger["outputs"], webId) => {
-              const { data } = await startFlow({
-                variables: {
-                  dataSources: {
-                    files: { fileEntityIds: [] },
-                    internetAccess: {
-                      browserPlugin: {
-                        domains: defaultBrowserPluginDomains,
-                        enabled: true,
-                      },
-                      enabled: true,
-                    },
-                  },
-                  flowDefinition: selectedFlowDefinition,
-                  flowTrigger: {
-                    outputs,
-                    triggerDefinitionId: "userTrigger",
-                  },
-                  webId,
-                },
-              });
-
-              const flowRunId = data?.startFlow;
-              if (!flowRunId) {
-                throw new Error("Failed to start flow");
-              }
-
-              await apolloClient.refetchQueries({
-                include: ["getFlowRuns"],
-              });
-
-              setShowRunModal(false);
-
-              const { shortname } = getOwner({ ownedById: webId });
-
-              void push(generateWorkerRunPath({ shortname, flowRunId }));
+              await runFlow({ outputs, webId });
             }}
           />
         )}
