@@ -7,8 +7,9 @@ import type { PropsWithChildren } from "react";
 import { createContext, useContext, useMemo } from "react";
 import { useNodeId } from "reactflow";
 
-import type {
+import {
   FlowRun,
+  FlowRunStatus,
   GetFlowRunByIdQuery,
   GetFlowRunByIdQueryVariables,
   GetFlowRunsQuery,
@@ -182,9 +183,13 @@ export const useStatusForSteps = (
       steps.find((step) => step.stepId === stepRun.stepId),
     );
 
+    const flowCompletedUnsuccessfully =
+      selectedFlowRun.closedAt &&
+      selectedFlowRun.status !== FlowRunStatus.Completed;
+
     if (stepRuns.length === 0) {
       return {
-        overallStatus: "Waiting",
+        overallStatus: flowCompletedUnsuccessfully ? "Cancelled" : "Waiting",
         statusByStep,
       };
     }
@@ -209,7 +214,16 @@ export const useStatusForSteps = (
         closedAt = stepRun.closedAt;
       }
 
-      const simpleStatus = statusToSimpleStatus(stepRun.status);
+      let simpleStatus = statusToSimpleStatus(stepRun.status);
+
+      if (
+        selectedFlowRun.closedAt &&
+        ["In Progress", "Waiting", "Information Required"].includes(
+          simpleStatus,
+        )
+      ) {
+        simpleStatus = "Cancelled";
+      }
 
       statusByStep[stepRun.stepId] = simpleStatus;
 
@@ -231,6 +245,10 @@ export const useStatusForSteps = (
       status = "In Progress";
     } else if (hasWaiting) {
       status = "Waiting";
+    }
+
+    if (flowCompletedUnsuccessfully) {
+      status = "Cancelled";
     }
 
     return {

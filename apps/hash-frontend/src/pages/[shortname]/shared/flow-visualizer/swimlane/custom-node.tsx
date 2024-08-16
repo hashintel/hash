@@ -81,9 +81,20 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
 
   const { selectedFlowRun } = useFlowRunsContext();
 
+  let simpleStatusName = statusToSimpleStatus(statusData?.status ?? null);
+
+  if (
+    selectedFlowRun?.closedAt &&
+    ["In Progress", "Waiting", "Information Required"].includes(
+      simpleStatusName,
+    )
+  ) {
+    simpleStatusName = "Cancelled";
+  }
+
   const statusText = useStatusText({
     actionDefinitionId: data.actionDefinition?.actionDefinitionId,
-    simpleStatusName: statusToSimpleStatus(statusData?.status ?? null),
+    simpleStatusName,
     statusData,
   });
 
@@ -115,8 +126,6 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
 
   const { closedAt, scheduledAt } = statusData ?? {};
 
-  const stepStatusName = statusToSimpleStatus(statusData?.status ?? null);
-
   const isoString = closedAt ?? scheduledAt;
 
   const [timeAgo, setTimeAgo] = useState(
@@ -129,7 +138,7 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
     (input) => input.kind === "parallel-group-input",
   );
 
-  const styles = statusSx[stepStatusName];
+  const styles = statusSx[simpleStatusName];
 
   useEffect(() => {
     let timeUpdateInterval: NodeJS.Timeout | undefined;
@@ -177,7 +186,7 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
       <NodeContainer
         kind={data.kind}
         selected={selected}
-        stepStatusName={stepStatusName}
+        stepStatusName={simpleStatusName}
       >
         <Stack justifyContent="space-between" sx={{ height: "100%" }}>
           <Typography sx={{ textAlign: "left", fontSize: 14, fontWeight: 400 }}>
@@ -200,7 +209,7 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
           </Stack>
 
           {!selectedFlowRun ? null : !isParallelizedGroup &&
-            stepStatusName === "Information Required" &&
+            simpleStatusName === "Information Required" &&
             outstandingInputRequest &&
             outstandingInputRequest.type === "human-input" ? (
             <Button
@@ -230,7 +239,7 @@ export const CustomNode = ({ data, id, selected }: NodeProps<NodeData>) => {
             inputSources={data.inputSources}
             actionDefinition={data.actionDefinition}
             stepId={id}
-            stepStatusName={stepStatusName}
+            stepStatusName={simpleStatusName}
           />
         </Stack>
       </NodeContainer>
