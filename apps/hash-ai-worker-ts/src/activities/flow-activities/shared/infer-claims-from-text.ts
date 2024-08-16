@@ -14,7 +14,7 @@ export const inferClaimsFromText = async (params: {
   contentType: "webpage" | "document";
   existingEntitiesOfInterest: LocalEntitySummary[];
   dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
-  relevantEntitiesPrompt?: string;
+  goal: string;
   testingParams?: {
     existingEntitySummaries?: LocalEntitySummary[];
   };
@@ -30,7 +30,7 @@ export const inferClaimsFromText = async (params: {
     existingEntitiesOfInterest,
     testingParams,
     dereferencedEntityTypes,
-    relevantEntitiesPrompt,
+    goal,
   } = params;
 
   const newEntitySummaries: LocalEntitySummary[] =
@@ -48,7 +48,7 @@ export const inferClaimsFromText = async (params: {
                 existingSummaries: existingEntitiesOfInterest,
                 text,
                 dereferencedEntityType: schema,
-                relevantEntitiesPrompt,
+                relevantEntitiesPrompt: goal,
               });
 
             return entitySummariesOfType;
@@ -113,6 +113,7 @@ export const inferClaimsFromText = async (params: {
                   ...newEntitySummaries,
                   ...existingEntitiesOfInterest,
                 ],
+                goal,
                 text,
                 title,
                 url,

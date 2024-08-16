@@ -31,6 +31,7 @@ type ResourceToExplore = {
   url: string;
   descriptionOfExpectedContent: string;
   exampleOfExpectedContent: string;
+  goal: string;
   reason: string;
 };
 
@@ -355,8 +356,7 @@ const exploreResource = async (params: {
     url: resource.url,
     contentType: isResourcePdfFile ? "document" : "webpage",
     title: resourceTitle ?? null,
-    /** @todo: consider whether this should be a dedicated input */
-    relevantEntitiesPrompt: task,
+    goal: resource.goal,
     dereferencedEntityTypes: dereferencedEntityTypesById,
   });
 

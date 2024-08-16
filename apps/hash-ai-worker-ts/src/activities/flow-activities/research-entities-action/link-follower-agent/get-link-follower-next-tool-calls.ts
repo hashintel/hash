@@ -155,6 +155,11 @@ const tools: LlmToolDefinition<ToolName>[] = [
                 type: "string",
                 description: "The reason for exploring this link",
               },
+              goal: {
+                type: "string",
+                description:
+                  "The goal of exploring this link, e.g. to find a specific attribute of entity X, or to find general information about entities of type Y",
+              },
               descriptionOfExpectedContent: {
                 type: "string",
                 description: dedent(`
@@ -229,6 +234,7 @@ export type ToolCallInputs = Subtype<
       links: {
         url: string;
         reason: string;
+        goal: string;
         descriptionOfExpectedContent: string;
         exampleOfExpectedContent: string;
       }[];
@@ -305,11 +311,29 @@ export const getLinkFollowerNextToolCalls = async (
     });
 
     if (toolCalls.length > 1) {
-      /** @todo: handle the agent making multiple tool calls */
+      const returnInput: ToolCallInputs["exploreLinks"] = { links: [] };
 
-      throw new Error(
-        `Expected a single tool call, but received ${toolCalls.length}`,
-      );
+      for (const toolCall of toolCalls) {
+        if (toolCall.name === "exploreLinks") {
+          for (const link of (toolCall.input as ToolCallInputs["exploreLinks"])
+            .links) {
+            returnInput.links.push(link);
+          }
+        } else {
+          logger.error(
+            `Link follower returned multiple incompatible tool calls: ${toolCalls.map((call) => call.name).join(", ")}`,
+          );
+          return getLinkFollowerNextToolCalls(params);
+        }
+      }
+
+      return {
+        status: "ok",
+        nextToolCall: {
+          name: "exploreLinks",
+          input: returnInput,
+        },
+      };
     }
 
     const [nextToolCall] = toolCalls;
