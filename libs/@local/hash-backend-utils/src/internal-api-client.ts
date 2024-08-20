@@ -32,7 +32,7 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     // eslint-disable-next-line no-param-reassign
-    error.message = `Error occurred calling the Internal API: ${error.message}`;
+    error.message = `Error calling the Internal API: ${error.message || error.code}`;
     return Promise.reject(error);
   },
 );

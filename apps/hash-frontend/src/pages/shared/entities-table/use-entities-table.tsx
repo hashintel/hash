@@ -1,4 +1,8 @@
-import type { EntityType, PropertyType } from "@blockprotocol/type-system";
+import type {
+  EntityType,
+  PropertyType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { extractVersion } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -23,11 +27,14 @@ export interface TypeEntitiesRow {
   entityId: EntityId;
   entity: Entity;
   entityLabel: string;
+  entityTypeId: VersionedUrl;
   entityTypeVersion: string;
-  namespace: string;
   archived?: boolean;
   lastEdited: string;
   lastEditedBy?: MinimalActor;
+  created: string;
+  createdBy?: MinimalActor;
+  web: string;
   properties?: {
     [k: string]: string;
   };
@@ -41,6 +48,7 @@ export const useEntitiesTable = (params: {
   entityTypes?: EntityType[];
   propertyTypes?: PropertyType[];
   subgraph?: Subgraph<EntityRootType>;
+  hidePageArchivedColumn?: boolean;
   hideEntityTypeVersionColumn?: boolean;
   hidePropertiesColumns: boolean;
   isViewingPages?: boolean;
@@ -50,18 +58,22 @@ export const useEntitiesTable = (params: {
     entityTypes,
     propertyTypes,
     subgraph,
+    hidePageArchivedColumn = false,
     hideEntityTypeVersionColumn = false,
     hidePropertiesColumns,
     isViewingPages = false,
   } = params;
 
-  const lastEditedByAccountIds = useMemo(
+  const editorActorIds = useMemo(
     () =>
-      entities?.map(({ metadata }) => metadata.provenance.edition.createdById),
+      entities?.flatMap(({ metadata }) => [
+        metadata.provenance.edition.createdById,
+        metadata.provenance.createdById,
+      ]),
     [entities],
   );
 
-  const { actors } = useActors({ accountIds: lastEditedByAccountIds });
+  const { actors } = useActors({ accountIds: editorActorIds });
 
   const getOwnerForEntity = useGetOwnerForEntity();
 
@@ -114,11 +126,11 @@ export const useEntitiesTable = (params: {
             },
           ]),
       {
-        title: "Namespace",
-        id: "namespace",
-        width: 250,
+        title: "Web",
+        id: "web",
+        width: 200,
       },
-      ...(isViewingPages
+      ...(isViewingPages && !hidePageArchivedColumn
         ? [
             {
               title: "Archived",
@@ -135,6 +147,16 @@ export const useEntitiesTable = (params: {
       {
         title: "Last Edited By",
         id: "lastEditedBy",
+        width: 200,
+      },
+      {
+        title: "Created",
+        id: "created",
+        width: 200,
+      },
+      {
+        title: "Created By",
+        id: "createdBy",
         width: 200,
       },
       /** @todo: uncomment this when we have additional types for entities */
@@ -154,6 +176,12 @@ export const useEntitiesTable = (params: {
             const entityType = entityTypes.find(
               (type) => type.$id === entity.metadata.entityTypeId,
             );
+
+            if (!entityType) {
+              throw new Error(
+                `Could not find entity type with id ${entity.metadata.entityTypeId} in subgraph`,
+              );
+            }
 
             const { shortname: entityNamespace } = getOwnerForEntity({
               entityId: entity.metadata.recordId.entityId,
@@ -180,21 +208,32 @@ export const useEntitiesTable = (params: {
                 accountId === entity.metadata.provenance.edition.createdById,
             );
 
+            const created = format(
+              new Date(entity.metadata.provenance.createdAtDecisionTime),
+              "yyyy-MM-dd HH:mm",
+            );
+
+            const createdBy = actors?.find(
+              ({ accountId }) =>
+                accountId === entity.metadata.provenance.createdById,
+            );
+
             return {
               rowId: entityId,
               entityId,
               entity,
               entityLabel,
-              entityTypeVersion: entityType
-                ? `v${extractVersion(entityType.$id)} ${entityType.title}`
-                : "",
-              namespace: `@${entityNamespace}`,
+              entityTypeId: entityType.$id,
+              entityTypeVersion: `${entityType.title} v${extractVersion(entityType.$id)}`,
+              web: `@${entityNamespace}`,
               archived: isPage
                 ? simplifyProperties(entity.properties as PageProperties)
                     .archived
                 : undefined,
               lastEdited,
               lastEditedBy,
+              created,
+              createdBy,
               /** @todo: uncomment this when we have additional types for entities */
               // additionalTypes: "",
               ...propertyColumns.reduce((fields, column) => {
@@ -224,6 +263,7 @@ export const useEntitiesTable = (params: {
     subgraph,
     entitiesHaveSameType,
     hideEntityTypeVersionColumn,
+    hidePageArchivedColumn,
     hidePropertiesColumns,
     isViewingPages,
     actors,

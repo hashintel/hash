@@ -1,3 +1,5 @@
+import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
+
 import { stringify } from "../../shared/stringify.js";
 
 const generateErrorMessage = (err: unknown) =>
@@ -69,7 +71,7 @@ export const extractErrorMessage = (err: unknown) => {
     }
   } catch {
     // eslint-disable-next-line no-console
-    console.error(`Unexpected error message structure: ${stringify(err)}`);
+    console.error(`Unexpected error message structure: ${stringifyError(err)}`);
   }
   return generateErrorMessage(err);
 };

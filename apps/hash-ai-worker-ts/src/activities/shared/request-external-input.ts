@@ -20,9 +20,9 @@ export const requestExternalInput = async <
 ): Promise<ExternalInputResponseSignal<Request["type"]>> => {
   temporalClient = temporalClient ?? (await createTemporalClient());
 
-  const workflowId = Context.current().info.workflowExecution.workflowId;
+  const { workflowId, runId } = Context.current().info.workflowExecution;
 
-  const handle = temporalClient.workflow.getHandle(workflowId);
+  const handle = temporalClient.workflow.getHandle(workflowId, runId);
 
   await handle.signal(externalInputRequestSignal, request);
 
@@ -38,10 +38,11 @@ export const requestExternalInput = async <
      * 2. The workflow is cancelled
      * 3. The workflow crashes
      * 4. The activity that called this crashes
-     * 5. The activity that called this times out (@see https://docs.temporal.io/activities#schedule-to-start-timeout onwards)
+     * 5. The activity that called this times out (@see https://docs.temporal.io/activities#schedule-to-start-timeout
+     * onwards)
      * 6. The workflow times out (workflow execution timeout, default: infinite)
      *
-     * Note that if the workflow or activity crashes and retried, the history will be replayed.
+     * Note that if the workflow or activity crashes and is retried, the history will be replayed.
      * If workflows/activities can save progress to date and resume from that point, we may hit this again
      * – it depends on how precisely progress can be checkpointed and resumed from.
      */

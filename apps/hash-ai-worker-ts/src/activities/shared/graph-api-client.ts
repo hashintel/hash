@@ -1,9 +1,9 @@
 import { createGraphClient } from "@local/hash-backend-utils/create-graph-client";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
 
-import { logToConsole } from "../../shared/logger.js";
+import { logger } from "../../shared/logger.js";
 
-export const graphApiClient = createGraphClient(logToConsole, {
+export const graphApiClient = createGraphClient(logger, {
   host: getRequiredEnv("HASH_GRAPH_API_HOST"),
   port: parseInt(getRequiredEnv("HASH_GRAPH_API_PORT"), 10),
 });

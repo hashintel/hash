@@ -229,7 +229,7 @@ export async function getFlowRuns({
     return [];
   }
 
-  /** @see https://docs.temporal.io/dev-guide/typescript/observability#search-attributes */
+  /** @see https://docs.temporal.io/develop/typescript/observability#search-attributes */
   let query = `WorkflowType = 'runFlow' AND WorkflowId IN (${relevantFlowRunIds
     .map((uuid) => `'${uuid}'`)
     .join(", ")})`;
@@ -242,12 +242,29 @@ export async function getFlowRuns({
 
   const workflowIterable = temporalClient.workflow.list({ query });
 
+  const workflowIdToLatestRunTime: Record<string, string> = {};
+
   if (includeDetails) {
     const workflows: FlowRun[] = [];
 
     for await (const workflow of workflowIterable) {
       const flowRunId = workflow.workflowId as EntityUuid;
       const flowDetails = relevantFlows[flowRunId];
+
+      const startTime = workflow.startTime.toISOString();
+      workflowIdToLatestRunTime[flowRunId] ??= startTime;
+
+      if (startTime < workflowIdToLatestRunTime[flowRunId]) {
+        /**
+         * This is an earlier run of the same workflow – it is a flow run that has been reset and started from a specific point.
+         *
+         * It could also theoretically be:
+         * 1. a workflow that has been 'continued as new', but we do not yet use that Temporal feature.
+         * 2. a workflowId that has been re-used, but we do not do that in our business logic – we generate a new workflowId for each flow run.
+         *      workflowIds are only re-used by Temporal automatically in the 'reset' or 'continue as new' cases.
+         */
+        continue;
+      }
 
       if (!flowDetails) {
         throw new Error(
@@ -270,6 +287,21 @@ export async function getFlowRuns({
 
     for await (const workflow of workflowIterable) {
       const flowRunId = workflow.workflowId as EntityUuid;
+
+      const startTime = workflow.startTime.toISOString();
+      workflowIdToLatestRunTime[flowRunId] ??= startTime;
+
+      if (workflowIdToLatestRunTime[flowRunId] < startTime) {
+        /**
+         * This is an earlier run of the same workflow – it is a flow run that has been reset and started from a specific point.
+         *
+         * It could also theoretically be:
+         * 1. a workflow that has been 'continued as new', but we do not yet use that Temporal feature.
+         * 2. a workflowId that has been re-used, but we do not do that in our business logic – we generate a new workflowId for each flow run.
+         *      workflowIds are only re-used by Temporal automatically in the 'reset' or 'continue as new' cases.
+         */
+        continue;
+      }
 
       const flowDetails = relevantFlows[flowRunId];
 

@@ -41,7 +41,9 @@ import { defaultSortRows } from "./utils/sorting";
 import { useDrawHeader } from "./utils/use-draw-header";
 import { useRenderGridPortal } from "./utils/use-render-grid-portal";
 
-export type GridProps<T extends Row & { rowId: string }> = Omit<
+export type GridRow = Row & { rowId: string };
+
+export type GridProps<T extends GridRow> = Omit<
   DataEditorProps,
   | "onColumnResize"
   | "onColumnResizeEnd"
@@ -65,7 +67,11 @@ export type GridProps<T extends Row & { rowId: string }> = Omit<
   resizable?: boolean;
   rows?: T[];
   selectedRows?: T[];
-  sortRows?: (rows: T[], sort: ColumnSort<string>) => T[];
+  sortRows?: (
+    rows: T[],
+    sort: ColumnSort<Extract<keyof T, string>>,
+    previousSort?: ColumnSort<Extract<keyof T, string>>,
+  ) => T[];
   sortable?: boolean;
 };
 
@@ -75,7 +81,7 @@ export const gridHeaderHeightWithBorder = gridHeaderHeight + 1;
 
 export const gridHorizontalScrollbarHeight = 17;
 
-export const Grid = <T extends Row & { rowId: string }>({
+export const Grid = <T extends GridRow>({
   createGetCellContent,
   createOnCellEdited,
   columnFilters,
@@ -116,9 +122,9 @@ export const Grid = <T extends Row & { rowId: string }>({
     return () => InteractableManager.deleteInteractables(tableId);
   }, []);
 
-  const [sorts, setSorts] = useState<ColumnSort<string>[]>(
+  const [sorts, setSorts] = useState<ColumnSort<Extract<keyof T, string>>[]>(
     columns.map((column) => ({
-      columnKey: column.id,
+      columnKey: column.id as Extract<keyof T, string>,
       direction: "asc",
     })),
   );
@@ -512,7 +518,7 @@ export const Grid = <T extends Row & { rowId: string }>({
         drawHeader={drawHeader ?? defaultDrawHeader}
         onHeaderClicked={handleHeaderClicked}
         getCellContent={
-          sortedAndFilteredRows
+          sortedAndFilteredRows?.length
             ? createGetCellContent(sortedAndFilteredRows)
             : getSkeletonCellContent
         }
@@ -521,7 +527,7 @@ export const Grid = <T extends Row & { rowId: string }>({
             ? createOnCellEdited?.(sortedAndFilteredRows)
             : undefined
         }
-        rows={sortedAndFilteredRows ? sortedAndFilteredRows.length : 1}
+        rows={sortedAndFilteredRows?.length ? sortedAndFilteredRows.length : 1}
         maxColumnWidth={1000}
         verticalBorder={
           typeof rest.verticalBorder === "undefined"

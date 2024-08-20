@@ -9,6 +9,7 @@ import type { OwnedById } from "@local/hash-graph-types/web";
 import type { FlowUsageRecordCustomMetadata } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { systemLinkEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import type { IncurredIn } from "@local/hash-isomorphic-utils/system-types/usagerecord";
 // import { StatusCode } from "@local/status";
 import { backOff } from "exponential-backoff";
@@ -100,7 +101,7 @@ export const getLlmResponse = async <T extends LlmParams>(
   const { flowEntityId, stepId } = await getFlowContext();
 
   const { taskName } = customMetadata ?? {};
-  let debugMessage = `Getting LLM response for model ${llmParams.model}`;
+  let debugMessage = `[LLM Request ${requestId}] Getting response for model ${llmParams.model}`;
   if (taskName) {
     debugMessage += ` for task ${taskName}`;
   }
@@ -125,7 +126,9 @@ export const getLlmResponse = async <T extends LlmParams>(
 
   const numberOfSeconds = (timeAfterApiCall - timeBeforeApiCall) / 1000;
 
-  logger.debug(`LLM API call time: ${numberOfSeconds} seconds`);
+  logger.debug(
+    `[LLM Request ${requestId}]: Total call time including retries: ${numberOfSeconds} seconds`,
+  );
 
   /**
    * Capture incurred usage in a usage record.
@@ -166,7 +169,7 @@ export const getLlmResponse = async <T extends LlmParams>(
     } catch (error) {
       return {
         status: "internal-error",
-        message: `Failed to create usage record: ${stringify(error)}`,
+        message: `Failed to create usage record: ${stringifyError(error)}`,
         provider: llmResponse.provider,
       };
     }

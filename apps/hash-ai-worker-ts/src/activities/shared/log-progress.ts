@@ -16,19 +16,18 @@ const logQueueByRunId: Map<string, StepProgressLog[]> = new Map();
  * This function debounces sending a signal so we can batch more logs together in a single signal event.
  */
 const sendLogSignal = debounce(
-  async (workflowId: string) => {
+  async ({ workflowId, runId }: { workflowId: string; runId: string }) => {
     temporalClient = temporalClient ?? (await createTemporalClient());
 
-    const handle = temporalClient.workflow.getHandle(workflowId);
+    const handle = temporalClient.workflow.getHandle(workflowId, runId);
 
-    const logs = logQueueByRunId.get(workflowId);
-    if (!logs) {
-      throw new Error(
-        `sendLogSignal was called for workflowId ${workflowId}, but no logs were found in the queue`,
-      );
+    const logs = logQueueByRunId.get(runId);
+
+    if (!logs?.length) {
+      return;
     }
 
-    logQueueByRunId.set(workflowId, []);
+    logQueueByRunId.set(runId, []);
 
     try {
       await handle.signal(logProgressSignal, {
@@ -59,13 +58,13 @@ export const logProgress = (logs: StepProgressLog[]) => {
     return;
   }
 
-  const workflowId = Context.current().info.workflowExecution.workflowId;
+  const { workflowId, runId } = Context.current().info.workflowExecution;
 
-  const existingLogs = logQueueByRunId.get(workflowId) ?? [];
+  const existingLogs = logQueueByRunId.get(runId) ?? [];
 
   existingLogs.push(...logs);
 
-  logQueueByRunId.set(workflowId, existingLogs);
+  logQueueByRunId.set(runId, existingLogs);
 
-  void sendLogSignal(workflowId);
+  void sendLogSignal({ workflowId, runId });
 };

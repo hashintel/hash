@@ -27,7 +27,7 @@
   "dependencies": {
     "blockprotocol": "0.0.12",
     "lodash": "4.17.21",
-    "twind": "0.16.17"
+    "twind": "0.16.19"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",

@@ -107,7 +107,7 @@
     "cross-env": "7.0.3",
     "dotenv-flow": "3.2.0",
     "husky": "8.0.3",
-    "lint-staged": "15.2.8",
+    "lint-staged": "15.2.9",
     "lockfile-lint": "4.14.0",
     "markdownlint-cli": "0.41.0",
     "npm-run-all2": "6.2.2",
@@ -118,7 +118,7 @@
     "prettier-plugin-sh": "0.14.0",
     "prettier-plugin-sql": "0.12.1",
     "suppress-exit-code": "3.1.0",
-    "turbo": "2.0.12",
+    "turbo": "2.0.14",
     "wait-on": "7.2.0",
     "yarn-deduplicate": "6.0.2"
   },

@@ -166,6 +166,10 @@ export type LlmErrorResponse =
       error?: unknown;
     }
   | {
+      status: "aborted";
+      provider: LlmProvider;
+    }
+  | {
       status: "max-tokens";
       provider: LlmProvider;
       lastRequestTime: number;

@@ -488,7 +488,7 @@ export const FlowVisualizer = () => {
     if (selectedFlowRun.closedAt) {
       progressLogs.push({
         level: 1,
-        message: `Flow run closed: ${selectedFlowRun.status.toLowerCase()}`,
+        message: `Flow run closed: ${selectedFlowRun.failureMessage?.toLowerCase() ?? selectedFlowRun.status.toLowerCase()}`,
         recordedAt: selectedFlowRun.closedAt,
         stepId: "closure",
         type: "StateChange",

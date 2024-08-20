@@ -7,8 +7,12 @@ import type {
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import dedent from "dedent";
 
+import { logger } from "../../../shared/logger.js";
 import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
-import { getFlowContext } from "../../shared/get-flow-context.js";
+import {
+  getFlowContext,
+  isActivityCancelled,
+} from "../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../shared/get-llm-response.js";
 import type {
   LlmMessage,
@@ -494,9 +498,8 @@ const getNextToolCalls = async (params: {
   );
 
   if (llmResponse.status !== "ok") {
-    throw new Error(
-      `Failed to get LLM response: ${JSON.stringify(llmResponse)}`,
-    );
+    logger.error("Failed to get tool calls for sub-task-agent");
+    return { toolCalls: [] };
   }
 
   const { message } = llmResponse;
@@ -712,6 +715,7 @@ export const runSubTaskAgent = async (params: {
                         type: "StartedLinkExplorerTask",
                         input: {
                           goal: prompt,
+                          initialUrl: url,
                         },
                         explanation: reason,
                         ...linkFollowerIdentifiers,
@@ -803,6 +807,13 @@ export const runSubTaskAgent = async (params: {
           },
         ),
     );
+
+    if (isActivityCancelled()) {
+      return {
+        status: "terminated",
+        reason: "Activity was cancelled",
+      };
+    }
 
     const completeToolCall = toolCalls.find(
       (toolCall) => toolCall.name === "complete",

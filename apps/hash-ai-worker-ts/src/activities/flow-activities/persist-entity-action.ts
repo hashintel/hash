@@ -302,6 +302,7 @@ export const persistEntityAction: FlowActionActivity = async ({ inputs }) => {
       graphApiClient,
       authentication: { actorId },
       entityId: claimId,
+      includeDrafts: draft,
     });
 
     return LinkEntity.create<T extends "has-subject" ? HasSubject : HasObject>(

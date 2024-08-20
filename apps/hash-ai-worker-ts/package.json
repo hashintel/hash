@@ -57,11 +57,12 @@
     "@sentry/node": "7.118.0",
     "@temporalio/activity": "1.10.1",
     "@temporalio/common": "1.10.1",
+    "@temporalio/proto": "1.10.1",
     "@temporalio/worker": "1.10.1",
     "@temporalio/workflow": "1.10.1",
     "ajv": "8.12.0",
     "ajv-formats": "3.0.1",
-    "axios": "1.6.0",
+    "axios": "1.7.4",
     "cache-manager": "5.5.2",
     "dedent": "0.7.0",
     "dotenv-flow": "3.2.0",
@@ -108,7 +109,7 @@
     "@vitest/coverage-istanbul": "2.0.5",
     "eslint": "8.57.0",
     "rimraf": "6.0.1",
-    "vite-tsconfig-paths": "5.0.0",
+    "vite-tsconfig-paths": "5.0.1",
     "vitest": "2.0.5"
   }
 }
