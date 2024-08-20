@@ -114,10 +114,7 @@
     {
       "groupName": "katex npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": [
-        "@matejmazur/react-katex",
-        "^katex"
-      ]
+      "matchPackagePatterns": ["@matejmazur/react-katex", "^katex"]
     },
     {
       "groupName": "Block Protocol npm packages",
