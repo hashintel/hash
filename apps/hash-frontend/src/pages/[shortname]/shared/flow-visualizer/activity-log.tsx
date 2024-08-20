@@ -1,12 +1,20 @@
+import { useMutation } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import { CaretDownSolidIcon, IconButton } from "@hashintel/design-system";
+import {
+  CaretDownSolidIcon,
+  IconButton,
+  RotateIconRegular,
+} from "@hashintel/design-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   EntityMetadata,
   EntityRecordId,
 } from "@local/hash-graph-types/entity";
-import type { StepProgressLog } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  CheckpointLog,
+  StepProgressLog,
+} from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { Theme } from "@mui/material";
 import {
@@ -21,8 +29,14 @@ import { format } from "date-fns";
 import type { ReactElement } from "react";
 import { memo, useEffect, useMemo, useState } from "react";
 
+import type {
+  ResetFlowMutation,
+  ResetFlowMutationVariables,
+} from "../../../../graphql/api-types.gen";
+import { resetFlowMutation } from "../../../../graphql/queries/knowledge/flow.queries";
 import { CircleInfoIcon } from "../../../../shared/icons/circle-info-icon";
 import { Link } from "../../../../shared/ui/link";
+import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
@@ -97,6 +111,9 @@ const startedSubTaskPrefix = "Started sub-task with goal ";
 const closedSubTaskPrefix = "Finished sub-task with ";
 const startedLinkExplorerTaskPrefix = "Started link explorer task with goal ";
 const closedLinkExplorerTaskPrefix = "Finished link explorer task with ";
+const activityFailedPrefix = "Activity failed: ";
+const checkpointPrefix = "Checkpoint recorded";
+const checkpointResetMessage = "Flow resumed from checkpoint";
 
 const getRawTextFromLog = (log: LocalProgressLog): string => {
   switch (log.type) {
@@ -148,6 +165,15 @@ const getRawTextFromLog = (log: LocalProgressLog): string => {
       // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       return `Inferred ${log.output.claimCount} claims and ${log.output.entityCount} entities from ${log.output.resource.title || log.output.resource.url}`;
     }
+    case "ActivityFailed": {
+      return `${activityFailedPrefix}${log.message}`;
+    }
+    case "ResearchActionCheckpoint": {
+      return checkpointPrefix;
+    }
+    case "ResetToCheckpoint": {
+      return checkpointResetMessage;
+    }
   }
 };
 
@@ -166,6 +192,50 @@ const ellipsisOverflow = {
   textOverflow: "ellipsis",
   overflow: "hidden",
   whiteSpace: "nowrap",
+};
+
+const Checkpoint = ({ log }: { log: CheckpointLog }) => {
+  const { selectedFlowRun } = useFlowRunsContext();
+
+  const [resetFlow] = useMutation<
+    ResetFlowMutation,
+    ResetFlowMutationVariables
+  >(resetFlowMutation);
+
+  const [isResetting, setIsResetting] = useState(false);
+
+  if (!selectedFlowRun) {
+    throw new Error(
+      "Expected Checkpoint log to be rendered with a Flow Run selected",
+    );
+  }
+
+  const triggerReset = () => {
+    setIsResetting(true);
+
+    void resetFlow({
+      variables: {
+        flowUuid: selectedFlowRun.flowRunId,
+        checkpointId: log.checkpointId,
+        eventId: log.eventId,
+      },
+    }).finally(() => setIsResetting(false));
+  };
+
+  return (
+    <Stack direction="row" alignItems="center" gap={0.5}>
+      {checkpointPrefix}
+      {!selectedFlowRun.closedAt && (
+        <IconButton
+          disabled={isResetting}
+          onClick={triggerReset}
+          sx={{ p: 0.6, borderRadius: "50%" }}
+        >
+          <RotateIconRegular sx={{ width: 13, height: 13 }} />
+        </IconButton>
+      )}
+    </Stack>
+  );
 };
 
 const LogDetail = ({
@@ -242,6 +312,7 @@ const LogDetail = ({
       return (
         <Stack direction="row" alignItems="center" gap={1}>
           <Box sx={ellipsisOverflow}>
+            {log.attempt > 1 ? `[${log.attempt}] ` : ""}
             {startedCoordinatorPrefix}
             <strong>“{log.input.goal}”</strong>
           </Box>
@@ -318,6 +389,38 @@ const LogDetail = ({
             {log.output.resource.title || log.output.resource.url}
           </Link>
         </Stack>
+      );
+    }
+    case "ActivityFailed": {
+      return (
+        <Stack direction="row" alignItems="center" gap={0.5}>
+          {activityFailedPrefix}
+          <Box
+            component="span"
+            sx={{
+              ...ellipsisOverflow,
+              color: ({ palette }) => palette.red[80],
+              fontWeight: 600,
+            }}
+          >
+            {log.message}
+          </Box>
+        </Stack>
+      );
+    }
+    case "ResearchActionCheckpoint": {
+      return <Checkpoint log={log} />;
+    }
+    case "ResetToCheckpoint": {
+      return (
+        <Box
+          component="span"
+          sx={{
+            color: ({ palette }) => palette.orange[60],
+          }}
+        >
+          {checkpointResetMessage}
+        </Box>
       );
     }
   }
@@ -523,7 +626,8 @@ export const ActivityLog = memo(
 
     const rows = useMemo<VirtualizedTableRow<LogWithThreadSettings>[]>(() => {
       /**
-       * Sort the parents first, because we want to keep the children as appearing directly after their parent in all cases.
+       * Sort the parents first, because we want to keep the children as appearing directly after their parent in all
+       * cases.
        */
       const sortedParents = logs.sort((a, b) => sortLogs(a, b, sort));
 

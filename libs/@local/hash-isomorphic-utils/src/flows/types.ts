@@ -404,6 +404,7 @@ export type VisitedWebPageLog = WorkerProgressLogBase & {
 };
 
 export type StartedCoordinatorLog = WorkerProgressLogBase & {
+  attempt: number;
   input: {
     goal: string;
   };
@@ -442,6 +443,7 @@ export type StartedLinkExplorerTaskLog = WorkerProgressLogBase & {
   explanation: string;
   input: {
     goal: string;
+    initialUrl: string;
   };
   type: "StartedLinkExplorerTask";
 };
@@ -488,20 +490,48 @@ export type PersistedEntityLog = ProgressLogBase & {
   type: "PersistedEntity";
 };
 
+export type ActivityFailedLog = ProgressLogBase & {
+  message: string;
+  retrying: boolean;
+  type: "ActivityFailed";
+};
+
+export type ResetToCheckpointLog = ProgressLogBase & {
+  type: "ResetToCheckpoint";
+};
+
+export type CheckpointLog = ProgressLogBase & {
+  type: "ResearchActionCheckpoint";
+  checkpointId: string;
+  eventId: number;
+};
+
 export type StepProgressLog =
+  | ActivityFailedLog
+  | CheckpointLog
   | ClosedCoordinatorLog
   | ClosedLinkExplorerTaskLog
   | ClosedSubTaskLog
+  | CreatedPlanLog
   | InferredClaimsFromTextLog
   | PersistedEntityLog
   | ProposedEntityLog
   | QueriedWebLog
+  | ResetToCheckpointLog
   | StartedCoordinatorLog
   | StartedLinkExplorerTaskLog
   | StartedSubTaskLog
   | ViewedFile
-  | VisitedWebPageLog
-  | CreatedPlanLog;
+  | VisitedWebPageLog;
+
+const flowSignalTypes = [
+  "externalInputRequest",
+  "externalInputResponse",
+  "logProgress",
+  "researchActionCheckpoint",
+] as const;
+
+export type FlowSignalType = (typeof flowSignalTypes)[number];
 
 export type ProgressLogSignal = {
   attempt: number;
@@ -574,6 +604,7 @@ export type FlowUsageRecordCustomMetadata = {
 };
 
 export const detailedFlowFields = [
+  "failureMessage",
   "inputs",
   "inputRequests",
   "outputs",

@@ -35,6 +35,11 @@ test.skip(
           .map(({ schema }) => schema),
       },
       state: {
+        coordinatorIdentifiers: {
+          workerInstanceId: "1",
+          parentInstanceId: null,
+          workerType: "Coordinator",
+        },
         entitySummaries: [],
         hasConductedCheckStep: false,
         inferredClaims: [],

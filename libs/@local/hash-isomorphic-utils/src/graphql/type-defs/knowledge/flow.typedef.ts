@@ -159,6 +159,10 @@ export const flowTypedef = gql`
     """
     closedAt: String
     """
+    The reason the run failed, if it did
+    """
+    failureMessage: String
+    """
     Inputs to the flow run
     """
     inputs: FlowInputs!
@@ -206,6 +210,14 @@ export const flowTypedef = gql`
       flowTrigger: FlowTrigger!
       webId: OwnedById!
     ): EntityUuid!
+
+    """
+    Reset a flow to a specific checkpoint, available via the 'checkpoints' field on a run
+
+    This does _NOT_ roll back any database mutations made as part of the flow so far.
+    Any usage incurred to date will still be recorded.
+    """
+    resetFlow(flowUuid: ID!, checkpointId: ID!, eventId: Int!): Boolean!
 
     """
     Submit a response to a request from a flow step for external input

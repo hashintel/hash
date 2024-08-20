@@ -14,6 +14,7 @@ import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
 import { getFlowRunByIdResolver } from "./flows/get-flow-run-by-id";
 import { getFlowRunsResolver } from "./flows/get-flow-runs";
+import { resetFlow } from "./flows/reset-flow";
 import { startFlow } from "./flows/start-flow";
 import { submitExternalInputResponse } from "./flows/submit-external-input-response";
 import { getLinearOrganizationResolver } from "./integrations/linear/linear-organization";
@@ -193,6 +194,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
       removeEntityViewerResolver,
     ),
 
+    resetFlow: loggedInAndSignedUpMiddleware(resetFlow),
     startFlow: loggedInAndSignedUpMiddleware(startFlow),
     submitExternalInputResponse: loggedInAndSignedUpMiddleware(
       submitExternalInputResponse,

@@ -57,6 +57,7 @@
     "@sentry/node": "7.118.0",
     "@temporalio/activity": "1.10.1",
     "@temporalio/common": "1.10.1",
+    "@temporalio/proto": "1.10.1",
     "@temporalio/worker": "1.10.1",
     "@temporalio/workflow": "1.10.1",
     "ajv": "8.12.0",

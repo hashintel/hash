@@ -164,6 +164,18 @@ export const deduplicateEntities = async (params: {
   );
 
   if (llmResponse.status !== "ok") {
+    if (llmResponse.status === "aborted") {
+      return {
+        duplicates: [],
+        totalRequestTime: 0,
+        usage: {
+          totalTokens: 0,
+          inputTokens: 0,
+          outputTokens: 0,
+        },
+      };
+    }
+
     if (llmResponse.status === "max-tokens") {
       logger.warn("Max tokens exceeded in deduplicateEntities");
       if (exceededMaxTokensAttempt && exceededMaxTokensAttempt > 2) {
@@ -179,6 +191,8 @@ export const deduplicateEntities = async (params: {
         exceededMaxTokensAttempt: (exceededMaxTokensAttempt ?? 0) + 1,
       });
     }
+
+    logger.error(`Error deduplicating entities: ${llmResponse.status}`);
     return deduplicateEntities(params);
   }
 

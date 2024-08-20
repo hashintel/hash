@@ -1,6 +1,8 @@
 import type { Subtype } from "@local/advanced-types/subtype";
+import { sleep } from "@local/hash-backend-utils/utils";
 import dedent from "dedent";
 
+import { logger } from "../../../../shared/logger.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
 import type { LlmUserMessage } from "../../../shared/get-llm-response/llm-message.js";
@@ -10,6 +12,7 @@ import type {
   LlmToolDefinition,
 } from "../../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
+import { stringify } from "../../../shared/stringify.js";
 import type { LocalEntitySummary } from "../../shared/infer-claims-from-text/get-entity-summaries-from-text.js";
 import type { Claim } from "../../shared/infer-claims-from-text/types.js";
 import { simplifyClaimForLlmConsumption } from "../shared/simplify-for-llm-consumption.js";
@@ -248,22 +251,25 @@ export const getLinkFollowerNextToolCalls = async (
       systemPrompt?: string;
     };
   } & GetLinkFollowerNextToolCallsParams,
-): Promise<{
-  status: "ok";
-  nextToolCall:
-    | {
-        name: "exploreLinks";
-        input: ToolCallInputs["exploreLinks"];
-      }
-    | {
-        name: "complete";
-        input: ToolCallInputs["complete"];
-      }
-    | {
-        name: "terminate";
-        input: ToolCallInputs["terminate"];
-      };
-}> => {
+): Promise<
+  | {
+      status: "ok";
+      nextToolCall:
+        | {
+            name: "exploreLinks";
+            input: ToolCallInputs["exploreLinks"];
+          }
+        | {
+            name: "complete";
+            input: ToolCallInputs["complete"];
+          }
+        | {
+            name: "terminate";
+            input: ToolCallInputs["terminate"];
+          };
+    }
+  | { status: "aborted" }
+> => {
   const { testingParams } = params;
 
   const userMessage = generateUserMessage(params);
@@ -337,7 +343,15 @@ export const getLinkFollowerNextToolCalls = async (
         input: nextToolCall.input as ToolCallInputs["exploreLinks"],
       },
     };
+  } else if (response.status === "aborted") {
+    return {
+      status: "aborted",
+    };
   }
+
+  logger.error(`Unsuccessful link follower response: ${stringify(response)}`);
+
+  await sleep(2_000);
 
   return getLinkFollowerNextToolCalls(params);
 };

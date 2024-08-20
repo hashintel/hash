@@ -9,6 +9,10 @@ import type {
   WorkerIdentifiers,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import {
+  currentTimeInstantTemporalAxes,
+  generateVersionedUrlMatchingFilter,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -25,9 +29,15 @@ import {
   getProvidedFiles,
 } from "../shared/get-flow-context.js";
 import type { ParsedLlmToolCall } from "../shared/get-llm-response/types.js";
+import { graphApiClient } from "../shared/graph-api-client.js";
 import { logProgress } from "../shared/log-progress.js";
 import { stringify } from "../shared/stringify.js";
 import { checkSubTasksAgent } from "./research-entities-action/check-sub-tasks-agent.js";
+import {
+  createCheckpoint,
+  getCheckpoint,
+  heartbeatAndWaitCancellation,
+} from "./research-entities-action/checkpoints.js";
 import type {
   CoordinatingAgentInput,
   CoordinatingAgentState,
@@ -268,45 +278,25 @@ const updateStateFromInferredClaims = async (params: {
   ];
 };
 
-type ActivityHeartbeatDetails =
-  | {
-      state?: CoordinatingAgentState;
-    }
-  | undefined;
-
-export const researchEntitiesAction: FlowActionActivity<{
+/**
+ * This is the function that takes starting coordinating agent state and has the coordinator orchestrate the research task.
+ */
+const execResearchEntitiesAction: FlowActionActivity<{
+  state: CoordinatingAgentState;
   testingParams?: {
     humanInputCanBeRequested?: boolean;
     persistState?: (state: CoordinatingAgentState) => void;
     resumeFromState?: CoordinatingAgentState;
   };
-}> = async ({ inputs: stepInputs, testingParams }) => {
+}> = async ({ inputs: stepInputs, state, testingParams }) => {
+  const workerIdentifiers = state.coordinatorIdentifiers;
+
   const input = await coordinatingAgent.parseCoordinatorInputs({
     stepInputs,
     testingParams,
   });
 
-  const workerIdentifiers: WorkerIdentifiers = {
-    workerType: "Coordinator",
-    workerInstanceId: generateUuid(),
-    parentInstanceId: null,
-  };
-
-  let state: CoordinatingAgentState;
-
   const { flowEntityId, stepId, webId } = await getFlowContext();
-
-  logProgress([
-    {
-      type: "StartedCoordinator",
-      input: {
-        goal: input.prompt,
-      },
-      recordedAt: new Date().toISOString(),
-      stepId,
-      ...workerIdentifiers,
-    },
-  ]);
 
   const providedFileEntities = await getProvidedFiles();
 
@@ -327,14 +317,23 @@ export const researchEntitiesAction: FlowActionActivity<{
       };
     });
 
-  const stateBeforeRetry = Context.current().info
-    .heartbeatDetails as ActivityHeartbeatDetails;
+  if (!state.plan) {
+    /**
+     * If we don't already have a plan, this is the first run of the action
+     */
+    logProgress([
+      {
+        type: "StartedCoordinator",
+        attempt: Context.current().info.attempt,
+        input: {
+          goal: input.prompt,
+        },
+        recordedAt: new Date().toISOString(),
+        stepId,
+        ...workerIdentifiers,
+      },
+    ]);
 
-  if (stateBeforeRetry?.state) {
-    state = stateBeforeRetry.state;
-  } else if (testingParams?.resumeFromState) {
-    state = testingParams.resumeFromState;
-  } else {
     /**
      * We start by asking the coordinator agent to create an initial plan
      * for the research task.
@@ -356,27 +355,16 @@ export const researchEntitiesAction: FlowActionActivity<{
       },
     ]);
 
-    state = {
-      entitySummaries: [],
-      hasConductedCheckStep: false,
-      inferredClaims: [],
-      plan: initialPlan,
-      previousCalls: [],
-      proposedEntities: [],
-      questionsAndAnswers,
-      submittedEntityIds: [],
-      subTasksCompleted: [],
-      suggestionsForNextStepsMade: [],
-      resourcesNotVisited: providedFiles,
-      resourceUrlsVisited: [],
-      webQueriesMade: [],
-    };
+    /* eslint-disable no-param-reassign */
+    state.plan = initialPlan;
+    state.questionsAndAnswers = questionsAndAnswers;
+    /* eslint-enable no-param-reassign */
 
     if (testingParams?.persistState) {
       testingParams.persistState(state);
     }
 
-    Context.current().heartbeat({ state });
+    await createCheckpoint({ state });
   }
 
   const { toolCalls: initialToolCalls } =
@@ -416,6 +404,7 @@ export const researchEntitiesAction: FlowActionActivity<{
             const { plan } =
               toolCall.input as CoordinatorToolCallArguments["updatePlan"];
 
+            // eslint-disable-next-line no-param-reassign
             state.plan = plan;
 
             return {
@@ -446,6 +435,7 @@ export const researchEntitiesAction: FlowActionActivity<{
               ).questions,
             );
 
+            // eslint-disable-next-line no-param-reassign
             state.questionsAndAnswers =
               (state.questionsAndAnswers ?? "") + response;
 
@@ -570,6 +560,7 @@ export const researchEntitiesAction: FlowActionActivity<{
                       type: "StartedLinkExplorerTask",
                       input: {
                         goal: prompt,
+                        initialUrl: url,
                       },
                       explanation: reason,
                       ...linkExplorerIdentifiers,
@@ -847,6 +838,7 @@ export const researchEntitiesAction: FlowActionActivity<{
                 };
               }
 
+              // eslint-disable-next-line no-param-reassign
               state.submittedEntityIds = entityIds;
               const submittedEntities = getSubmittedEntities();
 
@@ -901,6 +893,7 @@ export const researchEntitiesAction: FlowActionActivity<{
                   isError: true,
                 };
               } else {
+                // eslint-disable-next-line no-param-reassign
                 state.hasConductedCheckStep = true;
               }
             }
@@ -921,6 +914,7 @@ export const researchEntitiesAction: FlowActionActivity<{
       ({ resourceUrlsVisited: urlsVisited }) => urlsVisited ?? [],
     );
 
+    // eslint-disable-next-line no-param-reassign
     state.resourceUrlsVisited = [
       ...new Set([...resourceUrlsVisited, ...state.resourceUrlsVisited]),
     ];
@@ -982,20 +976,22 @@ export const researchEntitiesAction: FlowActionActivity<{
      */
     if (isCompleted) {
       if (state.hasConductedCheckStep) {
-        Context.current().heartbeat({ state });
+        await createCheckpoint({ state });
         return;
       } else {
+        // eslint-disable-next-line no-param-reassign
         state.hasConductedCheckStep = true;
       }
     }
 
+    // eslint-disable-next-line no-param-reassign
     state.previousCalls = [...state.previousCalls, { completedToolCalls }];
 
     if (testingParams?.persistState) {
       testingParams.persistState(state);
     }
 
-    Context.current().heartbeat({ state });
+    await createCheckpoint({ state });
 
     const { toolCalls: nextToolCalls } =
       await coordinatingAgent.getNextToolCalls({
@@ -1020,7 +1016,7 @@ export const researchEntitiesAction: FlowActionActivity<{
    * - pass them to future steps
    */
   const _submittedEntities = getSubmittedEntities();
-  logger.debug(`Submitted Entities: ${stringify(_submittedEntities)}`);
+  logger.debug(`Submitted ${_submittedEntities.length} entities`);
 
   const allProposedEntities = state.proposedEntities;
 
@@ -1146,4 +1142,126 @@ export const researchEntitiesAction: FlowActionActivity<{
       },
     ],
   };
+};
+
+export const researchEntitiesAction: FlowActionActivity<{
+  testingParams?: {
+    humanInputCanBeRequested?: boolean;
+    persistState?: (state: CoordinatingAgentState) => void;
+    resumeFromState?: CoordinatingAgentState;
+  };
+}> = async (params) => {
+  const stateAtResetCheckpoint = await getCheckpoint();
+
+  const state: CoordinatingAgentState = params.testingParams?.resumeFromState ??
+    stateAtResetCheckpoint?.state ?? {
+      coordinatorIdentifiers: {
+        workerType: "Coordinator",
+        workerInstanceId: generateUuid(),
+        parentInstanceId: null,
+      },
+      entitySummaries: [],
+      hasConductedCheckStep: false,
+      inferredClaims: [],
+      plan: "",
+      previousCalls: [],
+      proposedEntities: [],
+      questionsAndAnswers: null,
+      submittedEntityIds: [],
+      subTasksCompleted: [],
+      suggestionsForNextStepsMade: [],
+      resourcesNotVisited: [],
+      resourceUrlsVisited: [],
+      webQueriesMade: [],
+    };
+
+  if (state.plan) {
+    /**
+     * This is a restart or reset of a workflow run.
+     * Because state is currently only captured at the coordinator level, in-progress sub-agents may have done work
+     * which have not been captured in the state, and needs to be undone to stop it being associated with the flow.
+     *
+     * This is currently only claims persisted in the graph but not yet reported to the coordinator.
+     *
+     * @todo improve this via one of
+     *   - earlier report of discovered claims to the coordinator
+     *   - maintain recoverable state in sub-agents
+     */
+    const { createEntitiesAsDraft, userAuthentication, flowEntityId, stepId } =
+      await getFlowContext();
+
+    const persistedClaims = await graphApiClient.getEntities(
+      userAuthentication.actorId,
+      {
+        includeDrafts: createEntitiesAsDraft,
+        temporalAxes: currentTimeInstantTemporalAxes,
+        filter: {
+          all: [
+            generateVersionedUrlMatchingFilter(
+              systemEntityTypes.claim.entityTypeId,
+              { ignoreParents: true },
+            ),
+            {
+              equal: [
+                {
+                  path: ["editionProvenance", "origin", "id"],
+                },
+                {
+                  parameter: flowEntityId,
+                },
+              ],
+            },
+            {
+              equal: [
+                {
+                  path: ["editionProvenance", "origin", "stepIds", 0],
+                },
+                {
+                  parameter: stepId,
+                },
+              ],
+            },
+          ],
+        },
+      },
+    );
+
+    await Promise.all(
+      persistedClaims.data.entities
+        .filter(
+          (claim) =>
+            !state.inferredClaims.some(
+              (claimInState) =>
+                claimInState.claimId === claim.metadata.recordId.entityId,
+            ),
+        )
+        .map(async (claim) =>
+          graphApiClient.patchEntity(userAuthentication.actorId, {
+            entityId: claim.metadata.recordId.entityId,
+            archived: true,
+          }),
+        ),
+    );
+  }
+
+  /**
+   * This action (Temporal activity) handles cancellation, and we set the workflow to WAIT_CANCELLATION_COMPLETED,
+   * which means we need to throw the cancelled error if and when we're notified of cancellation.
+   *
+   * execResearchEntitiesAction will continue to run until completion in any event, and so it has logic in various places
+   * inside it to check if the activity has been cancelled (look for status: "aborted" or isActivityCancelled),
+   * and to bail out of doing further work if so.
+   *
+   * @todo H-3129: refactor this action into a child workflow which calls other activities / child workflows,
+   *    in which case any single activity which is running when the workflow is cancelled will be doing less work.
+   *    There will still be a need to check for cancellation in these functions so that they can bail sooner to save resource
+   *    and to avoid making undesired database mutations etc.
+   */
+  return Promise.race([
+    execResearchEntitiesAction({
+      ...params,
+      state,
+    }),
+    heartbeatAndWaitCancellation(state),
+  ]);
 };

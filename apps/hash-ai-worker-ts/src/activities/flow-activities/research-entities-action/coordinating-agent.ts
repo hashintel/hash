@@ -3,6 +3,7 @@ import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/ac
 import type {
   ProposedEntity,
   StepInput,
+  WorkerIdentifiers,
 } from "@local/hash-isomorphic-utils/flows/types";
 import dedent from "dedent";
 
@@ -164,6 +165,7 @@ ${
 };
 
 export type CoordinatingAgentState = {
+  coordinatorIdentifiers: WorkerIdentifiers;
   plan: string;
   previousCalls: {
     completedToolCalls: CompletedCoordinatorToolCall<CoordinatorToolName>[];

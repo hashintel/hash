@@ -42,7 +42,7 @@ const getCache = async () => {
   return _runFlowWorkflowParamsCache;
 };
 
-const getTemporalClient = async () => {
+export const getTemporalClient = async () => {
   _temporalClient = _temporalClient ?? (await createTemporalClient());
   return _temporalClient;
 };
@@ -256,3 +256,14 @@ export const getProvidedFileByUrl = async (
     );
   });
 };
+
+/**
+ * This will return `true` if the activity receives a cancellation request or if the workflow run has otherwise reached a 'closed' state, e.g.:
+ *   - a call to 'reset' the workflow was made, which terminates the current run and starts a new one with event history up to the reset point
+ *   - the workflow was terminated (the difference with 'cancelled' being that the workflow doesn't receive cancellation errors from activities)
+ *   - the workflow was 'continue-as-new' while the activity was still running, which completes the old run and starts a new one with a fresh event history.
+ *
+ * @see https://docs.temporal.io/activities#cancellation
+ */
+export const isActivityCancelled = () =>
+  Context.current().cancellationSignal.aborted;

@@ -73,9 +73,11 @@ ${propertyTypes
 };
 
 // This assumes a hash.ai/blockprotocol.org type URL format ending in [slugified-title]/v/[number]
-const slugToTitleCase = (slug?: string) =>
-  slug
-    ? slug
+const urlToTitleCase = (url?: string) =>
+  url
+    ? url
+        .split("/")
+        .at(-2)!
         .split("-")
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(" ")
@@ -101,12 +103,12 @@ export const simplifyProposedEntityForLlmConsumption = (params: {
   return `
 <Entity>
 EntityId: ${localEntityId}
-EntityType: ${slugToTitleCase(entityTypeId)}
+EntityType: ${urlToTitleCase(entityTypeId)}
 Properties:
 ${Object.entries(properties)
   .map(
     ([baseUrl, value]) =>
-      `${slugToTitleCase(baseUrl)}: ${stringifyPropertyValue(value)}`,
+      `${urlToTitleCase(baseUrl)}: ${stringifyPropertyValue(value)}`,
   )
   .join("\n")}
     ${
