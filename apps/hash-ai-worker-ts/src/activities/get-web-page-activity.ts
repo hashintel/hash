@@ -12,6 +12,7 @@ import sanitizeHtml from "sanitize-html";
 import { logger } from "./shared/activity-logger.js";
 import { getFlowContext } from "./shared/get-flow-context.js";
 import { requestExternalInput } from "./shared/request-external-input.js";
+import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 
 /** @see https://github.com/berstend/puppeteer-extra/issues/748 */
 const puppeteer = _puppeteer.default;
@@ -154,7 +155,7 @@ const getWebPageFromPuppeteer = async (
           throw new Error("No response");
         }
 
-        if (response.status() !== 200) {
+        if (response.status() < 200 || response.status() >= 300) {
           throw new Error(`${response.status()}: ${response.statusText()}`);
         }
       })
@@ -176,9 +177,7 @@ const getWebPageFromPuppeteer = async (
   } catch (error) {
     await browser.close();
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    const errMessage = (error as Error).message ?? "Unknown error";
-
+    const errMessage = stringifyError(error);
     logger.error(`Failed to load URL ${url} in Puppeteer: ${errMessage}`);
 
     return {

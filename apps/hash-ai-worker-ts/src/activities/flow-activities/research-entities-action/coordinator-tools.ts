@@ -201,6 +201,9 @@ export const generateToolDefinitions = <
       
       If you want additional information about entities you already know about, or to find new entities to link to existing entities,
       be sure to specify the existing entities under 'relevantEntityIds'.
+      
+      You can explore multiple resources at once, but don't start multiple redundant explorations for the same information.
+      You can always explore another URL if one doesn't return the information you require.
     `),
       inputSchema: {
         type: "object",

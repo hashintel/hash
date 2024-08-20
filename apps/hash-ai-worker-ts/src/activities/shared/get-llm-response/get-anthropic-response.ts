@@ -526,6 +526,7 @@ export const getAnthropicResponse = async <ToolName extends string>(
 
       const validationErrors = getInputValidationErrors({
         input: sanitizedInput,
+        requestId: metadata.requestId,
         toolDefinition,
       });
 

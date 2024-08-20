@@ -513,6 +513,7 @@ export const getOpenAiResponse = async <ToolName extends string>(
 
     const validationErrors = getInputValidationErrors({
       input: sanitizedInput,
+      requestId: metadata.requestId,
       toolDefinition,
     });
 

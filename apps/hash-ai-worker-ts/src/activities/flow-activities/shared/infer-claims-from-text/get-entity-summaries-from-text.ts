@@ -101,6 +101,21 @@ Remember:
 - Stick strictly to the information provided in the text for summaries.
 - Do not let the relevance prompt mislead you into extracting incorrect entity types.
 - If you can't find any entities of the requested type, return an empty list – don't make them up, or use any prior knowledge
+
+<ExampleResponse>
+{
+  "entitySummaries": [
+    {
+      "name": "Bill Gates",
+      "summary": "William Henry Gates III is an American business magnate best known for co-founding the software company Microsoft with his childhood friend Paul Allen."
+    },
+    {
+      "name": "Steve Jobs",
+      "summary": "Steven Paul Jobs was an American businessman, inventor, and investor best known for co-founding the technology company Apple Inc."
+    }
+  ]
+}
+</ExampleResponse>
 `);
 
 export const getEntitySummariesFromText = async (params: {

@@ -67,6 +67,13 @@ const generateToolDefinitions = (params: {
                   - must not be lists or contain multiple pieces of information – each piece of information must be expressed as a standalone claim
                   - must not include prepositional phrases, these must be provided separately in the "prepositionalPhrases" argument
                   - must include full and complete units when specifying numeric data as the object of the claim
+                  
+                  Don't include a claim unless you know the value. 
+                  INCORRECT: 'Bill Gates has a LinkedIn URL'
+                  INCORRECT: 'Bill Gates's LinkedIn URL is <UNKNOWN>'
+                  INCORRECT: 'Bill Gate's LinkedIn URL is not in the text'
+                  CORRECT: 'Bill Gate's LinkedIn URL is https://www.linkedin.com/in/williamhgates'
+                  Or omit the claim if the value is not known.
                 `),
               },
               prepositionalPhrases: {
@@ -143,6 +150,13 @@ const systemPrompt = dedent(`
   If an attribute isn't present, don't include a claim about it. Don't say 'X's attribute Y is unknown', or 'X's attribute Y is not in the text' – just omit it.
   If an attribute IS present, mention the value in the claim, i.e. say 'X's attribute Y is <value>' 
   – don't say 'X's attribute Y is in the text', or 'X has an attribute Y' without providing the value.
+  
+  INCORRECT: 'Bill Gates has a LinkedIn URL'
+  INCORRECT: 'Bill Gates's LinkedURL is <UNKNOWN>'
+  INCORRECT: 'Bill Gates's LinkedUrl is not in the text'
+  CORRECT: 'Bill Gate's LinkedIn URL is https://www.linkedin.com/in/williamhgates', IF this URL is present in the text.
+  
+  Or omit the claim if the value is not known.
 `);
 
 const constructUserMessage = (params: {
@@ -185,6 +199,7 @@ const constructUserMessage = (params: {
           The overriding goal of the research – focus on this goal <Goal>${goal}</Goal>
           <RelevantProperties>
           These are the properties of entities that the user is particularly interested in. Prioritise claims relevant to these properties.
+          If you cannot find the value for these properties, do not include a claim about them. Don't guess or say they are unknown or not present.
           ${relevantProperties
             .map(({ title: propertyTitle, description }) =>
               dedent(`<Property>
@@ -263,7 +278,12 @@ summary: ${summary}</SubjectEntity>`),
               .map((property) => property.title)
               .join(
                 ", ",
-              )}. You must include claims about these properties if they are present in the text.
+              )}. You must include claims about these properties IF they are present in the text.
+          Do NOT include claims such as:
+          'Bill Gates has a LinkedIn URL'
+          'Bill Gates's LinkedURL is <UNKNOWN>'
+          'Bill Gates's LinkedUrl is not in the text'
+          Just omit the claim if you can't find the value for the property.
 `),
       },
     ],
