@@ -11224,10 +11224,10 @@
   resolved "https://registry.yarnpkg.com/@types/unist/-/unist-3.0.2.tgz#6dd61e43ef60b34086287f83683a5c1b2dc53d20"
   integrity sha512-dqId9J8K/vGi5Zr7oo212BGii5m3q5Hxlkwy3WpYuKPklmBEvsbMYYyLxAQpSffdLl/gdW0XUpKWFvYmyoWCoQ==
 
-"@types/url-regex-safe@1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@types/url-regex-safe/-/url-regex-safe-1.0.0.tgz#78d0742fbc0438ab5805ae12ddb7ed0cf5daf493"
-  integrity "sha1-eNB0L7wEOKtYBa4S3bftDPXa9JM= sha512-4ktZEdl4U+ETSm8asxGDLsveKH2vl+9+d8NWYuvmI2YfCtpkNG+XffjoD9vtduPdHWJEr+VFet6r3F57Y9oTww=="
+"@types/url-regex-safe@1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@types/url-regex-safe/-/url-regex-safe-1.0.2.tgz#67a726ef4c26643ecf189926b8dfd101bbcdcf95"
+  integrity sha512-Ro+qmzg7SomSd4uHMCPzv0JwXtAK0gMnB0CvnFErTGFFw+Lndzt1RZS/Yj2yzrdv4h5SZPohdGPA6q/F0TUacw==
 
 "@types/uuid@8.3.4":
   version "8.3.4"
