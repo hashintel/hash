@@ -11172,10 +11172,10 @@
     "@types/mime" "*"
     "@types/node" "*"
 
-"@types/set-interval-async@1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@types/set-interval-async/-/set-interval-async-1.0.0.tgz#7769973e0ded3faee36018795a92b6ba239d668e"
-  integrity "sha1-d2mXPg3tP67jYBh5WpK2uiOdZo4= sha512-4twO6B7/dcd+lMyIHwUm/S1RMvVOsgZf0sCevNNCnwyAxn7t9mxLfuZxIGFimYCPhLjJYccsvo4HhXxp4UDoBg=="
+"@types/set-interval-async@1.0.3":
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/@types/set-interval-async/-/set-interval-async-1.0.3.tgz#e1974c7c812617cd6ed37d3afde31b7e4f8047a5"
+  integrity sha512-sPwjhIU2p8JeaYJPuzfQclyPni3c4Nz7IK4KhvAkMq5O36TsQXeaZ5g3YwiOtE90ja3E4rg7Aja1DcO+eknZbw==
 
 "@types/shimmer@^1.0.2":
   version "1.2.0"
