@@ -105,7 +105,7 @@
     "@types/mime-types": "2.1.4",
     "@types/node": "20.16.0",
     "@types/papaparse": "5.3.14",
-    "@types/sanitize-html": "2.11.0",
+    "@types/sanitize-html": "2.13.0",
     "@vitest/coverage-istanbul": "2.0.5",
     "eslint": "8.57.0",
     "rimraf": "6.0.1",
