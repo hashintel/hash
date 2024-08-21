@@ -266,8 +266,8 @@ const DocsPage: NextPageWithLayout<DocsPageProps> = ({
         <DocsHomePage />
       ) : serializedPage ? (
         <DocsContent
-          title={serializedPage.scope?.title}
-          subtitle={serializedPage.scope?.subtitle}
+          title={serializedPage.scope.title}
+          subtitle={serializedPage.scope.subtitle}
           content={serializedPage}
           sectionPages={sectionPages}
         />
