@@ -16,7 +16,7 @@ import {
 } from "../../shared/get-flow-context.js";
 import { logProgress } from "../../shared/log-progress.js";
 import { stringify } from "../../shared/stringify.js";
-import { inferClaimsFromText } from "../shared/infer-claims-from-text.js";
+import { inferSummariesThenClaimsFromText } from "../shared/infer-summaries-then-claims-from-text.js";
 import type { LocalEntitySummary } from "../shared/infer-claims-from-text/get-entity-summaries-from-text.js";
 import type { Claim } from "../shared/infer-claims-from-text/types.js";
 import { deduplicateEntities } from "./deduplicate-entities.js";
@@ -350,7 +350,7 @@ const exploreResource = async (params: {
   const {
     claims: inferredClaimsFromContent,
     entitySummaries: inferredEntitySummariesFromContent,
-  } = await inferClaimsFromText({
+  } = await inferSummariesThenClaimsFromText({
     existingEntitiesOfInterest,
     text: content,
     url: resource.url,

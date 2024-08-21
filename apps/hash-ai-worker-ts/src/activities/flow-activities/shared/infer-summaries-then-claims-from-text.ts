@@ -7,7 +7,7 @@ import { getEntitySummariesFromText } from "./infer-claims-from-text/get-entity-
 import { inferEntityClaimsFromTextAgent } from "./infer-claims-from-text/infer-entity-claims-from-text-agent.js";
 import type { Claim } from "./infer-claims-from-text/types.js";
 
-export const inferClaimsFromText = async (params: {
+export const inferSummariesThenClaimsFromText = async (params: {
   text: string;
   url: string | null;
   title: string | null;
