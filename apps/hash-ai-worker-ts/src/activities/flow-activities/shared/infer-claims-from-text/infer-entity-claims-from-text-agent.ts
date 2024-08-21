@@ -67,6 +67,13 @@ const generateToolDefinitions = (params: {
                   - must not be lists or contain multiple pieces of information – each piece of information must be expressed as a standalone claim
                   - must not include prepositional phrases, these must be provided separately in the "prepositionalPhrases" argument
                   - must include full and complete units when specifying numeric data as the object of the claim
+                  
+                  Don't include a claim unless you know the value. 
+                  INCORRECT: 'Bill Gates has a LinkedIn URL'
+                  INCORRECT: 'Bill Gates's LinkedIn URL is <UNKNOWN>'
+                  INCORRECT: 'Bill Gate's LinkedIn URL is not in the text'
+                  CORRECT: 'Bill Gate's LinkedIn URL is https://www.linkedin.com/in/williamhgates'
+                  Or omit the claim if the value is not known.
                 `),
               },
               prepositionalPhrases: {
@@ -108,18 +115,21 @@ const generateToolDefinitions = (params: {
 });
 
 const systemPrompt = dedent(`
-  You are a claim extracting agent.
+  You are a claim extracting agent. Your job is to consider some content, and identify claims about entities from within it.
+  
+  The user may be focused on particular entities and/or particular attributes of those entities to extract claims about.
 
   The user will provide you with:
     - Text: the text from which you should extract claims.
     - URL: the URL the text was taken from, if any.
     - Title: The title of the text, if any.
+    - Goal: A prompt specifying what entities or claims about entities you should focus on.
     - Subject Entities: the subject entities of claims that the user is looking for, each of which are of the same type (i.e. have the same properties and outgoing links). 
     - Relevant Properties: a list of properties the user is looking for in the text. Pay particular attention to these properties when extracting claims.
     - Relevant Outgoing Links: a definition of the possible outgoing links the user is looking for in the text. Pay particular attention to relationships (links) with other entities of these kinds.
     - Potential Object Entities: a list of other entities mentioned in the text, which may be the object of claims. Include their id as the object of the claim if they are the object of the claim.
 
-  You must provide an exhaustive list of claims about the provided subject entities based on the information provided in the text.
+  You must provide an exhaustive list of claims about the provided subject entities based on the information provided in the text
   For example, if you are provided with data from a table where the entity is a row of the table,
     all the information in each cell of the row should be represented in the claims.
 
@@ -134,12 +144,26 @@ const systemPrompt = dedent(`
   
   IMPORTANT: pay attention to the name of each SubjectEntity – each claim MUST start with one of these names, exactly as it is expressed in the <SubjectEntity>
              If this is slightly different to how the entity is named in the text, use the name of the SubjectEntity!
+             
+  Remember to particularly focus on the entities and the properties the user is looking for, guided by the prompt.
+  
+  If an attribute isn't present, don't include a claim about it. Don't say 'X's attribute Y is unknown', or 'X's attribute Y is not in the text' – just omit it.
+  If an attribute IS present, mention the value in the claim, i.e. say 'X's attribute Y is <value>' 
+  – don't say 'X's attribute Y is in the text', or 'X has an attribute Y' without providing the value.
+  
+  INCORRECT: 'Bill Gates has a LinkedIn URL'
+  INCORRECT: 'Bill Gates's LinkedURL is <UNKNOWN>'
+  INCORRECT: 'Bill Gates's LinkedUrl is not in the text'
+  CORRECT: 'Bill Gate's LinkedIn URL is https://www.linkedin.com/in/williamhgates', IF this URL is present in the text.
+  
+  Or omit the claim if the value is not known.
 `);
 
 const constructUserMessage = (params: {
   text: string;
   url: string | null;
   title: string | null;
+  goal: string;
   subjectEntities: LocalEntitySummary[];
   dereferencedEntityType: DereferencedEntityType;
   linkEntityTypesById: Record<string, DereferencedEntityType>;
@@ -149,6 +173,7 @@ const constructUserMessage = (params: {
     text,
     url,
     title,
+    goal,
     subjectEntities,
     dereferencedEntityType,
     linkEntityTypesById,
@@ -168,11 +193,13 @@ const constructUserMessage = (params: {
       {
         type: "text",
         text: dedent(`
-          ${url ? `<URL>${url}</URL>` : ""}
-          ${title ? `<Title>${title}</Title>` : ""}
-          <Text>${text}</Text>
+          ${url ? `This is the URL of the page – if one of the properties sought is a URL, it may be this one <URL>${url}</URL>` : ""}
+          ${title ? `The title of the page, which may contain useful information <Title>${title}</Title>` : ""}
+          The content of the page <Text>${text}</Text>
+          The overriding goal of the research – focus on this goal <Goal>${goal}</Goal>
           <RelevantProperties>
           These are the properties of entities that the user is particularly interested in. Prioritise claims relevant to these properties.
+          If you cannot find the value for these properties, do not include a claim about them. Don't guess or say they are unknown or not present.
           ${relevantProperties
             .map(({ title: propertyTitle, description }) =>
               dedent(`<Property>
@@ -251,7 +278,12 @@ summary: ${summary}</SubjectEntity>`),
               .map((property) => property.title)
               .join(
                 ", ",
-              )}. You must include claims about these properties if they are present in the text.
+              )}. You must include claims about these properties IF they are present in the text.
+          Do NOT include claims such as:
+          'Bill Gates has a LinkedIn URL'
+          'Bill Gates's LinkedURL is <UNKNOWN>'
+          'Bill Gates's LinkedUrl is not in the text'
+          Just omit the claim if you can't find the value for the property.
 `),
       },
     ],
@@ -264,6 +296,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
   subjectEntities: LocalEntitySummary[];
   potentialObjectEntities: LocalEntitySummary[];
   text: string;
+  goal: string;
   url: string | null;
   title: string | null;
   contentType: "webpage" | "document";
@@ -288,6 +321,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
     potentialObjectEntities,
     text,
     url,
+    goal,
     title,
     contentType,
     dereferencedEntityType,
@@ -320,6 +354,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
           text,
           url,
           title,
+          goal,
           subjectEntities,
           dereferencedEntityType,
           linkEntityTypesById,

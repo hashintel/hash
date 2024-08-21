@@ -55,6 +55,7 @@ test.skip(
       dereferencedEntityType,
       contentType: "webpage",
       linkEntityTypesById: {},
+      goal: "Find information about FTSE350 constituents.",
       subjectEntities: [
         {
           localId: generateEntityId("6675a4ca-2282-4823-a4ff-d65d87218ebd"),
@@ -112,6 +113,7 @@ test.skip(
     const { claims } = await inferEntityClaimsFromTextAgent({
       text: htmlContent,
       url,
+      goal: "Find information about graphics cards",
       title: webPage.title,
       dereferencedEntityType,
       contentType: "webpage",

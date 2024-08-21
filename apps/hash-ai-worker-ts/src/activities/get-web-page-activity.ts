@@ -3,6 +3,7 @@ import type {
   WebPage,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { Context } from "@temporalio/activity";
 import { JSDOM } from "jsdom";
 import _puppeteer from "puppeteer-extra";
@@ -154,7 +155,7 @@ const getWebPageFromPuppeteer = async (
           throw new Error("No response");
         }
 
-        if (response.status() !== 200) {
+        if (response.status() < 200 || response.status() >= 300) {
           throw new Error(`${response.status()}: ${response.statusText()}`);
         }
       })
@@ -176,9 +177,7 @@ const getWebPageFromPuppeteer = async (
   } catch (error) {
     await browser.close();
 
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-    const errMessage = (error as Error).message ?? "Unknown error";
-
+    const errMessage = stringifyError(error);
     logger.error(`Failed to load URL ${url} in Puppeteer: ${errMessage}`);
 
     return {

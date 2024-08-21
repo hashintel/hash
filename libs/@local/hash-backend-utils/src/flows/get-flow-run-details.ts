@@ -189,9 +189,20 @@ const getFlowRunDetailedFields = async ({
       firstExecutionRunId,
     );
 
-    const originalRun = await originalRunHandle.describe();
+    try {
+      const originalRun = await originalRunHandle.describe();
 
-    workflowStartedAt = originalRun.startTime;
+      workflowStartedAt = originalRun.startTime;
+    } catch {
+      /**
+       * The original run is not available, likely because it is no longer retained by Temporal.
+       * @todo H-3142: save workflow history in our database so we don't rely on Temporal for old runs
+       */
+      // eslint-disable-next-line no-console
+      console.warn(
+        `Could not find original run with id ${firstExecutionRunId} for workflow ${workflowId}`,
+      );
+    }
   }
 
   const workflowOutputs = parseHistoryItemPayload(

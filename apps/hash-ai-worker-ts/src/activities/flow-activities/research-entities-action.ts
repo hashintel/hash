@@ -407,6 +407,16 @@ const execResearchEntitiesAction: FlowActionActivity<{
             // eslint-disable-next-line no-param-reassign
             state.plan = plan;
 
+            logProgress([
+              {
+                type: "UpdatedPlan",
+                plan,
+                stepId,
+                recordedAt: new Date().toISOString(),
+                ...workerIdentifiers,
+              },
+            ]);
+
             return {
               ...nullReturns,
               ...toolCall,
@@ -571,6 +581,7 @@ const execResearchEntitiesAction: FlowActionActivity<{
                     workerIdentifiers: linkExplorerIdentifiers,
                     input: {
                       initialResource: {
+                        goal: prompt,
                         url,
                         descriptionOfExpectedContent,
                         exampleOfExpectedContent,

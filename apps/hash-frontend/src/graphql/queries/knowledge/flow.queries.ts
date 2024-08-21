@@ -25,3 +25,9 @@ export const resetFlowMutation = gql`
     )
   }
 `;
+
+export const cancelFlowMutation = gql`
+  mutation cancelFlow($flowUuid: ID!) {
+    cancelFlow(flowUuid: $flowUuid)
+  }
+`;

@@ -39,7 +39,7 @@ export const logLlmServerError = (log: LlmServerErrorLog) => {
     response: log.response,
     request: log.request,
     secondsTaken: log.secondsTaken,
-    detailFields: ["response", "request"],
+    detailedFields: ["response", "request"],
   };
 
   logger.error(JSON.stringify(orderedLog));

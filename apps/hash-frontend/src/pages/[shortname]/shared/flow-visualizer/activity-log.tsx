@@ -114,6 +114,8 @@ const closedLinkExplorerTaskPrefix = "Finished link explorer task with ";
 const activityFailedPrefix = "Activity failed: ";
 const checkpointPrefix = "Checkpoint recorded";
 const checkpointResetMessage = "Flow resumed from checkpoint";
+const createdPlanMessage = "Created research plan";
+const updatedPlanMessage = "Updated research plan";
 
 const getRawTextFromLog = (log: LocalProgressLog): string => {
   switch (log.type) {
@@ -138,7 +140,10 @@ const getRawTextFromLog = (log: LocalProgressLog): string => {
       return log.message;
     }
     case "CreatedPlan": {
-      return "Created research plan";
+      return createdPlanMessage;
+    }
+    case "UpdatedPlan": {
+      return updatedPlanMessage;
     }
     case "Thread": {
       return log.label;
@@ -300,7 +305,15 @@ const LogDetail = ({
     case "CreatedPlan": {
       return (
         <>
-          Created research plan
+          {createdPlanMessage}
+          <ModelTooltip text={log.plan} />
+        </>
+      );
+    }
+    case "UpdatedPlan": {
+      return (
+        <>
+          {updatedPlanMessage}
           <ModelTooltip text={log.plan} />
         </>
       );

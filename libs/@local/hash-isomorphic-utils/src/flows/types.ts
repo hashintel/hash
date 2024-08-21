@@ -83,6 +83,7 @@ export type PersistedEntities = {
 
 export type FlowInputs = [
   {
+    dataSources: FlowDataSources;
     flowDefinition: FlowDefinition;
     flowTrigger: FlowTrigger;
     webId: OwnedById;
@@ -397,6 +398,11 @@ export type CreatedPlanLog = WorkerProgressLogBase & {
   type: "CreatedPlan";
 };
 
+export type UpdatedPlanLog = WorkerProgressLogBase & {
+  plan: string;
+  type: "UpdatedPlan";
+};
+
 export type VisitedWebPageLog = WorkerProgressLogBase & {
   explanation: string;
   webPage: Pick<WebPage, "url" | "title">;
@@ -521,6 +527,7 @@ export type StepProgressLog =
   | StartedCoordinatorLog
   | StartedLinkExplorerTaskLog
   | StartedSubTaskLog
+  | UpdatedPlanLog
   | ViewedFile
   | VisitedWebPageLog;
 

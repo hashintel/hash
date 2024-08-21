@@ -201,7 +201,7 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
              * Otherwise we will most likely immediately encounter the rate limit.
              */
             logger.debug(
-              `Encountered server error with provider "${currentProvider}", retrying with exponential backoff with provider "${
+              `Encountered server error with provider "${currentProvider}" for request ${metadata.requestId}, retrying with exponential backoff with provider "${
                 priorRateLimitErrorForOtherProvider
                   ? currentProvider
                   : otherProvider
@@ -236,7 +236,7 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
          * we can directly retry the request with the other provider.
          */
         logger.debug(
-          `Encountered rate limit error with provider "${currentProvider}", retrying directly with provider "${otherProvider}".`,
+          `Encountered rate limit error with provider "${currentProvider}" for request ${metadata.requestId}, retrying directly with provider "${otherProvider}".`,
         );
         return createAnthropicMessagesWithToolsWithBackoff({
           metadata,
@@ -277,7 +277,7 @@ const createAnthropicMessagesWithToolsWithBackoff = async (params: {
             : otherProvider;
 
         logger.debug(
-          `Encountered rate limit error with both providers "${currentProvider}" and "${otherProvider}", delaying request for provider "${smallerStartingDelayProvider}" until the rate limit wait period has ended.`,
+          `Encountered rate limit error with both providers "${currentProvider}" and "${otherProvider}" for request ${metadata.requestId}, delaying request for provider "${smallerStartingDelayProvider}" until the rate limit wait period has ended.`,
         );
 
         if (smallerStartingDelay > 0) {
@@ -357,7 +357,9 @@ export const getAnthropicResponse = async <ToolName extends string>(
       initialProvider,
     });
   } catch (error) {
-    logger.error(`Anthropic API error: ${stringifyError(error)}`);
+    logger.error(
+      `Anthropic API error for request ${metadata.requestId}: ${stringifyError(error)}`,
+    );
 
     return {
       status: isActivityCancelled() ? "aborted" : "api-error",
@@ -524,6 +526,7 @@ export const getAnthropicResponse = async <ToolName extends string>(
 
       const validationErrors = getInputValidationErrors({
         input: sanitizedInput,
+        requestId: metadata.requestId,
         toolDefinition,
       });
 

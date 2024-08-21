@@ -727,6 +727,7 @@ export const runSubTaskAgent = async (params: {
                       input: {
                         existingEntitiesOfInterest: input.relevantEntities,
                         initialResource: {
+                          goal: prompt,
                           url,
                           descriptionOfExpectedContent,
                           exampleOfExpectedContent,

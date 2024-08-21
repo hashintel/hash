@@ -7,14 +7,14 @@ import { getEntitySummariesFromText } from "./infer-claims-from-text/get-entity-
 import { inferEntityClaimsFromTextAgent } from "./infer-claims-from-text/infer-entity-claims-from-text-agent.js";
 import type { Claim } from "./infer-claims-from-text/types.js";
 
-export const inferClaimsFromText = async (params: {
+export const inferSummariesThenClaimsFromText = async (params: {
   text: string;
   url: string | null;
   title: string | null;
   contentType: "webpage" | "document";
   existingEntitiesOfInterest: LocalEntitySummary[];
   dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
-  relevantEntitiesPrompt?: string;
+  goal: string;
   testingParams?: {
     existingEntitySummaries?: LocalEntitySummary[];
   };
@@ -30,7 +30,7 @@ export const inferClaimsFromText = async (params: {
     existingEntitiesOfInterest,
     testingParams,
     dereferencedEntityTypes,
-    relevantEntitiesPrompt,
+    goal,
   } = params;
 
   const newEntitySummaries: LocalEntitySummary[] =
@@ -48,7 +48,7 @@ export const inferClaimsFromText = async (params: {
                 existingSummaries: existingEntitiesOfInterest,
                 text,
                 dereferencedEntityType: schema,
-                relevantEntitiesPrompt,
+                relevantEntitiesPrompt: goal,
               });
 
             return entitySummariesOfType;
@@ -113,6 +113,7 @@ export const inferClaimsFromText = async (params: {
                   ...newEntitySummaries,
                   ...existingEntitiesOfInterest,
                 ],
+                goal,
                 text,
                 title,
                 url,

@@ -12,6 +12,7 @@ import type {
 } from "../api-types.gen";
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
+import { cancelFlow } from "./flows/cancel-flow";
 import { getFlowRunByIdResolver } from "./flows/get-flow-run-by-id";
 import { getFlowRunsResolver } from "./flows/get-flow-runs";
 import { resetFlow } from "./flows/reset-flow";
@@ -194,6 +195,7 @@ export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
       removeEntityViewerResolver,
     ),
 
+    cancelFlow: loggedInAndSignedUpMiddleware(cancelFlow),
     resetFlow: loggedInAndSignedUpMiddleware(resetFlow),
     startFlow: loggedInAndSignedUpMiddleware(startFlow),
     submitExternalInputResponse: loggedInAndSignedUpMiddleware(

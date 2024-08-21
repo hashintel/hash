@@ -18,7 +18,7 @@ import {
 } from "../../../get-web-page-activity.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
-import { inferClaimsFromText } from "../infer-claims-from-text.js";
+import { inferSummariesThenClaimsFromText } from "../infer-summaries-then-claims-from-text.js";
 import type { LocalEntitySummary } from "./get-entity-summaries-from-text.js";
 
 const microsoftWikipediaParagraph = `
@@ -38,9 +38,10 @@ Microsoft has been criticized for its monopolistic practices and the company's s
 test.skip(
   "Test inferClaimsFromText with Microsoft Wikipedia paragraph.",
   async () => {
-    const { claims } = await inferClaimsFromText({
+    const { claims } = await inferSummariesThenClaimsFromText({
       text: microsoftWikipediaParagraph,
       url: null,
+      goal: "Find info on Microsoft",
       contentType: "webpage",
       title: "Microsoft – Wikipedia",
       dereferencedEntityTypes: {},
@@ -171,9 +172,10 @@ test.skip(
       simplifyPropertyKeys: true,
     });
 
-    const { claims, entitySummaries } = await inferClaimsFromText({
+    const { claims, entitySummaries } = await inferSummariesThenClaimsFromText({
       text: htmlContent,
       url,
+      goal: "Find information about FTSE350 constituents.",
       contentType: "webpage",
       title: webPage.title,
       dereferencedEntityTypes,
@@ -263,15 +265,14 @@ test.skip(
       simplifyPropertyKeys: true,
     });
 
-    const { claims, entitySummaries } = await inferClaimsFromText({
+    const { claims, entitySummaries } = await inferSummariesThenClaimsFromText({
       text,
       url: "https://www.linkedin.com/in/satyanadella/",
+      goal: "Find claims about Satya Nadella, and the companies where he has worked.",
       title: null,
       dereferencedEntityTypes,
       contentType: "webpage",
       existingEntitiesOfInterest: [],
-      relevantEntitiesPrompt:
-        "Find claims about Satya Nadella, and the companies where he has worked.",
       testingParams: {
         existingEntitySummaries: statyaNadellaLinkedInEntitySummaries,
       },
@@ -467,15 +468,14 @@ test.skip(
       simplifyPropertyKeys: true,
     });
 
-    const { claims, entitySummaries } = await inferClaimsFromText({
+    const { claims, entitySummaries } = await inferSummariesThenClaimsFromText({
       text,
       url,
+      goal: "Find all the Large Language Models provided by OpenAI",
       title,
       dereferencedEntityTypes,
       contentType: "webpage",
       existingEntitiesOfInterest: [],
-      relevantEntitiesPrompt:
-        "Find all the Large Language Models provided by OpenAI",
       testingParams: {
         existingEntitySummaries: llmProviderExistingEntitySummaries,
       },

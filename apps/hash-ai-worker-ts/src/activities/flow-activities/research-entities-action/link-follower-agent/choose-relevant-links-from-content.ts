@@ -147,6 +147,17 @@ export const chooseRelevantLinksFromContent = async (params: {
               text: dedent(`
                 <Prompt>Please provide links relevant to this goal: ${prompt}</Prompt>
                 <Content>${content}</Content>
+                <ExampleResponse>          
+                  {
+                    "links": [
+                      {
+                        "url": "https://arxiv.org/abs/2405.10674",
+                        "description": "The main abstract page for the paper, which likely contains the author names and affiliations.",
+                        "reason": "This is the primary page for the paper, which should have the author information needed to satisfy the prompt."
+                      }
+                    ]
+                  }
+                </ExampleResponse>
               `),
             },
           ],
