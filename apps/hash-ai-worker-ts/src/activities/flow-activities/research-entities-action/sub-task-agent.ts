@@ -1,4 +1,3 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { Subtype } from "@local/advanced-types/subtype";
 import type {
   FlowDataSources,
@@ -145,11 +144,8 @@ export type SubTaskAgentToolCallArguments = Subtype<
 >;
 
 const generateSystemPromptPrefix = (params: { input: SubTaskAgentInput }) => {
-  const {
-    relevantEntities,
-    existingClaimsAboutRelevantEntities,
-    linkEntityTypes,
-  } = params.input;
+  const { relevantEntities, existingClaimsAboutRelevantEntities } =
+    params.input;
 
   return dedent(`
     You are a sub-task agent for a research task.
@@ -157,11 +153,6 @@ const generateSystemPromptPrefix = (params: { input: SubTaskAgentInput }) => {
     The user will provide you with:
       - Goal: the research goal you need to satisfy to complete the research task
       - Entity Types: a list of entity types of the entities that you may need to discover claims about
-      ${
-        linkEntityTypes
-          ? `- Link Entity Types: a list of link entity types of the entities that you may need to discover claims about`
-          : ""
-      }
       ${
         relevantEntities.length > 0
           ? `- Relevant Entities: a list entities which have already been discovered and may be relevant to the research goal. Check this list before making any web searches to discover entities mentioned in the research goal – they may already be provided here.`
@@ -187,7 +178,6 @@ export type SubTaskAgentInput = {
   relevantEntities: LocalEntitySummary[];
   existingClaimsAboutRelevantEntities: Claim[];
   entityTypes: DereferencedEntityType[];
-  linkEntityTypes?: DereferencedEntityType[];
 };
 
 export type SubTaskAgentState = Pick<
@@ -212,7 +202,6 @@ const generateInitialUserMessage = (params: {
     relevantEntities,
     existingClaimsAboutRelevantEntities,
     entityTypes,
-    linkEntityTypes,
   } = params.input;
 
   return {
@@ -227,15 +216,6 @@ ${entityTypes
   .map((entityType) => simplifyEntityTypeForLlmConsumption({ entityType }))
   .join("\n")}
 </EntityTypes>
-${
-  linkEntityTypes
-    ? `<LinkTypes>${linkEntityTypes
-        .map((linkType) =>
-          simplifyEntityTypeForLlmConsumption({ entityType: linkType }),
-        )
-        .join("\n")}</LinkTypes>`
-    : ""
-}
 ${
   relevantEntities.length > 0
     ? `<RelevantEntities>${relevantEntities
@@ -626,76 +606,11 @@ export const runSubTaskAgent = async (params: {
               const { resources } =
                 toolCall.input as CoordinatorToolCallArguments["inferClaimsFromResources"];
 
-              const validEntityTypeIds = input.entityTypes.map(
-                ({ $id }) => $id,
-              );
-
-              const invalidEntityTypeIds = resources
-                .flatMap(({ entityTypeIds }) => entityTypeIds)
-                .filter(
-                  (entityTypeId) =>
-                    !validEntityTypeIds.includes(entityTypeId as VersionedUrl),
-                );
-
-              const validLinkEntityTypeIds =
-                input.linkEntityTypes?.map(({ $id }) => $id) ?? [];
-
-              const invalidLinkEntityTypeIds = resources
-                .flatMap(({ linkEntityTypeIds }) => linkEntityTypeIds ?? [])
-                .filter(
-                  (entityTypeId) =>
-                    !validLinkEntityTypeIds.includes(
-                      entityTypeId as VersionedUrl,
-                    ),
-                );
-
-              if (
-                invalidEntityTypeIds.length > 0 ||
-                invalidLinkEntityTypeIds.length > 0
-              ) {
-                return {
-                  ...toolCall,
-                  ...nullReturns,
-                  isError: true,
-                  output: dedent(`
-                  ${
-                    invalidEntityTypeIds.length > 0
-                      ? dedent(`
-                        The following entity type IDs are invalid: ${JSON.stringify(
-                          invalidEntityTypeIds,
-                        )}
-
-                        Valid entity type IDs are: ${JSON.stringify(
-                          validEntityTypeIds,
-                        )}
-                      `)
-                      : ""
-                  }
-                  ${
-                    invalidLinkEntityTypeIds.length > 0
-                      ? dedent(`
-                        The following link entity type IDs are invalid: ${JSON.stringify(
-                          invalidLinkEntityTypeIds,
-                        )}
-                        
-                        The valid link entity types type IDs are: ${JSON.stringify(
-                          validLinkEntityTypeIds,
-                        )}
-                      `)
-                      : ""
-                  }
-
-                `),
-                };
-              }
-
               const responsesWithUrl = await Promise.all(
                 resources.map(
                   async ({
                     url,
-                    prompt,
-                    entityTypeIds,
-                    linkEntityTypeIds,
+                    goal,
                     descriptionOfExpectedContent,
                     exampleOfExpectedContent,
                     reason,
@@ -714,7 +629,7 @@ export const runSubTaskAgent = async (params: {
                         recordedAt: new Date().toISOString(),
                         type: "StartedLinkExplorerTask",
                         input: {
-                          goal: prompt,
+                          goal,
                           initialUrl: url,
                         },
                         explanation: reason,
@@ -727,27 +642,14 @@ export const runSubTaskAgent = async (params: {
                       input: {
                         existingEntitiesOfInterest: input.relevantEntities,
                         initialResource: {
-                          goal: prompt,
+                          goal,
                           url,
                           descriptionOfExpectedContent,
                           exampleOfExpectedContent,
                           reason,
                         },
-                        task: prompt,
-                        entityTypes: input.entityTypes.filter(
-                          ({ $id }) =>
-                            entityTypeIds.includes($id) ||
-                            input.relevantEntities.some(
-                              (entity) => entity.entityTypeId === $id,
-                            ),
-                        ),
-                        linkEntityTypes: input.linkEntityTypes?.filter(
-                          ({ $id }) =>
-                            !!linkEntityTypeIds?.includes($id) ||
-                            input.relevantEntities.some(
-                              (entity) => entity.entityTypeId === $id,
-                            ),
-                        ),
+                        goal,
+                        entityTypes: input.entityTypes,
                       },
                     });
 
@@ -756,7 +658,7 @@ export const runSubTaskAgent = async (params: {
                         stepId,
                         recordedAt: new Date().toISOString(),
                         type: "ClosedLinkExplorerTask",
-                        goal: prompt,
+                        goal,
                         output: {
                           claimCount: response.inferredClaims.length,
                           entityCount: response.inferredSummaries.length,

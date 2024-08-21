@@ -9,7 +9,7 @@ import type { LlmParams } from "../../../shared/get-llm-response/types.js";
 import { optimizeSystemPrompt } from "../../../shared/optimize-system-prompt.js";
 import type { MetricDefinition } from "../../../shared/optimize-system-prompt/types.js";
 import {
-  generateSystemPrompt,
+  entitySummariesFromTextSystemPrompt,
   getEntitySummariesFromText,
 } from "./get-entity-summaries-from-text.js";
 import { testData } from "./get-entity-summaries-from-text.optimize/test-data.js";
@@ -29,7 +29,7 @@ const metrics: MetricDefinition[] = testData.map((testItem) => {
       } = testItem;
 
       const { entitySummaries } = await getEntitySummariesFromText({
-        dereferencedEntityType: entityType,
+        dereferencedEntityTypes: [entityType],
         existingSummaries: [],
         relevantEntitiesPrompt,
         testingParams,
@@ -40,6 +40,10 @@ const metrics: MetricDefinition[] = testData.map((testItem) => {
         entitySummaries.map((entitySummary) => entitySummary.name),
       );
 
+      /**
+       * @todo update this for the new entity summary approach, checking instead if any of the gold or irrelevant entities
+       *     are present in the inferred summaries but haven't had the correct, existing Company type assigned.
+       */
       const wrongTypeEntitiesTestSet = new Set(
         wrongTypeEntities.map((entity) => entity.name),
       );
@@ -142,9 +146,7 @@ test(
     await optimizeSystemPrompt({
       attemptsPerPrompt: 1,
       models,
-      initialSystemPrompt: generateSystemPrompt({
-        includesRelevantEntitiesPrompt: true,
-      }),
+      initialSystemPrompt: entitySummariesFromTextSystemPrompt,
       directoryPath: baseDirectoryPath,
       metrics,
       promptIterations: 3,

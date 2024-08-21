@@ -111,7 +111,7 @@ export const chooseRelevantLinksFromContent = async (params: {
   contentUrl: string;
   content: string;
   contentType: "html" | "text";
-  prompt: string;
+  goal: string;
   testingParams?: {
     model?: LlmParams["model"];
     systemPrompt?: string;
@@ -121,7 +121,7 @@ export const chooseRelevantLinksFromContent = async (params: {
     content: unfilteredContent,
     contentUrl,
     contentType,
-    prompt,
+    goal,
     testingParams,
   } = params;
 
@@ -145,7 +145,7 @@ export const chooseRelevantLinksFromContent = async (params: {
             {
               type: "text",
               text: dedent(`
-                <Prompt>Please provide links relevant to this goal: ${prompt}</Prompt>
+                <Prompt>Please provide links relevant to this goal: ${goal}</Prompt>
                 <Content>${content}</Content>
                 <ExampleResponse>          
                   {

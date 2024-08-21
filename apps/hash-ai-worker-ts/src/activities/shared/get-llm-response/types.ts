@@ -14,7 +14,7 @@ import type { LlmAssistantMessage, LlmMessage } from "./llm-message.js";
 export type LlmToolDefinition<ToolName extends string = string> = {
   name: ToolName;
   description: string;
-  inputSchema: Omit<JSONSchema, "type"> & {
+  inputSchema: Omit<JSONSchema, "type" | "default"> & {
     additionalProperties: false;
     type: "object";
   };

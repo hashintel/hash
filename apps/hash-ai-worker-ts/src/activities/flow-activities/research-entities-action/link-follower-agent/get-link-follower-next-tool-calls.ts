@@ -52,7 +52,7 @@ const getLinkFollowerNextToolCallsSystemPrompt = dedent(`
 `);
 
 type GetLinkFollowerNextToolCallsParams = {
-  task: string;
+  goal: string;
   entitySummaries: LocalEntitySummary[];
   claimsGathered: Claim[];
   previouslyVisitedLinks: { url: string }[];
@@ -63,7 +63,7 @@ const generateUserMessage = (
   params: GetLinkFollowerNextToolCallsParams,
 ): LlmUserMessage => {
   const {
-    task,
+    goal,
     entitySummaries,
     claimsGathered,
     previouslyVisitedLinks,
@@ -76,7 +76,7 @@ const generateUserMessage = (
       {
         type: "text",
         text: dedent(`
-<Task>${task}</Task>
+<Task>${goal}</Task>
 <PreviouslyVisitedLinks>${previouslyVisitedLinks
           .map(({ url }) => url)
           .join("\n")}</PreviouslyVisitedLinks>
@@ -321,7 +321,9 @@ export const getLinkFollowerNextToolCalls = async (
           }
         } else {
           logger.error(
-            `Link follower returned multiple incompatible tool calls: ${toolCalls.map((call) => call.name).join(", ")}`,
+            `Link follower returned multiple incompatible tool calls: ${toolCalls
+              .map((call) => call.name)
+              .join(", ")}`,
           );
           return getLinkFollowerNextToolCalls(params);
         }

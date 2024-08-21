@@ -88,7 +88,6 @@ test(
         relevantEntities: [],
         existingClaimsAboutRelevantEntities: [],
         entityTypes,
-        linkEntityTypes: [],
       },
       testingParams: {
         persistState: (state) =>

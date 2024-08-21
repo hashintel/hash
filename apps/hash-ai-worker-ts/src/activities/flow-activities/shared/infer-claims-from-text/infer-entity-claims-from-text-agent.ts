@@ -31,6 +31,13 @@ const toolNames = ["submitClaims"] as const;
 
 type ToolName = (typeof toolNames)[number];
 
+type SubmittedClaim = Omit<
+  Claim,
+  "subjectEntityLocalId" | "claimId" | "sources"
+> & {
+  subjectEntityLocalId: EntityId | null;
+};
+
 const generateToolDefinitions = (params: {
   subjectEntities: LocalEntitySummary[];
 }): Record<ToolName, LlmToolDefinition<ToolName>> => ({
@@ -50,9 +57,16 @@ const generateToolDefinitions = (params: {
             additionalProperties: false,
             properties: {
               subjectEntityLocalId: {
-                type: "string",
+                oneOf: [{ type: "string" }, { type: "null" }],
                 description:
-                  "The localID of the subject entity of the claim. Must be defined. If you don't have a relevant subject entity, don't include the claim.",
+                  dedent(`The localId of the subject entity of the claim. 
+                  If you don't have a relevant subject entity, you may either omit the claim (PREFERRED), or pass 'null' here.`),
+              },
+              valueNotFound: {
+                type: "boolean",
+                description:
+                  dedent(`If attempting to provide a value for an attribute of the entity, but it is not in the text, this should be 'true'. 
+                  You may alternatively simply omit any claim for that attribute.`),
               },
               text: {
                 type: "string",
@@ -193,8 +207,16 @@ const constructUserMessage = (params: {
       {
         type: "text",
         text: dedent(`
-          ${url ? `This is the URL of the page – if one of the properties sought is a URL, it may be this one <URL>${url}</URL>` : ""}
-          ${title ? `The title of the page, which may contain useful information <Title>${title}</Title>` : ""}
+          ${
+            url
+              ? `This is the URL of the page – if one of the properties sought is a URL, it may be this one <URL>${url}</URL>`
+              : ""
+          }
+          ${
+            title
+              ? `The title of the page, which may contain useful information <Title>${title}</Title>`
+              : ""
+          }
           The content of the page <Text>${text}</Text>
           The overriding goal of the research – focus on this goal <Goal>${goal}</Goal>
           <RelevantProperties>
@@ -293,15 +315,47 @@ summary: ${summary}</SubjectEntity>`),
 const retryMax = 3;
 
 export const inferEntityClaimsFromTextAgent = async (params: {
+  /**
+   * The entities which can be the subject of the claims, i.e. the entities we are looking for claims about.
+   */
   subjectEntities: LocalEntitySummary[];
+  /**
+   * The entities which may be the object of claims, i.e. all entities we know about.
+   */
   potentialObjectEntities: LocalEntitySummary[];
+  /**
+   * The text from which to extract claims.
+   */
   text: string;
+  /**
+   * The goal of seeking claims from this page, to help focus on the most relevant information.
+   */
   goal: string;
+  /**
+   * The URL the text was retrieved from, if any, which may itself provide the value for a claim (e.g. a LinkedIn URL).
+   */
   url: string | null;
+  /**
+   * The title of the webpage or document, which may itself provide useful context for entity or claim recognition.
+   */
   title: string | null;
+  /**
+   * The type of content being processed.
+   */
   contentType: "webpage" | "document";
+  /**
+   * The type of entity we are looking for claims about
+   * @todo allow this process to infer claims for entities of multiple types
+   */
   dereferencedEntityType: DereferencedEntityType;
+  /**
+   * Valid links from the type of entity we are looking for claims about,
+   * i.e. the kinds of links made from the subject entities that we are looking for claims about.
+   */
   linkEntityTypesById: Record<string, DereferencedEntityType>;
+  /**
+   * If this is a retry of the process, the context from the previous attempt.
+   */
   retryContext?: {
     previousInvalidClaims: Claim[];
     previousValidClaims: Claim[];
@@ -311,9 +365,9 @@ export const inferEntityClaimsFromTextAgent = async (params: {
 }): Promise<{ claims: Claim[] }> => {
   if (isActivityCancelled()) {
     /**
-     * In case we've
+     * If the activity has been cancelled, stop working.
      */
-    return { claims: [] };
+    return { claims: params.retryContext?.previousValidClaims ?? [] };
   }
 
   const {
@@ -470,20 +524,24 @@ export const inferEntityClaimsFromTextAgent = async (params: {
 
   for (const toolCall of toolCalls) {
     const input = toolCall.input as {
-      claims: {
-        subjectEntityLocalId: EntityId;
-        text: string;
-        prepositionalPhrases: string[];
-        objectEntityLocalId: EntityId | null;
-      }[];
+      claims: SubmittedClaim[];
     };
 
-    for (const unfinishedClaims of input.claims) {
+    for (const unfinishedClaim of input.claims) {
+      if (unfinishedClaim.subjectEntityLocalId === null) {
+        /**
+         * For now, we discard any claims that do not have a proposed entity we can associate them with.
+         */
+        continue;
+      }
+
       const claimUuid = generateUuid() as EntityUuid;
 
       const claim: Omit<Claim, "sources"> = {
-        ...unfinishedClaims,
-        objectEntityLocalId: unfinishedClaims.objectEntityLocalId ?? undefined,
+        subjectEntityLocalId: unfinishedClaim.subjectEntityLocalId,
+        objectEntityLocalId: unfinishedClaim.objectEntityLocalId ?? undefined,
+        prepositionalPhrases: unfinishedClaim.prepositionalPhrases,
+        text: unfinishedClaim.text,
         claimId: entityIdFromComponents(webId, claimUuid),
       };
 

@@ -272,10 +272,7 @@ test.skip(
       title: null,
       dereferencedEntityTypes,
       contentType: "webpage",
-      existingEntitiesOfInterest: [],
-      testingParams: {
-        existingEntitySummaries: statyaNadellaLinkedInEntitySummaries,
-      },
+      existingEntitiesOfInterest: statyaNadellaLinkedInEntitySummaries,
     });
 
     // eslint-disable-next-line no-console
@@ -475,10 +472,7 @@ test.skip(
       title,
       dereferencedEntityTypes,
       contentType: "webpage",
-      existingEntitiesOfInterest: [],
-      testingParams: {
-        existingEntitySummaries: llmProviderExistingEntitySummaries,
-      },
+      existingEntitiesOfInterest: llmProviderExistingEntitySummaries,
     });
 
     // eslint-disable-next-line no-console

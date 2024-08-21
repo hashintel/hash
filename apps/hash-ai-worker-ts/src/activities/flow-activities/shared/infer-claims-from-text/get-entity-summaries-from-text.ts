@@ -26,11 +26,14 @@ const toolNames = ["registerEntitySummaries"] as const;
 type ToolName = (typeof toolNames)[number];
 
 const generateToolDefinitions = (params: {
-  dereferencedEntityType: Pick<DereferencedEntityType, "title" | "description">;
+  dereferencedEntityTypes: Pick<
+    DereferencedEntityType,
+    "$id" | "title" | "description"
+  >[];
 }): Record<ToolName, LlmToolDefinition<ToolName>> => ({
   registerEntitySummaries: {
     name: "registerEntitySummaries",
-    description: `Register the relevant entity summaries for all entities which are of type "${params.dereferencedEntityType.title}".`,
+    description: `Register entity summaries for all entities relevant to the research goal.`,
     inputSchema: {
       type: "object",
       additionalProperties: false,
@@ -49,8 +52,18 @@ const generateToolDefinitions = (params: {
                 type: "string",
                 description: "The summary of the entity.",
               },
+              type: {
+                type: "string",
+                description:
+                  dedent(`The type of entity – either the entityTypeId of a type provided to you, or the name of a new type you suggest.
+                  i.e. one of the following existing types:
+                  ${params.dereferencedEntityTypes
+                    .map((type) => `<ExistingType>${type.$id}</ExistingType>`)
+                    .join("\n")}
+                  or a plain english string for a new type.`),
+              },
             },
-            required: ["name", "summary"],
+            required: ["name", "summary", "type"],
           },
         },
       },
@@ -59,73 +72,76 @@ const generateToolDefinitions = (params: {
   },
 });
 
-export const generateSystemPrompt = (params: {
-  includesRelevantEntitiesPrompt?: boolean;
-}) =>
-  dedent(`
-  "You are an advanced entity summary extraction agent.
+export const entitySummariesFromTextSystemPrompt = dedent(`
+  You are an entity recognizing specialist, working as part of a research term.
+  You identify all the entities relevant to a research goal mentioned in content provided to you, and provide a summary and type for each.
+  The entities you recognize will be taken as the authoritative list of relevant entities present in the text, and you therefore focus on accuracy and completeness.
+  
+  You are provided with the following:
+  
+  1. Text: the source text from which you should extract entity summaries.
+  2. Goal: the research goal, which describes the entities your team is particularly interested in.
+  3. Entity types: entity types the team already knows about. You can also suggest new types in addition to these, if you find relevant entities of a different type.
+  
+  For each entity you identify, you provide:
 
-The user will provide you with:
-1. Text: the source text from which you should extract entity summaries.
-2. Entity type: the specific type of entities you should extract summaries for. You must focus exclusively on this type and ignore all others.
-    ${
-      params.includesRelevantEntitiesPrompt
-        ? `3. "Relevant entities prompt": a prompt provided by the user indicating which entities should be included.`
-        : ""
-    }
-    
-Your task:
-1. Carefully analyze the text to identify all entities of the requested type${
-    params.includesRelevantEntitiesPrompt
-      ? " that are relevant to the provided prompt."
-      : "."
+  1. Name: the name of the entity as it appears in the text
+  2. Summary: a concise, one-sentence description of the entity based solely on the information provided in the text
+  3. Type: the type of entity, either the entityTypeId of one already known about, or a new type you suggest
+
+  <ImportantGuidelines>
+  1. Be extremely thorough in your extraction, ensuring you don't miss any entities which may be useful to the research goal, or entities related to them.
+  2. Pay special attention to structured data (e.g., tables, lists) to extract all relevant entities from them.
+  3. After extracting all entities of the correct type, filter them based on the relevance prompt. Include all entities that could potentially be relevant, even if you're not certain.
+  4. If there are relevant entities are in the content, it's okay to return an empty list.
+  5. Stick strictly to the information provided in the text for – don't use any prior knowledge. You're providing a list of relevant entities mentioned in the text.
+  </ImportantGuidelines>
+
+  <ExampleResponse>
+  {
+    "entitySummaries": [
+      {
+        "name": "Bill Gates",
+        "summary": "William Henry Gates III is an American business magnate best known for co-founding the software company Microsoft with his childhood friend Paul Allen.",
+        "type": "https://hash.ai/@hash/types/entity-type/person/v/1"
+      },
+      {
+        "name": "Microsoft",
+        "summary": "An American multinational corporation and technology company headquartered in Redmond, Washington, with products including the Windows line of operating systems, the Microsoft 365 suite of productivity applications, the Azure cloud computing platform and the Edge web browser.",
+        "type": "Company"
+      }
+    ]
   }
-2. Strictly adhere to the specified entity type${
-    params.includesRelevantEntitiesPrompt
-      ? ", regardless of the relevant entities prompt."
-      : "."
-  } Never include entities of a different type, even if they seem relevant.
-3. For each relevant entity of the correct type, provide:
-   - "name": The exact name or identifier of the entity as it appears in the text.
-   - "summary": A concise, one-sentence description of the entity based solely on the information provided in the text. Do not include any external knowledge.
-
-4. Be extremely thorough in your extraction, ensuring you don't miss any entities of the specified type.
-5. Pay special attention to structured data (e.g., tables, lists) to extract all entities of the specified type.
-6. After extracting all entities of the correct type, filter them based on the relevance prompt. Include all entities that could potentially be relevant, even if you're not certain.
-7. If no entities of the specified type are found, return an empty list.
-
-Remember:
-- Accuracy and completeness are crucial. Extract ALL entities of the specified type first, then filter for relevance.
-- Ignore the relevance prompt during the initial extraction phase.
-- Be inclusive rather than exclusive when applying the relevance filter.
-- Stick strictly to the information provided in the text for summaries.
-- Do not let the relevance prompt mislead you into extracting incorrect entity types.
-- If you can't find any entities of the requested type, return an empty list – don't make them up, or use any prior knowledge
-
-<ExampleResponse>
-{
-  "entitySummaries": [
-    {
-      "name": "Bill Gates",
-      "summary": "William Henry Gates III is an American business magnate best known for co-founding the software company Microsoft with his childhood friend Paul Allen."
-    },
-    {
-      "name": "Steve Jobs",
-      "summary": "Steven Paul Jobs was an American businessman, inventor, and investor best known for co-founding the technology company Apple Inc."
-    }
-  ]
-}
-</ExampleResponse>
+  </ExampleResponse>
 `);
 
+/**
+ * Extract a list of named entities from some content, i.e. named entity recognition
+ */
 export const getEntitySummariesFromText = async (params: {
+  /**
+   * The text from which to extract entity summaries.
+   */
   text: string;
-  dereferencedEntityType: Pick<
+  /**
+   * All entity types which have been given as inputs to the research task,
+   * i.e. the type of entities we are looking for.
+   */
+  dereferencedEntityTypes: Pick<
     DereferencedEntityType,
     "$id" | "title" | "description"
-  >;
+  >[];
+  /**
+   * Any existing entities we already know about and don't need to create new summaries for.
+   */
   existingSummaries: LocalEntitySummary[];
-  relevantEntitiesPrompt?: string;
+  /**
+   * The research goal for this particular inference task, which guides which entities we are looking for.
+   */
+  relevantEntitiesPrompt: string;
+  /**
+   * Optional parameters for optimization purposes, allowing to overwrite the system prompt and model used.
+   */
   testingParams?: {
     model?: LlmParams["model"];
     systemPrompt?: string;
@@ -135,7 +151,7 @@ export const getEntitySummariesFromText = async (params: {
 }> => {
   const {
     text,
-    dereferencedEntityType,
+    dereferencedEntityTypes,
     existingSummaries,
     relevantEntitiesPrompt,
     testingParams,
@@ -145,7 +161,7 @@ export const getEntitySummariesFromText = async (params: {
     await getFlowContext();
 
   const toolDefinitions = generateToolDefinitions({
-    dereferencedEntityType,
+    dereferencedEntityTypes,
   });
 
   const llmResponse = await getLlmResponse(
@@ -162,24 +178,37 @@ export const getEntitySummariesFromText = async (params: {
                 Here is the text to identify entities from:
                 <Text>${text}</Text>
                 
-                Here is the entity type the entities must be of.
-                IMPORTANT: Ignore any entities which don't match this type:
-                <EntityType>
-                    Name: ${dereferencedEntityType.title}
-                    Description: ${dereferencedEntityType.description}
-                </EntityType>
-                ${
-                  relevantEntitiesPrompt
-                    ? dedent(`Relevant entities prompt: the user has asked you only focus on entities which match the research goal '${relevantEntitiesPrompt}'
-                       Remember: don't include entities which aren't of type ${dereferencedEntityType.title}, even if they otherwise match the research goal!`)
-                    : ""
-                }
+                Here are the entity types we already know about – either specify the EntityTypeId of one of these, or suggest a new type using a plain English title:
+                <KnownEntityTypes>
+                ${dereferencedEntityTypes
+                  .map(
+                    (dereferencedEntityType) =>
+                      `<EntityType>
+                        EntityTypeId: ${dereferencedEntityType.$id}
+                        Title: ${dereferencedEntityType.title}
+                        Description: ${dereferencedEntityType.description}
+                      </EntityType>`,
+                  )
+                  .join("\n")}
+                </KnownEntityTypes>
+
+                Here is the research goal – please identify all entities in the text which may be relevant to this goal, including entities with relationships to relevant entities.
+                <ResearchGoal>
+                ${relevantEntitiesPrompt}
+                </ResearchGOal>
+
                 ${
                   existingSummaries.length
                     ? dedent(`<ExistingEntities>
                 We already have summaries for the following entities – please don't include them in your response:
                 ${existingSummaries
-                  .map((summary) => `Name: ${summary.name}`)
+                  .map((summary) =>
+                    dedent(`<ExistingEntity>
+                    Name: ${summary.name}
+                    Summary: ${summary.summary}
+                    Type: ${summary.entityTypeId}
+                  </ExistingEntity>`),
+                  )
                   .join("\n")}
                 </ExistingEntities>`)
                     : ""
@@ -190,10 +219,7 @@ export const getEntitySummariesFromText = async (params: {
         },
       ],
       systemPrompt:
-        testingParams?.systemPrompt ??
-        generateSystemPrompt({
-          includesRelevantEntitiesPrompt: !!relevantEntitiesPrompt,
-        }),
+        testingParams?.systemPrompt ?? entitySummariesFromTextSystemPrompt,
       tools: Object.values(toolDefinitions),
     },
     {
@@ -222,20 +248,30 @@ export const getEntitySummariesFromText = async (params: {
 
   for (const toolCall of toolCalls) {
     const { entitySummaries: toolCallEntitySummaries } = toolCall.input as {
-      entitySummaries: { name: string; summary: string }[];
+      entitySummaries: { name: string; summary: string; type: string }[];
     };
 
-    for (const { name, summary } of toolCallEntitySummaries) {
+    for (const { name, summary, type } of toolCallEntitySummaries) {
       const entityUuid = generateUuid();
 
       const entityId = entityIdFromComponents(webId, entityUuid as EntityUuid);
 
-      entitySummaries.push({
-        localId: entityId,
-        name,
-        summary,
-        entityTypeId: dereferencedEntityType.$id,
-      });
+      const isKnownType = dereferencedEntityTypes.some(
+        (dereferencedEntityType) => dereferencedEntityType.$id === type,
+      );
+
+      /**
+       * For now, we're ignoring any entities which aren't of types given as inputs to the research task
+       * @todo handle new suggested types by looking for suitable matches in the database, or creating new types
+       */
+      if (isKnownType) {
+        entitySummaries.push({
+          localId: entityId,
+          name,
+          summary,
+          entityTypeId: type as VersionedUrl,
+        });
+      }
     }
   }
 

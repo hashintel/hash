@@ -38,7 +38,7 @@ test.skip(
 
     const { entitySummaries } = await getEntitySummariesFromText({
       text: htmlContent,
-      dereferencedEntityType,
+      dereferencedEntityTypes: [dereferencedEntityType],
       existingSummaries: [],
       relevantEntitiesPrompt: "Obtain the FTSE350 constituents from the table.",
     });
@@ -86,7 +86,7 @@ test.skip(
 
     const { entitySummaries } = await getEntitySummariesFromText({
       text: htmlContent,
-      dereferencedEntityType,
+      dereferencedEntityTypes: [dereferencedEntityType],
       existingSummaries: [],
       relevantEntitiesPrompt:
         'Obtain the authors of the "Video generation models as world simulators" article',
@@ -128,7 +128,7 @@ test.skip(
 
     const { entitySummaries } = await getEntitySummariesFromText({
       text: htmlContent,
-      dereferencedEntityType,
+      dereferencedEntityTypes: [dereferencedEntityType],
       existingSummaries: [],
       relevantEntitiesPrompt:
         "Obtain the full list of the current members of Church Lab",

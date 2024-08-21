@@ -41,10 +41,18 @@ type LinkFollowerAgentInput = {
    * whether in their own right or to be linked to from other entities.
    */
   existingEntitiesOfInterest: LocalEntitySummary[];
+  /**
+   * The resource to start the exploration at
+   */
   initialResource: ResourceToExplore;
-  task: string;
+  /**
+   * The goal of the exploration
+   */
+  goal: string;
+  /**
+   * The types of entities which are sought as part of the research task.
+   */
   entityTypes: DereferencedEntityType[];
-  linkEntityTypes?: DereferencedEntityType[];
 };
 
 const isContentAtUrlPdfFile = async (params: { url: string }) => {
@@ -308,14 +316,13 @@ const exploreResource = async (params: {
     content = webPage.htmlContent;
   }
 
-  const { task, existingEntitiesOfInterest, entityTypes, linkEntityTypes } =
-    input;
+  const { goal, existingEntitiesOfInterest, entityTypes } = input;
 
   const relevantLinksFromContent = await chooseRelevantLinksFromContent({
     contentUrl: resource.url,
     contentType: isResourcePdfFile ? "text" : "html",
     content,
-    prompt: task,
+    goal,
   }).then((response) => {
     if (response.status === "ok") {
       return response.links;
@@ -325,27 +332,17 @@ const exploreResource = async (params: {
   });
 
   logger.debug(
-    `Extracted relevant ${relevantLinksFromContent.length} links from the content of the resource with URL ${
-      resource.url
-    }`,
+    `Extracted relevant ${relevantLinksFromContent.length} links from the content of the resource with URL ${resource.url}`,
   );
 
-  const dereferencedEntityTypesById = {
-    ...entityTypes.reduce<DereferencedEntityTypesByTypeId>(
+  const dereferencedEntityTypesById =
+    entityTypes.reduce<DereferencedEntityTypesByTypeId>(
       (prev, schema) => ({
         ...prev,
         [schema.$id]: { schema, isLink: false },
       }),
       {},
-    ),
-    ...(linkEntityTypes ?? []).reduce<DereferencedEntityTypesByTypeId>(
-      (prev, schema) => ({
-        ...prev,
-        [schema.$id]: { schema, isLink: true },
-      }),
-      {},
-    ),
-  };
+    );
 
   const {
     claims: inferredClaimsFromContent,
@@ -434,7 +431,7 @@ export const linkFollowerAgent = async (params: {
   suggestionForNextSteps: string;
 }> => {
   const { input, workerIdentifiers } = params;
-  const { initialResource, existingEntitiesOfInterest, task } = input;
+  const { initialResource, existingEntitiesOfInterest, goal } = input;
 
   const exploredResources: ResourceToExplore[] = [];
 
@@ -562,7 +559,7 @@ export const linkFollowerAgent = async (params: {
     );
 
     const toolCallResponse = await getLinkFollowerNextToolCalls({
-      task,
+      goal,
       entitySummaries: allInferredEntitySummaries,
       claimsGathered: allInferredClaims,
       previouslyVisitedLinks,
