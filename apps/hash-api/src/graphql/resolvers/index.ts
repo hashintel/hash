@@ -12,6 +12,7 @@ import type {
 } from "../api-types.gen";
 import { getBlockProtocolBlocksResolver } from "./blockprotocol/get-block";
 import { embedCode } from "./embed";
+import { cancelFlow } from "./flows/cancel-flow";
 import { getFlowRunByIdResolver } from "./flows/get-flow-run-by-id";
 import { getFlowRunsResolver } from "./flows/get-flow-runs";
 import { resetFlow } from "./flows/reset-flow";
@@ -92,7 +93,6 @@ import {
   unarchivePropertyTypeResolver,
   updatePropertyTypeResolver,
 } from "./ontology/property-type";
-import { cancelFlow } from "./flows/cancel-flow";
 
 export const resolvers: Omit<Resolvers, "Query" | "Mutation"> & {
   Query: Required<QueryResolvers>;

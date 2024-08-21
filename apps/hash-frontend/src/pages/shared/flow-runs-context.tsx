@@ -7,16 +7,15 @@ import type { PropsWithChildren } from "react";
 import { createContext, useContext, useMemo } from "react";
 import { useNodeId } from "reactflow";
 
-import {
+import type {
   FlowRun,
-  FlowRunStatus,
   GetFlowRunByIdQuery,
   GetFlowRunByIdQueryVariables,
   GetFlowRunsQuery,
   GetFlowRunsQueryVariables,
   StepRun,
 } from "../../graphql/api-types.gen";
-import { FlowStepStatus } from "../../graphql/api-types.gen";
+import { FlowRunStatus, FlowStepStatus } from "../../graphql/api-types.gen";
 
 export type FlowRunsContextType = {
   flowRuns: GetFlowRunsQuery["getFlowRuns"];

@@ -3,6 +3,7 @@ import type {
   WebPage,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import { Context } from "@temporalio/activity";
 import { JSDOM } from "jsdom";
 import _puppeteer from "puppeteer-extra";
@@ -12,7 +13,6 @@ import sanitizeHtml from "sanitize-html";
 import { logger } from "./shared/activity-logger.js";
 import { getFlowContext } from "./shared/get-flow-context.js";
 import { requestExternalInput } from "./shared/request-external-input.js";
-import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 
 /** @see https://github.com/berstend/puppeteer-extra/issues/748 */
 const puppeteer = _puppeteer.default;

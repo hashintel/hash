@@ -2,6 +2,7 @@ import "reactflow/dist/style.css";
 
 import { useApolloClient, useMutation } from "@apollo/client";
 import { Skeleton } from "@hashintel/design-system";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { manualBrowserInferenceFlowDefinition } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
@@ -16,7 +17,6 @@ import NotFound from "next/dist/client/components/not-found-error";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
 
-import type { OwnedById } from "@local/hash-graph-types/web";
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import type {
   StartFlowMutation,
