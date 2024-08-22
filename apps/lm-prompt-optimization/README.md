@@ -11,7 +11,7 @@ To generate libraries, simply remove the `--script` flag.
 
 ## Short rye introduction
 
-`rye` is a new-ish package manager that is under the umbrella of astro (the makers of ruff), it's a blazingly fast, written in Rust and natively supports workspaces.
+`rye` is a new-ish package manager that is under the umbrella of [astro](https://astro.build) (the makers of ruff), it's a blazingly fast, written in Rust and natively supports workspaces. In the future, it will [merge](https://lucumr.pocoo.org/2024/2/15/rye-grows-with-uv/) with `uv` (another astro project), to become a sort of "cargo for python".
 
 `rye` has been shown to be a lot more predictable then other package managers, such as `poetry` while not being as invasive as `conda`.
 
