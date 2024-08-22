@@ -54,8 +54,8 @@ import { linkFollowerAgent } from "./research-entities-action/link-follower-agen
 import { runSubTaskAgent } from "./research-entities-action/sub-task-agent.js";
 import type { CompletedCoordinatorToolCall } from "./research-entities-action/types.js";
 import { nullReturns } from "./research-entities-action/types.js";
-import type { LocalEntitySummary } from "./shared/infer-claims-from-text/get-entity-summaries-from-text.js";
-import type { Claim } from "./shared/infer-claims-from-text/types.js";
+import type { LocalEntitySummary } from "./shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
+import type { Claim } from "./shared/infer-summaries-then-claims-from-text/types.js";
 import { proposeEntitiesFromClaims } from "./shared/propose-entities-from-claims.js";
 import type { FlowActionActivity } from "./types.js";
 

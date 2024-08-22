@@ -95,6 +95,7 @@ export const entitySummariesFromTextSystemPrompt = dedent(`
   3. After extracting all entities of the correct type, filter them based on the relevance prompt. Include all entities that could potentially be relevant, even if you're not certain.
   4. If there are relevant entities are in the content, it's okay to return an empty list.
   5. Stick strictly to the information provided in the text for – don't use any prior knowledge. You're providing a list of relevant entities mentioned in the text.
+  6. Provide your response in the format specified in the input schema – don't escape the JSON braces and quotes, unless they appear within a JSON value.
   </ImportantGuidelines>
 
   <ExampleResponse>
@@ -103,12 +104,12 @@ export const entitySummariesFromTextSystemPrompt = dedent(`
       {
         "name": "Bill Gates",
         "summary": "William Henry Gates III is an American business magnate best known for co-founding the software company Microsoft with his childhood friend Paul Allen.",
-        "type": "https://hash.ai/@hash/types/entity-type/person/v/1"
+        "type": "https://hash.ai/@hash/types/entity-type/person/v/1" // user-provided entityTypeId
       },
       {
         "name": "Microsoft",
         "summary": "An American multinational corporation and technology company headquartered in Redmond, Washington, with products including the Windows line of operating systems, the Microsoft 365 suite of productivity applications, the Azure cloud computing platform and the Edge web browser.",
-        "type": "Company"
+        "type": "Company" // your suggested new type title (no id is available yet)
       }
     ]
   }
@@ -166,8 +167,9 @@ export const getEntitySummariesFromText = async (params: {
 
   const llmResponse = await getLlmResponse(
     {
-      model: testingParams?.model ?? "claude-3-haiku-20240307",
+      model: testingParams?.model ?? "claude-3-5-sonnet-20240620",
       toolChoice: toolNames[0],
+      temperature: 0,
       messages: [
         {
           role: "user",

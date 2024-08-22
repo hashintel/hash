@@ -25,3 +25,17 @@ The service uses the following environment variables:
   - `yarn`
 - Run the worker:
   - `yarn dev`
+
+### Running AI-dependent tests / optimization
+
+To enable loading environment variables into tests, `TEST_AI=true` must be set in the environment.
+
+e.g. to run a specific test, from this folder (`hash-ai-worker-ts`):
+
+```bash
+TEST_AI=true npx vitest get-entity-summaries-from-text.ai.test.ts
+
+or
+
+TEST_AI=true LOG_LEVEL=debug npx vitest get-entity-summaries-from-text.ai.test.ts
+```

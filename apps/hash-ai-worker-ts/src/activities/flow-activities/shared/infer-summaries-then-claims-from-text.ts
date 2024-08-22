@@ -2,10 +2,11 @@ import type { VersionedUrl } from "@blockprotocol/type-system";
 
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types.js";
 import { logger } from "../../shared/activity-logger.js";
-import type { LocalEntitySummary } from "./infer-claims-from-text/get-entity-summaries-from-text.js";
-import { getEntitySummariesFromText } from "./infer-claims-from-text/get-entity-summaries-from-text.js";
-import { inferEntityClaimsFromTextAgent } from "./infer-claims-from-text/infer-entity-claims-from-text-agent.js";
-import type { Claim } from "./infer-claims-from-text/types.js";
+import type { LlmParams } from "../../shared/get-llm-response/types.js";
+import type { LocalEntitySummary } from "./infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
+import { getEntitySummariesFromText } from "./infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
+import { inferEntityClaimsFromTextAgent } from "./infer-summaries-then-claims-from-text/infer-entity-claims-from-text-agent.js";
+import type { Claim } from "./infer-summaries-then-claims-from-text/types.js";
 
 /**
  * A two-step process for extracting claims about entities from text:
@@ -46,6 +47,12 @@ export const inferSummariesThenClaimsFromText = async (params: {
    * The research goal, which helps to cut down on noise in the entity recognition process.
    */
   goal: string;
+  /**
+   * Optional parameters for optimization purposes, allowing to overwrite the model used.
+   */
+  testingParams?: {
+    model?: LlmParams["model"];
+  };
 }): Promise<{
   claims: Claim[];
   entitySummaries: LocalEntitySummary[];
@@ -58,6 +65,7 @@ export const inferSummariesThenClaimsFromText = async (params: {
     existingEntitiesOfInterest,
     dereferencedEntityTypes,
     goal,
+    testingParams,
   } = params;
 
   const { entitySummaries: newEntitySummaries } =
@@ -68,6 +76,7 @@ export const inferSummariesThenClaimsFromText = async (params: {
         (type) => type.schema,
       ),
       relevantEntitiesPrompt: goal,
+      testingParams,
     });
 
   const entitySummariesForInferenceByType = [

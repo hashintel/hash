@@ -13,7 +13,7 @@ test.skip(
     const { userAuthentication } = await getFlowContext();
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
-      entityTypeIds: ["https://hash.ai/@ftse/types/entity-type/person/v/1"],
+      entityTypeIds: ["https://hash.ai/@hash/types/entity-type/person/v/1"],
       actorId: userAuthentication.actorId,
       graphApiClient,
       simplifyPropertyKeys: true,
@@ -58,7 +58,7 @@ test.skip(
     const { userAuthentication } = await getFlowContext();
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
-      entityTypeIds: ["https://hash.ai/@ftse/types/entity-type/person/v/1"],
+      entityTypeIds: ["https://hash.ai/@hash/types/entity-type/person/v/1"],
       actorId: userAuthentication.actorId,
       graphApiClient,
       simplifyPropertyKeys: true,
@@ -104,7 +104,7 @@ test.skip(
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
       entityTypeIds: [
-        "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
+        "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
@@ -151,7 +151,7 @@ test.skip(
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
       entityTypeIds: [
-        "https://hash.ai/@ftse/types/entity-type/graphics-card/v/1",
+        "https://hash.ai/@hash/types/entity-type/graphics-card/v/1",
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
@@ -199,7 +199,7 @@ test.skip(
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
       entityTypeIds: [
-        "https://hash.ai/@ftse/types/entity-type/investment-fund/v/1",
+        "https://hash.ai/@hash/types/entity-type/investment-fund/v/1",
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,

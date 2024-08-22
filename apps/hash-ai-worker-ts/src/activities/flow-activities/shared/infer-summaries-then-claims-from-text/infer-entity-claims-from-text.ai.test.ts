@@ -12,19 +12,26 @@ import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { inferEntityClaimsFromTextAgent } from "./infer-entity-claims-from-text-agent.js";
 
+/**
+ * @file These are not 'tests' but rather ways of running specific agents,
+ *       the results of which can be inspected in the logs saved to the file system under get-llm-response/logs/
+ *
+ * NOTE: these tests depend on having run `npx tsx apps/hash-api/src/seed-data/seed-flow-test-types.ts`
+ */
+
 const ownedById = generateUuid();
 
 const generateEntityId = (entityUuid: string) =>
   entityIdFromComponents(ownedById as OwnedById, entityUuid as EntityUuid);
 
-test.skip(
+test(
   "Test inferEntityClaimsFromText with the FTSE350 table",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
       entityTypeIds: [
-        "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
+        "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
@@ -63,7 +70,7 @@ test.skip(
           summary:
             "MOLTEN VENTURES PLC is a technology investment company that invests in early-stage technology businesses.",
           entityTypeId:
-            "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
+            "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
         },
       ],
       potentialObjectEntities: [],
@@ -79,14 +86,14 @@ test.skip(
   },
 );
 
-test.skip(
+test(
   "Test inferEntityClaimsFromText for the GeForce RTX 4090 graphics card",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
       entityTypeIds: [
-        "https://hash.ai/@ftse/types/entity-type/graphics-card/v/1",
+        "https://hash.ai/@hash/types/entity-type/graphics-card/v/1",
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
@@ -124,7 +131,7 @@ test.skip(
           name: "GeForce RTX 4090",
           summary: "The GeForce RTX 4090 is a high-end graphics card.",
           entityTypeId:
-            "https://hash.ai/@ftse/types/entity-type/graphics-card/v/1",
+            "https://hash.ai/@hash/types/entity-type/graphics-card/v/1",
         },
       ],
       potentialObjectEntities: [],

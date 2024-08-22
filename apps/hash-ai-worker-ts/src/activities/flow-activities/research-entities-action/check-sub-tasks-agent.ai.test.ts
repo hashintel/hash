@@ -14,7 +14,7 @@ test.skip(
     const allDereferencedEntityTypesById =
       await getDereferencedEntityTypesActivity({
         entityTypeIds: [
-          "https://hash.ai/@ftse/types/entity-type/graphics-card/v/1",
+          "https://hash.ai/@hash/types/entity-type/graphics-card/v/1",
         ],
         graphApiClient,
         actorId: userAuthentication.actorId,

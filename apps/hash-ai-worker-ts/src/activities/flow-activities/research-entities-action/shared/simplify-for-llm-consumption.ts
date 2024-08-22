@@ -10,7 +10,7 @@ import type {
   DereferencedPropertyType,
   MinimalPropertyTypeValue,
 } from "../../../shared/dereference-entity-type.js";
-import type { Claim } from "../../shared/infer-claims-from-text/types.js";
+import type { Claim } from "../../shared/infer-summaries-then-claims-from-text/types.js";
 
 const simplifyMinimalPropertyTypeValueForLlmConsumption = (params: {
   propertyTypeValue: MinimalPropertyTypeValue;
