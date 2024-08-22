@@ -21,7 +21,10 @@ import type {
   LlmUserMessage,
 } from "../../../shared/get-llm-response/llm-message.js";
 import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
-import type { LlmToolDefinition } from "../../../shared/get-llm-response/types.js";
+import type {
+  LlmParams,
+  LlmToolDefinition,
+} from "../../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { stringify } from "../../../shared/stringify.js";
 import type { LocalEntitySummary } from "./get-entity-summaries-from-text.js";
@@ -36,6 +39,7 @@ type SubmittedClaim = Omit<
   "subjectEntityLocalId" | "claimId" | "sources"
 > & {
   subjectEntityLocalId: EntityId | null;
+  valueNotFound: boolean;
 };
 
 const generateToolDefinitions = (params: {
@@ -114,12 +118,7 @@ const generateToolDefinitions = (params: {
                 `),
               },
             },
-            required: [
-              "text",
-              "subjectEntityLocalId",
-              "objectEntityLocalId",
-              "prepositionalPhrases",
-            ],
+            required: ["text", "objectEntityLocalId", "prepositionalPhrases"],
           },
         },
       },
@@ -295,12 +294,15 @@ summary: ${summary}</SubjectEntity>`),
           Please now submit claims, remembering these key points:
             - Each claim MUST start with and be about one of the subject entities: ${subjectEntities
               .map(({ name }) => name)
-              .join(", ")}
+              .join(
+                ", ",
+              )}. If it does NOT, omit the claim or pass 'null' for the subjectEntityId
             - We are particularly interested in claims related to the following properties: ${relevantProperties
               .map((property) => property.title)
               .join(
                 ", ",
               )}. You must include claims about these properties IF they are present in the text.
+            
           Do NOT include claims such as:
           'Bill Gates has a LinkedIn URL'
           'Bill Gates's LinkedURL is <UNKNOWN>'
@@ -362,6 +364,13 @@ export const inferEntityClaimsFromTextAgent = async (params: {
     retryMessages: LlmMessage[];
     retryCount: number;
   };
+  /**
+   * Optional parameters for optimization purposes, allowing to overwrite the system prompt and model used.
+   */
+  testingParams?: {
+    model?: LlmParams["model"];
+    systemPrompt?: string;
+  };
 }): Promise<{ claims: Claim[] }> => {
   if (isActivityCancelled()) {
     /**
@@ -383,10 +392,12 @@ export const inferEntityClaimsFromTextAgent = async (params: {
     retryContext,
   } = params;
 
+  const subjectEntitiesStringList = subjectEntities
+    .map(({ name }) => name)
+    .join(", ");
+
   logger.debug(
-    `Inferring claims from text for entities ${subjectEntities
-      .map(({ name }) => name)
-      .join(", ")}`,
+    `Inferring claims from text for entities ${subjectEntitiesStringList}`,
   );
 
   const {
@@ -399,10 +410,11 @@ export const inferEntityClaimsFromTextAgent = async (params: {
 
   const llmResponse = await getLlmResponse(
     {
-      model: "claude-3-haiku-20240307",
+      model: params.testingParams?.model ?? "claude-3-haiku-20240307",
       tools: Object.values(generateToolDefinitions({ subjectEntities })),
       toolChoice: toolNames[0],
-      systemPrompt,
+      temperature: 0.5,
+      systemPrompt: params.testingParams?.systemPrompt ?? systemPrompt,
       messages: [
         constructUserMessage({
           text,
@@ -441,7 +453,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
 
     if (retryCount >= retryMax) {
       logger.debug(
-        "Exceeded the retry limit for inferring claims from text, returning the previously inferred claims.",
+        `Exceeded the retry limit for inferring claims from text for subject entities ${subjectEntitiesStringList}, returning the previously inferred claims.`,
       );
       /**
        * If some of the claims are repeatedly invalid, we handle this gracefully
@@ -528,9 +540,21 @@ export const inferEntityClaimsFromTextAgent = async (params: {
     };
 
     for (const unfinishedClaim of input.claims) {
-      if (unfinishedClaim.subjectEntityLocalId === null) {
+      if (!unfinishedClaim.subjectEntityLocalId) {
         /**
          * For now, we discard any claims that do not have a proposed entity we can associate them with.
+         */
+        logger.warn(
+          `Model provided a claim without a subject entity: ${stringify(unfinishedClaim)}`,
+        );
+        continue;
+      }
+
+      if (unfinishedClaim.valueNotFound) {
+        /**
+         * We allow models to provide a claim which has no value attached to it and specify 'false' here, to deal with their tendency
+         * to provide claims like "Bill Gates has a LinkedIn URL" or "Bill Gates's LinkedIn URL is unknown". in an effort to be helpful.
+         * We discard these claims for now, although they may be useful negative signals at some point.
          */
         continue;
       }
@@ -768,7 +792,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
     );
 
     logger.debug(
-      `Retrying inferring claims from text with the following tool call responses: ${stringify(
+      `Retrying inferring claims from text for subject entities ${subjectEntitiesStringList} with the following tool call responses: ${stringify(
         toolCallResponses,
       )}`,
     );
