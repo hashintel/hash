@@ -52,7 +52,7 @@
     "logform": "2.6.1",
     "redis": "4.6.12",
     "slonik": "24.1.2",
-    "wait-on": "7.2.0",
+    "wait-on": "8.0.0",
     "winston": "3.11.0"
   },
   "devDependencies": {
