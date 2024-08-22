@@ -2,7 +2,9 @@ import type { SvgIconProps } from "@mui/material";
 import { SvgIcon } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-export const SidebarToggleIcon: FunctionComponent<SvgIconProps> = (props) => {
+export const ArrowRightToLineIcon: FunctionComponent<SvgIconProps> = (
+  props,
+) => {
   const { sx = [], ...otherProps } = props;
   return (
     <SvgIcon
