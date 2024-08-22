@@ -202,10 +202,10 @@
   dependencies:
     node-fetch "^2.6.1"
 
-"@artilleryio/int-commons@2.10.0":
-  version "2.10.0"
-  resolved "https://registry.yarnpkg.com/@artilleryio/int-commons/-/int-commons-2.10.0.tgz#c6b932bbd72ba0055f89cd1f0278f10ea0eec3fc"
-  integrity sha512-CukRix3yxcsbjPTPhIyXN7qZ6f/3W+LQtF96RxuZ7L3P0F7y7t4NswPSll2+zDkAMvvBgFojgPL+bFf2EDIiOA==
+"@artilleryio/int-commons@2.11.0":
+  version "2.11.0"
+  resolved "https://registry.yarnpkg.com/@artilleryio/int-commons/-/int-commons-2.11.0.tgz#cfb075152cffe674d4cb5a8c74e7dba70c2ae1a9"
+  integrity sha512-De713S8MG7qV3Qp1TWPLt+ivA9NHvetzdbNoNNWszLeljCP6Frp+jmXlZG3u7dISFzq/ONH0ROO17n8CEytY/g==
   dependencies:
     async "^2.6.4"
     cheerio "^1.0.0-rc.10"
@@ -216,12 +216,12 @@
     lodash "^4.17.19"
     ms "^2.1.3"
 
-"@artilleryio/int-core@2.14.0":
-  version "2.14.0"
-  resolved "https://registry.yarnpkg.com/@artilleryio/int-core/-/int-core-2.14.0.tgz#218a32b3d709b41735b2b7b202621d350c5a66d2"
-  integrity sha512-u0q5p5aWE7DRNRnfmj8JzXqNFitoBKQ4/N/Uur4PXcZCPzB7yQWppRPRJqFUh14zmC/UybDMui1EnbDhBqGGIg==
+"@artilleryio/int-core@2.15.0":
+  version "2.15.0"
+  resolved "https://registry.yarnpkg.com/@artilleryio/int-core/-/int-core-2.15.0.tgz#0ca7d511e2dd75553265072c93a6dd4691acfef5"
+  integrity sha512-C2EP+6PrU/PoBDDgr0hyIFlC1OGmvjgs5HMuUEJyyIVfm1eN1BeSRlQ5q3SG/baxz7IySO1WaGZ9FX/KefBofQ==
   dependencies:
-    "@artilleryio/int-commons" "2.10.0"
+    "@artilleryio/int-commons" "2.11.0"
     "@artilleryio/sketches-js" "^2.1.1"
     agentkeepalive "^4.1.0"
     arrivals "^2.1.2"
@@ -12592,60 +12592,60 @@ arrivals@^2.1.2:
     debug "^4.0.1"
     nanotimer "0.3.14"
 
-artillery-engine-playwright@1.16.0:
-  version "1.16.0"
-  resolved "https://registry.yarnpkg.com/artillery-engine-playwright/-/artillery-engine-playwright-1.16.0.tgz#be096fdc5be57ff0da3c08338517787980a9eae2"
-  integrity sha512-90Gka/neaKABygcWANL/wOrI3U75Xll4yAZmBywQiTONorGL3SIizEEujGXosHLUeOgzc+3OEldP5qXfCynMOg==
+artillery-engine-playwright@1.17.0:
+  version "1.17.0"
+  resolved "https://registry.yarnpkg.com/artillery-engine-playwright/-/artillery-engine-playwright-1.17.0.tgz#e61c9ac39068e4f436bf885a5403aaa1c0732814"
+  integrity sha512-sWaQ9OEuvlgVr6ABpAi6gef0c6tDpaqiizg+eeB05TJB0PLyZQoU/0+JQN162Lx3mJW0kiaYNqtot6huxcXK+Q==
   dependencies:
     "@playwright/browser-chromium" "1.45.3"
     "@playwright/test" "1.45.3"
     debug "^4.3.2"
     playwright "1.45.3"
 
-artillery-plugin-apdex@1.10.0:
-  version "1.10.0"
-  resolved "https://registry.yarnpkg.com/artillery-plugin-apdex/-/artillery-plugin-apdex-1.10.0.tgz#cc49562ad89303b2079b40c9e5744b3d9eb69f74"
-  integrity sha512-TabM/LXhp5n3AKiCXQHl3ivwCuh7QfdV5vjYpT8di32Rd42f9AahFiOIje4aInW9u5S8qNsB78UU3ov084GxwA==
+artillery-plugin-apdex@1.11.0:
+  version "1.11.0"
+  resolved "https://registry.yarnpkg.com/artillery-plugin-apdex/-/artillery-plugin-apdex-1.11.0.tgz#baf9ea27d890b2e4b36da2b4f1a4c6b2a7e0bfe5"
+  integrity sha512-Gng+T4tCGf0aZiNk071VZ6X69kgz/vtFDLuu11EdlePyC4Q9e4truAnYUC49rXg97i/JyYueTxjGHogefWJlRg==
   dependencies:
     tap "^19.0.2"
 
-artillery-plugin-ensure@1.13.0:
-  version "1.13.0"
-  resolved "https://registry.yarnpkg.com/artillery-plugin-ensure/-/artillery-plugin-ensure-1.13.0.tgz#18d51298da97bd6b9a09b3c7d3c7dd3a1c87f8c3"
-  integrity sha512-/FwOj4a2npaUkNsB+dtHGa5euRqi1ly0mvcqz2UawNia+5SQXVJauL0ue84uQrU0O8ercH/gzsb7cG2/RKYkwg==
+artillery-plugin-ensure@1.14.0:
+  version "1.14.0"
+  resolved "https://registry.yarnpkg.com/artillery-plugin-ensure/-/artillery-plugin-ensure-1.14.0.tgz#08ab81994bdc9be7c93b93726543a39b4e110421"
+  integrity sha512-kK+artqRYRM8uyJVAvyJX1MYT4j2W1FTIU2wIwNSFufTQbjORFoyQbBBaOeoDyao9g3NCcNO3BBHefE0kfVDgw==
   dependencies:
     chalk "^2.4.2"
     debug "^4.3.3"
     filtrex "^2.2.3"
 
-artillery-plugin-expect@2.13.0:
-  version "2.13.0"
-  resolved "https://registry.yarnpkg.com/artillery-plugin-expect/-/artillery-plugin-expect-2.13.0.tgz#63ef9962c8941a80e4177eb1048b132a96bcbdca"
-  integrity sha512-j7beHovPaR9b4tKxn6gq6QXXK+XXtZ2B6DzX3PERqPcZPA07zSPrTJfzmtbwmnAGvQZYLK5jucQ6H+ZzyimiQg==
+artillery-plugin-expect@2.14.0:
+  version "2.14.0"
+  resolved "https://registry.yarnpkg.com/artillery-plugin-expect/-/artillery-plugin-expect-2.14.0.tgz#abfc0f7d71bf0e1445da0b58553d2d358c1ed1b3"
+  integrity sha512-E3Z7MyKTG/1DJcfCV8wloLAVbsOy0N6TOE8XdxtqpDklfHD4jXm614FbBULrPaLyfHVca0BrPhsBo6IT3HqFWQ==
   dependencies:
     chalk "^4.1.2"
     debug "^4.3.2"
     jmespath "^0.16.0"
     lodash "^4.17.21"
 
-artillery-plugin-fake-data@1.10.0:
-  version "1.10.0"
-  resolved "https://registry.yarnpkg.com/artillery-plugin-fake-data/-/artillery-plugin-fake-data-1.10.0.tgz#2b4e1a2e9924c8d4cf0363dcc662c9370bf7cd39"
-  integrity sha512-EQeeiIGJfxpXszn1zH91EyNprblpkME/HuHYloILExTc6My9+tcY5fezd1SEBbQ+jJ4qKB5KJyqQ6RS6HE+oBQ==
+artillery-plugin-fake-data@1.11.0:
+  version "1.11.0"
+  resolved "https://registry.yarnpkg.com/artillery-plugin-fake-data/-/artillery-plugin-fake-data-1.11.0.tgz#4019b8b7495b9363c950cdecc068d7e00dd2fbdd"
+  integrity sha512-UA9lqNknWQd/0tQA2iyv+xDaroAlUKuNkwLWjNfcl9fvJLvISubaVMJwErVhlKETEwLb3FTcinYSfW3iIDusUw==
   dependencies:
     "@ngneat/falso" "^7.1.1"
 
-artillery-plugin-metrics-by-endpoint@1.13.0:
-  version "1.13.0"
-  resolved "https://registry.yarnpkg.com/artillery-plugin-metrics-by-endpoint/-/artillery-plugin-metrics-by-endpoint-1.13.0.tgz#61c30561937bead3059b2ac7c736600f22a9e3ac"
-  integrity sha512-1zKp+kIZusPDLIcYE9Yheua5RYekAMNkJr/fQ2odQaeJdSkWyS/gURvroORhYAv41LKRfAvYazW668uUY6WkKA==
+artillery-plugin-metrics-by-endpoint@1.14.0:
+  version "1.14.0"
+  resolved "https://registry.yarnpkg.com/artillery-plugin-metrics-by-endpoint/-/artillery-plugin-metrics-by-endpoint-1.14.0.tgz#37a930d98939147288863ff4a4d6fb44a12ed785"
+  integrity sha512-GXnIq0kluQwMelwrcfPOc5hK3Jim4AAFdYsqvmvi4PdEso2MZNdwD2qnrYI4mcxXJBaUMGV+0jva0L+I7RnxNw==
   dependencies:
     debug "^4.3.2"
 
-artillery-plugin-publish-metrics@2.24.0:
-  version "2.24.0"
-  resolved "https://registry.yarnpkg.com/artillery-plugin-publish-metrics/-/artillery-plugin-publish-metrics-2.24.0.tgz#7dc108927b2c517b55b2568e594eae8e55bfc19a"
-  integrity sha512-7a6vykigjZ5zdk41ma8supGmownU31SdQRD9hxfpKv8gLIOAlTTD25OxnjGmddF4JArhztSAqrPb+J8s/7xXRw==
+artillery-plugin-publish-metrics@2.25.0:
+  version "2.25.0"
+  resolved "https://registry.yarnpkg.com/artillery-plugin-publish-metrics/-/artillery-plugin-publish-metrics-2.25.0.tgz#068633af864ef8d21417edd8001d1c513b43dadf"
+  integrity sha512-VblhbItYcaN/R35EUasqudwMFdi4Qq+Z/BIBU94UZjxfs794Q96vKE/HV84NHXTbp6EcDd9RXxcis03dWuUHOQ==
   dependencies:
     "@aws-sdk/client-cloudwatch" "^3.370.0"
     "@opentelemetry/api" "^1.4.1"
@@ -12673,21 +12673,21 @@ artillery-plugin-publish-metrics@2.24.0:
     semver "^7.3.5"
     uuid "^8.3.2"
 
-artillery-plugin-slack@1.8.0:
-  version "1.8.0"
-  resolved "https://registry.yarnpkg.com/artillery-plugin-slack/-/artillery-plugin-slack-1.8.0.tgz#da0c32c47e67c457c433c26ca4b95207fbfc7db6"
-  integrity sha512-BpZZonGQRBZo1oXw0XNx7itoGKlZDClE+SzNt3SDTTFcQuvdPD6FD05Y9hDfSfG3zdEuuc9joAtCuKMmZALaeg==
+artillery-plugin-slack@1.9.0:
+  version "1.9.0"
+  resolved "https://registry.yarnpkg.com/artillery-plugin-slack/-/artillery-plugin-slack-1.9.0.tgz#4bae0449f8f1c0744073a136fefa960e868e42a8"
+  integrity sha512-JAwnb+fhwo/Vdr2rWim66Q35MGD1CQetWxuEb6yqYvn7C4RA4F8dWcA9kPW8GQqy73V2LnKuCgl+7+Nu9mVL0g==
   dependencies:
     debug "^4.3.4"
     got "^11.8.5"
 
-artillery@2.0.19:
-  version "2.0.19"
-  resolved "https://registry.yarnpkg.com/artillery/-/artillery-2.0.19.tgz#49fea02f43bc76c5a797c677046660e8da76b4f6"
-  integrity sha512-NeD5+D7U5l8hZ3lHtUseFTwqxILN2qfl4XlQt4cH0PukA/wsOri7cR0Qg2925usCa5EkD240Dfh9r9wYvuHxlw==
+artillery@2.0.20:
+  version "2.0.20"
+  resolved "https://registry.yarnpkg.com/artillery/-/artillery-2.0.20.tgz#b8bf511d1c8e4ba25e5aff29a72cdf74ffcd9bad"
+  integrity sha512-/lC1q786kaUq2fQFsMZf5G8oKtDDmLcfA1OLEiSA2+lJbBSYMCt9rWlRjLCRkVTKCcv4dDZdrhcRYHmPc6PNVQ==
   dependencies:
-    "@artilleryio/int-commons" "2.10.0"
-    "@artilleryio/int-core" "2.14.0"
+    "@artilleryio/int-commons" "2.11.0"
+    "@artilleryio/int-core" "2.15.0"
     "@aws-sdk/credential-providers" "^3.127.0"
     "@azure/arm-containerinstance" "^9.1.0"
     "@azure/identity" "^4.2.0"
@@ -12697,14 +12697,14 @@ artillery@2.0.19:
     "@oclif/plugin-help" "^5.2.11"
     "@oclif/plugin-not-found" "^2.3.1"
     archiver "^5.3.1"
-    artillery-engine-playwright "1.16.0"
-    artillery-plugin-apdex "1.10.0"
-    artillery-plugin-ensure "1.13.0"
-    artillery-plugin-expect "2.13.0"
-    artillery-plugin-fake-data "1.10.0"
-    artillery-plugin-metrics-by-endpoint "1.13.0"
-    artillery-plugin-publish-metrics "2.24.0"
-    artillery-plugin-slack "1.8.0"
+    artillery-engine-playwright "1.17.0"
+    artillery-plugin-apdex "1.11.0"
+    artillery-plugin-ensure "1.14.0"
+    artillery-plugin-expect "2.14.0"
+    artillery-plugin-fake-data "1.11.0"
+    artillery-plugin-metrics-by-endpoint "1.14.0"
+    artillery-plugin-publish-metrics "2.25.0"
+    artillery-plugin-slack "1.9.0"
     async "^2.6.4"
     aws-sdk "^2.1338.0"
     chalk "^2.4.2"
