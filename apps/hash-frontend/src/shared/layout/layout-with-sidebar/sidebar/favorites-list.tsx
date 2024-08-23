@@ -34,8 +34,8 @@ export const FavoritesList = () => {
         ...preferences,
         sidebarSections: {
           ...preferences.sidebarSections,
-          entities: {
-            ...preferences.sidebarSections.entities,
+          favorites: {
+            ...preferences.sidebarSections.favorites,
             expanded: !expanded,
           },
         },
