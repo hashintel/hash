@@ -8,7 +8,7 @@ import {
 } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
 
-import { Link } from "../../ui";
+import { Link } from "../../../ui";
 
 type NavLinkProps = {
   title: string;

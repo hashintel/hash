@@ -11,20 +11,22 @@ import type { FunctionComponent } from "react";
 import { useMemo, useState } from "react";
 import { TransitionGroup } from "react-transition-group";
 
-import { hiddenEntityTypeIds } from "../../../pages/shared/hidden-types";
-import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
-import { useLatestEntityTypesOptional } from "../../entity-types-context/hooks";
-import { ArrowDownAZRegularIcon } from "../../icons/arrow-down-a-z-regular-icon";
-import { ArrowUpZARegularIcon } from "../../icons/arrow-up-a-z-regular-icon";
-import { PlusRegularIcon } from "../../icons/plus-regular";
-import { Link } from "../../ui";
-import { useEntityTypeEntities } from "../../use-entity-type-entities";
-import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
-import type { SortType } from "./account-entity-type-list/sort-actions-dropdown";
-import { SortActionsDropdown } from "./account-entity-type-list/sort-actions-dropdown";
-import { NavLink } from "./nav-link";
-import { LoadingSkeleton } from "./shared/loading-skeleton";
-import { ViewAllLink } from "./view-all-link";
+import { useUpdateAuthenticatedUser } from "../../../../components/hooks/use-update-authenticated-user";
+import { hiddenEntityTypeIds } from "../../../../pages/shared/hidden-types";
+import { useActiveWorkspace } from "../../../../pages/shared/workspace-context";
+import { useLatestEntityTypesOptional } from "../../../entity-types-context/hooks";
+import { ArrowDownAZRegularIcon } from "../../../icons/arrow-down-a-z-regular-icon";
+import { ArrowUpZARegularIcon } from "../../../icons/arrow-up-a-z-regular-icon";
+import { PlusRegularIcon } from "../../../icons/plus-regular";
+import { Link } from "../../../ui";
+import { useEntityTypeEntities } from "../../../use-entity-type-entities";
+import { useUserPreferences } from "../../../use-user-preferences";
+import { LoadingSkeleton } from "../shared/loading-skeleton";
+import { EntityOrTypeSidebarItem } from "./shared/entity-or-type-sidebar-item";
+import { NavLink } from "./shared/nav-link";
+import type { SortType } from "./shared/sort-actions-dropdown";
+import { SortActionsDropdown } from "./shared/sort-actions-dropdown";
+import { ViewAllLink } from "./shared/view-all-link";
 
 type AccountEntitiesListProps = {
   ownedById: OwnedById;
@@ -33,7 +35,31 @@ type AccountEntitiesListProps = {
 export const AccountEntitiesList: FunctionComponent<
   AccountEntitiesListProps
 > = ({ ownedById }) => {
-  const [expanded, setExpanded] = useState<boolean>(true);
+  const preferences = useUserPreferences();
+
+  const [expanded, setExpanded] = useState<boolean>(
+    preferences.sidebarSections.entities.expanded,
+  );
+
+  const [updateUser] = useUpdateAuthenticatedUser();
+
+  const toggleEntitiesExpanded = () => {
+    setExpanded(!expanded);
+
+    void updateUser({
+      preferences: {
+        ...preferences,
+        sidebarSections: {
+          ...preferences.sidebarSections,
+          entities: {
+            ...preferences.sidebarSections.entities,
+            expanded: !expanded,
+          },
+        },
+      },
+    });
+  };
+
   const [sortType, setSortType] = useState<SortType>("asc");
   const sortActionsPopupState = usePopupState({
     variant: "popover",
@@ -42,10 +68,16 @@ export const AccountEntitiesList: FunctionComponent<
 
   const { activeWorkspace } = useActiveWorkspace();
 
-  const { latestEntityTypes, loading, isSpecialEntityTypeLookup } =
-    useLatestEntityTypesOptional();
+  const {
+    latestEntityTypes,
+    loading: entityTypesLoading,
+    isSpecialEntityTypeLookup,
+  } = useLatestEntityTypesOptional();
 
-  const { entities: userEntities } = useEntityTypeEntities({ ownedById });
+  const { entities: userEntities, loading: entityTypeEntitiesLoading } =
+    useEntityTypeEntities({ ownedById });
+
+  const loading = entityTypesLoading || entityTypeEntitiesLoading;
 
   const pinnedEntityTypes = useMemo(() => {
     const { pinnedEntityTypeBaseUrls } = activeWorkspace ?? {};
@@ -96,12 +128,12 @@ export const AccountEntitiesList: FunctionComponent<
     <Box>
       <NavLink
         expanded={expanded}
-        toggleExpanded={() => setExpanded((prev) => !prev)}
+        toggleExpanded={toggleEntitiesExpanded}
         title="Entities"
         endAdornment={
           <Box display="flex" gap={1}>
             <Fade in={expanded}>
-              <Tooltip title="Sort types" placement="top">
+              <Tooltip title="Sort types of entities" placement="top">
                 <IconButton
                   {...bindTrigger(sortActionsPopupState)}
                   size="small"
@@ -156,7 +188,7 @@ export const AccountEntitiesList: FunctionComponent<
             <TransitionGroup>
               {sortedEntityTypes.map((root) => (
                 <Collapse key={root.schema.$id}>
-                  <EntityTypeItem
+                  <EntityOrTypeSidebarItem
                     entityType={root}
                     href={`/entities?entityTypeIdOrBaseUrl=${extractBaseUrl(
                       root.schema.$id,

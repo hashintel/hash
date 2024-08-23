@@ -9,9 +9,9 @@ import { bindTrigger, usePopupState } from "material-ui-popup-state/hooks";
 import type { CSSProperties, MouseEvent } from "react";
 import { forwardRef, useState } from "react";
 
-import { PAGE_TITLE_PLACEHOLDER } from "../../../../pages/shared/block-collection/page-title/page-title";
-import { PageIconButton } from "../../../page-icon-button";
-import { Link } from "../../../ui";
+import { PAGE_TITLE_PLACEHOLDER } from "../../../../../pages/shared/block-collection/page-title/page-title";
+import { PageIconButton } from "../../../../page-icon-button";
+import { Link } from "../../../../ui";
 import { PageMenu } from "./page-menu";
 
 interface DragProps {

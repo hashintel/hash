@@ -36,22 +36,24 @@ import { useArchivePage } from "../../../../components/hooks/use-archive-page";
 import { useCreatePage } from "../../../../components/hooks/use-create-page";
 import { useCreateSubPage } from "../../../../components/hooks/use-create-sub-page";
 import { useReorderPage } from "../../../../components/hooks/use-reorder-page";
+import { useUpdateAuthenticatedUser } from "../../../../components/hooks/use-update-authenticated-user";
 import { useUserOrOrgShortnameByOwnedById } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import { constructPageRelativeUrl } from "../../../../lib/routes";
 import { useEnabledFeatureFlags } from "../../../../pages/shared/use-enabled-feature-flags";
 import { PlusRegularIcon } from "../../../icons/plus-regular";
-import { NavLink } from "../nav-link";
+import { useUserPreferences } from "../../../use-user-preferences";
 import { LoadingSkeleton } from "../shared/loading-skeleton";
-import { ViewAllLink } from "../view-all-link";
-import { AccountPageListItem } from "./account-page-list-item";
-import { IDENTATION_WIDTH } from "./page-tree-item";
-import type { TreeItem } from "./utils";
+import { AccountPageListItem } from "./account-page-list/account-page-list-item";
+import { IDENTATION_WIDTH } from "./account-page-list/page-tree-item";
+import type { TreeItem } from "./account-page-list/utils";
 import {
   getLastIndex,
   getProjection,
   getTreeItemList,
   isPageCollapsed,
-} from "./utils";
+} from "./account-page-list/utils";
+import { NavLink } from "./shared/nav-link";
+import { ViewAllLink } from "./shared/view-all-link";
 
 type AccountPageListProps = {
   ownedById: OwnedById;
@@ -70,7 +72,30 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
 }) => {
   const { data, loading: pagesLoading } = useAccountPages(ownedById);
 
-  const [expanded, setExpanded] = useState<boolean>(true);
+  const preferences = useUserPreferences();
+
+  const [expanded, setExpanded] = useState<boolean>(
+    preferences.sidebarSections.pages.expanded,
+  );
+
+  const [updateUser] = useUpdateAuthenticatedUser();
+
+  const togglePagesExpanded = () => {
+    setExpanded(!expanded);
+
+    void updateUser({
+      preferences: {
+        ...preferences,
+        sidebarSections: {
+          ...preferences.sidebarSections,
+          pages: {
+            ...preferences.sidebarSections.pages,
+            expanded: !expanded,
+          },
+        },
+      },
+    });
+  };
 
   const { shortname: ownerShortname } = useUserOrOrgShortnameByOwnedById({
     ownedById,
@@ -409,7 +434,7 @@ export const AccountPageList: FunctionComponent<AccountPageListProps> = ({
       >
         <NavLink
           expanded={expanded}
-          toggleExpanded={() => setExpanded((prev) => !prev)}
+          toggleExpanded={togglePagesExpanded}
           title="Pages"
           loading={loading}
           endAdornment={
