@@ -147,16 +147,6 @@ export const PageSidebar: FunctionComponent = () => {
             },
           ]
         : []),
-      ...(isInstanceAdmin
-        ? [
-            {
-              title: "Instance Administration",
-              path: "/admin",
-              icon: <CogLightIcon sx={{ fontSize: 16 }} />,
-              tooltipTitle: "",
-            },
-          ]
-        : []),
     ];
   }, [
     draftEntities,
