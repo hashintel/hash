@@ -10,6 +10,8 @@ import type {
   ActorOutgoingLinksByLinkEntityTypeId,
   ActorProperties,
   ActorPropertiesWithMetadata,
+  ApplicationPreferencesPropertyValue,
+  ApplicationPreferencesPropertyValueWithMetadata,
   AutomaticInferenceConfigurationPropertyValue,
   AutomaticInferenceConfigurationPropertyValueWithMetadata,
   Block,
@@ -205,6 +207,8 @@ export type {
   ActorOutgoingLinksByLinkEntityTypeId,
   ActorProperties,
   ActorPropertiesWithMetadata,
+  ApplicationPreferencesPropertyValue,
+  ApplicationPreferencesPropertyValueWithMetadata,
   AutomaticInferenceConfigurationPropertyValue,
   AutomaticInferenceConfigurationPropertyValueWithMetadata,
   Block,
@@ -398,7 +402,7 @@ export type {
  * An instance of an integration with Linear.
  */
 export type LinearIntegration = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/linear-integration/v/6";
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/linear-integration/v/7";
   properties: LinearIntegrationProperties;
   propertiesWithMetadata: LinearIntegrationPropertiesWithMetadata;
 };
