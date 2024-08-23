@@ -128,7 +128,7 @@ export const PageSidebar: FunctionComponent = () => {
           },
           {
             title: "Notifications",
-            path: "/inbox",
+            path: "/notifications",
             count: numberOfUnreadNotifications,
           },
         ],

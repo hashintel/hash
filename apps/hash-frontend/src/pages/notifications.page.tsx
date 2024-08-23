@@ -319,7 +319,7 @@ const NotificationRow: FunctionComponent<{ notification: Notification }> = ({
   );
 };
 
-const InboxPage: NextPageWithLayout = () => {
+const NotificationsPage: NextPageWithLayout = () => {
   const { notifications } = useNotificationsWithLinksContextValue();
 
   return (
@@ -377,9 +377,9 @@ const InboxPage: NextPageWithLayout = () => {
   );
 };
 
-InboxPage.getLayout = (page) =>
+NotificationsPage.getLayout = (page) =>
   getLayoutWithSidebar(page, {
     fullWidth: true,
   });
 
-export default InboxPage;
+export default NotificationsPage;
