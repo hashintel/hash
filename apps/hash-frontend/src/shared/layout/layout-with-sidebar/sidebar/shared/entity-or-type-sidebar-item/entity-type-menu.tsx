@@ -9,9 +9,10 @@ import { bindMenu } from "material-ui-popup-state/hooks";
 import type { FunctionComponent } from "react";
 import { useState } from "react";
 
-import { useEntityTypesContextRequired } from "../../../entity-types-context/hooks/use-entity-types-context-required";
-import { useFrozenValue } from "../../../frozen";
-import { EntityTypeMenuItem } from "./entity-type-menu-item";
+import { useEntityTypesContextRequired } from "../../../../../entity-types-context/hooks/use-entity-types-context-required";
+import { useFrozenValue } from "../../../../../frozen";
+import { FavoriteMenuItem } from "./shared/favorite-menu-item";
+import { SidebarMenuItem } from "./shared/sidebar-menu-item";
 
 type EntityTypeMenuProps = {
   entityTypeId: VersionedUrl;
@@ -37,14 +38,18 @@ export const EntityTypeMenu: FunctionComponent<EntityTypeMenuProps> = ({
   return (
     <Menu {...bindMenu(popupState)}>
       {isLinkEntityType ? null : (
-        <EntityTypeMenuItem
+        <SidebarMenuItem
           title={`Create new ${pluralize.singular(title)}`}
           icon={faAdd}
           href={`/new/entity?entity-type-id=${entityTypeId}`}
           popupState={popupState}
         />
       )}
-      <EntityTypeMenuItem
+      <FavoriteMenuItem
+        item={{ type: "entityType", entityTypeId }}
+        popupState={popupState}
+      />
+      <SidebarMenuItem
         title={copiedFrozen ? "Copied!" : `Copy link to ${title}`}
         icon={faLink}
         popupState={popupState}
@@ -57,13 +62,13 @@ export const EntityTypeMenu: FunctionComponent<EntityTypeMenuProps> = ({
           }, 2000);
         }}
       />
-      <EntityTypeMenuItem
+      <SidebarMenuItem
         title="Extend this type"
         icon={<ArrowUpRightIcon sx={{ fontSize: 16 }} />}
         href={`/new/types/entity-type?extends=${entityTypeId}`}
         popupState={popupState}
       />
-      <EntityTypeMenuItem
+      <SidebarMenuItem
         title={`View all ${pluralize(title)}`}
         icon={faList}
         popupState={popupState}

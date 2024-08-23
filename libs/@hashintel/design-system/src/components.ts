@@ -74,6 +74,8 @@ export * from "./icon-rotate-regular";
 export * from "./icon-ruler-regular";
 export * from "./icon-shapes-regular";
 export * from "./icon-sparkles-light";
+export * from "./icon-star-regular";
+export * from "./icon-star-solid";
 export * from "./icon-table-light";
 export * from "./icon-terminal-light";
 export * from "./icon-thought-bubble-light";

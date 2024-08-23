@@ -1,5 +1,10 @@
 import { faHome } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import {
+  AsteriskRegularIcon,
+  FontAwesomeIcon,
+  IconButton,
+  ShapesRegularIcon,
+} from "@hashintel/design-system";
 import { Box, Collapse, Drawer } from "@mui/material";
 import { useRouter } from "next/router";
 import {
@@ -281,7 +286,7 @@ export const PageSidebar: FunctionComponent = () => {
       >
         {activeWorkspaceOwnedById ? (
           <>
-            {/* PAGES */}
+            {preferences.favorites.length > 0 && <FavoritesList />}
             {hashInstance?.properties.pagesAreEnabled &&
             enabledFeatureFlags.pages ? (
               <AccountPageList
