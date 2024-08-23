@@ -1,3 +1,4 @@
+import { BellIconLight } from "@hashintel/design-system";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import {
@@ -6,6 +7,8 @@ import {
   extractOwnedByIdFromEntityId,
 } from "@local/hash-subgraph";
 import {
+  breadcrumbsClasses,
+  buttonClasses,
   Container,
   Skeleton,
   styled,
@@ -25,6 +28,7 @@ import {
   isThisYear,
   isToday,
 } from "date-fns";
+import { NextSeo } from "next-seo";
 import type { FunctionComponent } from "react";
 import { useCallback, useMemo } from "react";
 
@@ -40,6 +44,7 @@ import type {
   PageRelatedNotification,
 } from "./shared/notifications-with-links-context";
 import { useNotificationsWithLinksContextValue } from "./shared/notifications-with-links-context";
+import { TopContextBar } from "./shared/top-context-bar";
 
 const Table = styled(MuiTable)(({ theme }) => ({
   borderCollapse: "separate",
@@ -323,57 +328,77 @@ const NotificationsPage: NextPageWithLayout = () => {
   const { notifications } = useNotificationsWithLinksContextValue();
 
   return (
-    <Container sx={{ paddingY: 6 }}>
-      <Typography variant="h5" sx={{ marginBottom: 4 }}>
-        Notifications
-      </Typography>
-      {notifications && notifications.length === 0 ? (
-        <Typography>You don't have any notifications.</Typography>
-      ) : (
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell variant="head" sx={{ width: "auto" }}>
-                When
-              </TableCell>
-              <TableCell variant="head" sx={{ width: "100%" }}>
-                Title
-              </TableCell>
-              <TableCell variant="head" sx={{ width: "auto" }}>
-                Actions
-              </TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody
-            sx={{
-              [`> .${tableRowClasses.root}:last-of-type > .${tableCellClasses.root}`]:
-                {
-                  borderBottomWidth: 0,
-                },
-            }}
-          >
-            {notifications ? (
-              notifications.map((notification) => (
-                <NotificationRow
-                  key={notification.entity.metadata.recordId.entityId}
-                  notification={notification}
-                />
-              ))
-            ) : (
+    <>
+      <NextSeo title="Notifications" />
+      <TopContextBar
+        defaultCrumbIcon={null}
+        crumbs={[
+          {
+            title: "Notifications",
+            id: "notifications",
+            icon: <BellIconLight />,
+          },
+        ]}
+        sx={{
+          background: "transparent",
+          [`.${breadcrumbsClasses.ol} .${buttonClasses.root}`]: {
+            background: "transparent",
+            borderColor: "transparent",
+          },
+        }}
+      />
+      <Container sx={{ paddingY: 6 }}>
+        <Typography variant="h5" sx={{ marginBottom: 4 }}>
+          Notifications
+        </Typography>
+        {notifications && notifications.length === 0 ? (
+          <Typography>You don't have any notifications.</Typography>
+        ) : (
+          <Table>
+            <TableHead>
               <TableRow>
-                <TableCell>
-                  <Skeleton sx={{ maxWidth: 150 }} />
+                <TableCell variant="head" sx={{ width: "auto" }}>
+                  When
                 </TableCell>
-                <TableCell sx={{ display: "flex", columnGap: 1 }}>
-                  <Skeleton sx={{ width: 50 }} />
-                  <Skeleton sx={{ width: 50 }} />
+                <TableCell variant="head" sx={{ width: "100%" }}>
+                  Title
+                </TableCell>
+                <TableCell variant="head" sx={{ width: "auto" }}>
+                  Actions
                 </TableCell>
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      )}
-    </Container>
+            </TableHead>
+            <TableBody
+              sx={{
+                [`> .${tableRowClasses.root}:last-of-type > .${tableCellClasses.root}`]:
+                  {
+                    borderBottomWidth: 0,
+                  },
+              }}
+            >
+              {notifications ? (
+                notifications.map((notification) => (
+                  <NotificationRow
+                    key={notification.entity.metadata.recordId.entityId}
+                    notification={notification}
+                  />
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell>
+                    <Skeleton sx={{ maxWidth: 150 }} />
+                  </TableCell>
+                  <TableCell sx={{ display: "flex", columnGap: 1 }}>
+                    <Skeleton sx={{ width: 50 }} />
+                    <Skeleton sx={{ width: 50 }} />
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        )}
+      </Container>
+    </>
   );
 };
 

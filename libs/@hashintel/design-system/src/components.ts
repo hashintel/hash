@@ -23,6 +23,7 @@ export * from "./icon-arrow-up-wide-short-light";
 export * from "./icon-asterisk-regular";
 export * from "./icon-at-regular";
 export * from "./icon-barcode";
+export * from "./icon-bell-light";
 export * from "./icon-bug";
 export * from "./icon-bullseye-light";
 export * from "./icon-button";
