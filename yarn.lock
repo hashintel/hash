@@ -6318,10 +6318,15 @@
     "@opentelemetry/sdk-trace-base" "1.25.1"
     semver "^7.5.2"
 
-"@opentelemetry/semantic-conventions@1.25.1", "@opentelemetry/semantic-conventions@^1.15.2", "@opentelemetry/semantic-conventions@^1.22.0":
+"@opentelemetry/semantic-conventions@1.25.1":
   version "1.25.1"
   resolved "https://registry.yarnpkg.com/@opentelemetry/semantic-conventions/-/semantic-conventions-1.25.1.tgz#0deecb386197c5e9c2c28f2f89f51fb8ae9f145e"
   integrity sha512-ZDjMJJQRlyk8A1KZFCc+bCbsyrn1wTwdNt56F7twdfUfnHUZUq77/WfONCj8p72NZOyP7pNTdUWSTYC3GTbuuQ==
+
+"@opentelemetry/semantic-conventions@1.26.0", "@opentelemetry/semantic-conventions@^1.15.2", "@opentelemetry/semantic-conventions@^1.22.0":
+  version "1.26.0"
+  resolved "https://registry.yarnpkg.com/@opentelemetry/semantic-conventions/-/semantic-conventions-1.26.0.tgz#42da14476529ca86d0af4c11f58910f242a0a232"
+  integrity sha512-U9PJlOswJPSgQVPI+XEuNLElyFWkb0hAiMg+DExD9V0St03X2lPHGMdxMY/LrVmoukuIpXJ12oyrOtEZ4uXFkw==
 
 "@ory/client@1.1.41":
   version "1.1.41"
