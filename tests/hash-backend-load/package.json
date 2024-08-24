@@ -41,7 +41,7 @@
     "@opentelemetry/resources": "1.25.1",
     "@opentelemetry/sdk-node": "0.52.1",
     "@opentelemetry/sdk-trace-node": "1.25.1",
-    "@opentelemetry/semantic-conventions": "1.25.1",
+    "@opentelemetry/semantic-conventions": "1.26.0",
     "@ory/client": "1.1.41",
     "artillery": "2.0.20",
     "dotenv-flow": "3.2.0",
