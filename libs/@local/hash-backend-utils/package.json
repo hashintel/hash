@@ -37,7 +37,7 @@
     "@local/internal-api-client": "0.0.0-private",
     "@local/status": "0.0.0-private",
     "@opensearch-project/opensearch": "2.1.0",
-    "@sentry/node": "7.118.0",
+    "@sentry/node": "7.119.0",
     "@temporalio/activity": "1.10.1",
     "@temporalio/client": "1.10.1",
     "@temporalio/proto": "1.10.1",
