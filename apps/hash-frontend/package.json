@@ -38,7 +38,7 @@
     "@hashintel/design-system": "0.0.8",
     "@hashintel/query-editor": "0.0.3",
     "@hashintel/type-editor": "0.0.25",
-    "@lit-labs/react": "1.0.6",
+    "@lit-labs/react": "1.2.1",
     "@local/advanced-types": "0.0.0-private",
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-graph-sdk": "0.0.0-private",
