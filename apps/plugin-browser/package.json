@@ -44,7 +44,7 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "uuid": "9.0.1",
-    "webextension-polyfill": "0.10.0",
+    "webextension-polyfill": "0.12.0",
     "ws": "8.17.1"
   },
   "devDependencies": {
@@ -65,7 +65,7 @@
     "@types/lodash.debounce": "4.0.9",
     "@types/react": "18.2.68",
     "@types/react-dom": "18.2.25",
-    "@types/webextension-polyfill": "0.10.4",
+    "@types/webextension-polyfill": "0.12.0",
     "@types/ws": "8.5.12",
     "babel-loader": "9.1.2",
     "babel-preset-react-app": "10.0.1",

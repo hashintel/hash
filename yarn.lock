@@ -11220,10 +11220,10 @@
   dependencies:
     "@types/node" "*"
 
-"@types/webextension-polyfill@0.10.4":
-  version "0.10.4"
-  resolved "https://registry.yarnpkg.com/@types/webextension-polyfill/-/webextension-polyfill-0.10.4.tgz#09feeb2d8f04ac0a28818ade8aeeb4ab9fbafebb"
-  integrity sha512-pvEIqAZEbJRzaqTaWq3xlUoMWa3+euZHHz+VZHCzHWW+jOf8qLOq9wXy38U+WiPG3108SJC/wNc1X6vPC5TcjQ==
+"@types/webextension-polyfill@0.12.0":
+  version "0.12.0"
+  resolved "https://registry.yarnpkg.com/@types/webextension-polyfill/-/webextension-polyfill-0.12.0.tgz#eac57362d021d08d8d30fe0b7bae447896346aa5"
+  integrity sha512-0d1V0jw5wswj11ijrPoUUP+kV2pHCNKDDgQSzNdD1PK5i3vQ0eHiA1xzT5mFwaqdwatrXdgkxgC4BzCQ6C9eUw==
 
 "@types/webidl-conversions@*":
   version "7.0.3"
@@ -31398,10 +31398,10 @@ webcrypto-core@^1.7.4:
     pvtsutils "^1.3.2"
     tslib "^2.4.0"
 
-webextension-polyfill@0.10.0:
-  version "0.10.0"
-  resolved "https://registry.yarnpkg.com/webextension-polyfill/-/webextension-polyfill-0.10.0.tgz#ccb28101c910ba8cf955f7e6a263e662d744dbb8"
-  integrity sha512-c5s35LgVa5tFaHhrZDnr3FpQpjj1BB+RXhLTYUxGqBVN460HkbM8TBtEqdXWbpTKfzwCcjAZVF7zXCYSKtcp9g==
+webextension-polyfill@0.12.0:
+  version "0.12.0"
+  resolved "https://registry.yarnpkg.com/webextension-polyfill/-/webextension-polyfill-0.12.0.tgz#f62c57d2cd42524e9fbdcee494c034cae34a3d69"
+  integrity sha512-97TBmpoWJEE+3nFBQ4VocyCdLKfw54rFaJ6EVQYLBCXqCIpLSZkwGgASpv4oPt9gdKCJ80RJlcmNzNn008Ag6Q==
 
 webidl-conversions@^3.0.0:
   version "3.0.1"
