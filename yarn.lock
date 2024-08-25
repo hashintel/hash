@@ -8574,21 +8574,21 @@
     "@smithy/types" "^3.3.0"
     tslib "^2.6.2"
 
-"@snowplow/node-tracker@3.3.1":
-  version "3.3.1"
-  resolved "https://registry.yarnpkg.com/@snowplow/node-tracker/-/node-tracker-3.3.1.tgz#560edb71240c2f7666dc59d99ba87d6cf01e9005"
-  integrity "sha1-Vg7bcSQML3Zm3FnZm6h9bPAekAU= sha512-7oSXI8K3z39CizJo+Aurpc6ThQzDfEJwC03Hp1gi8cvrrkM7Mp/NDhMqay3jnrAyuanIVw4tPTQZlLjWIFpdKw=="
+"@snowplow/node-tracker@3.24.2":
+  version "3.24.2"
+  resolved "https://registry.yarnpkg.com/@snowplow/node-tracker/-/node-tracker-3.24.2.tgz#f4ed8073e30058e716e8eb18429f258bddd36d86"
+  integrity sha512-Fbe3G/GAxAXm+QqJ9gck3JYh0I9UFwCdVQsOZDfzXkFQ/VeZ7ID1SE940NS9uoVKhb+tsLqCErx/Bf1abUstlQ==
   dependencies:
-    "@snowplow/tracker-core" "3.3.1"
-    got "^11.7.0"
-    tslib "^2.3.0"
+    "@snowplow/tracker-core" "3.24.2"
+    got "^11.8.5"
+    tslib "^2.3.1"
 
-"@snowplow/tracker-core@3.3.1":
-  version "3.3.1"
-  resolved "https://registry.yarnpkg.com/@snowplow/tracker-core/-/tracker-core-3.3.1.tgz#b86f0c3e670747aaad38d081809c262e42dec221"
-  integrity "sha1-uG8MPmcHR6qtONCBgJwmLkLewiE= sha512-q2NYysdrH4Y1eQR62jt1Q+ZnEXB5Pv+xcU1lKZxGA7LUIjhu1QE43hrd1oAskP0/543cS10REy+D33t0cGOKDg=="
+"@snowplow/tracker-core@3.24.2":
+  version "3.24.2"
+  resolved "https://registry.yarnpkg.com/@snowplow/tracker-core/-/tracker-core-3.24.2.tgz#4b8beb51695feffe6eb537e0e19ab3d526ae03c8"
+  integrity sha512-9tERPeada0QVVzIO9Z91xu9kF5o8XOgPy+0lWoBCMtrtcMolZpqD59xLua8uoLBKpQ3EqpL/5bvYhpfSfipYyA==
   dependencies:
-    tslib "^2.3.0"
+    tslib "^2.3.1"
     uuid "^3.4.0"
 
 "@socket.io/component-emitter@~3.1.0":
@@ -18739,7 +18739,7 @@ gopd@^1.0.1:
   dependencies:
     get-intrinsic "^1.1.3"
 
-got@^11.7.0, got@^11.8.5, got@^11.8.6:
+got@^11.8.5, got@^11.8.6:
   version "11.8.6"
   resolved "https://registry.yarnpkg.com/got/-/got-11.8.6.tgz#276e827ead8772eddbcfc97170590b841823233a"
   integrity "sha1-J26Cfq2Hcu3bz8lxcFkLhBgjIzo= sha512-6tfZ91bOr7bOXnK7PRDCGBLa1H4U080YHNaAQ2KsMGlLEzRbk44nsZF2E1IeRc3vtJHPVbKCYgdFbaGO2ljd8g=="
