@@ -11,7 +11,7 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import { defineSignal } from "@temporalio/workflow";
 
-import type { CoordinatingAgentState } from "../activities/flow-activities/research-entities-action/coordinating-agent.js";
+import type { CoordinatingAgentState } from "../activities/flow-activities/research-entities-action/shared/coordinators.js";
 
 /** Record progress logs from an activity to allow for inspection of work before the activity completes */
 export const logProgressSignal = defineSignal<[ProgressLogSignal]>(

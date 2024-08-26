@@ -15,8 +15,8 @@ import { expect, test } from "vitest";
 import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity.js";
 import { getFlowContext } from "../../shared/get-flow-context.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
-import type { SubTaskAgentState } from "./sub-task-agent.js";
-import { runSubTaskAgent } from "./sub-task-agent.js";
+import { runSubCoordinatingAgent } from "./sub-coordinating-agent.js";
+import type { SubCoordinatingAgentState } from "./sub-coordinating-agent/state.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -28,7 +28,7 @@ const baseDirectoryPath = join(
 
 export const retrievePreviousState = (params: {
   testName: string;
-}): SubTaskAgentState | undefined => {
+}): SubCoordinatingAgentState | undefined => {
   const { testName } = params;
 
   const directoryPath = `${baseDirectoryPath}/${testName}`;
@@ -47,11 +47,11 @@ export const retrievePreviousState = (params: {
   const latestFilePath = `${directoryPath}/${latestFile}`;
   const latestFileContent = readFileSync(latestFilePath, "utf8");
 
-  return JSON.parse(latestFileContent) as SubTaskAgentState;
+  return JSON.parse(latestFileContent) as SubCoordinatingAgentState;
 };
 
 const persistState = (params: {
-  state: SubTaskAgentState;
+  state: SubCoordinatingAgentState;
   testName: string;
 }) => {
   const { state, testName } = params;
@@ -67,7 +67,7 @@ const persistState = (params: {
 };
 
 test(
-  "Test runSubTaskAgent: Find Ben Werner's Github profile URL",
+  "Test runSubCoordinatorAgent: Find Ben Werner's Github profile URL",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
@@ -82,7 +82,7 @@ test(
       ({ schema }) => schema,
     );
 
-    const status = await runSubTaskAgent({
+    const status = await runSubCoordinatingAgent({
       input: {
         goal: "Find Ben Werner's Github profile URL",
         relevantEntities: [],
@@ -97,8 +97,8 @@ test(
         }),
       },
       workerIdentifiers: {
-        workerType: "Subtask",
-        workerInstanceId: "subtask1",
+        workerType: "Sub-coordinator",
+        workerInstanceId: "subcoordinator1",
         parentInstanceId: null,
       },
     });

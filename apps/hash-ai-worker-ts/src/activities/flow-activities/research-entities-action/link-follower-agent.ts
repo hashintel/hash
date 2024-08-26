@@ -19,13 +19,13 @@ import { stringify } from "../../shared/stringify.js";
 import { inferSummariesThenClaimsFromText } from "../shared/infer-summaries-then-claims-from-text.js";
 import type { LocalEntitySummary } from "../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import type { Claim } from "../shared/infer-summaries-then-claims-from-text/types.js";
-import { deduplicateEntities } from "./deduplicate-entities.js";
 import type { Link } from "./link-follower-agent/choose-relevant-links-from-content.js";
 import { chooseRelevantLinksFromContent } from "./link-follower-agent/choose-relevant-links-from-content.js";
 import { filterAndRankTextChunksAgent } from "./link-follower-agent/filter-and-rank-text-chunks-agent.js";
 import { getLinkFollowerNextToolCalls } from "./link-follower-agent/get-link-follower-next-tool-calls.js";
 import { indexPdfFile } from "./link-follower-agent/llama-index/index-pdf-file.js";
 import { areUrlsEqual } from "./shared/are-urls-equal.js";
+import { deduplicateEntities } from "./shared/deduplicate-entities.js";
 
 type ResourceToExplore = {
   url: string;

@@ -377,7 +377,7 @@ export type ProgressLogBase = {
   stepId: string;
 };
 
-export type WorkerType = "Coordinator" | "Subtask" | "Link explorer";
+export type WorkerType = "Coordinator" | "Sub-coordinator" | "Link explorer";
 
 export type WorkerIdentifiers = {
   workerType: WorkerType;
@@ -425,16 +425,16 @@ export type ClosedCoordinatorLog = WorkerProgressLogBase & {
   type: "ClosedCoordinator";
 };
 
-export type StartedSubTaskLog = WorkerProgressLogBase & {
+export type StartedSubCoordinatorLog = WorkerProgressLogBase & {
   explanation: string;
   input: {
     goal: string;
     entityTypeTitles: string[];
   };
-  type: "StartedSubTask";
+  type: "StartedSubCoordinator";
 };
 
-export type ClosedSubTaskLog = WorkerProgressLogBase & {
+export type ClosedSubCoordinatorLog = WorkerProgressLogBase & {
   errorMessage?: string;
   explanation: string;
   goal: string;
@@ -442,7 +442,7 @@ export type ClosedSubTaskLog = WorkerProgressLogBase & {
     claimCount: number;
     entityCount: number;
   };
-  type: "ClosedSubTask";
+  type: "ClosedSubCoordinator";
 };
 
 export type StartedLinkExplorerTaskLog = WorkerProgressLogBase & {
@@ -517,7 +517,7 @@ export type StepProgressLog =
   | CheckpointLog
   | ClosedCoordinatorLog
   | ClosedLinkExplorerTaskLog
-  | ClosedSubTaskLog
+  | ClosedSubCoordinatorLog
   | CreatedPlanLog
   | InferredClaimsFromTextLog
   | PersistedEntityLog
@@ -526,7 +526,7 @@ export type StepProgressLog =
   | ResetToCheckpointLog
   | StartedCoordinatorLog
   | StartedLinkExplorerTaskLog
-  | StartedSubTaskLog
+  | StartedSubCoordinatorLog
   | UpdatedPlanLog
   | ViewedFile
   | VisitedWebPageLog;

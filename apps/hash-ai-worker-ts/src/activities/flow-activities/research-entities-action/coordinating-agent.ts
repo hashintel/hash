@@ -1,635 +1,63 @@
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import { getSimplifiedActionInputs } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import {
+  type OriginProvenance,
+  SourceType,
+} from "@local/hash-graph-client/dist/index.d";
+import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
+import type { EntityUuid } from "@local/hash-graph-types/entity";
+import {
+  getSimplifiedActionInputs,
+  type OutputNameForAction,
+} from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   ProposedEntity,
   StepInput,
   WorkerIdentifiers,
 } from "@local/hash-isomorphic-utils/flows/types";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
+import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import { entityIdFromComponents } from "@local/hash-subgraph";
+import { StatusCode } from "@local/status";
+import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 
 import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity.js";
-import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types.js";
 import { logger } from "../../shared/activity-logger.js";
-import type { DereferencedEntityType } from "../../shared/dereference-entity-type.js";
-import { getFlowContext } from "../../shared/get-flow-context.js";
-import { getLlmResponse } from "../../shared/get-llm-response.js";
-import type {
-  LlmMessage,
-  LlmMessageTextContent,
-  LlmUserMessage,
-} from "../../shared/get-llm-response/llm-message.js";
-import { getToolCallsFromLlmAssistantMessage } from "../../shared/get-llm-response/llm-message.js";
-import type {
-  LlmParams,
-  ParsedLlmToolCall,
-} from "../../shared/get-llm-response/types.js";
+import {
+  areUrlsTheSameAfterNormalization,
+  getFlowContext,
+  getProvidedFiles,
+} from "../../shared/get-flow-context.js";
+import type { ParsedLlmToolCall } from "../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
+import { logProgress } from "../../shared/log-progress.js";
 import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-entities-to-entities.js";
 import { stringify } from "../../shared/stringify.js";
 import type { LocalEntitySummary } from "../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import type { Claim } from "../shared/infer-summaries-then-claims-from-text/types.js";
+import type { FlowActionActivity } from "../types.js";
+import { createCheckpoint } from "./checkpoints.js";
+import { checkDelegatedTasksAgent } from "./coordinating-agent/check-delegated-tasks-agent.js";
+import { createInitialPlan } from "./coordinating-agent/create-initial-plan.js";
+import { requestCoordinatorActions } from "./coordinating-agent/request-coordinator-actions.js";
+import type { ExistingEntitySummary } from "./coordinating-agent/summarize-existing-entities.js";
+import { summarizeExistingEntities } from "./coordinating-agent/summarize-existing-entities.js";
+import { updateStateFromInferredClaims } from "./coordinating-agent/update-state-from-inferred-claims.js";
+import { getAnswersFromHuman } from "./get-answers-from-human.js";
+import { linkFollowerAgent } from "./link-follower-agent.js";
 import type {
+  CompletedCoordinatorToolCall,
   CoordinatorToolCallArguments,
   CoordinatorToolName,
-} from "./coordinator-tools.js";
-import { generateToolDefinitions } from "./coordinator-tools.js";
-import { getAnswersFromHuman } from "./get-answers-from-human.js";
-import {
-  simplifyEntityTypeForLlmConsumption,
-  simplifyProposedEntityForLlmConsumption,
-} from "./shared/simplify-for-llm-consumption.js";
-import type { ExistingEntitySummary } from "./summarize-existing-entities.js";
-import { summarizeExistingEntities } from "./summarize-existing-entities.js";
-import type { CompletedCoordinatorToolCall, ResourceSummary } from "./types.js";
-import { mapPreviousCallsToLlmMessages } from "./util.js";
-
-const model: LlmParams["model"] = "gpt-4o-2024-08-06";
-
-export type CoordinatingAgentInput = {
-  humanInputCanBeRequested: boolean;
-  prompt: string;
-  reportSpecification?: string;
-  allDereferencedEntityTypesById: DereferencedEntityTypesByTypeId;
-  entityTypes: DereferencedEntityType<string>[];
-  linkEntityTypes?: DereferencedEntityType<string>[];
-  existingEntities?: Entity[];
-  existingEntitySummaries?: ExistingEntitySummary[];
-};
-
-const generateSystemPromptPrefix = (params: {
-  input: CoordinatingAgentInput;
-}) => {
-  const { linkEntityTypes, existingEntities, reportSpecification } =
-    params.input;
-
-  return dedent(`
-    You are a coordinating agent for a research task.
-    The user provides you with a research brief, and the types of entities that are relevant.
-    Your job is to do research to gather claims about those types of entities, consistent with the research brief,
-    as well as relevant entities that they link to – forming a graph.
-    
-    You will have tools provided to you to gather claims, which will be automatically converted into entities.
-
-    The user provides you with:
-      - Prompt: the text prompt you need to satisfy to complete the research task
-      ${
-        reportSpecification
-          ? dedent(`
-      - Report Specification: the specification for the report your research will be used to produce – keep these requirements in mind when conducting research
-      `)
-          : ""
-      }
-      - Entity Types: the types of entities of interest
-      ${
-        linkEntityTypes
-          ? dedent(`
-      - Link Types: the types of links which are possible between entities
-      `)
-          : ""
-      }
-      ${
-        existingEntities
-          ? dedent(`
-      - Existing Entities: a list of existing entities, that may contain relevant information.
-      `)
-          : ""
-      }
-
-    You must completely satisfy the research prompt, without any missing information.
-
-    You must carefully examine the properties on the provided entity types and link types, because you must provide values for
-      as many properties as possible.
-
-    This may well involve:
-      - inferring claims from more than one data source
-      - conducting multiple searches
-      - starting sub-tasks to find additional relevant claims about specific entities
-
-    If it would be useful to split up the task into sub-tasks to find detailed information on specific entities, do so. 
-    Don't start sub-tasks in parallel which duplicate or overlap, or where one will depend on the result of another (do it in sequence).
-    For simpler research tasks you might not need sub-tasks.
-
-    The "complete" tool for completing the research task will only be available once entities have been discovered.
-    When declaring the job complete, you specify which of the proposed entities should be included in the final return to the user.
-  `);
-};
-
-const generateInitialUserMessage = (params: {
-  input: CoordinatingAgentInput;
-  questionsAndAnswers: CoordinatingAgentState["questionsAndAnswers"];
-}): LlmMessageTextContent => {
-  const {
-    prompt,
-    reportSpecification,
-    entityTypes,
-    linkEntityTypes,
-    existingEntities,
-  } = params.input;
-
-  return {
-    type: "text",
-    text: dedent(`
-<ResearchPrompt>${prompt}</ResearchPrompt>
-${
-  reportSpecification
-    ? `<ReportSpecification>${reportSpecification}<ReportSpecification>`
-    : ""
-}
-<EntityTypes>
-${entityTypes
-  .map((entityType) => simplifyEntityTypeForLlmConsumption({ entityType }))
-  .join("\n")}
-</EntityTypes>
-${
-  /**
-   * @todo: simplify link type definitions, potentially by moving them to an "Outgoing Links" field
-   * on the simplified entity type definition.
-   *
-   * @see https://linear.app/hash/issue/H-2826/simplify-property-values-for-llm-consumption
-   */
-  linkEntityTypes
-    ? `<LinkTypes>${linkEntityTypes
-        .map((linkType) =>
-          simplifyEntityTypeForLlmConsumption({ entityType: linkType }),
-        )
-        .join("\n")}</LinkTypes>`
-    : ""
-}
-${
-  existingEntities
-    ? `Existing Entities: ${JSON.stringify(existingEntities)}`
-    : ""
-}
-      `),
-  };
-};
-
-export type CoordinatingAgentState = {
-  coordinatorIdentifiers: WorkerIdentifiers;
-  plan: string;
-  previousCalls: {
-    completedToolCalls: CompletedCoordinatorToolCall<CoordinatorToolName>[];
-  }[];
-  entitySummaries: LocalEntitySummary[];
-  inferredClaims: Claim[];
-  proposedEntities: ProposedEntity[];
-  subTasksCompleted: string[];
-  suggestionsForNextStepsMade: string[];
-  submittedEntityIds: string[];
-  resourceUrlsVisited: string[];
-  resourcesNotVisited: ResourceSummary[];
-  webQueriesMade: string[];
-  hasConductedCheckStep: boolean;
-  questionsAndAnswers: string | null;
-};
-
-const generateProgressReport = (params: {
-  input: CoordinatingAgentInput;
-  state: CoordinatingAgentState;
-}): LlmMessageTextContent => {
-  const { state, input } = params;
-
-  const {
-    subTasksCompleted,
-    suggestionsForNextStepsMade,
-    resourcesNotVisited,
-    resourceUrlsVisited,
-    webQueriesMade,
-  } = state;
-
-  const { allDereferencedEntityTypesById } = input;
-
-  const proposedEntities = state.proposedEntities.filter(
-    (proposedEntity) => !("sourceEntityId" in proposedEntity),
-  );
-
-  const proposedLinks = state.proposedEntities.filter(
-    (proposedEntity) => "sourceEntityId" in proposedEntity,
-  );
-
-  let progressReport = state.plan
-    ? dedent`You have previously proposed the following plan:
-      ${state.plan}
-
-      If you want to deviate from this plan or improve it, update it using the "updatePlan" tool.
-      You must call the "updatePlan" tool alongside other tool calls to progress towards completing the task.\n\n
-      `
-    : "";
-
-  if (proposedEntities.length > 0 || proposedLinks.length > 0) {
-    progressReport +=
-      "Here's what we've discovered so far. If this is sufficient to satisfy the research brief, call 'complete' with the entityIds of the entities and links of interest:\n\n";
-    if (proposedEntities.length > 0) {
-      progressReport += dedent(`
-      <DiscoveredEntities>
-      ${proposedEntities
-        .map((proposedEntity) =>
-          simplifyProposedEntityForLlmConsumption({
-            proposedEntity,
-            entityType:
-              allDereferencedEntityTypesById[proposedEntity.entityTypeId]!
-                .schema,
-          }),
-        )
-        .join("\n")}
-      </DiscoveredEntities>
-    `);
-    }
-    if (proposedLinks.length > 0) {
-      progressReport += dedent(`
-      <DiscoveredLinks>
-      ${proposedLinks
-        .map((proposedLink) =>
-          simplifyProposedEntityForLlmConsumption({
-            proposedEntity: proposedLink,
-            entityType:
-              allDereferencedEntityTypesById[proposedLink.entityTypeId]!.schema,
-          }),
-        )
-        .join("\n")}
-      </DiscoveredLinks>
-    `);
-    }
-
-    progressReport += dedent`
-    If further research is needed to fill more properties of any entities or links,
-      consider defining them as sub-tasks via the "startClaimGatheringSubTasks" tool.
-
-    Do not sequentially conduct additional actions for each of the entities,
-      instead start multiple sub-tasks via the "startClaimGatheringSubTasks" tool to
-      conduct additional research per entity in parallel.`;
-  }
-  if (
-    resourceUrlsVisited.length > 0 ||
-    resourcesNotVisited.length > 0 ||
-    webQueriesMade.length > 0
-  ) {
-    if (resourceUrlsVisited.length > 0) {
-      progressReport += dedent(`
-        You have discovered the following resources via web searches but noy yet visited them. It may be worth inferring claims from the URL.
-        <ResourcesNotVisited>
-        ${resourcesNotVisited
-          .map(
-            (webPage) =>
-              `
-<Resource>
-  <Url>${webPage.url}</Url>
-  <Summary>${webPage.summary}</Summary>
-  <FromWebSearch>"${webPage.fromSearchQuery}"</FromWebSearch>
-</Resource>`,
-          )
-          .join("\n")}
-        </ResourcesNotVisited>
-      `);
-    }
-    if (resourcesNotVisited.length > 0) {
-      progressReport += dedent(`
-        You have not visited the following resources:
-        <ResourcesNotVisited>
-        ${resourcesNotVisited
-          .map((webPage) => `Url: ${webPage.url}\nSummary:${webPage.summary}`)
-          .join("\n\n")}
-        </ResourcesNotVisited>
-      `);
-    }
-    if (webQueriesMade.length > 0) {
-      progressReport += dedent(`
-        You have made the following web searches – there is no point in making these or very similar searches again:
-        <WebSearchesMade>
-        ${webQueriesMade.join("\n")}
-        </WebSearchesMade>
-      `);
-    }
-  }
-
-  if (suggestionsForNextStepsMade.length > 0) {
-    progressReport += dedent(`
-      We have received the following suggestions for next steps (some may now be redundant or already have been acted upon):
-      <SuggestionsForNextSteps>
-      ${suggestionsForNextStepsMade.join("\n")}
-      </SuggestionsForNextSteps>
-    `);
-  }
-
-  if (subTasksCompleted.length > 0) {
-    progressReport += dedent(`
-      You have completed the following sub-tasks:
-      <SubTasksCompleted>
-      ${subTasksCompleted.join("\n")}
-      </SubTasksCompleted>
-    `);
-  }
-
-  progressReport += dedent(`
-    Now decide what to do next. Pay close attention to any missing properties on entities, and consider doing work to populate them.
-  `);
-
-  return {
-    type: "text",
-    text: progressReport,
-  };
-};
-
-const getNextToolCalls = async (params: {
-  input: CoordinatingAgentInput;
-  state: CoordinatingAgentState;
-  forcedToolCall?: CoordinatorToolName;
-}): Promise<{
-  toolCalls: ParsedLlmToolCall<CoordinatorToolName>[];
-}> => {
-  const { input, state, forcedToolCall } = params;
-
-  const systemPrompt = dedent(`
-      ${generateSystemPromptPrefix({
-        input,
-      })}
-
-      Make as many tool calls as are required to progress towards completing the task.
-    `);
-
-  const llmMessagesFromPreviousToolCalls = mapPreviousCallsToLlmMessages({
-    previousCalls: state.previousCalls,
-  });
-
-  const lastUserMessage = llmMessagesFromPreviousToolCalls.slice(-1)[0];
-
-  if (lastUserMessage && lastUserMessage.role !== "user") {
-    throw new Error(
-      `Expected last message to be a user message, but it was: ${stringify(
-        lastUserMessage,
-      )}`,
-    );
-  }
-
-  const progressReport = generateProgressReport({ input, state });
-
-  const messages: LlmMessage[] = [
-    {
-      role: "user",
-      content: [
-        generateInitialUserMessage({
-          input,
-          questionsAndAnswers: state.questionsAndAnswers,
-        }),
-        progressReport,
-      ],
-    } satisfies LlmUserMessage,
-  ];
-
-  const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
-
-  const tools = Object.values(
-    generateToolDefinitions({
-      dataSources,
-      omitTools: [
-        ...(input.humanInputCanBeRequested
-          ? []
-          : ["requestHumanInput" as const]),
-        ...(state.proposedEntities.length > 0 ? [] : ["complete" as const]),
-      ],
-      state,
-    }),
-  );
-
-  const llmResponse = await getLlmResponse(
-    {
-      systemPrompt,
-      messages,
-      model,
-      tools,
-      toolChoice: forcedToolCall ?? "required",
-    },
-    {
-      customMetadata: {
-        stepId,
-        taskName: "coordinator",
-      },
-      userAccountId: userAuthentication.actorId,
-      graphApiClient,
-      incurredInEntities: [{ entityId: flowEntityId }],
-      webId,
-    },
-  );
-
-  if (llmResponse.status !== "ok") {
-    throw new Error(
-      `Failed to get LLM response: ${JSON.stringify(llmResponse)}`,
-    );
-  }
-
-  const { message } = llmResponse;
-
-  const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
-
-  return { toolCalls };
-};
-
-const maximumRetries = 3;
-
-const createInitialPlan = async (params: {
-  input: CoordinatingAgentInput;
-  questionsAndAnswers: CoordinatingAgentState["questionsAndAnswers"];
-  providedFiles: CoordinatingAgentState["resourcesNotVisited"];
-  retryContext?: { retryMessages: LlmMessage[]; retryCount: number };
-}): Promise<Pick<CoordinatingAgentState, "plan" | "questionsAndAnswers">> => {
-  const { input, questionsAndAnswers, providedFiles, retryContext } = params;
-
-  const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
-    await getFlowContext();
-
-  const systemPrompt = dedent(`
-    ${generateSystemPromptPrefix({ input })}
-    
-    ${
-      providedFiles.length
-        ? dedent(`
-      The user has provided you with the following resources which can be used to infer claims from:
-      ${providedFiles
-        .map(
-          (file) =>
-            `<Resource>Url: ${file.url}\nTitle: ${file.title}</Resource>`,
-        )
-        .join("\n\n")}`)
-        : ""
-    }
-    
-    ${
-      dataSources.internetAccess.enabled
-        ? "You can also conduct web searches and visit public web pages."
-        : "Public internet access is disabled – you must rely on the provided resources."
-    }
-
-    ${
-      input.humanInputCanBeRequested
-        ? dedent(`
-          You must ${questionsAndAnswers ? "now" : "first"} do one of:
-          1. Ask the user ${
-            questionsAndAnswers ? "further" : ""
-          } questions to help clarify the research brief. You should ask questions if:
-            - The scope of the research is unclear (e.g. how much information is desired in response)
-            - The scope of the research task is very broad (e.g. the prompt is vague)
-            - The research brief or terms within it are ambiguous
-            - You can think of any other questions that will help you deliver a better response to the user
-          If in doubt, ask!
-
-          2. Provide a plan of how you will use the tools to progress towards completing the task, which should be a list of steps in plain English.
-          
-          ${
-            questionsAndAnswers
-              ? `<PreviouslyAnsweredQuestions>You previously asked the user clarifying questions on the research brief provided below, and received the following answers:\n${questionsAndAnswers}          
-      </PreviouslyAnsweredQuestions>`
-              : ""
-          }
-
-          Please now either ask the user your questions, or produce the initial plan if there are no ${
-            questionsAndAnswers ? "more " : ""
-          }useful questions to ask.
-          
-          You must now make either a "requestHumanInput" or a "updatePlan" tool call – definitions for the other tools are only provided to help you produce a plan.
-    `)
-        : dedent(`
-        You must now provide a plan with the "updatePlan" tool of how you will use the tools to progress towards completing the task, which should be a list of steps in plain English.
-        Do not make any other tool calls.
-    `)
-    }
-  `);
-
-  const tools = Object.values(
-    generateToolDefinitions<["complete"]>({
-      dataSources,
-      omitTools: input.humanInputCanBeRequested
-        ? ["complete"]
-        : (["complete", "requestHumanInput"] as unknown as ["complete"]),
-    }),
-  );
-
-  const llmResponse = await getLlmResponse(
-    {
-      systemPrompt,
-      messages: [
-        {
-          role: "user",
-          content: [generateInitialUserMessage({ input, questionsAndAnswers })],
-        } satisfies LlmUserMessage,
-        ...(retryContext?.retryMessages ?? []),
-      ],
-      model,
-      tools,
-      toolChoice: input.humanInputCanBeRequested ? "required" : "updatePlan",
-    },
-    {
-      customMetadata: {
-        stepId,
-        taskName: "coordinator",
-      },
-      userAccountId: userAuthentication.actorId,
-      graphApiClient,
-      incurredInEntities: [{ entityId: flowEntityId }],
-      webId,
-    },
-  );
-
-  if (llmResponse.status !== "ok") {
-    throw new Error(
-      `Failed to get LLM response: ${JSON.stringify(llmResponse)}`,
-    );
-  }
-
-  const { message } = llmResponse;
-
-  const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
-
-  const updatePlanToolCall = toolCalls.find(
-    (toolCall) => toolCall.name === "updatePlan",
-  );
-
-  if (updatePlanToolCall) {
-    const { plan } =
-      updatePlanToolCall.input as CoordinatorToolCallArguments["updatePlan"];
-
-    return { plan, questionsAndAnswers };
-  }
-
-  const retry = (retryParams: { retryMessage: LlmUserMessage }) => {
-    const retryCount = retryContext?.retryCount ?? 1;
-
-    if (retryCount >= maximumRetries) {
-      throw new Error(
-        `Exceeded maximum number of retries (${maximumRetries}) for creating initial plan`,
-      );
-    }
-
-    logger.debug(
-      `Retrying to create initial plan with retry message: ${stringify(
-        retryParams.retryMessage,
-      )}`,
-    );
-
-    return createInitialPlan({
-      input,
-      questionsAndAnswers,
-      providedFiles,
-      retryContext: {
-        retryMessages: [message, retryParams.retryMessage],
-        retryCount: retryCount + 1,
-      },
-    });
-  };
-
-  /** @todo: ensure the tool call is one of the expected ones */
-
-  const requestHumanInputToolCall = toolCalls.find(
-    (toolCall) => toolCall.name === "requestHumanInput",
-  );
-
-  if (input.humanInputCanBeRequested && requestHumanInputToolCall) {
-    const { questions } =
-      requestHumanInputToolCall.input as CoordinatorToolCallArguments["requestHumanInput"];
-
-    const responseString = await getAnswersFromHuman(questions);
-
-    return createInitialPlan({
-      input,
-      providedFiles,
-      questionsAndAnswers: (questionsAndAnswers ?? "") + responseString,
-    });
-  }
-
-  if (toolCalls.length === 0) {
-    return retry({
-      retryMessage: {
-        role: "user",
-        content: [
-          {
-            type: "text",
-            text: `You didn't make any tool calls, you must call the ${
-              input.humanInputCanBeRequested
-                ? `"requestHumanInput" tool or the`
-                : ""
-            }"updatePlan" tool.`,
-          },
-        ],
-      },
-    });
-  }
-
-  return retry({
-    retryMessage: {
-      role: "user",
-      content: toolCalls.map(({ name, id }) => ({
-        type: "tool_result",
-        tool_use_id: id,
-        content: `You cannot call the "${name}" tool yet, you must call the ${
-          input.humanInputCanBeRequested
-            ? `"requestHumanInput" tool or the`
-            : ""
-        }"updatePlan" tool first.`,
-        is_error: true,
-      })),
-    },
-  });
-};
+} from "./shared/coordinator-tools.js";
+import { nullReturns } from "./shared/coordinator-tools.js";
+import type {
+  CoordinatingAgentInput,
+  CoordinatingAgentState,
+} from "./shared/coordinators.js";
+import { handleWebSearchToolCall } from "./shared/handle-web-search-tool-call.js";
+import { runSubCoordinatingAgent } from "./sub-coordinating-agent.js";
 
 const parseCoordinatorInputs = async (params: {
   stepInputs: StepInput[];
@@ -702,8 +130,787 @@ const parseCoordinatorInputs = async (params: {
   };
 };
 
-export const coordinatingAgent = {
-  createInitialPlan,
-  getNextToolCalls,
-  parseCoordinatorInputs,
+/**
+ * This is the function that takes starting coordinating agent state and has the coordinator orchestrate the research
+ * task.
+ */
+export const runCoordinatingAgent: FlowActionActivity<{
+  state: CoordinatingAgentState;
+  testingParams?: {
+    humanInputCanBeRequested?: boolean;
+    persistState?: (state: CoordinatingAgentState) => void;
+    resumeFromState?: CoordinatingAgentState;
+  };
+}> = async ({ inputs: stepInputs, state, testingParams }) => {
+  const workerIdentifiers = state.coordinatorIdentifiers;
+
+  const input = await parseCoordinatorInputs({
+    stepInputs,
+    testingParams,
+  });
+
+  const { flowEntityId, stepId, webId } = await getFlowContext();
+
+  const providedFileEntities = await getProvidedFiles();
+
+  const providedFiles: CoordinatingAgentState["resourcesNotVisited"] =
+    providedFileEntities.map((entity) => {
+      const {
+        fileUrl: unsignedUrl,
+        description,
+        displayName,
+        fileName,
+      } = simplifyProperties(entity.properties);
+
+      return {
+        url: unsignedUrl,
+        title: displayName ?? fileName ?? unsignedUrl.split("/").pop()!,
+        summary: description ?? "",
+        fromSearchQuery: "User-provided resource",
+      };
+    });
+
+  if (!state.plan) {
+    /**
+     * If we don't already have a plan, this is the first run of the action
+     */
+    logProgress([
+      {
+        type: "StartedCoordinator",
+        attempt: Context.current().info.attempt,
+        input: {
+          goal: input.prompt,
+        },
+        recordedAt: new Date().toISOString(),
+        stepId,
+        ...workerIdentifiers,
+      },
+    ]);
+
+    /**
+     * We start by asking the coordinator agent to create an initial plan
+     * for the research task.
+     */
+    const { plan: initialPlan, questionsAndAnswers } = await createInitialPlan({
+      input,
+      providedFiles,
+      questionsAndAnswers: null,
+    });
+
+    logProgress([
+      {
+        recordedAt: new Date().toISOString(),
+        stepId: Context.current().info.activityId,
+        type: "CreatedPlan",
+        plan: initialPlan,
+        ...workerIdentifiers,
+      },
+    ]);
+
+    /* eslint-disable no-param-reassign */
+    state.plan = initialPlan;
+    state.questionsAndAnswers = questionsAndAnswers;
+    /* eslint-enable no-param-reassign */
+
+    if (testingParams?.persistState) {
+      testingParams.persistState(state);
+    }
+
+    await createCheckpoint({ state });
+  }
+
+  const { toolCalls: initialToolCalls } = await requestCoordinatorActions({
+    input,
+    state,
+  });
+
+  const getSubmittedEntities = () =>
+    state.proposedEntities.filter(({ localEntityId }) =>
+      state.submittedEntityIds.includes(localEntityId),
+    );
+
+  const processToolCalls = async (params: {
+    toolCalls: ParsedLlmToolCall<CoordinatorToolName>[];
+  }) => {
+    const { toolCalls } = params;
+
+    const isTerminated = toolCalls.some(
+      (toolCall) => toolCall.name === "terminate",
+    );
+
+    if (isTerminated) {
+      return;
+    }
+
+    const toolCallsWithRelevantResults = toolCalls.filter(
+      ({ name }) => name !== "terminate",
+    );
+
+    const completedToolCalls = await Promise.all(
+      toolCallsWithRelevantResults.map(
+        async (
+          toolCall,
+        ): Promise<CompletedCoordinatorToolCall<CoordinatorToolName>> => {
+          if (toolCall.name === "updatePlan") {
+            const { plan } =
+              toolCall.input as CoordinatorToolCallArguments["updatePlan"];
+
+            // eslint-disable-next-line no-param-reassign
+            state.plan = plan;
+
+            logProgress([
+              {
+                type: "UpdatedPlan",
+                plan,
+                stepId,
+                recordedAt: new Date().toISOString(),
+                ...workerIdentifiers,
+              },
+            ]);
+
+            return {
+              ...nullReturns,
+              ...toolCall,
+              output: `The plan has been successfully updated.`,
+            };
+          } else if (toolCall.name === "requestHumanInput") {
+            const { questions } =
+              toolCall.input as CoordinatorToolCallArguments["requestHumanInput"];
+
+            if (questions.length === 0) {
+              return {
+                ...toolCall,
+                ...nullReturns,
+                output: "No questions were provided.",
+                isError: true,
+              };
+            }
+
+            logger.debug(
+              `Requesting human input for questions: ${stringify(questions)}`,
+            );
+
+            const response = await getAnswersFromHuman(
+              (
+                toolCall.input as CoordinatorToolCallArguments["requestHumanInput"]
+              ).questions,
+            );
+
+            // eslint-disable-next-line no-param-reassign
+            state.questionsAndAnswers =
+              (state.questionsAndAnswers ?? "") + response;
+
+            return {
+              ...nullReturns,
+              ...toolCall,
+              output: response,
+            };
+          } else if (toolCall.name === "webSearch") {
+            const webPageSummaries = await handleWebSearchToolCall({
+              input:
+                toolCall.input as CoordinatorToolCallArguments["webSearch"],
+              workerIdentifiers,
+            });
+
+            if ("error" in webPageSummaries) {
+              return {
+                ...toolCall,
+                ...nullReturns,
+                isError: true,
+                output: webPageSummaries.error,
+              };
+            }
+
+            return {
+              ...nullReturns,
+              ...toolCall,
+              output: "Search successful",
+              webPagesFromSearchQuery: webPageSummaries,
+            };
+          } else if (toolCall.name === "inferClaimsFromResources") {
+            const { resources } =
+              toolCall.input as CoordinatorToolCallArguments["inferClaimsFromResources"];
+
+            const responsesWithUrl = await Promise.all(
+              resources.map(
+                async ({
+                  url,
+                  goal,
+                  relevantEntityIds,
+                  descriptionOfExpectedContent,
+                  exampleOfExpectedContent,
+                  reason,
+                }) => {
+                  const relevantEntities = state.entitySummaries.filter(
+                    ({ localId }) => relevantEntityIds?.includes(localId),
+                  );
+
+                  const linkExplorerIdentifiers: WorkerIdentifiers = {
+                    workerType: "Link explorer",
+                    workerInstanceId: generateUuid(),
+                    parentInstanceId: workerIdentifiers.workerInstanceId,
+                  };
+
+                  logProgress([
+                    {
+                      stepId,
+                      recordedAt: new Date().toISOString(),
+                      type: "StartedLinkExplorerTask",
+                      input: {
+                        goal,
+                        initialUrl: url,
+                      },
+                      explanation: reason,
+                      ...linkExplorerIdentifiers,
+                    },
+                  ]);
+
+                  const response = await linkFollowerAgent({
+                    workerIdentifiers: linkExplorerIdentifiers,
+                    input: {
+                      initialResource: {
+                        goal,
+                        url,
+                        descriptionOfExpectedContent,
+                        exampleOfExpectedContent,
+                        reason,
+                      },
+                      goal,
+                      existingEntitiesOfInterest: relevantEntities,
+                      entityTypes: input.entityTypes,
+                    },
+                  });
+
+                  logProgress([
+                    {
+                      stepId,
+                      recordedAt: new Date().toISOString(),
+                      type: "ClosedLinkExplorerTask",
+                      goal,
+                      output: {
+                        claimCount: response.inferredClaims.length,
+                        entityCount: response.inferredSummaries.length,
+                        resourcesExploredCount:
+                          response.exploredResources.length,
+                        suggestionForNextSteps: response.suggestionForNextSteps,
+                      },
+                      ...linkExplorerIdentifiers,
+                    },
+                  ]);
+
+                  return { response, url };
+                },
+              ),
+            );
+
+            const inferredClaims: Claim[] = [];
+            const entitySummaries: LocalEntitySummary[] = [];
+            const suggestionsForNextStepsMade: string[] = [];
+            const resourceUrlsVisited: string[] = [];
+
+            for (const { response } of responsesWithUrl) {
+              inferredClaims.push(...response.inferredClaims);
+              entitySummaries.push(...response.inferredSummaries);
+              suggestionsForNextStepsMade.push(response.suggestionForNextSteps);
+              resourceUrlsVisited.push(
+                ...response.exploredResources.map(({ url }) => url),
+              );
+            }
+
+            return {
+              ...toolCall,
+              ...nullReturns,
+              inferredClaims,
+              entitySummaries,
+              suggestionsForNextStepsMade,
+              resourceUrlsVisited,
+              output:
+                entitySummaries.length > 0
+                  ? "Entities inferred from web page"
+                  : "No claims were inferred about any relevant entities.",
+            };
+          } else if (toolCall.name === "delegateResearchTasks") {
+            const { delegatedTasks } =
+              toolCall.input as CoordinatorToolCallArguments["delegateResearchTasks"];
+
+            let counter = 0;
+
+            const delegatedTasksWithIds = delegatedTasks.map(
+              (delegatedTask) => ({
+                ...delegatedTask,
+                delegatedTaskId: `${counter++}`,
+              }),
+            );
+
+            const { acceptedDelegatedTasks, rejectedDelegatedTasks } =
+              await checkDelegatedTasksAgent({
+                input,
+                state,
+                delegatedTasks: delegatedTasksWithIds,
+              });
+
+            const responsesWithDelegatedTask = await Promise.all(
+              delegatedTasksWithIds
+                .filter((delegatedTask) =>
+                  acceptedDelegatedTasks.some(
+                    ({ delegatedTaskId }) =>
+                      delegatedTaskId === delegatedTask.delegatedTaskId,
+                  ),
+                )
+                .map(async (delegatedTask) => {
+                  const { goal, relevantEntityIds, explanation } =
+                    delegatedTask;
+
+                  const relevantEntities = state.entitySummaries.filter(
+                    ({ localId }) => relevantEntityIds?.includes(localId),
+                  );
+
+                  const existingClaimsAboutRelevantEntities =
+                    state.inferredClaims.filter(({ subjectEntityLocalId }) =>
+                      relevantEntityIds?.includes(subjectEntityLocalId),
+                    );
+
+                  const delegatedTaskIdentifiers: WorkerIdentifiers = {
+                    workerType: "Sub-coordinator",
+                    workerInstanceId: generateUuid(),
+                    parentInstanceId: workerIdentifiers.workerInstanceId,
+                  };
+
+                  logProgress([
+                    {
+                      type: "StartedSubCoordinator",
+                      explanation,
+                      input: {
+                        goal,
+                        entityTypeTitles: input.entityTypes.map(
+                          (type) => type.title,
+                        ),
+                      },
+                      recordedAt: new Date().toISOString(),
+                      stepId,
+                      ...delegatedTaskIdentifiers,
+                    },
+                  ]);
+
+                  const response = await runSubCoordinatingAgent({
+                    input: {
+                      goal,
+                      relevantEntities,
+                      existingClaimsAboutRelevantEntities,
+                      entityTypes: input.entityTypes,
+                    },
+                    workerIdentifiers: delegatedTaskIdentifiers,
+                  });
+
+                  logProgress([
+                    {
+                      type: "ClosedSubCoordinator",
+                      errorMessage:
+                        response.status !== "ok"
+                          ? response.explanation
+                          : undefined,
+                      explanation:
+                        response.status === "ok"
+                          ? response.explanation
+                          : response.explanation,
+                      goal,
+                      output:
+                        response.status === "ok"
+                          ? {
+                              claimCount: response.discoveredClaims.length,
+                              entityCount: response.discoveredEntities.length,
+                            }
+                          : { claimCount: 0, entityCount: 0 },
+                      recordedAt: new Date().toISOString(),
+                      stepId,
+                      ...delegatedTaskIdentifiers,
+                    },
+                  ]);
+
+                  return { response, delegatedTask };
+                }),
+            );
+
+            const inferredClaims: Claim[] = [];
+            const entitySummaries: LocalEntitySummary[] = [];
+            const delegatedTasksCompleted: string[] = [];
+
+            let errorMessage: string = "";
+
+            for (const {
+              response,
+              delegatedTask,
+            } of responsesWithDelegatedTask) {
+              entitySummaries.push(...response.discoveredEntities);
+              inferredClaims.push(...response.discoveredClaims);
+
+              if (response.status === "ok") {
+                delegatedTasksCompleted.push(delegatedTask.goal);
+              } else {
+                errorMessage += `An error was encountered when completing the sub-task with goal "${delegatedTask.goal}": ${response.explanation}\n`;
+              }
+            }
+
+            for (const { delegatedTaskId, reason } of rejectedDelegatedTasks) {
+              const { goal } = delegatedTasksWithIds.find(
+                (delegatedTask) =>
+                  delegatedTask.delegatedTaskId === delegatedTaskId,
+              )!;
+
+              errorMessage += `The sub-task with goal "${goal}" was rejected for the following reason: ${reason}\n`;
+            }
+
+            return {
+              ...toolCall,
+              ...nullReturns,
+              inferredClaims,
+              entitySummaries,
+              delegatedTasksCompleted,
+              output: errorMessage || "Delegated tasks all completed.",
+              isError: !!errorMessage,
+            };
+          } else if (toolCall.name === "complete") {
+            if (!state.hasConductedCheckStep) {
+              const warnings: string[] = [];
+
+              if (state.proposedEntities.length === 0) {
+                warnings.push("No entities have been proposed.");
+              }
+
+              const { entityIds } =
+                toolCall.input as CoordinatorToolCallArguments["complete"];
+
+              const invalidEntityIds = entityIds.filter(
+                (entityId) =>
+                  !state.proposedEntities.some(
+                    ({ localEntityId }) => localEntityId === entityId,
+                  ),
+              );
+
+              if (invalidEntityIds.length > 0) {
+                return {
+                  ...nullReturns,
+                  ...toolCall,
+                  output: dedent(`
+                  The following entity IDs do not correspond to any proposed entities: ${JSON.stringify(
+                    invalidEntityIds,
+                  )}
+
+                  ${
+                    state.proposedEntities.length > 0
+                      ? `Valid entity IDs are: ${JSON.stringify(
+                          state.proposedEntities.map(
+                            ({ localEntityId }) => localEntityId,
+                          ),
+                        )}`
+                      : `You haven't discovered any entities yet.`
+                  }
+                `),
+                  isError: true,
+                };
+              }
+
+              // eslint-disable-next-line no-param-reassign
+              state.submittedEntityIds = entityIds;
+              const submittedEntities = getSubmittedEntities();
+
+              const missingEntityTypes = input.entityTypes.filter(
+                ({ $id }) =>
+                  !submittedEntities.some(
+                    ({ entityTypeId }) => entityTypeId === $id,
+                  ),
+              );
+
+              if (missingEntityTypes.length > 0) {
+                warnings.push(
+                  `You have not proposed any entities for the following types: ${JSON.stringify(
+                    missingEntityTypes.map(({ $id }) => $id),
+                  )}`,
+                );
+              }
+
+              const missingLinkEntityTypes = input.linkEntityTypes?.filter(
+                ({ $id }) =>
+                  !submittedEntities.some(
+                    ({ entityTypeId }) => entityTypeId === $id,
+                  ),
+              );
+
+              if (missingLinkEntityTypes && missingLinkEntityTypes.length > 0) {
+                warnings.push(
+                  dedent(`
+                    You have not proposed any links for the following link types: ${JSON.stringify(
+                      missingLinkEntityTypes.map(({ $id }) => $id),
+                    )}
+                `),
+                );
+              }
+
+              if (warnings.length > 0) {
+                logger.debug(
+                  `Conducting check step with warnings: ${stringify(warnings)}`,
+                );
+                return {
+                  ...nullReturns,
+                  ...toolCall,
+                  output: dedent(`
+                    Are you sure the research task is complete considering the following warnings?
+
+                    Warnings:
+                    ${warnings.join("\n")}
+
+                    If you are sure the task is complete, call the "complete" tool again.
+                    Otherwise, either continue to make tool calls or call the "terminate" tool to end the task if it cannot be completed.
+                  `),
+                  isError: true,
+                };
+              } else {
+                // eslint-disable-next-line no-param-reassign
+                state.hasConductedCheckStep = true;
+              }
+            }
+
+            return {
+              ...toolCall,
+              ...nullReturns,
+              output: `The research task has been completed.`,
+            };
+          }
+
+          throw new Error(`Unimplemented tool call: ${toolCall.name}`);
+        },
+      ),
+    );
+
+    const resourceUrlsVisited = completedToolCalls.flatMap(
+      ({ resourceUrlsVisited: urlsVisited }) => urlsVisited ?? [],
+    );
+
+    // eslint-disable-next-line no-param-reassign
+    state.resourceUrlsVisited = [
+      ...new Set([...resourceUrlsVisited, ...state.resourceUrlsVisited]),
+    ];
+
+    const newWebPages = completedToolCalls
+      .flatMap(({ webPagesFromSearchQuery }) => webPagesFromSearchQuery ?? [])
+      .filter(
+        (webPage) =>
+          !state.resourcesNotVisited.find((page) => page.url === webPage.url) &&
+          !state.resourceUrlsVisited.includes(webPage.url),
+      );
+
+    state.resourcesNotVisited.push(...newWebPages);
+
+    state.webQueriesMade.push(
+      ...completedToolCalls.flatMap(
+        ({ webQueriesMade }) => webQueriesMade ?? [],
+      ),
+    );
+
+    state.delegatedTasksCompleted.push(
+      ...completedToolCalls.flatMap(
+        ({ delegatedTasksCompleted }) => delegatedTasksCompleted ?? [],
+      ),
+    );
+
+    state.suggestionsForNextStepsMade.push(
+      ...completedToolCalls.flatMap(
+        ({ suggestionsForNextStepsMade }) => suggestionsForNextStepsMade ?? [],
+      ),
+    );
+
+    const newEntitySummaries = completedToolCalls.flatMap(
+      ({ entitySummaries }) => entitySummaries ?? [],
+    );
+    const newClaims = completedToolCalls.flatMap(
+      ({ inferredClaims }) => inferredClaims ?? [],
+    );
+
+    /**
+     * Update the state with the new claims and entity summaries inferred from the tool calls,
+     * which includes the deduplication of entities and the conversion of claims into proposed entities.
+     */
+    await updateStateFromInferredClaims({
+      input,
+      state,
+      newClaims,
+      newEntitySummaries,
+      workerIdentifiers,
+    });
+
+    const isCompleted = toolCalls.some(
+      (toolCall) => toolCall.name === "complete",
+    );
+
+    /**
+     * Check whether the research task has completed after processing the tool calls,
+     * in case the agent has made other tool calls at the same time as the "complete" tool call.
+     */
+    if (isCompleted) {
+      if (state.hasConductedCheckStep) {
+        await createCheckpoint({ state });
+        return;
+      } else {
+        // eslint-disable-next-line no-param-reassign
+        state.hasConductedCheckStep = true;
+      }
+    }
+
+    // eslint-disable-next-line no-param-reassign
+    state.previousCalls = [...state.previousCalls, { completedToolCalls }];
+
+    if (testingParams?.persistState) {
+      testingParams.persistState(state);
+    }
+
+    await createCheckpoint({ state });
+
+    const { toolCalls: nextToolCalls } = await requestCoordinatorActions({
+      input,
+      state,
+    });
+
+    await processToolCalls({
+      toolCalls: nextToolCalls,
+    });
+  };
+
+  await processToolCalls({
+    toolCalls: initialToolCalls,
+  });
+
+  /**
+   * These are entities the coordinator has chosen to highlight as the result of research,
+   * but we want to output all entity proposals from the task.
+   * @todo do something with the highlighted entities, e.g.
+   * - mark them for the user's attention
+   * - pass them to future steps
+   */
+  const _submittedEntities = getSubmittedEntities();
+  logger.debug(`Submitted ${_submittedEntities.length} entities`);
+
+  const allProposedEntities = state.proposedEntities;
+
+  const filesUsedToProposeEntities = allProposedEntities
+    .flatMap((proposedEntity) => {
+      const sourcesUsedToProposeEntity = [
+        ...(proposedEntity.provenance.sources ?? []),
+        ...flattenPropertyMetadata(proposedEntity.propertyMetadata).flatMap(
+          ({ metadata }) => metadata.provenance?.sources ?? [],
+        ),
+      ];
+
+      return sourcesUsedToProposeEntity.flatMap((source) => {
+        if (
+          source.location?.uri &&
+          source.type === SourceType.Document &&
+          /**
+           * Exclude files we already have an entity for
+           */
+          !providedFileEntities.some((fileEntity) =>
+            areUrlsTheSameAfterNormalization(
+              fileEntity.properties[
+                "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/"
+              ],
+              source.location!.uri!,
+            ),
+          )
+        ) {
+          return {
+            url: source.location.uri,
+            entityTypeId: systemEntityTypes.pdfDocument.entityTypeId,
+          };
+        }
+
+        return [];
+      });
+    })
+    .filter(
+      ({ url }, index, all) =>
+        all.findIndex((file) => file.url === url) === index,
+    );
+
+  const fileEditionProvenance: ProposedEntity["provenance"] = {
+    actorType: "ai",
+    origin: {
+      type: "flow",
+      id: flowEntityId,
+      stepIds: [stepId],
+    } satisfies OriginProvenance,
+  };
+
+  /**
+   * We return additional proposed entities for each file that was used to propose
+   * the submitted entities, so that these are persisted in the graph.
+   *
+   * Note that uploading the file is handled in the "Persist Entity" action.
+   */
+  const fileEntityProposals: ProposedEntity[] = filesUsedToProposeEntities.map(
+    ({ url, entityTypeId }) => ({
+      claims: {
+        isObjectOf: [],
+        isSubjectOf: [],
+      },
+      /**
+       * @todo: H-2728 set the web page this file was discovered in (if applicable) in the property provenance
+       * for the `fileUrl`
+       */
+      propertyMetadata: { value: {} },
+      provenance: fileEditionProvenance,
+      entityTypeId,
+      localEntityId: entityIdFromComponents(
+        webId,
+        generateUuid() as EntityUuid,
+      ),
+      properties: {
+        "https://blockprotocol.org/@blockprotocol/types/property-type/file-url/":
+          url,
+      } satisfies FileProperties,
+    }),
+  );
+
+  const now = new Date().toISOString();
+
+  logProgress(
+    fileEntityProposals.map((proposedFileEntity) => ({
+      type: "ProposedEntity",
+      proposedEntity: proposedFileEntity,
+      recordedAt: now,
+      stepId,
+      ...workerIdentifiers,
+    })),
+  );
+
+  logger.debug(`Proposed Entities: ${stringify(allProposedEntities)}`);
+  logger.debug(`File Entities Proposed: ${stringify(fileEntityProposals)}`);
+
+  logProgress([
+    {
+      type: "ClosedCoordinator",
+      output: {
+        entityCount: allProposedEntities.length + fileEntityProposals.length,
+      },
+      recordedAt: new Date().toISOString(),
+      stepId,
+      ...workerIdentifiers,
+    },
+  ]);
+
+  return {
+    code: StatusCode.Ok,
+    contents: [
+      {
+        outputs: [
+          {
+            outputName:
+              "proposedEntities" satisfies OutputNameForAction<"researchEntities">,
+            payload: {
+              kind: "ProposedEntity",
+              value: [...allProposedEntities, ...fileEntityProposals],
+            },
+          },
+        ],
+      },
+    ],
+  };
 };

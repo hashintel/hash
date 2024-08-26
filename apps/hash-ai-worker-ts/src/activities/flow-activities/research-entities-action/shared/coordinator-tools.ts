@@ -2,17 +2,23 @@ import type { Subtype } from "@local/advanced-types/subtype";
 import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
 import dedent from "dedent";
 
-import type { LlmToolDefinition } from "../../shared/get-llm-response/types.js";
-import type { CoordinatingAgentState } from "./coordinating-agent.js";
+import type {
+  LlmToolDefinition,
+  ParsedLlmToolCall,
+} from "../../../shared/get-llm-response/types.js";
+import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
+import type { Claim } from "../../shared/infer-summaries-then-claims-from-text/types.js";
+import type { CoordinatingAgentState } from "./coordinators.js";
+import type { WebResourceSummary } from "./handle-web-search-tool-call.js";
 
 export const coordinatorToolNames = [
-  "requestHumanInput",
-  "webSearch",
-  "inferClaimsFromResources",
-  "startClaimGatheringSubTasks",
   "complete",
+  "delegateResearchTasks",
+  "inferClaimsFromResources",
+  "requestHumanInput",
   "terminate",
   "updatePlan",
+  "webSearch",
 ] as const;
 
 export type CoordinatorToolName = (typeof coordinatorToolNames)[number];
@@ -73,8 +79,8 @@ export const generateToolDefinitions = <
         required: ["explanation", "questions"],
       },
     },
-    startClaimGatheringSubTasks: {
-      name: "startClaimGatheringSubTasks",
+    delegateResearchTasks: {
+      name: "delegateResearchTasks",
       description: dedent(`
       Instruct a colleague to help you with a specific part of the research task.
       This is useful when the research task is complex and requires multiple people to work on different parts of it.
@@ -89,7 +95,7 @@ export const generateToolDefinitions = <
         type: "object",
         additionalProperties: false,
         properties: {
-          subTasks: {
+          delegatedTasks: {
             type: "array",
             items: {
               type: "object",
@@ -101,7 +107,7 @@ export const generateToolDefinitions = <
                     type: "string",
                   },
                   description: dedent(`
-                  The entityId of the proposed entities which the sub-task is relevant to.
+                  The entityId of the proposed entities which the task is relevant to.
                   
                   ${
                     params.state?.entitySummaries.length
@@ -115,9 +121,9 @@ export const generateToolDefinitions = <
                 goal: {
                   type: "string",
                   description: dedent(`
-                  The goal of the sub-task – detailed instructions to your colleague about what you are seeking.
+                  The goal of the task – detailed instructions to your colleague about what you are seeking.
                   It should explain:
-                  1. What the goal of the sub-task is and how it fits into the wider research task
+                  1. What the goal of the task is and how it fits into the wider research task
                   2. If you are seeking more information on specific entities:
                     a. the names of the entities (their ids should be provided under relevantEntityIds)
                     b. what specific information you are seeking about them
@@ -131,9 +137,9 @@ export const generateToolDefinitions = <
                 explanation: {
                   type: "string",
                   description: dedent(`
-                  An explanation of why the sub-task will advance the research task, and how it will be used.
+                  An explanation of why the task will advance the overall research task, and how it will be used.
                   This is for audit purposes only and will not be provided to your colleague.
-                  Provide all information needed to complete the sub-task in the 'goal' and 'relevantEntityIds' fields.
+                  Provide all information needed to complete the task in the 'goal' and 'relevantEntityIds' fields.
                 `),
                 },
               },
@@ -141,7 +147,7 @@ export const generateToolDefinitions = <
             },
           },
         },
-        required: ["subTasks"],
+        required: ["delegatedTasks"],
       },
     },
     webSearch: {
@@ -366,8 +372,8 @@ export type CoordinatorToolCallArguments = Subtype<
         exampleOfExpectedContent: string;
       }[];
     };
-    startClaimGatheringSubTasks: {
-      subTasks: {
+    delegateResearchTasks: {
+      delegatedTasks: {
         goal: string;
         explanation: string;
         relevantEntityIds?: string[];
@@ -386,3 +392,33 @@ export type CoordinatorToolCallArguments = Subtype<
     };
   }
 >;
+
+export type CompletedCoordinatorToolCall<ToolId extends string> = {
+  delegatedTasksCompleted?: string[] | null;
+  entitySummaries: LocalEntitySummary[] | null;
+  inferredClaims: Claim[] | null;
+  isError?: boolean;
+  output: string;
+  resourceUrlsVisited: string[] | null;
+  suggestionsForNextStepsMade?: string[] | null;
+  webPagesFromSearchQuery: WebResourceSummary[] | null;
+  webQueriesMade: string[] | null;
+} & ParsedLlmToolCall<ToolId>;
+
+export type CompletedToolCall<ToolId extends string> = {
+  output: string;
+  isError?: boolean;
+} & ParsedLlmToolCall<ToolId>;
+
+export const nullReturns: Omit<
+  CompletedCoordinatorToolCall<string>,
+  "output" | "isError" | keyof ParsedLlmToolCall
+> = {
+  delegatedTasksCompleted: null,
+  entitySummaries: null,
+  inferredClaims: null,
+  resourceUrlsVisited: null,
+  suggestionsForNextStepsMade: null,
+  webPagesFromSearchQuery: null,
+  webQueriesMade: null,
+};

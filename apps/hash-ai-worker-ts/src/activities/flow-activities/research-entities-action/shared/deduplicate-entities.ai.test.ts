@@ -1,4 +1,4 @@
-import "../../../shared/testing-utilities/mock-get-flow-context.js";
+import "../../../../shared/testing-utilities/mock-get-flow-context.js";
 
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
@@ -6,7 +6,7 @@ import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { entityIdFromComponents } from "@local/hash-subgraph";
 import { expect, test } from "vitest";
 
-import type { LocalEntitySummary } from "../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
+import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import { deduplicateEntities } from "./deduplicate-entities.js";
 
 const ownedById = generateUuid();

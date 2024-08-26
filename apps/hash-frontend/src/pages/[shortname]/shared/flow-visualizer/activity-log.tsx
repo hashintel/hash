@@ -107,8 +107,8 @@ const viewedPdfFilePrefix = "Viewed PDF file at ";
 const queriedWebPrefix = "Searched web for ";
 const startedCoordinatorPrefix = "Started research coordinator with goal ";
 const closedCoordinatorPrefix = "Finished research coordinator with ";
-const startedSubTaskPrefix = "Started sub-task with goal ";
-const closedSubTaskPrefix = "Finished sub-task with ";
+const startedSubCoordinatorPrefix = "Started sub-task with goal ";
+const closedSubCoordinatorPrefix = "Finished sub-task with ";
 const startedLinkExplorerTaskPrefix = "Started link explorer task with goal ";
 const closedLinkExplorerTaskPrefix = "Finished link explorer task with ";
 const activityFailedPrefix = "Activity failed: ";
@@ -154,11 +154,11 @@ const getRawTextFromLog = (log: LocalProgressLog): string => {
     case "ClosedCoordinator": {
       return `${closedCoordinatorPrefix} ${log.output.entityCount} entities discovered`;
     }
-    case "StartedSubTask": {
-      return `${startedSubTaskPrefix}“${log.input.goal}”`;
+    case "StartedSubCoordinator": {
+      return `${startedSubCoordinatorPrefix}“${log.input.goal}”`;
     }
-    case "ClosedSubTask": {
-      return `${closedSubTaskPrefix} ${log.output.claimCount} claims and ${log.output.entityCount} entities discovered`;
+    case "ClosedSubCoordinator": {
+      return `${closedSubCoordinatorPrefix} ${log.output.claimCount} claims and ${log.output.entityCount} entities discovered`;
     }
     case "StartedLinkExplorerTask": {
       return `${startedLinkExplorerTaskPrefix}“${log.input.goal}”`;
@@ -342,22 +342,22 @@ const LogDetail = ({
         </Stack>
       );
     }
-    case "StartedSubTask": {
+    case "StartedSubCoordinator": {
       return (
         <Stack direction="row" alignItems="center" gap={1}>
           <Box sx={ellipsisOverflow}>
-            {startedSubTaskPrefix}
+            {startedSubCoordinatorPrefix}
             <strong>“{log.input.goal}”</strong>
           </Box>
           <ModelTooltip text={log.explanation} />
         </Stack>
       );
     }
-    case "ClosedSubTask": {
+    case "ClosedSubCoordinator": {
       return (
         <Stack direction="row" alignItems="center" gap={1}>
           <Box sx={ellipsisOverflow}>
-            {closedSubTaskPrefix}
+            {closedSubCoordinatorPrefix}
             <strong>{log.output.claimCount} claims</strong> and{" "}
             <strong>{log.output.entityCount}</strong> entities discovered
           </Box>
