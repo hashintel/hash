@@ -1,7 +1,10 @@
 import type { Subtype } from "@local/advanced-types/subtype";
 import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
 
-import type { LlmToolDefinition } from "../../../shared/get-llm-response/types.js";
+import type {
+  LlmToolDefinition,
+  ParsedLlmToolCall,
+} from "../../../shared/get-llm-response/types.js";
 import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
@@ -10,7 +13,7 @@ import { generateToolDefinitions as generateCoordinatorToolDefinitions } from ".
 
 const omittedCoordinatorToolNames = [
   "complete",
-  "delegateResearchTasks",
+  "delegateResearchTask",
   "requestHumanInput",
 ] as const;
 
@@ -84,3 +87,13 @@ export type SubCoordinatingAgentToolCallArguments = Subtype<
     };
   } & Omit<CoordinatorToolCallArguments, OmittedCoordinatorToolNames>
 >;
+
+export type ParsedSubCoordinatorToolCallMap = {
+  [K in keyof SubCoordinatingAgentToolCallArguments]: ParsedLlmToolCall<
+    K,
+    SubCoordinatingAgentToolCallArguments[K]
+  >;
+};
+
+export type ParsedSubCoordinatorToolCall =
+  ParsedSubCoordinatorToolCallMap[keyof ParsedSubCoordinatorToolCallMap];

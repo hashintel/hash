@@ -7,10 +7,9 @@ import type {
   LlmUserMessage,
 } from "../../../shared/get-llm-response/llm-message.js";
 import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
-import type { ParsedLlmToolCall } from "../../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { stringify } from "../../../shared/stringify.js";
-import type { CoordinatorToolName } from "../shared/coordinator-tools.js";
+import type { ParsedCoordinatorToolCall } from "../shared/coordinator-tools.js";
 import { generateToolDefinitions } from "../shared/coordinator-tools.js";
 import type {
   CoordinatingAgentInput,
@@ -31,7 +30,7 @@ export const requestCoordinatorActions = async (params: {
   input: CoordinatingAgentInput;
   state: CoordinatingAgentState;
 }): Promise<{
-  toolCalls: ParsedLlmToolCall<CoordinatorToolName>[];
+  toolCalls: ParsedCoordinatorToolCall[];
 }> => {
   const { input, state } = params;
 
@@ -117,7 +116,9 @@ export const requestCoordinatorActions = async (params: {
 
   const { message } = llmResponse;
 
-  const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
+  const toolCalls = getToolCallsFromLlmAssistantMessage({
+    message,
+  }) as ParsedCoordinatorToolCall[];
 
   return { toolCalls };
 };

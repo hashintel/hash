@@ -5,7 +5,6 @@ import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
 import type { LlmMessage } from "../../../shared/get-llm-response/llm-message.js";
 import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
-import type { ParsedLlmToolCall } from "../../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { stringify } from "../../../shared/stringify.js";
 import { coordinatingAgentModel } from "../shared/coordinators.js";
@@ -17,10 +16,8 @@ import {
 } from "./generate-messages.js";
 import type { SubCoordinatingAgentInput } from "./input.js";
 import type { SubCoordinatingAgentState } from "./state.js";
-import {
-  generateToolDefinitions,
-  SubCoordinatingAgentToolName,
-} from "./sub-coordinator-tools.js";
+import type { ParsedSubCoordinatorToolCall } from "./sub-coordinator-tools.js";
+import { generateToolDefinitions } from "./sub-coordinator-tools.js";
 
 /**
  * Given the input to and state of the sub-task agent, request the next actions to be taken.
@@ -29,7 +26,7 @@ export const requestSubCoordinatorActions = async (params: {
   input: SubCoordinatingAgentInput;
   state: SubCoordinatingAgentState;
 }): Promise<{
-  toolCalls: ParsedLlmToolCall<SubCoordinatingAgentToolName>[];
+  toolCalls: ParsedSubCoordinatorToolCall[];
 }> => {
   const { input, state } = params;
 

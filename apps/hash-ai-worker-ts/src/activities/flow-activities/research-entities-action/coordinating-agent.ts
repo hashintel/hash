@@ -11,7 +11,6 @@ import {
 import type {
   ProposedEntity,
   StepInput,
-  WorkerIdentifiers,
 } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -20,7 +19,6 @@ import type { FileProperties } from "@local/hash-isomorphic-utils/system-types/s
 import { entityIdFromComponents } from "@local/hash-subgraph";
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
-import dedent from "dedent";
 
 import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity.js";
 import { logger } from "../../shared/activity-logger.js";
@@ -29,37 +27,36 @@ import {
   getFlowContext,
   getProvidedFiles,
 } from "../../shared/get-flow-context.js";
-import type { ParsedLlmToolCall } from "../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../shared/graph-api-client.js";
 import { logProgress } from "../../shared/log-progress.js";
 import { mapActionInputEntitiesToEntities } from "../../shared/map-action-input-entities-to-entities.js";
 import { stringify } from "../../shared/stringify.js";
-import type { LocalEntitySummary } from "../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
-import type { Claim } from "../shared/infer-summaries-then-claims-from-text/types.js";
 import type { FlowActionActivity } from "../types.js";
 import { createCheckpoint } from "./checkpoints.js";
-import { checkDelegatedTasksAgent } from "./coordinating-agent/check-delegated-tasks-agent.js";
 import { createInitialPlan } from "./coordinating-agent/create-initial-plan.js";
+import { processCompleteToolCall } from "./coordinating-agent/process-complete-tool-call.js";
 import { requestCoordinatorActions } from "./coordinating-agent/request-coordinator-actions.js";
 import type { ExistingEntitySummary } from "./coordinating-agent/summarize-existing-entities.js";
 import { summarizeExistingEntities } from "./coordinating-agent/summarize-existing-entities.js";
 import { updateStateFromInferredClaims } from "./coordinating-agent/update-state-from-inferred-claims.js";
-import { getAnswersFromHuman } from "./get-answers-from-human.js";
-import { linkFollowerAgent } from "./link-follower-agent.js";
 import type {
   CompletedCoordinatorToolCall,
-  CoordinatorToolCallArguments,
   CoordinatorToolName,
+  ParsedCoordinatorToolCall,
 } from "./shared/coordinator-tools.js";
-import { nullReturns } from "./shared/coordinator-tools.js";
+import { getToolCallResults, nullReturns } from "./shared/coordinator-tools.js";
 import type {
   CoordinatingAgentInput,
   CoordinatingAgentState,
 } from "./shared/coordinators.js";
-import { handleWebSearchToolCall } from "./shared/handle-web-search-tool-call.js";
-import { runSubCoordinatingAgent } from "./sub-coordinating-agent.js";
+import { processCommonStateMutationsFromToolResults } from "./shared/coordinators.js";
 
-const parseCoordinatorInputs = async (params: {
+/**
+ * Takes the inputs to the coordinating agent, parses them, and:
+ * 1. Fetches the full entity types for the entityTypeIds requested
+ * 2. Generates summaries for any existing entities provided
+ */
+const parseAndResolveCoordinatorInputs = async (params: {
   stepInputs: StepInput[];
   testingParams?: {
     humanInputCanBeRequested?: boolean;
@@ -133,6 +130,12 @@ const parseCoordinatorInputs = async (params: {
 /**
  * This is the function that takes starting coordinating agent state and has the coordinator orchestrate the research
  * task.
+ *
+ * It outputs proposals for entities.
+ *
+ * Side effects:
+ * 1. Any claims inferred during the process will be saved to the graph, in the web chosen for the overall flow run
+ * 2. Any metered API usage incurred will be recorded
  */
 export const runCoordinatingAgent: FlowActionActivity<{
   state: CoordinatingAgentState;
@@ -144,7 +147,7 @@ export const runCoordinatingAgent: FlowActionActivity<{
 }> = async ({ inputs: stepInputs, state, testingParams }) => {
   const workerIdentifiers = state.coordinatorIdentifiers;
 
-  const input = await parseCoordinatorInputs({
+  const input = await parseAndResolveCoordinatorInputs({
     stepInputs,
     testingParams,
   });
@@ -212,6 +215,9 @@ export const runCoordinatingAgent: FlowActionActivity<{
     state.questionsAndAnswers = questionsAndAnswers;
     /* eslint-enable no-param-reassign */
 
+    /**
+     * If we've been given a function to persist the state somewhere (e.g. a file), we do so now.
+     */
     if (testingParams?.persistState) {
       testingParams.persistState(state);
     }
@@ -219,18 +225,19 @@ export const runCoordinatingAgent: FlowActionActivity<{
     await createCheckpoint({ state });
   }
 
+  /**
+   * Ask the coordinator what it wants to do next given the task inputs and current state.
+   */
   const { toolCalls: initialToolCalls } = await requestCoordinatorActions({
     input,
     state,
   });
 
-  const getSubmittedEntities = () =>
-    state.proposedEntities.filter(({ localEntityId }) =>
-      state.submittedEntityIds.includes(localEntityId),
-    );
-
+  /**
+   * The recursive function that processes tool calls from the coordinator until a successful 'complete' call is made.
+   */
   const processToolCalls = async (params: {
-    toolCalls: ParsedLlmToolCall<CoordinatorToolName>[];
+    toolCalls: ParsedCoordinatorToolCall[];
   }) => {
     const { toolCalls } = params;
 
@@ -242,487 +249,60 @@ export const runCoordinatingAgent: FlowActionActivity<{
       return;
     }
 
-    const toolCallsWithRelevantResults = toolCalls.filter(
-      ({ name }) => name !== "terminate",
+    const nonClosingToolCalls = toolCalls.filter(
+      (toolCall) =>
+        toolCall.name !== "terminate" && toolCall.name !== "complete",
     );
 
-    const completedToolCalls = await Promise.all(
-      toolCallsWithRelevantResults.map(
-        async (
-          toolCall,
-        ): Promise<CompletedCoordinatorToolCall<CoordinatorToolName>> => {
-          if (toolCall.name === "updatePlan") {
-            const { plan } =
-              toolCall.input as CoordinatorToolCallArguments["updatePlan"];
+    const toolCallResults: CompletedCoordinatorToolCall<CoordinatorToolName>[] =
+      await getToolCallResults({
+        agentType: "coordinator",
+        input,
+        state,
+        toolCalls: nonClosingToolCalls,
+        workerIdentifiers,
+      });
 
-            // eslint-disable-next-line no-param-reassign
-            state.plan = plan;
+    const updatedPlan = toolCallResults.find(
+      (call) => !!call.updatedPlan,
+    )?.updatedPlan;
 
-            logProgress([
-              {
-                type: "UpdatedPlan",
-                plan,
-                stepId,
-                recordedAt: new Date().toISOString(),
-                ...workerIdentifiers,
-              },
-            ]);
+    if (updatedPlan) {
+      // eslint-disable-next-line no-param-reassign
+      state.plan = updatedPlan;
 
-            return {
-              ...nullReturns,
-              ...toolCall,
-              output: `The plan has been successfully updated.`,
-            };
-          } else if (toolCall.name === "requestHumanInput") {
-            const { questions } =
-              toolCall.input as CoordinatorToolCallArguments["requestHumanInput"];
-
-            if (questions.length === 0) {
-              return {
-                ...toolCall,
-                ...nullReturns,
-                output: "No questions were provided.",
-                isError: true,
-              };
-            }
-
-            logger.debug(
-              `Requesting human input for questions: ${stringify(questions)}`,
-            );
-
-            const response = await getAnswersFromHuman(
-              (
-                toolCall.input as CoordinatorToolCallArguments["requestHumanInput"]
-              ).questions,
-            );
-
-            // eslint-disable-next-line no-param-reassign
-            state.questionsAndAnswers =
-              (state.questionsAndAnswers ?? "") + response;
-
-            return {
-              ...nullReturns,
-              ...toolCall,
-              output: response,
-            };
-          } else if (toolCall.name === "webSearch") {
-            const webPageSummaries = await handleWebSearchToolCall({
-              input:
-                toolCall.input as CoordinatorToolCallArguments["webSearch"],
-              workerIdentifiers,
-            });
-
-            if ("error" in webPageSummaries) {
-              return {
-                ...toolCall,
-                ...nullReturns,
-                isError: true,
-                output: webPageSummaries.error,
-              };
-            }
-
-            return {
-              ...nullReturns,
-              ...toolCall,
-              output: "Search successful",
-              webPagesFromSearchQuery: webPageSummaries,
-            };
-          } else if (toolCall.name === "inferClaimsFromResources") {
-            const { resources } =
-              toolCall.input as CoordinatorToolCallArguments["inferClaimsFromResources"];
-
-            const responsesWithUrl = await Promise.all(
-              resources.map(
-                async ({
-                  url,
-                  goal,
-                  relevantEntityIds,
-                  descriptionOfExpectedContent,
-                  exampleOfExpectedContent,
-                  reason,
-                }) => {
-                  const relevantEntities = state.entitySummaries.filter(
-                    ({ localId }) => relevantEntityIds?.includes(localId),
-                  );
-
-                  const linkExplorerIdentifiers: WorkerIdentifiers = {
-                    workerType: "Link explorer",
-                    workerInstanceId: generateUuid(),
-                    parentInstanceId: workerIdentifiers.workerInstanceId,
-                  };
-
-                  logProgress([
-                    {
-                      stepId,
-                      recordedAt: new Date().toISOString(),
-                      type: "StartedLinkExplorerTask",
-                      input: {
-                        goal,
-                        initialUrl: url,
-                      },
-                      explanation: reason,
-                      ...linkExplorerIdentifiers,
-                    },
-                  ]);
-
-                  const response = await linkFollowerAgent({
-                    workerIdentifiers: linkExplorerIdentifiers,
-                    input: {
-                      initialResource: {
-                        goal,
-                        url,
-                        descriptionOfExpectedContent,
-                        exampleOfExpectedContent,
-                        reason,
-                      },
-                      goal,
-                      existingEntitiesOfInterest: relevantEntities,
-                      entityTypes: input.entityTypes,
-                    },
-                  });
-
-                  logProgress([
-                    {
-                      stepId,
-                      recordedAt: new Date().toISOString(),
-                      type: "ClosedLinkExplorerTask",
-                      goal,
-                      output: {
-                        claimCount: response.inferredClaims.length,
-                        entityCount: response.inferredSummaries.length,
-                        resourcesExploredCount:
-                          response.exploredResources.length,
-                        suggestionForNextSteps: response.suggestionForNextSteps,
-                      },
-                      ...linkExplorerIdentifiers,
-                    },
-                  ]);
-
-                  return { response, url };
-                },
-              ),
-            );
-
-            const inferredClaims: Claim[] = [];
-            const entitySummaries: LocalEntitySummary[] = [];
-            const suggestionsForNextStepsMade: string[] = [];
-            const resourceUrlsVisited: string[] = [];
-
-            for (const { response } of responsesWithUrl) {
-              inferredClaims.push(...response.inferredClaims);
-              entitySummaries.push(...response.inferredSummaries);
-              suggestionsForNextStepsMade.push(response.suggestionForNextSteps);
-              resourceUrlsVisited.push(
-                ...response.exploredResources.map(({ url }) => url),
-              );
-            }
-
-            return {
-              ...toolCall,
-              ...nullReturns,
-              inferredClaims,
-              entitySummaries,
-              suggestionsForNextStepsMade,
-              resourceUrlsVisited,
-              output:
-                entitySummaries.length > 0
-                  ? "Entities inferred from web page"
-                  : "No claims were inferred about any relevant entities.",
-            };
-          } else if (toolCall.name === "delegateResearchTasks") {
-            const { delegatedTasks } =
-              toolCall.input as CoordinatorToolCallArguments["delegateResearchTasks"];
-
-            let counter = 0;
-
-            const delegatedTasksWithIds = delegatedTasks.map(
-              (delegatedTask) => ({
-                ...delegatedTask,
-                delegatedTaskId: `${counter++}`,
-              }),
-            );
-
-            const { acceptedDelegatedTasks, rejectedDelegatedTasks } =
-              await checkDelegatedTasksAgent({
-                input,
-                state,
-                delegatedTasks: delegatedTasksWithIds,
-              });
-
-            const responsesWithDelegatedTask = await Promise.all(
-              delegatedTasksWithIds
-                .filter((delegatedTask) =>
-                  acceptedDelegatedTasks.some(
-                    ({ delegatedTaskId }) =>
-                      delegatedTaskId === delegatedTask.delegatedTaskId,
-                  ),
-                )
-                .map(async (delegatedTask) => {
-                  const { goal, relevantEntityIds, explanation } =
-                    delegatedTask;
-
-                  const relevantEntities = state.entitySummaries.filter(
-                    ({ localId }) => relevantEntityIds?.includes(localId),
-                  );
-
-                  const existingClaimsAboutRelevantEntities =
-                    state.inferredClaims.filter(({ subjectEntityLocalId }) =>
-                      relevantEntityIds?.includes(subjectEntityLocalId),
-                    );
-
-                  const delegatedTaskIdentifiers: WorkerIdentifiers = {
-                    workerType: "Sub-coordinator",
-                    workerInstanceId: generateUuid(),
-                    parentInstanceId: workerIdentifiers.workerInstanceId,
-                  };
-
-                  logProgress([
-                    {
-                      type: "StartedSubCoordinator",
-                      explanation,
-                      input: {
-                        goal,
-                        entityTypeTitles: input.entityTypes.map(
-                          (type) => type.title,
-                        ),
-                      },
-                      recordedAt: new Date().toISOString(),
-                      stepId,
-                      ...delegatedTaskIdentifiers,
-                    },
-                  ]);
-
-                  const response = await runSubCoordinatingAgent({
-                    input: {
-                      goal,
-                      relevantEntities,
-                      existingClaimsAboutRelevantEntities,
-                      entityTypes: input.entityTypes,
-                    },
-                    workerIdentifiers: delegatedTaskIdentifiers,
-                  });
-
-                  logProgress([
-                    {
-                      type: "ClosedSubCoordinator",
-                      errorMessage:
-                        response.status !== "ok"
-                          ? response.explanation
-                          : undefined,
-                      explanation:
-                        response.status === "ok"
-                          ? response.explanation
-                          : response.explanation,
-                      goal,
-                      output:
-                        response.status === "ok"
-                          ? {
-                              claimCount: response.discoveredClaims.length,
-                              entityCount: response.discoveredEntities.length,
-                            }
-                          : { claimCount: 0, entityCount: 0 },
-                      recordedAt: new Date().toISOString(),
-                      stepId,
-                      ...delegatedTaskIdentifiers,
-                    },
-                  ]);
-
-                  return { response, delegatedTask };
-                }),
-            );
-
-            const inferredClaims: Claim[] = [];
-            const entitySummaries: LocalEntitySummary[] = [];
-            const delegatedTasksCompleted: string[] = [];
-
-            let errorMessage: string = "";
-
-            for (const {
-              response,
-              delegatedTask,
-            } of responsesWithDelegatedTask) {
-              entitySummaries.push(...response.discoveredEntities);
-              inferredClaims.push(...response.discoveredClaims);
-
-              if (response.status === "ok") {
-                delegatedTasksCompleted.push(delegatedTask.goal);
-              } else {
-                errorMessage += `An error was encountered when completing the sub-task with goal "${delegatedTask.goal}": ${response.explanation}\n`;
-              }
-            }
-
-            for (const { delegatedTaskId, reason } of rejectedDelegatedTasks) {
-              const { goal } = delegatedTasksWithIds.find(
-                (delegatedTask) =>
-                  delegatedTask.delegatedTaskId === delegatedTaskId,
-              )!;
-
-              errorMessage += `The sub-task with goal "${goal}" was rejected for the following reason: ${reason}\n`;
-            }
-
-            return {
-              ...toolCall,
-              ...nullReturns,
-              inferredClaims,
-              entitySummaries,
-              delegatedTasksCompleted,
-              output: errorMessage || "Delegated tasks all completed.",
-              isError: !!errorMessage,
-            };
-          } else if (toolCall.name === "complete") {
-            if (!state.hasConductedCheckStep) {
-              const warnings: string[] = [];
-
-              if (state.proposedEntities.length === 0) {
-                warnings.push("No entities have been proposed.");
-              }
-
-              const { entityIds } =
-                toolCall.input as CoordinatorToolCallArguments["complete"];
-
-              const invalidEntityIds = entityIds.filter(
-                (entityId) =>
-                  !state.proposedEntities.some(
-                    ({ localEntityId }) => localEntityId === entityId,
-                  ),
-              );
-
-              if (invalidEntityIds.length > 0) {
-                return {
-                  ...nullReturns,
-                  ...toolCall,
-                  output: dedent(`
-                  The following entity IDs do not correspond to any proposed entities: ${JSON.stringify(
-                    invalidEntityIds,
-                  )}
-
-                  ${
-                    state.proposedEntities.length > 0
-                      ? `Valid entity IDs are: ${JSON.stringify(
-                          state.proposedEntities.map(
-                            ({ localEntityId }) => localEntityId,
-                          ),
-                        )}`
-                      : `You haven't discovered any entities yet.`
-                  }
-                `),
-                  isError: true,
-                };
-              }
-
-              // eslint-disable-next-line no-param-reassign
-              state.submittedEntityIds = entityIds;
-              const submittedEntities = getSubmittedEntities();
-
-              const missingEntityTypes = input.entityTypes.filter(
-                ({ $id }) =>
-                  !submittedEntities.some(
-                    ({ entityTypeId }) => entityTypeId === $id,
-                  ),
-              );
-
-              if (missingEntityTypes.length > 0) {
-                warnings.push(
-                  `You have not proposed any entities for the following types: ${JSON.stringify(
-                    missingEntityTypes.map(({ $id }) => $id),
-                  )}`,
-                );
-              }
-
-              const missingLinkEntityTypes = input.linkEntityTypes?.filter(
-                ({ $id }) =>
-                  !submittedEntities.some(
-                    ({ entityTypeId }) => entityTypeId === $id,
-                  ),
-              );
-
-              if (missingLinkEntityTypes && missingLinkEntityTypes.length > 0) {
-                warnings.push(
-                  dedent(`
-                    You have not proposed any links for the following link types: ${JSON.stringify(
-                      missingLinkEntityTypes.map(({ $id }) => $id),
-                    )}
-                `),
-                );
-              }
-
-              if (warnings.length > 0) {
-                logger.debug(
-                  `Conducting check step with warnings: ${stringify(warnings)}`,
-                );
-                return {
-                  ...nullReturns,
-                  ...toolCall,
-                  output: dedent(`
-                    Are you sure the research task is complete considering the following warnings?
-
-                    Warnings:
-                    ${warnings.join("\n")}
-
-                    If you are sure the task is complete, call the "complete" tool again.
-                    Otherwise, either continue to make tool calls or call the "terminate" tool to end the task if it cannot be completed.
-                  `),
-                  isError: true,
-                };
-              } else {
-                // eslint-disable-next-line no-param-reassign
-                state.hasConductedCheckStep = true;
-              }
-            }
-
-            return {
-              ...toolCall,
-              ...nullReturns,
-              output: `The research task has been completed.`,
-            };
-          }
-
-          throw new Error(`Unimplemented tool call: ${toolCall.name}`);
+      logProgress([
+        {
+          type: "UpdatedPlan",
+          plan: updatedPlan,
+          stepId,
+          recordedAt: new Date().toISOString(),
+          ...workerIdentifiers,
         },
-      ),
-    );
+      ]);
+    }
 
-    const resourceUrlsVisited = completedToolCalls.flatMap(
-      ({ resourceUrlsVisited: urlsVisited }) => urlsVisited ?? [],
-    );
-
-    // eslint-disable-next-line no-param-reassign
-    state.resourceUrlsVisited = [
-      ...new Set([...resourceUrlsVisited, ...state.resourceUrlsVisited]),
-    ];
-
-    const newWebPages = completedToolCalls
-      .flatMap(({ webPagesFromSearchQuery }) => webPagesFromSearchQuery ?? [])
-      .filter(
-        (webPage) =>
-          !state.resourcesNotVisited.find((page) => page.url === webPage.url) &&
-          !state.resourceUrlsVisited.includes(webPage.url),
-      );
-
-    state.resourcesNotVisited.push(...newWebPages);
-
-    state.webQueriesMade.push(
-      ...completedToolCalls.flatMap(
-        ({ webQueriesMade }) => webQueriesMade ?? [],
-      ),
-    );
+    processCommonStateMutationsFromToolResults({
+      toolCallResults,
+      state,
+    });
 
     state.delegatedTasksCompleted.push(
-      ...completedToolCalls.flatMap(
+      ...toolCallResults.flatMap(
         ({ delegatedTasksCompleted }) => delegatedTasksCompleted ?? [],
       ),
     );
 
     state.suggestionsForNextStepsMade.push(
-      ...completedToolCalls.flatMap(
+      ...toolCallResults.flatMap(
         ({ suggestionsForNextStepsMade }) => suggestionsForNextStepsMade ?? [],
       ),
     );
 
-    const newEntitySummaries = completedToolCalls.flatMap(
+    const newEntitySummaries = toolCallResults.flatMap(
       ({ entitySummaries }) => entitySummaries ?? [],
     );
-    const newClaims = completedToolCalls.flatMap(
+    const newClaims = toolCallResults.flatMap(
       ({ inferredClaims }) => inferredClaims ?? [],
     );
 
@@ -738,26 +318,61 @@ export const runCoordinatingAgent: FlowActionActivity<{
       workerIdentifiers,
     });
 
-    const isCompleted = toolCalls.some(
+    const completeToolCall = toolCalls.find(
       (toolCall) => toolCall.name === "complete",
     );
 
     /**
-     * Check whether the research task has completed after processing the tool calls,
+     * Check whether the research task has completed after processing the other tool calls,
      * in case the agent has made other tool calls at the same time as the "complete" tool call.
      */
-    if (isCompleted) {
-      if (state.hasConductedCheckStep) {
+    if (completeToolCall) {
+      /**
+       * This will return an error if there are issues we need to ask the coordinator about before completing the task.
+       */
+      const completeToolCallResult = processCompleteToolCall({
+        input,
+        state,
+        toolCall: completeToolCall,
+      });
+
+      toolCallResults.push({
+        ...nullReturns,
+        ...completeToolCallResult,
+      });
+
+      if (!completeToolCallResult.isError) {
+        /**
+         * Either there are no issues, or there were issues which we've already asked the coordinator about and it's chosen to ignore.
+         */
         await createCheckpoint({ state });
         return;
-      } else {
-        // eslint-disable-next-line no-param-reassign
-        state.hasConductedCheckStep = true;
       }
+
+      /**
+       * If we have discovered issues, we need to ask the coordinator about them before completing the task.
+       * We mark the check step has completed so that it can choose to call 'complete' again anyway.
+       */
+      // eslint-disable-next-line no-param-reassign
+      state.hasConductedCheckStep = true;
+    } else {
+      /**
+       * If we don't have a 'complete' tool call, reset the check step state in case of the following sequence of events:
+       * 1. The coordinator makes a 'complete' call
+       * 2. We identify an issue which we ask the coordinator about
+       * 3. It decides to do more work rather than immediately call 'complete' again to ignore the issues identified
+       *
+       * When it later calls 'complete', we want to run the check step again, as there may be different issues.
+       */
+      // eslint-disable-next-line no-param-reassign
+      state.hasConductedCheckStep = false;
     }
 
     // eslint-disable-next-line no-param-reassign
-    state.previousCalls = [...state.previousCalls, { completedToolCalls }];
+    state.previousCalls = [
+      ...state.previousCalls,
+      { completedToolCalls: toolCallResults },
+    ];
 
     if (testingParams?.persistState) {
       testingParams.persistState(state);
@@ -782,11 +397,14 @@ export const runCoordinatingAgent: FlowActionActivity<{
   /**
    * These are entities the coordinator has chosen to highlight as the result of research,
    * but we want to output all entity proposals from the task.
-   * @todo do something with the highlighted entities, e.g.
-   * - mark them for the user's attention
-   * - pass them to future steps
+   *
+   * @todo H-3273 add a column to the flow run outputs table indicating which entities the coordinator has highlighted
+   * @todo this may also be useful for further steps in a flow, e.g. for report writing or analysis
    */
-  const _submittedEntities = getSubmittedEntities();
+  const _submittedEntities = state.proposedEntities.filter(
+    ({ localEntityId }) => state.submittedEntityIds.includes(localEntityId),
+  );
+
   logger.debug(`Submitted ${_submittedEntities.length} entities`);
 
   const allProposedEntities = state.proposedEntities;

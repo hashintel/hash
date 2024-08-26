@@ -108,10 +108,13 @@ export type OpenAiResponse = Omit<
   invalidResponses: (OpenAI.ChatCompletion & { requestTime: number })[];
 };
 
-export type ParsedLlmToolCall<ToolName extends string = string> = {
+export type ParsedLlmToolCall<
+  ToolName extends string = string,
+  Input extends object = object,
+> = {
   id: string;
   name: ToolName;
-  input: object;
+  input: Input;
 };
 
 /**

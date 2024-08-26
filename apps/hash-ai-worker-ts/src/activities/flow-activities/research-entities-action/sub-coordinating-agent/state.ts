@@ -1,7 +1,9 @@
 import type { CompletedCoordinatorToolCall } from "../shared/coordinator-tools.js";
 import type { CoordinatingAgentState } from "../shared/coordinators.js";
-
-import { SubCoordinatingAgentToolName } from "./sub-coordinator-tools.js";
+import type {
+  ParsedSubCoordinatorToolCall,
+  SubCoordinatingAgentToolName,
+} from "./sub-coordinator-tools.js";
 
 export type SubCoordinatingAgentState = Pick<
   CoordinatingAgentState,
@@ -12,6 +14,7 @@ export type SubCoordinatingAgentState = Pick<
   | "resourceUrlsVisited"
   | "webQueriesMade"
 > & {
+  outstandingToolCalls: ParsedSubCoordinatorToolCall[];
   previousCalls: {
     completedToolCalls: CompletedCoordinatorToolCall<SubCoordinatingAgentToolName>[];
   }[];

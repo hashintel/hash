@@ -15,6 +15,16 @@ import { runCoordinatingAgent } from "./research-entities-action/coordinating-ag
 import type { CoordinatingAgentState } from "./research-entities-action/shared/coordinators.js";
 import type { FlowActionActivity } from "./types.js";
 
+/**
+ * An action to research entities of requested types according to the user's research goal.
+ *
+ * It outputs either the return of the coordinating agent (proposed entities), or nothing if it is cancelled.
+ *
+ * Even if the action is cancelled, it will have saved any claims discovered in the graph, and recorded LLM usage.
+ * If the action is retried after a cancellation/error, it will archive any claims discovered in previous attempts,
+ * unless (a) the action was reset to a specific time, and (b) the claims were created prior to this time.
+ * LLM usage is never archived.
+ */
 export const researchEntitiesAction: FlowActionActivity<{
   testingParams?: {
     humanInputCanBeRequested?: boolean;
@@ -34,6 +44,7 @@ export const researchEntitiesAction: FlowActionActivity<{
       entitySummaries: [],
       hasConductedCheckStep: false,
       inferredClaims: [],
+      outstandingToolCalls: [],
       plan: "",
       previousCalls: [],
       proposedEntities: [],

@@ -80,10 +80,10 @@ export const generateProgressReport = (params: {
 
     progressReport += dedent`
     If further research is needed to fill more properties of any entities or links,
-      consider defining them as sub-tasks via the "delegateResearchTasks" tool.
+      consider defining them as sub-tasks via the "delegateResearchTask" tool.
 
     Do not sequentially conduct additional actions for each of the entities,
-      instead start multiple sub-tasks via the "delegateResearchTasks" tool to
+      instead start multiple sub-tasks via the "delegateResearchTask" tool to
       conduct additional research per entity in parallel.`;
   }
   if (
