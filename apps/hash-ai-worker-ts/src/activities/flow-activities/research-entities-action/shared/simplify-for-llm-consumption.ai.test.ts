@@ -12,7 +12,7 @@ test("Test researchEntitiesAction: find subsidiary companies of Google", async (
 
   const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
     entityTypeIds: [
-      "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
+      "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
     ],
     actorId: userAuthentication.actorId,
     graphApiClient,

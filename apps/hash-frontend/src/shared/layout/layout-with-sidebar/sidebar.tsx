@@ -14,7 +14,7 @@ import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
 import { useEnabledFeatureFlags } from "../../../pages/shared/use-enabled-feature-flags";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { useDraftEntities } from "../../draft-entities-context";
-import { SidebarToggleIcon } from "../../icons";
+import { ArrowRightToLineIcon } from "../../icons";
 import { BoltLightIcon } from "../../icons/bolt-light-icon";
 import { CogLightIcon } from "../../icons/cog-light-icon";
 import { InboxIcon } from "../../icons/inbox-icon";
@@ -199,7 +199,7 @@ export const PageSidebar: FunctionComponent = () => {
           <WorkspaceSwitcher />
         </Box>
         <IconButton aria-hidden size="medium" onClick={closeSidebar}>
-          <SidebarToggleIcon />
+          <ArrowRightToLineIcon />
         </IconButton>
       </Box>
       {navLinks.map((navLink) => {

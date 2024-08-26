@@ -406,8 +406,8 @@ export const ftseInvestorsFlowDefinition: FlowDefinition = {
           payload: {
             kind: "VersionedUrl",
             value: [
-              "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
-              "https://hash.ai/@ftse/types/entity-type/stock-market-index/v/1",
+              "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
+              "https://hash.ai/@hash/types/entity-type/stock-market-index/v/1",
             ],
           },
         },
@@ -474,9 +474,9 @@ export const ftseInvestorsFlowDefinition: FlowDefinition = {
               payload: {
                 kind: "VersionedUrl",
                 value: [
-                  "https://hash.ai/@ftse/types/entity-type/invested-in/v/1",
-                  "https://hash.ai/@ftse/types/entity-type/investment-fund/v/1",
-                  "https://hash.ai/@ftse/types/entity-type/company/v/1",
+                  "https://hash.ai/@hash/types/entity-type/invested-in/v/1",
+                  "https://hash.ai/@hash/types/entity-type/investment-fund/v/1",
+                  "https://hash.ai/@hash/types/entity-type/company/v/1",
                 ],
               },
             },

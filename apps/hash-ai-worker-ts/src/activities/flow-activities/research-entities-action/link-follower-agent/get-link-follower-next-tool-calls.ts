@@ -13,8 +13,8 @@ import type {
 } from "../../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { stringify } from "../../../shared/stringify.js";
-import type { LocalEntitySummary } from "../../shared/infer-claims-from-text/get-entity-summaries-from-text.js";
-import type { Claim } from "../../shared/infer-claims-from-text/types.js";
+import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
+import type { Claim } from "../../shared/infer-summaries-then-claims-from-text/types.js";
 import { simplifyClaimForLlmConsumption } from "../shared/simplify-for-llm-consumption.js";
 import type { Link } from "./choose-relevant-links-from-content.js";
 
@@ -52,7 +52,7 @@ const getLinkFollowerNextToolCallsSystemPrompt = dedent(`
 `);
 
 type GetLinkFollowerNextToolCallsParams = {
-  task: string;
+  goal: string;
   entitySummaries: LocalEntitySummary[];
   claimsGathered: Claim[];
   previouslyVisitedLinks: { url: string }[];
@@ -63,7 +63,7 @@ const generateUserMessage = (
   params: GetLinkFollowerNextToolCallsParams,
 ): LlmUserMessage => {
   const {
-    task,
+    goal,
     entitySummaries,
     claimsGathered,
     previouslyVisitedLinks,
@@ -76,7 +76,7 @@ const generateUserMessage = (
       {
         type: "text",
         text: dedent(`
-<Task>${task}</Task>
+<Task>${goal}</Task>
 <PreviouslyVisitedLinks>${previouslyVisitedLinks
           .map(({ url }) => url)
           .join("\n")}</PreviouslyVisitedLinks>
@@ -101,13 +101,12 @@ ${JSON.stringify(
   2,
 )}</Entities>
 <PossibleNextLinks>
-${JSON.stringify(
-  possibleNextLinks.filter(
-    (link) => !previouslyVisitedLinks.some(({ url }) => url === link.url),
-  ),
-  undefined,
-  2,
-)}
+${possibleNextLinks
+  .filter((link) => !previouslyVisitedLinks.some(({ url }) => url === link.url))
+  .map(({ description, url }) =>
+    dedent(`<URL>${url}</URL>\n<Description>${description}</Description>`),
+  )
+  .join("\n")}
 </PossibleNextLinks>
 
 Now decide what to do next. If you have gathered enough information about entities to satisfy the task, call 'complete'.
@@ -321,7 +320,9 @@ export const getLinkFollowerNextToolCalls = async (
           }
         } else {
           logger.error(
-            `Link follower returned multiple incompatible tool calls: ${toolCalls.map((call) => call.name).join(", ")}`,
+            `Link follower returned multiple incompatible tool calls: ${toolCalls
+              .map((call) => call.name)
+              .join(", ")}`,
           );
           return getLinkFollowerNextToolCalls(params);
         }

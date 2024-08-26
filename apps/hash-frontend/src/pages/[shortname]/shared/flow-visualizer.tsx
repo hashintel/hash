@@ -1,7 +1,7 @@
 import "reactflow/dist/style.css";
 
 import { useApolloClient, useMutation } from "@apollo/client";
-import { Skeleton } from "@hashintel/design-system";
+import { IconButton, Skeleton } from "@hashintel/design-system";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { manualBrowserInferenceFlowDefinition } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
@@ -12,7 +12,7 @@ import type {
   FlowTrigger,
   PersistedEntity,
 } from "@local/hash-isomorphic-utils/flows/types";
-import { Box, Stack } from "@mui/material";
+import { Box, Collapse, Fade, Stack } from "@mui/material";
 import NotFound from "next/dist/client/components/not-found-error";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
@@ -23,6 +23,7 @@ import type {
   StartFlowMutationVariables,
 } from "../../../graphql/api-types.gen";
 import { startFlowMutation } from "../../../graphql/queries/knowledge/flow.queries";
+import { ArrowRightToLineIcon } from "../../../shared/icons/arrow-right-to-line-icon";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import { defaultBrowserPluginDomains } from "../../goals/new.page/internet-settings";
 import { useFlowDefinitionsContext } from "../../shared/flow-definitions-context";
@@ -212,6 +213,8 @@ export const FlowRunVisualizerSkeleton = () => (
 
 export const FlowVisualizer = () => {
   const [showDag, setShowDag] = useState(false);
+
+  const [bottomPanelIsCollapsed, setBottomPanelIsCollapsed] = useState(false);
 
   const [logDisplay, setLogDisplay] = useState<LogDisplay>("grouped");
 
@@ -683,36 +686,66 @@ export const FlowVisualizer = () => {
           </Stack>
         </Stack>
 
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          sx={({ palette }) => ({
-            background: palette.gray[10],
-            borderTop: `2px solid ${palette.gray[20]}`,
-            height: logHeight,
-            maxHeight: "40%",
-            maxWidth: "100%",
-            px: 3,
-            width: "100%",
-          })}
+        <Collapse
+          collapsedSize={45}
+          in={!bottomPanelIsCollapsed}
+          sx={{ maxHeight: "40%" }}
         >
           <Stack
-            sx={{
-              borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
-              height: "100%",
-              py: 2.5,
-              pr: 3,
-              width: "70%",
-            }}
+            direction="row"
+            justifyContent="space-between"
+            sx={({ palette, transitions }) => ({
+              background: bottomPanelIsCollapsed
+                ? palette.common.white
+                : palette.gray[10],
+              borderTop: `2px solid ${palette.gray[20]}`,
+              height: logHeight,
+              maxHeight: "100%",
+              maxWidth: "100%",
+              px: 3,
+              transition: transitions.create("background", transitionOptions),
+              width: "100%",
+            })}
           >
-            <ActivityLog
-              key={`${flowRunStateKey}-activity-log`}
-              logs={logs}
-              logDisplay={logDisplay}
-              setLogDisplay={setLogDisplay}
-            />
+            <Fade in={!bottomPanelIsCollapsed}>
+              <Stack
+                sx={{
+                  borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
+                  height: "100%",
+                  py: 2.5,
+                  pr: 3,
+                  width: "70%",
+                }}
+              >
+                <ActivityLog
+                  key={`${flowRunStateKey}-activity-log`}
+                  logs={logs}
+                  logDisplay={logDisplay}
+                  setLogDisplay={setLogDisplay}
+                />
+              </Stack>
+            </Fade>
+            <Box py={0.5}>
+              <IconButton
+                aria-hidden
+                size="medium"
+                sx={({ palette }) => ({
+                  transform: `rotate(${bottomPanelIsCollapsed ? "90deg" : "270deg"})`,
+
+                  "&:hover": {
+                    backgroundColor: palette.gray[20],
+                    color: palette.gray[60],
+                  },
+                })}
+                onClick={() =>
+                  setBottomPanelIsCollapsed(!bottomPanelIsCollapsed)
+                }
+              >
+                <ArrowRightToLineIcon />
+              </IconButton>
+            </Box>
           </Stack>
-        </Stack>
+        </Collapse>
       </Stack>
     </>
   );

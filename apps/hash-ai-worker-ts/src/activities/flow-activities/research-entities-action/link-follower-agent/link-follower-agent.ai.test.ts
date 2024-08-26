@@ -13,7 +13,7 @@ test.skip(
     const { userAuthentication } = await getFlowContext();
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
-      entityTypeIds: ["https://hash.ai/@ftse/types/entity-type/person/v/1"],
+      entityTypeIds: ["https://hash.ai/@hash/types/entity-type/person/v/1"],
       actorId: userAuthentication.actorId,
       graphApiClient,
       simplifyPropertyKeys: true,
@@ -21,7 +21,7 @@ test.skip(
 
     const status = await linkFollowerAgent({
       input: {
-        task: "Obtain the full list of current members of Church Lab",
+        goal: "Obtain the full list of current members of Church Lab",
         entityTypes: Object.values(dereferencedEntityTypes).map(
           ({ schema }) => schema,
         ),
@@ -58,7 +58,7 @@ test.skip(
     const { userAuthentication } = await getFlowContext();
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
-      entityTypeIds: ["https://hash.ai/@ftse/types/entity-type/person/v/1"],
+      entityTypeIds: ["https://hash.ai/@hash/types/entity-type/person/v/1"],
       actorId: userAuthentication.actorId,
       graphApiClient,
       simplifyPropertyKeys: true,
@@ -66,7 +66,7 @@ test.skip(
 
     const status = await linkFollowerAgent({
       input: {
-        task: 'Obtain the full list of authors of the Sora article titled "Video Generation Models as World Simulators"',
+        goal: 'Obtain the full list of authors of the Sora article titled "Video Generation Models as World Simulators"',
         entityTypes: Object.values(dereferencedEntityTypes).map(
           ({ schema }) => schema,
         ),
@@ -104,7 +104,7 @@ test.skip(
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
       entityTypeIds: [
-        "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
+        "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
@@ -113,7 +113,7 @@ test.skip(
 
     const status = await linkFollowerAgent({
       input: {
-        task: "Get all the stock market constituents of the FTSE350.",
+        goal: "Get all the stock market constituents of the FTSE350.",
         entityTypes: Object.values(dereferencedEntityTypes).map(
           ({ schema }) => schema,
         ),
@@ -151,7 +151,7 @@ test.skip(
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
       entityTypeIds: [
-        "https://hash.ai/@ftse/types/entity-type/graphics-card/v/1",
+        "https://hash.ai/@hash/types/entity-type/graphics-card/v/1",
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
@@ -160,7 +160,7 @@ test.skip(
 
     const status = await linkFollowerAgent({
       input: {
-        task: "Identify the top 3 graphics cards suitable for AI model processing, including their specifications and features.",
+        goal: "Identify the top 3 graphics cards suitable for AI model processing, including their specifications and features.",
         entityTypes: Object.values(dereferencedEntityTypes).map(
           ({ schema }) => schema,
         ),
@@ -199,7 +199,7 @@ test.skip(
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
       entityTypeIds: [
-        "https://hash.ai/@ftse/types/entity-type/investment-fund/v/1",
+        "https://hash.ai/@hash/types/entity-type/investment-fund/v/1",
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
@@ -208,7 +208,7 @@ test.skip(
 
     const status = await linkFollowerAgent({
       input: {
-        task: "Get the list of investors of Marks and Spencer's, based on the 2023 annual investors report PDF file.",
+        goal: "Get the list of investors of Marks and Spencer's, based on the 2023 annual investors report PDF file.",
         entityTypes: Object.values(dereferencedEntityTypes).map(
           ({ schema }) => schema,
         ),

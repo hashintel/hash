@@ -77,6 +77,7 @@ vi.mock("@temporalio/activity", async (importOriginal) => {
       ...original.Context,
       current: () =>
         ({
+          cancellationSignal: new AbortController().signal,
           info: {
             workflowExecution: {
               workflowId: extractEntityUuidFromEntityId(

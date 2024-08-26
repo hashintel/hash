@@ -76,19 +76,14 @@ export const generateToolDefinitions = <
     startClaimGatheringSubTasks: {
       name: "startClaimGatheringSubTasks",
       description: dedent(`
-      Start claim gathering sub-tasks to gather claims about entities required to complete the research task.
-      Make use of this tool if the research task needs to be be broken down into smaller, non-overlapping sub-tasks.
+      Instruct a colleague to help you with a specific part of the research task.
+      This is useful when the research task is complex and requires multiple people to work on different parts of it.
       
-      IMPORTANT: Make sure sub-tasks align with the user's research prompt, clarified by any questions they have subsequently answered.
+      Make sure that you take account of any information the user has provided you when instructing your colleague,
+      including the original research brief and any subsequent clarifications. Pass this information on to your colleague
+      as part of the instructions where it would be helpful.
       
-      Subtasks must be independent and not overlap in any way with the information they gather. They cannot share information.
-      When gathering claims about a specific set of entities in multiple subtasks,
-        you must name and specify which entities to focus on for each subtask.
-        
-      Make sure that the goal of the research task matches the entity types it will seek – don't have a goal
-      which asks to identify entities of types which aren't provided.
-      
-      If you need specific properties for the entities, mention those properties by name in the research goal.
+      Where you are seeking additional information on specific entities, make sure to include their ids as relevantEntityIds     
     `),
       inputSchema: {
         type: "object",
@@ -106,7 +101,7 @@ export const generateToolDefinitions = <
                     type: "string",
                   },
                   description: dedent(`
-                  The entity IDs of the proposed entities which the sub-task is relevant to.
+                  The entityId of the proposed entities which the sub-task is relevant to.
                   
                   ${
                     params.state?.entitySummaries.length
@@ -117,31 +112,15 @@ export const generateToolDefinitions = <
                   }
                 `),
                 },
-                entityTypeIds: {
-                  type: "array",
-                  items: {
-                    type: "string",
-                  },
-                  description: dedent(`
-                    The entity type IDs of the kind of entities the sub-task must gather claims about.
-                    You must specify at least one.
-                `),
-                },
-                linkEntityTypeIds: {
-                  type: "array",
-                  items: {
-                    type: "string",
-                  },
-                  description: dedent(`
-                    The link entity type IDs of the kind of link entities the sub-task must gather claims about.
-                `),
-                },
                 goal: {
                   type: "string",
                   description: dedent(`
-                  The goal of the sub-task, a detailed description of what is required to be achieved.
-                  It should focus on the types of entities being asked for, as provided by you under entityTypeIds.
-                  Mention any specific properties required by name.
+                  The goal of the sub-task – detailed instructions to your colleague about what you are seeking.
+                  It should explain:
+                  1. What the goal of the sub-task is and how it fits into the wider research task
+                  2. If you are seeking more information on specific entities:
+                    a. the names of the entities (their ids should be provided under relevantEntityIds)
+                    b. what specific information you are seeking about them
                   
                   For example 
                   "Find the technical specifications of product X".
@@ -153,12 +132,12 @@ export const generateToolDefinitions = <
                   type: "string",
                   description: dedent(`
                   An explanation of why the sub-task will advance the research task, and how it will be used.
-                  You must also specify how the results of the sub-task will be used to populate specified
-                    properties and outgoing links on the provided entity types.
+                  This is for audit purposes only and will not be provided to your colleague.
+                  Provide all information needed to complete the sub-task in the 'goal' and 'relevantEntityIds' fields.
                 `),
                 },
               },
-              required: ["goal", "explanation", "entityTypeIds"],
+              required: ["goal", "explanation"],
             },
           },
         },
@@ -194,8 +173,10 @@ export const generateToolDefinitions = <
     inferClaimsFromResources: {
       name: "inferClaimsFromResources",
       description: dedent(`
-      Infer claims from the content of resources.
-      This tool should be used to gather claims about entities of specific types.
+      Explore resources in order to discover entities and 'claims' (possible facts) regarding them.
+      
+      
+      
       The URLs for resources selected must have been provided in the user messages to you,
       or as the result of a previous action (e.g. a web search, or in suggestions for next steps). Don't guess URLs!
       
@@ -220,16 +201,15 @@ export const generateToolDefinitions = <
                   type: "string",
                   description: "The URL of the resource",
                 },
-                prompt: {
+                goal: {
                   type: "string",
                   description: dedent(`
-                A prompt instructing the inference agent which entities it should gather claims about from the resource.
-                Do not specify any information of the structure of the entities, as this is predefined by the entity type.
-                
-                DO specify any particular properties you are looking for by name.
-    
-                You must be specific about which and how many entities you need to gather claims about to satisfy the research task.
-                Don't ask for information on types of entities you haven't specified under entityTypeIds.`),
+                  The goal of exploring this specific resource.
+                  
+                  DO include:
+                  1. What specifies entities or types of entities you are seeking information on
+                  2. Any guidance from the user, whether in the original instructions or subsequent questions and answers, which is relevant to the task
+                  3. If you are seeking specific properties of entities (e.g. "Find me Bob's email"`),
                 },
                 descriptionOfExpectedContent: {
                   type: "string",
@@ -246,25 +226,7 @@ export const generateToolDefinitions = <
                 reason: {
                   type: "string",
                   description:
-                    "An explanation of why inferring claims from the resource is relevant to the research task.",
-                },
-                entityTypeIds: {
-                  type: "array",
-                  items: {
-                    type: "string",
-                    description: dedent(`
-                      The entityTypeIds the kind of entities to infer claims about.
-                      You must specify at least one.
-                    `),
-                  },
-                },
-                linkEntityTypeIds: {
-                  type: "array",
-                  items: {
-                    type: "string",
-                    description:
-                      "The linkEntityTypeIds of the kind of link entities to infer claims about on the web page",
-                  },
+                    "An explanation of why inferring claims from the resource is relevant to the research task. This is for audit purposes only",
                 },
                 relevantEntityIds: {
                   type: "array",
@@ -273,14 +235,14 @@ export const generateToolDefinitions = <
                   },
                   description: dedent(`
                   The entityIds of already proposed entities which you are seeking further detail on, if any.
-                  If you expect new entities you are seeking to be linked to already-discovered entities, specify them here.
+                  If you expect new entities you are seeking to be linked to already-discovered entities, specify the already-discovered entities here.
+                  If you are unsure if an entity is relevant, just include it – it's better to include too many than too few.
                 `),
                 },
               },
               required: [
                 "url",
-                "prompt",
-                "entityTypeIds",
+                "goal",
                 "reason",
                 "descriptionOfExpectedContent",
                 "exampleOfExpectedContent",
@@ -397,9 +359,7 @@ export type CoordinatorToolCallArguments = Subtype<
       explanation: string;
       resources: {
         url: string;
-        prompt: string;
-        entityTypeIds: string[];
-        linkEntityTypeIds?: string[];
+        goal: string;
         relevantEntityIds?: string[];
         reason: string;
         descriptionOfExpectedContent: string;
@@ -411,8 +371,6 @@ export type CoordinatorToolCallArguments = Subtype<
         goal: string;
         explanation: string;
         relevantEntityIds?: string[];
-        entityTypeIds: string[];
-        linkEntityTypeIds?: string[];
       }[];
     };
     updatePlan: {

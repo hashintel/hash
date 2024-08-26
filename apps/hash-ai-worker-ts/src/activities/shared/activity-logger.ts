@@ -74,7 +74,7 @@ const log = (
    * Save a file per workflow execution for debugging purposes.
    */
   if (["test", "development"].includes(process.env.NODE_ENV ?? "")) {
-    const logFolderPath = path.join(__dirname, "logs");
+    const logFolderPath = path.join(__dirname, "flow-run-logs");
 
     if (!fs.existsSync(logFolderPath)) {
       fs.mkdirSync(logFolderPath);

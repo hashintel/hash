@@ -8,14 +8,21 @@ import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { getEntitySummariesFromText } from "./get-entity-summaries-from-text.js";
 
-test.skip(
+/**
+ * @file These are not 'tests' but rather ways of running specific agents,
+ *       the results of which can be inspected in the logs saved to the file system under get-llm-response/logs/
+ *
+ * NOTE: these tests depend on having run `npx tsx apps/hash-api/src/seed-data/seed-flow-test-types.ts`
+ */
+
+test(
   "Test getEntitySummariesFromText with a FTSE350 table",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
       entityTypeIds: [
-        "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
+        "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
@@ -38,7 +45,7 @@ test.skip(
 
     const { entitySummaries } = await getEntitySummariesFromText({
       text: htmlContent,
-      dereferencedEntityType,
+      dereferencedEntityTypes: [dereferencedEntityType],
       existingSummaries: [],
       relevantEntitiesPrompt: "Obtain the FTSE350 constituents from the table.",
     });
@@ -54,16 +61,16 @@ test.skip(
   },
 );
 
-test.skip(
+test(
   "Test getEntitySummariesFromText with Sora paper authors",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
       entityTypeIds: [
-        "https://hash.ai/@ftse/types/entity-type/person/v/1",
-        "https://hash.ai/@ftse/types/entity-type/has-author/v/1",
-        "https://hash.ai/@ftse/types/entity-type/research-paper/v/1",
+        "https://hash.ai/@hash/types/entity-type/person/v/1",
+        "https://hash.ai/@hash/types/entity-type/has-author/v/1",
+        "https://hash.ai/@hash/types/entity-type/research-paper/v/1",
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
@@ -86,7 +93,7 @@ test.skip(
 
     const { entitySummaries } = await getEntitySummariesFromText({
       text: htmlContent,
-      dereferencedEntityType,
+      dereferencedEntityTypes: [dereferencedEntityType],
       existingSummaries: [],
       relevantEntitiesPrompt:
         'Obtain the authors of the "Video generation models as world simulators" article',
@@ -100,13 +107,13 @@ test.skip(
   },
 );
 
-test.skip(
+test(
   "Test getEntitySummariesFromText with church lab members",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
-      entityTypeIds: ["https://hash.ai/@ftse/types/entity-type/person/v/1"],
+      entityTypeIds: ["https://hash.ai/@hash/types/entity-type/person/v/1"],
       actorId: userAuthentication.actorId,
       graphApiClient,
       simplifyPropertyKeys: true,
@@ -128,7 +135,7 @@ test.skip(
 
     const { entitySummaries } = await getEntitySummariesFromText({
       text: htmlContent,
-      dereferencedEntityType,
+      dereferencedEntityTypes: [dereferencedEntityType],
       existingSummaries: [],
       relevantEntitiesPrompt:
         "Obtain the full list of the current members of Church Lab",

@@ -76,7 +76,7 @@ test.skip(
           inputName: "entityTypeIds",
           payload: {
             kind: "VersionedUrl",
-            value: ["https://hash.ai/@ftse/types/entity-type/company/v/1"],
+            value: ["https://hash.ai/@hash/types/entity-type/company/v/1"],
           },
         },
       ],
@@ -114,7 +114,7 @@ test.skip(
           inputName: "entityTypeIds",
           payload: {
             kind: "VersionedUrl",
-            value: ["https://hash.ai/@ftse/types/entity-type/person/v/1"],
+            value: ["https://hash.ai/@hash/types/entity-type/person/v/1"],
           },
         },
       ],
@@ -152,7 +152,7 @@ test.skip(
           inputName: "entityTypeIds",
           payload: {
             kind: "VersionedUrl",
-            value: ["https://hash.ai/@ftse/types/entity-type/person/v/1"],
+            value: ["https://hash.ai/@hash/types/entity-type/person/v/1"],
           },
         },
       ],
@@ -188,7 +188,7 @@ test.skip(
           inputName: "entityTypeIds",
           payload: {
             kind: "VersionedUrl",
-            value: ["https://hash.ai/@ftse/types/entity-type/person/v/1"],
+            value: ["https://hash.ai/@hash/types/entity-type/person/v/1"],
           },
         },
       ],
@@ -224,7 +224,7 @@ test.skip(
           payload: {
             kind: "VersionedUrl",
             value: [
-              "https://hash.ai/@ftse/types/entity-type/large-language-model/v/1",
+              "https://hash.ai/@hash/types/entity-type/large-language-model/v/1",
             ],
           },
         },
@@ -262,7 +262,7 @@ test.skip(
           payload: {
             kind: "VersionedUrl",
             value: [
-              "https://hash.ai/@ftse/types/entity-type/graphics-card/v/1",
+              "https://hash.ai/@hash/types/entity-type/graphics-card/v/1",
             ],
           },
         },

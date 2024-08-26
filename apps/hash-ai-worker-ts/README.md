@@ -25,3 +25,33 @@ The service uses the following environment variables:
   - `yarn`
 - Run the worker:
   - `yarn dev`
+
+### Logging
+
+To help inspect the workings of the flow, logs of different levels of detail are written to different locations.
+
+In development, `LOG_LEVEL=debug` is advised (and hardcoded into the `yarn dev` command for this app) for the most detailed logs.
+
+Important to know:
+
+- If `LOG_LEVEL=DEBUG`, every LLM request will be logged.
+- In `development` and `test` only:
+  - The console output for each Flow run is written to the file system in the `activities/shared/flow-run-logs` directory.
+  - Each LLM request and response pair is written to the file system in `activities/shared/get-llm-response/logs` directory (assuming `LOG_LEVEL=debug`).
+- For LLM requests, detailed fields `request` and `response` are omitted from the console, but are available in the individual request files.
+- If `DATADOG_API_KEY` is set in the environment, logs will be sent to Datadog.
+-
+
+### Running AI-dependent tests / optimization
+
+To enable loading environment variables into tests, `TEST_AI=true` must be set in the environment.
+
+e.g. to run a specific test, from this folder (`hash-ai-worker-ts`):
+
+```bash
+TEST_AI=true npx vitest get-entity-summaries-from-text.ai.test.ts
+
+or
+
+TEST_AI=true LOG_LEVEL=debug npx vitest get-entity-summaries-from-text.ai.test.ts
+```

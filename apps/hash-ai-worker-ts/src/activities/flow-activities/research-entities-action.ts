@@ -1,4 +1,3 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { OriginProvenance } from "@local/hash-graph-client";
 import { SourceType } from "@local/hash-graph-client";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
@@ -55,8 +54,8 @@ import { linkFollowerAgent } from "./research-entities-action/link-follower-agen
 import { runSubTaskAgent } from "./research-entities-action/sub-task-agent.js";
 import type { CompletedCoordinatorToolCall } from "./research-entities-action/types.js";
 import { nullReturns } from "./research-entities-action/types.js";
-import type { LocalEntitySummary } from "./shared/infer-claims-from-text/get-entity-summaries-from-text.js";
-import type { Claim } from "./shared/infer-claims-from-text/types.js";
+import type { LocalEntitySummary } from "./shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
+import type { Claim } from "./shared/infer-summaries-then-claims-from-text/types.js";
 import { proposeEntitiesFromClaims } from "./shared/propose-entities-from-claims.js";
 import type { FlowActionActivity } from "./types.js";
 
@@ -480,74 +479,11 @@ const execResearchEntitiesAction: FlowActionActivity<{
             const { resources } =
               toolCall.input as CoordinatorToolCallArguments["inferClaimsFromResources"];
 
-            const validEntityTypeIds = input.entityTypes.map(({ $id }) => $id);
-
-            const invalidEntityTypeIds = resources
-              .flatMap(({ entityTypeIds }) => entityTypeIds)
-              .filter(
-                (entityTypeId) =>
-                  !validEntityTypeIds.includes(entityTypeId as VersionedUrl),
-              );
-
-            const validLinkEntityTypeIds =
-              input.linkEntityTypes?.map(({ $id }) => $id) ?? [];
-
-            const invalidLinkEntityTypeIds = resources
-              .flatMap(({ linkEntityTypeIds }) => linkEntityTypeIds ?? [])
-              .filter(
-                (entityTypeId) =>
-                  !validLinkEntityTypeIds.includes(
-                    entityTypeId as VersionedUrl,
-                  ),
-              );
-
-            if (
-              invalidEntityTypeIds.length > 0 ||
-              invalidLinkEntityTypeIds.length > 0
-            ) {
-              return {
-                ...toolCall,
-                ...nullReturns,
-                output: dedent(`
-                  ${
-                    invalidEntityTypeIds.length > 0
-                      ? dedent(`
-                        The following entity type IDs are invalid: ${JSON.stringify(
-                          invalidEntityTypeIds,
-                        )}
-
-                        Valid entity type IDs are: ${JSON.stringify(
-                          validEntityTypeIds,
-                        )}
-                      `)
-                      : ""
-                  }
-                  ${
-                    invalidLinkEntityTypeIds.length > 0
-                      ? dedent(`
-                        The following link entity type IDs are invalid: ${JSON.stringify(
-                          invalidLinkEntityTypeIds,
-                        )}
-
-                        The valid link entity types type IDs are: ${JSON.stringify(
-                          validLinkEntityTypeIds,
-                        )}
-                      `)
-                      : ""
-                  }
-
-                `),
-                isError: true,
-              };
-            }
-
             const responsesWithUrl = await Promise.all(
               resources.map(
                 async ({
                   url,
-                  prompt,
-                  entityTypeIds,
-                  linkEntityTypeIds,
+                  goal,
                   relevantEntityIds,
                   descriptionOfExpectedContent,
                   exampleOfExpectedContent,
@@ -569,7 +505,7 @@ const execResearchEntitiesAction: FlowActionActivity<{
                       recordedAt: new Date().toISOString(),
                       type: "StartedLinkExplorerTask",
                       input: {
-                        goal: prompt,
+                        goal,
                         initialUrl: url,
                       },
                       explanation: reason,
@@ -581,28 +517,15 @@ const execResearchEntitiesAction: FlowActionActivity<{
                     workerIdentifiers: linkExplorerIdentifiers,
                     input: {
                       initialResource: {
-                        goal: prompt,
+                        goal,
                         url,
                         descriptionOfExpectedContent,
                         exampleOfExpectedContent,
                         reason,
                       },
-                      task: prompt,
+                      goal,
                       existingEntitiesOfInterest: relevantEntities,
-                      entityTypes: input.entityTypes.filter(
-                        ({ $id }) =>
-                          entityTypeIds.includes($id) ||
-                          relevantEntities.some(
-                            (entity) => entity.entityTypeId === $id,
-                          ),
-                      ),
-                      linkEntityTypes: input.linkEntityTypes?.filter(
-                        ({ $id }) =>
-                          !!linkEntityTypeIds?.includes($id) ||
-                          relevantEntities.some(
-                            (entity) => entity.entityTypeId === $id,
-                          ),
-                      ),
+                      entityTypes: input.entityTypes,
                     },
                   });
 
@@ -611,7 +534,7 @@ const execResearchEntitiesAction: FlowActionActivity<{
                       stepId,
                       recordedAt: new Date().toISOString(),
                       type: "ClosedLinkExplorerTask",
-                      goal: prompt,
+                      goal,
                       output: {
                         claimCount: response.inferredClaims.length,
                         entityCount: response.inferredSummaries.length,
@@ -680,32 +603,10 @@ const execResearchEntitiesAction: FlowActionActivity<{
                   ),
                 )
                 .map(async (subTask) => {
-                  const {
-                    goal,
-                    relevantEntityIds,
-                    entityTypeIds,
-                    linkEntityTypeIds,
-                    explanation,
-                  } = subTask;
+                  const { goal, relevantEntityIds, explanation } = subTask;
 
                   const relevantEntities = state.entitySummaries.filter(
                     ({ localId }) => relevantEntityIds?.includes(localId),
-                  );
-
-                  const entityTypes = input.entityTypes.filter(
-                    ({ $id }) =>
-                      entityTypeIds.includes($id) ||
-                      relevantEntities.some(
-                        (entity) => entity.entityTypeId === $id,
-                      ),
-                  );
-
-                  const linkEntityTypes = input.linkEntityTypes?.filter(
-                    ({ $id }) =>
-                      !!linkEntityTypeIds?.includes($id) ||
-                      relevantEntities.some(
-                        (entity) => entity.entityTypeId === $id,
-                      ),
                   );
 
                   const existingClaimsAboutRelevantEntities =
@@ -724,11 +625,10 @@ const execResearchEntitiesAction: FlowActionActivity<{
                       type: "StartedSubTask",
                       explanation,
                       input: {
-                        entityTypeTitles: [
-                          ...entityTypes.map((type) => type.title),
-                          ...(linkEntityTypes ?? []).map((type) => type.title),
-                        ],
                         goal,
+                        entityTypeTitles: input.entityTypes.map(
+                          (type) => type.title,
+                        ),
                       },
                       recordedAt: new Date().toISOString(),
                       stepId,
@@ -741,8 +641,7 @@ const execResearchEntitiesAction: FlowActionActivity<{
                       goal,
                       relevantEntities,
                       existingClaimsAboutRelevantEntities,
-                      entityTypes,
-                      linkEntityTypes,
+                      entityTypes: input.entityTypes,
                     },
                     workerIdentifiers: subTaskIdentifiers,
                   });

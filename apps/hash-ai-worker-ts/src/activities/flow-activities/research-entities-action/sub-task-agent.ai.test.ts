@@ -72,7 +72,7 @@ test(
     const { userAuthentication } = await getFlowContext();
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
-      entityTypeIds: ["https://hash.ai/@ftse/types/entity-type/person/v/1"],
+      entityTypeIds: ["https://hash.ai/@hash/types/entity-type/person/v/1"],
       actorId: userAuthentication.actorId,
       graphApiClient,
       simplifyPropertyKeys: true,
@@ -88,7 +88,6 @@ test(
         relevantEntities: [],
         existingClaimsAboutRelevantEntities: [],
         entityTypes,
-        linkEntityTypes: [],
       },
       testingParams: {
         persistState: (state) =>
