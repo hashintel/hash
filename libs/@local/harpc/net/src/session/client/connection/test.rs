@@ -1,9 +1,10 @@
 use alloc::sync::Arc;
 use core::{
+    assert_matches::assert_matches,
     sync::atomic::{AtomicUsize, Ordering},
     time::Duration,
 };
-use std::{assert_matches::assert_matches, io};
+use std::io;
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use error_stack::Report;
