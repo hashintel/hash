@@ -114,8 +114,7 @@ where
 #[cfg(test)]
 mod test {
 
-    use core::task::Poll;
-    use std::assert_matches::assert_matches;
+    use core::{assert_matches::assert_matches, task::Poll};
 
     use bytes::Bytes;
     use error_stack::Report;

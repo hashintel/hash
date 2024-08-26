@@ -4,10 +4,9 @@
     type_alias_impl_trait,
     impl_trait_in_assoc_type,
     stmt_expr_attributes,
-    min_exhaustive_patterns,
     error_generic_member_access
 )]
-#![cfg_attr(test, feature(assert_matches, async_fn_track_caller, iter_repeat_n))]
+#![cfg_attr(test, feature(assert_matches, async_fn_track_caller))]
 
 extern crate alloc;
 

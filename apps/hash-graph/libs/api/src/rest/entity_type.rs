@@ -541,7 +541,7 @@ enum LoadExternalEntityTypeRequest {
     #[serde(rename_all = "camelCase")]
     Create {
         #[schema(value_type = VAR_ENTITY_TYPE)]
-        schema: EntityType,
+        schema: Box<EntityType>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         label_property: Option<BaseUrl>,
         #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -667,7 +667,7 @@ where
                     .create_entity_type(
                         actor_id,
                         CreateEntityTypeParams {
-                            schema,
+                            schema: *schema,
                             label_property,
                             icon,
                             classification: OntologyTypeClassificationMetadata::External {

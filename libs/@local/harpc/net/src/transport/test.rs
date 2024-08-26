@@ -1,10 +1,10 @@
 use core::{
+    assert_matches::assert_matches,
     iter,
     net::Ipv4Addr,
     sync::atomic::{AtomicU64, Ordering},
     time::Duration,
 };
-use std::assert_matches::assert_matches;
 
 use futures::{sink, SinkExt, StreamExt};
 use harpc_wire_protocol::{

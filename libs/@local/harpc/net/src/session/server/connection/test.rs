@@ -1,7 +1,7 @@
 #![expect(clippy::significant_drop_tightening, reason = "this is test code")]
 use alloc::sync::Arc;
-use core::{num::NonZero, time::Duration};
-use std::{assert_matches::assert_matches, io};
+use core::{assert_matches::assert_matches, num::NonZero, time::Duration};
+use std::io;
 
 use bytes::Bytes;
 use futures::{prelude::sink::SinkExt, StreamExt};

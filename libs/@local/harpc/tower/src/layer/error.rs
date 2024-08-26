@@ -43,7 +43,7 @@ impl Error for BoxedError {
         Some(&*self.0)
     }
 
-    fn provide<'a>(&'a self, request: &mut std::error::Request<'a>) {
+    fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
         self.0.provide(request);
     }
 }
@@ -230,7 +230,7 @@ pub(crate) mod test {
     }
 
     impl Error for GenericError {
-        fn provide<'a>(&'a self, request: &mut std::error::Request<'a>) {
+        fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
             request.provide_value(self.0);
         }
     }
