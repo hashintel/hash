@@ -16,9 +16,9 @@ import {
 } from "../../shared/get-flow-context.js";
 import { logProgress } from "../../shared/log-progress.js";
 import { stringify } from "../../shared/stringify.js";
+import { inferSummariesThenClaimsFromText } from "../shared/infer-summaries-then-claims-from-text.js";
 import type { LocalEntitySummary } from "../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import type { Claim } from "../shared/infer-summaries-then-claims-from-text/types.js";
-import { inferSummariesThenClaimsFromText } from "../shared/infer-summaries-then-claims-from-text.js";
 import { deduplicateEntities } from "./deduplicate-entities.js";
 import type { Link } from "./link-follower-agent/choose-relevant-links-from-content.js";
 import { chooseRelevantLinksFromContent } from "./link-follower-agent/choose-relevant-links-from-content.js";
