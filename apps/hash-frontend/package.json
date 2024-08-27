@@ -63,7 +63,7 @@
     "axios": "1.7.4",
     "buffer": "6.0.3",
     "clsx": "1.2.1",
-    "date-fns": "2.28.0",
+    "date-fns": "2.30.0",
     "dotenv-flow": "3.2.0",
     "elkjs": "0.9.3",
     "emoji-mart": "5.2.1",
