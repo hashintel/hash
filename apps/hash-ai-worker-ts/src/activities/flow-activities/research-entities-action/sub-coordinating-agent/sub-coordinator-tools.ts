@@ -9,13 +9,20 @@ import type {
   CoordinatorToolCallArguments,
   CoordinatorToolName,
 } from "../shared/coordinator-tools.js";
-import { generateToolDefinitions as generateCoordinatorToolDefinitions } from "../shared/coordinator-tools.js";
+import {
+  coordinatorToolNames,
+  generateToolDefinitions as generateCoordinatorToolDefinitions,
+} from "../shared/coordinator-tools.js";
+import type { SubCoordinatingAgentState } from "./state.js";
 
+/**
+ * If one of these tools is granted to the sub-coordinator, the processing logic in {@link getToolCallResults} must be updated.
+ */
 const omittedCoordinatorToolNames = [
   "complete",
   "delegateResearchTask",
   "requestHumanInput",
-] as const;
+] as const satisfies CoordinatorToolName[];
 
 type OmittedCoordinatorToolNames = Subtype<
   CoordinatorToolName,
@@ -24,12 +31,23 @@ type OmittedCoordinatorToolNames = Subtype<
 
 const subCoordinatingAgentCustomToolNames = ["complete"] as const;
 
+const subCoordinatingAgentToolNames = [
+  ...subCoordinatingAgentCustomToolNames,
+  ...coordinatorToolNames.filter(
+    (
+      toolName,
+    ): toolName is Exclude<CoordinatorToolName, OmittedCoordinatorToolNames> =>
+      !omittedCoordinatorToolNames.includes(
+        toolName as OmittedCoordinatorToolNames,
+      ),
+  ),
+] as const;
+
 type SubCoordinatingAgentCustomToolName =
   (typeof subCoordinatingAgentCustomToolNames)[number];
 
 export type SubCoordinatingAgentToolName =
-  | Exclude<CoordinatorToolName, OmittedCoordinatorToolNames>
-  | SubCoordinatingAgentCustomToolName;
+  (typeof subCoordinatingAgentToolNames)[number];
 
 /**
  * Generate tool definitions for the sub-coordinating agent, to be passed to the LLM.
@@ -39,6 +57,7 @@ export const generateToolDefinitions = <
 >(params: {
   dataSources: FlowDataSources;
   omitTools: T;
+  state: SubCoordinatingAgentState;
 }): Record<
   Exclude<SubCoordinatingAgentToolName, T[number]>,
   LlmToolDefinition<Exclude<SubCoordinatingAgentToolName, T[number]>>
@@ -46,6 +65,7 @@ export const generateToolDefinitions = <
   const coordinatorToolDefinitions = generateCoordinatorToolDefinitions({
     dataSources: params.dataSources,
     omitTools: omittedCoordinatorToolNames.concat(),
+    state: params.state,
   });
 
   const allToolDefinitions = {

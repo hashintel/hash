@@ -10,6 +10,7 @@ import {
 } from "../shared/simplify-for-llm-consumption.js";
 import type { SubCoordinatingAgentInput } from "./input.js";
 import type { SubCoordinatingAgentState } from "./state.js";
+import { generateOutstandingTasksDescription } from "../shared/coordinator-tools.js";
 
 export const generateSystemPromptPrefix = (params: {
   input: SubCoordinatingAgentInput;
@@ -182,6 +183,8 @@ export const generateProgressReport = (params: {
 
   text +=
     "Now decide what to do next – if you have already sufficient information to complete the task, call 'complete'.";
+
+  text += generateOutstandingTasksDescription(state);
 
   return {
     type: "text",

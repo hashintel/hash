@@ -3,43 +3,44 @@ import type {
   FlowDataSources,
   WorkerIdentifiers,
 } from "@local/hash-isomorphic-utils/flows/types";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import { sleep } from "@local/hash-isomorphic-utils/sleep";
+import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
 import dedent from "dedent";
 
 import { logger } from "../../../shared/activity-logger.js";
-import { getFlowContext } from "../../../shared/get-flow-context.js";
 import type {
   LlmToolDefinition,
   ParsedLlmToolCall,
 } from "../../../shared/get-llm-response/types.js";
-import { logProgress } from "../../../shared/log-progress.js";
-import { stringify } from "../../../shared/stringify.js";
 import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import type { Claim } from "../../shared/infer-summaries-then-claims-from-text/types.js";
-import { getAnswersFromHuman } from "../get-answers-from-human.js";
-import { linkFollowerAgent } from "../link-follower-agent.js";
-import { runSubCoordinatingAgent } from "../sub-coordinating-agent.js";
 import type { SubCoordinatingAgentInput } from "../sub-coordinating-agent/input.js";
 import type { SubCoordinatingAgentState } from "../sub-coordinating-agent/state.js";
 import type {
   ParsedSubCoordinatorToolCall,
-  ParsedSubCoordinatorToolCallMap,
   SubCoordinatingAgentToolName,
 } from "../sub-coordinating-agent/sub-coordinator-tools.js";
 import type {
+  GetCoordinatorToolCallResultsParams,
+  GetSubCoordinatorToolCallResultsParams,
+} from "./coordinator-tools/get-tool-call-results.js";
+import { getToolCallResults } from "./coordinator-tools/get-tool-call-results.js";
+import type {
   CoordinatingAgentInput,
   CoordinatingAgentState,
+  OutstandingCoordinatorTask,
 } from "./coordinators.js";
 import type { WebResourceSummary } from "./handle-web-search-tool-call.js";
-import { handleWebSearchToolCall } from "./handle-web-search-tool-call.js";
 
 export const coordinatorToolNames = [
   "complete",
   "delegateResearchTask",
   "inferClaimsFromResource",
   "requestHumanInput",
+  "stopTasks",
   "terminate",
   "updatePlan",
+  "waitForOutstandingTasks",
   "webSearch",
 ] as const;
 
@@ -59,22 +60,67 @@ export const generateToolDefinitions = <
 >(params: {
   dataSources: FlowDataSources;
   omitTools?: T;
-  state?: CoordinatingAgentState;
+  state: CoordinatingAgentState | SubCoordinatingAgentState;
 }): Record<
   Exclude<CoordinatorToolName, T[number]>,
   LlmToolDefinition<Exclude<CoordinatorToolName, T[number]>>
 > => {
   const { internetAccess } = params.dataSources;
 
+  const { outstandingTasks } = params.state;
+
   const omitTools: CoordinatorToolName[] = params.omitTools ?? [];
   if (!internetAccess.enabled) {
     omitTools.push("webSearch");
+  }
+
+  if (outstandingTasks.length === 0) {
+    omitTools.push("waitForOutstandingTasks", "stopTasks");
   }
 
   const allToolDefinitions: Record<
     CoordinatorToolName,
     LlmToolDefinition<CoordinatorToolName>
   > = {
+    waitForOutstandingTasks: {
+      name: "waitForOutstandingTasks",
+      description:
+        "Wait for at least some of the outstanding tasks to complete before deciding to pursue any new tasks. You can choose to additionally 'stopTasks' if you think some of the outstanding tasks are no longer useful.",
+      inputSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          explanation: {
+            type: "string",
+            description:
+              "An explanation of why waiting for these tasks before taking any other action is the best way to proceed.",
+          },
+        },
+        required: ["explanation"],
+      },
+    },
+    stopTasks: {
+      name: "stopTasks",
+      description: "Stop one or more outstanding tasks.",
+      inputSchema: {
+        type: "object",
+        additionalProperties: false,
+        properties: {
+          explanation: {
+            type: "string",
+            description:
+              "An explanation of why these tasks are no longer necessary to further the research task",
+          },
+          taskIds: {
+            type: "array",
+            items: {
+              type: "string",
+            },
+          },
+        },
+        required: ["explanation"],
+      },
+    },
     requestHumanInput: {
       name: "requestHumanInput",
       description:
@@ -126,7 +172,7 @@ export const generateToolDefinitions = <
                   The entityId of the proposed entities which the task is relevant to.
                   
                   ${
-                    params.state?.entitySummaries.length
+                    params.state.entitySummaries.length
                       ? `The possible values are: ${params.state.entitySummaries
                           .map(({ localId }) => localId)
                           .join(", ")}`
@@ -352,6 +398,13 @@ export const generateToolDefinitions = <
 export type CoordinatorToolCallArguments = Subtype<
   Record<CoordinatorToolName, unknown>,
   {
+    stopTasks: {
+      explanation: string;
+      taskIds: string[];
+    };
+    waitForOutstandingTasks: {
+      explanation: string;
+    };
     requestHumanInput: {
       explanation: string;
       questions: string[];
@@ -429,309 +482,272 @@ export const nullReturns: Omit<
   webQueriesMade: null,
 };
 
+/**
+ * Whether a task is expected to take a non-trivial amount of time to complete.
+ *
+ * This is used to decide whether to wait for the task to complete before returning to the coordinator.
+ *
+ * We can wait for all tasks that DON'T potentially take a long time to complete before asking the agent for another
+ * decision.
+ */
 export const isLongRunningTask: Record<CoordinatorToolName, boolean> = {
   complete: false,
   delegateResearchTask: true,
   inferClaimsFromResource: true,
   requestHumanInput: true,
+  stopTasks: false,
   terminate: false,
   updatePlan: false,
+  waitForOutstandingTasks: false,
   webSearch: false,
 };
 
-type GetCoordinatorToolCallResultsParams = {
+/**
+ * Handle any errors thrown while processing the tool call.
+ *
+ * This should be rare as any agents called should return 'isError' and 'output' in an object rather than throwing an error.
+ *
+ * This should only be called as a fallback for when unexpected errors are thrown somewhere.
+ */
+const toolCallExceptionHandler = <
+  ToolCall extends ParsedCoordinatorToolCall | ParsedSubCoordinatorToolCall,
+>({
+  agentType,
+  error,
+  toolCall,
+}: {
+  agentType: "coordinator" | "sub-coordinator";
+  error: unknown;
+  toolCall: ToolCall;
+}): CompletedCoordinatorToolCall<ToolCall["name"]> => {
+  logger.error(
+    `Error getting ${agentType} tool call results for tool call ${toolCall.name} with id ${toolCall.id}: ${stringifyError(error)}`,
+  );
+
+  const errorForLlm =
+    error && typeof error === "object" && "message" in error
+      ? (error as Error).message
+      : stringifyError(error);
+
+  return {
+    ...nullReturns,
+    ...toolCall,
+    isError: true,
+    output: `Error using tool: ${errorForLlm}`,
+  };
+};
+
+type TriggerCoordinatorToolCallsRequestsParams = {
   agentType: "coordinator";
   input: CoordinatingAgentInput;
   state: CoordinatingAgentState;
-  toolCalls: Exclude<
-    ParsedCoordinatorToolCall,
-    | ParsedCoordinatorToolCallMap["complete"]
-    | ParsedCoordinatorToolCallMap["terminate"]
-  >[];
+  toolCalls: GetCoordinatorToolCallResultsParams["toolCall"][];
   workerIdentifiers: WorkerIdentifiers;
 };
 
-type GetSubCoordinatorToolCallResultsParams = {
+type TriggerSubCoordinatorToolCallsRequestsParams = {
   agentType: "sub-coordinator";
   input: SubCoordinatingAgentInput;
   state: SubCoordinatingAgentState;
-  toolCalls: Exclude<
-    ParsedSubCoordinatorToolCall,
-    | ParsedSubCoordinatorToolCallMap["complete"]
-    | ParsedSubCoordinatorToolCallMap["terminate"]
-  >[];
+  toolCalls: GetSubCoordinatorToolCallResultsParams["toolCall"][];
   workerIdentifiers: WorkerIdentifiers;
 };
 
-export function getToolCallResults(
-  params: GetCoordinatorToolCallResultsParams,
-): Promise<
-  CompletedCoordinatorToolCall<
-    Exclude<CoordinatorToolName, "complete" | "terminate">
-  >[]
->;
+export function triggerToolCallsRequests(
+  params: TriggerCoordinatorToolCallsRequestsParams,
+): OutstandingCoordinatorTask<ParsedCoordinatorToolCall>[];
 
-export function getToolCallResults(
-  params: GetSubCoordinatorToolCallResultsParams,
-): Promise<
-  CompletedCoordinatorToolCall<
-    Exclude<SubCoordinatingAgentToolName, "complete" | "terminate">
-  >[]
->;
+export function triggerToolCallsRequests(
+  params: TriggerSubCoordinatorToolCallsRequestsParams,
+): OutstandingCoordinatorTask<ParsedSubCoordinatorToolCall>[];
 
-export async function getToolCallResults({
-  agentType,
-  input,
-  state,
+/**
+ * Trigger the requests for the results of tool calls.
+ *
+ * This intentionally does not await the results promises, allowing the caller to decide which to wait for.
+ */
+export function triggerToolCallsRequests({
   toolCalls,
-  workerIdentifiers,
+  ...restParams
 }:
-  | GetCoordinatorToolCallResultsParams
-  | GetSubCoordinatorToolCallResultsParams): Promise<
-  CompletedCoordinatorToolCall<
-    CoordinatorToolName | SubCoordinatingAgentToolName
-  >[]
-> {
-  const { stepId } = await getFlowContext();
-
-  return await Promise.all(
-    toolCalls.map(
-      async (
-        toolCall,
-      ): Promise<CompletedCoordinatorToolCall<CoordinatorToolName>> => {
-        if (toolCall.name === "updatePlan") {
-          const { plan } = toolCall.input;
-
-          return {
-            ...nullReturns,
-            ...toolCall,
-            updatedPlan: plan,
-            output: `The plan has been successfully updated.`,
-          };
-        } else if (toolCall.name === "requestHumanInput") {
-          if (agentType === "sub-coordinator") {
-            throw new Error(
-              "Sub-coordinator cannot use requestHumanInput tool",
-            );
-          }
-
-          const { questions } = toolCall.input;
-
-          if (questions.length === 0) {
-            return {
-              ...toolCall,
-              ...nullReturns,
-              output: "No questions were provided.",
-              isError: true,
-            };
-          }
-
-          logger.debug(
-            `Requesting human input for questions: ${stringify(questions)}`,
-          );
-
-          const response = await getAnswersFromHuman(toolCall.input.questions);
-
-          // eslint-disable-next-line no-param-reassign
-          state.questionsAndAnswers =
-            (state.questionsAndAnswers ?? "") + response;
-
-          return {
-            ...nullReturns,
-            ...toolCall,
-            output: response,
-          };
-        } else if (toolCall.name === "webSearch") {
-          const webPageSummaries = await handleWebSearchToolCall({
-            input: toolCall.input,
-            workerIdentifiers,
-          });
-
-          if ("error" in webPageSummaries) {
-            return {
-              ...toolCall,
-              ...nullReturns,
-              isError: true,
-              output: webPageSummaries.error,
-            };
-          }
-
-          return {
-            ...nullReturns,
-            ...toolCall,
-            output: "Search successful",
-            webPagesFromSearchQuery: webPageSummaries,
-          };
-        } else if (toolCall.name === "inferClaimsFromResource") {
-          const {
-            url,
-            goal,
-            relevantEntityIds,
-            descriptionOfExpectedContent,
-            exampleOfExpectedContent,
-            explanation,
-          } = toolCall.input;
-
-          const relevantEntities = state.entitySummaries.filter(({ localId }) =>
-            relevantEntityIds?.includes(localId),
-          );
-
-          const linkExplorerIdentifiers: WorkerIdentifiers = {
-            workerType: "Link explorer",
-            workerInstanceId: generateUuid(),
-            parentInstanceId: workerIdentifiers.workerInstanceId,
-          };
-
-          logProgress([
-            {
-              stepId,
-              recordedAt: new Date().toISOString(),
-              type: "StartedLinkExplorerTask",
-              input: {
-                goal,
-                initialUrl: url,
-              },
-              explanation,
-              ...linkExplorerIdentifiers,
-            },
-          ]);
-
-          const response = await linkFollowerAgent({
-            workerIdentifiers: linkExplorerIdentifiers,
-            input: {
-              initialResource: {
-                goal,
-                url,
-                descriptionOfExpectedContent,
-                exampleOfExpectedContent,
-                reason: explanation,
-              },
-              goal,
-              existingEntitiesOfInterest: relevantEntities,
-              entityTypes: input.entityTypes,
-            },
-          });
-
-          logProgress([
-            {
-              stepId,
-              recordedAt: new Date().toISOString(),
-              type: "ClosedLinkExplorerTask",
-              goal,
-              output: {
-                claimCount: response.inferredClaims.length,
-                entityCount: response.inferredSummaries.length,
-                resourcesExploredCount: response.exploredResources.length,
-                suggestionForNextSteps: response.suggestionForNextSteps,
-              },
-              ...linkExplorerIdentifiers,
-            },
-          ]);
-
-          return {
-            ...toolCall,
-            ...nullReturns,
-            inferredClaims: response.inferredClaims,
-            entitySummaries: response.inferredSummaries,
-            suggestionsForNextStepsMade: [response.suggestionForNextSteps],
-            resourceUrlsVisited: response.exploredResources.map(
-              (resource) => resource.url,
-            ),
-            output:
-              response.inferredSummaries.length > 0
-                ? "Entities inferred from web page"
-                : "No claims were inferred about any relevant entities.",
-          };
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- safeguard to ensure all cases are handled
-        } else if (toolCall.name === "delegateResearchTask") {
-          if (agentType === "sub-coordinator") {
-            throw new Error(
-              "Sub-coordinator cannot use delegateResearchTask tool",
-            );
-          }
-          const { goal, relevantEntityIds, explanation } = toolCall.input;
-
-          const relevantEntities = state.entitySummaries.filter(({ localId }) =>
-            relevantEntityIds?.includes(localId),
-          );
-
-          const existingClaimsAboutRelevantEntities =
-            state.inferredClaims.filter(({ subjectEntityLocalId }) =>
-              relevantEntityIds?.includes(subjectEntityLocalId),
-            );
-
-          const delegatedTaskIdentifiers: WorkerIdentifiers = {
-            workerType: "Sub-coordinator",
-            workerInstanceId: generateUuid(),
-            parentInstanceId: workerIdentifiers.workerInstanceId,
-          };
-
-          logProgress([
-            {
-              type: "StartedSubCoordinator",
-              explanation,
-              input: {
-                goal,
-                entityTypeTitles: input.entityTypes.map((type) => type.title),
-              },
-              recordedAt: new Date().toISOString(),
-              stepId,
-              ...delegatedTaskIdentifiers,
-            },
-          ]);
-
-          const response = await runSubCoordinatingAgent({
-            input: {
-              goal,
-              relevantEntities,
-              existingClaimsAboutRelevantEntities,
-              entityTypes: input.entityTypes,
-            },
-            workerIdentifiers: delegatedTaskIdentifiers,
-          });
-
-          logProgress([
-            {
-              type: "ClosedSubCoordinator",
-              errorMessage:
-                response.status !== "ok" ? response.explanation : undefined,
-              explanation:
-                response.status === "ok"
-                  ? response.explanation
-                  : response.explanation,
-              goal,
-              output:
-                response.status === "ok"
-                  ? {
-                      claimCount: response.discoveredClaims.length,
-                      entityCount: response.discoveredEntities.length,
-                    }
-                  : { claimCount: 0, entityCount: 0 },
-              recordedAt: new Date().toISOString(),
-              stepId,
-              ...delegatedTaskIdentifiers,
-            },
-          ]);
-
-          const errorMessage =
-            response.status === "ok"
-              ? null
-              : `An error occurred in the delegated task: ${response.explanation}`;
-
-          return {
-            ...toolCall,
-            ...nullReturns,
-            inferredClaims: response.discoveredClaims,
-            entitySummaries: response.discoveredEntities,
-            delegatedTasksCompleted: [goal],
-            output: errorMessage ?? "Delegated tasks completed.",
-            isError: !!errorMessage,
-          };
-        }
-
-        // @ts-expect-error –– safeguard to ensure all cases are handled
-        throw new Error(`Unimplemented tool call: ${toolCall.name}`);
+  | TriggerCoordinatorToolCallsRequestsParams
+  | TriggerSubCoordinatorToolCallsRequestsParams):
+  | OutstandingCoordinatorTask<ParsedCoordinatorToolCall>[]
+  | OutstandingCoordinatorTask<ParsedSubCoordinatorToolCall>[] {
+  return toolCalls.map((toolCall) => {
+    const baseReturn = {
+      longRunning: isLongRunningTask[toolCall.name],
+      toolCall,
+      /**
+       * The fact that this is an object is relied on by the finally function below, in order to be able to mutate the
+       * value. It can't be 'status: boolean' because baseReturn.status would not refer to the same location in memory
+       * – baseReturn is spread below, creating a new object with a new boolean. Whereas 'status: object' points to the
+       * same object.
+       *
+       * If you change this, make sure the fulfilment status of the promise is set some other way.
+       */
+      status: {
+        fulfilled: false,
       },
-    ),
-  );
+    };
+
+    /**
+     * This repetitive branching is for the TypeScript compiler's benefit, being the least bad way to handle the type
+     * narrowing that I could come up with without more time investment in refactoring the functions involved.
+     */
+    if (restParams.agentType === "coordinator") {
+      return {
+        ...baseReturn,
+        resultsPromise: getToolCallResults({
+          ...restParams,
+          toolCall,
+        })
+          .catch((error: unknown) =>
+            toolCallExceptionHandler({
+              agentType: restParams.agentType,
+              error,
+              toolCall,
+            }),
+          )
+          .finally(() => {
+            baseReturn.status.fulfilled = true;
+          }),
+      };
+    } else {
+      return {
+        ...baseReturn,
+        resultsPromise: getToolCallResults({
+          ...restParams,
+          toolCall:
+            /**
+             * Ideally we would not have to do this.
+             */
+            toolCall as GetSubCoordinatorToolCallResultsParams["toolCall"],
+        })
+          .catch((error: unknown) =>
+            toolCallExceptionHandler({
+              agentType: restParams.agentType,
+              error,
+              toolCall,
+            }),
+          )
+          .finally(() => {
+            baseReturn.status.fulfilled = true;
+          }),
+      };
+    }
+  });
 }
+
+export async function getSomeToolCallResults(params: {
+  state: CoordinatingAgentState;
+}): Promise<CompletedCoordinatorToolCall<CoordinatorToolName>[]>;
+
+export async function getSomeToolCallResults(params: {
+  state: SubCoordinatingAgentState;
+}): Promise<CompletedCoordinatorToolCall<SubCoordinatingAgentToolName>[]>;
+
+/**
+ * Get tool call results for state.outstandingTasks as follows:
+ * 1. All short-lived tasks
+ * 2. The first long-lived task to complete, plus any others that complete within 5 seconds
+ *
+ * Note that if a long-running task was not ready last time this function was called, but became ready in the meantime,
+ * this function will return the results of that task plus any others that complete within 5 seconds.
+ * An alternative would be to wait for the first _NEW_ long-running task to complete,
+ * having first gathered the long-running tasks that are already ready and filter them out of the outstandingTasks.
+ *
+ * @modifies {state} to remove items from outstanding tasks
+ */
+export async function getSomeToolCallResults({
+  state,
+}: {
+  state: CoordinatingAgentState | SubCoordinatingAgentState;
+}): Promise<
+  | CompletedToolCall<CoordinatorToolName>[]
+  | CompletedToolCall<SubCoordinatingAgentToolName>[]
+> {
+  const outstandingShortLivedTasks = state.outstandingTasks.filter(
+    ({ longRunning }) => !longRunning,
+  );
+  const outstandingLongRunningTasks = state.outstandingTasks.filter(
+    ({ longRunning }) => longRunning,
+  );
+
+  const readyTasks = (
+    await Promise.all([
+      /**
+       * Wait for all the short-lived tasks to complete
+       */
+      await Promise.all(
+        outstandingShortLivedTasks.map(({ resultsPromise }) => resultsPromise),
+      ),
+      /**
+       * Wait for the first long-lived task to complete
+       */
+      await Promise.race(
+        outstandingLongRunningTasks.map(({ resultsPromise }) => resultsPromise),
+      ),
+    ])
+  ).flat();
+
+  /**
+   * A short grace period to allow for any long-running tasks which are ready soon after the first one.
+   */
+  await sleep(5_000);
+
+  for (const outstandingTask of outstandingLongRunningTasks) {
+    if (
+      readyTasks.find(
+        (readyTask) => readyTask.id === outstandingTask.toolCall.id,
+      )
+    ) {
+      /** we already have this one */
+      continue;
+    }
+
+    if (outstandingTask.status.fulfilled) {
+      readyTasks.push(await outstandingTask.resultsPromise);
+    }
+  }
+
+  // eslint-disable-next-line no-param-reassign
+  state.outstandingTasks = state.outstandingTasks.filter(
+    (outstandingTask) =>
+      !readyTasks.find(
+        (readyTask) => readyTask.id === outstandingTask.toolCall.id,
+      ),
+    // this is a reasonably safe assertion for the compiler's benefit that we're not changing the array type
+  ) as typeof state.outstandingTasks;
+
+  return readyTasks;
+}
+
+export const generateOutstandingTasksDescription = (
+  state: CoordinatingAgentState | SubCoordinatingAgentState,
+) => {
+  if (state.outstandingTasks.length === 0) {
+    return "";
+  }
+
+  return dedent(`
+    The following tasks are still outstanding. You may decide to do one of the following:
+    1. Call 'waitForOutstandingTasks' to wait for outstanding tasks, OR
+    2. Start new tasks.
+    
+    You may optionally also call 'stopTasks' to stop specific tasks you think are no longer relevant,
+    whether or not you're creating new tasks or waiting for outstanding tasks, using their 'taskId'.
+    
+    The outstanding tasks are:
+    ${state.outstandingTasks
+      .map((task) =>
+        dedent(`<OutstandingTask>
+      taskId: ${task.toolCall.id}
+      type: ${task.toolCall.name}
+      input: ${JSON.stringify(task.toolCall.input)}
+      </OutstandingTask>
+    `),
+      )
+      .join("\n")}
+  `);
+};

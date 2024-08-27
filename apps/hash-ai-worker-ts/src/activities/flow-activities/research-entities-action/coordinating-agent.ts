@@ -39,12 +39,12 @@ import { requestCoordinatorActions } from "./coordinating-agent/request-coordina
 import type { ExistingEntitySummary } from "./coordinating-agent/summarize-existing-entities.js";
 import { summarizeExistingEntities } from "./coordinating-agent/summarize-existing-entities.js";
 import { updateStateFromInferredClaims } from "./coordinating-agent/update-state-from-inferred-claims.js";
-import type {
-  CompletedCoordinatorToolCall,
-  CoordinatorToolName,
-  ParsedCoordinatorToolCall,
+import type { ParsedCoordinatorToolCall } from "./shared/coordinator-tools.js";
+import {
+  getSomeToolCallResults,
+  nullReturns,
+  triggerToolCallsRequests,
 } from "./shared/coordinator-tools.js";
-import { getToolCallResults, nullReturns } from "./shared/coordinator-tools.js";
 import type {
   CoordinatingAgentInput,
   CoordinatingAgentState,
@@ -249,19 +249,40 @@ export const runCoordinatingAgent: FlowActionActivity<{
       return;
     }
 
-    const nonClosingToolCalls = toolCalls.filter(
-      (toolCall) =>
-        toolCall.name !== "terminate" && toolCall.name !== "complete",
+    const taskIdsToStop = toolCalls.flatMap((call) =>
+      call.name === "stopTasks" ? call.input.taskIds : [],
+    );
+    // eslint-disable-next-line no-param-reassign
+    state.outstandingTasks = state.outstandingTasks.filter(
+      (task) => !taskIdsToStop.includes(task.toolCall.id),
     );
 
-    const toolCallResults: CompletedCoordinatorToolCall<CoordinatorToolName>[] =
-      await getToolCallResults({
+    const requestMakingToolCalls = toolCalls.filter(
+      (toolCall) =>
+        toolCall.name !== "terminate" &&
+        toolCall.name !== "complete" &&
+        toolCall.name !== "stopTasks" &&
+        toolCall.name !== "waitForOutstandingTasks",
+    );
+
+    state.outstandingTasks.push(
+      ...triggerToolCallsRequests({
         agentType: "coordinator",
         input,
         state,
-        toolCalls: nonClosingToolCalls,
+        toolCalls: requestMakingToolCalls,
         workerIdentifiers,
-      });
+      }),
+    );
+
+    const toolCallResults = await getSomeToolCallResults({
+      state,
+    });
+
+    processCommonStateMutationsFromToolResults({
+      toolCallResults,
+      state,
+    });
 
     const updatedPlan = toolCallResults.find(
       (call) => !!call.updatedPlan,
@@ -281,11 +302,6 @@ export const runCoordinatingAgent: FlowActionActivity<{
         },
       ]);
     }
-
-    processCommonStateMutationsFromToolResults({
-      toolCallResults,
-      state,
-    });
 
     state.delegatedTasksCompleted.push(
       ...toolCallResults.flatMap(

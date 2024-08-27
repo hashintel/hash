@@ -9,6 +9,7 @@ import {
   simplifyEntityTypeForLlmConsumption,
   simplifyProposedEntityForLlmConsumption,
 } from "../shared/simplify-for-llm-consumption.js";
+import { generateOutstandingTasksDescription } from "../shared/coordinator-tools.js";
 
 export const generateProgressReport = (params: {
   input: CoordinatingAgentInput;
@@ -149,6 +150,8 @@ export const generateProgressReport = (params: {
 
   progressReport += dedent(`
     Now decide what to do next. Pay close attention to any missing properties on entities, and consider doing work to populate them.
+    
+    ${generateOutstandingTasksDescription(state)}
   `);
 
   return {
