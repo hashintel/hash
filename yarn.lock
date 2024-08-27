@@ -16223,10 +16223,10 @@ duplexify@^3.5.0, duplexify@^3.6.0:
     readable-stream "^2.0.0"
     stream-shift "^1.0.0"
 
-duration-fns@3.0.1:
-  version "3.0.1"
-  resolved "https://registry.yarnpkg.com/duration-fns/-/duration-fns-3.0.1.tgz#72fc3400ee8c511ee36a19edf26bf49104d4c051"
-  integrity sha512-GHxED15UbbjNyCwk8OBGDs5KV+Zn/cloq66c4IPUslC3JfbbXncW9gtxfpG9b0xDVpVkPFzqy6lZaq9iyqff3Q==
+duration-fns@3.0.2:
+  version "3.0.2"
+  resolved "https://registry.yarnpkg.com/duration-fns/-/duration-fns-3.0.2.tgz#842223e05750b2aa66a28a24f58b611b71a44d96"
+  integrity sha512-w82IXh/6aWNHFA0qlQazJYJrZTWieTItuuGTE7YX4cxPaZTWhmVImbsBBiMK1/OhGDgiinuCpJoSFILYLDSKDg==
 
 e2b@0.13.1:
   version "0.13.1"
