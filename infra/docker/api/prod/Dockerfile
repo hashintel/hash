@@ -72,6 +72,6 @@ RUN apt-get update && \
     install -d -m 0775 -o api -g hash /log
 
 USER api:hash
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:5001/health-check || exit 1

@@ -74,6 +74,6 @@ RUN mkdir -p officeParserTemp/tempfiles && \
     chown -R tsworker:hash officeParserTemp
 
 USER tsworker:hash
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:4100/health || exit 1
