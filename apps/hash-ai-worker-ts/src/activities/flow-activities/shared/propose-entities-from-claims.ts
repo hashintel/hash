@@ -19,6 +19,7 @@ export const proposeEntitiesFromClaims = async (params: {
   entitySummaries: LocalEntitySummary[];
   potentialLinkTargetEntitySummaries: LocalEntitySummary[];
   existingEntitySummaries?: ExistingEntitySummary[];
+  existingProposals: ProposedEntity[];
   claims: Claim[];
   dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
   workerIdentifiers: WorkerIdentifiers;
@@ -26,6 +27,7 @@ export const proposeEntitiesFromClaims = async (params: {
   const {
     entitySummaries,
     existingEntitySummaries,
+    existingProposals,
     dereferencedEntityTypes,
     claims,
     potentialLinkTargetEntitySummaries,
@@ -179,6 +181,9 @@ export const proposeEntitiesFromClaims = async (params: {
       proposedEntity: entity,
       stepId,
       recordedAt: now,
+      isUpdateToExistingProposal: existingProposals.some(
+        (proposal) => proposal.localEntityId === entity.localEntityId,
+      ),
       ...workerIdentifiers,
     })),
   );

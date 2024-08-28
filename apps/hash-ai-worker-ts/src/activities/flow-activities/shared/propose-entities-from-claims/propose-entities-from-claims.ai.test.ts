@@ -605,6 +605,7 @@ test(
     const { proposedEntities } = await proposeEntitiesFromClaims({
       entitySummaries: ftse350EntitySummaries,
       existingEntitySummaries: [],
+      existingProposals: [],
       claims,
       dereferencedEntityTypes,
       potentialLinkTargetEntitySummaries: [],
@@ -612,6 +613,7 @@ test(
         workerInstanceId: generateUuid(),
         parentInstanceId: null,
         workerType: "Coordinator",
+        toolCallId: null,
       },
     });
 

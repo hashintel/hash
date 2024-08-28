@@ -8,6 +8,7 @@ import { checkIfWorkerShouldStop } from "./shared/check-if-worker-should-stop.js
 import {
   getSomeToolCallResults,
   handleStopTasksRequests,
+  ParsedSubCoordinatorToolCall,
   triggerToolCallsRequests,
 } from "./shared/coordinator-tools.js";
 import {
@@ -20,7 +21,6 @@ import { createInitialPlan } from "./sub-coordinating-agent/create-initial-plan.
 import type { SubCoordinatingAgentInput } from "./sub-coordinating-agent/input.js";
 import { requestSubCoordinatorActions } from "./sub-coordinating-agent/request-sub-coordinator-actions.js";
 import type { SubCoordinatingAgentState } from "./sub-coordinating-agent/state.js";
-import type { ParsedSubCoordinatorToolCall } from "./sub-coordinating-agent/sub-coordinator-tools.js";
 
 const handleStopReturn = async (
   shouldStopStatus: {
@@ -43,6 +43,10 @@ const handleStopReturn = async (
     );
   }
 
+  /**
+   * If the activity has been cancelled because the workflow was terminated, this log will have no receiver and won't be picked up.
+   * It will be picked up in cases where the workflow continues (e.g. when only this task has been requested to stop).
+   */
   logProgress([
     {
       explanation: shouldStopStatus.explanation,

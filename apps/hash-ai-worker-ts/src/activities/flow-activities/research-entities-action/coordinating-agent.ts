@@ -199,6 +199,7 @@ export const runCoordinatingAgent: FlowActionActivity<{
       input,
       providedFiles,
       questionsAndAnswers: null,
+      state,
     });
 
     logProgress([
@@ -259,6 +260,28 @@ export const runCoordinatingAgent: FlowActionActivity<{
         toolCall.name !== "stopTasks" &&
         toolCall.name !== "waitForOutstandingTasks",
     );
+
+    const waitForTasksToolCall = toolCalls.find(
+      (toolCall) => toolCall.name === "waitForOutstandingTasks",
+    );
+    if (waitForTasksToolCall && !requestMakingToolCalls.length) {
+      /**
+       * If the coordinator has decided to wait for outstanding tasks, notify the user of this.
+       *
+       * We don't do this if the coordinator has _also_ started other work.
+       * It doesn't need to call 'waitForOutstandingTasks' if it's starting other tasks, but it also doesn't do any harm.
+       * 'waitForOutstandingTasks' is just a mechanism to allow it to respond without choosing to do anything else.
+       */
+      logProgress([
+        {
+          stepId,
+          recordedAt: new Date().toISOString(),
+          type: "CoordinatorWaitsForTasks",
+          explanation: waitForTasksToolCall.input.explanation,
+          ...workerIdentifiers,
+        },
+      ]);
+    }
 
     state.outstandingTasks.push(
       ...triggerToolCallsRequests({
@@ -503,6 +526,7 @@ export const runCoordinatingAgent: FlowActionActivity<{
   logProgress(
     fileEntityProposals.map((proposedFileEntity) => ({
       type: "ProposedEntity",
+      isUpdateToExistingProposal: false,
       proposedEntity: proposedFileEntity,
       recordedAt: now,
       stepId,

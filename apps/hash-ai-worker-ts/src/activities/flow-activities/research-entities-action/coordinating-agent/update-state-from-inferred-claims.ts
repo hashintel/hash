@@ -211,6 +211,7 @@ export const updateStateFromInferredClaims = async (params: {
       dereferencedEntityTypes: input.allDereferencedEntityTypesById,
       entitySummaries,
       existingEntitySummaries: input.existingEntitySummaries,
+      existingProposals: state.proposedEntities,
       claims: relevantClaims,
       potentialLinkTargetEntitySummaries,
       workerIdentifiers,

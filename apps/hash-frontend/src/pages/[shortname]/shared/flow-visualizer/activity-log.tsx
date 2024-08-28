@@ -99,14 +99,20 @@ const getEntityPrefixFromLog = (log: StepProgressLog): string => {
 
   const isPersistedEntity = "persistedEntity" in log;
 
-  return isPersistedEntity ? "Persisted entity" : "Proposed entity";
+  return isPersistedEntity
+    ? "Persisted entity"
+    : log.isUpdateToExistingProposal
+      ? "Updated proposed entity"
+      : "Proposed entity";
 };
 
-const visitedWebPagePrefix = "Visited ";
 const viewedPdfFilePrefix = "Viewed PDF file at ";
+const visitedWebPagePrefix = "Visited ";
 const queriedWebPrefix = "Searched web for ";
 const startedCoordinatorPrefix = "Started research coordinator with goal ";
 const closedCoordinatorPrefix = "Finished research coordinator with ";
+const coordinatorWaitsPrefix =
+  "Coordinator is waiting for outstanding tasks to finish.";
 const startedSubCoordinatorPrefix = "Started sub-coordinator with goal ";
 const closedSubCoordinatorPrefix = "Finished sub-coordinator with ";
 const startedLinkExplorerTaskPrefix = "Exploring webpages with goal ";
@@ -154,6 +160,9 @@ const getRawTextFromLog = (log: LocalProgressLog): string => {
     }
     case "ClosedCoordinator": {
       return `${closedCoordinatorPrefix} ${log.output.entityCount} entities discovered`;
+    }
+    case "CoordinatorWaitsForTasks": {
+      return coordinatorWaitsPrefix;
     }
     case "StartedSubCoordinator": {
       return `${startedSubCoordinatorPrefix}“${log.input.goal}”`;
@@ -345,6 +354,9 @@ const LogDetail = ({
           </Box>
         </Stack>
       );
+    }
+    case "CoordinatorWaitsForTasks": {
+      return <Box>{coordinatorWaitsPrefix}</Box>;
     }
     case "StartedSubCoordinator": {
       return (

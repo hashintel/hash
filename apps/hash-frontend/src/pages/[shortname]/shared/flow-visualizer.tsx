@@ -384,7 +384,7 @@ export const FlowVisualizer = () => {
           if (!thisThread) {
             let threadLabel: string;
             if (log.type === "StartedSubCoordinator") {
-              threadLabel = `Sub-task: ${log.input.goal}`;
+              threadLabel = `Sub-coordinator: ${log.input.goal}`;
             } else if (log.type === "StartedLinkExplorerTask") {
               threadLabel = `Link explorer: ${log.input.goal}`;
             } else {

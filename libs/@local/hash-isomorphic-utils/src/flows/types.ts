@@ -479,6 +479,11 @@ export type StartedSubCoordinatorLog = WorkerProgressLogBase & {
   type: "StartedSubCoordinator";
 };
 
+export type CoordinatorWaitsForTasksLog = WorkerProgressLogBase & {
+  explanation: string;
+  type: "CoordinatorWaitsForTasks";
+};
+
 export type ClosedSubCoordinatorLog = WorkerProgressLogBase & {
   errorMessage?: string;
   explanation: string;
@@ -533,6 +538,7 @@ export type ViewedFile = WorkerProgressLogBase & {
 
 export type ProposedEntityLog = WorkerProgressLogBase & {
   proposedEntity: Omit<ProposedEntity, "provenance">;
+  isUpdateToExistingProposal: boolean;
   type: "ProposedEntity";
 };
 
@@ -569,6 +575,7 @@ export type StepProgressLog =
   | ClosedCoordinatorLog
   | ClosedLinkExplorerTaskLog
   | ClosedSubCoordinatorLog
+  | CoordinatorWaitsForTasksLog
   | CreatedPlanLog
   | InferredClaimsFromTextLog
   | PersistedEntityLog
