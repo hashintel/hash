@@ -1,7 +1,4 @@
-import {
-  type OriginProvenance,
-  SourceType,
-} from "@local/hash-graph-client/dist/index.d";
+import { type OriginProvenance, SourceType } from "@local/hash-graph-client";
 import { flattenPropertyMetadata } from "@local/hash-graph-sdk/entity";
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import {
