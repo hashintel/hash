@@ -59,7 +59,7 @@
     "test": "npm-run-all --continue-on-error \"test:*\"",
     "test:unit": "turbo run test:unit --env-mode=loose --",
     "test:integration": "turbo run test:integration --env-mode=loose --",
-    "test:system": "turbo runtest:system --env-mode=loose --",
+    "test:playwright": "turbo run test:integration --env-mode=loose --filter @tests/hash-playwright --",
     "bench": "npm-run-all --continue-on-error \"bench:*\"",
     "bench:unit": "turbo run bench:unit --env-mode=loose --",
     "bench:integration": "turbo run bench:integration --env-mode=loose --",
