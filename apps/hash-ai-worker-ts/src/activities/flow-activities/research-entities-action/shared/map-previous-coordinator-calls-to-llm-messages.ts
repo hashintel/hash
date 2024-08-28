@@ -2,13 +2,13 @@ import type {
   LlmAssistantMessage,
   LlmMessage,
   LlmUserMessage,
-} from "../../shared/get-llm-response/llm-message.js";
+} from "../../../shared/get-llm-response/llm-message.js";
 import type {
   CompletedCoordinatorToolCall,
   CompletedToolCall,
-} from "./types.js";
+} from "./coordinator-tools.js";
 
-export const mapPreviousCallsToLlmMessages = (params: {
+export const mapPreviousCoordinatorCallsToLlmMessages = (params: {
   includeErrorsOnly?: boolean;
   previousCalls: {
     completedToolCalls: (

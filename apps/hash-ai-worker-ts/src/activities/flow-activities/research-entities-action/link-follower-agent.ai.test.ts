@@ -1,11 +1,11 @@
-import "../../../../shared/testing-utilities/mock-get-flow-context.js";
+import "../../../shared/testing-utilities/mock-get-flow-context.js";
 
 import { expect, test } from "vitest";
 
-import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
-import { getFlowContext } from "../../../shared/get-flow-context.js";
-import { graphApiClient } from "../../../shared/graph-api-client.js";
-import { linkFollowerAgent } from "../link-follower-agent.js";
+import { getDereferencedEntityTypesActivity } from "../../get-dereferenced-entity-types-activity.js";
+import { getFlowContext } from "../../shared/get-flow-context.js";
+import { graphApiClient } from "../../shared/graph-api-client.js";
+import { linkFollowerAgent } from "./link-follower-agent.js";
 
 test.skip(
   "Test linkFollowerAgent for Church Lab members",
@@ -39,6 +39,7 @@ test.skip(
         workerType: "Link explorer",
         workerInstanceId: "linkFollowerAgent",
         parentInstanceId: null,
+        toolCallId: null,
       },
     });
 
@@ -84,6 +85,7 @@ test.skip(
         workerType: "Link explorer",
         workerInstanceId: "linkFollowerAgent",
         parentInstanceId: null,
+        toolCallId: null,
       },
     });
 
@@ -131,6 +133,7 @@ test.skip(
         workerType: "Link explorer",
         workerInstanceId: "linkFollowerAgent",
         parentInstanceId: null,
+        toolCallId: null,
       },
     });
 
@@ -179,6 +182,7 @@ test.skip(
         workerType: "Link explorer",
         workerInstanceId: "linkFollowerAgent",
         parentInstanceId: null,
+        toolCallId: null,
       },
     });
 
@@ -227,6 +231,7 @@ test.skip(
         workerType: "Link explorer",
         workerInstanceId: "linkFollowerAgent",
         parentInstanceId: null,
+        toolCallId: null,
       },
     });
 

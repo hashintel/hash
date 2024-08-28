@@ -12,7 +12,7 @@ import { researchActionCheckpointSignal } from "../../../shared/signals.js";
 import { logger } from "../../shared/activity-logger.js";
 import { getTemporalClient } from "../../shared/get-flow-context.js";
 import { flushLogs, logProgress } from "../../shared/log-progress.js";
-import type { CoordinatingAgentState } from "./coordinating-agent.js";
+import type { CoordinatingAgentState } from "./shared/coordinators.js";
 
 /**
  * Start a frequent heartbeat so that the activity is known to be still going.

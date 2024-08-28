@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types.js";
 import { logger } from "../../shared/activity-logger.js";
@@ -48,6 +49,10 @@ export const inferSummariesThenClaimsFromText = async (params: {
    */
   goal: string;
   /**
+   * The identifiers for the worker this agent is operating in.
+   */
+  workerIdentifiers: WorkerIdentifiers;
+  /**
    * Optional parameters for optimization purposes, allowing to overwrite the model used.
    */
   testingParams?: {
@@ -66,6 +71,7 @@ export const inferSummariesThenClaimsFromText = async (params: {
     dereferencedEntityTypes,
     goal,
     testingParams,
+    workerIdentifiers,
   } = params;
 
   const { entitySummaries: newEntitySummaries } =
@@ -137,6 +143,7 @@ export const inferSummariesThenClaimsFromText = async (params: {
                 url,
                 contentType,
                 dereferencedEntityType,
+                workerIdentifiers,
               });
 
             return claimsForSingleEntity;

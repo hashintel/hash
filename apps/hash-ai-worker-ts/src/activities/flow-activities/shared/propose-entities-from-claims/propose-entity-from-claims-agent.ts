@@ -28,7 +28,7 @@ import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-res
 import type { LlmToolDefinition } from "../../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { stringify } from "../../../shared/stringify.js";
-import type { ExistingEntitySummary } from "../../research-entities-action/summarize-existing-entities.js";
+import type { ExistingEntitySummary } from "../../research-entities-action/coordinating-agent/summarize-existing-entities.js";
 import type { LocalEntitySummary } from "../infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import type { Claim } from "../infer-summaries-then-claims-from-text/types.js";
 

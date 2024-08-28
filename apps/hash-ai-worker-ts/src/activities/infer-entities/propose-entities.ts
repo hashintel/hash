@@ -549,6 +549,7 @@ export const proposeEntities = async (params: {
               typedEntries(validProposedEntitiesByType).flatMap(
                 ([entityTypeId, entities]) =>
                   entities.map((entity) => ({
+                    isUpdateToExistingProposal: false,
                     proposedEntity: {
                       ...entity,
                       claims: {
@@ -595,6 +596,7 @@ export const proposeEntities = async (params: {
                     workerType: "Link explorer",
                     parentInstanceId: null,
                     workerInstanceId: "browser-plugin-flow",
+                    toolCallId: null,
                   })),
               ),
             );

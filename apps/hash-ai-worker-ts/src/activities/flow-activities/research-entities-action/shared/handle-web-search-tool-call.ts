@@ -1,8 +1,8 @@
-import {
-  actionDefinitions,
-  type InputNameForAction,
-  type OutputNameForAction,
+import type {
+  InputNameForAction,
+  OutputNameForAction,
 } from "@local/hash-isomorphic-utils/flows/action-definitions";
+import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import type {
   StepInput,
   WebSearchResult,
@@ -11,16 +11,22 @@ import type {
 import { StatusCode } from "@local/status";
 import { Context } from "@temporalio/activity";
 
-import { logProgress } from "../../shared/log-progress.js";
-import { getWebPageSummaryAction } from "../get-web-page-summary-action.js";
-import { webSearchAction } from "../web-search-action.js";
+import { logProgress } from "../../../shared/log-progress.js";
+import { getWebPageSummaryAction } from "../../get-web-page-summary-action.js";
+import { webSearchAction } from "../../web-search-action.js";
 import type { CoordinatorToolCallArguments } from "./coordinator-tools.js";
-import type { ResourceSummary } from "./types.js";
+
+export type WebResourceSummary = {
+  url: string;
+  title: string;
+  summary: string;
+  fromSearchQuery: string;
+};
 
 export const handleWebSearchToolCall = async (params: {
   input: CoordinatorToolCallArguments["webSearch"];
   workerIdentifiers: WorkerIdentifiers;
-}): Promise<ResourceSummary[] | { error: string }> => {
+}): Promise<WebResourceSummary[] | { error: string }> => {
   const { input, workerIdentifiers } = params;
 
   const { query, explanation } = input;
@@ -125,7 +131,7 @@ export const handleWebSearchToolCall = async (params: {
         };
       }),
     )
-  ).filter((result): result is ResourceSummary => !("error" in result));
+  ).filter((result): result is WebResourceSummary => !("error" in result));
 
   return webPageUrlsWithSummaries;
 };

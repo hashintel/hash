@@ -383,13 +383,13 @@ export const FlowVisualizer = () => {
           const thisThread = workerIdToLogsAndParent[log.workerInstanceId];
           if (!thisThread) {
             let threadLabel: string;
-            if (log.type === "StartedSubTask") {
-              threadLabel = `Sub-task: ${log.input.goal}`;
+            if (log.type === "StartedSubCoordinator") {
+              threadLabel = `Sub-coordinator: ${log.input.goal}`;
             } else if (log.type === "StartedLinkExplorerTask") {
               threadLabel = `Link explorer: ${log.input.goal}`;
             } else {
               throw new Error(
-                `Expect new child worker threads to be started with a StartedSubTask or StartedLinkExplorerTask event, got ${log.type}`,
+                `Expect new child worker threads to be started with a StartedSubCoordinator or StartedLinkExplorerTask event, got ${log.type}`,
               );
             }
 
@@ -429,7 +429,7 @@ export const FlowVisualizer = () => {
 
             if (
               log.type === "ClosedLinkExplorerTask" ||
-              log.type === "ClosedSubTask"
+              log.type === "ClosedSubCoordinator"
             ) {
               thisThread.thread!.threadClosedAt = log.recordedAt;
               thisThread.thread!.closedDueToFlowClosure = false;
