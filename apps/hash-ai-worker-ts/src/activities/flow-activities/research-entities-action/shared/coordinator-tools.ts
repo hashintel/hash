@@ -30,6 +30,7 @@ import type {
   CoordinatingAgentState,
   OutstandingCoordinatorTask,
 } from "./coordinators.js";
+import { stopWorkers } from "./coordinators.js";
 import type { WebResourceSummary } from "./handle-web-search-tool-call.js";
 
 export const coordinatorToolNames = [
@@ -106,19 +107,27 @@ export const generateToolDefinitions = <
         type: "object",
         additionalProperties: false,
         properties: {
-          explanation: {
-            type: "string",
-            description:
-              "An explanation of why these tasks are no longer necessary to further the research task",
-          },
-          taskIds: {
+          tasksToStop: {
             type: "array",
             items: {
-              type: "string",
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                explanation: {
+                  type: "string",
+                  description:
+                    "An explanation of why the task is no longer necessary to further the research task",
+                },
+                toolCallId: {
+                  description: "The toolCallId of the stop you wish to stop",
+                  type: "string",
+                },
+              },
             },
+            required: ["explanation", "toolCallId"],
           },
         },
-        required: ["explanation"],
+        required: ["tasksToStop"],
       },
     },
     requestHumanInput: {
@@ -399,8 +408,10 @@ export type CoordinatorToolCallArguments = Subtype<
   Record<CoordinatorToolName, unknown>,
   {
     stopTasks: {
-      explanation: string;
-      taskIds: string[];
+      tasksToStop: {
+        explanation: string;
+        toolCallId: string;
+      }[];
     };
     waitForOutstandingTasks: {
       explanation: string;
@@ -736,13 +747,13 @@ export const generateOutstandingTasksDescription = (
     2. Start new tasks.
     
     You may optionally also call 'stopTasks' to stop specific tasks you think are no longer relevant,
-    whether or not you're creating new tasks or waiting for outstanding tasks, using their 'taskId'.
+    whether or not you're creating new tasks or waiting for outstanding tasks, using their 'toolCallId'.
     
     The outstanding tasks are:
     ${state.outstandingTasks
       .map((task) =>
         dedent(`<OutstandingTask>
-      taskId: ${task.toolCall.id}
+      toolCallId: ${task.toolCall.id}
       type: ${task.toolCall.name}
       input: ${JSON.stringify(task.toolCall.input)}
       </OutstandingTask>
@@ -750,4 +761,28 @@ export const generateOutstandingTasksDescription = (
       )
       .join("\n")}
   `);
+};
+
+/**
+ * Handle requests (tool calls) from the coordinator to early stop tasks that it has started.
+ */
+export const handleStopTasksRequests = async ({
+  state,
+  toolCalls,
+}: {
+  state: CoordinatingAgentState | SubCoordinatingAgentState;
+  toolCalls: ParsedCoordinatorToolCall[] | ParsedSubCoordinatorToolCall[];
+}) => {
+  const stopRequests = toolCalls
+    .filter((call) => call.name === "stopTasks")
+    .flatMap(({ input }) => input.tasksToStop);
+
+  stopRequests.push(
+    ...state.workersStarted.map((workerIdentifiers) => ({
+      explanation: "Parent task was stopped",
+      toolCallId: workerIdentifiers.toolCallId,
+    })),
+  );
+
+  await stopWorkers(stopRequests);
 };

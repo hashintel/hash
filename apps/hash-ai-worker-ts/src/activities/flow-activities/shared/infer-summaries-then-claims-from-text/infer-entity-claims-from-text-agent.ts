@@ -1,6 +1,7 @@
 import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId, EntityUuid } from "@local/hash-graph-types/entity";
+import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import type { Claim as ClaimEntity } from "@local/hash-isomorphic-utils/system-types/claim";
@@ -27,6 +28,7 @@ import type {
 } from "../../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { stringify } from "../../../shared/stringify.js";
+import { checkIfWorkerShouldStop } from "../../research-entities-action/shared/check-if-worker-should-stop.js";
 import type { LocalEntitySummary } from "./get-entity-summaries-from-text.js";
 import type { Claim } from "./types.js";
 
@@ -365,6 +367,10 @@ export const inferEntityClaimsFromTextAgent = async (params: {
     retryCount: number;
   };
   /**
+   * The identifiers for the worker this agent is operating in.
+   */
+  workerIdentifiers: WorkerIdentifiers;
+  /**
    * Optional parameters for optimization purposes, allowing to overwrite the system prompt and model used.
    */
   testingParams?: {
@@ -372,13 +378,6 @@ export const inferEntityClaimsFromTextAgent = async (params: {
     systemPrompt?: string;
   };
 }): Promise<{ claims: Claim[] }> => {
-  if (isActivityCancelled()) {
-    /**
-     * If the activity has been cancelled, stop working.
-     */
-    return { claims: params.retryContext?.previousValidClaims ?? [] };
-  }
-
   const {
     subjectEntities,
     potentialObjectEntities,
@@ -390,11 +389,21 @@ export const inferEntityClaimsFromTextAgent = async (params: {
     dereferencedEntityType,
     linkEntityTypesById,
     retryContext,
+    workerIdentifiers,
   } = params;
-
   const subjectEntitiesStringList = subjectEntities
     .map(({ name }) => name)
     .join(", ");
+
+  /**
+   * Check if we should stop before proceeding with any work.
+   *
+   * If this is a retry, and previously valid claims will be returned.
+   */
+  const preWorkStopCheck = await checkIfWorkerShouldStop(workerIdentifiers);
+  if (preWorkStopCheck.shouldStop) {
+    return { claims: retryContext?.previousValidClaims ?? [] };
+  }
 
   logger.debug(
     `Inferring claims from text for entities ${subjectEntitiesStringList}`,

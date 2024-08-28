@@ -100,6 +100,7 @@ test(
         workerType: "Sub-coordinator",
         workerInstanceId: "subcoordinator1",
         parentInstanceId: null,
+        toolCallId: null,
       },
     });
 

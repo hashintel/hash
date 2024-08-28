@@ -595,6 +595,7 @@ export const proposeEntities = async (params: {
                     workerType: "Link explorer",
                     parentInstanceId: null,
                     workerInstanceId: "browser-plugin-flow",
+                    toolCallId: null,
                   })),
               ),
             );

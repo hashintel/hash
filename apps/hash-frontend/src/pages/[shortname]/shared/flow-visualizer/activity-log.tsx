@@ -111,6 +111,7 @@ const startedSubCoordinatorPrefix = "Started sub-coordinator with goal ";
 const closedSubCoordinatorPrefix = "Finished sub-coordinator with ";
 const startedLinkExplorerTaskPrefix = "Exploring webpages with goal ";
 const closedLinkExplorerTaskPrefix = "Finished exploring webpages with ";
+const workerWasStoppedTaskPrefix = "Worker was stopped";
 const activityFailedPrefix = "Activity failed: ";
 const checkpointPrefix = "Checkpoint recorded";
 const checkpointResetMessage = "Flow resumed from checkpoint";
@@ -169,6 +170,9 @@ const getRawTextFromLog = (log: LocalProgressLog): string => {
     case "InferredClaimsFromText": {
       // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       return `Inferred ${log.output.claimCount} claims and ${log.output.entityCount} entities from ${log.output.resource.title || log.output.resource.url}`;
+    }
+    case "WorkerWasStopped": {
+      return workerWasStoppedTaskPrefix;
     }
     case "ActivityFailed": {
       return `${activityFailedPrefix}${log.message}`;
@@ -384,6 +388,14 @@ const LogDetail = ({
             <strong>{log.output.claimCount} claims</strong> and{" "}
             <strong>{log.output.entityCount}</strong> entities discovered
           </Box>
+        </Stack>
+      );
+    }
+    case "WorkerWasStopped": {
+      return (
+        <Stack direction="row" alignItems="center" gap={0.5}>
+          {workerWasStoppedTaskPrefix}
+          <ModelTooltip text={log.explanation} />
         </Stack>
       );
     }

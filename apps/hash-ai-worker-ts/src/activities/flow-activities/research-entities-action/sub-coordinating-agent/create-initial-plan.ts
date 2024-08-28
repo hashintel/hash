@@ -10,16 +10,18 @@ import {
   generateSystemPromptPrefix,
 } from "./generate-messages.js";
 import type { SubCoordinatingAgentInput } from "./input.js";
-import {
-  generateToolDefinitions,
-  SubCoordinatingAgentToolName,
+import type { SubCoordinatingAgentState } from "./state.js";
+import type {
   SubCoordinatingAgentToolCallArguments,
+  SubCoordinatingAgentToolName,
 } from "./sub-coordinator-tools.js";
+import { generateToolDefinitions } from "./sub-coordinator-tools.js";
 
 export const createInitialPlan = async (params: {
   input: SubCoordinatingAgentInput;
+  state: SubCoordinatingAgentState;
 }): Promise<{ initialPlan: string }> => {
-  const { input } = params;
+  const { input, state } = params;
   const systemPrompt = dedent(`
     ${generateSystemPromptPrefix({ input })}
 
@@ -34,6 +36,7 @@ export const createInitialPlan = async (params: {
     generateToolDefinitions({
       dataSources,
       omitTools: ["complete"],
+      state,
     }),
   );
 

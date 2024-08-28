@@ -62,10 +62,10 @@ export const InferEntitiesAction = ({
     };
 
     try {
-      const sourceWebPage = await (browser.tabs.sendMessage(
+      const sourceWebPage = await browser.tabs.sendMessage(
         activeTab.id,
         message,
-      ) as Promise<GetTabContentReturn>);
+      );
 
       void sendMessageToBackground({
         createAs,

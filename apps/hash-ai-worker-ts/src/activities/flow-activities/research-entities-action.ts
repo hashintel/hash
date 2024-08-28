@@ -40,9 +40,10 @@ export const researchEntitiesAction: FlowActionActivity<{
         workerType: "Coordinator",
         workerInstanceId: generateUuid(),
         parentInstanceId: null,
+        toolCallId: null,
       },
       entitySummaries: [],
-      hasConductedCheckStep: false,
+      hasConductedCompleteCheckStep: false,
       inferredClaims: [],
       outstandingTasks: [],
       plan: "",
@@ -55,6 +56,7 @@ export const researchEntitiesAction: FlowActionActivity<{
       resourcesNotVisited: [],
       resourceUrlsVisited: [],
       webQueriesMade: [],
+      workersStarted: [],
     };
 
   if (state.plan) {

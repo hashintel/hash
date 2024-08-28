@@ -90,6 +90,11 @@ export async function getToolCallResults(
   if (toolCall.name === "updatePlan") {
     const { plan } = toolCall.input;
 
+    /**
+     * An 'updated plan' progress log is currently not handled here as we do not show the log for sub-coordinators.
+     * We could move the progress log here when we do so.
+     */
+
     return {
       ...nullReturns,
       ...toolCall,
@@ -164,11 +169,12 @@ export async function getToolCallResults(
       relevantEntityIds?.includes(localId),
     );
 
-    const linkExplorerIdentifiers: WorkerIdentifiers = {
+    const linkExplorerIdentifiers = {
       workerType: "Link explorer",
       workerInstanceId: generateUuid(),
       parentInstanceId: workerIdentifiers.workerInstanceId,
-    };
+      toolCallId: toolCall.id,
+    } satisfies WorkerIdentifiers;
 
     logProgress([
       {
@@ -183,6 +189,8 @@ export async function getToolCallResults(
         ...linkExplorerIdentifiers,
       },
     ]);
+
+    state.workersStarted.push(linkExplorerIdentifiers);
 
     const response = await linkFollowerAgent({
       workerIdentifiers: linkExplorerIdentifiers,
@@ -247,11 +255,12 @@ export async function getToolCallResults(
         relevantEntityIds?.includes(subjectEntityLocalId),
     );
 
-    const delegatedTaskIdentifiers: WorkerIdentifiers = {
+    const delegatedTaskIdentifiers = {
       workerType: "Sub-coordinator",
       workerInstanceId: generateUuid(),
       parentInstanceId: workerIdentifiers.workerInstanceId,
-    };
+      toolCallId: toolCall.id,
+    } satisfies WorkerIdentifiers;
 
     logProgress([
       {
@@ -266,6 +275,8 @@ export async function getToolCallResults(
         ...delegatedTaskIdentifiers,
       },
     ]);
+
+    state.workersStarted.push(delegatedTaskIdentifiers);
 
     const response = await runSubCoordinatingAgent({
       input: {

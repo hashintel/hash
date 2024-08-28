@@ -74,6 +74,12 @@ test(
         },
       ],
       potentialObjectEntities: [],
+      workerIdentifiers: {
+        workerType: "Link explorer",
+        workerInstanceId: "linkFollowerAgent",
+        parentInstanceId: "link123",
+        toolCallId: "tool123",
+      },
     });
 
     // eslint-disable-next-line no-console
@@ -135,6 +141,12 @@ test(
         },
       ],
       potentialObjectEntities: [],
+      workerIdentifiers: {
+        workerType: "Link explorer",
+        workerInstanceId: "linkFollowerAgent",
+        parentInstanceId: "link123",
+        toolCallId: "tool123",
+      },
     });
 
     // eslint-disable-next-line no-console

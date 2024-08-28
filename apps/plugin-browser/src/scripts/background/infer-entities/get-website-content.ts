@@ -45,9 +45,9 @@ export const getWebsiteContent = async (urls: string[]) => {
       browser.tabs.onUpdated.addListener(tabChangeListener);
     });
 
-    const webPage = await (browser.tabs.sendMessage(tab.id, {
+    const webPage = await browser.tabs.sendMessage(tab.id, {
       type: "get-tab-content",
-    } satisfies GetTabContentRequest) as Promise<GetTabContentReturn>);
+    } satisfies GetTabContentRequest);
 
     webPages.push(webPage);
 

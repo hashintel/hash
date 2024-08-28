@@ -30,7 +30,7 @@ export const processCompleteToolCall = ({
   output: string;
   isError?: true;
 } & ParsedLlmToolCall<"complete"> => {
-  if (state.hasConductedCheckStep) {
+  if (state.hasConductedCompleteCheckStep) {
     /**
      * The check step was already conducted and the agent has decided to complete the task anyway.
      */

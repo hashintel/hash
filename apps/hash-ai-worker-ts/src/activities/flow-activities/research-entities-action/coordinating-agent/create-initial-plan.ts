@@ -29,11 +29,13 @@ const maximumRetries = 3;
 
 export const createInitialPlan = async (params: {
   input: CoordinatingAgentInput;
+  state: CoordinatingAgentState;
   questionsAndAnswers: CoordinatingAgentState["questionsAndAnswers"];
   providedFiles: CoordinatingAgentState["resourcesNotVisited"];
   retryContext?: { retryMessages: LlmMessage[]; retryCount: number };
 }): Promise<Pick<CoordinatingAgentState, "plan" | "questionsAndAnswers">> => {
-  const { input, questionsAndAnswers, providedFiles, retryContext } = params;
+  const { input, state, questionsAndAnswers, providedFiles, retryContext } =
+    params;
 
   const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
     await getFlowContext();
@@ -101,6 +103,7 @@ export const createInitialPlan = async (params: {
       omitTools: input.humanInputCanBeRequested
         ? ["complete"]
         : (["complete", "requestHumanInput"] as unknown as ["complete"]),
+      state,
     }),
   );
 
@@ -174,6 +177,7 @@ export const createInitialPlan = async (params: {
         retryMessages: [message, retryParams.retryMessage],
         retryCount: retryCount + 1,
       },
+      state,
     });
   };
 
@@ -193,6 +197,7 @@ export const createInitialPlan = async (params: {
       input,
       providedFiles,
       questionsAndAnswers: (questionsAndAnswers ?? "") + responseString,
+      state,
     });
   }
 

@@ -61,6 +61,12 @@ test.only(
         "Sora: A Review on Background, Technology, Limitations, and Opportunities of Large Vision Models",
       dereferencedEntityTypes,
       existingEntitiesOfInterest: [],
+      workerIdentifiers: {
+        workerType: "Link explorer",
+        workerInstanceId: "linkFollowerAgent",
+        parentInstanceId: "link123",
+        toolCallId: "tool123",
+      },
     });
 
     // eslint-disable-next-line no-console
@@ -107,6 +113,12 @@ test(
       title: "Microsoft – Wikipedia",
       dereferencedEntityTypes,
       existingEntitiesOfInterest: [],
+      workerIdentifiers: {
+        workerType: "Link explorer",
+        workerInstanceId: "linkFollowerAgent",
+        parentInstanceId: "link123",
+        toolCallId: "tool123",
+      },
     });
 
     // eslint-disable-next-line no-console
@@ -245,6 +257,12 @@ test(
       title: webPage.title,
       dereferencedEntityTypes,
       existingEntitiesOfInterest: [],
+      workerIdentifiers: {
+        workerType: "Link explorer",
+        workerInstanceId: "linkFollowerAgent",
+        parentInstanceId: "link123",
+        toolCallId: "tool123",
+      },
     });
 
     // eslint-disable-next-line no-console
@@ -336,6 +354,12 @@ test.skip(
       dereferencedEntityTypes,
       contentType: "webpage",
       existingEntitiesOfInterest: statyaNadellaLinkedInEntitySummaries,
+      workerIdentifiers: {
+        workerType: "Link explorer",
+        workerInstanceId: "linkFollowerAgent",
+        parentInstanceId: "link123",
+        toolCallId: "tool123",
+      },
     });
 
     // eslint-disable-next-line no-console
@@ -530,6 +554,12 @@ test(
       dereferencedEntityTypes,
       contentType: "webpage",
       existingEntitiesOfInterest: llmProviderExistingEntitySummaries,
+      workerIdentifiers: {
+        workerType: "Link explorer",
+        workerInstanceId: "linkFollowerAgent",
+        parentInstanceId: "link123",
+        toolCallId: "tool123",
+      },
     });
 
     // eslint-disable-next-line no-console

@@ -42,6 +42,7 @@ import { updateStateFromInferredClaims } from "./coordinating-agent/update-state
 import type { ParsedCoordinatorToolCall } from "./shared/coordinator-tools.js";
 import {
   getSomeToolCallResults,
+  handleStopTasksRequests,
   nullReturns,
   triggerToolCallsRequests,
 } from "./shared/coordinator-tools.js";
@@ -249,13 +250,7 @@ export const runCoordinatingAgent: FlowActionActivity<{
       return;
     }
 
-    const taskIdsToStop = toolCalls.flatMap((call) =>
-      call.name === "stopTasks" ? call.input.taskIds : [],
-    );
-    // eslint-disable-next-line no-param-reassign
-    state.outstandingTasks = state.outstandingTasks.filter(
-      (task) => !taskIdsToStop.includes(task.toolCall.id),
-    );
+    await handleStopTasksRequests({ state, toolCalls });
 
     const requestMakingToolCalls = toolCalls.filter(
       (toolCall) =>
@@ -370,7 +365,7 @@ export const runCoordinatingAgent: FlowActionActivity<{
        * We mark the check step has completed so that it can choose to call 'complete' again anyway.
        */
       // eslint-disable-next-line no-param-reassign
-      state.hasConductedCheckStep = true;
+      state.hasConductedCompleteCheckStep = true;
     } else {
       /**
        * If we don't have a 'complete' tool call, reset the check step state in case of the following sequence of events:
@@ -381,7 +376,7 @@ export const runCoordinatingAgent: FlowActionActivity<{
        * When it later calls 'complete', we want to run the check step again, as there may be different issues.
        */
       // eslint-disable-next-line no-param-reassign
-      state.hasConductedCheckStep = false;
+      state.hasConductedCompleteCheckStep = false;
     }
 
     // eslint-disable-next-line no-param-reassign

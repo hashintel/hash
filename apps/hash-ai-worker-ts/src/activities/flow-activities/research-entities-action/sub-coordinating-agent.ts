@@ -1,13 +1,19 @@
 import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
+import { Context } from "@temporalio/activity";
 
-import { isActivityCancelled } from "../../shared/get-flow-context.js";
+import { logProgress } from "../../shared/log-progress.js";
 import type { LocalEntitySummary } from "../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import type { Claim } from "../shared/infer-summaries-then-claims-from-text/types.js";
+import { checkIfWorkerShouldStop } from "./shared/check-if-worker-should-stop.js";
 import {
   getSomeToolCallResults,
+  handleStopTasksRequests,
   triggerToolCallsRequests,
 } from "./shared/coordinator-tools.js";
-import { processCommonStateMutationsFromToolResults } from "./shared/coordinators.js";
+import {
+  processCommonStateMutationsFromToolResults,
+  stopWorkers,
+} from "./shared/coordinators.js";
 import type { DuplicateReport } from "./shared/deduplicate-entities.js";
 import { deduplicateEntities } from "./shared/deduplicate-entities.js";
 import { createInitialPlan } from "./sub-coordinating-agent/create-initial-plan.js";
@@ -15,6 +21,50 @@ import type { SubCoordinatingAgentInput } from "./sub-coordinating-agent/input.j
 import { requestSubCoordinatorActions } from "./sub-coordinating-agent/request-sub-coordinator-actions.js";
 import type { SubCoordinatingAgentState } from "./sub-coordinating-agent/state.js";
 import type { ParsedSubCoordinatorToolCall } from "./sub-coordinating-agent/sub-coordinator-tools.js";
+
+const handleStopReturn = async (
+  shouldStopStatus: {
+    explanation: string;
+    shouldStop: true;
+    stopType: string;
+  },
+  childWorkers: SubCoordinatingAgentState["workersStarted"],
+  workerIdentifiers: WorkerIdentifiers,
+) => {
+  if (childWorkers.length) {
+    /**
+     * Also send a signal to stop any link explorer tasks that the sub-coordinator has started, so that they stop early.
+     */
+    await stopWorkers(
+      childWorkers.map((worker) => ({
+        explanation: "Parent worker was stopped.",
+        toolCallId: worker.toolCallId,
+      })),
+    );
+  }
+
+  logProgress([
+    {
+      explanation: shouldStopStatus.explanation,
+      recordedAt: new Date().toISOString(),
+      stepId: Context.current().info.activityId,
+      type: "WorkerWasStopped",
+      ...workerIdentifiers,
+    },
+  ]);
+
+  if (shouldStopStatus.stopType === "activityCancelled") {
+    return {
+      status: "terminated",
+      explanation: "Activity was cancelled",
+    } as const;
+  }
+
+  return {
+    status: "ok",
+    explanation: "Early stopping requested",
+  } as const;
+};
 
 /**
  * An agent which has a subset of the functionality of the coordinating agent.
@@ -51,23 +101,24 @@ export const runSubCoordinatingAgent = async (params: {
 > => {
   const { testingParams, input, workerIdentifiers } = params;
 
-  let state: SubCoordinatingAgentState;
+  let state: SubCoordinatingAgentState = {
+    plan: "",
+    inferredClaims: [],
+    entitySummaries: [],
+    outstandingTasks: [],
+    previousCalls: [],
+    webQueriesMade: [],
+    resourcesNotVisited: [],
+    resourceUrlsVisited: [],
+    workersStarted: [],
+  };
 
   if (testingParams?.resumeFromState) {
     state = testingParams.resumeFromState;
   } else {
-    const { initialPlan } = await createInitialPlan({ input });
+    const { initialPlan } = await createInitialPlan({ input, state });
 
-    state = {
-      plan: initialPlan,
-      inferredClaims: [],
-      entitySummaries: [],
-      outstandingTasks: [],
-      previousCalls: [],
-      webQueriesMade: [],
-      resourcesNotVisited: [],
-      resourceUrlsVisited: [],
-    };
+    state.plan = initialPlan;
   }
 
   /**
@@ -105,12 +156,7 @@ export const runSubCoordinatingAgent = async (params: {
       return { status: "terminated", explanation };
     }
 
-    const taskIdsToStop = toolCalls.flatMap((call) =>
-      call.name === "stopTasks" ? call.input.taskIds : [],
-    );
-    state.outstandingTasks = state.outstandingTasks.filter(
-      (task) => !taskIdsToStop.includes(task.toolCall.id),
-    );
+    await handleStopTasksRequests({ toolCalls, state });
 
     const requestMakingToolCalls = toolCalls.filter(
       (toolCall) =>
@@ -130,16 +176,22 @@ export const runSubCoordinatingAgent = async (params: {
       }),
     );
 
+    /**
+     * Prior to initiating more requests based on the agent's tool calls, check if we should stop.
+     */
+    const preRequestToolResultsStopCheck =
+      await checkIfWorkerShouldStop(workerIdentifiers);
+    if (preRequestToolResultsStopCheck.shouldStop) {
+      return handleStopReturn(
+        preRequestToolResultsStopCheck,
+        state.workersStarted,
+        workerIdentifiers,
+      );
+    }
+
     const completedToolCalls = await getSomeToolCallResults({
       state,
     });
-
-    if (isActivityCancelled()) {
-      return {
-        status: "terminated",
-        explanation: "Activity was cancelled",
-      };
-    }
 
     const completeToolCall = toolCalls.find(
       (toolCall) => toolCall.name === "complete",
@@ -255,6 +307,19 @@ export const runSubCoordinatingAgent = async (params: {
       const { explanation } = completeToolCall.input;
 
       return { status: "ok", explanation };
+    }
+
+    /**
+     * Prior to asking the coordinator to decide on its next actions, check if we should stop.
+     */
+    const preRequestNextActionsShouldStop =
+      await checkIfWorkerShouldStop(workerIdentifiers);
+    if (preRequestNextActionsShouldStop.shouldStop) {
+      return handleStopReturn(
+        preRequestNextActionsShouldStop,
+        state.workersStarted,
+        workerIdentifiers,
+      );
     }
 
     const { toolCalls: nextToolCalls } = await requestSubCoordinatorActions({

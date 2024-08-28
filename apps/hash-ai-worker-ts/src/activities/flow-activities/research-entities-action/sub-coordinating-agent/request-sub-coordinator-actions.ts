@@ -68,6 +68,7 @@ export const requestSubCoordinatorActions = async (params: {
       omitTools: [
         ...(state.inferredClaims.length > 0 ? [] : ["complete" as const]),
       ],
+      state,
     }),
   );
 
@@ -100,5 +101,8 @@ export const requestSubCoordinatorActions = async (params: {
 
   const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
 
+  /**
+   * @todo fix this
+   */
   return { toolCalls };
 };
