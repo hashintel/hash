@@ -41,9 +41,12 @@ const SidebarItemDisplaySwitch = ({
   return (
     <Stack direction="row" alignItems="center" gap={0.5}>
       <Typography
+        component="label"
+        htmlFor={`display-${section}`}
         variant="smallTextLabels"
         sx={({ palette }) => ({
           color: palette.gray[80],
+          cursor: "pointer",
           fontWeight: 500,
         })}
       >
@@ -61,6 +64,7 @@ const SidebarItemDisplaySwitch = ({
       </Typography>
       <Switch
         checked={currentDisplay === "list"}
+        id={`display-${section}`}
         onChange={() =>
           setSidebarDisplay({
             variant: currentDisplay === "list" ? "link" : "list",

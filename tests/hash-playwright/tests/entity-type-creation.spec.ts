@@ -1,5 +1,6 @@
 import { sleep } from "@local/hash-isomorphic-utils/sleep";
 
+import { changeSidebarListDisplay } from "./shared/change-sidebar-list-display";
 import { loginUsingTempForm } from "./shared/login-using-temp-form";
 import { resetDb } from "./shared/reset-db";
 import { expect, test } from "./shared/runtime";
@@ -8,7 +9,7 @@ test.beforeEach(async () => {
   await resetDb();
 });
 
-test("user can create entity type", async ({ page }) => {
+test.only("user can create entity type", async ({ page }) => {
   await loginUsingTempForm({
     page,
     userEmail: "alice@example.com",
@@ -17,6 +18,13 @@ test("user can create entity type", async ({ page }) => {
 
   // Check if we are on the user page
   await expect(page.locator("text=Get support")).toBeVisible();
+
+  // Enable the full list display for 'Types' in the sidebar
+  await changeSidebarListDisplay({
+    displayAs: "list",
+    page,
+    section: "Types",
+  });
 
   // Go to Create Entity Type
   await page.locator('[data-testid="create-entity-type-btn"]').click();
