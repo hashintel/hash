@@ -63,9 +63,9 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
             setTimeout(resolve, 2_000);
           });
 
-          const webPage = await browser.tabs.sendMessage(tabId, {
+          const webPage = await (browser.tabs.sendMessage(tabId, {
             type: "get-tab-content",
-          } satisfies GetTabContentRequest);
+          } satisfies GetTabContentRequest) as Promise<GetTabContentReturn>);
 
           const applicableRules = automaticInferenceConfig.rules.filter(
             ({ restrictToDomains }) => {
