@@ -38,11 +38,14 @@ const SidebarItemDisplaySwitch = ({
     });
   };
 
+  const elementIdPrefix = `display-${section}`;
+
   return (
     <Stack direction="row" alignItems="center" gap={0.5}>
       <Typography
         component="label"
-        htmlFor={`display-${section}`}
+        htmlFor={`${elementIdPrefix}-checkbox`}
+        id={`${elementIdPrefix}-label`}
         variant="smallTextLabels"
         sx={({ palette }) => ({
           color: palette.gray[80],
@@ -50,7 +53,7 @@ const SidebarItemDisplaySwitch = ({
           fontWeight: 500,
         })}
       >
-        {section === "entities" ? "Entities" : "Types"} as a
+        {`${section === "entities" ? "Entities" : "Types"} as a`}
       </Typography>
       <Typography
         variant="smallTextLabels"
@@ -64,13 +67,13 @@ const SidebarItemDisplaySwitch = ({
       </Typography>
       <Switch
         checked={currentDisplay === "list"}
-        id={`display-${section}`}
+        id={`${elementIdPrefix}-checkbox`}
+        inputProps={{ "aria-labelledby": `${elementIdPrefix}-label` }}
         onChange={() =>
           setSidebarDisplay({
             variant: currentDisplay === "list" ? "link" : "list",
           })
         }
-        inputProps={{ "aria-label": "controlled" }}
         size="small"
         sx={{ mx: 0.5 }}
       />

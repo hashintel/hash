@@ -9,7 +9,7 @@ test.beforeEach(async () => {
   await resetDb();
 });
 
-test.only("user can create entity type", async ({ page }) => {
+test("user can create entity type", async ({ page }) => {
   await loginUsingTempForm({
     page,
     userEmail: "alice@example.com",

@@ -20,14 +20,13 @@ export const changeSidebarListDisplay = async ({
 
   const switchLabel = `${section} as a`;
 
-  await expect(page.getByText(switchLabel)).toBeVisible();
-
-  const settingSwitch = page.getByLabel(switchLabel);
+  await expect(page.getByLabel(switchLabel)).toBeVisible();
 
   if (
-    (displayAs === "link" && (await settingSwitch.isChecked())) ||
-    (displayAs === "list" && !(await settingSwitch.isChecked()))
+    (displayAs === "link" &&
+      (await page.getByLabel(switchLabel).isChecked())) ||
+    (displayAs === "list" && !(await page.getByLabel(switchLabel).isChecked()))
   ) {
-    await settingSwitch.check();
+    await page.getByLabel(switchLabel).check();
   }
 };
