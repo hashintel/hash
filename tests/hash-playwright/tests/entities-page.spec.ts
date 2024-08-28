@@ -24,7 +24,10 @@ test("user can visit a page listing entities of a type", async ({ page }) => {
     section: "Entities",
   });
 
-  // Click on 'Document' in the 'Entities' sidebar
+  // Expand the entities list in the sidebar
+  await page.locator("text=Entities").first().click();
+
+  // Click on 'Document' in the entities list
   await page.locator("text=Document").first().click();
 
   // Check if we are on the 'Document' entities page
