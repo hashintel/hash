@@ -8,7 +8,7 @@ import { checkIfWorkerShouldStop } from "./shared/check-if-worker-should-stop.js
 import {
   getSomeToolCallResults,
   handleStopTasksRequests,
-  ParsedSubCoordinatorToolCall,
+  type ParsedSubCoordinatorToolCall,
   triggerToolCallsRequests,
 } from "./shared/coordinator-tools.js";
 import {

@@ -4,6 +4,10 @@ import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
 import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
+import type {
+  SubCoordinatingAgentToolCallArguments,
+  SubCoordinatingAgentToolName,
+} from "../shared/coordinator-tools.js";
 import { coordinatingAgentModel } from "../shared/coordinators.js";
 import {
   generateInitialUserMessage,
@@ -12,10 +16,6 @@ import {
 import type { SubCoordinatingAgentInput } from "./input.js";
 import type { SubCoordinatingAgentState } from "./state.js";
 import { generateToolDefinitions } from "./sub-coordinator-tools.js";
-import {
-  SubCoordinatingAgentToolCallArguments,
-  SubCoordinatingAgentToolName,
-} from "../shared/coordinator-tools.js";
 
 export const createInitialPlan = async (params: {
   input: SubCoordinatingAgentInput;

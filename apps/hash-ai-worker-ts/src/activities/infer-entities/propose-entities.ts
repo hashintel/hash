@@ -549,6 +549,7 @@ export const proposeEntities = async (params: {
               typedEntries(validProposedEntitiesByType).flatMap(
                 ([entityTypeId, entities]) =>
                   entities.map((entity) => ({
+                    isUpdateToExistingProposal: false,
                     proposedEntity: {
                       ...entity,
                       claims: {
