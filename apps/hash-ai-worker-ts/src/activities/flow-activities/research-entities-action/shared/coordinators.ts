@@ -14,12 +14,12 @@ import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claim
 import type { Claim } from "../../shared/infer-summaries-then-claims-from-text/types.js";
 import type { ExistingEntitySummary } from "../coordinating-agent/summarize-existing-entities.js";
 import type { SubCoordinatingAgentState } from "../sub-coordinating-agent/state.js";
-import type { ParsedSubCoordinatorToolCall } from "../sub-coordinating-agent/sub-coordinator-tools.js";
 import { areUrlsEqual } from "./are-urls-equal.js";
 import type {
   CompletedCoordinatorToolCall,
   CoordinatorToolName,
   ParsedCoordinatorToolCall,
+  ParsedSubCoordinatorToolCall,
 } from "./coordinator-tools.js";
 import type { WebResourceSummary } from "./handle-web-search-tool-call.js";
 

@@ -23,7 +23,7 @@ const __dirname = dirname(__filename);
 
 const baseDirectoryPath = join(
   __dirname,
-  "/var/sub-task-agent/persisted-state",
+  "/var/sub-coordinating-agent/persisted-state",
 );
 
 export const retrievePreviousState = (params: {

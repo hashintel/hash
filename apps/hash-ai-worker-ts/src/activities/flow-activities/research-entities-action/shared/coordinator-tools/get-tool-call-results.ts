@@ -11,15 +11,13 @@ import { runSubCoordinatingAgent } from "../../sub-coordinating-agent.js";
 import type { SubCoordinatingAgentInput } from "../../sub-coordinating-agent/input.js";
 import type { SubCoordinatingAgentState } from "../../sub-coordinating-agent/state.js";
 import type {
-  ParsedSubCoordinatorToolCall,
-  ParsedSubCoordinatorToolCallMap,
-  SubCoordinatingAgentToolName,
-} from "../../sub-coordinating-agent/sub-coordinator-tools.js";
-import type {
   CompletedCoordinatorToolCall,
   CoordinatorToolName,
   ParsedCoordinatorToolCall,
   ParsedCoordinatorToolCallMap,
+  ParsedSubCoordinatorToolCall,
+  ParsedSubCoordinatorToolCallMap,
+  SubCoordinatingAgentToolName,
 } from "../coordinator-tools.js";
 import { nullReturns } from "../coordinator-tools.js";
 import type {

@@ -468,6 +468,10 @@ export const linkFollowerAgent = async (params: {
       await checkIfWorkerShouldStop(workerIdentifiers);
 
     if (preExploreResourcesStopCheck.shouldStop) {
+      /**
+       * If the activity has been cancelled because the workflow was terminated, this log will have no receiver and won't be picked up.
+       * It will be picked up in cases where the workflow continues (e.g. when only this task has been requested to stop).
+       */
       logProgress([
         {
           explanation: preExploreResourcesStopCheck.explanation,

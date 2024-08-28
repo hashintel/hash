@@ -19,9 +19,10 @@ export const generateSystemPromptPrefix = (params: {
     params.input;
 
   return dedent(`
-    You are a sub-task agent for a research task.
+    You are a researcher tasked with discovering claims about entities to satisfy a research goal.
+    You are working in a team and have been assigned a part of a wider research project.
 
-    The user will provide you with:
+    Your instructing colleague will provide you with
       - Goal: the research goal you need to satisfy to complete the research task
       - Entity Types: a list of entity types of the entities that you may need to discover claims about
       ${
@@ -37,7 +38,7 @@ export const generateSystemPromptPrefix = (params: {
 
     You are tasked with finding the claims with the provided tools to satisfy the research goal.
     
-    The user will also provide you with a progress report of the information discovered and work done to date.
+    Your colleague will also provide you with a progress report of the information discovered and work done to date.
     Take account of this when deciding your next action.
 
     The "complete" tool should be used once you have gathered sufficient claims to satisfy the research goal.

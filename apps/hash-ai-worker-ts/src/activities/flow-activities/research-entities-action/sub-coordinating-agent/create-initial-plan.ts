@@ -11,11 +11,11 @@ import {
 } from "./generate-messages.js";
 import type { SubCoordinatingAgentInput } from "./input.js";
 import type { SubCoordinatingAgentState } from "./state.js";
-import type {
+import { generateToolDefinitions } from "./sub-coordinator-tools.js";
+import {
   SubCoordinatingAgentToolCallArguments,
   SubCoordinatingAgentToolName,
-} from "./sub-coordinator-tools.js";
-import { generateToolDefinitions } from "./sub-coordinator-tools.js";
+} from "../shared/coordinator-tools.js";
 
 export const createInitialPlan = async (params: {
   input: SubCoordinatingAgentInput;

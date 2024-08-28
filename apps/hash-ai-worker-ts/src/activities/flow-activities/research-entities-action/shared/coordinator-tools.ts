@@ -17,10 +17,6 @@ import type { Claim } from "../../shared/infer-summaries-then-claims-from-text/t
 import type { SubCoordinatingAgentInput } from "../sub-coordinating-agent/input.js";
 import type { SubCoordinatingAgentState } from "../sub-coordinating-agent/state.js";
 import type {
-  ParsedSubCoordinatorToolCall,
-  SubCoordinatingAgentToolName,
-} from "../sub-coordinating-agent/sub-coordinator-tools.js";
-import type {
   GetCoordinatorToolCallResultsParams,
   GetSubCoordinatorToolCallResultsParams,
 } from "./coordinator-tools/get-tool-call-results.js";
@@ -46,6 +42,28 @@ export const coordinatorToolNames = [
 ] as const;
 
 export type CoordinatorToolName = (typeof coordinatorToolNames)[number];
+
+/**
+ * If one of these tools is granted to the sub-coordinator, the processing logic in {@link getToolCallResults} must be
+ * updated.
+ */
+export const subCoordinatorOmittedCoordinatorToolNames = [
+  "complete",
+  "delegateResearchTask",
+  "requestHumanInput",
+] as const;
+
+type SubCoordinatorOmittedCoordinatorToolName =
+  (typeof subCoordinatorOmittedCoordinatorToolNames)[number];
+
+const subCoordinatingAgentCustomToolNames = ["complete"] as const;
+
+export type SubCoordinatingAgentCustomToolName =
+  (typeof subCoordinatingAgentCustomToolNames)[number];
+
+export type SubCoordinatingAgentToolName =
+  | Exclude<CoordinatorToolName, SubCoordinatorOmittedCoordinatorToolName>
+  | SubCoordinatingAgentCustomToolName;
 
 const explanationDefinition = {
   type: "string",
@@ -248,7 +266,7 @@ export const generateToolDefinitions = <
       description: dedent(`
       Explore a resource in order to discover entities and 'claims' (possible facts) it contains, as well resources linked from it.
       
-      The URLs for the resource must have been provided in the user messages to you,
+      The URLs for the resource must have been provided in messages to you,
       or as the result of a previous action (e.g. a web search, or in suggestions for next steps). Don't guess URLs!
       
       If you want additional information about entities you already know about, or to find new entities to link to existing entities,
@@ -307,7 +325,7 @@ export const generateToolDefinitions = <
         required: [
           "url",
           "goal",
-          "reason",
+          "explanation",
           "descriptionOfExpectedContent",
           "exampleOfExpectedContent",
         ],
@@ -365,11 +383,11 @@ export const generateToolDefinitions = <
       You can call this alongside other tool calls to progress towards completing the task.
       
       IMPORTANT: the plan should take account of:
-      1. The user's research goal
+      1. The research goal
       2. The information gathered so far.
       
       Don't be afraid to deviate from an earlier plan if you've gathered sufficient information to 
-      meet the user's research goal, and return the information to the user.
+      meet the research goal, and return the information discovered.
     `),
       inputSchema: {
         type: "object",
@@ -461,6 +479,25 @@ export type ParsedCoordinatorToolCallMap = {
 export type ParsedCoordinatorToolCall =
   ParsedCoordinatorToolCallMap[keyof ParsedCoordinatorToolCallMap];
 
+export type SubCoordinatingAgentToolCallArguments = Omit<
+  CoordinatorToolCallArguments,
+  SubCoordinatorOmittedCoordinatorToolName
+> & {
+  complete: {
+    explanation: string;
+  };
+};
+
+export type ParsedSubCoordinatorToolCallMap = {
+  [K in keyof SubCoordinatingAgentToolCallArguments]: ParsedLlmToolCall<
+    K,
+    SubCoordinatingAgentToolCallArguments[K]
+  >;
+};
+
+export type ParsedSubCoordinatorToolCall =
+  ParsedSubCoordinatorToolCallMap[keyof ParsedSubCoordinatorToolCallMap];
+
 export type CompletedCoordinatorToolCall<ToolId extends string> = {
   delegatedTasksCompleted?: string[] | null;
   entitySummaries: LocalEntitySummary[] | null;
@@ -516,7 +553,8 @@ export const isLongRunningTask: Record<CoordinatorToolName, boolean> = {
 /**
  * Handle any errors thrown while processing the tool call.
  *
- * This should be rare as any agents called should return 'isError' and 'output' in an object rather than throwing an error.
+ * This should be rare as any agents called should return 'isError' and 'output' in an object rather than throwing an
+ * error.
  *
  * This should only be called as a fallback for when unexpected errors are thrown somewhere.
  */
@@ -690,15 +728,25 @@ export async function getSomeToolCallResults({
       /**
        * Wait for all the short-lived tasks to complete
        */
-      await Promise.all(
+      Promise.all(
         outstandingShortLivedTasks.map(({ resultsPromise }) => resultsPromise),
       ),
+
       /**
        * Wait for the first long-lived task to complete
+       *
+       * An empty array to Promise.race() will never resolve,
+       * so we need to exclude it if the array is empty.
        */
-      await Promise.race(
-        outstandingLongRunningTasks.map(({ resultsPromise }) => resultsPromise),
-      ),
+      ...(outstandingLongRunningTasks.length
+        ? [
+            Promise.race(
+              outstandingLongRunningTasks.map(
+                ({ resultsPromise }) => resultsPromise,
+              ),
+            ),
+          ]
+        : []),
     ])
   ).flat();
 

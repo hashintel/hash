@@ -7,6 +7,7 @@ import type { LlmMessage } from "../../../shared/get-llm-response/llm-message.js
 import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { stringify } from "../../../shared/stringify.js";
+import type { ParsedSubCoordinatorToolCall } from "../shared/coordinator-tools.js";
 import { coordinatingAgentModel } from "../shared/coordinators.js";
 import { mapPreviousCoordinatorCallsToLlmMessages } from "../shared/map-previous-coordinator-calls-to-llm-messages.js";
 import {
@@ -16,7 +17,6 @@ import {
 } from "./generate-messages.js";
 import type { SubCoordinatingAgentInput } from "./input.js";
 import type { SubCoordinatingAgentState } from "./state.js";
-import type { ParsedSubCoordinatorToolCall } from "./sub-coordinator-tools.js";
 import { generateToolDefinitions } from "./sub-coordinator-tools.js";
 
 /**
@@ -93,16 +93,18 @@ export const requestSubCoordinatorActions = async (params: {
   );
 
   if (llmResponse.status !== "ok") {
-    logger.error("Failed to get tool calls for sub-task-agent");
+    logger.error("Failed to get tool calls for sub-coordinator-agent");
     return { toolCalls: [] };
   }
 
   const { message } = llmResponse;
 
-  const toolCalls = getToolCallsFromLlmAssistantMessage({ message });
+  const toolCalls = getToolCallsFromLlmAssistantMessage({
+    message,
+    /**
+     * @todo fix this – possibly something to do with how the Omit/Excludes are used in the sub-coordinator types
+     */
+  }) as ParsedSubCoordinatorToolCall[];
 
-  /**
-   * @todo fix this
-   */
   return { toolCalls };
 };

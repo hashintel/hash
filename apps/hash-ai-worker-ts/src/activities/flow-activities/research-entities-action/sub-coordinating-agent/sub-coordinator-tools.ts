@@ -1,53 +1,15 @@
-import type { Subtype } from "@local/advanced-types/subtype";
 import type { FlowDataSources } from "@local/hash-isomorphic-utils/flows/types";
 
+import type { LlmToolDefinition } from "../../../shared/get-llm-response/types.js";
 import type {
-  LlmToolDefinition,
-  ParsedLlmToolCall,
-} from "../../../shared/get-llm-response/types.js";
-import type {
-  CoordinatorToolCallArguments,
-  CoordinatorToolName,
+  SubCoordinatingAgentCustomToolName,
+  SubCoordinatingAgentToolName,
 } from "../shared/coordinator-tools.js";
 import {
-  coordinatorToolNames,
   generateToolDefinitions as generateCoordinatorToolDefinitions,
+  subCoordinatorOmittedCoordinatorToolNames,
 } from "../shared/coordinator-tools.js";
 import type { SubCoordinatingAgentState } from "./state.js";
-
-/**
- * If one of these tools is granted to the sub-coordinator, the processing logic in {@link getToolCallResults} must be updated.
- */
-const omittedCoordinatorToolNames = [
-  "complete",
-  "delegateResearchTask",
-  "requestHumanInput",
-] as const satisfies CoordinatorToolName[];
-
-type OmittedCoordinatorToolNames = Subtype<
-  CoordinatorToolName,
-  (typeof omittedCoordinatorToolNames)[number]
->;
-
-const subCoordinatingAgentCustomToolNames = ["complete"] as const;
-
-const subCoordinatingAgentToolNames = [
-  ...subCoordinatingAgentCustomToolNames,
-  ...coordinatorToolNames.filter(
-    (
-      toolName,
-    ): toolName is Exclude<CoordinatorToolName, OmittedCoordinatorToolNames> =>
-      !omittedCoordinatorToolNames.includes(
-        toolName as OmittedCoordinatorToolNames,
-      ),
-  ),
-] as const;
-
-type SubCoordinatingAgentCustomToolName =
-  (typeof subCoordinatingAgentCustomToolNames)[number];
-
-export type SubCoordinatingAgentToolName =
-  (typeof subCoordinatingAgentToolNames)[number];
 
 /**
  * Generate tool definitions for the sub-coordinating agent, to be passed to the LLM.
@@ -64,7 +26,7 @@ export const generateToolDefinitions = <
 > => {
   const coordinatorToolDefinitions = generateCoordinatorToolDefinitions({
     dataSources: params.dataSources,
-    omitTools: omittedCoordinatorToolNames.concat(),
+    omitTools: subCoordinatorOmittedCoordinatorToolNames.concat(),
     state: params.state,
   });
 
@@ -98,22 +60,3 @@ export const generateToolDefinitions = <
 
   return filteredToolDefinitions;
 };
-
-export type SubCoordinatingAgentToolCallArguments = Subtype<
-  Record<SubCoordinatingAgentToolName, unknown>,
-  {
-    complete: {
-      explanation: string;
-    };
-  } & Omit<CoordinatorToolCallArguments, OmittedCoordinatorToolNames>
->;
-
-export type ParsedSubCoordinatorToolCallMap = {
-  [K in keyof SubCoordinatingAgentToolCallArguments]: ParsedLlmToolCall<
-    K,
-    SubCoordinatingAgentToolCallArguments[K]
-  >;
-};
-
-export type ParsedSubCoordinatorToolCall =
-  ParsedSubCoordinatorToolCallMap[keyof ParsedSubCoordinatorToolCallMap];
