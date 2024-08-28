@@ -28452,10 +28452,10 @@ slonik@24.1.2:
     serialize-error "^8.1.0"
     through2 "^4.0.2"
 
-slugify@1.6.5:
-  version "1.6.5"
-  resolved "https://registry.yarnpkg.com/slugify/-/slugify-1.6.5.tgz#c8f5c072bf2135b80703589b39a3d41451fbe8c8"
-  integrity "sha1-yPXAcr8hNbgHA1ibOaPUFFH76Mg= sha512-8mo9bslnBO3tr5PEVFzMPIWwWnipGS0xVbYf65zxDqfNwmzYn1LpiKNrR6DlClusuvo+hDHd1zKpmfAe83NQSQ=="
+slugify@1.6.6:
+  version "1.6.6"
+  resolved "https://registry.yarnpkg.com/slugify/-/slugify-1.6.6.tgz#2d4ac0eacb47add6af9e04d3be79319cbcc7924b"
+  integrity sha512-h+z7HKHYXj6wJU+AnS/+IH8Uh9fdcX1Lrhg1/VMdf9PwoBQXFcXiAdsy2tSK0P6gKwJLXp02r90ahUCqHk9rrw==
 
 slugify@~1.4.7:
   version "1.4.7"
