@@ -39,12 +39,12 @@ import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
   VirtualizedTableRow,
-  VirtualizedTableSort,
 } from "../../../../shared/virtualized-table";
 import {
   defaultCellSx,
   VirtualizedTable,
 } from "../../../../shared/virtualized-table";
+import type { VirtualizedTableSort } from "../../../../shared/virtualized-table/header/sort";
 import type { ProposedEntityOutput } from "../shared/types";
 import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
@@ -288,7 +288,7 @@ type ClaimsTableProps = {
 export const ClaimsTable = memo(
   ({ onEntityClick, proposedEntities }: ClaimsTableProps) => {
     const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
-      field: "subject",
+      fieldId: "subject",
       direction: "asc",
     });
 
@@ -460,20 +460,20 @@ export const ClaimsTable = memo(
       }
 
       const sortedRows = rowData.sort((a, b) => {
-        const { field, direction } = sort;
+        const { fieldId, direction } = sort;
 
         const base = direction === "asc" ? a : b;
         const target = direction === "asc" ? b : a;
 
-        if (field === "subject" || field === "object") {
+        if (fieldId === "subject" || fieldId === "object") {
           return (
-            base.data[field]?.name.localeCompare(
-              target.data[field]?.name ?? "ZZZZZZ",
-            ) ?? (target.data[field] ? 1 : 0)
+            base.data[fieldId]?.name.localeCompare(
+              target.data[fieldId]?.name ?? "ZZZZZZ",
+            ) ?? (target.data[fieldId] ? 1 : 0)
           );
         }
 
-        return base.data[field].localeCompare(target.data[field]);
+        return base.data[fieldId].localeCompare(target.data[fieldId]);
       });
 
       return {

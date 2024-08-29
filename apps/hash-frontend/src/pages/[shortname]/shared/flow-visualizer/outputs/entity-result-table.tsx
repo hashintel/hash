@@ -1,6 +1,7 @@
 import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 import type { EntityType } from "@blockprotocol/type-system/slim";
 import { IconButton } from "@hashintel/design-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { ValueMetadata } from "@local/hash-graph-client/api";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
@@ -11,6 +12,7 @@ import type {
   PropertyObject,
   PropertyValue,
 } from "@local/hash-graph-types/entity";
+import type { PropertyTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { PersistedEntity } from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -31,12 +33,20 @@ import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
   VirtualizedTableRow,
-  VirtualizedTableSort,
 } from "../../../../shared/virtualized-table";
 import {
   defaultCellSx,
   VirtualizedTable,
 } from "../../../../shared/virtualized-table";
+import type {
+  VirtualizedTableFilter,
+  VirtualizedTableFiltersByFieldId,
+} from "../../../../shared/virtualized-table/header/filter";
+import {
+  isFilterValueIncluded,
+  missingValueString,
+} from "../../../../shared/virtualized-table/header/filter";
+import type { VirtualizedTableSort } from "../../../../shared/virtualized-table/header/sort";
 import type { ProposedEntityOutput } from "../shared/types";
 import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
@@ -379,21 +389,50 @@ export const EntityResultTable = memo(
     proposedEntitiesTypesSubgraph,
   }: EntityResultTableProps) => {
     const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
-      field: "entityLabel",
+      fieldId: "entityLabel",
       direction: "asc",
     });
 
     const hasData = !!(persistedEntities.length || proposedEntities.length);
 
     const {
-      rows,
+      filters: initialFilters,
+      unsortedRows,
       entityTypes,
     }: {
-      rows: VirtualizedTableRow<EntityResultRow>[];
+      filters: VirtualizedTableFiltersByFieldId<FieldId>;
+      unsortedRows: VirtualizedTableRow<EntityResultRow>[];
       entityTypes: EntityType[];
     } = useMemo(() => {
       const rowData: VirtualizedTableRow<EntityResultRow>[] = [];
-      const entityTypesById: Record<VersionedUrl, EntityType> = {};
+      const entityTypesById: Record<
+        VersionedUrl,
+        { entityType: EntityType; propertyTypes: PropertyTypeWithMetadata[] }
+      > = {};
+
+      const startingFilters = {
+        status: {
+          header: "Status",
+          initialValue: new Set<string>(),
+          options: {} as VirtualizedTableFilter["options"],
+          type: "checkboxes",
+          value: new Set<string>(),
+        },
+        entityTypeId: {
+          header: "Type",
+          initialValue: new Set<string>(),
+          options: {} as VirtualizedTableFilter["options"],
+          type: "checkboxes",
+          value: new Set<string>(),
+        },
+        entityLabel: {
+          header: "Label",
+          initialValue: new Set<string>(),
+          options: {} as VirtualizedTableFilter["options"],
+          type: "checkboxes",
+          value: new Set<string>(),
+        },
+      } satisfies VirtualizedTableFiltersByFieldId<FieldId>;
 
       for (const record of persistedEntities.length
         ? persistedEntities
@@ -442,7 +481,7 @@ export const EntityResultTable = memo(
           continue;
         }
 
-        let entityType = entityTypesById[entityTypeId];
+        let entityType = entityTypesById[entityTypeId]?.entityType;
         if (!entityType) {
           const entityTypeWithMetadata = getEntityTypeById(
             subgraph,
@@ -455,7 +494,83 @@ export const EntityResultTable = memo(
           }
 
           entityType = entityTypeWithMetadata.schema;
-          entityTypesById[entityTypeId] = entityType;
+
+          entityTypesById[entityTypeId] = {
+            entityType,
+            propertyTypes: [
+              ...getPropertyTypesForEntityType(entityType, subgraph).values(),
+            ],
+          };
+        }
+
+        const status = isProposed
+          ? "Proposed"
+          : record.operation === "update"
+            ? "Updated"
+            : "Created";
+
+        /**
+         * Account for the entity's values in the filters
+         */
+        startingFilters.status.options[status] ??= {
+          label: status,
+          count: 0,
+          value: status,
+        };
+        startingFilters.status.options[status].count++;
+        startingFilters.status.initialValue.add(status);
+        startingFilters.status.value.add(status);
+
+        startingFilters.entityTypeId.options[entityTypeId] ??= {
+          label: entityType.title,
+          count: 0,
+          value: entityTypeId,
+        };
+        startingFilters.entityTypeId.options[entityTypeId].count++;
+        startingFilters.entityTypeId.initialValue.add(entityTypeId);
+        startingFilters.entityTypeId.value.add(entityTypeId);
+
+        startingFilters.entityLabel.options[entityLabel] ??= {
+          label: entityLabel,
+          count: 0,
+          value: entityLabel,
+        };
+        startingFilters.entityLabel.options[entityLabel].count++;
+        startingFilters.entityLabel.initialValue.add(entityLabel);
+        startingFilters.entityLabel.value.add(entityLabel);
+
+        for (const propertyType of entityTypesById[entityTypeId]!
+          .propertyTypes) {
+          const propertyTypeId = propertyType.schema
+            .$id as keyof typeof startingFilters;
+
+          const baseUrl = extractBaseUrl(propertyTypeId as VersionedUrl);
+
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          startingFilters[propertyTypeId] ??= {
+            header: propertyType.schema.title,
+            initialValue: new Set<string>(),
+            options: {},
+            type: "checkboxes",
+            value: new Set<string>(),
+          };
+
+          const value =
+            entity.properties[baseUrl] === undefined
+              ? null
+              : stringifyPropertyValue(entity.properties[baseUrl]);
+
+          const optionsKey = value ?? missingValueString;
+
+          startingFilters[propertyTypeId].options[optionsKey] ??= {
+            label: value ?? "Missing",
+            count: 0,
+            value,
+          };
+
+          startingFilters[propertyTypeId].options[optionsKey].count++;
+          startingFilters[propertyTypeId].initialValue.add(value as string);
+          startingFilters[propertyTypeId].value.add(value as string);
         }
 
         rowData.push({
@@ -475,37 +590,17 @@ export const EntityResultTable = memo(
                 : entity.propertyMetadata,
             researchOngoing:
               "researchOngoing" in record && record.researchOngoing,
-            status: isProposed
-              ? "Proposed"
-              : record.operation === "update"
-                ? "Updated"
-                : "Created",
+            status,
           },
         });
       }
 
       return {
-        entityTypes: Object.values(entityTypesById),
-        rows: rowData.sort((a, b) => {
-          const field = sort.field;
-          const direction = sort.direction === "asc" ? 1 : -1;
-
-          if (!isFixedField(field)) {
-            /**
-             * This is a property field, so we need to compare the values of the properties
-             */
-            const baseUrl = extractBaseUrl(field);
-
-            return (
-              (a.data.properties[baseUrl]
-                ?.toString()
-                .localeCompare(b.data.properties[baseUrl]?.toString() ?? "") ??
-                0) * direction
-            );
-          }
-
-          return a.data[field].localeCompare(b.data[field]) * direction;
-        }),
+        entityTypes: Object.values(entityTypesById).map(
+          (record) => record.entityType,
+        ),
+        filters: startingFilters,
+        unsortedRows: rowData,
       };
     }, [
       onEntityClick,
@@ -514,8 +609,60 @@ export const EntityResultTable = memo(
       persistedEntitiesSubgraph,
       proposedEntities,
       proposedEntitiesTypesSubgraph,
-      sort,
     ]);
+
+    const [filters, setFilters] =
+      useState<VirtualizedTableFiltersByFieldId<FieldId>>(initialFilters);
+
+    const rows = useMemo(
+      () =>
+        unsortedRows
+          .filter((row) => {
+            for (const [fieldId, filter] of typedEntries(filters)) {
+              if (isFixedField(fieldId)) {
+                if (!isFilterValueIncluded(row.data[fieldId], filter)) {
+                  return false;
+                }
+              } else {
+                const baseUrl = extractBaseUrl(fieldId);
+                const propertyValue = row.data.properties[baseUrl];
+
+                const value =
+                  propertyValue === undefined
+                    ? null
+                    : stringifyPropertyValue(row.data.properties[baseUrl]);
+
+                if (!isFilterValueIncluded(value, filter)) {
+                  return false;
+                }
+              }
+            }
+
+            return true;
+          })
+          .sort((a, b) => {
+            const field = sort.fieldId;
+            const direction = sort.direction === "asc" ? 1 : -1;
+
+            if (!isFixedField(field)) {
+              /**
+               * This is a property field, so we need to compare the values of the properties
+               */
+              const baseUrl = extractBaseUrl(field);
+
+              return (
+                (a.data.properties[baseUrl]
+                  ?.toString()
+                  .localeCompare(
+                    b.data.properties[baseUrl]?.toString() ?? "",
+                  ) ?? 0) * direction
+              );
+            }
+
+            return a.data[field].localeCompare(b.data[field]) * direction;
+          }),
+      [filters, sort, unsortedRows],
+    );
 
     const columns = useMemo(
       () =>
@@ -551,6 +698,8 @@ export const EntityResultTable = memo(
           <VirtualizedTable
             columns={columns}
             createRowContent={createRowContent}
+            filters={filters}
+            setFilters={setFilters}
             fixedColumns={3}
             rows={rows}
             sort={sort}
