@@ -1,7 +1,6 @@
-use core::{
-    error::Error,
-    fmt::{self, Write},
-};
+#[cfg(feature = "postgres")]
+use core::error::Error;
+use core::fmt::{self, Write};
 
 #[cfg(feature = "postgres")]
 use postgres_types::{private::BytesMut, FromSql, IsNull, Json, ToSql, Type};
