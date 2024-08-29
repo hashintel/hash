@@ -46,7 +46,7 @@
     "agentkeepalive": "4.2.1",
     "apollo-datasource": "3.3.2",
     "axios": "1.7.4",
-    "dotenv-flow": "3.2.0",
+    "dotenv-flow": "3.3.0",
     "exponential-backoff": "3.1.1",
     "googleapis": "133.0.0",
     "logform": "2.6.1",
@@ -58,7 +58,7 @@
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/dotenv-flow": "3.2.0",
+    "@types/dotenv-flow": "3.3.3",
     "@types/node": "20.16.2",
     "@types/wait-on": "5.3.4",
     "@vitest/coverage-istanbul": "2.0.5",

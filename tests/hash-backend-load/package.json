@@ -44,7 +44,7 @@
     "@opentelemetry/semantic-conventions": "1.27.0",
     "@ory/client": "1.1.41",
     "artillery": "2.0.20",
-    "dotenv-flow": "3.2.0",
+    "dotenv-flow": "3.3.0",
     "uuid": "9.0.1"
   },
   "devDependencies": {
@@ -54,7 +54,7 @@
     "@rollup/plugin-commonjs": "26.0.1",
     "@rollup/plugin-node-resolve": "15.2.3",
     "@rollup/plugin-typescript": "11.1.6",
-    "@types/dotenv-flow": "3.2.0",
+    "@types/dotenv-flow": "3.3.3",
     "@types/uuid": "8.3.4",
     "eslint": "8.57.0",
     "rimraf": "6.0.1",
