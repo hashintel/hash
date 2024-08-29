@@ -19,7 +19,7 @@
     "build": "rimraf dist && tsc --build tsconfig.build.json",
     "codegen": "rimraf './src/**/*.gen.*'; graphql-codegen --config codegen.config.ts",
     "fix:eslint": "eslint --fix .",
-    "generate-system-types": "tsx ./src/generate-system-types.ts; yarn fix:eslint; yarn prettier --write ./src/system-types/{*.ts,**/*.ts}",
+    "generate-system-types": "tsx ./src/generate-system-types.ts; fix-esm-import-path ./src/system-types/*.ts; yarn fix:eslint; yarn prettier --write ./src/system-types/{*.ts,**/*.ts}",
     "lint:eslint": "eslint --report-unused-disable-directives .",
     "lint:tsc": "tsc --noEmit",
     "test:unit": "vitest --run"
@@ -36,6 +36,7 @@
     "@sentry/browser": "7.119.0",
     "@sindresorhus/slugify": "1.1.2",
     "apollo-server-express": "3.9.0",
+    "fix-esm-import-path": "1.10.0",
     "fractional-indexing": "2.1.0",
     "id128": "1.6.6",
     "immer": "9.0.6",

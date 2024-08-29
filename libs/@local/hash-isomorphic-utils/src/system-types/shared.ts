@@ -38,6 +38,14 @@ export type ActorPropertiesWithMetadata = {
 };
 
 /**
+ * A user or other entity's preferences for how an application should behave or appear
+ */
+export type ApplicationPreferencesPropertyValue = ObjectDataType;
+
+export type ApplicationPreferencesPropertyValueWithMetadata =
+  ObjectDataTypeWithMetadata;
+
+/**
  * The point in time at which something begins to apply
  */
 export type AppliesFromPropertyValue = DateTimeDataType;
@@ -212,7 +220,7 @@ export type BrowserPluginTabPropertyValueWithMetadata =
  * Comment associated with the issue.
  */
 export type Comment = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/comment/v/5";
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/comment/v/6";
   properties: CommentProperties;
   propertiesWithMetadata: CommentPropertiesWithMetadata;
 };
@@ -1651,7 +1659,7 @@ export type UploadCompletedAtPropertyValueWithMetadata =
  * A user of the HASH application.
  */
 export type User = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/5";
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/6";
   properties: UserProperties;
   propertiesWithMetadata: UserPropertiesWithMetadata;
 };
@@ -1697,6 +1705,7 @@ export type UserProperties = UserProperties1 & UserProperties2;
 export type UserProperties1 = ActorProperties;
 
 export type UserProperties2 = {
+  "https://hash.ai/@hash/types/property-type/application-preferences/"?: ApplicationPreferencesPropertyValue;
   /**
    * @minItems 1
    */
@@ -1747,6 +1756,7 @@ export type UserPropertiesWithMetadata1 = ActorPropertiesWithMetadata;
 export type UserPropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {
+    "https://hash.ai/@hash/types/property-type/application-preferences/"?: ApplicationPreferencesPropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/email/": {
       value: EmailPropertyValueWithMetadata[];
       metadata?: ArrayMetadata;

@@ -3,7 +3,7 @@ import type { LinkProps } from "@mui/material";
 import { Typography } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
 
-import { Link } from "../../ui";
+import { Link } from "../../../../ui";
 
 export const ViewAllLink: FunctionComponent<{
   href: string;

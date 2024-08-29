@@ -7,18 +7,20 @@ import type { FunctionComponent } from "react";
 import { useMemo, useState } from "react";
 import { TransitionGroup } from "react-transition-group";
 
-import { useLatestEntityTypesOptional } from "../../entity-types-context/hooks";
-import { ArrowDownAZRegularIcon } from "../../icons/arrow-down-a-z-regular-icon";
-import { ArrowUpZARegularIcon } from "../../icons/arrow-up-a-z-regular-icon";
-import { PlusRegularIcon } from "../../icons/plus-regular";
-import { Link } from "../../ui";
-import { EntityTypeItem } from "./account-entity-type-list/entity-type-item";
+import { useUpdateAuthenticatedUser } from "../../../../components/hooks/use-update-authenticated-user";
+import { useLatestEntityTypesOptional } from "../../../entity-types-context/hooks";
+import { ArrowDownAZRegularIcon } from "../../../icons/arrow-down-a-z-regular-icon";
+import { ArrowUpZARegularIcon } from "../../../icons/arrow-up-a-z-regular-icon";
+import { PlusRegularIcon } from "../../../icons/plus-regular";
+import { Link } from "../../../ui";
+import { useUserPreferences } from "../../../use-user-preferences";
+import { LoadingSkeleton } from "../shared/loading-skeleton";
 import { SearchInput } from "./account-entity-type-list/search-input";
-import type { SortType } from "./account-entity-type-list/sort-actions-dropdown";
-import { SortActionsDropdown } from "./account-entity-type-list/sort-actions-dropdown";
-import { NavLink } from "./nav-link";
-import { LoadingSkeleton } from "./shared/loading-skeleton";
-import { ViewAllLink } from "./view-all-link";
+import { EntityOrTypeSidebarItem } from "./shared/entity-or-type-sidebar-item";
+import { NavLink } from "./shared/nav-link";
+import type { SortType } from "./shared/sort-actions-dropdown";
+import { SortActionsDropdown } from "./shared/sort-actions-dropdown";
+import { ViewAllLink } from "./shared/view-all-link";
 
 type AccountEntityTypeListProps = {
   ownedById: string;
@@ -27,7 +29,31 @@ type AccountEntityTypeListProps = {
 export const AccountEntityTypeList: FunctionComponent<
   AccountEntityTypeListProps
 > = ({ ownedById }) => {
-  const [expanded, setExpanded] = useState<boolean>(false);
+  const preferences = useUserPreferences();
+
+  const [expanded, setExpanded] = useState<boolean>(
+    preferences.sidebarSections.entityTypes.expanded,
+  );
+
+  const [updateUser] = useUpdateAuthenticatedUser();
+
+  const toggleTypesExpanded = () => {
+    setExpanded(!expanded);
+
+    void updateUser({
+      preferences: {
+        ...preferences,
+        sidebarSections: {
+          ...preferences.sidebarSections,
+          entityTypes: {
+            ...preferences.sidebarSections.entityTypes,
+            expanded: !expanded,
+          },
+        },
+      },
+    });
+  };
+
   const [sortType, setSortType] = useState<SortType>("asc");
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -74,7 +100,7 @@ export const AccountEntityTypeList: FunctionComponent<
     <Box>
       <NavLink
         expanded={expanded}
-        toggleExpanded={() => setExpanded((prev) => !prev)}
+        toggleExpanded={toggleTypesExpanded}
         title="Types"
         endAdornment={
           <Box display="flex" gap={1}>
@@ -134,7 +160,10 @@ export const AccountEntityTypeList: FunctionComponent<
             <TransitionGroup>
               {filteredEntityTypes.map((root) => (
                 <Collapse key={root.schema.$id}>
-                  <EntityTypeItem entityType={root} variant="entity-type" />
+                  <EntityOrTypeSidebarItem
+                    entityType={root}
+                    variant="entity-type"
+                  />
                 </Collapse>
               ))}
             </TransitionGroup>

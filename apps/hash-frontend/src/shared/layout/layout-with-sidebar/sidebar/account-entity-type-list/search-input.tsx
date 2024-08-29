@@ -7,7 +7,7 @@ import {
 import { Fade, outlinedInputClasses, Tooltip } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-import { MagnifyingGlassLightIcon } from "../../../icons/magnifying-glass-light";
+import { MagnifyingGlassLightIcon } from "../../../../icons/magnifying-glass-light";
 
 type SearchInputProps = {
   searchVisible: boolean;

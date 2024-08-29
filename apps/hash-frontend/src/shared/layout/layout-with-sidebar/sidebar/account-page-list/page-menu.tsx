@@ -9,7 +9,7 @@ import { bindMenu } from "material-ui-popup-state/hooks";
 import type { FunctionComponent } from "react";
 import { useMemo, useState } from "react";
 
-import { MenuItem } from "../../../ui";
+import { MenuItem } from "../../../../ui";
 
 type PageMenuProps = {
   popupState: PopupState;

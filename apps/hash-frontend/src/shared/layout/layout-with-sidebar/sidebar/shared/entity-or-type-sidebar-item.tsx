@@ -12,11 +12,11 @@ import { useRouter } from "next/router";
 import type { FunctionComponent } from "react";
 import { useRef } from "react";
 
-import { useEntityTypesContextRequired } from "../../../entity-types-context/hooks/use-entity-types-context-required";
-import { EllipsisRegularIcon } from "../../../icons/ellipsis-regular-icon";
-import { Link } from "../../../ui";
-import { EntityMenu } from "./entity-menu";
-import { EntityTypeMenu } from "./entity-type-menu";
+import { useEntityTypesContextRequired } from "../../../../entity-types-context/hooks/use-entity-types-context-required";
+import { EllipsisRegularIcon } from "../../../../icons/ellipsis-regular-icon";
+import { Link } from "../../../../ui";
+import { EntityMenu } from "./entity-or-type-sidebar-item/entity-menu";
+import { EntityTypeMenu } from "./entity-or-type-sidebar-item/entity-type-menu";
 
 const Container = styled((props: BoxProps & { selected: boolean }) => (
   <Box component="li" {...props} />
@@ -52,7 +52,7 @@ const Container = styled((props: BoxProps & { selected: boolean }) => (
   },
 }));
 
-export const EntityTypeItem: FunctionComponent<{
+export const EntityOrTypeSidebarItem: FunctionComponent<{
   entityType: EntityTypeWithMetadata;
   href?: string;
   variant: "entity" | "entity-type";
@@ -61,7 +61,9 @@ export const EntityTypeItem: FunctionComponent<{
     metadata: { icon },
     schema: { title, $id: entityTypeId },
   } = entityType;
+
   const entityMenuTriggerRef = useRef(null);
+
   const popupState = usePopupState({
     variant: "popover",
     popupId: "entity-menu",
@@ -69,7 +71,6 @@ export const EntityTypeItem: FunctionComponent<{
 
   const router = useRouter();
 
-  // @todo once data fetching is moved to server, use that to identify if selected
   const baseUrl = extractBaseUrl(entityTypeId);
   const url = new URL(`${window.location.origin}${router.asPath}/`);
   const urlBase = `${url.origin}${url.pathname.replace(/\/$/, "")}/`;

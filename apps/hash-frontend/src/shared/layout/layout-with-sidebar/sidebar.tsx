@@ -1,5 +1,10 @@
 import { faHome } from "@fortawesome/free-solid-svg-icons";
-import { FontAwesomeIcon, IconButton } from "@hashintel/design-system";
+import {
+  AsteriskRegularIcon,
+  FontAwesomeIcon,
+  IconButton,
+  ShapesRegularIcon,
+} from "@hashintel/design-system";
 import { Box, Collapse, Drawer } from "@mui/material";
 import { useRouter } from "next/router";
 import {
@@ -10,23 +15,23 @@ import {
 } from "react";
 
 import { useHashInstance } from "../../../components/hooks/use-hash-instance";
-import { useAuthenticatedUser } from "../../../pages/shared/auth-info-context";
 import { useEnabledFeatureFlags } from "../../../pages/shared/use-enabled-feature-flags";
 import { useActiveWorkspace } from "../../../pages/shared/workspace-context";
 import { useDraftEntities } from "../../draft-entities-context";
 import { ArrowRightToLineIcon } from "../../icons";
 import { BoltLightIcon } from "../../icons/bolt-light-icon";
-import { CogLightIcon } from "../../icons/cog-light-icon";
 import { InboxIcon } from "../../icons/inbox-icon";
 import { NoteIcon } from "../../icons/note-icon";
 import { useNotificationEntities } from "../../notification-entities-context";
 import { useRoutePageInfo } from "../../routing";
-import { AccountEntitiesList } from "./account-entities-list";
-import { AccountEntityTypeList } from "./account-entity-type-list";
-import { AccountPageList } from "./account-page-list/account-page-list";
+import { useUserPreferences } from "../../use-user-preferences";
+import { AccountEntitiesList } from "./sidebar/account-entities-list";
+import { AccountEntityTypeList } from "./sidebar/account-entity-type-list";
+import { AccountPageList } from "./sidebar/account-page-list";
+import { FavoritesList } from "./sidebar/favorites-list";
+import { TopNavLink } from "./sidebar/top-nav-link";
+import { WorkspaceSwitcher } from "./sidebar/workspace-switcher";
 import { useSidebarContext } from "./sidebar-context";
-import { TopNavLink } from "./top-nav-link";
-import { WorkspaceSwitcher } from "./workspace-switcher";
 
 export const SIDEBAR_WIDTH = 260;
 
@@ -61,9 +66,9 @@ export const PageSidebar: FunctionComponent = () => {
   const { routePageEntityUuid } =
     useRoutePageInfo({ allowUndefined: true }) ?? {};
 
-  const { isInstanceAdmin } = useAuthenticatedUser();
-
   const enabledFeatureFlags = useEnabledFeatureFlags();
+
+  const preferences = useUserPreferences();
 
   const { hashInstance } = useHashInstance();
 
@@ -108,6 +113,22 @@ export const PageSidebar: FunctionComponent = () => {
   );
 
   const navLinks = useMemo<NavLinkDefinition[]>(() => {
+    const toggleableLinks: NavLinkDefinition[] = [];
+    if (preferences.sidebarSections.entities.variant === "link") {
+      toggleableLinks.push({
+        title: "Entities",
+        path: "/entities",
+        icon: <AsteriskRegularIcon sx={{ fontSize: 16 }} />,
+      });
+    }
+    if (preferences.sidebarSections.entityTypes.variant === "link") {
+      toggleableLinks.push({
+        title: "Types",
+        path: "/types",
+        icon: <ShapesRegularIcon sx={{ fontSize: 16 }} />,
+      });
+    }
+
     const numberOfPendingActions = draftEntities?.length ?? 0;
 
     return [
@@ -118,6 +139,7 @@ export const PageSidebar: FunctionComponent = () => {
         tooltipTitle: "",
       },
       ...workersSection,
+      ...toggleableLinks,
       {
         title: "Inbox",
         path: "/actions",
@@ -132,7 +154,7 @@ export const PageSidebar: FunctionComponent = () => {
           },
           {
             title: "Notifications",
-            path: "/inbox",
+            path: "/notifications",
             count: numberOfUnreadNotifications,
           },
         ],
@@ -147,22 +169,12 @@ export const PageSidebar: FunctionComponent = () => {
             },
           ]
         : []),
-      ...(isInstanceAdmin
-        ? [
-            {
-              title: "Instance Administration",
-              path: "/admin",
-              icon: <CogLightIcon sx={{ fontSize: 16 }} />,
-              tooltipTitle: "",
-            },
-          ]
-        : []),
     ];
   }, [
     draftEntities,
     numberOfUnreadNotifications,
     enabledFeatureFlags,
-    isInstanceAdmin,
+    preferences,
     workersSection,
   ]);
 
@@ -274,7 +286,7 @@ export const PageSidebar: FunctionComponent = () => {
       >
         {activeWorkspaceOwnedById ? (
           <>
-            {/* PAGES */}
+            {preferences.favorites.length > 0 && <FavoritesList />}
             {hashInstance?.properties.pagesAreEnabled &&
             enabledFeatureFlags.pages ? (
               <AccountPageList
@@ -282,10 +294,12 @@ export const PageSidebar: FunctionComponent = () => {
                 ownedById={activeWorkspaceOwnedById}
               />
             ) : null}
-            {/* ENTITIES */}
-            <AccountEntitiesList ownedById={activeWorkspaceOwnedById} />
-            {/* TYPES */}
-            <AccountEntityTypeList ownedById={activeWorkspaceOwnedById} />
+            {preferences.sidebarSections.entities.variant === "list" && (
+              <AccountEntitiesList ownedById={activeWorkspaceOwnedById} />
+            )}
+            {preferences.sidebarSections.entityTypes.variant === "list" && (
+              <AccountEntityTypeList ownedById={activeWorkspaceOwnedById} />
+            )}
           </>
         ) : null}
       </Box>

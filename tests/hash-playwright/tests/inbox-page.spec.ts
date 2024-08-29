@@ -102,7 +102,7 @@ const createNotification = async ({
   return targetEntityTitle;
 };
 
-test("new notifications are shown on inbox page", async ({ page }) => {
+test("new notifications are shown on notifications page", async ({ page }) => {
   await loginUsingTempForm({
     page,
     userEmail: "alice@example.com",
@@ -111,9 +111,9 @@ test("new notifications are shown on inbox page", async ({ page }) => {
 
   await expect(page.locator("text=Get support")).toBeVisible();
 
-  await page.goto("/inbox");
+  await page.goto("/notifications");
 
-  await page.waitForURL((url) => url.pathname === "/inbox");
+  await page.waitForURL((url) => url.pathname === "/notifications");
 
   const draftNotificationTitle = new Date().toISOString();
 

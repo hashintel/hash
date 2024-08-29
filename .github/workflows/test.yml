@@ -49,12 +49,6 @@ jobs:
             | jq 'select(.task == "test:integration" and .command != "<NONEXISTENT>")' \
             | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
 
-          SYSTEM_TEST_FILTER=$(turbo run test:system --dry-run=json --filter '...[HEAD^]' | jq -e '.packages | contains(["//"])' > /dev/null && echo '' || echo '--filter ...[HEAD^]')
-          SYSTEM_TEST_PACKAGES=$(sh -c "turbo run test:system --dry-run=json $SYSTEM_TEST_FILTER" \
-            | jq '.tasks[]' \
-            | jq 'select(.task == "test:system" and .command != "<NONEXISTENT>")' \
-            | jq --compact-output --slurp '{ package: [.[].package] | unique, include: [( .[] | {package: .package, directory: .directory })] | unique }')
-
           DOCKER_PACKAGES_FILTER=$(turbo run build:docker --dry-run=json --filter '...[HEAD^]' | jq -e '.packages | contains(["//"])' > /dev/null && echo '' || echo '--filter ...[HEAD^]')
           DOCKER_PACKAGES=$(sh -c "turbo run build:docker --dry-run=json $DOCKER_PACKAGES_FILTER" \
             | jq '.tasks[]' \

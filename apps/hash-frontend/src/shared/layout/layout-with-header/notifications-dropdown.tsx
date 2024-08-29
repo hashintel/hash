@@ -14,7 +14,7 @@ export const NotificationsDropdown: FunctionComponent = () => {
 
   return (
     <Tooltip title="Notifications" placement="bottom">
-      <Link noLinkStyle href="/inbox">
+      <Link noLinkStyle href="/notifications">
         <HeaderIconButtonWithCount
           icon={
             <FontAwesomeIcon

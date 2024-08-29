@@ -12,9 +12,9 @@ import type { PopupState } from "material-ui-popup-state/hooks";
 import { bindMenu } from "material-ui-popup-state/hooks";
 import type { FunctionComponent, ReactNode } from "react";
 
-import { ArrowDownAZRegularIcon } from "../../../icons/arrow-down-a-z-regular-icon";
-import { ArrowUpZARegularIcon } from "../../../icons/arrow-up-a-z-regular-icon";
-import { MenuItem } from "../../../ui";
+import { ArrowDownAZRegularIcon } from "../../../../icons/arrow-down-a-z-regular-icon";
+import { ArrowUpZARegularIcon } from "../../../../icons/arrow-up-a-z-regular-icon";
+import { MenuItem } from "../../../../ui";
 
 export type SortType = "asc" | "desc" | "recent" | "most_used" | "least_used";
 
@@ -24,9 +24,6 @@ type SortActionsDropdownProps = {
   popupState: PopupState;
 };
 
-// Commented out menu items whose functionality have not been
-// implemented yet
-// @todo uncomment when functionality has been implemented
 const menuItems: {
   title: string;
   sortType: SortType;
@@ -42,6 +39,8 @@ const menuItems: {
     icon: <ArrowUpZARegularIcon />,
     sortType: "desc",
   },
+  // Commented out menu items whose functionality have not been implemented yet
+  // @todo uncomment when functionality has been implemented
   // {
   //   title: "Recently Updated",
   //   icon: faWandSparkles, // @todo-mui get a free icon that matches the design closely

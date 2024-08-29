@@ -4,9 +4,9 @@ import { ListItemIcon, listItemIconClasses, ListItemText } from "@mui/material";
 import type { PopupState } from "material-ui-popup-state/hooks";
 import type { ReactElement } from "react";
 
-import { MenuItem } from "../../../ui";
+import { MenuItem } from "../../../../../../ui";
 
-export const EntityTypeMenuItem = ({
+export const SidebarMenuItem = ({
   title,
   icon,
   href,
