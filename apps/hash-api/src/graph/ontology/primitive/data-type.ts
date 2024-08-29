@@ -1,4 +1,8 @@
-import type { VersionedUrl } from "@blockprotocol/type-system";
+import type {
+  BaseUrl,
+  Conversions,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { DATA_TYPE_META_SCHEMA } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
 import type {
@@ -57,10 +61,11 @@ export const createDataType: ImpureGraphFunction<
     webShortname?: string;
     relationships: DataTypeRelationAndSubject[];
     provenance?: ProvidedOntologyEditionProvenance;
+    conversions: Record<BaseUrl, Conversions>;
   },
   Promise<DataTypeWithMetadata>
 > = async (ctx, authentication, params) => {
-  const { ownedById, webShortname, provenance } = params;
+  const { ownedById, webShortname, provenance, conversions } = params;
 
   const shortname =
     webShortname ??
@@ -90,6 +95,7 @@ export const createDataType: ImpureGraphFunction<
       ownedById,
       relationships: params.relationships,
       provenance,
+      conversions,
     },
   );
 
@@ -207,10 +213,11 @@ export const updateDataType: ImpureGraphFunction<
     schema: ConstructDataTypeParams;
     relationships: DataTypeRelationAndSubject[];
     provenance?: ProvidedOntologyEditionProvenance;
+    conversions: Record<BaseUrl, Conversions>;
   },
   Promise<DataTypeWithMetadata>
 > = async ({ graphApi }, { actorId }, params) => {
-  const { dataTypeId, schema, provenance } = params;
+  const { dataTypeId, schema, provenance, conversions } = params;
 
   const { data: metadata } = await graphApi.updateDataType(actorId, {
     typeToUpdate: dataTypeId,
@@ -221,6 +228,7 @@ export const updateDataType: ImpureGraphFunction<
     },
     relationships: params.relationships,
     provenance,
+    conversions,
   });
 
   const { recordId } = metadata;

@@ -12,8 +12,8 @@ pub use self::{
     },
     property_type::{property_type_channel, PropertyTypeRowBatch, PropertyTypeSender},
     record::{
-        DataTypeEmbeddingRecord, DataTypeSnapshotRecord, EntityTypeEmbeddingRecord,
-        EntityTypeSnapshotRecord, OntologyTypeSnapshotRecord, PropertyTypeEmbeddingRecord,
-        PropertyTypeSnapshotRecord,
+        DataTypeConversionsRecord, DataTypeEmbeddingRecord, DataTypeSnapshotRecord,
+        EntityTypeEmbeddingRecord, EntityTypeSnapshotRecord, OntologyTypeSnapshotRecord,
+        PropertyTypeEmbeddingRecord, PropertyTypeSnapshotRecord,
     },
 };

@@ -28,14 +28,15 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
+use postgres_types::Json;
 use temporal_client::TemporalClient;
 use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;
 use tokio_postgres::{error::SqlState, GenericClient};
 use type_system::{
     schema::{
-        ClosedDataType, ClosedDataTypeMetadata, ClosedEntityType, DataTypeReference, EntityType,
-        EntityTypeReference, PropertyType, PropertyTypeReference,
+        ClosedDataType, ClosedDataTypeMetadata, ClosedEntityType, Conversions, DataTypeReference,
+        EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     Valid,
@@ -445,6 +446,41 @@ where
                 .await
                 .change_context(InsertionError)?;
         }
+
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    async fn insert_data_type_conversion(
+        &self,
+        ontology_id: DataTypeId,
+        target_data_type: &BaseUrl,
+        conversions: &Conversions,
+    ) -> Result<(), InsertionError> {
+        self.as_client()
+            .query(
+                r#"
+                    INSERT INTO data_type_conversions (
+                        "source_data_type_ontology_id",
+                        "target_data_type_base_url",
+                        "from",
+                        "into"
+                    ) VALUES (
+                        $1,
+                        $2,
+                        $3,
+                        $4
+                    );
+                "#,
+                &[
+                    &ontology_id,
+                    &target_data_type,
+                    &Json(&conversions.from),
+                    &Json(&conversions.to),
+                ],
+            )
+            .await
+            .change_context(InsertionError)?;
 
         Ok(())
     }

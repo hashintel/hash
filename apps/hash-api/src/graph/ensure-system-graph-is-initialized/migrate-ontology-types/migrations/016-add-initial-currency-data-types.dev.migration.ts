@@ -12,6 +12,7 @@ const migrate: MigrationFunction = async ({
       description: "An amount denominated in US Dollars",
       type: "number",
     },
+    conversions: {},
     webShortname: "hash",
     migrationState,
   });
@@ -22,6 +23,7 @@ const migrate: MigrationFunction = async ({
       description: "An amount denominated in British pounds sterling",
       type: "number",
     },
+    conversions: {},
     webShortname: "hash",
     migrationState,
   });

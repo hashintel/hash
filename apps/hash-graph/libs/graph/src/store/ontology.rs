@@ -1,5 +1,6 @@
 use alloc::borrow::Cow;
 use core::iter;
+use std::collections::HashMap;
 
 use authorization::schema::{
     DataTypeRelationAndSubject, EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject,
@@ -17,7 +18,7 @@ use graph_types::{
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{Timestamp, TransactionTime};
 use type_system::{
-    schema::{DataType, EntityType, PropertyType},
+    schema::{Conversions, DataType, EntityType, PropertyType},
     url::{BaseUrl, VersionedUrl},
 };
 
@@ -45,6 +46,8 @@ pub struct CreateDataTypeParams<R> {
     pub conflict_behavior: ConflictBehavior,
     #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
     pub provenance: ProvidedOntologyEditionProvenance,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub conversions: HashMap<BaseUrl, Conversions>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -114,6 +117,8 @@ pub struct UpdateDataTypesParams<R> {
     pub relationships: R,
     #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
     pub provenance: ProvidedOntologyEditionProvenance,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub conversions: HashMap<BaseUrl, Conversions>,
 }
 
 #[derive(Debug, Deserialize)]

@@ -3072,6 +3072,78 @@
         "maximum": 1,
         "minimum": 0
       },
+      "ConversionDefinition": {
+        "type": "object",
+        "required": [
+          "expression"
+        ],
+        "properties": {
+          "expression": {
+            "$ref": "#/components/schemas/ConversionExpression"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ConversionExpression": {
+        "type": "array",
+        "items": {
+          "oneOf": [
+            {
+              "$ref": "#/components/schemas/Operator"
+            },
+            {
+              "$ref": "#/components/schemas/ConversionValue"
+            }
+          ]
+        },
+        "maxItems": 3,
+        "minItems": 3
+      },
+      "ConversionValue": {
+        "oneOf": [
+          {
+            "$ref": "#/components/schemas/Variable"
+          },
+          {
+            "type": "object",
+            "required": [
+              "const",
+              "type"
+            ],
+            "properties": {
+              "const": {
+                "type": "number",
+                "format": "double"
+              },
+              "type": {
+                "type": "string",
+                "enum": [
+                  "number"
+                ]
+              }
+            }
+          },
+          {
+            "$ref": "#/components/schemas/ConversionExpression"
+          }
+        ]
+      },
+      "Conversions": {
+        "type": "object",
+        "required": [
+          "from",
+          "to"
+        ],
+        "properties": {
+          "from": {
+            "$ref": "#/components/schemas/ConversionDefinition"
+          },
+          "to": {
+            "$ref": "#/components/schemas/ConversionDefinition"
+          }
+        },
+        "additionalProperties": false
+      },
       "CountEntitiesParams": {
         "type": "object",
         "required": [
@@ -3097,9 +3169,16 @@
         "required": [
           "schema",
           "ownedById",
-          "relationships"
+          "relationships",
+          "conversions"
         ],
         "properties": {
+          "conversions": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Conversions"
+            }
+          },
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
           },
@@ -5770,9 +5849,16 @@
             "type": "object",
             "required": [
               "schema",
-              "relationships"
+              "relationships",
+              "conversions"
             ],
             "properties": {
+              "conversions": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/Conversions"
+                }
+              },
               "provenance": {
                 "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
               },
@@ -6315,6 +6401,15 @@
         "discriminator": {
           "propertyName": "kind"
         }
+      },
+      "Operator": {
+        "type": "string",
+        "enum": [
+          "+",
+          "-",
+          "*",
+          "/"
+        ]
       },
       "Ordering": {
         "type": "string",
@@ -7804,9 +7899,16 @@
         "required": [
           "schema",
           "typeToUpdate",
-          "relationships"
+          "relationships",
+          "conversions"
         ],
         "properties": {
+          "conversions": {
+            "type": "object",
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Conversions"
+            }
+          },
           "provenance": {
             "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
           },
@@ -8049,6 +8151,12 @@
           "value": {}
         },
         "additionalProperties": false
+      },
+      "Variable": {
+        "type": "string",
+        "enum": [
+          "self"
+        ]
       },
       "VersionedUrl": {
         "type": "string",

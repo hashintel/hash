@@ -14,7 +14,9 @@ use postgres_types::ToSql;
 use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime};
 use time::OffsetDateTime;
 use type_system::{
-    schema::{ClosedDataType, ClosedEntityType, DataType, EntityType, PropertyType},
+    schema::{
+        ClosedDataType, ClosedEntityType, ConversionDefinition, DataType, EntityType, PropertyType,
+    },
     url::{BaseUrl, OntologyTypeVersion},
     Valid,
 };
@@ -49,6 +51,15 @@ pub struct DataTypeEmbeddingRow<'e> {
     pub ontology_id: DataTypeId,
     pub embedding: Embedding<'e>,
     pub updated_at_transaction_time: Timestamp<TransactionTime>,
+}
+
+#[derive(Debug, ToSql)]
+#[postgres(name = "data_type_conversions")]
+pub struct DataTypeConversionsRow {
+    pub source_data_type_ontology_id: DataTypeId,
+    pub target_data_type_base_url: BaseUrl,
+    pub from: ConversionDefinition,
+    pub into: ConversionDefinition,
 }
 
 #[derive(Debug, ToSql)]

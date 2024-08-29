@@ -55,6 +55,7 @@ async fn insert() {
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance::default(),
+            conversions: HashMap::new(),
         },
     )
     .await
@@ -82,6 +83,7 @@ async fn query() {
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance::default(),
+            conversions: HashMap::new(),
         },
     )
     .await
@@ -168,6 +170,7 @@ async fn inheritance() {
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance::default(),
+            conversions: HashMap::new(),
         },
     )
     .await
@@ -262,6 +265,7 @@ async fn inheritance() {
             schema: centimeter_dt_v2.clone(),
             relationships: data_type_relationships(),
             provenance: ProvidedOntologyEditionProvenance::default(),
+            conversions: HashMap::new(),
         },
     )
     .await
@@ -413,6 +417,7 @@ async fn update() {
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance::default(),
+            conversions: HashMap::new(),
         },
     )
     .await
@@ -424,6 +429,7 @@ async fn update() {
             schema: object_dt_v2.clone(),
             relationships: data_type_relationships(),
             provenance: ProvidedOntologyEditionProvenance::default(),
+            conversions: HashMap::new(),
         },
     )
     .await
@@ -482,6 +488,7 @@ async fn update() {
 }
 
 #[tokio::test]
+#[expect(clippy::too_many_lines)]
 async fn insert_same_base_url() {
     let object_dt_v1: DataType = serde_json::from_str(graph_test_data::data_type::OBJECT_V1)
         .expect("could not parse data type representation");
@@ -505,6 +512,7 @@ async fn insert_same_base_url() {
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance::default(),
+            conversions: HashMap::new(),
         },
     )
     .await
@@ -521,6 +529,7 @@ async fn insert_same_base_url() {
                 relationships: data_type_relationships(),
                 conflict_behavior: ConflictBehavior::Fail,
                 provenance: ProvidedOntologyEditionProvenance::default(),
+                conversions: HashMap::new(),
             },
         )
         .await
@@ -541,6 +550,7 @@ async fn insert_same_base_url() {
                 relationships: data_type_relationships(),
                 conflict_behavior: ConflictBehavior::Fail,
                 provenance: ProvidedOntologyEditionProvenance::default(),
+                conversions: HashMap::new(),
             },
         )
         .await
@@ -561,6 +571,7 @@ async fn insert_same_base_url() {
                 relationships: data_type_relationships(),
                 conflict_behavior: ConflictBehavior::Fail,
                 provenance: ProvidedOntologyEditionProvenance::default(),
+                conversions: HashMap::new(),
             },
         )
         .await
@@ -581,6 +592,7 @@ async fn insert_same_base_url() {
                 relationships: data_type_relationships(),
                 conflict_behavior: ConflictBehavior::Fail,
                 provenance: ProvidedOntologyEditionProvenance::default(),
+                conversions: HashMap::new(),
             },
         )
         .await
@@ -612,6 +624,7 @@ async fn wrong_update_order() {
                 schema: object_dt_v1.clone(),
                 relationships: data_type_relationships(),
                 provenance: ProvidedOntologyEditionProvenance::default(),
+                conversions: HashMap::new(),
             },
         )
         .await
@@ -631,6 +644,7 @@ async fn wrong_update_order() {
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance::default(),
+            conversions: HashMap::new(),
         },
     )
     .await
@@ -643,6 +657,7 @@ async fn wrong_update_order() {
                 schema: object_dt_v1.clone(),
                 relationships: data_type_relationships(),
                 provenance: ProvidedOntologyEditionProvenance::default(),
+                conversions: HashMap::new(),
             },
         )
         .await
@@ -658,6 +673,7 @@ async fn wrong_update_order() {
             schema: object_dt_v2.clone(),
             relationships: data_type_relationships(),
             provenance: ProvidedOntologyEditionProvenance::default(),
+            conversions: HashMap::new(),
         },
     )
     .await
@@ -670,6 +686,7 @@ async fn wrong_update_order() {
                 schema: object_dt_v2.clone(),
                 relationships: data_type_relationships(),
                 provenance: ProvidedOntologyEditionProvenance::default(),
+                conversions: HashMap::new(),
             },
         )
         .await
@@ -704,6 +721,7 @@ async fn update_external_with_owned() {
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance::default(),
+            conversions: HashMap::new(),
         },
     )
     .await
@@ -716,6 +734,7 @@ async fn update_external_with_owned() {
                 schema: object_dt_v2.clone(),
                 relationships: data_type_relationships(),
                 provenance: ProvidedOntologyEditionProvenance::default(),
+                conversions: HashMap::new(),
             },
         )
         .await
@@ -735,6 +754,7 @@ async fn update_external_with_owned() {
             relationships: data_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance::default(),
+            conversions: HashMap::new(),
         },
     )
     .await
@@ -747,6 +767,7 @@ async fn update_external_with_owned() {
                 schema: object_dt_v2,
                 relationships: data_type_relationships(),
                 provenance: ProvidedOntologyEditionProvenance::default(),
+                conversions: HashMap::new(),
             },
         )
         .await

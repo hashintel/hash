@@ -5,8 +5,8 @@ use graph_types::{ontology::OntologyType, Embedding};
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{Timestamp, TransactionTime};
 use type_system::{
-    schema::{DataType, EntityType, PropertyType},
-    url::VersionedUrl,
+    schema::{Conversions, DataType, EntityType, PropertyType},
+    url::{BaseUrl, VersionedUrl},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -36,6 +36,14 @@ pub struct DataTypeEmbeddingRecord {
     pub data_type_id: VersionedUrl,
     pub embedding: Embedding<'static>,
     pub updated_at_transaction_time: Timestamp<TransactionTime>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DataTypeConversionsRecord {
+    pub source_data_type: VersionedUrl,
+    pub target_data_type: BaseUrl,
+    pub conversions: Conversions,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

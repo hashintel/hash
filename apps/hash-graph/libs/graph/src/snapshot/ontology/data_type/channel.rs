@@ -22,7 +22,7 @@ use crate::{
         },
         SnapshotRestoreError,
     },
-    store::postgres::query::rows::{DataTypeEmbeddingRow, DataTypeRow},
+    store::postgres::query::rows::{DataTypeConversionsRow, DataTypeEmbeddingRow, DataTypeRow},
 };
 
 /// A sink to insert [`DataTypeSnapshotRecord`]s.
@@ -150,6 +150,7 @@ impl Stream for DataTypeReceiver {
 pub fn data_type_channel(
     chunk_size: usize,
     metadata_sender: OntologyTypeMetadataSender,
+    conversions_rx: Receiver<DataTypeConversionsRow>,
     embedding_rx: Receiver<DataTypeEmbeddingRow<'static>>,
 ) -> (DataTypeSender, DataTypeReceiver) {
     let (schema_tx, schema_rx) = mpsc::channel(chunk_size);
@@ -166,6 +167,10 @@ pub fn data_type_channel(
                 schema_rx
                     .ready_chunks(chunk_size)
                     .map(DataTypeRowBatch::Schema)
+                    .boxed(),
+                conversions_rx
+                    .ready_chunks(chunk_size)
+                    .map(DataTypeRowBatch::Conversions)
                     .boxed(),
                 relations_rx
                     .ready_chunks(chunk_size)

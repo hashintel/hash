@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
 use core::mem;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 use authorization::{
@@ -519,6 +519,7 @@ where
                             relationships: DATA_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
                             provenance: ProvidedOntologyEditionProvenance::default(),
+                            conversions: HashMap::new(),
                         }),
                 )
                 .await?;
@@ -605,6 +606,7 @@ where
                                 relationships: DATA_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
                                 provenance: ProvidedOntologyEditionProvenance::default(),
+                                conversions: HashMap::new(),
                             }),
                     )
                     .await?
