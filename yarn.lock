@@ -28269,6 +28269,11 @@ signia@0.1.1:
   resolved "https://registry.yarnpkg.com/signia/-/signia-0.1.1.tgz#eb0966f908e5157738a47bad3c68dca2685811f2"
   integrity sha512-Phqvv7lGbCy0LCiymiab+5OzryT//c87RR1f+79kmViXR4WF9OZ8P4J1mhmbTvxoT84t3GQw8pa6GrYjoMRoCA==
 
+signia@0.1.5:
+  version "0.1.5"
+  resolved "https://registry.yarnpkg.com/signia/-/signia-0.1.5.tgz#a48863cb0cf44463fe56a1070379a065ae658b45"
+  integrity sha512-ViJpywl7H1W6zRfqbu+86xpSCcuq6tpOen7I+gR8axaiyZP8txRNAoeCsL20UkuqzG/Ybtk0u4C2lawkiwPlnw==
+
 sigstore@^2.2.0:
   version "2.3.1"
   resolved "https://registry.yarnpkg.com/sigstore/-/sigstore-2.3.1.tgz#0755dd2cc4820f2e922506da54d3d628e13bfa39"
