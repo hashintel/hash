@@ -89,12 +89,12 @@
     ]
   },
   "resolutions": {
-    "@opentelemetry/exporter-metrics-otlp-grpc": "0.52.1",
-    "@opentelemetry/exporter-metrics-otlp-http": "0.52.1",
-    "@opentelemetry/exporter-metrics-otlp-proto": "0.52.1",
-    "@opentelemetry/exporter-trace-otlp-grpc": "0.52.1",
-    "@opentelemetry/exporter-trace-otlp-http": "0.52.1",
-    "@opentelemetry/exporter-trace-otlp-proto": "0.52.1",
+    "@opentelemetry/exporter-metrics-otlp-grpc": "0.53.0",
+    "@opentelemetry/exporter-metrics-otlp-http": "0.53.0",
+    "@opentelemetry/exporter-metrics-otlp-proto": "0.53.0",
+    "@opentelemetry/exporter-trace-otlp-grpc": "0.53.0",
+    "@opentelemetry/exporter-trace-otlp-http": "0.53.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "0.53.0",
     "@types/react": "18.2.68",
     "react": "18.2.0",
     "react-dom": "18.2.0"
