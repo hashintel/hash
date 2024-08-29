@@ -28257,17 +28257,22 @@ signedsource@^1.0.0:
   resolved "https://registry.yarnpkg.com/signedsource/-/signedsource-1.0.0.tgz#1ddace4981798f93bd833973803d80d52e93ad6a"
   integrity "sha1-HdrOSYF5j5O9gzlzgD2A1S6TrWo= sha512-6+eerH9fEnNmi/hyM1DXcRK3pWdoMQtlkQ+ns0ntzunjKqp5i3sKCc80ym8Fib3iaYhdJUOPdhlJWj1tvge2Ww=="
 
-signia-react@0.1.1:
-  version "0.1.1"
-  resolved "https://registry.yarnpkg.com/signia-react/-/signia-react-0.1.1.tgz#6acc9352b38c20beb1ed9078108efc7a4da8f67e"
-  integrity sha512-19WRw13d9EzK5DTtn6dEFQ9y3gyVWAlM8/OQQCEhAbxVviWamMS6RtzL+ioFyKtrQqinxa6rXo/T8wVCSnKy7w==
+signia-react@0.1.5:
+  version "0.1.5"
+  resolved "https://registry.yarnpkg.com/signia-react/-/signia-react-0.1.5.tgz#49165282373bef989485cfb59dbe7367a6a5be63"
+  integrity sha512-DhHOEJNHIFq0sd4mFpMQx6U0vSb6MGrCS+iVdl1jM2Ts9iNyPc6zaWG/ko+ARS4L2cdHFpNH2l5YqoBNLwMyCw==
   dependencies:
-    signia "0.1.1"
+    signia "0.1.5"
 
 signia@0.1.1:
   version "0.1.1"
   resolved "https://registry.yarnpkg.com/signia/-/signia-0.1.1.tgz#eb0966f908e5157738a47bad3c68dca2685811f2"
   integrity sha512-Phqvv7lGbCy0LCiymiab+5OzryT//c87RR1f+79kmViXR4WF9OZ8P4J1mhmbTvxoT84t3GQw8pa6GrYjoMRoCA==
+
+signia@0.1.5:
+  version "0.1.5"
+  resolved "https://registry.yarnpkg.com/signia/-/signia-0.1.5.tgz#a48863cb0cf44463fe56a1070379a065ae658b45"
+  integrity sha512-ViJpywl7H1W6zRfqbu+86xpSCcuq6tpOen7I+gR8axaiyZP8txRNAoeCsL20UkuqzG/Ybtk0u4C2lawkiwPlnw==
 
 sigstore@^2.2.0:
   version "2.3.1"

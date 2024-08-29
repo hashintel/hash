@@ -107,7 +107,7 @@
     "safe-stable-stringify": "2.4.3",
     "setimmediate": "1.0.5",
     "signia": "0.1.1",
-    "signia-react": "0.1.1",
+    "signia-react": "0.1.5",
     "url-regex-safe": "4.0.0",
     "use-font-face-observer": "1.2.2",
     "uuid": "9.0.1"
