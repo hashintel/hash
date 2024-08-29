@@ -61,6 +61,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "minimum": 0
       }
   ],
+  "conversions": {},
   "relationships": [{
     "relation": "viewer",
     "subject": {
