@@ -10533,10 +10533,10 @@
   dependencies:
     domhandler "^2.4.0"
 
-"@types/dotenv-flow@3.2.0":
-  version "3.2.0"
-  resolved "https://registry.yarnpkg.com/@types/dotenv-flow/-/dotenv-flow-3.2.0.tgz#3a632bcb72d5a6fa770da644a1f63d69a6c7075e"
-  integrity "sha1-OmMry3LVpvp3DaZEofY9aabHB14= sha512-A79hbPwocbYkcTwGcDOFbKDuqyVo5mLAz/6Iq465YZ7R7Go5bT1PIM8I2jlPQkaD9u9fbotGVLkUPhX+9XUHfw=="
+"@types/dotenv-flow@3.3.3":
+  version "3.3.3"
+  resolved "https://registry.yarnpkg.com/@types/dotenv-flow/-/dotenv-flow-3.3.3.tgz#d8bdbb08f35c0a62869b8ce72796055569a44258"
+  integrity sha512-aJjBsKw4bfGjvaRwrxBtEOfYZxCAq+LiFTpZ4DGTEK2b9eLVt/IAClapSxMfgV4Mi/2bIBKKjoTCO0lOh4ACLg==
 
 "@types/ejs@^3.1.1":
   version "3.1.1"
@@ -16183,12 +16183,12 @@ dotenv-expand@^10.0.0:
   resolved "https://registry.yarnpkg.com/dotenv-expand/-/dotenv-expand-10.0.0.tgz#12605d00fb0af6d0a592e6558585784032e4ef37"
   integrity sha512-GopVGCpVS1UKH75VKHGuQFqS1Gusej0z4FyQkPdwjil2gNIv+LNsqBlboOzpJFZKVT95GkCyWJbBSdFEFUWI2A==
 
-dotenv-flow@3.2.0:
-  version "3.2.0"
-  resolved "https://registry.yarnpkg.com/dotenv-flow/-/dotenv-flow-3.2.0.tgz#a5d79dd60ddb6843d457a4874aaf122cf659a8b7"
-  integrity sha512-GEB6RrR4AbqDJvNSFrYHqZ33IKKbzkvLYiD5eo4+9aFXr4Y4G+QaFrB/fNp0y6McWBmvaPn3ZNjIufnj8irCtg==
+dotenv-flow@3.3.0:
+  version "3.3.0"
+  resolved "https://registry.yarnpkg.com/dotenv-flow/-/dotenv-flow-3.3.0.tgz#e22341c035d5672b923bf76feb35999f728ee456"
+  integrity sha512-GLSvRqDZ1TGhloS6ZCZ5chdqqv/3XMqZxAnX9rliJiHn6uyJLguKeu+3M2kcagBkoVCnLWYfbR4rfFe1xSU39A==
   dependencies:
-    dotenv "^8.0.0"
+    dotenv "^8.6.0"
 
 dotenv-webpack@^8.0.1:
   version "8.1.0"
@@ -16202,7 +16202,7 @@ dotenv@^16.0.0, dotenv@^16.0.1, dotenv@^16.3.1, dotenv@^16.4.5:
   resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-16.4.5.tgz#cdd3b3b604cb327e286b4762e13502f717cb099f"
   integrity sha512-ZmdL2rui+eB2YwhsWzjInR8LldtZHGDoQ1ugH85ppHKwpUHL7j7rN0Ti9NCnGiQbhaZ11FpR+7ao1dNsmduNUg==
 
-dotenv@^8.0.0, dotenv@^8.1.0, dotenv@^8.2.0:
+dotenv@^8.1.0, dotenv@^8.2.0, dotenv@^8.6.0:
   version "8.6.0"
   resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-8.6.0.tgz#061af664d19f7f4d8fc6e4ff9b584ce237adcb8b"
   integrity "sha1-Bhr2ZNGff02PxuT/m1hM4jety4s= sha512-IrPdXQsk2BbzvCBGBOTmmSH5SodmqZNt4ERAZDmW4CT+tL8VtvinqywuANaFu4bOMWki16nqf0e4oC0QIaDr/g=="
