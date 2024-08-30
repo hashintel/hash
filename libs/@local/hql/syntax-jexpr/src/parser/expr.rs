@@ -190,7 +190,7 @@ fn parse_string<'arena, 'source>(
 mod test {
     #![expect(clippy::string_lit_as_bytes, reason = "macro code")]
     use alloc::sync::Arc;
-    use std::assert_matches::assert_matches;
+    use core::assert_matches::assert_matches;
 
     use hql_cst::arena::Arena;
     use hql_diagnostics::{config::ReportConfig, span::DiagnosticSpan};

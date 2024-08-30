@@ -1,4 +1,4 @@
-use std::assert_matches::debug_assert_matches;
+use core::assert_matches::debug_assert_matches;
 
 use hql_diagnostics::Diagnostic;
 use hql_span::{SpanId, TextRange};
