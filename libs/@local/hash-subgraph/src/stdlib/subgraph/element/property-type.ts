@@ -329,7 +329,7 @@ const addPropertyTypesToMapFromReferences = (
 };
 
 /**
- * Gets a map of all property types referenced by the entity type to the provided map,
+ * Gets a map of all propertyTypeIds referenced by the entity type to the full property type,
  * including from any parents in its inheritance chain and nested property objects,
  *
  * The subgraph must be a result of having queried for an entity type with sufficiently high depth
