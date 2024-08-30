@@ -1,7 +1,10 @@
 use core::borrow::Borrow;
 
-use error_stack::{ensure, Report, ResultExt};
-use graph_types::knowledge::{Property, ValueWithMetadata};
+use error_stack::{Report, ResultExt};
+use graph_types::{
+    knowledge::{Property, ValueWithMetadata},
+    ontology::DataTypeId,
+};
 use regex::Regex;
 use serde_json::{Number as JsonNumber, Value as JsonValue};
 use thiserror::Error;
@@ -12,8 +15,18 @@ use type_system::{
 
 use crate::{
     error::{Actual, Expected},
-    OntologyTypeProvider, Schema, Validate, ValidateEntityComponents,
+    DataTypeProvider, Schema, Validate, ValidateEntityComponents,
 };
+
+macro_rules! extend_report {
+    ($status:ident, $error:expr $(,)?) => {
+        if let Err(ref mut report) = $status {
+            report.extend_one(error_stack::report!($error))
+        } else {
+            $status = Err(error_stack::report!($error))
+        }
+    };
+}
 
 #[derive(Debug, Error)]
 pub enum DataTypeConstraint {
@@ -104,8 +117,8 @@ pub enum DataValidationError {
         expected: JsonSchemaValueType,
     },
     #[error(
-        "the value provided does not match the data type in the metadata, expected `{expected}`, \
-         got `{actual}`"
+        "the value provided does not match the data type in the metadata, expected `{expected}` \
+         or a child of it, got `{actual}`"
     )]
     InvalidDataType {
         actual: VersionedUrl,
@@ -113,50 +126,104 @@ pub enum DataValidationError {
     },
     #[error("the value provided does not match the constraints of the data type")]
     ConstraintUnfulfilled,
+    #[error(
+        "The expected data type has potential child data type so a data type needs to be \
+         specified. Expected `{expected}`"
+    )]
+    AmbiguousDataType { expected: VersionedUrl },
 }
 
-impl<P: Sync> Schema<ValueWithMetadata, P> for DataType {
+impl<P> Schema<ValueWithMetadata, P> for DataType
+where
+    P: DataTypeProvider + Sync,
+{
     type Error = DataValidationError;
 
     async fn validate_value<'a>(
         &'a self,
         value: &'a ValueWithMetadata,
         _: ValidateEntityComponents,
-        _: &'a P,
+        provider: &'a P,
     ) -> Result<(), Report<DataValidationError>> {
-        if let Some(data_type_id) = &value.metadata.data_type_id {
-            ensure!(
-                *data_type_id == self.id,
-                DataValidationError::InvalidDataType {
-                    actual: self.id.clone(),
-                    expected: data_type_id.clone(),
+        let mut status: Result<(), Report<DataValidationError>> = Ok(());
+
+        if let Some(data_type_url) = &value.metadata.data_type_id {
+            if self.id != *data_type_url {
+                let is_compatible = provider
+                    .is_parent_of(data_type_url, &self.id.base_url)
+                    .await
+                    .change_context_lazy(|| DataValidationError::DataTypeRetrieval {
+                        id: self.id.clone(),
+                    })?;
+
+                if !is_compatible {
+                    extend_report!(
+                        status,
+                        DataValidationError::InvalidDataType {
+                            actual: data_type_url.clone(),
+                            expected: self.id.clone(),
+                        }
+                    );
+                }
+
+                if let Err(err) = provider
+                    .provide_type(data_type_url)
+                    .await
+                    .change_context_lazy(|| DataValidationError::DataTypeRetrieval {
+                        id: data_type_url.clone(),
+                    })?
+                    .borrow()
+                    .validate_constraints(&value.value)
+                    .change_context(DataValidationError::ConstraintUnfulfilled)
+                {
+                    extend_report!(status, err);
+                }
+            }
+        } else if provider
+            .has_children(DataTypeId::from_url(&self.id))
+            .await
+            .change_context_lazy(|| DataValidationError::DataTypeRetrieval {
+                id: self.id.clone(),
+            })?
+        {
+            extend_report!(
+                status,
+                DataValidationError::AmbiguousDataType {
+                    expected: self.id.clone(),
                 }
             );
         }
 
-        self.validate_constraints(&value.value)
-            .change_context(DataValidationError::ConstraintUnfulfilled)?;
+        if let Err(err) = self
+            .validate_constraints(&value.value)
+            .change_context(DataValidationError::ConstraintUnfulfilled)
+        {
+            extend_report!(status, err);
+        }
 
-        Ok(())
+        status
     }
 }
 
-impl Validate<DataType, ()> for ValueWithMetadata {
+impl<P> Validate<DataType, P> for ValueWithMetadata
+where
+    P: DataTypeProvider + Sync,
+{
     type Error = DataValidationError;
 
     async fn validate(
         &self,
         schema: &DataType,
         components: ValidateEntityComponents,
-        (): &(),
+        context: &P,
     ) -> Result<(), Report<Self::Error>> {
-        schema.validate_value(self, components, &()).await
+        schema.validate_value(self, components, context).await
     }
 }
 
 impl<P> Schema<ValueWithMetadata, P> for DataTypeReference
 where
-    P: OntologyTypeProvider<DataType> + Sync,
+    P: DataTypeProvider + Sync,
 {
     type Error = DataValidationError;
 
@@ -183,7 +250,7 @@ where
 
 impl<P> Validate<DataTypeReference, P> for ValueWithMetadata
 where
-    P: OntologyTypeProvider<DataType> + Sync,
+    P: DataTypeProvider + Sync,
 {
     type Error = DataValidationError;
 

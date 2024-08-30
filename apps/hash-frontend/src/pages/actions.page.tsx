@@ -1,5 +1,5 @@
 import { useQuery } from "@apollo/client";
-import { PenRegularIcon } from "@hashintel/design-system";
+import { CheckRegularIcon } from "@hashintel/design-system";
 import type { Filter } from "@local/hash-graph-client";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import {
@@ -118,14 +118,14 @@ const ActionsPage: NextPageWithLayout = () => {
 
   return (
     <NotificationsWithLinksContextProvider>
-      <NextSeo title="Drafts" />
+      <NextSeo title="Actions" />
       <TopContextBar
         defaultCrumbIcon={null}
         crumbs={[
           {
-            title: "Drafts",
-            id: "drafts",
-            icon: <PenRegularIcon />,
+            title: "Actions",
+            id: "actions",
+            icon: <CheckRegularIcon />,
           },
         ]}
         sx={{

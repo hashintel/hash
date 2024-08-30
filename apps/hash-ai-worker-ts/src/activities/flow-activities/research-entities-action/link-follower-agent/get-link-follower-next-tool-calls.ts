@@ -1,6 +1,8 @@
 import type { Subtype } from "@local/advanced-types/subtype";
+import { sleep } from "@local/hash-backend-utils/utils";
 import dedent from "dedent";
 
+import { logger } from "../../../../shared/logger.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
 import type { LlmUserMessage } from "../../../shared/get-llm-response/llm-message.js";
@@ -10,8 +12,9 @@ import type {
   LlmToolDefinition,
 } from "../../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
-import type { LocalEntitySummary } from "../../shared/infer-claims-from-text/get-entity-summaries-from-text.js";
-import type { Claim } from "../../shared/infer-claims-from-text/types.js";
+import { stringify } from "../../../shared/stringify.js";
+import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
+import type { Claim } from "../../shared/infer-summaries-then-claims-from-text/types.js";
 import { simplifyClaimForLlmConsumption } from "../shared/simplify-for-llm-consumption.js";
 import type { Link } from "./choose-relevant-links-from-content.js";
 
@@ -49,7 +52,7 @@ const getLinkFollowerNextToolCallsSystemPrompt = dedent(`
 `);
 
 type GetLinkFollowerNextToolCallsParams = {
-  task: string;
+  goal: string;
   entitySummaries: LocalEntitySummary[];
   claimsGathered: Claim[];
   previouslyVisitedLinks: { url: string }[];
@@ -60,7 +63,7 @@ const generateUserMessage = (
   params: GetLinkFollowerNextToolCallsParams,
 ): LlmUserMessage => {
   const {
-    task,
+    goal,
     entitySummaries,
     claimsGathered,
     previouslyVisitedLinks,
@@ -73,7 +76,7 @@ const generateUserMessage = (
       {
         type: "text",
         text: dedent(`
-<Task>${task}</Task>
+<Task>${goal}</Task>
 <PreviouslyVisitedLinks>${previouslyVisitedLinks
           .map(({ url }) => url)
           .join("\n")}</PreviouslyVisitedLinks>
@@ -98,13 +101,12 @@ ${JSON.stringify(
   2,
 )}</Entities>
 <PossibleNextLinks>
-${JSON.stringify(
-  possibleNextLinks.filter(
-    (link) => !previouslyVisitedLinks.some(({ url }) => url === link.url),
-  ),
-  undefined,
-  2,
-)}
+${possibleNextLinks
+  .filter((link) => !previouslyVisitedLinks.some(({ url }) => url === link.url))
+  .map(({ description, url }) =>
+    dedent(`<URL>${url}</URL>\n<Description>${description}</Description>`),
+  )
+  .join("\n")}
 </PossibleNextLinks>
 
 Now decide what to do next. If you have gathered enough information about entities to satisfy the task, call 'complete'.
@@ -151,6 +153,11 @@ const tools: LlmToolDefinition<ToolName>[] = [
               reason: {
                 type: "string",
                 description: "The reason for exploring this link",
+              },
+              goal: {
+                type: "string",
+                description:
+                  "The goal of exploring this link, e.g. to find a specific attribute of entity X, or to find general information about entities of type Y",
               },
               descriptionOfExpectedContent: {
                 type: "string",
@@ -226,6 +233,7 @@ export type ToolCallInputs = Subtype<
       links: {
         url: string;
         reason: string;
+        goal: string;
         descriptionOfExpectedContent: string;
         exampleOfExpectedContent: string;
       }[];
@@ -248,22 +256,25 @@ export const getLinkFollowerNextToolCalls = async (
       systemPrompt?: string;
     };
   } & GetLinkFollowerNextToolCallsParams,
-): Promise<{
-  status: "ok";
-  nextToolCall:
-    | {
-        name: "exploreLinks";
-        input: ToolCallInputs["exploreLinks"];
-      }
-    | {
-        name: "complete";
-        input: ToolCallInputs["complete"];
-      }
-    | {
-        name: "terminate";
-        input: ToolCallInputs["terminate"];
-      };
-}> => {
+): Promise<
+  | {
+      status: "ok";
+      nextToolCall:
+        | {
+            name: "exploreLinks";
+            input: ToolCallInputs["exploreLinks"];
+          }
+        | {
+            name: "complete";
+            input: ToolCallInputs["complete"];
+          }
+        | {
+            name: "terminate";
+            input: ToolCallInputs["terminate"];
+          };
+    }
+  | { status: "aborted" }
+> => {
   const { testingParams } = params;
 
   const userMessage = generateUserMessage(params);
@@ -299,11 +310,31 @@ export const getLinkFollowerNextToolCalls = async (
     });
 
     if (toolCalls.length > 1) {
-      /** @todo: handle the agent making multiple tool calls */
+      const returnInput: ToolCallInputs["exploreLinks"] = { links: [] };
 
-      throw new Error(
-        `Expected a single tool call, but received ${toolCalls.length}`,
-      );
+      for (const toolCall of toolCalls) {
+        if (toolCall.name === "exploreLinks") {
+          for (const link of (toolCall.input as ToolCallInputs["exploreLinks"])
+            .links) {
+            returnInput.links.push(link);
+          }
+        } else {
+          logger.error(
+            `Link follower returned multiple incompatible tool calls: ${toolCalls
+              .map((call) => call.name)
+              .join(", ")}`,
+          );
+          return getLinkFollowerNextToolCalls(params);
+        }
+      }
+
+      return {
+        status: "ok",
+        nextToolCall: {
+          name: "exploreLinks",
+          input: returnInput,
+        },
+      };
     }
 
     const [nextToolCall] = toolCalls;
@@ -337,7 +368,15 @@ export const getLinkFollowerNextToolCalls = async (
         input: nextToolCall.input as ToolCallInputs["exploreLinks"],
       },
     };
+  } else if (response.status === "aborted") {
+    return {
+      status: "aborted",
+    };
   }
+
+  logger.error(`Unsuccessful link follower response: ${stringify(response)}`);
+
+  await sleep(2_000);
 
   return getLinkFollowerNextToolCalls(params);
 };

@@ -1,16 +1,18 @@
 import "reactflow/dist/style.css";
 
 import { useApolloClient, useMutation } from "@apollo/client";
-import { Skeleton } from "@hashintel/design-system";
+import { IconButton, Skeleton } from "@hashintel/design-system";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { manualBrowserInferenceFlowDefinition } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
 import type {
   FlowDefinition as FlowDefinitionType,
+  FlowInputs,
   FlowTrigger,
   PersistedEntity,
 } from "@local/hash-isomorphic-utils/flows/types";
-import { Box, Stack } from "@mui/material";
+import { Box, Collapse, Fade, Stack } from "@mui/material";
 import NotFound from "next/dist/client/components/not-found-error";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
@@ -21,6 +23,7 @@ import type {
   StartFlowMutationVariables,
 } from "../../../graphql/api-types.gen";
 import { startFlowMutation } from "../../../graphql/queries/knowledge/flow.queries";
+import { ArrowRightToLineIcon } from "../../../shared/icons/arrow-right-to-line-icon";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import { defaultBrowserPluginDomains } from "../../goals/new.page/internet-settings";
 import { useFlowDefinitionsContext } from "../../shared/flow-definitions-context";
@@ -211,6 +214,8 @@ export const FlowRunVisualizerSkeleton = () => (
 export const FlowVisualizer = () => {
   const [showDag, setShowDag] = useState(false);
 
+  const [bottomPanelIsCollapsed, setBottomPanelIsCollapsed] = useState(false);
+
   const [logDisplay, setLogDisplay] = useState<LogDisplay>("grouped");
 
   const apolloClient = useApolloClient();
@@ -378,13 +383,13 @@ export const FlowVisualizer = () => {
           const thisThread = workerIdToLogsAndParent[log.workerInstanceId];
           if (!thisThread) {
             let threadLabel: string;
-            if (log.type === "StartedSubTask") {
-              threadLabel = `Sub-task: ${log.input.goal}`;
+            if (log.type === "StartedSubCoordinator") {
+              threadLabel = `Sub-coordinator: ${log.input.goal}`;
             } else if (log.type === "StartedLinkExplorerTask") {
               threadLabel = `Link explorer: ${log.input.goal}`;
             } else {
               throw new Error(
-                `Expect new child worker threads to be started with a StartedSubTask or StartedLinkExplorerTask event, got ${log.type}`,
+                `Expect new child worker threads to be started with a StartedSubCoordinator or StartedLinkExplorerTask event, got ${log.type}`,
               );
             }
 
@@ -424,7 +429,7 @@ export const FlowVisualizer = () => {
 
             if (
               log.type === "ClosedLinkExplorerTask" ||
-              log.type === "ClosedSubTask"
+              log.type === "ClosedSubCoordinator"
             ) {
               thisThread.thread!.threadClosedAt = log.recordedAt;
               thisThread.thread!.closedDueToFlowClosure = false;
@@ -488,7 +493,7 @@ export const FlowVisualizer = () => {
     if (selectedFlowRun.closedAt) {
       progressLogs.push({
         level: 1,
-        message: `Flow run closed: ${selectedFlowRun.status.toLowerCase()}`,
+        message: `Flow run closed: ${selectedFlowRun.failureMessage?.toLowerCase() ?? selectedFlowRun.status.toLowerCase()}`,
         recordedAt: selectedFlowRun.closedAt,
         stepId: "closure",
         type: "StateChange",
@@ -507,9 +512,83 @@ export const FlowVisualizer = () => {
     StartFlowMutationVariables
   >(startFlowMutation);
 
-  const handleRunFlowClicked = useCallback(() => {
+  const runFlow = useCallback(
+    async (
+      args:
+        | { outputs: FlowTrigger["outputs"]; webId: OwnedById }
+        | { reRun: true },
+    ) => {
+      let flowInputs: FlowInputs[number];
+
+      if (!selectedFlowDefinition) {
+        throw new Error("Can't start flow with no flow definition selected");
+      }
+
+      if ("reRun" in args) {
+        if (!selectedFlowRun) {
+          throw new Error("Can't re-run flow with no flow run selected");
+        }
+
+        const { inputs } = selectedFlowRun;
+        flowInputs = inputs[0];
+      } else {
+        const { webId, outputs } = args;
+        flowInputs = {
+          dataSources: {
+            files: { fileEntityIds: [] },
+            internetAccess: {
+              browserPlugin: {
+                domains: defaultBrowserPluginDomains,
+                enabled: true,
+              },
+              enabled: true,
+            },
+          },
+          flowDefinition: selectedFlowDefinition,
+          flowTrigger: {
+            outputs,
+            triggerDefinitionId: "userTrigger",
+          },
+          webId,
+        };
+      }
+
+      const { data } = await startFlow({
+        variables: flowInputs,
+      });
+
+      const flowRunId = data?.startFlow;
+      if (!flowRunId) {
+        throw new Error("Failed to start flow");
+      }
+
+      await apolloClient.refetchQueries({
+        include: ["getFlowRuns"],
+      });
+
+      setShowRunModal(false);
+
+      const { shortname } = getOwner({ ownedById: flowInputs.webId });
+
+      void push(generateWorkerRunPath({ shortname, flowRunId }));
+    },
+    [
+      apolloClient,
+      getOwner,
+      push,
+      selectedFlowDefinition,
+      selectedFlowRun,
+      startFlow,
+    ],
+  );
+
+  const handleRunFlowClicked = useCallback(async () => {
+    if (selectedFlowRun) {
+      await runFlow({ reRun: true });
+      return;
+    }
     setShowRunModal(true);
-  }, []);
+  }, [runFlow, selectedFlowRun]);
 
   if (!selectedFlowDefinition) {
     if (selectedFlowDefinitionId) {
@@ -549,41 +628,7 @@ export const FlowVisualizer = () => {
             open={showRunModal}
             onClose={() => setShowRunModal(false)}
             runFlow={async (outputs: FlowTrigger["outputs"], webId) => {
-              const { data } = await startFlow({
-                variables: {
-                  dataSources: {
-                    files: { fileEntityIds: [] },
-                    internetAccess: {
-                      browserPlugin: {
-                        domains: defaultBrowserPluginDomains,
-                        enabled: true,
-                      },
-                      enabled: true,
-                    },
-                  },
-                  flowDefinition: selectedFlowDefinition,
-                  flowTrigger: {
-                    outputs,
-                    triggerDefinitionId: "userTrigger",
-                  },
-                  webId,
-                },
-              });
-
-              const flowRunId = data?.startFlow;
-              if (!flowRunId) {
-                throw new Error("Failed to start flow");
-              }
-
-              await apolloClient.refetchQueries({
-                include: ["getFlowRuns"],
-              });
-
-              setShowRunModal(false);
-
-              const { shortname } = getOwner({ ownedById: webId });
-
-              void push(generateWorkerRunPath({ shortname, flowRunId }));
+              await runFlow({ outputs, webId });
             }}
           />
         )}
@@ -641,36 +686,66 @@ export const FlowVisualizer = () => {
           </Stack>
         </Stack>
 
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          sx={({ palette }) => ({
-            background: palette.gray[10],
-            borderTop: `2px solid ${palette.gray[20]}`,
-            height: logHeight,
-            maxHeight: "40%",
-            maxWidth: "100%",
-            px: 3,
-            width: "100%",
-          })}
+        <Collapse
+          collapsedSize={45}
+          in={!bottomPanelIsCollapsed}
+          sx={{ maxHeight: "40%" }}
         >
           <Stack
-            sx={{
-              borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
-              height: "100%",
-              py: 2.5,
-              pr: 3,
-              width: "70%",
-            }}
+            direction="row"
+            justifyContent="space-between"
+            sx={({ palette, transitions }) => ({
+              background: bottomPanelIsCollapsed
+                ? palette.common.white
+                : palette.gray[10],
+              borderTop: `2px solid ${palette.gray[20]}`,
+              height: logHeight,
+              maxHeight: "100%",
+              maxWidth: "100%",
+              px: 3,
+              transition: transitions.create("background", transitionOptions),
+              width: "100%",
+            })}
           >
-            <ActivityLog
-              key={`${flowRunStateKey}-activity-log`}
-              logs={logs}
-              logDisplay={logDisplay}
-              setLogDisplay={setLogDisplay}
-            />
+            <Fade in={!bottomPanelIsCollapsed}>
+              <Stack
+                sx={{
+                  borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
+                  height: "100%",
+                  py: 2.5,
+                  pr: 3,
+                  width: "70%",
+                }}
+              >
+                <ActivityLog
+                  key={`${flowRunStateKey}-activity-log`}
+                  logs={logs}
+                  logDisplay={logDisplay}
+                  setLogDisplay={setLogDisplay}
+                />
+              </Stack>
+            </Fade>
+            <Box py={0.5}>
+              <IconButton
+                aria-hidden
+                size="medium"
+                sx={({ palette }) => ({
+                  transform: `rotate(${bottomPanelIsCollapsed ? "90deg" : "270deg"})`,
+
+                  "&:hover": {
+                    backgroundColor: palette.gray[20],
+                    color: palette.gray[60],
+                  },
+                })}
+                onClick={() =>
+                  setBottomPanelIsCollapsed(!bottomPanelIsCollapsed)
+                }
+              >
+                <ArrowRightToLineIcon />
+              </IconButton>
+            </Box>
           </Stack>
-        </Stack>
+        </Collapse>
       </Stack>
     </>
   );

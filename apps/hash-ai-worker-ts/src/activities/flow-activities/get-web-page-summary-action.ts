@@ -23,6 +23,11 @@ const generateSummarizeWebPageSystemPrompt = (params: {
     and you must respond with a ${params.numberOfSentences} sentence summary of 
     the contents of the web page. Describe what information the web page includes.
     Don't include any prefix, introduction, or other surrounding text – just the summary directly.
+    
+    Mention the types of entities that are described in the page, e.g.
+    - 'The page mentions AI companies'
+    - 'The page mentions people who do X'
+    - 'The page mentions products relating to Y'
   `);
 
 export const getWebPageSummaryAction: FlowActionActivity = async ({

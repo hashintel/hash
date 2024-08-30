@@ -10,15 +10,16 @@ import type { DereferencedEntityType } from "../../shared/dereference-entity-typ
 import { getFlowContext } from "../../shared/get-flow-context.js";
 import { logProgress } from "../../shared/log-progress.js";
 import { stringify } from "../../shared/stringify.js";
-import type { ExistingEntitySummary } from "../research-entities-action/summarize-existing-entities.js";
-import type { LocalEntitySummary } from "./infer-claims-from-text/get-entity-summaries-from-text.js";
-import type { Claim } from "./infer-claims-from-text/types.js";
+import type { ExistingEntitySummary } from "../research-entities-action/coordinating-agent/summarize-existing-entities.js";
+import type { LocalEntitySummary } from "./infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
+import type { Claim } from "./infer-summaries-then-claims-from-text/types.js";
 import { proposeEntityFromClaimsAgent } from "./propose-entities-from-claims/propose-entity-from-claims-agent.js";
 
 export const proposeEntitiesFromClaims = async (params: {
   entitySummaries: LocalEntitySummary[];
   potentialLinkTargetEntitySummaries: LocalEntitySummary[];
   existingEntitySummaries?: ExistingEntitySummary[];
+  existingProposals: ProposedEntity[];
   claims: Claim[];
   dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
   workerIdentifiers: WorkerIdentifiers;
@@ -26,6 +27,7 @@ export const proposeEntitiesFromClaims = async (params: {
   const {
     entitySummaries,
     existingEntitySummaries,
+    existingProposals,
     dereferencedEntityTypes,
     claims,
     potentialLinkTargetEntitySummaries,
@@ -129,11 +131,7 @@ export const proposeEntitiesFromClaims = async (params: {
         return someClaimIncludesTargetEntityAsObject && entityIsValidTarget;
       });
 
-      logger.debug(
-        `Proposing "${entitySummary.name}" entity with claims: ${stringify(
-          claimsWithEntityAsSubject,
-        )}`,
-      );
+      logger.debug(`Proposing "${entitySummary.name}" entity with claims`);
 
       /**
        * @todo: consider batching requests made to the LLM so we propose multiple entities
@@ -183,6 +181,9 @@ export const proposeEntitiesFromClaims = async (params: {
       proposedEntity: entity,
       stepId,
       recordedAt: now,
+      isUpdateToExistingProposal: existingProposals.some(
+        (proposal) => proposal.localEntityId === entity.localEntityId,
+      ),
       ...workerIdentifiers,
     })),
   );

@@ -10,7 +10,7 @@ import type {
   DereferencedPropertyType,
   MinimalPropertyTypeValue,
 } from "../../../shared/dereference-entity-type.js";
-import type { Claim } from "../../shared/infer-claims-from-text/types.js";
+import type { Claim } from "../../shared/infer-summaries-then-claims-from-text/types.js";
 
 const simplifyMinimalPropertyTypeValueForLlmConsumption = (params: {
   propertyTypeValue: MinimalPropertyTypeValue;
@@ -73,9 +73,11 @@ ${propertyTypes
 };
 
 // This assumes a hash.ai/blockprotocol.org type URL format ending in [slugified-title]/v/[number]
-const slugToTitleCase = (slug?: string) =>
-  slug
-    ? slug
+const urlToTitleCase = (url?: string) =>
+  url
+    ? url
+        .split("/")
+        .at(url.endsWith("/") ? -2 : -3)!
         .split("-")
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(" ")
@@ -100,24 +102,26 @@ export const simplifyProposedEntityForLlmConsumption = (params: {
 
   return `
 <Entity>
-EntityId: ${localEntityId}
-EntityType: ${slugToTitleCase(entityTypeId)}
-Properties:
+<EntityId>${localEntityId}</EntityId>
+<EntityType>EntityType: ${urlToTitleCase(entityTypeId)}</EntityType>
+<Properties>
 ${Object.entries(properties)
   .map(
     ([baseUrl, value]) =>
-      `${slugToTitleCase(baseUrl)}: ${stringifyPropertyValue(value)}`,
+      `<Property>${urlToTitleCase(baseUrl)}: ${stringifyPropertyValue(value)}</Property>`,
   )
   .join("\n")}
+</Properties>
     ${
       sourceEntityId && targetEntityId
         ? `\n<LinkData>SourceEntityId: ${getIdForLinkEndpoint(sourceEntityId)}\nTargetEntityId: ${getIdForLinkEndpoint(targetEntityId)}</LinkData>`
         : ""
     }
-Missing properties: ${Object.entries(entityType.properties)
+<MissingPropertes>${Object.entries(entityType.properties)
     .filter(([baseUrl]) => properties[baseUrl as BaseUrl] === undefined)
-    .map(([_baseUrl, schema]) =>
-      "items" in schema ? schema.items.title : schema.title,
+    .map(
+      ([_baseUrl, schema]) =>
+        `<MissingProperty>${"items" in schema ? schema.items.title : schema.title}</MissingProperty>`,
     )
     .join(", ")}
 </Entity>

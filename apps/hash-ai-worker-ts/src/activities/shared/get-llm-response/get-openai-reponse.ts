@@ -1,3 +1,5 @@
+import { stringifyError } from "@local/hash-isomorphic-utils/stringify-error";
+import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 import { backOff } from "exponential-backoff";
 import type { OpenAI } from "openai";
@@ -6,6 +8,7 @@ import { APIError, RateLimitError } from "openai/error";
 import { promptTokensEstimate } from "openai-chat-tokens";
 
 import { logger } from "../activity-logger.js";
+import { isActivityCancelled } from "../get-flow-context.js";
 import { modelToContextWindow, openai } from "../openai-client.js";
 import { stringify } from "../stringify.js";
 import {
@@ -136,7 +139,10 @@ const openAiChatCompletionWithBackoff = async (params: {
 
   try {
     return await backOff(
-      () => openai.chat.completions.create(completionPayload),
+      () =>
+        openai.chat.completions.create(completionPayload, {
+          signal: Context.current().cancellationSignal,
+        }),
       {
         startingDelay: serverErrorRetryStartingDelay,
         jitter: "full",
@@ -298,30 +304,15 @@ export const getOpenAiResponse = async <ToolName extends string>(
       completionPayload,
       metadata,
     });
-  } catch (error: unknown) {
-    logger.error(`OpenAI API error: ${stringify(error)}`);
+  } catch (error) {
+    logger.error(`OpenAI API error: ${stringifyError(error)}`);
 
     return {
-      status: "api-error",
+      status: isActivityCancelled() ? "aborted" : "api-error",
       provider: "openai",
       error,
     };
   }
-
-  /**
-   * Avoid logging logprobs, as they clutter the output. The `logprobs` will
-   * be persisted in the LLM Request logs instead.
-   */
-  const choicesWithoutLogProbs = openAiResponse.choices.map(
-    ({ logprobs: _logprobs, ...choice }) => choice,
-  );
-
-  logger.debug(
-    `OpenAI response: ${stringify({
-      ...openAiResponse,
-      choices: choicesWithoutLogProbs,
-    })}`,
-  );
 
   const currentRequestTime = Date.now() - timeBeforeRequest;
 
@@ -522,6 +513,7 @@ export const getOpenAiResponse = async <ToolName extends string>(
 
     const validationErrors = getInputValidationErrors({
       input: sanitizedInput,
+      requestId: metadata.requestId,
       toolDefinition,
     });
 

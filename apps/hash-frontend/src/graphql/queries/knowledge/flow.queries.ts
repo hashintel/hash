@@ -15,3 +15,19 @@ export const startFlowMutation = gql`
     )
   }
 `;
+
+export const resetFlowMutation = gql`
+  mutation resetFlow($flowUuid: ID!, $checkpointId: ID!, $eventId: Int!) {
+    resetFlow(
+      checkpointId: $checkpointId
+      eventId: $eventId
+      flowUuid: $flowUuid
+    )
+  }
+`;
+
+export const cancelFlowMutation = gql`
+  mutation cancelFlow($flowUuid: ID!) {
+    cancelFlow(flowUuid: $flowUuid)
+  }
+`;

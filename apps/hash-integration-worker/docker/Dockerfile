@@ -71,6 +71,6 @@ RUN apt-get update && \
     install -d -m 0775 -o integrationworker -g hash /log
 
 USER integrationworker:hash
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:4300/health || exit 1

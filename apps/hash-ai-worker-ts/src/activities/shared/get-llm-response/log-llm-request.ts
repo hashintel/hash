@@ -2,6 +2,8 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import path, { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { Context } from "@temporalio/activity";
+
 import { logger } from "../activity-logger.js";
 import type { LlmLog, LlmServerErrorLog } from "./types.js";
 
@@ -30,12 +32,14 @@ const writeLogToFile = (log: LlmLog | LlmServerErrorLog) => {
 export const logLlmServerError = (log: LlmServerErrorLog) => {
   const orderedLog = {
     requestId: log.requestId,
+    workflowExecution: Context.current().info.workflowExecution,
     provider: log.provider,
     stepId: log.stepId,
     taskName: log.taskName,
     response: log.response,
     request: log.request,
     secondsTaken: log.secondsTaken,
+    detailedFields: ["response", "request"],
   };
 
   logger.error(JSON.stringify(orderedLog));
@@ -55,6 +59,7 @@ export const logLlmRequest = (log: LlmLog) => {
     secondsTaken: log.secondsTaken,
     response: log.response,
     request: log.request,
+    detailedFields: ["response", "request"],
   };
 
   if (log.response.status === "ok") {

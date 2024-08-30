@@ -28,8 +28,8 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.3.4",
-    "date-fns": "2.28.0",
-    "duration-fns": "3.0.1"
+    "date-fns": "2.30.0",
+    "duration-fns": "3.0.2"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",

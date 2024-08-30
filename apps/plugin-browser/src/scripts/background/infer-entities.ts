@@ -278,6 +278,18 @@ export const inferEntities = async (
       inputRequests: [],
       inputs: [
         {
+          dataSources: {
+            internetAccess: {
+              browserPlugin: {
+                enabled: false,
+                domains: [],
+              },
+              enabled: false,
+            },
+            files: {
+              fileEntityIds: [],
+            },
+          },
           flowDefinition,
           flowTrigger: {
             triggerDefinitionId: flowDefinition.trigger.triggerDefinitionId,

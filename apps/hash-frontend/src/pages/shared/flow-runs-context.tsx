@@ -15,7 +15,7 @@ import type {
   GetFlowRunsQueryVariables,
   StepRun,
 } from "../../graphql/api-types.gen";
-import { FlowStepStatus } from "../../graphql/api-types.gen";
+import { FlowRunStatus, FlowStepStatus } from "../../graphql/api-types.gen";
 
 export type FlowRunsContextType = {
   flowRuns: GetFlowRunsQuery["getFlowRuns"];
@@ -182,9 +182,13 @@ export const useStatusForSteps = (
       steps.find((step) => step.stepId === stepRun.stepId),
     );
 
+    const flowCompletedUnsuccessfully =
+      selectedFlowRun.closedAt &&
+      selectedFlowRun.status !== FlowRunStatus.Completed;
+
     if (stepRuns.length === 0) {
       return {
-        overallStatus: "Waiting",
+        overallStatus: flowCompletedUnsuccessfully ? "Cancelled" : "Waiting",
         statusByStep,
       };
     }
@@ -209,7 +213,16 @@ export const useStatusForSteps = (
         closedAt = stepRun.closedAt;
       }
 
-      const simpleStatus = statusToSimpleStatus(stepRun.status);
+      let simpleStatus = statusToSimpleStatus(stepRun.status);
+
+      if (
+        selectedFlowRun.closedAt &&
+        ["In Progress", "Waiting", "Information Required"].includes(
+          simpleStatus,
+        )
+      ) {
+        simpleStatus = "Cancelled";
+      }
 
       statusByStep[stepRun.stepId] = simpleStatus;
 
@@ -231,6 +244,10 @@ export const useStatusForSteps = (
       status = "In Progress";
     } else if (hasWaiting) {
       status = "Waiting";
+    }
+
+    if (flowCompletedUnsuccessfully) {
+      status = "Cancelled";
     }
 
     return {

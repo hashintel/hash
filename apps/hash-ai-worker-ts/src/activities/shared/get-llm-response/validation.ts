@@ -123,9 +123,10 @@ const applyAdditionalPropertiesFalseToSchema = (params: {
 
 export const getInputValidationErrors = (params: {
   input: object;
+  requestId: string;
   toolDefinition: LlmToolDefinition;
 }) => {
-  const { input, toolDefinition } = params;
+  const { input, requestId, toolDefinition } = params;
 
   const validator = getValidator();
 
@@ -139,7 +140,7 @@ export const getInputValidationErrors = (params: {
 
   if (!inputIsValid) {
     logger.error(
-      `Input did not match schema: ${stringify(validate.errors)} for tool: ${toolDefinition.name}`,
+      `Input did not match schema for requestId ${requestId}: ${stringify(validate.errors)} for tool: ${toolDefinition.name}`,
     );
 
     return validate.errors ?? [];

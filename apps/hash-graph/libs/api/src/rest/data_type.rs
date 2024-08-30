@@ -1,6 +1,7 @@
 //! Web routes for CRU operations on Data Types.
 
 use alloc::sync::Arc;
+use std::collections::HashMap;
 
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
@@ -49,8 +50,11 @@ use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use time::OffsetDateTime;
 use type_system::{
-    schema::DataType,
-    url::{OntologyTypeVersion, VersionedUrl},
+    schema::{
+        ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
+        Operator, Variable,
+    },
+    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
 use utoipa::{OpenApi, ToSchema};
 
@@ -99,6 +103,13 @@ use crate::rest::{
             GetDataTypeSubgraphResponse,
             ArchiveDataTypeParams,
             UnarchiveDataTypeParams,
+
+            ConversionDefinition,
+            ConversionExpression,
+            ConversionValue,
+            Conversions,
+            Operator,
+            Variable,
 
             ValueWithMetadata,
         )
@@ -167,6 +178,7 @@ struct CreateDataTypeRequest {
         skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
     )]
     provenance: ProvidedOntologyEditionProvenance,
+    conversions: HashMap<BaseUrl, Conversions>,
 }
 
 #[utoipa::path(
@@ -220,6 +232,7 @@ where
         owned_by_id,
         relationships,
         provenance,
+        conversions,
     }) = body;
 
     let is_list = matches!(&schema, ListOrValue::List(_));
@@ -227,14 +240,7 @@ where
     let mut metadata = store
         .create_data_types(
             actor_id,
-            schema.into_iter().inspect(|schema| {
-                // TODO: Enable data type inheritance
-                //   see https://linear.app/hash/issue/H-3221/enable-data-type-inheritance-in-graph-api
-                assert!(
-                    schema.all_of.is_empty(),
-                    "Data Type schema contains `allOf` which is not supported, yet"
-                );
-            }).map(|schema| {
+            schema.into_iter().map(|schema| {
                 domain_validator.validate(&schema).map_err(|report| {
                     tracing::error!(error=?report, id=%schema.id, "Data Type ID failed to validate");
                     StatusCode::UNPROCESSABLE_ENTITY
@@ -245,7 +251,8 @@ where
                     classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
                     relationships: relationships.clone(),
                     conflict_behavior: ConflictBehavior::Fail,
-                    provenance: provenance.clone()
+                    provenance: provenance.clone(),
+                    conversions: conversions.clone(),
                 })
             }).collect::<Result<Vec<_>, StatusCode>>()?
         )
@@ -289,6 +296,7 @@ enum LoadExternalDataTypeRequest {
             skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
         )]
         provenance: Box<ProvidedOntologyEditionProvenance>,
+        conversions: HashMap<BaseUrl, Conversions>,
     },
 }
 
@@ -354,6 +362,7 @@ where
             schema,
             relationships,
             provenance,
+            conversions,
         } => {
             if domain_validator.validate_url(schema.id.base_url.as_str()) {
                 let error = "Ontology type is not external".to_owned();
@@ -364,13 +373,6 @@ where
                     vec![],
                 )));
             }
-
-            // TODO: Enable data type inheritance
-            //   see https://linear.app/hash/issue/H-3221/enable-data-type-inheritance-in-graph-api
-            assert!(
-                schema.all_of.is_empty(),
-                "Data Type schema contains `allOf` which is not supported, yet"
-            );
 
             Ok(Json(
                 store
@@ -384,6 +386,7 @@ where
                             relationships,
                             conflict_behavior: ConflictBehavior::Fail,
                             provenance: *provenance,
+                            conversions: conversions.clone(),
                         },
                     )
                     .await
@@ -536,6 +539,7 @@ struct UpdateDataTypeRequest {
         skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
     )]
     provenance: ProvidedOntologyEditionProvenance,
+    conversions: HashMap<BaseUrl, Conversions>,
 }
 
 #[utoipa::path(
@@ -576,6 +580,7 @@ where
         mut type_to_update,
         relationships,
         provenance,
+        conversions,
     }) = body;
 
     type_to_update.version = OntologyTypeVersion::new(type_to_update.version.inner() + 1);
@@ -607,6 +612,7 @@ where
                 schema: data_type,
                 relationships,
                 provenance,
+                conversions,
             },
         )
         .await

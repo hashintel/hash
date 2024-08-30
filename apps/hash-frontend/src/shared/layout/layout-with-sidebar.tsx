@@ -4,7 +4,7 @@ import type { FunctionComponent, ReactNode } from "react";
 import { useState } from "react";
 
 import { EditBarScroller } from "../edit-bar-scroller";
-import { SidebarToggleIcon } from "../icons";
+import { ArrowRightToLineIcon } from "../icons";
 import { useIsReadonlyModeForApp } from "../readonly-mode";
 import { LayoutWithHeader } from "./layout-with-header";
 import { HEADER_HEIGHT } from "./layout-with-header/page-header";
@@ -97,7 +97,7 @@ export const LayoutWithSidebar: FunctionComponent<LayoutWithSidebarProps> = ({
                 })}
                 onClick={openSidebar}
               >
-                <SidebarToggleIcon />
+                <ArrowRightToLineIcon />
               </IconButton>
             </Stack>
           </Collapse>

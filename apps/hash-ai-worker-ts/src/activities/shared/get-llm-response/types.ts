@@ -14,7 +14,7 @@ import type { LlmAssistantMessage, LlmMessage } from "./llm-message.js";
 export type LlmToolDefinition<ToolName extends string = string> = {
   name: ToolName;
   description: string;
-  inputSchema: Omit<JSONSchema, "type"> & {
+  inputSchema: Omit<JSONSchema, "type" | "default"> & {
     additionalProperties: false;
     type: "object";
   };
@@ -108,10 +108,13 @@ export type OpenAiResponse = Omit<
   invalidResponses: (OpenAI.ChatCompletion & { requestTime: number })[];
 };
 
-export type ParsedLlmToolCall<ToolName extends string = string> = {
+export type ParsedLlmToolCall<
+  ToolName extends string = string,
+  Input extends object = object,
+> = {
   id: string;
   name: ToolName;
-  input: object;
+  input: Input;
 };
 
 /**
@@ -164,6 +167,10 @@ export type LlmErrorResponse =
       status: "api-error";
       provider: LlmProvider;
       error?: unknown;
+    }
+  | {
+      status: "aborted";
+      provider: LlmProvider;
     }
   | {
       status: "max-tokens";

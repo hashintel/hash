@@ -27,12 +27,12 @@
   "dependencies": {
     "blockprotocol": "0.0.12",
     "lodash": "4.17.21",
-    "twind": "0.16.17"
+    "twind": "0.16.19"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/lodash": "4.14.188",
+    "@types/lodash": "4.17.7",
     "@types/react-dom": "18.0.9",
     "block-scripts": "0.0.14",
     "eslint": "8.57.0",

@@ -8,6 +8,7 @@ import type {
   ToolUseBlock,
 } from "@anthropic-ai/sdk/resources/messages";
 import { getRequiredEnv } from "@local/hash-backend-utils/environment";
+import { Context } from "@temporalio/activity";
 
 const anthropicApiKey = getRequiredEnv("ANTHROPIC_API_KEY");
 
@@ -141,6 +142,7 @@ export const createAnthropicMessagesWithTools = async (params: {
         model: bedrockModel,
       },
       {
+        signal: Context.current().cancellationSignal,
         headers: {
           "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
         },
@@ -150,6 +152,7 @@ export const createAnthropicMessagesWithTools = async (params: {
     response = (await anthropic.messages.create(
       payload as MessageCreateParamsNonStreaming,
       {
+        signal: Context.current().cancellationSignal,
         headers: {
           "anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15",
         },

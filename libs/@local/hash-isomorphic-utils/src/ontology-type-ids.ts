@@ -35,13 +35,13 @@ export const systemEntityTypes = {
       "https://hash.ai/@hash/types/entity-type/claim/" as BaseUrl,
   },
   comment: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/comment/v/5",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/comment/v/6",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/comment/" as BaseUrl,
   },
   commentNotification: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/comment-notification/v/5",
+      "https://hash.ai/@hash/types/entity-type/comment-notification/v/6",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/comment-notification/" as BaseUrl,
   },
@@ -110,7 +110,7 @@ export const systemEntityTypes = {
   },
   linearIntegration: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/linear-integration/v/6",
+      "https://hash.ai/@hash/types/entity-type/linear-integration/v/7",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/linear-integration/" as BaseUrl,
   },
@@ -127,7 +127,7 @@ export const systemEntityTypes = {
   },
   mentionNotification: {
     entityTypeId:
-      "https://hash.ai/@hash/types/entity-type/mention-notification/v/5",
+      "https://hash.ai/@hash/types/entity-type/mention-notification/v/6",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/mention-notification/" as BaseUrl,
   },
@@ -216,7 +216,7 @@ export const systemEntityTypes = {
       "https://hash.ai/@hash/types/entity-type/usage-record/" as BaseUrl,
   },
   user: {
-    entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/5",
+    entityTypeId: "https://hash.ai/@hash/types/entity-type/user/v/6",
     entityTypeBaseUrl:
       "https://hash.ai/@hash/types/entity-type/user/" as BaseUrl,
   },
@@ -393,6 +393,12 @@ export const systemLinkEntityTypes = {
 >;
 
 export const systemPropertyTypes = {
+  applicationPreferences: {
+    propertyTypeId:
+      "https://hash.ai/@hash/types/property-type/application-preferences/v/1",
+    propertyTypeBaseUrl:
+      "https://hash.ai/@hash/types/property-type/application-preferences/" as BaseUrl,
+  },
   appliesFrom: {
     propertyTypeId:
       "https://hash.ai/@hash/types/property-type/applies-from/v/1",

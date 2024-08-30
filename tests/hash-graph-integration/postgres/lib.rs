@@ -23,6 +23,8 @@ mod property_metadata;
 mod property_type;
 mod sorting;
 
+use std::collections::HashMap;
+
 use authorization::{
     schema::{
         DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
@@ -227,6 +229,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                         relationships: data_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
                         provenance: ProvidedOntologyEditionProvenance::default(),
+                        conversions: HashMap::new(),
                     }
                 }),
             )

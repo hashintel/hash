@@ -1,4 +1,5 @@
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box } from "@mui/material";
 
@@ -43,7 +44,9 @@ export const EventDetail = ({
               <Box mx={1} sx={{ whiteSpace: "nowrap" }}>
                 added as
               </Box>
-              <ValueChip tooltip={diff.added}>{diff.added}</ValueChip>
+              <ValueChip tooltip={diff.added}>
+                {stringifyPropertyValue(diff.added)}
+              </ValueChip>
             </>
           );
         }
@@ -56,7 +59,7 @@ export const EventDetail = ({
               <Box mx={1} sx={{ whiteSpace: "nowrap" }}>
                 removed, was
               </Box>
-              <ValueChip>{diff.removed}</ValueChip>
+              <ValueChip>{stringifyPropertyValue(diff.removed)}</ValueChip>
             </>
           );
         }
@@ -69,9 +72,9 @@ export const EventDetail = ({
               <Box mx={1} sx={{ whiteSpace: "nowrap" }}>
                 updated from
               </Box>
-              <ValueChip>{diff.old}</ValueChip>
+              <ValueChip>{stringifyPropertyValue(diff.old)}</ValueChip>
               <Box mx={1}>to</Box>
-              <ValueChip>{diff.new}</ValueChip>
+              <ValueChip>{stringifyPropertyValue(diff.new)}</ValueChip>
             </>
           );
         }

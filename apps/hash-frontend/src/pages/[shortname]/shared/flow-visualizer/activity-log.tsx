@@ -1,12 +1,20 @@
+import { useMutation } from "@apollo/client";
 import type { VersionedUrl } from "@blockprotocol/type-system";
-import { CaretDownSolidIcon, IconButton } from "@hashintel/design-system";
+import {
+  CaretDownSolidIcon,
+  IconButton,
+  RotateIconRegular,
+} from "@hashintel/design-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
   EntityMetadata,
   EntityRecordId,
 } from "@local/hash-graph-types/entity";
-import type { StepProgressLog } from "@local/hash-isomorphic-utils/flows/types";
+import type {
+  CheckpointLog,
+  StepProgressLog,
+} from "@local/hash-isomorphic-utils/flows/types";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { Theme } from "@mui/material";
 import {
@@ -21,8 +29,14 @@ import { format } from "date-fns";
 import type { ReactElement } from "react";
 import { memo, useEffect, useMemo, useState } from "react";
 
+import type {
+  ResetFlowMutation,
+  ResetFlowMutationVariables,
+} from "../../../../graphql/api-types.gen";
+import { resetFlowMutation } from "../../../../graphql/queries/knowledge/flow.queries";
 import { CircleInfoIcon } from "../../../../shared/icons/circle-info-icon";
 import { Link } from "../../../../shared/ui/link";
+import { useFlowRunsContext } from "../../../shared/flow-runs-context";
 import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
@@ -85,18 +99,30 @@ const getEntityPrefixFromLog = (log: StepProgressLog): string => {
 
   const isPersistedEntity = "persistedEntity" in log;
 
-  return isPersistedEntity ? "Persisted entity" : "Proposed entity";
+  return isPersistedEntity
+    ? "Persisted entity"
+    : log.isUpdateToExistingProposal
+      ? "Updated proposed entity"
+      : "Proposed entity";
 };
 
-const visitedWebPagePrefix = "Visited ";
 const viewedPdfFilePrefix = "Viewed PDF file at ";
+const visitedWebPagePrefix = "Visited ";
 const queriedWebPrefix = "Searched web for ";
 const startedCoordinatorPrefix = "Started research coordinator with goal ";
 const closedCoordinatorPrefix = "Finished research coordinator with ";
-const startedSubTaskPrefix = "Started sub-task with goal ";
-const closedSubTaskPrefix = "Finished sub-task with ";
-const startedLinkExplorerTaskPrefix = "Started link explorer task with goal ";
-const closedLinkExplorerTaskPrefix = "Finished link explorer task with ";
+const coordinatorWaitsPrefix =
+  "Coordinator is waiting for outstanding tasks to finish.";
+const startedSubCoordinatorPrefix = "Started sub-coordinator with goal ";
+const closedSubCoordinatorPrefix = "Finished sub-coordinator with ";
+const startedLinkExplorerTaskPrefix = "Exploring webpages with goal ";
+const closedLinkExplorerTaskPrefix = "Finished exploring webpages with ";
+const workerWasStoppedTaskPrefix = "Worker was stopped";
+const activityFailedPrefix = "Activity failed: ";
+const checkpointPrefix = "Checkpoint recorded";
+const checkpointResetMessage = "Flow resumed from checkpoint";
+const createdPlanMessage = "Created research plan";
+const updatedPlanMessage = "Updated research plan";
 
 const getRawTextFromLog = (log: LocalProgressLog): string => {
   switch (log.type) {
@@ -121,7 +147,10 @@ const getRawTextFromLog = (log: LocalProgressLog): string => {
       return log.message;
     }
     case "CreatedPlan": {
-      return "Created research plan";
+      return createdPlanMessage;
+    }
+    case "UpdatedPlan": {
+      return updatedPlanMessage;
     }
     case "Thread": {
       return log.label;
@@ -132,11 +161,14 @@ const getRawTextFromLog = (log: LocalProgressLog): string => {
     case "ClosedCoordinator": {
       return `${closedCoordinatorPrefix} ${log.output.entityCount} entities discovered`;
     }
-    case "StartedSubTask": {
-      return `${startedSubTaskPrefix}“${log.input.goal}”`;
+    case "CoordinatorWaitsForTasks": {
+      return coordinatorWaitsPrefix;
     }
-    case "ClosedSubTask": {
-      return `${closedSubTaskPrefix} ${log.output.claimCount} claims and ${log.output.entityCount} entities discovered`;
+    case "StartedSubCoordinator": {
+      return `${startedSubCoordinatorPrefix}“${log.input.goal}”`;
+    }
+    case "ClosedSubCoordinator": {
+      return `${closedSubCoordinatorPrefix} ${log.output.claimCount} claims and ${log.output.entityCount} entities discovered`;
     }
     case "StartedLinkExplorerTask": {
       return `${startedLinkExplorerTaskPrefix}“${log.input.goal}”`;
@@ -147,6 +179,18 @@ const getRawTextFromLog = (log: LocalProgressLog): string => {
     case "InferredClaimsFromText": {
       // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       return `Inferred ${log.output.claimCount} claims and ${log.output.entityCount} entities from ${log.output.resource.title || log.output.resource.url}`;
+    }
+    case "WorkerWasStopped": {
+      return workerWasStoppedTaskPrefix;
+    }
+    case "ActivityFailed": {
+      return `${activityFailedPrefix}${log.message}`;
+    }
+    case "ResearchActionCheckpoint": {
+      return checkpointPrefix;
+    }
+    case "ResetToCheckpoint": {
+      return checkpointResetMessage;
     }
   }
 };
@@ -166,6 +210,50 @@ const ellipsisOverflow = {
   textOverflow: "ellipsis",
   overflow: "hidden",
   whiteSpace: "nowrap",
+};
+
+const Checkpoint = ({ log }: { log: CheckpointLog }) => {
+  const { selectedFlowRun } = useFlowRunsContext();
+
+  const [resetFlow] = useMutation<
+    ResetFlowMutation,
+    ResetFlowMutationVariables
+  >(resetFlowMutation);
+
+  const [isResetting, setIsResetting] = useState(false);
+
+  if (!selectedFlowRun) {
+    throw new Error(
+      "Expected Checkpoint log to be rendered with a Flow Run selected",
+    );
+  }
+
+  const triggerReset = () => {
+    setIsResetting(true);
+
+    void resetFlow({
+      variables: {
+        flowUuid: selectedFlowRun.flowRunId,
+        checkpointId: log.checkpointId,
+        eventId: log.eventId,
+      },
+    }).finally(() => setIsResetting(false));
+  };
+
+  return (
+    <Stack direction="row" alignItems="center" gap={0.5}>
+      {checkpointPrefix}
+      {!selectedFlowRun.closedAt && (
+        <IconButton
+          disabled={isResetting}
+          onClick={triggerReset}
+          sx={{ p: 0.6, borderRadius: "50%" }}
+        >
+          <RotateIconRegular sx={{ width: 13, height: 13 }} />
+        </IconButton>
+      )}
+    </Stack>
+  );
 };
 
 const LogDetail = ({
@@ -230,7 +318,15 @@ const LogDetail = ({
     case "CreatedPlan": {
       return (
         <>
-          Created research plan
+          {createdPlanMessage}
+          <ModelTooltip text={log.plan} />
+        </>
+      );
+    }
+    case "UpdatedPlan": {
+      return (
+        <>
+          {updatedPlanMessage}
           <ModelTooltip text={log.plan} />
         </>
       );
@@ -242,6 +338,7 @@ const LogDetail = ({
       return (
         <Stack direction="row" alignItems="center" gap={1}>
           <Box sx={ellipsisOverflow}>
+            {log.attempt > 1 ? `[${log.attempt}] ` : ""}
             {startedCoordinatorPrefix}
             <strong>“{log.input.goal}”</strong>
           </Box>
@@ -258,22 +355,25 @@ const LogDetail = ({
         </Stack>
       );
     }
-    case "StartedSubTask": {
+    case "CoordinatorWaitsForTasks": {
+      return <Box>{coordinatorWaitsPrefix}</Box>;
+    }
+    case "StartedSubCoordinator": {
       return (
         <Stack direction="row" alignItems="center" gap={1}>
           <Box sx={ellipsisOverflow}>
-            {startedSubTaskPrefix}
+            {startedSubCoordinatorPrefix}
             <strong>“{log.input.goal}”</strong>
           </Box>
           <ModelTooltip text={log.explanation} />
         </Stack>
       );
     }
-    case "ClosedSubTask": {
+    case "ClosedSubCoordinator": {
       return (
         <Stack direction="row" alignItems="center" gap={1}>
           <Box sx={ellipsisOverflow}>
-            {closedSubTaskPrefix}
+            {closedSubCoordinatorPrefix}
             <strong>{log.output.claimCount} claims</strong> and{" "}
             <strong>{log.output.entityCount}</strong> entities discovered
           </Box>
@@ -303,6 +403,14 @@ const LogDetail = ({
         </Stack>
       );
     }
+    case "WorkerWasStopped": {
+      return (
+        <Stack direction="row" alignItems="center" gap={0.5}>
+          {workerWasStoppedTaskPrefix}
+          <ModelTooltip text={log.explanation} />
+        </Stack>
+      );
+    }
     case "InferredClaimsFromText": {
       return (
         <Stack direction="row" alignItems="center" gap={0.5}>
@@ -318,6 +426,38 @@ const LogDetail = ({
             {log.output.resource.title || log.output.resource.url}
           </Link>
         </Stack>
+      );
+    }
+    case "ActivityFailed": {
+      return (
+        <Stack direction="row" alignItems="center" gap={0.5}>
+          {activityFailedPrefix}
+          <Box
+            component="span"
+            sx={{
+              ...ellipsisOverflow,
+              color: ({ palette }) => palette.red[80],
+              fontWeight: 600,
+            }}
+          >
+            {log.message}
+          </Box>
+        </Stack>
+      );
+    }
+    case "ResearchActionCheckpoint": {
+      return <Checkpoint log={log} />;
+    }
+    case "ResetToCheckpoint": {
+      return (
+        <Box
+          component="span"
+          sx={{
+            color: ({ palette }) => palette.orange[60],
+          }}
+        >
+          {checkpointResetMessage}
+        </Box>
       );
     }
   }
@@ -523,7 +663,8 @@ export const ActivityLog = memo(
 
     const rows = useMemo<VirtualizedTableRow<LogWithThreadSettings>[]>(() => {
       /**
-       * Sort the parents first, because we want to keep the children as appearing directly after their parent in all cases.
+       * Sort the parents first, because we want to keep the children as appearing directly after their parent in all
+       * cases.
        */
       const sortedParents = logs.sort((a, b) => sortLogs(a, b, sort));
 

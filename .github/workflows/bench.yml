@@ -93,7 +93,7 @@ jobs:
 
       - name: Install Rust tools
         if: steps.benches.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@d79dff47733726f636463323dd2d82724f6c36ba # v2.42.18
+        uses: taiki-e/install-action@4a27a04f8a48ceb6b30a8541bae8994ce2ea4dd7 # v2.42.33
         with:
           tool: just@1.34.0,critcmp@0.1.8
 
@@ -241,7 +241,7 @@ jobs:
 
       - name: Install Rust tools
         if: steps.benches.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@d79dff47733726f636463323dd2d82724f6c36ba # v2.42.18
+        uses: taiki-e/install-action@4a27a04f8a48ceb6b30a8541bae8994ce2ea4dd7 # v2.42.33
         with:
           tool: just@1.34.0,critcmp@0.1.8
 
@@ -393,7 +393,7 @@ jobs:
           [[ ${{ needs.integration-benches.result }} =~ success|skipped ]]
 
       - name: Notify Slack on failure
-        uses: rtCamp/action-slack-notify@4c6d89edb6a46b698c3c9c6fd890946d510d0b7b
+        uses: rtCamp/action-slack-notify@c318f0a93a2bbf24828a21c271765cb9a5c92727
         if: ${{ failure() && github.event_name == 'merge_group' }}
         env:
           SLACK_LINK_NAMES: true

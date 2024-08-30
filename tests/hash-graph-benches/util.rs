@@ -1,5 +1,5 @@
 use core::mem::ManuallyDrop;
-use std::{fs, path::Path};
+use std::{collections::HashMap, fs, path::Path};
 
 use authorization::{
     schema::{
@@ -308,6 +308,7 @@ pub async fn seed<D, P, E, C, A>(
                     }],
                     conflict_behavior: ConflictBehavior::Fail,
                     provenance: ProvidedOntologyEditionProvenance::default(),
+                    conversions: HashMap::new(),
                 },
             )
             .await
@@ -325,6 +326,7 @@ pub async fn seed<D, P, E, C, A>(
                                     level: 0,
                                 }],
                                 provenance: ProvidedOntologyEditionProvenance::default(),
+                                conversions: HashMap::new(),
                             },
                         )
                         .await

@@ -9,6 +9,7 @@ import type {
   LlmToolDefinition,
 } from "../../../shared/get-llm-response/types.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
+import { stripHashFromUrl } from "../shared/are-urls-equal.js";
 
 export type Link = {
   url: string;
@@ -97,11 +98,26 @@ const extractLinksFromHtml = (html: string) => {
   const { document } = dom.window;
   const links = document.getElementsByTagName("a");
 
+  const linkUrlSet = new Set<string>();
+
   let linksList = "";
   for (const link of links) {
+    /**
+     * If the URL is the same except for a fragment, we consider them the same link.
+     * This would change if we started chunking URLs by their fragments,
+     * or if webpages changed their content based on the fragment.
+     */
+    const href = stripHashFromUrl(link.href);
+
+    if (linkUrlSet.has(href)) {
+      continue;
+    }
+
+    linkUrlSet.add(href);
+
     linksList += `${
       link.innerText ? `<LinkText>${link.innerText}</LinkText>` : ""
-    }<LinkUrl>${link.href}</LinkUrl>\n`;
+    }<LinkUrl>${href}</LinkUrl>\n`;
   }
 
   return linksList;
@@ -111,7 +127,7 @@ export const chooseRelevantLinksFromContent = async (params: {
   contentUrl: string;
   content: string;
   contentType: "html" | "text";
-  prompt: string;
+  goal: string;
   testingParams?: {
     model?: LlmParams["model"];
     systemPrompt?: string;
@@ -121,7 +137,7 @@ export const chooseRelevantLinksFromContent = async (params: {
     content: unfilteredContent,
     contentUrl,
     contentType,
-    prompt,
+    goal,
     testingParams,
   } = params;
 
@@ -145,8 +161,19 @@ export const chooseRelevantLinksFromContent = async (params: {
             {
               type: "text",
               text: dedent(`
-                <Prompt>Please provide links relevant to this goal: ${prompt}</Prompt>
+                <Prompt>Please provide links relevant to this goal: ${goal}</Prompt>
                 <Content>${content}</Content>
+                <ExampleResponse>          
+                  {
+                    "links": [
+                      {
+                        "url": "https://arxiv.org/abs/2405.10674",
+                        "description": "The main abstract page for the paper, which likely contains the author names and affiliations.",
+                        "reason": "This is the primary page for the paper, which should have the author information needed to satisfy the prompt."
+                      }
+                    ]
+                  }
+                </ExampleResponse>
               `),
             },
           ],

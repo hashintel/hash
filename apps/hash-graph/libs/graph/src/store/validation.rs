@@ -24,7 +24,7 @@ use type_system::{
     schema::{ClosedEntityType, DataType, PropertyType},
     url::{BaseUrl, VersionedUrl},
 };
-use validation::{EntityProvider, EntityTypeProvider, OntologyTypeProvider};
+use validation::{DataTypeProvider, EntityProvider, EntityTypeProvider, OntologyTypeProvider};
 
 use crate::{
     store::{crud::Read, query::Filter, AsClient, PostgresStore, QueryError},
@@ -191,6 +191,58 @@ where
         let schema = self.cache.data_types.grant(data_type_id, schema).await;
 
         Ok(schema)
+    }
+}
+
+impl<C, A> DataTypeProvider for StoreProvider<'_, PostgresStore<C, A>, A>
+where
+    C: AsClient,
+    A: AuthorizationApi,
+{
+    #[expect(refining_impl_trait)]
+    async fn is_parent_of(
+        &self,
+        child: &VersionedUrl,
+        parent: &BaseUrl,
+    ) -> Result<bool, Report<QueryError>> {
+        let client = self.store.as_client().client();
+        let child = DataTypeId::from_url(child);
+
+        Ok(client
+            .query_one(
+                "
+                    SELECT EXISTS (
+                        SELECT 1 FROM data_type_inherits_from
+                         JOIN ontology_ids
+                           ON ontology_ids.ontology_id = target_data_type_ontology_id
+                        WHERE source_data_type_ontology_id = $1
+                          AND ontology_ids.base_url = $2
+                    );
+                ",
+                &[&child, &parent],
+            )
+            .await
+            .change_context(QueryError)?
+            .get(0))
+    }
+
+    #[expect(refining_impl_trait)]
+    async fn has_children(&self, data_type: DataTypeId) -> Result<bool, Report<QueryError>> {
+        let client = self.store.as_client().client();
+
+        Ok(client
+            .query_one(
+                "
+                    SELECT EXISTS (
+                        SELECT 1 FROM data_type_inherits_from
+                        WHERE target_data_type_ontology_id = $1
+                    );
+                ",
+                &[&data_type],
+            )
+            .await
+            .change_context(QueryError)?
+            .get(0))
     }
 }
 

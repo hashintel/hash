@@ -35,7 +35,7 @@ RUN apk add --no-cache gcc musl-dev bash protobuf-dev && \
 SHELL ["bash", "-c"]
 
 
-FROM rust as installer
+FROM rust AS installer
 
 WORKDIR /usr/local/src/
 

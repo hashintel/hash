@@ -1,10 +1,13 @@
 import type { EntityUuid } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import type {
+  CheckpointLog,
+  DetailedFlowField,
   ExternalInputRequest,
   ExternalInputRequestSignal,
   ExternalInputResponseSignal,
   FlowInputs,
+  FlowSignalType,
   ProgressLogSignal,
   SparseFlowRun,
 } from "@local/hash-isomorphic-utils/flows/types";
@@ -127,9 +130,7 @@ const getFlowRunDetailedFields = async ({
 }: {
   workflowId: string;
   temporalClient: TemporalClient;
-}): Promise<
-  Pick<FlowRun, "inputs" | "inputRequests" | "outputs" | "steps">
-> => {
+}): Promise<Pick<FlowRun, DetailedFlowField | "startedAt">> => {
   const handle = temporalClient.workflow.getHandle(workflowId);
 
   const workflow = await handle.describe();
@@ -155,20 +156,54 @@ const getFlowRunDetailedFields = async ({
     nextPageToken = response.nextPageToken;
 
     events.push(...(response.history?.events ?? []));
+
     /**
      * nextPageToken should be null if there are no more pages, but it's actually an empty Array
      */
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
   } while (nextPageToken?.length);
 
+  const workflowExecutionStartedEventAttributes = events.find(
+    (event) =>
+      event.eventType ===
+      proto.temporal.api.enums.v1.EventType
+        .EVENT_TYPE_WORKFLOW_EXECUTION_STARTED,
+  )?.workflowExecutionStartedEventAttributes;
+
   const workflowInputs = parseHistoryItemPayload(
-    events.find(
-      (event) =>
-        event.eventType ===
-        proto.temporal.api.enums.v1.EventType
-          .EVENT_TYPE_WORKFLOW_EXECUTION_STARTED,
-    )?.workflowExecutionStartedEventAttributes?.input,
+    workflowExecutionStartedEventAttributes?.input,
   ) as FlowInputs | undefined;
+
+  /**
+   * If this workflow run has been started after the original was reset or 'continue-as-new'd,
+   * its start time will be the point at which it was reset/continued.
+   * We can check if it has a different firstExecutionRunId and if so, get the start time of the original run.
+   */
+  let workflowStartedAt = workflow.startTime;
+  const firstExecutionRunId =
+    workflowExecutionStartedEventAttributes?.firstExecutionRunId;
+
+  if (firstExecutionRunId && firstExecutionRunId !== workflow.runId) {
+    const originalRunHandle = temporalClient.workflow.getHandle(
+      workflowId,
+      firstExecutionRunId,
+    );
+
+    try {
+      const originalRun = await originalRunHandle.describe();
+
+      workflowStartedAt = originalRun.startTime;
+    } catch {
+      /**
+       * The original run is not available, likely because it is no longer retained by Temporal.
+       * @todo H-3142: save workflow history in our database so we don't rely on Temporal for old runs
+       */
+      // eslint-disable-next-line no-console
+      console.warn(
+        `Could not find original run with id ${firstExecutionRunId} for workflow ${workflowId}`,
+      );
+    }
+  }
 
   const workflowOutputs = parseHistoryItemPayload(
     events.find(
@@ -179,6 +214,13 @@ const getFlowRunDetailedFields = async ({
     )?.workflowExecutionCompletedEventAttributes?.result,
   );
 
+  const workflowFailureMessage = events.find(
+    (event) =>
+      event.eventType ===
+      proto.temporal.api.enums.v1.EventType
+        .EVENT_TYPE_WORKFLOW_EXECUTION_FAILED,
+  )?.workflowExecutionFailedEventAttributes?.failure?.message;
+
   const stepMap: { [activityId: string]: StepRun } = {};
 
   /**
@@ -186,6 +228,8 @@ const getFlowRunDetailedFields = async ({
    * and assign them to the appropriate step afterwards.
    */
   const progressSignalEvents: IHistoryEvent[] = [];
+
+  const checkpointLogs: CheckpointLog[] = [];
 
   const inputRequestsById: Record<string, ExternalInputRequest> = {};
 
@@ -206,79 +250,110 @@ const getFlowRunDetailedFields = async ({
         throw new Error("Somehow out of bounds for events array");
       }
 
-      if (
-        event.workflowExecutionSignaledEventAttributes?.signalName ===
-        "logProgress"
-      ) {
-        progressSignalEvents.push(event);
-        continue;
-      }
+      const signalName =
+        event.workflowExecutionSignaledEventAttributes?.signalName;
 
-      if (
-        event.workflowExecutionSignaledEventAttributes?.signalName ===
-        "externalInputRequest"
-      ) {
-        const signalData = parseHistoryItemPayload(
-          event.workflowExecutionSignaledEventAttributes.input,
-        )?.[0] as ExternalInputRequestSignal | undefined;
-
-        if (!signalData) {
+      if (event.workflowExecutionSignaledEventAttributes?.signalName) {
+        const time = eventTimeIsoStringFromEvent(event);
+        if (!time) {
           throw new Error(
-            `No signal data on requestExternalInput signal event with id ${event.eventId?.toInt()}`,
+            `No eventTime on checkpoint signal event ${event.eventId?.toInt()}`,
           );
         }
 
-        /**
-         * This is a request for external input
-         */
-        const existingRequest = inputRequestsById[signalData.requestId];
-        const raisedAt = eventTimeIsoStringFromEvent(event);
-        if (!raisedAt) {
-          throw new Error(
-            `No eventTime on requestExternalInput signal event with id ${event.eventId?.toInt()}`,
-          );
+        switch (signalName as FlowSignalType) {
+          case "logProgress": {
+            progressSignalEvents.push(event);
+            continue;
+          }
+          case "researchActionCheckpoint": {
+            if (!event.eventId) {
+              throw new Error("No eventId on checkpoint signal event");
+            }
+
+            const signalData = parseHistoryItemPayload(
+              event.workflowExecutionSignaledEventAttributes.input,
+              /**
+               * @todo sort out types
+               */
+            )?.[0] as Omit<CheckpointLog, "eventId"> | undefined;
+
+            if (!signalData) {
+              throw new Error(
+                `No signal data on researchActionCheckpoint signal event with id ${event.eventId.toInt()}`,
+              );
+            }
+
+            checkpointLogs.push({
+              checkpointId: signalData.checkpointId,
+              eventId: event.eventId.toInt() + 2,
+              recordedAt: signalData.recordedAt,
+              stepId: signalData.stepId,
+              type: "ResearchActionCheckpoint",
+            });
+            continue;
+          }
+          case "externalInputRequest": {
+            const signalData = parseHistoryItemPayload(
+              event.workflowExecutionSignaledEventAttributes.input,
+            )?.[0] as ExternalInputRequestSignal | undefined;
+
+            if (!signalData) {
+              throw new Error(
+                `No signal data on requestExternalInput signal event with id ${event.eventId?.toInt()}`,
+              );
+            }
+
+            /**
+             * This is a request for external input
+             */
+            const existingRequest = inputRequestsById[signalData.requestId];
+            const raisedAt = eventTimeIsoStringFromEvent(event);
+            if (!raisedAt) {
+              throw new Error(
+                `No eventTime on requestExternalInput signal event with id ${event.eventId?.toInt()}`,
+              );
+            }
+
+            if (existingRequest) {
+              existingRequest.data = signalData.data;
+              existingRequest.raisedAt = raisedAt;
+            } else {
+              /**
+               * If we haven't already populated the request record, it must not have been resolved yet,
+               * because we are going backwards through the event history from most recent.
+               * We would already have encountered the response signal if one had been provided.
+               */
+              inputRequestsById[signalData.requestId] = {
+                ...signalData,
+                raisedAt,
+              };
+            }
+            continue;
+          }
+          case "externalInputResponse": {
+            const signalData = parseHistoryItemPayload(
+              event.workflowExecutionSignaledEventAttributes.input,
+            )?.[0] as ExternalInputResponseSignal | undefined;
+
+            if (!signalData) {
+              throw new Error(
+                `No signal data on requestExternalInput signal event with id ${event.eventId?.toInt()}`,
+              );
+            }
+            const { requestId, data, type } = signalData;
+
+            inputRequestsById[signalData.requestId] = {
+              data: {} as never, // we will populate this when we hit the original request
+              answers: "answers" in data ? data.answers : undefined,
+              requestId,
+              stepId: "unresolved",
+              type,
+              raisedAt: "", // we will populate this when we hit the original request
+              resolvedAt: eventTimeIsoStringFromEvent(event),
+            };
+          }
         }
-
-        if (existingRequest) {
-          existingRequest.data = signalData.data;
-          existingRequest.raisedAt = raisedAt;
-        } else {
-          /**
-           * If we haven't already populated the request record, it must not have been resolved yet,
-           * because we are going backwards through the event history from most recent.
-           * We would already have encountered the response signal if one had been provided.
-           */
-          inputRequestsById[signalData.requestId] = {
-            ...signalData,
-            raisedAt,
-          };
-        }
-      }
-
-      if (
-        event.workflowExecutionSignaledEventAttributes?.signalName ===
-        "externalInputResponse"
-      ) {
-        const signalData = parseHistoryItemPayload(
-          event.workflowExecutionSignaledEventAttributes.input,
-        )?.[0] as ExternalInputResponseSignal | undefined;
-
-        if (!signalData) {
-          throw new Error(
-            `No signal data on requestExternalInput signal event with id ${event.eventId?.toInt()}`,
-          );
-        }
-        const { requestId, data, type } = signalData;
-
-        inputRequestsById[signalData.requestId] = {
-          data: {} as never, // we will populate this when we hit the original request
-          answers: "answers" in data ? data.answers : undefined,
-          requestId,
-          stepId: "unresolved",
-          type,
-          raisedAt: "", // we will populate this when we hit the original request
-          resolvedAt: eventTimeIsoStringFromEvent(event),
-        };
       }
 
       const nonScheduledAttributes =
@@ -348,6 +423,18 @@ const getFlowRunDetailedFields = async ({
             activityRecord.status = FlowStepStatus.Started;
             activityRecord.lastFailure =
               event.activityTaskStartedEventAttributes?.lastFailure;
+            activityRecord.logs.push({
+              type: "ActivityFailed",
+              stepId: activityId,
+              // shaves off some precision, which will make the log appear before any relating to the activity starting again
+              recordedAt: new Date(
+                eventTimeIsoStringFromEvent(event)!,
+              ).toISOString(),
+              retrying: true,
+              message:
+                event.activityTaskStartedEventAttributes?.lastFailure
+                  ?.message ?? "Unknown error",
+            });
           }
           break;
         }
@@ -382,6 +469,17 @@ const getFlowRunDetailedFields = async ({
           activityRecord.retryState =
             event.activityTaskFailedEventAttributes?.retryState?.toString();
           activityRecord.closedAt = eventTimeIsoStringFromEvent(event);
+          activityRecord.logs.push({
+            type: "ActivityFailed",
+            stepId: activityId,
+            // shaves off some precision, which will make the log appear before any relating to the activity starting again
+            recordedAt: new Date(activityRecord.closedAt!).toISOString(),
+            retrying: false,
+            message:
+              event.activityTaskFailedEventAttributes?.failure?.message ??
+              "Unknown error",
+          });
+
           break;
         }
 
@@ -413,6 +511,17 @@ const getFlowRunDetailedFields = async ({
           throw new Error(`Unhandled event type ${event.eventType}`);
       }
     }
+  }
+
+  for (const checkpoint of checkpointLogs) {
+    const step = stepMap[checkpoint.stepId];
+    if (!step) {
+      throw new Error(
+        `Could not find step with id ${checkpoint.stepId} for checkpoint with id ${checkpoint.checkpointId}`,
+      );
+    }
+
+    step.logs.push(checkpoint);
   }
 
   /**
@@ -486,11 +595,17 @@ const getFlowRunDetailedFields = async ({
     throw new Error("No workflow inputs found");
   }
 
+  for (const step of Object.values(stepMap)) {
+    step.logs.sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));
+  }
+
   return {
+    failureMessage: workflowFailureMessage,
     inputs: workflowInputs,
     outputs: workflowOutputs,
     inputRequests: Object.values(inputRequestsById),
     steps: Object.values(stepMap),
+    startedAt: workflowStartedAt.toISOString(),
   };
 };
 

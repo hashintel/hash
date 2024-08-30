@@ -129,6 +129,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "description": "A unit of length",
     "minimum": 0
   },
+  "conversions": {},
   "relationships": [{
     "relation": "viewer",
     "subject": {
@@ -180,6 +181,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "description": "An ordered sequence of characters",
     "type": "string"
   },
+  "conversions": {},
   "relationships": [{
     "relation": "viewer",
     "subject": {
@@ -274,6 +276,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "description": "A unit of length equal to 100 centimeters",
     "minimum": 0
   },
+  "conversions": {},
   "relationships": [{
     "relation": "viewer",
     "subject": {

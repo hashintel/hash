@@ -1,6 +1,5 @@
 use alloc::sync::Arc;
-use core::{num::NonZero, time::Duration};
-use std::assert_matches::assert_matches;
+use core::{assert_matches::assert_matches, num::NonZero, time::Duration};
 
 use bytes::{Bytes, BytesMut};
 use futures::StreamExt;

@@ -9,13 +9,14 @@ use tokio_postgres::GenericClient;
 use crate::{
     snapshot::WriteBatch,
     store::{
-        postgres::query::rows::{DataTypeEmbeddingRow, DataTypeRow},
+        postgres::query::rows::{DataTypeConversionsRow, DataTypeEmbeddingRow, DataTypeRow},
         AsClient, InsertionError, PostgresStore,
     },
 };
 
 pub enum DataTypeRowBatch {
     Schema(Vec<DataTypeRow>),
+    Conversions(Vec<DataTypeConversionsRow>),
     Relations(HashMap<DataTypeId, Vec<DataTypeRelationAndSubject>>),
     Embeddings(Vec<DataTypeEmbeddingRow<'static>>),
 }
@@ -34,6 +35,10 @@ where
                 "
                     CREATE TEMPORARY TABLE data_types_tmp
                         (LIKE data_types INCLUDING ALL)
+                        ON COMMIT DROP;
+
+                    CREATE TEMPORARY TABLE data_type_conversions_tmp
+                        (LIKE data_type_conversions INCLUDING ALL)
                         ON COMMIT DROP;
 
                     CREATE TEMPORARY TABLE data_type_embeddings_tmp
@@ -59,6 +64,22 @@ where
                             RETURNING 1;
                         ",
                         &[&data_types],
+                    )
+                    .await
+                    .change_context(InsertionError)?;
+                if !rows.is_empty() {
+                    tracing::info!("Read {} data type schemas", rows.len());
+                }
+            }
+            Self::Conversions(conversions) => {
+                let rows = client
+                    .query(
+                        "
+                            INSERT INTO data_type_conversions_tmp
+                            SELECT DISTINCT * FROM UNNEST($1::data_type_conversions[])
+                            RETURNING 1;
+                        ",
+                        &[&conversions],
                     )
                     .await
                     .change_context(InsertionError)?;
@@ -115,6 +136,9 @@ where
                 "
                     INSERT INTO data_types
                         SELECT * FROM data_types_tmp;
+
+                    INSERT INTO data_type_conversions
+                        SELECT * FROM data_type_conversions_tmp;
 
                     INSERT INTO data_type_embeddings
                         SELECT * FROM data_type_embeddings_tmp;

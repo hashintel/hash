@@ -10,6 +10,8 @@ import type {
   ActorOutgoingLinksByLinkEntityTypeId,
   ActorProperties,
   ActorPropertiesWithMetadata,
+  ApplicationPreferencesPropertyValue,
+  ApplicationPreferencesPropertyValueWithMetadata,
   ArchivedPropertyValue,
   ArchivedPropertyValueWithMetadata,
   AuthoredBy,
@@ -266,6 +268,8 @@ export type {
   ActorOutgoingLinksByLinkEntityTypeId,
   ActorProperties,
   ActorPropertiesWithMetadata,
+  ApplicationPreferencesPropertyValue,
+  ApplicationPreferencesPropertyValueWithMetadata,
   ArchivedPropertyValue,
   ArchivedPropertyValueWithMetadata,
   AuthoredBy,
@@ -520,7 +524,7 @@ export type {
  * A notification that a user was mentioned somewhere.
  */
 export type MentionNotification = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/mention-notification/v/5";
+  entityTypeId: "https://hash.ai/@hash/types/entity-type/mention-notification/v/6";
   properties: MentionNotificationProperties;
   propertiesWithMetadata: MentionNotificationPropertiesWithMetadata;
 };

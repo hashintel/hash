@@ -1,7 +1,12 @@
 mod constraint;
+mod conversion;
 
 pub use self::{
     closed::{ClosedDataType, ClosedDataTypeMetadata},
+    conversion::{
+        ConversionDefinition, ConversionExpression, ConversionValue, Conversions, Operator,
+        Variable,
+    },
     reference::DataTypeReference,
     validation::{DataTypeValidator, ValidateDataTypeError},
 };
