@@ -21,7 +21,7 @@ J-Expr is a simple S-Expr like language, based on JSON syntax.
 
 A function call is represented as a non-zero JSON array, where the first element is the function to be invoked, and the rest of the elements are the arguments to the function.
 
-```
+```ts
 [function, ...args]
 ```
 
