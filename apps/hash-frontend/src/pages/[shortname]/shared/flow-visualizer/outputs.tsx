@@ -220,7 +220,6 @@ const SectionTabButton = ({
           orientation="horizontal"
           in={active}
           timeout={{ enter: 200, exit: 0 }}
-          s
         >
           {additionalControlElements}
         </Collapse>
@@ -295,12 +294,6 @@ type OutputsProps = {
   proposedEntities: ProposedEntityOutput[];
 };
 
-type SectionVisibility = {
-  claims: boolean;
-  deliverables: boolean;
-  entities: boolean;
-};
-
 export const Outputs = ({
   persistedEntities,
   proposedEntities,
@@ -313,6 +306,9 @@ export const Outputs = ({
       selectedFlowRun.flowDefinitionId as EntityUuid,
     );
 
+  const hasEntities =
+    persistedEntities.length > 0 || proposedEntities.length > 0;
+
   const deliverables = useMemo(
     () => getDeliverables(selectedFlowRun?.outputs),
     [selectedFlowRun],
@@ -322,13 +318,9 @@ export const Outputs = ({
     "table",
   );
 
-  const [sectionVisibility, setSectionVisibility] = useState<SectionVisibility>(
-    {
-      claims: hasClaims,
-      entities: !hasClaims,
-      deliverables: false,
-    },
-  );
+  const [visibleSection, setVisibleSection] = useState<
+    "claims" | "entities" | "deliverables"
+  >(hasEntities ? "entities" : "claims");
 
   const [slideOver, setSlideOver] = useState<ResultSlideOver>(null);
 
@@ -599,7 +591,7 @@ export const Outputs = ({
             ).map((section) => (
               <SectionTabButton
                 color="white"
-                height={28}
+                height={34}
                 key={section}
                 additionalControlElements={
                   section === "entities" ? (
@@ -614,7 +606,7 @@ export const Outputs = ({
                       {(["graph", "table"] as const).map((option) => (
                         <SectionTabButton
                           color="blue"
-                          height={26}
+                          height={30}
                           key={option}
                           label={option}
                           active={entityDisplay === option}
@@ -629,14 +621,10 @@ export const Outputs = ({
                     </Stack>
                   ) : undefined
                 }
+                Icon={outputIcons[section]}
                 label={section}
-                active={sectionVisibility[section]}
-                onClick={() =>
-                  setSectionVisibility({
-                    ...sectionVisibility,
-                    [section]: !sectionVisibility[section],
-                  })
-                }
+                active={section === visibleSection}
+                onClick={() => setVisibleSection(section)}
               />
             ))}
           </SectionTabContainer>
@@ -653,7 +641,7 @@ export const Outputs = ({
           zIndex: 2,
         }}
       >
-        {sectionVisibility.entities &&
+        {visibleSection === "entities" &&
           (entityDisplay === "table" ? (
             <EntityResultTable
               onEntityClick={onEntityClick}
@@ -673,13 +661,13 @@ export const Outputs = ({
               }
             />
           ))}
-        {sectionVisibility.claims && (
+        {visibleSection === "claims" && (
           <ClaimsTable
             onEntityClick={onEntityClick}
             proposedEntities={proposedEntities}
           />
         )}
-        {sectionVisibility.deliverables && (
+        {visibleSection === "deliverables" && (
           <Deliverables deliverables={deliverables} />
         )}
       </Stack>
