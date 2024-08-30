@@ -1,0 +1,16 @@
+{
+  "name": "@rust/hql-syntax-jexpr",
+  "version": "0.0.0-private",
+  "private": true,
+  "license": "AGPL-3",
+  "scripts": {
+    "fix:clippy": "just clippy --fix",
+    "lint:clippy": "just clippy",
+    "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
+  },
+  "dependencies": {
+    "@rust/hql-cst": "0.0.0-private",
+    "@rust/hql-diagnostics": "0.0.0-private",
+    "@rust/hql-span": "0.0.0-private"
+  }
+}

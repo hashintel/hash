@@ -1,0 +1,34 @@
+---
+source: libs/@local/hql/syntax-jexpr/src/parser/expr.rs
+expression: "[\"func\"]"
+---
+Expr {
+    kind: Call(
+        Call {
+            fn: Expr {
+                kind: Path(
+                    Path {
+                        segments: [
+                            Symbol {
+                                value: "func",
+                                span: SpanId(
+                                    1,
+                                ),
+                            },
+                        ],
+                        span: SpanId(
+                            2,
+                        ),
+                    },
+                ),
+                span: SpanId(
+                    0,
+                ),
+            },
+            args: [],
+        },
+    ),
+    span: SpanId(
+        3,
+    ),
+}

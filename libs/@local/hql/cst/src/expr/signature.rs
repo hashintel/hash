@@ -1,4 +1,4 @@
-use core::{fmt, fmt::Display};
+use core::fmt::{self, Display, Write};
 
 use hql_span::SpanId;
 
@@ -51,7 +51,7 @@ impl Spanned for Signature<'_> {
 impl<'a> Display for Signature<'a> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         if !self.generics.is_empty() {
-            f.write_str("<")?;
+            f.write_char('<')?;
             for (index, generic) in self.generics.iter().enumerate() {
                 if index > 0 {
                     f.write_str(", ")?;
@@ -59,10 +59,10 @@ impl<'a> Display for Signature<'a> {
 
                 Display::fmt(generic, f)?;
             }
-            f.write_str(">")?;
+            f.write_char('>')?;
         }
 
-        f.write_str("(")?;
+        f.write_char('(')?;
 
         for (index, argument) in self.arguments.iter().enumerate() {
             if index > 0 {

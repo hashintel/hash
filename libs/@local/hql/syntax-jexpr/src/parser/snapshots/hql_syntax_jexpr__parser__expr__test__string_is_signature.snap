@@ -1,0 +1,119 @@
+---
+source: libs/@local/hql/syntax-jexpr/src/parser/expr.rs
+expression: "\"<T: Int>(a: T) -> T\""
+---
+Expr {
+    kind: Signature(
+        Signature {
+            generics: List {
+                items: [
+                    Generic {
+                        name: Symbol {
+                            value: "T",
+                            span: SpanId(
+                                1,
+                            ),
+                        },
+                        bound: Some(
+                            Type {
+                                kind: Path(
+                                    Path {
+                                        segments: [
+                                            Symbol {
+                                                value: "Int",
+                                                span: SpanId(
+                                                    2,
+                                                ),
+                                            },
+                                        ],
+                                        span: SpanId(
+                                            3,
+                                        ),
+                                    },
+                                ),
+                                span: SpanId(
+                                    4,
+                                ),
+                            },
+                        ),
+                        span: SpanId(
+                            5,
+                        ),
+                    },
+                ],
+                span: SpanId(
+                    6,
+                ),
+            },
+            arguments: List {
+                items: [
+                    Argument {
+                        name: Symbol {
+                            value: "a",
+                            span: SpanId(
+                                7,
+                            ),
+                        },
+                        type: Type {
+                            kind: Path(
+                                Path {
+                                    segments: [
+                                        Symbol {
+                                            value: "T",
+                                            span: SpanId(
+                                                8,
+                                            ),
+                                        },
+                                    ],
+                                    span: SpanId(
+                                        9,
+                                    ),
+                                },
+                            ),
+                            span: SpanId(
+                                10,
+                            ),
+                        },
+                        span: SpanId(
+                            11,
+                        ),
+                    },
+                ],
+                span: SpanId(
+                    12,
+                ),
+            },
+            return: Return {
+                type: Type {
+                    kind: Path(
+                        Path {
+                            segments: [
+                                Symbol {
+                                    value: "T",
+                                    span: SpanId(
+                                        13,
+                                    ),
+                                },
+                            ],
+                            span: SpanId(
+                                14,
+                            ),
+                        },
+                    ),
+                    span: SpanId(
+                        15,
+                    ),
+                },
+                span: SpanId(
+                    16,
+                ),
+            },
+            span: SpanId(
+                17,
+            ),
+        },
+    ),
+    span: SpanId(
+        0,
+    ),
+}
