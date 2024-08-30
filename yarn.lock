@@ -24528,10 +24528,10 @@ obuf@^1.0.0, obuf@^1.1.2, obuf@~1.1.2:
   resolved "https://registry.yarnpkg.com/obuf/-/obuf-1.1.2.tgz#09bea3343d41859ebd446292d11c9d4db619084e"
   integrity "sha1-Cb6jND1BhZ69RGKS0RydTbYZCE4= sha512-PX1wu0AmAdPqOL1mWhqmlOd8kOIZQwGZw6rh7uby9fTc5lhaOWFLX3I6R1hrF9k3zUY40e6igsLGkDXK92LJNg=="
 
-oembed-providers@1.0.20240704:
-  version "1.0.20240704"
-  resolved "https://registry.yarnpkg.com/oembed-providers/-/oembed-providers-1.0.20240704.tgz#5816f0cf49ce2a7e0abab637f0a3c5b9dc18edf8"
-  integrity sha512-RAowkAhApcDKv4fDmMuoUOZKZpypJr3M1eBBjEcwsUUiP8K5bXR4hS3i9uL9vRgegSJBmFsQyUNIgqj1Uhi0jg==
+oembed-providers@1.0.20240826:
+  version "1.0.20240826"
+  resolved "https://registry.yarnpkg.com/oembed-providers/-/oembed-providers-1.0.20240826.tgz#ad029f14333313df79ac4871093374c22cbb1055"
+  integrity sha512-f0SZx/CNlKiOK+XrDS1ZdYbS9c3Sal74h4JCDNsp0hI7+cjXBl7IJWqxWfUrvOJ5dyYehxF6r5H1KKHtbpvGDw==
 
 officeparser@4.0.6:
   version "4.0.6"
