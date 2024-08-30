@@ -6,7 +6,6 @@ mod expr;
 mod expr_explicit;
 mod object;
 mod path;
-mod program;
 mod signature;
 mod stream;
 mod string;
@@ -14,7 +13,7 @@ mod symbol;
 mod r#type;
 mod value;
 
-pub(crate) use self::{expr::parse_expr, program::parse_program, stream::TokenStream};
+pub(crate) use self::{expr::parse_expr, stream::TokenStream};
 
 trait IntoTextRange {
     /// Convert the range into a text range.

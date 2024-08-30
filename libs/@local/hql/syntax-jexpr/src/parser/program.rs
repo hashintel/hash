@@ -1,4 +1,3 @@
-use hql_cst::Program;
 use hql_diagnostics::Diagnostic;
 use hql_span::SpanId;
 
