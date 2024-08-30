@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import type {
   ArraySchema,
+  Conversions,
   DataTypeReference,
   EntityType,
   ObjectSchema,
@@ -167,6 +168,7 @@ export const loadExternalDataTypeIfNotExists: ImpureGraphFunction<
           },
         },
       ],
+      conversions: {},
     });
 
     return await getDataTypeById(context, authentication, { dataTypeId });
@@ -422,12 +424,13 @@ const generateSystemDataTypeSchema = ({
 export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
   {
     dataTypeDefinition: ConstructDataTypeParams;
+    conversions: Record<BaseUrl, Conversions>;
   } & BaseCreateTypeIfNotExistsParameters,
   Promise<DataTypeWithMetadata>
 > = async (
   context,
   authentication,
-  { dataTypeDefinition, migrationState, webShortname },
+  { dataTypeDefinition, conversions, migrationState, webShortname },
 ) => {
   const { title } = dataTypeDefinition;
   const baseUrl = generateSystemTypeBaseUrl({
@@ -481,6 +484,7 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
       // Specify the schema so that self-hosted instances don't need network access to hash.ai
       schema: dataTypeSchema,
       relationships,
+      conversions,
     });
 
     return await getDataTypeById(context, authentication, {
@@ -496,6 +500,7 @@ export const createSystemDataTypeIfNotExists: ImpureGraphFunction<
         schema: dataTypeSchema,
         webShortname,
         relationships,
+        conversions,
       },
     ).catch((createError) => {
       // logger.warn(`Failed to create data type: ${propertyTypeId}`);

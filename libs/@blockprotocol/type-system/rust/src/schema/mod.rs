@@ -16,8 +16,10 @@ mod one_of;
 pub use self::{
     array::{ArraySchema, ValueOrArray},
     data_type::{
-        ClosedDataType, ClosedDataTypeMetadata, DataType, DataTypeLabel, DataTypeReference,
-        DataTypeValidator, JsonSchemaValueType, OntologyTypeResolver, ValidateDataTypeError,
+        ClosedDataType, ClosedDataTypeMetadata, ConversionDefinition, ConversionExpression,
+        ConversionValue, Conversions, DataType, DataTypeLabel, DataTypeReference,
+        DataTypeValidator, JsonSchemaValueType, OntologyTypeResolver, Operator,
+        ValidateDataTypeError, Variable,
     },
     entity_type::{
         ClosedEntityType, ClosedEntityTypeSchemaData, EntityType, EntityTypeReference,

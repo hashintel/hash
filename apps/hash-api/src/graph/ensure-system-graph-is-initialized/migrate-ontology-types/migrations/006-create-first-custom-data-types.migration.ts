@@ -1,3 +1,5 @@
+import { systemDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+
 import type { MigrationFunction } from "../types";
 import { createSystemDataTypeIfNotExists } from "../util";
 
@@ -13,6 +15,7 @@ const migrate: MigrationFunction = async ({
       format: "uri",
       type: "string",
     },
+    conversions: {},
     webShortname: "hash",
     migrationState,
   });
@@ -25,6 +28,22 @@ const migrate: MigrationFunction = async ({
       format: "email",
       type: "string",
     },
+    conversions: {},
+    webShortname: "hash",
+    migrationState,
+  });
+
+  await createSystemDataTypeIfNotExists(context, authentication, {
+    dataTypeDefinition: {
+      title: "Meters",
+      description:
+        "The base unit of length in the International System of Units (SI).",
+      label: {
+        right: "m",
+      },
+      type: "number",
+    },
+    conversions: {},
     webShortname: "hash",
     migrationState,
   });
@@ -38,6 +57,12 @@ const migrate: MigrationFunction = async ({
         right: "mm",
       },
       type: "number",
+    },
+    conversions: {
+      [systemDataTypes.meters.dataTypeBaseUrl]: {
+        from: { expression: ["*", "self", { const: 1000, type: "number" }] },
+        to: { expression: ["/", "self", { const: 1000, type: "number" }] },
+      },
     },
     webShortname: "hash",
     migrationState,
@@ -53,19 +78,11 @@ const migrate: MigrationFunction = async ({
       },
       type: "number",
     },
-    webShortname: "hash",
-    migrationState,
-  });
-
-  await createSystemDataTypeIfNotExists(context, authentication, {
-    dataTypeDefinition: {
-      title: "Meters",
-      description:
-        "The base unit of length in the International System of Units (SI).",
-      label: {
-        right: "m",
+    conversions: {
+      [systemDataTypes.meters.dataTypeBaseUrl]: {
+        from: { expression: ["*", "self", { const: 100, type: "number" }] },
+        to: { expression: ["/", "self", { const: 100, type: "number" }] },
       },
-      type: "number",
     },
     webShortname: "hash",
     migrationState,
@@ -81,6 +98,12 @@ const migrate: MigrationFunction = async ({
       },
       type: "number",
     },
+    conversions: {
+      [systemDataTypes.meters.dataTypeBaseUrl]: {
+        from: { expression: ["/", "self", { const: 1000, type: "number" }] },
+        to: { expression: ["*", "self", { const: 1000, type: "number" }] },
+      },
+    },
     webShortname: "hash",
     migrationState,
   });
@@ -95,6 +118,14 @@ const migrate: MigrationFunction = async ({
       },
       type: "number",
     },
+    conversions: {
+      [systemDataTypes.meters.dataTypeBaseUrl]: {
+        from: {
+          expression: ["/", "self", { const: 1609.344, type: "number" }],
+        },
+        to: { expression: ["*", "self", { const: 1609.344, type: "number" }] },
+      },
+    },
     webShortname: "hash",
     migrationState,
   });
@@ -107,6 +138,7 @@ const migrate: MigrationFunction = async ({
       type: "string",
       format: "date",
     },
+    conversions: {},
     webShortname: "hash",
     migrationState,
   });
@@ -119,6 +151,7 @@ const migrate: MigrationFunction = async ({
       type: "string",
       format: "date-time",
     },
+    conversions: {},
     webShortname: "hash",
     migrationState,
   });
@@ -131,6 +164,7 @@ const migrate: MigrationFunction = async ({
       type: "string",
       format: "time",
     },
+    conversions: {},
     webShortname: "hash",
     migrationState,
   });
@@ -144,6 +178,7 @@ const migrate: MigrationFunction = async ({
       },
       type: "number",
     },
+    conversions: {},
     webShortname: "hash",
     migrationState,
   });
@@ -157,6 +192,7 @@ const migrate: MigrationFunction = async ({
       },
       type: "number",
     },
+    conversions: {},
     webShortname: "hash",
     migrationState,
   });
@@ -171,6 +207,7 @@ const migrate: MigrationFunction = async ({
       },
       type: "number",
     },
+    conversions: {},
     webShortname: "hash",
     migrationState,
   });

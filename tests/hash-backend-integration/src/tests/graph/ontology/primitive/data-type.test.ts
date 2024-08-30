@@ -100,6 +100,7 @@ describe("Data type CRU", () => {
       ownedById: testOrg.accountGroupId as OwnedById,
       schema: dataTypeSchema,
       relationships: [{ relation: "viewer", subject: { kind: "public" } }],
+      conversions: {},
     });
   });
 
@@ -130,6 +131,7 @@ describe("Data type CRU", () => {
       dataTypeId: createdDataType.schema.$id,
       schema: { ...dataTypeSchema, title: updatedTitle },
       relationships: [{ relation: "viewer", subject: { kind: "public" } }],
+      conversions: {},
     }).catch((err) => Promise.reject(err.data));
 
     expect(

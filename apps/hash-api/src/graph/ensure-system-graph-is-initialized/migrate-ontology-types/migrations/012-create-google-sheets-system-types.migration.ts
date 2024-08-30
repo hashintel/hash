@@ -130,6 +130,7 @@ const migrate: MigrationFunction = async ({
         enum: ["human", "machine"],
         type: "string",
       },
+      conversions: {},
       webShortname: "hash",
       migrationState,
     },

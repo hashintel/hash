@@ -25,6 +25,7 @@ pub enum Table {
     OntologyAdditionalMetadata,
     DataTypes,
     DataTypeEmbeddings,
+    DataTypeConversions,
     PropertyTypes,
     PropertyTypeEmbeddings,
     EntityTypes,
@@ -352,6 +353,7 @@ impl Table {
             Self::OntologyAdditionalMetadata => "ontology_additional_metadata",
             Self::DataTypes => "data_types",
             Self::DataTypeEmbeddings => "data_type_embeddings",
+            Self::DataTypeConversions => "data_type_conversions",
             Self::PropertyTypes => "property_types",
             Self::PropertyTypeEmbeddings => "property_type_embeddings",
             Self::EntityTypes => "entity_types",
@@ -632,6 +634,42 @@ impl DatabaseColumn for DataTypes {
         match self {
             Self::OntologyId => "ontology_id",
             Self::Schema => "schema",
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum DataTypeConversions {
+    SourceDataTypeOntologyId,
+    TargetDataTypeBaseUrl,
+    Into,
+    From,
+}
+
+impl DatabaseColumn for DataTypeConversions {
+    fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::SourceDataTypeOntologyId => ParameterType::Uuid,
+            Self::TargetDataTypeBaseUrl => ParameterType::BaseUrl,
+            Self::Into | Self::From => ParameterType::Object,
+        }
+    }
+
+    fn nullable(self) -> bool {
+        match self {
+            Self::SourceDataTypeOntologyId
+            | Self::TargetDataTypeBaseUrl
+            | Self::Into
+            | Self::From => false,
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::SourceDataTypeOntologyId => "source_data_type_ontology_id",
+            Self::TargetDataTypeBaseUrl => "target_data_type_base_url",
+            Self::Into => "into",
+            Self::From => "from",
         }
     }
 }
@@ -1344,6 +1382,7 @@ pub enum Column {
     DataTypeEmbeddings(DataTypeEmbeddings),
     DataTypeConstrainsValuesOn(DataTypeConstrainsValuesOn),
     DataTypeInheritsFrom(DataTypeInheritsFrom, Option<u32>),
+    DataTypeConversions(DataTypeConversions),
     PropertyTypes(PropertyTypes),
     PropertyTypeEmbeddings(PropertyTypeEmbeddings),
     EntityTypes(EntityTypes),
@@ -1524,6 +1563,7 @@ impl Column {
             Self::OntologyAdditionalMetadata(_) => Table::OntologyAdditionalMetadata,
             Self::DataTypes(_) => Table::DataTypes,
             Self::DataTypeEmbeddings(_) => Table::DataTypeEmbeddings,
+            Self::DataTypeConversions(_) => Table::DataTypeConversions,
             Self::PropertyTypes(_) => Table::PropertyTypes,
             Self::PropertyTypeEmbeddings(_) => Table::PropertyTypeEmbeddings,
             Self::EntityTypes(_) => Table::EntityTypes,
@@ -1601,6 +1641,7 @@ impl DatabaseColumn for Column {
             Self::DataTypeEmbeddings(column) => column.parameter_type(),
             Self::DataTypeInheritsFrom(column, _) => column.parameter_type(),
             Self::DataTypeConstrainsValuesOn(column) => column.parameter_type(),
+            Self::DataTypeConversions(column) => column.parameter_type(),
             Self::PropertyTypes(column) => column.parameter_type(),
             Self::PropertyTypeEmbeddings(column) => column.parameter_type(),
             Self::EntityTypes(column) => column.parameter_type(),
@@ -1633,6 +1674,7 @@ impl DatabaseColumn for Column {
             Self::DataTypeEmbeddings(column) => column.nullable(),
             Self::DataTypeInheritsFrom(column, _) => column.nullable(),
             Self::DataTypeConstrainsValuesOn(column) => column.nullable(),
+            Self::DataTypeConversions(column) => column.nullable(),
             Self::PropertyTypes(column) => column.nullable(),
             Self::PropertyTypeEmbeddings(column) => column.nullable(),
             Self::EntityTypes(column) => column.nullable(),
@@ -1665,6 +1707,7 @@ impl DatabaseColumn for Column {
             Self::DataTypeEmbeddings(column) => column.as_str(),
             Self::DataTypeInheritsFrom(column, _) => column.as_str(),
             Self::DataTypeConstrainsValuesOn(column) => column.as_str(),
+            Self::DataTypeConversions(column) => column.as_str(),
             Self::PropertyTypes(column) => column.as_str(),
             Self::PropertyTypeEmbeddings(column) => column.as_str(),
             Self::EntityTypes(column) => column.as_str(),
@@ -1766,12 +1809,13 @@ pub enum Relation {
     OntologyExternalMetadata,
     OntologyAdditionalMetadata,
     DataTypeIds,
+    DataTypeConversions,
+    DataTypeEmbeddings,
     PropertyTypeIds,
     EntityTypeIds,
     EntityIsOfTypes,
     EntityIds,
     EntityEditions,
-    DataTypeEmbeddings,
     PropertyTypeEmbeddings,
     EntityTypeEmbeddings,
     EntityEmbeddings,
@@ -1891,6 +1935,13 @@ impl Relation {
                 join: Column::DataTypes(DataTypes::OntologyId),
                 join_type: JoinType::Inner,
             }),
+            Self::DataTypeConversions => {
+                ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                    on: Column::DataTypeConversions(DataTypeConversions::SourceDataTypeOntologyId),
+                    join: Column::DataTypes(DataTypes::OntologyId),
+                    join_type: JoinType::LeftOuter,
+                })
+            }
             Self::DataTypeEmbeddings => {
                 ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
                     on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),

@@ -46,7 +46,10 @@ use crate::{
                 read::OntologyTypeTraversalData, OntologyId,
                 PostgresOntologyTypeClassificationMetadata,
             },
-            query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
+            query::{
+                rows::DataTypeConversionsRow, Distinctness, InsertStatementBuilder, PostgresRecord,
+                ReferenceTable, SelectCompiler, Table,
+            },
             TraversalContext,
         },
         query::{Filter, FilterExpression, ParameterList},
@@ -303,6 +306,7 @@ where
                     DELETE FROM data_type_embeddings;
                     DELETE FROM data_type_inherits_from;
                     DELETE FROM data_type_constrains_values_on;
+                    DELETE FROM data_type_conversions;
                 ",
             )
             .await
@@ -353,6 +357,7 @@ where
         let mut inserted_data_type_metadata = Vec::new();
         let mut inserted_data_types = Vec::new();
         let mut data_type_reference_ids = HashSet::new();
+        let mut data_type_conversions_rows = Vec::new();
 
         for parameters in params {
             let provenance = OntologyProvenance {
@@ -413,6 +418,14 @@ where
                         .map(|(reference, _)| DataTypeId::from_url(&reference.url)),
                 );
                 inserted_data_types.push(Arc::new(parameters.schema));
+                data_type_conversions_rows.extend(parameters.conversions.into_iter().map(
+                    |(base_url, conversions)| DataTypeConversionsRow {
+                        source_data_type_ontology_id: data_type_id,
+                        target_data_type_base_url: base_url,
+                        from: conversions.from,
+                        into: conversions.to,
+                    },
+                ));
                 inserted_data_type_metadata.push(DataTypeMetadata {
                     record_id,
                     classification: parameters.classification,
@@ -427,19 +440,15 @@ where
         let required_parent_ids = data_type_reference_ids.into_iter().collect::<Vec<_>>();
         // TODO: Read the closed schemas directly instead
         //   see https://linear.app/hash/issue/H-3082/allow-querying-of-closed-data-schema
+        // We need need the parents itself ...
         transaction
             .get_data_types(
                 actor_id,
                 GetDataTypesParams {
-                    filter: Filter::Any(vec![
-                        // We need need the parents itself ...
-                        Filter::In(
-                            FilterExpression::Path(DataTypeQueryPath::OntologyId),
-                            ParameterList::DataTypeIds(&required_parent_ids),
-                        ),
-                        // ... and their parents (recursively)
-                        Filter::for_data_type_parents(&required_parent_ids, None),
-                    ]),
+                    filter: Filter::In(
+                        FilterExpression::Path(DataTypeQueryPath::OntologyId),
+                        ParameterList::DataTypeIds(&required_parent_ids),
+                    ),
                     temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                         pinned: PinnedTemporalAxisUnresolved::new(None),
                         variable: VariableTemporalAxisUnresolved::new(None, None),
@@ -455,12 +464,34 @@ where
             .attach_printable("Could not read parent data types")?
             .data_types
             .into_iter()
+            .chain(
+                // ... and their parents (recursively)
+                transaction
+                    .get_data_types(
+                        actor_id,
+                        GetDataTypesParams {
+                            filter: Filter::for_data_type_parents(&required_parent_ids, None),
+                            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                                pinned: PinnedTemporalAxisUnresolved::new(None),
+                                variable: VariableTemporalAxisUnresolved::new(None, None),
+                            },
+                            include_drafts: false,
+                            after: None,
+                            limit: None,
+                            include_count: false,
+                        },
+                    )
+                    .await
+                    .change_context(InsertionError)
+                    .attach_printable("Could not read parent data types")?
+                    .data_types,
+            )
             .for_each(|data_type| {
                 ontology_type_resolver.add_open(Arc::new(data_type.schema));
             });
 
         let schema_metadata = ontology_type_resolver
-            .resolve_data_type_metadata(inserted_data_types.iter().cloned())
+            .resolve_data_type_metadata(inserted_data_types.iter().map(Arc::clone))
             .change_context(InsertionError)?;
 
         let data_type_validator = DataTypeValidator;
@@ -486,6 +517,17 @@ where
                 .insert_data_type_references(DataTypeId::from_url(&data_type.id), schema_metadata)
                 .await?;
         }
+
+        let (statement, parameters) = InsertStatementBuilder::from_rows(
+            Table::DataTypeConversions,
+            &data_type_conversions_rows,
+        )
+        .compile();
+        transaction
+            .as_client()
+            .query(&statement, &parameters)
+            .await
+            .change_context(InsertionError)?;
 
         #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
         transaction
@@ -725,19 +767,15 @@ where
             .collect::<Vec<_>>();
         // TODO: Read the closed schemas directly instead
         //   see https://linear.app/hash/issue/H-3082/allow-querying-of-closed-data-schema
+        // We need need the parents itself ...
         transaction
             .get_data_types(
                 actor_id,
                 GetDataTypesParams {
-                    filter: Filter::Any(vec![
-                        // We need need the parents itself ...
-                        Filter::In(
-                            FilterExpression::Path(DataTypeQueryPath::OntologyId),
-                            ParameterList::DataTypeIds(&required_parent_ids),
-                        ),
-                        // ... and their parents (recursively)
-                        Filter::for_data_type_parents(&required_parent_ids, None),
-                    ]),
+                    filter: Filter::In(
+                        FilterExpression::Path(DataTypeQueryPath::OntologyId),
+                        ParameterList::DataTypeIds(&required_parent_ids),
+                    ),
                     temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                         pinned: PinnedTemporalAxisUnresolved::new(None),
                         variable: VariableTemporalAxisUnresolved::new(None, None),
@@ -753,6 +791,28 @@ where
             .attach_printable("Could not read parent data types")?
             .data_types
             .into_iter()
+            .chain(
+                // ... and their parents (recursively)
+                transaction
+                    .get_data_types(
+                        actor_id,
+                        GetDataTypesParams {
+                            filter: Filter::for_data_type_parents(&required_parent_ids, None),
+                            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                                pinned: PinnedTemporalAxisUnresolved::new(None),
+                                variable: VariableTemporalAxisUnresolved::new(None, None),
+                            },
+                            include_drafts: false,
+                            after: None,
+                            limit: None,
+                            include_count: false,
+                        },
+                    )
+                    .await
+                    .change_context(UpdateError)
+                    .attach_printable("Could not read parent data types")?
+                    .data_types,
+            )
             .for_each(|data_type| {
                 ontology_type_resolver.add_open(Arc::new(data_type.schema));
             });
@@ -782,6 +842,27 @@ where
             .change_context(UpdateError)?;
         transaction
             .insert_data_type_references(data_type_id, &metadata)
+            .await
+            .change_context(UpdateError)?;
+
+        let data_type_conversions_rows = params
+            .conversions
+            .into_iter()
+            .map(|(base_url, conversions)| DataTypeConversionsRow {
+                source_data_type_ontology_id: data_type_id,
+                target_data_type_base_url: base_url,
+                from: conversions.from,
+                into: conversions.to,
+            })
+            .collect::<Vec<_>>();
+        let (statement, parameters) = InsertStatementBuilder::from_rows(
+            Table::DataTypeConversions,
+            &data_type_conversions_rows,
+        )
+        .compile();
+        transaction
+            .as_client()
+            .query(&statement, &parameters)
             .await
             .change_context(UpdateError)?;
 

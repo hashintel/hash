@@ -51,13 +51,14 @@ use hash_status::StatusCode;
 use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
 use tokio_postgres::error::SqlState;
-use type_system::url::VersionedUrl;
+use type_system::{schema::Conversions, url::VersionedUrl};
 
 use crate::{
     snapshot::{
         entity::{EntityEmbeddingRecord, EntitySnapshotRecord},
         ontology::{
-            DataTypeEmbeddingRecord, EntityTypeEmbeddingRecord, PropertyTypeEmbeddingRecord,
+            DataTypeConversionsRecord, DataTypeEmbeddingRecord, EntityTypeEmbeddingRecord,
+            PropertyTypeEmbeddingRecord,
         },
         restore::SnapshotRecordBatch,
     },
@@ -103,6 +104,7 @@ pub enum SnapshotEntry {
     AccountGroup(AccountGroup),
     Web(Web),
     DataType(Box<DataTypeSnapshotRecord>),
+    DataTypeConversions(Box<DataTypeConversionsRecord>),
     DataTypeEmbedding(DataTypeEmbeddingRecord),
     PropertyType(Box<PropertyTypeSnapshotRecord>),
     PropertyTypeEmbedding(PropertyTypeEmbeddingRecord),
@@ -184,6 +186,20 @@ impl SnapshotEntry {
                         context.push_appendix(format!("{id}:\n{json}"));
                     }
                 }
+            }
+            Self::DataTypeConversions(conversions) => {
+                context.push_body(format!(
+                    "data type conversions: {} -> {}: {}",
+                    conversions.source_data_type,
+                    conversions.target_data_type,
+                    conversions.conversions.to.expression
+                ));
+                context.push_body(format!(
+                    "data type conversions: {} <- {}: {}",
+                    conversions.source_data_type,
+                    conversions.target_data_type,
+                    conversions.conversions.from.expression
+                ));
             }
             Self::DataTypeEmbedding(embedding) => {
                 context.push_body(format!("data type embedding: {}", embedding.data_type_id));
@@ -382,6 +398,42 @@ impl PostgresStorePool {
         .await
         .map_err(|future_error| future_error.change_context(SnapshotDumpError::Query))?
         .map_err(|stream_error| stream_error.change_context(SnapshotDumpError::Read)))
+    }
+
+    async fn create_data_type_conversions_stream(
+        &self,
+    ) -> Result<
+        impl Stream<Item = Result<SnapshotEntry, SnapshotDumpError>> + Send,
+        SnapshotDumpError,
+    > {
+        Ok(self
+            .acquire(NoAuthorization, None)
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .as_client()
+            .query_raw(
+                r#"SELECT "base_url", "version", "target_data_type_base_url", "from", "into"
+                 FROM data_type_conversions
+                 JOIN ontology_ids ON data_type_conversions.source_data_type_ontology_id = ontology_ids.ontology_id
+                 "#,
+                [] as [&(dyn ToSql + Sync); 0],
+            )
+            .await
+            .change_context(SnapshotDumpError::Query)?
+            .map(|result| result.change_context(SnapshotDumpError::Query))
+            .map_ok(|row| {
+                SnapshotEntry::DataTypeConversions(Box::new(DataTypeConversionsRecord {
+                    source_data_type: VersionedUrl {
+                        base_url: row.get(0),
+                        version: row.get(1),
+                    },
+                    target_data_type: row.get(2),
+                    conversions: Conversions {
+                        from: row.get(3),
+                        to: row.get(4),
+                    },
+                }))
+            }))
     }
 
     async fn create_data_type_embedding_stream(
@@ -606,6 +658,12 @@ impl PostgresStorePool {
                                 metadata: record.metadata,
                             })))
                         })
+                        .forward(snapshot_record_tx.clone()),
+                );
+
+                scope.spawn(
+                    self.create_data_type_conversions_stream()
+                        .try_flatten_stream()
                         .forward(snapshot_record_tx.clone()),
                 );
             }
