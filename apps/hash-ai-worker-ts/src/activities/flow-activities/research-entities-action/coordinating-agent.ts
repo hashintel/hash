@@ -266,7 +266,8 @@ export const runCoordinatingAgent: FlowActionActivity<{
        * If the coordinator has decided to wait for outstanding tasks, notify the user of this.
        *
        * We don't do this if the coordinator has _also_ started other work.
-       * It doesn't need to call 'waitForOutstandingTasks' if it's starting other tasks, but it also doesn't do any harm.
+       * It doesn't need to call 'waitForOutstandingTasks' if it's starting other tasks, but it also doesn't do any
+       * harm.
        * 'waitForOutstandingTasks' is just a mechanism to allow it to respond without choosing to do anything else.
        */
       logProgress([
@@ -374,7 +375,8 @@ export const runCoordinatingAgent: FlowActionActivity<{
 
       if (!completeToolCallResult.isError) {
         /**
-         * Either there are no issues, or there were issues which we've already asked the coordinator about and it's chosen to ignore.
+         * Either there are no issues, or there were issues which we've already asked the coordinator about and it's
+         * chosen to ignore.
          */
         await createCheckpoint({ state });
         return;
@@ -388,7 +390,8 @@ export const runCoordinatingAgent: FlowActionActivity<{
       state.hasConductedCompleteCheckStep = true;
     } else {
       /**
-       * If we don't have a 'complete' tool call, reset the check step state in case of the following sequence of events:
+       * If we don't have a 'complete' tool call, reset the check step state in case of the following sequence of
+       * events:
        * 1. The coordinator makes a 'complete' call
        * 2. We identify an issue which we ask the coordinator about
        * 3. It decides to do more work rather than immediately call 'complete' again to ignore the issues identified
@@ -428,15 +431,12 @@ export const runCoordinatingAgent: FlowActionActivity<{
   /**
    * These are entities the coordinator has chosen to highlight as the result of research,
    * but we want to output all entity proposals from the task.
-   *
-   * @todo H-3273 add a column to the flow run outputs table indicating which entities the coordinator has highlighted
-   * @todo this may also be useful for further steps in a flow, e.g. for report writing or analysis
    */
-  const _submittedEntities = state.proposedEntities.filter(
-    ({ localEntityId }) => state.submittedEntityIds.includes(localEntityId),
+  const submittedEntities = state.proposedEntities.filter(({ localEntityId }) =>
+    state.submittedEntityIds.includes(localEntityId),
   );
 
-  logger.debug(`Submitted ${_submittedEntities.length} entities`);
+  logger.debug(`Submitted ${submittedEntities.length} entities`);
 
   const allProposedEntities = state.proposedEntities;
 
@@ -557,6 +557,16 @@ export const runCoordinatingAgent: FlowActionActivity<{
             payload: {
               kind: "ProposedEntity",
               value: [...allProposedEntities, ...fileEntityProposals],
+            },
+          },
+          {
+            outputName:
+              "highlightedEntities" satisfies OutputNameForAction<"researchEntities">,
+            payload: {
+              kind: "EntityId",
+              value: submittedEntities.map(
+                ({ localEntityId }) => localEntityId,
+              ),
             },
           },
         ],

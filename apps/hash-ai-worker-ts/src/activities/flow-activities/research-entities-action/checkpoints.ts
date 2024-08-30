@@ -32,7 +32,7 @@ import type { CoordinatingAgentState } from "./shared/coordinators.js";
 export const heartbeatAndWaitCancellation = async (
   state: CoordinatingAgentState,
 ) => {
-  const secondsBetweenHeartbeats = heartbeatTimeoutSeconds - 2;
+  const secondsBetweenHeartbeats = heartbeatTimeoutSeconds - 5;
 
   const heartbeatInterval = setInterval(() => {
     Context.current().heartbeat({
