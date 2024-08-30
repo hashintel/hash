@@ -1,5 +1,5 @@
 import { IconButton } from "@hashintel/design-system";
-import type { FormControlLabelProps } from "@mui/material";
+import type { FormControlLabelProps, SxProps, Theme } from "@mui/material";
 import {
   Box,
   Checkbox,
@@ -64,6 +64,23 @@ const labelSx: FormControlLabelProps["sx"] = {
   },
 };
 
+const blueFilterButtonSx: SxProps<Theme> = ({ palette, transitions }) => ({
+  background: "transparent",
+  border: "none",
+  borderRadius: 1,
+  cursor: "pointer",
+  px: 1,
+  py: 0.5,
+  "& > span": {
+    color: palette.blue[70],
+    fontSize: 12,
+  },
+  "&:hover": {
+    background: palette.blue[20],
+  },
+  transition: transitions.create("background"),
+});
+
 const FilterPopover = <Filter extends VirtualizedTableFilter>({
   buttonRef,
   filter,
@@ -77,7 +94,7 @@ const FilterPopover = <Filter extends VirtualizedTableFilter>({
   open: boolean;
   onClose: () => void;
 }) => {
-  const { header, options, type, value: currentValue } = filter;
+  const { header, options, type, value: currentValue, initialValue } = filter;
 
   return (
     <Popover
@@ -116,28 +133,51 @@ const FilterPopover = <Filter extends VirtualizedTableFilter>({
           px: 0.4,
         })}
       >
-        <Typography
-          component="div"
-          variant="smallCaps"
-          sx={({ palette }) => ({
-            color: palette.gray[50],
-            mb: 1,
-            lineHeight: 1,
-            px: 1.4,
-          })}
+        <Stack
+          direction="row"
+          alignItems="center"
+          justifyContent="space-between"
+          gap={1}
+          px={1.4}
+          mb={1}
         >
-          {header}
-        </Typography>
-        {/* if the filter 'type' is checkboxes, do MUI checkboxes. otherwise, do MUI radio group  */}
-
+          <Typography
+            component="div"
+            variant="smallCaps"
+            sx={({ palette }) => ({
+              color: palette.gray[50],
+              lineHeight: 1,
+            })}
+          >
+            {header}
+          </Typography>
+          <Box
+            component="button"
+            onClick={() => {
+              setFilter({
+                ...filter,
+                value:
+                  type === "checkboxes" ? new Set(initialValue) : initialValue,
+              });
+              onClose();
+            }}
+            sx={blueFilterButtonSx}
+          >
+            <Typography component="span">Reset</Typography>
+          </Box>
+        </Stack>
         {type === "checkboxes" ? (
-          <Stack>
-            <FormControl>
-              {Object.values(options)
-                .sort((a, b) => a.label.localeCompare(b.label))
-                .map(({ label, value, count }) => (
+          <FormControl>
+            {Object.values(options)
+              .sort((a, b) => a.label.localeCompare(b.label))
+              .map(({ label, value, count }) => (
+                <Stack
+                  key={value}
+                  direction="row"
+                  alignItems="center"
+                  sx={{ "&:hover > button": { visibility: "visible " } }}
+                >
                   <FormControlLabel
-                    key={value}
                     control={
                       <Checkbox
                         onChange={(event) => {
@@ -157,33 +197,41 @@ const FilterPopover = <Filter extends VirtualizedTableFilter>({
                     slotProps={createLabelSlotProps(value === null)}
                     sx={labelSx}
                   />
-                ))}
-            </FormControl>
-          </Stack>
+                  <Box
+                    component="button"
+                    onClick={() => {
+                      setFilter({ ...filter, value: new Set([value]) });
+                      onClose();
+                    }}
+                    sx={[blueFilterButtonSx, { visibility: "hidden" }]}
+                  >
+                    <Typography component="span">Only</Typography>
+                  </Box>
+                </Stack>
+              ))}
+          </FormControl>
         ) : (
-          <Stack>
-            <FormControl>
-              <RadioGroup
-                value={currentValue}
-                onChange={(event) => {
-                  setFilter({ ...filter, value: event.target.value });
-                }}
-              >
-                {Object.values(options)
-                  .sort((a, b) => a.label.localeCompare(b.label))
-                  .map(({ label, value, count }) => (
-                    <FormControlLabel
-                      key={value}
-                      value={value}
-                      control={<Radio sx={{ mr: 1.5 }} />}
-                      label={`${label} (${count})`}
-                      slotProps={createLabelSlotProps(value === null)}
-                      sx={labelSx}
-                    />
-                  ))}
-              </RadioGroup>
-            </FormControl>
-          </Stack>
+          <FormControl>
+            <RadioGroup
+              value={currentValue}
+              onChange={(event) => {
+                setFilter({ ...filter, value: event.target.value });
+              }}
+            >
+              {Object.values(options)
+                .sort((a, b) => a.label.localeCompare(b.label))
+                .map(({ label, value, count }) => (
+                  <FormControlLabel
+                    key={value}
+                    value={value}
+                    control={<Radio sx={{ mr: 1.5 }} />}
+                    label={`${label} (${count})`}
+                    slotProps={createLabelSlotProps(value === null)}
+                    sx={labelSx}
+                  />
+                ))}
+            </RadioGroup>
+          </FormControl>
         )}
       </Box>
     </Popover>

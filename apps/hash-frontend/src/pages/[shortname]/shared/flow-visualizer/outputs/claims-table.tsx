@@ -1,5 +1,6 @@
 import { useQuery } from "@apollo/client";
 import { IconButton } from "@hashintel/design-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { SourceProvenance } from "@local/hash-graph-client/api";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -25,7 +26,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, TableCell, Typography } from "@mui/material";
-import { memo, useMemo, useRef, useState } from "react";
+import { memo, useEffect, useMemo, useRef, useState } from "react";
 
 import type {
   GetEntitySubgraphQuery,
@@ -44,6 +45,14 @@ import {
   defaultCellSx,
   VirtualizedTable,
 } from "../../../../shared/virtualized-table";
+import type {
+  VirtualizedTableFilter,
+  VirtualizedTableFiltersByFieldId,
+} from "../../../../shared/virtualized-table/header/filter";
+import {
+  isFilterValueIncluded,
+  missingValueString,
+} from "../../../../shared/virtualized-table/header/filter";
 import type { VirtualizedTableSort } from "../../../../shared/virtualized-table/header/sort";
 import type { ProposedEntityOutput } from "../shared/types";
 import { EmptyOutputBox } from "./shared/empty-output-box";
@@ -58,7 +67,7 @@ const columns: VirtualizedTableColumn<FieldId>[] = [
     label: "Status",
     id: "status",
     sortable: true,
-    width: 150,
+    width: 120,
   },
   {
     label: "Claim",
@@ -67,16 +76,16 @@ const columns: VirtualizedTableColumn<FieldId>[] = [
     width: 700,
   },
   {
-    label: "Subject of claim",
+    label: "Subject",
     id: "subject",
     sortable: true,
-    width: 160,
+    width: 170,
   },
   {
     label: "Relevant value",
     id: "object",
     sortable: true,
-    width: 160,
+    width: 170,
   },
 ];
 
@@ -92,7 +101,7 @@ type ClaimResultRow = {
   };
   onEntityClick: (entityId: EntityId) => void;
   sources: SourceProvenance[];
-  status: "Processing claim" | "Processed";
+  status: "Processing" | "Processed";
 };
 
 const typographySx = {
@@ -172,11 +181,9 @@ const TableRow = memo(({ row }: { row: ClaimResultRow }) => {
         sx={({ palette }) => ({
           ...cellSx,
           background:
-            status === "Processing claim" ? palette.blue[15] : palette.gray[20],
+            status === "Processing" ? palette.blue[15] : palette.gray[20],
           color:
-            status === "Processing claim"
-              ? palette.blue[70]
-              : palette.common.black,
+            status === "Processing" ? palette.blue[70] : palette.common.black,
         })}
       >
         <Stack direction="row" alignItems="center">
@@ -186,9 +193,7 @@ const TableRow = memo(({ row }: { row: ClaimResultRow }) => {
             sx={{
               borderRadius: "50%",
               background: ({ palette }) =>
-                status === "Processing claim"
-                  ? palette.blue[70]
-                  : palette.green[80],
+                status === "Processing" ? palette.blue[70] : palette.green[80],
               display: "inline-block",
               minHeight: 6,
               minWidth: 6,
@@ -341,15 +346,43 @@ export const ClaimsTable = memo(
     });
 
     const {
-      rows,
+      filters: initialFilters,
+      unsortedRows,
     }: {
-      rows: VirtualizedTableRow<ClaimResultRow>[];
+      filters:
+        | VirtualizedTableFiltersByFieldId<Exclude<FieldId, "claim">>
+        | undefined;
+      unsortedRows: VirtualizedTableRow<ClaimResultRow>[];
     } = useMemo(() => {
       const rowData: VirtualizedTableRow<ClaimResultRow>[] = [];
 
       if (!claimsData) {
-        return { rows: rowData };
+        return { filters: undefined, unsortedRows: rowData };
       }
+
+      const filters = {
+        status: {
+          header: "Status",
+          initialValue: new Set<string>(),
+          options: {} as VirtualizedTableFilter["options"],
+          type: "checkboxes",
+          value: new Set<string>(),
+        },
+        subject: {
+          header: "Subject",
+          initialValue: new Set<string>(),
+          options: {} as VirtualizedTableFilter["options"],
+          type: "checkboxes",
+          value: new Set<string>(),
+        },
+        object: {
+          header: "Relevant value",
+          initialValue: new Set<string>(),
+          options: {} as VirtualizedTableFilter["options"],
+          type: "checkboxes",
+          value: new Set<string>(),
+        },
+      } satisfies VirtualizedTableFiltersByFieldId<Exclude<FieldId, "claim">>;
 
       const claimsSubgraph = deserializeSubgraph<EntityRootType<Claim>>(
         claimsData.getEntitySubgraph.subgraph,
@@ -441,13 +474,51 @@ export const ClaimsTable = memo(
           }
         }
 
+        const status = subjectEntityId ? "Processed" : "Processing";
+
+        /**
+         * Account for the claim's values in the filters
+         */
+        filters.status.options[status] ??= {
+          label: status,
+          count: 0,
+          value: status,
+        };
+        filters.status.options[status].count++;
+        filters.status.initialValue.add(status);
+        filters.status.value.add(status);
+
+        const subjectValue = subjectEntityId ?? null;
+        const subjectOptionsKey = subjectEntityId ?? missingValueString;
+
+        filters.subject.options[subjectOptionsKey] ??= {
+          label: subjectText,
+          count: 0,
+          value: subjectValue,
+        };
+        filters.subject.options[subjectOptionsKey].count++;
+        filters.subject.initialValue.add(subjectValue as EntityId);
+        filters.subject.value.add(subjectValue as EntityId);
+
+        const objectValue = objectEntityId ?? null;
+        const objectOptionsKey = objectEntityId ?? missingValueString;
+
+        filters.object.options[objectOptionsKey] ??= {
+          label: objectText ?? "None",
+          count: 0,
+          value: objectValue,
+        };
+        filters.object.options[objectOptionsKey].count++;
+        filters.object.initialValue.add(objectValue as EntityId);
+        filters.object.value.add(objectValue as EntityId);
+
         rowData.push({
           id: claim.metadata.recordId.entityId,
           data: {
             claim: claimText,
             onEntityClick,
             sources: claim.metadata.provenance.edition.sources ?? [],
-            status: subjectEntityId ? "Processed" : "Processing claim",
+            status,
             subject: {
               entityId: subjectEntityId,
               name: subjectText,
@@ -459,29 +530,63 @@ export const ClaimsTable = memo(
         });
       }
 
-      const sortedRows = rowData.sort((a, b) => {
-        const { fieldId, direction } = sort;
-
-        const base = direction === "asc" ? a : b;
-        const target = direction === "asc" ? b : a;
-
-        if (fieldId === "subject" || fieldId === "object") {
-          return (
-            base.data[fieldId]?.name.localeCompare(
-              target.data[fieldId]?.name ?? "ZZZZZZ",
-            ) ?? (target.data[fieldId] ? 1 : 0)
-          );
-        }
-
-        return base.data[fieldId].localeCompare(target.data[fieldId]);
-      });
-
       return {
-        rows: sortedRows,
+        filters,
+        unsortedRows: rowData,
       };
-    }, [claimsData, onEntityClick, proposedEntities, sort]);
+    }, [claimsData, onEntityClick, proposedEntities]);
 
-    const hasData = !!rows.length;
+    const [filters, setFilters] = useState<
+      VirtualizedTableFiltersByFieldId<Exclude<FieldId, "claim">> | undefined
+    >(initialFilters);
+
+    useEffect(() => {
+      if (initialFilters && !filters) {
+        setFilters(initialFilters);
+      }
+    }, [filters, initialFilters]);
+
+    const rows = useMemo(
+      () =>
+        unsortedRows
+          .filter((row) => {
+            if (!filters) {
+              return true;
+            }
+
+            for (const [fieldId, filter] of typedEntries(filters)) {
+              const value =
+                fieldId === "status"
+                  ? row.data.status
+                  : row.data[fieldId]?.entityId;
+
+              if (!isFilterValueIncluded(value ?? null, filter)) {
+                return false;
+              }
+            }
+
+            return true;
+          })
+          .sort((a, b) => {
+            const { fieldId, direction } = sort;
+
+            const base = direction === "asc" ? a : b;
+            const target = direction === "asc" ? b : a;
+
+            if (fieldId === "subject" || fieldId === "object") {
+              return (
+                base.data[fieldId]?.name.localeCompare(
+                  target.data[fieldId]?.name ?? "ZZZZZZ",
+                ) ?? (target.data[fieldId] ? 1 : 0)
+              );
+            }
+
+            return base.data[fieldId].localeCompare(target.data[fieldId]);
+          }),
+      [filters, sort, unsortedRows],
+    );
+
+    const hasData = !!unsortedRows.length;
 
     return (
       <OutputContainer
@@ -498,6 +603,8 @@ export const ClaimsTable = memo(
           <VirtualizedTable
             columns={columns}
             createRowContent={createRowContent}
+            filters={filters}
+            setFilters={setFilters}
             rows={rows}
             sort={sort}
             setSort={setSort}

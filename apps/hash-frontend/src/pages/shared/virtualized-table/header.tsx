@@ -44,12 +44,21 @@ export const HeaderContent = <
           left += columns[i]!.width as number;
         }
 
+        const hasFilters =
+          filters &&
+          setFilters &&
+          Object.keys(filters[column.id]?.options ?? {}).length > 1;
+
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
+        const hasButtons = hasFilters || column.sortable;
+
         return (
           <TableCell
             key={column.id}
             variant="head"
             sx={({ palette }) => ({
               background: palette.common.white,
+              paddingRight: hasButtons ? "8px !important" : "initial",
               width: column.width,
               minWidth:
                 typeof column.width === "number" ? column.width : undefined,
@@ -80,7 +89,7 @@ export const HeaderContent = <
                 {column.label}
               </Typography>
               <Stack direction="row" alignItems="center">
-                {filters && setFilters && (
+                {hasFilters && (
                   <FilterButton
                     columnId={column.id}
                     filters={filters}
