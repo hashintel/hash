@@ -1,4 +1,4 @@
-use core::fmt::{self, Display};
+use core::fmt::{self, Display, Write};
 
 use hql_span::SpanId;
 
@@ -30,7 +30,7 @@ impl Display for TypeKind<'_> {
             Self::Path(path) => Display::fmt(path, f),
             Self::Union(types) => {
                 if types.len() > 1 {
-                    f.write_str("(")?;
+                    f.write_char('(')?;
                 }
 
                 for (index, ty) in types.into_iter().enumerate() {
@@ -42,14 +42,14 @@ impl Display for TypeKind<'_> {
                 }
 
                 if types.len() > 1 {
-                    f.write_str(")")?;
+                    f.write_char(')')?;
                 }
 
                 Ok(())
             }
             Self::Intersection(types) => {
                 if types.len() > 1 {
-                    f.write_str("(")?;
+                    f.write_char('(')?;
                 }
 
                 for (index, ty) in types.into_iter().enumerate() {
@@ -61,7 +61,7 @@ impl Display for TypeKind<'_> {
                 }
 
                 if types.len() > 1 {
-                    f.write_str(")")?;
+                    f.write_char(')')?;
                 }
 
                 Ok(())

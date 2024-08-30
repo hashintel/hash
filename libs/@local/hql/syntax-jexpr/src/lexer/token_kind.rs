@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::fmt::{self, Display};
+use core::fmt::{self, Display, Write};
 
 use json_number::Number;
 use logos::Logos;
@@ -55,12 +55,12 @@ impl Display for TokenKind<'_> {
         match self {
             Self::Bool(bool) => Display::fmt(bool, f),
             Self::Null => f.write_str("null"),
-            Self::LBrace => f.write_str("{"),
-            Self::RBrace => f.write_str("}"),
-            Self::LBracket => f.write_str("["),
-            Self::RBracket => f.write_str("]"),
-            Self::Colon => f.write_str(":"),
-            Self::Comma => f.write_str(","),
+            Self::LBrace => f.write_char('{'),
+            Self::RBrace => f.write_char('}'),
+            Self::LBracket => f.write_char('['),
+            Self::RBracket => f.write_char(']'),
+            Self::Colon => f.write_char(':'),
+            Self::Comma => f.write_char(','),
             Self::Number(number) => Display::fmt(number, f),
             Self::String(string) => write!(f, "\"{string}\""),
         }
