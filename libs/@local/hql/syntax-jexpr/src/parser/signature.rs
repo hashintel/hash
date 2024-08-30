@@ -113,7 +113,6 @@ where
     .parse_next(input)
 }
 
-// TODO: generics are not working properly, <> isn't working, also trailing , isn't
 /// Implementation of generics parsing
 ///
 /// # Syntax

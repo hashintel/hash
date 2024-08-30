@@ -17,8 +17,6 @@ use crate::{
 /// # Panics
 ///
 /// Panics if the lexer has not consumed the opening bracket.
-// TODO: test `[]`, `[1]`, `[1, 2]`, error on `[1,]`, `[1, 2,]`, `[,1]`, `[,]`
-// TODO: quickcheck
 #[expect(
     clippy::needless_pass_by_value,
     reason = "API contract, we want to signify to the user, we're now proceeding with this \
