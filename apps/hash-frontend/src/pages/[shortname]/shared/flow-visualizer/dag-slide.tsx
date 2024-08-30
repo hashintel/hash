@@ -9,6 +9,7 @@ import type {
   UngroupedEdgesAndNodes,
 } from "./shared/types";
 import { Topbar } from "./topbar";
+import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 
 type DagSlideProps = {
   groups: [UngroupedEdgesAndNodes] | GroupWithEdgesAndNodes[];
@@ -23,6 +24,10 @@ export const DagSlide = ({
   onClose,
   selectedFlowDefinition,
 }: DagSlideProps) => {
+  const isGoal = goalFlowDefinitionIds.includes(
+    selectedFlowDefinition.flowDefinitionId,
+  );
+
   return (
     <Backdrop
       open={open}
@@ -55,6 +60,7 @@ export const DagSlide = ({
               handleRunFlowClicked={() => null}
               showRunButton={false}
               readonly
+              workerType={isGoal ? "goal" : "flow"}
             />
             <IconButton
               onClick={onClose}

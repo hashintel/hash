@@ -52,6 +52,7 @@ import {
   groupStepsByDependencyLayer,
 } from "./flow-visualizer/sort-graph";
 import { Topbar, topbarHeight } from "./flow-visualizer/topbar";
+import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 
 const getGraphFromFlowDefinition = (
   flowDefinition: FlowDefinitionType,
@@ -610,6 +611,10 @@ export const FlowVisualizer = () => {
     selectedFlowDefinition.trigger.triggerDefinitionId === "userTrigger" &&
     !unrunnableDefinitionIds.includes(selectedFlowDefinition.flowDefinitionId);
 
+  const isGoal = goalFlowDefinitionIds.includes(
+    selectedFlowDefinition.flowDefinitionId,
+  );
+
   return (
     <>
       {selectedFlowRun && (
@@ -636,6 +641,7 @@ export const FlowVisualizer = () => {
           <Topbar
             handleRunFlowClicked={handleRunFlowClicked}
             showRunButton={isRunnableFromHere}
+            workerType={isGoal ? "goal" : "flow"}
           />
         </Box>
         <Stack
