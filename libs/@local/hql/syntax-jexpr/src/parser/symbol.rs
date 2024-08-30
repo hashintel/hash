@@ -43,6 +43,8 @@ impl ParseRestriction {
     }
 }
 
+const OPERATORS_PREFIX: &[char] = &['=', '!', '>', '<', '+', '-', '*', '/', '|', '&', '^'];
+
 /// Implementation of Symbol parsing
 ///
 /// # Syntax
@@ -118,8 +120,6 @@ where
         .take()
         .parse_next(input)
 }
-
-const OPERATORS_PREFIX: &[char] = &['=', '!', '>', '<', '+', '-', '*', '/', '|', '&', '^'];
 
 /// Implementation of `operator` parsing
 ///
