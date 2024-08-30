@@ -7,14 +7,14 @@ use hql_span::SpanId;
 use winnow::error::{ContextError, ErrMode, ParseError};
 
 use crate::{
-    error::CATEGORY,
+    error::JEXPR_CATEGORY,
     lexer::{syntax_kind::SyntaxKind, syntax_kind_set::SyntaxKindSet},
 };
 
 pub(crate) const PARSE: &Category = &Category {
     id: Cow::Borrowed("parse"),
     name: Cow::Borrowed("Parsing"),
-    parent: Some(RefOrBox::Ref(CATEGORY)),
+    parent: Some(RefOrBox::Ref(JEXPR_CATEGORY)),
 };
 
 pub(crate) const UNEXPECTED_EOF: &Category = &Category {

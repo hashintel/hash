@@ -6,12 +6,12 @@ use hql_diagnostics::{
 use hql_span::SpanId;
 use text_size::TextRange;
 
-use crate::error::CATEGORY;
+use crate::error::JEXPR_CATEGORY;
 
 const LEXING: &Category = &Category {
     id: Cow::Borrowed("lexing"),
     name: Cow::Borrowed("Lexing"),
-    parent: Some(RefOrBox::Ref(CATEGORY)),
+    parent: Some(RefOrBox::Ref(JEXPR_CATEGORY)),
 };
 
 const INVALID_STRING: &Category = &Category {

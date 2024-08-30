@@ -2942,7 +2942,7 @@ dependencies = [
  "ariadne",
  "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "hql-span",
- "jsonptr",
+ "jsonptr 0.6.0",
  "serde",
  "serde_json",
  "serde_with",
@@ -2975,7 +2975,7 @@ dependencies = [
  "hql-span",
  "insta",
  "json-number",
- "jsonptr",
+ "jsonptr 0.5.1",
  "logos",
  "serde",
  "serde_json",
@@ -3503,6 +3503,16 @@ name = "jsonptr"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d71259ee688a462beeac976f9bede505d1b42db27c0f811a99ad1086d499aebc"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
+name = "jsonptr"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2da813f8b5a216ec36e2d562a97d18d458a847df98d3c7f6f1f88d848cbc9381"
 dependencies = [
  "serde",
  "serde_json",
