@@ -1,5 +1,5 @@
 ---
-source: libs/@local/hql/frontend-jexpr/src/lexer/mod.rs
+source: libs/@local/hql/syntax-jexpr/src/lexer/mod.rs
 expression: "{\"ferris\": 🦀}"
 ---
 [31m[jexpr::lexing::invalid-character] Error:[0m Invalid Character

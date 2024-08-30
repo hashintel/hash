@@ -1,5 +1,5 @@
 ---
-source: libs/@local/hql/frontend-jexpr/src/parser/expr.rs
+source: libs/@local/hql/syntax-jexpr/src/parser/expr.rs
 expression: "{\"type\": \"u32\", \"const\": 42, \"sig\": \"() -> Unit\"}"
 ---
 [31m[jexpr::parse::object::unknown-key] Error:[0m Unknown Key

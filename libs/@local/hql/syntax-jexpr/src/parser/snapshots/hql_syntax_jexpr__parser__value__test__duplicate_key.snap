@@ -1,5 +1,5 @@
 ---
-source: libs/@local/hql/frontend-jexpr/src/parser/value.rs
+source: libs/@local/hql/syntax-jexpr/src/parser/value.rs
 expression: "{\"a\": 1, \"a\": b}"
 ---
 [31m[jexpr::parse::object::duplicate-key] Error:[0m Duplicate Key

@@ -1,5 +1,5 @@
 ---
-source: libs/@local/hql/frontend-jexpr/src/lexer/mod.rs
+source: libs/@local/hql/syntax-jexpr/src/lexer/mod.rs
 expression: "{\"number\": 42.}"
 ---
 [31m[jexpr::lexing::invalid-number] Error:[0m Invalid Number Literal

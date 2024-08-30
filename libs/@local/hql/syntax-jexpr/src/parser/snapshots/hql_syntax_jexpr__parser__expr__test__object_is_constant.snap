@@ -1,5 +1,5 @@
 ---
-source: libs/@local/hql/frontend-jexpr/src/parser/expr.rs
+source: libs/@local/hql/syntax-jexpr/src/parser/expr.rs
 expression: "{\"const\": 42}"
 ---
 Expr {

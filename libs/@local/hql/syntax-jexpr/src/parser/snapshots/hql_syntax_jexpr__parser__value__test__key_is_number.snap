@@ -1,5 +1,5 @@
 ---
-source: libs/@local/hql/frontend-jexpr/src/parser/value.rs
+source: libs/@local/hql/syntax-jexpr/src/parser/value.rs
 expression: "{12: \"12\"}"
 ---
 [31m[jexpr::parse::unexpected-token] Error:[0m Unexpected token

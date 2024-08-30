@@ -1,8 +1,6 @@
-use alloc::borrow::Cow;
-
 use hql_cst::{
     arena,
-    value::{Entry, Value, ValueKind},
+    value::{ObjectKey, Value, ValueKind},
 };
 use hql_diagnostics::Diagnostic;
 use hql_span::SpanId;
@@ -97,18 +95,18 @@ fn parse_value_object<'arena, 'source>(
     stream: &mut TokenStream<'arena, 'source>,
     token: Token<'source>,
 ) -> Result<Value<'arena, 'source>, Diagnostic<'static, SpanId>> {
-    let mut object: arena::HashMap<Cow<'source, str>, Entry<'arena, 'source>> =
+    let mut object: arena::HashMap<ObjectKey<'source>, Value<'arena, 'source>> =
         stream.arena.hash_map(None);
 
     let span = parse_object(stream, token, |stream, key| {
-        if let Some(entry) = object.get(&key.value) {
+        if let Some((existing_key, _)) = object.get_key_value(&*key.value) {
             let span = stream.insert_span(Span {
                 range: key.span,
                 pointer: stream.pointer(),
                 parent_id: None,
             });
 
-            return Err(duplicate_key(span, entry.key_span));
+            return Err(duplicate_key(span, existing_key.span));
         }
 
         let key_span = stream.insert_span(Span {
@@ -118,7 +116,13 @@ fn parse_value_object<'arena, 'source>(
         });
 
         let value = parse_value(stream, None)?;
-        object.insert(key.value, Entry { key_span, value });
+        object.insert(
+            ObjectKey {
+                span: key_span,
+                value: key.value,
+            },
+            value,
+        );
         Ok(())
     })?;
 
@@ -181,7 +185,7 @@ mod test {
             }
             (ValueKind::Object(a), serde_json::Value::Object(b)) => a
                 .iter()
-                .all(|(k, v)| b.get(k.as_ref()).map_or(false, |b| partial_eq(&v.value, b))),
+                .all(|(k, v)| b.get(k.value.as_ref()).map_or(false, |b| partial_eq(v, b))),
             _ => false,
         }
     }

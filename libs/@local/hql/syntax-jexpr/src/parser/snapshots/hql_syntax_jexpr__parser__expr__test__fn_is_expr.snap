@@ -1,5 +1,5 @@
 ---
-source: libs/@local/hql/frontend-jexpr/src/parser/expr.rs
+source: libs/@local/hql/syntax-jexpr/src/parser/expr.rs
 expression: "[\n                [\"input\", \"variable\"],\n                \"arg1\",\n                \"arg2\"\n            ]"
 ---
 Expr {
