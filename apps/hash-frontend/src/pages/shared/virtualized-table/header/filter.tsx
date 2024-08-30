@@ -83,12 +83,14 @@ const blueFilterButtonSx: SxProps<Theme> = ({ palette, transitions }) => ({
 
 const FilterPopover = <Filter extends VirtualizedTableFilter>({
   buttonRef,
+  isFiltered,
   filter,
   setFilter,
   open,
   onClose,
 }: {
   buttonRef: RefObject<HTMLElement>;
+  isFiltered: boolean;
   filter: Filter;
   setFilter: (filter: Filter) => void;
   open: boolean;
@@ -151,20 +153,24 @@ const FilterPopover = <Filter extends VirtualizedTableFilter>({
           >
             {header}
           </Typography>
-          <Box
-            component="button"
-            onClick={() => {
-              setFilter({
-                ...filter,
-                value:
-                  type === "checkboxes" ? new Set(initialValue) : initialValue,
-              });
-              onClose();
-            }}
-            sx={blueFilterButtonSx}
-          >
-            <Typography component="span">Reset</Typography>
-          </Box>
+          {isFiltered && (
+            <Box
+              component="button"
+              onClick={() => {
+                setFilter({
+                  ...filter,
+                  value:
+                    type === "checkboxes"
+                      ? new Set(initialValue)
+                      : initialValue,
+                });
+                onClose();
+              }}
+              sx={blueFilterButtonSx}
+            >
+              <Typography component="span">Reset</Typography>
+            </Box>
+          )}
         </Stack>
         {type === "checkboxes" ? (
           <FormControl>
@@ -301,6 +307,7 @@ export const FilterButton = <Filters extends VirtualizedTableFiltersByFieldId>({
       <FilterPopover
         buttonRef={buttonRef}
         filter={filter}
+        isFiltered={isFiltered}
         setFilter={(newFilter) =>
           setFilters({ ...filters, [columnId]: newFilter })
         }
