@@ -1,5 +1,5 @@
 {
-  "name": "@rust/hql-frontend-jexpr",
+  "name": "@rust/hql-syntax-jexpr",
   "version": "0.0.0-private",
   "private": true,
   "license": "AGPL-3",
