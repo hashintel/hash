@@ -1,7 +1,7 @@
 cargo-features = ["edition2024"]
 
 [package]
-name = "hql-frontend-jexpr"
+name = "hql-syntax-jexpr"
 authors.workspace = true
 version.workspace = true
 edition.workspace = true

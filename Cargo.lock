@@ -2951,7 +2951,19 @@ dependencies = [
 ]
 
 [[package]]
-name = "hql-frontend-jexpr"
+name = "hql-span"
+version = "0.0.0"
+dependencies = [
+ "orx-concurrent-vec",
+ "serde",
+ "serde-value",
+ "serde_json",
+ "sval",
+ "text-size",
+]
+
+[[package]]
+name = "hql-syntax-jexpr"
 version = "0.0.0"
 dependencies = [
  "ariadne",
@@ -2972,18 +2984,6 @@ dependencies = [
  "thiserror",
  "unicode-ident",
  "winnow",
-]
-
-[[package]]
-name = "hql-span"
-version = "0.0.0"
-dependencies = [
- "orx-concurrent-vec",
- "serde",
- "serde-value",
- "serde_json",
- "sval",
- "text-size",
 ]
 
 [[package]]
