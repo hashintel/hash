@@ -39,7 +39,7 @@
     "fix-esm-import-path": "1.10.0",
     "fractional-indexing": "2.1.0",
     "id128": "1.6.6",
-    "immer": "9.0.6",
+    "immer": "9.0.21",
     "jsonschema": "1.4.0",
     "lodash-es": "4.17.21",
     "pluralize": "8.0.0",
