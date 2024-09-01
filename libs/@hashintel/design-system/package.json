@@ -51,8 +51,8 @@
     "@emotion/styled": "11.13.0",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@mui/material": "5.14.11",
-    "@mui/system": "5.14.11",
+    "@mui/material": "5.16.7",
+    "@mui/system": "5.16.7",
     "@storybook/react": "7.0.5",
     "@types/react": "18.2.68",
     "@types/react-dom": "18.2.25",
@@ -66,8 +66,8 @@
     "@emotion/cache": "11.13.1",
     "@emotion/react": "11.13.3",
     "@emotion/styled": "11.13.0",
-    "@mui/material": "5.14.11",
-    "@mui/system": "5.14.11",
+    "@mui/material": "5.16.7",
+    "@mui/system": "5.16.7",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   }
