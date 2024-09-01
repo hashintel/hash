@@ -96,7 +96,7 @@
     "nanoid": "3.1.31",
     "nodemailer": "6.9.14",
     "oembed-providers": "1.0.20240826",
-    "ts-json-schema-generator": "1.5.0",
+    "ts-json-schema-generator": "1.5.1",
     "tsx": "4.16.2",
     "typescript": "5.5.4",
     "ws": "8.17.1"
