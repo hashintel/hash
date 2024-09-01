@@ -36,8 +36,8 @@
     "react-hook-form": "7.48.2"
   },
   "devDependencies": {
-    "@emotion/react": "11.11.1",
-    "@emotion/styled": "11.11.0",
+    "@emotion/react": "11.13.3",
+    "@emotion/styled": "11.13.0",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash.debounce": "4.0.9",

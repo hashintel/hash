@@ -46,9 +46,9 @@
     "react-loading-skeleton": "3.2.0"
   },
   "devDependencies": {
-    "@emotion/cache": "11.11.0",
-    "@emotion/react": "11.11.1",
-    "@emotion/styled": "11.11.0",
+    "@emotion/cache": "11.13.1",
+    "@emotion/react": "11.13.3",
+    "@emotion/styled": "11.13.0",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@mui/material": "5.14.11",
@@ -63,9 +63,9 @@
     "typescript": "5.5.4"
   },
   "peerDependencies": {
-    "@emotion/cache": "11.11.0",
-    "@emotion/react": "11.11.1",
-    "@emotion/styled": "11.11.0",
+    "@emotion/cache": "11.13.1",
+    "@emotion/react": "11.13.3",
+    "@emotion/styled": "11.13.0",
     "@mui/material": "5.14.11",
     "@mui/system": "5.14.11",
     "react": "^18.2.0",
