@@ -8,21 +8,20 @@ publish = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-deer = { path = ".." }
-error-stack = { workspace = true, default-features = false }
-serde_json = { version = "1.0.120", default-features = false, features = [
-    'alloc',
-] }
-serde = { workspace = true, default-features = false, features = ['alloc'] }
-bitvec = { version = "1.0.1", default-features = false, features = [
-    'alloc',
-    'atomic',
-] }
-num-traits = "0.2.19"
+# Public workspace dependencies
+deer = { path = "..", public = true }
 
-similar-asserts = { version = "1.5.0", default-features = false, features = [
-    'serde',
-], optional = true }
+# Public third-party dependencies
+serde_json = { workspace = true, public = true }
+
+# Private workspace dependencies
+error-stack = { workspace = true, default-features = false }
+
+# Private third-party dependencies
+bitvec = { version = "1.0.1", default-features = false, features = ['alloc', 'atomic'] }
+num-traits = "0.2.19"
+serde = { workspace = true, features = ['alloc'] }
+similar-asserts = { version = "1.5.0", default-features = false, features = ['serde'], optional = true }
 
 [features]
 std = ['deer/std']

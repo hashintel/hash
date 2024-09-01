@@ -6,7 +6,7 @@ use libp2p_stream as stream;
 use super::PROTOCOL_NAME;
 
 /// Errors while opening a new stream.
-pub struct OpenStreamError(stream::OpenStreamError);
+pub(crate) struct OpenStreamError(stream::OpenStreamError);
 
 impl Debug for OpenStreamError {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {

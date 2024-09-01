@@ -4,7 +4,7 @@
 use proc_macro::{Ident, TokenTree};
 
 #[derive(Debug)]
-pub struct QueryBuilderInput {
+pub(crate) struct QueryBuilderInput {
     pub variants: Vec<QueryBuilderVariant>,
 }
 
@@ -25,7 +25,7 @@ pub enum QueryBuilderField {
 }
 
 #[derive(Debug)]
-pub struct QueryBuilderVariant {
+pub(crate) struct QueryBuilderVariant {
     pub name: Ident,
     pub field: QueryBuilderField,
 }

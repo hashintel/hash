@@ -11,25 +11,26 @@ description = "The entity-graph query-layer for the HASH datastore"
 
 
 [dependencies]
+# Workspace dependencies
+authorization = { workspace = true }
+codec = { workspace = true }
+error-stack = { workspace = true }
 graph = { workspace = true, features = ["clap"] }
 graph-api = { workspace = true }
 graph-types = { workspace = true }
-validation = { workspace = true }
-type-fetcher = { workspace = true }
-temporal-client = { workspace = true }
-authorization = { workspace = true }
-codec = { workspace = true }
 hash-tracing = { workspace = true, features = ["clap"] }
+temporal-client = { workspace = true }
 test-server = { workspace = true, optional = true }
-
-error-stack = { workspace = true }
+type-fetcher = { workspace = true }
 type-system = { workspace = true }
+validation = { workspace = true }
 
+# Third party dependencies
 axum = "0.7.5"
 clap = { workspace = true, features = ["cargo", "derive", "env", "wrap_help"] }
 clap_complete = "4.5.8"
+futures = { workspace = true }
 mimalloc = { version = "0.1.43", default-features = false }
-futures = { version = "0.3.30" }
 regex = "1.10.5"
 reqwest = { version = "0.12.5", default-features = false, features = ["rustls-tls"] }
 semver = { version = "1.0.23", default-features = false }
@@ -37,7 +38,7 @@ serde_json = { workspace = true }
 tarpc = { version = "0.33", features = ["serde1", "tokio1", "serde-transport", "tcp"] }
 time = "0.3.36"
 tokio = { workspace = true }
-tokio-postgres = { version = "0.7.10", default-features = false }
+tokio-postgres = { workspace = true }
 tokio-serde = { version = "0.8.0", features = ["json"] }
 tokio-util = { workspace = true, features = ["codec"] }
 tracing = { workspace = true }

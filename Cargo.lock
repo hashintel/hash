@@ -1246,6 +1246,7 @@ checksum = "4b82cf0babdbd58558212896d1a4272303a57bdb245c2bf1147185fb45640e70"
 name = "codec"
 version = "0.0.0"
 dependencies = [
+ "bytes",
  "derive-where",
  "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "harpc-wire-protocol",
@@ -1588,19 +1589,6 @@ dependencies = [
  "darling_core 0.20.10",
  "quote",
  "syn 2.0.71",
-]
-
-[[package]]
-name = "dashmap"
-version = "5.4.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "907076dfda823b0b36d2a1bb5f90c96660a5bbcd7729e10727f07858f22c4edc"
-dependencies = [
- "cfg-if",
- "hashbrown 0.12.3",
- "lock_api",
- "once_cell",
- "parking_lot_core",
 ]
 
 [[package]]
@@ -2015,15 +2003,6 @@ name = "env_filter"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a009aa4810eb158359dda09d0c87378e4bbb89b5a801f016885a4707ba24f7ea"
-dependencies = [
- "log",
-]
-
-[[package]]
-name = "env_logger"
-version = "0.10.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4cd405aab171cb85d6735e5c8d9db038c17d3ca007a4d2c25f337935c3d90580"
 dependencies = [
  "log",
 ]
@@ -2461,6 +2440,7 @@ dependencies = [
  "clap",
  "codec",
  "criterion",
+ "deadpool",
  "deadpool-postgres",
  "derive-where",
  "dotenv-flow",
@@ -2500,6 +2480,7 @@ dependencies = [
  "async-trait",
  "authorization",
  "axum 0.7.5",
+ "axum-core 0.4.3",
  "base64 0.22.1",
  "bytes",
  "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2767,6 +2748,7 @@ dependencies = [
  "opentelemetry-otlp",
  "opentelemetry_sdk 0.23.0",
  "sentry",
+ "sentry-types",
  "tokio",
  "tracing",
  "tracing-appender",
@@ -3330,12 +3312,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "321f0f839cd44a4686e9504b0a62b4d69a50b62072144c71c68f5873c167b8d9"
 dependencies = [
  "ahash",
- "clap",
- "crossbeam-channel",
- "crossbeam-utils",
- "dashmap",
- "env_logger 0.10.2",
- "indexmap 2.2.6",
  "is-terminal",
  "itoa",
  "log",
@@ -3503,10 +3479,6 @@ name = "jsonptr"
 version = "0.5.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d71259ee688a462beeac976f9bede505d1b42db27c0f811a99ad1086d499aebc"
-dependencies = [
- "serde",
- "serde_json",
-]
 
 [[package]]
 name = "jsonptr"
@@ -6800,7 +6772,7 @@ version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3dffced63c2b5c7be278154d76b479f9f9920ed34e7574201407f0b14e2bbb93"
 dependencies = [
- "env_logger 0.11.3",
+ "env_logger",
  "test-log-macros",
  "tracing-subscriber",
 ]

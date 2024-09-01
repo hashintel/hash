@@ -9,16 +9,23 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-ecow = "0.2.2"
-error-stack.workspace = true
+# Public workspace dependencies
+hql-cst = { workspace = true, public = true }
+hql-diagnostics = { workspace = true, public = true }
+hql-span = { workspace = true, public = true }
+
+# Public third-party dependencies
+jsonptr = { workspace = true, public = true }
+text-size = { workspace = true, public = true }
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+ecow = { workspace = true }
+error-stack = { workspace = true }
 hifijson = "0.2.2"
-hql-cst = { version = "0.0.0", path = "../cst" }
-hql-diagnostics = { version = "0.0.0", path = "../diagnostics" }
-hql-span = { version = "0.0.0", path = "../span" }
-json-number = "0.4.8"
-jsonptr = "0.5.1"
+json-number = { workspace = true }
 logos = "0.14.1"
-text-size = "1.1.1"
 thiserror = "1.0.63"
 unicode-ident = "1.0.12"
 winnow = "0.6.18"
@@ -29,6 +36,6 @@ workspace = true
 [dev-dependencies]
 ariadne = "0.4.1"
 insta = "1.39.0"
-serde.workspace = true
-serde_json = "1.0.122"
+serde_json = { workspace = true }
+serde = { workspace = true }
 test-fuzz = "5.2.2"

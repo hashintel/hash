@@ -9,28 +9,26 @@ publish.workspace = true
 authors.workspace = true
 
 [dependencies]
-error-stack = { workspace = true }
+# Public workspace dependencies
+error-stack = { workspace = true, public = true }
 
-opentelemetry_sdk = { version = "0.23.0", features = ["rt-tokio"] }
+# Public third-party dependencies
+tracing-appender = { workspace = true, public = true }
+tracing-subscriber = { workspace = true, public = true, features = ["ansi", "env-filter", "json"] }
+sentry-types = { workspace = true, public = true }
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+clap = { workspace = true, optional = true, features = ["derive", "env"] }
 opentelemetry = "0.23.0"
 opentelemetry-otlp = "0.16.0"
-sentry = { version = "0.34.0", features = [
-    "backtrace",
-    "contexts",
-    "debug-images",
-    "panic",
-    "reqwest",
-    "rustls",
-    "tracing",
-], default-features = false }
+opentelemetry_sdk = { version = "0.23.0", features = ["rt-tokio"] }
+sentry = { workspace = true }
+tokio = { workspace = true }
 tracing = { workspace = true }
-tracing-appender = "0.2.3"
 tracing-error = "0.2.0"
 tracing-opentelemetry = "0.24.0"
-tracing-subscriber = { version = "0.3.18", features = ["env-filter", "json"] }
-tokio.workspace = true
-
-clap = { workspace = true, optional = true, features = ["derive", "env"] }
 
 [features]
 clap = ["dep:clap"]

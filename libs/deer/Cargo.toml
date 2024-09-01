@@ -1,7 +1,7 @@
 [package]
 name = "deer"
 version = "0.0.0-reserved"
-authors.workspace = true
+authors = { workspace = true }
 edition = "2021"
 rust-version = "1.65"
 license = "MIT OR Apache-2.0"
@@ -14,17 +14,17 @@ exclude = ["package.json"]
 publish = false
 
 [dependencies]
-error-stack = { workspace = true, default-features = false }
+# Public workspace dependencies
+error-stack = { workspace = true, public = true, default-features = false }
 
+# Public third-party dependencies
+erased-serde = { workspace = true, public = true, features = ['alloc'] }
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+serde = { workspace = true, default-features = false, features = ['alloc', 'derive'] }
 num-traits = { version = "0.2.19", default-features = false }
-
-serde = { workspace = true, default-features = false, features = [
-    'alloc',
-    'derive',
-] }
-erased-serde = { version = "0.4.5", default-features = false, features = [
-    'alloc',
-] }
 
 [dev-dependencies]
 serde_json = { workspace = true, features = ['arbitrary_precision'] }

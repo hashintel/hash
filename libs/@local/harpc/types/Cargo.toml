@@ -9,6 +9,13 @@ publish.workspace = true
 authors.workspace = true
 
 [dependencies]
+# Public workspace dependencies
+
+# Public third-party dependencies
+
+# Private workspace dependencies
+
+# Private third-party dependencies
 proptest = { version = "1.5.0", optional = true }
 test-strategy = { version = "0.4.0", optional = true }
 

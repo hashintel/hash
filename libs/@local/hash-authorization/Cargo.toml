@@ -9,26 +9,28 @@ publish.workspace = true
 authors.workspace = true
 
 [dependencies]
-codec.workspace = true
-graph-types.workspace = true
+# Public workspace dependencies
+graph-types = { workspace = true, public = true }
 
-error-stack.workspace = true
-type-system.workspace = true
+# Public third-party dependencies
 
-serde = { workspace = true, features = ["derive", "unstable"] }
-tokio.workspace = true
-tracing = { workspace = true }
+# Private workspace dependencies
+codec = { workspace = true }
+error-stack = { workspace = true }
+type-system = { workspace = true }
 
+# Private third-party dependencies
 derive-where = { workspace = true }
-futures = { version = "0.3.30", default-features = false }
+futures = { workspace = true, default-features = false }
+reqwest = { workspace = true, public = true, features = ["json", "stream"] }
+serde = { workspace = true, features = ["derive", "unstable"] }
 serde_json = { workspace = true }
 serde_plain = "1.0.2"
-
-reqwest = { version = "0.12.5", default-features = false, features = ["json", "stream"] }
-tokio-util = { version = "0.7.11", features = ["io"] }
+tokio = { workspace = true }
+tokio-util = { workspace = true, features = ["io"] }
+tracing = { workspace = true }
+utoipa = { workspace = true, optional = true }
 uuid = { workspace = true, default-features = false, features = ["v5"] }
-
-utoipa = { version = "4.2.3", optional = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

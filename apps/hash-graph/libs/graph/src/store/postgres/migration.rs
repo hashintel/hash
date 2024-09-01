@@ -13,56 +13,8 @@ mod embedded {
     embed_migrations!("../../postgres_migrations");
 }
 
-#[async_trait]
-impl<C, A> StoreMigration for PostgresStore<C, A>
-where
-    C: AsClient<Client = Client>,
-    A: Send + Sync,
-{
-    async fn run_migrations(&mut self) -> Result<Vec<Migration>, MigrationError> {
-        Ok(embedded::migrations::runner()
-            .run_async(self.as_mut_client())
-            .await
-            .change_context(MigrationError)?
-            .applied_migrations()
-            .iter()
-            .map(Migration::from)
-            .collect())
-    }
-
-    async fn all_migrations(&mut self) -> Result<Vec<Migration>, MigrationError> {
-        Ok(embedded::migrations::runner()
-            .get_migrations()
-            .iter()
-            .map(Migration::from)
-            .collect())
-    }
-
-    async fn applied_migrations(&mut self) -> Result<Vec<Migration>, MigrationError> {
-        Ok(embedded::migrations::runner()
-            .get_applied_migrations_async(self.as_mut_client())
-            .await
-            .change_context(MigrationError)?
-            .iter()
-            .map(Migration::from)
-            .collect())
-    }
-
-    async fn missing_migrations(&mut self) -> Result<Vec<Migration>, MigrationError> {
-        let all_migrations = self.all_migrations().await?;
-        let applied_migrations = self.all_migrations().await?;
-
-        // Migrations are expected to be a very small list, even with thousands of migrations, the
-        // performance implications of this are negligible.
-        Ok(all_migrations
-            .into_iter()
-            .filter(|item| !applied_migrations.contains(item))
-            .collect())
-    }
-}
-
-impl From<&refinery::Migration> for Migration {
-    fn from(value: &refinery::Migration) -> Self {
+impl Migration {
+    fn from_refinery(value: &refinery::Migration) -> Self {
         let state = value
             .applied_on()
             .map(|applied_on| MigrationState::Applied {
@@ -76,5 +28,53 @@ impl From<&refinery::Migration> for Migration {
         let name = format!("{}_{}", value.version(), value.name());
 
         Self::new(name, state, value.checksum())
+    }
+}
+
+#[async_trait]
+impl<C, A> StoreMigration for PostgresStore<C, A>
+where
+    C: AsClient<Client = Client>,
+    A: Send + Sync,
+{
+    async fn run_migrations(&mut self) -> Result<Vec<Migration>, MigrationError> {
+        Ok(embedded::migrations::runner()
+            .run_async(self.as_mut_client())
+            .await
+            .change_context(MigrationError)?
+            .applied_migrations()
+            .iter()
+            .map(Migration::from_refinery)
+            .collect())
+    }
+
+    async fn all_migrations(&mut self) -> Result<Vec<Migration>, MigrationError> {
+        Ok(embedded::migrations::runner()
+            .get_migrations()
+            .iter()
+            .map(Migration::from_refinery)
+            .collect())
+    }
+
+    async fn applied_migrations(&mut self) -> Result<Vec<Migration>, MigrationError> {
+        Ok(embedded::migrations::runner()
+            .get_applied_migrations_async(self.as_mut_client())
+            .await
+            .change_context(MigrationError)?
+            .iter()
+            .map(Migration::from_refinery)
+            .collect())
+    }
+
+    async fn missing_migrations(&mut self) -> Result<Vec<Migration>, MigrationError> {
+        let all_migrations = self.all_migrations().await?;
+        let applied_migrations = self.all_migrations().await?;
+
+        // Migrations are expected to be a very small list, even with thousands of migrations, the
+        // performance implications of this are negligible.
+        Ok(all_migrations
+            .into_iter()
+            .filter(|item| !applied_migrations.contains(item))
+            .collect())
     }
 }

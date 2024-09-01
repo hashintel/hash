@@ -1,2 +1,5 @@
 [registries.crates-io]
 protocol = "sparse"
+
+[unstable]
+public-dependency = true

@@ -12,6 +12,9 @@ authors.workspace = true
 proc-macro = true
 
 [dependencies]
+# Workspace dependencies
+
+# Third-party dependencies
 virtue = "0.0.17"
 syn = "2.0.70"
 

@@ -9,17 +9,22 @@ publish.workspace = true
 authors.workspace = true
 
 [dependencies]
-graph-types = { workspace = true }
+# Public workspace dependencies
+graph-types = { workspace = true, public = true }
+
+# Public third-party dependencies
+
+# Private workspace dependencies
 error-stack = { workspace = true }
 
-temporal-io-client = { package = "temporal-client", git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }
-temporal-io-sdk-core-protos = { package = "temporal-sdk-core-protos", git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }
-
-uuid = { workspace = true, features = ["v4"] }
-url = { version = "2.5.2", default-features = false }
+# Private third-party dependencies
 serde = { workspace = true }
 serde_json = { workspace = true }
+temporal-io-client = { package = "temporal-client", git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }
+temporal-io-sdk-core-protos = { package = "temporal-sdk-core-protos", git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }
 thiserror = "1.0.61"
+url = { workspace = true, default-features = false }
+uuid = { workspace = true, features = ["v4"] }
 
 [lints]
 workspace = true

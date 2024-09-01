@@ -9,12 +9,19 @@ publish.workspace = true
 authors.workspace = true
 
 [dependencies]
-bytes.workspace = true
-error-stack.workspace = true
-futures.workspace = true
-harpc-net.workspace = true
-harpc-types.workspace = true
-harpc-wire-protocol.workspace = true
+# Public workspace dependencies
+harpc-net = { workspace = true, public = true }
+
+# Public third-party dependencies
+
+# Private workspace dependencies
+error-stack = { workspace = true }
+harpc-types = { workspace = true }
+harpc-wire-protocol = { workspace = true }
+
+# Private third-party dependencies
+bytes = { workspace = true }
+futures = { workspace = true }
 pin-project = "1.1.5"
 pin-project-lite = "0.2.14"
 thiserror = "1.0.61"
@@ -22,9 +29,10 @@ tokio = { workspace = true, features = ["time"] }
 tower = { version = "0.4.13", features = ["util"] }
 
 [dev-dependencies]
+harpc-net = { workspace = true, features = ["test-utils"] }
+
 tokio-util = { workspace = true, features = ["time"] }
 tower-test = "0.4.0"
-harpc-net = { workspace = true, features = ["test-utils"] }
 tokio-test = "0.4.4"
 
 [lints]
