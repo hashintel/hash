@@ -17,7 +17,7 @@
     "fs-extra": "11.1.0",
     "globby": "11.0.1",
     "prettier": "3.3.3",
-    "regex-parser": "2.2.11",
+    "regex-parser": "2.3.0",
     "tsx": "4.16.2",
     "typescript": "5.5.4"
   },

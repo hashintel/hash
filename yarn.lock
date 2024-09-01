@@ -27241,10 +27241,10 @@ regenerator-transform@^0.15.2:
   dependencies:
     "@babel/runtime" "^7.8.4"
 
-regex-parser@2.2.11:
-  version "2.2.11"
-  resolved "https://registry.yarnpkg.com/regex-parser/-/regex-parser-2.2.11.tgz#3b37ec9049e19479806e878cabe7c1ca83ccfe58"
-  integrity "sha1-OzfskEnhlHmAboeMq+fByoPM/lg= sha512-jbD/FT0+9MBU2XAZluI7w2OBs1RBi6p9M83nkoZayQXXU9e8Robt69FcZc7wU4eJD/YFTjn1JdCk3rbMJajz8Q=="
+regex-parser@2.3.0:
+  version "2.3.0"
+  resolved "https://registry.yarnpkg.com/regex-parser/-/regex-parser-2.3.0.tgz#4bb61461b1a19b8b913f3960364bb57887f920ee"
+  integrity sha512-TVILVSz2jY5D47F4mA4MppkBrafEaiUWJO/TcZHEIuI13AqoZMkK1WMA4Om1YkYbTx+9Ki1/tSUXbceyr9saRg==
 
 regexp-tree@^0.1.27:
   version "0.1.27"
