@@ -6386,12 +6386,12 @@
   dependencies:
     axios "^0.21.4"
 
-"@ory/hydra-client@2.2.0-rc.3":
-  version "2.2.0-rc.3"
-  resolved "https://registry.yarnpkg.com/@ory/hydra-client/-/hydra-client-2.2.0-rc.3.tgz#236be3ac395b35ba9ffec021701fac5438d3b24c"
-  integrity sha512-FEGhnEBmRlnrZyW5WPIH6Jmc00+kfZYRdFbSHBqqOfWJP7/Vj6z7q3MfA4osvQgGUfvdZsb1/HHCe6aoLaYZaQ==
+"@ory/hydra-client@2.2.1":
+  version "2.2.1"
+  resolved "https://registry.yarnpkg.com/@ory/hydra-client/-/hydra-client-2.2.1.tgz#ded6d6f32b1a68e47334446efe1a5b309b3a636d"
+  integrity sha512-Hb6GQuRwPyxt44Cvd3AMFKw/UtvGCHeXO7kIDfv95C/8kErWukCA3WBDWeVfZuIjY+HVPeZFZkBRVC+Ub8UEVg==
   dependencies:
-    axios "^0.21.4"
+    axios "^1.6.1"
 
 "@ory/integrations@1.1.4":
   version "1.1.4"
@@ -12974,7 +12974,7 @@ axios@0.26.1, axios@^0.26.1:
   dependencies:
     follow-redirects "^1.14.8"
 
-axios@1.7.4, axios@^1.4.0, axios@^1.6.0, axios@^1.7.4:
+axios@1.7.4, axios@^1.4.0, axios@^1.6.0, axios@^1.6.1, axios@^1.7.4:
   version "1.7.4"
   resolved "https://registry.yarnpkg.com/axios/-/axios-1.7.4.tgz#4c8ded1b43683c8dd362973c393f3ede24052aa2"
   integrity sha512-DukmaFRnY6AzAALSH4J2M3k6PkaC+MfaAGdEERRWcC9q3/TWQwLpHR8ZRLKTdQ3aBDL64EdluRDjJqKw+BPZEw==
