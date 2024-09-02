@@ -9,6 +9,7 @@ import {
   Radio,
   RadioGroup,
   Stack,
+  Tooltip,
   Typography,
 } from "@mui/material";
 import type { RefObject } from "react";
@@ -18,12 +19,20 @@ import { FilterLightIcon } from "../../../../shared/icons/filter-light-icon";
 
 export const missingValueString = `missing-filter-property-value-${Math.random()}`;
 
+const ellipsisOverflow = {
+  display: "block",
+  textOverflow: "ellipsis",
+  overflow: "hidden",
+  whiteSpace: "nowrap",
+};
+
 const createLabelSlotProps = (
   valueIsMissing: boolean,
 ): FormControlLabelProps["slotProps"] => ({
   typography: {
     color: ({ palette }) =>
       valueIsMissing ? palette.gray[60] : palette.gray[80],
+    ...ellipsisOverflow,
     fontSize: 14,
     fontWeight: valueIsMissing ? 400 : 500,
   },
@@ -31,6 +40,7 @@ const createLabelSlotProps = (
 
 const labelSx: FormControlLabelProps["sx"] = {
   borderRadius: 1,
+  maxWidth: "calc(100% - 44px)",
   marginRight: 0,
   marginLeft: 0.3,
   py: 1,
@@ -117,7 +127,7 @@ const FilterPopover = <Filter extends VirtualizedTableFilterDefinition>({
             borderRadius: 2,
             boxShadow: boxShadows.xl,
             maxHeight: 200,
-            maxWidth: 400,
+            maxWidth: 500,
           }),
         },
         root: {
@@ -171,7 +181,7 @@ const FilterPopover = <Filter extends VirtualizedTableFilterDefinition>({
           )}
         </Stack>
         {type === "checkboxes" ? (
-          <FormControl>
+          <FormControl sx={{ maxWidth: "100%" }}>
             {Object.values(options)
               .sort((a, b) => a.label.localeCompare(b.label))
               .map(({ label, value, count }) => (
@@ -217,7 +227,7 @@ const FilterPopover = <Filter extends VirtualizedTableFilterDefinition>({
               ))}
           </FormControl>
         ) : (
-          <FormControl>
+          <FormControl sx={{ maxWidth: "100%" }}>
             <RadioGroup
               value={currentValue}
               onChange={(event) => {
