@@ -42,7 +42,7 @@
     "@opentelemetry/sdk-node": "0.53.0",
     "@opentelemetry/sdk-trace-node": "1.26.0",
     "@opentelemetry/semantic-conventions": "1.27.0",
-    "@ory/client": "1.1.41",
+    "@ory/client": "1.14.5",
     "artillery": "2.0.20",
     "dotenv-flow": "3.3.0",
     "uuid": "9.0.1"

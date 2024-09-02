@@ -6325,12 +6325,12 @@
   resolved "https://registry.yarnpkg.com/@opentelemetry/semantic-conventions/-/semantic-conventions-1.27.0.tgz#1a857dcc95a5ab30122e04417148211e6f945e6c"
   integrity sha512-sAay1RrB+ONOem0OZanAR1ZI/k7yDpnOQSQmTMuGImUQb2y8EbSaCJ94FQluM74xoU03vlb2d2U90hZluL6nQg==
 
-"@ory/client@1.1.41":
-  version "1.1.41"
-  resolved "https://registry.yarnpkg.com/@ory/client/-/client-1.1.41.tgz#504fd7b08c6f2bcf8351158fa8c5becff4827dae"
-  integrity sha512-eSmyUgsA4npt6KsvmPxXpSVOE9jl4KQOytR/ppCBdiBuXnpGxPfRg0hMv5jPt/BcDpWpF9crsvdjepSL6I0NCw==
+"@ory/client@1.14.5":
+  version "1.14.5"
+  resolved "https://registry.yarnpkg.com/@ory/client/-/client-1.14.5.tgz#56348c1a2fc5db2ea5e032dc1697e19f6b2024ae"
+  integrity sha512-ED+X2p9k3m2z8EybbVAAxq5fY4Oj7Rd5dXMgfVpzE+vlLXWdEqTwTOcrZxp0jsrXGpXU9s3HmZn4xBNeLDtLmw==
   dependencies:
-    axios "^0.21.4"
+    axios "^1.6.1"
 
 "@ory/hydra-client@2.2.1":
   version "2.2.1"

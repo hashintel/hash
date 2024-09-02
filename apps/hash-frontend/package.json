@@ -49,7 +49,7 @@
     "@mui/icons-material": "5.16.7",
     "@mui/material": "5.16.7",
     "@mui/system": "5.16.7",
-    "@ory/client": "1.1.41",
+    "@ory/client": "1.14.5",
     "@ory/integrations": "1.1.4",
     "@popperjs/core": "2.11.8",
     "@sentry/nextjs": "7.119.0",
