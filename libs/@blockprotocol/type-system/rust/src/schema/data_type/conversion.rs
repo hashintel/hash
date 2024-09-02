@@ -3,7 +3,9 @@ use core::error::Error;
 use core::fmt::{self, Write};
 
 #[cfg(feature = "postgres")]
-use postgres_types::{private::BytesMut, FromSql, IsNull, Json, ToSql, Type};
+use bytes::BytesMut;
+#[cfg(feature = "postgres")]
+use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
 use utoipa::openapi;

@@ -147,7 +147,7 @@ impl Stream for DataTypeReceiver {
 /// Create a new [`DataTypeSender`] and [`DataTypeReceiver`] pair.
 ///
 /// The `chunk_size` parameter is used to batch the rows into chunks of the given size.
-pub fn data_type_channel(
+pub(crate) fn data_type_channel(
     chunk_size: usize,
     metadata_sender: OntologyTypeMetadataSender,
     conversions_rx: Receiver<DataTypeConversionsRow>,

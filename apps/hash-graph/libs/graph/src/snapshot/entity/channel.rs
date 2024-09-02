@@ -228,7 +228,7 @@ impl Stream for EntityReceiver {
 ///
 /// The `chunk_size` parameter determines the number of rows that are sent in a single
 /// [`EntityRowBatch`].
-pub fn channel(
+pub(crate) fn channel(
     chunk_size: usize,
     relation_rx: Receiver<(EntityUuid, EntityRelationAndSubject)>,
     embedding_rx: Receiver<EntityEmbeddingRow>,

@@ -256,7 +256,7 @@ impl Stream for EntityTypeReceiver {
 /// Create a new [`EntityTypeSender`] and [`EntityTypeReceiver`] pair.
 ///
 /// The `chunk_size` parameter is used to batch the rows into chunks of the given size.
-pub fn entity_type_channel(
+pub(crate) fn entity_type_channel(
     chunk_size: usize,
     metadata_sender: OntologyTypeMetadataSender,
     embedding_rx: Receiver<EntityTypeEmbeddingRow<'static>>,

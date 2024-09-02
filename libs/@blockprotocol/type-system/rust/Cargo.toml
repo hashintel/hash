@@ -15,25 +15,32 @@ name = "type_system"
 crate-type = ["cdylib", "rlib"]
 
 [dependencies]
+# Public workspace dependencies
+error-stack = { workspace = true, public = true }
+
+# Public third-party dependencies
+bytes = { workspace = true, public = true }
+email_address = { workspace = true, public = true }
+iso8601-duration = { workspace = true, public = true }
+postgres-types = { workspace = true, public = true, features = ["derive", "with-serde_json-1"], optional = true }
+serde_json = { workspace = true, public = true }
+url = { workspace = true, public = true }
+utoipa = { workspace = true, public = true, features = ["url"], optional = true }
+uuid = { workspace = true, public = true, features = ["std"] }
+
+# Private workspace dependencies
 codec = { workspace = true, features = ["serde"] }
 
-postgres-types = { workspace = true, features = ["derive", "with-serde_json-1"], optional = true }
+# Private third-party dependencies
+regex = { workspace = true, features = ["std"] }
 serde = { workspace = true, features = ["derive", "rc"] }
-serde_json = { workspace = true }
-thiserror = "1.0.61"
-tsify = "0.4.5"
-url = "2.5.2"
-utoipa = { version = "4.2.3", features = ["url"], optional = true }
-regex = "1.10.5"
-error-stack = { workspace = true }
-iso8601-duration = "0.2.0"
-uuid = { workspace = true, features = ["std"] }
-email_address = { version = "0.2.5", default-features = false }
+thiserror = { workspace = true }
+tsify = { workspace = true, features = ["json"] }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt"] }
 graph-test-data = { workspace = true }
-pretty_assertions = "1.4.0"
+pretty_assertions = { workspace = true }
 
 [features]
 postgres = ["dep:postgres-types"]

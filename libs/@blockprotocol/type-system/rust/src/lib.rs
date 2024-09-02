@@ -19,7 +19,9 @@ use core::error::Error;
 use core::{borrow::Borrow, fmt::Debug, ops::Deref, ptr};
 
 #[cfg(feature = "postgres")]
-use postgres_types::{private::BytesMut, FromSql, IsNull, Json, ToSql, Type};
+use bytes::BytesMut;
+#[cfg(feature = "postgres")]
+use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 #[cfg(feature = "postgres")]
 use serde::{Deserialize, Serialize};
 

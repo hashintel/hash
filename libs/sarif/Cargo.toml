@@ -1,30 +1,37 @@
 [package]
 name = "sarif"
 version = "0.0.0-reserved"
-authors.workspace = true
+authors = { workspace = true }
 edition = "2021"
 license = "MIT OR Apache-2.0"
 description = "Representation of the SARIF specification in Rust"
 documentation = "https://docs.rs/sarif"
 readme = "README.md"
 repository = "https://github.com/hashintel/hash/tree/main/libs/sarif"
-keywords = ["no_std", "sarif", "codeql", "serde", "static-analysis", "tools"]
+keywords = ["no_std", "sarif", "serde", "static-analysis", "tools"]
 categories = ["no-std", "data-structures", "development-tools", "parsing"]
 publish = false
 
 [dependencies]
-serde = { version = "1", default-features = false, features = ["derive"], optional = true }
-serde_json = { version = "1", default-features = false, features = ["alloc"], optional = true }
-semver = { version = "1", default-features = false }
-url = { version = "2", default-features = false }
-uuid = { version = "1", default-features = false }
+# Public workspace dependencies
+
+# Public third-party dependencies
+semver = { version = "1", public = true, default-features = false }
+serde = { version = "1", default-features = false, public = true, features = ["derive"], optional = true }
+serde_json = { version = "1", public = true, default-features = false, features = ["alloc"], optional = true }
+url = { version = "2", public = true, default-features = false }
+uuid = { version = "1", public = true, default-features = false }
+
+# Private workspace dependencies
+
+# Private third-party dependencies
 
 [features]
 serde = ["dep:serde", "dep:serde_json", "semver/serde", "url/serde", "uuid/serde"]
 
 [dev-dependencies]
-jsonschema = { version = "0.18.0", default-features = false }
-coverage-helper = "0.2.2"
+jsonschema = { workspace = true }
+coverage-helper = { workspace = true }
 
 [lints]
 workspace = true

@@ -15,13 +15,13 @@ use clap::{builder::TypedValueParser, error::ErrorKind, Arg, Command, Error, Par
 use error_stack::Report;
 pub use sentry::release_name;
 use sentry::{
-    integrations::tracing::{EventFilter, SentryLayer},
+    integrations::tracing::EventFilter,
     protocol::{Event, TemplateInfo},
-    types::Dsn,
-    ClientInitGuard, Hub, Level,
+    Hub, Level,
 };
+use sentry_types::Dsn;
 use tracing::Subscriber;
-use tracing_subscriber::registry::LookupSpan;
+use tracing_subscriber::{registry::LookupSpan, Layer};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]
@@ -125,10 +125,12 @@ pub struct SentryConfig {
     pub event_filter: tracing::Level,
 }
 
+pub type SentryInitGuard = impl Drop;
+
 pub fn init(
     config: &SentryConfig,
     release: impl Into<Option<Cow<'static, str>>>,
-) -> ClientInitGuard {
+) -> SentryInitGuard {
     // Initialize Sentry
     // When initializing Sentry, a `Drop` guard is returned, once dropped any remaining events are
     // flushed. This means we need to keep the guard around for the entire lifetime of the program.
@@ -153,8 +155,11 @@ pub fn init(
     })
 }
 
+// Avoids capturing lifetimes
+pub type SentryLayer<S: Subscriber + for<'a> LookupSpan<'a>> = impl Layer<S>;
+
 #[must_use]
-pub fn layer<S>(config: &SentryConfig) -> SentryLayer<S>
+pub fn layer<'c, S>(config: &'c SentryConfig) -> SentryLayer<S>
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {

@@ -9,11 +9,19 @@ publish.workspace = true
 authors.workspace = true
 
 [dependencies]
-bumpalo = { version = "3.16.0", features = ["allocator_api"] }
-ecow = "0.2.2"
-hashbrown = { version = "0.14.5", features = ["nightly"] }
-hql-span = { version = "0.0.0", path = "../span" }
-json-number = "0.4.8"
+# Public workspace dependencies
+hql-span = { workspace = true, public = true }
+
+# Public third-party dependencies
+ahash = { workspace = true, public = true }
+bumpalo = { workspace = true, public = true, features = ["allocator_api"] }
+ecow = { workspace = true, public = true }
+hashbrown = { workspace = true, public = true }
+json-number = { workspace = true, public = true }
+
+# Private workspace dependencies
+
+# Private third-party dependencies
 
 [lints]
 workspace = true

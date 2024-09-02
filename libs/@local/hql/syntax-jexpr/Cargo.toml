@@ -9,26 +9,33 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-ecow = "0.2.2"
-error-stack.workspace = true
-hifijson = "0.2.2"
-hql-cst = { version = "0.0.0", path = "../cst" }
-hql-diagnostics = { version = "0.0.0", path = "../diagnostics" }
-hql-span = { version = "0.0.0", path = "../span" }
-json-number = "0.4.8"
-jsonptr = "0.5.1"
-logos = "0.14.1"
-text-size = "1.1.1"
-thiserror = "1.0.63"
-unicode-ident = "1.0.12"
-winnow = "0.6.18"
+# Public workspace dependencies
+hql-cst = { workspace = true, public = true }
+hql-diagnostics = { workspace = true, public = true }
+hql-span = { workspace = true, public = true }
+
+# Public third-party dependencies
+jsonptr = { workspace = true, public = true }
+text-size = { workspace = true, public = true }
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+ecow = { workspace = true }
+error-stack = { workspace = true }
+hifijson = { workspace = true, features = ["alloc"] }
+json-number = { workspace = true }
+logos = { workspace = true, features = ["export_derive"] }
+thiserror = { workspace = true }
+unicode-ident = { workspace = true }
+winnow = { workspace = true, features = ["std"] }
 
 [lints]
 workspace = true
 
 [dev-dependencies]
-ariadne = "0.4.1"
-insta = "1.39.0"
-serde.workspace = true
-serde_json = "1.0.122"
-test-fuzz = "6.0.0"
+ariadne = { workspace = true }
+insta = { workspace = true }
+serde_json = { workspace = true }
+serde = { workspace = true }
+test-fuzz = { workspace = true }

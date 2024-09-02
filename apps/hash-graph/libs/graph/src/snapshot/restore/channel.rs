@@ -288,7 +288,7 @@ impl Stream for SnapshotRecordReceiver {
     }
 }
 
-pub fn channel(
+pub(crate) fn channel(
     chunk_size: usize,
 ) -> (
     SnapshotRecordSender,

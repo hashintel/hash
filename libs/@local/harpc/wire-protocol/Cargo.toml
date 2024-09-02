@@ -9,18 +9,25 @@ publish.workspace = true
 authors.workspace = true
 
 [dependencies]
-bytes = "1.6.0"
-enumflags2 = { version = "0.7.10", features = ["std"] }
-error-stack.workspace = true
-harpc-types.workspace = true
-thiserror = "1.0.61"
+# Public workspace dependencies
+error-stack = { workspace = true, public = true }
+harpc-types = { workspace = true, public = true }
+
+# Public third-party dependencies
+bytes = { workspace = true, public = true }
+enumflags2 = { workspace = true, public = true }
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+thiserror = { workspace = true }
 
 [dev-dependencies]
-proptest = "1.5.0"
-test-strategy = "0.4.0"
+proptest = { workspace = true }
+test-strategy = { workspace = true }
 harpc-types = { workspace = true, features = ["proptest"] }
-expect-test = "1.5.0"
-similar-asserts = "1.5.0"
+expect-test = { workspace = true }
+similar-asserts = { workspace = true }
 
 [features]
 test-utils = []

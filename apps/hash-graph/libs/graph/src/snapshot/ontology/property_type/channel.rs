@@ -191,7 +191,7 @@ impl Stream for PropertyTypeReceiver {
 /// Creates a new [`PropertyTypeSender`] and [`PropertyTypeReceiver`] pair.
 ///
 /// The `chunk_size` parameter is used to batch the rows into chunks of the given size.
-pub fn property_type_channel(
+pub(crate) fn property_type_channel(
     chunk_size: usize,
     metadata_sender: OntologyTypeMetadataSender,
     embedding_rx: Receiver<PropertyTypeEmbeddingRow<'static>>,
