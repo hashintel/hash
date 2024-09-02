@@ -419,7 +419,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
 
   const llmResponse = await getLlmResponse(
     {
-      model: params.testingParams?.model ?? "claude-3-haiku-20240307",
+      model: params.testingParams?.model ?? "gpt-4o-2024-08-06",
       tools: Object.values(generateToolDefinitions({ subjectEntities })),
       toolChoice: toolNames[0],
       temperature: 0.5,
