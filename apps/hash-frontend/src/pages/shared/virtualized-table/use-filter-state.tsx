@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import { isEqual } from "lodash";
+import { useEffect, useMemo, useRef, useState } from "react";
+
 import type {
   VirtualizedTableFilterDefinitionsByFieldId,
   VirtualizedTableFilterValuesByFieldId,
@@ -26,6 +27,15 @@ export const useVirtualizedTableFilterState = <
 
   const previousDefaultFilterValues = useRef<FilterValues>(defaultFilterValues);
 
+  if (!filterValues && defaultFilterValues) {
+    /**
+     * We may start off with no defaultFilterValues due to the way the data is loaded,
+     * in which case we initialize filterValues once defaultFilterValues is defined.
+     */
+    setFilterValues(defaultFilterValues);
+    previousDefaultFilterValues.current = defaultFilterValues;
+  }
+
   /**
    * Before the claims data has loaded, we don't have initialFilterValues to set filterValues to.
    * Once it has, we initialize the filterValues with the initialFilterValues.
@@ -44,10 +54,9 @@ export const useVirtualizedTableFilterState = <
 
     if (!filterValues && defaultFilterValues) {
       /**
-       * We may start off with no defaultFilterValues due to the way the data is loaded,
-       * in which case we initialize filterValues once defaultFilterValues is defined.
+       * We handle this directly in the render.
        */
-      setFilterValues(defaultFilterValues);
+      return;
     } else if (
       defaultFilterValues &&
       !isEqual(defaultFilterValues, previousDefaultFilterValues.current)
@@ -170,5 +179,17 @@ export const useVirtualizedTableFilterState = <
     previousDefaultFilterValues.current = defaultFilterValues;
   }, [filterDefinitions, filterValues, defaultFilterValues]);
 
-  return [filterValues, setFilterValues] as const;
+  /**
+   * In case new columns are added to the table, we need to ensure that they immediately have filter values set.
+   * The effect above will update state to include the new columns, but in the next render.
+   * This is a fallback to provide any missing ones before that render.
+   */
+  const filterValuesWithFallback = useMemo(() => {
+    return {
+      ...defaultFilterValues,
+      ...filterValues,
+    };
+  }, [defaultFilterValues, filterValues]);
+
+  return [filterValuesWithFallback, setFilterValues] as const;
 };
