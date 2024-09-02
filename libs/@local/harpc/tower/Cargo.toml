@@ -24,18 +24,18 @@ harpc-wire-protocol = { workspace = true }
 # Private third-party dependencies
 bytes = { workspace = true }
 futures = { workspace = true }
-pin-project = "1.1.5"
-pin-project-lite = "0.2.14"
-thiserror = "1.0.61"
+pin-project = { workspace = true }
+pin-project-lite = { workspace = true }
+thiserror = { workspace = true }
 tokio = { workspace = true, features = ["time"] }
-tower = { version = "0.4.13", features = ["util"] }
+tower = { workspace = true, features = ["util"] }
 
 [dev-dependencies]
 harpc-net = { workspace = true, features = ["test-utils"] }
 
 tokio-util = { workspace = true, features = ["time"] }
-tower-test = "0.4.0"
-tokio-test = "0.4.4"
+tower-test = { workspace = true }
+tokio-test = { workspace = true }
 
 [lints]
 workspace = true

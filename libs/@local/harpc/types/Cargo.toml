@@ -16,8 +16,8 @@ authors.workspace = true
 # Private workspace dependencies
 
 # Private third-party dependencies
-proptest = { version = "1.5.0", optional = true }
-test-strategy = { version = "0.4.0", optional = true }
+proptest = { workspace = true, optional = true }
+test-strategy = { workspace = true, optional = true }
 
 [features]
 proptest = ["dep:proptest", "dep:test-strategy"]

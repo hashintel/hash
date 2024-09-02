@@ -24,19 +24,19 @@ serde = { workspace = true, public = true, features = ['alloc', 'derive'] }
 # Private workspace dependencies
 
 # Private third-party dependencies
-num-traits = { version = "0.2.19", default-features = false }
+num-traits = { workspace = true }
 
 [dev-dependencies]
 serde_json = { workspace = true, features = ['arbitrary_precision'] }
-similar-asserts = { version = "1.5.0", features = ['serde'] }
+similar-asserts = { workspace = true, features = ["serde"] }
 deer-desert = { path = "./desert", features = ['pretty'] }
-proptest = "1.5.0"
-paste = "1.0.15"
-approx = "0.5.1"
-seq-macro = "0.3.5"
+proptest = { workspace = true, features = ["std"] }
+paste = { workspace = true }
+approx = { workspace = true }
+seq-macro = { workspace = true }
 
 [build-dependencies]
-rustc_version = "0.4.0"
+rustc_version = { workspace = true }
 
 [features]
 default = ['std']

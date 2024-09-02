@@ -22,7 +22,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 temporal-io-client = { package = "temporal-client", git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }
 temporal-io-sdk-core-protos = { package = "temporal-sdk-core-protos", git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }
-thiserror = "1.0.61"
+thiserror = { workspace = true }
 url = { workspace = true, default-features = false }
 uuid = { workspace = true, features = ["v4"] }
 

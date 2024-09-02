@@ -25,6 +25,7 @@ temporal-client = { workspace = true, public = true }
 # Public third-party dependencies
 axum = { workspace = true, public = true }
 axum-core = { workspace = true, public = true }
+http = { workspace = true, public = true }
 tower-http = { workspace = true, public = true }
 tracing = { workspace = true, public = true }
 
@@ -37,16 +38,16 @@ type-system = { workspace = true, features = ["utoipa"] }
 validation = { workspace = true, features = ["utoipa"] }
 
 # Private third-party dependencies
-async-trait = "0.1.81"
-base64 = "0.22.1"
-bytes = "1.6.0"
+async-trait = { workspace = true }
+base64 = { workspace = true }
+bytes = { workspace = true }
 futures = { workspace = true }
-http-body-util = "0.1.2"
-hyper = "1.4.1"
-include_dir = "0.7.4"
-mime = "0.3.17"
-opentelemetry = "0.23.0"
-opentelemetry_sdk = { version = "0.23.0", features = ["rt-tokio"] }
+http-body-util = { workspace = true }
+hyper = { workspace = true }
+include_dir = { workspace = true }
+mime = { workspace = true }
+opentelemetry = { workspace = true }
+opentelemetry_sdk = { workspace = true, features = ["rt-tokio"] }
 sentry = { workspace = true }
 serde = { workspace = true, features = ['derive'] }
 serde_json = { workspace = true }
@@ -54,9 +55,9 @@ time = { workspace = true }
 tokio = { workspace = true, features = ["macros"], optional = true }
 tokio-postgres = { workspace = true, default-features = false, optional = true }
 tokio-util = { workspace = true, features = ["io"], optional = true }
-tower = "0.4.13"
-tracing-opentelemetry = "0.24.0"
-utoipa = "4.2.3"
+tower = { workspace = true }
+tracing-opentelemetry = { workspace = true }
+utoipa = { workspace = true }
 uuid = { workspace = true }
 
 [lints]

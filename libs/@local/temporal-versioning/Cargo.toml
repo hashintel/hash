@@ -22,7 +22,7 @@ codec = { workspace = true, features = ["serde"] }
 
 # Private third-party dependencies
 derive-where = { workspace = true }
-postgres-protocol = { version = "0.6.6", default-features = false, optional = true }
+postgres-protocol = { workspace = true, optional = true }
 serde = { workspace = true, features = ["derive"] }
 tracing = { workspace = true, optional = true }
 

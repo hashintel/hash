@@ -32,24 +32,15 @@ harpc-wire-protocol = { workspace = true }
 
 # Private third-party dependencies
 bytes = { workspace = true }
-bytes-utils = "0.1.4"
+bytes-utils = { workspace = true }
 futures = { workspace = true }
-libp2p = { version = "0.53.2", features = [
-    "metrics",
-    "macros",
-    "tcp",
-    "noise",
-    "yamux",
-    "ping",
-    "tokio",
-    "identify",
-] }
-libp2p-stream = "0.1.0-alpha.1"
-pin-project-lite = "0.2.14"
-scc = "2.1.2"
-tachyonix = "0.3.0"
-thiserror = "1.0.61"
-tokio-stream = { version = "0.1.15", features = ["time"] }
+libp2p = { workspace = true, features = ["metrics", "macros", "tcp", "noise", "yamux", "ping", "tokio", "identify"] }
+libp2p-stream = { workspace = true }
+pin-project-lite = { workspace = true }
+scc = { workspace = true }
+tachyonix = { workspace = true }
+thiserror = { workspace = true }
+tokio-stream = { workspace = true, features = ["time"] }
 tokio-util = { workspace = true, features = [
     "codec",
     "compat",
@@ -61,8 +52,8 @@ tracing = { workspace = true }
 [dev-dependencies]
 harpc-types = { workspace = true }
 harpc-wire-protocol = { workspace = true, features = ["test-utils"] }
-humansize = "2.1.3"
-test-log = { version = "0.2.16", features = ["trace"] }
+humansize = { workspace = true }
+test-log = { workspace = true, features = ["trace"] }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 
 [features]

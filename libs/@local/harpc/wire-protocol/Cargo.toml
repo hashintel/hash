@@ -20,14 +20,14 @@ enumflags2 = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-thiserror = "1.0.61"
+thiserror = { workspace = true }
 
 [dev-dependencies]
-proptest = "1.5.0"
-test-strategy = "0.4.0"
+proptest = { workspace = true }
+test-strategy = { workspace = true }
 harpc-types = { workspace = true, features = ["proptest"] }
-expect-test = "1.5.0"
-similar-asserts = "1.5.0"
+expect-test = { workspace = true }
+similar-asserts = { workspace = true }
 
 [features]
 test-utils = []

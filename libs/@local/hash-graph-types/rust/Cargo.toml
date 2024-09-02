@@ -22,10 +22,10 @@ error-stack = { workspace = true }
 
 # Private third-party dependencies
 bytes = { workspace = true }
-postgres-types = { version = "0.2.6", default-features = false, features = ["derive", "with-uuid-1", "with-serde_json-1"], optional = true }
+postgres-types = { workspace = true, features = ["derive", "with-uuid-1", "with-serde_json-1"], optional = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-thiserror = "1.0.61"
+thiserror = { workspace = true }
 time = { workspace = true, default-features = false, features = ["serde", "parsing", "formatting", "macros"] }
 url = { workspace = true, features = ["serde"] }
 utoipa = { workspace = true, optional = true }
@@ -33,7 +33,7 @@ uuid = { workspace = true, default-features = false, features = ["serde", "v5"] 
 
 [dev-dependencies]
 graph-test-data = { workspace = true }
-pretty_assertions = "1.4.0"
+pretty_assertions = { workspace = true }
 
 [features]
 postgres = ["dep:postgres-types", "temporal-versioning/postgres"]

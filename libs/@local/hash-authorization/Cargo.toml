@@ -13,6 +13,7 @@ authors.workspace = true
 graph-types = { workspace = true, public = true }
 
 # Public third-party dependencies
+futures-core = { workspace = true, public = true }
 
 # Private workspace dependencies
 codec = { workspace = true }
@@ -25,10 +26,10 @@ futures = { workspace = true, default-features = false }
 reqwest = { workspace = true, public = true, features = ["json", "stream"] }
 serde = { workspace = true, features = ["derive", "unstable"] }
 serde_json = { workspace = true }
-serde_plain = "1.0.2"
+serde_plain = { workspace = true }
 tokio = { workspace = true }
 tokio-util = { workspace = true, features = ["io"] }
-tracing = { workspace = true }
+tracing = { workspace = true, features = ["attributes"] }
 utoipa = { workspace = true, optional = true }
 uuid = { workspace = true, default-features = false, features = ["v5"] }
 

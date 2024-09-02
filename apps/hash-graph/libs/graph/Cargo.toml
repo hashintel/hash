@@ -24,6 +24,7 @@ validation = { workspace = true, public = true }
 # Public third-party dependencies
 deadpool = { workspace = true, public = true }
 deadpool-postgres = { workspace = true, public = true }
+futures-sink = { workspace = true, public = true }
 tokio = { workspace = true, public = true, features = ["macros"] }
 tokio-postgres = { workspace = true, public = true }
 
@@ -36,24 +37,24 @@ temporal-versioning = { workspace = true, features = ["postgres"] }
 type-system = { workspace = true, features = ["postgres"] }
 
 # Private third-party dependencies
-async-scoped = { version = "0.9.0", features = ["use-tokio"] }
-async-trait = "0.1.81"
+async-scoped = { workspace = true, features = ["use-tokio"] }
+async-trait = { workspace = true }
 bytes = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"], optional = true }
 derive-where = { workspace = true }
-dotenv-flow = "0.16.2"
+dotenv-flow = { workspace = true }
 futures = { workspace = true }
-mime = "0.3.17"
+mime = { workspace = true }
 postgres-types = { workspace = true, features = ["derive", "with-serde_json-1"] }
-refinery = { version = "0.8.14", features = ["tokio-postgres"] }
-regex = "1.10.5"
-semver = { version = "1.0.23", default-features = false, features = ["serde"] }
+refinery = { workspace = true, features = ["tokio-postgres"] }
+regex = { workspace = true }
+semver = { workspace = true, features = ["serde"] }
 sentry = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-tarpc = { version = "0.33", features = ["serde-transport", "tcp"] }
+tarpc = { workspace = true, features = ["serde-transport", "tcp"] }
 time = { workspace = true }
-tokio-serde = { version = "0.8.0", features = ["json"] }
+tokio-serde = { workspace = true, features = ["json"] }
 tokio-util = { workspace = true, features = ["io"] }
 tracing = { workspace = true }
 utoipa = { workspace = true, features = ["uuid"], optional = true }
@@ -62,7 +63,7 @@ uuid = { workspace = true, features = ["v4", "v5", "serde"] }
 [dev-dependencies]
 graph-test-data = { workspace = true }
 
-criterion = "0.5.1"
+criterion = { workspace = true }
 tokio = { workspace = true, features = ["macros"] }
 
 [features]

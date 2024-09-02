@@ -23,19 +23,19 @@ text-size = { workspace = true, public = true }
 # Private third-party dependencies
 ecow = { workspace = true }
 error-stack = { workspace = true }
-hifijson = "0.2.2"
+hifijson = { workspace = true, features = ["alloc"] }
 json-number = { workspace = true }
-logos = "0.14.1"
-thiserror = "1.0.63"
-unicode-ident = "1.0.12"
-winnow = "0.6.18"
+logos = { workspace = true, features = ["export_derive"] }
+thiserror = { workspace = true }
+unicode-ident = { workspace = true }
+winnow = { workspace = true }
 
 [lints]
 workspace = true
 
 [dev-dependencies]
-ariadne = "0.4.1"
-insta = "1.39.0"
+ariadne = { workspace = true }
+insta = { workspace = true }
 serde_json = { workspace = true }
 serde = { workspace = true }
-test-fuzz = "6.0.0"
+test-fuzz = { workspace = true }

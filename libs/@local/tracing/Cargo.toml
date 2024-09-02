@@ -24,13 +24,13 @@ sentry-types = { workspace = true, public = true }
 
 # Private third-party dependencies
 clap = { workspace = true, optional = true, features = ["derive", "env"] }
-opentelemetry = "0.23.0"
-opentelemetry-otlp = "0.16.0"
-opentelemetry_sdk = { version = "0.23.0", features = ["rt-tokio"] }
+opentelemetry = { workspace = true }
+opentelemetry-otlp = { workspace = true, features = ["trace", "grpc-tonic"] }
+opentelemetry_sdk = { workspace = true, features = ["rt-tokio"] }
 sentry = { workspace = true }
 tracing = { workspace = true }
-tracing-error = "0.2.0"
-tracing-opentelemetry = "0.24.0"
+tracing-error = { workspace = true }
+tracing-opentelemetry = { workspace = true }
 
 [features]
 clap = ["dep:clap"]

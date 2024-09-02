@@ -20,11 +20,11 @@ error-stack = { workspace = true, features = ["spantrace"] }
 type-system = { workspace = true }
 
 futures = { workspace = true, default-features = false }
-pretty_assertions = "1.4.0"
-rand = "0.8.5"
+pretty_assertions = { workspace = true }
+rand = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-time = "0.3.36"
+time = { workspace = true }
 tokio = { workspace = true, default-features = false, features = ["macros"] }
 tokio-postgres = { workspace = true, default-features = false }
 uuid = { workspace = true, features = ["v4", "serde"] }

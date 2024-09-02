@@ -15,11 +15,11 @@ proc-macro = true
 # Workspace dependencies
 
 # Third-party dependencies
-virtue = "0.0.17"
-syn = "2.0.70"
+virtue = { workspace = true }
+syn = { workspace = true }
 
 [dev-dependencies]
-trybuild = "1.0.97"
+trybuild = { workspace = true }
 
 [lints]
 workspace = true

@@ -24,7 +24,7 @@ graph-types = { workspace = true, features = ["utoipa"] }
 hash-status = { workspace = true }
 
 # Private third-party dependencies
-axum = "0.7.5"
+axum = { workspace = true }
 futures = { workspace = true }
 tokio = { workspace = true, features = ["macros"] }
 tokio-util = { workspace = true, features = ["io"] }

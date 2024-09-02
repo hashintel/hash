@@ -19,14 +19,14 @@ error-stack = { workspace = true, features = ["hooks"] }
 type-system = { workspace = true }
 
 # Private third-party dependencies
-chrono = { version = "0.4.38", default-features = false, features = ["std"] }
+chrono = { workspace = true, features = ["std"] }
 email_address = { workspace = true }
 futures = { workspace = true }
-iso8601-duration = "0.2.0"
-regex = "1.10.5"
+iso8601-duration = { workspace = true }
+regex = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
-thiserror = "1.0.61"
+thiserror = { workspace = true }
 url = { workspace = true }
 utoipa = { workspace = true, optional = true }
 uuid = { workspace = true, features = ["std"] }

@@ -22,7 +22,7 @@ time = { workspace = true, public = true, features = ["serde", "std"] }
 futures = { workspace = true }
 reqwest = { workspace = true, features = ["json"] }
 serde = { workspace = true, features = ["derive"] }
-tarpc = { version = "0.33", features = ["tokio1"] }
+tarpc = { workspace = true, features = ["tokio1"] }
 tokio = { workspace = true, features = ["macros"] }
 tracing = { workspace = true }
 

@@ -32,15 +32,15 @@ uuid = { workspace = true, public = true, features = ["std"] }
 codec = { workspace = true, features = ["serde"] }
 
 # Private third-party dependencies
-regex = "1.10.5"
+regex = { workspace = true, features = ["std"] }
 serde = { workspace = true, features = ["derive", "rc"] }
-thiserror = "1.0.61"
-tsify = "0.4.5"
+thiserror = { workspace = true }
+tsify = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt"] }
 graph-test-data = { workspace = true }
-pretty_assertions = "1.4.0"
+pretty_assertions = { workspace = true }
 
 [features]
 postgres = ["dep:postgres-types"]

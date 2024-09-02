@@ -24,16 +24,12 @@ deer = { path = "..", public = true, default-features = false }
 error-stack = { workspace = true, default-features = false }
 
 # Private third-party dependencies
-justjson = { version = "0.3.0", default-features = false, features = ['alloc'] }
-lexical = { version = "6.1.1", default-features = false, features = [
-    'parse-floats',
-    'parse-integers',
-    'format',
-] }
-memchr = "2.7.4"
+justjson = { workspace = true, features = ["alloc"] }
+lexical = { workspace = true, features = ["parse-floats", "parse-integers", "format"] }
+memchr = { workspace = true }
 
 [build-dependencies]
-rustc_version = "0.4.0"
+rustc_version = { workspace = true }
 
 [features]
 default = ['std']
