@@ -1,5 +1,5 @@
 <b>invalid input parameter</b>
-├╴at <i>libs/error-stack/src/fmt/color.rs:25:5</i>
+├╴at <i>libs/error-stack/src/fmt/color.rs:26:5</i>
 ├╴backtrace (1)
 ╰╴<i>suggestion: oh no, try again</i>
 

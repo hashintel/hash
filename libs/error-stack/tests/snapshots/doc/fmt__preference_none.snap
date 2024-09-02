@@ -1,5 +1,5 @@
 invalid input parameter
-├╴at libs/error-stack/src/fmt/color.rs:25:5
+├╴at libs/error-stack/src/fmt/color.rs:26:5
 ├╴backtrace (1)
 ╰╴suggestion: oh no, try again
 
