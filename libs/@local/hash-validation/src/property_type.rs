@@ -328,7 +328,7 @@ where
         value: &'a PropertyWithMetadata,
         components: ValidateEntityComponents,
         provider: &'a P,
-    ) -> impl Future<Output = Result<(), Report<Self::Error>>> + Send + '_ {
+    ) -> impl Future<Output = Result<(), Report<Self::Error>>> + Send + 'a {
         Box::pin(async move {
             match self {
                 Self::DataTypeReference(reference) => match value {

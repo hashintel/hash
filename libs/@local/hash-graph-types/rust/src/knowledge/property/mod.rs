@@ -507,7 +507,7 @@ impl Property {
         &'a self,
         other: &'a Self,
         path: &mut PropertyPath<'a>,
-    ) -> PropertyDiff<'_> {
+    ) -> PropertyDiff<'a> {
         let mut changed = false;
         match (self, other) {
             (Self::Array(lhs), Self::Array(rhs)) => {

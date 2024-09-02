@@ -1,6 +1,5 @@
 use alloc::sync::Arc;
 
-use async_trait::async_trait;
 use authorization::AuthorizationApi;
 use deadpool_postgres::{
     Hook, ManagerConfig, Object, Pool, PoolConfig, PoolError, RecyclingMethod, Timeouts,
@@ -80,7 +79,6 @@ impl PostgresStorePool {
     }
 }
 
-#[async_trait]
 impl StorePool for PostgresStorePool {
     type Error = PoolError;
     type Store<'pool, A: AuthorizationApi> = PostgresStore<Object, A>;

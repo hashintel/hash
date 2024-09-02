@@ -63,7 +63,7 @@ impl DomainValidator {
     fn captures<'a>(
         &'a self,
         url: &'a str,
-    ) -> error_stack::Result<Captures, DomainValidationError> {
+    ) -> error_stack::Result<Captures<'a>, DomainValidationError> {
         Ok(self.0.captures(url).ok_or(DomainValidationError)?)
     }
 
@@ -75,7 +75,7 @@ impl DomainValidator {
     fn extract_shortname_and_kind<'a>(
         &'a self,
         url: &'a str,
-    ) -> error_stack::Result<ShortNameAndKind, DomainValidationError> {
+    ) -> error_stack::Result<ShortNameAndKind<'a>, DomainValidationError> {
         let captures = self.captures(url)?;
 
         let short_name = captures

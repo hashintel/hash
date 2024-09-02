@@ -1,6 +1,5 @@
 use alloc::sync::Arc;
 
-use async_trait::async_trait;
 use authorization::AuthorizationApi;
 use error_stack::{Context, Result};
 use temporal_client::TemporalClient;
@@ -8,7 +7,6 @@ use temporal_client::TemporalClient;
 use crate::store::Store;
 
 /// Managed pool to keep track about [`Store`]s.
-#[async_trait]
 pub trait StorePool {
     /// The error returned when acquiring a [`Store`].
     type Error: Context;
@@ -17,11 +15,11 @@ pub trait StorePool {
     type Store<'pool, A: AuthorizationApi>: Store + Send + Sync;
 
     /// Retrieves a [`Store`] from the pool.
-    async fn acquire<A: AuthorizationApi>(
+    fn acquire<A: AuthorizationApi>(
         &self,
         authorization_api: A,
         temporal_client: Option<Arc<TemporalClient>>,
-    ) -> Result<Self::Store<'_, A>, Self::Error>;
+    ) -> impl Future<Output = Result<Self::Store<'_, A>, Self::Error>> + Send;
 
     /// Retrieves an owned [`Store`] from the pool.
     ///
@@ -30,9 +28,9 @@ pub trait StorePool {
     /// the `StorePool`) should be preferred whenever possible.
     ///
     /// [`acquire`]: Self::acquire
-    async fn acquire_owned<A: AuthorizationApi>(
+    fn acquire_owned<A: AuthorizationApi>(
         &self,
         authorization_api: A,
         temporal_client: Option<Arc<TemporalClient>>,
-    ) -> Result<Self::Store<'static, A>, Self::Error>;
+    ) -> impl Future<Output = Result<Self::Store<'static, A>, Self::Error>> + Send;
 }
