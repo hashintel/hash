@@ -480,7 +480,10 @@
 #![cfg_attr(all(nightly, feature = "std"), feature(backtrace_frames))]
 #![cfg_attr(
     not(miri),
-    doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery))))
+    doc(test(attr(
+        deny(warnings, clippy::pedantic, clippy::nursery),
+        allow(exported_private_dependencies)
+    )))
 )]
 #![allow(unsafe_code)]
 // This is an error handling library producing Results, not Errors
