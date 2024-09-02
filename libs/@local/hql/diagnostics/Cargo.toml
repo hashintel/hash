@@ -14,6 +14,7 @@ hql-span = { workspace = true, public = true }
 error-stack = { workspace = true, public = true }
 
 # Public third-party dependencies
+anstyle = { workspace = true, public = true }
 ariadne = { workspace = true, public = true }
 serde = { workspace = true, public = true, optional = true, features = ["derive"] }
 text-size = { workspace = true, public = true }
@@ -21,7 +22,6 @@ text-size = { workspace = true, public = true }
 # Private workspace dependencies
 
 # Private third-party dependencies
-anstyle = { workspace = true }
 anstyle-yansi = { workspace = true }
 serde_with = { workspace = true, features = ["std", "macros"], optional = true }
 thiserror = { workspace = true }

@@ -12,6 +12,7 @@ authors.workspace = true
 # Public workspace dependencies
 
 # Public third-party dependencies
+futures-core = { workspace = true, public = true }
 futures-io = { workspace = true, public = true }
 futures-sink = { workspace = true, public = true }
 futures-util = { workspace = true, public = true }
