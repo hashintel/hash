@@ -2,8 +2,8 @@ mod batch;
 mod channel;
 mod record;
 
-pub use self::{
+pub(crate) use self::{
     batch::EntityRowBatch,
-    channel::{channel, EntityReceiver, EntitySender},
-    record::{EntityEmbeddingRecord, EntityRelationRecord, EntitySnapshotRecord},
+    channel::{channel, EntitySender},
+    record::{EntityEmbeddingRecord, EntitySnapshotRecord},
 };

@@ -1,7 +1,5 @@
 mod batch;
 mod channel;
 
-pub use self::{
-    batch::EntityTypeRowBatch,
-    channel::{entity_type_channel, EntityTypeSender},
-};
+pub use self::batch::EntityTypeRowBatch;
+pub(crate) use self::channel::{entity_type_channel, EntityTypeSender};

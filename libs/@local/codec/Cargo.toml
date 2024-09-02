@@ -12,6 +12,7 @@ authors.workspace = true
 # Public workspace dependencies
 error-stack = { workspace = true, public = true, optional = true, features = ["std"] }
 harpc-wire-protocol = { workspace = true, public = true, optional = true }
+serde = { workspace = true, public = true, optional = true }
 
 # Public third-party dependencies
 bytes = { workspace = true, public = true }
@@ -22,7 +23,6 @@ regex = { workspace = true, public = true, optional = true }
 
 # Private third-party dependencies
 derive-where = { workspace = true, optional = true }
-serde = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true }
 time = { workspace = true, features = ["macros", "serde", "parsing", "formatting"], optional = true }
 

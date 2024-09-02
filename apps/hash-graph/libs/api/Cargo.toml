@@ -26,6 +26,7 @@ temporal-client = { workspace = true, public = true }
 axum = { workspace = true, public = true }
 axum-core = { workspace = true, public = true }
 tower-http = { workspace = true, public = true }
+tracing = { workspace = true, public = true }
 
 # Private workspace dependencies
 codec = { workspace = true, optional = true }
@@ -54,7 +55,6 @@ tokio = { workspace = true, features = ["macros"], optional = true }
 tokio-postgres = { workspace = true, default-features = false, optional = true }
 tokio-util = { workspace = true, features = ["io"], optional = true }
 tower = "0.4.13"
-tracing = { workspace = true }
 tracing-opentelemetry = "0.24.0"
 utoipa = "4.2.3"
 uuid = { workspace = true }

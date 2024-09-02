@@ -24,6 +24,7 @@ validation = { workspace = true, public = true }
 # Public third-party dependencies
 deadpool = { workspace = true, public = true }
 deadpool-postgres = { workspace = true, public = true }
+tokio = { workspace = true, public = true, features = ["macros"] }
 tokio-postgres = { workspace = true, public = true }
 
 # Private workspace dependencies
@@ -52,7 +53,6 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tarpc = { version = "0.33", features = ["serde-transport", "tcp"] }
 time = { workspace = true }
-tokio = { workspace = true, features = ["macros"] }
 tokio-serde = { version = "0.8.0", features = ["json"] }
 tokio-util = { workspace = true, features = ["io"] }
 tracing = { workspace = true }

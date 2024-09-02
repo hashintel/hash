@@ -2743,6 +2743,7 @@ name = "hash-tracing"
 version = "0.0.0"
 dependencies = [
  "clap",
+ "clap_builder",
  "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "opentelemetry 0.23.0",
  "opentelemetry-otlp",
@@ -2752,6 +2753,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-appender",
+ "tracing-core",
  "tracing-error",
  "tracing-opentelemetry 0.24.0",
  "tracing-subscriber",
@@ -6717,9 +6719,9 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz"
-version = "5.2.2"
+version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f9c7343da240e16d7ed8e7a11a6f8e7535c634c38a40736f3b001b38b274962c"
+checksum = "3ab7a9bb33d134e863862ab9dad2ac7e022ac89707914627f498fe0f29248d9b"
 dependencies = [
  "serde",
  "test-fuzz-internal",
@@ -6729,9 +6731,9 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz-internal"
-version = "5.2.2"
+version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0b7fbf19217465046777a6c53186f5a72e397a6485a438e6778a283bdd4be720"
+checksum = "d0bef5dd380747bd7b6e636a8032a24aa34fcecaf843e59fc97d299681922e86"
 dependencies = [
  "bincode",
  "cargo_metadata",
@@ -6740,11 +6742,12 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz-macro"
-version = "5.2.2"
+version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4f7fa70c261f748327f21d189b20f447a4306bc1f85ed2571adf185765b14e0a"
+checksum = "a7e6b4c7391a38f0f026972ec2200bcfd1ec45533aa266fdae5858d011afc500"
 dependencies = [
  "darling 0.20.10",
+ "heck 0.5.0",
  "itertools 0.13.0",
  "once_cell",
  "prettyplease 0.2.20",
@@ -6755,9 +6758,9 @@ dependencies = [
 
 [[package]]
 name = "test-fuzz-runtime"
-version = "5.2.2"
+version = "6.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ba7fe4e29cb917d48fcd18324ed745b6d5e43e9bea76f5f85eb8352f5829ac1"
+checksum = "c9fbe6fb7481ec6d9bf64ae2c5d49cb1b40f8da624a91031482af7b08168c679"
 dependencies = [
  "hex",
  "num-traits",

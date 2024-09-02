@@ -13,7 +13,10 @@ authors.workspace = true
 error-stack = { workspace = true, public = true }
 
 # Public third-party dependencies
+clap_builder = { workspace = true, public = true }
+tokio = { workspace = true, public = true }
 tracing-appender = { workspace = true, public = true }
+tracing-core = { workspace = true, public = true }
 tracing-subscriber = { workspace = true, public = true, features = ["ansi", "env-filter", "json"] }
 sentry-types = { workspace = true, public = true }
 
@@ -25,7 +28,6 @@ opentelemetry = "0.23.0"
 opentelemetry-otlp = "0.16.0"
 opentelemetry_sdk = { version = "0.23.0", features = ["rt-tokio"] }
 sentry = { workspace = true }
-tokio = { workspace = true }
 tracing = { workspace = true }
 tracing-error = "0.2.0"
 tracing-opentelemetry = "0.24.0"
