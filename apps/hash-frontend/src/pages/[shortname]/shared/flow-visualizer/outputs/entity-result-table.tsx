@@ -810,6 +810,34 @@ export const EntityResultTable = memo(
                 ) {
                   return false;
                 }
+              } else if (fieldId.includes("/entity-type/")) {
+                if (typeof currentValue === "string") {
+                  throw new Error(
+                    `Expected Set for entity type filter, got ${currentValue}`,
+                  );
+                }
+
+                const linkTargets = row.data.outgoingLinksByLinkTypeId[fieldId];
+
+                if (!linkTargets) {
+                  if (!currentValue.has(null as unknown as string)) {
+                    /**
+                     * This row has no links of this type, and the filter does not include 'null'
+                     */
+                    return false;
+                  }
+                } else if (
+                  currentValue.isDisjointFrom(
+                    new Set(
+                      linkTargets.map(({ targetEntityId }) => targetEntityId),
+                    ),
+                  )
+                ) {
+                  /**
+                   * There are no values in common between the filter and the link targets for this type, for this row
+                   */
+                  return false;
+                }
               } else {
                 const baseUrl = extractBaseUrl(fieldId);
                 const propertyValue = row.data.properties[baseUrl];
