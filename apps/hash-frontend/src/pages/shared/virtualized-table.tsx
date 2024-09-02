@@ -16,7 +16,7 @@ import type { ColumnMetadata } from "./virtualized-table/header";
 import { HeaderContent, headerHeight } from "./virtualized-table/header";
 import type {
   TableFilterProps,
-  VirtualizedTableFiltersByFieldId,
+  VirtualizedTableFilterDefinitionsByFieldId,
 } from "./virtualized-table/header/filter";
 import type {
   TableSortProps,
@@ -117,7 +117,7 @@ export type CreateVirtualizedRowContentFn<
 type VirtualizedTableProps<
   D extends Data,
   S extends VirtualizedTableSort,
-  F extends VirtualizedTableFiltersByFieldId,
+  F extends VirtualizedTableFilterDefinitionsByFieldId,
   Id extends FieldId,
   M extends ColumnMetadata,
 > = {
@@ -138,7 +138,7 @@ const heightStyle = { height: "100%" };
 export const VirtualizedTable = <
   D extends Data,
   S extends VirtualizedTableSort,
-  F extends VirtualizedTableFiltersByFieldId,
+  F extends VirtualizedTableFilterDefinitionsByFieldId,
   Id extends FieldId,
   M extends ColumnMetadata,
 >({
@@ -147,8 +147,9 @@ export const VirtualizedTable = <
   fixedColumns,
   EmptyPlaceholder,
   rows,
-  filters,
-  setFilters,
+  filterDefinitions,
+  filterValues,
+  setFilterValues,
   sort,
   setSort,
 }: VirtualizedTableProps<D, S, F, Id, M>) => {
@@ -158,13 +159,22 @@ export const VirtualizedTable = <
         ? HeaderContent({
             columns,
             fixedColumns,
-            filters,
-            setFilters,
+            filterDefinitions,
+            filterValues,
+            setFilterValues,
             sort,
             setSort,
           })
         : null,
-    [columns, fixedColumns, filters, setFilters, sort, setSort],
+    [
+      columns,
+      fixedColumns,
+      filterDefinitions,
+      filterValues,
+      setFilterValues,
+      sort,
+      setSort,
+    ],
   );
 
   const components = useMemo(

@@ -18,30 +18,6 @@ import { FilterLightIcon } from "../../../../shared/icons/filter-light-icon";
 
 export const missingValueString = `missing-filter-property-value-${Math.random()}`;
 
-type VirtualizedTableFilterOption = {
-  label: string;
-  value: string | null;
-  count: number;
-};
-
-export type VirtualizedTableFilter = {
-  header: string;
-  options: {
-    [value: string]: VirtualizedTableFilterOption;
-  };
-} & (
-  | {
-      type: "radio-group";
-      initialValue: string;
-      value: string;
-    }
-  | {
-      type: "checkboxes";
-      initialValue: Set<string | null>;
-      value: Set<string | null>;
-    }
-);
-
 const createLabelSlotProps = (
   valueIsMissing: boolean,
 ): FormControlLabelProps["slotProps"] => ({
@@ -81,22 +57,48 @@ const blueFilterButtonSx: SxProps<Theme> = ({ palette, transitions }) => ({
   transition: transitions.create("background"),
 });
 
-const FilterPopover = <Filter extends VirtualizedTableFilter>({
+type VirtualizedTableFilterOption = {
+  label: string;
+  value: string | null;
+  count: number;
+};
+
+export type VirtualizedTableFilterValue = string | Set<string>;
+
+export type VirtualizedTableFilterDefinition = {
+  header: string;
+  options: {
+    [value: string]: VirtualizedTableFilterOption;
+  };
+} & (
+  | {
+      type: "radio-group";
+      initialValue: string;
+    }
+  | {
+      type: "checkboxes";
+      initialValue: Set<string | null>;
+    }
+);
+
+const FilterPopover = <Filter extends VirtualizedTableFilterDefinition>({
   buttonRef,
   isFiltered,
-  filter,
+  filterDefinition,
+  filterValue: currentValue,
   setFilter,
   open,
   onClose,
 }: {
   buttonRef: RefObject<HTMLElement>;
   isFiltered: boolean;
-  filter: Filter;
-  setFilter: (filter: Filter) => void;
+  filterDefinition: Filter;
+  filterValue: Filter["initialValue"];
+  setFilter: (filter: Filter["initialValue"]) => void;
   open: boolean;
   onClose: () => void;
 }) => {
-  const { header, options, type, value: currentValue, initialValue } = filter;
+  const { header, options, type, initialValue } = filterDefinition;
 
   return (
     <Popover
@@ -157,13 +159,9 @@ const FilterPopover = <Filter extends VirtualizedTableFilter>({
             <Box
               component="button"
               onClick={() => {
-                setFilter({
-                  ...filter,
-                  value:
-                    type === "checkboxes"
-                      ? new Set(initialValue)
-                      : initialValue,
-                });
+                setFilter(
+                  type === "checkboxes" ? new Set(initialValue) : initialValue,
+                );
                 onClose();
               }}
               sx={blueFilterButtonSx}
@@ -193,9 +191,11 @@ const FilterPopover = <Filter extends VirtualizedTableFilter>({
                           } else {
                             newValue.delete(value);
                           }
-                          setFilter({ ...filter, value: newValue });
+                          setFilter(newValue);
                         }}
-                        checked={currentValue.has(value)}
+                        checked={(currentValue as Set<string | null>).has(
+                          value,
+                        )}
                         sx={{ mr: 1.5, "& .MuiSvgIcon-root": { fontSize: 18 } }}
                       />
                     }
@@ -206,7 +206,7 @@ const FilterPopover = <Filter extends VirtualizedTableFilter>({
                   <Box
                     component="button"
                     onClick={() => {
-                      setFilter({ ...filter, value: new Set([value]) });
+                      setFilter(new Set([value]));
                       onClose();
                     }}
                     sx={[blueFilterButtonSx, { visibility: "hidden" }]}
@@ -221,7 +221,7 @@ const FilterPopover = <Filter extends VirtualizedTableFilter>({
             <RadioGroup
               value={currentValue}
               onChange={(event) => {
-                setFilter({ ...filter, value: event.target.value });
+                setFilter(event.target.value);
               }}
             >
               {Object.values(options)
@@ -244,50 +244,75 @@ const FilterPopover = <Filter extends VirtualizedTableFilter>({
   );
 };
 
-export type VirtualizedTableFiltersByFieldId<Id extends string = string> =
-  Record<Id, VirtualizedTableFilter>;
+export type VirtualizedTableFilterDefinitionsByFieldId<
+  Id extends string = string,
+> = Record<Id, VirtualizedTableFilterDefinition>;
+
+export type VirtualizedTableFilterValuesByFieldId<Id extends string = string> =
+  Record<Id, VirtualizedTableFilterValue>;
 
 export type TableFilterProps<
-  Filters extends
-    VirtualizedTableFiltersByFieldId = VirtualizedTableFiltersByFieldId,
+  FilterDefinitions extends
+    VirtualizedTableFilterDefinitionsByFieldId = VirtualizedTableFilterDefinitionsByFieldId,
+  FilterValues extends
+    VirtualizedTableFilterValuesByFieldId = VirtualizedTableFilterValuesByFieldId,
 > = {
-  filters: Filters;
-  setFilters: (filters: Filters) => void;
+  filterDefinitions: FilterDefinitions;
+  filterValues: FilterValues;
+  setFilterValues: (filters: FilterValues) => void;
 };
 
-export const isFilterValueIncluded = (
-  value: string | null,
-  filter: VirtualizedTableFilter,
-) => {
-  if (filter.type === "radio-group") {
-    return value === filter.value;
-  }
-  return filter.value.has(value);
-};
-
-export const FilterButton = <Filters extends VirtualizedTableFiltersByFieldId>({
-  columnId,
-  filters,
-  setFilters,
+export const isValueIncludedInFilter = ({
+  valueToCheck,
+  currentValue,
 }: {
-  columnId: NonNullable<keyof Filters>;
-} & TableFilterProps<Filters>) => {
-  const filter = filters[columnId];
+  valueToCheck: string | null;
+  currentValue: string | Set<string | null>;
+}) => {
+  if (typeof currentValue === "string") {
+    return currentValue === valueToCheck;
+  }
+
+  return currentValue.has(valueToCheck);
+};
+
+export const FilterButton = <
+  ColumnId extends string,
+  FilterDefinitions extends
+    VirtualizedTableFilterDefinitionsByFieldId<ColumnId>,
+  FilterValues extends VirtualizedTableFilterValuesByFieldId<ColumnId>,
+>({
+  columnId,
+  filterDefinitions,
+  filterValues,
+  setFilterValues,
+}: {
+  columnId: ColumnId;
+} & TableFilterProps<FilterDefinitions, FilterValues>) => {
+  const filterDefinition = filterDefinitions[columnId];
 
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   const [showFilterPopover, setShowFilterPopover] = useState(false);
 
-  if (!filter || Object.keys(filter.options).length < 2) {
+  if (Object.keys(filterDefinition.options).length < 2) {
     return null;
   }
 
-  const { type, initialValue, value } = filter;
+  const { type, initialValue } = filterDefinition;
 
-  const isFiltered =
-    type === "radio-group"
-      ? value !== initialValue
-      : initialValue.difference(value).size > 0;
+  const filterValue = filterValues[columnId];
+
+  let isFiltered;
+  if (type === "radio-group") {
+    isFiltered = filterValue !== initialValue;
+  } else if (typeof filterValue === "string") {
+    throw new Error(
+      `Got string filterValue '${filterValue}, expected Set for checkboxes`,
+    );
+  } else {
+    isFiltered = initialValue.difference(filterValue).size > 0;
+  }
 
   return (
     <>
@@ -306,10 +331,11 @@ export const FilterButton = <Filters extends VirtualizedTableFiltersByFieldId>({
       </IconButton>
       <FilterPopover
         buttonRef={buttonRef}
-        filter={filter}
+        filterDefinition={filterDefinition}
+        filterValue={filterValue}
         isFiltered={isFiltered}
         setFilter={(newFilter) =>
-          setFilters({ ...filters, [columnId]: newFilter })
+          setFilterValues({ ...filterValues, [columnId]: newFilter })
         }
         open={showFilterPopover}
         onClose={() => setShowFilterPopover(false)}

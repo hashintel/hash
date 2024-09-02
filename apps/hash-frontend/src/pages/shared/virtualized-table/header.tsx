@@ -7,7 +7,7 @@ import TableRow from "@mui/material/TableRow";
 import type { VirtualizedTableColumn } from "../virtualized-table";
 import type {
   TableFilterProps,
-  VirtualizedTableFiltersByFieldId,
+  VirtualizedTableFilterDefinitionsByFieldId,
 } from "./header/filter";
 import { FilterButton } from "./header/filter";
 import type { TableSortProps, VirtualizedTableSort } from "./header/sort";
@@ -19,14 +19,15 @@ export type ColumnMetadata = Record<string, unknown>;
 
 export const HeaderContent = <
   Sort extends VirtualizedTableSort,
-  Filters extends VirtualizedTableFiltersByFieldId,
+  Filters extends VirtualizedTableFilterDefinitionsByFieldId,
   Id extends string,
   M extends ColumnMetadata,
 >({
   columns,
   fixedColumns,
-  filters,
-  setFilters,
+  filterDefinitions,
+  filterValues,
+  setFilterValues,
   sort,
   setSort,
 }: {
@@ -45,9 +46,10 @@ export const HeaderContent = <
         }
 
         const hasFilters =
-          filters &&
-          setFilters &&
-          Object.keys(filters[column.id]?.options ?? {}).length > 1;
+          filterDefinitions &&
+          filterValues &&
+          setFilterValues &&
+          Object.keys(filterDefinitions[column.id]?.options ?? {}).length > 1;
 
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         const hasButtons = hasFilters || column.sortable;
@@ -76,6 +78,7 @@ export const HeaderContent = <
             <Stack
               direction="row"
               alignItems="center"
+              gap={0.5}
               justifyContent="space-between"
             >
               <Typography
@@ -92,8 +95,9 @@ export const HeaderContent = <
                 {hasFilters && (
                   <FilterButton
                     columnId={column.id}
-                    filters={filters}
-                    setFilters={setFilters}
+                    filterDefinitions={filterDefinitions}
+                    filterValues={filterValues}
+                    setFilterValues={setFilterValues}
                   />
                 )}
                 {column.sortable && (
