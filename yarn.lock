@@ -10549,10 +10549,10 @@
   dependencies:
     "@types/istanbul-lib-report" "*"
 
-"@types/js-yaml@^4.0.0":
-  version "4.0.3"
-  resolved "https://registry.yarnpkg.com/@types/js-yaml/-/js-yaml-4.0.3.tgz#9f33cd6fbf0d5ec575dc8c8fc69c7fec1b4eb200"
-  integrity "sha1-nzPNb78NXsV13IyPxpx/7BtOsgA= sha512-5t9BhoORasuF5uCPr+d5/hdB++zRFUTMIZOzbNkr+jZh3yQht4HYbRDyj9fY8n2TZT30iW9huzav73x4NikqWg=="
+"@types/js-yaml@^4.0.0", "@types/js-yaml@^4.0.5":
+  version "4.0.9"
+  resolved "https://registry.yarnpkg.com/@types/js-yaml/-/js-yaml-4.0.9.tgz#cd82382c4f902fed9691a2ed79ec68c5898af4c2"
+  integrity sha512-k4MGaQl5TGo/iipqb2UDG2UwjXziSWkh0uysQelTlJpX1qGlpUZYm8PnO4DxG1qBomtJUdYJ6qR6xdIah10JLg==
 
 "@types/jsdom@21.1.7":
   version "21.1.7"
@@ -13901,15 +13901,17 @@ charenc@0.0.2:
   resolved "https://registry.yarnpkg.com/charenc/-/charenc-0.0.2.tgz#c0a1d2f3a7092e03774bfa83f14c0fc5790a8667"
   integrity "sha1-wKHS86cJLgN3S/qD8UwPxXkKhmc= sha512-yrLQ/yVUFXkzg7EDQsPieE/53+0RlaWTs+wBrvW36cyilJ2SaDWfl4Yj7MtLTXleV9uEKefbAGUPv2/iWSooRA=="
 
-check-dependency-version-consistency@3.0.3:
-  version "3.0.3"
-  resolved "https://registry.yarnpkg.com/check-dependency-version-consistency/-/check-dependency-version-consistency-3.0.3.tgz#8033dc1d1e64eae07a86b14414a396e4f68d1f60"
-  integrity "sha1-gDPcHR5k6uB6hrFEFKOW5PaNH2A= sha512-BmCr4v9xBGCPBTUoJwqaSJV9VqWXxAR983BogbEMU/y3NqwbvFkgpUBNW9YTP79Kv9FIy8X+G/5TU79HpI8C6Q=="
+check-dependency-version-consistency@3.3.0:
+  version "3.3.0"
+  resolved "https://registry.yarnpkg.com/check-dependency-version-consistency/-/check-dependency-version-consistency-3.3.0.tgz#9d7646d455cae3c1784adb917b692693ad19d63f"
+  integrity sha512-oIqdqC5kLjMP3EIqxmWNq4JcuWLkFBrR0TQyLAQhk3y+zmIaxIFp5ABSFyyf0eNc7H6LeG8vZ1K0V0jSEKSP2g==
   dependencies:
+    "@types/js-yaml" "^4.0.5"
     chalk "^5.0.1"
     commander "^9.0.0"
     edit-json-file "^1.7.0"
     globby "^13.1.1"
+    js-yaml "^4.1.0"
     semver "^7.3.5"
     table "^6.7.1"
     type-fest "^2.1.0"
