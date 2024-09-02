@@ -295,9 +295,7 @@ export const FilterButton = <
 
   const [showFilterPopover, setShowFilterPopover] = useState(false);
 
-  if (Object.keys(filterDefinition.options).length < 2) {
-    return null;
-  }
+  const hasOnlyOneOption = Object.keys(filterDefinition.options).length < 2;
 
   const { type, initialValue } = filterDefinition;
 
@@ -316,19 +314,24 @@ export const FilterButton = <
 
   return (
     <>
-      <IconButton
-        onClick={() => setShowFilterPopover(!showFilterPopover)}
-        ref={buttonRef}
-        sx={{ p: 0.6, "& svg": { fontSize: 14 } }}
+      <Tooltip
+        title={hasOnlyOneOption ? "Only one filter option present" : ""}
+        placement="top"
       >
-        <FilterLightIcon
-          sx={{
-            fill: ({ palette }) =>
-              isFiltered ? palette.blue[70] : palette.gray[50],
-            transition: ({ transitions }) => transitions.create("fill"),
-          }}
-        />
-      </IconButton>
+        <IconButton
+          onClick={() => setShowFilterPopover(!showFilterPopover)}
+          ref={buttonRef}
+          sx={{ p: 0.6, "& svg": { fontSize: 14 } }}
+        >
+          <FilterLightIcon
+            sx={{
+              fill: ({ palette }) =>
+                isFiltered ? palette.blue[70] : palette.gray[50],
+              transition: ({ transitions }) => transitions.create("fill"),
+            }}
+          />
+        </IconButton>
+      </Tooltip>
       <FilterPopover
         buttonRef={buttonRef}
         filterDefinition={filterDefinition}

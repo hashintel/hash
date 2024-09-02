@@ -45,11 +45,7 @@ export const HeaderContent = <
           left += columns[i]!.width as number;
         }
 
-        const hasFilters =
-          filterDefinitions &&
-          filterValues &&
-          setFilterValues &&
-          Object.keys(filterDefinitions[column.id]?.options ?? {}).length > 1;
+        const hasFilters = filterDefinitions && filterValues && setFilterValues;
 
         // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         const hasButtons = hasFilters || column.sortable;
