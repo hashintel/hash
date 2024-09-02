@@ -54,7 +54,7 @@ impl PropertyObject {
         &'a self,
         other: &'a Self,
         path: &mut PropertyPath<'a>,
-    ) -> impl Iterator<Item = PropertyDiff<'_>> {
+    ) -> impl Iterator<Item = PropertyDiff<'a>> {
         Property::diff_object(self.properties(), other.properties(), path)
     }
 
