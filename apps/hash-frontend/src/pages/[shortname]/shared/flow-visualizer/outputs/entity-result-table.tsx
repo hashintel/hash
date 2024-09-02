@@ -327,35 +327,64 @@ const TableRow = memo(
             </ValueChip>
           </Box>
         </TableCell>
-        {columns.slice(fixedFieldIds.length).map((column) => {
-          const appliesToEntity = column.metadata?.appliesToEntityTypeIds.some(
-            (id) => id === row.entityTypeId,
-          );
+        {columns
+          .slice(
+            hasRelevanceColumn
+              ? fixedFieldIds.length
+              : fixedFieldIds.length - 1,
+          )
+          .map((column) => {
+            const appliesToEntity =
+              column.metadata?.appliesToEntityTypeIds.some(
+                (id) => id === row.entityTypeId,
+              );
 
-          if (!appliesToEntity) {
-            return (
-              <TableCell
-                sx={({ palette }) => ({
-                  ...cellSx,
-                  background: palette.gray[5],
-                  color: palette.gray[50],
-                })}
-                key={column.id}
-              >
-                Does not apply
-              </TableCell>
-            );
-          }
+            if (!appliesToEntity) {
+              return (
+                <TableCell
+                  sx={({ palette }) => ({
+                    ...cellSx,
+                    background: palette.gray[5],
+                    color: palette.gray[50],
+                  })}
+                  key={column.id}
+                >
+                  Does not apply
+                </TableCell>
+              );
+            }
 
-          if (column.id.includes("/entity-type/")) {
-            /**
-             * This is a link entity type
-             */
+            if (column.id.includes("/entity-type/")) {
+              /**
+               * This is a link entity type
+               */
 
-            const linkedEntities =
-              row.outgoingLinksByLinkTypeId[column.id as VersionedUrl];
+              const linkedEntities =
+                row.outgoingLinksByLinkTypeId[column.id as VersionedUrl];
 
-            if (!linkedEntities?.length) {
+              if (!linkedEntities?.length) {
+                return (
+                  <NoValueCell
+                    columnId={column.id}
+                    key={column.id}
+                    researchOngoing={row.researchOngoing}
+                  />
+                );
+              }
+
+              return (
+                <LinkedEntitiesCell
+                  key={column.id}
+                  linkedEntities={linkedEntities}
+                  onEntityClick={row.onEntityClick}
+                />
+              );
+            }
+
+            const propertyValue =
+              row.properties[extractBaseUrl(column.id as VersionedUrl)];
+
+            if (propertyValue === undefined || propertyValue === "") {
               return (
                 <NoValueCell
                   columnId={column.id}
@@ -365,41 +394,19 @@ const TableRow = memo(
               );
             }
 
+            const metadata =
+              row.propertiesMetadata.value[
+                extractBaseUrl(column.id as VersionedUrl)
+              ]?.metadata;
+
             return (
-              <LinkedEntitiesCell
+              <PropertyValueCell
                 key={column.id}
-                linkedEntities={linkedEntities}
-                onEntityClick={row.onEntityClick}
+                metadata={metadata}
+                value={propertyValue}
               />
             );
-          }
-
-          const propertyValue =
-            row.properties[extractBaseUrl(column.id as VersionedUrl)];
-
-          if (propertyValue === undefined || propertyValue === "") {
-            return (
-              <NoValueCell
-                columnId={column.id}
-                key={column.id}
-                researchOngoing={row.researchOngoing}
-              />
-            );
-          }
-
-          const metadata =
-            row.propertiesMetadata.value[
-              extractBaseUrl(column.id as VersionedUrl)
-            ]?.metadata;
-
-          return (
-            <PropertyValueCell
-              key={column.id}
-              metadata={metadata}
-              value={propertyValue}
-            />
-          );
-        })}
+          })}
       </>
     );
   },
@@ -852,6 +859,11 @@ export const EntityResultTable = memo(
         });
       }
 
+      if (relevantEntityIds.length === 0) {
+        // @ts-expect-error -- simple way of omitting this column when necessary
+        delete staticFilterDefs.relevance;
+      }
+
       const filterDefs = {
         ...staticFilterDefs,
         ...dynamicFilterDefs,
@@ -994,6 +1006,7 @@ export const EntityResultTable = memo(
         proposedEntitiesTypesSubgraph,
         persistedEntitiesSubgraph,
         persistedEntities.length,
+        relevantEntityIds.length,
       ],
     );
 
@@ -1025,7 +1038,7 @@ export const EntityResultTable = memo(
               filterDefinitions={filterDefinitions}
               filterValues={filterValues}
               setFilterValues={setFilterValues}
-              fixedColumns={3}
+              fixedColumns={relevantEntityIds.length > 0 ? 4 : 3}
               rows={rows}
               sort={sort}
               setSort={setSort}
