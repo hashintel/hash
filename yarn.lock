@@ -6354,12 +6354,12 @@
     set-cookie-parser "^2.4.8"
     tldjs "^2.3.1"
 
-"@ory/kratos-client@1.0.0":
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/@ory/kratos-client/-/kratos-client-1.0.0.tgz#803c8afb9379e54eec9f25bfc27f094809be43d7"
-  integrity sha512-gYc+tfyOwNkc8t9CI7aUJhOfMtcoVmWmpJuOsHnbosU9tPxUWaxMM8FgIM+tCc1ksDEyBukR1OY+9PCoo6tpqg==
+"@ory/kratos-client@1.2.1":
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/@ory/kratos-client/-/kratos-client-1.2.1.tgz#937f411c160e92b4d049ab43d2eff8b99f254bf9"
+  integrity sha512-HvipnVQotCKjEQC9I9DPjSlfBEww4pjDycMAKdUPj3g/0WkNSq6wbPDyqeclFz99rsOOsFMcpOO8qiCYHSgQeA==
   dependencies:
-    axios "^0.21.4"
+    axios "^1.6.1"
 
 "@peculiar/asn1-schema@^2.1.6", "@peculiar/asn1-schema@^2.3.0":
   version "2.3.3"
