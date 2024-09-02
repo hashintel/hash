@@ -31,7 +31,7 @@
     "@blockprotocol/service": "0.1.4",
     "@hashintel/block-design-system": "0.0.2",
     "@hashintel/design-system": "0.0.8",
-    "@mui/material": "5.14.11"
+    "@mui/material": "5.16.7"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",

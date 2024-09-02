@@ -38,4 +38,4 @@ ariadne = "0.4.1"
 insta = "1.39.0"
 serde_json = { workspace = true }
 serde = { workspace = true }
-test-fuzz = "5.2.2"
+test-fuzz = "6.0.0"

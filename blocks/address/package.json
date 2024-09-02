@@ -37,7 +37,7 @@
     "@fortawesome/free-solid-svg-icons": "6.6.0",
     "@hashintel/block-design-system": "0.0.2",
     "@hashintel/design-system": "0.0.8",
-    "@mui/material": "5.14.11",
+    "@mui/material": "5.16.7",
     "lodash.debounce": "4.0.8",
     "react-sizeme": "3.0.2",
     "rooks": "7.14.1",

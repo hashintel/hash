@@ -29,8 +29,8 @@
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
-    "@mui/material": "5.14.11",
-    "@mui/system": "5.14.11",
+    "@mui/material": "5.16.7",
+    "@mui/system": "5.16.7",
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "react-hook-form": "7.48.2",

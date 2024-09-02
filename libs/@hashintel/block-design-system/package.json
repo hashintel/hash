@@ -37,12 +37,12 @@
     "react-type-animation": "3.2.0"
   },
   "devDependencies": {
-    "@emotion/react": "11.11.1",
-    "@emotion/styled": "11.11.0",
+    "@emotion/react": "11.13.3",
+    "@emotion/styled": "11.13.0",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@mui/material": "5.14.11",
-    "@mui/system": "5.14.11",
+    "@mui/material": "5.16.7",
+    "@mui/system": "5.16.7",
     "@types/react": "18.2.68",
     "@types/react-dom": "18.2.25",
     "@types/react-syntax-highlighter": "15.5.13",
@@ -53,10 +53,10 @@
     "typescript": "5.5.4"
   },
   "peerDependencies": {
-    "@emotion/react": "11.9.0",
-    "@emotion/styled": "11.8.1",
-    "@mui/material": "5.14.11",
-    "@mui/system": "5.14.11",
+    "@emotion/react": "11.13.3",
+    "@emotion/styled": "11.13.0",
+    "@mui/material": "5.16.7",
+    "@mui/system": "5.16.7",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   }
