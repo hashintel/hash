@@ -13,6 +13,7 @@ authors.workspace = true
 hql-span = { workspace = true, public = true }
 
 # Public third-party dependencies
+ahash = { workspace = true, public = true }
 bumpalo = { workspace = true, public = true, features = ["allocator_api"] }
 ecow = { workspace = true, public = true }
 hashbrown = { workspace = true, public = true }

@@ -13,6 +13,8 @@ authors.workspace = true
 harpc-net = { workspace = true, public = true }
 
 # Public third-party dependencies
+tower-layer = { workspace = true, public = true }
+tower-service = { workspace = true, public = true }
 
 # Private workspace dependencies
 error-stack = { workspace = true }

@@ -12,6 +12,18 @@ authors.workspace = true
 # Public workspace dependencies
 
 # Public third-party dependencies
+futures-io = { workspace = true, public = true }
+futures-sink = { workspace = true, public = true }
+futures-util = { workspace = true, public = true }
+libp2p-core = { workspace = true, public = true }
+libp2p-identity = { workspace = true, public = true }
+libp2p-ping = { workspace = true, public = true }
+libp2p-swarm = { workspace = true, public = true }
+libp2p-yamux = { workspace = true, public = true }
+prometheus-client = { workspace = true, public = true }
+multiaddr = { workspace = true, public = true }
+multistream-select = { workspace = true, public = true }
+tokio = { workspace = true, public = true, features = ["io-util", "macros"] }
 
 # Private workspace dependencies
 codec = { workspace = true, features = ["harpc"] }
@@ -37,7 +49,6 @@ pin-project-lite = "0.2.14"
 scc = "2.1.2"
 tachyonix = "0.3.0"
 thiserror = "1.0.61"
-tokio = { workspace = true, features = ["io-util", "macros"] }
 tokio-stream = { version = "0.1.15", features = ["time"] }
 tokio-util = { workspace = true, features = [
     "codec",

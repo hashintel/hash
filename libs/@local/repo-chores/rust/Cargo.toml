@@ -13,8 +13,9 @@ authors.workspace = true
 error-stack = { workspace = true, public = true }
 
 # Public third-party dependencies
-inferno = { workspace = true, public = true }
+aws-types = { workspace = true, public = true }
 criterion = { workspace = true, public = true }
+inferno = { workspace = true, public = true }
 
 # Private workspace dependencies
 

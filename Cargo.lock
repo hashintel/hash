@@ -2635,12 +2635,23 @@ dependencies = [
  "codec",
  "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures",
+ "futures-io",
+ "futures-sink",
+ "futures-util",
  "harpc-types",
  "harpc-wire-protocol",
  "humansize",
  "libp2p",
+ "libp2p-core",
+ "libp2p-identity",
+ "libp2p-ping",
  "libp2p-stream",
+ "libp2p-swarm",
+ "libp2p-yamux",
+ "multiaddr",
+ "multistream-select",
  "pin-project-lite",
+ "prometheus-client",
  "scc",
  "tachyonix",
  "test-log",
@@ -2668,6 +2679,8 @@ dependencies = [
  "tokio-test",
  "tokio-util",
  "tower",
+ "tower-layer",
+ "tower-service",
  "tower-test",
 ]
 
@@ -2910,6 +2923,7 @@ dependencies = [
 name = "hql-cst"
 version = "0.0.0"
 dependencies = [
+ "ahash",
  "bumpalo",
  "ecow",
  "hashbrown 0.14.5",
@@ -5514,6 +5528,7 @@ version = "0.0.0"
 dependencies = [
  "aws-config",
  "aws-sdk-s3",
+ "aws-types",
  "bytes",
  "clap",
  "clap_complete",
@@ -7431,6 +7446,7 @@ dependencies = [
 name = "type-system"
 version = "0.0.0"
 dependencies = [
+ "bytes",
  "codec",
  "console_error_panic_hook",
  "email_address",

@@ -2,9 +2,11 @@
 use core::error::Error;
 use core::{fmt, num::IntErrorKind, str::FromStr};
 
+#[cfg(feature = "postgres")]
+use bytes::BytesMut;
 pub use error::{ParseBaseUrlError, ParseVersionedUrlError};
 #[cfg(feature = "postgres")]
-use postgres_types::{private::BytesMut, FromSql, IsNull, ToSql, Type};
+use postgres_types::{FromSql, IsNull, ToSql, Type};
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 use url::Url;
 #[cfg(feature = "utoipa")]
