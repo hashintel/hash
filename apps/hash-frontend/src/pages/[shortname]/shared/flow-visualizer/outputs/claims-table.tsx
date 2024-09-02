@@ -641,9 +641,7 @@ export const ClaimsTable = memo(
         ) : (
           <EmptyOutputBox
             Icon={outputIcons.table}
-            label={
-              "Claims about entities discovered by this flow will appear in a table here"
-            }
+            label="Claims about entities discovered by this flow will appear in a table here"
           />
         )}
       </OutputContainer>

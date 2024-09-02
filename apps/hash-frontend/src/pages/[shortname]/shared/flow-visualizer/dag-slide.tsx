@@ -1,4 +1,5 @@
 import { IconButton } from "@hashintel/design-system";
+import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type { FlowDefinition } from "@local/hash-isomorphic-utils/flows/types";
 import { Backdrop, Box, Slide, Stack } from "@mui/material";
 
@@ -9,7 +10,6 @@ import type {
   UngroupedEdgesAndNodes,
 } from "./shared/types";
 import { Topbar } from "./topbar";
-import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 
 type DagSlideProps = {
   groups: [UngroupedEdgesAndNodes] | GroupWithEdgesAndNodes[];

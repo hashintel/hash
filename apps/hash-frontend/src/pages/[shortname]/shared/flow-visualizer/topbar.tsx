@@ -1,7 +1,6 @@
 import { useMutation } from "@apollo/client";
 import {
   AngleRightRegularIcon,
-  InfinityLightIcon,
   PlayIconSolid,
   Select,
 } from "@hashintel/design-system";
