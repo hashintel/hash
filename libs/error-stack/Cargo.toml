@@ -32,7 +32,7 @@ serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 futures = { workspace = true, default-features = false, features = ["executor"] }
 trybuild = { workspace = true }
-tracing = { workspace = true }
+tracing = { workspace = true, features = ["attributes"] }
 tracing-subscriber = { workspace = true }
 insta = { workspace = true, features = ["filters", "ron"] }
 regex = { workspace = true }

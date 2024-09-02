@@ -2245,6 +2245,19 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d2fabcfbdc87f4758337ca535fb41a6d701b65693ce38287d856d1674551ec9b"
 
 [[package]]
+name = "gloo-utils"
+version = "0.1.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "037fcb07216cb3a30f7292bd0176b050b7b9a052ba830ef7d5d65f6dc64ba58e"
+dependencies = [
+ "js-sys",
+ "serde",
+ "serde_json",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "graph"
 version = "0.0.0"
 dependencies = [
@@ -2441,6 +2454,7 @@ dependencies = [
  "codec",
  "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures",
+ "futures-core",
  "futures-io",
  "futures-sink",
  "futures-util",
@@ -2475,6 +2489,7 @@ dependencies = [
  "bytes",
  "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures",
+ "futures-core",
  "harpc-net",
  "harpc-types",
  "harpc-wire-protocol",
@@ -7087,7 +7102,11 @@ version = "0.4.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d6b26cf145f2f3b9ff84e182c448eaf05468e247f148cf3d2a7d67d78ff023a0"
 dependencies = [
+ "gloo-utils",
+ "serde",
+ "serde_json",
  "tsify-macros",
+ "wasm-bindgen",
 ]
 
 [[package]]

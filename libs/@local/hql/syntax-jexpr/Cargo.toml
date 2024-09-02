@@ -28,7 +28,7 @@ json-number = { workspace = true }
 logos = { workspace = true, features = ["export_derive"] }
 thiserror = { workspace = true }
 unicode-ident = { workspace = true }
-winnow = { workspace = true }
+winnow = { workspace = true, features = ["std"] }
 
 [lints]
 workspace = true

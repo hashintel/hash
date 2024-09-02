@@ -35,7 +35,7 @@ codec = { workspace = true, features = ["serde"] }
 regex = { workspace = true, features = ["std"] }
 serde = { workspace = true, features = ["derive", "rc"] }
 thiserror = { workspace = true }
-tsify = { workspace = true }
+tsify = { workspace = true, features = ["json"] }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt"] }
