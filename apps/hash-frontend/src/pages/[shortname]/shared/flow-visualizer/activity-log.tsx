@@ -310,7 +310,13 @@ const LogDetail = ({
 
       return (
         <Stack direction="row" alignItems="center" gap={0.5}>
-          {isPersistedEntity ? "Persisted" : "Proposed"} entity{" "}
+          {`${
+            isPersistedEntity
+              ? "Persisted"
+              : log.isUpdateToExistingProposal
+                ? "Updated proposed"
+                : "Proposed"
+          } entity `}
           <strong style={ellipsisOverflow}>{entityLabel}</strong>
         </Stack>
       );
