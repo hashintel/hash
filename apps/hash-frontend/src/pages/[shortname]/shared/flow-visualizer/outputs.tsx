@@ -644,6 +644,11 @@ export const Outputs = ({
         {visibleSection === "entities" &&
           (entityDisplay === "table" ? (
             <EntityResultTable
+              dataIsLoading={
+                hasEntities &&
+                !persistedEntitiesSubgraph &&
+                !proposedEntitiesTypesSubgraph
+              }
               onEntityClick={onEntityClick}
               onEntityTypeClick={onEntityTypeClick}
               persistedEntities={persistedEntities}

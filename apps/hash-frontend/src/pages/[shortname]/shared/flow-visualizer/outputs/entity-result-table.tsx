@@ -356,6 +356,7 @@ const createRowContent: CreateVirtualizedRowContentFn<
 );
 
 type EntityResultTableProps = {
+  dataIsLoading: boolean;
   onEntityClick: (entityId: EntityId) => void;
   onEntityTypeClick: (entityTypeId: VersionedUrl) => void;
   persistedEntities: PersistedEntity[];
@@ -366,6 +367,7 @@ type EntityResultTableProps = {
 
 export const EntityResultTable = memo(
   ({
+    dataIsLoading,
     onEntityClick,
     onEntityTypeClick,
     persistedEntities,
@@ -378,7 +380,18 @@ export const EntityResultTable = memo(
       direction: "asc",
     });
 
-    const hasData = !!(persistedEntities.length || proposedEntities.length);
+    const hasEntities = !!(persistedEntities.length || proposedEntities.length);
+
+    const outputContainerRef = useRef<HTMLDivElement>(null);
+    const [outputContainerHeight, setOutputContainerHeight] = useState(400);
+    useLayoutEffect(() => {
+      if (
+        outputContainerRef.current &&
+        outputContainerRef.current.clientHeight !== outputContainerHeight
+      ) {
+        setOutputContainerHeight(outputContainerRef.current.clientHeight);
+      }
+    }, [outputContainerHeight]);
 
     const {
       filterDefinitions,
@@ -861,7 +874,8 @@ export const EntityResultTable = memo(
 
     return (
       <OutputContainer
-        noBorder={hasData}
+        noBorder={hasEntities}
+        ref={outputContainerRef}
         sx={{
           flex: 1,
           minWidth: 400,
@@ -873,18 +887,25 @@ export const EntityResultTable = memo(
           },
         }}
       >
-        {hasData ? (
-          <VirtualizedTable
-            columns={columns}
-            createRowContent={createRowContent}
-            filterDefinitions={filterDefinitions}
-            filterValues={filterValues}
-            setFilterValues={setFilterValues}
-            fixedColumns={3}
-            rows={rows}
-            sort={sort}
-            setSort={setSort}
-          />
+        {hasEntities ? (
+          dataIsLoading ? (
+            <TableSkeleton
+              cellHeight={43}
+              tableHeight={outputContainerHeight}
+            />
+          ) : (
+            <VirtualizedTable
+              columns={columns}
+              createRowContent={createRowContent}
+              filterDefinitions={filterDefinitions}
+              filterValues={filterValues}
+              setFilterValues={setFilterValues}
+              fixedColumns={3}
+              rows={rows}
+              sort={sort}
+              setSort={setSort}
+            />
+          )
         ) : (
           <EmptyOutputBox
             Icon={outputIcons.table}

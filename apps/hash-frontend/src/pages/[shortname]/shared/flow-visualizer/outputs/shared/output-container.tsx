@@ -1,15 +1,19 @@
 import type { SxProps, Theme } from "@mui/material";
 import { Box } from "@mui/material";
 import type { PropsWithChildren } from "react";
+import { forwardRef } from "react";
 
 import { flowSectionBorderRadius } from "../../shared/styles";
 
-export const OutputContainer = ({
-  children,
-  noBorder,
-  sx,
-}: PropsWithChildren<{ noBorder?: boolean; sx?: SxProps<Theme> }>) => (
+export const OutputContainer = forwardRef<
+  HTMLDivElement,
+  PropsWithChildren<{
+    noBorder?: boolean;
+    sx?: SxProps<Theme>;
+  }>
+>(({ children, noBorder, sx }, ref) => (
   <Box
+    ref={ref}
     sx={[
       {
         background: ({ palette }) => palette.common.white,
@@ -26,4 +30,4 @@ export const OutputContainer = ({
   >
     {children}
   </Box>
-);
+));
