@@ -26,7 +26,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, TableCell, Typography } from "@mui/material";
-import { memo, useMemo, useRef, useState } from "react";
+import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type {
   GetEntitySubgraphQuery,
@@ -61,6 +61,7 @@ import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
 import { SourcesPopover } from "./shared/sources-popover";
+import { TableSkeleton } from "./shared/table-skeleton";
 
 type FieldId = "status" | "claim" | "subject" | "object";
 
@@ -499,29 +500,26 @@ export const ClaimsTable = memo(
         filterDefs.status.initialValue.add(status);
         defaultFilterValues.status.add(status);
 
-        const subjectValue = subjectEntityId ?? null;
-        const subjectOptionsKey = subjectEntityId ?? missingValueString;
-
-        filterDefs.subject.options[subjectOptionsKey] ??= {
+        filterDefs.subject.options[subjectText] ??= {
           label: subjectText,
           count: 0,
-          value: subjectValue,
+          value: subjectText,
         };
-        filterDefs.subject.options[subjectOptionsKey].count++;
-        filterDefs.subject.initialValue.add(subjectValue as EntityId);
-        defaultFilterValues.subject.add(subjectValue as EntityId);
+        filterDefs.subject.options[subjectText].count++;
+        filterDefs.subject.initialValue.add(subjectText);
+        defaultFilterValues.subject.add(subjectText);
 
-        const objectValue = objectEntityId ?? null;
-        const objectOptionsKey = objectEntityId ?? missingValueString;
+        const objectValue = objectText ?? null;
+        const objectOptionsKey = objectValue ?? missingValueString;
 
         filterDefs.object.options[objectOptionsKey] ??= {
-          label: objectText ?? "None",
+          label: objectValue ?? "None",
           count: 0,
           value: objectValue,
         };
         filterDefs.object.options[objectOptionsKey].count++;
-        filterDefs.object.initialValue.add(objectValue as EntityId);
-        defaultFilterValues.object.add(objectValue as EntityId);
+        filterDefs.object.initialValue.add(objectValue as unknown as string);
+        defaultFilterValues.object.add(objectValue as unknown as string);
 
         rowData.push({
           id: claim.metadata.recordId.entityId,
@@ -568,7 +566,7 @@ export const ClaimsTable = memo(
               if (fieldId === "status") {
                 rowValue = row.data.status;
               } else {
-                rowValue = row.data[fieldId]?.entityId ?? null;
+                rowValue = row.data[fieldId]?.name ?? null;
               }
 
               if (
@@ -602,11 +600,23 @@ export const ClaimsTable = memo(
       [filterValues, sort, unsortedRows],
     );
 
+    const outputContainerRef = useRef<HTMLDivElement>(null);
+    const [outputContainerHeight, setOutputContainerHeight] = useState(400);
+    useLayoutEffect(() => {
+      if (
+        outputContainerRef.current &&
+        outputContainerRef.current.clientHeight !== outputContainerHeight
+      ) {
+        setOutputContainerHeight(outputContainerRef.current.clientHeight);
+      }
+    }, [outputContainerHeight]);
+
     const hasData = !!unsortedRows.length;
 
     return (
       <OutputContainer
         noBorder={hasData}
+        ref={outputContainerRef}
         sx={{
           flex: 1,
           minWidth: 400,
@@ -626,13 +636,13 @@ export const ClaimsTable = memo(
             sort={sort}
             setSort={setSort}
           />
+        ) : claimsDataLoading ? (
+          <TableSkeleton cellHeight={43} tableHeight={outputContainerHeight} />
         ) : (
           <EmptyOutputBox
             Icon={outputIcons.table}
             label={
-              claimsDataLoading
-                ? "Checking for claims associated with flow..."
-                : "Claims about entities discovered by this flow will appear in a table here"
+              "Claims about entities discovered by this flow will appear in a table here"
             }
           />
         )}

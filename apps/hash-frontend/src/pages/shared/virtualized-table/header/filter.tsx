@@ -256,7 +256,7 @@ const FilterPopover = <Filter extends VirtualizedTableFilterDefinition>({
 
 export type VirtualizedTableFilterDefinitionsByFieldId<
   Id extends string = string,
-> = Record<Id, VirtualizedTableFilterDefinition>;
+> = Record<Id, VirtualizedTableFilterDefinition | undefined>;
 
 export type VirtualizedTableFilterValuesByFieldId<Id extends string = string> =
   Record<Id, VirtualizedTableFilterValue>;
@@ -304,6 +304,10 @@ export const FilterButton = <
   const buttonRef = useRef<HTMLButtonElement>(null);
 
   const [showFilterPopover, setShowFilterPopover] = useState(false);
+
+  if (!filterDefinition) {
+    return null;
+  }
 
   const hasOnlyOneOption = Object.keys(filterDefinition.options).length < 2;
 
