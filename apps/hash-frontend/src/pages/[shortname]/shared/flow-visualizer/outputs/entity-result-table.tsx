@@ -25,7 +25,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, TableCell } from "@mui/material";
-import { memo, useMemo, useState } from "react";
+import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { ValueChip } from "../../../../shared/value-chip";
 import type {
@@ -37,6 +37,7 @@ import { VirtualizedTable } from "../../../../shared/virtualized-table";
 import type {
   VirtualizedTableFilterDefinition,
   VirtualizedTableFilterDefinitionsByFieldId,
+  VirtualizedTableFilterValue,
   VirtualizedTableFilterValuesByFieldId,
 } from "../../../../shared/virtualized-table/header/filter";
 import {
@@ -56,8 +57,14 @@ import {
 import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
+import { TableSkeleton } from "./shared/table-skeleton";
 
-const fixedFieldIds = ["status", "entityTypeId", "entityLabel"] as const;
+const fixedFieldIds = [
+  "relevance",
+  "status",
+  "entityTypeId",
+  "entityLabel",
+] as const;
 
 type FixedFieldId = (typeof fixedFieldIds)[number];
 
@@ -87,10 +94,15 @@ type EntityTypeWithDependenciesByEntityTypeId = Record<
  * This has to be dynamic as the properties and link columns will depend on the types of entities discovered.
  * For each, we also need to know which properties and links apply to which types of entities.
  */
-const generateColumns = (
-  entityTypesRecord: EntityTypeWithDependenciesByEntityTypeId,
-  subgraph?: Subgraph,
-): VirtualizedTableColumn<FieldId, EntityColumnMetadata>[] => {
+const generateColumns = ({
+  entityTypesRecord,
+  hasRelevantEntities,
+  subgraph,
+}: {
+  entityTypesRecord: EntityTypeWithDependenciesByEntityTypeId;
+  hasRelevantEntities: boolean;
+  subgraph?: Subgraph;
+}): VirtualizedTableColumn<FieldId, EntityColumnMetadata>[] => {
   const propertyTypesByVersionedUrl: Record<
     VersionedUrl,
     PropertyType & { appliesToEntityTypeIds: VersionedUrl[] }
@@ -130,6 +142,16 @@ const generateColumns = (
   }
 
   return [
+    ...(hasRelevantEntities
+      ? [
+          {
+            label: "Relevance",
+            id: "relevance",
+            sortable: true,
+            width: 120,
+          } as const,
+        ]
+      : []),
     {
       label: "Status",
       id: "status",
@@ -189,6 +211,7 @@ type EntityResultRow = {
   persistedEntity?: Entity;
   properties: PropertyObject;
   propertiesMetadata: PropertyMetadataObject;
+  relevance: "Yes" | "No";
   researchOngoing: boolean;
   status: "Proposed" | "Created" | "Updated";
 };
@@ -203,9 +226,40 @@ const TableRow = memo(
   }) => {
     const entityTypeTitle = row.entityType.title;
 
+    const hasRelevanceColumn =
+      columns[0]?.id === ("relevance" satisfies FixedFieldId);
+
+    const firstColumnLeftPosition = 0;
+    const secondColumnLeftPosition = columns[0]!.width as number;
+    const thirdColumnLeftPosition =
+      secondColumnLeftPosition + (columns[1]!.width as number);
+    const fourthColumnLeftPosition =
+      thirdColumnLeftPosition + (columns[2]!.width as number);
+
     return (
       <>
-        <TableCell sx={{ ...cellSx, position: "sticky", left: 0, zIndex: 1 }}>
+        {hasRelevanceColumn && (
+          <TableCell
+            sx={{
+              ...cellSx,
+              position: "sticky",
+              left: firstColumnLeftPosition,
+              zIndex: 1,
+            }}
+          >
+            {row.relevance}
+          </TableCell>
+        )}
+        <TableCell
+          sx={{
+            ...cellSx,
+            position: "sticky",
+            left: hasRelevanceColumn
+              ? secondColumnLeftPosition
+              : firstColumnLeftPosition,
+            zIndex: 1,
+          }}
+        >
           {row.status}
         </TableCell>
         <TableCell
@@ -213,7 +267,9 @@ const TableRow = memo(
             ...cellSx,
             position: "sticky",
             zIndex: 1,
-            left: columns[0]!.width,
+            left: hasRelevanceColumn
+              ? thirdColumnLeftPosition
+              : secondColumnLeftPosition,
             px: 0.5,
           }}
         >
@@ -238,7 +294,9 @@ const TableRow = memo(
           sx={{
             ...cellSx,
             position: "sticky",
-            left: (columns[0]!.width as number) + (columns[1]!.width as number),
+            left: hasRelevanceColumn
+              ? fourthColumnLeftPosition
+              : thirdColumnLeftPosition,
             zIndex: 1,
           }}
         >
@@ -363,6 +421,7 @@ type EntityResultTableProps = {
   persistedEntitiesSubgraph?: Subgraph<EntityRootType>;
   proposedEntities: ProposedEntityOutput[];
   proposedEntitiesTypesSubgraph?: Subgraph;
+  relevantEntityIds: EntityId[];
 };
 
 export const EntityResultTable = memo(
@@ -374,6 +433,7 @@ export const EntityResultTable = memo(
     persistedEntitiesSubgraph,
     proposedEntities,
     proposedEntitiesTypesSubgraph,
+    relevantEntityIds,
   }: EntityResultTableProps) => {
     const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
       fieldId: "entityLabel",
@@ -407,7 +467,19 @@ export const EntityResultTable = memo(
       const rowData: VirtualizedTableRow<EntityResultRow>[] = [];
       const entityTypesRecord: EntityTypeWithDependenciesByEntityTypeId = {};
 
-      const filterDefs = {
+      const staticFilterDefs = {
+        relevance: {
+          header: "Relevance",
+          initialValue: "All",
+          options: {
+            All: {
+              count: 0,
+              value: "All",
+              label: "All",
+            },
+          } as VirtualizedTableFilterDefinition["options"],
+          type: "radio-group",
+        },
         status: {
           header: "Status",
           initialValue: new Set<string>(),
@@ -426,13 +498,12 @@ export const EntityResultTable = memo(
           options: {} as VirtualizedTableFilterDefinition["options"],
           type: "checkboxes",
         },
-      } satisfies VirtualizedTableFilterDefinitionsByFieldId<FieldId>;
+      } satisfies VirtualizedTableFilterDefinitionsByFieldId<
+        Exclude<FieldId, VersionedUrl>
+      >;
 
-      const defaultFilterValues = {
-        status: new Set<string>(),
-        entityTypeId: new Set<string>(),
-        entityLabel: new Set<string>(),
-      };
+      const dynamicFilterDefs: VirtualizedTableFilterDefinitionsByFieldId<VersionedUrl> =
+        {};
 
       const entityRecords = persistedEntities.length
         ? persistedEntities
@@ -637,48 +708,56 @@ export const EntityResultTable = memo(
           }
         }
 
+        const relevance = relevantEntityIds.includes(entityId) ? "Yes" : "No";
+
         /**
          * Account for the entity's values in the filters
          */
-        filterDefs.status.options[status] ??= {
+        staticFilterDefs.relevance.options.All!.count++;
+
+        if (relevance === "Yes") {
+          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+          staticFilterDefs.relevance.options.Yes ??= {
+            label: "Yes",
+            count: 0,
+            value: "Yes",
+          };
+          staticFilterDefs.relevance.options.Yes.count++;
+        }
+
+        staticFilterDefs.status.options[status] ??= {
           label: status,
           count: 0,
           value: status,
         };
-        filterDefs.status.options[status].count++;
-        filterDefs.status.initialValue.add(status);
-        defaultFilterValues.status.add(status);
+        staticFilterDefs.status.options[status].count++;
+        staticFilterDefs.status.initialValue.add(status);
 
-        filterDefs.entityTypeId.options[entityTypeId] ??= {
+        staticFilterDefs.entityTypeId.options[entityTypeId] ??= {
           label: entityType.title,
           count: 0,
           value: entityTypeId,
         };
-        filterDefs.entityTypeId.options[entityTypeId].count++;
-        filterDefs.entityTypeId.initialValue.add(entityTypeId);
-        defaultFilterValues.entityTypeId.add(entityTypeId);
+        staticFilterDefs.entityTypeId.options[entityTypeId].count++;
+        staticFilterDefs.entityTypeId.initialValue.add(entityTypeId);
 
-        filterDefs.entityLabel.options[entityLabel] ??= {
+        staticFilterDefs.entityLabel.options[entityLabel] ??= {
           label: entityLabel,
           count: 0,
           value: entityLabel,
         };
-        filterDefs.entityLabel.options[entityLabel].count++;
-        filterDefs.entityLabel.initialValue.add(entityLabel);
-        defaultFilterValues.entityLabel.add(entityLabel);
+        staticFilterDefs.entityLabel.options[entityLabel].count++;
+        staticFilterDefs.entityLabel.initialValue.add(entityLabel);
 
         for (const linkType of entityTypesRecord[entityTypeId]!.linkTypes) {
-          const linkTypeId = linkType.schema.$id as keyof typeof filterDefs;
+          const linkTypeId = linkType.schema.$id;
 
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          filterDefs[linkTypeId] ??= {
+          dynamicFilterDefs[linkTypeId] ??= {
             header: linkType.schema.title,
-            initialValue: new Set<string>(),
+            initialValue: new Set<string | null>(),
             options: {},
             type: "checkboxes",
-          };
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          defaultFilterValues[linkTypeId] ??= new Set<string>();
+          } as const;
 
           const linkedEntities =
             outgoingLinksByLinkTypeId[linkType.schema.$id] ?? [];
@@ -691,48 +770,44 @@ export const EntityResultTable = memo(
               targetEntityId,
               targetEntityLabel,
             } of linkedEntities) {
-              filterDefs[linkTypeId].options[targetEntityId] ??= {
+              dynamicFilterDefs[linkTypeId].options[targetEntityId] ??= {
                 label: targetEntityLabel,
                 count: 0,
                 value: targetEntityId,
               };
-              filterDefs[linkTypeId].options[targetEntityId].count++;
-              filterDefs[linkTypeId].initialValue.add(targetEntityId);
-
-              defaultFilterValues[linkTypeId].add(targetEntityId);
+              dynamicFilterDefs[linkTypeId].options[targetEntityId].count++;
+              (
+                dynamicFilterDefs[linkTypeId].initialValue as Set<string | null>
+              ).add(targetEntityId);
             }
           } else {
             /**
              * If we have no targets for this link, we need to add the 'None' filter and increase its count.
              */
-            filterDefs[linkTypeId].options[missingValueString] ??= {
+            dynamicFilterDefs[linkTypeId].options[missingValueString] ??= {
               label: "None",
               count: 0,
               value: null,
             };
-            filterDefs[linkTypeId].options[missingValueString]!.count++;
-            filterDefs[linkTypeId].initialValue.add(null as unknown as string);
-
-            defaultFilterValues[linkTypeId].add(null as unknown as string);
+            dynamicFilterDefs[linkTypeId].options[missingValueString]!.count++;
+            (
+              dynamicFilterDefs[linkTypeId].initialValue as Set<string | null>
+            ).add(null);
           }
         }
 
         for (const propertyType of entityTypesRecord[entityTypeId]!
           .propertyTypes) {
-          const propertyTypeId = propertyType.schema
-            .$id as keyof typeof filterDefs;
+          const propertyTypeId = propertyType.schema.$id;
 
-          const baseUrl = extractBaseUrl(propertyTypeId as VersionedUrl);
+          const baseUrl = extractBaseUrl(propertyTypeId);
 
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          filterDefs[propertyTypeId] ??= {
+          dynamicFilterDefs[propertyTypeId] ??= {
             header: propertyType.schema.title,
             initialValue: new Set<string>(),
             options: {},
             type: "checkboxes",
           };
-          // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-          defaultFilterValues[propertyTypeId] ??= new Set<string>();
 
           const value =
             entity.properties[baseUrl] === undefined
@@ -741,16 +816,16 @@ export const EntityResultTable = memo(
 
           const optionsKey = value ?? missingValueString;
 
-          filterDefs[propertyTypeId].options[optionsKey] ??= {
+          dynamicFilterDefs[propertyTypeId].options[optionsKey] ??= {
             label: value ?? "Missing",
             count: 0,
             value,
           };
 
-          filterDefs[propertyTypeId].options[optionsKey].count++;
-          filterDefs[propertyTypeId].initialValue.add(value as string);
-
-          defaultFilterValues[propertyTypeId].add(value as string);
+          dynamicFilterDefs[propertyTypeId].options[optionsKey].count++;
+          (
+            dynamicFilterDefs[propertyTypeId].initialValue as Set<string | null>
+          ).add(value);
         }
 
         rowData.push({
@@ -769,6 +844,7 @@ export const EntityResultTable = memo(
               "propertiesMetadata" in entity
                 ? entity.propertiesMetadata
                 : entity.propertyMetadata,
+            relevance,
             researchOngoing:
               "researchOngoing" in record && record.researchOngoing,
             status,
@@ -776,10 +852,23 @@ export const EntityResultTable = memo(
         });
       }
 
+      const filterDefs = {
+        ...staticFilterDefs,
+        ...dynamicFilterDefs,
+      };
+
       return {
         entityTypesById: entityTypesRecord,
         filterDefinitions: filterDefs,
-        initialFilterValues: defaultFilterValues,
+        initialFilterValues: Object.fromEntries(
+          typedEntries(filterDefs).map(
+            ([columnId, filterDef]) =>
+              [columnId, filterDef.initialValue] satisfies [
+                FieldId,
+                VirtualizedTableFilterValue,
+              ],
+          ),
+        ) as VirtualizedTableFilterValuesByFieldId<FieldId>,
         unsortedRows: rowData,
       };
     }, [
@@ -789,6 +878,7 @@ export const EntityResultTable = memo(
       persistedEntitiesSubgraph,
       proposedEntities,
       proposedEntitiesTypesSubgraph,
+      relevantEntityIds,
     ]);
 
     const [filterValues, setFilterValues] = useVirtualizedTableFilterState({
@@ -802,7 +892,12 @@ export const EntityResultTable = memo(
           .filter((row) => {
             for (const [fieldId, currentValue] of typedEntries(filterValues)) {
               if (isFixedField(fieldId)) {
-                if (
+                const valueToCheck = row.data[fieldId];
+                if (fieldId === "relevance") {
+                  if (currentValue === "Yes" && valueToCheck !== "Yes") {
+                    return false;
+                  }
+                } else if (
                   !isValueIncludedInFilter({
                     valueToCheck: row.data[fieldId],
                     currentValue,
@@ -886,12 +981,14 @@ export const EntityResultTable = memo(
 
     const columns = useMemo(
       () =>
-        generateColumns(
-          entityTypesById,
-          persistedEntities.length === 0
-            ? proposedEntitiesTypesSubgraph
-            : persistedEntitiesSubgraph,
-        ),
+        generateColumns({
+          entityTypesRecord: entityTypesById,
+          hasRelevantEntities: relevantEntityIds.length > 0,
+          subgraph:
+            persistedEntities.length === 0
+              ? proposedEntitiesTypesSubgraph
+              : persistedEntitiesSubgraph,
+        }),
       [
         entityTypesById,
         proposedEntitiesTypesSubgraph,

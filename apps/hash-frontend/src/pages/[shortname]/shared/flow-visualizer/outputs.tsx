@@ -292,11 +292,13 @@ type ResultSlideOver =
 type OutputsProps = {
   persistedEntities: PersistedEntity[];
   proposedEntities: ProposedEntityOutput[];
+  relevantEntityIds: EntityId[];
 };
 
 export const Outputs = ({
   persistedEntities,
   proposedEntities,
+  relevantEntityIds,
 }: OutputsProps) => {
   const { selectedFlowRun } = useFlowRunsContext();
 
@@ -655,6 +657,7 @@ export const Outputs = ({
               persistedEntitiesSubgraph={persistedEntitiesSubgraph}
               proposedEntities={proposedEntities}
               proposedEntitiesTypesSubgraph={proposedEntitiesTypesSubgraph}
+              relevantEntityIds={relevantEntityIds}
             />
           ) : (
             <EntityResultGraph
