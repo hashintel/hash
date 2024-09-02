@@ -2,7 +2,7 @@ import { useQuery } from "@apollo/client";
 import { buildSubgraph } from "@blockprotocol/graph/stdlib";
 import type { VersionedUrl } from "@blockprotocol/type-system";
 import type { EntityForGraphChart } from "@hashintel/block-design-system";
-import { IconButton } from "@hashintel/design-system";
+import { CheckRegularIcon, IconButton } from "@hashintel/design-system";
 import type {
   Entity as GraphApiEntity,
   Filter,
@@ -28,8 +28,8 @@ import {
   getPropertyTypes,
 } from "@local/hash-subgraph/stdlib";
 import type { SvgIconProps } from "@mui/material";
-import { Box, Stack, Typography } from "@mui/material";
-import type { FunctionComponent, PropsWithChildren } from "react";
+import { Box, Collapse, Stack, Typography } from "@mui/material";
+import type { FunctionComponent, PropsWithChildren, ReactNode } from "react";
 import { useCallback, useMemo, useState } from "react";
 
 import type {
@@ -120,54 +120,113 @@ const SectionTabContainer = ({ children }: PropsWithChildren) => (
 
 const SectionTabButton = ({
   active,
+  additionalControlElements,
+  color,
+  height,
   label,
   Icon,
   onClick,
 }: {
   active: boolean;
+  additionalControlElements?: ReactNode;
+  color: "blue" | "white";
+  height: number;
   label: string;
-  Icon: FunctionComponent<SvgIconProps>;
+  Icon?: FunctionComponent<SvgIconProps>;
   onClick: () => void;
-}) => (
-  <IconButton
-    onClick={onClick}
-    sx={({ palette }) => ({
-      background: active ? palette.common.white : palette.gray[20],
-      borderRadius: 16,
-      px: 1.2,
-      py: 0.8,
-      svg: {
-        fontSize: 14,
-      },
-      "&:hover": {
-        background: active ? palette.common.white : palette.gray[20],
-      },
-      transition: ({ transitions }) => transitions.create("background"),
-    })}
-  >
-    <Icon
-      sx={({ palette }) => ({
-        color: active ? palette.common.black : palette.gray[80],
-        display: "block",
-      })}
-    />
+}) => {
+  const additionalControlsAreDisplayed = additionalControlElements && active;
 
-    <Typography
-      component="span"
-      sx={{
-        color: ({ palette }) =>
-          active ? palette.common.black : palette.gray[80],
-        fontSize: 13,
-        fontWeight: 500,
-        ml: 1,
-        textTransform: "capitalize",
-        transition: ({ transitions }) => transitions.create("color"),
-      }}
+  return (
+    <Stack
+      direction="row"
+      sx={[
+        additionalControlsAreDisplayed
+          ? { background: ({ palette }) => palette.common.white, p: "1.5px" }
+          : {},
+        {
+          borderRadius: 16,
+          height,
+          transition: ({ transitions }) => transitions.create("background"),
+        },
+      ]}
     >
-      {label}
-    </Typography>
-  </IconButton>
-);
+      <IconButton
+        onClick={onClick}
+        sx={({ palette }) => ({
+          background:
+            color === "white"
+              ? active
+                ? palette.common.white
+                : palette.gray[20]
+              : active
+                ? palette.blue[70]
+                : palette.blue[20],
+          borderRadius: 16,
+          px: additionalControlsAreDisplayed ? "10.5px" : "12px",
+          py: 0,
+          svg: {
+            fontSize: 11,
+          },
+          "&:hover": {
+            background: active
+              ? color === "white"
+                ? palette.common.white
+                : palette.blue[70]
+              : palette.gray[20],
+          },
+          transition: ({ transitions }) => transitions.create("background"),
+        })}
+      >
+        {Icon && (
+          <Icon
+            sx={({ palette }) => ({
+              color:
+                color === "white"
+                  ? active
+                    ? palette.common.black
+                    : palette.gray[80]
+                  : active
+                    ? palette.common.white
+                    : palette.blue[70],
+              display: "block",
+              mr: 0.8,
+            })}
+          />
+        )}
+
+        <Typography
+          component="span"
+          sx={{
+            color: ({ palette }) =>
+              color === "white"
+                ? active
+                  ? palette.common.black
+                  : palette.gray[80]
+                : active
+                  ? palette.common.white
+                  : palette.blue[70],
+            fontSize: 13,
+            fontWeight: 500,
+            textTransform: "capitalize",
+            transition: ({ transitions }) => transitions.create("color"),
+          }}
+        >
+          {label}
+        </Typography>
+      </IconButton>
+      {additionalControlElements && (
+        <Collapse
+          orientation="horizontal"
+          in={active}
+          timeout={{ enter: 200, exit: 0 }}
+        >
+          {additionalControlElements}
+        </Collapse>
+      )}
+    </Stack>
+  );
+};
 
 const mockEntityFromProposedEntity = (
   proposedEntity: ProposedEntityOutput,
@@ -233,17 +292,13 @@ type ResultSlideOver =
 type OutputsProps = {
   persistedEntities: PersistedEntity[];
   proposedEntities: ProposedEntityOutput[];
-};
-
-type SectionVisibility = {
-  claims: boolean;
-  deliverables: boolean;
-  entities: boolean;
+  relevantEntityIds: EntityId[];
 };
 
 export const Outputs = ({
   persistedEntities,
   proposedEntities,
+  relevantEntityIds,
 }: OutputsProps) => {
   const { selectedFlowRun } = useFlowRunsContext();
 
@@ -252,6 +307,9 @@ export const Outputs = ({
     goalFlowDefinitionIds.includes(
       selectedFlowRun.flowDefinitionId as EntityUuid,
     );
+
+  const hasEntities =
+    persistedEntities.length > 0 || proposedEntities.length > 0;
 
   const deliverables = useMemo(
     () => getDeliverables(selectedFlowRun?.outputs),
@@ -262,13 +320,9 @@ export const Outputs = ({
     "table",
   );
 
-  const [sectionVisibility, setSectionVisibility] = useState<SectionVisibility>(
-    {
-      claims: hasClaims,
-      entities: !hasClaims,
-      deliverables: false,
-    },
-  );
+  const [visibleSection, setVisibleSection] = useState<
+    "claims" | "entities" | "deliverables"
+  >(hasEntities ? "entities" : "claims");
 
   const [slideOver, setSlideOver] = useState<ResultSlideOver>(null);
 
@@ -538,32 +592,44 @@ export const Outputs = ({
               : (["entities", "deliverables"] as const)
             ).map((section) => (
               <SectionTabButton
+                color="white"
+                height={34}
                 key={section}
-                label={section}
-                active={sectionVisibility[section]}
-                Icon={outputIcons[section]}
-                onClick={() =>
-                  setSectionVisibility({
-                    ...sectionVisibility,
-                    [section]: !sectionVisibility[section],
-                  })
+                additionalControlElements={
+                  section === "entities" ? (
+                    <Stack
+                      direction="row"
+                      alignItems="center"
+                      sx={{
+                        background: ({ palette }) => palette.blue[20],
+                        borderRadius: 16,
+                      }}
+                    >
+                      {(["graph", "table"] as const).map((option) => (
+                        <SectionTabButton
+                          color="blue"
+                          height={30}
+                          key={option}
+                          label={option}
+                          active={entityDisplay === option}
+                          Icon={
+                            entityDisplay === option
+                              ? CheckRegularIcon
+                              : outputIcons[option]
+                          }
+                          onClick={() => setEntityDisplay(option)}
+                        />
+                      ))}
+                    </Stack>
+                  ) : undefined
                 }
+                Icon={outputIcons[section]}
+                label={section}
+                active={section === visibleSection}
+                onClick={() => setVisibleSection(section)}
               />
             ))}
           </SectionTabContainer>
-          {sectionVisibility.entities && (
-            <SectionTabContainer>
-              {(["graph", "table"] as const).map((section) => (
-                <SectionTabButton
-                  key={section}
-                  label={section}
-                  active={entityDisplay === section}
-                  Icon={outputIcons[section]}
-                  onClick={() => setEntityDisplay(section)}
-                />
-              ))}
-            </SectionTabContainer>
-          )}
         </Stack>
       </Box>
       <Stack
@@ -577,15 +643,21 @@ export const Outputs = ({
           zIndex: 2,
         }}
       >
-        {sectionVisibility.entities &&
+        {visibleSection === "entities" &&
           (entityDisplay === "table" ? (
             <EntityResultTable
+              dataIsLoading={
+                hasEntities &&
+                !persistedEntitiesSubgraph &&
+                !proposedEntitiesTypesSubgraph
+              }
               onEntityClick={onEntityClick}
               onEntityTypeClick={onEntityTypeClick}
               persistedEntities={persistedEntities}
               persistedEntitiesSubgraph={persistedEntitiesSubgraph}
               proposedEntities={proposedEntities}
               proposedEntitiesTypesSubgraph={proposedEntitiesTypesSubgraph}
+              relevantEntityIds={relevantEntityIds}
             />
           ) : (
             <EntityResultGraph
@@ -597,13 +669,13 @@ export const Outputs = ({
               }
             />
           ))}
-        {sectionVisibility.claims && (
+        {visibleSection === "claims" && (
           <ClaimsTable
             onEntityClick={onEntityClick}
             proposedEntities={proposedEntities}
           />
         )}
-        {sectionVisibility.deliverables && (
+        {visibleSection === "deliverables" && (
           <Deliverables deliverables={deliverables} />
         )}
       </Stack>

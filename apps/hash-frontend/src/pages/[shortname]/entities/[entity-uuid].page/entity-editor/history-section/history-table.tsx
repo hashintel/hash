@@ -18,13 +18,13 @@ import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
   VirtualizedTableRow,
-  VirtualizedTableSort,
 } from "../../../../../shared/virtualized-table";
 import {
   defaultCellSx,
-  headerHeight,
   VirtualizedTable,
 } from "../../../../../shared/virtualized-table";
+import { headerHeight } from "../../../../../shared/virtualized-table/header";
+import type { VirtualizedTableSort } from "../../../../../shared/virtualized-table/header/sort";
 import { Provenance } from "./history-table/provenance";
 import { EventDetail } from "./history-table/shared/event-detail";
 import type { HistoryEvent } from "./shared/types";
@@ -260,7 +260,7 @@ export const HistoryTable = ({
   subgraph: Subgraph;
 }) => {
   const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
-    field: "time",
+    fieldId: "time",
     direction: "desc",
   });
 
@@ -269,7 +269,7 @@ export const HistoryTable = ({
 
     return events
       .sort((a, b) => {
-        if (sort.field === "time") {
+        if (sort.fieldId === "time") {
           if (sort.direction === "asc") {
             if (a.timestamp === b.timestamp) {
               return a.number.localeCompare(b.number);

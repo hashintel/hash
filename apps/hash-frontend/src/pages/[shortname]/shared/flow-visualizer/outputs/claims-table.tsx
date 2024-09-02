@@ -1,5 +1,6 @@
 import { useQuery } from "@apollo/client";
 import { IconButton } from "@hashintel/design-system";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { SourceProvenance } from "@local/hash-graph-client/api";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
@@ -25,7 +26,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import type { SxProps, Theme } from "@mui/material";
 import { Box, Stack, TableCell, Typography } from "@mui/material";
-import { memo, useMemo, useRef, useState } from "react";
+import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import type {
   GetEntitySubgraphQuery,
@@ -39,17 +40,28 @@ import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
   VirtualizedTableRow,
-  VirtualizedTableSort,
 } from "../../../../shared/virtualized-table";
 import {
   defaultCellSx,
   VirtualizedTable,
 } from "../../../../shared/virtualized-table";
+import type {
+  VirtualizedTableFilterDefinition,
+  VirtualizedTableFilterDefinitionsByFieldId,
+  VirtualizedTableFilterValuesByFieldId,
+} from "../../../../shared/virtualized-table/header/filter";
+import {
+  isValueIncludedInFilter,
+  missingValueString,
+} from "../../../../shared/virtualized-table/header/filter";
+import type { VirtualizedTableSort } from "../../../../shared/virtualized-table/header/sort";
+import { useVirtualizedTableFilterState } from "../../../../shared/virtualized-table/use-filter-state";
 import type { ProposedEntityOutput } from "../shared/types";
 import { EmptyOutputBox } from "./shared/empty-output-box";
 import { outputIcons } from "./shared/icons";
 import { OutputContainer } from "./shared/output-container";
 import { SourcesPopover } from "./shared/sources-popover";
+import { TableSkeleton } from "./shared/table-skeleton";
 
 type FieldId = "status" | "claim" | "subject" | "object";
 
@@ -58,7 +70,7 @@ const columns: VirtualizedTableColumn<FieldId>[] = [
     label: "Status",
     id: "status",
     sortable: true,
-    width: 150,
+    width: 120,
   },
   {
     label: "Claim",
@@ -67,16 +79,16 @@ const columns: VirtualizedTableColumn<FieldId>[] = [
     width: 700,
   },
   {
-    label: "Subject of claim",
+    label: "Subject",
     id: "subject",
     sortable: true,
-    width: 160,
+    width: 170,
   },
   {
     label: "Relevant value",
     id: "object",
     sortable: true,
-    width: 160,
+    width: 170,
   },
 ];
 
@@ -84,15 +96,15 @@ type ClaimResultRow = {
   claim: string;
   subject: {
     name: string;
-    entityId?: EntityId;
+    entityId: EntityId | null;
   };
-  object?: {
+  object: {
     name: string;
-    entityId?: EntityId;
-  };
+    entityId: EntityId | null;
+  } | null;
   onEntityClick: (entityId: EntityId) => void;
   sources: SourceProvenance[];
-  status: "Processing claim" | "Processed";
+  status: "Processing" | "Processed";
 };
 
 const typographySx = {
@@ -172,11 +184,9 @@ const TableRow = memo(({ row }: { row: ClaimResultRow }) => {
         sx={({ palette }) => ({
           ...cellSx,
           background:
-            status === "Processing claim" ? palette.blue[15] : palette.gray[20],
+            status === "Processing" ? palette.blue[15] : palette.gray[20],
           color:
-            status === "Processing claim"
-              ? palette.blue[70]
-              : palette.common.black,
+            status === "Processing" ? palette.blue[70] : palette.common.black,
         })}
       >
         <Stack direction="row" alignItems="center">
@@ -186,9 +196,7 @@ const TableRow = memo(({ row }: { row: ClaimResultRow }) => {
             sx={{
               borderRadius: "50%",
               background: ({ palette }) =>
-                status === "Processing claim"
-                  ? palette.blue[70]
-                  : palette.green[80],
+                status === "Processing" ? palette.blue[70] : palette.green[80],
               display: "inline-block",
               minHeight: 6,
               minWidth: 6,
@@ -288,7 +296,7 @@ type ClaimsTableProps = {
 export const ClaimsTable = memo(
   ({ onEntityClick, proposedEntities }: ClaimsTableProps) => {
     const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
-      field: "subject",
+      fieldId: "subject",
       direction: "asc",
     });
 
@@ -341,15 +349,52 @@ export const ClaimsTable = memo(
     });
 
     const {
-      rows,
+      filterDefinitions,
+      initialFilterValues,
+      unsortedRows,
     }: {
-      rows: VirtualizedTableRow<ClaimResultRow>[];
+      filterDefinitions?:
+        | VirtualizedTableFilterDefinitionsByFieldId<Exclude<FieldId, "claim">>
+        | undefined;
+      initialFilterValues?:
+        | VirtualizedTableFilterValuesByFieldId<Exclude<FieldId, "claim">>
+        | undefined;
+      unsortedRows: VirtualizedTableRow<ClaimResultRow>[];
     } = useMemo(() => {
       const rowData: VirtualizedTableRow<ClaimResultRow>[] = [];
 
       if (!claimsData) {
-        return { rows: rowData };
+        return { filters: undefined, unsortedRows: rowData };
       }
+
+      const filterDefs = {
+        status: {
+          header: "Status",
+          initialValue: new Set<string>(),
+          options: {} as VirtualizedTableFilterDefinition["options"],
+          type: "checkboxes",
+        },
+        subject: {
+          header: "Subject",
+          initialValue: new Set<string>(),
+          options: {} as VirtualizedTableFilterDefinition["options"],
+          type: "checkboxes",
+        },
+        object: {
+          header: "Relevant value",
+          initialValue: new Set<string>(),
+          options: {} as VirtualizedTableFilterDefinition["options"],
+          type: "checkboxes",
+        },
+      } satisfies VirtualizedTableFilterDefinitionsByFieldId<
+        Exclude<FieldId, "claim">
+      >;
+
+      const defaultFilterValues = {
+        status: new Set<string>(),
+        subject: new Set<string>(),
+        object: new Set<string>(),
+      };
 
       const claimsSubgraph = deserializeSubgraph<EntityRootType<Claim>>(
         claimsData.getEntitySubgraph.subgraph,
@@ -441,51 +486,137 @@ export const ClaimsTable = memo(
           }
         }
 
+        const status = subjectEntityId ? "Processed" : "Processing";
+
+        /**
+         * Account for the claim's values in the filters
+         */
+        filterDefs.status.options[status] ??= {
+          label: status,
+          count: 0,
+          value: status,
+        };
+        filterDefs.status.options[status].count++;
+        filterDefs.status.initialValue.add(status);
+        defaultFilterValues.status.add(status);
+
+        filterDefs.subject.options[subjectText] ??= {
+          label: subjectText,
+          count: 0,
+          value: subjectText,
+        };
+        filterDefs.subject.options[subjectText].count++;
+        filterDefs.subject.initialValue.add(subjectText);
+        defaultFilterValues.subject.add(subjectText);
+
+        const objectValue = objectText ?? null;
+        const objectOptionsKey = objectValue ?? missingValueString;
+
+        filterDefs.object.options[objectOptionsKey] ??= {
+          label: objectValue ?? "None",
+          count: 0,
+          value: objectValue,
+        };
+        filterDefs.object.options[objectOptionsKey].count++;
+        filterDefs.object.initialValue.add(objectValue as unknown as string);
+        defaultFilterValues.object.add(objectValue as unknown as string);
+
         rowData.push({
           id: claim.metadata.recordId.entityId,
           data: {
             claim: claimText,
             onEntityClick,
             sources: claim.metadata.provenance.edition.sources ?? [],
-            status: subjectEntityId ? "Processed" : "Processing claim",
+            status,
             subject: {
-              entityId: subjectEntityId,
+              entityId: subjectEntityId ?? null,
               name: subjectText,
             },
             object: objectText
-              ? { entityId: objectEntityId, name: objectText }
-              : undefined,
+              ? { entityId: objectEntityId ?? null, name: objectText }
+              : null,
           },
         });
       }
 
-      const sortedRows = rowData.sort((a, b) => {
-        const { field, direction } = sort;
-
-        const base = direction === "asc" ? a : b;
-        const target = direction === "asc" ? b : a;
-
-        if (field === "subject" || field === "object") {
-          return (
-            base.data[field]?.name.localeCompare(
-              target.data[field]?.name ?? "ZZZZZZ",
-            ) ?? (target.data[field] ? 1 : 0)
-          );
-        }
-
-        return base.data[field].localeCompare(target.data[field]);
-      });
-
       return {
-        rows: sortedRows,
+        initialFilterValues: defaultFilterValues,
+        filterDefinitions: filterDefs,
+        unsortedRows: rowData,
       };
-    }, [claimsData, onEntityClick, proposedEntities, sort]);
+    }, [claimsData, onEntityClick, proposedEntities]);
 
-    const hasData = !!rows.length;
+    const [filterValues, setFilterValues] = useVirtualizedTableFilterState({
+      defaultFilterValues: initialFilterValues ?? null,
+      filterDefinitions,
+    });
+
+    const rows = useMemo(
+      () =>
+        unsortedRows
+          .filter((row) => {
+            if (!filterValues) {
+              return true;
+            }
+
+            for (const [fieldId, currentFilterValue] of typedEntries(
+              filterValues,
+            )) {
+              let rowValue: string | EntityId | null = null;
+              if (fieldId === "status") {
+                rowValue = row.data.status;
+              } else {
+                rowValue = row.data[fieldId]?.name ?? null;
+              }
+
+              if (
+                !isValueIncludedInFilter({
+                  valueToCheck: rowValue,
+                  currentValue: currentFilterValue,
+                })
+              ) {
+                return false;
+              }
+            }
+
+            return true;
+          })
+          .sort((a, b) => {
+            const { fieldId, direction } = sort;
+
+            const base = direction === "asc" ? a : b;
+            const target = direction === "asc" ? b : a;
+
+            if (fieldId === "subject" || fieldId === "object") {
+              return (
+                base.data[fieldId]?.name.localeCompare(
+                  target.data[fieldId]?.name ?? "ZZZZZZ",
+                ) ?? (target.data[fieldId] ? 1 : 0)
+              );
+            }
+
+            return base.data[fieldId].localeCompare(target.data[fieldId]);
+          }),
+      [filterValues, sort, unsortedRows],
+    );
+
+    const outputContainerRef = useRef<HTMLDivElement>(null);
+    const [outputContainerHeight, setOutputContainerHeight] = useState(400);
+    useLayoutEffect(() => {
+      if (
+        outputContainerRef.current &&
+        outputContainerRef.current.clientHeight !== outputContainerHeight
+      ) {
+        setOutputContainerHeight(outputContainerRef.current.clientHeight);
+      }
+    }, [outputContainerHeight]);
+
+    const hasData = !!unsortedRows.length;
 
     return (
       <OutputContainer
         noBorder={hasData}
+        ref={outputContainerRef}
         sx={{
           flex: 1,
           minWidth: 400,
@@ -498,18 +629,19 @@ export const ClaimsTable = memo(
           <VirtualizedTable
             columns={columns}
             createRowContent={createRowContent}
+            filterDefinitions={filterDefinitions}
+            filterValues={filterValues ?? undefined}
+            setFilterValues={setFilterValues}
             rows={rows}
             sort={sort}
             setSort={setSort}
           />
+        ) : claimsDataLoading ? (
+          <TableSkeleton cellHeight={43} tableHeight={outputContainerHeight} />
         ) : (
           <EmptyOutputBox
             Icon={outputIcons.table}
-            label={
-              claimsDataLoading
-                ? "Checking for claims associated with flow..."
-                : "Claims about entities discovered by this flow will appear in a table here"
-            }
+            label="Claims about entities discovered by this flow will appear in a table here"
           />
         )}
       </OutputContainer>

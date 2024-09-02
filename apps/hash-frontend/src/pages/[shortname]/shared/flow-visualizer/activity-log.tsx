@@ -41,12 +41,12 @@ import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
   VirtualizedTableRow,
-  VirtualizedTableSort,
 } from "../../../shared/virtualized-table";
 import {
   defaultCellSx,
   VirtualizedTable,
 } from "../../../shared/virtualized-table";
+import type { VirtualizedTableSort } from "../../../shared/virtualized-table/header/sort";
 import { SectionLabel } from "./section-label";
 import { formatTimeTaken } from "./shared/format-time-taken";
 import type { LocalProgressLog, LogDisplay } from "./shared/types";
@@ -310,7 +310,13 @@ const LogDetail = ({
 
       return (
         <Stack direction="row" alignItems="center" gap={0.5}>
-          {isPersistedEntity ? "Persisted" : "Proposed"} entity{" "}
+          {`${
+            isPersistedEntity
+              ? "Persisted"
+              : log.isUpdateToExistingProposal
+                ? "Updated proposed"
+                : "Proposed"
+          } entity `}
           <strong style={ellipsisOverflow}>{entityLabel}</strong>
         </Stack>
       );
@@ -623,7 +629,7 @@ const sortLogs = (
   b: LocalProgressLog,
   sort: VirtualizedTableSort<FieldId>,
 ) => {
-  if (sort.field === "time") {
+  if (sort.fieldId === "time") {
     if (a.recordedAt === b.recordedAt) {
       return 0;
     }
@@ -655,7 +661,7 @@ export const ActivityLog = memo(
     setLogDisplay: (display: LogDisplay) => void;
   }) => {
     const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
-      field: "time",
+      fieldId: "time",
       direction: "asc",
     });
 
