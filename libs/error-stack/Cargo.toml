@@ -29,7 +29,6 @@ tracing-error = { version = "0.2", optional = true, default-features = false }
 
 [dev-dependencies]
 serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
 futures = { workspace = true, default-features = false, features = ["executor"] }
 trybuild = { workspace = true }
 tracing = { workspace = true, features = ["attributes"] }
@@ -91,3 +90,7 @@ doc-scrape-examples = true
 [[test]]
 name = "common"
 test = false
+
+[package.metadata.cargo-shear]
+# Used in doc-tests
+ignored = ["thiserror", "owo-colors"]

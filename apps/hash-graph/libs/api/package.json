@@ -13,7 +13,6 @@
     "@rust/graph": "0.0.0-private",
     "@rust/graph-types": "0.0.0-private",
     "@rust/hash-status": "0.0.0-private",
-    "@rust/hash-tracing": "0.0.0-private",
     "@rust/temporal-client": "0.0.0-private",
     "@rust/temporal-versioning": "0.0.0-private",
     "@rust/validation": "0.0.0-private"
