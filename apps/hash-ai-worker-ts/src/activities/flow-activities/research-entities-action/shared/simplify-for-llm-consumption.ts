@@ -117,13 +117,14 @@ ${Object.entries(properties)
         ? `\n<LinkData>SourceEntityId: ${getIdForLinkEndpoint(sourceEntityId)}\nTargetEntityId: ${getIdForLinkEndpoint(targetEntityId)}</LinkData>`
         : ""
     }
-<MissingPropertes>${Object.entries(entityType.properties)
+<MissingProperties>${Object.entries(entityType.properties)
     .filter(([baseUrl]) => properties[baseUrl as BaseUrl] === undefined)
     .map(
       ([_baseUrl, schema]) =>
-        `<MissingProperty>${"items" in schema ? schema.items.title : schema.title}</MissingProperty>`,
+        `${"items" in schema ? schema.items.title : schema.title}`,
     )
     .join(", ")}
+    </MissingProperties>
 </Entity>
   `;
 };
