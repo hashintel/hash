@@ -42,6 +42,7 @@
     "fix:markdownlint": "markdownlint --dot --fix .",
     "fix:prettier": "prettier --write  --ignore-unknown .",
     "fix:yarn-deduplicate": "yarn install && yarn-deduplicate --strategy=fewer && yarn install",
+    "install:hooks": "husky install .config/husky",
     "lint": "npm-run-all --continue-on-error \"lint:*\"",
     "@TODO.2": "Upgrade or remove these blocks and remove the --ignore-package options (also @TODO.1)",
     "lint:dependency-version-consistency": "check-dependency-version-consistency . --ignore-dep=@blockprotocol/graph --ignore-package=@apps/hashdotdev --ignore-package=@blocks/embed --ignore-package=@blocks/person",
