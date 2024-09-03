@@ -16,10 +16,7 @@ import {
 import { deserializeSubgraph } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type { Claim } from "@local/hash-isomorphic-utils/system-types/claim";
 import type { EntityRootType } from "@local/hash-subgraph";
-import {
-  entityIdFromComponents,
-  stripDraftIdFromEntityId,
-} from "@local/hash-subgraph";
+import { entityIdFromComponents } from "@local/hash-subgraph";
 import {
   getOutgoingLinksForEntity,
   getRoots,

@@ -10,8 +10,8 @@ import type { DereferencedEntityTypesByTypeId } from "../../../infer-entities/in
 import type { DereferencedEntityType } from "../../../shared/dereference-entity-type.js";
 import { getTemporalClient } from "../../../shared/get-flow-context.js";
 import type { LlmParams } from "../../../shared/get-llm-response/types.js";
-import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import type { Claim } from "../../shared/claims.js";
+import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import type { ExistingEntitySummary } from "../coordinating-agent/summarize-existing-entities.js";
 import type { SubCoordinatingAgentState } from "../sub-coordinating-agent/state.js";
 import { areUrlsEqual } from "./are-urls-equal.js";
