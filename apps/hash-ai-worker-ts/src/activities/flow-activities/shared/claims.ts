@@ -1,4 +1,4 @@
-import type { SourceProvenance } from "@local/hash-graph-client/dist/index.d";
+import type { SourceProvenance } from "@local/hash-graph-client";
 import type { EntityId } from "@local/hash-graph-types/entity";
 
 export type Claim = {
