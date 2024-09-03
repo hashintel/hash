@@ -11,10 +11,7 @@ import dedent from "dedent";
 import { getAiAssistantAccountIdActivity } from "../../../get-ai-assistant-account-id-activity.js";
 import { logger } from "../../../shared/activity-logger.js";
 import type { DereferencedEntityType } from "../../../shared/dereference-entity-type.js";
-import {
-  getFlowContext,
-  isActivityCancelled,
-} from "../../../shared/get-flow-context.js";
+import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
 import type {
   LlmMessage,
@@ -30,7 +27,7 @@ import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { stringify } from "../../../shared/stringify.js";
 import { checkIfWorkerShouldStop } from "../../research-entities-action/shared/check-if-worker-should-stop.js";
 import type { LocalEntitySummary } from "./get-entity-summaries-from-text.js";
-import type { Claim } from "./types.js";
+import type { Claim } from "../claims.js";
 
 const toolNames = ["submitClaims"] as const;
 
@@ -398,7 +395,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
   /**
    * Check if we should stop before proceeding with any work.
    *
-   * If this is a retry, and previously valid claims will be returned.
+   * If this is a retry, any previously valid claims will be returned.
    */
   const preWorkStopCheck = await checkIfWorkerShouldStop(workerIdentifiers);
   if (preWorkStopCheck.shouldStop) {
@@ -654,11 +651,11 @@ export const inferEntityClaimsFromTextAgent = async (params: {
           sources,
         };
 
-        if (isActivityCancelled()) {
-          /**
-           * Check if the activity has been cancelled before creating any claim entities.
-           */
-          return { claims: [] };
+        /**
+         * Check if the activity has been cancelled before creating any claim entities.
+         */
+        if ((await checkIfWorkerShouldStop(workerIdentifiers)).shouldStop) {
+          return { claims: retryContext?.previousValidClaims ?? [] };
         }
 
         /**
@@ -672,15 +669,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
             entityUuid: claimUuid,
             entityTypeId: "https://hash.ai/@hash/types/entity-type/claim/v/1",
             ownedById: webId,
-            provenance: {
-              actorType: "ai",
-              origin: {
-                id: flowEntityId,
-                stepIds: [stepId],
-                type: "flow",
-              },
-              sources,
-            },
+            provenance,
             relationships: createDefaultAuthorizationRelationships({
               actorId: userAuthentication.actorId,
             }),
@@ -756,7 +745,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
 
   /** @todo: check if there are subject entities for which no claims have been provided */
 
-  if (invalidClaims.length > 0 && !isActivityCancelled()) {
+  if (invalidClaims.length > 0) {
     const toolCallResponses = toolCalls.map<LlmMessageToolResultContent>(
       (toolCall) => {
         const invalidClaimsProvidedInToolCall = invalidClaims.filter(
