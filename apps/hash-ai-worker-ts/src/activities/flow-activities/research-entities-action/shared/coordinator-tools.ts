@@ -12,8 +12,8 @@ import type {
   LlmToolDefinition,
   ParsedLlmToolCall,
 } from "../../../shared/get-llm-response/types.js";
-import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import type { Claim } from "../../shared/claims.js";
+import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import type { SubCoordinatingAgentInput } from "../sub-coordinating-agent/input.js";
 import type { SubCoordinatingAgentState } from "../sub-coordinating-agent/state.js";
 import type {
@@ -812,6 +812,8 @@ export const generateOutstandingTasksDescription = (
     `),
       )
       .join("\n")}
+      
+    The results of each will be available in due course – but you can stop any now if you think they are no longer relevant.
   `);
 };
 
@@ -829,12 +831,22 @@ export const handleStopTasksRequests = async ({
     .filter((call) => call.name === "stopTasks")
     .flatMap(({ input }) => input.tasksToStop);
 
-  stopRequests.push(
-    ...state.workersStarted.map((workerIdentifiers) => ({
-      explanation: "Parent task was stopped",
-      toolCallId: workerIdentifiers.toolCallId,
-    })),
+  // eslint-disable-next-line no-param-reassign
+  state.workersStarted = state.workersStarted.filter(
+    (workerIdentifiers) =>
+      !stopRequests.find(
+        (stopRequest) =>
+          stopRequest.toolCallId === workerIdentifiers.toolCallId,
+      ),
   );
+
+  // eslint-disable-next-line no-param-reassign
+  state.outstandingTasks = state.outstandingTasks.filter(
+    (task) =>
+      !stopRequests.find(
+        (stopRequest) => stopRequest.toolCallId === task.toolCall.id,
+      ),
+  ) as typeof state.outstandingTasks;
 
   await stopWorkers(stopRequests);
 };

@@ -38,7 +38,7 @@ const handleStopReturn = async (
      */
     await stopWorkers(
       childWorkers.map((worker) => ({
-        explanation: "Parent worker was stopped.",
+        explanation: `Parent worker was stopped: ${shouldStopStatus.explanation}.`,
         toolCallId: worker.toolCallId,
       })),
     );
@@ -111,7 +111,7 @@ export const runSubCoordinatingAgent = async (params: {
     inferredClaims: [],
     entitySummaries: [],
     outstandingTasks: [],
-    previousCalls: [],
+    lastCompletedToolCalls: [],
     webQueriesMade: [],
     resourcesNotVisited: [],
     resourceUrlsVisited: [],
@@ -202,7 +202,7 @@ export const runSubCoordinatingAgent = async (params: {
       (toolCall) => toolCall.name === "complete",
     );
 
-    state.previousCalls = [...state.previousCalls, { completedToolCalls }];
+    state.lastCompletedToolCalls = completedToolCalls;
 
     processCommonStateMutationsFromToolResults({
       toolCallResults: completedToolCalls,

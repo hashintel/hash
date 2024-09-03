@@ -38,7 +38,7 @@ export const requestSubCoordinatorActions = async (params: {
   const llmMessagesFromPreviousToolCalls =
     mapPreviousCoordinatorCallsToLlmMessages({
       includeErrorsOnly: true,
-      previousCalls: state.previousCalls,
+      previousCalls: state.lastCompletedToolCalls,
     });
 
   const progressReport = generateProgressReport({ input, state });

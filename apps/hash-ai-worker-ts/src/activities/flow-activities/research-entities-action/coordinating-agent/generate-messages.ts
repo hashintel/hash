@@ -91,7 +91,7 @@ export const generateProgressReport = (params: {
     resourcesNotVisited.length > 0 ||
     webQueriesMade.length > 0
   ) {
-    if (resourceUrlsVisited.length > 0) {
+    if (resourcesNotVisited.length > 0) {
       progressReport += dedent(`
         You have discovered the following resources via web searches but noy yet visited them. It may be worth inferring claims from the URL.
         <ResourcesNotVisited>

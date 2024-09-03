@@ -142,6 +142,7 @@ export async function getToolCallResults(
       return {
         ...toolCall,
         ...nullReturns,
+        webQueriesMade: [toolCall.input.query],
         isError: true,
         output: webPageSummaries.error,
       };
@@ -151,6 +152,7 @@ export async function getToolCallResults(
       ...nullReturns,
       ...toolCall,
       output: "Search successful",
+      webQueriesMade: [toolCall.input.query],
       webPagesFromSearchQuery: webPageSummaries,
     };
   } else if (toolCall.name === "inferClaimsFromResource") {
@@ -231,10 +233,13 @@ export async function getToolCallResults(
       resourceUrlsVisited: response.exploredResources.map(
         (resource) => resource.url,
       ),
+      isError: response.status === "error",
       output:
-        response.inferredSummaries.length > 0
-          ? "Entities inferred from web page"
-          : "No claims were inferred about any relevant entities.",
+        response.status === "error"
+          ? response.message
+          : response.inferredSummaries.length > 0
+            ? "Entities inferred from web page"
+            : "No claims were inferred about any relevant entities.",
     };
     // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- safeguard to ensure all cases are handled
   } else if (toolCall.name === "delegateResearchTask") {

@@ -475,14 +475,10 @@ export const ClaimsTable = memo(
          * entities yet.
          */
         if (!subjectEntityId) {
-          const claimEntityIdWithoutDraftId = stripDraftIdFromEntityId(
-            claim.entityId,
-          );
-
-          subjectEntityId = claimToSubjectRecord[claimEntityIdWithoutDraftId];
+          subjectEntityId = claimToSubjectRecord[claim.entityId];
 
           if (!objectEntityId) {
-            objectEntityId = claimToObjectRecord[claimEntityIdWithoutDraftId];
+            objectEntityId = claimToObjectRecord[claim.entityId];
           }
         }
 

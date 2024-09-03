@@ -45,7 +45,7 @@ test.skip(
           hasConductedCompleteCheckStep: false,
           inferredClaims: [],
           plan: "",
-          previousCalls: [],
+          lastCompletedToolCalls: [],
           proposedEntities: [],
           questionsAndAnswers: "",
           submittedEntityIds: [],

@@ -1,6 +1,6 @@
 import type { PropertyType, VersionedUrl } from "@blockprotocol/type-system";
 import type { EntityType } from "@blockprotocol/type-system/slim";
-import { typedEntries } from "@local/advanced-types/typed-entries";
+import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type {
   EntityId,
@@ -82,6 +82,7 @@ type EntityColumnMetadata = { appliesToEntityTypeIds: VersionedUrl[] };
 type EntityTypeWithDependenciesByEntityTypeId = Record<
   VersionedUrl,
   {
+    entitiesCount: number;
     entityType: EntityType;
     propertyTypes: PropertyTypeWithMetadata[];
     linkTypes: EntityTypeWithMetadata[];
@@ -669,6 +670,7 @@ export const EntityResultTable = memo(
           entityType = entityTypeWithMetadata.schema;
 
           entityTypesRecord[entityTypeId] = {
+            entitiesCount: 0,
             entityType,
             linkTypes: [
               ...getPossibleLinkTypesForEntityType(
@@ -681,6 +683,8 @@ export const EntityResultTable = memo(
             ],
           };
         }
+
+        entityTypesRecord[entityTypeId]!.entitiesCount++;
 
         const status = isProposed
           ? "Proposed"
@@ -864,6 +868,39 @@ export const EntityResultTable = memo(
         delete staticFilterDefs.relevance;
       }
 
+      /**
+       * For each entity type, we also need to check if a filter has been added for a property or link type which does not apply.
+       * If so, we ensure the 'null' value is present, and increment the count of entities for the null value accordingly.
+       */
+      for (const dynamicDefId of typedKeys(dynamicFilterDefs)) {
+        for (const entityType of Object.values(entityTypesRecord)) {
+          const doesNotApplyToEntity = dynamicDefId.includes("/entity-type/")
+            ? !entityType.linkTypes.some(
+                (linkType) => linkType.schema.$id === dynamicDefId,
+              )
+            : !entityType.propertyTypes.some(
+                (propertyType) => propertyType.schema.$id === dynamicDefId,
+              );
+
+          if (doesNotApplyToEntity) {
+            const optionsKey = missingValueString;
+
+            dynamicFilterDefs[dynamicDefId]!.options[optionsKey] ??= {
+              label: "None",
+              count: 0,
+              value: null,
+            };
+            dynamicFilterDefs[dynamicDefId]!.options[optionsKey].count +=
+              entityType.entitiesCount;
+            (
+              dynamicFilterDefs[dynamicDefId]!.initialValue as Set<
+                string | null
+              >
+            ).add(null);
+          }
+        }
+      }
+
       const filterDefs = {
         ...staticFilterDefs,
         ...dynamicFilterDefs,
@@ -911,7 +948,7 @@ export const EntityResultTable = memo(
                   }
                 } else if (
                   !isValueIncludedInFilter({
-                    valueToCheck: row.data[fieldId],
+                    valueToCheck,
                     currentValue,
                   })
                 ) {

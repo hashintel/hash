@@ -26,8 +26,8 @@ import type {
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { stringify } from "../../../shared/stringify.js";
 import { checkIfWorkerShouldStop } from "../../research-entities-action/shared/check-if-worker-should-stop.js";
-import type { LocalEntitySummary } from "./get-entity-summaries-from-text.js";
 import type { Claim } from "../claims.js";
+import type { LocalEntitySummary } from "./get-entity-summaries-from-text.js";
 
 const toolNames = ["submitClaims"] as const;
 
@@ -629,8 +629,6 @@ export const inferEntityClaimsFromTextAgent = async (params: {
           toolCallId: toolCall.id,
         });
       } else {
-        validClaims.push(claim);
-
         const sources = [
           {
             type: contentType,
@@ -661,7 +659,7 @@ export const inferEntityClaimsFromTextAgent = async (params: {
         /**
          * @todo H-3162: when we pass existing entities to Flows, we can link them directly to the claim here
          */
-        await Entity.create<ClaimEntity>(
+        const createdClaim = await Entity.create<ClaimEntity>(
           graphApiClient,
           { actorId: aiAssistantAccountId },
           {
@@ -718,6 +716,14 @@ export const inferEntityClaimsFromTextAgent = async (params: {
             },
           },
         );
+
+        if (createdClaim.entityId !== claim.claimId) {
+          /**
+           * If the claim is created as draft, we need to update the claim's id to include the draft suffix
+           */
+          claim.claimId = createdClaim.entityId;
+        }
+        validClaims.push(claim);
       }
     }
   }

@@ -402,10 +402,7 @@ export const runCoordinatingAgent: FlowActionActivity<{
     }
 
     // eslint-disable-next-line no-param-reassign
-    state.previousCalls = [
-      ...state.previousCalls,
-      { completedToolCalls: toolCallResults },
-    ];
+    state.lastCompletedToolCalls = toolCallResults;
 
     if (testingParams?.persistState) {
       testingParams.persistState(state);

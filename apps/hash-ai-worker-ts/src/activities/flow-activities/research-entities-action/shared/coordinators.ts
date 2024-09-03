@@ -135,11 +135,9 @@ export type CoordinatingAgentState = {
    */
   plan: string;
   /**
-   * Previous completed tool calls made by the agent.
+   * The latest responses to tool calls made by the agent
    */
-  previousCalls: {
-    completedToolCalls: CompletedCoordinatorToolCall<CoordinatorToolName>[];
-  }[];
+  lastCompletedToolCalls: CompletedCoordinatorToolCall<CoordinatorToolName>[];
   /**
    * The full, schema-conforming properties of entities proposed so far.
    */

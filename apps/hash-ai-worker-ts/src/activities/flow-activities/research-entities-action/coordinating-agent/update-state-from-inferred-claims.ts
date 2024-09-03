@@ -157,7 +157,10 @@ export const updateStateFromInferredClaims = async (params: {
   /**
    * Step 2: Deduplicate claims and update state
    */
-  state.inferredClaims = await deduplicateClaims(state.inferredClaims);
+  state.inferredClaims = await deduplicateClaims([
+    ...state.inferredClaims,
+    ...newClaims,
+  ]);
 
   /**
    * Step 3: Create or update proposals for new entities and existing entities with new claims

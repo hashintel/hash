@@ -1,17 +1,17 @@
 import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 import type { PropertyPatchOperation } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
-import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
+import { blockProtocolDataTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { ClaimProperties } from "@local/hash-isomorphic-utils/system-types/claim";
 
-import { logger } from "../../../../shared/logger.js";
 import { getAiAssistantAccountIdActivity } from "../../../get-ai-assistant-account-id-activity.js";
+import { logger } from "../../../shared/activity-logger.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
 import type { Claim } from "../../shared/claims.js";
 import { claimTextualContentFromClaim } from "../../shared/claims.js";
 
-const noneSymbol = Symbol("none");
+const noObjectEntityIdKey = "no-object-entity-id";
 
 /**
  * Deduplicates claims about an entity according to the following rules:
@@ -55,7 +55,8 @@ export const deduplicateClaims = async (
 
   for (const currentClaimInLoop of inputClaims) {
     const entityId = currentClaimInLoop.subjectEntityLocalId;
-    const objectEntityId = currentClaimInLoop.objectEntityLocalId ?? noneSymbol;
+    const objectEntityId =
+      currentClaimInLoop.objectEntityLocalId ?? noObjectEntityIdKey;
 
     claimsByEntityIdObjectAndText[entityId] ??= {};
     claimsByEntityIdObjectAndText[entityId][objectEntityId] ??= {};
@@ -121,7 +122,10 @@ export const deduplicateClaims = async (
           ],
           property: {
             metadata: {
-              provenance,
+              dataTypeId: blockProtocolDataTypes.text.dataTypeId,
+              provenance: {
+                sources: provenance.sources,
+              },
             },
             value: claimTextualContentFromClaim(newClaimObject),
           },
@@ -135,9 +139,6 @@ export const deduplicateClaims = async (
           type: provenance.origin.type satisfies "migration",
         },
       },
-      relationships: createDefaultAuthorizationRelationships({
-        actorId: userAuthentication.actorId,
-      }),
     });
 
     await graphApiClient.patchEntity(aiAssistantAccountId, {
@@ -158,9 +159,12 @@ export const deduplicateClaims = async (
     );
   }
 
-  return Object.values(claimsByEntityIdObjectAndText).flatMap((objectAndText) =>
-    Object.values(objectAndText).flatMap((textToClaim) =>
-      Object.values(textToClaim),
-    ),
+  const newClaimsArray = Object.values(claimsByEntityIdObjectAndText).flatMap(
+    (objectAndText) =>
+      Object.values(objectAndText).flatMap((textToClaim) =>
+        Object.values(textToClaim),
+      ),
   );
+
+  return newClaimsArray;
 };

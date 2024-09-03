@@ -41,7 +41,7 @@ export const requestCoordinatorActions = async (params: {
   const llmMessagesFromPreviousToolCalls =
     mapPreviousCoordinatorCallsToLlmMessages({
       includeErrorsOnly: true,
-      previousCalls: state.previousCalls,
+      previousCalls: state.lastCompletedToolCalls,
     });
 
   const initialUserMessage = generateInitialUserMessage({
