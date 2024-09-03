@@ -18176,10 +18176,10 @@ get-stack-trace@^2.1.1:
     bluebird "^3.7.1"
     source-map "^0.8.0-beta.0"
 
-get-stdin@^8.0.0:
+get-stdin@=8.0.0, get-stdin@^8.0.0:
   version "8.0.0"
   resolved "https://registry.yarnpkg.com/get-stdin/-/get-stdin-8.0.0.tgz#cbad6a73feb75f6eeb22ba9e01f89aa28aa97a53"
-  integrity "sha1-y61qc/63X27rIrqeAfiaooqpelM= sha512-sY22aA6xchAzprjyqmSEQv4UbAAzRN0L2dQB0NlN5acTTK9Don6nhoc3eAbUnpZiCANAMfd/+40kVdKfFygohg=="
+  integrity sha512-sY22aA6xchAzprjyqmSEQv4UbAAzRN0L2dQB0NlN5acTTK9Don6nhoc3eAbUnpZiCANAMfd/+40kVdKfFygohg==
 
 get-stdin@^9.0.0, get-stdin@~9.0.0:
   version "9.0.0"
@@ -20906,6 +20906,11 @@ jsonwebtoken@^9.0.0, jsonwebtoken@^9.0.1:
     lodash.once "^4.0.0"
     ms "^2.1.1"
     semver "^7.5.4"
+
+jsox@^1.2.119:
+  version "1.2.119"
+  resolved "https://registry.yarnpkg.com/jsox/-/jsox-1.2.119.tgz#decc12b6d3948d89460da6c5e144ee76c1d054ce"
+  integrity sha512-f37obwxWKKuylcaOzNlUlzfDvURSCpqTXs8yEivhvsp86D/DTIySxP4v5Qdlg24qCuzDSZ0mJr3krc/f7TZ/5A==
 
 jsprim@^1.2.2:
   version "1.4.2"
@@ -23933,10 +23938,10 @@ node-source-walk@^6.0.0, node-source-walk@^6.0.1, node-source-walk@^6.0.2:
   dependencies:
     "@babel/parser" "^7.21.8"
 
-node-sql-parser@^4.4.0:
-  version "4.6.4"
-  resolved "https://registry.yarnpkg.com/node-sql-parser/-/node-sql-parser-4.6.4.tgz#35b00401ca23018798b69d3cec0917aa87e5a84d"
-  integrity "sha1-NbAEAcojAYeYtp087AkXqoflqE0= sha512-OPzbsiN5VX37/HM5BgGxcoDt1ggvFUc6gdzyQzoPjk8orTOHBlgHuDUugP5oRU+CcOw8GniilvV3pt5FBxp47A=="
+node-sql-parser@^4.12.0:
+  version "4.18.0"
+  resolved "https://registry.yarnpkg.com/node-sql-parser/-/node-sql-parser-4.18.0.tgz#516b6e633c55c5abbba1ca588ab372db81ae9318"
+  integrity sha512-2YEOR5qlI1zUFbGMLKNfsrR5JUvFg9LxIRVE+xJe962pfVLH0rnItqLzv96XVs1Y1UIR8FxsXAuvX/lYAWZ2BQ==
   dependencies:
     big-integer "^1.6.48"
 
@@ -25555,14 +25560,15 @@ prettier-plugin-sh@0.14.0:
     mvdan-sh "^0.10.1"
     sh-syntax "^0.4.1"
 
-prettier-plugin-sql@0.12.1:
-  version "0.12.1"
-  resolved "https://registry.yarnpkg.com/prettier-plugin-sql/-/prettier-plugin-sql-0.12.1.tgz#ae1d87640a51cd2e3f82c51561a299c0d30003d7"
-  integrity "sha1-rh2HZApRzS4/gsUVYaKZwNMAA9c= sha512-2z0pMmQEC61Xywerw2FJFpEIaA9lJUjB5mj+9dfRU8HkU7iICFrIizpMjSSDMoGkhh5W+IRROVgLlgRdpphI7g=="
+prettier-plugin-sql@0.18.1:
+  version "0.18.1"
+  resolved "https://registry.yarnpkg.com/prettier-plugin-sql/-/prettier-plugin-sql-0.18.1.tgz#037c6a55ee6c78f80df42041f8f53340651fc7d8"
+  integrity sha512-2+Nob2sg7hzLAKJoE6sfgtkhBZCqOzrWHZPvE4Kee/e80oOyI4qwy9vypeltqNBJwTtq3uiKPrCxlT03bBpOaw==
   dependencies:
-    node-sql-parser "^4.4.0"
-    sql-formatter "^10.0.0"
-    tslib "^2.4.0"
+    jsox "^1.2.119"
+    node-sql-parser "^4.12.0"
+    sql-formatter "^15.0.2"
+    tslib "^2.6.2"
 
 prettier@3.3.3:
   version "3.3.3"
@@ -28599,12 +28605,13 @@ sprintf-js@~1.0.2:
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.0.3.tgz#04e6926f662895354f3dd015203633b857297e2c"
   integrity "sha1-BOaSb2YolTVPPdAVIDYzuFcpfiw= sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g=="
 
-sql-formatter@^10.0.0:
-  version "10.7.2"
-  resolved "https://registry.yarnpkg.com/sql-formatter/-/sql-formatter-10.7.2.tgz#e482d73c44fa1243a6730f27dfab2ad734b95f30"
-  integrity "sha1-5ILXPET6EkOmcw8n36sq1zS5XzA= sha512-YspJXMr2rKMGZY50zYRBs2nCtEO/AKDrmQOxmV2CrGEOFSXUhY3YbsOUe6lX0T/7xbBs4pAYv4UObmwf78vtKg=="
+sql-formatter@^15.0.2:
+  version "15.4.1"
+  resolved "https://registry.yarnpkg.com/sql-formatter/-/sql-formatter-15.4.1.tgz#2e9078dbf30a0b76eb690865166cdc6617e6e7fd"
+  integrity sha512-lw/G/emIJ+tVspOtOFzfD2YFFMN3MFPxGnbWl1DlJLB+fsX7X7zMqSRM1SLSn2YuaRJ0lTe7AMknHDqmIW1Y8w==
   dependencies:
     argparse "^2.0.1"
+    get-stdin "=8.0.0"
     nearley "^2.20.1"
 
 sqs-consumer@5.8.0:
