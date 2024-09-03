@@ -212,7 +212,15 @@ export const processCommonStateMutationsFromToolResults = ({
 
   // eslint-disable-next-line no-param-reassign
   state.resourceUrlsVisited = [
-    ...new Set([...resourceUrlsVisited, ...state.resourceUrlsVisited]),
+    ...new Set([
+      ...resourceUrlsVisited,
+      ...state.resourceUrlsVisited,
+      ...state.outstandingTasks
+        .map((task) =>
+          "url" in task.toolCall.input ? task.toolCall.input.url : null,
+        )
+        .filter((string) => string !== null),
+    ]),
   ];
 
   const newWebPages = toolCallResults
