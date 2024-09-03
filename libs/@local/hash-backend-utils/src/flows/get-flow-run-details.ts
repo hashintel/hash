@@ -550,28 +550,13 @@ const getFlowRunDetailedFields = async ({
       );
     }
 
-    const { attempt, logs } = signalData;
+    const { logs } = signalData;
     for (const log of logs) {
       const { stepId } = log;
 
       const activityRecord = stepMap[stepId];
       if (!activityRecord) {
         throw new Error(`No activity record found for step with id ${stepId}`);
-      }
-
-      if (
-        log.type === "ProposedEntity" &&
-        attempt < activityRecord.attempt &&
-        !workflowStoppedEarly
-      ) {
-        /**
-         * If we have a proposed entity logged from a retried attempt, don't record it as nothing will happen with it.
-         * By contrast, a PersistedEntity has already been committed to the database and is therefore relevant.
-         *
-         * @todo H-2545: heartbeat details of persisted entities from an activity so that if it's retried, the activity
-         *    can pick up where it left off.
-         */
-        continue;
       }
 
       activityRecord.logs.push(log);

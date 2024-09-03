@@ -9,8 +9,8 @@ import { expect, test } from "vitest";
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
+import type { Claim } from "../claims.js";
 import type { LocalEntitySummary } from "../infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
-import type { Claim } from "../infer-summaries-then-claims-from-text/types.js";
 import { proposeEntityFromClaimsAgent } from "./propose-entity-from-claims-agent.js";
 
 /**
@@ -76,7 +76,6 @@ test(
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
-      simplifyPropertyKeys: true,
     });
 
     const { schema: dereferencedEntityType, simplifiedPropertyTypeMappings } =
@@ -105,7 +104,7 @@ test(
         isObjectOf: [],
       },
       dereferencedEntityType,
-      simplifiedPropertyTypeMappings: simplifiedPropertyTypeMappings!,
+      simplifiedPropertyTypeMappings,
       proposeOutgoingLinkEntityTypes: [],
       possibleOutgoingLinkTargetEntitySummaries: [],
     });
@@ -244,7 +243,6 @@ test(
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
-      simplifyPropertyKeys: true,
     });
 
     const { schema: dereferencedEntityType, simplifiedPropertyTypeMappings } =
@@ -257,7 +255,7 @@ test(
         isObjectOf: [],
       },
       dereferencedEntityType,
-      simplifiedPropertyTypeMappings: simplifiedPropertyTypeMappings!,
+      simplifiedPropertyTypeMappings,
       proposeOutgoingLinkEntityTypes: [],
       possibleOutgoingLinkTargetEntitySummaries: [],
     });

@@ -177,5 +177,5 @@ export const removeBlockFromBlockCollection: ImpureGraphFunction<
     entityId: linkEntityId,
   });
 
-  await linkEntity.archive(ctx.graphApi, authentication);
+  await linkEntity.archive(ctx.graphApi, authentication, ctx.provenance);
 };

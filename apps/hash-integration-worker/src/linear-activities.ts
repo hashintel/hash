@@ -184,7 +184,13 @@ const createOrUpdateHashEntity = async (params: {
 
     await Promise.all([
       ...removedOutgoingLinks.map((linkEntity) =>
-        linkEntity.archive(params.graphApiClient, params.authentication),
+        linkEntity.archive(params.graphApiClient, params.authentication, {
+          actorType: "machine",
+          origin: {
+            type: "flow",
+            id: "linear-integration",
+          },
+        }),
       ),
       ...addedOutgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) =>
         Entity.create(graphApiClient, params.authentication, {

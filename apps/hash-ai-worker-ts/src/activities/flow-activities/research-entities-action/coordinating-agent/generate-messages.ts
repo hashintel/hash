@@ -55,8 +55,7 @@ export const generateProgressReport = (params: {
           simplifyProposedEntityForLlmConsumption({
             proposedEntity,
             entityType:
-              allDereferencedEntityTypesById[proposedEntity.entityTypeId]!
-                .schema,
+              allDereferencedEntityTypesById[proposedEntity.entityTypeId]!,
           }),
         )
         .join("\n")}
@@ -71,7 +70,7 @@ export const generateProgressReport = (params: {
           simplifyProposedEntityForLlmConsumption({
             proposedEntity: proposedLink,
             entityType:
-              allDereferencedEntityTypesById[proposedLink.entityTypeId]!.schema,
+              allDereferencedEntityTypesById[proposedLink.entityTypeId]!,
           }),
         )
         .join("\n")}
@@ -92,7 +91,7 @@ export const generateProgressReport = (params: {
     resourcesNotVisited.length > 0 ||
     webQueriesMade.length > 0
   ) {
-    if (resourceUrlsVisited.length > 0) {
+    if (resourcesNotVisited.length > 0) {
       progressReport += dedent(`
         You have discovered the following resources via web searches but noy yet visited them. It may be worth inferring claims from the URL.
         <ResourcesNotVisited>
@@ -110,14 +109,12 @@ export const generateProgressReport = (params: {
         </ResourcesNotVisited>
       `);
     }
-    if (resourcesNotVisited.length > 0) {
+    if (resourceUrlsVisited.length > 0) {
       progressReport += dedent(`
-        You have not visited the following resources:
-        <ResourcesNotVisited>
-        ${resourcesNotVisited
-          .map((webPage) => `Url: ${webPage.url}\nSummary:${webPage.summary}`)
-          .join("\n\n")}
-        </ResourcesNotVisited>
+        You have already visited the following resources – do not visit them again. They are included for your reference for work done only:
+        <ResourcesVisited>
+          ${resourceUrlsVisited.join("\n")}
+        </ResourcesVisited>
       `);
     }
     if (webQueriesMade.length > 0) {

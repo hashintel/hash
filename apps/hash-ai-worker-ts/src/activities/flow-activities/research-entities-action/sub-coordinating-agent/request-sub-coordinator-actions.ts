@@ -6,7 +6,6 @@ import { getLlmResponse } from "../../../shared/get-llm-response.js";
 import type { LlmMessage } from "../../../shared/get-llm-response/llm-message.js";
 import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
-import { stringify } from "../../../shared/stringify.js";
 import type { ParsedSubCoordinatorToolCall } from "../shared/coordinator-tools.js";
 import { coordinatingAgentModel } from "../shared/coordinators.js";
 import { mapPreviousCoordinatorCallsToLlmMessages } from "../shared/map-previous-coordinator-calls-to-llm-messages.js";
@@ -38,26 +37,22 @@ export const requestSubCoordinatorActions = async (params: {
 
   const llmMessagesFromPreviousToolCalls =
     mapPreviousCoordinatorCallsToLlmMessages({
-      previousCalls: state.previousCalls,
+      includeErrorsOnly: true,
+      previousCalls: state.lastCompletedToolCalls,
     });
-
-  const lastUserMessage = llmMessagesFromPreviousToolCalls.slice(-1)[0];
-
-  if (lastUserMessage && lastUserMessage.role !== "user") {
-    throw new Error(
-      `Expected last message to be a user message, but it was: ${stringify(
-        lastUserMessage,
-      )}`,
-    );
-  }
 
   const progressReport = generateProgressReport({ input, state });
 
-  const userMessage = generateInitialUserMessage({ input });
+  const initialUserMessage = generateInitialUserMessage({ input });
 
-  userMessage.content.push(progressReport);
+  const messages: LlmMessage[] = [initialUserMessage];
 
-  const messages: LlmMessage[] = [userMessage];
+  messages.push(...llmMessagesFromPreviousToolCalls);
+
+  messages.push({
+    role: "user",
+    content: [progressReport],
+  });
 
   const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
     await getFlowContext();

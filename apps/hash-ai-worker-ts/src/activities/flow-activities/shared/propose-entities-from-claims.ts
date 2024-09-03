@@ -11,8 +11,8 @@ import { getFlowContext } from "../../shared/get-flow-context.js";
 import { logProgress } from "../../shared/log-progress.js";
 import { stringify } from "../../shared/stringify.js";
 import type { ExistingEntitySummary } from "../research-entities-action/coordinating-agent/summarize-existing-entities.js";
+import type { Claim } from "./claims.js";
 import type { LocalEntitySummary } from "./infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
-import type { Claim } from "./infer-summaries-then-claims-from-text/types.js";
 import { proposeEntityFromClaimsAgent } from "./propose-entities-from-claims/propose-entity-from-claims-agent.js";
 
 export const proposeEntitiesFromClaims = async (params: {
@@ -83,14 +83,6 @@ export const proposeEntitiesFromClaims = async (params: {
                 outgoingLinkEntityTypeSimplifiedPropertyTypeMappings,
             },
           ]) => {
-            if (!outgoingLinkEntityTypeSimplifiedPropertyTypeMappings) {
-              throw new Error(
-                `Could not find simplified property type mappings for entity summary: ${JSON.stringify(
-                  entitySummary,
-                )}`,
-              );
-            }
-
             return {
               schema,
               simplifiedPropertyTypeMappings:
