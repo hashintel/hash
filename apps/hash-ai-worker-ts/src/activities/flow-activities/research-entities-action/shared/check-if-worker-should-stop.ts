@@ -9,6 +9,7 @@ import {
   getTemporalClient,
   isActivityCancelled,
 } from "../../../shared/get-flow-context.js";
+import type { FlowSignal } from "../../../../shared/signals.js";
 
 /**
  * Check if a HASH worker should stop what it is doing and return early.
@@ -57,14 +58,15 @@ export const checkIfWorkerShouldStop = async (
     ) {
       const signalData = event.workflowExecutionSignaledEventAttributes.input;
 
-      const inputData = parseHistoryItemPayload(signalData);
+      const inputData = parseHistoryItemPayload(signalData)?.[0] as
+        | FlowSignal
+        | undefined;
 
       if (
         inputData &&
         typeof inputData === "object" &&
         "toolCallId" in inputData &&
-        "explanation" in inputData &&
-        typeof inputData.explanation === "string"
+        "explanation" in inputData
       ) {
         if (identifiers.toolCallId === inputData.toolCallId) {
           /**
