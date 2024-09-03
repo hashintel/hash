@@ -2,8 +2,8 @@ import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types
 import { Context } from "@temporalio/activity";
 
 import { logProgress } from "../../shared/log-progress.js";
+import type { Claim } from "../shared/claims.js";
 import type { LocalEntitySummary } from "../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
-import type { Claim } from "../shared/infer-summaries-then-claims-from-text/types.js";
 import { checkIfWorkerShouldStop } from "./shared/check-if-worker-should-stop.js";
 import {
   getSomeToolCallResults,
@@ -15,6 +15,7 @@ import {
   processCommonStateMutationsFromToolResults,
   stopWorkers,
 } from "./shared/coordinators.js";
+import { deduplicateClaims } from "./shared/deduplicate-claims.js";
 import type { DuplicateReport } from "./shared/deduplicate-entities.js";
 import { deduplicateEntities } from "./shared/deduplicate-entities.js";
 import { createInitialPlan } from "./sub-coordinating-agent/create-initial-plan.js";
@@ -292,6 +293,9 @@ export const runSubCoordinatingAgent = async (params: {
       );
 
       state.inferredClaims.push(...inferredClaimsWithDeduplicatedEntities);
+
+      state.inferredClaims = await deduplicateClaims(state.inferredClaims);
+
       state.entitySummaries = [
         ...state.entitySummaries,
         ...newEntitySummaries,

@@ -2,13 +2,14 @@ import type { EntityId } from "@local/hash-graph-types/entity";
 import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 import { isNotNullish } from "@local/hash-isomorphic-utils/types";
 
+import type { Claim } from "../../shared/claims.js";
 import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
-import type { Claim } from "../../shared/infer-summaries-then-claims-from-text/types.js";
 import { proposeEntitiesFromClaims } from "../../shared/propose-entities-from-claims.js";
 import type {
   CoordinatingAgentInput,
   CoordinatingAgentState,
 } from "../shared/coordinators.js";
+import { deduplicateClaims } from "../shared/deduplicate-claims.js";
 import {
   deduplicateEntities,
   type DuplicateReport,
@@ -54,8 +55,8 @@ const adjustDuplicates = (params: {
 };
 /**
  * Given newly discovered claims and entity summaries:
- * 1. Deduplicate entities
- * 2. Update the state with the new claims and entity summaries
+ * 1. Deduplicate entities and update state
+ * 2. Deduplicate claims and update state
  * 3. Create or update proposals for (1) new entities and (2) existing entities with new claims
  * 4. Update the state with the new and updated proposals
  */
@@ -70,9 +71,8 @@ export const updateStateFromInferredClaims = async (params: {
     params;
 
   /**
-   * Step 1: Deduplication (if necessary)
+   * Step 1: Deduplicate entities (if necessary)
    */
-
   const canonicalEntityIdsForNewDuplicates: string[] = [];
   if (newEntitySummaries.length === 0) {
     // do nothing – there are no new entities to deduplicate
@@ -141,8 +141,7 @@ export const updateStateFromInferredClaims = async (params: {
     );
 
     /**
-     * Account for any previously proposed entities with a local ID which has
-     * been marked as a duplicate.
+     * Filter out any previously proposed entities with a local ID which has been marked as a duplicate.
      */
     state.proposedEntities = state.proposedEntities
       .map((proposedEntity) => {
@@ -156,7 +155,12 @@ export const updateStateFromInferredClaims = async (params: {
   }
 
   /**
-   * Step 2: Create or update proposals for new entities and existing entities with new claims
+   * Step 2: Deduplicate claims and update state
+   */
+  state.inferredClaims = await deduplicateClaims(state.inferredClaims);
+
+  /**
+   * Step 3: Create or update proposals for new entities and existing entities with new claims
    */
 
   /**
@@ -203,9 +207,6 @@ export const updateStateFromInferredClaims = async (params: {
       ),
   );
 
-  /**
-   * Get the updated proposals
-   */
   const { proposedEntities: newProposedEntities } =
     await proposeEntitiesFromClaims({
       dereferencedEntityTypes: input.allDereferencedEntityTypesById,
@@ -217,6 +218,9 @@ export const updateStateFromInferredClaims = async (params: {
       workerIdentifiers,
     });
 
+  /**
+   * Step 4. Update the state with the new and updated proposals
+   */
   state.proposedEntities = [
     /**
      * Filter out any previous proposed entities that have been re-proposed with new claims.

@@ -7,7 +7,7 @@ import type { LlmParams } from "../../shared/get-llm-response/types.js";
 import type { LocalEntitySummary } from "./infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import { getEntitySummariesFromText } from "./infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import { inferEntityClaimsFromTextAgent } from "./infer-summaries-then-claims-from-text/infer-entity-claims-from-text-agent.js";
-import type { Claim } from "./infer-summaries-then-claims-from-text/types.js";
+import type { Claim } from "./claims.js";
 
 /**
  * A two-step process for extracting claims about entities from text:

@@ -30,7 +30,7 @@ import { graphApiClient } from "../../../shared/graph-api-client.js";
 import { stringify } from "../../../shared/stringify.js";
 import type { ExistingEntitySummary } from "../../research-entities-action/coordinating-agent/summarize-existing-entities.js";
 import type { LocalEntitySummary } from "../infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
-import type { Claim } from "../infer-summaries-then-claims-from-text/types.js";
+import type { Claim } from "../claims.js";
 
 const mapPropertiesSchemaToInputPropertiesSchema = (params: {
   properties: DereferencedEntityType["properties"];
