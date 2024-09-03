@@ -19219,10 +19219,10 @@ http-signature@~1.2.0:
     jsprim "^1.2.2"
     sshpk "^1.7.0"
 
-http-terminator@3.0.3:
-  version "3.0.3"
-  resolved "https://registry.yarnpkg.com/http-terminator/-/http-terminator-3.0.3.tgz#2638c82b0223c13b483f0da8ea2eb73364b9bf6e"
-  integrity "sha1-JjjIKwIjwTtIPw2o6i63M2S5v24= sha512-rYvizQCjA9h4Lzh334/F7QJx71TOsyvHDxFzPA1+Sh520Wkgz8+C3KmYFwUAzy16pQrhFGg3BhJc5ZlcgixEag=="
+http-terminator@3.2.0:
+  version "3.2.0"
+  resolved "https://registry.yarnpkg.com/http-terminator/-/http-terminator-3.2.0.tgz#bc158d2694b733ca4fbf22a35065a81a609fb3e9"
+  integrity sha512-JLjck1EzPaWjsmIf8bziM3p9fgR1Y3JoUKAkyYEbZmFrIvJM6I8vVJfBGWlEtV9IWOvzNnaTtjuwZeBY2kwB4g==
   dependencies:
     delay "^5.0.0"
     p-wait-for "^3.2.0"
