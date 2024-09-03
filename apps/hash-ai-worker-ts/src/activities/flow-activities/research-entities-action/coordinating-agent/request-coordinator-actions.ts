@@ -2,13 +2,9 @@ import dedent from "dedent";
 
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { getLlmResponse } from "../../../shared/get-llm-response.js";
-import type {
-  LlmMessage,
-  LlmUserMessage,
-} from "../../../shared/get-llm-response/llm-message.js";
+import type { LlmMessage } from "../../../shared/get-llm-response/llm-message.js";
 import { getToolCallsFromLlmAssistantMessage } from "../../../shared/get-llm-response/llm-message.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
-import { stringify } from "../../../shared/stringify.js";
 import type { ParsedCoordinatorToolCall } from "../shared/coordinator-tools.js";
 import { generateToolDefinitions } from "../shared/coordinator-tools.js";
 import type {
@@ -44,33 +40,27 @@ export const requestCoordinatorActions = async (params: {
 
   const llmMessagesFromPreviousToolCalls =
     mapPreviousCoordinatorCallsToLlmMessages({
+      includeErrorsOnly: true,
       previousCalls: state.previousCalls,
     });
 
-  const lastUserMessage = llmMessagesFromPreviousToolCalls.slice(-1)[0];
+  const initialUserMessage = generateInitialUserMessage({
+    input,
+    questionsAndAnswers: state.questionsAndAnswers,
+  });
 
-  if (lastUserMessage && lastUserMessage.role !== "user") {
-    throw new Error(
-      `Expected last message to be a user message, but it was: ${stringify(
-        lastUserMessage,
-      )}`,
-    );
-  }
+  const messages: LlmMessage[] = [
+    { role: "user", content: [initialUserMessage] },
+  ];
+
+  messages.push(...llmMessagesFromPreviousToolCalls);
 
   const progressReport = generateProgressReport({ input, state });
 
-  const messages: LlmMessage[] = [
-    {
-      role: "user",
-      content: [
-        generateInitialUserMessage({
-          input,
-          questionsAndAnswers: state.questionsAndAnswers,
-        }),
-        progressReport,
-      ],
-    } satisfies LlmUserMessage,
-  ];
+  messages.push({
+    role: "user",
+    content: [progressReport],
+  });
 
   const { dataSources, userAuthentication, flowEntityId, stepId, webId } =
     await getFlowContext();

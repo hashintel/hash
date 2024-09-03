@@ -9,7 +9,7 @@ import type {
 } from "./coordinator-tools.js";
 
 export const mapPreviousCoordinatorCallsToLlmMessages = (params: {
-  includeErrorsOnly?: boolean;
+  includeErrorsOnly: boolean;
   previousCalls: {
     completedToolCalls: (
       | CompletedCoordinatorToolCall<string>
