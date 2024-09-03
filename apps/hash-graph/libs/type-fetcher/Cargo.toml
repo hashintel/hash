@@ -23,7 +23,6 @@ futures = { workspace = true }
 reqwest = { workspace = true, features = ["json"] }
 serde = { workspace = true, features = ["derive"] }
 tarpc = { workspace = true, features = ["tokio1"] }
-tokio = { workspace = true, features = ["macros"] }
 tracing = { workspace = true }
 
 [lints]

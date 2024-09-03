@@ -9,27 +9,24 @@ publish.workspace = true
 authors.workspace = true
 
 [dev-dependencies]
+# Private workspace dependencies
+authorization = { workspace = true }
+error-stack = { workspace = true, features = ["spantrace"] }
 graph = { workspace = true }
 graph-test-data = { workspace = true }
 graph-types = { workspace = true }
-temporal-versioning = { workspace = true }
-authorization = { workspace = true }
 hash-tracing = { workspace = true }
-
-error-stack = { workspace = true, features = ["spantrace"] }
+temporal-versioning = { workspace = true }
 type-system = { workspace = true }
 
-futures = { workspace = true, default-features = false }
+# Private third-party dependencies
 pretty_assertions = { workspace = true }
-rand = { workspace = true }
-serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 time = { workspace = true }
 tokio = { workspace = true, default-features = false, features = ["macros"] }
 tokio-postgres = { workspace = true, default-features = false }
-uuid = { workspace = true, features = ["v4", "serde"] }
-tracing = { workspace = true }
 tracing-subscriber = { workspace = true, features = ["env-filter"] }
+uuid = { workspace = true, features = ["v4", "serde"] }
 
 [lints]
 workspace = true

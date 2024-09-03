@@ -284,3 +284,7 @@ separated_literal_suffix = "allow" # opposite of `clippy::unseparated_literal_su
 shadow_reuse = "allow"
 shadow_same = "allow"
 unneeded_field_pattern = "allow" # Actually, the opposite would be a great lint
+
+[workspace.metadata.cargo-shear]
+# We use the `futures` crate but the dependencies are required for public dependencies
+ignored = ["futures-core", "futures-io", "futures-sink"]

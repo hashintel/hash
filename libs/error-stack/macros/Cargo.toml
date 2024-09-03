@@ -23,3 +23,6 @@ error-stack = { path = "..", default-features = false }
 
 [lints]
 workspace = true
+
+[package.metadata.cargo-shear]
+ignored = ["error-stack"]
