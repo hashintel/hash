@@ -74,8 +74,7 @@
   "prettier": {
     "plugins": [
       "prettier-plugin-packagejson",
-      "prettier-plugin-sh",
-      "prettier-plugin-sql"
+      "prettier-plugin-sh"
     ],
     "trailingComma": "all",
     "overrides": [
@@ -116,7 +115,6 @@
     "prettier": "3.3.3",
     "prettier-plugin-packagejson": "2.5.2",
     "prettier-plugin-sh": "0.14.0",
-    "prettier-plugin-sql": "0.18.1",
     "suppress-exit-code": "3.1.0",
     "turbo": "2.1.1",
     "wait-on": "8.0.0",
