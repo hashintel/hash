@@ -391,7 +391,7 @@ export const archiveEntityResolver: ResolverFn<
     entityId,
   });
 
-  await entity.archive(context.graphApi, authentication);
+  await entity.archive(context.graphApi, authentication, context.provenance);
 
   return true;
 };
@@ -416,7 +416,11 @@ export const archiveEntitiesResolver: ResolverFn<
           entityId,
         });
 
-        await entity.archive(context.graphApi, authentication);
+        await entity.archive(
+          context.graphApi,
+          authentication,
+          context.provenance,
+        );
 
         archivedEntities.push(entity);
       } catch (error) {
@@ -428,7 +432,7 @@ export const archiveEntitiesResolver: ResolverFn<
   if (entitiesThatCouldNotBeArchived.length > 0) {
     await Promise.all(
       archivedEntities.map((entity) =>
-        entity.unarchive(context.graphApi, authentication),
+        entity.unarchive(context.graphApi, authentication, context.provenance),
       ),
     );
 
