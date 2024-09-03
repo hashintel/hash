@@ -92,7 +92,6 @@
         "yarn-deduplicate",
         "@redocly/cli"
       ],
-      "excludePackageNames": ["prettier-plugin-sql"],
       "dependencyDashboardApproval": false,
       "assignees": ["TimDiekmann"]
     },
@@ -209,7 +208,6 @@
       "groupName": "Prettier npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^prettier", "prettier$"],
-      "excludePackageNames": ["prettier-plugin-sql"],
       "dependencyDashboardApproval": false
     },
     {

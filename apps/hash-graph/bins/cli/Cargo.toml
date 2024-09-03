@@ -17,12 +17,10 @@ codec = { workspace = true }
 error-stack = { workspace = true }
 graph = { workspace = true, features = ["clap"] }
 graph-api = { workspace = true }
-graph-types = { workspace = true }
 hash-tracing = { workspace = true, features = ["clap"] }
 temporal-client = { workspace = true }
 test-server = { workspace = true, optional = true }
 type-fetcher = { workspace = true }
-type-system = { workspace = true }
 validation = { workspace = true }
 
 # Third party dependencies
@@ -33,8 +31,6 @@ futures = { workspace = true }
 mimalloc = { workspace = true }
 regex = { workspace = true }
 reqwest = { workspace = true, features = ["rustls-tls"] }
-semver = { workspace = true }
-serde_json = { workspace = true }
 tarpc = { workspace = true, features = ["serde1", "tokio1", "serde-transport", "tcp"] }
 time = { workspace = true }
 tokio = { workspace = true }
@@ -42,7 +38,6 @@ tokio-postgres = { workspace = true }
 tokio-serde = { workspace = true, features = ["json"] }
 tokio-util = { workspace = true, features = ["codec"] }
 tracing = { workspace = true }
-uuid = { workspace = true }
 
 [features]
 test-server = ["dep:test-server"]
