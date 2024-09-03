@@ -164,7 +164,7 @@ export async function getToolCallResults(
     } = toolCall.input;
 
     const relevantEntities = state.entitySummaries.filter(({ localId }) =>
-      relevantEntityIds?.includes(localId),
+      relevantEntityIds.includes(localId),
     );
 
     const linkExplorerIdentifiers = {
@@ -245,12 +245,12 @@ export async function getToolCallResults(
     const { goal, relevantEntityIds, explanation } = toolCall.input;
 
     const relevantEntities = state.entitySummaries.filter(({ localId }) =>
-      relevantEntityIds?.includes(localId),
+      relevantEntityIds.includes(localId),
     );
 
     const existingClaimsAboutRelevantEntities = state.inferredClaims.filter(
       ({ subjectEntityLocalId }) =>
-        relevantEntityIds?.includes(subjectEntityLocalId),
+        relevantEntityIds.includes(subjectEntityLocalId),
     );
 
     const delegatedTaskIdentifiers = {

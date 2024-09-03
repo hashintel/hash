@@ -197,6 +197,7 @@ export const generateToolDefinitions = <
             },
             description: dedent(`
                   The entityId of the proposed entities which the task is relevant to.
+                  If none, pass an empty array.
                   
                   ${
                     params.state.entitySummaries.length
@@ -232,7 +233,7 @@ export const generateToolDefinitions = <
                 `),
           },
         },
-        required: ["goal", "explanation"],
+        required: ["goal", "explanation", "relevantEntityIds"],
       },
     },
     webSearch: {
@@ -319,6 +320,8 @@ export const generateToolDefinitions = <
                   The entityIds of already proposed entities which you are seeking further detail on, if any.
                   If you expect new entities you are seeking to be linked to already-discovered entities, specify the already-discovered entities here.
                   If you are unsure if an entity is relevant, just include it – it's better to include too many than too few.
+                  
+                  If there are absolutely no entities relevant, pass an empty array.
                 `),
           },
         },
@@ -328,6 +331,7 @@ export const generateToolDefinitions = <
           "explanation",
           "descriptionOfExpectedContent",
           "exampleOfExpectedContent",
+          "relevantEntityIds",
         ],
       },
     },
@@ -446,14 +450,14 @@ export type CoordinatorToolCallArguments = Subtype<
       explanation: string;
       url: string;
       goal: string;
-      relevantEntityIds?: string[];
+      relevantEntityIds: string[];
       descriptionOfExpectedContent: string;
       exampleOfExpectedContent: string;
     };
     delegateResearchTask: {
       goal: string;
       explanation: string;
-      relevantEntityIds?: string[];
+      relevantEntityIds: string[];
     };
     updatePlan: {
       explanation: string;
