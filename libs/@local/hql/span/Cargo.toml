@@ -17,7 +17,7 @@ authors.workspace = true
 
 # Private third-party dependencies
 orx-concurrent-vec = { workspace = true }
-serde = { workspace = true, optional = true, features = ["derive"] }
+serde = { workspace = true, optional = true, features = ["alloc", "derive"] }
 text-size = { workspace = true }
 
 [features]

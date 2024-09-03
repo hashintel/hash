@@ -16,7 +16,7 @@ extra-dependencies = [{ name = "@local/status", version = "0.0.0-private" }]
 # Public workspace dependencies
 
 # Public third-party dependencies
-serde = { workspace = true, public = true, features = ["derive"] }
+serde = { workspace = true, public = true, features = ["alloc", "derive"] }
 
 # Private workspace dependencies
 

@@ -1950,7 +1950,6 @@ dependencies = [
  "regex",
  "rustc_version",
  "serde",
- "serde_json",
  "spin 0.9.8",
  "supports-color",
  "supports-unicode",
