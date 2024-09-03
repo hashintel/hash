@@ -126,6 +126,7 @@ export const deduplicateEntities = async (params: {
               type: "text",
               text: dedent(`Here are the entities to deduplicate:
                 ${entities
+                  .sort((a, b) => a.name.localeCompare(b.name))
                   .map(
                     (entitySummary) => `<Entity>
                     Name: ${entitySummary.name}

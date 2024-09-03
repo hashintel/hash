@@ -220,12 +220,24 @@ export const updateStateFromInferredClaims = async (params: {
   state.proposedEntities = [
     /**
      * Filter out any previous proposed entities that have been re-proposed with new claims.
+     * This assumes that the new proposal is better than the old one, as it takes account of the latest claims.
+     * An alternative approach would be to feed both old and new into an agent and ask it to merge properties.
      */
     ...state.proposedEntities.filter(
-      ({ localEntityId }) =>
+      ({ localEntityId, sourceEntityId, targetEntityId }) =>
         !newProposedEntities.some(
           (newProposedEntity) =>
-            newProposedEntity.localEntityId === localEntityId,
+            /**
+             * The entity has the same id as a new proposed entity
+             */
+            newProposedEntity.localEntityId === localEntityId ||
+            /**
+             * The entity is a link, and has the same source and target as a new proposed entity
+             */
+            (newProposedEntity.sourceEntityId &&
+              newProposedEntity.sourceEntityId === sourceEntityId &&
+              newProposedEntity.targetEntityId &&
+              newProposedEntity.targetEntityId === targetEntityId),
         ),
     ),
     ...newProposedEntities,
