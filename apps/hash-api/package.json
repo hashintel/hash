@@ -60,7 +60,7 @@
     "@temporalio/client": "1.10.1",
     "@temporalio/proto": "1.10.1",
     "@types/ws": "8.5.12",
-    "agentkeepalive": "4.2.1",
+    "agentkeepalive": "4.5.0",
     "apollo-datasource": "3.3.2",
     "apollo-server-core": "3.12.1",
     "apollo-server-errors": "3.3.1",
