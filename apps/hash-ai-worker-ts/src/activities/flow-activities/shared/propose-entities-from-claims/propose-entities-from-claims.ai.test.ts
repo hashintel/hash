@@ -580,7 +580,6 @@ test(
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
-      simplifyPropertyKeys: true,
     });
 
     const claims = ftse350Claims.map(

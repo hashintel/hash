@@ -18,7 +18,6 @@ test.skip(
         ],
         graphApiClient,
         actorId: userAuthentication.actorId,
-        simplifyPropertyKeys: true,
       });
 
     const { rejectedDelegatedTasks, acceptedDelegatedTasks } =

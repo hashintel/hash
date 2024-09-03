@@ -110,7 +110,7 @@ export const simplifyProposedEntityForLlmConsumption = (params: {
 ${Object.entries(entityProperties)
   .map(
     ([baseUrl, value]) =>
-      `<Property>${urlToTitleCase(baseUrl)}: ${stringifyPropertyValue(value)}</Property>`,
+      `${urlToTitleCase(baseUrl)}: ${stringifyPropertyValue(value)}`,
   )
   .join("\n")}
 </Properties>

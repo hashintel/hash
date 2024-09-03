@@ -75,7 +75,6 @@ test(
       entityTypeIds: ["https://hash.ai/@hash/types/entity-type/person/v/1"],
       actorId: userAuthentication.actorId,
       graphApiClient,
-      simplifyPropertyKeys: true,
     });
 
     const entityTypes = Object.values(dereferencedEntityTypes).map(

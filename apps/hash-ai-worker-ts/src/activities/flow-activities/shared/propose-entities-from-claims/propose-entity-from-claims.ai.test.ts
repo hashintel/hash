@@ -76,7 +76,6 @@ test(
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
-      simplifyPropertyKeys: true,
     });
 
     const { schema: dereferencedEntityType, simplifiedPropertyTypeMappings } =
@@ -105,7 +104,7 @@ test(
         isObjectOf: [],
       },
       dereferencedEntityType,
-      simplifiedPropertyTypeMappings: simplifiedPropertyTypeMappings!,
+      simplifiedPropertyTypeMappings,
       proposeOutgoingLinkEntityTypes: [],
       possibleOutgoingLinkTargetEntitySummaries: [],
     });
@@ -244,7 +243,6 @@ test(
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
-      simplifyPropertyKeys: true,
     });
 
     const { schema: dereferencedEntityType, simplifiedPropertyTypeMappings } =

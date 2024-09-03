@@ -98,7 +98,6 @@ const parseAndResolveCoordinatorInputs = async (params: {
       ...(existingEntities?.map(({ metadata }) => metadata.entityTypeId) ?? []),
     ].filter((entityTypeId, index, all) => all.indexOf(entityTypeId) === index),
     actorId: userAuthentication.actorId,
-    simplifyPropertyKeys: true,
   });
 
   const entityTypes = Object.values(dereferencedEntityTypes)

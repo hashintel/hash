@@ -5,11 +5,11 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import { Context } from "@temporalio/activity";
 
+import type { FlowSignal } from "../../../../shared/signals.js";
 import {
   getTemporalClient,
   isActivityCancelled,
 } from "../../../shared/get-flow-context.js";
-import type { FlowSignal } from "../../../../shared/signals.js";
 
 /**
  * Check if a HASH worker should stop what it is doing and return early.

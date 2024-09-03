@@ -83,14 +83,6 @@ export const proposeEntitiesFromClaims = async (params: {
                 outgoingLinkEntityTypeSimplifiedPropertyTypeMappings,
             },
           ]) => {
-            if (!outgoingLinkEntityTypeSimplifiedPropertyTypeMappings) {
-              throw new Error(
-                `Could not find simplified property type mappings for entity summary: ${JSON.stringify(
-                  entitySummary,
-                )}`,
-              );
-            }
-
             return {
               schema,
               simplifiedPropertyTypeMappings:
