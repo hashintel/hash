@@ -22,11 +22,9 @@ text-size = { workspace = true, public = true }
 
 # Private third-party dependencies
 ecow = { workspace = true }
-error-stack = { workspace = true }
 hifijson = { workspace = true, features = ["alloc"] }
 json-number = { workspace = true }
 logos = { workspace = true, features = ["export_derive"] }
-thiserror = { workspace = true }
 unicode-ident = { workspace = true }
 winnow = { workspace = true, features = ["std"] }
 

@@ -30,19 +30,14 @@ tower-http = { workspace = true, public = true }
 tracing = { workspace = true, public = true }
 
 # Private workspace dependencies
-codec = { workspace = true, optional = true }
 error-stack = { workspace = true }
-hash-tracing = { workspace = true }
 temporal-versioning = { workspace = true }
 type-system = { workspace = true, features = ["utoipa"] }
 validation = { workspace = true, features = ["utoipa"] }
 
 # Private third-party dependencies
 async-trait = { workspace = true }
-base64 = { workspace = true }
 bytes = { workspace = true }
-futures = { workspace = true }
-http-body-util = { workspace = true }
 hyper = { workspace = true }
 include_dir = { workspace = true }
 mime = { workspace = true }
@@ -52,9 +47,6 @@ sentry = { workspace = true }
 serde = { workspace = true, features = ['derive'] }
 serde_json = { workspace = true }
 time = { workspace = true }
-tokio = { workspace = true, features = ["macros"], optional = true }
-tokio-postgres = { workspace = true, default-features = false, optional = true }
-tokio-util = { workspace = true, features = ["io"], optional = true }
 tower = { workspace = true }
 tracing-opentelemetry = { workspace = true }
 utoipa = { workspace = true }

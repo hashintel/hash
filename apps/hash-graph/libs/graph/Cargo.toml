@@ -44,26 +44,20 @@ clap = { workspace = true, features = ["derive", "env"], optional = true }
 derive-where = { workspace = true }
 dotenv-flow = { workspace = true }
 futures = { workspace = true }
-mime = { workspace = true }
 postgres-types = { workspace = true, features = ["derive", "with-serde_json-1"] }
 refinery = { workspace = true, features = ["tokio-postgres"] }
 regex = { workspace = true }
 semver = { workspace = true, features = ["serde"] }
-sentry = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
 tarpc = { workspace = true, features = ["serde-transport", "tcp"] }
 time = { workspace = true }
 tokio-serde = { workspace = true, features = ["json"] }
-tokio-util = { workspace = true, features = ["io"] }
 tracing = { workspace = true }
 utoipa = { workspace = true, features = ["uuid"], optional = true }
 uuid = { workspace = true, features = ["v4", "v5", "serde"] }
 
 [dev-dependencies]
-graph-test-data = { workspace = true }
-
-criterion = { workspace = true }
 tokio = { workspace = true, features = ["macros"] }
 
 [features]

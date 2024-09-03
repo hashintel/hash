@@ -19,10 +19,8 @@ extra-dependencies = [{ name = "@local/status", version = "0.0.0-private" }]
 serde = { workspace = true, public = true, features = ["derive"] }
 
 # Private workspace dependencies
-error-stack = { workspace = true }
 
 # Private third-party dependencies
-serde_json = { workspace = true }
 
 [lints]
 workspace = true
