@@ -117,6 +117,11 @@
       "matchPackagePatterns": ["@matejmazur/react-katex", "^katex"]
     },
     {
+      "groupName": "Ory npm packages",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@ory/"]
+    },
+    {
       "groupName": "signia npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^signia", "signia$"]
