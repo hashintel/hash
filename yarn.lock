@@ -29190,10 +29190,10 @@ supports-preserve-symlinks-flag@^1.0.0:
   resolved "https://registry.yarnpkg.com/supports-preserve-symlinks-flag/-/supports-preserve-symlinks-flag-1.0.0.tgz#6eda4bd344a3c94aea376d4cc31bc77311039e09"
   integrity "sha1-btpL00SjyUrqN21MwxvHcxEDngk= sha512-ot0WnXS9fgdkgIcePe6RHNk1WA8+muPa6cSjeR3V8K27q9BB1rTE3R1p7Hv0z1ZyAc8s6Vvv8DIyWf681MAt0w=="
 
-suppress-exit-code@3.1.0:
-  version "3.1.0"
-  resolved "https://registry.yarnpkg.com/suppress-exit-code/-/suppress-exit-code-3.1.0.tgz#08a9bdc9a4b68cf9615bdbde41ed4d13bc6d5c2e"
-  integrity "sha1-CKm9yaS2jPlhW9veQe1NE7xtXC4= sha512-JHab5m5qVyOcezdxbNW52YALWVKnmp51EjdiGvlUoiDyoN9RxfCEJAsaNIyXmMSsHuXCfw9Wz13B/9UhLqd86Q=="
+suppress-exit-code@3.2.0:
+  version "3.2.0"
+  resolved "https://registry.yarnpkg.com/suppress-exit-code/-/suppress-exit-code-3.2.0.tgz#2fcc3642069657a8ea130f893cec5ed54c96c553"
+  integrity sha512-V4QDbDQoWrqfD4KNq0H0zyolg+4K6pkX9urqAVU25uBNVyzmP9j00ZtIsUbzX3qV+2GCl6gmS5kmCS/Ytd/Oaw==
   dependencies:
     execa "^6.1.0"
 
