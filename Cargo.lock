@@ -2373,7 +2373,6 @@ dependencies = [
  "temporal-client 0.0.0",
  "temporal-versioning",
  "time",
- "tower",
  "tower-http",
  "tracing",
  "tracing-opentelemetry 0.24.0",

@@ -71,3 +71,7 @@ utoipa = [
 
 [lints]
 workspace = true
+
+[package.metadata.cargo-shear]
+# Used as public dependency
+ignored = ["deadpool"]

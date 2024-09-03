@@ -47,10 +47,13 @@ sentry = { workspace = true }
 serde = { workspace = true, features = ['derive'] }
 serde_json = { workspace = true }
 time = { workspace = true }
-tower = { workspace = true }
 tracing-opentelemetry = { workspace = true }
 utoipa = { workspace = true }
 uuid = { workspace = true }
 
 [lints]
 workspace = true
+
+[package.metadata.cargo-shear]
+# Used as public dependency
+ignored = ["axum-core"]

@@ -46,3 +46,7 @@ path = "read_scaling/lib.rs"
 [[bench]]
 name = "representative_read"
 path = "representative_read/lib.rs"
+
+[package.metadata.cargo-shear]
+# Cargo shear does not detect these dependencies
+ignored = ["tokio-postgres", "tracing-subscriber", "repo-chores", "tracing-flame", "tracing"]

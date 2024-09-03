@@ -90,3 +90,7 @@ doc-scrape-examples = true
 [[test]]
 name = "common"
 test = false
+
+[package.metadata.cargo-shear]
+# Used in doc-tests
+ignored = ["thiserror", "owo-colors"]
