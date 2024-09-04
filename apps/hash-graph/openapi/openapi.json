@@ -8117,6 +8117,9 @@
       },
       "ValueMetadata": {
         "type": "object",
+        "required": [
+          "dataTypeId"
+        ],
         "properties": {
           "confidence": {
             "allOf": [
@@ -8130,7 +8133,8 @@
               {
                 "$ref": "#/components/schemas/VersionedUrl"
               }
-            ]
+            ],
+            "nullable": true
           },
           "provenance": {
             "$ref": "#/components/schemas/PropertyProvenance"
