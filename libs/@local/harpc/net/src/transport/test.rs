@@ -23,13 +23,11 @@ use harpc_wire_protocol::{
 use libp2p::{
     core::transport::MemoryTransport, multiaddr, swarm::DialError, Multiaddr, TransportError,
 };
+use libp2p_stream::OpenStreamError;
 use tokio_util::sync::CancellationToken;
 
 use super::{TransportConfig, TransportLayer};
-use crate::transport::{
-    connection::{IncomingConnection, OutgoingConnection},
-    error::OpenStreamError,
-};
+use crate::transport::connection::{IncomingConnection, OutgoingConnection};
 
 static EXAMPLE_REQUEST: Request = Request {
     header: RequestHeader {

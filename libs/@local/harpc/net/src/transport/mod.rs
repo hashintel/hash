@@ -22,7 +22,7 @@ use tokio_util::{
 use self::{
     client::ClientCodec,
     connection::{IncomingConnections, OutgoingConnection},
-    error::{OpenStreamError, TransportError},
+    error::TransportError,
     task::TransportTask,
 };
 pub use self::{
@@ -199,7 +199,6 @@ impl TransportLayer {
         let stream = control
             .open_stream(peer, PROTOCOL_NAME)
             .await
-            .map_err(OpenStreamError::from)
             .change_context(TransportError::OpenStream { peer_id: peer })?;
 
         let stream = stream.compat();

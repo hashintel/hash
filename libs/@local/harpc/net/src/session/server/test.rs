@@ -28,6 +28,7 @@ use harpc_wire_protocol::{
     test_utils::mock_request_id,
 };
 use libp2p::Multiaddr;
+use libp2p_stream::OpenStreamError;
 use tokio::{pin, sync::Notify};
 
 use super::{
@@ -39,7 +40,7 @@ use crate::{
     session::{server::config::ConcurrentConnectionLimit, test::StringEncoder},
     transport::{
         connection::OutgoingConnection,
-        error::{OpenStreamError, TransportError},
+        error::TransportError,
         test::{layer, memory_address},
         TransportLayer,
     },
