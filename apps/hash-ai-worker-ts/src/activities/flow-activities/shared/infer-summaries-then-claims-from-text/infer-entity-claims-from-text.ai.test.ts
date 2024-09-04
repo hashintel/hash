@@ -35,7 +35,6 @@ test(
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
-      simplifyPropertyKeys: true,
     });
 
     const dereferencedEntityType = Object.values(dereferencedEntityTypes)[0]!
@@ -103,7 +102,6 @@ test(
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
-      simplifyPropertyKeys: true,
     });
 
     const dereferencedEntityType = Object.values(dereferencedEntityTypes)[0]!

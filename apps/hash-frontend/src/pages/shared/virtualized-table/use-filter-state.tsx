@@ -54,13 +54,21 @@ export const useVirtualizedTableFilterState = <
 
     if (!filterValues && defaultFilterValues) {
       /**
-       * We handle this directly in the render.
+       * We handle this directly in the render function.
        */
       return;
     } else if (
       defaultFilterValues &&
       !isEqual(defaultFilterValues, previousDefaultFilterValues.current)
     ) {
+      if (isEqual(filterValues, previousDefaultFilterValues.current)) {
+        /**
+         * The filter values are the same as the previous defaults, so we can update them directly.
+         */
+        setFilterValues(defaultFilterValues);
+        return;
+      }
+
       /**
        * The default filter values have changed, which may because possible values have added or removed,
        * or because new columns have been added.
@@ -134,7 +142,13 @@ export const useVirtualizedTableFilterState = <
             /**
              * This is a Set (checkbox group) filter.
              */
-            if (currentValue === defaultValue) {
+            if (currentValue.size === 0) {
+              /**
+               * There were no values selectable in this column previously – set it to the new default.
+               * Technically this should also be covered by the case where the filterValues are equal to the previous default.
+               */
+              newFilterValues[columnId] = defaultValue;
+            } else if (currentValue === defaultValue) {
               /**
                * Shortcut in case the default value is the same Set in memory as the current value,
                * meaning that it's untouched (since we don't mutate the Set when updating the filter values).

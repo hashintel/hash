@@ -384,7 +384,7 @@ export const removeParentPage: ImpureGraphFunction<
     );
   }
 
-  await parentPageLink.archive(ctx.graphApi, authentication);
+  await parentPageLink.archive(ctx.graphApi, authentication, ctx.provenance);
 };
 
 /**

@@ -10,8 +10,8 @@ import type { DereferencedEntityTypesByTypeId } from "../../../infer-entities/in
 import type { DereferencedEntityType } from "../../../shared/dereference-entity-type.js";
 import { getTemporalClient } from "../../../shared/get-flow-context.js";
 import type { LlmParams } from "../../../shared/get-llm-response/types.js";
+import type { Claim } from "../../shared/claims.js";
 import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
-import type { Claim } from "../../shared/infer-summaries-then-claims-from-text/types.js";
 import type { ExistingEntitySummary } from "../coordinating-agent/summarize-existing-entities.js";
 import type { SubCoordinatingAgentState } from "../sub-coordinating-agent/state.js";
 import { areUrlsEqual } from "./are-urls-equal.js";
@@ -135,11 +135,9 @@ export type CoordinatingAgentState = {
    */
   plan: string;
   /**
-   * Previous completed tool calls made by the agent.
+   * The latest responses to tool calls made by the agent
    */
-  previousCalls: {
-    completedToolCalls: CompletedCoordinatorToolCall<CoordinatorToolName>[];
-  }[];
+  lastCompletedToolCalls: CompletedCoordinatorToolCall<CoordinatorToolName>[];
   /**
    * The full, schema-conforming properties of entities proposed so far.
    */
@@ -212,7 +210,15 @@ export const processCommonStateMutationsFromToolResults = ({
 
   // eslint-disable-next-line no-param-reassign
   state.resourceUrlsVisited = [
-    ...new Set([...resourceUrlsVisited, ...state.resourceUrlsVisited]),
+    ...new Set([
+      ...resourceUrlsVisited,
+      ...state.resourceUrlsVisited,
+      ...state.outstandingTasks
+        .map((task) =>
+          "url" in task.toolCall.input ? task.toolCall.input.url : null,
+        )
+        .filter((string) => string !== null),
+    ]),
   ];
 
   const newWebPages = toolCallResults

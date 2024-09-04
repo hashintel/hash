@@ -12,8 +12,8 @@ import type {
   LlmToolDefinition,
   ParsedLlmToolCall,
 } from "../../../shared/get-llm-response/types.js";
+import type { Claim } from "../../shared/claims.js";
 import type { LocalEntitySummary } from "../../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
-import type { Claim } from "../../shared/infer-summaries-then-claims-from-text/types.js";
 import type { SubCoordinatingAgentInput } from "../sub-coordinating-agent/input.js";
 import type { SubCoordinatingAgentState } from "../sub-coordinating-agent/state.js";
 import type {
@@ -197,6 +197,7 @@ export const generateToolDefinitions = <
             },
             description: dedent(`
                   The entityId of the proposed entities which the task is relevant to.
+                  If none, pass an empty array.
                   
                   ${
                     params.state.entitySummaries.length
@@ -232,7 +233,7 @@ export const generateToolDefinitions = <
                 `),
           },
         },
-        required: ["goal", "explanation"],
+        required: ["goal", "explanation", "relevantEntityIds"],
       },
     },
     webSearch: {
@@ -319,6 +320,8 @@ export const generateToolDefinitions = <
                   The entityIds of already proposed entities which you are seeking further detail on, if any.
                   If you expect new entities you are seeking to be linked to already-discovered entities, specify the already-discovered entities here.
                   If you are unsure if an entity is relevant, just include it – it's better to include too many than too few.
+                  
+                  If there are absolutely no entities relevant, pass an empty array.
                 `),
           },
         },
@@ -328,6 +331,7 @@ export const generateToolDefinitions = <
           "explanation",
           "descriptionOfExpectedContent",
           "exampleOfExpectedContent",
+          "relevantEntityIds",
         ],
       },
     },
@@ -446,14 +450,14 @@ export type CoordinatorToolCallArguments = Subtype<
       explanation: string;
       url: string;
       goal: string;
-      relevantEntityIds?: string[];
+      relevantEntityIds: string[];
       descriptionOfExpectedContent: string;
       exampleOfExpectedContent: string;
     };
     delegateResearchTask: {
       goal: string;
       explanation: string;
-      relevantEntityIds?: string[];
+      relevantEntityIds: string[];
     };
     updatePlan: {
       explanation: string;
@@ -808,6 +812,8 @@ export const generateOutstandingTasksDescription = (
     `),
       )
       .join("\n")}
+      
+    The results of each will be available in due course – but you can stop any now if you think they are no longer relevant.
   `);
 };
 
@@ -825,12 +831,22 @@ export const handleStopTasksRequests = async ({
     .filter((call) => call.name === "stopTasks")
     .flatMap(({ input }) => input.tasksToStop);
 
-  stopRequests.push(
-    ...state.workersStarted.map((workerIdentifiers) => ({
-      explanation: "Parent task was stopped",
-      toolCallId: workerIdentifiers.toolCallId,
-    })),
+  // eslint-disable-next-line no-param-reassign
+  state.workersStarted = state.workersStarted.filter(
+    (workerIdentifiers) =>
+      !stopRequests.find(
+        (stopRequest) =>
+          stopRequest.toolCallId === workerIdentifiers.toolCallId,
+      ),
   );
+
+  // eslint-disable-next-line no-param-reassign
+  state.outstandingTasks = state.outstandingTasks.filter(
+    (task) =>
+      !stopRequests.find(
+        (stopRequest) => stopRequest.toolCallId === task.toolCall.id,
+      ),
+  ) as typeof state.outstandingTasks;
 
   await stopWorkers(stopRequests);
 };

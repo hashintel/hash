@@ -16,7 +16,6 @@ test("Test researchEntitiesAction: find subsidiary companies of Google", async (
     ],
     actorId: userAuthentication.actorId,
     graphApiClient,
-    simplifyPropertyKeys: true,
   });
 
   const simplifiedEntityType = simplifyEntityTypeForLlmConsumption({

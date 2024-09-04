@@ -17,9 +17,8 @@ export type SubCoordinatingAgentState = Pick<
   | "resourceUrlsVisited"
   | "webQueriesMade"
   | "workersStarted"
+  | "lastCompletedToolCalls"
 > & {
   outstandingTasks: OutstandingCoordinatorTask<ParsedSubCoordinatorToolCall>[];
-  previousCalls: {
-    completedToolCalls: CompletedCoordinatorToolCall<SubCoordinatingAgentToolName>[];
-  }[];
+  lastCompletedToolCalls: CompletedCoordinatorToolCall<SubCoordinatingAgentToolName>[];
 };

@@ -16,7 +16,6 @@ proc-macro = true
 
 # Third-party dependencies
 virtue = { workspace = true }
-syn = { workspace = true }
 
 [dev-dependencies]
 trybuild = { workspace = true }

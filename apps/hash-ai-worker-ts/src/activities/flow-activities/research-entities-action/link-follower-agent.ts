@@ -17,9 +17,9 @@ import {
 } from "../../shared/get-flow-context.js";
 import { logProgress } from "../../shared/log-progress.js";
 import { stringify } from "../../shared/stringify.js";
+import type { Claim } from "../shared/claims.js";
 import { inferSummariesThenClaimsFromText } from "../shared/infer-summaries-then-claims-from-text.js";
 import type { LocalEntitySummary } from "../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
-import type { Claim } from "../shared/infer-summaries-then-claims-from-text/types.js";
 import type { Link } from "./link-follower-agent/choose-relevant-links-from-content.js";
 import { chooseRelevantLinksFromContent } from "./link-follower-agent/choose-relevant-links-from-content.js";
 import { filterAndRankTextChunksAgent } from "./link-follower-agent/filter-and-rank-text-chunks-agent.js";
@@ -288,13 +288,24 @@ const exploreResource = async (params: {
       sanitizeForLlm: true,
     });
 
+    const notExploredLog = {
+      recordedAt: new Date().toISOString(),
+      stepId,
+      type: "VisitedWebPage",
+      webPage: { url: resource.url, title: "Unknown – could not access" },
+      explanation: resource.reason,
+      ...workerIdentifiers,
+    } as const;
+
     if ("error" in webPage) {
+      logProgress([notExploredLog]);
       return {
         status: "not-explored",
         reason: webPage.error,
         resource,
       };
     } else if (!webPage.htmlContent.trim()) {
+      logProgress([notExploredLog]);
       return {
         status: "not-explored",
         reason: "Could not retrieve web page content",
@@ -436,13 +447,14 @@ const exploreResource = async (params: {
 export const linkFollowerAgent = async (params: {
   input: LinkFollowerAgentInput;
   workerIdentifiers: WorkerIdentifiers;
-}): Promise<{
-  status: "ok";
-  inferredClaims: Claim[];
-  exploredResources: ResourceToExplore[];
-  inferredSummaries: LocalEntitySummary[];
-  suggestionForNextSteps: string;
-}> => {
+}): Promise<
+  {
+    inferredClaims: Claim[];
+    exploredResources: ResourceToExplore[];
+    inferredSummaries: LocalEntitySummary[];
+    suggestionForNextSteps: string;
+  } & ({ status: "ok" } | { status: "error"; message: string })
+> => {
   const { input, workerIdentifiers } = params;
   const { initialResource, existingEntitiesOfInterest, goal } = input;
 
@@ -519,6 +531,17 @@ export const linkFollowerAgent = async (params: {
         logger.debug(
           `Resource at URL ${response.resource.url} not explored: ${response.reason}`,
         );
+
+        if (resourcesToExplore.length === 1) {
+          return {
+            status: "error",
+            message: `Could not explore the resource at URL ${response.resource.url}: ${response.reason}`,
+            inferredClaims: allInferredClaims,
+            inferredSummaries: allInferredEntitySummaries,
+            suggestionForNextSteps,
+            exploredResources,
+          };
+        }
       }
     }
 

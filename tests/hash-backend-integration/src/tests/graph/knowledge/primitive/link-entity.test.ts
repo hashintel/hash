@@ -273,7 +273,17 @@ describe("Link entity", () => {
   it("can archive a link", async () => {
     const authentication = { actorId: testUser.accountId };
 
-    await linkEntityAcquaintance.archive(graphContext.graphApi, authentication);
+    await linkEntityAcquaintance.archive(
+      graphContext.graphApi,
+      authentication,
+      {
+        actorType: "machine",
+        origin: {
+          type: "api",
+          environment: "test",
+        },
+      },
+    );
 
     const links = await getEntityOutgoingLinks(graphContext, authentication, {
       entityId: leftEntity.metadata.recordId.entityId,

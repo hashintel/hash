@@ -98,7 +98,6 @@ const parseAndResolveCoordinatorInputs = async (params: {
       ...(existingEntities?.map(({ metadata }) => metadata.entityTypeId) ?? []),
     ].filter((entityTypeId, index, all) => all.indexOf(entityTypeId) === index),
     actorId: userAuthentication.actorId,
-    simplifyPropertyKeys: true,
   });
 
   const entityTypes = Object.values(dereferencedEntityTypes)
@@ -403,10 +402,7 @@ export const runCoordinatingAgent: FlowActionActivity<{
     }
 
     // eslint-disable-next-line no-param-reassign
-    state.previousCalls = [
-      ...state.previousCalls,
-      { completedToolCalls: toolCallResults },
-    ];
+    state.lastCompletedToolCalls = toolCallResults;
 
     if (testingParams?.persistState) {
       testingParams.persistState(state);

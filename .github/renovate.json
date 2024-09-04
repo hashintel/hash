@@ -92,7 +92,6 @@
         "yarn-deduplicate",
         "@redocly/cli"
       ],
-      "excludePackageNames": ["prettier-plugin-sql"],
       "dependencyDashboardApproval": false,
       "assignees": ["TimDiekmann"]
     },
@@ -115,6 +114,11 @@
       "groupName": "katex npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["@matejmazur/react-katex", "^katex"]
+    },
+    {
+      "groupName": "Ory npm packages",
+      "matchManagers": ["npm"],
+      "matchPackagePatterns": ["^@ory/"]
     },
     {
       "groupName": "signia npm packages",
@@ -204,7 +208,6 @@
       "groupName": "Prettier npm packages",
       "matchManagers": ["npm"],
       "matchPackagePatterns": ["^prettier", "prettier$"],
-      "excludePackageNames": ["prettier-plugin-sql"],
       "dependencyDashboardApproval": false
     },
     {

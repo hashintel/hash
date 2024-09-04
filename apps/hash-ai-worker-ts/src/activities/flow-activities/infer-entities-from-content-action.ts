@@ -67,7 +67,6 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
       graphApiClient,
       entityTypeIds,
       actorId: userAuthentication.actorId,
-      simplifyPropertyKeys: true,
     });
 
   const entityTypes = Object.entries(
