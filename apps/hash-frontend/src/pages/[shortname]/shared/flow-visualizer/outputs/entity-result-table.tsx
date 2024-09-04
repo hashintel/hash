@@ -403,7 +403,7 @@ const TableRow = memo(
             return (
               <PropertyValueCell
                 key={column.id}
-                metadata={metadata}
+                metadata={{ dataTypeId: null, ...metadata }}
                 value={propertyValue}
               />
             );

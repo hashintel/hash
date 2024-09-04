@@ -148,7 +148,10 @@ const generatePropertyMetadata = (params: {
     }
 
     propertyMetadata.value[baseUrl] = {
-      metadata: { provenance: { sources: sourcesUsedToDetermineValue } },
+      metadata: {
+        dataTypeId: null,
+        provenance: { sources: sourcesUsedToDetermineValue },
+      },
     };
   }
 

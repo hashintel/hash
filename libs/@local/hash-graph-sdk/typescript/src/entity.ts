@@ -313,7 +313,9 @@ export const mergePropertiesAndMetadata = (
       // If the keys are not base urls, we treat the object as a value
       return {
         value: property,
-        metadata: {},
+        metadata: {
+          dataTypeId: null,
+        },
       } satisfies PropertyValueWithMetadata;
     }
     if (isObjectMetadata(metadata)) {
@@ -361,7 +363,9 @@ export const mergePropertiesAndMetadata = (
   if (!metadata) {
     return {
       value: property,
-      metadata: {},
+      metadata: {
+        dataTypeId: null,
+      },
     } satisfies PropertyValueWithMetadata;
   }
 
