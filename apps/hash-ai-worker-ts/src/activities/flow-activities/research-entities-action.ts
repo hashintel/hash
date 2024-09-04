@@ -47,7 +47,7 @@ export const researchEntitiesAction: FlowActionActivity<{
       inferredClaims: [],
       outstandingTasks: [],
       plan: "",
-      previousCalls: [],
+      lastCompletedToolCalls: [],
       proposedEntities: [],
       questionsAndAnswers: null,
       submittedEntityIds: [],

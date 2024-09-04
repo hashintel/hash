@@ -5,6 +5,7 @@ import type {
 } from "@local/hash-isomorphic-utils/flows/types";
 import { Context } from "@temporalio/activity";
 
+import type { FlowSignal } from "../../../../shared/signals.js";
 import {
   getTemporalClient,
   isActivityCancelled,
@@ -57,14 +58,15 @@ export const checkIfWorkerShouldStop = async (
     ) {
       const signalData = event.workflowExecutionSignaledEventAttributes.input;
 
-      const inputData = parseHistoryItemPayload(signalData);
+      const inputData = parseHistoryItemPayload(signalData)?.[0] as
+        | FlowSignal
+        | undefined;
 
       if (
         inputData &&
         typeof inputData === "object" &&
         "toolCallId" in inputData &&
-        "explanation" in inputData &&
-        typeof inputData.explanation === "string"
+        "explanation" in inputData
       ) {
         if (identifiers.toolCallId === inputData.toolCallId) {
           /**

@@ -16,7 +16,6 @@ test.skip(
       entityTypeIds: ["https://hash.ai/@hash/types/entity-type/person/v/1"],
       actorId: userAuthentication.actorId,
       graphApiClient,
-      simplifyPropertyKeys: true,
     });
 
     const status = await linkFollowerAgent({
@@ -62,7 +61,6 @@ test.skip(
       entityTypeIds: ["https://hash.ai/@hash/types/entity-type/person/v/1"],
       actorId: userAuthentication.actorId,
       graphApiClient,
-      simplifyPropertyKeys: true,
     });
 
     const status = await linkFollowerAgent({
@@ -110,7 +108,6 @@ test.skip(
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
-      simplifyPropertyKeys: true,
     });
 
     const status = await linkFollowerAgent({
@@ -158,7 +155,6 @@ test.skip(
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
-      simplifyPropertyKeys: true,
     });
 
     const status = await linkFollowerAgent({
@@ -207,7 +203,6 @@ test.skip(
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
-      simplifyPropertyKeys: true,
     });
 
     const status = await linkFollowerAgent({

@@ -19,7 +19,6 @@
     "@rust/validation": "0.0.0-private"
   },
   "devDependencies": {
-    "@rust/graph-test-data": "0.0.0-private",
     "tsx": "4.16.2"
   }
 }

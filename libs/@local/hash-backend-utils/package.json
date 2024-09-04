@@ -36,14 +36,14 @@
     "@local/hash-subgraph": "0.0.0-private",
     "@local/internal-api-client": "0.0.0-private",
     "@local/status": "0.0.0-private",
-    "@opensearch-project/opensearch": "2.1.0",
+    "@opensearch-project/opensearch": "2.12.0",
     "@sentry/node": "7.119.0",
     "@temporalio/activity": "1.10.1",
     "@temporalio/client": "1.10.1",
     "@temporalio/proto": "1.10.1",
     "@temporalio/worker": "1.10.1",
     "@temporalio/workflow": "1.10.1",
-    "agentkeepalive": "4.2.1",
+    "agentkeepalive": "4.5.0",
     "apollo-datasource": "3.3.2",
     "axios": "1.7.4",
     "dotenv-flow": "3.3.0",
@@ -53,7 +53,7 @@
     "redis": "4.6.12",
     "slonik": "24.1.2",
     "wait-on": "8.0.0",
-    "winston": "3.11.0"
+    "winston": "3.14.2"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",

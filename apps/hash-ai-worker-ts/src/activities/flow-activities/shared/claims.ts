@@ -9,3 +9,10 @@ export type Claim = {
   prepositionalPhrases: string[];
   sources?: SourceProvenance[];
 };
+
+export const claimTextualContentFromClaim = (claim: Claim): string =>
+  `${claim.text}${
+    claim.prepositionalPhrases.length
+      ? `– ${claim.prepositionalPhrases.join(", ")}`
+      : ""
+  }`;

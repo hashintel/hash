@@ -9,8 +9,8 @@ import { expect, test } from "vitest";
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
+import type { Claim } from "../claims.js";
 import type { LocalEntitySummary } from "../infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
-import type { Claim } from "../infer-summaries-then-claims-from-text/types.js";
 import { proposeEntitiesFromClaims } from "../propose-entities-from-claims.js";
 
 /**
@@ -580,7 +580,6 @@ test(
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
-      simplifyPropertyKeys: true,
     });
 
     const claims = ftse350Claims.map(

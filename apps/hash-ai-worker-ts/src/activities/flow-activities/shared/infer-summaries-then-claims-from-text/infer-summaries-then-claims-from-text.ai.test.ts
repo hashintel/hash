@@ -36,7 +36,6 @@ test.only(
       entityTypeIds: ["https://hash.ai/@hash/types/entity-type/person/v/1"],
       actorId: userAuthentication.actorId,
       graphApiClient,
-      simplifyPropertyKeys: true,
     });
 
     const url = "https://arxiv.org/html/2402.17177v1";
@@ -102,7 +101,6 @@ test(
       entityTypeIds: ["https://hash.ai/@hash/types/entity-type/company/v/1"],
       actorId: userAuthentication.actorId,
       graphApiClient,
-      simplifyPropertyKeys: true,
     });
 
     const { claims, entitySummaries } = await inferSummariesThenClaimsFromText({
@@ -246,7 +244,6 @@ test(
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
-      simplifyPropertyKeys: true,
     });
 
     const { claims, entitySummaries } = await inferSummariesThenClaimsFromText({
@@ -343,7 +340,6 @@ test.skip(
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
-      simplifyPropertyKeys: true,
     });
 
     const { claims, entitySummaries } = await inferSummariesThenClaimsFromText({
@@ -543,7 +539,6 @@ test(
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
-      simplifyPropertyKeys: true,
     });
 
     const { claims, entitySummaries } = await inferSummariesThenClaimsFromText({

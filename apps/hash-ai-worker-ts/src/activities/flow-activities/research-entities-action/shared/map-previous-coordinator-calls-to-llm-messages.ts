@@ -5,49 +5,50 @@ import type {
 } from "../../../shared/get-llm-response/llm-message.js";
 import type {
   CompletedCoordinatorToolCall,
-  CompletedToolCall,
+  CoordinatorToolName,
+  SubCoordinatingAgentToolName,
 } from "./coordinator-tools.js";
 
 export const mapPreviousCoordinatorCallsToLlmMessages = (params: {
-  includeErrorsOnly?: boolean;
-  previousCalls: {
-    completedToolCalls: (
-      | CompletedCoordinatorToolCall<string>
-      | CompletedToolCall<string>
-    )[];
-  }[];
+  includeErrorsOnly: boolean;
+  previousCalls: CompletedCoordinatorToolCall<
+    CoordinatorToolName | SubCoordinatingAgentToolName
+  >[];
 }): LlmMessage[] => {
   const { includeErrorsOnly, previousCalls } = params;
 
-  return previousCalls.flatMap<LlmMessage>(({ completedToolCalls }) => {
-    const toolCallsToInclude = includeErrorsOnly
-      ? completedToolCalls.filter((call) => call.isError)
-      : completedToolCalls;
+  return previousCalls.flatMap<LlmMessage>((completedToolCall) => {
+    if (includeErrorsOnly && !completedToolCall.isError) {
+      return [];
+    }
 
-    return toolCallsToInclude.length > 0
-      ? [
+    const { id, name, input, output, isError } = completedToolCall;
+
+    return [
+      {
+        role: "assistant",
+        content:
+          /** @todo: consider also omitting large arguments from prior tool calls */
+          [
+            {
+              type: "tool_use",
+              id,
+              name,
+              input,
+            },
+          ],
+      } satisfies LlmAssistantMessage,
+      {
+        role: "user",
+        content: [
           {
-            role: "assistant",
-            content: toolCallsToInclude.map(
-              /** @todo: consider also omitting large arguments from prior tool calls */
-              ({ id, name, input }) => ({
-                type: "tool_use",
-                id,
-                name,
-                input,
-              }),
-            ),
-          } satisfies LlmAssistantMessage,
-          {
-            role: "user",
-            content: toolCallsToInclude.map((completedToolCall) => ({
-              type: "tool_result",
-              tool_use_id: completedToolCall.id,
-              content: completedToolCall.output,
-              is_error: completedToolCall.isError ? true : undefined,
-            })),
-          } satisfies LlmUserMessage,
-        ]
-      : [];
+            type: "tool_result",
+            tool_use_id: id,
+            content: output,
+            is_error: isError ? true : undefined,
+          },
+        ],
+      } satisfies LlmUserMessage,
+    ];
   });
 };

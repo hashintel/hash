@@ -379,7 +379,6 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
- "type-system",
  "utoipa",
  "uuid",
 ]
@@ -1951,7 +1950,6 @@ dependencies = [
  "regex",
  "rustc_version",
  "serde",
- "serde_json",
  "spin 0.9.8",
  "supports-color",
  "supports-unicode",
@@ -2320,7 +2318,6 @@ dependencies = [
  "bytes",
  "clap",
  "codec",
- "criterion",
  "deadpool",
  "deadpool-postgres",
  "derive-where",
@@ -2328,15 +2325,12 @@ dependencies = [
  "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures",
  "futures-sink",
- "graph-test-data",
  "graph-types",
  "hash-status",
- "mime",
  "postgres-types",
  "refinery",
  "regex",
  "semver",
- "sentry",
  "serde",
  "serde_json",
  "tarpc",
@@ -2346,7 +2340,6 @@ dependencies = [
  "tokio",
  "tokio-postgres",
  "tokio-serde",
- "tokio-util",
  "tracing",
  "type-fetcher",
  "type-system",
@@ -2363,16 +2356,12 @@ dependencies = [
  "authorization",
  "axum 0.7.5",
  "axum-core 0.4.3",
- "base64 0.22.1",
  "bytes",
  "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures",
  "graph",
  "graph-types",
  "hash-status",
- "hash-tracing",
  "http 1.1.0",
- "http-body-util",
  "hyper 1.4.1",
  "include_dir",
  "mime",
@@ -2384,7 +2373,6 @@ dependencies = [
  "temporal-client 0.0.0",
  "temporal-versioning",
  "time",
- "tower",
  "tower-http",
  "tracing",
  "tracing-opentelemetry 0.24.0",
@@ -2401,13 +2389,11 @@ dependencies = [
  "authorization",
  "criterion",
  "criterion-macro",
- "futures",
  "graph",
  "graph-test-data",
  "graph-types",
  "rand",
  "repo-chores",
- "serde",
  "serde_json",
  "temporal-versioning",
  "tokio",
@@ -2425,20 +2411,16 @@ version = "0.0.0"
 dependencies = [
  "authorization",
  "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
- "futures",
  "graph",
  "graph-test-data",
  "graph-types",
  "hash-tracing",
  "pretty_assertions",
- "rand",
- "serde",
  "serde_json",
  "temporal-versioning",
  "time",
  "tokio",
  "tokio-postgres",
- "tracing",
  "tracing-subscriber",
  "type-system",
  "uuid",
@@ -2457,7 +2439,6 @@ dependencies = [
  "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "graph-test-data",
  "postgres-types",
- "pretty_assertions",
  "semver",
  "serde",
  "serde_json",
@@ -2594,13 +2575,10 @@ dependencies = [
  "futures",
  "graph",
  "graph-api",
- "graph-types",
  "hash-tracing",
  "mimalloc",
  "regex",
  "reqwest",
- "semver",
- "serde_json",
  "tarpc",
  "temporal-client 0.0.0",
  "test-server",
@@ -2611,8 +2589,6 @@ dependencies = [
  "tokio-util",
  "tracing",
  "type-fetcher",
- "type-system",
- "uuid",
  "validation",
 ]
 
@@ -2620,9 +2596,7 @@ dependencies = [
 name = "hash-status"
 version = "0.0.0"
 dependencies = [
- "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde",
- "serde_json",
 ]
 
 [[package]]
@@ -2828,9 +2802,6 @@ version = "0.0.0"
 dependencies = [
  "orx-concurrent-vec",
  "serde",
- "serde-value",
- "serde_json",
- "sval",
  "text-size",
 ]
 
@@ -2840,7 +2811,6 @@ version = "0.0.0"
 dependencies = [
  "ariadne",
  "ecow",
- "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "hifijson",
  "hql-cst",
  "hql-diagnostics",
@@ -2853,7 +2823,6 @@ dependencies = [
  "serde_json",
  "test-fuzz",
  "text-size",
- "thiserror",
  "unicode-ident",
  "winnow",
 ]
@@ -4550,21 +4519,12 @@ dependencies = [
  "lazy_static",
  "once_cell",
  "opentelemetry 0.23.0",
- "ordered-float 4.2.1",
+ "ordered-float",
  "percent-encoding",
  "rand",
  "thiserror",
  "tokio",
  "tokio-stream",
-]
-
-[[package]]
-name = "ordered-float"
-version = "2.10.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "68f19d67e5a2795c94e73e0bb1cc1a7edeb2e28efd39e2e1c9b7a40c1108b11c"
-dependencies = [
- "num-traits",
 ]
 
 [[package]]
@@ -5153,7 +5113,6 @@ dependencies = [
 name = "query-builder-derive"
 version = "0.0.0"
 dependencies = [
- "syn 2.0.71",
  "trybuild",
  "virtue",
 ]
@@ -5985,16 +5944,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "serde-value"
-version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f3a1a3341211875ef120e117ea7fd5228530ae7e7036a779fdc9117be6b3282c"
-dependencies = [
- "ordered-float 2.10.1",
- "serde",
-]
-
-[[package]]
 name = "serde_derive"
 version = "1.0.204"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -6333,12 +6282,6 @@ name = "supports-unicode"
 version = "3.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b7401a30af6cb5818bb64852270bb722533397edcfc7344954a38f420819ece2"
-
-[[package]]
-name = "sval"
-version = "2.13.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "53eb957fbc79a55306d5d25d87daf3627bc3800681491cda0709eef36c748bfe"
 
 [[package]]
 name = "syn"
@@ -7291,7 +7234,6 @@ dependencies = [
  "serde",
  "tarpc",
  "time",
- "tokio",
  "tracing",
  "type-system",
 ]
@@ -7520,13 +7462,10 @@ dependencies = [
 name = "validation"
 version = "0.0.0"
 dependencies = [
- "chrono",
- "email_address",
  "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures",
  "graph-test-data",
  "graph-types",
- "iso8601-duration",
  "regex",
  "serde",
  "serde_json",

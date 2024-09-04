@@ -219,7 +219,11 @@ export const updateBlockDataEntity: ImpureGraphFunction<
     );
   }
 
-  await outgoingBlockDataLink.archive(ctx.graphApi, authentication);
+  await outgoingBlockDataLink.archive(
+    ctx.graphApi,
+    authentication,
+    ctx.provenance,
+  );
 
   await createLinkEntity(ctx, authentication, {
     ownedById: extractOwnedByIdFromEntityId(

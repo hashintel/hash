@@ -146,12 +146,7 @@ export const generateProgressReport = (params: {
     text += dedent(`
         You have already visited the following resources – do not visit them again. They are included for your reference for work done only:
         <ResourcesVisited>
-          ${resourceUrlsVisited
-            .map(
-              (resourceUrl) =>
-                `<ResourceVisited>${resourceUrl}</ResourceVisited>`,
-            )
-            .join("\n")}
+          ${resourceUrlsVisited.join("\n")}
         </ResourcesVisited>
       `);
   }

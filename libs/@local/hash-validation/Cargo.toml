@@ -19,10 +19,7 @@ error-stack = { workspace = true, features = ["hooks"] }
 type-system = { workspace = true }
 
 # Private third-party dependencies
-chrono = { workspace = true, features = ["std"] }
-email_address = { workspace = true }
 futures = { workspace = true }
-iso8601-duration = { workspace = true }
 regex = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }

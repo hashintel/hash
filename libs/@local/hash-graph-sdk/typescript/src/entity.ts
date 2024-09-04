@@ -607,20 +607,38 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
   public async archive(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
+    provenance: EnforcedEntityEditionProvenance,
   ): Promise<void> {
     await graphAPI.patchEntity(authentication.actorId, {
       entityId: this.entityId,
       archived: true,
+      provenance: {
+        ...provenance,
+        origin: {
+          ...provenance.origin,
+          // @ts-expect-error –– ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
+          type: provenance.origin.type satisfies "migration",
+        },
+      },
     });
   }
 
   public async unarchive(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
+    provenance: EnforcedEntityEditionProvenance,
   ): Promise<void> {
     await graphAPI.patchEntity(authentication.actorId, {
       entityId: this.entityId,
       archived: false,
+      provenance: {
+        ...provenance,
+        origin: {
+          ...provenance.origin,
+          // @ts-expect-error –– ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
+          type: provenance.origin.type satisfies "migration",
+        },
+      },
     });
   }
 
