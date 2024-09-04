@@ -137,7 +137,7 @@
     "@welldone-software/why-did-you-render": "8.0.3",
     "eslint": "8.57.0",
     "rimraf": "6.0.1",
-    "sass": "1.77.8",
+    "sass": "1.78.0",
     "typescript": "5.5.4",
     "webpack": "5.94.0"
   },
