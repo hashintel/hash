@@ -86,8 +86,6 @@ To run HASH locally, please follow these steps:
 
 1. [Clone](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository) this repository and **navigate to the root of the repository folder** in your terminal.
 
-1. (Optional) run `yarn install:hooks` to install git hooks that will (1) run `yarn install` when changing branches and (2) do basic formatting pre-commit.
-
 1. Install dependencies:
 
    ```sh
@@ -357,10 +355,6 @@ This is achieved by maintaining two parallel exports definitions for each packag
 
 1. The `exports` field in `package.json` should point to the transpiled JavaScript (and `typesVersions` to the type definition files)
 1. The `paths` map in the base TSConfig should map the same import paths to their TypeScript source
-
-A probably more straightforward approach we will move to in future is adding bundlers for all TypeScript applications, which would meet the same goals.
-Assuming this involves pointing `exports` fields in `package.json` to the original TypeScript files, any packages published to `npm` would need prepublish steps
-to update `exports` to point to the transpiled JavaScript in their `dist/` folder.
 
 During development (e.g. running `yarn dev` for an application), the `paths` override will be in effect, meaning that the source TypeScript
 is being run directly, and modifying any dependent file in the repo will trigger a reload of the application (assuming `tsx watch` or equivalent is used).
