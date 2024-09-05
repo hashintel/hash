@@ -100,9 +100,9 @@ multiaddr = { version = "0.18.1", default-features = false }
 multistream-select = { version = "0.13.0", default-features = false }
 libp2p-core = { version = "0.42.0", default-features = false }
 libp2p-identity = { version = "0.2.9", default-features = false }
-libp2p-ping = { version = "0.44.1", default-features = false }
-libp2p-swarm = { version = "0.44.2", default-features = false }
-libp2p-yamux = { version = "0.45.1", default-features = false }
+libp2p-ping = { version = "0.45.0", default-features = false }
+libp2p-swarm = { version = "0.45.0", default-features = false }
+libp2p-yamux = { version = "0.46.0", default-features = false }
 prometheus-client = { version = "0.22.2", default-features = false }
 postgres-types = { version = "0.2.6", default-features = false }
 reqwest = { version = "0.12.5", default-features = false, features = ["rustls-tls"] }
