@@ -125,7 +125,7 @@ export type Property = PropertyValue | PropertyArray | PropertyObject;
  */
 export type PropertyMetadataValue = {
   metadata: Omit<ValueMetadata, "dataTypeId"> & {
-    dataTypeId?: VersionedUrl;
+    dataTypeId: VersionedUrl | null;
   };
 };
 

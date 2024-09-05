@@ -174,7 +174,9 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "value": {
       "http://localhost:3000/@alice/types/property-type/length/": {
         "value": 10,
-        "metadata": {}
+        "metadata": {
+          "dataTypeId": null
+        }
       }
     }
   },

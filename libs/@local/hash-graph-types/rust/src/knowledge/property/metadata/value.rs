@@ -12,8 +12,8 @@ pub struct ValueMetadata {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub confidence: Option<Confidence>,
-    #[serde(default)]
-    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    #[serde(with = "core::option::Option")]
+    #[cfg_attr(feature = "utoipa", schema(required = true))]
     pub data_type_id: Option<VersionedUrl>,
 }
 
