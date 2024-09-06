@@ -65,6 +65,9 @@ pub enum TraversalError {
 
 // TODO: Allow usage of other error types
 pub trait EntityVisitor: Sized + Send + Sync {
+    /// Visits a leaf value.
+    ///
+    /// By default, this does nothing.
     #[expect(unused_variables, reason = "No-op implementation")]
     fn visit_value<P>(
         &mut self,
@@ -79,6 +82,9 @@ pub trait EntityVisitor: Sized + Send + Sync {
         async { Ok(()) }
     }
 
+    /// Visits a property.
+    ///
+    /// By default, this forwards to [`walk_property`].
     fn visit_property<P>(
         &mut self,
         schema: &PropertyType,
@@ -91,6 +97,9 @@ pub trait EntityVisitor: Sized + Send + Sync {
         walk_property(self, schema, property, type_provider)
     }
 
+    /// Visits an array property.
+    ///
+    /// By default, this forwards to [`walk_array`].
     fn visit_array<T, P>(
         &mut self,
         schema: &ArraySchema<T>,
@@ -120,6 +129,9 @@ pub trait EntityVisitor: Sized + Send + Sync {
         walk_object(self, schema, object, type_provider)
     }
 
+    /// Visits a property value using the [`PropertyValues`] from a one-of schema.
+    ///
+    /// By default, this forwards to [`walk_one_of_property_value`].
     fn visit_one_of_property<P>(
         &mut self,
         schema: &[PropertyValues],
@@ -132,6 +144,9 @@ pub trait EntityVisitor: Sized + Send + Sync {
         walk_one_of_property_value(self, schema, property, type_provider)
     }
 
+    /// Visits an array property using the [`PropertyValues`] from a one-of schema.
+    ///
+    /// By default, this forwards to [`walk_one_of_array`].
     fn visit_one_of_array<P>(
         &mut self,
         schema: &[PropertyValues],
@@ -144,6 +159,9 @@ pub trait EntityVisitor: Sized + Send + Sync {
         walk_one_of_array(self, schema, array, type_provider)
     }
 
+    /// Visits an object property using the [`PropertyValues`] from a one-of schema.
+    ///
+    /// By default, this forwards to [`walk_one_of_object`].
     fn visit_one_of_object<P>(
         &mut self,
         schema: &[PropertyValues],
@@ -167,6 +185,95 @@ macro_rules! extend_report {
     };
 }
 
+/// Walks through a property using the provided schema.
+///
+/// Depending on the property, [`EntityVisitor::visit_one_of_property`],
+/// [`EntityVisitor::visit_one_of_array`], or [`EntityVisitor::visit_one_of_object`] is called.
+///
+/// # Errors
+///
+/// Any error that can be returned by the visitor methods.
+pub async fn walk_property<V, P>(
+    visitor: &mut V,
+    schema: &PropertyType,
+    property: &mut PropertyWithMetadata,
+    type_provider: &P,
+) -> Result<(), Report<TraversalError>>
+where
+    V: EntityVisitor,
+    P: DataTypeProvider + PropertyTypeProvider + Sync,
+{
+    match property {
+        PropertyWithMetadata::Value(value) => {
+            visitor
+                .visit_one_of_property(&schema.one_of, value, type_provider)
+                .await
+        }
+        PropertyWithMetadata::Array(array) => {
+            visitor
+                .visit_one_of_array(&schema.one_of, array, type_provider)
+                .await
+        }
+        PropertyWithMetadata::Object(object) => {
+            visitor
+                .visit_one_of_object(&schema.one_of, object, type_provider)
+                .await
+        }
+    }
+}
+
+/// Walks through an array property using the provided schema.
+///
+/// Depending on the property, [`EntityVisitor::visit_one_of_property`],
+/// [`EntityVisitor::visit_one_of_array`], or [`EntityVisitor::visit_one_of_object`] is called.
+///
+/// # Errors
+///
+/// Any error that can be returned by the visitor methods.
+pub async fn walk_array<V, S, P>(
+    visitor: &mut V,
+    schema: &ArraySchema<S>,
+    array: &mut PropertyWithMetadataArray,
+    type_provider: &P,
+) -> Result<(), Report<TraversalError>>
+where
+    V: EntityVisitor,
+    S: PropertyValueSchema + Sync,
+    P: DataTypeProvider + PropertyTypeProvider + Sync,
+{
+    let mut status = Ok::<_, Report<TraversalError>>(());
+    for property in &mut array.value {
+        match property {
+            PropertyWithMetadata::Value(value) => {
+                if let Err(error) = visitor
+                    .visit_one_of_property(schema.items.possibilities(), value, type_provider)
+                    .await
+                {
+                    extend_report!(status, error);
+                }
+            }
+            PropertyWithMetadata::Array(array) => {
+                if let Err(error) = visitor
+                    .visit_one_of_array(schema.items.possibilities(), array, type_provider)
+                    .await
+                {
+                    extend_report!(status, error);
+                }
+            }
+            PropertyWithMetadata::Object(object) => {
+                if let Err(error) = visitor
+                    .visit_one_of_object(schema.items.possibilities(), object, type_provider)
+                    .await
+                {
+                    extend_report!(status, error);
+                }
+            }
+        }
+    }
+
+    status
+}
+
 /// Walks through a property object using the provided schema.
 ///
 /// For each url/property pair in the `properties` map, the property type is retrieved from `schema`
@@ -181,6 +288,7 @@ macro_rules! extend_report {
 /// - [`UnexpectedProperty`] if a property is specified that is not in the schema.
 /// - [`PropertyTypeRetrieval`] if a property type could not be retrieved from the `type_provider`.
 /// - [`InvalidType`] if the schema expects an array, but a value or object is provided.
+/// - Any error that can be returned by the visitor methods.
 ///
 /// [`UnexpectedProperty`]: TraversalError::UnexpectedProperty
 /// [`PropertyTypeRetrieval`]: TraversalError::PropertyTypeRetrieval
@@ -262,79 +370,18 @@ where
     status
 }
 
-pub async fn walk_property<V, P>(
-    visitor: &mut V,
-    schema: &PropertyType,
-    property: &mut PropertyWithMetadata,
-    type_provider: &P,
-) -> Result<(), Report<TraversalError>>
-where
-    V: EntityVisitor,
-    P: DataTypeProvider + PropertyTypeProvider + Sync,
-{
-    match property {
-        PropertyWithMetadata::Value(value) => {
-            visitor
-                .visit_one_of_property(&schema.one_of, value, type_provider)
-                .await
-        }
-        PropertyWithMetadata::Array(array) => {
-            visitor
-                .visit_one_of_array(&schema.one_of, array, type_provider)
-                .await
-        }
-        PropertyWithMetadata::Object(object) => {
-            visitor
-                .visit_one_of_object(&schema.one_of, object, type_provider)
-                .await
-        }
-    }
-}
-
-pub async fn walk_array<V, S, P>(
-    visitor: &mut V,
-    schema: &ArraySchema<S>,
-    array: &mut PropertyWithMetadataArray,
-    type_provider: &P,
-) -> Result<(), Report<TraversalError>>
-where
-    V: EntityVisitor,
-    S: PropertyValueSchema + Sync,
-    P: DataTypeProvider + PropertyTypeProvider + Sync,
-{
-    let mut status = Ok::<_, Report<TraversalError>>(());
-    for property in &mut array.value {
-        match property {
-            PropertyWithMetadata::Value(value) => {
-                if let Err(error) = visitor
-                    .visit_one_of_property(schema.items.possibilities(), value, type_provider)
-                    .await
-                {
-                    extend_report!(status, error);
-                }
-            }
-            PropertyWithMetadata::Array(array) => {
-                if let Err(error) = visitor
-                    .visit_one_of_array(schema.items.possibilities(), array, type_provider)
-                    .await
-                {
-                    extend_report!(status, error);
-                }
-            }
-            PropertyWithMetadata::Object(object) => {
-                if let Err(error) = visitor
-                    .visit_one_of_object(schema.items.possibilities(), object, type_provider)
-                    .await
-                {
-                    extend_report!(status, error);
-                }
-            }
-        }
-    }
-
-    status
-}
-
+/// Walks through a property value using the provided schema list.
+///
+/// # Errors
+///
+/// - [`ExpectedValue`] if an array or object is provided.
+/// - [`DataTypeRetrieval`] if a data type could not be retrieved from the `type_provider`.
+/// - [`AmbiguousProperty`] if more than one schema is passed.
+/// - Any error that can be returned by the visitor methods.
+///
+/// [`ExpectedValue`]: TraversalError::ExpectedValue
+/// [`DataTypeRetrieval`]: TraversalError::DataTypeRetrieval
+/// [`AmbiguousProperty`]: TraversalError::AmbiguousProperty
 pub async fn walk_one_of_property_value<V, P>(
     visitor: &mut V,
     schema: &[PropertyValues],
@@ -405,6 +452,16 @@ where
     }
 }
 
+/// Walks through an array property using the provided schema list.
+///
+/// # Errors
+///
+/// - [`ExpectedValue`] if a value or object is provided.
+/// - [`AmbiguousProperty`] if more than one schema is passed.
+/// - Any error that can be returned by the visitor methods.
+///
+/// [`ExpectedValue`]: TraversalError::ExpectedValue
+/// [`AmbiguousProperty`]: TraversalError::AmbiguousProperty
 pub async fn walk_one_of_array<V, P>(
     visitor: &mut V,
     schema: &[PropertyValues],
@@ -463,6 +520,16 @@ where
     }
 }
 
+/// Walks through an object property using the provided schema list.
+///
+/// # Errors
+///
+/// - [`ExpectedValue`] if a value or array is provided.
+/// - [`AmbiguousProperty`] if more than one schema is passed.
+/// - Any error that can be returned by the visitor methods.
+///
+/// [`ExpectedValue`]: TraversalError::ExpectedValue
+/// [`AmbiguousProperty`]: TraversalError::AmbiguousProperty
 pub async fn walk_one_of_object<V, P>(
     visitor: &mut V,
     schema: &[PropertyValues],

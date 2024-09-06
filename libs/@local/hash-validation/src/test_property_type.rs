@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use std::str::FromStr;
+use core::str::FromStr;
 
 use graph_types::knowledge::property::{PropertyMetadata, PropertyProvenance, ValueMetadata};
 use serde_json::json;
