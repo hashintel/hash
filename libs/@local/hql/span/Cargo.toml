@@ -1,5 +1,3 @@
-cargo-features = ["edition2024"]
-
 [package]
 name = "hql-span"
 version.workspace = true

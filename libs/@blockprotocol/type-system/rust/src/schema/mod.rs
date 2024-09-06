@@ -13,7 +13,7 @@ mod array;
 mod object;
 mod one_of;
 
-use core::borrow::Borrow;
+use core::{borrow::Borrow, future::Future};
 
 use error_stack::{Context, Report};
 use futures::{stream, StreamExt, TryStreamExt};
