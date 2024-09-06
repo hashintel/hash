@@ -527,6 +527,7 @@ where
             }
             .visit_object(&entity_type, &mut params.properties, &validator_provider)
             .await
+            .attach(StatusCode::InvalidArgument)
             .change_context(InsertionError)?;
             validation_params.push((entity_type, validation_components));
 
@@ -1269,6 +1270,7 @@ where
                 }
                 .visit_object(&entity_type, &mut object, &validator_provider)
                 .await
+                .attach(StatusCode::InvalidArgument)
                 .change_context(UpdateError)?;
                 let (properties, property_metadata) = object.into_parts();
                 (properties, property_metadata)

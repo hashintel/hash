@@ -95,7 +95,7 @@ mod tests {
 
     use graph_types::knowledge::property::{
         visitor::{EntityVisitor, TraversalError},
-        Property, PropertyObject, PropertyProvenance, PropertyWithMetadata,
+        Property, PropertyMetadata, PropertyObject, PropertyProvenance, PropertyWithMetadata,
         PropertyWithMetadataObject, PropertyWithMetadataValue, ValueMetadata,
     };
     use serde_json::Value as JsonValue;
@@ -304,6 +304,7 @@ mod tests {
 
     pub(crate) async fn validate_property(
         property: JsonValue,
+        metadata: Option<PropertyMetadata>,
         property_type: &'static str,
         property_types: impl IntoIterator<Item = &'static str> + Send,
         data_types: impl IntoIterator<Item = &'static str> + Send,
@@ -326,7 +327,7 @@ mod tests {
         let property_type: PropertyType =
             serde_json::from_str(property_type).expect("failed to parse property type");
 
-        let mut property = PropertyWithMetadata::from_parts(property, None)
+        let mut property = PropertyWithMetadata::from_parts(property, metadata)
             .expect("failed to create property with metadata");
         EntityPreprocessor { components }
             .visit_property(&property_type, &mut property, &provider)
@@ -347,7 +348,7 @@ mod tests {
             serde_json::from_str(data_type).expect("failed to parse data type");
 
         let mut metadata = ValueMetadata {
-            data_type_id: None,
+            data_type_id: Some(data_type.id.clone()),
             provenance: PropertyProvenance::default(),
             confidence: None,
         };
