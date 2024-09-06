@@ -1,6 +1,7 @@
 use core::{
     error::Error,
     fmt::{self, Debug, Display, Formatter},
+    future::Future,
     task::{Context, Poll},
 };
 

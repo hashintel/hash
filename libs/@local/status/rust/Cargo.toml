@@ -1,5 +1,3 @@
-cargo-features = ["edition2024"]
-
 [package]
 name = "hash-status"
 description = "The HASH Status and Error Model."

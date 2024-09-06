@@ -1,4 +1,7 @@
-use core::task::{Context, Poll};
+use core::{
+    future::Future,
+    task::{Context, Poll},
+};
 
 use bytes::Bytes;
 use error_stack::Report;

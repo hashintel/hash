@@ -1,5 +1,3 @@
-cargo-features = ["edition2024"]
-
 [package]
 name = "graph-test-data"
 version.workspace = true
