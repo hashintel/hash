@@ -1,4 +1,5 @@
 use alloc::sync::Arc;
+use core::future::Future;
 
 use authorization::AuthorizationApi;
 use error_stack::{Context, Result};

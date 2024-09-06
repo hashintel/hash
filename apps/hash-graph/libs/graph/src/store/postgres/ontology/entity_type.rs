@@ -10,7 +10,7 @@ use authorization::{
     AuthorizationApi,
 };
 use error_stack::{ensure, Report, Result, ResultExt};
-use futures::{FutureExt, TryStreamExt};
+use futures::{StreamExt, TryStreamExt};
 use graph_types::{
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
@@ -34,7 +34,7 @@ use type_system::{
 use crate::{
     ontology::EntityTypeQueryPath,
     store::{
-        crud::{QueryResult, ReadPaginated, VertexIdSorting},
+        crud::{QueryResult, Read, ReadPaginated, VertexIdSorting},
         error::DeletionError,
         ontology::{
             ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,
@@ -111,101 +111,96 @@ where
             }))
     }
 
-    #[expect(clippy::manual_async_fn, reason = "This method is recursive")]
-    fn get_entity_types_impl(
+    async fn get_entity_types_impl(
         &self,
         actor_id: AccountId,
         params: GetEntityTypesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
-    ) -> impl Future<Output = Result<(GetEntityTypesResponse, Zookie<'static>), QueryError>> + Send
-    {
-        async move {
-            #[expect(clippy::if_then_some_else_none, reason = "Function is async")]
-            let count = if params.include_count {
-                Some(
-                    self.count_entity_types(
-                        actor_id,
-                        CountEntityTypesParams {
-                            filter: params.filter.clone(),
-                            temporal_axes: params.temporal_axes.clone(),
-                            include_drafts: params.include_drafts,
-                        },
-                    )
-                    .boxed()
-                    .await?,
-                )
-            } else {
-                None
-            };
-
-            // TODO: Remove again when subgraph logic was revisited
-            //   see https://linear.app/hash/issue/H-297
-            let mut visited_ontology_ids = HashSet::new();
-            let time_axis = temporal_axes.variable_time_axis();
-
-            let (data, artifacts) = ReadPaginated::<EntityTypeWithMetadata>::read_paginated_vec(
-                self,
-                &params.filter,
-                Some(temporal_axes),
-                &VertexIdSorting {
-                    cursor: params.after,
-                },
-                params.limit,
-                params.include_drafts,
-            )
-            .await?;
-            let entity_types = data
-                .into_iter()
-                .filter_map(|row| {
-                    let entity_type = row.decode_record(&artifacts);
-                    let id = EntityTypeId::from_url(&entity_type.schema.id);
-                    // The records are already sorted by time, so we can just take the first one
-                    visited_ontology_ids.insert(id).then_some((id, entity_type))
-                })
-                .collect::<Vec<_>>();
-
-            let filtered_ids = entity_types
-                .iter()
-                .map(|(entity_type_id, _)| *entity_type_id)
-                .collect::<Vec<_>>();
-
-            let (permissions, zookie) = self
-                .authorization_api
-                .check_entity_types_permission(
+    ) -> Result<(GetEntityTypesResponse, Zookie<'static>), QueryError> {
+        #[expect(clippy::if_then_some_else_none, reason = "Function is async")]
+        let count = if params.include_count {
+            Some(
+                self.count_entity_types(
                     actor_id,
-                    EntityTypePermission::View,
-                    filtered_ids,
-                    Consistency::FullyConsistent,
-                )
-                .await
-                .change_context(QueryError)?;
-
-            let entity_types = entity_types
-                .into_iter()
-                .filter_map(|(id, entity_type)| {
-                    permissions
-                        .get(&id)
-                        .copied()
-                        .unwrap_or(false)
-                        .then_some(entity_type)
-                })
-                .collect::<Vec<_>>();
-
-            Ok((
-                GetEntityTypesResponse {
-                    cursor: if params.limit.is_some() {
-                        entity_types
-                            .last()
-                            .map(|entity_type| entity_type.vertex_id(time_axis))
-                    } else {
-                        None
+                    CountEntityTypesParams {
+                        filter: params.filter.clone(),
+                        temporal_axes: params.temporal_axes.clone(),
+                        include_drafts: params.include_drafts,
                     },
-                    entity_types,
-                    count,
+                )
+                .await?,
+            )
+        } else {
+            None
+        };
+
+        // TODO: Remove again when subgraph logic was revisited
+        //   see https://linear.app/hash/issue/H-297
+        let mut visited_ontology_ids = HashSet::new();
+        let time_axis = temporal_axes.variable_time_axis();
+
+        let (data, artifacts) = ReadPaginated::<EntityTypeWithMetadata>::read_paginated_vec(
+            self,
+            &params.filter,
+            Some(temporal_axes),
+            &VertexIdSorting {
+                cursor: params.after,
+            },
+            params.limit,
+            params.include_drafts,
+        )
+        .await?;
+        let entity_types = data
+            .into_iter()
+            .filter_map(|row| {
+                let entity_type = row.decode_record(&artifacts);
+                let id = EntityTypeId::from_url(&entity_type.schema.id);
+                // The records are already sorted by time, so we can just take the first one
+                visited_ontology_ids.insert(id).then_some((id, entity_type))
+            })
+            .collect::<Vec<_>>();
+
+        let filtered_ids = entity_types
+            .iter()
+            .map(|(entity_type_id, _)| *entity_type_id)
+            .collect::<Vec<_>>();
+
+        let (permissions, zookie) = self
+            .authorization_api
+            .check_entity_types_permission(
+                actor_id,
+                EntityTypePermission::View,
+                filtered_ids,
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(QueryError)?;
+
+        let entity_types = entity_types
+            .into_iter()
+            .filter_map(|(id, entity_type)| {
+                permissions
+                    .get(&id)
+                    .copied()
+                    .unwrap_or(false)
+                    .then_some(entity_type)
+            })
+            .collect::<Vec<_>>();
+
+        Ok((
+            GetEntityTypesResponse {
+                cursor: if params.limit.is_some() {
+                    entity_types
+                        .last()
+                        .map(|entity_type| entity_type.vertex_id(time_axis))
+                } else {
+                    None
                 },
-                zookie,
-            ))
-        }
+                entity_types,
+                count,
+            },
+            zookie,
+        ))
     }
 
     /// Internal method to read a [`EntityTypeWithMetadata`] into four [`TraversalContext`]s.
@@ -711,24 +706,22 @@ where
         }
     }
 
+    // TODO: take actor ID into consideration, but currently we don't have any non-public entity
+    //       types anyway.
     async fn count_entity_types(
         &self,
-        actor_id: AccountId,
+        _actor_id: AccountId,
         params: CountEntityTypesParams<'_>,
     ) -> Result<usize, QueryError> {
-        self.get_entity_types(
-            actor_id,
-            GetEntityTypesParams {
-                filter: params.filter,
-                temporal_axes: params.temporal_axes,
-                include_drafts: params.include_drafts,
-                after: None,
-                limit: None,
-                include_count: false,
-            },
-        )
-        .await
-        .map(|response| response.entity_types.len())
+        Ok(self
+            .read(
+                &params.filter,
+                Some(&params.temporal_axes.resolve()),
+                params.include_drafts,
+            )
+            .await?
+            .count()
+            .await)
     }
 
     async fn get_entity_types(

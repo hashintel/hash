@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use core::error::Error;
+use core::{error::Error, future::Future};
 
 use bytes::Bytes;
 use error_stack::{Context, Report, Result};

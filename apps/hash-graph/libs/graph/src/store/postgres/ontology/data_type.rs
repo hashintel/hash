@@ -9,7 +9,7 @@ use authorization::{
     AuthorizationApi,
 };
 use error_stack::{Result, ResultExt};
-use futures::FutureExt;
+use futures::StreamExt;
 use graph_types::{
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
@@ -32,7 +32,7 @@ use type_system::{
 use crate::{
     ontology::DataTypeQueryPath,
     store::{
-        crud::{QueryResult, ReadPaginated, VertexIdSorting},
+        crud::{QueryResult, Read, ReadPaginated, VertexIdSorting},
         error::DeletionError,
         ontology::{
             ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams,
@@ -111,101 +111,96 @@ where
             }))
     }
 
-    #[expect(clippy::manual_async_fn, reason = "This method is recursive")]
-    fn get_data_types_impl(
+    async fn get_data_types_impl(
         &self,
         actor_id: AccountId,
         params: GetDataTypesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
-    ) -> impl Future<Output = Result<(GetDataTypesResponse, Zookie<'static>), QueryError>> + Send
-    {
-        async move {
-            #[expect(clippy::if_then_some_else_none, reason = "Function is async")]
-            let count = if params.include_count {
-                Some(
-                    self.count_data_types(
-                        actor_id,
-                        CountDataTypesParams {
-                            filter: params.filter.clone(),
-                            temporal_axes: params.temporal_axes.clone(),
-                            include_drafts: params.include_drafts,
-                        },
-                    )
-                    .boxed()
-                    .await?,
-                )
-            } else {
-                None
-            };
-
-            // TODO: Remove again when subgraph logic was revisited
-            //   see https://linear.app/hash/issue/H-297
-            let mut visited_ontology_ids = HashSet::new();
-            let time_axis = temporal_axes.variable_time_axis();
-
-            let (data, artifacts) = ReadPaginated::<DataTypeWithMetadata>::read_paginated_vec(
-                self,
-                &params.filter,
-                Some(temporal_axes),
-                &VertexIdSorting {
-                    cursor: params.after,
-                },
-                params.limit,
-                params.include_drafts,
-            )
-            .await?;
-            let data_types = data
-                .into_iter()
-                .filter_map(|row| {
-                    let data_type = row.decode_record(&artifacts);
-                    let id = DataTypeId::from_url(&data_type.schema.id);
-                    // The records are already sorted by time, so we can just take the first one
-                    visited_ontology_ids.insert(id).then_some((id, data_type))
-                })
-                .collect::<Vec<_>>();
-
-            let filtered_ids = data_types
-                .iter()
-                .map(|(data_type_id, _)| *data_type_id)
-                .collect::<Vec<_>>();
-
-            let (permissions, zookie) = self
-                .authorization_api
-                .check_data_types_permission(
+    ) -> Result<(GetDataTypesResponse, Zookie<'static>), QueryError> {
+        #[expect(clippy::if_then_some_else_none, reason = "Function is async")]
+        let count = if params.include_count {
+            Some(
+                self.count_data_types(
                     actor_id,
-                    DataTypePermission::View,
-                    filtered_ids,
-                    Consistency::FullyConsistent,
-                )
-                .await
-                .change_context(QueryError)?;
-
-            let data_types = data_types
-                .into_iter()
-                .filter_map(|(id, data_type)| {
-                    permissions
-                        .get(&id)
-                        .copied()
-                        .unwrap_or(false)
-                        .then_some(data_type)
-                })
-                .collect::<Vec<_>>();
-
-            Ok((
-                GetDataTypesResponse {
-                    cursor: if params.limit.is_some() {
-                        data_types
-                            .last()
-                            .map(|data_type| data_type.vertex_id(time_axis))
-                    } else {
-                        None
+                    CountDataTypesParams {
+                        filter: params.filter.clone(),
+                        temporal_axes: params.temporal_axes.clone(),
+                        include_drafts: params.include_drafts,
                     },
-                    data_types,
-                    count,
+                )
+                .await?,
+            )
+        } else {
+            None
+        };
+
+        // TODO: Remove again when subgraph logic was revisited
+        //   see https://linear.app/hash/issue/H-297
+        let mut visited_ontology_ids = HashSet::new();
+        let time_axis = temporal_axes.variable_time_axis();
+
+        let (data, artifacts) = ReadPaginated::<DataTypeWithMetadata>::read_paginated_vec(
+            self,
+            &params.filter,
+            Some(temporal_axes),
+            &VertexIdSorting {
+                cursor: params.after,
+            },
+            params.limit,
+            params.include_drafts,
+        )
+        .await?;
+        let data_types = data
+            .into_iter()
+            .filter_map(|row| {
+                let data_type = row.decode_record(&artifacts);
+                let id = DataTypeId::from_url(&data_type.schema.id);
+                // The records are already sorted by time, so we can just take the first one
+                visited_ontology_ids.insert(id).then_some((id, data_type))
+            })
+            .collect::<Vec<_>>();
+
+        let filtered_ids = data_types
+            .iter()
+            .map(|(data_type_id, _)| *data_type_id)
+            .collect::<Vec<_>>();
+
+        let (permissions, zookie) = self
+            .authorization_api
+            .check_data_types_permission(
+                actor_id,
+                DataTypePermission::View,
+                filtered_ids,
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(QueryError)?;
+
+        let data_types = data_types
+            .into_iter()
+            .filter_map(|(id, data_type)| {
+                permissions
+                    .get(&id)
+                    .copied()
+                    .unwrap_or(false)
+                    .then_some(data_type)
+            })
+            .collect::<Vec<_>>();
+
+        Ok((
+            GetDataTypesResponse {
+                cursor: if params.limit.is_some() {
+                    data_types
+                        .last()
+                        .map(|data_type| data_type.vertex_id(time_axis))
+                } else {
+                    None
                 },
-                zookie,
-            ))
-        }
+                data_types,
+                count,
+            },
+            zookie,
+        ))
     }
 
     /// Internal method to read a [`DataTypeWithMetadata`] into a [`TraversalContext`].
@@ -601,24 +596,22 @@ where
             .map(|(response, _)| response)
     }
 
+    // TODO: take actor ID into consideration, but currently we don't have any non-public data types
+    //       anyway.
     async fn count_data_types(
         &self,
-        actor_id: AccountId,
+        _actor_id: AccountId,
         params: CountDataTypesParams<'_>,
     ) -> Result<usize, QueryError> {
-        self.get_data_types(
-            actor_id,
-            GetDataTypesParams {
-                filter: params.filter,
-                temporal_axes: params.temporal_axes,
-                include_drafts: params.include_drafts,
-                after: None,
-                limit: None,
-                include_count: false,
-            },
-        )
-        .await
-        .map(|response| response.data_types.len())
+        Ok(self
+            .read(
+                &params.filter,
+                Some(&params.temporal_axes.resolve()),
+                params.include_drafts,
+            )
+            .await?
+            .count()
+            .await)
     }
 
     #[tracing::instrument(level = "info", skip(self))]

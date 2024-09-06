@@ -1,6 +1,6 @@
 mod spicedb;
 
-use core::{error::Error, fmt, iter::repeat};
+use core::{error::Error, fmt, future::Future, iter::repeat};
 
 use error_stack::Report;
 use futures::{stream, Stream};

@@ -1,5 +1,3 @@
-cargo-features = ["edition2024"]
-
 [workspace]
 members = [
     "apps/hash-graph/bins/cli",
@@ -34,12 +32,12 @@ members = [
 default-members = [
     "apps/hash-graph/bins/*",
 ]
-resolver = "3"
+resolver = "2"
 
 [workspace.package]
 authors = ["HASH"]
 version = "0.0.0"
-edition = "2024"
+edition = "2021"
 license = "AGPL-3"
 publish = false
 

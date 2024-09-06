@@ -6,6 +6,8 @@
 //!
 //! [`Store`]: crate::store::Store
 
+use core::future::Future;
+
 use async_trait::async_trait;
 use error_stack::Result;
 use futures::{Stream, TryStreamExt};

@@ -1,5 +1,3 @@
-cargo-features = ["edition2024"]
-
 [package]
 name = "harpc-types"
 version.workspace = true

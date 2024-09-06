@@ -1,5 +1,3 @@
-cargo-features = ["edition2024"]
-
 [package]
 name = "authorization"
 version.workspace = true

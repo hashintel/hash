@@ -11,7 +11,7 @@ use authorization::{
     AuthorizationApi,
 };
 use error_stack::{Result, ResultExt};
-use futures::FutureExt;
+use futures::StreamExt;
 use graph_types::{
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
@@ -34,7 +34,7 @@ use type_system::{
 use crate::{
     ontology::PropertyTypeQueryPath,
     store::{
-        crud::{QueryResult, ReadPaginated, VertexIdSorting},
+        crud::{QueryResult, Read, ReadPaginated, VertexIdSorting},
         error::DeletionError,
         ontology::{
             ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
@@ -106,103 +106,98 @@ where
             }))
     }
 
-    #[expect(clippy::manual_async_fn, reason = "This method is recursive")]
-    fn get_property_types_impl(
+    async fn get_property_types_impl(
         &self,
         actor_id: AccountId,
         params: GetPropertyTypesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
-    ) -> impl Future<Output = Result<(GetPropertyTypesResponse, Zookie<'static>), QueryError>> + Send
-    {
-        async move {
-            #[expect(clippy::if_then_some_else_none, reason = "Function is async")]
-            let count = if params.include_count {
-                Some(
-                    self.count_property_types(
-                        actor_id,
-                        CountPropertyTypesParams {
-                            filter: params.filter.clone(),
-                            temporal_axes: params.temporal_axes.clone(),
-                            include_drafts: params.include_drafts,
-                        },
-                    )
-                    .boxed()
-                    .await?,
-                )
-            } else {
-                None
-            };
-
-            // TODO: Remove again when subgraph logic was revisited
-            //   see https://linear.app/hash/issue/H-297
-            let mut visited_ontology_ids = HashSet::new();
-            let time_axis = temporal_axes.variable_time_axis();
-
-            let (data, artifacts) = ReadPaginated::<PropertyTypeWithMetadata>::read_paginated_vec(
-                self,
-                &params.filter,
-                Some(temporal_axes),
-                &VertexIdSorting {
-                    cursor: params.after,
-                },
-                params.limit,
-                params.include_drafts,
-            )
-            .await?;
-            let property_types = data
-                .into_iter()
-                .filter_map(|row| {
-                    let property_type = row.decode_record(&artifacts);
-                    let id = PropertyTypeId::from_url(&property_type.schema.id);
-                    // The records are already sorted by time, so we can just take the first one
-                    visited_ontology_ids
-                        .insert(id)
-                        .then_some((id, property_type))
-                })
-                .collect::<Vec<_>>();
-
-            let filtered_ids = property_types
-                .iter()
-                .map(|(property_type_id, _)| *property_type_id)
-                .collect::<Vec<_>>();
-
-            let (permissions, zookie) = self
-                .authorization_api
-                .check_property_types_permission(
+    ) -> Result<(GetPropertyTypesResponse, Zookie<'static>), QueryError> {
+        #[expect(clippy::if_then_some_else_none, reason = "Function is async")]
+        let count = if params.include_count {
+            Some(
+                self.count_property_types(
                     actor_id,
-                    PropertyTypePermission::View,
-                    filtered_ids,
-                    Consistency::FullyConsistent,
-                )
-                .await
-                .change_context(QueryError)?;
-
-            let property_types = property_types
-                .into_iter()
-                .filter_map(|(id, property_type)| {
-                    permissions
-                        .get(&id)
-                        .copied()
-                        .unwrap_or(false)
-                        .then_some(property_type)
-                })
-                .collect::<Vec<_>>();
-
-            Ok((
-                GetPropertyTypesResponse {
-                    cursor: if params.limit.is_some() {
-                        property_types
-                            .last()
-                            .map(|property_type| property_type.vertex_id(time_axis))
-                    } else {
-                        None
+                    CountPropertyTypesParams {
+                        filter: params.filter.clone(),
+                        temporal_axes: params.temporal_axes.clone(),
+                        include_drafts: params.include_drafts,
                     },
-                    property_types,
-                    count,
+                )
+                .await?,
+            )
+        } else {
+            None
+        };
+
+        // TODO: Remove again when subgraph logic was revisited
+        //   see https://linear.app/hash/issue/H-297
+        let mut visited_ontology_ids = HashSet::new();
+        let time_axis = temporal_axes.variable_time_axis();
+
+        let (data, artifacts) = ReadPaginated::<PropertyTypeWithMetadata>::read_paginated_vec(
+            self,
+            &params.filter,
+            Some(temporal_axes),
+            &VertexIdSorting {
+                cursor: params.after,
+            },
+            params.limit,
+            params.include_drafts,
+        )
+        .await?;
+        let property_types = data
+            .into_iter()
+            .filter_map(|row| {
+                let property_type = row.decode_record(&artifacts);
+                let id = PropertyTypeId::from_url(&property_type.schema.id);
+                // The records are already sorted by time, so we can just take the first one
+                visited_ontology_ids
+                    .insert(id)
+                    .then_some((id, property_type))
+            })
+            .collect::<Vec<_>>();
+
+        let filtered_ids = property_types
+            .iter()
+            .map(|(property_type_id, _)| *property_type_id)
+            .collect::<Vec<_>>();
+
+        let (permissions, zookie) = self
+            .authorization_api
+            .check_property_types_permission(
+                actor_id,
+                PropertyTypePermission::View,
+                filtered_ids,
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(QueryError)?;
+
+        let property_types = property_types
+            .into_iter()
+            .filter_map(|(id, property_type)| {
+                permissions
+                    .get(&id)
+                    .copied()
+                    .unwrap_or(false)
+                    .then_some(property_type)
+            })
+            .collect::<Vec<_>>();
+
+        Ok((
+            GetPropertyTypesResponse {
+                cursor: if params.limit.is_some() {
+                    property_types
+                        .last()
+                        .map(|property_type| property_type.vertex_id(time_axis))
+                } else {
+                    None
                 },
-                zookie,
-            ))
-        }
+                property_types,
+                count,
+            },
+            zookie,
+        ))
     }
 
     /// Internal method to read a [`PropertyTypeWithMetadata`] into two [`TraversalContext`]s.
@@ -532,24 +527,22 @@ where
         }
     }
 
+    // TODO: take actor ID into consideration, but currently we don't have any non-public property
+    //       types anyway.
     async fn count_property_types(
         &self,
-        actor_id: AccountId,
+        _actor_id: AccountId,
         params: CountPropertyTypesParams<'_>,
     ) -> Result<usize, QueryError> {
-        self.get_property_types(
-            actor_id,
-            GetPropertyTypesParams {
-                filter: params.filter,
-                temporal_axes: params.temporal_axes,
-                include_drafts: params.include_drafts,
-                after: None,
-                limit: None,
-                include_count: false,
-            },
-        )
-        .await
-        .map(|response| response.property_types.len())
+        Ok(self
+            .read(
+                &params.filter,
+                Some(&params.temporal_axes.resolve()),
+                params.include_drafts,
+            )
+            .await?
+            .count()
+            .await)
     }
 
     async fn get_property_types(
