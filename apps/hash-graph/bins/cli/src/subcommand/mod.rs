@@ -6,7 +6,7 @@ mod snapshot;
 mod test_server;
 mod type_fetcher;
 
-use core::time::Duration;
+use core::{future::Future, time::Duration};
 
 use error_stack::{ensure, Result};
 use hash_tracing::{init_tracing, TracingConfig};

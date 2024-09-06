@@ -1,5 +1,3 @@
-cargo-features = ["edition2024"]
-
 [package]
 name = "harpc-wire-protocol"
 version.workspace = true

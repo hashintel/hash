@@ -145,7 +145,7 @@ jobs:
 
       - name: Install Rust tools
         if: always() && steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@e73edba6cef4fb2754007a50e0b28cf1c702c52b # v2.42.40
+        uses: taiki-e/install-action@f3e9a65cfdfe5d58fd5c51b5ab4a727373a9652c # v2.42.41
         with:
           tool: just@1.34.0,cargo-hack@0.6.30,cargo-nextest@0.9.72,cargo-llvm-cov@0.6.11
 
@@ -259,7 +259,7 @@ jobs:
 
       - name: Install Rust tools
         if: steps.tests.outputs.has-rust == 'true'
-        uses: taiki-e/install-action@e73edba6cef4fb2754007a50e0b28cf1c702c52b # v2.42.40
+        uses: taiki-e/install-action@f3e9a65cfdfe5d58fd5c51b5ab4a727373a9652c # v2.42.41
         with:
           tool: just@1.34.0,cargo-hack@0.6.30,cargo-nextest@0.9.72,cargo-llvm-cov@0.6.11
 

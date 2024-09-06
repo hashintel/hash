@@ -1,9 +1,7 @@
 #!/usr/bin/env -S cargo +nightly -Zscript
 ---
-cargo-features = ["edition2024"]
-
 [package]
-edition = "2024"
+edition = "2021"
 
 [dependencies]
 serde = { version = "*", features = ["derive"] }

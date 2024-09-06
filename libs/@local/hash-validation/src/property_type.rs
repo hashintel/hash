@@ -1,4 +1,4 @@
-use core::borrow::Borrow;
+use core::{borrow::Borrow, future::Future};
 use std::collections::HashMap;
 
 use error_stack::{bail, Report, ResultExt};
