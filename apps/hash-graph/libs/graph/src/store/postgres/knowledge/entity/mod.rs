@@ -1,6 +1,5 @@
 mod query;
 mod read;
-
 use alloc::borrow::Cow;
 use core::iter::once;
 use std::collections::{HashMap, HashSet};
@@ -24,28 +23,30 @@ use graph_types::{
             EntityMetadata, EntityProvenance, EntityRecordId, EntityTemporalMetadata, EntityUuid,
             InferredEntityProvenance,
         },
-        Confidence, PropertyMetadataObject, PropertyObject, PropertyPath,
-        PropertyWithMetadataObject,
+        property::{
+            visitor::EntityVisitor, Property, PropertyMetadata, PropertyMetadataObject,
+            PropertyObject, PropertyPath, PropertyWithMetadata,
+        },
+        Confidence,
     },
     ontology::EntityTypeId,
     owned_by_id::OwnedById,
     Embedding,
 };
 use hash_status::StatusCode;
-use postgres_types::{Json, ToSql};
+use postgres_types::ToSql;
 use temporal_versioning::{
     ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
     OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, TemporalTagged, Timestamp,
     TransactionTime,
 };
 use tokio_postgres::{error::SqlState, GenericClient, Row};
-use type_system::{schema::ClosedEntityType, url::VersionedUrl};
+use type_system::{schema::EntityTypeProvider, url::VersionedUrl};
 use uuid::Uuid;
-use validation::{Validate, ValidateEntityComponents};
+use validation::{EntityPreprocessor, Validate, ValidateEntityComponents};
 
 use crate::{
     knowledge::EntityQueryPath,
-    ontology::EntityTypeQueryPath,
     store::{
         crud::{QueryResult, Read, ReadPaginated, Sorting},
         error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
@@ -68,7 +69,7 @@ use crate::{
             },
             TraversalContext,
         },
-        query::{Filter, FilterExpression, Parameter, ParameterList},
+        query::{Filter, FilterExpression, Parameter},
         validation::StoreProvider,
         AsClient, EntityStore, InsertionError, PostgresStore, QueryError, StoreCache,
         SubgraphRecord, UpdateError,
@@ -496,8 +497,39 @@ where
         let mut entity_has_right_entity_rows = Vec::new();
 
         let mut entities = Vec::with_capacity(params.len());
+        // TODO: There are expected to be duplicates but we currently don't have a way to identify
+        //       multi-type entity types. We need a way to speed this up.
+        let mut validation_params = Vec::with_capacity(params.len());
 
-        for params in params {
+        let validator_provider = StoreProvider {
+            store: self,
+            cache: StoreCache::default(),
+            authorization: Some((actor_id, Consistency::FullyConsistent)),
+        };
+
+        for mut params in params {
+            let entity_type = validator_provider
+                .provide_closed_type(&params.entity_type_ids)
+                .await
+                .change_context(InsertionError)?;
+
+            let validation_components = if params.draft {
+                ValidateEntityComponents {
+                    num_items: false,
+                    required_properties: false,
+                    ..ValidateEntityComponents::full()
+                }
+            } else {
+                ValidateEntityComponents::full()
+            };
+            EntityPreprocessor {
+                components: validation_components,
+            }
+            .visit_object(&entity_type, &mut params.properties, &validator_provider)
+            .await
+            .change_context(InsertionError)?;
+            validation_params.push((entity_type, validation_components));
+
             let (properties, property_metadata) = params.properties.into_parts();
 
             let decision_time = params
@@ -640,6 +672,8 @@ where
                     .attach_printable("At least one relationship must be provided"));
             }
         }
+        // We move out the cache, so we can re-use `&mut self` later.
+        let store_cache = validator_provider.cache;
 
         let (instantiate_permissions, zookie) = self
             .authorization_api
@@ -756,37 +790,18 @@ where
             .await
             .change_context(InsertionError)?;
 
-        let validation_params = entities
-            .iter()
-            .map(|entity| {
-                Ok(ValidateEntityParams {
-                    entity_types: EntityValidationType::Id(Cow::Borrowed(
-                        &entity.metadata.entity_type_ids,
-                    )),
-                    properties: Cow::Owned(PropertyWithMetadataObject::from_parts(
-                        entity.properties.clone(),
-                        Some(entity.metadata.properties.clone()),
-                    )?),
-                    link_data: entity.link_data.as_ref().map(Cow::Borrowed),
-                    components: if entity.metadata.record_id.entity_id.draft_id.is_some() {
-                        ValidateEntityComponents {
-                            num_items: false,
-                            required_properties: false,
-                            ..ValidateEntityComponents::full()
-                        }
-                    } else {
-                        ValidateEntityComponents::full()
-                    },
-                })
-            })
-            .collect::<Result<Vec<_>, _>>()
-            .change_context(InsertionError)?;
+        let validator_provider = StoreProvider {
+            store: &transaction,
+            cache: store_cache,
+            authorization: Some((actor_id, Consistency::FullyConsistent)),
+        };
 
-        transaction
-            .validate_entities(actor_id, Consistency::FullyConsistent, validation_params)
-            .await
-            .change_context(InsertionError)
-            .attach(StatusCode::InvalidArgument)?;
+        for (entity, (schema, components)) in entities.iter().zip(validation_params) {
+            entity
+                .validate(&schema, components, &validator_provider)
+                .await
+                .change_context(InsertionError)?;
+        }
 
         let commit_result = transaction.commit().await.change_context(InsertionError);
         if let Err(mut error) = commit_result {
@@ -838,66 +853,19 @@ where
         let validator_provider = StoreProvider {
             store: self,
             cache: StoreCache::default(),
-            authorization: Some((
-                &self.authorization_api,
-                actor_id,
-                Consistency::FullyConsistent,
-            )),
+            authorization: Some((actor_id, Consistency::FullyConsistent)),
         };
 
-        for params in params {
+        for mut params in params {
             let schema = match params.entity_types {
                 EntityValidationType::ClosedSchema(schema) => schema,
                 EntityValidationType::Schema(schemas) => Cow::Owned(schemas.into_iter().collect()),
-                EntityValidationType::Id(entity_type_url) => {
-                    let ontology_type_ids = entity_type_url
-                        .as_ref()
-                        .iter()
-                        .map(EntityTypeId::from_url)
-                        .collect::<Vec<_>>();
-
-                    if !self
-                        .authorization_api
-                        .check_entity_types_permission(
-                            actor_id,
-                            EntityTypePermission::View,
-                            ontology_type_ids.iter().copied(),
-                            consistency,
-                        )
+                EntityValidationType::Id(entity_type_urls) => Cow::Owned(
+                    validator_provider
+                        .provide_closed_type(entity_type_urls.as_ref())
                         .await
-                        .change_context(ValidateEntityError)?
-                        .0
-                        .into_iter()
-                        .all(|(_, permission)| permission)
-                    {
-                        bail!(
-                            Report::new(ValidateEntityError).attach(StatusCode::PermissionDenied)
-                        );
-                    }
-
-                    let closed_schema = self
-                        .read_closed_schemas(
-                            &Filter::In(
-                                FilterExpression::Path(EntityTypeQueryPath::OntologyId),
-                                ParameterList::EntityTypeIds(&ontology_type_ids),
-                            ),
-                            Some(
-                                &QueryTemporalAxesUnresolved::DecisionTime {
-                                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                                }
-                                .resolve(),
-                            ),
-                        )
-                        .await
-                        .change_context(ValidateEntityError)?
-                        .map_ok(|(_, raw_type)| raw_type)
-                        .try_collect::<ClosedEntityType>()
-                        .await
-                        .change_context(ValidateEntityError)?;
-
-                    Cow::Owned(closed_schema)
-                }
+                        .change_context(ValidateEntityError)?,
+                ),
             };
 
             if schema.schemas.is_empty() {
@@ -909,11 +877,17 @@ where
                 }
             };
 
-            if let Err(error) = params
-                .properties
-                .validate(&schema, params.components, &validator_provider)
-                .await
-            {
+            let pre_process_result = EntityPreprocessor {
+                components: params.components,
+            }
+            .visit_object(
+                schema.as_ref(),
+                params.properties.to_mut(),
+                &validator_provider,
+            )
+            .await
+            .change_context(validation::EntityValidationError::InvalidProperties);
+            if let Err(error) = pre_process_result {
                 if let Err(ref mut report) = status {
                     report.extend_one(error);
                 } else {
@@ -1182,7 +1156,7 @@ where
             *locked_row.transaction_time.start();
         let ClosedTemporalBound::Inclusive(locked_decision_time) =
             *locked_row.decision_time.start();
-        let mut previous_entity = Read::<Entity>::read_one(
+        let previous_entity = Read::<Entity>::read_one(
             &transaction,
             &Filter::Equal(
                 Some(FilterExpression::Path(EntityQueryPath::EditionId)),
@@ -1203,14 +1177,6 @@ where
         .change_context(EntityDoesNotExist)
         .attach(params.entity_id)
         .change_context(UpdateError)?;
-
-        let previous_properties = previous_entity.properties.clone();
-        let previous_property_metadata = previous_entity.metadata.properties.clone();
-        previous_entity
-            .patch(params.properties)
-            .change_context(UpdateError)?;
-        let properties = previous_entity.properties;
-        let property_metadata = previous_entity.metadata.properties;
 
         let mut first_non_draft_created_at_decision_time = previous_entity
             .metadata
@@ -1234,15 +1200,13 @@ where
         let (entity_type_ids, entity_types_updated) = if params.entity_type_ids.is_empty() {
             (previous_entity.metadata.entity_type_ids, false)
         } else {
-            let previous_entity_types = previous_entity
+            let added_types = previous_entity
                 .metadata
                 .entity_type_ids
-                .iter()
-                .collect::<HashSet<_>>();
-            let new_entity_types = params.entity_type_ids.iter().collect::<HashSet<_>>();
-
-            let added_types = new_entity_types.difference(&previous_entity_types);
-            let removed_types = previous_entity_types.difference(&new_entity_types);
+                .difference(&params.entity_type_ids);
+            let removed_types = params
+                .entity_type_ids
+                .difference(&previous_entity.metadata.entity_type_ids);
 
             let mut has_changed = false;
             for entity_type_id in added_types.chain(removed_types) {
@@ -1266,6 +1230,53 @@ where
 
             (params.entity_type_ids, has_changed)
         };
+
+        let previous_properties = previous_entity.properties.clone();
+        let previous_property_metadata = previous_entity.metadata.properties.clone();
+
+        let mut properties_with_metadata = PropertyWithMetadata::from_parts(
+            Property::Object(previous_entity.properties),
+            Some(PropertyMetadata::Object {
+                value: previous_entity.metadata.properties.value,
+                metadata: previous_entity.metadata.properties.metadata,
+            }),
+        )
+        .change_context(UpdateError)?;
+        properties_with_metadata
+            .patch(params.properties)
+            .change_context(UpdateError)?;
+
+        let validator_provider = StoreProvider {
+            store: &transaction,
+            cache: StoreCache::default(),
+            authorization: Some((actor_id, Consistency::FullyConsistent)),
+        };
+        let entity_type = validator_provider
+            .provide_closed_type(&entity_type_ids)
+            .await
+            .change_context(UpdateError)?;
+
+        let validation_components = if draft {
+            ValidateEntityComponents::draft()
+        } else {
+            ValidateEntityComponents::full()
+        };
+
+        let (properties, property_metadata) =
+            if let PropertyWithMetadata::Object(mut object) = properties_with_metadata {
+                EntityPreprocessor {
+                    components: validation_components,
+                }
+                .visit_object(&entity_type, &mut object, &validator_provider)
+                .await
+                .change_context(UpdateError)?;
+                let (properties, property_metadata) = object.into_parts();
+                (properties, property_metadata)
+            } else {
+                unreachable!("patching should not change the property type");
+            };
+        // We move out the cache, so we can re-use `&mut self` later.
+        let store_cache = validator_provider.cache;
 
         #[expect(clippy::needless_collect, reason = "Will be used later")]
         let diff = previous_properties
@@ -1302,7 +1313,7 @@ where
             archived_by_id: None,
             provided: params.provenance,
         };
-        let (edition_id, closed_schema) = transaction
+        let edition_id = transaction
             .insert_entity_edition(
                 archived,
                 &entity_type_ids,
@@ -1413,35 +1424,6 @@ where
             }
         };
 
-        let validation_components = if draft {
-            ValidateEntityComponents::draft()
-        } else {
-            ValidateEntityComponents::full()
-        };
-
-        transaction
-            .validate_entity(
-                actor_id,
-                Consistency::FullyConsistent,
-                ValidateEntityParams {
-                    entity_types: EntityValidationType::ClosedSchema(Cow::Borrowed(&closed_schema)),
-                    properties: Cow::Owned(
-                        PropertyWithMetadataObject::from_parts(
-                            properties.clone(),
-                            Some(property_metadata.clone()),
-                        )
-                        .change_context(UpdateError)?,
-                    ),
-                    link_data: link_data.as_ref().map(Cow::Borrowed),
-                    components: validation_components,
-                },
-            )
-            .await
-            .change_context(UpdateError)
-            .attach(StatusCode::InvalidArgument)?;
-
-        transaction.commit().await.change_context(UpdateError)?;
-
         let entity_metadata = EntityMetadata {
             record_id: EntityRecordId {
                 entity_id: params.entity_id,
@@ -1461,17 +1443,31 @@ where
             properties: property_metadata,
             archived,
         };
-        let entity = Entity {
+        let entities = [Entity {
             properties,
             link_data,
             metadata: entity_metadata.clone(),
+        }];
+
+        let validator_provider = StoreProvider {
+            store: &transaction,
+            cache: store_cache,
+            authorization: Some((actor_id, Consistency::FullyConsistent)),
         };
+        entities[0]
+            .validate(&entity_type, validation_components, &validator_provider)
+            .await
+            .change_context(UpdateError)?;
+
+        transaction.commit().await.change_context(UpdateError)?;
+
         if let Some(temporal_client) = &self.temporal_client {
             temporal_client
-                .start_update_entity_embeddings_workflow(actor_id, &[entity.clone()])
+                .start_update_entity_embeddings_workflow(actor_id, &entities)
                 .await
                 .change_context(UpdateError)?;
         }
+        let [entity] = entities;
         Ok(entity)
     }
 
@@ -1619,7 +1615,7 @@ where
         confidence: Option<Confidence>,
         provenance: &EntityEditionProvenance,
         metadata: &PropertyMetadataObject,
-    ) -> Result<(EntityEditionId, ClosedEntityType), InsertionError> {
+    ) -> Result<EntityEditionId, InsertionError> {
         let edition_id: EntityEditionId = self
             .as_client()
             .query_one(
@@ -1658,20 +1654,7 @@ where
             .await
             .change_context(InsertionError)?;
 
-        let entity_type = self
-            .as_client()
-            .query_raw(
-                "SELECT closed_schema FROM entity_types WHERE ontology_id = ANY ($1::UUID[]);",
-                &[&entity_type_ontology_ids],
-            )
-            .await
-            .change_context(InsertionError)?
-            .and_then(|row| async move { Ok(row.get::<_, Json<ClosedEntityType>>(0).0) })
-            .try_collect::<ClosedEntityType>()
-            .await
-            .change_context(InsertionError)?;
-
-        Ok((edition_id, entity_type))
+        Ok(edition_id)
     }
 
     #[tracing::instrument(level = "trace", skip(self))]

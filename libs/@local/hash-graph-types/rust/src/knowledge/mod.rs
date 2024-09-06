@@ -1,16 +1,7 @@
 pub mod entity;
 pub mod link;
+pub mod property;
 
-pub use self::{
-    confidence::Confidence,
-    entity::EntityTypeIdDiff,
-    property::{
-        ArrayMetadata, ObjectMetadata, PatchError, Property, PropertyDiff, PropertyMetadata,
-        PropertyMetadataObject, PropertyObject, PropertyPatchOperation, PropertyPath,
-        PropertyPathElement, PropertyProvenance, PropertyWithMetadata, PropertyWithMetadataObject,
-        ValueMetadata, ValueWithMetadata,
-    },
-};
+pub use self::{confidence::Confidence, entity::EntityTypeIdDiff};
 
 mod confidence;
-mod property;

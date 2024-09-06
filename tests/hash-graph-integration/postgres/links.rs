@@ -22,8 +22,9 @@ use graph::{
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
-        entity::ProvidedEntityEditionProvenance, link::LinkData, PropertyObject,
-        PropertyProvenance, PropertyWithMetadataObject,
+        entity::ProvidedEntityEditionProvenance,
+        link::LinkData,
+        property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
     },
     owned_by_id::OwnedById,
 };

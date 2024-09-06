@@ -15,9 +15,12 @@ use graph::{
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
-        entity::ProvidedEntityEditionProvenance, PropertyObject, PropertyPatchOperation,
-        PropertyPathElement, PropertyProvenance, PropertyWithMetadata, PropertyWithMetadataObject,
-        ValueMetadata, ValueWithMetadata,
+        entity::ProvidedEntityEditionProvenance,
+        property::{
+            PropertyObject, PropertyPatchOperation, PropertyPathElement, PropertyProvenance,
+            PropertyWithMetadata, PropertyWithMetadataObject, PropertyWithMetadataValue,
+            ValueMetadata,
+        },
     },
     owned_by_id::OwnedById,
 };
@@ -111,7 +114,7 @@ async fn properties_add() {
             properties: vec![
                 PropertyPatchOperation::Add {
                     path: once(PropertyPathElement::from(age_property_type_id())).collect(),
-                    property: PropertyWithMetadata::Value(ValueWithMetadata {
+                    property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
                         value: json!(30),
                         metadata: ValueMetadata {
                             confidence: None,
@@ -122,7 +125,7 @@ async fn properties_add() {
                 },
                 PropertyPatchOperation::Add {
                     path: once(PropertyPathElement::from(name_property_type_id())).collect(),
-                    property: PropertyWithMetadata::Value(ValueWithMetadata {
+                    property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
                         value: json!("Alice Allison"),
                         metadata: ValueMetadata {
                             confidence: None,
@@ -277,7 +280,7 @@ async fn properties_replace() {
             entity_type_ids: HashSet::new(),
             properties: vec![PropertyPatchOperation::Replace {
                 path: once(PropertyPathElement::from(name_property_type_id())).collect(),
-                property: PropertyWithMetadata::Value(ValueWithMetadata {
+                property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
                     value: json!("Bob"),
                     metadata: ValueMetadata {
                         confidence: None,

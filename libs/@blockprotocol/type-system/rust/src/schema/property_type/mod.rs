@@ -102,6 +102,22 @@ impl PropertyValues {
     }
 }
 
+pub trait PropertyValueSchema {
+    fn possibilities(&self) -> &[PropertyValues];
+}
+
+impl PropertyValueSchema for &PropertyType {
+    fn possibilities(&self) -> &[PropertyValues] {
+        &self.one_of
+    }
+}
+
+impl PropertyValueSchema for OneOfSchema<PropertyValues> {
+    fn possibilities(&self) -> &[PropertyValues] {
+        &self.possibilities
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use core::str::FromStr;

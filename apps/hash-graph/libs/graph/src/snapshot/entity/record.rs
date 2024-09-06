@@ -3,7 +3,7 @@ use graph_types::{
     knowledge::{
         entity::{EntityId, EntityMetadata, EntityUuid},
         link::LinkData,
-        PropertyObject,
+        property::PropertyObject,
     },
     Embedding,
 };

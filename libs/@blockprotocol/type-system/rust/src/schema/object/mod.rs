@@ -6,7 +6,10 @@ use std::collections::{HashMap, HashSet};
 use serde::{Deserialize, Serialize, Serializer};
 
 pub use self::validation::{ObjectSchemaValidationError, ObjectSchemaValidator};
-use crate::url::BaseUrl;
+use crate::{
+    schema::{ClosedEntityType, EntityType, PropertyTypeReference, ValueOrArray},
+    url::BaseUrl,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(from = "raw::ObjectSchema<T>")]
@@ -25,6 +28,48 @@ where
         S: Serializer,
     {
         raw::ObjectSchemaRef::from(self).serialize(serializer)
+    }
+}
+
+pub trait PropertyObjectSchema {
+    type Value;
+    fn properties(&self) -> &HashMap<BaseUrl, Self::Value>;
+    fn required(&self) -> &HashSet<BaseUrl>;
+}
+
+impl<T> PropertyObjectSchema for ObjectSchema<T> {
+    type Value = T;
+
+    fn properties(&self) -> &HashMap<BaseUrl, Self::Value> {
+        &self.properties
+    }
+
+    fn required(&self) -> &HashSet<BaseUrl> {
+        &self.required
+    }
+}
+
+impl PropertyObjectSchema for EntityType {
+    type Value = ValueOrArray<PropertyTypeReference>;
+
+    fn properties(&self) -> &HashMap<BaseUrl, Self::Value> {
+        &self.properties
+    }
+
+    fn required(&self) -> &HashSet<BaseUrl> {
+        &self.required
+    }
+}
+
+impl PropertyObjectSchema for ClosedEntityType {
+    type Value = ValueOrArray<PropertyTypeReference>;
+
+    fn properties(&self) -> &HashMap<BaseUrl, Self::Value> {
+        &self.properties
+    }
+
+    fn required(&self) -> &HashSet<BaseUrl> {
+        &self.required
     }
 }
 

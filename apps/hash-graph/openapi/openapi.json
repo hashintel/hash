@@ -7313,39 +7313,30 @@
       "PropertyWithMetadata": {
         "oneOf": [
           {
-            "type": "object",
-            "title": "PropertyWithMetadataArray",
-            "properties": {
-              "metadata": {
-                "$ref": "#/components/schemas/ArrayMetadata"
-              },
-              "value": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/PropertyWithMetadata"
-                }
-              }
-            }
+            "$ref": "#/components/schemas/PropertyWithMetadataArray"
           },
           {
-            "type": "object",
-            "title": "PropertyWithMetadataObject",
-            "properties": {
-              "metadata": {
-                "$ref": "#/components/schemas/ObjectMetadata"
-              },
-              "value": {
-                "type": "object",
-                "additionalProperties": {
-                  "$ref": "#/components/schemas/PropertyWithMetadata"
-                }
-              }
-            }
+            "$ref": "#/components/schemas/PropertyWithMetadataObject"
           },
           {
-            "$ref": "#/components/schemas/ValueWithMetadata"
+            "$ref": "#/components/schemas/PropertyWithMetadataValue"
           }
         ]
+      },
+      "PropertyWithMetadataArray": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/ArrayMetadata"
+          },
+          "value": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PropertyWithMetadata"
+            }
+          }
+        },
+        "additionalProperties": false
       },
       "PropertyWithMetadataObject": {
         "type": "object",
@@ -7359,6 +7350,20 @@
               "$ref": "#/components/schemas/PropertyWithMetadata"
             }
           }
+        },
+        "additionalProperties": false
+      },
+      "PropertyWithMetadataValue": {
+        "type": "object",
+        "required": [
+          "value",
+          "metadata"
+        ],
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/ValueMetadata"
+          },
+          "value": {}
         },
         "additionalProperties": false
       },
@@ -8139,20 +8144,6 @@
           "provenance": {
             "$ref": "#/components/schemas/PropertyProvenance"
           }
-        },
-        "additionalProperties": false
-      },
-      "ValueWithMetadata": {
-        "type": "object",
-        "required": [
-          "value",
-          "metadata"
-        ],
-        "properties": {
-          "metadata": {
-            "$ref": "#/components/schemas/ValueMetadata"
-          },
-          "value": {}
         },
         "additionalProperties": false
       },

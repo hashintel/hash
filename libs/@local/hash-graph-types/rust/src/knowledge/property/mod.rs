@@ -1,3 +1,18 @@
+pub mod visitor;
+
+pub use self::{
+    array::PropertyWithMetadataArray,
+    diff::PropertyDiff,
+    metadata::{
+        ArrayMetadata, ObjectMetadata, PropertyMetadata, PropertyMetadataObject,
+        PropertyProvenance, PropertyWithMetadataValue, ValueMetadata,
+    },
+    object::{PropertyObject, PropertyWithMetadataObject},
+    patch::{PatchError, PropertyPatchOperation},
+    path::{PropertyPath, PropertyPathElement},
+};
+
+mod array;
 mod diff;
 mod metadata;
 mod object;
@@ -8,23 +23,12 @@ use alloc::borrow::Cow;
 use core::{cmp::Ordering, fmt, iter, mem};
 use std::{collections::HashMap, io};
 
-use error_stack::Report;
+use error_stack::{Report, ResultExt};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use type_system::{
     schema::JsonSchemaValueType,
     url::{BaseUrl, VersionedUrl},
-};
-
-pub use self::{
-    diff::PropertyDiff,
-    metadata::{
-        ArrayMetadata, ObjectMetadata, PropertyMetadata, PropertyMetadataObject,
-        PropertyProvenance, ValueMetadata, ValueWithMetadata,
-    },
-    object::{PropertyObject, PropertyWithMetadataObject},
-    patch::{PatchError, PropertyPatchOperation},
-    path::{PropertyPath, PropertyPathElement},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -40,21 +44,9 @@ pub enum Property {
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged, deny_unknown_fields)]
 pub enum PropertyWithMetadata {
-    #[cfg_attr(feature = "utoipa", schema(title = "PropertyWithMetadataArray"))]
-    Array {
-        #[serde(default, skip_serializing_if = "Vec::is_empty")]
-        value: Vec<Self>,
-        #[serde(default, skip_serializing_if = "ArrayMetadata::is_empty")]
-        metadata: ArrayMetadata,
-    },
-    #[cfg_attr(feature = "utoipa", schema(title = "PropertyWithMetadataObject"))]
-    Object {
-        #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-        value: HashMap<BaseUrl, Self>,
-        #[serde(default, skip_serializing_if = "ObjectMetadata::is_empty")]
-        metadata: ObjectMetadata,
-    },
-    Value(ValueWithMetadata),
+    Array(PropertyWithMetadataArray),
+    Object(PropertyWithMetadataObject),
+    Value(PropertyWithMetadataValue),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -94,6 +86,32 @@ impl PropertyWithMetadata {
         }
     }
 
+    /// Modify the properties and confidence values of the entity.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the patch operation failed
+    pub fn patch(
+        &mut self,
+        operations: impl IntoIterator<Item = PropertyPatchOperation>,
+    ) -> Result<(), Report<PatchError>> {
+        for operation in operations {
+            match operation {
+                PropertyPatchOperation::Add { path, property } => {
+                    self.add(path, property).change_context(PatchError)?;
+                }
+                PropertyPatchOperation::Remove { path } => {
+                    self.remove(&path).change_context(PatchError)?;
+                }
+                PropertyPatchOperation::Replace { path, property } => {
+                    self.replace(&path, property).change_context(PatchError)?;
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     fn get_mut(
         &mut self,
         path: &[PropertyPathElement<'_>],
@@ -101,40 +119,31 @@ impl PropertyWithMetadata {
         let mut value = self;
         for path_element in path {
             match (value, path_element) {
-                (
-                    Self::Array {
-                        value: elements, ..
-                    },
-                    PropertyPathElement::Index(index),
-                ) => {
-                    let len = elements.len();
-                    value = elements
+                (Self::Array(array), PropertyPathElement::Index(index)) => {
+                    let len = array.value.len();
+                    value = array
+                        .value
                         .get_mut(*index)
                         .ok_or(PropertyPathError::IndexOutOfBounds { index: *index, len })?;
                 }
-                (Self::Array { .. }, PropertyPathElement::Property(key)) => {
+                (Self::Array(_), PropertyPathElement::Property(key)) => {
                     return Err(Report::new(PropertyPathError::UnexpectedKey {
                         key: key.clone().into_owned(),
                     }));
                 }
-                (
-                    Self::Object {
-                        value: properties, ..
-                    },
-                    PropertyPathElement::Property(key),
-                ) => {
-                    value = properties.get_mut(key.as_ref()).ok_or_else(|| {
+                (Self::Object(object), PropertyPathElement::Property(key)) => {
+                    value = object.value.get_mut(key.as_ref()).ok_or_else(|| {
                         PropertyPathError::InvalidKey {
                             key: key.clone().into_owned(),
                         }
                     })?;
                 }
-                (Self::Object { .. }, PropertyPathElement::Index(index)) => {
+                (Self::Object(_), PropertyPathElement::Index(index)) => {
                     return Err(Report::new(PropertyPathError::UnexpectedIndex {
                         index: *index,
                     }));
                 }
-                (Self::Value { .. }, _) => {
+                (Self::Value(_), _) => {
                     return Err(Report::new(PropertyPathError::UnexpectedValue));
                 }
             }
@@ -162,40 +171,30 @@ impl PropertyWithMetadata {
 
         let parent = self.get_mut(path.as_ref())?;
         match (parent, last) {
-            (
-                Self::Array {
-                    value: elements, ..
-                },
-                PropertyPathElement::Index(index),
-            ) => {
-                if index <= elements.len() {
-                    elements.insert(index, value);
+            (Self::Array(array), PropertyPathElement::Index(index)) => {
+                if index <= array.value.len() {
+                    array.value.insert(index, value);
                     Ok(())
                 } else {
                     Err(Report::new(PropertyPathError::IndexOutOfBounds {
                         index,
-                        len: elements.len(),
+                        len: array.value.len(),
                     }))
                 }
             }
-            (Self::Array { .. }, PropertyPathElement::Property(key)) => {
+            (Self::Array(_), PropertyPathElement::Property(key)) => {
                 Err(Report::new(PropertyPathError::UnexpectedKey {
                     key: key.clone().into_owned(),
                 }))
             }
-            (
-                Self::Object {
-                    value: properties, ..
-                },
-                PropertyPathElement::Property(key),
-            ) => {
-                properties.insert(key.into_owned(), value);
+            (Self::Object(object), PropertyPathElement::Property(key)) => {
+                object.value.insert(key.into_owned(), value);
                 Ok(())
             }
-            (Self::Object { .. }, PropertyPathElement::Index(index)) => {
+            (Self::Object(_), PropertyPathElement::Index(index)) => {
                 Err(Report::new(PropertyPathError::UnexpectedIndex { index }))
             }
-            (Self::Value { .. }, _) => Err(Report::new(PropertyPathError::UnexpectedValue)),
+            (Self::Value(_), _) => Err(Report::new(PropertyPathError::UnexpectedValue)),
         }
     }
 
@@ -228,34 +227,24 @@ impl PropertyWithMetadata {
         };
         let parent = self.get_mut(path)?;
         match (parent, last) {
-            (
-                Self::Array {
-                    value: elements, ..
-                },
-                PropertyPathElement::Index(index),
-            ) => {
-                if *index <= elements.len() {
-                    elements.remove(*index);
+            (Self::Array(array), PropertyPathElement::Index(index)) => {
+                if *index <= array.value.len() {
+                    array.value.remove(*index);
                     Ok(())
                 } else {
                     Err(Report::new(PropertyPathError::IndexOutOfBounds {
                         index: *index,
-                        len: elements.len(),
+                        len: array.value.len(),
                     }))
                 }
             }
-            (Self::Array { .. }, PropertyPathElement::Property(key)) => {
+            (Self::Array(_), PropertyPathElement::Property(key)) => {
                 Err(Report::new(PropertyPathError::UnexpectedKey {
                     key: key.clone().into_owned(),
                 }))
             }
-            (
-                Self::Object {
-                    value: properties, ..
-                },
-                PropertyPathElement::Property(key),
-            ) => {
-                properties.remove(key);
+            (Self::Object(object), PropertyPathElement::Property(key)) => {
+                object.value.remove(key);
                 Ok(())
             }
             (Self::Object { .. }, PropertyPathElement::Index(index)) => {
@@ -283,7 +272,7 @@ impl PropertyWithMetadata {
                     value: metadata_elements,
                     metadata,
                 }),
-            ) => Ok(Self::Array {
+            ) => Ok(Self::Array(PropertyWithMetadataArray {
                 value: metadata_elements
                     .into_iter()
                     .map(Some)
@@ -292,21 +281,21 @@ impl PropertyWithMetadata {
                     .map(|(metadata, property)| Self::from_parts(property, metadata))
                     .collect::<Result<_, _>>()?,
                 metadata,
-            }),
-            (Property::Array(properties), None) => Ok(Self::Array {
+            })),
+            (Property::Array(properties), None) => Ok(Self::Array(PropertyWithMetadataArray {
                 value: properties
                     .into_iter()
                     .map(|property| Self::from_parts(property, None))
                     .collect::<Result<_, _>>()?,
                 metadata: ArrayMetadata::default(),
-            }),
+            })),
             (
                 Property::Object(properties),
                 Some(PropertyMetadata::Object {
                     value: mut metadata_elements,
                     metadata,
                 }),
-            ) => Ok(Self::Object {
+            ) => Ok(Self::Object(PropertyWithMetadataObject {
                 value: properties
                     .into_iter()
                     .map(|(key, property)| {
@@ -318,8 +307,8 @@ impl PropertyWithMetadata {
                     })
                     .collect::<Result<_, _>>()?,
                 metadata,
-            }),
-            (Property::Object(properties), None) => Ok(Self::Object {
+            })),
+            (Property::Object(properties), None) => Ok(Self::Object(PropertyWithMetadataObject {
                 value: properties
                     .into_iter()
                     .map(|(key, property)| {
@@ -327,11 +316,11 @@ impl PropertyWithMetadata {
                     })
                     .collect::<Result<_, _>>()?,
                 metadata: ObjectMetadata::default(),
-            }),
+            })),
             (Property::Value(value), Some(PropertyMetadata::Value { metadata })) => {
-                Ok(Self::Value(ValueWithMetadata { value, metadata }))
+                Ok(Self::Value(PropertyWithMetadataValue { value, metadata }))
             }
-            (Property::Value(value), None) => Ok(Self::Value(ValueWithMetadata {
+            (Property::Value(value), None) => Ok(Self::Value(PropertyWithMetadataValue {
                 value,
                 metadata: ValueMetadata {
                     provenance: PropertyProvenance::default(),
@@ -345,19 +334,20 @@ impl PropertyWithMetadata {
 
     pub fn into_parts(self) -> (Property, PropertyMetadata) {
         match self {
-            Self::Array { value, metadata } => {
+            Self::Array(array) => {
                 let (properties, metadata_elements) =
-                    value.into_iter().map(Self::into_parts).unzip();
+                    array.value.into_iter().map(Self::into_parts).unzip();
                 (
                     Property::Array(properties),
                     PropertyMetadata::Array {
                         value: metadata_elements,
-                        metadata,
+                        metadata: array.metadata,
                     },
                 )
             }
-            Self::Object { value, metadata } => {
-                let (properties, metadata_properties) = value
+            Self::Object(object) => {
+                let (properties, metadata_properties) = object
+                    .value
                     .into_iter()
                     .map(|(base_url, property_with_metadata)| {
                         let (property, metadata) = property_with_metadata.into_parts();
@@ -368,7 +358,7 @@ impl PropertyWithMetadata {
                     Property::Object(PropertyObject::new(properties)),
                     PropertyMetadata::Object {
                         value: metadata_properties,
-                        metadata,
+                        metadata: object.metadata,
                     },
                 )
             }

@@ -9,7 +9,10 @@ use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use type_system::url::BaseUrl;
 
-use crate::knowledge::{Confidence, PropertyMetadata, PropertyProvenance};
+use crate::knowledge::{
+    property::{PropertyMetadata, PropertyProvenance},
+    Confidence,
+};
 
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]

@@ -1,16 +1,13 @@
-use std::collections::HashMap;
-
 use async_trait::async_trait;
 use authorization::{backend::ZanzibarBackend, schema::EntityRelationAndSubject, AuthorizationApi};
 use error_stack::{Report, ResultExt};
-use futures::TryStreamExt;
-use graph_types::{
-    knowledge::entity::{Entity, EntityUuid},
-    ontology::EntityTypeId,
+use graph_types::knowledge::{
+    entity::{Entity, EntityUuid},
+    property::{visitor::EntityVisitor, PropertyWithMetadataObject},
 };
 use tokio_postgres::GenericClient;
-use type_system::schema::ClosedEntityType;
-use validation::{Validate, ValidateEntityComponents};
+use type_system::schema::EntityTypeProvider;
+use validation::{EntityPreprocessor, Validate, ValidateEntityComponents};
 
 use crate::{
     snapshot::WriteBatch,
@@ -240,6 +237,7 @@ where
         Ok(())
     }
 
+    #[expect(clippy::too_many_lines)]
     async fn commit(
         postgres_client: &mut PostgresStore<C, A>,
         validation: bool,
@@ -283,36 +281,58 @@ where
                     .await
                     .change_context(InsertionError)?;
 
-            let schemas = postgres_client
-                .read_closed_schemas(&Filter::All(Vec::new()), None)
-                .await
-                .change_context(InsertionError)?
-                .try_collect::<HashMap<_, _>>()
-                .await
-                .change_context(InsertionError)?;
-
-            let validator_provider = StoreProvider::<_, A> {
+            let validator_provider = StoreProvider {
                 store: postgres_client,
                 cache: StoreCache::default(),
                 authorization: None,
             };
 
-            for entity in entities {
-                let schema = entity
-                    .metadata
-                    .entity_type_ids
-                    .iter()
-                    .map(|id| {
-                        schemas
-                            .get(&EntityTypeId::from_url(id))
-                            .ok_or(InsertionError)
-                            .cloned()
-                    })
-                    .collect::<Result<ClosedEntityType, _>>()?;
+            let mut edition_ids_updates = Vec::new();
+            let mut properties_updates = Vec::new();
+            let mut metadata_updates = Vec::new();
+
+            for mut entity in entities {
+                let validation_components =
+                    if entity.metadata.record_id.entity_id.draft_id.is_some() {
+                        ValidateEntityComponents::draft()
+                    } else {
+                        ValidateEntityComponents::full()
+                    };
+                let mut property_with_metadata = PropertyWithMetadataObject::from_parts(
+                    entity.properties.clone(),
+                    Some(entity.metadata.properties.clone()),
+                )
+                .change_context(InsertionError)?;
+
+                let entity_type = validator_provider
+                    .provide_closed_type(&entity.metadata.entity_type_ids)
+                    .await
+                    .change_context(InsertionError)?;
+
+                EntityPreprocessor {
+                    components: validation_components,
+                }
+                .visit_object(
+                    &entity_type,
+                    &mut property_with_metadata,
+                    &validator_provider,
+                )
+                .await
+                .change_context(InsertionError)?;
+
+                let (properties, metadata) = property_with_metadata.into_parts();
+                let mut changed = false;
+
+                // We avoid updating the entity if the properties and metadata are the same
+                if entity.properties != properties || entity.metadata.properties != metadata {
+                    changed = true;
+                    entity.properties = properties;
+                    entity.metadata.properties = metadata;
+                }
 
                 entity
                     .validate(
-                        &schema,
+                        &entity_type,
                         if entity.metadata.record_id.entity_id.draft_id.is_some() {
                             ValidateEntityComponents::draft()
                         } else {
@@ -322,7 +342,34 @@ where
                     )
                     .await
                     .change_context(InsertionError)?;
+
+                if changed {
+                    edition_ids_updates.push(entity.metadata.record_id.edition_id);
+                    properties_updates.push(entity.properties);
+                    metadata_updates.push(entity.metadata.properties);
+                }
             }
+
+            postgres_client
+                .as_client()
+                .client()
+                .query(
+                    "
+                        UPDATE entity_editions
+                        SET
+                            properties = data_table.properties,
+                            property_metadata = data_table.property_metadata
+                        FROM (
+                            SELECT unnest($1::uuid[]) as edition_id,
+                                   unnest($2::jsonb[]) as properties,
+                                   unnest($3::jsonb[]) as property_metadata
+                           ) as data_table
+                        WHERE entity_editions.entity_edition_id = data_table.edition_id;
+                    ",
+                    &[&edition_ids_updates, &properties_updates, &metadata_updates],
+                )
+                .await
+                .change_context(InsertionError)?;
         }
 
         Ok(())
