@@ -1,0 +1,43 @@
+name: Fix
+on:
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: "Override default log level"
+        required: false
+        default: "info"
+        type: choice
+        options:
+          - "debug"
+          - "info"
+          - "warn"
+          - "error"
+      overrideSchedule:
+        description: "Override all schedules"
+        required: false
+        default: false
+        type: boolean
+  schedule:
+    # Run every 30 minutes
+    - cron: "0/30 * * * *"
+  pull_request:
+concurrency: renovate
+jobs:
+  renovate:
+    name: Update dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          token: ${{ secrets.MACHINE_USER_TOKEN }}
+
+      - name: Run renovate
+        uses: renovatebot/github-action@v40.2.7
+        with:
+          configurationFile: .github/renovate.json
+        env:
+          LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
+          RENOVATE_FORCE: ${{ github.event.inputs.overrideSchedule == 'true' && '{''schedule'':null}' || '' }}
+          RENOVATE_USERNAME: HASH
+          RENOVATE_GIT_AUTHOR: HASH <careers@hash.dev>
