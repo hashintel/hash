@@ -3,13 +3,23 @@
 use core::future::Future;
 
 use error_stack::Result;
+use futures::{pin_mut, stream::StreamExt, TryStreamExt};
 use graph_types::account::AccountId;
-use harpc_net::session::server::SessionId;
+use harpc_net::{
+    codec::{Codec, Decoder, Encoder, ValueDecoder},
+    session::server::SessionId,
+};
+use harpc_tower::{
+    body::{Body, BodyExt},
+    request::Request,
+    response::Response,
+};
 use harpc_types::{service::ServiceId, version::Version};
+use harpc_wire_protocol::request::procedure::ProcedureDescriptor;
 
 pub trait ProcedureId: Sized {
-    fn from_u32(id: u32) -> Option<Self>;
-    fn into_u32(self) -> u32;
+    fn from_u16(id: u16) -> Option<Self>;
+    fn into_u16(self) -> u16;
 }
 
 pub struct Deprecation {
@@ -66,14 +76,14 @@ pub enum AccountProcedureId {
 }
 
 impl ProcedureId for AccountProcedureId {
-    fn from_u32(id: u32) -> Option<Self> {
+    fn from_u16(id: u16) -> Option<Self> {
         match id {
             0 => Some(Self::CreateAccount),
             _ => None,
         }
     }
 
-    fn into_u32(self) -> u32 {
+    fn into_u16(self) -> u16 {
         match self {
             Self::CreateAccount => 0,
         }
@@ -100,7 +110,7 @@ pub trait AccountService<R> {
         R: Role;
 }
 
-pub struct AccountServiceServer<A, S, T> {
+pub struct AccountServiceImpl<A, S, T> {
     state: State<A, S, T>,
 }
 
@@ -116,7 +126,7 @@ impl Session for Server {
     }
 }
 
-impl<A, S, T> AccountService<Server> for AccountServiceServer<A, S, T>
+impl<A, S, T> AccountService<Server> for AccountServiceImpl<A, S, T>
 where
     A: Send + Sync,
     S: Send + Sync,
@@ -128,6 +138,18 @@ where
         payload: CreateAccount,
     ) -> Result<AccountId, AccountError> {
         todo!("Implement me!")
+    }
+}
+
+pub struct AccountServiceDelegate<A, S, T> {
+    service: AccountServiceImpl<A, S, T>,
+}
+
+pub trait ServiceDelegate {
+    type Service: Service;
+
+    async fn call_procedure() {
+        todo!()
     }
 }
 
@@ -144,7 +166,24 @@ pub trait Service {
     fn deprecation() -> Option<Deprecation> {
         None
     }
+
     fn removal() -> Option<Removal> {
         None
+    }
+}
+
+pub struct Client;
+pub struct AccountServiceClient {
+    inner: Client,
+}
+
+impl AccountService<Client> for AccountServiceClient {
+    fn create_account(
+        &self,
+        session: &Client,
+        payload: CreateAccount,
+    ) -> impl Future<Output = Result<AccountId, AccountError>> {
+        // send to server, recv response
+        todo!()
     }
 }

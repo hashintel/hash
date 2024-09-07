@@ -2527,10 +2527,12 @@ name = "harpc-service"
 version = "0.0.0"
 dependencies = [
  "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futures",
  "graph-types",
  "harpc-net",
  "harpc-tower",
  "harpc-types",
+ "harpc-wire-protocol",
  "semver",
  "thiserror",
 ]

@@ -8,10 +8,12 @@ publish.workspace = true
 
 [dependencies]
 error-stack.workspace = true
+futures.workspace = true
 graph-types.workspace = true
 harpc-net.workspace = true
 harpc-tower.workspace = true
 harpc-types.workspace = true
+harpc-wire-protocol.workspace = true
 semver.workspace = true
 thiserror.workspace = true
 
