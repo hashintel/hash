@@ -2523,6 +2523,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "harpc-service"
+version = "0.0.0"
+dependencies = [
+ "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "graph-types",
+ "harpc-net",
+ "harpc-tower",
+ "harpc-types",
+ "semver",
+ "thiserror",
+]
+
+[[package]]
 name = "harpc-tower"
 version = "0.0.0"
 dependencies = [

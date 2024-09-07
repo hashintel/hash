@@ -1,0 +1,19 @@
+[package]
+name = "harpc-service"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+error-stack.workspace = true
+graph-types.workspace = true
+harpc-net.workspace = true
+harpc-tower.workspace = true
+harpc-types.workspace = true
+semver.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true
