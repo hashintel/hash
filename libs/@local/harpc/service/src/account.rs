@@ -131,7 +131,11 @@ where
     }
 }
 
+pub trait Procedures {}
+
 pub trait Service {
+    type Procedures: Procedures;
+
     const ID: ServiceId;
     const VERSION: Version;
 
