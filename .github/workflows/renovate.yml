@@ -2,11 +2,18 @@ name: Update dependencies
 on:
   workflow_dispatch:
     inputs:
+      repoCache:
+        description: "Reset or disable the cache?"
+        type: choice
+        default: enabled
+        options:
+          - enabled
+          - disabled
+          - reset
       logLevel:
         description: "Override default log level"
-        required: false
-        default: "info"
         type: choice
+        default: info
         options:
           - "debug"
           - "info"
@@ -14,22 +21,65 @@ on:
           - "error"
       overrideSchedule:
         description: "Override all schedules"
-        required: false
-        default: false
         type: boolean
-  schedule:
-    # Run every 30 minutes
-    - cron: "0/30 * * * *"
-  pull_request:
-concurrency: renovate
+        default: false
+      dryRun:
+        description: "Dry run mode"
+        type: choice
+        default: disabled
+        options:
+          - disabled
+          - extract
+          - lookup
+          - full
+#  schedule:
+# Run every 30 minutes
+#    - cron: "0/30 * * * *"
+
+env:
+  cache_archive: renovate_cache.tar.gz
+  cache_dir: /tmp/renovate/cache/renovate/repository
+  cache_key: renovate-cache
+
+concurrency:
+  cancel-in-progress: true
+  group: renovate
+
 jobs:
   renovate:
     runs-on: ubuntu-latest
     steps:
+      #      - name: Get token
+      #        id: app-token
+      #        uses: actions/create-github-app-token@v1
+      #        with:
+      #          app-id: ${{ secrets.APP_ID }}
+      #          private-key: ${{ secrets.PRIVATE_KEY }}
+
       - name: Checkout
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           token: ${{ secrets.MACHINE_USER_TOKEN }}
+
+      - uses: dawidd6/action-download-artifact@v2
+        if: github.event.inputs.repoCache != 'disabled'
+        continue-on-error: true
+        with:
+          name: ${{ env.cache_key }}
+          path: cache-download
+
+      - name: Extract renovate cache
+        run: |
+          if [ ! -d cache-download ] ; then
+            echo "No cache found."
+            exit 0
+          fi
+
+          mkdir -p $cache_dir
+          tar -xzf cache-download/$cache_archive -C $cache_dir
+
+          sudo chown -R runneradmin:root /tmp/renovate/
+          ls -R $cache_dir
 
       - name: Run renovate
         uses: renovatebot/github-action@v40.2.7
@@ -39,7 +89,19 @@ jobs:
         env:
           LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
           RENOVATE_FORCE: ${{ github.event.inputs.overrideSchedule == 'true' && '{"schedule":null}' || '' }}
-          RENOVATE_USERNAME: HASH[bot]
-          RENOVATE_GIT_AUTHOR: HASH <careers@hash.dev>
-          RENOVATE_PLATFORM_COMMIT: "true"
+          #          RENOVATE_DRY_RUN: ${{ inputs.dryRun == 'disabled' && 'null' || inputs.dryRun }}
+          RENOVATE_DRY_RUN: full
+          RENOVATE_PLATFORM_COMMIT: enabled
           RENOVATE_REPOSITORIES: ${{ github.repository }}
+          # TODO: Consider using S3 by setting `RENOVATE_REPOSITORY_CACHE_TYPE`
+          RENOVATE_REPOSITORY_CACHE: ${{ github.event.inputs.repoCache || 'enabled' }}
+
+      - name: Compress renovate cache
+        run: tar -czvf $cache_archive -C $cache_dir .
+
+      - uses: actions/upload-artifact@v3
+        if: github.event.inputs.repoCache != 'disabled'
+        with:
+          name: ${{ env.cache_key }}
+          path: ${{ env.cache_archive }}
+          retention-days: 1

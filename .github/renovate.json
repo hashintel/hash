@@ -17,6 +17,7 @@
 
   "automerge": true,
   "branchPrefix": "deps/",
+  "configMigration": true,
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
   "dependencyDashboardTitle": "🚀 Dependency Updates",
