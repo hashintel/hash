@@ -38,8 +38,8 @@ jobs:
           configurationFile: .github/renovate.json
         env:
           LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
-          RENOVATE_FORCE: ${{ github.event.inputs.overrideSchedule == 'true' && '{''schedule'':null}' || '' }}
-          RENOVATE_USERNAME: HASH
+          RENOVATE_FORCE: ${{ github.event.inputs.overrideSchedule == 'true' && '{"schedule":null}' || '' }}
+          RENOVATE_USERNAME: HASH[bot]
           RENOVATE_GIT_AUTHOR: HASH <careers@hash.dev>
           RENOVATE_PLATFORM_COMMIT: "true"
           RENOVATE_REPOSITORIES: ${{ github.repository }}
