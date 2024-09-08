@@ -120,7 +120,7 @@
     "@types/mime-types": "2.1.4",
     "@types/nodemailer": "6.4.15",
     "@vitest/coverage-istanbul": "2.0.5",
-    "eslint": "8.57.0",
+    "eslint": "9.9.1",
     "rimraf": "6.0.1",
     "vitest": "2.0.5"
   }
