@@ -226,6 +226,8 @@ future_incompatible = { level = "warn", priority = -1 }
 unsafe_code = "deny"
 unreachable_pub = "warn"
 
+[workspace.lints.cargo]
+
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
 nursery = { level = "warn", priority = -1 }
