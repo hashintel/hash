@@ -64,18 +64,18 @@ impl IntoIterator for SyntaxKindSet {
 }
 
 impl Display for SyntaxKindSet {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let count = self.len();
         if count == 0 {
-            return f.write_str("none");
+            return fmt.write_str("none");
         }
 
         for (index, kind) in self.into_iter().enumerate() {
             if index > 0 {
-                f.write_str(", ")?;
+                fmt.write_str(", ")?;
             }
 
-            Display::fmt(&kind, f)?;
+            Display::fmt(&kind, fmt)?;
         }
 
         Ok(())

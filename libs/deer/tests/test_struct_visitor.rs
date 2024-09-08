@@ -1,3 +1,5 @@
+#![expect(clippy::min_ident_chars, reason = "Simplifies test cases")]
+
 use deer::{
     error::{ArrayAccessError, DeserializeError, Variant, VisitorError},
     ArrayAccess, Deserialize, Deserializer, Document, FieldVisitor, ObjectAccess, Reflection,

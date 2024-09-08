@@ -27,14 +27,14 @@ impl BoxedError {
 }
 
 impl Debug for BoxedError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Debug::fmt(&self.0, f)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        Debug::fmt(&self.0, fmt)
     }
 }
 
 impl Display for BoxedError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.0, f)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, fmt)
     }
 }
 
@@ -224,8 +224,8 @@ pub(crate) mod test {
     }
 
     impl Display for GenericError {
-        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-            f.write_str("generic error")
+        fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+            fmt.write_str("generic error")
         }
     }
 

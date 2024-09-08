@@ -65,8 +65,8 @@ impl ToSql for Embedding<'_> {
         out.put_u16(dim.try_into()?);
         out.put_u16(0);
 
-        for v in self.0.as_ref() {
-            out.put_f32(*v);
+        for value in self.0.as_ref() {
+            out.put_f32(*value);
         }
 
         Ok(IsNull::No)
@@ -99,8 +99,8 @@ impl<'v> FromSql<'v> for Embedding<'_> {
 
         let mut vec = Vec::with_capacity(dim);
         for i in 0..dim {
-            let s = 4 + 4 * i;
-            vec.push(f32::from_be_bytes(raw[s..s + 4].try_into()?));
+            let size = 4 + 4 * i;
+            vec.push(f32::from_be_bytes(raw[size..size + 4].try_into()?));
         }
 
         Ok(Self(Cow::Owned(vec)))

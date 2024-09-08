@@ -154,7 +154,7 @@ impl DatabaseTestWrapper<NoAuthorization> {
             std::env::var("HASH_GRAPH_PG_PASSWORD").unwrap_or_else(|_| "graph".to_owned());
         let host = std::env::var("HASH_GRAPH_PG_HOST").unwrap_or_else(|_| "localhost".to_owned());
         let port = std::env::var("HASH_GRAPH_PG_PORT")
-            .map(|p| p.parse::<u16>().unwrap())
+            .map(|port| port.parse::<u16>().unwrap())
             .unwrap_or(5432);
         let database =
             std::env::var("HASH_GRAPH_PG_DATABASE").unwrap_or_else(|_| "graph".to_owned());

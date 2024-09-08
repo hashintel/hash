@@ -8,9 +8,9 @@ pub struct Version {
 }
 
 impl Display for Version {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         let Self { major, minor } = self;
 
-        write!(f, "v{major}.{minor}")
+        write!(fmt, "v{major}.{minor}")
     }
 }

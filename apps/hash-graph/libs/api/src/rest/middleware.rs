@@ -110,12 +110,12 @@ fn span_maker(request: &Request<Body>) -> tracing::Span {
     let user_agent = request
         .headers()
         .get(header::USER_AGENT)
-        .map_or("", |h| h.to_str().unwrap_or(""));
+        .map_or("", |header| header.to_str().unwrap_or(""));
 
     let host = request
         .headers()
         .get(header::HOST)
-        .map_or("", |h| h.to_str().unwrap_or(""));
+        .map_or("", |header| header.to_str().unwrap_or(""));
 
     let client_ip = parse_x_forwarded_for(request.headers())
         .or_else(|| {

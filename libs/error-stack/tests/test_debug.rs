@@ -298,8 +298,8 @@ mod full {
     struct ContextC;
 
     impl Display for ContextC {
-        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-            f.write_str("A multiline\ncontext that might have\na bit more info")
+        fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+            fmt.write_str("A multiline\ncontext that might have\na bit more info")
         }
     }
 
@@ -563,8 +563,8 @@ mod full {
 
     #[cfg(nightly)]
     impl Display for ContextD {
-        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-            f.write_str("context D")
+        fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+            fmt.write_str("context D")
         }
     }
 

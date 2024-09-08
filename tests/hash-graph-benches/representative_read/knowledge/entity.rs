@@ -25,13 +25,13 @@ use tokio::runtime::Runtime;
 use crate::util::Store;
 
 pub fn bench_get_entity_by_id<A: AuthorizationApi>(
-    b: &mut Bencher,
+    bencher: &mut Bencher,
     runtime: &Runtime,
     store: &Store<A>,
     actor_id: AccountId,
     entity_uuids: &[EntityUuid],
 ) {
-    b.to_async(runtime).iter_batched(
+    bencher.to_async(runtime).iter_batched(
         || {
             // Each iteration, *before timing*, pick a random entity from the sample to query
             *entity_uuids
@@ -72,13 +72,13 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
 }
 
 pub fn bench_get_entities_by_property<A: AuthorizationApi>(
-    b: &mut Bencher,
+    bencher: &mut Bencher,
     runtime: &Runtime,
     store: &Store<A>,
     actor_id: AccountId,
     graph_resolve_depths: GraphResolveDepths,
 ) {
-    b.to_async(runtime).iter(|| async move {
+    bencher.to_async(runtime).iter(|| async move {
         let mut filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::Properties(Some(
                 JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
@@ -121,13 +121,13 @@ pub fn bench_get_entities_by_property<A: AuthorizationApi>(
 }
 
 pub fn bench_get_link_by_target_by_property<A: AuthorizationApi>(
-    b: &mut Bencher,
+    bencher: &mut Bencher,
     runtime: &Runtime,
     store: &Store<A>,
     actor_id: AccountId,
     graph_resolve_depths: GraphResolveDepths,
 ) {
-    b.to_async(runtime).iter(|| async move {
+    bencher.to_async(runtime).iter(|| async move {
         let mut filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,

@@ -22,8 +22,8 @@ pub fn derive_query_builder(stream: TokenStream) -> TokenStream {
 mod tests {
     #[test]
     fn ui() {
-        let t = trybuild::TestCases::new();
-        t.compile_fail("tests/ui/fail/*rs");
-        t.pass("tests/ui/pass/*rs");
+        let test_cases = trybuild::TestCases::new();
+        test_cases.compile_fail("tests/ui/fail/*rs");
+        test_cases.pass("tests/ui/pass/*rs");
     }
 }

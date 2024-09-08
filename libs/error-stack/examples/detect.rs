@@ -20,8 +20,8 @@ type Config = String;
 struct ParseConfigError;
 
 impl Display for ParseConfigError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        f.write_str("unable to parse config")
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+        fmt.write_str("unable to parse config")
     }
 }
 

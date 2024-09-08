@@ -79,7 +79,7 @@ fn start_experiments(
 
             let experiments = experiments
                 .into_iter()
-                .map(|(a, b)| move || a * b)
+                .map(|(lhs, rhs)| move || lhs * rhs)
                 .collect::<Vec<_>>();
 
             Ok(experiments)

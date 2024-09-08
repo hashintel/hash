@@ -136,13 +136,13 @@ async fn seed_db<A: AuthorizationApi>(
 }
 
 pub fn bench_get_entity_by_id<A: AuthorizationApi>(
-    b: &mut Bencher,
+    bencher: &mut Bencher,
     runtime: &Runtime,
     store: &Store<A>,
     actor_id: AccountId,
     entity_metadata_list: &[Entity],
 ) {
-    b.to_async(runtime).iter_batched(
+    bencher.to_async(runtime).iter_batched(
         || {
             // Each iteration, *before timing*, pick a random entity from the sample to
             // query
@@ -182,9 +182,9 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
 }
 
 #[criterion]
-fn bench_scaling_read_entity(c: &mut Criterion) {
+fn bench_scaling_read_entity(crit: &mut Criterion) {
     let group_id = "scaling_read_entity_linkless";
-    let mut group = c.benchmark_group(group_id);
+    let mut group = crit.benchmark_group(group_id);
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
     let account_id = AccountId::new(
@@ -202,9 +202,9 @@ fn bench_scaling_read_entity(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new(function_id, &parameter),
             &(account_id, entity_uuids),
-            |b, (_account_id, entity_list)| {
+            |bencher, (_account_id, entity_list)| {
                 let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
-                bench_get_entity_by_id(b, &runtime, store, account_id, entity_list);
+                bench_get_entity_by_id(bencher, &runtime, store, account_id, entity_list);
             },
         );
     }

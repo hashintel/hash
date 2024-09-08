@@ -48,17 +48,17 @@ impl<'de> Tape<'de> {
 
     pub(crate) fn peek_n(&self, n: usize) -> Option<Token> {
         let mut offset = 0;
-        let mut m = 0;
+        let mut next = 0;
 
-        while m != n {
+        while next != n {
             if !self.is_trivia_n(offset)? {
-                m += 1;
+                next += 1;
             }
 
             offset += 1;
         }
 
-        self.peek_all_n(m)
+        self.peek_all_n(next)
     }
 
     pub(crate) fn peek(&self) -> Option<Token> {

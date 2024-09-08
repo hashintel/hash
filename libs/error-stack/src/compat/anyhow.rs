@@ -9,7 +9,7 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
     #[track_caller]
     fn into_report(self) -> Result<T, AnyhowError> {
         match self {
-            Ok(t) => Ok(t),
+            Ok(value) => Ok(value),
             Err(anyhow) => {
                 #[cfg(feature = "std")]
                 let sources = anyhow

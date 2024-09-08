@@ -46,8 +46,8 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn Error + Send + Sync>> {
     struct BenchFormatter<'b>(&'b [BenchmarkAnalysis], &'b str);
 
     impl Display for BenchFormatter<'_> {
-        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-            criterion::format_github_markdown(f, self.0, self.1)
+        fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+            criterion::format_github_markdown(fmt, self.0, self.1)
         }
     }
 

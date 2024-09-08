@@ -18,9 +18,9 @@ const NAMESPACE: Namespace = Namespace::new("deer-json");
 pub(crate) struct RecursionLimitError;
 
 impl Display for RecursionLimitError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
         // This message is vague by design to not encourage abuse from the consumers
-        f.write_str("Recursion limit has been exceeded")
+        fmt.write_str("Recursion limit has been exceeded")
     }
 }
 
@@ -43,8 +43,8 @@ impl Variant for RecursionLimitError {
 pub(crate) struct BytesUnsupportedError;
 
 impl Display for BytesUnsupportedError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        f.write_str("JSON does not support bytes")
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+        fmt.write_str("JSON does not support bytes")
     }
 }
 
@@ -169,28 +169,28 @@ pub(crate) enum SyntaxError {
 }
 
 impl Display for SyntaxError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::InvalidUtf8Sequence => f.write_str("invalid utf-8 sequence"),
-            Self::UnexpectedEof => f.write_str("unexpected end of file"),
-            Self::ExpectedColon => f.write_str("expected colon (`:`)"),
-            Self::ExpectedComma => f.write_str("expected comma (`,`)"),
-            Self::ExpectedExponent => f.write_str("expected exponent sign or digit"),
+            Self::InvalidUtf8Sequence => fmt.write_str("invalid utf-8 sequence"),
+            Self::UnexpectedEof => fmt.write_str("unexpected end of file"),
+            Self::ExpectedColon => fmt.write_str("expected colon (`:`)"),
+            Self::ExpectedComma => fmt.write_str("expected comma (`,`)"),
+            Self::ExpectedExponent => fmt.write_str("expected exponent sign or digit"),
             Self::ExpectedDigit | Self::ExpectedDecimalDigit => {
-                f.write_str("expected decimal digit")
+                fmt.write_str("expected decimal digit")
             }
             // TODO: do those even matter?
-            Self::ExpectedString => f.write_str("expected string"),
-            Self::ExpectedNumber => f.write_str("expected number"),
+            Self::ExpectedString => fmt.write_str("expected string"),
+            Self::ExpectedNumber => fmt.write_str("expected number"),
             Self::UnexpectedByte(character) => {
-                f.write_fmt(format_args!("unexpected byte (`{character}`)"))
+                fmt.write_fmt(format_args!("unexpected byte (`{character}`)"))
             }
-            Self::ObjectKeyMustBeString => f.write_str("object keys must be string"),
+            Self::ObjectKeyMustBeString => fmt.write_str("object keys must be string"),
             Self::InvalidHexadecimal => {
-                f.write_str("invalid hexadecimal in unicode escape sequence")
+                fmt.write_str("invalid hexadecimal in unicode escape sequence")
             }
-            Self::InvalidEscape => f.write_str("invalid escape character"),
-            Self::UnclosedString => f.write_str(r#"expected end of string (`"`)"#),
+            Self::InvalidEscape => fmt.write_str("invalid escape character"),
+            Self::UnclosedString => fmt.write_str(r#"expected end of string (`"`)"#),
         }
     }
 }
@@ -225,8 +225,8 @@ impl Variant for SyntaxError {
 pub(crate) struct NativeError(justjson::ErrorKind);
 
 impl Display for NativeError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        Display::fmt(&self.0, f)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+        Display::fmt(&self.0, fmt)
     }
 }
 
@@ -252,7 +252,7 @@ pub(crate) fn convert_tokenizer_error(error: &justjson::Error) -> Report<deer::e
         ErrorKind::Utf8 => SyntaxError::InvalidUtf8Sequence.into_error(),
         ErrorKind::UnexpectedEof => SyntaxError::UnexpectedEof.into_error(),
         ErrorKind::ExpectedColon => SyntaxError::ExpectedColon.into_error(),
-        ErrorKind::Unexpected(v) => SyntaxError::UnexpectedByte(*v).into_error(),
+        ErrorKind::Unexpected(bytes) => SyntaxError::UnexpectedByte(*bytes).into_error(),
         ErrorKind::ExpectedExponent => SyntaxError::ExpectedExponent.into_error(),
         ErrorKind::ExpectedDecimalDigit => SyntaxError::ExpectedDecimalDigit.into_error(),
         ErrorKind::ExpectedDigit => SyntaxError::ExpectedDigit.into_error(),

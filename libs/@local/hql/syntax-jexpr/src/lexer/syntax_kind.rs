@@ -54,19 +54,19 @@ impl From<&TokenKind<'_>> for SyntaxKind {
 }
 
 impl Display for SyntaxKind {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::String => f.write_str("string"),
-            Self::Number => f.write_str("number"),
-            Self::True => f.write_str("`true`"),
-            Self::False => f.write_str("`false`"),
-            Self::Null => f.write_str("`null`"),
-            Self::Comma => f.write_str("`,`"),
-            Self::Colon => f.write_str("`:`"),
-            Self::LBrace => f.write_str("`{`"),
-            Self::RBrace => f.write_str("`}`"),
-            Self::LBracket => f.write_str("`[`"),
-            Self::RBracket => f.write_str("`]`"),
+            Self::String => fmt.write_str("string"),
+            Self::Number => fmt.write_str("number"),
+            Self::True => fmt.write_str("`true`"),
+            Self::False => fmt.write_str("`false`"),
+            Self::Null => fmt.write_str("`null`"),
+            Self::Comma => fmt.write_str("`,`"),
+            Self::Colon => fmt.write_str("`:`"),
+            Self::LBrace => fmt.write_str("`{`"),
+            Self::RBrace => fmt.write_str("`}`"),
+            Self::LBracket => fmt.write_str("`[`"),
+            Self::RBracket => fmt.write_str("`]`"),
         }
     }
 }

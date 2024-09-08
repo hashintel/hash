@@ -1,3 +1,5 @@
+#![cfg_attr(test, expect(clippy::min_ident_chars, reason = "Generated code"))]
+
 use core::fmt::Display;
 
 use bytes::{Buf, BufMut};
@@ -28,10 +30,10 @@ impl ProtocolVersion {
 }
 
 impl Display for ProtocolVersion {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let Self(version) = self;
 
-        write!(f, "v{version}")
+        write!(fmt, "v{version}")
     }
 }
 

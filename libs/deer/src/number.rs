@@ -325,8 +325,8 @@ impl Display for Number {
     }
 
     #[cfg(feature = "arbitrary-precision")]
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        f.write_str(&self.0)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+        fmt.write_str(&self.0)
     }
 }
 
@@ -366,9 +366,9 @@ impl Serialize for Number {
     {
         use serde::ser::SerializeStruct;
 
-        let mut s = serializer.serialize_struct(TOKEN, 1)?;
-        s.serialize_field(TOKEN, &self.0)?;
-        s.end()
+        let mut ser = serializer.serialize_struct(TOKEN, 1)?;
+        ser.serialize_field(TOKEN, &self.0)?;
+        ser.end()
     }
 }
 

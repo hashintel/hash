@@ -193,14 +193,14 @@ async fn seed_db<A: AuthorizationApi>(
 }
 
 pub fn bench_get_entity_by_id<A: AuthorizationApi>(
-    b: &mut Bencher,
+    bencher: &mut Bencher,
     runtime: &Runtime,
     store: &Store<A>,
     actor_id: AccountId,
     entity_metadata_list: &[Entity],
     graph_resolve_depths: GraphResolveDepths,
 ) {
-    b.to_async(runtime).iter_batched(
+    bencher.to_async(runtime).iter_batched(
         || {
             // Each iteration, *before timing*, pick a random entity from the sample to
             // query
@@ -241,9 +241,9 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
 }
 
 #[criterion]
-fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
+fn bench_scaling_read_entity_zero_depths(crit: &mut Criterion) {
     let group_id = "scaling_read_entity_complete_zero_depth";
-    let mut group = c.benchmark_group(group_id);
+    let mut group = crit.benchmark_group(group_id);
 
     group.sample_size(10);
     group.sampling_mode(SamplingMode::Flat);
@@ -269,10 +269,10 @@ fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new(function_id, &parameter),
             &(account_id, entity_metadata_list),
-            |b, (_account_id, entity_list)| {
+            |bencher, (_account_id, entity_list)| {
                 let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
                 bench_get_entity_by_id(
-                    b,
+                    bencher,
                     &runtime,
                     store,
                     account_id,
@@ -294,9 +294,9 @@ fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
 }
 
 #[criterion]
-fn bench_scaling_read_entity_one_depth(c: &mut Criterion) {
+fn bench_scaling_read_entity_one_depth(crit: &mut Criterion) {
     let group_id = "scaling_read_entity_complete_one_depth";
-    let mut group = c.benchmark_group(group_id);
+    let mut group = crit.benchmark_group(group_id);
 
     group.sample_size(10);
     group.sampling_mode(SamplingMode::Flat);
@@ -322,10 +322,10 @@ fn bench_scaling_read_entity_one_depth(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new(function_id, &parameter),
             &(account_id, entity_metadata_list),
-            |b, (_account_id, entity_metadata_list)| {
+            |bencher, (_account_id, entity_metadata_list)| {
                 let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
                 bench_get_entity_by_id(
-                    b,
+                    bencher,
                     &runtime,
                     store,
                     account_id,

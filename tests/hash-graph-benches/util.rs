@@ -96,9 +96,9 @@ where
             std::env::var("HASH_GRAPH_PG_PASSWORD").unwrap_or_else(|_| "graph".to_owned());
         let host = std::env::var("HASH_GRAPH_PG_HOST").unwrap_or_else(|_| "localhost".to_owned());
         let port = std::env::var("HASH_GRAPH_PG_PORT")
-            .map(|p| {
-                p.parse::<u16>()
-                    .unwrap_or_else(|_| panic!("{p} is not a valid port"))
+            .map(|port| {
+                port.parse::<u16>()
+                    .unwrap_or_else(|_| panic!("{port} is not a valid port"))
             })
             .unwrap_or(5432);
         let database =

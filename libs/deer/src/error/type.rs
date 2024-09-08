@@ -96,8 +96,8 @@ impl Variant for TypeError {
 }
 
 impl Display for TypeError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        f.write_str("received value of unexpected type")
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+        fmt.write_str("received value of unexpected type")
     }
 }
 

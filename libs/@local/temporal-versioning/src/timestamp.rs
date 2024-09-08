@@ -96,10 +96,10 @@ impl<A> Timestamp<A> {
 impl<A> FromStr for Timestamp<A> {
     type Err = time::error::Parse;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(timestamp: &str) -> Result<Self, Self::Err> {
         Ok(Self {
             axis: PhantomData,
-            time: OffsetDateTime::parse(s, &Iso8601::PARSING)?,
+            time: OffsetDateTime::parse(timestamp, &Iso8601::PARSING)?,
         })
     }
 }

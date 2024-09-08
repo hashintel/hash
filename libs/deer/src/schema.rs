@@ -444,6 +444,7 @@ mod tests {
 
     // types are only here for illustration
     #[expect(unused)]
+    #[expect(clippy::min_ident_chars, reason = "Simplifies test cases")]
     struct Vertex {
         a: u8,
         b: u16,
