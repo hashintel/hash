@@ -447,21 +447,46 @@ fn generate_sorting_paths(
                 }
             },
             |mut paths| {
-                paths.push(EntityQuerySortingRecord {
-                    path: temporal_axes_sorting_path.clone(),
-                    ordering: Ordering::Descending,
-                    nulls: None,
-                });
-                paths.push(EntityQuerySortingRecord {
-                    path: EntityQueryPath::Uuid,
-                    ordering: Ordering::Ascending,
-                    nulls: None,
-                });
-                paths.push(EntityQuerySortingRecord {
-                    path: EntityQueryPath::OwnedById,
-                    ordering: Ordering::Ascending,
-                    nulls: None,
-                });
+                let mut has_temporal_axis = false;
+                let mut has_uuid = false;
+                let mut has_owned_by_id = false;
+
+                for path in &paths {
+                    if path.path == EntityQueryPath::TransactionTime
+                        || path.path == EntityQueryPath::DecisionTime
+                    {
+                        has_temporal_axis = true;
+                    }
+                    if path.path == EntityQueryPath::Uuid {
+                        has_uuid = true;
+                    }
+                    if path.path == EntityQueryPath::OwnedById {
+                        has_owned_by_id = true;
+                    }
+                }
+
+                if !has_temporal_axis {
+                    paths.push(EntityQuerySortingRecord {
+                        path: temporal_axes_sorting_path.clone(),
+                        ordering: Ordering::Descending,
+                        nulls: None,
+                    });
+                }
+                if !has_uuid {
+                    paths.push(EntityQuerySortingRecord {
+                        path: EntityQueryPath::Uuid,
+                        ordering: Ordering::Ascending,
+                        nulls: None,
+                    });
+                }
+                if !has_owned_by_id {
+                    paths.push(EntityQuerySortingRecord {
+                        path: EntityQueryPath::OwnedById,
+                        ordering: Ordering::Ascending,
+                        nulls: None,
+                    });
+                }
+
                 paths
             },
         )

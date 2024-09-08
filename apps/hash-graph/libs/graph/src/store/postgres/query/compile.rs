@@ -13,8 +13,8 @@ use crate::{
             statement::FromItem,
             table::{
                 DataTypeEmbeddings, DatabaseColumn, EntityEmbeddings, EntityTemporalMetadata,
-                EntityTypeEmbeddings, JsonField, OntologyIds, OntologyTemporalMetadata,
-                PropertyTypeEmbeddings,
+                EntityTypeEmbeddings, EntityTypes, JsonField, OntologyIds,
+                OntologyTemporalMetadata, PropertyTypeEmbeddings,
             },
             Alias, AliasedTable, Column, Condition, Distinctness, EqualityOperator, Expression,
             Function, JoinExpression, OrderByExpression, PostgresQueryPath, PostgresRecord,
@@ -802,6 +802,21 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     Box::new(column_expression),
                     PathToken::Field(Cow::Borrowed(field)),
                 ))
+            }
+            Some(JsonField::Label { inheritance_depth }) => {
+                if let Some(label_path) =
+                    <R as QueryRecord>::QueryPath::label_property_path(inheritance_depth)
+                {
+                    Expression::Function(Function::JsonExtractPath(vec![
+                        column_expression,
+                        Expression::ColumnReference {
+                            column: Column::EntityTypes(EntityTypes::LabelProperty),
+                            table_alias: Some(self.add_join_statements(&label_path)),
+                        },
+                    ]))
+                } else {
+                    column_expression
+                }
             }
         }
     }
