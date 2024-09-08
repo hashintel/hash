@@ -1,3 +1,4 @@
+#![feature(assert_matches)]
 #![expect(
     clippy::missing_panics_doc,
     clippy::missing_errors_doc,
@@ -132,7 +133,9 @@ const fn entity_type_relationships() -> [EntityTypeRelationAndSubject; 3] {
 }
 
 pub fn init_logging() {
-    let _ = tracing_subscriber::fmt()
+    // It's likely that the initialization failed due to a previous initialization attempt. In this
+    // case, we can ignore the error.
+    let _: core::result::Result<_, _> = tracing_subscriber::fmt()
         .with_ansi(true)
         .with_env_filter(env_filter(None))
         .with_file(true)

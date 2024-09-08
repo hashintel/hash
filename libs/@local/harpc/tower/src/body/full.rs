@@ -96,10 +96,13 @@ mod test {
     fn is_complete() {
         let bytes = Bytes::from("hello");
 
-        let mut body = Full::new(bytes);
+        let mut body = Full::new(bytes.clone());
         assert_eq!(body.state(), None);
 
-        let _ = poll_frame_unpin(&mut body);
+        assert_eq!(
+            poll_frame_unpin(&mut body),
+            Poll::Ready(Some(Ok(Frame::Data(bytes))))
+        );
         assert_eq!(body.state(), Some(BodyState::Complete));
     }
 
@@ -107,10 +110,13 @@ mod test {
     fn size_hint() {
         let bytes = Bytes::from("hello");
 
-        let mut body = Full::new(bytes);
+        let mut body = Full::new(bytes.clone());
         assert_eq!(body.size_hint(), SizeHint::with_exact(5));
 
-        let _ = poll_frame_unpin(&mut body);
+        assert_eq!(
+            poll_frame_unpin(&mut body),
+            Poll::Ready(Some(Ok(Frame::Data(bytes))))
+        );
         assert_eq!(body.size_hint(), SizeHint::with_exact(0));
     }
 }

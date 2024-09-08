@@ -53,6 +53,7 @@ use crate::{
             transaction::{stream::StreamState, ClientTransactionPermit},
             TransactionStream, ValueStream,
         },
+        error::ConnectionPartiallyClosedError,
         gc::ConnectionGarbageCollectorTask,
         test::Descriptor,
     },
@@ -716,14 +717,21 @@ async fn call_do_not_admit_if_partially_closed_read() {
     tokio::task::yield_now().await;
 
     let descriptor = Descriptor::default();
-    let _ = connection
-        .call(
-            descriptor.service,
-            descriptor.procedure,
-            stream::iter([Bytes::from_static(b"hello")]),
-        )
-        .await
-        .expect_err("should be closed");
+    assert_eq!(
+        *connection
+            .call(
+                descriptor.service,
+                descriptor.procedure,
+                stream::iter([Bytes::from_static(b"hello")]),
+            )
+            .await
+            .expect_err("should be closed")
+            .current_context(),
+        ConnectionPartiallyClosedError {
+            read: true,
+            write: false
+        }
+    );
 }
 
 #[tokio::test]
@@ -746,10 +754,17 @@ async fn call_do_not_admit_if_partially_closed_write() {
     tokio::task::yield_now().await;
 
     // now we have sent a packet, so the connection should be registered as closed
-    let _ = connection
-        .call(descriptor.service, descriptor.procedure, stream::empty())
-        .await
-        .expect_err("should be closed");
+    assert_eq!(
+        *connection
+            .call(descriptor.service, descriptor.procedure, stream::empty())
+            .await
+            .expect_err("should be closed")
+            .current_context(),
+        ConnectionPartiallyClosedError {
+            read: false,
+            write: true
+        }
+    );
 }
 
 #[tokio::test]

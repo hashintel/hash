@@ -244,7 +244,6 @@ enum_variant_names = "allow"
 expect_used = "allow"
 indexing_slicing = "allow"
 let_underscore_must_use = "allow"
-let_underscore_untyped = "allow" # Conflicts with `clippy::no_effect_underscore_binding` in function bindings
 min_ident_chars = "allow"
 missing_assert_message = "allow"
 multiple_inherent_impl = "allow"
