@@ -1,5 +1,5 @@
 # General
-edition = "2021" # Default: "2015"
+edition = "2024" # Default: "2015"
 unstable_features = true # Default: false
 version = "Two" # Default: "One"
 

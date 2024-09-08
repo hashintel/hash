@@ -1,5 +1,4 @@
 use core::{
-    future::Future,
     pin::Pin,
     task::{Context, Poll},
     time::Duration,

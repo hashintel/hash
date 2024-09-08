@@ -10,7 +10,6 @@ pub mod stream;
 pub mod timeout;
 
 use core::{
-    future::Future,
     ops::DerefMut,
     pin::Pin,
     task::{Context, Poll},
