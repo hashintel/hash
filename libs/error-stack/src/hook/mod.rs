@@ -83,7 +83,7 @@ impl Report<()> {
     /// # #[cfg(nightly)]
     /// # mod nightly {
     /// use core::error::{Request, Error};
-    /// use core::fmt::{Display, Formatter};
+    /// use core::fmt;
     /// use error_stack::{Report, report};
     ///
     /// struct Suggestion(&'static str);
@@ -97,9 +97,9 @@ impl Report<()> {
     ///     code: ErrorCode
     /// }
     ///
-    /// impl Display for UserError {
-    ///     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-    ///         f.write_str("invalid user input")
+    /// impl fmt::Display for UserError {
+    ///     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+    ///         fmt.write_str("invalid user input")
     ///     }
     /// }
     ///

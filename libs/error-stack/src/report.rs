@@ -356,22 +356,19 @@ impl<C> Report<C> {
     /// [`current_frames()`]: Self::current_frames
     ///
     /// ```rust
-    /// use std::{
-    ///     fmt::{Display, Formatter},
-    ///     path::Path,
-    /// };
+    /// use std::{fmt, path::Path};
     ///
     /// use error_stack::{Context, Report, ResultExt};
     ///
     /// #[derive(Debug)]
     /// struct IoError;
     ///
-    /// impl Display for IoError {
-    ///     # fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    /// impl fmt::Display for IoError {
+    ///     # fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
     ///     #     const _: &str = stringify!(
     ///             ...
     ///     #     );
-    ///     #     f.write_str("Io Error")
+    ///     #     fmt.write_str("Io Error")
     ///     # }
     /// }
     ///

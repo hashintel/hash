@@ -312,15 +312,15 @@ impl_from! {
 
 impl Display for Number {
     #[cfg(not(feature = "arbitrary-precision"))]
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
         match &self.0 {
-            OpaqueNumber::PosInt(pos) => Display::fmt(pos, f),
+            OpaqueNumber::PosInt(pos) => Display::fmt(pos, fmt),
             OpaqueNumber::NegInt(neg) => {
                 // emulate negative number
-                core::fmt::Write::write_char(f, '-')?;
-                Display::fmt(neg, f)
+                core::fmt::Write::write_char(fmt, '-')?;
+                Display::fmt(neg, fmt)
             }
-            OpaqueNumber::Float(float) => Display::fmt(float, f),
+            OpaqueNumber::Float(float) => Display::fmt(float, fmt),
         }
     }
 

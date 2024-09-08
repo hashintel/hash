@@ -73,11 +73,11 @@ pub(crate) enum NumberError {
 
 #[cfg(not(feature = "arbitrary-precision"))]
 impl Display for NumberError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::Overflow => f.write_str("number too large"),
-            Self::Underflow => f.write_str("number too small"),
-            Self::Unknown => f.write_str("unable to parse number"),
+            Self::Overflow => fmt.write_str("number too large"),
+            Self::Underflow => fmt.write_str("number too small"),
+            Self::Unknown => fmt.write_str("unable to parse number"),
         }
     }
 }
