@@ -1,5 +1,3 @@
-use core::future::Future;
-
 use thiserror::Error;
 
 use crate::{

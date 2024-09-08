@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::{future::Future, iter};
+use core::iter;
 use std::collections::HashMap;
 
 use authorization::schema::{

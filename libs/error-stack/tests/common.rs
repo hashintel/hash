@@ -14,9 +14,7 @@ extern crate alloc;
 use core::{any::TypeId, panic::Location};
 #[allow(unused_imports)]
 use core::{
-    fmt,
-    future::Future,
-    iter,
+    fmt, iter,
     sync::atomic::{AtomicI8, Ordering},
 };
 #[cfg(feature = "backtrace")]

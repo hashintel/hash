@@ -16,7 +16,7 @@ mod utils;
 use alloc::sync::Arc;
 #[cfg(feature = "postgres")]
 use core::error::Error;
-use core::{borrow::Borrow, fmt::Debug, future::Future, ops::Deref, ptr};
+use core::{borrow::Borrow, fmt::Debug, ops::Deref, ptr};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
