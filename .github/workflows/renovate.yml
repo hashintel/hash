@@ -35,34 +35,45 @@ on:
   schedule:
     # Run every 30 minutes
     - cron: "0/30 * * * *"
-  pull_request:
 
 env:
   cache_archive: renovate_cache.tar.gz
   cache_dir: /tmp/renovate/cache/renovate/repository
   cache_key: renovate-cache
+  dry_run: ${{ github.event.inputs.dryRun || 'disabled' }}
 
 concurrency:
-  cancel-in-progress: true
+  cancel-in-progress: false
   group: renovate
+
+permissions:
+  contents: write
 
 jobs:
   renovate:
     runs-on: ubuntu-latest
     steps:
-      #      - name: Get token
-      #        id: app-token
-      #        uses: actions/create-github-app-token@v1
-      #        with:
-      #          app-id: ${{ secrets.APP_ID }}
-      #          private-key: ${{ secrets.PRIVATE_KEY }}
+      - name: Get token
+        id: app-token
+        uses: actions/create-github-app-token@3378cda945da322a8db4b193e19d46352ebe2de5 # v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.PRIVATE_KEY }}
 
       - name: Checkout
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
-          token: ${{ secrets.MACHINE_USER_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
 
-      - uses: dawidd6/action-download-artifact@v2
+      - name: Install Rust toolchain
+        uses: ./.github/actions/install-rust-toolchain
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: dawidd6/action-download-artifact@268677152d06ba59fcec7a7f0b5d961b6ccd7e1e # v2
         if: github.event.inputs.repoCache != 'disabled'
         continue-on-error: true
         with:
@@ -70,6 +81,7 @@ jobs:
           path: cache-download
 
       - name: Extract renovate cache
+        if: github.event.inputs.repoCache != 'disabled'
         run: |
           if [ ! -d cache-download ] ; then
             echo "No cache found."
@@ -79,29 +91,25 @@ jobs:
           mkdir -p $cache_dir
           tar -xzf cache-download/$cache_archive -C $cache_dir
 
-          sudo chown -R runneradmin:root /tmp/renovate/
-          ls -R $cache_dir
+      - name: Install renovate
+        run: npm install -g renovate
 
       - name: Run renovate
-        uses: renovatebot/github-action@v40.2.7
-        with:
-          token: ${{ secrets.MACHINE_USER_TOKEN }}
-          configurationFile: .github/renovate.json
         env:
           LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
           RENOVATE_FORCE: ${{ github.event.inputs.overrideSchedule == 'true' && '{"schedule":null}' || '' }}
-          #          RENOVATE_DRY_RUN: ${{ inputs.dryRun == 'disabled' && 'null' || inputs.dryRun }}
-          RENOVATE_DRY_RUN: full
+          RENOVATE_DRY_RUN: ${{ env.dry_run == 'disabled' && 'null' || inputs.dryRun }}
           RENOVATE_PLATFORM_COMMIT: enabled
           RENOVATE_REPOSITORIES: ${{ github.repository }}
           # TODO: Consider using S3 by setting `RENOVATE_REPOSITORY_CACHE_TYPE`
           RENOVATE_REPOSITORY_CACHE: ${{ github.event.inputs.repoCache || 'enabled' }}
+        run: renovate --token ${{ steps.app-token.outputs.token }}
 
       - name: Compress renovate cache
         run: tar -czvf $cache_archive -C $cache_dir .
 
-      - uses: actions/upload-artifact@v3
-        if: github.event.inputs.repoCache != 'disabled'
+      - uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3
+        if: env.dry_run == 'disabled' && github.event.inputs.repoCache != 'disabled'
         with:
           name: ${{ env.cache_key }}
           path: ${{ env.cache_archive }}

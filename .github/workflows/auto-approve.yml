@@ -1,0 +1,19 @@
+name: Auto-approve
+
+on:
+  pull_request_target:
+    branches:
+      - main
+
+jobs:
+  auto-approve:
+    name: Dependency bump
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    if: github.actor == 'Renovate[bot]' && startsWith(github.head_ref, 'deps/')
+    steps:
+      - name: Renovate
+        uses: hmarr/auto-approve-action@v4
+        with:
+          github-token: ${{ secrets.MACHINE_USER_TOKEN }}

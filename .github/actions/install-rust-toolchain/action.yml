@@ -3,7 +3,7 @@ description: "Install Rust toolchain"
 
 inputs:
   toolchain:
-    required: true
+    required: false
     description: "Rust toolchain, e.g. 'stable' or 'nightly'"
   working-directory:
     description: "Working directory to run the action in"
@@ -26,21 +26,26 @@ runs:
         else
           RUST_TOOLCHAIN_FILE="rust-toolchain.toml"
         fi
-        # extract components from the rust-toolchain.toml 
+        # extract components from the rust-toolchain.toml
         COMPONENTS="$(cat $RUST_TOOLCHAIN_FILE | yq -p toml '.toolchain.components[]')"
 
-        rustup toolchain install "${{ inputs.toolchain }}"
+        if [[ "${{ inputs.toolchain }}" != "" ]]; then
+          TOOLCHAIN_CHANNEL="${{ inputs.toolchain }}"
+        else
+          TOOLCHAIN_CHANNEL="$(cat $RUST_TOOLCHAIN_FILE | yq -p toml '.toolchain.channel')"
+        fi
+        rustup toolchain install "$TOOLCHAIN_CHANNEL"
 
         for component in $COMPONENTS; do
           # depending on the toolchain we need to conditionally skip specific components
-          if [[ ! "${{ inputs.toolchain }}" =~ $NIGHTLY_TOOLCHAIN ]]; then
+          if [[ ! "$$TOOLCHAIN_CHANNEL" =~ $NIGHTLY_TOOLCHAIN ]]; then
             # ensure that we only install components that are meant for stable
             if [[ ! $component =~ $NIGHTLY_ONLY ]]; then
-              rustup component add --toolchain "${{ inputs.toolchain }}" "$component"
+              rustup component add --toolchain "$TOOLCHAIN_CHANNEL" "$component"
             fi
           else
-            rustup component add --toolchain "${{ inputs.toolchain }}" "$component"  
+            rustup component add --toolchain "$TOOLCHAIN_CHANNEL" "$component"
           fi
         done
 
-        echo "RUSTUP_TOOLCHAIN=${{ inputs.toolchain }}" >> $GITHUB_ENV
+        echo "RUSTUP_TOOLCHAIN=$TOOLCHAIN_CHANNEL" >> $GITHUB_ENV
