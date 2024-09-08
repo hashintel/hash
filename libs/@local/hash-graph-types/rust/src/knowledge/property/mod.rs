@@ -383,14 +383,17 @@ impl PropertyWithMetadata {
 }
 
 impl Property {
-    pub gen fn properties(&self) -> (PropertyPath<'_>, &JsonValue) {
+    // TODO: Replace with `gen fn`
+    pub fn properties(&self) -> impl Iterator<Item = (PropertyPath<'_>, &JsonValue)> {
+        let mut vec = Vec::new();
         let mut elements = PropertyPath::default();
         match self {
             Self::Array(array) => {
                 for (index, property) in array.iter().enumerate() {
                     elements.push(index);
-                    for yielded in Box::new(property.properties()) {
-                        yield yielded;
+                    for yielded in property.properties() {
+                        // yield yielded;
+                        vec.push(yielded);
                     }
                     elements.pop();
                 }
@@ -398,14 +401,19 @@ impl Property {
             Self::Object(object) => {
                 for (key, property) in object.properties() {
                     elements.push(key);
-                    for yielded in Box::new(property.properties()) {
-                        yield yielded;
+                    for yielded in property.properties() {
+                        // yield yielded;
+                        vec.push(yielded);
                     }
                     elements.pop();
                 }
             }
-            Self::Value(property) => yield (elements.clone(), property),
+            Self::Value(property) => {
+                // yield (elements.clone(), property)
+                vec.push((elements.clone(), property));
+            }
         }
+        vec.into_iter()
     }
 
     #[must_use]
@@ -433,15 +441,18 @@ impl Property {
         Some(value)
     }
 
-    gen fn diff_array<'a>(
+    // TODO: Replace with `gen fn`
+    fn diff_array<'a>(
         lhs: &'a [Self],
         rhs: &'a [Self],
         path: &mut PropertyPath<'a>,
-    ) -> PropertyDiff<'a> {
+    ) -> impl Iterator<Item = PropertyDiff<'a>> {
+        let mut vec = Vec::new();
         for (index, (lhs, rhs)) in lhs.iter().zip(rhs).enumerate() {
             path.push(index);
-            for yielded in Box::new(lhs.diff(rhs, path)) {
-                yield yielded;
+            for yielded in lhs.diff(rhs, path) {
+                // yield yielded;
+                vec.push(yielded);
             }
             path.pop();
         }
@@ -450,10 +461,14 @@ impl Property {
             Ordering::Less => {
                 for (index, property) in rhs.iter().enumerate().skip(lhs.len()) {
                     path.push(index);
-                    yield PropertyDiff::Added {
+                    // yield PropertyDiff::Added {
+                    //     path: path.clone(),
+                    //     added: Cow::Borrowed(property),
+                    // };
+                    vec.push(PropertyDiff::Added {
                         path: path.clone(),
                         added: Cow::Borrowed(property),
-                    };
+                    });
                     path.pop();
                 }
             }
@@ -461,65 +476,87 @@ impl Property {
             Ordering::Greater => {
                 for (index, property) in lhs.iter().enumerate().skip(rhs.len()) {
                     path.push(index);
-                    yield PropertyDiff::Removed {
+                    // yield PropertyDiff::Removed {
+                    //     path: path.clone(),
+                    //     removed: Cow::Borrowed(property),
+                    // };
+                    vec.push(PropertyDiff::Removed {
                         path: path.clone(),
                         removed: Cow::Borrowed(property),
-                    };
+                    });
                     path.pop();
                 }
             }
         }
+        vec.into_iter()
     }
 
-    gen fn diff_object<'a>(
+    // TODO: Replace with `gen fn`
+    fn diff_object<'a>(
         lhs: &'a HashMap<BaseUrl, Self>,
         rhs: &'a HashMap<BaseUrl, Self>,
         path: &mut PropertyPath<'a>,
-    ) -> PropertyDiff<'a> {
+    ) -> impl Iterator<Item = PropertyDiff<'a>> {
+        let mut vec = Vec::new();
         for (key, property) in lhs {
             path.push(key);
             let other_property = rhs.get(key);
             if let Some(other_property) = other_property {
-                for yielded in Box::new(property.diff(other_property, path)) {
-                    yield yielded;
+                for yielded in property.diff(other_property, path) {
+                    // yield yielded;
+                    vec.push(yielded);
                 }
             } else {
-                yield PropertyDiff::Removed {
+                // yield PropertyDiff::Removed {
+                //     path: path.clone(),
+                //     removed: Cow::Borrowed(property),
+                // };
+                vec.push(PropertyDiff::Removed {
                     path: path.clone(),
                     removed: Cow::Borrowed(property),
-                };
+                });
             }
             path.pop();
         }
         for (key, property) in rhs {
             if !lhs.contains_key(key) {
                 path.push(key);
-                yield PropertyDiff::Added {
+                // yield PropertyDiff::Added {
+                //     path: path.clone(),
+                //     added: Cow::Borrowed(property),
+                // };
+                vec.push(PropertyDiff::Added {
                     path: path.clone(),
                     added: Cow::Borrowed(property),
-                };
+                });
+
                 path.pop();
             }
         }
+        vec.into_iter()
     }
 
-    pub gen fn diff<'a>(
+    // TODO: Replace with `gen fn`
+    pub fn diff<'a>(
         &'a self,
         other: &'a Self,
         path: &mut PropertyPath<'a>,
-    ) -> PropertyDiff<'a> {
+    ) -> impl Iterator<Item = PropertyDiff<'a>> {
+        let mut vec = Vec::new();
         let mut changed = false;
         match (self, other) {
             (Self::Array(lhs), Self::Array(rhs)) => {
                 for yielded in Self::diff_array(lhs, rhs, path) {
                     changed = true;
-                    yield yielded;
+                    // yield yielded;
+                    vec.push(yielded);
                 }
             }
             (Self::Object(lhs), Self::Object(rhs)) => {
                 for yielded in Self::diff_object(lhs.properties(), rhs.properties(), path) {
                     changed = true;
-                    yield yielded;
+                    // yield yielded;
+                    vec.push(yielded);
                 }
             }
             (lhs, rhs) => {
@@ -528,12 +565,18 @@ impl Property {
         }
 
         if changed {
-            yield PropertyDiff::Changed {
+            // yield PropertyDiff::Changed {
+            //     path: path.clone(),
+            //     old: Cow::Borrowed(self),
+            //     new: Cow::Borrowed(other),
+            // };
+            vec.push(PropertyDiff::Changed {
                 path: path.clone(),
                 old: Cow::Borrowed(self),
                 new: Cow::Borrowed(other),
-            };
+            });
         }
+        vec.into_iter()
     }
 }
 

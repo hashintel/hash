@@ -438,6 +438,8 @@
 //! In addition to [`ResultExt`], this crate also comes with [`FutureExt`], which provides the same
 //! functionality for [`Future`]s.
 //!
+//! [`Future`]: core::future::Future
+//!
 //! ### Colored output and charset selection
 //!
 //! You can override the color support by using the [`Report::set_color_mode`]. To override the
