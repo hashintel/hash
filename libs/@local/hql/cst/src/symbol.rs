@@ -19,7 +19,7 @@ impl Spanned for Symbol {
 }
 
 impl Display for Symbol {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.value, f)
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.value, fmt)
     }
 }

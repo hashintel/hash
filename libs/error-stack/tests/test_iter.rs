@@ -11,8 +11,8 @@ use error_stack::{report, Context, Report};
 struct Char(char);
 
 impl Display for Char {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        f.write_char(self.0)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+        fmt.write_char(self.0)
     }
 }
 
@@ -42,24 +42,24 @@ impl Context for Char {}
 /// ```
 #[allow(clippy::many_single_char_names)]
 fn build() -> Report<Char> {
-    let mut c = report!(Char('C'));
-    let d = report!(Char('D'));
+    let mut report_c = report!(Char('C'));
+    let report_d = report!(Char('D'));
 
-    c.extend_one(d);
-    let mut b = c.change_context(Char('B'));
+    report_c.extend_one(report_d);
+    let mut report_b = report_c.change_context(Char('B'));
 
-    let f = report!(Char('F'));
-    let e = f.change_context(Char('E'));
+    let report_f = report!(Char('F'));
+    let report_e = report_f.change_context(Char('E'));
 
-    b.extend_one(e);
+    report_b.extend_one(report_e);
 
-    let mut a = b.change_context(Char('A'));
+    let mut report_a = report_b.change_context(Char('A'));
 
-    let h = report!(Char('H'));
-    let g = h.change_context(Char('G'));
+    let report_h = report!(Char('H'));
+    let report_g = report_h.change_context(Char('G'));
 
-    a.extend_one(g);
-    a
+    report_a.extend_one(report_g);
+    report_a
 }
 
 /// Try to verify if the topological sorting is working, by trying to verify that
@@ -79,7 +79,7 @@ fn iter() {
     assert_eq!(
         report
             .frames()
-            .filter_map(|frame| frame.downcast_ref::<Char>().map(|c| c.0))
+            .filter_map(|frame| frame.downcast_ref::<Char>().map(|ch| ch.0))
             .collect::<Vec<_>>(),
         ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
     );
@@ -92,7 +92,7 @@ fn iter_mut() {
     assert_eq!(
         report
             .frames_mut()
-            .filter_map(|frame| frame.downcast_ref::<Char>().map(|c| c.0))
+            .filter_map(|frame| frame.downcast_ref::<Char>().map(|ch| ch.0))
             .collect::<Vec<_>>(),
         ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']
     );

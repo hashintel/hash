@@ -11,8 +11,8 @@ use error_stack::{report, Context, Report};
 struct Error;
 
 impl Display for Error {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        f.write_str("Error")
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+        fmt.write_str("Error")
     }
 }
 

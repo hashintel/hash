@@ -111,11 +111,11 @@ where
     Error: ParserError<Input>,
 {
     (
-        one_of(|c: Input::Token| {
-            let c = c.as_char();
-            is_xid_start(c) || c == '_'
+        one_of(|token: Input::Token| {
+            let ch = token.as_char();
+            is_xid_start(ch) || ch == '_'
         }),
-        take_while(0.., |c: Input::Token| is_xid_continue(c.as_char())),
+        take_while(0.., |ch: Input::Token| is_xid_continue(ch.as_char())),
     )
         .take()
         .parse_next(input)

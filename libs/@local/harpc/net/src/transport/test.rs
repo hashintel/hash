@@ -175,7 +175,7 @@ async fn establish_connection() {
             // we just check if we establish connection, so we don't need to do anything
             // with the connection
             drop(sink);
-            let _ = stream.map(Ok).forward(sink::drain()).await;
+            let Ok(()) = stream.map(Ok).forward(sink::drain()).await;
         }
     });
 

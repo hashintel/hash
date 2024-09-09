@@ -36,8 +36,8 @@ impl<D, C, E> BoxBody<D, C, E> {
 }
 
 impl<D, C, E> Debug for BoxBody<D, C, E> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("BoxBody").finish_non_exhaustive()
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("BoxBody").finish_non_exhaustive()
     }
 }
 
@@ -104,8 +104,8 @@ impl<D, C, E> UnsyncBoxBody<D, C, E> {
 }
 
 impl<D, C, E> Debug for UnsyncBoxBody<D, C, E> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.debug_struct("UnsyncBoxBody").finish_non_exhaustive()
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("UnsyncBoxBody").finish_non_exhaustive()
     }
 }
 

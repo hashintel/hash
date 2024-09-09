@@ -63,8 +63,8 @@ impl Variant for ValueError {
 }
 
 impl Display for ValueError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("received value is of correct type, but does not fit constraints")
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        fmt.write_str("received value is of correct type, but does not fit constraints")
     }
 }
 
@@ -98,8 +98,8 @@ impl Variant for MissingError {
 }
 
 impl Display for MissingError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("unexpected missing value")
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        fmt.write_str("unexpected missing value")
     }
 }
 

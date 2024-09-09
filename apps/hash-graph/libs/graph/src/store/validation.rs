@@ -41,9 +41,9 @@ enum Access<T> {
 }
 
 impl<T> Access<T> {
-    fn map<U>(self, f: impl FnOnce(T) -> U) -> Access<U> {
+    fn map<U>(self, func: impl FnOnce(T) -> U) -> Access<U> {
         match self {
-            Self::Granted(value) => Access::Granted(f(value)),
+            Self::Granted(value) => Access::Granted(func(value)),
             Self::Denied => Access::Denied,
             Self::Malformed => Access::Malformed,
         }

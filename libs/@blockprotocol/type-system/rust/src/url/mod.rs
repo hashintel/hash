@@ -222,7 +222,7 @@ impl FromStr for VersionedUrl {
                             IntErrorKind::Empty => ParseVersionedUrlError::MissingVersion,
                             IntErrorKind::InvalidDigit => {
                                 let invalid_digit_index =
-                                    version.find(|c: char| !c.is_numeric()).unwrap_or(0);
+                                    version.find(|ch: char| !ch.is_numeric()).unwrap_or(0);
 
                                 if invalid_digit_index == 0 {
                                     ParseVersionedUrlError::InvalidVersion(

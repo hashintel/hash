@@ -81,7 +81,7 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), GraphError> {
     // The pipeline must be invoked, we do this with `for_each` because it doesn't contain any
     // useful information we would like to store or report on.
     listener
-        .filter_map(|r| future::ready(r.ok()))
+        .filter_map(|result| future::ready(result.ok()))
         .map(server::BaseChannel::with_defaults)
         .map(|channel| {
             let server = FetchServer { buffer_size: 10 };

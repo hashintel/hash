@@ -129,8 +129,8 @@ where
     K: Debug,
     E: EdgeEndpointSet + Debug,
 {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("AdjacencyList")
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        fmt.debug_struct("AdjacencyList")
             .field("edges", &self.edges)
             .finish()
     }

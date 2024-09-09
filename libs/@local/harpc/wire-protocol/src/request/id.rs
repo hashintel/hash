@@ -13,8 +13,8 @@ use crate::codec::{Buffer, BufferError, Decode, Encode};
 pub struct RequestId(u32);
 
 impl Display for RequestId {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        Display::fmt(&self.0, f)
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        Display::fmt(&self.0, fmt)
     }
 }
 

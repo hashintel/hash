@@ -158,8 +158,8 @@ pub(crate) fn unexpected_token(
 fn parse_error_display<I>(error: &ParseError<I, ErrMode<ContextError>>) -> String {
     // `ErrMode` redirects to debug for display purposes, so we use Display instead
     match error.inner() {
-        ErrMode::Cut(c) => format!("Parsing Failure: {c}"),
-        ErrMode::Backtrack(c) => format!("Parsing Error: {c}"),
+        ErrMode::Cut(context) => format!("Parsing Failure: {context}"),
+        ErrMode::Backtrack(context) => format!("Parsing Error: {context}"),
         other @ ErrMode::Incomplete(_) => other.to_string(),
     }
 }

@@ -1,4 +1,4 @@
-use core::str::FromStr;
+use core::{assert_matches::assert_matches, str::FromStr};
 use std::collections::HashSet;
 
 use authorization::AuthorizationApi;
@@ -6,7 +6,7 @@ use graph::{
     store::{
         knowledge::{CreateEntityParams, GetEntitiesParams, PatchEntityParams},
         query::Filter,
-        EntityQuerySorting, EntityStore,
+        EntityQuerySorting, EntityStore, InsertionError,
     },
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
@@ -72,8 +72,8 @@ async fn empty_entity() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = seed(&mut database).await;
 
-    let _ = api
-        .create_entity(
+    assert_matches!(
+        api.create_entity(
             api.account_id,
             CreateEntityParams {
                 owned_by_id: OwnedById::new(api.account_id.into_uuid()),
@@ -90,7 +90,10 @@ async fn empty_entity() {
             },
         )
         .await
-        .expect_err("created entity with no types");
+        .expect_err("created entity with no types")
+        .current_context(),
+        InsertionError
+    );
 }
 
 #[tokio::test]

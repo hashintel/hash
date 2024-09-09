@@ -3,3 +3,4 @@ protocol = "sparse"
 
 [unstable]
 public-dependency = true
+cargo-lints = true
