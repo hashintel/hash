@@ -247,8 +247,8 @@ impl<'t, T> Display for Transpiler<'t, T>
 where
     T: Transpile,
 {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        self.0.transpile(f)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        self.0.transpile(fmt)
     }
 }
 

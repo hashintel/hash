@@ -34,10 +34,10 @@ fn opaque_attachment() {
 
 #[test]
 fn sources() {
-    let mut a = create_report().attach(AttachmentA(10));
-    let b = create_report().attach(AttachmentA(20));
-    a.extend_one(b);
-    let mut report = a.attach(AttachmentB(30));
+    let mut report_a = create_report().attach(AttachmentA(10));
+    let report_b = create_report().attach(AttachmentA(20));
+    report_a.extend_one(report_b);
+    let mut report = report_a.attach(AttachmentB(30));
 
     assert_eq!(report.current_frames().len(), 1);
     let frame = report.frames_mut().next().expect("No frames");

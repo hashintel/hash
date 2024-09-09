@@ -10,7 +10,6 @@ pub mod stream;
 pub mod timeout;
 
 use core::{
-    future::Future,
     ops::DerefMut,
     pin::Pin,
     task::{Context, Poll},
@@ -261,29 +260,29 @@ pub trait BodyExt: Body {
         FrameFuture(self)
     }
 
-    fn map_data<F, B>(self, f: F) -> MapData<Self, F>
+    fn map_data<F, B>(self, func: F) -> MapData<Self, F>
     where
         Self: Sized,
         F: FnMut(Self::Data) -> B,
         B: Buf,
     {
-        MapData::new(self, f)
+        MapData::new(self, func)
     }
 
-    fn map_control<F, C>(self, f: F) -> MapControl<Self, F>
+    fn map_control<F, C>(self, func: F) -> MapControl<Self, F>
     where
         Self: Sized,
         F: FnMut(Self::Control) -> C,
     {
-        MapControl::new(self, f)
+        MapControl::new(self, func)
     }
 
-    fn map_err<F, E>(self, f: F) -> MapError<Self, F>
+    fn map_err<F, E>(self, func: F) -> MapError<Self, F>
     where
         Self: Sized,
         F: FnMut(Self::Error) -> E,
     {
-        MapError::new(self, f)
+        MapError::new(self, func)
     }
 
     fn boxed(self) -> BoxBody<Self::Data, Self::Control, Self::Error>

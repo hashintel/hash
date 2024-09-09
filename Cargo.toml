@@ -1,3 +1,5 @@
+cargo-features = ["edition2024"]
+
 [workspace]
 members = [
     "apps/hash-graph/bins/cli",
@@ -32,12 +34,12 @@ members = [
 default-members = [
     "apps/hash-graph/bins/*",
 ]
-resolver = "2"
+resolver = "3"
 
 [workspace.package]
 authors = ["HASH"]
 version = "0.0.0"
-edition = "2021"
+edition = "2024"
 license = "AGPL-3"
 publish = false
 
@@ -224,6 +226,8 @@ future_incompatible = { level = "warn", priority = -1 }
 unsafe_code = "deny"
 unreachable_pub = "warn"
 
+[workspace.lints.cargo]
+
 [workspace.lints.clippy]
 all = { level = "warn", priority = -1 }
 nursery = { level = "warn", priority = -1 }
@@ -240,8 +244,6 @@ enum_variant_names = "allow"
 expect_used = "allow"
 indexing_slicing = "allow"
 let_underscore_must_use = "allow"
-let_underscore_untyped = "allow" # Conflicts with `clippy::no_effect_underscore_binding` in function bindings
-min_ident_chars = "allow"
 missing_assert_message = "allow"
 multiple_inherent_impl = "allow"
 panic = "allow"

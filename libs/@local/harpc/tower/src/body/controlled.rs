@@ -98,13 +98,20 @@ mod test {
 
     #[test]
     fn is_complete() {
-        let mut body = Controlled::new(Control, Full::new(Bytes::from("hello")));
+        let bytes = Bytes::from("hello");
+        let mut body = Controlled::new(Control, Full::new(bytes.clone()));
         assert_eq!(body.state(), None);
 
-        let _ = poll_frame_unpin(&mut body);
+        assert_eq!(
+            poll_frame_unpin(&mut body),
+            Poll::Ready(Some(Ok(Frame::Control(Control))))
+        );
         assert_eq!(body.state(), None);
 
-        let _ = poll_frame_unpin(&mut body);
+        assert_eq!(
+            poll_frame_unpin(&mut body),
+            Poll::Ready(Some(Ok(Frame::Data(bytes))))
+        );
         assert_eq!(body.state(), Some(BodyState::Complete));
     }
 
@@ -112,13 +119,19 @@ mod test {
     fn size_hint() {
         let bytes = Bytes::from("hello");
 
-        let mut body = Controlled::new(Control, Full::new(bytes));
+        let mut body = Controlled::new(Control, Full::new(bytes.clone()));
         assert_eq!(body.size_hint(), SizeHint::with_exact(5));
 
-        let _ = poll_frame_unpin(&mut body);
+        assert_eq!(
+            poll_frame_unpin(&mut body),
+            Poll::Ready(Some(Ok(Frame::Control(Control))))
+        );
         assert_eq!(body.size_hint(), SizeHint::with_exact(5));
 
-        let _ = poll_frame_unpin(&mut body);
+        assert_eq!(
+            poll_frame_unpin(&mut body),
+            Poll::Ready(Some(Ok(Frame::Data(bytes))))
+        );
         assert_eq!(body.size_hint(), SizeHint::with_exact(0));
     }
 }

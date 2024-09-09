@@ -1,3 +1,4 @@
+#![feature(assert_matches)]
 #![expect(
     clippy::missing_panics_doc,
     clippy::missing_errors_doc,
@@ -132,7 +133,9 @@ const fn entity_type_relationships() -> [EntityTypeRelationAndSubject; 3] {
 }
 
 pub fn init_logging() {
-    let _ = tracing_subscriber::fmt()
+    // It's likely that the initialization failed due to a previous initialization attempt. In this
+    // case, we can ignore the error.
+    let _: core::result::Result<_, _> = tracing_subscriber::fmt()
         .with_ansi(true)
         .with_env_filter(env_filter(None))
         .with_file(true)
@@ -151,7 +154,7 @@ impl DatabaseTestWrapper<NoAuthorization> {
             std::env::var("HASH_GRAPH_PG_PASSWORD").unwrap_or_else(|_| "graph".to_owned());
         let host = std::env::var("HASH_GRAPH_PG_HOST").unwrap_or_else(|_| "localhost".to_owned());
         let port = std::env::var("HASH_GRAPH_PG_PORT")
-            .map(|p| p.parse::<u16>().unwrap())
+            .map(|port| port.parse::<u16>().unwrap())
             .unwrap_or(5432);
         let database =
             std::env::var("HASH_GRAPH_PG_DATABASE").unwrap_or_else(|_| "graph".to_owned());

@@ -149,9 +149,9 @@ impl<S> Display for Diagnostic<'_, S>
 where
     S: Display,
 {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(
-            f,
+            fmt,
             "[{}] {}",
             self.severity,
             self.category.as_ref().canonical_name()

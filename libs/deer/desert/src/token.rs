@@ -181,8 +181,8 @@ pub enum Token {
 }
 
 impl Display for Token {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        Debug::fmt(self, f)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+        Debug::fmt(self, fmt)
     }
 }
 

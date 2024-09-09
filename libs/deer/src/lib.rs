@@ -314,9 +314,9 @@ pub trait Visitor<'de>: Sized {
 
     fn visit_char(self, value: char) -> Result<Self::Value, VisitorError> {
         let mut buffer = [0; 4];
-        let v = value.encode_utf8(&mut buffer);
+        let string = value.encode_utf8(&mut buffer);
 
-        self.visit_str(v)
+        self.visit_str(string)
             .attach(ReceivedType::new(char::reflection()))
     }
 
@@ -397,8 +397,8 @@ pub trait Visitor<'de>: Sized {
             .change_context(VisitorError))
     }
 
-    fn visit_u8(self, v: u8) -> Result<Self::Value, VisitorError> {
-        self.visit_number(Number::from(v))
+    fn visit_u8(self, value: u8) -> Result<Self::Value, VisitorError> {
+        self.visit_number(Number::from(value))
             .attach(ReceivedType::new(u8::reflection()))
     }
 
@@ -424,8 +424,8 @@ pub trait Visitor<'de>: Sized {
             .change_context(VisitorError))
     }
 
-    fn visit_f32(self, v: f32) -> Result<Self::Value, VisitorError> {
-        self.visit_number(Number::from(v))
+    fn visit_f32(self, value: f32) -> Result<Self::Value, VisitorError> {
+        self.visit_number(Number::from(value))
             .attach(ReceivedType::new(f32::reflection()))
     }
 
@@ -551,17 +551,17 @@ macro_rules! derive_from_number {
         where
             V: Visitor<'de>,
         {
-            let n = self.deserialize_number(NumberVisitor::<<$schema as Deserialize>::Reflection>(PhantomData))?;
-            let v = n
+            let number = self.deserialize_number(NumberVisitor::<<$schema as Deserialize>::Reflection>(PhantomData))?;
+            let value = number
                 .$to()
                 .ok_or_else(||
                     Report::new(ValueError.into_error())
                         .attach(ExpectedType::new(<$schema>::reflection()))
-                        .attach(ReceivedValue::new(n))
+                        .attach(ReceivedValue::new(number))
                 )
                 .change_context(DeserializerError)?;
 
-            visitor.$visit(v).change_context(DeserializerError)
+            visitor.$visit(value).change_context(DeserializerError)
         }
     };
 }
@@ -834,12 +834,12 @@ pub(crate) mod test {
         // we do not need to worry about the tree structure
         let frames: Vec<_> = report.frames().collect();
 
-        let s: SerializeFrame<T> = SerializeFrame {
+        let ser: SerializeFrame<T> = SerializeFrame {
             frames: &frames,
             _marker: PhantomData,
         };
 
-        serde_json::to_value(s)
+        serde_json::to_value(ser)
             .expect("should be able to convert `SerializeFrame` into `serde_json::Value`")
     }
 
@@ -849,8 +849,8 @@ pub(crate) mod test {
     }
 
     impl<E: Variant> Display for ErrorMessage<'_, '_, E> {
-        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-            self.error.message(f, self.properties)
+        fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+            self.error.message(fmt, self.properties)
         }
     }
 

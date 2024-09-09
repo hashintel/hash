@@ -1,0 +1,129 @@
+name: Update dependencies
+on:
+  workflow_dispatch:
+    inputs:
+      repoCache:
+        description: "Reset or disable the cache?"
+        type: choice
+        default: enabled
+        options:
+          - enabled
+          - disabled
+          - reset
+      logLevel:
+        description: "Override default log level"
+        type: choice
+        default: info
+        options:
+          - "debug"
+          - "info"
+          - "warn"
+          - "error"
+      overrideSchedule:
+        description: "Override all schedules"
+        type: boolean
+        default: false
+      dryRun:
+        description: "Dry run mode"
+        type: choice
+        default: disabled
+        options:
+          - disabled
+          - extract
+          - lookup
+          - full
+  schedule:
+    # Run every 30 minutes
+    - cron: "0/30 * * * *"
+
+env:
+  cache_archive: renovate_cache.tar.gz
+  cache_dir: /tmp/renovate/cache/renovate/repository
+  cache_key: renovate-cache
+  dry_run: ${{ github.event.inputs.dryRun || 'disabled' }}
+
+concurrency:
+  cancel-in-progress: false
+  group: renovate
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Authenticate Vault
+        id: secrets
+        uses: hashicorp/vault-action@d1720f055e0635fd932a1d2a48f87a666a57906c # v3.0.0
+        with:
+          url: ${{ secrets.VAULT_ADDR }}
+          method: jwt
+          role: dev
+          secrets: |
+            automation/data/pipelines/hash/dev github_worker_app_id | GITHUB_WORKER_APP_ID ;
+            automation/data/pipelines/hash/dev github_worker_app_private_key | GITHUB_WORKER_APP_PRIVATE_KEY ;
+
+      - name: Get token
+        id: app-token
+        uses: actions/create-github-app-token@3378cda945da322a8db4b193e19d46352ebe2de5 # v1
+        with:
+          app-id: ${{ steps.secrets.outputs.GITHUB_WORKER_APP_ID }}
+          private-key: ${{ steps.secrets.outputs.GITHUB_WORKER_APP_PRIVATE_KEY }}
+
+      - name: Checkout
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Install Rust toolchain
+        uses: ./.github/actions/install-rust-toolchain
+
+      - name: Install Node.js
+        uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        with:
+          node-version: 20
+
+      - uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11 # v6
+        if: github.event.inputs.repoCache != 'disabled'
+        continue-on-error: true
+        with:
+          name: ${{ env.cache_key }}
+          path: cache-download
+
+      - name: Extract renovate cache
+        if: github.event.inputs.repoCache != 'disabled'
+        run: |
+          if [ ! -d cache-download ] ; then
+            echo "No cache found."
+            exit 0
+          fi
+
+          mkdir -p $cache_dir
+          tar -xzf cache-download/$cache_archive -C $cache_dir
+
+      - name: Install renovate
+        run: npm install -g renovate
+
+      - name: Run renovate
+        env:
+          LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
+          RENOVATE_FORCE: ${{ github.event.inputs.overrideSchedule == 'true' && '{"schedule":null}' || '' }}
+          RENOVATE_DRY_RUN: ${{ env.dry_run == 'disabled' && 'null' || inputs.dryRun }}
+          RENOVATE_PLATFORM_COMMIT: enabled
+          RENOVATE_REPOSITORIES: ${{ github.repository }}
+          # TODO: Consider using S3 by setting `RENOVATE_REPOSITORY_CACHE_TYPE`
+          # see: https://linear.app/hash/issue/H-3315/use-s3-to-store-renovate-cache
+          RENOVATE_REPOSITORY_CACHE: ${{ github.event.inputs.repoCache || 'enabled' }}
+        run: renovate --token ${{ steps.app-token.outputs.token }}
+
+      - name: Compress renovate cache
+        run: tar -czvf $cache_archive -C $cache_dir .
+
+      - uses: actions/upload-artifact@ff15f0306b3f739f7b6fd43fb5d26cd321bd4de5 # v3
+        if: env.dry_run == 'disabled' && github.event.inputs.repoCache != 'disabled'
+        with:
+          name: ${{ env.cache_key }}
+          path: ${{ env.cache_archive }}
+          retention-days: 1

@@ -184,7 +184,7 @@ where
     let opt = Option::<String>::deserialize(de)?;
     match opt.as_deref() {
         None | Some("") => Ok(None),
-        Some(s) => T::deserialize(s.into_deserializer()).map(Some),
+        Some(string) => T::deserialize(string.into_deserializer()).map(Some),
     }
 }
 

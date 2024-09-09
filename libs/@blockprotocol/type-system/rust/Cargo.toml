@@ -1,3 +1,5 @@
+cargo-features = ["edition2024"]
+
 [package]
 name = "type-system"
 description = "Definitions of types within the Block Protocol Type System"

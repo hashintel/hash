@@ -433,9 +433,9 @@ struct SymbolDisplay<'a> {
 }
 
 impl Display for SymbolDisplay<'_> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         for symbol in self.inner {
-            f.write_str(symbol.to_str(self.charset))?;
+            fmt.write_str(symbol.to_str(self.charset))?;
         }
 
         Ok(())
@@ -672,7 +672,7 @@ struct LineDisplay<'a> {
 }
 
 impl Display for LineDisplay<'_> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         for instruction in self.line.0.iter().rev() {
             Display::fmt(
                 &InstructionDisplay {
@@ -680,7 +680,7 @@ impl Display for LineDisplay<'_> {
                     charset: self.charset,
                     instruction,
                 },
-                f,
+                fmt,
             )?;
         }
 
@@ -1024,7 +1024,7 @@ fn debug_frame(root: &Frame, prefix: &[&Frame], config: &mut Config) -> Vec<Line
             // The attachments are rendered as direct descendants of the parent context
             let head_context = debug_context(
                 match head.kind() {
-                    FrameKind::Context(c) => c,
+                    FrameKind::Context(context) => context,
                     FrameKind::Attachment(_) => unreachable!(),
                 },
                 config.color_mode(),

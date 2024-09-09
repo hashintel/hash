@@ -21,8 +21,8 @@ struct Message<'a, 'b, E: Variant> {
 }
 
 impl<'a, 'b, E: Variant> Display for Message<'a, 'b, E> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        self.context.message(f, self.properties)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        self.context.message(fmt, self.properties)
     }
 }
 
@@ -296,8 +296,8 @@ mod tests {
     struct Printable(&'static str);
 
     impl Display for Printable {
-        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-            f.write_str(self.0)
+        fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+            fmt.write_str(self.0)
         }
     }
 
@@ -305,8 +305,8 @@ mod tests {
     struct Root;
 
     impl Display for Root {
-        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-            f.write_str("Root Error")
+        fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+            fmt.write_str("Root Error")
         }
     }
 
@@ -344,25 +344,24 @@ mod tests {
     /// [A, G]
     /// ```
     #[test]
-    #[expect(clippy::many_single_char_names)]
     fn split() {
-        let f = Report::new(Root).attach_printable(Printable("F"));
-        let e = Report::new(Root).attach_printable(Printable("E"));
-        let mut d = Report::new(Root).attach_printable(Printable("D"));
+        let report_f = Report::new(Root).attach_printable(Printable("F"));
+        let report_e = Report::new(Root).attach_printable(Printable("E"));
+        let mut report_d = Report::new(Root).attach_printable(Printable("D"));
 
-        d.extend_one(e);
+        report_d.extend_one(report_e);
 
-        let mut b = d.attach_printable(Printable("B"));
-        let c = f.attach_printable(Printable("C"));
+        let mut report_b = report_d.attach_printable(Printable("B"));
+        let report_c = report_f.attach_printable(Printable("C"));
 
-        let g = Report::new(Root).attach_printable(Printable("G"));
+        let report_g = Report::new(Root).attach_printable(Printable("G"));
 
-        b.extend_one(c);
-        b.extend_one(g);
+        report_b.extend_one(report_c);
+        report_b.extend_one(report_g);
 
-        let a = b.attach_printable(Printable("A"));
+        let report_a = report_b.attach_printable(Printable("A"));
 
-        let stacks: Vec<_> = FrameSplitIterator::new(&a).collect();
+        let stacks: Vec<_> = FrameSplitIterator::new(&report_a).collect();
 
         assert_stack(&stacks[0], &["A", "B", "D", "Root Error"]);
         assert_stack(&stacks[1], &["A", "B", "E", "Root Error"]);
@@ -371,26 +370,26 @@ mod tests {
     }
 
     #[derive(Debug)]
-    struct Y;
+    struct ErrorY;
 
-    impl Display for Y {
-        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-            f.write_str("Y Error")
+    impl Display for ErrorY {
+        fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+            fmt.write_str("Y Error")
         }
     }
 
-    impl Context for Y {}
+    impl Context for ErrorY {}
 
     #[derive(Debug)]
-    struct Z;
+    struct ErrorZ;
 
-    impl Display for Z {
-        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-            f.write_str("Z Error")
+    impl Display for ErrorZ {
+        fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+            fmt.write_str("Z Error")
         }
     }
 
-    impl Variant for Z {
+    impl Variant for ErrorZ {
         type Properties = ();
 
         const ID: Id = id!["custom"];
@@ -433,40 +432,39 @@ mod tests {
     /// [A, G, Y Error, Z Error, Z Error]
     /// ```
     #[test]
-    #[expect(clippy::many_single_char_names)]
     fn divide_integration() {
-        let mut b = Report::new(Error::new(Z))
+        let mut report_d = Report::new(Error::new(ErrorZ))
             .attach_printable(Printable("D"))
-            .change_context(Error::new(Z))
-            .change_context(Y);
+            .change_context(Error::new(ErrorZ))
+            .change_context(ErrorY);
 
-        let e = Report::new(Y)
-            .change_context(Error::new(Z))
+        let report_e = Report::new(ErrorY)
+            .change_context(Error::new(ErrorZ))
             .attach_printable(Printable("E"))
-            .change_context(Y);
-        b.extend_one(e);
+            .change_context(ErrorY);
+        report_d.extend_one(report_e);
 
-        let mut b = b.attach_printable(Printable("B"));
+        let mut report_b = report_d.attach_printable(Printable("B"));
 
-        let c = Report::new(Error::new(Z))
+        let report_c = Report::new(Error::new(ErrorZ))
             .attach_printable(Printable("F"))
-            .change_context(Y)
+            .change_context(ErrorY)
             .attach_printable(Printable("C"));
 
-        let g = Report::new(Error::new(Z))
-            .change_context(Error::new(Z))
-            .change_context(Y)
+        let report_g = Report::new(Error::new(ErrorZ))
+            .change_context(Error::new(ErrorZ))
+            .change_context(ErrorY)
             .attach_printable(Printable("G"));
 
-        let h = Report::new(Y).attach_printable(Printable("H"));
+        let report_h = Report::new(ErrorY).attach_printable(Printable("H"));
 
-        b.extend_one(c);
-        b.extend_one(g);
-        b.extend_one(h);
+        report_b.extend_one(report_c);
+        report_b.extend_one(report_g);
+        report_b.extend_one(report_h);
 
-        let a = b.attach_printable(Printable("A"));
+        let report_a = report_b.attach_printable(Printable("A"));
 
-        let split = FrameSplitIterator::new(&a);
+        let split = FrameSplitIterator::new(&report_a);
         let frames = divide_frames(split);
 
         let stacks: Vec<_> = frames.into_iter().collect();
@@ -490,7 +488,7 @@ mod tests {
 
     #[test]
     fn divide_ignore() {
-        let report = Report::new(Y).attach(Printable("A"));
+        let report = Report::new(ErrorY).attach(Printable("A"));
         let split = FrameSplitIterator::new(&report);
         let frames = divide_frames(split);
 
@@ -499,10 +497,10 @@ mod tests {
 
     #[test]
     fn divide_division() {
-        let report = Report::new(Error::new(Z))
+        let report = Report::new(Error::new(ErrorZ))
             .attach_printable(Printable("A"))
             .attach_printable(Printable("B"))
-            .change_context(Error::new(Z))
+            .change_context(Error::new(ErrorZ))
             .attach_printable(Printable("C"))
             .attach_printable(Printable("D"));
 

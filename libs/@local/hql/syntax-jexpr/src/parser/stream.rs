@@ -42,13 +42,13 @@ impl<'arena, 'source> TokenStream<'arena, 'source> {
         &mut self,
         value: U,
         token: impl FnOnce(&U) -> jsonptr::Token<'static>,
-        f: impl FnOnce(&mut Self, U) -> T,
+        func: impl FnOnce(&mut Self, U) -> T,
     ) -> T {
         if let Some(stack) = self.stack.as_mut() {
             stack.push(token(&value));
         }
 
-        let result = f(self, value);
+        let result = func(self, value);
 
         if let Some(stack) = self.stack.as_mut() {
             stack.pop();

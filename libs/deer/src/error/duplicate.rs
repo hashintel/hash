@@ -56,8 +56,8 @@ impl Variant for DuplicateFieldError {
 }
 
 impl Display for DuplicateFieldError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("duplicate field")
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        fmt.write_str("duplicate field")
     }
 }
 
@@ -106,8 +106,8 @@ impl Variant for DuplicateKeyError {
 }
 
 impl Display for DuplicateKeyError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("duplicate key")
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        fmt.write_str("duplicate key")
     }
 }
 

@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::{error::Error, fmt, future::Future};
+use core::{error::Error, fmt};
 use std::collections::HashSet;
 
 use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};

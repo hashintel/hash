@@ -1,10 +1,5 @@
 use alloc::sync::Arc;
-use core::{
-    future::{ready, Future},
-    iter,
-    net::Ipv4Addr,
-    time::Duration,
-};
+use core::{future::ready, iter, net::Ipv4Addr, time::Duration};
 
 use bytes::Bytes;
 use error_stack::{Report, ResultExt};

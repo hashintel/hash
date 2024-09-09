@@ -52,10 +52,10 @@ where
         &mut self.head.extensions
     }
 
-    pub fn map_body<B2>(self, f: impl FnOnce(B) -> B2) -> Response<B2> {
+    pub fn map_body<B2>(self, func: impl FnOnce(B) -> B2) -> Response<B2> {
         Response {
             head: self.head,
-            body: f(self.body),
+            body: func(self.body),
         }
     }
 }

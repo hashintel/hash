@@ -9,7 +9,7 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
     #[track_caller]
     fn into_report(self) -> Result<T, EyreReport> {
         match self {
-            Ok(t) => Ok(t),
+            Ok(value) => Ok(value),
             Err(eyre) => {
                 let sources = eyre
                     .chain()

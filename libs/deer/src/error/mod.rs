@@ -143,14 +143,14 @@ pub struct SerdeSerializeError {
 }
 
 impl Debug for SerdeSerializeError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.debug)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        fmt.write_str(&self.debug)
     }
 }
 
 impl Display for SerdeSerializeError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str(&self.display)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        fmt.write_str(&self.display)
     }
 }
 
@@ -285,14 +285,14 @@ pub struct Error {
 }
 
 impl Debug for Error {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        (self.debug)(&self.variant, f)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        (self.debug)(&self.variant, fmt)
     }
 }
 
 impl Display for Error {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        (self.display)(&self.variant, f)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        (self.display)(&self.variant, fmt)
     }
 }
 
@@ -408,8 +408,8 @@ macro_rules! error {
         pub struct $name;
 
         impl Display for $name {
-            fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-                f.write_str($display)
+            fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+                fmt.write_str($display)
             }
         }
 

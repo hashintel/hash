@@ -312,21 +312,21 @@ impl_from! {
 
 impl Display for Number {
     #[cfg(not(feature = "arbitrary-precision"))]
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
         match &self.0 {
-            OpaqueNumber::PosInt(pos) => Display::fmt(pos, f),
+            OpaqueNumber::PosInt(pos) => Display::fmt(pos, fmt),
             OpaqueNumber::NegInt(neg) => {
                 // emulate negative number
-                core::fmt::Write::write_char(f, '-')?;
-                Display::fmt(neg, f)
+                core::fmt::Write::write_char(fmt, '-')?;
+                Display::fmt(neg, fmt)
             }
-            OpaqueNumber::Float(float) => Display::fmt(float, f),
+            OpaqueNumber::Float(float) => Display::fmt(float, fmt),
         }
     }
 
     #[cfg(feature = "arbitrary-precision")]
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-        f.write_str(&self.0)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+        fmt.write_str(&self.0)
     }
 }
 
@@ -366,9 +366,9 @@ impl Serialize for Number {
     {
         use serde::ser::SerializeStruct;
 
-        let mut s = serializer.serialize_struct(TOKEN, 1)?;
-        s.serialize_field(TOKEN, &self.0)?;
-        s.end()
+        let mut ser = serializer.serialize_struct(TOKEN, 1)?;
+        ser.serialize_field(TOKEN, &self.0)?;
+        ser.end()
     }
 }
 

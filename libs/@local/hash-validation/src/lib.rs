@@ -9,7 +9,7 @@ mod property;
 mod test_data_type;
 mod test_property_type;
 
-use core::{borrow::Borrow, future::Future};
+use core::borrow::Borrow;
 
 use error_stack::{Context, Report};
 use graph_types::knowledge::entity::{Entity, EntityId};

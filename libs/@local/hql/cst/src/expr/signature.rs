@@ -49,32 +49,32 @@ impl Spanned for Signature<'_> {
 }
 
 impl<'a> Display for Signature<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         if !self.generics.is_empty() {
-            f.write_char('<')?;
+            fmt.write_char('<')?;
             for (index, generic) in self.generics.iter().enumerate() {
                 if index > 0 {
-                    f.write_str(", ")?;
+                    fmt.write_str(", ")?;
                 }
 
-                Display::fmt(generic, f)?;
+                Display::fmt(generic, fmt)?;
             }
-            f.write_char('>')?;
+            fmt.write_char('>')?;
         }
 
-        f.write_char('(')?;
+        fmt.write_char('(')?;
 
         for (index, argument) in self.arguments.iter().enumerate() {
             if index > 0 {
-                f.write_str(", ")?;
+                fmt.write_str(", ")?;
             }
 
-            Display::fmt(argument, f)?;
+            Display::fmt(argument, fmt)?;
         }
 
-        f.write_str(") -> ")?;
+        fmt.write_str(") -> ")?;
 
-        Display::fmt(&self.r#return, f)
+        Display::fmt(&self.r#return, fmt)
     }
 }
 
@@ -99,12 +99,12 @@ impl<'arena> Spanned for Generic<'arena> {
 }
 
 impl<'a> Display for Generic<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.name, f)?;
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.name, fmt)?;
 
         if let Some(bound) = &self.bound {
-            f.write_str(": ")?;
-            Display::fmt(bound, f)
+            fmt.write_str(": ")?;
+            Display::fmt(bound, fmt)
         } else {
             Ok(())
         }
@@ -126,10 +126,10 @@ impl<'arena> Spanned for Argument<'arena> {
 }
 
 impl<'arena> Display for Argument<'arena> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.name, f)?;
-        f.write_str(": ")?;
-        Display::fmt(&self.r#type, f)
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.name, fmt)?;
+        fmt.write_str(": ")?;
+        Display::fmt(&self.r#type, fmt)
     }
 }
 
@@ -147,7 +147,7 @@ impl<'arena> Spanned for Return<'arena> {
 }
 
 impl<'arena> Display for Return<'arena> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.r#type, f)
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.r#type, fmt)
     }
 }

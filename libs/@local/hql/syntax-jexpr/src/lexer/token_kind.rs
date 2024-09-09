@@ -51,18 +51,18 @@ impl<'source> TokenKind<'source> {
 }
 
 impl Display for TokenKind<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Bool(bool) => Display::fmt(bool, f),
-            Self::Null => f.write_str("null"),
-            Self::LBrace => f.write_char('{'),
-            Self::RBrace => f.write_char('}'),
-            Self::LBracket => f.write_char('['),
-            Self::RBracket => f.write_char(']'),
-            Self::Colon => f.write_char(':'),
-            Self::Comma => f.write_char(','),
-            Self::Number(number) => Display::fmt(number, f),
-            Self::String(string) => write!(f, "\"{string}\""),
+            Self::Bool(bool) => Display::fmt(bool, fmt),
+            Self::Null => fmt.write_str("null"),
+            Self::LBrace => fmt.write_char('{'),
+            Self::RBrace => fmt.write_char('}'),
+            Self::LBracket => fmt.write_char('['),
+            Self::RBracket => fmt.write_char(']'),
+            Self::Colon => fmt.write_char(':'),
+            Self::Comma => fmt.write_char(','),
+            Self::Number(number) => Display::fmt(number, fmt),
+            Self::String(string) => write!(fmt, "\"{string}\""),
         }
     }
 }

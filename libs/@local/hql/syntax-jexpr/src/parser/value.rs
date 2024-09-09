@@ -170,22 +170,29 @@ mod test {
     )]
     fn partial_eq(lhs: &Value, rhs: &serde_json::Value) -> bool {
         match (&lhs.kind, rhs) {
-            (ValueKind::Bool(a), serde_json::Value::Bool(b)) => a == b,
+            (ValueKind::Bool(lhs), serde_json::Value::Bool(rhs)) => lhs == rhs,
             (ValueKind::Null, serde_json::Value::Null) => true,
-            (ValueKind::Number(a), serde_json::Value::Number(b)) => {
-                let Some(b) = b.as_f64() else {
+            (ValueKind::Number(lhs), serde_json::Value::Number(rhs)) => {
+                let Some(rhs) = rhs.as_f64() else {
                     return false;
                 };
 
-                f64::abs(a.as_f64_lossy() - b) < f64::EPSILON
+                f64::abs(lhs.as_f64_lossy() - rhs) < f64::EPSILON
             }
-            (ValueKind::String(a), serde_json::Value::String(b)) => a == b,
-            (ValueKind::Array(a), serde_json::Value::Array(b)) => {
-                a.iter().zip(b.iter()).all(|(a, b)| partial_eq(a, b))
+            (ValueKind::String(lhs), serde_json::Value::String(rhs)) => lhs == rhs,
+            (ValueKind::Array(lhs), serde_json::Value::Array(rhs)) => {
+                lhs.len() == rhs.len()
+                    && lhs
+                        .iter()
+                        .zip(rhs.iter())
+                        .all(|(lhs, rhs)| partial_eq(lhs, rhs))
             }
-            (ValueKind::Object(a), serde_json::Value::Object(b)) => a
-                .iter()
-                .all(|(k, v)| b.get(k.value.as_ref()).map_or(false, |b| partial_eq(v, b))),
+            (ValueKind::Object(lhs), serde_json::Value::Object(rhs)) => {
+                lhs.iter().all(|(key, val)| {
+                    rhs.get(key.value.as_ref())
+                        .map_or(false, |rhs| partial_eq(val, rhs))
+                })
+            }
             _ => false,
         }
     }
@@ -249,7 +256,7 @@ mod test {
         }
 
         match (value_result, serde_result) {
-            (Ok(a), Ok(b)) => assert!(partial_eq(&a, &b)),
+            (Ok(lhs), Ok(rhs)) => assert!(partial_eq(&lhs, &rhs)),
             (Err(_), Err(_)) => {}
             (value, serde) => {
                 panic!("input: {input:?}\nvalue: {value:?}\nserde: {serde:?}");

@@ -3,4 +3,4 @@ allow-expect-in-tests = true
 allow-print-in-tests = true
 suppress-restriction-lint-in-const = true
 doc-valid-idents = ["SpiceDB", "OpenAPI", ".."]
-allow-renamed-params-for = ["core::fmt::Debug", "core::fmt::Display", "futures_sink::Sink", ".."]
+allow-renamed-params-for = ["core::fmt::Debug", "core::fmt::Display", "futures_sink::Sink", "serde::de::Visitor", ".."]
