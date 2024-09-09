@@ -20,7 +20,7 @@ use graph_types::{
     account::AccountId,
     knowledge::{
         entity::{Entity, ProvidedEntityEditionProvenance},
-        PropertyObject, PropertyWithMetadataObject,
+        property::{PropertyObject, PropertyWithMetadataObject},
     },
     owned_by_id::OwnedById,
 };

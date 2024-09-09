@@ -25,9 +25,11 @@ pub use self::{
 use crate::{
     knowledge::{
         link::LinkData,
-        property::{PatchError, PropertyMetadataObject},
-        Confidence, Property, PropertyMetadata, PropertyObject, PropertyPatchOperation,
-        PropertyWithMetadata,
+        property::{
+            PatchError, Property, PropertyMetadata, PropertyMetadataObject, PropertyObject,
+            PropertyPatchOperation, PropertyWithMetadata,
+        },
+        Confidence,
     },
     owned_by_id::OwnedById,
     Embedding,
@@ -378,7 +380,9 @@ mod tests {
 
         use type_system::url::BaseUrl;
 
-        use crate::knowledge::{Property, PropertyDiff, PropertyPath, PropertyPathElement};
+        use crate::knowledge::property::{
+            Property, PropertyDiff, PropertyPath, PropertyPathElement,
+        };
 
         macro_rules! property {
             ($($json:tt)+) => {

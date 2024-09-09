@@ -2,6 +2,8 @@ mod raw;
 
 use serde::{Deserialize, Serialize, Serializer};
 
+use crate::schema::{OneOfSchema, PropertyType, PropertyValues};
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 #[serde(from = "raw::ArraySchema<T>")]
 pub struct ArraySchema<T> {
@@ -29,4 +31,38 @@ where
 pub enum ValueOrArray<T> {
     Value(T),
     Array(ArraySchema<T>),
+}
+
+pub trait PropertyArraySchema {
+    fn possibilities(&self) -> &[PropertyValues];
+    fn min_items(&self) -> Option<usize>;
+    fn max_items(&self) -> Option<usize>;
+}
+
+impl PropertyArraySchema for ArraySchema<OneOfSchema<PropertyValues>> {
+    fn possibilities(&self) -> &[PropertyValues] {
+        &self.items.possibilities
+    }
+
+    fn min_items(&self) -> Option<usize> {
+        self.min_items
+    }
+
+    fn max_items(&self) -> Option<usize> {
+        self.max_items
+    }
+}
+
+impl PropertyArraySchema for ArraySchema<&PropertyType> {
+    fn possibilities(&self) -> &[PropertyValues] {
+        &self.items.one_of
+    }
+
+    fn min_items(&self) -> Option<usize> {
+        self.min_items
+    }
+
+    fn max_items(&self) -> Option<usize> {
+        self.max_items
+    }
 }

@@ -2,31 +2,20 @@
 
 pub mod error;
 
-pub use self::{
-    data_type::{DataTypeConstraint, DataValidationError},
-    entity_type::EntityValidationError,
-    property_type::PropertyValidationError,
-};
+pub use self::entity_type::{EntityPreprocessor, EntityValidationError};
 
-mod data_type;
 mod entity_type;
 mod property;
-mod property_type;
+mod test_data_type;
+mod test_property_type;
 
 use core::borrow::Borrow;
 
 use error_stack::{Context, Report};
-use graph_types::{
-    knowledge::entity::{Entity, EntityId},
-    ontology::DataTypeId,
-};
+use graph_types::knowledge::entity::{Entity, EntityId};
 use serde::Deserialize;
-use type_system::{
-    schema::{ClosedEntityType, DataType},
-    url::{BaseUrl, VersionedUrl},
-};
 
-trait Schema<V: ?Sized, P: Sync> {
+pub trait Schema<V: ?Sized, P: Sync> {
     type Error: Context;
 
     fn validate_value<'a>(
@@ -93,33 +82,6 @@ pub trait Validate<S, C> {
     ) -> impl Future<Output = Result<(), Report<Self::Error>>> + Send;
 }
 
-pub trait OntologyTypeProvider<O> {
-    fn provide_type(
-        &self,
-        type_id: &VersionedUrl,
-    ) -> impl Future<Output = Result<impl Borrow<O> + Send, Report<impl Context>>> + Send;
-}
-
-pub trait DataTypeProvider: OntologyTypeProvider<DataType> {
-    fn is_parent_of(
-        &self,
-        child: &VersionedUrl,
-        parent: &BaseUrl,
-    ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
-    fn has_children(
-        &self,
-        data_type: DataTypeId,
-    ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
-}
-
-pub trait EntityTypeProvider: OntologyTypeProvider<ClosedEntityType> {
-    fn is_parent_of(
-        &self,
-        child: &VersionedUrl,
-        parent: &BaseUrl,
-    ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
-}
-
 pub trait EntityProvider {
     fn provide_entity(
         &self,
@@ -131,13 +93,20 @@ pub trait EntityProvider {
 mod tests {
     use std::collections::HashMap;
 
-    use graph_types::knowledge::{
-        Property, PropertyObject, PropertyProvenance, PropertyWithMetadata,
-        PropertyWithMetadataObject, ValueMetadata, ValueWithMetadata,
+    use graph_types::knowledge::property::{
+        visitor::{EntityVisitor, TraversalError},
+        Property, PropertyMetadata, PropertyObject, PropertyProvenance, PropertyWithMetadata,
+        PropertyWithMetadataObject, PropertyWithMetadataValue, ValueMetadata,
     };
     use serde_json::Value as JsonValue;
     use thiserror::Error;
-    use type_system::schema::{DataType, EntityType, PropertyType};
+    use type_system::{
+        schema::{
+            ClosedEntityType, DataType, DataTypeProvider, EntityType, EntityTypeProvider,
+            OntologyTypeProvider, PropertyType, PropertyTypeProvider,
+        },
+        url::{BaseUrl, VersionedUrl},
+    };
 
     use super::*;
     use crate::error::install_error_stack_hooks;
@@ -253,6 +222,8 @@ mod tests {
         }
     }
 
+    impl PropertyTypeProvider for Provider {}
+
     impl OntologyTypeProvider<DataType> for Provider {
         #[expect(refining_impl_trait)]
         async fn provide_type(
@@ -284,7 +255,7 @@ mod tests {
         #[expect(refining_impl_trait)]
         async fn has_children(
             &self,
-            _data_type: DataTypeId,
+            _data_type: &VersionedUrl,
         ) -> Result<bool, Report<InvalidDataType>> {
             Ok(false)
         }
@@ -298,7 +269,7 @@ mod tests {
         property_types: impl IntoIterator<Item = &'static str> + Send,
         data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
-    ) -> Result<(), Report<EntityValidationError>> {
+    ) -> Result<PropertyWithMetadataObject, Report<TraversalError>> {
         install_error_stack_hooks();
 
         let provider = Provider::new(
@@ -318,22 +289,27 @@ mod tests {
             serde_json::from_str::<EntityType>(entity_type).expect("failed to parse entity type"),
         );
 
-        let properties =
-            serde_json::from_str::<PropertyObject>(entity).expect("failed to read entity string");
+        let mut properties = PropertyWithMetadataObject::from_parts(
+            serde_json::from_str::<PropertyObject>(entity).expect("failed to read entity string"),
+            None,
+        )
+        .expect("failed to create property with metadata");
 
-        PropertyWithMetadataObject::from_parts(properties, None)
-            .expect("failed to create property with metadata")
-            .validate(&entity_type, components, &provider)
-            .await
+        EntityPreprocessor { components }
+            .visit_object(&entity_type, &mut properties, &provider)
+            .await?;
+
+        Ok(properties)
     }
 
     pub(crate) async fn validate_property(
         property: JsonValue,
+        metadata: Option<PropertyMetadata>,
         property_type: &'static str,
         property_types: impl IntoIterator<Item = &'static str> + Send,
         data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
-    ) -> Result<(), Report<PropertyValidationError>> {
+    ) -> Result<PropertyWithMetadata, Report<TraversalError>> {
         install_error_stack_hooks();
         let property = Property::deserialize(property).expect("failed to deserialize property");
 
@@ -351,18 +327,19 @@ mod tests {
         let property_type: PropertyType =
             serde_json::from_str(property_type).expect("failed to parse property type");
 
-        let property = PropertyWithMetadata::from_parts(property, None)
+        let mut property = PropertyWithMetadata::from_parts(property, metadata)
             .expect("failed to create property with metadata");
-        property_type
-            .validate_value(&property, components, &provider)
-            .await
+        EntityPreprocessor { components }
+            .visit_property(&property_type, &mut property, &provider)
+            .await?;
+        Ok(property)
     }
 
     pub(crate) async fn validate_data(
-        value: JsonValue,
+        mut value: JsonValue,
         data_type: &str,
         components: ValidateEntityComponents,
-    ) -> Result<(), Report<DataValidationError>> {
+    ) -> Result<PropertyWithMetadataValue, Report<TraversalError>> {
         install_error_stack_hooks();
 
         let provider = Provider::new([], [], [], []);
@@ -370,15 +347,15 @@ mod tests {
         let data_type: DataType =
             serde_json::from_str(data_type).expect("failed to parse data type");
 
-        ValueWithMetadata {
-            value,
-            metadata: ValueMetadata {
-                data_type_id: None,
-                provenance: PropertyProvenance::default(),
-                confidence: None,
-            },
-        }
-        .validate(&data_type, components, &provider)
-        .await
+        let mut metadata = ValueMetadata {
+            data_type_id: Some(data_type.id.clone()),
+            provenance: PropertyProvenance::default(),
+            confidence: None,
+        };
+
+        EntityPreprocessor { components }
+            .visit_value(&data_type, &mut value, &mut metadata, &provider)
+            .await?;
+        Ok(PropertyWithMetadataValue { value, metadata })
     }
 }

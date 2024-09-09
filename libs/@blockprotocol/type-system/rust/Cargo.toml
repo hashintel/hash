@@ -30,6 +30,7 @@ uuid = { workspace = true, public = true, features = ["std"] }
 
 # Private workspace dependencies
 codec = { workspace = true, features = ["serde"] }
+futures = { workspace = true }
 
 # Private third-party dependencies
 regex = { workspace = true, features = ["std"] }

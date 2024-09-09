@@ -6,19 +6,27 @@ use futures::{stream, StreamExt, TryStreamExt};
 use graph_types::knowledge::{
     entity::{Entity, EntityId},
     link::LinkData,
-    PropertyPath, PropertyWithMetadataObject,
+    property::{
+        visitor::{
+            walk_array, walk_object, walk_one_of_property_value, EntityVisitor, TraversalError,
+        },
+        PropertyPath, PropertyWithMetadataArray, PropertyWithMetadataObject,
+        PropertyWithMetadataValue, ValueMetadata,
+    },
 };
+use serde_json::Value as JsonValue;
 use thiserror::Error;
 use type_system::{
-    schema::{ClosedEntityType, DataType, ObjectSchema, PropertyType},
+    schema::{
+        ArraySchema, ClosedEntityType, DataType, DataTypeProvider, DataTypeReference,
+        EntityTypeProvider, OntologyTypeProvider, PropertyObjectSchema, PropertyType,
+        PropertyTypeProvider, PropertyTypeReference, PropertyValueSchema, PropertyValues,
+        ValueOrArray,
+    },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
 
-use crate::{
-    error::{Actual, Expected},
-    DataTypeProvider, EntityProvider, EntityTypeProvider, OntologyTypeProvider, Schema, Validate,
-    ValidateEntityComponents,
-};
+use crate::{EntityProvider, Schema, Validate, ValidateEntityComponents};
 
 macro_rules! extend_report {
     ($status:ident, $error:expr $(,)?) => {
@@ -50,49 +58,6 @@ pub enum EntityValidationError {
     InvalidLinkTargetId { target_types: Vec<VersionedUrl> },
     #[error("The property path is invalid: `{path:?}`")]
     InvalidPropertyPath { path: PropertyPath<'static> },
-}
-
-impl<P> Schema<PropertyWithMetadataObject, P> for ClosedEntityType
-where
-    P: OntologyTypeProvider<PropertyType> + DataTypeProvider + Sync,
-{
-    type Error = EntityValidationError;
-
-    async fn validate_value<'a>(
-        &'a self,
-        value: &'a PropertyWithMetadataObject,
-        components: ValidateEntityComponents,
-        provider: &'a P,
-    ) -> Result<(), Report<EntityValidationError>> {
-        // TODO: Distinguish between format validation and content validation so it's possible
-        //       to directly use the correct type.
-        //   see https://linear.app/hash/issue/BP-33
-        ObjectSchema::<_> {
-            properties: self.properties.clone(),
-            required: self.required.clone(),
-        }
-        .validate_value(&value.value, components, provider)
-        .await
-        .change_context(EntityValidationError::InvalidProperties)
-        .attach_lazy(|| Expected::EntityType(Box::new(self.clone())))
-        .attach_lazy(|| Actual::Properties(value.clone()))
-    }
-}
-
-impl<P> Validate<ClosedEntityType, P> for PropertyWithMetadataObject
-where
-    P: OntologyTypeProvider<PropertyType> + DataTypeProvider + Sync,
-{
-    type Error = EntityValidationError;
-
-    async fn validate(
-        &self,
-        schema: &ClosedEntityType,
-        components: ValidateEntityComponents,
-        context: &P,
-    ) -> Result<(), Report<Self::Error>> {
-        schema.validate_value(self, components, context).await
-    }
 }
 
 impl<P> Validate<ClosedEntityType, P> for Option<&LinkData>
@@ -165,23 +130,6 @@ where
 
         if self.metadata.entity_type_ids.is_empty() {
             extend_report!(status, EntityValidationError::EmptyEntityTypes);
-        }
-
-        match PropertyWithMetadataObject::from_parts(
-            self.properties.clone(),
-            Some(self.metadata.properties.clone()),
-        ) {
-            Ok(properties) => {
-                if let Err(error) = properties.validate(schema, components, context).await {
-                    extend_report!(status, error);
-                }
-            }
-            Err(error) => {
-                extend_report!(
-                    status,
-                    error.change_context(EntityValidationError::InvalidProperties)
-                );
-            }
         }
 
         if let Err(error) = self
@@ -312,6 +260,203 @@ where
                     link_types: self.schemas.keys().cloned().collect(),
                 }
             );
+        }
+
+        status
+    }
+}
+
+pub struct EntityPreprocessor {
+    pub components: ValidateEntityComponents,
+}
+
+impl EntityVisitor for EntityPreprocessor {
+    async fn visit_value<P>(
+        &mut self,
+        schema: &DataType,
+        value: &mut JsonValue,
+        metadata: &mut ValueMetadata,
+        type_provider: &P,
+    ) -> Result<(), Report<TraversalError>>
+    where
+        P: DataTypeProvider + Sync,
+    {
+        let mut status: Result<(), Report<TraversalError>> = Ok(());
+
+        if let Some(data_type_url) = &metadata.data_type_id {
+            if schema.id != *data_type_url {
+                let is_compatible = type_provider
+                    .is_parent_of(data_type_url, &schema.id.base_url)
+                    .await
+                    .change_context_lazy(|| TraversalError::DataTypeRetrieval {
+                        id: DataTypeReference {
+                            url: schema.id.clone(),
+                        },
+                    })?;
+
+                if !is_compatible {
+                    extend_report!(
+                        status,
+                        TraversalError::InvalidDataType {
+                            actual: data_type_url.clone(),
+                            expected: schema.id.clone(),
+                        }
+                    );
+                }
+
+                if let Err(err) = type_provider
+                    .provide_type(data_type_url)
+                    .await
+                    .change_context_lazy(|| TraversalError::DataTypeRetrieval {
+                        id: DataTypeReference {
+                            url: schema.id.clone(),
+                        },
+                    })?
+                    .borrow()
+                    .validate_constraints(value)
+                    .change_context(TraversalError::ConstraintUnfulfilled)
+                {
+                    extend_report!(status, err);
+                }
+            }
+        } else {
+            extend_report!(status, TraversalError::AmbiguousDataType);
+        }
+
+        if let Err(err) = schema
+            .validate_constraints(value)
+            .change_context(TraversalError::ConstraintUnfulfilled)
+        {
+            extend_report!(status, err);
+        }
+
+        status
+    }
+
+    async fn visit_one_of_property<P>(
+        &mut self,
+        schema: &[PropertyValues],
+        property: &mut PropertyWithMetadataValue,
+        type_provider: &P,
+    ) -> Result<(), Report<TraversalError>>
+    where
+        P: DataTypeProvider + Sync,
+    {
+        let mut status = Ok::<_, Report<TraversalError>>(());
+
+        // We try to infer the data type ID
+        if property.metadata.data_type_id.is_none() {
+            let mut possible_data_types = HashSet::new();
+
+            for values in schema {
+                if let PropertyValues::DataTypeReference(data_type_ref) = values {
+                    let has_children = type_provider
+                        .has_children(&data_type_ref.url)
+                        .await
+                        .change_context_lazy(|| TraversalError::DataTypeRetrieval {
+                            id: data_type_ref.clone(),
+                        })?;
+                    if has_children {
+                        extend_report!(status, TraversalError::AmbiguousDataType);
+                        possible_data_types.clear();
+                        break;
+                    }
+
+                    let data_type = type_provider
+                        .provide_type(&data_type_ref.url)
+                        .await
+                        .change_context_lazy(|| TraversalError::DataTypeRetrieval {
+                            id: data_type_ref.clone(),
+                        })?;
+
+                    if !data_type.borrow().all_of.is_empty() {
+                        extend_report!(status, TraversalError::AmbiguousDataType);
+                        possible_data_types.clear();
+                        break;
+                    }
+
+                    possible_data_types.insert(data_type_ref.url.clone());
+                }
+            }
+
+            // Only if there is really a single valid data type ID, we set it. Note, that this is
+            // done before the actual validation step.
+            if possible_data_types.len() == 1 {
+                property.metadata.data_type_id = possible_data_types.into_iter().next();
+            }
+        }
+
+        if let Err(error) = walk_one_of_property_value(self, schema, property, type_provider).await
+        {
+            extend_report!(status, error);
+        }
+
+        status
+    }
+
+    async fn visit_array<T, P>(
+        &mut self,
+        schema: &ArraySchema<T>,
+        array: &mut PropertyWithMetadataArray,
+        type_provider: &P,
+    ) -> Result<(), Report<TraversalError>>
+    where
+        T: PropertyValueSchema + Sync,
+        P: DataTypeProvider + PropertyTypeProvider + Sync,
+    {
+        let mut status = walk_array(self, schema, array, type_provider).await;
+        if self.components.num_items {
+            if let Some(min) = schema.min_items {
+                if array.value.len() < min {
+                    extend_report!(
+                        status,
+                        TraversalError::TooFewItems {
+                            actual: array.value.len(),
+                            min,
+                        },
+                    );
+                }
+            }
+
+            if let Some(max) = schema.max_items {
+                if array.value.len() > max {
+                    extend_report!(
+                        status,
+                        TraversalError::TooManyItems {
+                            actual: array.value.len(),
+                            max,
+                        },
+                    );
+                }
+            }
+        }
+
+        status
+    }
+
+    async fn visit_object<T, P>(
+        &mut self,
+        schema: &T,
+        object: &mut PropertyWithMetadataObject,
+        type_provider: &P,
+    ) -> Result<(), Report<TraversalError>>
+    where
+        T: PropertyObjectSchema<Value = ValueOrArray<PropertyTypeReference>> + Sync,
+        P: DataTypeProvider + PropertyTypeProvider + Sync,
+    {
+        let mut status = walk_object(self, schema, object, type_provider).await;
+
+        if self.components.required_properties {
+            for required_property in schema.required() {
+                if !object.value.contains_key(required_property) {
+                    extend_report!(
+                        status,
+                        TraversalError::MissingRequiredProperty {
+                            key: required_property.clone(),
+                        }
+                    );
+                }
+            }
         }
 
         status

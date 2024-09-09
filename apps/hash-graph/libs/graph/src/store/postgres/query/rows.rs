@@ -4,7 +4,8 @@ use graph_types::{
         entity::{
             DraftId, EntityEditionId, EntityEditionProvenance, EntityUuid, InferredEntityProvenance,
         },
-        Confidence, PropertyMetadataObject, PropertyObject, PropertyProvenance,
+        property::{PropertyMetadataObject, PropertyObject, PropertyProvenance},
+        Confidence,
     },
     ontology::{DataTypeId, EntityTypeId, OntologyEditionProvenance, PropertyTypeId},
     owned_by_id::OwnedById,

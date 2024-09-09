@@ -17,7 +17,7 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
         entity::{EntityUuid, ProvidedEntityEditionProvenance},
-        PropertyObject, PropertyWithMetadataObject,
+        property::{PropertyObject, PropertyWithMetadataObject},
     },
     owned_by_id::OwnedById,
 };

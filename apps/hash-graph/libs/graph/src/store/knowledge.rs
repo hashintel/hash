@@ -10,8 +10,10 @@ use graph_types::{
     knowledge::{
         entity::{Entity, EntityEmbedding, EntityId, EntityUuid, ProvidedEntityEditionProvenance},
         link::LinkData,
-        Confidence, EntityTypeIdDiff, PropertyDiff, PropertyPatchOperation, PropertyPath,
-        PropertyWithMetadataObject,
+        property::{
+            PropertyDiff, PropertyPatchOperation, PropertyPath, PropertyWithMetadataObject,
+        },
+        Confidence, EntityTypeIdDiff,
     },
     owned_by_id::OwnedById,
 };
