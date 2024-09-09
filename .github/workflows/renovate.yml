@@ -35,6 +35,7 @@ on:
   schedule:
     # Run every 30 minutes
     - cron: "0/30 * * * *"
+  pull_request:
 
 env:
   cache_archive: renovate_cache.tar.gz
