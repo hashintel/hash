@@ -237,16 +237,16 @@ pub struct GetEntitiesResponse<'r> {
     pub cursor: Option<EntityQueryCursor<'r>>,
     pub count: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[schema(nullable = false)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub web_ids: Option<HashMap<OwnedById, usize>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[schema(nullable = false)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub created_by_ids: Option<HashMap<CreatedById, usize>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[schema(nullable = false)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub edition_created_by_ids: Option<HashMap<EditionCreatedById, usize>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[schema(nullable = false)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub type_ids: Option<HashMap<VersionedUrl, usize>>,
 }
 

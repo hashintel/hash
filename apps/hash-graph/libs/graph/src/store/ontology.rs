@@ -600,10 +600,10 @@ pub struct GetEntityTypesResponse {
     pub cursor: Option<EntityTypeVertexId>,
     pub count: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[schema(nullable = false)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub web_ids: Option<HashMap<OwnedById, usize>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    #[schema(nullable = false)]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub edition_created_by_ids: Option<HashMap<EditionCreatedById, usize>>,
 }
 
