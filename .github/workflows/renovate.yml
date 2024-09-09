@@ -114,6 +114,7 @@ jobs:
           RENOVATE_PLATFORM_COMMIT: enabled
           RENOVATE_REPOSITORIES: ${{ github.repository }}
           # TODO: Consider using S3 by setting `RENOVATE_REPOSITORY_CACHE_TYPE`
+          # see: https://linear.app/hash/issue/H-3315/use-s3-to-store-renovate-cache
           RENOVATE_REPOSITORY_CACHE: ${{ github.event.inputs.repoCache || 'enabled' }}
         run: renovate --token ${{ steps.app-token.outputs.token }}
 
