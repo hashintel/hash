@@ -5,7 +5,7 @@
   "license": "AGPL-3",
   "scripts": {
     "reset-database": "httpyac send --all tests/reset-database.http",
-    "test:integration": "just test-integration"
+    "test:integration": "sh test.sh"
   },
   "devDependencies": {
     "@apps/hash-graph": "0.0.0-private",

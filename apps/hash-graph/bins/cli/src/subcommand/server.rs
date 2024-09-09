@@ -60,7 +60,6 @@ impl TryFrom<ApiAddress> for SocketAddr {
 }
 
 #[derive(Debug, Parser)]
-#[expect(clippy::struct_excessive_bools, reason = "This is a CLI struct")]
 pub struct ServerArgs {
     #[clap(flatten)]
     pub db_info: DatabaseConnectionInfo,
@@ -135,7 +134,6 @@ pub struct ServerArgs {
     pub temporal_port: u16,
 }
 
-#[expect(clippy::too_many_lines)]
 pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
     if args.healthcheck {
         return wait_healthcheck(
