@@ -11,10 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       pull-requests: write
-    # Further restrict this to
+    # TODO: Further restrict this to
     # - Check the PR author (not only the actor)
     # - Check the event (only commits should trigger auto-approvals)
     # - (optional) check for green CI
+    # see: https://linear.app/hash/issue/H-3313/further-restrict-auto-approval-workflow
     if: github.actor == 'hash-worker[bot]' && startsWith(github.head_ref, 'deps/')
     steps:
       - name: Renovate
