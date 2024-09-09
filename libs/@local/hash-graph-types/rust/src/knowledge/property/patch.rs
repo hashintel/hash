@@ -1,7 +1,7 @@
 use serde::Deserialize;
 use thiserror::Error;
 
-use crate::knowledge::{PropertyPath, PropertyWithMetadata};
+use crate::knowledge::property::{PropertyPath, PropertyWithMetadata};
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]

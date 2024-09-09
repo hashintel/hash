@@ -1,6 +1,7 @@
 //! Web routes for CRU operations on entities.
 
 use alloc::sync::Arc;
+use std::collections::HashMap;
 
 use authorization::{
     backend::{ModifyRelationshipOperation, PermissionAssertion},
@@ -36,6 +37,7 @@ use graph::{
     subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
 use graph_types::{
+    account::{CreatedById, EditionCreatedById},
     knowledge::{
         entity::{
             ActorType, Entity, EntityEditionId, EntityEditionProvenance, EntityEmbedding, EntityId,
@@ -44,16 +46,21 @@ use graph_types::{
             SourceProvenance, SourceType,
         },
         link::LinkData,
-        ArrayMetadata, Confidence, EntityTypeIdDiff, ObjectMetadata, Property, PropertyDiff,
-        PropertyMetadata, PropertyMetadataObject, PropertyObject, PropertyPatchOperation,
-        PropertyPath, PropertyPathElement, PropertyProvenance, PropertyWithMetadata,
-        PropertyWithMetadataObject, ValueMetadata,
+        property::{
+            ArrayMetadata, ObjectMetadata, Property, PropertyDiff, PropertyMetadata,
+            PropertyMetadataObject, PropertyObject, PropertyPatchOperation, PropertyPath,
+            PropertyPathElement, PropertyProvenance, PropertyWithMetadata,
+            PropertyWithMetadataArray, PropertyWithMetadataObject, PropertyWithMetadataValue,
+            ValueMetadata,
+        },
+        Confidence, EntityTypeIdDiff,
     },
     owned_by_id::OwnedById,
     Embedding,
 };
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
+use type_system::url::VersionedUrl;
 use utoipa::{OpenApi, ToSchema};
 use validation::ValidateEntityComponents;
 
@@ -88,6 +95,8 @@ use crate::rest::{
         schemas(
             CreateEntityRequest,
             PropertyWithMetadata,
+            PropertyWithMetadataValue,
+            PropertyWithMetadataArray,
             PropertyWithMetadataObject,
             ValidateEntityParams,
             CountEntitiesParams,
@@ -477,6 +486,10 @@ fn generate_sorting_paths(
 
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "Parameter struct deserialized from JSON"
+)]
 struct GetEntitiesRequest<'q, 's, 'p> {
     #[serde(borrow)]
     filter: Filter<'q, Entity>,
@@ -489,6 +502,14 @@ struct GetEntitiesRequest<'q, 's, 'p> {
     cursor: Option<EntityQueryCursor<'s>>,
     #[serde(default)]
     include_count: bool,
+    #[serde(default)]
+    include_web_ids: bool,
+    #[serde(default)]
+    include_created_by_ids: bool,
+    #[serde(default)]
+    include_edition_created_by_ids: bool,
+    #[serde(default)]
+    include_type_ids: bool,
 }
 
 #[utoipa::path(
@@ -558,6 +579,10 @@ where
                 include_drafts: request.include_drafts,
                 include_count: request.include_count,
                 temporal_axes: request.temporal_axes,
+                include_web_ids: request.include_web_ids,
+                include_created_by_ids: request.include_created_by_ids,
+                include_edition_created_by_ids: request.include_edition_created_by_ids,
+                include_type_ids: request.include_type_ids,
             },
         )
         .await
@@ -566,6 +591,10 @@ where
                 entities: response.entities,
                 cursor: response.cursor.map(EntityQueryCursor::into_owned),
                 count: response.count,
+                web_ids: response.web_ids,
+                created_by_ids: response.created_by_ids,
+                edition_created_by_ids: response.edition_created_by_ids,
+                type_ids: response.type_ids,
             })
         })
         .map_err(report_to_response)
@@ -573,6 +602,10 @@ where
 
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "Parameter struct deserialized from JSON"
+)]
 struct GetEntitySubgraphRequest<'q, 's, 'p> {
     #[serde(borrow)]
     filter: Filter<'q, Entity>,
@@ -586,6 +619,14 @@ struct GetEntitySubgraphRequest<'q, 's, 'p> {
     cursor: Option<EntityQueryCursor<'s>>,
     #[serde(default)]
     include_count: bool,
+    #[serde(default)]
+    include_web_ids: bool,
+    #[serde(default)]
+    include_created_by_ids: bool,
+    #[serde(default)]
+    include_edition_created_by_ids: bool,
+    #[serde(default)]
+    include_type_ids: bool,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -595,6 +636,18 @@ struct GetEntitySubgraphResponse<'r> {
     #[serde(borrow)]
     cursor: Option<EntityQueryCursor<'r>>,
     count: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    web_ids: Option<HashMap<OwnedById, usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    created_by_ids: Option<HashMap<CreatedById, usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    edition_created_by_ids: Option<HashMap<EditionCreatedById, usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    type_ids: Option<HashMap<VersionedUrl, usize>>,
 }
 
 #[utoipa::path(
@@ -666,6 +719,10 @@ where
                 include_drafts: request.include_drafts,
                 include_count: request.include_count,
                 temporal_axes: request.temporal_axes,
+                include_web_ids: request.include_web_ids,
+                include_created_by_ids: request.include_created_by_ids,
+                include_edition_created_by_ids: request.include_edition_created_by_ids,
+                include_type_ids: request.include_type_ids,
             },
         )
         .await
@@ -674,6 +731,10 @@ where
                 subgraph: response.subgraph.into(),
                 cursor: response.cursor.map(EntityQueryCursor::into_owned),
                 count: response.count,
+                web_ids: response.web_ids,
+                created_by_ids: response.created_by_ids,
+                edition_created_by_ids: response.edition_created_by_ids,
+                type_ids: response.type_ids,
             })
         })
         .map_err(report_to_response)

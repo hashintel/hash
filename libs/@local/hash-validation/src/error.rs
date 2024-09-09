@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use error_stack::Report;
-use graph_types::knowledge::{PropertyWithMetadata, PropertyWithMetadataObject};
+use graph_types::knowledge::property::{PropertyWithMetadata, PropertyWithMetadataObject};
 use serde_json::Value as JsonValue;
 use type_system::{
     schema::{ClosedEntityType, DataType, PropertyType},

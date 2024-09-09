@@ -106,6 +106,8 @@ async fn query() {
                 limit: None,
                 include_drafts: false,
                 include_count: false,
+                include_web_ids: false,
+                include_edition_created_by_ids: false,
             },
         )
         .await
@@ -198,6 +200,8 @@ async fn update() {
                 limit: None,
                 include_drafts: false,
                 include_count: false,
+                include_web_ids: false,
+                include_edition_created_by_ids: false,
             },
         )
         .await
@@ -222,6 +226,8 @@ async fn update() {
                 limit: None,
                 include_drafts: false,
                 include_count: false,
+                include_web_ids: false,
+                include_edition_created_by_ids: false,
             },
         )
         .await

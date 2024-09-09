@@ -7,7 +7,7 @@ use graph_types::{
     knowledge::{
         entity::{EntityId, EntityUuid, ProvidedEntityEditionProvenance},
         link::LinkData,
-        PropertyObject, PropertyProvenance, PropertyWithMetadataObject,
+        property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
     },
     owned_by_id::OwnedById,
 };

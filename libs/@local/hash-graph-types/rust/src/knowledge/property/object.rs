@@ -11,9 +11,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use type_system::url::BaseUrl;
 
-use crate::knowledge::{
-    property::PropertyPathError, ObjectMetadata, Property, PropertyDiff, PropertyMetadataObject,
-    PropertyPath, PropertyPathElement, PropertyWithMetadata,
+use crate::knowledge::property::{
+    ObjectMetadata, Property, PropertyDiff, PropertyMetadataObject, PropertyPath,
+    PropertyPathElement, PropertyPathError, PropertyWithMetadata,
 };
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]

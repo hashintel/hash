@@ -15,8 +15,11 @@ use graph::{
 };
 use graph_types::{
     knowledge::{
-        entity::ProvidedEntityEditionProvenance, ObjectMetadata, PropertyProvenance,
-        PropertyWithMetadata, PropertyWithMetadataObject, ValueMetadata, ValueWithMetadata,
+        entity::ProvidedEntityEditionProvenance,
+        property::{
+            ObjectMetadata, PropertyProvenance, PropertyWithMetadata, PropertyWithMetadataObject,
+            PropertyWithMetadataValue, ValueMetadata,
+        },
     },
     ontology::{
         DataTypeId, DataTypeWithMetadata, OntologyTypeClassificationMetadata,
@@ -292,7 +295,7 @@ async fn inheritance() {
                             "http://localhost:3000/@alice/types/property-type/length/".to_owned(),
                         )
                         .expect("couldn't construct Base URL"),
-                        PropertyWithMetadata::Value(ValueWithMetadata {
+                        PropertyWithMetadata::Value(PropertyWithMetadataValue {
                             value: json!(5),
                             metadata: ValueMetadata {
                                 provenance: PropertyProvenance::default(),
@@ -332,7 +335,7 @@ async fn inheritance() {
                             "http://localhost:3000/@alice/types/property-type/length/".to_owned(),
                         )
                         .expect("couldn't construct Base URL"),
-                        PropertyWithMetadata::Value(ValueWithMetadata {
+                        PropertyWithMetadata::Value(PropertyWithMetadataValue {
                             value: json!(10),
                             metadata: ValueMetadata {
                                 provenance: PropertyProvenance::default(),
@@ -371,7 +374,7 @@ async fn inheritance() {
                         "http://localhost:3000/@alice/types/property-type/length/".to_owned(),
                     )
                     .expect("couldn't construct Base URL"),
-                    PropertyWithMetadata::Value(ValueWithMetadata {
+                    PropertyWithMetadata::Value(PropertyWithMetadataValue {
                         value: json!(10),
                         metadata: ValueMetadata {
                             provenance: PropertyProvenance::default(),

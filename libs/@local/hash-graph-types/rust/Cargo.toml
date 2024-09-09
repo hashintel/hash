@@ -33,6 +33,7 @@ uuid = { workspace = true, default-features = false, features = ["serde", "v5"] 
 
 [dev-dependencies]
 graph-test-data = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
 [features]
 postgres = ["dep:postgres-types", "temporal-versioning/postgres"]

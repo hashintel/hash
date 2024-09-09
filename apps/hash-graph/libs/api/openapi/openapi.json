@@ -4672,7 +4672,19 @@
           "includeCount": {
             "type": "boolean"
           },
+          "includeCreatedByIds": {
+            "type": "boolean"
+          },
           "includeDrafts": {
+            "type": "boolean"
+          },
+          "includeEditionCreatedByIds": {
+            "type": "boolean"
+          },
+          "includeTypeIds": {
+            "type": "boolean"
+          },
+          "includeWebIds": {
             "type": "boolean"
           },
           "limit": {
@@ -4702,6 +4714,13 @@
             "nullable": true,
             "minimum": 0
           },
+          "createdByIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
           "cursor": {
             "allOf": [
               {
@@ -4710,10 +4729,31 @@
             ],
             "nullable": true
           },
+          "editionCreatedByIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
           "entities": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Entity"
+            }
+          },
+          "typeIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "webIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
             }
           }
         }
@@ -4744,7 +4784,19 @@
           "includeCount": {
             "type": "boolean"
           },
+          "includeCreatedByIds": {
+            "type": "boolean"
+          },
           "includeDrafts": {
+            "type": "boolean"
+          },
+          "includeEditionCreatedByIds": {
+            "type": "boolean"
+          },
+          "includeTypeIds": {
+            "type": "boolean"
+          },
+          "includeWebIds": {
             "type": "boolean"
           },
           "limit": {
@@ -4774,6 +4826,13 @@
             "nullable": true,
             "minimum": 0
           },
+          "createdByIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
           "cursor": {
             "allOf": [
               {
@@ -4782,8 +4841,29 @@
             ],
             "nullable": true
           },
+          "editionCreatedByIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
           "subgraph": {
             "$ref": "#/components/schemas/Subgraph"
+          },
+          "typeIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "webIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
           }
         }
       },
@@ -4816,6 +4896,12 @@
           "includeDrafts": {
             "type": "boolean"
           },
+          "includeEditionCreatedByIds": {
+            "type": "boolean"
+          },
+          "includeWebIds": {
+            "type": "boolean"
+          },
           "limit": {
             "type": "integer",
             "nullable": true,
@@ -4831,6 +4917,11 @@
         "type": "object",
         "required": ["subgraph"],
         "properties": {
+          "count": {
+            "type": "integer",
+            "nullable": true,
+            "minimum": 0
+          },
           "cursor": {
             "allOf": [
               {
@@ -4839,8 +4930,22 @@
             ],
             "nullable": true
           },
+          "editionCreatedByIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
           "subgraph": {
             "$ref": "#/components/schemas/Subgraph"
+          },
+          "webIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
           }
         }
       },
@@ -4863,6 +4968,12 @@
             "type": "boolean"
           },
           "includeDrafts": {
+            "type": "boolean"
+          },
+          "includeEditionCreatedByIds": {
+            "type": "boolean"
+          },
+          "includeWebIds": {
             "type": "boolean"
           },
           "limit": {
@@ -4893,10 +5004,24 @@
             ],
             "nullable": true
           },
+          "editionCreatedByIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
           "entityTypes": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/EntityTypeWithMetadata"
+            }
+          },
+          "webIds": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
             }
           }
         }
@@ -6550,39 +6675,30 @@
       "PropertyWithMetadata": {
         "oneOf": [
           {
-            "type": "object",
-            "title": "PropertyWithMetadataArray",
-            "properties": {
-              "metadata": {
-                "$ref": "#/components/schemas/ArrayMetadata"
-              },
-              "value": {
-                "type": "array",
-                "items": {
-                  "$ref": "#/components/schemas/PropertyWithMetadata"
-                }
-              }
-            }
+            "$ref": "#/components/schemas/PropertyWithMetadataArray"
           },
           {
-            "type": "object",
-            "title": "PropertyWithMetadataObject",
-            "properties": {
-              "metadata": {
-                "$ref": "#/components/schemas/ObjectMetadata"
-              },
-              "value": {
-                "type": "object",
-                "additionalProperties": {
-                  "$ref": "#/components/schemas/PropertyWithMetadata"
-                }
-              }
-            }
+            "$ref": "#/components/schemas/PropertyWithMetadataObject"
           },
           {
-            "$ref": "#/components/schemas/ValueWithMetadata"
+            "$ref": "#/components/schemas/PropertyWithMetadataValue"
           }
         ]
+      },
+      "PropertyWithMetadataArray": {
+        "type": "object",
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/ArrayMetadata"
+          },
+          "value": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PropertyWithMetadata"
+            }
+          }
+        },
+        "additionalProperties": false
       },
       "PropertyWithMetadataObject": {
         "type": "object",
@@ -6596,6 +6712,17 @@
               "$ref": "#/components/schemas/PropertyWithMetadata"
             }
           }
+        },
+        "additionalProperties": false
+      },
+      "PropertyWithMetadataValue": {
+        "type": "object",
+        "required": ["value", "metadata"],
+        "properties": {
+          "metadata": {
+            "$ref": "#/components/schemas/ValueMetadata"
+          },
+          "value": {}
         },
         "additionalProperties": false
       },
@@ -7276,17 +7403,6 @@
           "provenance": {
             "$ref": "#/components/schemas/PropertyProvenance"
           }
-        },
-        "additionalProperties": false
-      },
-      "ValueWithMetadata": {
-        "type": "object",
-        "required": ["value", "metadata"],
-        "properties": {
-          "metadata": {
-            "$ref": "#/components/schemas/ValueMetadata"
-          },
-          "value": {}
         },
         "additionalProperties": false
       },

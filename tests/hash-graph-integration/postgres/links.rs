@@ -22,8 +22,9 @@ use graph::{
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
-        entity::ProvidedEntityEditionProvenance, link::LinkData, PropertyObject,
-        PropertyProvenance, PropertyWithMetadataObject,
+        entity::ProvidedEntityEditionProvenance,
+        link::LinkData,
+        property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
     },
     owned_by_id::OwnedById,
 };
@@ -213,6 +214,10 @@ async fn insert() {
                 limit: None,
                 include_count: true,
                 include_drafts: false,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
             },
         )
         .await
@@ -431,6 +436,10 @@ async fn get_entity_links() {
                 limit: None,
                 include_count: false,
                 include_drafts: false,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
             },
         )
         .await

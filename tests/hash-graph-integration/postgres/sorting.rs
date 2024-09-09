@@ -17,7 +17,7 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
         entity::{EntityUuid, ProvidedEntityEditionProvenance},
-        PropertyObject, PropertyWithMetadataObject,
+        property::{PropertyObject, PropertyWithMetadataObject},
     },
     owned_by_id::OwnedById,
 };
@@ -62,6 +62,10 @@ async fn test_root_sorting<A: AuthorizationApi>(
             entities: new_entities,
             count,
             cursor: new_cursor,
+            web_ids: _,
+            created_by_ids: _,
+            edition_created_by_ids: _,
+            type_ids: _,
         } = api
             .get_entities(
                 api.account_id,
@@ -78,6 +82,10 @@ async fn test_root_sorting<A: AuthorizationApi>(
                     limit: Some(chunk_size),
                     include_count: true,
                     include_drafts: false,
+                    include_web_ids: false,
+                    include_created_by_ids: false,
+                    include_edition_created_by_ids: false,
+                    include_type_ids: false,
                 },
             )
             .await

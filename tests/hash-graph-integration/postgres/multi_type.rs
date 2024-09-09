@@ -16,7 +16,7 @@ use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
         entity::{Entity, ProvidedEntityEditionProvenance},
-        PropertyObject, PropertyWithMetadataObject,
+        property::{PropertyObject, PropertyWithMetadataObject},
     },
     owned_by_id::OwnedById,
 };
@@ -145,6 +145,10 @@ async fn initial_person() {
                 limit: None,
                 include_count: true,
                 include_drafts: false,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
             },
         )
         .await
@@ -199,6 +203,10 @@ async fn initial_person() {
                 limit: None,
                 include_count: true,
                 include_drafts: false,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
             },
         )
         .await
@@ -221,6 +229,10 @@ async fn initial_person() {
                 limit: None,
                 include_count: true,
                 include_drafts: false,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
             },
         )
         .await
@@ -293,6 +305,10 @@ async fn create_multi() {
                 limit: None,
                 include_count: true,
                 include_drafts: false,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
             },
         )
         .await
@@ -315,6 +331,10 @@ async fn create_multi() {
                 limit: None,
                 include_count: true,
                 include_drafts: false,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
             },
         )
         .await
@@ -364,6 +384,10 @@ async fn create_multi() {
                 limit: None,
                 include_count: true,
                 include_drafts: false,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
             },
         )
         .await
