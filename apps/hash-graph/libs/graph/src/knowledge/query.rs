@@ -682,7 +682,7 @@ impl EntityQuerySortingVisitor {
     pub const EXPECTING: &'static str =
         "one of `uuid`, `archived`, `properties`, `label`, `recordCreatedAtTransactionTime`, \
          `recordCreatedAtDecisionTime`, `createdAtTransactionTime`, `createdAtDecisionTime`, \
-         `TypeTitle`";
+         `typeTitle`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
