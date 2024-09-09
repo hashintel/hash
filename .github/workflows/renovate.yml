@@ -58,12 +58,10 @@ jobs:
       - name: Authenticate Vault
         id: secrets
         uses: hashicorp/vault-action@d1720f055e0635fd932a1d2a48f87a666a57906c # v3.0.0
-        env:
-          VAULT_ROLE: "dev"
         with:
           url: ${{ secrets.VAULT_ADDR }}
           method: jwt
-          role: ${{ env.VAULT_ROLE }}
+          role: dev
           secrets: |
             automation/data/pipelines/hash/dev github_worker_app_id | GITHUB_WORKER_APP_ID ;
             automation/data/pipelines/hash/dev github_worker_app_private_key | GITHUB_WORKER_APP_PRIVATE_KEY ;
