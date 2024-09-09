@@ -7203,10 +7203,10 @@
   resolved "https://registry.yarnpkg.com/@rollup/rollup-win32-x64-msvc/-/rollup-win32-x64-msvc-4.12.0.tgz#9ffdf9ed133a7464f4ae187eb9e1294413fab235"
   integrity sha512-ZYmr5mS2wd4Dew/JjT0Fqi2NPB/ZhZ2VvPp7SmvPZb4Y1CG/LRcS6tcRo2cYU7zLK5A7cdbhWnnWmUjoI4qapg==
 
-"@rudderstack/rudder-sdk-node@2.0.9":
-  version "2.0.9"
-  resolved "https://registry.yarnpkg.com/@rudderstack/rudder-sdk-node/-/rudder-sdk-node-2.0.9.tgz#84a53f68f60b6b3ed37e42c5a44ce9b20cf3ff26"
-  integrity sha512-Icm7a2x+CrVM9cHsXDRaFqGyvlaRDdALsrhzLHyRE+gIXubzJT730+fHS8KNdv9/r4Et/Cy1epjbkT3Qagd1VQ==
+"@rudderstack/rudder-sdk-node@2.0.10":
+  version "2.0.10"
+  resolved "https://registry.yarnpkg.com/@rudderstack/rudder-sdk-node/-/rudder-sdk-node-2.0.10.tgz#f0b34a3cba4c172bc7f43a34e416c794e406393f"
+  integrity sha512-p63Om85WssDQ5AHm19gd17l/TOOLizZPWVZ0Iboqf/ft0lKECP53ckUrQ7xq0j/eUS5KwE+EbIo3N2zeq3qdyg==
   dependencies:
     axios "1.7.4"
     axios-retry "3.7.0"
