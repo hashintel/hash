@@ -9,6 +9,14 @@ publish.workspace = true
 authors.workspace = true
 description = "HASH Graph type definitions"
 
+[package.metadata.sync.turborepo]
+extra-dependencies = [
+    { name = "@local/status", version = "0.0.0-private" },
+]
+extra-dev-dependencies = [
+    { name = "@local/eslint-config", version = "0.0.0-private" },
+]
+
 [dependencies]
 # Public workspace dependencies
 hash-status = { workspace = true, public = true }

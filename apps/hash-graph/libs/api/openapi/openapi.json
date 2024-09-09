@@ -14,7 +14,10 @@
   "paths": {
     "/account_groups": {
       "post": {
-        "tags": ["Graph", "Account Group"],
+        "tags": [
+          "Graph",
+          "Account Group"
+        ],
         "operationId": "create_account_group",
         "parameters": [
           {
@@ -56,7 +59,10 @@
     },
     "/account_groups/{account_group_id}/members/{account_id}": {
       "post": {
-        "tags": ["Graph", "Account Group"],
+        "tags": [
+          "Graph",
+          "Account Group"
+        ],
         "operationId": "add_account_group_member",
         "parameters": [
           {
@@ -100,7 +106,10 @@
         }
       },
       "delete": {
-        "tags": ["Graph", "Account Group"],
+        "tags": [
+          "Graph",
+          "Account Group"
+        ],
         "operationId": "remove_account_group_member",
         "parameters": [
           {
@@ -146,7 +155,10 @@
     },
     "/account_groups/{account_group_id}/permissions/{permission}": {
       "get": {
-        "tags": ["Graph", "Account Group"],
+        "tags": [
+          "Graph",
+          "Account Group"
+        ],
         "operationId": "check_account_group_permission",
         "parameters": [
           {
@@ -196,7 +208,10 @@
     },
     "/accounts": {
       "post": {
-        "tags": ["Graph", "Account"],
+        "tags": [
+          "Graph",
+          "Account"
+        ],
         "operationId": "create_account",
         "parameters": [
           {
@@ -238,7 +253,10 @@
     },
     "/data-types": {
       "post": {
-        "tags": ["Graph", "DataType"],
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
         "operationId": "create_data_type",
         "parameters": [
           {
@@ -284,7 +302,10 @@
         }
       },
       "put": {
-        "tags": ["Graph", "DataType"],
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
         "operationId": "update_data_type",
         "parameters": [
           {
@@ -353,7 +374,10 @@
     },
     "/data-types/archive": {
       "put": {
-        "tags": ["Graph", "DataType"],
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
         "operationId": "archive_data_type",
         "parameters": [
           {
@@ -404,7 +428,10 @@
     },
     "/data-types/embeddings": {
       "post": {
-        "tags": ["Graph", "DataType"],
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
         "operationId": "update_data_type_embeddings",
         "parameters": [
           {
@@ -442,7 +469,10 @@
     },
     "/data-types/load": {
       "post": {
-        "tags": ["Graph", "DataType"],
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
         "operationId": "load_external_data_type",
         "parameters": [
           {
@@ -490,7 +520,10 @@
     },
     "/data-types/query": {
       "post": {
-        "tags": ["Graph", "DataType"],
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
         "operationId": "get_data_types",
         "parameters": [
           {
@@ -535,7 +568,10 @@
     },
     "/data-types/query/subgraph": {
       "post": {
-        "tags": ["Graph", "DataType"],
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
         "operationId": "get_data_type_subgraph",
         "parameters": [
           {
@@ -580,7 +616,10 @@
     },
     "/data-types/relationships": {
       "post": {
-        "tags": ["Graph", "DataType"],
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
         "operationId": "modify_data_type_authorization_relationships",
         "parameters": [
           {
@@ -618,7 +657,10 @@
     },
     "/data-types/unarchive": {
       "put": {
-        "tags": ["Graph", "DataType"],
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
         "operationId": "unarchive_data_type",
         "parameters": [
           {
@@ -669,7 +711,10 @@
     },
     "/data-types/{data_type_id}/permissions/{permission}": {
       "get": {
-        "tags": ["Graph", "DataType"],
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
         "operationId": "check_data_type_permission",
         "parameters": [
           {
@@ -719,7 +764,10 @@
     },
     "/data-types/{data_type_id}/relationships": {
       "get": {
-        "tags": ["Graph", "DataType"],
+        "tags": [
+          "Graph",
+          "DataType"
+        ],
         "operationId": "get_data_type_authorization_relationships",
         "parameters": [
           {
@@ -763,7 +811,10 @@
     },
     "/entities": {
       "post": {
-        "tags": ["Graph", "Entity"],
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
         "operationId": "create_entity",
         "parameters": [
           {
@@ -809,7 +860,10 @@
         }
       },
       "patch": {
-        "tags": ["Graph", "Entity"],
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
         "operationId": "patch_entity",
         "parameters": [
           {
@@ -860,7 +914,10 @@
     },
     "/entities/bulk": {
       "post": {
-        "tags": ["Graph", "Entity"],
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
         "operationId": "create_entities",
         "parameters": [
           {
@@ -914,7 +971,10 @@
     },
     "/entities/diff": {
       "post": {
-        "tags": ["Graph", "Entity"],
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
         "operationId": "diff_entity",
         "parameters": [
           {
@@ -962,7 +1022,10 @@
     },
     "/entities/embeddings": {
       "post": {
-        "tags": ["Graph", "Entity"],
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
         "operationId": "update_entity_embeddings",
         "parameters": [
           {
@@ -1000,7 +1063,10 @@
     },
     "/entities/query": {
       "post": {
-        "tags": ["Graph", "Entity"],
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
         "operationId": "get_entities",
         "parameters": [
           {
@@ -1066,7 +1132,10 @@
     },
     "/entities/query/count": {
       "post": {
-        "tags": ["Graph", "Entity"],
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
         "operationId": "count_entities",
         "parameters": [
           {
@@ -1112,7 +1181,10 @@
     },
     "/entities/query/subgraph": {
       "post": {
-        "tags": ["Graph", "Entity"],
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
         "operationId": "get_entity_subgraph",
         "parameters": [
           {
@@ -1178,7 +1250,10 @@
     },
     "/entities/relationships": {
       "post": {
-        "tags": ["Graph", "Entity"],
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
         "operationId": "modify_entity_authorization_relationships",
         "parameters": [
           {
@@ -1216,7 +1291,10 @@
     },
     "/entities/validate": {
       "post": {
-        "tags": ["Graph", "Entity"],
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
         "operationId": "validate_entity",
         "parameters": [
           {
@@ -1257,7 +1335,10 @@
     },
     "/entities/{entity_id}/administrators/{administrator}": {
       "post": {
-        "tags": ["Graph", "Entity"],
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
         "operationId": "add_entity_administrator",
         "parameters": [
           {
@@ -1298,7 +1379,10 @@
         }
       },
       "delete": {
-        "tags": ["Graph", "Entity"],
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
         "operationId": "remove_entity_administrator",
         "parameters": [
           {
@@ -1341,7 +1425,10 @@
     },
     "/entities/{entity_id}/editors/{editor}": {
       "post": {
-        "tags": ["Graph", "Entity"],
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
         "operationId": "add_entity_editor",
         "parameters": [
           {
@@ -1382,7 +1469,10 @@
         }
       },
       "delete": {
-        "tags": ["Graph", "Entity"],
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
         "operationId": "remove_entity_editor",
         "parameters": [
           {
@@ -1425,7 +1515,10 @@
     },
     "/entities/{entity_id}/permissions/{permission}": {
       "get": {
-        "tags": ["Graph", "Entity"],
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
         "operationId": "check_entity_permission",
         "parameters": [
           {
@@ -1475,7 +1568,10 @@
     },
     "/entities/{entity_id}/relationships": {
       "get": {
-        "tags": ["Graph", "Entity"],
+        "tags": [
+          "Graph",
+          "Entity"
+        ],
         "operationId": "get_entity_authorization_relationships",
         "parameters": [
           {
@@ -1519,7 +1615,10 @@
     },
     "/entity-types": {
       "post": {
-        "tags": ["Graph", "EntityType"],
+        "tags": [
+          "Graph",
+          "EntityType"
+        ],
         "operationId": "create_entity_type",
         "parameters": [
           {
@@ -1586,7 +1685,10 @@
         }
       },
       "put": {
-        "tags": ["Graph", "EntityType"],
+        "tags": [
+          "Graph",
+          "EntityType"
+        ],
         "operationId": "update_entity_type",
         "parameters": [
           {
@@ -1655,7 +1757,10 @@
     },
     "/entity-types/archive": {
       "put": {
-        "tags": ["Graph", "EntityType"],
+        "tags": [
+          "Graph",
+          "EntityType"
+        ],
         "operationId": "archive_entity_type",
         "parameters": [
           {
@@ -1706,7 +1811,10 @@
     },
     "/entity-types/embeddings": {
       "post": {
-        "tags": ["Graph", "EntityType"],
+        "tags": [
+          "Graph",
+          "EntityType"
+        ],
         "operationId": "update_entity_type_embeddings",
         "parameters": [
           {
@@ -1744,7 +1852,10 @@
     },
     "/entity-types/load": {
       "post": {
-        "tags": ["Graph", "EntityType"],
+        "tags": [
+          "Graph",
+          "EntityType"
+        ],
         "operationId": "load_external_entity_type",
         "parameters": [
           {
@@ -1813,7 +1924,10 @@
     },
     "/entity-types/query": {
       "post": {
-        "tags": ["Graph", "EntityType"],
+        "tags": [
+          "Graph",
+          "EntityType"
+        ],
         "operationId": "get_entity_types",
         "parameters": [
           {
@@ -1858,7 +1972,10 @@
     },
     "/entity-types/query/subgraph": {
       "post": {
-        "tags": ["Graph", "EntityType"],
+        "tags": [
+          "Graph",
+          "EntityType"
+        ],
         "operationId": "get_entity_type_subgraph",
         "parameters": [
           {
@@ -1903,7 +2020,10 @@
     },
     "/entity-types/relationships": {
       "post": {
-        "tags": ["Graph", "EntityType"],
+        "tags": [
+          "Graph",
+          "EntityType"
+        ],
         "operationId": "modify_entity_type_authorization_relationships",
         "parameters": [
           {
@@ -1941,7 +2061,10 @@
     },
     "/entity-types/unarchive": {
       "put": {
-        "tags": ["Graph", "EntityType"],
+        "tags": [
+          "Graph",
+          "EntityType"
+        ],
         "operationId": "unarchive_entity_type",
         "parameters": [
           {
@@ -1992,7 +2115,10 @@
     },
     "/entity-types/{entity_type_id}/permissions/{permission}": {
       "get": {
-        "tags": ["Graph", "EntityType"],
+        "tags": [
+          "Graph",
+          "EntityType"
+        ],
         "operationId": "check_entity_type_permission",
         "parameters": [
           {
@@ -2042,7 +2168,10 @@
     },
     "/entity-types/{entity_type_id}/relationships": {
       "get": {
-        "tags": ["Graph", "EntityType"],
+        "tags": [
+          "Graph",
+          "EntityType"
+        ],
         "operationId": "get_entity_type_authorization_relationships",
         "parameters": [
           {
@@ -2086,7 +2215,10 @@
     },
     "/property-types": {
       "post": {
-        "tags": ["Graph", "PropertyType"],
+        "tags": [
+          "Graph",
+          "PropertyType"
+        ],
         "operationId": "create_property_type",
         "parameters": [
           {
@@ -2132,7 +2264,10 @@
         }
       },
       "put": {
-        "tags": ["Graph", "PropertyType"],
+        "tags": [
+          "Graph",
+          "PropertyType"
+        ],
         "operationId": "update_property_type",
         "parameters": [
           {
@@ -2201,7 +2336,10 @@
     },
     "/property-types/archive": {
       "put": {
-        "tags": ["Graph", "PropertyType"],
+        "tags": [
+          "Graph",
+          "PropertyType"
+        ],
         "operationId": "archive_property_type",
         "parameters": [
           {
@@ -2252,7 +2390,10 @@
     },
     "/property-types/embeddings": {
       "post": {
-        "tags": ["Graph", "PropertyType"],
+        "tags": [
+          "Graph",
+          "PropertyType"
+        ],
         "operationId": "update_property_type_embeddings",
         "parameters": [
           {
@@ -2290,7 +2431,10 @@
     },
     "/property-types/load": {
       "post": {
-        "tags": ["Graph", "PropertyType"],
+        "tags": [
+          "Graph",
+          "PropertyType"
+        ],
         "operationId": "load_external_property_type",
         "parameters": [
           {
@@ -2338,7 +2482,10 @@
     },
     "/property-types/query": {
       "post": {
-        "tags": ["Graph", "PropertyType"],
+        "tags": [
+          "Graph",
+          "PropertyType"
+        ],
         "operationId": "get_property_types",
         "parameters": [
           {
@@ -2383,7 +2530,10 @@
     },
     "/property-types/query/subgraph": {
       "post": {
-        "tags": ["Graph", "PropertyType"],
+        "tags": [
+          "Graph",
+          "PropertyType"
+        ],
         "operationId": "get_property_type_subgraph",
         "parameters": [
           {
@@ -2436,7 +2586,10 @@
     },
     "/property-types/relationships": {
       "post": {
-        "tags": ["Graph", "PropertyType"],
+        "tags": [
+          "Graph",
+          "PropertyType"
+        ],
         "operationId": "modify_property_type_authorization_relationships",
         "parameters": [
           {
@@ -2474,7 +2627,10 @@
     },
     "/property-types/unarchive": {
       "put": {
-        "tags": ["Graph", "PropertyType"],
+        "tags": [
+          "Graph",
+          "PropertyType"
+        ],
         "operationId": "unarchive_property_type",
         "parameters": [
           {
@@ -2525,7 +2681,10 @@
     },
     "/property-types/{property_type_id}/permissions/{permission}": {
       "get": {
-        "tags": ["Graph", "PropertyType"],
+        "tags": [
+          "Graph",
+          "PropertyType"
+        ],
         "operationId": "check_property_type_permission",
         "parameters": [
           {
@@ -2575,7 +2734,10 @@
     },
     "/property-types/{property_type_id}/relationships": {
       "get": {
-        "tags": ["Graph", "PropertyType"],
+        "tags": [
+          "Graph",
+          "PropertyType"
+        ],
         "operationId": "get_property_type_authorization_relationships",
         "parameters": [
           {
@@ -2619,7 +2781,10 @@
     },
     "/webs": {
       "post": {
-        "tags": ["Graph", "Web"],
+        "tags": [
+          "Graph",
+          "Web"
+        ],
         "operationId": "create_web",
         "parameters": [
           {
@@ -2654,7 +2819,10 @@
     },
     "/webs/relationships": {
       "post": {
-        "tags": ["Graph", "Web"],
+        "tags": [
+          "Graph",
+          "Web"
+        ],
         "operationId": "modify_web_authorization_relationships",
         "parameters": [
           {
@@ -2692,7 +2860,10 @@
     },
     "/webs/{web_id}/permissions/{permission}": {
       "get": {
-        "tags": ["Graph", "Web"],
+        "tags": [
+          "Graph",
+          "Web"
+        ],
         "operationId": "check_web_permission",
         "parameters": [
           {
@@ -2742,7 +2913,10 @@
     },
     "/webs/{web_id}/relationships": {
       "get": {
-        "tags": ["Graph", "Web"],
+        "tags": [
+          "Graph",
+          "Web"
+        ],
         "operationId": "get_web_authorization_relationships",
         "parameters": [
           {
@@ -2793,7 +2967,10 @@
       },
       "AccountGroupPermission": {
         "type": "string",
-        "enum": ["add_member", "remove_member"]
+        "enum": [
+          "add_member",
+          "remove_member"
+        ]
       },
       "AccountId": {
         "type": "string",
@@ -2801,11 +2978,17 @@
       },
       "ActorType": {
         "type": "string",
-        "enum": ["human", "ai", "machine"]
+        "enum": [
+          "human",
+          "ai",
+          "machine"
+        ]
       },
       "ArchiveDataTypeParams": {
         "type": "object",
-        "required": ["dataTypeId"],
+        "required": [
+          "dataTypeId"
+        ],
         "properties": {
           "dataTypeId": {
             "$ref": "#/components/schemas/VersionedUrl"
@@ -2815,7 +2998,9 @@
       },
       "ArchiveEntityTypeParams": {
         "type": "object",
-        "required": ["entityTypeId"],
+        "required": [
+          "entityTypeId"
+        ],
         "properties": {
           "entityTypeId": {
             "$ref": "#/components/schemas/VersionedUrl"
@@ -2825,7 +3010,9 @@
       },
       "ArchivePropertyTypeParams": {
         "type": "object",
-        "required": ["propertyTypeId"],
+        "required": [
+          "propertyTypeId"
+        ],
         "properties": {
           "propertyTypeId": {
             "$ref": "#/components/schemas/VersionedUrl"
@@ -2858,11 +3045,16 @@
           {
             "type": "object",
             "title": "InclusiveBound",
-            "required": ["kind", "limit"],
+            "required": [
+              "kind",
+              "limit"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["inclusive"]
+                "enum": [
+                  "inclusive"
+                ]
               },
               "limit": {
                 "$ref": "#/components/schemas/Timestamp"
@@ -2882,7 +3074,9 @@
       },
       "ConversionDefinition": {
         "type": "object",
-        "required": ["expression"],
+        "required": [
+          "expression"
+        ],
         "properties": {
           "expression": {
             "$ref": "#/components/schemas/ConversionExpression"
@@ -2912,7 +3106,10 @@
           },
           {
             "type": "object",
-            "required": ["const", "type"],
+            "required": [
+              "const",
+              "type"
+            ],
             "properties": {
               "const": {
                 "type": "number",
@@ -2920,7 +3117,9 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["number"]
+                "enum": [
+                  "number"
+                ]
               }
             }
           },
@@ -2931,7 +3130,10 @@
       },
       "Conversions": {
         "type": "object",
-        "required": ["from", "to"],
+        "required": [
+          "from",
+          "to"
+        ],
         "properties": {
           "from": {
             "$ref": "#/components/schemas/ConversionDefinition"
@@ -2944,7 +3146,11 @@
       },
       "CountEntitiesParams": {
         "type": "object",
-        "required": ["filter", "temporalAxes", "includeDrafts"],
+        "required": [
+          "filter",
+          "temporalAxes",
+          "includeDrafts"
+        ],
         "properties": {
           "filter": {
             "$ref": "#/components/schemas/Filter"
@@ -2960,7 +3166,12 @@
       },
       "CreateDataTypeRequest": {
         "type": "object",
-        "required": ["schema", "ownedById", "relationships", "conversions"],
+        "required": [
+          "schema",
+          "ownedById",
+          "relationships",
+          "conversions"
+        ],
         "properties": {
           "conversions": {
             "type": "object",
@@ -3063,7 +3274,11 @@
       },
       "CreateEntityTypeRequest": {
         "type": "object",
-        "required": ["schema", "ownedById", "relationships"],
+        "required": [
+          "schema",
+          "ownedById",
+          "relationships"
+        ],
         "properties": {
           "icon": {
             "type": "string",
@@ -3107,7 +3322,11 @@
       },
       "CreatePropertyTypeRequest": {
         "type": "object",
-        "required": ["schema", "ownedById", "relationships"],
+        "required": [
+          "schema",
+          "ownedById",
+          "relationships"
+        ],
         "properties": {
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
@@ -3197,11 +3416,16 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["web"]
+                "enum": [
+                  "web"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/OwnedById"
@@ -3215,7 +3439,10 @@
       },
       "DataTypePermission": {
         "type": "string",
-        "enum": ["update", "view"]
+        "enum": [
+          "update",
+          "view"
+        ]
       },
       "DataTypeQueryToken": {
         "type": "string",
@@ -3238,11 +3465,16 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["subject", "relation"],
+            "required": [
+              "subject",
+              "relation"
+            ],
             "properties": {
               "relation": {
                 "type": "string",
-                "enum": ["owner"]
+                "enum": [
+                  "owner"
+                ]
               },
               "subject": {
                 "$ref": "#/components/schemas/DataTypeOwnerSubject"
@@ -3251,11 +3483,16 @@
           },
           {
             "type": "object",
-            "required": ["subject", "relation"],
+            "required": [
+              "subject",
+              "relation"
+            ],
             "properties": {
               "relation": {
                 "type": "string",
-                "enum": ["viewer"]
+                "enum": [
+                  "viewer"
+                ]
               },
               "subject": {
                 "$ref": "#/components/schemas/DataTypeViewerSubject"
@@ -3269,7 +3506,10 @@
       },
       "DataTypeVertexId": {
         "type": "object",
-        "required": ["baseId", "revisionId"],
+        "required": [
+          "baseId",
+          "revisionId"
+        ],
         "properties": {
           "baseId": {
             "$ref": "#/components/schemas/BaseUrl"
@@ -3283,11 +3523,15 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["kind"],
+            "required": [
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["public"]
+                "enum": [
+                  "public"
+                ]
               }
             }
           }
@@ -3295,7 +3539,10 @@
       },
       "DataTypeWithMetadata": {
         "type": "object",
-        "required": ["schema", "metadata"],
+        "required": [
+          "schema",
+          "metadata"
+        ],
         "properties": {
           "metadata": {
             "$ref": "#/components/schemas/DataTypeMetadata"
@@ -3308,7 +3555,9 @@
       "DecisionTime": {
         "type": "string",
         "description": "Time axis for the decision time.\n\nThis is used as the generic argument to time-related structs and can be used as tag value.",
-        "enum": ["decisionTime"]
+        "enum": [
+          "decisionTime"
+        ]
       },
       "DiffEntityParams": {
         "type": "object",
@@ -3385,7 +3634,10 @@
       },
       "EdgeResolveDepths": {
         "type": "object",
-        "required": ["incoming", "outgoing"],
+        "required": [
+          "incoming",
+          "outgoing"
+        ],
         "properties": {
           "incoming": {
             "type": "integer",
@@ -3437,7 +3689,10 @@
       "Entity": {
         "type": "object",
         "description": "A record of an [`Entity`] that has been persisted in the datastore, with its associated\nmetadata.",
-        "required": ["properties", "metadata"],
+        "required": [
+          "properties",
+          "metadata"
+        ],
         "properties": {
           "linkData": {
             "allOf": [
@@ -3458,11 +3713,16 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["account"]
+                "enum": [
+                  "account"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountId"
@@ -3471,11 +3731,17 @@
           },
           {
             "type": "object",
-            "required": ["subjectId", "subjectSet", "kind"],
+            "required": [
+              "subjectId",
+              "subjectSet",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["accountGroup"]
+                "enum": [
+                  "accountGroup"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountGroupId"
@@ -3501,7 +3767,9 @@
           },
           {
             "type": "object",
-            "required": ["createdById"],
+            "required": [
+              "createdById"
+            ],
             "properties": {
               "archivedById": {
                 "allOf": [
@@ -3521,11 +3789,16 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["account"]
+                "enum": [
+                  "account"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountId"
@@ -3534,11 +3807,17 @@
           },
           {
             "type": "object",
-            "required": ["subjectId", "subjectSet", "kind"],
+            "required": [
+              "subjectId",
+              "subjectSet",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["accountGroup"]
+                "enum": [
+                  "accountGroup"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountGroupId"
@@ -3555,7 +3834,9 @@
       },
       "EntityEmbedding": {
         "type": "object",
-        "required": ["embedding"],
+        "required": [
+          "embedding"
+        ],
         "properties": {
           "embedding": {
             "$ref": "#/components/schemas/Embedding"
@@ -3575,7 +3856,10 @@
       },
       "EntityIdWithInterval": {
         "type": "object",
-        "required": ["entityId", "interval"],
+        "required": [
+          "entityId",
+          "interval"
+        ],
         "properties": {
           "entityId": {
             "$ref": "#/components/schemas/EntityId"
@@ -3631,11 +3915,16 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["web"]
+                "enum": [
+                  "web"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/OwnedById"
@@ -3649,7 +3938,11 @@
       },
       "EntityPermission": {
         "type": "string",
-        "enum": ["full_access", "update", "view"]
+        "enum": [
+          "full_access",
+          "update",
+          "view"
+        ]
       },
       "EntityProvenance": {
         "allOf": [
@@ -3658,7 +3951,9 @@
           },
           {
             "type": "object",
-            "required": ["edition"],
+            "required": [
+              "edition"
+            ],
             "properties": {
               "edition": {
                 "$ref": "#/components/schemas/EntityEditionProvenance"
@@ -3691,7 +3986,11 @@
       },
       "EntityQuerySortingRecord": {
         "type": "object",
-        "required": ["path", "ordering", "nulls"],
+        "required": [
+          "path",
+          "ordering",
+          "nulls"
+        ],
         "properties": {
           "nulls": {
             "$ref": "#/components/schemas/NullOrdering"
@@ -3737,7 +4036,10 @@
       },
       "EntityRecordId": {
         "type": "object",
-        "required": ["entityId", "editionId"],
+        "required": [
+          "entityId",
+          "editionId"
+        ],
         "properties": {
           "editionId": {
             "$ref": "#/components/schemas/EntityEditionId"
@@ -3751,11 +4053,16 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["subject", "relation"],
+            "required": [
+              "subject",
+              "relation"
+            ],
             "properties": {
               "relation": {
                 "type": "string",
-                "enum": ["setting"]
+                "enum": [
+                  "setting"
+                ]
               },
               "subject": {
                 "$ref": "#/components/schemas/EntitySettingSubject"
@@ -3764,11 +4071,16 @@
           },
           {
             "type": "object",
-            "required": ["subject", "relation"],
+            "required": [
+              "subject",
+              "relation"
+            ],
             "properties": {
               "relation": {
                 "type": "string",
-                "enum": ["owner"]
+                "enum": [
+                  "owner"
+                ]
               },
               "subject": {
                 "$ref": "#/components/schemas/EntityOwnerSubject"
@@ -3777,11 +4089,16 @@
           },
           {
             "type": "object",
-            "required": ["subject", "relation"],
+            "required": [
+              "subject",
+              "relation"
+            ],
             "properties": {
               "relation": {
                 "type": "string",
-                "enum": ["administrator"]
+                "enum": [
+                  "administrator"
+                ]
               },
               "subject": {
                 "$ref": "#/components/schemas/EntityAdministratorSubject"
@@ -3790,11 +4107,16 @@
           },
           {
             "type": "object",
-            "required": ["subject", "relation"],
+            "required": [
+              "subject",
+              "relation"
+            ],
             "properties": {
               "relation": {
                 "type": "string",
-                "enum": ["editor"]
+                "enum": [
+                  "editor"
+                ]
               },
               "subject": {
                 "$ref": "#/components/schemas/EntityEditorSubject"
@@ -3803,11 +4125,16 @@
           },
           {
             "type": "object",
-            "required": ["subject", "relation"],
+            "required": [
+              "subject",
+              "relation"
+            ],
             "properties": {
               "relation": {
                 "type": "string",
-                "enum": ["viewer"]
+                "enum": [
+                  "viewer"
+                ]
               },
               "subject": {
                 "$ref": "#/components/schemas/EntityViewerSubject"
@@ -3821,17 +4148,26 @@
       },
       "EntitySetting": {
         "type": "string",
-        "enum": ["administratorFromWeb", "updateFromWeb", "viewFromWeb"]
+        "enum": [
+          "administratorFromWeb",
+          "updateFromWeb",
+          "viewFromWeb"
+        ]
       },
       "EntitySettingSubject": {
         "oneOf": [
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["setting"]
+                "enum": [
+                  "setting"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/EntitySetting"
@@ -3845,11 +4181,17 @@
       },
       "EntitySubjectSet": {
         "type": "string",
-        "enum": ["administrator", "member"]
+        "enum": [
+          "administrator",
+          "member"
+        ]
       },
       "EntityTemporalMetadata": {
         "type": "object",
-        "required": ["decisionTime", "transactionTime"],
+        "required": [
+          "decisionTime",
+          "transactionTime"
+        ],
         "properties": {
           "decisionTime": {
             "$ref": "#/components/schemas/LeftClosedTemporalInterval"
@@ -3864,11 +4206,16 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["account"]
+                "enum": [
+                  "account"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountId"
@@ -3877,11 +4224,16 @@
           },
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["accountGroup"]
+                "enum": [
+                  "accountGroup"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountGroupId"
@@ -3895,7 +4247,10 @@
       },
       "EntityTypeEmbedding": {
         "type": "object",
-        "required": ["entityTypeId", "embedding"],
+        "required": [
+          "entityTypeId",
+          "embedding"
+        ],
         "properties": {
           "embedding": {
             "$ref": "#/components/schemas/Embedding"
@@ -3909,24 +4264,34 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["added", "op"],
+            "required": [
+              "added",
+              "op"
+            ],
             "properties": {
               "added": {
                 "$ref": "#/components/schemas/VersionedUrl"
               },
               "op": {
                 "type": "string",
-                "enum": ["added"]
+                "enum": [
+                  "added"
+                ]
               }
             }
           },
           {
             "type": "object",
-            "required": ["removed", "op"],
+            "required": [
+              "removed",
+              "op"
+            ],
             "properties": {
               "op": {
                 "type": "string",
-                "enum": ["removed"]
+                "enum": [
+                  "removed"
+                ]
               },
               "removed": {
                 "$ref": "#/components/schemas/VersionedUrl"
@@ -3942,21 +4307,30 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["kind"],
+            "required": [
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["public"]
+                "enum": [
+                  "public"
+                ]
               }
             }
           },
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["account"]
+                "enum": [
+                  "account"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountId"
@@ -3965,11 +4339,16 @@
           },
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["accountGroup"]
+                "enum": [
+                  "accountGroup"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountGroupId"
@@ -4049,11 +4428,16 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["web"]
+                "enum": [
+                  "web"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/OwnedById"
@@ -4067,7 +4451,11 @@
       },
       "EntityTypePermission": {
         "type": "string",
-        "enum": ["update", "view", "instantiate"]
+        "enum": [
+          "update",
+          "view",
+          "instantiate"
+        ]
       },
       "EntityTypeQueryToken": {
         "type": "string",
@@ -4095,11 +4483,16 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["subject", "relation"],
+            "required": [
+              "subject",
+              "relation"
+            ],
             "properties": {
               "relation": {
                 "type": "string",
-                "enum": ["owner"]
+                "enum": [
+                  "owner"
+                ]
               },
               "subject": {
                 "$ref": "#/components/schemas/EntityTypeOwnerSubject"
@@ -4108,11 +4501,16 @@
           },
           {
             "type": "object",
-            "required": ["subject", "relation"],
+            "required": [
+              "subject",
+              "relation"
+            ],
             "properties": {
               "relation": {
                 "type": "string",
-                "enum": ["setting"]
+                "enum": [
+                  "setting"
+                ]
               },
               "subject": {
                 "$ref": "#/components/schemas/EntityTypeSettingSubject"
@@ -4121,11 +4519,16 @@
           },
           {
             "type": "object",
-            "required": ["subject", "relation"],
+            "required": [
+              "subject",
+              "relation"
+            ],
             "properties": {
               "relation": {
                 "type": "string",
-                "enum": ["editor"]
+                "enum": [
+                  "editor"
+                ]
               },
               "subject": {
                 "$ref": "#/components/schemas/EntityTypeEditorSubject"
@@ -4134,11 +4537,16 @@
           },
           {
             "type": "object",
-            "required": ["subject", "relation"],
+            "required": [
+              "subject",
+              "relation"
+            ],
             "properties": {
               "relation": {
                 "type": "string",
-                "enum": ["viewer"]
+                "enum": [
+                  "viewer"
+                ]
               },
               "subject": {
                 "$ref": "#/components/schemas/EntityTypeViewerSubject"
@@ -4147,11 +4555,16 @@
           },
           {
             "type": "object",
-            "required": ["subject", "relation"],
+            "required": [
+              "subject",
+              "relation"
+            ],
             "properties": {
               "relation": {
                 "type": "string",
-                "enum": ["instantiator"]
+                "enum": [
+                  "instantiator"
+                ]
               },
               "subject": {
                 "$ref": "#/components/schemas/EntityTypeInstantiatorSubject"
@@ -4165,17 +4578,24 @@
       },
       "EntityTypeSetting": {
         "type": "string",
-        "enum": ["updateFromWeb"]
+        "enum": [
+          "updateFromWeb"
+        ]
       },
       "EntityTypeSettingSubject": {
         "oneOf": [
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["setting"]
+                "enum": [
+                  "setting"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/EntityTypeSetting"
@@ -4189,7 +4609,10 @@
       },
       "EntityTypeVertexId": {
         "type": "object",
-        "required": ["baseId", "revisionId"],
+        "required": [
+          "baseId",
+          "revisionId"
+        ],
         "properties": {
           "baseId": {
             "$ref": "#/components/schemas/BaseUrl"
@@ -4203,11 +4626,15 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["kind"],
+            "required": [
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["public"]
+                "enum": [
+                  "public"
+                ]
               }
             }
           }
@@ -4215,7 +4642,10 @@
       },
       "EntityTypeWithMetadata": {
         "type": "object",
-        "required": ["schema", "metadata"],
+        "required": [
+          "schema",
+          "metadata"
+        ],
         "properties": {
           "metadata": {
             "$ref": "#/components/schemas/EntityTypeMetadata"
@@ -4247,7 +4677,10 @@
       },
       "EntityVertexId": {
         "type": "object",
-        "required": ["baseId", "revisionId"],
+        "required": [
+          "baseId",
+          "revisionId"
+        ],
         "properties": {
           "baseId": {
             "$ref": "#/components/schemas/EntityId"
@@ -4261,21 +4694,30 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["kind"],
+            "required": [
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["public"]
+                "enum": [
+                  "public"
+                ]
               }
             }
           },
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["account"]
+                "enum": [
+                  "account"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountId"
@@ -4284,11 +4726,17 @@
           },
           {
             "type": "object",
-            "required": ["subjectId", "subjectSet", "kind"],
+            "required": [
+              "subjectId",
+              "subjectSet",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["accountGroup"]
+                "enum": [
+                  "accountGroup"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountGroupId"
@@ -4308,7 +4756,9 @@
           {
             "type": "object",
             "title": "AllFilter",
-            "required": ["all"],
+            "required": [
+              "all"
+            ],
             "properties": {
               "all": {
                 "type": "array",
@@ -4321,7 +4771,9 @@
           {
             "type": "object",
             "title": "AnyFilter",
-            "required": ["any"],
+            "required": [
+              "any"
+            ],
             "properties": {
               "any": {
                 "type": "array",
@@ -4334,7 +4786,9 @@
           {
             "type": "object",
             "title": "NotFilter",
-            "required": ["not"],
+            "required": [
+              "not"
+            ],
             "properties": {
               "not": {
                 "$ref": "#/components/schemas/Filter"
@@ -4344,7 +4798,9 @@
           {
             "type": "object",
             "title": "EqualFilter",
-            "required": ["equal"],
+            "required": [
+              "equal"
+            ],
             "properties": {
               "equal": {
                 "type": "array",
@@ -4359,7 +4815,9 @@
           {
             "type": "object",
             "title": "NotEqualFilter",
-            "required": ["notEqual"],
+            "required": [
+              "notEqual"
+            ],
             "properties": {
               "notEqual": {
                 "type": "array",
@@ -4374,7 +4832,9 @@
           {
             "type": "object",
             "title": "GreaterFilter",
-            "required": ["notEqual"],
+            "required": [
+              "notEqual"
+            ],
             "properties": {
               "greater": {
                 "type": "array",
@@ -4389,7 +4849,9 @@
           {
             "type": "object",
             "title": "GreaterOrEqualFilter",
-            "required": ["notEqual"],
+            "required": [
+              "notEqual"
+            ],
             "properties": {
               "greaterOrEqual": {
                 "type": "array",
@@ -4404,7 +4866,9 @@
           {
             "type": "object",
             "title": "LessFilter",
-            "required": ["notEqual"],
+            "required": [
+              "notEqual"
+            ],
             "properties": {
               "less": {
                 "type": "array",
@@ -4419,7 +4883,9 @@
           {
             "type": "object",
             "title": "LessOrEqualFilter",
-            "required": ["notEqual"],
+            "required": [
+              "notEqual"
+            ],
             "properties": {
               "lessOrEqual": {
                 "type": "array",
@@ -4434,7 +4900,9 @@
           {
             "type": "object",
             "title": "CosineDistanceFilter",
-            "required": ["cosineDistance"],
+            "required": [
+              "cosineDistance"
+            ],
             "properties": {
               "cosineDistance": {
                 "type": "array",
@@ -4449,7 +4917,9 @@
           {
             "type": "object",
             "title": "StartsWithFilter",
-            "required": ["startsWith"],
+            "required": [
+              "startsWith"
+            ],
             "properties": {
               "startsWith": {
                 "type": "array",
@@ -4464,7 +4934,9 @@
           {
             "type": "object",
             "title": "EndsWithFilter",
-            "required": ["endsWith"],
+            "required": [
+              "endsWith"
+            ],
             "properties": {
               "endsWith": {
                 "type": "array",
@@ -4479,7 +4951,9 @@
           {
             "type": "object",
             "title": "ContainsSegmentFilter",
-            "required": ["containsSegment"],
+            "required": [
+              "containsSegment"
+            ],
             "properties": {
               "containsSegment": {
                 "type": "array",
@@ -4498,7 +4972,9 @@
           {
             "type": "object",
             "title": "PathExpression",
-            "required": ["path"],
+            "required": [
+              "path"
+            ],
             "properties": {
               "path": {
                 "type": "array",
@@ -4533,7 +5009,9 @@
           {
             "type": "object",
             "title": "ParameterExpression",
-            "required": ["parameter"],
+            "required": [
+              "parameter"
+            ],
             "properties": {
               "parameter": {}
             }
@@ -4582,7 +5060,9 @@
       },
       "GetDataTypeSubgraphResponse": {
         "type": "object",
-        "required": ["subgraph"],
+        "required": [
+          "subgraph"
+        ],
         "properties": {
           "cursor": {
             "allOf": [
@@ -4599,7 +5079,11 @@
       },
       "GetDataTypesParams": {
         "type": "object",
-        "required": ["filter", "temporalAxes", "includeDrafts"],
+        "required": [
+          "filter",
+          "temporalAxes",
+          "includeDrafts"
+        ],
         "properties": {
           "after": {
             "allOf": [
@@ -4631,7 +5115,9 @@
       },
       "GetDataTypesResponse": {
         "type": "object",
-        "required": ["dataTypes"],
+        "required": [
+          "dataTypes"
+        ],
         "properties": {
           "count": {
             "type": "integer",
@@ -4656,7 +5142,11 @@
       },
       "GetEntitiesRequest": {
         "type": "object",
-        "required": ["filter", "temporalAxes", "includeDrafts"],
+        "required": [
+          "filter",
+          "temporalAxes",
+          "includeDrafts"
+        ],
         "properties": {
           "cursor": {
             "allOf": [
@@ -4707,7 +5197,9 @@
       },
       "GetEntitiesResponse": {
         "type": "object",
-        "required": ["entities"],
+        "required": [
+          "entities"
+        ],
         "properties": {
           "count": {
             "type": "integer",
@@ -4819,7 +5311,9 @@
       },
       "GetEntitySubgraphResponse": {
         "type": "object",
-        "required": ["subgraph"],
+        "required": [
+          "subgraph"
+        ],
         "properties": {
           "count": {
             "type": "integer",
@@ -4915,7 +5409,9 @@
       },
       "GetEntityTypeSubgraphResponse": {
         "type": "object",
-        "required": ["subgraph"],
+        "required": [
+          "subgraph"
+        ],
         "properties": {
           "count": {
             "type": "integer",
@@ -4951,7 +5447,11 @@
       },
       "GetEntityTypesParams": {
         "type": "object",
-        "required": ["filter", "temporalAxes", "includeDrafts"],
+        "required": [
+          "filter",
+          "temporalAxes",
+          "includeDrafts"
+        ],
         "properties": {
           "after": {
             "allOf": [
@@ -4989,7 +5489,9 @@
       },
       "GetEntityTypesResponse": {
         "type": "object",
-        "required": ["entityTypes"],
+        "required": [
+          "entityTypes"
+        ],
         "properties": {
           "count": {
             "type": "integer",
@@ -5068,7 +5570,9 @@
       },
       "GetPropertyTypeSubgraphResponse": {
         "type": "object",
-        "required": ["subgraph"],
+        "required": [
+          "subgraph"
+        ],
         "properties": {
           "cursor": {
             "allOf": [
@@ -5085,7 +5589,11 @@
       },
       "GetPropertyTypesParams": {
         "type": "object",
-        "required": ["filter", "temporalAxes", "includeDrafts"],
+        "required": [
+          "filter",
+          "temporalAxes",
+          "includeDrafts"
+        ],
         "properties": {
           "after": {
             "allOf": [
@@ -5117,7 +5625,9 @@
       },
       "GetPropertyTypesResponse": {
         "type": "object",
-        "required": ["propertyTypes"],
+        "required": [
+          "propertyTypes"
+        ],
         "properties": {
           "count": {
             "type": "integer",
@@ -5250,7 +5760,10 @@
       },
       "InsertWebIdParams": {
         "type": "object",
-        "required": ["ownedById", "owner"],
+        "required": [
+          "ownedById",
+          "owner"
+        ],
         "properties": {
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
@@ -5263,14 +5776,21 @@
       },
       "KnowledgeGraphEdgeKind": {
         "type": "string",
-        "enum": ["HAS_LEFT_ENTITY", "HAS_RIGHT_ENTITY"]
+        "enum": [
+          "HAS_LEFT_ENTITY",
+          "HAS_RIGHT_ENTITY"
+        ]
       },
       "KnowledgeGraphOutwardEdge": {
         "oneOf": [
           {
             "type": "object",
             "title": "KnowledgeGraphToKnowledgeGraphOutwardEdge",
-            "required": ["kind", "reversed", "rightEndpoint"],
+            "required": [
+              "kind",
+              "reversed",
+              "rightEndpoint"
+            ],
             "properties": {
               "kind": {
                 "$ref": "#/components/schemas/KnowledgeGraphEdgeKind"
@@ -5286,7 +5806,11 @@
           {
             "type": "object",
             "title": "KnowledgeGraphToOntologyOutwardEdge",
-            "required": ["kind", "reversed", "rightEndpoint"],
+            "required": [
+              "kind",
+              "reversed",
+              "rightEndpoint"
+            ],
             "properties": {
               "kind": {
                 "$ref": "#/components/schemas/SharedEdgeKind"
@@ -5306,14 +5830,19 @@
           {
             "type": "object",
             "title": "EntityVertex",
-            "required": ["kind", "inner"],
+            "required": [
+              "kind",
+              "inner"
+            ],
             "properties": {
               "inner": {
                 "$ref": "#/components/schemas/Entity"
               },
               "kind": {
                 "type": "string",
-                "enum": ["entity"]
+                "enum": [
+                  "entity"
+                ]
               }
             }
           }
@@ -5333,7 +5862,10 @@
       },
       "LeftClosedTemporalInterval": {
         "type": "object",
-        "required": ["start", "end"],
+        "required": [
+          "start",
+          "end"
+        ],
         "properties": {
           "end": {
             "$ref": "#/components/schemas/OpenTemporalBound"
@@ -5348,11 +5880,16 @@
           {
             "type": "object",
             "title": "InclusiveBound",
-            "required": ["kind", "limit"],
+            "required": [
+              "kind",
+              "limit"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["inclusive"]
+                "enum": [
+                  "inclusive"
+                ]
               },
               "limit": {
                 "$ref": "#/components/schemas/Timestamp"
@@ -5362,11 +5899,16 @@
           {
             "type": "object",
             "title": "ExclusiveBound",
-            "required": ["kind", "limit"],
+            "required": [
+              "kind",
+              "limit"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["exclusive"]
+                "enum": [
+                  "exclusive"
+                ]
               },
               "limit": {
                 "$ref": "#/components/schemas/Timestamp"
@@ -5381,7 +5923,10 @@
       "LinkData": {
         "type": "object",
         "description": "The associated information for 'Link' entities",
-        "required": ["leftEntityId", "rightEntityId"],
+        "required": [
+          "leftEntityId",
+          "rightEntityId"
+        ],
         "properties": {
           "leftEntityConfidence": {
             "allOf": [
@@ -5416,7 +5961,9 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["dataTypeId"],
+            "required": [
+              "dataTypeId"
+            ],
             "properties": {
               "dataTypeId": {
                 "$ref": "#/components/schemas/VersionedUrl"
@@ -5425,7 +5972,11 @@
           },
           {
             "type": "object",
-            "required": ["schema", "relationships", "conversions"],
+            "required": [
+              "schema",
+              "relationships",
+              "conversions"
+            ],
             "properties": {
               "conversions": {
                 "type": "object",
@@ -5453,7 +6004,9 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["entityTypeId"],
+            "required": [
+              "entityTypeId"
+            ],
             "properties": {
               "entityTypeId": {
                 "$ref": "#/components/schemas/VersionedUrl"
@@ -5462,7 +6015,10 @@
           },
           {
             "type": "object",
-            "required": ["schema", "relationships"],
+            "required": [
+              "schema",
+              "relationships"
+            ],
             "properties": {
               "icon": {
                 "type": "string",
@@ -5496,7 +6052,9 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["propertyTypeId"],
+            "required": [
+              "propertyTypeId"
+            ],
             "properties": {
               "propertyTypeId": {
                 "$ref": "#/components/schemas/VersionedUrl"
@@ -5505,7 +6063,10 @@
           },
           {
             "type": "object",
-            "required": ["schema", "relationships"],
+            "required": [
+              "schema",
+              "relationships"
+            ],
             "properties": {
               "provenance": {
                 "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
@@ -5584,7 +6145,11 @@
       },
       "ModifyDataTypeAuthorizationRelationship": {
         "type": "object",
-        "required": ["operation", "resource", "relationAndSubject"],
+        "required": [
+          "operation",
+          "resource",
+          "relationAndSubject"
+        ],
         "properties": {
           "operation": {
             "$ref": "#/components/schemas/ModifyRelationshipOperation"
@@ -5599,7 +6164,11 @@
       },
       "ModifyEntityAuthorizationRelationship": {
         "type": "object",
-        "required": ["operation", "resource", "relationSubject"],
+        "required": [
+          "operation",
+          "resource",
+          "relationSubject"
+        ],
         "properties": {
           "operation": {
             "$ref": "#/components/schemas/ModifyRelationshipOperation"
@@ -5614,7 +6183,11 @@
       },
       "ModifyEntityTypeAuthorizationRelationship": {
         "type": "object",
-        "required": ["operation", "resource", "relationAndSubject"],
+        "required": [
+          "operation",
+          "resource",
+          "relationAndSubject"
+        ],
         "properties": {
           "operation": {
             "$ref": "#/components/schemas/ModifyRelationshipOperation"
@@ -5629,7 +6202,11 @@
       },
       "ModifyPropertyTypeAuthorizationRelationship": {
         "type": "object",
-        "required": ["operation", "resource", "relationAndSubject"],
+        "required": [
+          "operation",
+          "resource",
+          "relationAndSubject"
+        ],
         "properties": {
           "operation": {
             "$ref": "#/components/schemas/ModifyRelationshipOperation"
@@ -5645,11 +6222,19 @@
       "ModifyRelationshipOperation": {
         "type": "string",
         "description": "Used for mutating a single relationship within the service.",
-        "enum": ["touch", "create", "delete"]
+        "enum": [
+          "touch",
+          "create",
+          "delete"
+        ]
       },
       "ModifyWebAuthorizationRelationship": {
         "type": "object",
-        "required": ["operation", "resource", "relationAndSubject"],
+        "required": [
+          "operation",
+          "resource",
+          "relationAndSubject"
+        ],
         "properties": {
           "operation": {
             "$ref": "#/components/schemas/ModifyRelationshipOperation"
@@ -5664,7 +6249,10 @@
       },
       "NullOrdering": {
         "type": "string",
-        "enum": ["first", "last"]
+        "enum": [
+          "first",
+          "last"
+        ]
       },
       "NullableTimestamp": {
         "type": "string",
@@ -5704,7 +6292,9 @@
           },
           {
             "type": "object",
-            "required": ["createdById"],
+            "required": [
+              "createdById"
+            ],
             "properties": {
               "archivedById": {
                 "allOf": [
@@ -5725,7 +6315,11 @@
           {
             "type": "object",
             "title": "OntologyToOntologyOutwardEdge",
-            "required": ["kind", "reversed", "rightEndpoint"],
+            "required": [
+              "kind",
+              "reversed",
+              "rightEndpoint"
+            ],
             "properties": {
               "kind": {
                 "$ref": "#/components/schemas/OntologyEdgeKind"
@@ -5741,7 +6335,11 @@
           {
             "type": "object",
             "title": "OntologyToKnowledgeGraphOutwardEdge",
-            "required": ["kind", "reversed", "rightEndpoint"],
+            "required": [
+              "kind",
+              "reversed",
+              "rightEndpoint"
+            ],
             "properties": {
               "kind": {
                 "$ref": "#/components/schemas/SharedEdgeKind"
@@ -5758,7 +6356,9 @@
       },
       "OntologyProvenance": {
         "type": "object",
-        "required": ["edition"],
+        "required": [
+          "edition"
+        ],
         "properties": {
           "edition": {
             "$ref": "#/components/schemas/OntologyEditionProvenance"
@@ -5768,7 +6368,9 @@
       },
       "OntologyTemporalMetadata": {
         "type": "object",
-        "required": ["transactionTime"],
+        "required": [
+          "transactionTime"
+        ],
         "properties": {
           "transactionTime": {
             "$ref": "#/components/schemas/LeftClosedTemporalInterval"
@@ -5778,7 +6380,10 @@
       },
       "OntologyTypeRecordId": {
         "type": "object",
-        "required": ["baseUrl", "version"],
+        "required": [
+          "baseUrl",
+          "version"
+        ],
         "properties": {
           "baseUrl": {
             "type": "string"
@@ -5813,42 +6418,57 @@
           {
             "type": "object",
             "title": "DataTypeVertex",
-            "required": ["kind", "inner"],
+            "required": [
+              "kind",
+              "inner"
+            ],
             "properties": {
               "inner": {
                 "$ref": "#/components/schemas/DataTypeWithMetadata"
               },
               "kind": {
                 "type": "string",
-                "enum": ["dataType"]
+                "enum": [
+                  "dataType"
+                ]
               }
             }
           },
           {
             "type": "object",
             "title": "PropertyTypeVertex",
-            "required": ["kind", "inner"],
+            "required": [
+              "kind",
+              "inner"
+            ],
             "properties": {
               "inner": {
                 "$ref": "#/components/schemas/PropertyTypeWithMetadata"
               },
               "kind": {
                 "type": "string",
-                "enum": ["propertyType"]
+                "enum": [
+                  "propertyType"
+                ]
               }
             }
           },
           {
             "type": "object",
             "title": "EntityTypeVertex",
-            "required": ["kind", "inner"],
+            "required": [
+              "kind",
+              "inner"
+            ],
             "properties": {
               "inner": {
                 "$ref": "#/components/schemas/EntityTypeWithMetadata"
               },
               "kind": {
                 "type": "string",
-                "enum": ["entityType"]
+                "enum": [
+                  "entityType"
+                ]
               }
             }
           }
@@ -5871,11 +6491,16 @@
           {
             "type": "object",
             "title": "ExclusiveBound",
-            "required": ["kind", "limit"],
+            "required": [
+              "kind",
+              "limit"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["exclusive"]
+                "enum": [
+                  "exclusive"
+                ]
               },
               "limit": {
                 "$ref": "#/components/schemas/Timestamp"
@@ -5885,11 +6510,15 @@
           {
             "type": "object",
             "title": "UnboundedBound",
-            "required": ["kind"],
+            "required": [
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["unbounded"]
+                "enum": [
+                  "unbounded"
+                ]
               }
             }
           }
@@ -5900,17 +6529,27 @@
       },
       "Operator": {
         "type": "string",
-        "enum": ["+", "-", "*", "/"]
+        "enum": [
+          "+",
+          "-",
+          "*",
+          "/"
+        ]
       },
       "Ordering": {
         "type": "string",
-        "enum": ["ascending", "descending"]
+        "enum": [
+          "ascending",
+          "descending"
+        ]
       },
       "OriginProvenance": {
         "oneOf": [
           {
             "type": "object",
-            "required": ["type"],
+            "required": [
+              "type"
+            ],
             "properties": {
               "apiKeyPublicId": {
                 "type": "string"
@@ -5932,7 +6571,9 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["web-app"]
+                "enum": [
+                  "web-app"
+                ]
               },
               "userAgent": {
                 "type": "string"
@@ -5945,7 +6586,9 @@
           },
           {
             "type": "object",
-            "required": ["type"],
+            "required": [
+              "type"
+            ],
             "properties": {
               "apiKeyPublicId": {
                 "type": "string"
@@ -5967,7 +6610,9 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["mobile-app"]
+                "enum": [
+                  "mobile-app"
+                ]
               },
               "userAgent": {
                 "type": "string"
@@ -5980,7 +6625,9 @@
           },
           {
             "type": "object",
-            "required": ["type"],
+            "required": [
+              "type"
+            ],
             "properties": {
               "apiKeyPublicId": {
                 "type": "string"
@@ -6002,7 +6649,9 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["browser-extension"]
+                "enum": [
+                  "browser-extension"
+                ]
               },
               "userAgent": {
                 "type": "string"
@@ -6015,7 +6664,9 @@
           },
           {
             "type": "object",
-            "required": ["type"],
+            "required": [
+              "type"
+            ],
             "properties": {
               "apiKeyPublicId": {
                 "type": "string"
@@ -6037,7 +6688,9 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["api"]
+                "enum": [
+                  "api"
+                ]
               },
               "userAgent": {
                 "type": "string"
@@ -6050,7 +6703,9 @@
           },
           {
             "type": "object",
-            "required": ["type"],
+            "required": [
+              "type"
+            ],
             "properties": {
               "apiKeyPublicId": {
                 "type": "string"
@@ -6078,7 +6733,9 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["flow"]
+                "enum": [
+                  "flow"
+                ]
               },
               "userAgent": {
                 "type": "string"
@@ -6091,7 +6748,9 @@
           },
           {
             "type": "object",
-            "required": ["type"],
+            "required": [
+              "type"
+            ],
             "properties": {
               "apiKeyPublicId": {
                 "type": "string"
@@ -6113,7 +6772,9 @@
               },
               "type": {
                 "type": "string",
-                "enum": ["migration"]
+                "enum": [
+                  "migration"
+                ]
               },
               "userAgent": {
                 "type": "string"
@@ -6128,7 +6789,9 @@
       },
       "OutgoingEdgeResolveDepth": {
         "type": "object",
-        "required": ["outgoing"],
+        "required": [
+          "outgoing"
+        ],
         "properties": {
           "outgoing": {
             "type": "integer",
@@ -6144,7 +6807,9 @@
       },
       "PatchEntityParams": {
         "type": "object",
-        "required": ["entityId"],
+        "required": [
+          "entityId"
+        ],
         "properties": {
           "archived": {
             "type": "boolean"
@@ -6189,7 +6854,9 @@
       },
       "PermissionResponse": {
         "type": "object",
-        "required": ["has_permission"],
+        "required": [
+          "has_permission"
+        ],
         "properties": {
           "has_permission": {
             "type": "boolean"
@@ -6214,14 +6881,20 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["path", "added", "op"],
+            "required": [
+              "path",
+              "added",
+              "op"
+            ],
             "properties": {
               "added": {
                 "$ref": "#/components/schemas/Property"
               },
               "op": {
                 "type": "string",
-                "enum": ["added"]
+                "enum": [
+                  "added"
+                ]
               },
               "path": {
                 "$ref": "#/components/schemas/PropertyPath"
@@ -6230,11 +6903,17 @@
           },
           {
             "type": "object",
-            "required": ["path", "removed", "op"],
+            "required": [
+              "path",
+              "removed",
+              "op"
+            ],
             "properties": {
               "op": {
                 "type": "string",
-                "enum": ["removed"]
+                "enum": [
+                  "removed"
+                ]
               },
               "path": {
                 "$ref": "#/components/schemas/PropertyPath"
@@ -6246,7 +6925,12 @@
           },
           {
             "type": "object",
-            "required": ["path", "old", "new", "op"],
+            "required": [
+              "path",
+              "old",
+              "new",
+              "op"
+            ],
             "properties": {
               "new": {
                 "$ref": "#/components/schemas/Property"
@@ -6256,7 +6940,9 @@
               },
               "op": {
                 "type": "string",
-                "enum": ["changed"]
+                "enum": [
+                  "changed"
+                ]
               },
               "path": {
                 "$ref": "#/components/schemas/PropertyPath"
@@ -6303,7 +6989,9 @@
           {
             "type": "object",
             "title": "PropertyMetadataValue",
-            "required": ["metadata"],
+            "required": [
+              "metadata"
+            ],
             "properties": {
               "metadata": {
                 "$ref": "#/components/schemas/ValueMetadata"
@@ -6337,11 +7025,17 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["path", "property", "op"],
+            "required": [
+              "path",
+              "property",
+              "op"
+            ],
             "properties": {
               "op": {
                 "type": "string",
-                "enum": ["add"]
+                "enum": [
+                  "add"
+                ]
               },
               "path": {
                 "$ref": "#/components/schemas/PropertyPath"
@@ -6353,11 +7047,16 @@
           },
           {
             "type": "object",
-            "required": ["path", "op"],
+            "required": [
+              "path",
+              "op"
+            ],
             "properties": {
               "op": {
                 "type": "string",
-                "enum": ["remove"]
+                "enum": [
+                  "remove"
+                ]
               },
               "path": {
                 "$ref": "#/components/schemas/PropertyPath"
@@ -6366,11 +7065,17 @@
           },
           {
             "type": "object",
-            "required": ["path", "property", "op"],
+            "required": [
+              "path",
+              "property",
+              "op"
+            ],
             "properties": {
               "op": {
                 "type": "string",
-                "enum": ["replace"]
+                "enum": [
+                  "replace"
+                ]
               },
               "path": {
                 "$ref": "#/components/schemas/PropertyPath"
@@ -6418,11 +7123,16 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["account"]
+                "enum": [
+                  "account"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountId"
@@ -6431,11 +7141,16 @@
           },
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["accountGroup"]
+                "enum": [
+                  "accountGroup"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountGroupId"
@@ -6449,7 +7164,10 @@
       },
       "PropertyTypeEmbedding": {
         "type": "object",
-        "required": ["propertyTypeId", "embedding"],
+        "required": [
+          "propertyTypeId",
+          "embedding"
+        ],
         "properties": {
           "embedding": {
             "$ref": "#/components/schemas/Embedding"
@@ -6515,11 +7233,16 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["web"]
+                "enum": [
+                  "web"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/OwnedById"
@@ -6533,7 +7256,10 @@
       },
       "PropertyTypePermission": {
         "type": "string",
-        "enum": ["update", "view"]
+        "enum": [
+          "update",
+          "view"
+        ]
       },
       "PropertyTypeQueryToken": {
         "type": "string",
@@ -6555,11 +7281,16 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["subject", "relation"],
+            "required": [
+              "subject",
+              "relation"
+            ],
             "properties": {
               "relation": {
                 "type": "string",
-                "enum": ["owner"]
+                "enum": [
+                  "owner"
+                ]
               },
               "subject": {
                 "$ref": "#/components/schemas/PropertyTypeOwnerSubject"
@@ -6568,11 +7299,16 @@
           },
           {
             "type": "object",
-            "required": ["subject", "relation"],
+            "required": [
+              "subject",
+              "relation"
+            ],
             "properties": {
               "relation": {
                 "type": "string",
-                "enum": ["setting"]
+                "enum": [
+                  "setting"
+                ]
               },
               "subject": {
                 "$ref": "#/components/schemas/PropertyTypeSettingSubject"
@@ -6581,11 +7317,16 @@
           },
           {
             "type": "object",
-            "required": ["subject", "relation"],
+            "required": [
+              "subject",
+              "relation"
+            ],
             "properties": {
               "relation": {
                 "type": "string",
-                "enum": ["editor"]
+                "enum": [
+                  "editor"
+                ]
               },
               "subject": {
                 "$ref": "#/components/schemas/PropertyTypeEditorSubject"
@@ -6594,11 +7335,16 @@
           },
           {
             "type": "object",
-            "required": ["subject", "relation"],
+            "required": [
+              "subject",
+              "relation"
+            ],
             "properties": {
               "relation": {
                 "type": "string",
-                "enum": ["viewer"]
+                "enum": [
+                  "viewer"
+                ]
               },
               "subject": {
                 "$ref": "#/components/schemas/PropertyTypeViewerSubject"
@@ -6612,17 +7358,24 @@
       },
       "PropertyTypeSetting": {
         "type": "string",
-        "enum": ["updateFromWeb"]
+        "enum": [
+          "updateFromWeb"
+        ]
       },
       "PropertyTypeSettingSubject": {
         "oneOf": [
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["setting"]
+                "enum": [
+                  "setting"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/PropertyTypeSetting"
@@ -6636,7 +7389,10 @@
       },
       "PropertyTypeVertexId": {
         "type": "object",
-        "required": ["baseId", "revisionId"],
+        "required": [
+          "baseId",
+          "revisionId"
+        ],
         "properties": {
           "baseId": {
             "$ref": "#/components/schemas/BaseUrl"
@@ -6650,11 +7406,15 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["kind"],
+            "required": [
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["public"]
+                "enum": [
+                  "public"
+                ]
               }
             }
           }
@@ -6662,7 +7422,10 @@
       },
       "PropertyTypeWithMetadata": {
         "type": "object",
-        "required": ["schema", "metadata"],
+        "required": [
+          "schema",
+          "metadata"
+        ],
         "properties": {
           "metadata": {
             "$ref": "#/components/schemas/PropertyTypeMetadata"
@@ -6717,7 +7480,10 @@
       },
       "PropertyWithMetadataValue": {
         "type": "object",
-        "required": ["value", "metadata"],
+        "required": [
+          "value",
+          "metadata"
+        ],
         "properties": {
           "metadata": {
             "$ref": "#/components/schemas/ValueMetadata"
@@ -6783,12 +7549,18 @@
           {
             "type": "object",
             "title": "QueryTemporalAxesDecisionTime",
-            "required": ["pinned", "variable"],
+            "required": [
+              "pinned",
+              "variable"
+            ],
             "properties": {
               "pinned": {
                 "type": "object",
                 "title": "PinnedTransactionAxis",
-                "required": ["axis", "timestamp"],
+                "required": [
+                  "axis",
+                  "timestamp"
+                ],
                 "properties": {
                   "axis": {
                     "$ref": "#/components/schemas/TransactionTime"
@@ -6802,7 +7574,10 @@
               "variable": {
                 "type": "object",
                 "title": "VariableDecisionAxis",
-                "required": ["axis", "interval"],
+                "required": [
+                  "axis",
+                  "interval"
+                ],
                 "properties": {
                   "axis": {
                     "$ref": "#/components/schemas/DecisionTime"
@@ -6817,12 +7592,18 @@
           {
             "type": "object",
             "title": "QueryTemporalAxesTransactionTime",
-            "required": ["pinned", "variable"],
+            "required": [
+              "pinned",
+              "variable"
+            ],
             "properties": {
               "pinned": {
                 "type": "object",
                 "title": "PinnedDecisionAxis",
-                "required": ["axis", "timestamp"],
+                "required": [
+                  "axis",
+                  "timestamp"
+                ],
                 "properties": {
                   "axis": {
                     "$ref": "#/components/schemas/DecisionTime"
@@ -6836,7 +7617,10 @@
               "variable": {
                 "type": "object",
                 "title": "VariableTransactionAxis",
-                "required": ["axis", "interval"],
+                "required": [
+                  "axis",
+                  "interval"
+                ],
                 "properties": {
                   "axis": {
                     "$ref": "#/components/schemas/TransactionTime"
@@ -6856,12 +7640,18 @@
           {
             "type": "object",
             "title": "QueryTemporalAxesUnresolvedDecisionTime",
-            "required": ["pinned", "variable"],
+            "required": [
+              "pinned",
+              "variable"
+            ],
             "properties": {
               "pinned": {
                 "type": "object",
                 "title": "UnresolvedPinnedTransactionAxis",
-                "required": ["axis", "timestamp"],
+                "required": [
+                  "axis",
+                  "timestamp"
+                ],
                 "properties": {
                   "axis": {
                     "$ref": "#/components/schemas/TransactionTime"
@@ -6874,7 +7664,10 @@
               "variable": {
                 "type": "object",
                 "title": "UnresolvedVariableDecisionAxis",
-                "required": ["axis", "interval"],
+                "required": [
+                  "axis",
+                  "interval"
+                ],
                 "properties": {
                   "axis": {
                     "$ref": "#/components/schemas/DecisionTime"
@@ -6889,12 +7682,18 @@
           {
             "type": "object",
             "title": "QueryTemporalAxesUnresolvedTransactionTime",
-            "required": ["pinned", "variable"],
+            "required": [
+              "pinned",
+              "variable"
+            ],
             "properties": {
               "pinned": {
                 "type": "object",
                 "title": "UnresolvedPinnedDecisionAxis",
-                "required": ["axis", "timestamp"],
+                "required": [
+                  "axis",
+                  "timestamp"
+                ],
                 "properties": {
                   "axis": {
                     "$ref": "#/components/schemas/DecisionTime"
@@ -6907,7 +7706,10 @@
               "variable": {
                 "type": "object",
                 "title": "UnresolvedVariableTransactionAxis",
-                "required": ["axis", "interval"],
+                "required": [
+                  "axis",
+                  "interval"
+                ],
                 "properties": {
                   "axis": {
                     "$ref": "#/components/schemas/TransactionTime"
@@ -6924,7 +7726,10 @@
       },
       "RightBoundedTemporalInterval": {
         "type": "object",
-        "required": ["start", "end"],
+        "required": [
+          "start",
+          "end"
+        ],
         "properties": {
           "end": {
             "$ref": "#/components/schemas/LimitedTemporalBound"
@@ -6936,16 +7741,22 @@
       },
       "Selector": {
         "type": "string",
-        "enum": ["*"]
+        "enum": [
+          "*"
+        ]
       },
       "SharedEdgeKind": {
         "type": "string",
-        "enum": ["IS_OF_TYPE"]
+        "enum": [
+          "IS_OF_TYPE"
+        ]
       },
       "SourceProvenance": {
         "type": "object",
         "description": "The source material used in producing a value.",
-        "required": ["type"],
+        "required": [
+          "type"
+        ],
         "properties": {
           "authors": {
             "type": "array",
@@ -6998,11 +7809,20 @@
       "SourceType": {
         "type": "string",
         "description": "The type of source material which was used to produce a value.",
-        "enum": ["webpage", "document"]
+        "enum": [
+          "webpage",
+          "document"
+        ]
       },
       "Subgraph": {
         "type": "object",
-        "required": ["roots", "vertices", "edges", "depths", "temporalAxes"],
+        "required": [
+          "roots",
+          "vertices",
+          "edges",
+          "depths",
+          "temporalAxes"
+        ],
         "properties": {
           "depths": {
             "$ref": "#/components/schemas/GraphResolveDepths"
@@ -7026,7 +7846,10 @@
       },
       "SubgraphTemporalAxes": {
         "type": "object",
-        "required": ["initial", "resolved"],
+        "required": [
+          "initial",
+          "resolved"
+        ],
         "properties": {
           "initial": {
             "$ref": "#/components/schemas/QueryTemporalAxesUnresolved"
@@ -7041,22 +7864,31 @@
           {
             "type": "object",
             "title": "UnboundedBound",
-            "required": ["kind"],
+            "required": [
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["unbounded"]
+                "enum": [
+                  "unbounded"
+                ]
               }
             }
           },
           {
             "type": "object",
             "title": "InclusiveBound",
-            "required": ["kind", "limit"],
+            "required": [
+              "kind",
+              "limit"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["inclusive"]
+                "enum": [
+                  "inclusive"
+                ]
               },
               "limit": {
                 "$ref": "#/components/schemas/Timestamp"
@@ -7066,11 +7898,16 @@
           {
             "type": "object",
             "title": "ExclusiveBound",
-            "required": ["kind", "limit"],
+            "required": [
+              "kind",
+              "limit"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["exclusive"]
+                "enum": [
+                  "exclusive"
+                ]
               },
               "limit": {
                 "$ref": "#/components/schemas/Timestamp"
@@ -7089,11 +7926,15 @@
       "TransactionTime": {
         "type": "string",
         "description": "Time axis for the transaction time.\n\nThis is used as the generic argument to time-related structs and can be used as tag value.",
-        "enum": ["transactionTime"]
+        "enum": [
+          "transactionTime"
+        ]
       },
       "UnarchiveDataTypeParams": {
         "type": "object",
-        "required": ["dataTypeId"],
+        "required": [
+          "dataTypeId"
+        ],
         "properties": {
           "dataTypeId": {
             "$ref": "#/components/schemas/VersionedUrl"
@@ -7106,7 +7947,9 @@
       },
       "UnarchiveEntityTypeParams": {
         "type": "object",
-        "required": ["entityTypeId"],
+        "required": [
+          "entityTypeId"
+        ],
         "properties": {
           "entityTypeId": {
             "$ref": "#/components/schemas/VersionedUrl"
@@ -7119,7 +7962,9 @@
       },
       "UnarchivePropertyTypeParams": {
         "type": "object",
-        "required": ["propertyTypeId"],
+        "required": [
+          "propertyTypeId"
+        ],
         "properties": {
           "propertyTypeId": {
             "$ref": "#/components/schemas/VersionedUrl"
@@ -7132,7 +7977,10 @@
       },
       "UnresolvedRightBoundedTemporalInterval": {
         "type": "object",
-        "required": ["start", "end"],
+        "required": [
+          "start",
+          "end"
+        ],
         "properties": {
           "end": {
             "oneOf": [
@@ -7178,7 +8026,12 @@
       },
       "UpdateDataTypeRequest": {
         "type": "object",
-        "required": ["schema", "typeToUpdate", "relationships", "conversions"],
+        "required": [
+          "schema",
+          "typeToUpdate",
+          "relationships",
+          "conversions"
+        ],
         "properties": {
           "conversions": {
             "type": "object",
@@ -7261,7 +8114,11 @@
       },
       "UpdateEntityTypeRequest": {
         "type": "object",
-        "required": ["schema", "typeToUpdate", "relationships"],
+        "required": [
+          "schema",
+          "typeToUpdate",
+          "relationships"
+        ],
         "properties": {
           "icon": {
             "type": "string",
@@ -7319,7 +8176,11 @@
       },
       "UpdatePropertyTypeRequest": {
         "type": "object",
-        "required": ["schema", "typeToUpdate", "relationships"],
+        "required": [
+          "schema",
+          "typeToUpdate",
+          "relationships"
+        ],
         "properties": {
           "provenance": {
             "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
@@ -7356,7 +8217,10 @@
       },
       "ValidateEntityParams": {
         "type": "object",
-        "required": ["entityTypes", "properties"],
+        "required": [
+          "entityTypes",
+          "properties"
+        ],
         "properties": {
           "components": {
             "allOf": [
@@ -7383,7 +8247,9 @@
       },
       "ValueMetadata": {
         "type": "object",
-        "required": ["dataTypeId"],
+        "required": [
+          "dataTypeId"
+        ],
         "properties": {
           "confidence": {
             "allOf": [
@@ -7408,7 +8274,9 @@
       },
       "Variable": {
         "type": "string",
-        "enum": ["self"]
+        "enum": [
+          "self"
+        ]
       },
       "VersionedUrl": {
         "type": "string",
@@ -7444,11 +8312,15 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["kind"],
+            "required": [
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["public"]
+                "enum": [
+                  "public"
+                ]
               }
             }
           }
@@ -7458,11 +8330,16 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["account"]
+                "enum": [
+                  "account"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountId"
@@ -7471,11 +8348,16 @@
           },
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["accountGroup"]
+                "enum": [
+                  "accountGroup"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountGroupId"
@@ -7491,11 +8373,16 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["account"]
+                "enum": [
+                  "account"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountId"
@@ -7504,11 +8391,16 @@
           },
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["accountGroup"]
+                "enum": [
+                  "accountGroup"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountGroupId"
@@ -7524,11 +8416,15 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["kind"],
+            "required": [
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["public"]
+                "enum": [
+                  "public"
+                ]
               }
             }
           }
@@ -7538,21 +8434,30 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["kind"],
+            "required": [
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["public"]
+                "enum": [
+                  "public"
+                ]
               }
             }
           },
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["account"]
+                "enum": [
+                  "account"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountId"
@@ -7561,11 +8466,16 @@
           },
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["accountGroup"]
+                "enum": [
+                  "accountGroup"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountGroupId"
@@ -7581,11 +8491,16 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["account"]
+                "enum": [
+                  "account"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountId"
@@ -7594,11 +8509,16 @@
           },
           {
             "type": "object",
-            "required": ["subjectId", "kind"],
+            "required": [
+              "subjectId",
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["accountGroup"]
+                "enum": [
+                  "accountGroup"
+                ]
               },
               "subjectId": {
                 "$ref": "#/components/schemas/AccountGroupId"
@@ -7626,11 +8546,15 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["kind"],
+            "required": [
+              "kind"
+            ],
             "properties": {
               "kind": {
                 "type": "string",
-                "enum": ["public"]
+                "enum": [
+                  "public"
+                ]
               }
             }
           }
@@ -7640,11 +8564,16 @@
         "oneOf": [
           {
             "type": "object",
-            "required": ["subject", "relation"],
+            "required": [
+              "subject",
+              "relation"
+            ],
             "properties": {
               "relation": {
                 "type": "string",
-                "enum": ["owner"]
+                "enum": [
+                  "owner"
+                ]
               },
               "subject": {
                 "$ref": "#/components/schemas/WebOwnerSubject"
@@ -7653,11 +8582,16 @@
           },
           {
             "type": "object",
-            "required": ["subject", "relation"],
+            "required": [
+              "subject",
+              "relation"
+            ],
             "properties": {
               "relation": {
                 "type": "string",
-                "enum": ["entityCreator"]
+                "enum": [
+                  "entityCreator"
+                ]
               },
               "subject": {
                 "$ref": "#/components/schemas/WebEntityCreatorSubject"
@@ -7666,11 +8600,16 @@
           },
           {
             "type": "object",
-            "required": ["subject", "relation"],
+            "required": [
+              "subject",
+              "relation"
+            ],
             "properties": {
               "relation": {
                 "type": "string",
-                "enum": ["entityEditor"]
+                "enum": [
+                  "entityEditor"
+                ]
               },
               "subject": {
                 "$ref": "#/components/schemas/WebEntityEditorSubject"
@@ -7679,11 +8618,16 @@
           },
           {
             "type": "object",
-            "required": ["subject", "relation"],
+            "required": [
+              "subject",
+              "relation"
+            ],
             "properties": {
               "relation": {
                 "type": "string",
-                "enum": ["entityViewer"]
+                "enum": [
+                  "entityViewer"
+                ]
               },
               "subject": {
                 "$ref": "#/components/schemas/WebEntityViewerSubject"
@@ -7692,11 +8636,16 @@
           },
           {
             "type": "object",
-            "required": ["subject", "relation"],
+            "required": [
+              "subject",
+              "relation"
+            ],
             "properties": {
               "relation": {
                 "type": "string",
-                "enum": ["entityTypeViewer"]
+                "enum": [
+                  "entityTypeViewer"
+                ]
               },
               "subject": {
                 "$ref": "#/components/schemas/WebEntityTypeViewerSubject"
@@ -7705,11 +8654,16 @@
           },
           {
             "type": "object",
-            "required": ["subject", "relation"],
+            "required": [
+              "subject",
+              "relation"
+            ],
             "properties": {
               "relation": {
                 "type": "string",
-                "enum": ["propertyTypeViewer"]
+                "enum": [
+                  "propertyTypeViewer"
+                ]
               },
               "subject": {
                 "$ref": "#/components/schemas/WebPropertyTypeViewerSubject"
@@ -7718,11 +8672,16 @@
           },
           {
             "type": "object",
-            "required": ["subject", "relation"],
+            "required": [
+              "subject",
+              "relation"
+            ],
             "properties": {
               "relation": {
                 "type": "string",
-                "enum": ["dataTypeViewer"]
+                "enum": [
+                  "dataTypeViewer"
+                ]
               },
               "subject": {
                 "$ref": "#/components/schemas/WebDataTypeViewerSubject"
