@@ -10,7 +10,7 @@
     },
     "codegen": {
       "inputs": [
-        "../../../../apps/hash-graph/openapi/openapi.json",
+        "../../../../apps/hash-graph/libs/api/openapi/openapi.json",
         "opeenapitools.json"
       ],
       "outputs": [
