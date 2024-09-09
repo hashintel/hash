@@ -38,6 +38,7 @@ use graph::{
     subgraph::identifier::EntityTypeVertexId,
 };
 use graph_types::{
+    account::EditionCreatedById,
     ontology::{
         EntityTypeEmbedding, EntityTypeId, EntityTypeMetadata, EntityTypeWithMetadata,
         OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeMetadata,
@@ -749,6 +750,13 @@ where
 struct GetEntityTypeSubgraphResponse {
     subgraph: Subgraph,
     cursor: Option<EntityTypeVertexId>,
+    count: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    web_ids: Option<HashMap<OwnedById, usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    edition_created_by_ids: Option<HashMap<EditionCreatedById, usize>>,
 }
 
 #[utoipa::path(
@@ -809,6 +817,9 @@ where
             Json(GetEntityTypeSubgraphResponse {
                 subgraph: Subgraph::from(response.subgraph),
                 cursor: response.cursor,
+                count: response.count,
+                web_ids: response.web_ids,
+                edition_created_by_ids: response.edition_created_by_ids,
             })
         })
 }

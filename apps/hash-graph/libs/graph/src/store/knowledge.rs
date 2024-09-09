@@ -1,12 +1,12 @@
 use alloc::borrow::Cow;
 use core::{error::Error, fmt};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use authorization::{schema::EntityRelationAndSubject, zanzibar::Consistency};
 use error_stack::Report;
 use futures::TryFutureExt;
 use graph_types::{
-    account::AccountId,
+    account::{AccountId, CreatedById, EditionCreatedById},
     knowledge::{
         entity::{Entity, EntityEmbedding, EntityId, EntityUuid, ProvidedEntityEditionProvenance},
         link::LinkData,
@@ -216,19 +216,19 @@ pub struct ValidateEntityParams<'a> {
     pub components: ValidateEntityComponents,
 }
 
-#[derive(Debug, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[derive(Debug)]
+#[expect(clippy::struct_excessive_bools, reason = "Parameter struct")]
 pub struct GetEntitiesParams<'a> {
-    #[serde(borrow)]
     pub filter: Filter<'a, Entity>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
-    #[serde(borrow)]
     pub sorting: EntityQuerySorting<'static>,
     pub limit: Option<usize>,
     pub include_drafts: bool,
-    #[serde(default)]
     pub include_count: bool,
+    pub include_web_ids: bool,
+    pub include_created_by_ids: bool,
+    pub include_edition_created_by_ids: bool,
+    pub include_type_ids: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -238,22 +238,34 @@ pub struct GetEntitiesResponse<'r> {
     pub entities: Vec<Entity>,
     pub cursor: Option<EntityQueryCursor<'r>>,
     pub count: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub web_ids: Option<HashMap<OwnedById, usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub created_by_ids: Option<HashMap<CreatedById, usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub edition_created_by_ids: Option<HashMap<EditionCreatedById, usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub type_ids: Option<HashMap<VersionedUrl, usize>>,
 }
 
-#[derive(Debug, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[derive(Debug)]
+#[expect(clippy::struct_excessive_bools, reason = "Parameter struct")]
 pub struct GetEntitySubgraphParams<'a> {
-    #[serde(borrow)]
     pub filter: Filter<'a, Entity>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub graph_resolve_depths: GraphResolveDepths,
-    #[serde(borrow)]
     pub sorting: EntityQuerySorting<'static>,
     pub limit: Option<usize>,
     pub include_drafts: bool,
-    #[serde(default)]
     pub include_count: bool,
+    pub include_web_ids: bool,
+    pub include_created_by_ids: bool,
+    pub include_edition_created_by_ids: bool,
+    pub include_type_ids: bool,
 }
 
 #[derive(Debug)]
@@ -261,6 +273,10 @@ pub struct GetEntitySubgraphResponse<'r> {
     pub subgraph: Subgraph,
     pub cursor: Option<EntityQueryCursor<'r>>,
     pub count: Option<usize>,
+    pub web_ids: Option<HashMap<OwnedById, usize>>,
+    pub created_by_ids: Option<HashMap<CreatedById, usize>>,
+    pub edition_created_by_ids: Option<HashMap<EditionCreatedById, usize>>,
+    pub type_ids: Option<HashMap<VersionedUrl, usize>>,
 }
 
 #[derive(Debug, Deserialize)]

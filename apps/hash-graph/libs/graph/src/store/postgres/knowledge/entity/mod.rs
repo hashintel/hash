@@ -67,7 +67,7 @@ use crate::{
                 },
                 InsertStatementBuilder, ReferenceTable, Table,
             },
-            TraversalContext,
+            ResponseCountMap, TraversalContext,
         },
         query::{Filter, FilterExpression, Parameter},
         validation::StoreProvider,
@@ -323,45 +323,85 @@ where
     ) -> Result<(GetEntitiesResponse<'static>, Zookie<'static>), QueryError> {
         let mut root_entities = Vec::new();
 
-        let (permissions, count) = if params.include_count {
-            let entity_ids = Read::<Entity>::read(
-                self,
-                &params.filter,
-                Some(temporal_axes),
-                params.include_drafts,
-            )
-            .await?
-            .map_ok(|entity| entity.metadata.record_id.entity_id)
-            .try_collect::<Vec<_>>()
-            .await?;
+        let (permissions, count, web_ids, created_by_ids, edition_created_by_ids, type_ids) =
+            if params.include_count
+                || params.include_web_ids
+                || params.include_created_by_ids
+                || params.include_edition_created_by_ids
+                || params.include_type_ids
+            {
+                let mut web_ids = params.include_web_ids.then(ResponseCountMap::default);
+                let mut created_by_ids = params
+                    .include_created_by_ids
+                    .then(ResponseCountMap::default);
+                let mut edition_created_by_ids = params
+                    .include_edition_created_by_ids
+                    .then(ResponseCountMap::default);
+                let mut include_type_ids = params.include_type_ids.then(ResponseCountMap::default);
 
-            let span = tracing::trace_span!("post_filter_entities");
-            let _s = span.enter();
-
-            let (permissions, zookie) = self
-                .authorization_api
-                .check_entities_permission(
-                    actor_id,
-                    EntityPermission::View,
-                    entity_ids.iter().copied(),
-                    Consistency::FullyConsistent,
+                let entity_ids = Read::<Entity>::read(
+                    self,
+                    &params.filter,
+                    Some(temporal_axes),
+                    params.include_drafts,
                 )
-                .await
-                .change_context(QueryError)?;
+                .await?
+                .map_ok(|entity| {
+                    if let Some(web_ids) = &mut web_ids {
+                        web_ids.increment(&entity.metadata.record_id.entity_id.owned_by_id);
+                    }
+                    if let Some(created_by_ids) = &mut created_by_ids {
+                        created_by_ids
+                            .increment(&entity.metadata.provenance.inferred.created_by_id);
+                    }
+                    if let Some(edition_created_by_ids) = &mut edition_created_by_ids {
+                        edition_created_by_ids
+                            .increment(&entity.metadata.provenance.edition.created_by_id);
+                    }
+                    if let Some(include_type_ids) = &mut include_type_ids {
+                        for entity_type_id in &entity.metadata.entity_type_ids {
+                            include_type_ids.increment(entity_type_id);
+                        }
+                    }
+                    entity.metadata.record_id.entity_id
+                })
+                .try_collect::<Vec<_>>()
+                .await?;
 
-            let permitted_ids = permissions
-                .into_iter()
-                .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
-                .collect::<HashSet<_>>();
+                let span = tracing::trace_span!("post_filter_entities");
+                let _s = span.enter();
 
-            let count = entity_ids
-                .into_iter()
-                .filter(|id| permitted_ids.contains(&id.entity_uuid))
-                .count();
-            (Some((permitted_ids, zookie)), Some(count))
-        } else {
-            (None, None)
-        };
+                let (permissions, zookie) = self
+                    .authorization_api
+                    .check_entities_permission(
+                        actor_id,
+                        EntityPermission::View,
+                        entity_ids.iter().copied(),
+                        Consistency::FullyConsistent,
+                    )
+                    .await
+                    .change_context(QueryError)?;
+
+                let permitted_ids = permissions
+                    .into_iter()
+                    .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
+                    .collect::<HashSet<_>>();
+
+                let count = entity_ids
+                    .into_iter()
+                    .filter(|id| permitted_ids.contains(&id.entity_uuid))
+                    .count();
+                (
+                    Some((permitted_ids, zookie)),
+                    Some(count),
+                    web_ids.map(HashMap::from),
+                    created_by_ids.map(HashMap::from),
+                    edition_created_by_ids.map(HashMap::from),
+                    include_type_ids.map(HashMap::from),
+                )
+            } else {
+                (None, None, None, None, None, None)
+            };
 
         let (latest_zookie, last) = loop {
             // We query one more than requested to determine if there are more entities to return.
@@ -463,6 +503,10 @@ where
                     .collect(),
                 cursor: last,
                 count,
+                web_ids,
+                created_by_ids,
+                edition_created_by_ids,
+                type_ids,
             },
             latest_zookie.into_owned(),
         ))
@@ -943,6 +987,10 @@ where
                 entities: root_entities,
                 cursor,
                 count,
+                web_ids,
+                created_by_ids,
+                edition_created_by_ids,
+                type_ids,
             },
             zookie,
         ) = self
@@ -955,6 +1003,10 @@ where
                     limit: params.limit,
                     include_drafts: params.include_drafts,
                     include_count: false,
+                    include_web_ids: params.include_web_ids,
+                    include_created_by_ids: params.include_created_by_ids,
+                    include_edition_created_by_ids: params.include_edition_created_by_ids,
+                    include_type_ids: params.include_type_ids,
                 },
                 &temporal_axes,
             )
@@ -1011,6 +1063,10 @@ where
             subgraph,
             cursor,
             count,
+            web_ids,
+            created_by_ids,
+            edition_created_by_ids,
+            type_ids,
         })
     }
 
