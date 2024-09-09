@@ -324,7 +324,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     Properties(Option<JsonPath<'p>>),
-    /// The property defined as [`label`] property in the corresponding entity type.
+    /// The property defined as [`label_property`] in the corresponding entity type metadata.
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -339,6 +339,24 @@ pub enum EntityQueryPath<'p> {
     /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// It's possible to specify the inheritance search depths:
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["label(inheritanceDepth = 10)"]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     EntityQueryPath::Label {
+    ///         inheritance_depth: Some(10)
+    ///     }
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`label_property`]: graph_types::ontology::EntityTypeMetadata::label_property
     Label { inheritance_depth: Option<u32> },
     /// Corresponds to the provenance data of the [`Entity`].
     ///
