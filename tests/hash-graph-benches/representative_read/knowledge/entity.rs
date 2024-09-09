@@ -61,6 +61,10 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
                         limit: None,
                         include_count: false,
                         include_drafts: false,
+                        include_web_ids: false,
+                        include_created_by_ids: false,
+                        include_edition_created_by_ids: false,
+                        include_type_ids: false,
                     },
                 )
                 .await
@@ -112,6 +116,10 @@ pub fn bench_get_entities_by_property<A: AuthorizationApi>(
                     limit: None,
                     include_count: false,
                     include_drafts: false,
+                    include_web_ids: false,
+                    include_created_by_ids: false,
+                    include_edition_created_by_ids: false,
+                    include_type_ids: false,
                 },
             )
             .await
@@ -165,6 +173,10 @@ pub fn bench_get_link_by_target_by_property<A: AuthorizationApi>(
                     limit: None,
                     include_count: false,
                     include_drafts: false,
+                    include_web_ids: false,
+                    include_created_by_ids: false,
+                    include_edition_created_by_ids: false,
+                    include_type_ids: false,
                 },
             )
             .await

@@ -157,6 +157,10 @@ async fn properties_add() {
                 limit: None,
                 include_count: false,
                 include_drafts: false,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
             },
         )
         .await
@@ -231,6 +235,10 @@ async fn properties_remove() {
                 limit: None,
                 include_count: false,
                 include_drafts: false,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
             },
         )
         .await
@@ -311,6 +319,10 @@ async fn properties_replace() {
                 limit: None,
                 include_count: false,
                 include_drafts: false,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
             },
         )
         .await
@@ -383,6 +395,10 @@ async fn type_ids() {
                 limit: None,
                 include_count: false,
                 include_drafts: false,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
             },
         )
         .await
@@ -430,6 +446,10 @@ async fn type_ids() {
                 limit: None,
                 include_count: false,
                 include_drafts: false,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
             },
         )
         .await
@@ -479,6 +499,10 @@ async fn type_ids() {
                 limit: None,
                 include_count: false,
                 include_drafts: false,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
             },
         )
         .await
