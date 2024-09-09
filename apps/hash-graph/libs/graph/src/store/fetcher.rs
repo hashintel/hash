@@ -302,6 +302,8 @@ where
                         limit: None,
                         include_drafts: true,
                         include_count: false,
+                        include_web_ids: false,
+                        include_edition_created_by_ids: false,
                     },
                 )
                 .await

@@ -7,12 +7,13 @@ use authorization::schema::{
 };
 use error_stack::Result;
 use graph_types::{
-    account::AccountId,
+    account::{AccountId, EditionCreatedById},
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
         OntologyTemporalMetadata, OntologyTypeClassificationMetadata, PropertyTypeMetadata,
         PropertyTypeWithMetadata, ProvidedOntologyEditionProvenance,
     },
+    owned_by_id::OwnedById,
     Embedding,
 };
 use serde::{Deserialize, Serialize};
@@ -534,6 +535,7 @@ pub struct CreateEntityTypeParams<R> {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[expect(clippy::struct_excessive_bools, reason = "Parameter struct")]
 pub struct GetEntityTypeSubgraphParams<'p> {
     #[serde(borrow)]
     pub filter: Filter<'p, EntityTypeWithMetadata>,
@@ -544,6 +546,10 @@ pub struct GetEntityTypeSubgraphParams<'p> {
     pub include_drafts: bool,
     #[serde(default)]
     pub include_count: bool,
+    #[serde(default)]
+    pub include_web_ids: bool,
+    #[serde(default)]
+    pub include_edition_created_by_ids: bool,
 }
 
 #[derive(Debug)]
@@ -551,6 +557,8 @@ pub struct GetEntityTypeSubgraphResponse {
     pub subgraph: Subgraph,
     pub cursor: Option<EntityTypeVertexId>,
     pub count: Option<usize>,
+    pub web_ids: Option<HashMap<OwnedById, usize>>,
+    pub edition_created_by_ids: Option<HashMap<EditionCreatedById, usize>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -566,6 +574,7 @@ pub struct CountEntityTypesParams<'p> {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[expect(clippy::struct_excessive_bools, reason = "Parameter struct")]
 pub struct GetEntityTypesParams<'p> {
     #[serde(borrow)]
     pub filter: Filter<'p, EntityTypeWithMetadata>,
@@ -577,6 +586,10 @@ pub struct GetEntityTypesParams<'p> {
     pub limit: Option<usize>,
     #[serde(default)]
     pub include_count: bool,
+    #[serde(default)]
+    pub include_web_ids: bool,
+    #[serde(default)]
+    pub include_edition_created_by_ids: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -586,6 +599,12 @@ pub struct GetEntityTypesResponse {
     pub entity_types: Vec<EntityTypeWithMetadata>,
     pub cursor: Option<EntityTypeVertexId>,
     pub count: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    pub web_ids: Option<HashMap<OwnedById, usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    pub edition_created_by_ids: Option<HashMap<EditionCreatedById, usize>>,
 }
 
 #[derive(Debug, Deserialize)]

@@ -49,7 +49,7 @@ use crate::{
                 PostgresOntologyTypeClassificationMetadata,
             },
             query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
-            TraversalContext,
+            ResponseCountMap, TraversalContext,
         },
         query::{Filter, FilterExpression, ParameterList},
         AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, SubgraphRecord,
@@ -111,27 +111,74 @@ where
             }))
     }
 
+    #[expect(clippy::too_many_lines)]
     async fn get_entity_types_impl(
         &self,
         actor_id: AccountId,
         params: GetEntityTypesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
     ) -> Result<(GetEntityTypesResponse, Zookie<'static>), QueryError> {
-        #[expect(clippy::if_then_some_else_none, reason = "Function is async")]
-        let count = if params.include_count {
-            Some(
-                self.count_entity_types(
+        let (count, web_ids, edition_created_by_ids) = if params.include_count
+            || params.include_web_ids
+            || params.include_edition_created_by_ids
+        {
+            let mut web_ids = params.include_web_ids.then(ResponseCountMap::default);
+            let mut edition_created_by_ids = params
+                .include_edition_created_by_ids
+                .then(ResponseCountMap::default);
+
+            let entity_ids = Read::<EntityTypeWithMetadata>::read(
+                self,
+                &params.filter,
+                Some(temporal_axes),
+                params.include_drafts,
+            )
+            .await?
+            .map_ok(|entity_type| {
+                if let (Some(web_ids), OntologyTypeClassificationMetadata::Owned { owned_by_id }) =
+                    (&mut web_ids, &entity_type.metadata.classification)
+                {
+                    web_ids.increment(owned_by_id);
+                }
+                if let Some(edition_created_by_ids) = &mut edition_created_by_ids {
+                    edition_created_by_ids
+                        .increment(&entity_type.metadata.provenance.edition.created_by_id);
+                }
+                EntityTypeId::from_record_id(&entity_type.metadata.record_id)
+            })
+            .try_collect::<Vec<_>>()
+            .await?;
+
+            let span = tracing::trace_span!("post_filter_entities");
+            let _s = span.enter();
+
+            let (permissions, _zookie) = self
+                .authorization_api
+                .check_entity_types_permission(
                     actor_id,
-                    CountEntityTypesParams {
-                        filter: params.filter.clone(),
-                        temporal_axes: params.temporal_axes.clone(),
-                        include_drafts: params.include_drafts,
-                    },
+                    EntityTypePermission::View,
+                    entity_ids.iter().copied(),
+                    Consistency::FullyConsistent,
                 )
-                .await?,
+                .await
+                .change_context(QueryError)?;
+
+            let permitted_ids = permissions
+                .into_iter()
+                .filter_map(|(entity_id, has_permission)| has_permission.then_some(entity_id))
+                .collect::<HashSet<_>>();
+
+            let count = entity_ids
+                .into_iter()
+                .filter(|id| permitted_ids.contains(id))
+                .count();
+            (
+                Some(count),
+                web_ids.map(HashMap::from),
+                edition_created_by_ids.map(HashMap::from),
             )
         } else {
-            None
+            (None, None, None)
         };
 
         // TODO: Remove again when subgraph logic was revisited
@@ -198,6 +245,8 @@ where
                 },
                 entity_types,
                 count,
+                web_ids,
+                edition_created_by_ids,
             },
             zookie,
         ))
@@ -749,6 +798,8 @@ where
                 entity_types,
                 cursor,
                 count,
+                web_ids,
+                edition_created_by_ids,
             },
             zookie,
         ) = self
@@ -761,6 +812,8 @@ where
                     limit: params.limit,
                     include_drafts: params.include_drafts,
                     include_count: params.include_count,
+                    include_web_ids: params.include_web_ids,
+                    include_edition_created_by_ids: params.include_edition_created_by_ids,
                 },
                 &temporal_axes,
             )
@@ -817,6 +870,8 @@ where
             subgraph,
             cursor,
             count,
+            web_ids,
+            edition_created_by_ids,
         })
     }
 
