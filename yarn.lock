@@ -7028,12 +7028,12 @@
     require-from-string "^2.0.2"
     uri-js "^4.2.2"
 
-"@redocly/cli@1.23.0":
-  version "1.23.0"
-  resolved "https://registry.yarnpkg.com/@redocly/cli/-/cli-1.23.0.tgz#a721ccd08e8c534217a44573a672ef03ebfdfda7"
-  integrity sha512-QT7kAXPRjyW+eKbOsQf87iCCoKN6JdyOJ+F2TnhQE5dV3B4LwjR+qQAsGMbtKecgFLG8CZgjw2saize8KgISgQ==
+"@redocly/cli@1.23.1":
+  version "1.23.1"
+  resolved "https://registry.yarnpkg.com/@redocly/cli/-/cli-1.23.1.tgz#aa554222ccdfdc81b3d7a4a2e8dc3453d3ccd362"
+  integrity sha512-dg7tco30N4SucH8zhqlmdKRfq+mY0wng7VSg5QU65uPenSK4cWZlSRgBo9Nt8AeDCXszUsYuEw0Wqhy63Xdp1Q==
   dependencies:
-    "@redocly/openapi-core" "1.23.0"
+    "@redocly/openapi-core" "1.23.1"
     abort-controller "^3.0.0"
     chokidar "^3.5.1"
     colorette "^1.2.0"
@@ -7058,10 +7058,10 @@
   resolved "https://registry.yarnpkg.com/@redocly/config/-/config-0.10.1.tgz#c7bcbab6cb3b82236c2f5c87aa44924a652d8e80"
   integrity sha512-H3LnKVGzOaxskwJu8pmJYwBOWjP61qOK7TuTrbafqArDVckE06fhA6l0nO4KvBbjLPjy1Al7UnlxOu23V4Nl0w==
 
-"@redocly/openapi-core@1.23.0", "@redocly/openapi-core@^1.4.0":
-  version "1.23.0"
-  resolved "https://registry.yarnpkg.com/@redocly/openapi-core/-/openapi-core-1.23.0.tgz#8a782a7b49287de4dd7d5933c7e98bb8c652c064"
-  integrity sha512-E7+ulVLjTzDpgdHwvLXT293cHnyEgCfr+OVGD2tw4GWjYyPaKpYrRSp7j/kiv/ZCtstE3ck/yNRpztLLq3Md5g==
+"@redocly/openapi-core@1.23.1", "@redocly/openapi-core@^1.4.0":
+  version "1.23.1"
+  resolved "https://registry.yarnpkg.com/@redocly/openapi-core/-/openapi-core-1.23.1.tgz#20c0061cff6f60e5274ec59f491d6e5c6e972374"
+  integrity sha512-eCSHGOP/T68TNQYVqPLTZfWRjxHJjRdlQjMljY160UhiWHRt1SlBtjkOCpmCN+p3Vj3IirlrUhnTXtrqZclpVg==
   dependencies:
     "@redocly/ajv" "^8.11.0"
     "@redocly/config" "^0.10.1"
