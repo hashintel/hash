@@ -37,6 +37,7 @@ use graph::{
     },
     subgraph::identifier::EntityTypeVertexId,
 };
+use graph_type_defs::error::{ErrorInfo, Status, StatusPayloads};
 use graph_types::{
     ontology::{
         EntityTypeEmbedding, EntityTypeId, EntityTypeMetadata, EntityTypeWithMetadata,
@@ -55,15 +56,12 @@ use type_system::{
 };
 use utoipa::{OpenApi, ToSchema};
 
-use crate::{
-    error::{ErrorInfo, Status, StatusPayloads},
-    rest::{
-        api_resource::RoutedResource,
-        json::Json,
-        status::{report_to_response, status_to_response},
-        utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfEntityType},
-        AuthenticatedUserHeader, PermissionResponse, RestApiStore,
-    },
+use crate::rest::{
+    api_resource::RoutedResource,
+    json::Json,
+    status::{report_to_response, status_to_response},
+    utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfEntityType},
+    AuthenticatedUserHeader, PermissionResponse, RestApiStore,
 };
 
 #[derive(OpenApi)]

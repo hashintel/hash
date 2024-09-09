@@ -5,7 +5,6 @@ use core::{
     str::FromStr,
     time::Duration,
 };
-use std::fs;
 
 use authorization::{
     backend::{SpiceDbOpenApi, ZanzibarBackend},
@@ -20,7 +19,7 @@ use graph::{
         DatabaseConnectionInfo, DatabasePoolConfig, FetchingPool, PostgresStorePool, StorePool,
     },
 };
-use graph_api::rest::{rest_api_router, OpenApiDocumentation, RestRouterDependencies};
+use graph_api::rest::{rest_api_router, RestRouterDependencies};
 use regex::Regex;
 use reqwest::{Client, Url};
 use temporal_client::TemporalClientConfig;
@@ -109,10 +108,6 @@ pub struct ServerArgs {
     #[clap(long, requires = "wait")]
     pub timeout: Option<u64>,
 
-    /// Starts a server that only serves the OpenAPI spec.
-    #[clap(long, default_value_t = false)]
-    pub write_openapi_specs: bool,
-
     /// Starts a server without connecting to the type fetcher
     #[clap(long, default_value_t = false)]
     pub offline: bool,
@@ -150,32 +145,6 @@ pub async fn server(args: ServerArgs) -> Result<(), GraphError> {
         )
         .await
         .change_context(GraphError);
-    }
-
-    if args.write_openapi_specs {
-        let openapi_path = std::path::Path::new("openapi");
-        let openapi_models_path = openapi_path.join("models");
-        let openapi_json_path = openapi_path.join("openapi.json");
-        for path in [openapi_models_path, openapi_json_path] {
-            if !path.exists() {
-                continue;
-            }
-            if path.is_file() {
-                fs::remove_file(&path)
-                    .change_context(GraphError)
-                    .attach_printable("could not remove old OpenAPI file")
-                    .attach_printable_lazy(|| path.display().to_string())?;
-            } else {
-                fs::remove_dir_all(&path)
-                    .change_context(GraphError)
-                    .attach_printable("could not remove old OpenAPI file")
-                    .attach_printable_lazy(|| path.display().to_string())?;
-            }
-        }
-        OpenApiDocumentation::write_openapi(openapi_path)
-            .change_context(GraphError)
-            .attach_printable("could not write OpenAPI spec")?;
-        return Ok(());
     }
 
     let pool = PostgresStorePool::new(&args.db_info, &args.pool_config, NoTls)

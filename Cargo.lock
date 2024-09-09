@@ -2359,6 +2359,7 @@ dependencies = [
  "bytes",
  "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "graph",
+ "graph-type-defs",
  "graph-types",
  "hash-status",
  "http 1.1.0",
@@ -2429,6 +2430,15 @@ dependencies = [
 [[package]]
 name = "graph-test-data"
 version = "0.0.0"
+
+[[package]]
+name = "graph-type-defs"
+version = "0.0.0"
+dependencies = [
+ "hash-status",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "graph-types"
@@ -6527,6 +6537,7 @@ dependencies = [
  "futures",
  "graph",
  "graph-api",
+ "graph-type-defs",
  "graph-types",
  "hash-status",
  "tokio",

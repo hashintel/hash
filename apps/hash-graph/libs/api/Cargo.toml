@@ -9,17 +9,15 @@ publish.workspace = true
 authors.workspace = true
 description = "HASH Graph API"
 
-[package.metadata.sync.turborepo]
-extra-dependencies = [
-    { name = "@apps/hash-graph-type-defs", version = "0.0.0-private" },
-]
+[[bin]]
+name = "openapi-spec-generator"
+path = "src/bin/openapi-spec-generator.rs"
 
 [dependencies]
 # Public workspace dependencies
 authorization = { workspace = true, public = true }
 graph = { workspace = true, public = true, features = ["utoipa"] }
 graph-types = { workspace = true, public = true, features = ["utoipa"] }
-hash-status = { workspace = true, public = true }
 temporal-client = { workspace = true, public = true }
 
 # Public third-party dependencies
@@ -31,6 +29,8 @@ tracing = { workspace = true, public = true }
 
 # Private workspace dependencies
 error-stack = { workspace = true }
+graph-type-defs = { workspace = true }
+hash-status = { workspace = true }
 temporal-versioning = { workspace = true }
 type-system = { workspace = true, features = ["utoipa"] }
 validation = { workspace = true, features = ["utoipa"] }

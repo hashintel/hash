@@ -1,0 +1,14 @@
+{
+  "name": "@rust/graph-http-tests",
+  "version": "0.0.0-private",
+  "private": true,
+  "license": "AGPL-3",
+  "scripts": {
+    "reset-database": "httpyac send --all tests/reset-database.http",
+    "test:integration": "just test-integration"
+  },
+  "devDependencies": {
+    "@apps/hash-graph": "0.0.0-private",
+    "httpyac": "6.15.1"
+  }
+}

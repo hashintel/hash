@@ -7,7 +7,6 @@
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
   },
   "dependencies": {
-    "@apps/hash-graph-migrations": "0.0.0-private",
     "@blockprotocol/type-system-rs": "0.0.0-private",
     "@rust/authorization": "0.0.0-private",
     "@rust/codec": "0.0.0-private",

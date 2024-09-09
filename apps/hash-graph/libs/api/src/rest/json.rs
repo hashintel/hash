@@ -12,14 +12,12 @@ use axum::{
     response::{IntoResponse, Response},
 };
 use bytes::{BufMut, BytesMut};
+use graph_type_defs::error::{ErrorInfo, Status, StatusPayloads};
 use hash_status::StatusCode;
 use serde::{de::DeserializeOwned, Serialize};
 use serde_json::error::Category;
 
-use crate::{
-    error::{ErrorInfo, Status, StatusPayloads},
-    rest::status::status_to_response,
-};
+use crate::rest::status::status_to_response;
 
 #[derive(Debug, Clone, Copy, Default)]
 #[must_use]

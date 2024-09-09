@@ -1,3 +1,4 @@
+pub mod error;
 pub mod status_payloads {
     #![expect(dead_code)]
     #![expect(warnings)]

@@ -1,0 +1,20 @@
+{
+  "name": "@rust/graph-type-defs",
+  "version": "0.0.0-private",
+  "private": true,
+  "license": "AGPL-3",
+  "type": "module",
+  "scripts": {
+    "fix:eslint": "eslint --fix .",
+    "lint:eslint": "eslint --report-unused-disable-directives .",
+    "lint:tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@rust/hash-status": "0.0.0-private"
+  },
+  "devDependencies": {
+    "quicktype": "16.0.43",
+    "tsx": "4.16.2",
+    "typescript": "5.5.4"
+  }
+}

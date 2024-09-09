@@ -3,7 +3,3 @@
 extern crate alloc;
 
 pub mod rest;
-
-pub mod error;
-
-mod generated;
