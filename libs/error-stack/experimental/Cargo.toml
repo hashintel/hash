@@ -1,0 +1,16 @@
+[package]
+name = "error-stack-experimental"
+version = "0.0.0-reserved"
+authors = { workspace = true }
+edition = "2021"
+rust-version = "1.63.0"
+license = "MIT OR Apache-2.0"
+description = "Experimental features for error-stack"
+documentation = "https://docs.rs/error-stack-experimental"
+readme = "README.md"
+repository = "https://github.com/hashintel/hash/tree/main/libs/error-stack"
+keywords = ["errorstack", "error-handling", "experimental"]
+categories = ["rust-patterns", "no-std"]
+publish = false
+
+[dependencies]
