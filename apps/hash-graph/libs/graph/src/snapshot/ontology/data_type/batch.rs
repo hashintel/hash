@@ -1,15 +1,19 @@
+use alloc::sync::Arc;
 use std::collections::HashMap;
 
 use async_trait::async_trait;
 use authorization::{backend::ZanzibarBackend, schema::DataTypeRelationAndSubject};
 use error_stack::{Result, ResultExt};
-use graph_types::ontology::DataTypeId;
+use graph_types::ontology::{DataTypeId, DataTypeWithMetadata};
 use tokio_postgres::GenericClient;
+use type_system::schema::OntologyTypeResolver;
 
 use crate::{
     snapshot::WriteBatch,
     store::{
+        crud::Read,
         postgres::query::rows::{DataTypeConversionsRow, DataTypeEmbeddingRow, DataTypeRow},
+        query::Filter,
         AsClient, InsertionError, PostgresStore,
     },
 };
@@ -146,6 +150,35 @@ where
             )
             .await
             .change_context(InsertionError)?;
+
+        let mut ontology_type_resolver = OntologyTypeResolver::default();
+
+        let data_types = Read::<DataTypeWithMetadata>::read_vec(
+            postgres_client,
+            &Filter::All(Vec::new()),
+            None,
+            true,
+        )
+        .await
+        .change_context(InsertionError)?
+        .into_iter()
+        .map(|data_type| {
+            let data_type = Arc::new(data_type.schema);
+            ontology_type_resolver.add_open(Arc::clone(&data_type));
+            data_type
+        })
+        .collect::<Vec<_>>();
+
+        let schema_metadata = ontology_type_resolver
+            .resolve_data_type_metadata(data_types.iter().map(Arc::clone))
+            .change_context(InsertionError)?;
+
+        for (schema_metadata, data_type) in schema_metadata.iter().zip(&data_types) {
+            postgres_client
+                .insert_data_type_references(DataTypeId::from_url(&data_type.id), schema_metadata)
+                .await?;
+        }
+
         Ok(())
     }
 }
