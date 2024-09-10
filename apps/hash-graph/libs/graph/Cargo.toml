@@ -9,11 +9,6 @@ publish.workspace = true
 authors.workspace = true
 description = "HASH Graph API"
 
-[package.metadata.sync.turborepo]
-extra-dependencies = [
-    { name = "@apps/hash-graph-migrations", version = "0.0.0-private" },
-]
-
 [dependencies]
 # Public workspace dependencies
 authorization = { workspace = true, public = true }

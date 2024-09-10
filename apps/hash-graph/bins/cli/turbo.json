@@ -1,14 +1,13 @@
 {
   "extends": ["//"],
   "tasks": {
+    "start:migrate": {
+      "cache": false,
+      "dependsOn": ["compile:release"]
+    },
     "start:test:migrate": {
-      "dependsOn": []
-    },
-    "start:test:healthcheck": {
-      "dependsOn": []
-    },
-    "test:integration": {
-      "dependsOn": []
+      "cache": false,
+      "dependsOn": ["compile"]
     }
   }
 }

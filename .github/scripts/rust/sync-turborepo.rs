@@ -115,6 +115,13 @@ impl<'a> WorkspaceMember<'a> {
         if self.is_blockprotocol() {
             return format!("@blockprotocol/{}-rs", self.package.name);
         }
+        if let Some(sync) = self.package.metadata.get("sync") {
+            if let Some(turborepo) = sync.get("turborepo") {
+                if let Some(package_name) = turborepo.get("package-name") {
+                    return package_name.as_str().expect("package-name should be a string").to_owned();
+                };
+            };
+        };
 
         format!("@rust/{}", self.package.name)
     }

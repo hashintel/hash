@@ -9,6 +9,8 @@ publish.workspace = true
 authors.workspace = true
 description = "The entity-graph query-layer for the HASH datastore"
 
+[package.metadata.sync.turborepo]
+package-name = "@apps/hash-graph"
 
 [dependencies]
 # Workspace dependencies
