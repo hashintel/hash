@@ -1324,9 +1324,9 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "sortingPaths": [
     {
       "path": [
-        "recordCreatedAtTransactionTime"
+        "label"
       ],
-      "ordering": "descending"
+      "ordering": "ascending"
     }
   ],
   "filter": {

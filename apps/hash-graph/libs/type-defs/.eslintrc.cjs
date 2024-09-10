@@ -6,5 +6,6 @@ module.exports = {
   },
   rules: {
     "no-console": "off",
+    "@typescript-eslint/consistent-type-imports": "off",
   },
 };

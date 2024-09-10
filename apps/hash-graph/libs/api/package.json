@@ -4,13 +4,14 @@
   "private": true,
   "license": "AGPL-3",
   "scripts": {
-    "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
+    "codegen:generate-openapi-specs": "cargo run --bin openapi-spec-generator",
+    "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc && yarn codegen:generate-openapi-specs && git --no-pager diff --exit-code --color openapi"
   },
   "dependencies": {
-    "@apps/hash-graph-type-defs": "0.0.0-private",
     "@blockprotocol/type-system-rs": "0.0.0-private",
     "@rust/authorization": "0.0.0-private",
     "@rust/graph": "0.0.0-private",
+    "@rust/graph-type-defs": "0.0.0-private",
     "@rust/graph-types": "0.0.0-private",
     "@rust/hash-status": "0.0.0-private",
     "@rust/temporal-client": "0.0.0-private",

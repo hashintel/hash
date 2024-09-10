@@ -248,6 +248,11 @@
     },
     {
       "matchManagers": ["cargo"],
+      "groupName": "`tower` Rust crates",
+      "matchPackageNames": ["/^tower[-_]?/"]
+    },
+    {
+      "matchManagers": ["cargo"],
       "groupName": "`criterion` Rust crates",
       "matchPackageNames": ["/^criterion[-_]?/"]
     },
