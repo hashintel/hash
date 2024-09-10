@@ -504,7 +504,10 @@ where
                 .await
                 .change_context(InsertionError)?;
             transaction
-                .insert_data_type_with_id(DataTypeId::from_url(&schema.id), &closed_schema)
+                .insert_data_type_with_id(
+                    DataTypeId::from_url(&schema.id),
+                    closed_schema.data_type(),
+                )
                 .await?;
         }
         for (schema_metadata, data_type) in schema_metadata.iter().zip(&inserted_data_types) {
@@ -830,7 +833,7 @@ where
         let data_type_id = DataTypeId::from(ontology_id);
 
         transaction
-            .insert_data_type_with_id(data_type_id, &closed_schema)
+            .insert_data_type_with_id(data_type_id, closed_schema.data_type())
             .await
             .change_context(UpdateError)?;
         transaction

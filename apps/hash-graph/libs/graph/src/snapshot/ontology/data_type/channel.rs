@@ -1,4 +1,3 @@
-use alloc::sync::Arc;
 use core::{
     pin::Pin,
     task::{ready, Context, Poll},
@@ -12,7 +11,7 @@ use futures::{
     Sink, SinkExt, Stream, StreamExt,
 };
 use graph_types::ontology::DataTypeId;
-use type_system::{schema::OntologyTypeResolver, Valid};
+use type_system::Valid;
 
 use crate::{
     snapshot::{
@@ -60,11 +59,6 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
     ) -> Result<(), Self::Error> {
         let ontology_id = DataTypeId::from_record_id(&data_type.metadata.record_id);
 
-        let mut ontology_type_resolver = OntologyTypeResolver::default();
-        ontology_type_resolver
-            .resolve_data_type_metadata([Arc::new(data_type.schema.clone())])
-            .change_context(SnapshotRestoreError::Read)?;
-
         self.metadata
             .start_send_unpin(OntologyTypeMetadata {
                 ontology_id: ontology_id.into(),
@@ -80,13 +74,6 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
                 // TODO: Validate ontology types in snapshots
                 //   see https://linear.app/hash/issue/H-3038
                 schema: Valid::new_unchecked(data_type.schema.clone()),
-                // TODO: Validate ontology types in snapshots
-                //   see https://linear.app/hash/issue/H-3038
-                closed_schema: Valid::new_unchecked(
-                    ontology_type_resolver
-                        .get_closed_data_type(&data_type.schema.id)
-                        .change_context(SnapshotRestoreError::Read)?,
-                ),
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;

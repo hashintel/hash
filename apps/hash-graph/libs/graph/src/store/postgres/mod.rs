@@ -36,7 +36,7 @@ use time::OffsetDateTime;
 use tokio_postgres::{error::SqlState, GenericClient};
 use type_system::{
     schema::{
-        ClosedDataType, ClosedDataTypeMetadata, ClosedEntityType, Conversions, DataTypeReference,
+        ClosedDataTypeMetadata, ClosedEntityType, Conversions, DataType, DataTypeReference,
         EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
@@ -432,7 +432,7 @@ where
     async fn insert_data_type_with_id(
         &self,
         ontology_id: DataTypeId,
-        closed_data_type: &Valid<ClosedDataType>,
+        data_type: &Valid<DataType>,
     ) -> Result<Option<OntologyId>, InsertionError> {
         let ontology_id = self
             .as_client()
@@ -440,13 +440,12 @@ where
                 "
                     INSERT INTO data_types (
                         ontology_id,
-                        schema,
-                        closed_schema
-                    ) VALUES ($1, $2, $3)
+                        schema
+                    ) VALUES ($1, $2)
                     ON CONFLICT DO NOTHING
                     RETURNING ontology_id;
                 ",
-                &[&ontology_id, closed_data_type.data_type(), closed_data_type],
+                &[&ontology_id, data_type],
             )
             .await
             .change_context(InsertionError)?
@@ -456,7 +455,7 @@ where
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn insert_data_type_references(
+    pub async fn insert_data_type_references(
         &self,
         ontology_id: DataTypeId,
         metadata: &ClosedDataTypeMetadata,

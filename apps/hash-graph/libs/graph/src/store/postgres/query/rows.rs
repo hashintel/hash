@@ -15,9 +15,7 @@ use postgres_types::ToSql;
 use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime};
 use time::OffsetDateTime;
 use type_system::{
-    schema::{
-        ClosedDataType, ClosedEntityType, ConversionDefinition, DataType, EntityType, PropertyType,
-    },
+    schema::{ClosedEntityType, ConversionDefinition, DataType, EntityType, PropertyType},
     url::{BaseUrl, OntologyTypeVersion},
     Valid,
 };
@@ -68,7 +66,6 @@ pub struct DataTypeConversionsRow {
 pub struct DataTypeRow {
     pub ontology_id: DataTypeId,
     pub schema: Valid<DataType>,
-    pub closed_schema: Valid<ClosedDataType>,
 }
 
 #[derive(Debug, ToSql)]
