@@ -18,14 +18,14 @@ exclude = ["package.json"]
 
 # Public third-party dependencies
 anyhow = { version = ">=1.0.73", public = true, default-features = false, optional = true }
-eyre = { version = "0.6", public = true, default-features = false, optional = true }
-serde = { version = "1", default-features = false, public = true, optional = true }
+eyre = { version = ">=0.6", public = true, default-features = false, optional = true }
+serde = { version = ">=1", default-features = false, public = true, optional = true }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
-spin = { version = "0.9", default-features = false, optional = true, features = ['rwlock', 'once'] }
-tracing-error = { version = "0.2", optional = true, default-features = false }
+spin = { version = ">=0.9", default-features = false, optional = true, features = ['rwlock', 'once'] }
+tracing-error = { version = ">=0.2", optional = true, default-features = false }
 
 [dev-dependencies]
 serde = { workspace = true, features = ["derive"] }

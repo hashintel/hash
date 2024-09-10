@@ -215,10 +215,9 @@ impl<'s> Extend<Run<'s>> for SarifLog<'s> {
     }
 }
 
-#[cfg(test)]
-#[cfg(feature = "serde")]
+#[cfg(all(test, feature = "serde"))]
 pub(crate) mod tests {
-    use alloc::{borrow::Cow, vec};
+    use alloc::borrow::Cow;
 
     use coverage_helper::test;
     use semver::Version;
