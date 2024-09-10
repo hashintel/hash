@@ -45,6 +45,18 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       {
         "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
         "kind": "dataType",
+        "$id": "http://localhost:3000/@alice/types/data-type/length/v/1",
+        "title": "Length",
+        "type": "number",
+        "description": "A unit of length",
+        "minimum": 0
+      },
+      {
+        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+        "kind": "dataType",
+        "allOf": [{
+            "$ref": "http://localhost:3000/@alice/types/data-type/length/v/1"
+        }],
         "$id": "http://localhost:3000/@alice/types/data-type/meter/v/1",
         "title": "Meter",
         "type": "number",
@@ -54,6 +66,9 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       {
         "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
         "kind": "dataType",
+        "allOf": [{
+            "$ref": "http://localhost:3000/@alice/types/data-type/length/v/1"
+        }],
         "$id": "http://localhost:3000/@alice/types/data-type/inch/v/1",
         "title": "Inch",
         "type": "number",
