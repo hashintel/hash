@@ -4459,25 +4459,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "orx-concurrent-ordered-bag"
-version = "2.2.0"
+name = "orx-concurrent-option"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9aa866e2be4aa03927eddb481e7c479d5109fe3121324fb7db6d97f91adf9876"
-dependencies = [
- "orx-fixed-vec",
- "orx-pinned-concurrent-col",
- "orx-pinned-vec",
- "orx-pseudo-default",
- "orx-split-vec",
-]
+checksum = "6495f6cd6c808d8ffe4fbee6e21a2bf06df9804fba90c5c3fd25ecb10c713757"
 
 [[package]]
 name = "orx-concurrent-vec"
-version = "2.2.0"
+version = "2.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c5912426ffb660f8b61e8f0812a1d07400803cd5513969d2c7af4d69602ba8a1"
+checksum = "f0431bcfa60dd48cb4716e8a232ffb8a71969f90ae9412f42f3c874053f38a3d"
 dependencies = [
- "orx-concurrent-ordered-bag",
+ "orx-concurrent-option",
  "orx-fixed-vec",
  "orx-pinned-concurrent-col",
  "orx-pinned-vec",
@@ -4487,9 +4480,9 @@ dependencies = [
 
 [[package]]
 name = "orx-fixed-vec"
-version = "3.2.0"
+version = "3.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7f69466c7c1fc2e1f00b58e39059b78c438b9fad144d1937ef177ecfc413e997"
+checksum = "2163154a7cad2b05ed5db2d6f9293244d8e6d24d3e08d8f431439abc0cdbc93c"
 dependencies = [
  "orx-pinned-vec",
  "orx-pseudo-default",
@@ -4497,9 +4490,9 @@ dependencies = [
 
 [[package]]
 name = "orx-pinned-concurrent-col"
-version = "2.2.0"
+version = "2.7.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fdbcb1fa05dc1676f1c9cf19f443b3d2d2ca5835911477d22fa77cad8b79208d"
+checksum = "aa1aef70fb69d5e676f9a4d385cd42edd1b7761ca0813cda526b7f124b2164f3"
 dependencies = [
  "orx-fixed-vec",
  "orx-pinned-vec",
@@ -4509,24 +4502,24 @@ dependencies = [
 
 [[package]]
 name = "orx-pinned-vec"
-version = "3.2.0"
+version = "3.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c1071baf586de45722668234bddf56c52c1ece6a6153d16541bbb0505f0ac055"
+checksum = "eca16b2e706b4bedd7b91b7df231b543eab524d08e81b240eb120a6e9a3f0ceb"
 dependencies = [
  "orx-pseudo-default",
 ]
 
 [[package]]
 name = "orx-pseudo-default"
-version = "1.2.0"
+version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2f627c439e723fa78e410a0faba89047a8a47d0dc013da5c0e05806e8a6cddb"
+checksum = "b97dde303d83e7609797d0c1222a9fb02e66445abc47643cc3d7168fd7c804cc"
 
 [[package]]
 name = "orx-split-vec"
-version = "3.2.0"
+version = "3.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52b9dbfa8c7069ae73a890870d3aa9097a897d616751d3d0278f2b42d5214730"
+checksum = "0243f5d278f22aa324d282b790c671fc82339ed70032d3738d09c750bcb79322"
 dependencies = [
  "orx-pinned-vec",
  "orx-pseudo-default",
