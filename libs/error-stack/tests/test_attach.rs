@@ -49,7 +49,7 @@ fn attach_group() {
 
     root.push(nested);
 
-    // burry the first error under a couple of attachments
+    // bury the first error under a couple of attachments
     let mut root = root
         .attach_printable(PrintableB(0))
         .attach_printable(PrintableB(1))
