@@ -40,6 +40,29 @@ fn attach() {
 }
 
 #[test]
+fn buried_duplicate_context_does_not_affect_current_contexts() {
+    let mut root = create_report()
+        .change_context(ContextA(0))
+        .change_context(RootError)
+        .expand();
+    let auxillary = create_report();
+    root.push(auxillary);
+
+    let mut root = root.attach(AttachmentA);
+
+    let shallow = create_report()
+        .attach(AttachmentB)
+        .change_context(ContextB(0))
+        .attach(AttachmentA)
+        .change_context(ContextA(0))
+        .change_context(RootError);
+
+    root.push(shallow);
+
+    assert_eq!(root.current_contexts().count(), 3);
+}
+
+#[test]
 fn attach_result() {
     let error = create_error()
         .change_context(ContextA(0))
