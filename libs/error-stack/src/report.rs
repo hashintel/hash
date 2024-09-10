@@ -907,34 +907,25 @@ impl<C> Report<[C]> {
         // attachments.
         let mut output = Vec::new();
 
-        // stack full of "junctions", a junction is a frame that has more than one child, the root
-        // is always a junction with 1..n children
         let mut stack = vec![self.current_frames()];
         while let Some(frames) = stack.pop() {
-            for mut frame in frames {
-                // traverse the frames down until the first "junction" (the first frame that has
-                // more than one child)
-                loop {
-                    // check if the frame is the current context
-                    if let Some(context) = frame.downcast_ref::<C>() {
-                        output.push(context);
-                        break;
-                    }
+            for frame in frames {
+                // check if the frame is the current context, in that case we don't need to follow
+                // the tree anymore
+                if let Some(context) = frame.downcast_ref::<C>() {
+                    output.push(context);
+                    continue;
+                }
 
-                    // there should always be a current context, hitting the root of the tree is
-                    // considered a bug
-                    // we use an inner loop here, as it allows us to follow a single path down the
-                    // tree, without needing to re-shuffle the stack or pause execution
-                    match frame.sources() {
-                        [] => unreachable!(
-                            "Report does not contain a context. This is considered a bug and should be \
-                            reported to https://github.com/hashintel/hash/issues/new/choose"
-                        ),
-                        [next] => frame = next,
-                        sources => {
-                            stack.push(sources);
-                            break;
-                        }
+                // descend into the tree
+                let sources = frame.sources();
+                match sources {
+                    [] => unreachable!(
+                        "Report does not contain a context. This is considered a bug and should be \
+                        reported to https://github.com/hashintel/hash/issues/new/choose"
+                    ),
+                    sources => {
+                        stack.push(sources);
                     }
                 }
             }
