@@ -560,7 +560,7 @@ impl<C: ?Sized> Report<C> {
     /// such as [`Debug`]. It allows for code reuse between `Report<C>` and `Report<[C]>`
     /// implementations without duplicating logic.
     #[must_use]
-    pub fn current_frames_unchecked(&self) -> &[Frame] {
+    pub(crate) fn current_frames_unchecked(&self) -> &[Frame] {
         &self.frames
     }
 
