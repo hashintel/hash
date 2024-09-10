@@ -14,3 +14,6 @@ categories = ["rust-patterns", "no-std"]
 publish = false
 
 [dependencies]
+
+[lints]
+workspace = true
