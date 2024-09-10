@@ -383,6 +383,7 @@ pub enum JsonField<'p> {
     JsonPath(&'p JsonPath<'p>),
     JsonPathParameter(usize),
     StaticText(&'static str),
+    Label { inheritance_depth: Option<u32> },
 }
 
 impl<'p> JsonField<'p> {
@@ -397,6 +398,7 @@ impl<'p> JsonField<'p> {
             ),
             Self::JsonPathParameter(index) => (JsonField::JsonPathParameter(index), None),
             Self::StaticText(text) => (JsonField::StaticText(text), None),
+            Self::Label { inheritance_depth } => (JsonField::Label { inheritance_depth }, None),
         }
     }
 }
@@ -556,30 +558,6 @@ impl DatabaseColumn for OntologyTemporalMetadata {
             Self::OntologyId => "ontology_id",
             Self::TransactionTime => "transaction_time",
             Self::Provenance => "provenance",
-        }
-    }
-}
-
-fn transpile_json_field(
-    path: JsonField<'static>,
-    name: &'static str,
-    table: &impl Transpile,
-    fmt: &mut fmt::Formatter,
-) -> fmt::Result {
-    match path {
-        JsonField::JsonPath(path) => {
-            write!(fmt, "jsonb_path_query_first(")?;
-            table.transpile(fmt)?;
-            write!(fmt, r#"."{name}", {path})"#)
-        }
-        JsonField::JsonPathParameter(index) => {
-            write!(fmt, "jsonb_path_query_first(")?;
-            table.transpile(fmt)?;
-            write!(fmt, r#"."{name}", ${index}::text::jsonpath)"#)
-        }
-        JsonField::StaticText(field) => {
-            table.transpile(fmt)?;
-            write!(fmt, r#"."{name}"->>'{field}'"#)
         }
     }
 }
