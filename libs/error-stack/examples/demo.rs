@@ -64,7 +64,7 @@ impl Context for ExperimentError {}
 fn start_experiments(
     experiment_ids: &[usize],
     experiment_descriptions: &[&str],
-) -> Result<Vec<u64>, ExperimentError> {
+) -> Result<Vec<u64>, [ExperimentError]> {
     let experiments = experiment_ids
         .iter()
         .map(|exp_id| {
@@ -106,7 +106,7 @@ fn start_experiments(
     Ok(experiments.iter().map(|experiment| experiment()).collect())
 }
 
-fn main() -> Result<(), ExperimentError> {
+fn main() -> Result<(), [ExperimentError]> {
     let experiment_ids = &[0, 2, 3];
     let experiment_descriptions = &["10", "20", "3o 4a"];
     start_experiments(experiment_ids, experiment_descriptions)?;

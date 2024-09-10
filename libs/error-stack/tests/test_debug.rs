@@ -184,7 +184,7 @@ fn create_sources_nested() -> Report<ContextA> {
 
     let mut r2 = create_report().change_context(ContextA(4)).expand();
 
-    r2.push(r3);
+    r2.append(r3);
     r2.push(r5);
     r2.push(r6);
 
@@ -391,7 +391,7 @@ mod full {
         let report = {
             let mut report = create_report().attach_printable(PrintableA(1)).expand();
 
-            report.push({
+            report.append({
                 let mut report = create_report().attach_printable(PrintableB(2)).expand();
 
                 report.push(create_report().attach_printable(PrintableB(3)));
@@ -413,7 +413,7 @@ mod full {
         let _guard = prepare(false);
 
         let mut report = create_report().attach_printable(PrintableA(0)).expand();
-        report.push({
+        report.append({
             let mut report = create_report().attach_printable(PrintableB(1)).expand();
 
             report.push(

@@ -44,7 +44,7 @@ pub type Result<T, C> = core::result::Result<T, Report<C>>;
 /// [`Report`]s.
 pub trait ResultExt {
     /// The [`Context`] type of the [`Result`].
-    type Context: Context;
+    type Context: ?Sized;
 
     /// Type of the [`Ok`] value in the [`Result`]
     type Ok;
@@ -270,11 +270,11 @@ impl<T, C> ResultExt for Result<T, [C]>
 where
     C: Context,
 {
-    type Context = C;
+    type Context = [C];
     type Ok = T;
 
     #[track_caller]
-    fn attach<A>(self, attachment: A) -> Result<T, C>
+    fn attach<A>(self, attachment: A) -> Self
     where
         A: Send + Sync + 'static,
     {
@@ -286,7 +286,7 @@ where
     }
 
     #[track_caller]
-    fn attach_lazy<A, F>(self, attachment: F) -> Result<T, C>
+    fn attach_lazy<A, F>(self, attachment: F) -> Self
     where
         A: Send + Sync + 'static,
         F: FnOnce() -> A,
@@ -299,7 +299,7 @@ where
     }
 
     #[track_caller]
-    fn attach_printable<A>(self, attachment: A) -> Result<T, C>
+    fn attach_printable<A>(self, attachment: A) -> Self
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
@@ -311,7 +311,7 @@ where
     }
 
     #[track_caller]
-    fn attach_printable_lazy<A, F>(self, attachment: F) -> Result<T, C>
+    fn attach_printable_lazy<A, F>(self, attachment: F) -> Self
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
         F: FnOnce() -> A,

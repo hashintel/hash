@@ -40,6 +40,29 @@ fn attach() {
 }
 
 #[test]
+fn attach_group() {
+    let mut root = create_report()
+        .attach(PrintableA)
+        .attach(PrintableB(0))
+        .expand();
+    let nested = create_report().attach(AttachmentA).attach(AttachmentB);
+
+    root.push(nested);
+
+    // burry the first error under a couple of attachments
+    let mut root = root
+        .attach_printable(PrintableB(0))
+        .attach_printable(PrintableB(1))
+        .attach_printable(PrintableB(2));
+
+    let shallow = create_report().attach(AttachmentA).attach(AttachmentB);
+
+    root.push(shallow);
+
+    assert_eq!(root.current_contexts().count(), 3);
+}
+
+#[test]
 fn attach_result() {
     let error = create_error()
         .attach(PrintableA)

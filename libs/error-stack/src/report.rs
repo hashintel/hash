@@ -683,7 +683,7 @@ impl<C> Report<[C]> {
     /// [`Debug`]: core::fmt::Debug
     /// [`attach_printable()`]: Self::attach_printable
     #[track_caller]
-    pub fn attach<A>(mut self, attachment: A) -> Report<C>
+    pub fn attach<A>(mut self, attachment: A) -> Self
     where
         A: Send + Sync + 'static,
     {
@@ -693,10 +693,7 @@ impl<C> Report<[C]> {
             old_frames.into_boxed_slice(),
         ));
 
-        Report {
-            frames: self.frames,
-            _context: PhantomData,
-        }
+        self
     }
 
     /// Adds additional (printable) information to the [`Frame`] stack.
@@ -737,7 +734,7 @@ impl<C> Report<[C]> {
     /// assert_eq!(suggestion.0, "better use a file which exists next time!");
     /// ```
     #[track_caller]
-    pub fn attach_printable<A>(mut self, attachment: A) -> Report<C>
+    pub fn attach_printable<A>(mut self, attachment: A) -> Self
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
@@ -747,10 +744,7 @@ impl<C> Report<[C]> {
             old_frames.into_boxed_slice(),
         ));
 
-        Report {
-            frames: self.frames,
-            _context: PhantomData,
-        }
+        self
     }
 
     /// Return the direct current frames of this report,
@@ -906,64 +900,47 @@ impl<C> Report<[C]> {
     where
         C: Send + Sync + 'static,
     {
-        self.frames.iter().map(|frame| {
-            let frames = core::slice::from_ref(frame);
+        // this needs a manual traveral implementation, why?
+        // We know that each arm has a current context, but we don't know where that context is,
+        // therefore we need to search for it on each branch, but stop once we found it, that way
+        // we're able to return the current context, even if it is "buried" underneath a bunch of
+        // attachments.
+        let mut output = Vec::new();
 
-            Frames::new(frames)
-                .find_map(Frame::downcast_ref)
-                .unwrap_or_else(|| {
-                    // Panics if there isn't an attached context which matches `T`. As it's not
-                    // possible to create a `Report` without a valid context and
-                    // this method can only be called when `T` is a valid
-                    // context, it's guaranteed that the context is available.
-                    unreachable!(
-                        "Report does not contain a context. This is considered a bug and should be \
-                        reported to https://github.com/hashintel/hash/issues/new/choose"
-                    );
-                })
-        })
-    }
+        // stack full of "junctions", a junction is a frame that has more than one child, the root
+        // is always a junction with 1..n children
+        let mut stack = vec![self.current_frames()];
+        while let Some(frames) = stack.pop() {
+            for mut frame in frames {
+                // traverse the frames down until the first "junction" (the first frame that has
+                // more than one child)
+                loop {
+                    // check if the frame is the current context
+                    if let Some(context) = frame.downcast_ref::<C>() {
+                        output.push(context);
+                        break;
+                    }
 
-    /// Attempts to shrink the `Report<[C]>` into a `Report<C>`.
-    ///
-    /// This function tries to convert a `Report` with potentially multiple contexts
-    /// into a `Report` with a single context. It succeeds if the `Report` contains
-    /// exactly one current context.
-    ///
-    /// ## Example
-    ///
-    /// ```rust
-    /// # use std::{fs, path::Path};
-    /// # use error_stack::Report;
-    /// use std::io;
-    ///
-    /// fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
-    ///     # const _: &str = stringify! {
-    ///     ...
-    ///     # };
-    ///     # fs::read_to_string(path.as_ref()).map_err(Report::from)
-    /// }
-    ///
-    /// let a = read_file("test.txt").unwrap_err().expand();
-    ///
-    /// let a = a.try_collapse().expect("there should only be a single current context");
-    /// let mut a = a.expand();
-    ///
-    /// let b = read_file("test2.txt").unwrap_err();
-    ///
-    /// a.push(b);
-    ///
-    /// let _ = a.try_collapse().expect_err("the report should not be able to shrink, as it contains multiple current contexts");
-    /// ```
-    pub fn try_collapse(self) -> Result<Report<C>, Self> {
-        if self.frames.len() == 1 {
-            Ok(Report {
-                frames: self.frames,
-                _context: PhantomData,
-            })
-        } else {
-            Err(self)
+                    // there should always be a current context, hitting the root of the tree is
+                    // considered a bug
+                    // we use an inner loop here, as it allows us to follow a single path down the
+                    // tree, without needing to re-shuffle the stack or pause execution
+                    match frame.sources() {
+                        [] => unreachable!(
+                            "Report does not contain a context. This is considered a bug and should be \
+                            reported to https://github.com/hashintel/hash/issues/new/choose"
+                        ),
+                        [next] => frame = next,
+                        sources => {
+                            stack.push(sources);
+                            break;
+                        }
+                    }
+                }
+            }
         }
+
+        output.into_iter()
     }
 }
 

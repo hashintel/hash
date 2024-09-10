@@ -267,8 +267,8 @@
 //!   of multiple contexts.
 //!
 //! You can seamlessly convert between these representations using [`Report::expand`] to transform
-//! a single-context report into a multi-context one, and [`Report::try_collapse`] to attempt the
-//! reverse transformation when appropriate.
+//! a single-context report into a multi-context one. Using [`Report::change_context`] will
+//! transform a [`Report<[C]>`] to a [`Report<C2>`], where `C2` is a new context type.
 //!
 //! [`push()`]: Report::push
 //!
