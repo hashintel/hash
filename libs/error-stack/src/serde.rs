@@ -149,6 +149,15 @@ impl<C: Context> Serialize for Report<C> {
     where
         S: Serializer,
     {
-        SerializeSources(self.current_frames()).serialize(serializer)
+        SerializeSources(self.leaves()).serialize(serializer)
+    }
+}
+
+impl<C: Context> Serialize for Report<[C]> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        SerializeSources(self.leaves()).serialize(serializer)
     }
 }

@@ -41,24 +41,24 @@ impl Context for Char {}
 /// ╰─▶ H
 /// ```
 #[allow(clippy::many_single_char_names)]
-fn build() -> Report<Char> {
-    let mut report_c = report!(Char('C'));
+fn build() -> Report<[Char]> {
+    let mut report_c = report!(Char('C')).into_multiple();
     let report_d = report!(Char('D'));
 
-    report_c.extend_one(report_d);
-    let mut report_b = report_c.change_context(Char('B'));
+    report_c.push(report_d);
+    let mut report_b = report_c.change_context(Char('B')).into_multiple();
 
     let report_f = report!(Char('F'));
     let report_e = report_f.change_context(Char('E'));
 
-    report_b.extend_one(report_e);
+    report_b.push(report_e);
 
-    let mut report_a = report_b.change_context(Char('A'));
+    let mut report_a = report_b.change_context(Char('A')).into_multiple();
 
     let report_h = report!(Char('H'));
     let report_g = report_h.change_context(Char('G'));
 
-    report_a.extend_one(report_g);
+    report_a.push(report_g);
     report_a
 }
 

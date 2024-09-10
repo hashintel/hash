@@ -3,12 +3,12 @@ source: libs/error-stack/tests/test_debug.rs
 expression: "format!(\"{report:#?}\")"
 ---
 context A
-├╴at libs/error-stack/tests/test_debug.rs:206:10
+├╴at libs/error-stack/tests/test_debug.rs:208:10
 ├╴2
 ├╴1
 │
 ╰┬▶ context A
- │  ├╴at libs/error-stack/tests/test_debug.rs:200:10
+ │  ├╴at libs/error-stack/tests/test_debug.rs:201:10
  │  ├╴4
  │  ├╴3
  │  │
@@ -18,16 +18,16 @@ context A
  │      ╰╴6
  │
  ╰▶ context A
-    ├╴at libs/error-stack/tests/test_debug.rs:195:10
+    ├╴at libs/error-stack/tests/test_debug.rs:196:10
     ├╴5
     ├╴3
     │
     ├─▶ context A
-    │   ├╴at libs/error-stack/tests/test_debug.rs:193:10
+    │   ├╴at libs/error-stack/tests/test_debug.rs:194:10
     │   ╰╴7
     │
     ╰┬▶ context A
-     │  ├╴at libs/error-stack/tests/test_debug.rs:184:34
+     │  ├╴at libs/error-stack/tests/test_debug.rs:185:34
      │  ├╴9
      │  ├╴8
      │  │

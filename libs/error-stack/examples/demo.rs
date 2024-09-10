@@ -33,10 +33,10 @@ fn parse_experiment(description: &str) -> Result<Vec<(u64, u64)>, ParseExperimen
 
                 Ok(accum)
             }
-            (Ok(_), Err(err)) => Err(err),
+            (Ok(_), Err(err)) => Err(err.into_multiple()),
             (Err(accum), Ok(_)) => Err(accum),
             (Err(mut accum), Err(err)) => {
-                accum.extend_one(err);
+                accum.push(err);
 
                 Err(accum)
             }
@@ -86,16 +86,16 @@ fn start_experiments(
         })
         .fold(
             Ok(vec![]),
-            |accum: Result<_, ExperimentError>, value| match (accum, value) {
+            |accum, value: Result<_, ExperimentError>| match (accum, value) {
                 (Ok(mut accum), Ok(value)) => {
                     accum.extend(value);
 
                     Ok(accum)
                 }
-                (Ok(_), Err(err)) => Err(err),
+                (Ok(_), Err(err)) => Err(err.into_multiple()),
                 (Err(accum), Ok(_)) => Err(accum),
                 (Err(mut accum), Err(err)) => {
-                    accum.extend_one(err);
+                    accum.push(err);
 
                     Err(accum)
                 }
