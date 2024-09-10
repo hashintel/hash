@@ -71,12 +71,17 @@ pub trait PostgresRecord: QueryRecord + QueryRecordDecode<Output = Self> {
 }
 
 /// An absolute path inside of a query pointing to an attribute.
-pub trait PostgresQueryPath {
+pub trait PostgresQueryPath: Sized {
     /// Returns a list of [`Relation`]s required to traverse this path.
     fn relations(&self) -> Vec<Relation>;
 
     /// The [`Column`] where this path ends.
     fn terminating_column(&self) -> (Column, Option<JsonField<'_>>);
+
+    #[expect(unused_variables, reason = "No-op")]
+    fn label_property_path(inheritance_depth: Option<u32>) -> Option<Self> {
+        None
+    }
 }
 
 /// Renders the object into a Postgres compatible format.

@@ -4006,12 +4006,15 @@
       "EntityQuerySortingToken": {
         "type": "string",
         "enum": [
+          "uuid",
           "archived",
           "properties",
+          "label",
           "recordCreatedAtTransactionTime",
           "recordCreatedAtDecisionTime",
           "createdAtTransactionTime",
-          "createdAtDecisionTime"
+          "createdAtDecisionTime",
+          "typeTitle"
         ]
       },
       "EntityQueryToken": {
@@ -4025,6 +4028,7 @@
           "ownedById",
           "type",
           "properties",
+          "label",
           "provenance",
           "editionProvenance",
           "embedding",

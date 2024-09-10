@@ -324,6 +324,40 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     Properties(Option<JsonPath<'p>>),
+    /// The property defined as [`label_property`] in the corresponding entity type metadata.
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["label"]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     EntityQueryPath::Label {
+    ///         inheritance_depth: None
+    ///     }
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// It's possible to specify the inheritance search depths:
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!(["label(inheritanceDepth = 10)"]))?;
+    /// assert_eq!(
+    ///     path,
+    ///     EntityQueryPath::Label {
+    ///         inheritance_depth: Some(10)
+    ///     }
+    /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// [`label_property`]: graph_types::ontology::EntityTypeMetadata::label_property
+    Label { inheritance_depth: Option<u32> },
     /// Corresponds to the provenance data of the [`Entity`].
     ///
     /// Deserializes from `["provenance", ...]` where `...` is a path to a provenance entry of an
@@ -387,6 +421,7 @@ impl fmt::Display for EntityQueryPath<'_> {
             Self::Properties(None) => fmt.write_str("properties"),
             Self::Provenance(Some(path)) => write!(fmt, "provenance.{path}"),
             Self::Provenance(None) => fmt.write_str("provenance"),
+            Self::Label { .. } => fmt.write_str("label"),
             Self::EditionProvenance(Some(path)) => write!(fmt, "editionProvenance.{path}"),
             Self::EditionProvenance(None) => fmt.write_str("editionProvenance"),
             Self::PropertyMetadata(Some(path)) => write!(fmt, "propertyMetadata.{path}"),
@@ -441,6 +476,7 @@ impl QueryPath for EntityQueryPath<'_> {
                 ParameterType::Vector(Box::new(ParameterType::OntologyTypeVersion))
             }
             Self::Properties(_)
+            | Self::Label { .. }
             | Self::Provenance(_)
             | Self::EditionProvenance(_)
             | Self::PropertyMetadata(_)
@@ -470,6 +506,7 @@ pub enum EntityQueryToken {
     OwnedById,
     Type,
     Properties,
+    Label,
     Provenance,
     EditionProvenance,
     Embedding,
@@ -486,10 +523,10 @@ pub struct EntityQueryPathVisitor {
 }
 
 impl EntityQueryPathVisitor {
-    pub const EXPECTING: &'static str = "one of `uuid`, `editionId`, `draftId`, `archived`, \
-                                         `ownedById`, `type`, `properties`, `provenance`, \
-                                         `editionProvenance`, `embedding`, `incomingLinks`, \
-                                         `outgoingLinks`, `leftEntity`, `rightEntity`";
+    pub const EXPECTING: &'static str =
+        "one of `uuid`, `editionId`, `draftId`, `archived`, `ownedById`, `type`, `properties`, \
+         `label`, `provenance`, `editionProvenance`, `embedding`, `incomingLinks`, \
+         `outgoingLinks`, `leftEntity`, `rightEntity`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -543,6 +580,13 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
                     EntityQueryPath::Properties(Some(JsonPath::from_path_tokens(path_tokens)))
                 }
             }
+            EntityQueryToken::Label => EntityQueryPath::Label {
+                inheritance_depth: parameters
+                    .remove("inheritanceDepth")
+                    .map(u32::from_str)
+                    .transpose()
+                    .map_err(de::Error::custom)?,
+            },
             EntityQueryToken::Provenance => {
                 let mut path_tokens = Vec::new();
                 while let Some(property) = seq.next_element::<PathToken<'de>>()? {
@@ -617,12 +661,15 @@ impl<'de: 'p, 'p> Deserialize<'de> for EntityQueryPath<'p> {
 #[cfg_attr(feature = "utoipa", derive(ToSchema))]
 #[serde(rename_all = "camelCase")]
 pub enum EntityQuerySortingToken {
+    Uuid,
     Archived,
     Properties,
+    Label,
     RecordCreatedAtTransactionTime,
     RecordCreatedAtDecisionTime,
     CreatedAtTransactionTime,
     CreatedAtDecisionTime,
+    TypeTitle,
 }
 
 /// Deserializes an [`EntityQueryPath`] from a string sequence.
@@ -633,8 +680,9 @@ pub struct EntityQuerySortingVisitor {
 
 impl EntityQuerySortingVisitor {
     pub const EXPECTING: &'static str =
-        "one of `archived`, `properties`, `recordCreatedAtTransactionTime`, \
-         `recordCreatedAtDecisionTime`, `createdAtTransactionTime`, `createdAtDecisionTime`";
+        "one of `uuid`, `archived`, `properties`, `label`, `recordCreatedAtTransactionTime`, \
+         `recordCreatedAtDecisionTime`, `createdAtTransactionTime`, `createdAtDecisionTime`, \
+         `typeTitle`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -653,12 +701,14 @@ impl<'de> Visitor<'de> for EntityQuerySortingVisitor {
     where
         A: SeqAccess<'de>,
     {
-        let token: EntityQuerySortingToken = seq
+        let query_token: String = seq
             .next_element()?
             .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
+        let (token, mut parameters) = parse_query_token(&query_token)?;
         self.position += 1;
 
         Ok(match token {
+            EntityQuerySortingToken::Uuid => EntityQueryPath::Uuid,
             EntityQuerySortingToken::Archived => EntityQueryPath::Archived,
             EntityQuerySortingToken::RecordCreatedAtTransactionTime => {
                 EntityQueryPath::TransactionTime
@@ -674,6 +724,18 @@ impl<'de> Visitor<'de> for EntityQuerySortingVisitor {
                     PathToken::Field(Cow::Borrowed("createdAtDecisionTime")),
                 ])))
             }
+            EntityQuerySortingToken::TypeTitle => EntityQueryPath::EntityTypeEdge {
+                edge_kind: SharedEdgeKind::IsOfType,
+                path: EntityTypeQueryPath::Title,
+                inheritance_depth: Some(0),
+            },
+            EntityQuerySortingToken::Label => EntityQueryPath::Label {
+                inheritance_depth: parameters
+                    .remove("inheritanceDepth")
+                    .map(u32::from_str)
+                    .transpose()
+                    .map_err(de::Error::custom)?,
+            },
             EntityQuerySortingToken::Properties => {
                 let mut path_tokens = Vec::new();
                 while let Some(property) = seq.next_element::<PathToken<'de>>()? {
@@ -735,6 +797,7 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
                 direction,
             },
             Self::Properties(path) => EntityQueryPath::Properties(path.map(JsonPath::into_owned)),
+            Self::Label { inheritance_depth } => EntityQueryPath::Label { inheritance_depth },
             Self::Embedding => EntityQueryPath::Embedding,
             Self::EntityConfidence => EntityQueryPath::EntityConfidence,
             Self::LeftEntityConfidence => EntityQueryPath::LeftEntityConfidence,
