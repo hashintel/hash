@@ -1083,7 +1083,7 @@ fn debug_frame(root: &Frame, prefix: &[&Frame], config: &mut Config) -> Vec<Line
     vec![debug_render(head, contexts, sources)]
 }
 
-impl<C> Debug for Report<C> {
+impl<C: ?Sized> Debug for Report<C> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         let mut config = Config::load(fmt.alternate());
 
@@ -1092,7 +1092,7 @@ impl<C> Debug for Report<C> {
 
         #[cfg_attr(not(any(feature = "std", feature = "hooks")), allow(unused_mut))]
         let mut lines = self
-            .current_frames()
+            .current_frames_unchecked()
             .iter()
             .flat_map(|frame| debug_frame(frame, &[], &mut config))
             .enumerate()
@@ -1152,7 +1152,7 @@ impl<C> Debug for Report<C> {
     }
 }
 
-impl<Context> Display for Report<Context> {
+impl<C: ?Sized> Display for Report<C> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         for (index, frame) in self
             .frames()

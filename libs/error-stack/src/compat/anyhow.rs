@@ -19,7 +19,7 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
                     .collect::<alloc::vec::Vec<_>>();
 
                 #[cfg_attr(not(feature = "std"), allow(unused_mut))]
-                let mut report =
+                let mut report: Report<AnyhowError> =
                     Report::from_frame(Frame::from_anyhow(anyhow, alloc::boxed::Box::new([])));
 
                 #[cfg(feature = "std")]
