@@ -16,11 +16,11 @@ publish = false
 # Public workspace dependencies
 
 # Public third-party dependencies
-semver = { version = "1", public = true, default-features = false }
-serde = { version = "1", default-features = false, public = true, features = ["derive"], optional = true }
-serde_json = { version = "1", public = true, default-features = false, features = ["alloc"], optional = true }
-url = { version = "2", public = true, default-features = false }
-uuid = { version = "1", public = true, default-features = false }
+semver = { version = ">=1", public = true, default-features = false }
+serde = { version = ">=1", default-features = false, public = true, features = ["derive"], optional = true }
+serde_json = { version = ">=1", public = true, default-features = false, features = ["alloc"], optional = true }
+url = { version = ">=2", public = true, default-features = false }
+uuid = { version = ">=1", public = true, default-features = false }
 
 # Private workspace dependencies
 
