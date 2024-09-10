@@ -200,7 +200,7 @@ test-log = { version = "=0.2.16", default-features = false }
 test-strategy = { version = "=0.4.0", default-features = false }
 thiserror = { version = "=1.0.63", default-features = false }
 tokio-serde = { version = "=0.8.0", default-features = false }
-tokio-stream = { version = "=0.1.15", default-features = false }
+tokio-stream = { version = "=0.1.16", default-features = false }
 tokio-test = { version = "=0.4.4", default-features = false }
 tower = { version = "=0.5.0", default-features = false }
 tower-test = { version = "=0.4.0", default-features = false }
