@@ -18,7 +18,8 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
                     .collect::<alloc::vec::Vec<_>>();
 
                 #[cfg_attr(not(feature = "std"), allow(unused_mut))]
-                let mut report = Report::from_frame(Frame::from_eyre(eyre, Box::new([])));
+                let mut report: Report<EyreReport> =
+                    Report::from_frame(Frame::from_eyre(eyre, Box::new([])));
 
                 for source in sources {
                     report = report.attach_printable(source);

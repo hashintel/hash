@@ -33,7 +33,7 @@ fn parse_experiment(description: &str) -> Result<Vec<(u64, u64)>, ParseExperimen
 
                 Ok(accum)
             }
-            (Ok(_), Err(err)) => Err(err.into_multiple()),
+            (Ok(_), Err(err)) => Err(err.expand()),
             (Err(accum), Ok(_)) => Err(accum),
             (Err(mut accum), Err(err)) => {
                 accum.push(err);
@@ -92,7 +92,7 @@ fn start_experiments(
 
                     Ok(accum)
                 }
-                (Ok(_), Err(err)) => Err(err.into_multiple()),
+                (Ok(_), Err(err)) => Err(err.expand()),
                 (Err(accum), Ok(_)) => Err(accum),
                 (Err(mut accum), Err(err)) => {
                     accum.push(err);

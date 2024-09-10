@@ -44,10 +44,10 @@ fn context() {
 fn multiple_sources() {
     let _guard = prepare();
 
-    let mut report_a = create_report().attach_printable(PrintableC(1));
+    let mut report_a = create_report().attach_printable(PrintableC(1)).expand();
     let report_b = create_report().attach_printable(PrintableC(2));
 
-    report_a.extend_one(report_b);
+    report_a.push(report_b);
 
     let report_a = report_a
         .attach_printable(PrintableC(3))
@@ -61,10 +61,10 @@ fn multiple_sources() {
 fn multiple_sources_at_root() {
     let _guard = prepare();
 
-    let mut report_a = create_report().attach_printable(PrintableC(1));
+    let mut report_a = create_report().attach_printable(PrintableC(1)).expand();
     let report_b = create_report().attach_printable(PrintableC(2));
 
-    report_a.extend_one(report_b);
+    report_a.push(report_b);
 
     assert_ron_snapshot!(report_a);
 }

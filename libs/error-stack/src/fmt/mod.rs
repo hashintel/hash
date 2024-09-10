@@ -1092,7 +1092,7 @@ impl<C: ?Sized> Debug for Report<C> {
 
         #[cfg_attr(not(any(feature = "std", feature = "hooks")), allow(unused_mut))]
         let mut lines = self
-            .leaves()
+            .current_frames_unchecked()
             .iter()
             .flat_map(|frame| debug_frame(frame, &[], &mut config))
             .enumerate()

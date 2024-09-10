@@ -20,13 +20,9 @@ impl Context for Error {}
 
 #[test]
 fn push_append() {
-    let mut err1 = report!(Error)
-        .attach_printable("Not Supported")
-        .into_multiple();
+    let mut err1 = report!(Error).attach_printable("Not Supported").expand();
     let err2 = report!(Error).attach_printable("Not Supported");
-    let mut err3 = report!(Error)
-        .attach_printable("Not Supported")
-        .into_multiple();
+    let mut err3 = report!(Error).attach_printable("Not Supported").expand();
 
     let count = expect_count(2) * 3;
 
@@ -39,9 +35,7 @@ fn push_append() {
 
 #[test]
 fn push() {
-    let mut err1 = report!(Error)
-        .attach_printable("Not Supported")
-        .into_multiple();
+    let mut err1 = report!(Error).attach_printable("Not Supported").expand();
     let err2 = report!(Error).attach_printable("Not Supported");
     let err3 = report!(Error).attach_printable("Not Supported");
 
@@ -56,9 +50,7 @@ fn push() {
 
 #[test]
 fn extend() {
-    let mut err1 = report!(Error)
-        .attach_printable("Not Supported")
-        .into_multiple();
+    let mut err1 = report!(Error).attach_printable("Not Supported").expand();
     let err2 = report!(Error).attach_printable("Not Supported");
     let err3 = report!(Error).attach_printable("Not Supported");
 
@@ -81,9 +73,9 @@ fn collect_single() {
 #[test]
 fn collect_multiple() {
     let report: Option<Report<[Error]>> = vec![
-        report!(Error).into_multiple(),
-        report!(Error).into_multiple(),
-        report!(Error).into_multiple(),
+        report!(Error).expand(),
+        report!(Error).expand(),
+        report!(Error).expand(),
     ]
     .into_iter()
     .collect();

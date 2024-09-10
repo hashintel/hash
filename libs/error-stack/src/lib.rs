@@ -253,21 +253,33 @@
 //!
 //! ### Multiple Errors
 //!
-//! [`Report`] supports the combination and propagation of multiple errors natively. This is useful
-//! in cases like parallel processing where multiple errors might happen independently from each
-//! other, in these use-cases you are able to use the implementations of [`Extend`] and
-//! [`extend_one()`] and are able to propagate all errors instead of just a single one.
+//! [`Report`] provides native support for combining and propagating multiple errors. This feature
+//! is particularly useful in scenarios such as parallel processing, where multiple errors might
+//! occur independently. In these cases, you can utilize the [`Extend`] trait implementation and the
+//! [`push()`] method to aggregate and propagate all encountered errors, rather than just a single
+//! one.
 //!
-//! [`extend_one()`]: Report::extend_one
+//! error-stack is designed to be explicit about the presence of single or multiple current
+//! contexts. This distinction is reflected in the generic type parameter:
+//!
+//! - [`Report<C>`] indicates that a single current context is present.
+//! - [`Report<[C]>`] signifies that at least one current context is present, with the possibility
+//!   of multiple contexts.
+//!
+//! You can seamlessly convert between these representations using [`Report::expand`] to transform
+//! a single-context report into a multi-context one, and [`Report::try_collapse`] to attempt the
+//! reverse transformation when appropriate.
+//!
+//! [`push()`]: Report::push
 //!
 //! ```rust
 //! # use std::{fs, path::Path};
 //! # use error_stack::Report;
 //! # pub type Config = String;
 //!
-//! fn parse_configs(paths: &[impl AsRef<Path>]) -> Result<Vec<Config>, Report<std::io::Error>> {
+//! fn parse_configs(paths: &[impl AsRef<Path>]) -> Result<Vec<Config>, Report<[std::io::Error]>> {
 //!     let mut configs = Vec::new();
-//!     let mut error: Option<Report<std::io::Error>> = None;
+//!     let mut error: Option<Report<[std::io::Error]>> = None;
 //!
 //!     for path in paths {
 //!         let path = path.as_ref();
@@ -278,9 +290,9 @@
 //!             }
 //!             Err(err) => {
 //!                 if let Some(error) = error.as_mut() {
-//!                     error.extend_one(err.into());
+//!                     error.push(Report::from(err));
 //!                 } else {
-//!                     error = Some(err.into());
+//!                     error = Some(Report::from(err).expand());
 //!                 }
 //!             }
 //!         }

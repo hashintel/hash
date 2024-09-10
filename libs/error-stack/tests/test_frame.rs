@@ -33,7 +33,7 @@ fn opaque_attachment() {
 
 #[test]
 fn sources() {
-    let mut report_a = create_report().attach(AttachmentA(10)).into_multiple();
+    let mut report_a = create_report().attach(AttachmentA(10)).expand();
     let report_b = create_report().attach(AttachmentA(20));
     report_a.push(report_b);
     let mut report = report_a.attach(AttachmentB(30));

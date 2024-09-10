@@ -149,7 +149,7 @@ impl<C: Context> Serialize for Report<C> {
     where
         S: Serializer,
     {
-        SerializeSources(self.leaves()).serialize(serializer)
+        SerializeSources(self.current_frames_unchecked()).serialize(serializer)
     }
 }
 
@@ -158,6 +158,6 @@ impl<C: Context> Serialize for Report<[C]> {
     where
         S: Serializer,
     {
-        SerializeSources(self.leaves()).serialize(serializer)
+        SerializeSources(self.current_frames_unchecked()).serialize(serializer)
     }
 }

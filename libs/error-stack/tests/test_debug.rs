@@ -177,12 +177,12 @@ fn create_sources_nested() -> Report<ContextA> {
     let mut r3 = create_report()
         .change_context(ContextA(8))
         .attach_printable("13")
-        .into_multiple();
+        .expand();
 
     r3.push(r4);
     let r3 = r3.attach_printable("10").attach_printable("16");
 
-    let mut r2 = create_report().change_context(ContextA(4)).into_multiple();
+    let mut r2 = create_report().change_context(ContextA(4)).expand();
 
     r2.push(r3);
     r2.push(r5);
@@ -200,7 +200,7 @@ fn create_sources_nested() -> Report<ContextA> {
         .attach_printable("6")
         .change_context(ContextA(2))
         .attach_printable("4")
-        .into_multiple();
+        .expand();
 
     r1.push(r2);
 
@@ -351,12 +351,12 @@ mod full {
     fn sources() {
         let _guard = prepare(false);
 
-        let mut root1 = create_report().attach_printable(PrintableA(1));
+        let mut root1 = create_report().attach_printable(PrintableA(1)).expand();
         let root2 = create_report().attach_printable(PrintableB(2));
         let root3 = create_report().attach_printable(PrintableB(3));
 
-        root1.extend_one(root2);
-        root1.extend_one(root3);
+        root1.push(root2);
+        root1.push(root3);
 
         let report = root1
             .attach(AttachmentA(1))
@@ -389,12 +389,12 @@ mod full {
         let _guard = prepare(false);
 
         let report = {
-            let mut report = create_report().attach_printable(PrintableA(1));
+            let mut report = create_report().attach_printable(PrintableA(1)).expand();
 
-            report.extend_one({
-                let mut report = create_report().attach_printable(PrintableB(2));
+            report.push({
+                let mut report = create_report().attach_printable(PrintableB(2)).expand();
 
-                report.extend_one(create_report().attach_printable(PrintableB(3)));
+                report.push(create_report().attach_printable(PrintableB(3)));
 
                 report.attach_printable(PrintableA(4))
             });
@@ -412,11 +412,11 @@ mod full {
     fn complex() {
         let _guard = prepare(false);
 
-        let mut report = create_report().attach_printable(PrintableA(0));
-        report.extend_one({
-            let mut report = create_report().attach_printable(PrintableB(1));
+        let mut report = create_report().attach_printable(PrintableA(0)).expand();
+        report.push({
+            let mut report = create_report().attach_printable(PrintableB(1)).expand();
 
-            report.extend_one(
+            report.push(
                 create_report()
                     .attach(AttachmentB(0))
                     .attach(AttachmentA(1))

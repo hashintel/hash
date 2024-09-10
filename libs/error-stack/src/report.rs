@@ -48,9 +48,11 @@ use crate::{
 ///
 /// ## Multiple Errors
 ///
-/// `Report` is able to represent multiple errors that have occurred. Errors can be combined using
-/// the [`extend_one()`], which will add the [`Frame`] stack of the other error as an additional
-/// source to the current report.
+/// `Report` comes in two variants: `Report<C>` which represents a single error context, and
+/// `Report<[C]>` which can represent multiple error contexts. To combine multiple errors,
+/// first convert a `Report<C>` to `Report<[C]>` using [`expand()`], then use [`push()`] to
+/// add additional errors. This allows for representing complex error scenarios with multiple
+/// related simultaneous errors.
 ///
 /// ## `Backtrace` and `SpanTrace`
 ///
@@ -347,8 +349,39 @@ impl<C> Report<C> {
         report
     }
 
-    // TODO: rename
-    pub fn into_multiple(self) -> Report<[C]> {
+    /// Converts a `Report` with a single context into a `Report` with multiple contexts.
+    ///
+    /// This function allows for the transformation of a `Report<C>` into a `Report<[C]>`,
+    /// enabling the report to potentially hold multiple current contexts of the same type.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use error_stack::Report;
+    ///
+    /// #[derive(Debug)]
+    /// struct SystemFailure;
+    ///
+    /// impl std::fmt::Display for SystemFailure {
+    ///     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    ///         f.write_str("System failure occured")
+    ///     }
+    /// }
+    ///
+    /// impl core::error::Error for SystemFailure {}
+    ///
+    /// // Type annotations are used here to illustrate the types used, these are not required
+    /// let failure: Report<SystemFailure> = Report::new(SystemFailure);
+    /// let mut failures: Report<[SystemFailure]> = failure.expand();
+    ///
+    /// assert_eq!(failures.current_frames().len(), 1);
+    ///
+    /// let another_failure = Report::new(SystemFailure);
+    /// failures.push(another_failure);
+    ///
+    /// assert_eq!(failures.current_frames().len(), 2);
+    /// ```
+    pub fn expand(self) -> Report<[C]> {
         Report {
             frames: self.frames,
             _context: PhantomData,
@@ -516,7 +549,18 @@ impl<C> Report<C> {
 }
 
 impl<C: ?Sized> Report<C> {
-    pub(crate) fn leaves(&self) -> &[Frame] {
+    /// Retrieves the current frames of the `Report`, regardless of its current type state.
+    ///
+    /// You should prefer using [`Report::current_frame`] or [`Report::current_frames`] instead of
+    /// this function, as those properly interact with the type state of the `Report`.
+    ///
+    /// # Use Cases
+    ///
+    /// This function is primarily used to implement traits that require access to the frames,
+    /// such as [`Debug`]. It allows for code reuse between `Report<C>` and `Report<[C]>`
+    /// implementations without duplicating logic.
+    #[must_use]
+    pub fn current_frames_unchecked(&self) -> &[Frame] {
         &self.frames
     }
 
@@ -720,10 +764,9 @@ impl<C> Report<[C]> {
     /// [`Report::current_context`] will return the underlying `Context` (the current type
     /// parameter of this [`Report`])
     ///
-    /// Using [`Extend`] and [`extend_one()`], a [`Report`] can additionally be made up of multiple
-    /// stacks of frames and builds a "group" of them, but a [`Report`] can only ever have a single
-    /// `Context`, therefore this function returns a slice instead, while
-    /// [`Report::current_context`] only returns a single reference.
+    /// Using [`Extend`], [`push()`] and [`append`], a [`Report`] can additionally be made up of
+    /// multiple stacks of frames and builds a "group" of them, therefore this function returns a
+    /// slice instead, while [`Report::current_context`] only returns a single reference.
     ///
     /// [`frames()`]: Self::frames
     /// [`extend_one()`]: Self::extend_one
@@ -738,6 +781,8 @@ impl<C> Report<[C]> {
     /// [`Report`].
     ///
     /// [`current_frames()`]: Self::current_frames
+    ///
+    /// ## Example
     ///
     /// ```rust
     /// use std::{fmt, path::Path};
@@ -767,34 +812,150 @@ impl<C> Report<[C]> {
     ///         .change_context(IoError)
     /// }
     ///
-    /// let mut error1 = read_config("config.txt").unwrap_err();
+    /// let mut error1 = read_config("config.txt").unwrap_err().expand();
     /// let error2 = read_config("config2.txt").unwrap_err();
-    /// let mut error3 = read_config("config3.txt").unwrap_err();
+    /// let error3 = read_config("config3.txt").unwrap_err();
     ///
-    /// error1.extend_one(error2);
-    /// error3.extend_one(error1);
-    ///
-    /// // ^ This is equivalent to:
-    /// // error3.extend_one(error1);
-    /// // error3.extend_one(error2);
+    /// error1.push(error2);
+    /// error1.push(error3);
     /// ```
     #[allow(clippy::same_name_method)]
     pub fn push(&mut self, mut report: Report<C>) {
         self.frames.append(&mut report.frames);
     }
 
+    /// Appends the frames from another `Report` to this one.
+    ///
+    /// This method combines the frames of the current `Report` with those of the provided `Report`,
+    /// effectively merging the two error reports.
+    ///
+    /// ## Example
+    ///
+    /// ```rust
+    /// use std::{fmt, path::Path};
+    ///
+    /// use error_stack::{Context, Report, ResultExt};
+    ///
+    /// #[derive(Debug)]
+    /// struct IoError;
+    ///
+    /// impl fmt::Display for IoError {
+    ///     # fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+    ///     #     const _: &str = stringify!(
+    ///             ...
+    ///     #     );
+    ///     #     fmt.write_str("Io Error")
+    ///     # }
+    /// }
+    ///
+    /// # impl Context for IoError {}
+    ///
+    /// # #[allow(unused_variables)]
+    /// fn read_config(path: impl AsRef<Path>) -> Result<String, Report<IoError>> {
+    ///     # #[cfg(any(miri, not(feature = "std")))]
+    ///     # return Err(error_stack::report!(IoError).attach_printable("Not supported"));
+    ///     # #[cfg(all(not(miri), feature = "std"))]
+    ///     std::fs::read_to_string(path.as_ref())
+    ///         .change_context(IoError)
+    /// }
+    ///
+    /// let mut error1 = read_config("config.txt").unwrap_err().expand();
+    /// let error2 = read_config("config2.txt").unwrap_err();
+    /// let mut error3 = read_config("config3.txt").unwrap_err().expand();
+    ///
+    /// error1.push(error2);
+    /// error3.append(error1);
+    /// ```
     pub fn append(&mut self, mut report: Self) {
         self.frames.append(&mut report.frames);
     }
 
+    /// Returns an iterator over the current contexts of the `Report`.
+    ///
+    /// This method is similar to [`current_context`], but instead of returning a single context,
+    /// it returns an iterator over all contexts in the `Report`.
+    ///
+    /// The contexts are returned in the order they were added to the `Report`, with the least
+    /// recent context being the first element of the iterator.
+    ///
+    /// ## Example
+    ///
+    /// ```rust
+    /// # use std::{fs, path::Path};
+    /// # use error_stack::Report;
+    /// use std::io;
+    ///
+    /// fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
+    ///     # const _: &str = stringify! {
+    ///     ...
+    ///     # };
+    ///     # fs::read_to_string(path.as_ref()).map_err(Report::from)
+    /// }
+    ///
+    /// let mut a = read_file("test.txt").unwrap_err().expand();
+    /// let b = read_file("test2.txt").unwrap_err();
+    ///
+    /// a.push(b);
+    ///
+    /// let io_error = a.current_contexts();
+    /// assert_eq!(io_error.count(), 2);
+    /// ```
+    ///
+    /// [`current_context`]: Self::current_context
     pub fn current_contexts(&self) -> impl Iterator<Item = &C>
     where
         C: Send + Sync + 'static,
     {
-        self.frames.iter().filter_map(Frame::downcast_ref)
+        self.frames.iter().map(|frame| {
+            let frames = core::slice::from_ref(frame);
+
+            Frames::new(frames)
+                .find_map(Frame::downcast_ref)
+                .unwrap_or_else(|| {
+                    // Panics if there isn't an attached context which matches `T`. As it's not
+                    // possible to create a `Report` without a valid context and
+                    // this method can only be called when `T` is a valid
+                    // context, it's guaranteed that the context is available.
+                    unreachable!(
+                        "Report does not contain a context. This is considered a bug and should be \
+                        reported to https://github.com/hashintel/hash/issues/new/choose"
+                    );
+                })
+        })
     }
 
-    pub fn try_into_single_context(self) -> Result<Report<C>, Self> {
+    /// Attempts to shrink the `Report<[C]>` into a `Report<C>`.
+    ///
+    /// This function tries to convert a `Report` with potentially multiple contexts
+    /// into a `Report` with a single context. It succeeds if the `Report` contains
+    /// exactly one current context.
+    ///
+    /// ## Example
+    ///
+    /// ```rust
+    /// # use std::{fs, path::Path};
+    /// # use error_stack::Report;
+    /// use std::io;
+    ///
+    /// fn read_file(path: impl AsRef<Path>) -> Result<String, Report<io::Error>> {
+    ///     # const _: &str = stringify! {
+    ///     ...
+    ///     # };
+    ///     # fs::read_to_string(path.as_ref()).map_err(Report::from)
+    /// }
+    ///
+    /// let a = read_file("test.txt").unwrap_err().expand();
+    ///
+    /// let a = a.try_collapse().expect("there should only be a single current context");
+    /// let mut a = a.expand();
+    ///
+    /// let b = read_file("test2.txt").unwrap_err();
+    ///
+    /// a.push(b);
+    ///
+    /// let _ = a.try_collapse().expect_err("the report should not be able to shrink, as it contains multiple current contexts");
+    /// ```
+    pub fn try_collapse(self) -> Result<Report<C>, Self> {
         if self.frames.len() == 1 {
             Ok(Report {
                 frames: self.frames,
@@ -861,7 +1022,7 @@ impl<C> FromIterator<Report<C>> for Option<Report<[C]>> {
     fn from_iter<T: IntoIterator<Item = Report<C>>>(iter: T) -> Self {
         let mut iter = iter.into_iter();
 
-        let mut base = iter.next()?.into_multiple();
+        let mut base = iter.next()?.expand();
         for rest in iter {
             base.push(rest);
         }
