@@ -54,6 +54,9 @@ use crate::{
 /// add additional errors. This allows for representing complex error scenarios with multiple
 /// related simultaneous errors.
 ///
+/// [`expand()`]: Self::expand
+/// [`push()`]: Self::push
+///
 /// ## `Backtrace` and `SpanTrace`
 ///
 /// `Report` is able to [`provide`] a [`Backtrace`] and a [`SpanTrace`], which can be retrieved by
@@ -400,8 +403,10 @@ impl<C> Report<C> {
     /// parameter of this [`Report`])
     ///
     /// A report can be made up of multiple stacks of frames and builds a "group" of them, this can
-    /// be achieved through first calling [`Report::into_multiple`] and then either using [`Extend`]
+    /// be achieved through first calling [`Report::expand`] and then either using [`Extend`]
     /// or [`Report::push`].
+    ///
+    /// [`frames()`]: Self::frames
     #[must_use]
     pub fn current_frame(&self) -> &Frame {
         // this never fails, because one cannot push an additional frame without making it a
@@ -560,7 +565,7 @@ impl<C: ?Sized> Report<C> {
     /// such as [`Debug`]. It allows for code reuse between `Report<C>` and `Report<[C]>`
     /// implementations without duplicating logic.
     #[must_use]
-    pub fn current_frames_unchecked(&self) -> &[Frame] {
+    pub(crate) fn current_frames_unchecked(&self) -> &[Frame] {
         &self.frames
     }
 
@@ -758,10 +763,12 @@ impl<C> Report<[C]> {
     /// [`Report::current_context`] will return the underlying `Context` (the current type
     /// parameter of this [`Report`])
     ///
-    /// Using [`Extend`], [`push()`] and [`append`], a [`Report`] can additionally be made up of
+    /// Using [`Extend`], [`push()`] and [`append()`], a [`Report`] can additionally be made up of
     /// multiple stacks of frames and builds a "group" of them, therefore this function returns a
     /// slice instead, while [`Report::current_context`] only returns a single reference.
     ///
+    /// [`push()`]: Self::push
+    /// [`append()`]: Self::append
     /// [`frames()`]: Self::frames
     /// [`extend_one()`]: Self::extend_one
     #[must_use]
