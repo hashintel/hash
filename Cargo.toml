@@ -187,7 +187,7 @@ serde_plain = { version = "=1.0.2", default-features = false }
 serde_with = { version = "=3.9.0", default-features = false }
 similar-asserts = { version = "=1.5.0", default-features = false }
 spin = { version = "=0.9", default-features = false }
-supports-color = { version = "=3.0.0", default-features = false }
+supports-color = { version = "=3.0.1", default-features = false }
 supports-unicode = { version = "=3.0.0", default-features = false }
 sval = { version = "=2.13.0", default-features = false }
 syn = { version = "=2.0.70", default-features = false }
