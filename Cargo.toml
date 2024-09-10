@@ -116,7 +116,7 @@ text-size = { version = "=1.1.1", default-features = false }
 tokio = { version = "=1.38.0", default-features = false }
 tokio-util = { version = "=0.7.12", default-features = false }
 tower-layer = { version = "=0.3.3", default-features = false }
-tower-service = { version = "=0.3.2", default-features = false }
+tower-service = { version = "=0.3.3", default-features = false }
 tracing-appender = { version = "=0.2.3", default-features = false }
 tracing-core = { version = "=0.1.32", default-features = false }
 tracing-subscriber = { version = "=0.3.18", default-features = false }
@@ -202,7 +202,7 @@ thiserror = { version = "=1.0.63", default-features = false }
 tokio-serde = { version = "=0.8.0", default-features = false }
 tokio-stream = { version = "=0.1.15", default-features = false }
 tokio-test = { version = "=0.4.4", default-features = false }
-tower = { version = "=0.5.0", default-features = false }
+tower = { version = "=0.5.1", default-features = false }
 tower-test = { version = "=0.4.0", default-features = false }
 tracing = { version = "=0.1.40", default-features = false }
 tracing-error = { version = "=0.2.0", default-features = false }
