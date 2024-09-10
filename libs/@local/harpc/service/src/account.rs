@@ -3,19 +3,9 @@
 use core::future::Future;
 
 use error_stack::Result;
-use futures::{pin_mut, stream::StreamExt, TryStreamExt};
 use graph_types::account::AccountId;
-use harpc_net::{
-    codec::{Codec, Decoder, Encoder, ValueDecoder},
-    session::server::SessionId,
-};
-use harpc_tower::{
-    body::{Body, BodyExt},
-    request::Request,
-    response::Response,
-};
+use harpc_net::session::server::SessionId;
 use harpc_types::{service::ServiceId, version::Version};
-use harpc_wire_protocol::request::procedure::ProcedureDescriptor;
 
 pub trait ProcedureId: Sized {
     fn from_u16(id: u16) -> Option<Self>;
@@ -69,6 +59,44 @@ pub trait Session {
     // TODO: do we need session specific state?!
 }
 
+// async fn call(
+//     &self,
+//     request: Request<impl Body<Control = !> + Send + Sync>,
+//     codec: impl Codec,
+// ) -> Response<impl Body> {
+//     // TODO: how would a client implementation look like? wait no, the server only needs this,
+//     //       part of a Service<Server> client or something
+//     let ProcedureDescriptor { id } = request.procedure();
+//     let id = AccountProcedureId::from_u16(id.value()).unwrap();
+
+//     match id {
+//         AccountProcedureId::CreateAccount => {
+//             let decoder = codec.decoder();
+//             let encoder = codec.encoder();
+
+//             let body = request.into_body();
+//             let data = body.into_stream().into_data_stream();
+
+//             let stream = decoder.decode_stream(data).await;
+//             pin_mut!(stream);
+
+//             let payload: CreateAccount = stream.next().await.unwrap().unwrap();
+
+//             let result = self.create_account(&Server, payload).await;
+
+//             let response = match result {
+//                 Ok(account_id) => {
+//                     let data = encoder.encode(account_id).await;
+//                     Response::ok(data)
+//                 }
+//                 Err(_) => Response::error(),
+//             };
+//         }
+//     }
+
+//     todo!("Implement me!")
+// }
+
 pub struct AccountError;
 
 pub enum AccountProcedureId {
@@ -110,6 +138,8 @@ pub trait AccountService<R> {
         R: Role;
 }
 
+pub struct AccountServiceInfo;
+
 pub struct AccountServiceImpl<A, S, T> {
     state: State<A, S, T>,
 }
@@ -146,7 +176,7 @@ pub struct AccountServiceDelegate<A, S, T> {
 }
 
 pub trait ServiceDelegate {
-    type Service: Service;
+    type Service: ServiceInfo;
 
     async fn call_procedure() {
         todo!()
@@ -155,7 +185,7 @@ pub trait ServiceDelegate {
 
 pub trait Procedures {}
 
-pub trait Service {
+pub trait ServiceInfo {
     type Procedures: Procedures;
 
     const ID: ServiceId;
