@@ -1974,6 +1974,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "error-stack-experimental"
+version = "0.0.0-reserved"
+
+[[package]]
 name = "error-stack-macros"
 version = "0.0.0-reserved"
 dependencies = [
