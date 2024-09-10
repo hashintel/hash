@@ -6273,15 +6273,14 @@ dependencies = [
 
 [[package]]
 name = "tachyonix"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1924ef47bc3b427ea2a0b55ba97d0e9116e9103483ecd75a43f47a66443527c5"
+checksum = "86c3eafa053bbcc63bb4bfc5eb26362a33ea0bc2e589f28bce00287d1c167d45"
 dependencies = [
  "async-event",
  "crossbeam-utils",
  "diatomic-waker",
  "futures-core",
- "loom",
  "pin-project-lite",
 ]
 
