@@ -14,6 +14,8 @@ categories = ["rust-patterns", "no-std"]
 publish = false
 
 [dependencies]
+# Public workspace dependencies
+error-stack = { path = "..", public = true }
 
 [lints]
 workspace = true
