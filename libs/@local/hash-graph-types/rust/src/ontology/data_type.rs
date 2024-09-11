@@ -7,10 +7,9 @@ use type_system::{
     schema::{Conversions, DataType},
     url::{BaseUrl, VersionedUrl},
 };
-use utoipa::openapi::ObjectBuilder;
 #[cfg(feature = "utoipa")]
 use utoipa::{
-    openapi::{schema, Ref, RefOr, Schema},
+    openapi::{schema, ObjectBuilder, Ref, RefOr, Schema},
     ToSchema,
 };
 use uuid::Uuid;
