@@ -10,7 +10,7 @@ use core::{
     slice::{Iter, IterMut},
 };
 
-use crate::Frame;
+use crate::{Frame, FrameKind};
 
 /// Helper function, which is used in both [`Frames`] and [`FramesMut`].
 ///
@@ -83,6 +83,16 @@ pub struct Frames<'r> {
 }
 
 impl<'r> Frames<'r> {
+    /// Returns the count of all frames that are [`Context`]s
+    pub fn count_ctx(self) -> usize {
+        self.fold(0, |mut acc, f| {
+            if let FrameKind::Context(_) = f.kind() {
+                acc += 1;
+            }
+            acc
+        })
+    }
+
     pub(crate) fn new(frames: &'r [Frame]) -> Self {
         Self {
             stack: vec![frames.iter()],

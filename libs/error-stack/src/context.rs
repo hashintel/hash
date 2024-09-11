@@ -4,11 +4,11 @@ use alloc::string::{String, ToString};
 use core::error::Error;
 #[cfg(nightly)]
 use core::error::Request;
-use core::fmt;
+use core::{any::TypeId, fmt, mem, panic::Location};
 #[cfg(all(feature = "std", not(rust_1_81)))]
 use std::error::Error;
 
-use crate::Report;
+use crate::{Report, ResultExt};
 
 /// Defines the current context of a [`Report`].
 ///
@@ -128,5 +128,93 @@ impl<C: Error + Send + Sync + 'static> Context for C {
     #[inline]
     fn __source(&self) -> Option<&(dyn Error + 'static)> {
         self.source()
+    }
+}
+
+/// `ThinContext` behaves as an `error_stack::ContextExt`
+/// ideally used for zero sized errors or ones that hold a `'static` ref/value
+pub trait ThinContext
+where
+    Self: Sized + Context,
+{
+    const VALUE: Self;
+
+    fn new() -> Report<Self> {
+        Report::new(Self::VALUE)
+    }
+}
+
+pub trait IntoContext {
+    fn into_ctx<C2: ThinContext>(self) -> Report<C2>;
+}
+
+impl<C: 'static> IntoContext for Report<C> {
+    #[inline]
+    #[track_caller]
+    fn into_ctx<C2: ThinContext>(self) -> Report<C2> {
+        // attach another location if C and C2 match instead of creating a new context
+        if TypeId::of::<C>() == TypeId::of::<C2>() {
+            unsafe {
+                // SAFETY: if C and C2 are a constant value and have the same TypeId then they are
+                // covariant
+                return mem::transmute::<Self, Report<C2>>(self.attach(*Location::caller()));
+            }
+        }
+        self.change_context(C2::VALUE)
+    }
+}
+
+pub trait ResultIntoContext: ResultExt {
+    fn into_ctx<C2: ThinContext>(self) -> Result<Self::Ok, Report<C2>>;
+    // Result::and_then
+    fn and_then_ctx<U, F, C2>(self, op: F) -> Result<U, Report<C2>>
+    where
+        C2: ThinContext,
+        F: FnOnce(Self::Ok) -> Result<U, Report<C2>>;
+    // Result::map
+    fn map_ctx<U, F, C2>(self, op: F) -> Result<U, Report<C2>>
+    where
+        C2: ThinContext,
+        F: FnOnce(Self::Ok) -> U;
+}
+
+impl<T, C> ResultIntoContext for Result<T, Report<C>>
+where
+    C: Context,
+{
+    #[inline]
+    #[track_caller]
+    fn into_ctx<C2: ThinContext>(self) -> Result<T, Report<C2>> {
+        // Can't use `map_err` as `#[track_caller]` is unstable on closures
+        match self {
+            Ok(ok) => Ok(ok),
+            Err(report) => Err(report.into_ctx()),
+        }
+    }
+
+    #[inline]
+    #[track_caller]
+    fn and_then_ctx<U, F, C2>(self, op: F) -> Result<U, Report<C2>>
+    where
+        C2: ThinContext,
+        F: FnOnce(T) -> Result<U, Report<C2>>,
+    {
+        match self {
+            Ok(t) => op(t),
+            Err(ctx) => Err(ctx.into_ctx()),
+        }
+    }
+
+    #[inline]
+    #[track_caller]
+    fn map_ctx<U, F, C2>(self, op: F) -> Result<U, Report<C2>>
+    where
+        C2: ThinContext,
+        F: FnOnce(T) -> U,
+    {
+        match self {
+            Ok(t) => Ok(op(t)),
+            Err(ctx) => Err(ctx.into_ctx()),
+        }
     }
 }

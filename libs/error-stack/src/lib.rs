@@ -512,13 +512,15 @@ mod macros;
 mod report;
 mod result;
 
-mod context;
+pub mod context;
 mod error;
 pub mod fmt;
 #[cfg(any(feature = "std", feature = "hooks"))]
 mod hook;
 #[cfg(feature = "serde")]
 mod serde;
+
+pub use error_stack_derive::ThinContext;
 
 pub use self::{
     compat::IntoReportCompat,
