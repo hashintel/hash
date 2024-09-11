@@ -1,5 +1,5 @@
 use core::{iter::once, str::FromStr};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use authorization::AuthorizationApi;
 use graph::{
@@ -120,6 +120,7 @@ async fn properties_add() {
                             confidence: None,
                             data_type_id: None,
                             provenance: PropertyProvenance::default(),
+                            canonical: HashMap::default(),
                         },
                     }),
                 },
@@ -131,6 +132,7 @@ async fn properties_add() {
                             confidence: None,
                             data_type_id: None,
                             provenance: PropertyProvenance::default(),
+                            canonical: HashMap::default(),
                         },
                     }),
                 },
@@ -294,6 +296,7 @@ async fn properties_replace() {
                         confidence: None,
                         data_type_id: None,
                         provenance: PropertyProvenance::default(),
+                        canonical: HashMap::default(),
                     },
                 }),
             }],

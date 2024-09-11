@@ -392,6 +392,7 @@ mod tests {
             data_type_id: Some(data_type.schema.id.clone()),
             provenance: PropertyProvenance::default(),
             confidence: None,
+            canonical: HashMap::default(),
         };
 
         EntityPreprocessor { components }

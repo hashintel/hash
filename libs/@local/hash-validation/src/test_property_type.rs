@@ -1,6 +1,7 @@
 #![cfg(test)]
 
 use core::str::FromStr;
+use std::collections::HashMap;
 
 use graph_types::knowledge::property::{PropertyMetadata, PropertyProvenance, ValueMetadata};
 use serde_json::json;
@@ -350,6 +351,7 @@ async fn user_id() {
                     )
                     .expect("invalid data type ID"),
                 ),
+                canonical: HashMap::default(),
             },
         }),
         graph_test_data::property_type::USER_ID_V2,
@@ -372,6 +374,7 @@ async fn user_id() {
                     )
                     .expect("invalid data type ID"),
                 ),
+                canonical: HashMap::default(),
             },
         }),
         graph_test_data::property_type::USER_ID_V2,
