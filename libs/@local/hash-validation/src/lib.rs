@@ -122,7 +122,7 @@ mod tests {
     use crate::error::install_error_stack_hooks;
 
     fn generate_data_type_metadata(schema: DataType) -> DataTypeWithMetadata {
-        let actor = AccountId::new(Uuid::new_v4());
+        let actor = AccountId::new(Uuid::nil());
         DataTypeWithMetadata {
             metadata: DataTypeMetadata {
                 record_id: OntologyTypeRecordId::from(schema.id.clone()),
