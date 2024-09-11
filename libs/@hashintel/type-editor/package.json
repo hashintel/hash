@@ -40,7 +40,7 @@
     "@types/lodash.uniqueid": "4.0.9",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "react-hook-form": "7.48.2",
+    "react-hook-form": "7.53.0",
     "typescript": "5.5.4"
   },
   "peerDependencies": {
@@ -48,6 +48,6 @@
     "@mui/system": "^5.14.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "react-hook-form": "7.46.1"
+    "react-hook-form": "7.53.0"
   }
 }
