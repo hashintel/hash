@@ -104,7 +104,7 @@
     "reactflow": "11.10.4",
     "remark-gfm": "4.0.0",
     "rooks": "7.14.1",
-    "safe-stable-stringify": "2.4.3",
+    "safe-stable-stringify": "2.5.0",
     "setimmediate": "1.0.5",
     "signia": "0.1.5",
     "signia-react": "0.1.5",
