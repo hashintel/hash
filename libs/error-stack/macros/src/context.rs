@@ -33,7 +33,7 @@ pub(crate) fn derive(input: &DeriveInput) -> Result<TokenStream, Error> {
     let error_stack = attributes.crate_path;
     Ok(quote! {
 
-        impl std::error::Error for #ctx {}
+        impl ::core::error::Error for #ctx {}
         impl ::core::fmt::Debug for #ctx {
             fn fmt(&self, f: &mut ::core::fmt::Formatter) -> ::core::fmt::Result {
                 f.write_str(stringify!(#ctx))
