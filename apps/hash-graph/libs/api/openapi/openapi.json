@@ -3372,6 +3372,12 @@
               "provenance"
             ],
             "properties": {
+              "conversions": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/Conversions"
+                }
+              },
               "ownedById": {
                 "$ref": "#/components/schemas/OwnedById"
               },
@@ -3396,6 +3402,12 @@
               "provenance"
             ],
             "properties": {
+              "conversions": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/Conversions"
+                }
+              },
               "fetchedAt": {
                 "$ref": "#/components/schemas/Timestamp"
               },

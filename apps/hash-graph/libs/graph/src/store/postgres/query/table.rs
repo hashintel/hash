@@ -26,6 +26,7 @@ pub enum Table {
     DataTypes,
     DataTypeEmbeddings,
     DataTypeConversions,
+    DataTypeConversionAggregation,
     PropertyTypes,
     PropertyTypeEmbeddings,
     EntityTypes,
@@ -354,6 +355,7 @@ impl Table {
             Self::DataTypes => "data_types",
             Self::DataTypeEmbeddings => "data_type_embeddings",
             Self::DataTypeConversions => "data_type_conversions",
+            Self::DataTypeConversionAggregation => "data_type_conversion_aggregation",
             Self::PropertyTypes => "property_types",
             Self::PropertyTypeEmbeddings => "property_type_embeddings",
             Self::EntityTypes => "entity_types",
@@ -648,6 +650,42 @@ impl DatabaseColumn for DataTypeConversions {
             Self::TargetDataTypeBaseUrl => "target_data_type_base_url",
             Self::Into => "into",
             Self::From => "from",
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum DataTypeConversionAggregation {
+    SourceDataTypeOntologyId,
+    TargetDataTypeBaseUrls,
+    Intos,
+    Froms,
+}
+
+impl DatabaseColumn for DataTypeConversionAggregation {
+    fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::SourceDataTypeOntologyId => ParameterType::Uuid,
+            Self::TargetDataTypeBaseUrls => ParameterType::Vector(Box::new(ParameterType::BaseUrl)),
+            Self::Intos | Self::Froms => ParameterType::Vector(Box::new(ParameterType::Object)),
+        }
+    }
+
+    fn nullable(self) -> bool {
+        match self {
+            Self::SourceDataTypeOntologyId
+            | Self::TargetDataTypeBaseUrls
+            | Self::Intos
+            | Self::Froms => false,
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::SourceDataTypeOntologyId => "source_data_type_ontology_id",
+            Self::TargetDataTypeBaseUrls => "target_data_type_base_urls",
+            Self::Intos => "intos",
+            Self::Froms => "froms",
         }
     }
 }
@@ -1361,6 +1399,7 @@ pub enum Column {
     DataTypeConstrainsValuesOn(DataTypeConstrainsValuesOn),
     DataTypeInheritsFrom(DataTypeInheritsFrom, Option<u32>),
     DataTypeConversions(DataTypeConversions),
+    DataTypeConversionAggregation(DataTypeConversionAggregation),
     PropertyTypes(PropertyTypes),
     PropertyTypeEmbeddings(PropertyTypeEmbeddings),
     EntityTypes(EntityTypes),
@@ -1542,6 +1581,7 @@ impl Column {
             Self::DataTypes(_) => Table::DataTypes,
             Self::DataTypeEmbeddings(_) => Table::DataTypeEmbeddings,
             Self::DataTypeConversions(_) => Table::DataTypeConversions,
+            Self::DataTypeConversionAggregation(_) => Table::DataTypeConversionAggregation,
             Self::PropertyTypes(_) => Table::PropertyTypes,
             Self::PropertyTypeEmbeddings(_) => Table::PropertyTypeEmbeddings,
             Self::EntityTypes(_) => Table::EntityTypes,
@@ -1620,6 +1660,7 @@ impl DatabaseColumn for Column {
             Self::DataTypeInheritsFrom(column, _) => column.parameter_type(),
             Self::DataTypeConstrainsValuesOn(column) => column.parameter_type(),
             Self::DataTypeConversions(column) => column.parameter_type(),
+            Self::DataTypeConversionAggregation(column) => column.parameter_type(),
             Self::PropertyTypes(column) => column.parameter_type(),
             Self::PropertyTypeEmbeddings(column) => column.parameter_type(),
             Self::EntityTypes(column) => column.parameter_type(),
@@ -1653,6 +1694,7 @@ impl DatabaseColumn for Column {
             Self::DataTypeInheritsFrom(column, _) => column.nullable(),
             Self::DataTypeConstrainsValuesOn(column) => column.nullable(),
             Self::DataTypeConversions(column) => column.nullable(),
+            Self::DataTypeConversionAggregation(column) => column.nullable(),
             Self::PropertyTypes(column) => column.nullable(),
             Self::PropertyTypeEmbeddings(column) => column.nullable(),
             Self::EntityTypes(column) => column.nullable(),
@@ -1686,6 +1728,7 @@ impl DatabaseColumn for Column {
             Self::DataTypeInheritsFrom(column, _) => column.as_str(),
             Self::DataTypeConstrainsValuesOn(column) => column.as_str(),
             Self::DataTypeConversions(column) => column.as_str(),
+            Self::DataTypeConversionAggregation(column) => column.as_str(),
             Self::PropertyTypes(column) => column.as_str(),
             Self::PropertyTypeEmbeddings(column) => column.as_str(),
             Self::EntityTypes(column) => column.as_str(),
@@ -1915,8 +1958,10 @@ impl Relation {
             }),
             Self::DataTypeConversions => {
                 ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
-                    on: Column::DataTypeConversions(DataTypeConversions::SourceDataTypeOntologyId),
-                    join: Column::DataTypes(DataTypes::OntologyId),
+                    on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                    join: Column::DataTypeConversionAggregation(
+                        DataTypeConversionAggregation::SourceDataTypeOntologyId,
+                    ),
                     join_type: JoinType::LeftOuter,
                 })
             }

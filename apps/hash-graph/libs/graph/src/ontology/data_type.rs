@@ -314,6 +314,12 @@ pub enum DataTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     EditionProvenance(Option<JsonPath<'p>>),
+    /// Only used internally and not available for deserialization.
+    TargetConversionBaseUrls,
+    /// Only used internally and not available for deserialization.
+    FromConversions,
+    /// Only used internally and not available for deserialization.
+    IntoConversions,
 }
 
 impl OntologyQueryPath for DataTypeQueryPath<'_> {
@@ -337,6 +343,12 @@ impl QueryPath for DataTypeQueryPath<'_> {
             Self::Version => ParameterType::OntologyTypeVersion,
             Self::Description | Self::Title | Self::Type => ParameterType::Text,
             Self::Embedding => ParameterType::Vector(Box::new(ParameterType::F64)),
+            Self::TargetConversionBaseUrls => {
+                ParameterType::Vector(Box::new(ParameterType::BaseUrl))
+            }
+            Self::FromConversions | Self::IntoConversions => {
+                ParameterType::Vector(Box::new(ParameterType::Object))
+            }
             Self::EditionProvenance(_) => ParameterType::Any,
             Self::DataTypeEdge { path, .. } => path.expected_type(),
             Self::PropertyTypeEdge { path, .. } => path.expected_type(),
@@ -362,6 +374,9 @@ impl fmt::Display for DataTypeQueryPath<'_> {
             Self::EditionProvenance(Some(path)) => write!(fmt, "editionProvenance.{path}"),
             Self::EditionProvenance(None) => fmt.write_str("editionProvenance"),
             Self::Embedding => fmt.write_str("embedding"),
+            Self::TargetConversionBaseUrls => fmt.write_str("targetConversionBaseUrls"),
+            Self::FromConversions => fmt.write_str("fromConversions"),
+            Self::IntoConversions => fmt.write_str("toConversions"),
             Self::DataTypeEdge {
                 edge_kind, path, ..
             } => {
@@ -532,6 +547,9 @@ impl DataTypeQueryPath<'_> {
             Self::AdditionalMetadata => DataTypeQueryPath::AdditionalMetadata,
             Self::Type => DataTypeQueryPath::Type,
             Self::Embedding => DataTypeQueryPath::Embedding,
+            Self::TargetConversionBaseUrls => DataTypeQueryPath::TargetConversionBaseUrls,
+            Self::FromConversions => DataTypeQueryPath::FromConversions,
+            Self::IntoConversions => DataTypeQueryPath::IntoConversions,
             Self::EditionProvenance(path) => {
                 DataTypeQueryPath::EditionProvenance(path.map(JsonPath::into_owned))
             }
