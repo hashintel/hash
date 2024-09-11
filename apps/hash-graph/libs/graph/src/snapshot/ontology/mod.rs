@@ -10,9 +10,9 @@ pub use self::{
     metadata::OntologyTypeMetadataRowBatch,
     property_type::PropertyTypeRowBatch,
     record::{
-        DataTypeConversionsRecord, DataTypeEmbeddingRecord, DataTypeSnapshotRecord,
-        EntityTypeEmbeddingRecord, EntityTypeSnapshotRecord, OntologyTypeSnapshotRecord,
-        PropertyTypeEmbeddingRecord, PropertyTypeSnapshotRecord,
+        DataTypeEmbeddingRecord, DataTypeSnapshotRecord, EntityTypeEmbeddingRecord,
+        EntityTypeSnapshotRecord, OntologyTypeSnapshotRecord, PropertyTypeEmbeddingRecord,
+        PropertyTypeSnapshotRecord,
     },
 };
 pub(crate) use self::{

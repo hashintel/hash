@@ -4,8 +4,9 @@ use crate::{
     ontology::DataTypeQueryPath,
     store::postgres::query::{
         table::{
-            Column, DataTypeEmbeddings, DataTypes, JsonField, OntologyAdditionalMetadata,
-            OntologyIds, OntologyOwnedMetadata, OntologyTemporalMetadata, ReferenceTable, Relation,
+            Column, DataTypeConversionAggregation, DataTypeEmbeddings, DataTypes, JsonField,
+            OntologyAdditionalMetadata, OntologyIds, OntologyOwnedMetadata,
+            OntologyTemporalMetadata, ReferenceTable, Relation,
         },
         PostgresQueryPath,
     },
@@ -50,6 +51,9 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
             .collect(),
             Self::DataTypeEdge { .. } | Self::PropertyTypeEdge { .. } => {
                 unreachable!("Invalid path: {self}")
+            }
+            Self::TargetConversionBaseUrls | Self::FromConversions | Self::IntoConversions => {
+                once(Relation::DataTypeConversions).collect()
             }
         }
     }
@@ -100,6 +104,20 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
             Self::EditionProvenance(path) => (
                 Column::OntologyTemporalMetadata(OntologyTemporalMetadata::Provenance),
                 path.as_ref().map(JsonField::JsonPath),
+            ),
+            Self::TargetConversionBaseUrls => (
+                Column::DataTypeConversionAggregation(
+                    DataTypeConversionAggregation::TargetDataTypeBaseUrls,
+                ),
+                None,
+            ),
+            Self::FromConversions => (
+                Column::DataTypeConversionAggregation(DataTypeConversionAggregation::Froms),
+                None,
+            ),
+            Self::IntoConversions => (
+                Column::DataTypeConversionAggregation(DataTypeConversionAggregation::Intos),
+                None,
             ),
         }
     }

@@ -24,8 +24,8 @@ use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTi
 use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
-    schema::{DataTypeValidator, OntologyTypeResolver},
-    url::{OntologyTypeVersion, VersionedUrl},
+    schema::{ConversionDefinition, Conversions, DataTypeValidator, OntologyTypeResolver},
+    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
     Validator,
 };
 
@@ -413,12 +413,12 @@ where
                         .map(|(reference, _)| DataTypeId::from_url(&reference.url)),
                 );
                 inserted_data_types.push(Arc::new(parameters.schema));
-                data_type_conversions_rows.extend(parameters.conversions.into_iter().map(
+                data_type_conversions_rows.extend(parameters.conversions.iter().map(
                     |(base_url, conversions)| DataTypeConversionsRow {
                         source_data_type_ontology_id: data_type_id,
-                        target_data_type_base_url: base_url,
-                        from: conversions.from,
-                        into: conversions.to,
+                        target_data_type_base_url: base_url.clone(),
+                        from: conversions.from.clone(),
+                        into: conversions.to.clone(),
                     },
                 ));
                 inserted_data_type_metadata.push(DataTypeMetadata {
@@ -426,6 +426,7 @@ where
                     classification: parameters.classification,
                     temporal_versioning,
                     provenance,
+                    conversions: parameters.conversions,
                 });
             }
         }
@@ -843,12 +844,12 @@ where
 
         let data_type_conversions_rows = params
             .conversions
-            .into_iter()
+            .iter()
             .map(|(base_url, conversions)| DataTypeConversionsRow {
                 source_data_type_ontology_id: data_type_id,
-                target_data_type_base_url: base_url,
-                from: conversions.from,
-                into: conversions.to,
+                target_data_type_base_url: base_url.clone(),
+                from: conversions.from.clone(),
+                into: conversions.to.clone(),
             })
             .collect::<Vec<_>>();
         let (statement, parameters) = InsertStatementBuilder::from_rows(
@@ -910,6 +911,7 @@ where
                 classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
                 temporal_versioning,
                 provenance,
+                conversions: params.conversions,
             };
 
             if let Some(temporal_client) = &self.temporal_client {
@@ -1039,6 +1041,10 @@ pub struct DataTypeRowIndices {
 
     pub edition_provenance: usize,
     pub additional_metadata: usize,
+
+    pub conversion_targets: usize,
+    pub conversion_froms: usize,
+    pub conversion_intos: usize,
 }
 
 impl QueryRecordDecode for DataTypeWithMetadata {
@@ -1054,6 +1060,25 @@ impl QueryRecordDecode for DataTypeWithMetadata {
         if let Ok(distance) = row.try_get::<_, f64>("distance") {
             tracing::trace!(%record_id, %distance, "Data type embedding was calculated");
         }
+
+        let conversion_targets: Option<Vec<BaseUrl>> = row.get(indices.conversion_targets);
+        let conversion_froms: Option<Vec<ConversionDefinition>> = row.get(indices.conversion_froms);
+        let conversion_intos: Option<Vec<ConversionDefinition>> = row.get(indices.conversion_intos);
+        let conversions = match (conversion_targets, conversion_froms, conversion_intos) {
+            (Some(targets), Some(froms), Some(intos)) => targets
+                .into_iter()
+                .zip(
+                    froms
+                        .into_iter()
+                        .zip(intos)
+                        .map(|(from, to)| Conversions { from, to }),
+                )
+                .collect(),
+            (None, None, None) => HashMap::new(),
+            _ => unreachable!(
+                "Conversion targets, froms and intos must be either all present or all absent"
+            ),
+        };
 
         Self {
             schema: row.get::<_, Json<_>>(indices.schema).0,
@@ -1071,6 +1096,7 @@ impl QueryRecordDecode for DataTypeWithMetadata {
                 provenance: OntologyProvenance {
                     edition: row.get(indices.edition_provenance),
                 },
+                conversions,
             },
         }
     }
@@ -1111,6 +1137,10 @@ impl PostgresRecord for DataTypeWithMetadata {
                 .add_selection_path(&DataTypeQueryPath::EditionProvenance(None)),
             additional_metadata: compiler
                 .add_selection_path(&DataTypeQueryPath::AdditionalMetadata),
+            conversion_targets: compiler
+                .add_selection_path(&DataTypeQueryPath::TargetConversionBaseUrls),
+            conversion_froms: compiler.add_selection_path(&DataTypeQueryPath::FromConversions),
+            conversion_intos: compiler.add_selection_path(&DataTypeQueryPath::IntoConversions),
         }
     }
 }
