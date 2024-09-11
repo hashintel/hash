@@ -1,5 +1,5 @@
 use core::borrow::Borrow;
-use std::collections::HashSet;
+use std::collections::{hash_map::RawEntryMut, HashSet};
 
 use error_stack::{Report, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
@@ -409,21 +409,30 @@ impl EntityVisitor for EntityPreprocessor {
                         // We only support conversion of numbers for now
                         if let Some(value) = property.value.as_f64() {
                             for (target, conversion) in &data_type.borrow().metadata.conversions {
-                                if property
-                                    .metadata
-                                    .canonical
-                                    .insert(
-                                        target.clone(),
-                                        conversion.to.expression.evaluate(value),
-                                    )
-                                    .is_some()
-                                {
-                                    extend_report!(
-                                        status,
-                                        TraversalError::DuplicateCanonicalKey {
-                                            key: target.clone(),
+                                let converted_value = conversion.to.expression.evaluate(value);
+                                match property.metadata.canonical.raw_entry_mut().from_key(target) {
+                                    RawEntryMut::Occupied(entry) => {
+                                        #[expect(
+                                            clippy::float_arithmetic,
+                                            reason = "We properly checked for error margin"
+                                        )]
+                                        if f64::abs(*entry.get() - converted_value) > f64::EPSILON {
+                                            extend_report!(
+                                                status,
+                                                TraversalError::InvalidCanonicalValue {
+                                                    key: target.clone(),
+                                                    actual: *entry.get(),
+                                                    expected: converted_value,
+                                                }
+                                            );
                                         }
-                                    );
+                                    }
+                                    RawEntryMut::Vacant(entry) => {
+                                        entry.insert(
+                                            target.clone(),
+                                            conversion.to.expression.evaluate(value),
+                                        );
+                                    }
                                 }
                             }
                         } else {
