@@ -409,14 +409,22 @@ impl EntityVisitor for EntityPreprocessor {
                         // We only support conversion of numbers for now
                         if let Some(value) = property.value.as_f64() {
                             for (target, conversion) in &data_type.borrow().metadata.conversions {
-                                property
+                                if property
                                     .metadata
                                     .canonical
-                                    .raw_entry_mut()
-                                    .from_key(target)
-                                    .or_insert_with(|| {
-                                        (target.clone(), conversion.to.expression.evaluate(value))
-                                    });
+                                    .insert(
+                                        target.clone(),
+                                        conversion.to.expression.evaluate(value),
+                                    )
+                                    .is_some()
+                                {
+                                    extend_report!(
+                                        status,
+                                        TraversalError::DuplicateCanonicalKey {
+                                            key: target.clone(),
+                                        }
+                                    );
+                                }
                             }
                         } else {
                             extend_report!(
