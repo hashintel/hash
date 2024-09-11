@@ -1,5 +1,7 @@
+use std::collections::HashMap;
+
 use serde::{Deserialize, Serialize};
-use type_system::url::VersionedUrl;
+use type_system::url::{BaseUrl, VersionedUrl};
 
 use crate::knowledge::{property::PropertyProvenance, Confidence};
 
@@ -15,6 +17,8 @@ pub struct ValueMetadata {
     #[serde(with = "core::option::Option")]
     #[cfg_attr(feature = "utoipa", schema(required = true))]
     pub data_type_id: Option<VersionedUrl>,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub canonical: HashMap<BaseUrl, f64>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

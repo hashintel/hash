@@ -4,16 +4,20 @@ use error_stack::{bail, Report, ResultExt};
 use serde_json::Value as JsonValue;
 use type_system::{
     schema::{
-        ArraySchema, DataType, DataTypeProvider, DataTypeReference, JsonSchemaValueType,
-        OntologyTypeProvider, PropertyObjectSchema, PropertyType, PropertyTypeProvider,
+        ArraySchema, DataTypeReference, JsonSchemaValueType, PropertyObjectSchema, PropertyType,
         PropertyTypeReference, PropertyValueSchema, PropertyValues, ValueOrArray,
     },
     url::{BaseUrl, VersionedUrl},
 };
 
-use crate::knowledge::property::{
-    PropertyWithMetadata, PropertyWithMetadataArray, PropertyWithMetadataObject,
-    PropertyWithMetadataValue, ValueMetadata,
+use crate::{
+    knowledge::property::{
+        PropertyWithMetadata, PropertyWithMetadataArray, PropertyWithMetadataObject,
+        PropertyWithMetadataValue, ValueMetadata,
+    },
+    ontology::{
+        DataTypeProvider, DataTypeWithMetadata, OntologyTypeProvider, PropertyTypeProvider,
+    },
 };
 
 #[derive(Debug, thiserror::Error)]
@@ -71,7 +75,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
     #[expect(unused_variables, reason = "No-op implementation")]
     fn visit_value<P>(
         &mut self,
-        schema: &DataType,
+        data_type: &DataTypeWithMetadata,
         value: &mut JsonValue,
         metadata: &mut ValueMetadata,
         type_provider: &P,

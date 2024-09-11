@@ -29,7 +29,7 @@ use graph_types::{
         },
         Confidence,
     },
-    ontology::EntityTypeId,
+    ontology::{EntityTypeId, EntityTypeProvider},
     owned_by_id::OwnedById,
     Embedding,
 };
@@ -41,7 +41,7 @@ use temporal_versioning::{
     TransactionTime,
 };
 use tokio_postgres::{error::SqlState, GenericClient, Row};
-use type_system::{schema::EntityTypeProvider, url::VersionedUrl};
+use type_system::url::VersionedUrl;
 use uuid::Uuid;
 use validation::{EntityPreprocessor, Validate, ValidateEntityComponents};
 

@@ -14,17 +14,15 @@ use graph_types::{
     account::AccountId,
     knowledge::entity::{Entity, EntityId},
     ontology::{
-        DataTypeId, DataTypeWithMetadata, EntityTypeId, EntityTypeWithMetadata, PropertyTypeId,
+        DataTypeId, DataTypeProvider, DataTypeWithMetadata, EntityTypeId, EntityTypeProvider,
+        EntityTypeWithMetadata, OntologyTypeProvider, PropertyTypeId, PropertyTypeProvider,
         PropertyTypeWithMetadata,
     },
 };
 use tokio::sync::RwLock;
 use tokio_postgres::GenericClient;
 use type_system::{
-    schema::{
-        ClosedEntityType, DataType, DataTypeProvider, EntityTypeProvider, OntologyTypeProvider,
-        PropertyType, PropertyTypeProvider,
-    },
+    schema::{ClosedEntityType, PropertyType},
     url::{BaseUrl, VersionedUrl},
 };
 use validation::EntityProvider;
@@ -117,7 +115,7 @@ where
 
 #[derive(Debug, Default)]
 pub struct StoreCache {
-    data_types: CacheHashMap<DataTypeId, DataType>,
+    data_types: CacheHashMap<DataTypeId, DataTypeWithMetadata>,
     property_types: CacheHashMap<PropertyTypeId, PropertyType>,
     entity_types: CacheHashMap<EntityTypeId, ClosedEntityType>,
     entities: CacheHashMap<EntityId, Entity>,
@@ -155,7 +153,7 @@ where
     }
 }
 
-impl<C, A> OntologyTypeProvider<DataType> for StoreProvider<'_, PostgresStore<C, A>>
+impl<C, A> OntologyTypeProvider<DataTypeWithMetadata> for StoreProvider<'_, PostgresStore<C, A>>
 where
     C: AsClient,
     A: AuthorizationApi,
@@ -164,7 +162,7 @@ where
     async fn provide_type(
         &self,
         type_id: &VersionedUrl,
-    ) -> Result<Arc<DataType>, Report<QueryError>> {
+    ) -> Result<Arc<DataTypeWithMetadata>, Report<QueryError>> {
         let data_type_id = DataTypeId::from_url(type_id);
 
         if let Some(cached) = self.cache.data_types.get(&data_type_id).await {
@@ -189,8 +187,7 @@ where
                 ),
                 false,
             )
-            .await
-            .map(|data_type| data_type.schema)?;
+            .await?;
 
         let schema = self.cache.data_types.grant(data_type_id, schema).await;
 

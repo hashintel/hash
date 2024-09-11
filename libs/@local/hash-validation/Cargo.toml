@@ -30,6 +30,7 @@ uuid = { workspace = true, features = ["std"] }
 
 [dev-dependencies]
 graph-test-data = { workspace = true }
+temporal-versioning = { workspace = true }
 
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
