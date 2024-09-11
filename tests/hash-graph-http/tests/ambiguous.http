@@ -290,7 +290,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "http://localhost:3000/@alice/types/property-type/length/": {
         "value": 10,
         "metadata": {
-          "dataTypeId": "http://localhost:3000/@alice/types/data-type/millimeter/v/1"
+          "dataTypeId": "http://localhost:3000/@alice/types/data-type/inch/v/1"
         }
       }
     }
@@ -308,5 +308,41 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+
+### Filter by data type ID
+POST http://127.0.0.1:4000/entities/query
+Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "filter": {
+    "startsWith": [
+      { "path": ["propertyMetadata", "value", "http://localhost:3000/@alice/types/property-type/length/", "metadata", "dataTypeId"] },
+      { "parameter": "http://localhost:3000/@alice/types/data-type/inch/" }
+    ]
+  },
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
+      "timestamp": null
+    },
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+        "start": null,
+        "end": null
+      }
+    }
+  },
+  "includeDrafts": false
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.entities.length === 1, "Unexpected number of entities");
     });
 %}

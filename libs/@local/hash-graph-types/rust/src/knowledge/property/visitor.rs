@@ -65,8 +65,15 @@ pub enum TraversalError {
         "the number of items in the array is too large, expected at most {max}, but found {actual}"
     )]
     TooManyItems { actual: usize, max: usize },
-    #[error("A canonical value was provided")]
-    DuplicateCanonicalKey { key: BaseUrl },
+    #[error(
+        "The provided canonical value `{actual}` for `{key}` is different than the calculated \
+         value `{expected}`"
+    )]
+    InvalidCanonicalValue {
+        key: BaseUrl,
+        expected: f64,
+        actual: f64,
+    },
 }
 
 // TODO: Allow usage of other error types

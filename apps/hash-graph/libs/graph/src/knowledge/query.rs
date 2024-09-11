@@ -506,7 +506,6 @@ pub enum EntityQueryToken {
     OwnedById,
     Type,
     Properties,
-    PropertyMetadata,
     Label,
     Provenance,
     EditionProvenance,
@@ -526,8 +525,8 @@ pub struct EntityQueryPathVisitor {
 impl EntityQueryPathVisitor {
     pub const EXPECTING: &'static str =
         "one of `uuid`, `editionId`, `draftId`, `archived`, `ownedById`, `type`, `properties`, \
-         `propertyMetadata`, `label`, `provenance`, `editionProvenance`, `embedding`, \
-         `incomingLinks`, `outgoingLinks`, `leftEntity`, `rightEntity`";
+         `label`, `provenance`, `editionProvenance`, `embedding`, `incomingLinks`, \
+         `outgoingLinks`, `leftEntity`, `rightEntity`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -542,7 +541,6 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
         formatter.write_str(Self::EXPECTING)
     }
 
-    #[expect(clippy::too_many_lines)]
     fn visit_seq<A>(mut self, mut seq: A) -> Result<Self::Value, A::Error>
     where
         A: SeqAccess<'de>,
@@ -580,19 +578,6 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
                     EntityQueryPath::Properties(None)
                 } else {
                     EntityQueryPath::Properties(Some(JsonPath::from_path_tokens(path_tokens)))
-                }
-            }
-            EntityQueryToken::PropertyMetadata => {
-                let mut path_tokens = Vec::new();
-                while let Some(property) = seq.next_element::<PathToken<'de>>()? {
-                    path_tokens.push(property);
-                    self.position += 1;
-                }
-
-                if path_tokens.is_empty() {
-                    EntityQueryPath::PropertyMetadata(None)
-                } else {
-                    EntityQueryPath::PropertyMetadata(Some(JsonPath::from_path_tokens(path_tokens)))
                 }
             }
             EntityQueryToken::Label => EntityQueryPath::Label {
