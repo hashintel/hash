@@ -1,12 +1,14 @@
 use async_trait::async_trait;
 use authorization::{backend::ZanzibarBackend, schema::EntityRelationAndSubject, AuthorizationApi};
 use error_stack::{Report, ResultExt};
-use graph_types::knowledge::{
-    entity::{Entity, EntityUuid},
-    property::{visitor::EntityVisitor, PropertyWithMetadataObject},
+use graph_types::{
+    knowledge::{
+        entity::{Entity, EntityUuid},
+        property::{visitor::EntityVisitor, PropertyWithMetadataObject},
+    },
+    ontology::EntityTypeProvider,
 };
 use tokio_postgres::GenericClient;
-use type_system::schema::EntityTypeProvider;
 use validation::{EntityPreprocessor, Validate, ValidateEntityComponents};
 
 use crate::{

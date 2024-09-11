@@ -4040,6 +4040,7 @@
           "ownedById",
           "type",
           "properties",
+          "propertyMetadata",
           "label",
           "provenance",
           "editionProvenance",
@@ -8267,6 +8268,13 @@
           "dataTypeId"
         ],
         "properties": {
+          "canonical": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number",
+              "format": "double"
+            }
+          },
           "confidence": {
             "allOf": [
               {

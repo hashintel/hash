@@ -158,6 +158,7 @@ async fn initial_metadata() {
                     provenance: property_provenance_a(),
                     confidence: Confidence::new(0.5),
                     data_type_id: None,
+                    canonical: HashMap::default(),
                 },
             },
         )]),
@@ -201,6 +202,7 @@ async fn initial_metadata() {
                         provenance: property_provenance_a(),
                         confidence: Confidence::new(0.5),
                         data_type_id: Some(text_data_type_id()),
+                        canonical: HashMap::default(),
                     },
                 },
             )]),
@@ -215,6 +217,7 @@ async fn initial_metadata() {
         provenance: property_provenance_a(),
         confidence: Confidence::new(0.6),
         data_type_id: None,
+        canonical: HashMap::default(),
     };
     let updated_entity = api
         .patch_entity(
@@ -252,6 +255,7 @@ async fn initial_metadata() {
                         provenance: property_provenance_a(),
                         confidence: Confidence::new(0.6),
                         data_type_id: Some(text_data_type_id()),
+                        canonical: HashMap::default(),
                     }
                 }
             )]),
@@ -322,7 +326,8 @@ async fn no_initial_metadata() {
                     metadata: ValueMetadata {
                         provenance: PropertyProvenance::default(),
                         confidence: None,
-                        data_type_id: Some(text_data_type_id())
+                        data_type_id: Some(text_data_type_id()),
+                        canonical: HashMap::default(),
                     },
                 },
             )]),
@@ -376,7 +381,8 @@ async fn no_initial_metadata() {
                     metadata: ValueMetadata {
                         provenance: PropertyProvenance::default(),
                         confidence: None,
-                        data_type_id: Some(text_data_type_id())
+                        data_type_id: Some(text_data_type_id()),
+                        canonical: HashMap::default(),
                     },
                 },
             )]),
@@ -397,6 +403,7 @@ async fn no_initial_metadata() {
                             confidence: Confidence::new(0.5),
                             data_type_id: None,
                             provenance: PropertyProvenance::default(),
+                            canonical: HashMap::default(),
                         },
                     }),
                 }],
@@ -421,7 +428,8 @@ async fn no_initial_metadata() {
                     metadata: ValueMetadata {
                         provenance: PropertyProvenance::default(),
                         confidence: Confidence::new(0.5),
-                        data_type_id: Some(text_data_type_id())
+                        data_type_id: Some(text_data_type_id()),
+                        canonical: HashMap::default(),
                     },
                 },
             )]),
@@ -456,7 +464,8 @@ async fn no_initial_metadata() {
                     metadata: ValueMetadata {
                         provenance: PropertyProvenance::default(),
                         confidence: Confidence::new(0.5),
-                        data_type_id: Some(text_data_type_id())
+                        data_type_id: Some(text_data_type_id()),
+                        canonical: HashMap::default(),
                     },
                 },
             )]),
@@ -511,6 +520,7 @@ async fn properties_add() {
                             confidence: Confidence::new(0.5),
                             data_type_id: None,
                             provenance: PropertyProvenance::default(),
+                            canonical: HashMap::default(),
                         },
                     }),
                 }],
@@ -533,7 +543,8 @@ async fn properties_add() {
                         metadata: ValueMetadata {
                             provenance: PropertyProvenance::default(),
                             confidence: None,
-                            data_type_id: Some(text_data_type_id())
+                            data_type_id: Some(text_data_type_id()),
+                            canonical: HashMap::default(),
                         },
                     },
                 ),
@@ -543,7 +554,8 @@ async fn properties_add() {
                         metadata: ValueMetadata {
                             provenance: PropertyProvenance::default(),
                             confidence: Confidence::new(0.5),
-                            data_type_id: Some(number_data_type_id())
+                            data_type_id: Some(number_data_type_id()),
+                            canonical: HashMap::default(),
                         },
                     },
                 )
@@ -616,6 +628,7 @@ async fn properties_remove() {
                                 confidence: Confidence::new(0.5),
                                 data_type_id: None,
                                 provenance: property_provenance_b(),
+                                canonical: HashMap::default(),
                             },
                         }),
                     },
@@ -639,7 +652,8 @@ async fn properties_remove() {
                         metadata: ValueMetadata {
                             provenance: PropertyProvenance::default(),
                             confidence: None,
-                            data_type_id: Some(text_data_type_id())
+                            data_type_id: Some(text_data_type_id()),
+                            canonical: HashMap::default(),
                         },
                     },
                 ),
@@ -652,7 +666,8 @@ async fn properties_remove() {
                                 metadata: ValueMetadata {
                                     provenance: property_provenance_b(),
                                     confidence: Confidence::new(0.5),
-                                    data_type_id: Some(text_data_type_id())
+                                    data_type_id: Some(text_data_type_id()),
+                                    canonical: HashMap::default(),
                                 },
                             },
                         )]),
@@ -695,7 +710,8 @@ async fn properties_remove() {
                     metadata: ValueMetadata {
                         provenance: PropertyProvenance::default(),
                         confidence: None,
-                        data_type_id: Some(text_data_type_id())
+                        data_type_id: Some(text_data_type_id()),
+                        canonical: HashMap::default(),
                     },
                 },
             )]),
