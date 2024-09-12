@@ -435,6 +435,11 @@ impl EntityVisitor for EntityPreprocessor {
         }
 
         if let Some(data_type_id) = &property.metadata.data_type_id {
+            property
+                .metadata
+                .canonical
+                .insert(data_type_id.base_url.clone(), property.value.clone());
+
             let data_type_result = type_provider
                 .provide_type(data_type_id)
                 .await
@@ -453,17 +458,31 @@ impl EntityVisitor for EntityPreprocessor {
                                 let converted_value = conversion.to.expression.evaluate(value);
                                 match property.metadata.canonical.raw_entry_mut().from_key(target) {
                                     RawEntryMut::Occupied(entry) => {
-                                        #[expect(
-                                            clippy::float_arithmetic,
-                                            reason = "We properly checked for error margin"
-                                        )]
-                                        if f64::abs(*entry.get() - converted_value) > f64::EPSILON {
+                                        if let Some(current_value) = entry.get().as_f64() {
+                                            #[expect(
+                                                clippy::float_arithmetic,
+                                                reason = "We properly checked for error margin"
+                                            )]
+                                            if f64::abs(current_value - converted_value)
+                                                > f64::EPSILON
+                                            {
+                                                extend_report!(
+                                                    status,
+                                                    TraversalError::InvalidCanonicalValue {
+                                                        key: target.clone(),
+                                                        actual: current_value,
+                                                        expected: converted_value,
+                                                    }
+                                                );
+                                            }
+                                        } else {
                                             extend_report!(
                                                 status,
-                                                TraversalError::InvalidCanonicalValue {
-                                                    key: target.clone(),
-                                                    actual: *entry.get(),
-                                                    expected: converted_value,
+                                                TraversalError::InvalidType {
+                                                    actual: JsonSchemaValueType::from(
+                                                        &property.value
+                                                    ),
+                                                    expected: JsonSchemaValueType::Number,
                                                 }
                                             );
                                         }
@@ -471,7 +490,7 @@ impl EntityVisitor for EntityPreprocessor {
                                     RawEntryMut::Vacant(entry) => {
                                         entry.insert(
                                             target.clone(),
-                                            conversion.to.expression.evaluate(value),
+                                            JsonValue::from(converted_value),
                                         );
                                     }
                                 }
