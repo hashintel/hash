@@ -29,12 +29,12 @@
   "dependencies": {
     "@blockprotocol/graph": "0.3.4",
     "date-fns": "2.30.0",
-    "react-datepicker": "4.7.0"
+    "react-datepicker": "4.25.0"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/react-datepicker": "4.8.0",
+    "@types/react-datepicker": "4.19.6",
     "@types/react-dom": "18.2.25",
     "block-scripts": "0.3.4",
     "eslint": "8.57.0",
