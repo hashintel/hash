@@ -51,7 +51,7 @@
     "googleapis": "133.0.0",
     "logform": "2.6.1",
     "redis": "4.6.12",
-    "slonik": "24.1.2",
+    "slonik": "24.2.0",
     "wait-on": "8.0.0",
     "winston": "3.14.2"
   },

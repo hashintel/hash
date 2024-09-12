@@ -28384,10 +28384,10 @@ slice-ansi@^7.1.0:
     ansi-styles "^6.2.1"
     is-fullwidth-code-point "^5.0.0"
 
-slonik@24.1.2:
-  version "24.1.2"
-  resolved "https://registry.yarnpkg.com/slonik/-/slonik-24.1.2.tgz#a2986777c3dc8e96b77044a720aa20fcadd2b864"
-  integrity "sha1-ophnd8Pcjpa3cESnIKog/K3SuGQ= sha512-TMSDhUCtaMcyqXBQhPHw5rbZCPGhmLiZtCRRYXlvs3yPs3xpmmujqnASGEFHPlIAV36KuKgYyHwgTgaAfAEZDw=="
+slonik@24.2.0:
+  version "24.2.0"
+  resolved "https://registry.yarnpkg.com/slonik/-/slonik-24.2.0.tgz#46f60ce9da263397405703606eb1f25b0025a774"
+  integrity sha512-qZsjYERknk9G3G0qeU7r6z5M4q5XW51Af5zIgSzwJPcwF+FldOJws7z8R4GBD/WpT0ItPJOrJlbZ77lCi0ukew==
   dependencies:
     concat-stream "^2.0.0"
     es6-error "^4.1.1"
