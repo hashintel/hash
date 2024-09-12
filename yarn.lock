@@ -22030,10 +22030,10 @@ matcher-collection@^1.0.0:
   dependencies:
     minimatch "^3.0.2"
 
-material-ui-popup-state@4.0.2:
-  version "4.0.2"
-  resolved "https://registry.yarnpkg.com/material-ui-popup-state/-/material-ui-popup-state-4.0.2.tgz#98bff4d50d7ef62a3bbe761b8f21c022c62488a6"
-  integrity "sha1-mL/01Q1+9io7vnYbjyHAIsYkiKY= sha512-N/Dx0QAKkBxpyXGOE5+xaHijFkGZ5Sed/VYDpIk2TMKVDRIxszxuTFoOLoHrsk/SuQflBoCGLzzld/XYAdZymg=="
+material-ui-popup-state@4.1.0:
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/material-ui-popup-state/-/material-ui-popup-state-4.1.0.tgz#0e3e1536a449bb19b5a8b5e0c3cbbbca8a4c9688"
+  integrity sha512-YAxLT10XALsUuuo46sc81NKD6oKJzlkcKP3e+IqC0pKwzAhOAZIQ+RUHXT6Mz3bXHKoHCsM+NdIQxR4mOH/KEQ==
   dependencies:
     "@babel/runtime" "^7.12.5"
     "@mui/material" "^5.0.0"
