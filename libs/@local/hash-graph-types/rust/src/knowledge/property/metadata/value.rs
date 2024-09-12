@@ -17,6 +17,9 @@ pub struct ValueMetadata {
     #[serde(with = "core::option::Option")]
     #[cfg_attr(feature = "utoipa", schema(required = true))]
     pub data_type_id: Option<VersionedUrl>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub original_data_type_id: Option<VersionedUrl>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub canonical: HashMap<BaseUrl, f64>,
 }

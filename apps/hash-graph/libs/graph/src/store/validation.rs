@@ -22,7 +22,7 @@ use graph_types::{
 use tokio::sync::RwLock;
 use tokio_postgres::GenericClient;
 use type_system::{
-    schema::{ClosedEntityType, PropertyType},
+    schema::{ClosedEntityType, ConversionDefinition, ConversionExpression, PropertyType},
     url::{BaseUrl, VersionedUrl},
 };
 use validation::EntityProvider;
@@ -244,6 +244,55 @@ where
             .await
             .change_context(QueryError)?
             .get(0))
+    }
+
+    #[expect(refining_impl_trait)]
+    async fn find_conversion(
+        &self,
+        source_data_type_id: &VersionedUrl,
+        target_data_type_id: &VersionedUrl,
+    ) -> Result<impl Iterator<Item = ConversionExpression>, Report<QueryError>> {
+        Ok(self
+            .store
+            .as_client()
+            .client()
+            .query_one(
+                "
+                    SELECT array[source.into, target.from]
+                      FROM data_type_conversions AS source
+                      JOIN data_type_conversions AS target
+                        ON source.target_data_type_base_url = target.target_data_type_base_url
+                     WHERE source.source_data_type_ontology_id = $1
+                       AND target.source_data_type_ontology_id = $2
+	            UNION
+	                SELECT array[data_type_conversions.into]
+                      FROM data_type_conversions
+                     WHERE source_data_type_ontology_id = $1
+                       AND target_data_type_base_url = $4
+	            UNION
+	                SELECT array[data_type_conversions.from]
+                      FROM data_type_conversions
+                     WHERE source_data_type_ontology_id = $2
+                       AND target_data_type_base_url = $3
+                ;",
+                &[
+                    &DataTypeId::from_url(source_data_type_id),
+                    &DataTypeId::from_url(target_data_type_id),
+                    &source_data_type_id.base_url,
+                    &target_data_type_id.base_url,
+                ],
+            )
+            .await
+            .change_context(QueryError)
+            .attach_printable_lazy(|| {
+                format!(
+                    "Found none or more than one conversions between `{source_data_type_id}` and \
+                     `{target_data_type_id}`"
+                )
+            })?
+            .get::<_, Vec<ConversionDefinition>>(0)
+            .into_iter()
+            .map(|conversion| conversion.expression))
     }
 }
 

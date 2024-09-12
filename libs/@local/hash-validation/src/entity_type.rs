@@ -340,6 +340,7 @@ impl EntityVisitor for EntityPreprocessor {
         status
     }
 
+    #[expect(clippy::too_many_lines, reason = "Need to refactor this function")]
     async fn visit_one_of_property<P>(
         &mut self,
         schema: &[PropertyValues],
@@ -390,6 +391,46 @@ impl EntityVisitor for EntityPreprocessor {
             // done before the actual validation step.
             if possible_data_types.len() == 1 {
                 property.metadata.data_type_id = possible_data_types.into_iter().next();
+            }
+        }
+
+        if property.metadata.original_data_type_id.is_none() {
+            // We fall back to the data type ID if the original data type ID is not set
+            property
+                .metadata
+                .original_data_type_id
+                .clone_from(&property.metadata.data_type_id);
+        } else if let (Some(source_data_type_id), Some(target_data_type_id)) = (
+            &property.metadata.original_data_type_id,
+            &property.metadata.data_type_id,
+        ) {
+            if source_data_type_id != target_data_type_id {
+                let conversions = type_provider
+                    .find_conversion(source_data_type_id, target_data_type_id)
+                    .await
+                    .change_context_lazy(|| TraversalError::ConversionRetrieval {
+                        current: DataTypeReference {
+                            url: source_data_type_id.clone(),
+                        },
+                        target: DataTypeReference {
+                            url: target_data_type_id.clone(),
+                        },
+                    })?;
+
+                if let Some(mut value) = property.value.as_f64() {
+                    for conversion in conversions {
+                        value = conversion.evaluate(value);
+                    }
+                    property.value = JsonValue::from(value);
+                } else {
+                    extend_report!(
+                        status,
+                        TraversalError::InvalidType {
+                            actual: JsonSchemaValueType::from(&property.value),
+                            expected: JsonSchemaValueType::Number,
+                        }
+                    );
+                }
             }
         }
 
