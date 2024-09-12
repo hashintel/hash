@@ -36,7 +36,7 @@
     "agentkeepalive": "4.5.0",
     "axios": "1.7.4",
     "dotenv-flow": "3.3.0",
-    "tsx": "4.16.2",
+    "tsx": "4.19.0",
     "typescript": "5.5.4"
   },
   "devDependencies": {

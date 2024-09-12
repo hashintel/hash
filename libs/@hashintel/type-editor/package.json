@@ -28,7 +28,7 @@
     "clsx": "1.2.1",
     "lodash.memoize": "4.1.2",
     "lodash.uniqueid": "4.0.1",
-    "material-ui-popup-state": "4.0.2",
+    "material-ui-popup-state": "4.1.0",
     "rooks": "7.14.1",
     "setimmediate": "1.0.5"
   },
