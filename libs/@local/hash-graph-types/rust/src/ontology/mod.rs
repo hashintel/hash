@@ -189,8 +189,8 @@ pub trait DataTypeProvider: OntologyTypeProvider<DataTypeWithMetadata> {
 
     fn find_conversion(
         &self,
-        source_data_type: &VersionedUrl,
-        target_data_type: &VersionedUrl,
+        source_data_type_id: &VersionedUrl,
+        target_data_type_id: &VersionedUrl,
     ) -> impl Future<
         Output = Result<impl Iterator<Item = ConversionExpression>, Report<impl Context>>,
     > + Send;

@@ -322,7 +322,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "filter": {
     "startsWith": [
       { "path": ["propertyMetadata", "value", "http://localhost:3000/@alice/types/property-type/length/", "metadata", "dataTypeId"] },
-      { "parameter": "http://localhost:3000/@alice/types/data-type/miles/" }
+      { "parameter": "http://localhost:3000/@alice/types/data-type/millimeter/" }
     ]
   },
   "temporalAxes": {
