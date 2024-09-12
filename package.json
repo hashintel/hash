@@ -94,9 +94,9 @@
     "@opentelemetry/exporter-trace-otlp-grpc": "0.53.0",
     "@opentelemetry/exporter-trace-otlp-http": "0.53.0",
     "@opentelemetry/exporter-trace-otlp-proto": "0.53.0",
-    "@types/react": "18.2.68",
-    "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "@types/react": "18.3.5",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
   },
   "devDependencies": {
     "@changesets/changelog-github": "0.4.8",
