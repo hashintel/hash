@@ -32,7 +32,7 @@
 //! ```rust
 //! # #![allow(dead_code)]
 //! use error_stack::ResultExt;
-//! // using `thiserror` is not neccessary, but convenient
+//! // using `thiserror` is not necessary, but convenient
 //! use thiserror::Error;
 //!
 //! // Errors can enumerate variants users care about
@@ -520,7 +520,7 @@ mod hook;
 #[cfg(feature = "serde")]
 mod serde;
 
-pub use error_stack_derive::ThinContext;
+pub use error_stack_macros::ThinContext;
 
 pub use self::{
     compat::IntoReportCompat,

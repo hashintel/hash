@@ -45,8 +45,8 @@ fn buried_duplicate_context_does_not_affect_current_contexts() {
         .change_context(ContextA(0))
         .change_context(RootError)
         .expand();
-    let auxillary = create_report();
-    root.push(auxillary);
+    let auxiliary = create_report();
+    root.push(auxiliary);
 
     let mut root = root.attach(AttachmentA);
 

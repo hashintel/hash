@@ -166,16 +166,6 @@ impl<C: 'static> IntoContext for Report<C> {
 
 pub trait ResultIntoContext: ResultExt {
     fn into_ctx<C2: ThinContext>(self) -> Result<Self::Ok, Report<C2>>;
-    // Result::and_then
-    fn and_then_ctx<U, F, C2>(self, op: F) -> Result<U, Report<C2>>
-    where
-        C2: ThinContext,
-        F: FnOnce(Self::Ok) -> Result<U, Report<C2>>;
-    // Result::map
-    fn map_ctx<U, F, C2>(self, op: F) -> Result<U, Report<C2>>
-    where
-        C2: ThinContext,
-        F: FnOnce(Self::Ok) -> U;
 }
 
 impl<T, C> ResultIntoContext for Result<T, Report<C>>
@@ -189,32 +179,6 @@ where
         match self {
             Ok(ok) => Ok(ok),
             Err(report) => Err(report.into_ctx()),
-        }
-    }
-
-    #[inline]
-    #[track_caller]
-    fn and_then_ctx<U, F, C2>(self, op: F) -> Result<U, Report<C2>>
-    where
-        C2: ThinContext,
-        F: FnOnce(T) -> Result<U, Report<C2>>,
-    {
-        match self {
-            Ok(t) => op(t),
-            Err(ctx) => Err(ctx.into_ctx()),
-        }
-    }
-
-    #[inline]
-    #[track_caller]
-    fn map_ctx<U, F, C2>(self, op: F) -> Result<U, Report<C2>>
-    where
-        C2: ThinContext,
-        F: FnOnce(T) -> U,
-    {
-        match self {
-            Ok(t) => Ok(op(t)),
-            Err(ctx) => Err(ctx.into_ctx()),
         }
     }
 }

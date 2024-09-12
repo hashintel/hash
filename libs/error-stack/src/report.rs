@@ -367,7 +367,7 @@ impl<C> Report<C> {
     ///
     /// impl std::fmt::Display for SystemFailure {
     ///     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    ///         f.write_str("System failure occured")
+    ///         f.write_str("System failure occurred")
     ///     }
     /// }
     ///
@@ -907,7 +907,7 @@ impl<C> Report<[C]> {
     where
         C: Send + Sync + 'static,
     {
-        // this needs a manual traveral implementation, why?
+        // this needs a manual traversal implementation, why?
         // We know that each arm has a current context, but we don't know where that context is,
         // therefore we need to search for it on each branch, but stop once we found it, that way
         // we're able to return the current context, even if it is "buried" underneath a bunch of

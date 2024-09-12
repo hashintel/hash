@@ -1019,7 +1019,7 @@ fn debug_frame(root: &Frame, prefix: &[&Frame], config: &mut Config) -> Vec<Line
         .into_iter()
         .enumerate()
         .map(|(idx, (head, mut body))| {
-            // each "paket" on the stack is made up of a head (guaranteed to be a `Context`) and
+            // each "packet" on the stack is made up of a head (guaranteed to be a `Context`) and
             // `n` attachments.
             // The attachments are rendered as direct descendants of the parent context
             let head_context = debug_context(
