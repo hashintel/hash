@@ -26720,10 +26720,10 @@ react-type-animation@3.2.0:
   resolved "https://registry.yarnpkg.com/react-type-animation/-/react-type-animation-3.2.0.tgz#6863d5d60e3beb237f2bd690cceb585402c47e6a"
   integrity sha512-WXTe0i3rRNKjmggPvT5ntye1QBt0ATGbijeW6V3cQe2W0jaMABXXlPPEdtofnS9tM7wSRHchEvI9SUw+0kUohw==
 
-react-virtuoso@4.10.3:
-  version "4.10.3"
-  resolved "https://registry.yarnpkg.com/react-virtuoso/-/react-virtuoso-4.10.3.tgz#83c16add3c9f3d9bb505d57336fdd4e60be1f77f"
-  integrity sha512-9XK9wLAv8aatT1zA+VuDM548NnYd3nwg73/M46ctgZGB7HEc8v0uLTceYhkYx4TC8pXWzpzChSq9ATf4AQ3AAw==
+react-virtuoso@4.10.4:
+  version "4.10.4"
+  resolved "https://registry.yarnpkg.com/react-virtuoso/-/react-virtuoso-4.10.4.tgz#856ed415d7071db0c666ce84809bab8bb834f45c"
+  integrity sha512-G/gprhTbK+lzMxoo/iStcZxVEGph/cIhc3WANEpt92RuMw+LiCZOmBfKoeoZOHlm/iyftTrDJhGaTCpxyucnkQ==
 
 react@*, react@18.2.0, "react@^17.0.0 || ^18.2.0", react@^17.0.2, react@^18.2.0:
   version "18.2.0"
