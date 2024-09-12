@@ -12,8 +12,8 @@ use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;
 use type_system::{
     schema::{
-        ClosedEntityType, DataTypeReference, EntityTypeReference, PropertyType,
-        PropertyTypeReference,
+        ClosedEntityType, ConversionExpression, DataTypeReference, EntityTypeReference,
+        PropertyType, PropertyTypeReference,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
@@ -181,10 +181,19 @@ pub trait DataTypeProvider: OntologyTypeProvider<DataTypeWithMetadata> {
         child: &VersionedUrl,
         parent: &BaseUrl,
     ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
+
     fn has_children(
         &self,
         data_type: &VersionedUrl,
     ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
+
+    fn find_conversion(
+        &self,
+        source_data_type: &VersionedUrl,
+        target_data_type: &VersionedUrl,
+    ) -> impl Future<
+        Output = Result<impl Iterator<Item = ConversionExpression>, Report<impl Context>>,
+    > + Send;
 }
 
 pub trait PropertyTypeProvider: OntologyTypeProvider<PropertyType> {}

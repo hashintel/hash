@@ -8290,6 +8290,13 @@
             ],
             "nullable": true
           },
+          "originalDataTypeId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ]
+          },
           "provenance": {
             "$ref": "#/components/schemas/PropertyProvenance"
           }

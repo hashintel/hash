@@ -85,7 +85,6 @@ where
 
         compiler.add_filter(filter);
         let (statement, parameters) = compiler.compile();
-        tracing::debug!(query = statement, parameters = ?parameters);
         let stream = self
             .as_client()
             .query_raw(&statement, parameters.iter().copied())

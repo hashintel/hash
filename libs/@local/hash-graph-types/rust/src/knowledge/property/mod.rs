@@ -326,6 +326,7 @@ impl PropertyWithMetadata {
                     provenance: PropertyProvenance::default(),
                     confidence: None,
                     data_type_id: None,
+                    original_data_type_id: None,
                     canonical: HashMap::new(),
                 },
             })),

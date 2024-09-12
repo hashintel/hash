@@ -119,6 +119,7 @@ async fn properties_add() {
                         metadata: ValueMetadata {
                             confidence: None,
                             data_type_id: None,
+                            original_data_type_id: None,
                             provenance: PropertyProvenance::default(),
                             canonical: HashMap::default(),
                         },
@@ -131,6 +132,7 @@ async fn properties_add() {
                         metadata: ValueMetadata {
                             confidence: None,
                             data_type_id: None,
+                            original_data_type_id: None,
                             provenance: PropertyProvenance::default(),
                             canonical: HashMap::default(),
                         },
@@ -295,6 +297,7 @@ async fn properties_replace() {
                     metadata: ValueMetadata {
                         confidence: None,
                         data_type_id: None,
+                        original_data_type_id: None,
                         provenance: PropertyProvenance::default(),
                         canonical: HashMap::default(),
                     },

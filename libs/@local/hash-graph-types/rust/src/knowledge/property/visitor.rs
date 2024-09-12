@@ -24,6 +24,13 @@ use crate::{
 pub enum TraversalError {
     #[error("the validator was unable to read the data type `{}`", id.url)]
     DataTypeRetrieval { id: DataTypeReference },
+    #[error(
+        "the validator was unable to read the data type conversion from `{}` to `{}`", current.url, target.url
+    )]
+    ConversionRetrieval {
+        current: DataTypeReference,
+        target: DataTypeReference,
+    },
     #[error("the validator was unable to read the property type `{}`", id.url)]
     PropertyTypeRetrieval { id: PropertyTypeReference },
 

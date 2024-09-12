@@ -92,6 +92,7 @@ pub trait EntityProvider {
 
 #[cfg(test)]
 mod tests {
+    use core::iter;
     use std::collections::HashMap;
 
     use graph_types::{
@@ -113,7 +114,7 @@ mod tests {
     use temporal_versioning::{ClosedTemporalBound, Interval, OpenTemporalBound, Timestamp};
     use thiserror::Error;
     use type_system::{
-        schema::{ClosedEntityType, DataType, EntityType, PropertyType},
+        schema::{ClosedEntityType, ConversionExpression, DataType, EntityType, PropertyType},
         url::{BaseUrl, VersionedUrl},
     };
     use uuid::Uuid;
@@ -299,6 +300,15 @@ mod tests {
         ) -> Result<bool, Report<InvalidDataType>> {
             Ok(false)
         }
+
+        #[expect(refining_impl_trait)]
+        async fn find_conversion(
+            &self,
+            _: &VersionedUrl,
+            _: &VersionedUrl,
+        ) -> Result<impl Iterator<Item = ConversionExpression>, Report<InvalidDataType>> {
+            Ok(iter::empty())
+        }
     }
 
     pub(crate) async fn validate_entity(
@@ -390,6 +400,7 @@ mod tests {
 
         let mut metadata = ValueMetadata {
             data_type_id: Some(data_type.schema.id.clone()),
+            original_data_type_id: Some(data_type.schema.id.clone()),
             provenance: PropertyProvenance::default(),
             confidence: None,
             canonical: HashMap::default(),

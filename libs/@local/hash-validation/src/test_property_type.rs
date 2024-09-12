@@ -339,18 +339,18 @@ async fn user_id() {
     .await
     .expect_err("validation succeeded");
 
+    let text_data_type_id =
+        VersionedUrl::from_str("https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1")
+            .expect("invalid data type ID");
+
     validate_property(
         json!("1"),
         Some(PropertyMetadata::Value {
             metadata: ValueMetadata {
                 provenance: PropertyProvenance::default(),
                 confidence: None,
-                data_type_id: Some(
-                    VersionedUrl::from_str(
-                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-                    )
-                    .expect("invalid data type ID"),
-                ),
+                data_type_id: Some(text_data_type_id.clone()),
+                original_data_type_id: Some(text_data_type_id),
                 canonical: HashMap::default(),
             },
         }),
@@ -362,18 +362,19 @@ async fn user_id() {
     .await
     .expect("validation failed");
 
+    let number_data_type_id = VersionedUrl::from_str(
+        "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+    )
+    .expect("invalid data type ID");
+
     validate_property(
         json!(1),
         Some(PropertyMetadata::Value {
             metadata: ValueMetadata {
                 provenance: PropertyProvenance::default(),
                 confidence: None,
-                data_type_id: Some(
-                    VersionedUrl::from_str(
-                        "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
-                    )
-                    .expect("invalid data type ID"),
-                ),
+                data_type_id: Some(number_data_type_id.clone()),
+                original_data_type_id: Some(number_data_type_id),
                 canonical: HashMap::default(),
             },
         }),
