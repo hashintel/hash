@@ -1837,14 +1837,14 @@ dependencies = [
 
 [[package]]
 name = "educe"
-version = "0.5.11"
+version = "0.4.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e4bd92664bf78c4d3dba9b7cdafce6fa15b13ed3ed16175218196942e99168a8"
+checksum = "0f0042ff8246a363dbe77d2ceedb073339e85a804b9a47636c6e016a9a32c05f"
 dependencies = [
  "enum-ordinalize",
  "proc-macro2",
  "quote",
- "syn 2.0.71",
+ "syn 1.0.109",
 ]
 
 [[package]]
@@ -1879,19 +1879,12 @@ dependencies = [
 
 [[package]]
 name = "enum-ordinalize"
-version = "4.3.0"
+version = "3.1.15"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fea0dcfa4e54eeb516fe454635a95753ddd39acda650ce703031c6973e315dd5"
+checksum = "1bf1fa3f06bbff1ea5b1a9c7b14aa992a39657db60a2759457328d7e058f49ee"
 dependencies = [
- "enum-ordinalize-derive",
-]
-
-[[package]]
-name = "enum-ordinalize-derive"
-version = "4.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d28318a75d4aead5c4db25382e8ef717932d0346600cacae6357eb5941bc5ff"
-dependencies = [
+ "num-bigint",
+ "num-traits",
  "proc-macro2",
  "quote",
  "syn 2.0.71",
@@ -2351,7 +2344,6 @@ dependencies = [
  "time",
  "tokio",
  "tokio-postgres",
- "tokio-serde 0.9.0",
  "tracing",
  "type-fetcher",
  "type-system",
@@ -2609,7 +2601,6 @@ dependencies = [
  "time",
  "tokio",
  "tokio-postgres",
- "tokio-serde 0.9.0",
  "tokio-util",
  "tracing",
  "type-fetcher",
@@ -6328,7 +6319,7 @@ dependencies = [
  "tarpc-plugins",
  "thiserror",
  "tokio",
- "tokio-serde 0.8.0",
+ "tokio-serde",
  "tokio-util",
  "tracing",
  "tracing-opentelemetry 0.18.0",
@@ -6763,18 +6754,6 @@ name = "tokio-serde"
 version = "0.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "911a61637386b789af998ee23f50aa30d5fd7edcec8d6d3dedae5e5815205466"
-dependencies = [
- "bytes",
- "futures-core",
- "futures-sink",
- "pin-project",
-]
-
-[[package]]
-name = "tokio-serde"
-version = "0.9.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "caf600e7036b17782571dd44fa0a5cea3c82f60db5137f774a325a76a0d6852b"
 dependencies = [
  "bytes",
  "educe",

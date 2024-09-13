@@ -5166,6 +5166,12 @@
           "includeDrafts"
         ],
         "properties": {
+          "conversions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QueryConversion"
+            }
+          },
           "cursor": {
             "allOf": [
               {
@@ -5277,6 +5283,12 @@
           "includeDrafts"
         ],
         "properties": {
+          "conversions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QueryConversion"
+            }
+          },
           "cursor": {
             "allOf": [
               {
@@ -7558,6 +7570,22 @@
             "items": {
               "$ref": "#/components/schemas/SourceProvenance"
             }
+          }
+        },
+        "additionalProperties": false
+      },
+      "QueryConversion": {
+        "type": "object",
+        "required": [
+          "path",
+          "dataTypeId"
+        ],
+        "properties": {
+          "dataTypeId": {
+            "$ref": "#/components/schemas/VersionedUrl"
+          },
+          "path": {
+            "$ref": "#/components/schemas/PropertyPath"
           }
         },
         "additionalProperties": false
