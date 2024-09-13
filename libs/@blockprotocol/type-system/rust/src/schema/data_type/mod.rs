@@ -136,7 +136,7 @@ pub struct DataType {
     #[serde(rename = "type", with = "json_type")]
     #[cfg_attr(
         target_arch = "wasm32",
-        tsify(type = "JsonSchemaValueType | [JsonSchemaValueType, ...JsonSchemaValueType[]]")
+        tsify(type = "JsonSchemaValueType | JsonSchemaValueType[]")
     )]
     pub json_type: HashSet<JsonSchemaValueType>,
     #[serde(rename = "const", default, skip_serializing_if = "Option::is_none")]
