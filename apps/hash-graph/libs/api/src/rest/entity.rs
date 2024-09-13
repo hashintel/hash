@@ -28,7 +28,7 @@ use graph::{
         knowledge::{
             CountEntitiesParams, CreateEntityRequest, DiffEntityParams, DiffEntityResult,
             GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams, PatchEntityParams,
-            UpdateEntityEmbeddingsParams, ValidateEntityParams,
+            QueryConversion, UpdateEntityEmbeddingsParams, ValidateEntityParams,
         },
         query::Filter,
         AccountStore, EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
@@ -131,6 +131,7 @@ use crate::rest::{
             EntityQuerySortingToken,
             GetEntitiesResponse,
             GetEntitySubgraphResponse,
+            QueryConversion,
 
             Entity,
             Property,
@@ -521,6 +522,8 @@ struct GetEntitiesRequest<'q, 's, 'p> {
     temporal_axes: QueryTemporalAxesUnresolved,
     include_drafts: bool,
     limit: Option<usize>,
+    #[serde(borrow, default)]
+    conversions: Vec<QueryConversion<'p>>,
     #[serde(borrow)]
     sorting_paths: Option<Vec<EntityQuerySortingRecord<'p>>>,
     #[serde(borrow)]
@@ -601,6 +604,7 @@ where
                     &request.temporal_axes,
                 ),
                 limit: request.limit,
+                conversions: request.conversions,
                 include_drafts: request.include_drafts,
                 include_count: request.include_count,
                 temporal_axes: request.temporal_axes,
@@ -638,6 +642,8 @@ struct GetEntitySubgraphRequest<'q, 's, 'p> {
     temporal_axes: QueryTemporalAxesUnresolved,
     include_drafts: bool,
     limit: Option<usize>,
+    #[serde(borrow, default)]
+    conversions: Vec<QueryConversion<'p>>,
     #[serde(borrow)]
     sorting_paths: Option<Vec<EntityQuerySortingRecord<'p>>>,
     #[serde(borrow)]
@@ -740,6 +746,7 @@ where
                     &request.temporal_axes,
                 ),
                 limit: request.limit,
+                conversions: request.conversions,
                 graph_resolve_depths: request.graph_resolve_depths,
                 include_drafts: request.include_drafts,
                 include_count: request.include_count,

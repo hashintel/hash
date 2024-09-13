@@ -170,6 +170,7 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
                             cursor: None,
                         },
                         limit: None,
+                        conversions: Vec::new(),
                         include_count: false,
                         include_drafts: false,
                         include_web_ids: false,
