@@ -191,9 +191,7 @@ pub trait DataTypeProvider: OntologyTypeProvider<DataTypeWithMetadata> {
         &self,
         source_data_type_id: &VersionedUrl,
         target_data_type_id: &VersionedUrl,
-    ) -> impl Future<
-        Output = Result<impl Iterator<Item = ConversionExpression>, Report<impl Context>>,
-    > + Send;
+    ) -> impl Future<Output = Result<impl Borrow<Vec<ConversionExpression>>, Report<impl Context>>> + Send;
 }
 
 pub trait PropertyTypeProvider: OntologyTypeProvider<PropertyType> {}

@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use core::{fmt::Debug, hash::Hash};
+use core::{borrow::Borrow, fmt::Debug, hash::Hash};
 use std::collections::HashMap;
 
 use authorization::{
@@ -119,6 +119,7 @@ pub struct StoreCache {
     property_types: CacheHashMap<PropertyTypeId, PropertyType>,
     entity_types: CacheHashMap<EntityTypeId, ClosedEntityType>,
     entities: CacheHashMap<EntityId, Entity>,
+    conversions: CacheHashMap<(DataTypeId, DataTypeId), Vec<ConversionExpression>>,
 }
 
 #[derive(Debug)]
@@ -251,8 +252,15 @@ where
         &self,
         source_data_type_id: &VersionedUrl,
         target_data_type_id: &VersionedUrl,
-    ) -> Result<impl Iterator<Item = ConversionExpression>, Report<QueryError>> {
-        Ok(self
+    ) -> Result<impl Borrow<Vec<ConversionExpression>>, Report<QueryError>> {
+        let source = DataTypeId::from_url(source_data_type_id);
+        let target = DataTypeId::from_url(target_data_type_id);
+
+        if let Some(cached) = self.cache.conversions.get(&(source, target)).await {
+            return cached;
+        }
+
+        let expression = self
             .store
             .as_client()
             .client()
@@ -276,8 +284,8 @@ where
                        AND target_data_type_base_url = $3
                 ;",
                 &[
-                    &DataTypeId::from_url(source_data_type_id),
-                    &DataTypeId::from_url(target_data_type_id),
+                    &source,
+                    &target,
                     &source_data_type_id.base_url,
                     &target_data_type_id.base_url,
                 ],
@@ -292,7 +300,14 @@ where
             })?
             .get::<_, Vec<ConversionDefinition>>(0)
             .into_iter()
-            .map(|conversion| conversion.expression))
+            .map(|conversion| conversion.expression)
+            .collect();
+
+        Ok(self
+            .cache
+            .conversions
+            .grant((source, target), expression)
+            .await)
     }
 }
 

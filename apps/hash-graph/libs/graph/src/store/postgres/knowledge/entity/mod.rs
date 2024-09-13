@@ -1,7 +1,7 @@
 mod query;
 mod read;
 use alloc::borrow::Cow;
-use core::iter::once;
+use core::{borrow::Borrow, iter::once, mem};
 use std::collections::{HashMap, HashSet};
 
 use authorization::{
@@ -25,16 +25,18 @@ use graph_types::{
         },
         property::{
             visitor::EntityVisitor, Property, PropertyMetadata, PropertyMetadataObject,
-            PropertyObject, PropertyPath, PropertyWithMetadata,
+            PropertyObject, PropertyPath, PropertyPathError, PropertyWithMetadata,
+            PropertyWithMetadataObject, PropertyWithMetadataValue,
         },
         Confidence,
     },
-    ontology::{EntityTypeId, EntityTypeProvider},
+    ontology::{DataTypeProvider, EntityTypeId, EntityTypeProvider},
     owned_by_id::OwnedById,
     Embedding,
 };
 use hash_status::StatusCode;
 use postgres_types::ToSql;
+use serde_json::Value as JsonValue;
 use temporal_versioning::{
     ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
     OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, TemporalTagged, Timestamp,
@@ -53,8 +55,8 @@ use crate::{
         knowledge::{
             CountEntitiesParams, CreateEntityParams, EntityQuerySorting, EntityValidationType,
             GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams,
-            GetEntitySubgraphResponse, PatchEntityParams, UpdateEntityEmbeddingsParams,
-            ValidateEntityError, ValidateEntityParams,
+            GetEntitySubgraphResponse, PatchEntityParams, QueryConversion,
+            UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
         },
         postgres::{
             knowledge::entity::read::EntityEdgeTraversalData,
@@ -85,6 +87,20 @@ use crate::{
         Subgraph,
     },
 };
+
+#[derive(Debug)]
+#[expect(clippy::struct_excessive_bools, reason = "Parameter struct")]
+struct GetEntitiesImplParams<'a> {
+    filter: Filter<'a, Entity>,
+    sorting: EntityQuerySorting<'static>,
+    limit: Option<usize>,
+    include_drafts: bool,
+    include_count: bool,
+    include_web_ids: bool,
+    include_created_by_ids: bool,
+    include_edition_created_by_ids: bool,
+    include_type_ids: bool,
+}
 
 impl<C, A> PostgresStore<C, A>
 where
@@ -314,11 +330,81 @@ where
         Ok(())
     }
 
+    async fn convert_entity_properties<P: DataTypeProvider + Sync>(
+        &self,
+        provider: &P,
+        entity: &mut PropertyWithMetadata,
+        path: &PropertyPath<'_>,
+        target_data_type_id: &VersionedUrl,
+    ) {
+        let Ok(PropertyWithMetadata::Value(PropertyWithMetadataValue { value, metadata })) =
+            entity.get_mut(path.as_ref())
+        else {
+            // If the property does not exist or is not a value, we can ignore it.
+            return;
+        };
+
+        let Some(source_data_type_id) = &mut metadata.data_type_id else {
+            // If the property does not have a data type, we can ignore it.
+            return;
+        };
+
+        let Ok(conversions) = provider
+            .find_conversion(source_data_type_id, target_data_type_id)
+            .await
+        else {
+            // If no conversion is found, we can ignore the property.
+            return;
+        };
+
+        let Some(mut value_number) = value.as_f64() else {
+            // If the value is not a number, we can ignore the property.
+            return;
+        };
+
+        for conversion in conversions.borrow() {
+            value_number = conversion.evaluate(value_number);
+        }
+        drop(conversions);
+
+        *value = JsonValue::from(value_number);
+
+        metadata.data_type_id = Some(target_data_type_id.clone());
+    }
+
+    async fn convert_entity<P: DataTypeProvider + Sync>(
+        &self,
+        provider: &P,
+        entity: &mut Entity,
+        conversions: &[QueryConversion<'_>],
+    ) -> Result<(), PropertyPathError> {
+        let mut property = PropertyWithMetadata::Object(PropertyWithMetadataObject::from_parts(
+            mem::take(&mut entity.properties),
+            Some(mem::take(&mut entity.metadata.properties)),
+        )?);
+        for conversion in conversions {
+            self.convert_entity_properties(
+                provider,
+                &mut property,
+                &conversion.path,
+                &conversion.data_type_id,
+            )
+            .await;
+        }
+        let PropertyWithMetadata::Object(property) = property else {
+            unreachable!("The property was just converted to an object");
+        };
+        let (properties, metadata) = property.into_parts();
+        entity.properties = properties;
+        entity.metadata.properties = metadata;
+        Ok(())
+    }
+
     #[tracing::instrument(level = "info", skip(self, params))]
     async fn get_entities_impl(
         &self,
         actor_id: AccountId,
-        mut params: GetEntitiesParams<'_>,
+        mut params: GetEntitiesImplParams<'_>,
         temporal_axes: &QueryTemporalAxes,
     ) -> Result<(GetEntitiesResponse<'static>, Zookie<'static>), QueryError> {
         let mut root_entities = Vec::new();
@@ -965,10 +1051,41 @@ where
         actor_id: AccountId,
         params: GetEntitiesParams<'_>,
     ) -> Result<GetEntitiesResponse<'static>, QueryError> {
-        let temporal_axes = params.temporal_axes.clone().resolve();
-        self.get_entities_impl(actor_id, params, &temporal_axes)
+        let temporal_axes = params.temporal_axes.resolve();
+
+        let mut response = self
+            .get_entities_impl(
+                actor_id,
+                GetEntitiesImplParams {
+                    filter: params.filter,
+                    sorting: params.sorting,
+                    limit: params.limit,
+                    include_drafts: params.include_drafts,
+                    include_count: params.include_count,
+                    include_web_ids: params.include_web_ids,
+                    include_created_by_ids: params.include_created_by_ids,
+                    include_edition_created_by_ids: params.include_edition_created_by_ids,
+                    include_type_ids: params.include_type_ids,
+                },
+                &temporal_axes,
+            )
             .await
-            .map(|(response, _)| response)
+            .map(|(response, _)| response)?;
+
+        if !params.conversions.is_empty() {
+            let provider = StoreProvider {
+                store: self,
+                cache: StoreCache::default(),
+                authorization: Some((actor_id, Consistency::FullyConsistent)),
+            };
+            for entity in &mut response.entities {
+                self.convert_entity(&provider, entity, &params.conversions)
+                    .await
+                    .change_context(QueryError)?;
+            }
+        }
+
+        Ok(response)
     }
 
     #[tracing::instrument(level = "info", skip(self, params))]
@@ -977,7 +1094,7 @@ where
         actor_id: AccountId,
         params: GetEntitySubgraphParams<'_>,
     ) -> Result<GetEntitySubgraphResponse<'static>, QueryError> {
-        let unresolved_temporal_axes = params.temporal_axes.clone();
+        let unresolved_temporal_axes = params.temporal_axes;
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
 
         let time_axis = temporal_axes.variable_time_axis();
@@ -996,9 +1113,8 @@ where
         ) = self
             .get_entities_impl(
                 actor_id,
-                GetEntitiesParams {
+                GetEntitiesImplParams {
                     filter: params.filter,
-                    temporal_axes: params.temporal_axes,
                     sorting: params.sorting,
                     limit: params.limit,
                     include_drafts: params.include_drafts,
@@ -1058,6 +1174,19 @@ where
         traversal_context
             .read_traversed_vertices(self, &mut subgraph, params.include_drafts)
             .await?;
+
+        if !params.conversions.is_empty() {
+            let provider = StoreProvider {
+                store: self,
+                cache: StoreCache::default(),
+                authorization: Some((actor_id, Consistency::FullyConsistent)),
+            };
+            for entity in subgraph.vertices.entities.values_mut() {
+                self.convert_entity(&provider, entity, &params.conversions)
+                    .await
+                    .change_context(QueryError)?;
+            }
+        }
 
         Ok(GetEntitySubgraphResponse {
             subgraph,

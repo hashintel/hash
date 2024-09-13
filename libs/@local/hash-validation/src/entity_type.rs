@@ -418,7 +418,7 @@ impl EntityVisitor for EntityPreprocessor {
                     })?;
 
                 if let Some(mut value) = property.value.as_f64() {
-                    for conversion in conversions {
+                    for conversion in conversions.borrow() {
                         value = conversion.evaluate(value);
                     }
                     property.value = JsonValue::from(value);

@@ -112,7 +112,12 @@ impl PropertyWithMetadata {
         Ok(())
     }
 
-    fn get_mut(
+    /// Returns the property at the given path.
+    ///
+    /// # Errors
+    ///
+    /// - If the path does not point to a property.
+    pub fn get_mut(
         &mut self,
         path: &[PropertyPathElement<'_>],
     ) -> Result<&mut Self, Report<PropertyPathError>> {

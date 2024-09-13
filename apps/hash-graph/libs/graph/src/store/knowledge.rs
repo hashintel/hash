@@ -216,12 +216,21 @@ pub struct ValidateEntityParams<'a> {
     pub components: ValidateEntityComponents,
 }
 
+#[derive(Debug, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct QueryConversion<'a> {
+    pub path: PropertyPath<'a>,
+    pub data_type_id: VersionedUrl,
+}
+
 #[derive(Debug)]
 #[expect(clippy::struct_excessive_bools, reason = "Parameter struct")]
 pub struct GetEntitiesParams<'a> {
     pub filter: Filter<'a, Entity>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub sorting: EntityQuerySorting<'static>,
+    pub conversions: Vec<QueryConversion<'a>>,
     pub limit: Option<usize>,
     pub include_drafts: bool,
     pub include_count: bool,
@@ -260,6 +269,7 @@ pub struct GetEntitySubgraphParams<'a> {
     pub graph_resolve_depths: GraphResolveDepths,
     pub sorting: EntityQuerySorting<'static>,
     pub limit: Option<usize>,
+    pub conversions: Vec<QueryConversion<'a>>,
     pub include_drafts: bool,
     pub include_count: bool,
     pub include_web_ids: bool,

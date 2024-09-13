@@ -312,6 +312,42 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     });
 %}
 
+### Insert second entity to test filtering
+POST http://127.0.0.1:4000/entities
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "entityTypeIds": ["http://localhost:3000/@alice/types/entity-type/line/v/1"],
+  "properties": {
+    "value": {
+      "http://localhost:3000/@alice/types/property-type/length/": {
+        "value": 10,
+        "metadata": {
+          "dataTypeId": "http://localhost:3000/@alice/types/data-type/miles/v/1",
+          "originalDataTypeId": "http://localhost:3000/@alice/types/data-type/millimeter/v/1"
+        }
+      }
+    }
+  },
+  "draft": false,
+  "relationships": [{
+    "relation": "setting",
+    "subject": {
+       "kind": "setting",
+       "subjectId": "administratorFromWeb"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
 
 ### Filter by data type ID
 POST http://127.0.0.1:4000/entities/query
@@ -319,12 +355,24 @@ Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
 {
+  "sortingPaths": [
+    {
+      "path": ["propertyMetadata", "value", "http://localhost:3000/@alice/types/property-type/length/", "metadata", "canonical", "http://localhost:3000/@alice/types/data-type/meter/"],
+      "ordering": "ascending"
+    }
+  ],
   "filter": {
-    "startsWith": [
-      { "path": ["propertyMetadata", "value", "http://localhost:3000/@alice/types/property-type/length/", "metadata", "dataTypeId"] },
-      { "parameter": "http://localhost:3000/@alice/types/data-type/millimeter/" }
+    "greater": [
+      { "path": ["propertyMetadata", "value", "http://localhost:3000/@alice/types/property-type/length/", "metadata", "canonical", "http://localhost:3000/@alice/types/data-type/meter/"] },
+      { "parameter": 100 }
     ]
   },
+  "conversions": [
+    {
+      "path": ["http://localhost:3000/@alice/types/property-type/length/"],
+      "dataTypeId": "http://localhost:3000/@alice/types/data-type/miles/v/1"
+    }
+  ],
   "temporalAxes": {
     "pinned": {
       "axis": "transactionTime",
@@ -345,5 +393,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
         client.assert(response.body.entities.length === 1, "Unexpected number of entities");
+        client.assert(response.body.entities[0].properties["http://localhost:3000/@alice/types/property-type/length/"] === 10, "Unexpected value");
     });
 %}

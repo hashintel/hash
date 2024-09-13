@@ -92,7 +92,6 @@ pub trait EntityProvider {
 
 #[cfg(test)]
 mod tests {
-    use core::iter;
     use std::collections::HashMap;
 
     use graph_types::{
@@ -306,8 +305,8 @@ mod tests {
             &self,
             _: &VersionedUrl,
             _: &VersionedUrl,
-        ) -> Result<impl Iterator<Item = ConversionExpression>, Report<InvalidDataType>> {
-            Ok(iter::empty())
+        ) -> Result<Vec<ConversionExpression>, Report<InvalidDataType>> {
+            Ok(Vec::new())
         }
     }
 

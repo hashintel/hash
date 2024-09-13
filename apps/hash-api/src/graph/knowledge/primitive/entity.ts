@@ -27,6 +27,7 @@ import type {
   LinkData,
   PropertyObject,
   PropertyPatchOperation,
+  PropertyPath,
 } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
@@ -158,7 +159,8 @@ export const createEntity = async <Properties extends EntityProperties>(
 };
 
 export const getEntities: ImpureGraphFunction<
-  GetEntitiesRequest & {
+  Omit<GetEntitiesRequest, "conversions"> & {
+    conversions?: { path: PropertyPath; dataTypeId: VersionedUrl }[];
     temporalClient?: TemporalClient;
   },
   Promise<Entity[]>
@@ -188,7 +190,8 @@ export const getEntities: ImpureGraphFunction<
  * @param params.query the structural query to filter entities by.
  */
 export const getEntitySubgraph: ImpureGraphFunction<
-  GetEntitySubgraphRequest & {
+  Omit<GetEntitySubgraphRequest, "conversions"> & {
+    conversions?: { path: PropertyPath; dataTypeId: VersionedUrl }[];
     temporalClient?: TemporalClient;
   },
   Promise<Subgraph<EntityRootType>>
