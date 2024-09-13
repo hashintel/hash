@@ -25,7 +25,6 @@ import type {
   LinkData,
   PropertyObject,
   PropertyPatchOperation,
-  PropertyPath,
 } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import {
