@@ -136,7 +136,7 @@ pub struct DataType {
     #[serde(rename = "type", with = "json_type")]
     #[cfg_attr(
         target_arch = "wasm32",
-        tsify(type = "JsonSchemaValueType | JsonSchemaValueType[]")
+        tsify(type = "JsonSchemaValueType | [JsonSchemaValueType, ...JsonSchemaValueType[]]")
     )]
     pub json_type: HashSet<JsonSchemaValueType>,
     #[serde(rename = "const", default, skip_serializing_if = "Option::is_none")]
@@ -211,10 +211,17 @@ mod json_type {
     where
         D: serde::Deserializer<'de>,
     {
-        MaybeSet::deserialize(deserializer).map(|value| match value {
-            MaybeSet::Value(value) => HashSet::from([value]),
-            MaybeSet::Set(set) => set,
-        })
+        let maybe_set = MaybeSet::deserialize(deserializer)?;
+        match maybe_set {
+            MaybeSet::Value(value) => Ok(HashSet::from([value])),
+            MaybeSet::Set(set) => {
+                if set.is_empty() {
+                    Err(serde::de::Error::custom("At least one type is required"))
+                } else {
+                    Ok(set)
+                }
+            }
+        }
     }
 }
 
