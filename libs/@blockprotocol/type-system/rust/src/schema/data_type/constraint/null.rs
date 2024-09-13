@@ -7,12 +7,12 @@ pub(crate) fn check_null_constraints(
     data_type: &DataType,
     result: &mut Result<(), Report<ConstraintError>>,
 ) {
-    if data_type.json_type != JsonSchemaValueType::Null {
+    if !data_type.json_type.contains(&JsonSchemaValueType::Null) {
         extend_report!(
             *result,
             ConstraintError::InvalidType {
                 actual: JsonSchemaValueType::Null,
-                expected: data_type.json_type
+                expected: data_type.json_type.clone()
             }
         );
     }

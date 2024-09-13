@@ -130,12 +130,12 @@ pub(crate) fn check_string_constraints(
     data_type: &DataType,
     result: &mut Result<(), Report<ConstraintError>>,
 ) {
-    if data_type.json_type != JsonSchemaValueType::String {
+    if !data_type.json_type.contains(&JsonSchemaValueType::String) {
         extend_report!(
             *result,
             ConstraintError::InvalidType {
                 actual: JsonSchemaValueType::String,
-                expected: data_type.json_type
+                expected: data_type.json_type.clone()
             }
         );
     }

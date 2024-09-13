@@ -1,8 +1,9 @@
 use core::net::AddrParseError;
+use std::collections::HashSet;
 
 use iso8601_duration::ParseDurationError;
 use regex::Regex;
-use serde_json::{Number as JsonNumber, Value as JsonValue};
+use serde_json::{json, Number as JsonNumber, Value as JsonValue};
 use thiserror::Error;
 
 use crate::schema::{data_type::constraint::StringFormat, JsonSchemaValueType};
@@ -11,12 +12,12 @@ use crate::schema::{data_type::constraint::StringFormat, JsonSchemaValueType};
 pub enum ConstraintError {
     // General constraints
     #[error(
-        "the value provided does not match the expected type, expected `{expected}`, got \
-         `{actual}`"
+        "the value provided does not match the expected type, expected `{}`, got \
+         `{actual}`", json!(expected)
     )]
     InvalidType {
         actual: JsonSchemaValueType,
-        expected: JsonSchemaValueType,
+        expected: HashSet<JsonSchemaValueType>,
     },
     #[error(
         "the provided value is not equal to the expected value, expected `{actual:#}` to be equal \

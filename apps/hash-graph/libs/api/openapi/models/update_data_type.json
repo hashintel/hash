@@ -13,7 +13,19 @@
     },
     "title": { "type": "string" },
     "description": { "type": "string" },
-    "type": { "type": "string" }
+    "type": {
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      ]
+    }
   },
   "required": ["$schema", "kind", "title", "type"],
   "additionalProperties": true

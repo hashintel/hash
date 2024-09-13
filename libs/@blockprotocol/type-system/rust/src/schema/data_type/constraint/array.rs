@@ -9,12 +9,12 @@ pub(crate) fn check_array_constraints(
     data_type: &DataType,
     result: &mut Result<(), Report<ConstraintError>>,
 ) {
-    if data_type.json_type != JsonSchemaValueType::Array {
+    if !data_type.json_type.contains(&JsonSchemaValueType::Array) {
         extend_report!(
             *result,
             ConstraintError::InvalidType {
                 actual: JsonSchemaValueType::Array,
-                expected: data_type.json_type
+                expected: data_type.json_type.clone()
             }
         );
     }
