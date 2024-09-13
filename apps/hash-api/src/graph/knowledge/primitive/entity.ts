@@ -10,8 +10,6 @@ import type {
   EntityMetadata,
   EntityPermission,
   Filter,
-  GetEntitiesRequest,
-  GetEntitySubgraphRequest,
   GraphResolveDepths,
   ModifyRelationshipOperation,
 } from "@local/hash-graph-client";
@@ -40,6 +38,8 @@ import {
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
+  GetEntitiesRequest,
+  GetEntitySubgraphRequest,
   UserPermissions,
   UserPermissionsOnEntities,
 } from "@local/hash-isomorphic-utils/types";
@@ -159,10 +159,7 @@ export const createEntity = async <Properties extends EntityProperties>(
 };
 
 export const getEntities: ImpureGraphFunction<
-  Omit<GetEntitiesRequest, "conversions"> & {
-    conversions?: { path: PropertyPath; dataTypeId: VersionedUrl }[];
-    temporalClient?: TemporalClient;
-  },
+  GetEntitiesRequest & { temporalClient?: TemporalClient },
   Promise<Entity[]>
 > = async ({ graphApi }, { actorId }, { temporalClient, ...params }) => {
   await rewriteSemanticFilter(params.filter, temporalClient);
@@ -190,8 +187,7 @@ export const getEntities: ImpureGraphFunction<
  * @param params.query the structural query to filter entities by.
  */
 export const getEntitySubgraph: ImpureGraphFunction<
-  Omit<GetEntitySubgraphRequest, "conversions"> & {
-    conversions?: { path: PropertyPath; dataTypeId: VersionedUrl }[];
+  GetEntitySubgraphRequest & {
     temporalClient?: TemporalClient;
   },
   Promise<Subgraph<EntityRootType>>
