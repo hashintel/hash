@@ -32,6 +32,7 @@ use crate::{
 pub struct DataTypeSender {
     metadata: OntologyTypeMetadataSender,
     schema: Sender<DataTypeRow>,
+    conversions: Sender<Vec<DataTypeConversionsRow>>,
     relations: Sender<(DataTypeId, Vec<DataTypeRelationAndSubject>)>,
 }
 
@@ -46,6 +47,9 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
         ready!(self.schema.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll schema sender")?;
+        ready!(self.conversions.poll_ready_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not poll conversions sender")?;
         ready!(self.relations.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll relations sender")?;
@@ -77,6 +81,22 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
             })
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not send schema")?;
+        self.conversions
+            .start_send_unpin(
+                data_type
+                    .metadata
+                    .conversions
+                    .into_iter()
+                    .map(|(target, conversion)| DataTypeConversionsRow {
+                        source_data_type_ontology_id: ontology_id,
+                        target_data_type_base_url: target,
+                        from: conversion.from,
+                        into: conversion.to,
+                    })
+                    .collect(),
+            )
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not send data conversions")?;
 
         self.relations
             .start_send_unpin((ontology_id, data_type.relations))
@@ -92,6 +112,9 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
         ready!(self.schema.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush schema sender")?;
+        ready!(self.conversions.poll_flush_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not flush conversions sender")?;
         ready!(self.relations.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush relations sender")?;
@@ -105,6 +128,9 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
         ready!(self.schema.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close schema sender")?;
+        ready!(self.conversions.poll_close_unpin(cx))
+            .change_context(SnapshotRestoreError::Read)
+            .attach_printable("could not close conversions sender")?;
         ready!(self.relations.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close relations sender")?;
@@ -137,16 +163,17 @@ impl Stream for DataTypeReceiver {
 pub(crate) fn data_type_channel(
     chunk_size: usize,
     metadata_sender: OntologyTypeMetadataSender,
-    conversions_rx: Receiver<DataTypeConversionsRow>,
     embedding_rx: Receiver<DataTypeEmbeddingRow<'static>>,
 ) -> (DataTypeSender, DataTypeReceiver) {
     let (schema_tx, schema_rx) = mpsc::channel(chunk_size);
+    let (conversions_tx, conversions_rx) = mpsc::channel(chunk_size);
     let (relations_tx, relations_rx) = mpsc::channel(chunk_size);
 
     (
         DataTypeSender {
             metadata: metadata_sender,
             schema: schema_tx,
+            conversions: conversions_tx,
             relations: relations_tx,
         },
         DataTypeReceiver {
@@ -157,7 +184,7 @@ pub(crate) fn data_type_channel(
                     .boxed(),
                 conversions_rx
                     .ready_chunks(chunk_size)
-                    .map(DataTypeRowBatch::Conversions)
+                    .map(|rows| DataTypeRowBatch::Conversions(rows.into_iter().flatten().collect()))
                     .boxed(),
                 relations_rx
                     .ready_chunks(chunk_size)

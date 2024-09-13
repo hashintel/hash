@@ -28,8 +28,7 @@ use crate::{
         AuthorizationRelation, SnapshotEntry, SnapshotMetadata, SnapshotRestoreError,
     },
     store::postgres::query::rows::{
-        DataTypeConversionsRow, DataTypeEmbeddingRow, EntityEmbeddingRow, EntityTypeEmbeddingRow,
-        PropertyTypeEmbeddingRow,
+        DataTypeEmbeddingRow, EntityEmbeddingRow, EntityTypeEmbeddingRow, PropertyTypeEmbeddingRow,
     },
 };
 
@@ -39,7 +38,6 @@ pub struct SnapshotRecordSender {
     owner: OwnerSender,
     webs: WebSender,
     data_type: DataTypeSender,
-    data_type_conversions: Sender<DataTypeConversionsRow>,
     data_type_embedding: Sender<DataTypeEmbeddingRow<'static>>,
     property_type: PropertyTypeSender,
     property_type_embedding: Sender<PropertyTypeEmbeddingRow<'static>>,
@@ -66,9 +64,6 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
             .change_context(SnapshotRestoreError::Read)?;
         ready!(self.data_type.poll_ready_unpin(cx))
             .attach_printable("could not poll data type sender")?;
-        ready!(self.data_type_conversions.poll_ready_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll data type conversions sender")?;
         ready!(self.data_type_embedding.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll data type embedding sender")?;
@@ -118,18 +113,6 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
                 .data_type
                 .start_send_unpin(*data_type)
                 .attach_printable("could not send data type"),
-            SnapshotEntry::DataTypeConversions(conversions) => self
-                .data_type_conversions
-                .start_send_unpin(DataTypeConversionsRow {
-                    source_data_type_ontology_id: DataTypeId::from_url(
-                        &conversions.source_data_type,
-                    ),
-                    target_data_type_base_url: conversions.target_data_type,
-                    from: conversions.conversions.from,
-                    into: conversions.conversions.to,
-                })
-                .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send data type conversions"),
             SnapshotEntry::DataTypeEmbedding(embedding) => self
                 .data_type_embedding
                 .start_send_unpin(DataTypeEmbeddingRow {
@@ -209,9 +192,6 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
         ready!(self.data_type_embedding.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush data type embedding sender")?;
-        ready!(self.data_type_conversions.poll_flush_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush data type conversions sender")?;
         ready!(self.property_type.poll_flush_unpin(cx))
             .attach_printable("could not flush property type sender")?;
         ready!(self.property_type_embedding.poll_flush_unpin(cx))
@@ -248,9 +228,6 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
         ready!(self.data_type.poll_close_unpin(cx))
             .attach_printable("could not close data type sender")?;
         ready!(self.data_type_embedding.poll_close_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close data type embedding sender")?;
-        ready!(self.data_type_conversions.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close data type embedding sender")?;
         ready!(self.property_type.poll_close_unpin(cx))
@@ -300,12 +277,10 @@ pub(crate) fn channel(
     let (web_tx, web_rx) = web::channel(chunk_size);
     let (ontology_metadata_tx, ontology_metadata_rx) =
         ontology::ontology_metadata_channel(chunk_size);
-    let (data_type_conversions_tx, data_type_conversions_rx) = mpsc::channel(chunk_size);
     let (data_type_embedding_tx, data_type_embedding_rx) = mpsc::channel(chunk_size);
     let (data_type_tx, data_type_rx) = ontology::data_type_channel(
         chunk_size,
         ontology_metadata_tx.clone(),
-        data_type_conversions_rx,
         data_type_embedding_rx,
     );
     let (property_type_embedding_tx, property_type_embedding_rx) = mpsc::channel(chunk_size);
@@ -328,7 +303,6 @@ pub(crate) fn channel(
             metadata: metadata_tx,
             webs: web_tx,
             data_type: data_type_tx,
-            data_type_conversions: data_type_conversions_tx,
             data_type_embedding: data_type_embedding_tx,
             property_type: property_type_tx,
             property_type_embedding: property_type_embedding_tx,

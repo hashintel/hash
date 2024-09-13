@@ -4,22 +4,33 @@ use error_stack::{bail, Report, ResultExt};
 use serde_json::Value as JsonValue;
 use type_system::{
     schema::{
-        ArraySchema, DataType, DataTypeProvider, DataTypeReference, JsonSchemaValueType,
-        OntologyTypeProvider, PropertyObjectSchema, PropertyType, PropertyTypeProvider,
+        ArraySchema, DataTypeReference, JsonSchemaValueType, PropertyObjectSchema, PropertyType,
         PropertyTypeReference, PropertyValueSchema, PropertyValues, ValueOrArray,
     },
     url::{BaseUrl, VersionedUrl},
 };
 
-use crate::knowledge::property::{
-    PropertyWithMetadata, PropertyWithMetadataArray, PropertyWithMetadataObject,
-    PropertyWithMetadataValue, ValueMetadata,
+use crate::{
+    knowledge::property::{
+        PropertyWithMetadata, PropertyWithMetadataArray, PropertyWithMetadataObject,
+        PropertyWithMetadataValue, ValueMetadata,
+    },
+    ontology::{
+        DataTypeProvider, DataTypeWithMetadata, OntologyTypeProvider, PropertyTypeProvider,
+    },
 };
 
 #[derive(Debug, thiserror::Error)]
 pub enum TraversalError {
     #[error("the validator was unable to read the data type `{}`", id.url)]
     DataTypeRetrieval { id: DataTypeReference },
+    #[error(
+        "the validator was unable to read the data type conversion from `{}` to `{}`", current.url, target.url
+    )]
+    ConversionRetrieval {
+        current: DataTypeReference,
+        target: DataTypeReference,
+    },
     #[error("the validator was unable to read the property type `{}`", id.url)]
     PropertyTypeRetrieval { id: PropertyTypeReference },
 
@@ -61,6 +72,15 @@ pub enum TraversalError {
         "the number of items in the array is too large, expected at most {max}, but found {actual}"
     )]
     TooManyItems { actual: usize, max: usize },
+    #[error(
+        "The provided canonical value `{actual}` for `{key}` is different than the calculated \
+         value `{expected}`"
+    )]
+    InvalidCanonicalValue {
+        key: BaseUrl,
+        expected: f64,
+        actual: f64,
+    },
 }
 
 // TODO: Allow usage of other error types
@@ -71,7 +91,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
     #[expect(unused_variables, reason = "No-op implementation")]
     fn visit_value<P>(
         &mut self,
-        schema: &DataType,
+        data_type: &DataTypeWithMetadata,
         value: &mut JsonValue,
         metadata: &mut ValueMetadata,
         type_provider: &P,

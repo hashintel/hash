@@ -33,7 +33,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     });
 %}
 
-### Insert data types
+### Insert length and meter data type
 POST http://127.0.0.1:4000/data-types
 Content-Type: application/json
 Accept: application/json
@@ -62,21 +62,86 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "type": "number",
         "description": "A unit of length",
         "minimum": 0
-      },
-      {
-        "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
-        "kind": "dataType",
-        "allOf": [{
-            "$ref": "http://localhost:3000/@alice/types/data-type/length/v/1"
-        }],
-        "$id": "http://localhost:3000/@alice/types/data-type/inch/v/1",
-        "title": "Inch",
-        "type": "number",
-        "description": "A unit of length",
-        "minimum": 0
       }
   ],
   "conversions": {},
+  "relationships": [{
+    "relation": "viewer",
+    "subject": {
+      "kind": "public"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert millimeter data types
+POST http://127.0.0.1:4000/data-types
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+    "kind": "dataType",
+    "allOf": [{
+        "$ref": "http://localhost:3000/@alice/types/data-type/length/v/1"
+    }],
+    "$id": "http://localhost:3000/@alice/types/data-type/millimeter/v/1",
+    "title": "Millimeter",
+    "type": "number",
+    "description": "A unit of length",
+    "minimum": 0
+  },
+  "conversions": {
+    "http://localhost:3000/@alice/types/data-type/meter/": {
+      "from": { "expression": ["*", "self", { "const": 1000, "type": "number" }] },
+      "to": { "expression": ["/", "self", { "const": 1000, "type": "number" }] }
+    }
+  },
+  "relationships": [{
+    "relation": "viewer",
+    "subject": {
+      "kind": "public"
+    }
+  }]
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+### Insert miles data types
+POST http://127.0.0.1:4000/data-types
+Content-Type: application/json
+Accept: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "ownedById": "{{account_id}}",
+  "schema": {
+    "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+    "kind": "dataType",
+    "$id": "http://localhost:3000/@alice/types/data-type/miles/v/1",
+    "title": "Miles",
+    "type": "number",
+    "description": "A unit of length",
+    "minimum": 0
+  },
+  "conversions": {
+    "http://localhost:3000/@alice/types/data-type/meter/": {
+      "from": { "expression": ["/", "self", { "const": 1609.344, "type": "number" }] },
+      "to": { "expression": ["*", "self", { "const": 1609.344, "type": "number" }] }
+    }
+  },
   "relationships": [{
     "relation": "viewer",
     "subject": {
@@ -108,10 +173,10 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "description": "A length",
     "oneOf": [
       {
-        "$ref": "http://localhost:3000/@alice/types/data-type/meter/v/1"
+        "$ref": "http://localhost:3000/@alice/types/data-type/length/v/1"
       },
       {
-        "$ref": "http://localhost:3000/@alice/types/data-type/inch/v/1"
+        "$ref": "http://localhost:3000/@alice/types/data-type/miles/v/1"
       }
     ]
   },
@@ -225,7 +290,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "http://localhost:3000/@alice/types/property-type/length/": {
         "value": 10,
         "metadata": {
-          "dataTypeId": "http://localhost:3000/@alice/types/data-type/meter/v/1"
+          "dataTypeId": "http://localhost:3000/@alice/types/data-type/millimeter/v/1",
+          "originalDataTypeId": "http://localhost:3000/@alice/types/data-type/miles/v/1"
         }
       }
     }
@@ -243,5 +309,41 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 > {%
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
+    });
+%}
+
+
+### Filter by data type ID
+POST http://127.0.0.1:4000/entities/query
+Content-Type: application/json
+X-Authenticated-User-Actor-Id: {{account_id}}
+
+{
+  "filter": {
+    "startsWith": [
+      { "path": ["propertyMetadata", "value", "http://localhost:3000/@alice/types/property-type/length/", "metadata", "dataTypeId"] },
+      { "parameter": "http://localhost:3000/@alice/types/data-type/millimeter/" }
+    ]
+  },
+  "temporalAxes": {
+    "pinned": {
+      "axis": "transactionTime",
+      "timestamp": null
+    },
+    "variable": {
+      "axis": "decisionTime",
+      "interval": {
+        "start": null,
+        "end": null
+      }
+    }
+  },
+  "includeDrafts": false
+}
+
+> {%
+    client.test("status", function() {
+        client.assert(response.status === 200, "Response status is not 200");
+        client.assert(response.body.entities.length === 1, "Unexpected number of entities");
     });
 %}

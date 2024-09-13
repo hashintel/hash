@@ -1,27 +1,32 @@
 use core::borrow::Borrow;
-use std::collections::HashSet;
+use std::collections::{hash_map::RawEntryMut, HashSet};
 
 use error_stack::{Report, ResultExt};
 use futures::{stream, StreamExt, TryStreamExt};
-use graph_types::knowledge::{
-    entity::{Entity, EntityId},
-    link::LinkData,
-    property::{
-        visitor::{
-            walk_array, walk_object, walk_one_of_property_value, EntityVisitor, TraversalError,
+use graph_types::{
+    knowledge::{
+        entity::{Entity, EntityId},
+        link::LinkData,
+        property::{
+            visitor::{
+                walk_array, walk_object, walk_one_of_property_value, EntityVisitor, TraversalError,
+            },
+            PropertyPath, PropertyWithMetadataArray, PropertyWithMetadataObject,
+            PropertyWithMetadataValue, ValueMetadata,
         },
-        PropertyPath, PropertyWithMetadataArray, PropertyWithMetadataObject,
-        PropertyWithMetadataValue, ValueMetadata,
+    },
+    ontology::{
+        DataTypeProvider, DataTypeWithMetadata, EntityTypeProvider, OntologyTypeProvider,
+        PropertyTypeProvider,
     },
 };
 use serde_json::Value as JsonValue;
 use thiserror::Error;
 use type_system::{
     schema::{
-        ArraySchema, ClosedEntityType, DataType, DataTypeProvider, DataTypeReference,
-        EntityTypeProvider, OntologyTypeProvider, PropertyObjectSchema, PropertyType,
-        PropertyTypeProvider, PropertyTypeReference, PropertyValueSchema, PropertyValues,
-        ValueOrArray,
+        ArraySchema, ClosedEntityType, DataTypeReference, JsonSchemaValueType,
+        PropertyObjectSchema, PropertyType, PropertyTypeReference, PropertyValueSchema,
+        PropertyValues, ValueOrArray,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
@@ -65,7 +70,7 @@ where
     P: EntityProvider
         + EntityTypeProvider
         + OntologyTypeProvider<PropertyType>
-        + OntologyTypeProvider<DataType>
+        + OntologyTypeProvider<DataTypeWithMetadata>
         + Sync,
 {
     type Error = EntityValidationError;
@@ -273,7 +278,7 @@ pub struct EntityPreprocessor {
 impl EntityVisitor for EntityPreprocessor {
     async fn visit_value<P>(
         &mut self,
-        schema: &DataType,
+        data_type: &DataTypeWithMetadata,
         value: &mut JsonValue,
         metadata: &mut ValueMetadata,
         type_provider: &P,
@@ -284,13 +289,13 @@ impl EntityVisitor for EntityPreprocessor {
         let mut status: Result<(), Report<TraversalError>> = Ok(());
 
         if let Some(data_type_url) = &metadata.data_type_id {
-            if schema.id != *data_type_url {
+            if data_type.schema.id != *data_type_url {
                 let is_compatible = type_provider
-                    .is_parent_of(data_type_url, &schema.id.base_url)
+                    .is_parent_of(data_type_url, &data_type.schema.id.base_url)
                     .await
                     .change_context_lazy(|| TraversalError::DataTypeRetrieval {
                         id: DataTypeReference {
-                            url: schema.id.clone(),
+                            url: data_type.schema.id.clone(),
                         },
                     })?;
 
@@ -299,7 +304,7 @@ impl EntityVisitor for EntityPreprocessor {
                         status,
                         TraversalError::InvalidDataType {
                             actual: data_type_url.clone(),
-                            expected: schema.id.clone(),
+                            expected: data_type.schema.id.clone(),
                         }
                     );
                 }
@@ -309,10 +314,11 @@ impl EntityVisitor for EntityPreprocessor {
                     .await
                     .change_context_lazy(|| TraversalError::DataTypeRetrieval {
                         id: DataTypeReference {
-                            url: schema.id.clone(),
+                            url: data_type.schema.id.clone(),
                         },
                     })?
                     .borrow()
+                    .schema
                     .validate_constraints(value)
                     .change_context(TraversalError::ConstraintUnfulfilled)
                 {
@@ -323,7 +329,8 @@ impl EntityVisitor for EntityPreprocessor {
             extend_report!(status, TraversalError::AmbiguousDataType);
         }
 
-        if let Err(err) = schema
+        if let Err(err) = data_type
+            .schema
             .validate_constraints(value)
             .change_context(TraversalError::ConstraintUnfulfilled)
         {
@@ -333,6 +340,7 @@ impl EntityVisitor for EntityPreprocessor {
         status
     }
 
+    #[expect(clippy::too_many_lines, reason = "Need to refactor this function")]
     async fn visit_one_of_property<P>(
         &mut self,
         schema: &[PropertyValues],
@@ -369,7 +377,7 @@ impl EntityVisitor for EntityPreprocessor {
                             id: data_type_ref.clone(),
                         })?;
 
-                    if !data_type.borrow().all_of.is_empty() {
+                    if !data_type.borrow().schema.all_of.is_empty() {
                         extend_report!(status, TraversalError::AmbiguousDataType);
                         possible_data_types.clear();
                         break;
@@ -384,6 +392,126 @@ impl EntityVisitor for EntityPreprocessor {
             if possible_data_types.len() == 1 {
                 property.metadata.data_type_id = possible_data_types.into_iter().next();
             }
+        }
+
+        if property.metadata.original_data_type_id.is_none() {
+            // We fall back to the data type ID if the original data type ID is not set
+            property
+                .metadata
+                .original_data_type_id
+                .clone_from(&property.metadata.data_type_id);
+        } else if let (Some(source_data_type_id), Some(target_data_type_id)) = (
+            &property.metadata.original_data_type_id,
+            &property.metadata.data_type_id,
+        ) {
+            if source_data_type_id != target_data_type_id {
+                let conversions = type_provider
+                    .find_conversion(source_data_type_id, target_data_type_id)
+                    .await
+                    .change_context_lazy(|| TraversalError::ConversionRetrieval {
+                        current: DataTypeReference {
+                            url: source_data_type_id.clone(),
+                        },
+                        target: DataTypeReference {
+                            url: target_data_type_id.clone(),
+                        },
+                    })?;
+
+                if let Some(mut value) = property.value.as_f64() {
+                    for conversion in conversions {
+                        value = conversion.evaluate(value);
+                    }
+                    property.value = JsonValue::from(value);
+                } else {
+                    extend_report!(
+                        status,
+                        TraversalError::InvalidType {
+                            actual: JsonSchemaValueType::from(&property.value),
+                            expected: JsonSchemaValueType::Number,
+                        }
+                    );
+                }
+            }
+        }
+
+        if let Some(data_type_id) = &property.metadata.data_type_id {
+            property
+                .metadata
+                .canonical
+                .insert(data_type_id.base_url.clone(), property.value.clone());
+
+            let data_type_result = type_provider
+                .provide_type(data_type_id)
+                .await
+                .change_context_lazy(|| TraversalError::DataTypeRetrieval {
+                    id: DataTypeReference {
+                        url: data_type_id.clone(),
+                    },
+                });
+
+            match data_type_result {
+                Ok(data_type) => {
+                    if !data_type.borrow().metadata.conversions.is_empty() {
+                        // We only support conversion of numbers for now
+                        if let Some(value) = property.value.as_f64() {
+                            for (target, conversion) in &data_type.borrow().metadata.conversions {
+                                let converted_value = conversion.to.expression.evaluate(value);
+                                match property.metadata.canonical.raw_entry_mut().from_key(target) {
+                                    RawEntryMut::Occupied(entry) => {
+                                        if let Some(current_value) = entry.get().as_f64() {
+                                            #[expect(
+                                                clippy::float_arithmetic,
+                                                reason = "We properly checked for error margin"
+                                            )]
+                                            if f64::abs(current_value - converted_value)
+                                                > f64::EPSILON
+                                            {
+                                                extend_report!(
+                                                    status,
+                                                    TraversalError::InvalidCanonicalValue {
+                                                        key: target.clone(),
+                                                        actual: current_value,
+                                                        expected: converted_value,
+                                                    }
+                                                );
+                                            }
+                                        } else {
+                                            extend_report!(
+                                                status,
+                                                TraversalError::InvalidType {
+                                                    actual: JsonSchemaValueType::from(
+                                                        &property.value
+                                                    ),
+                                                    expected: JsonSchemaValueType::Number,
+                                                }
+                                            );
+                                        }
+                                    }
+                                    RawEntryMut::Vacant(entry) => {
+                                        entry.insert(
+                                            target.clone(),
+                                            JsonValue::from(converted_value),
+                                        );
+                                    }
+                                }
+                            }
+                        } else {
+                            extend_report!(
+                                status,
+                                TraversalError::InvalidType {
+                                    actual: JsonSchemaValueType::from(&property.value),
+                                    expected: JsonSchemaValueType::Number,
+                                }
+                            );
+                        }
+                    }
+                }
+                Err(err) => {
+                    extend_report!(status, err);
+                }
+            }
+        } else {
+            extend_report!(status, TraversalError::AmbiguousDataType);
         }
 
         if let Err(error) = walk_one_of_property_value(self, schema, property, type_provider).await

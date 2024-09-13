@@ -3,13 +3,18 @@ mod entity_type;
 mod property_type;
 mod provenance;
 
-use core::fmt;
+use core::{borrow::Borrow, fmt};
 
+use error_stack::{Context, Report};
+use futures::{stream, StreamExt, TryStreamExt};
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;
 use type_system::{
-    schema::{DataTypeReference, EntityTypeReference, PropertyTypeReference},
+    schema::{
+        ClosedEntityType, ConversionExpression, DataTypeReference, EntityTypeReference,
+        PropertyType, PropertyTypeReference,
+    },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
 
@@ -161,4 +166,57 @@ pub trait OntologyType {
 pub struct OntologyTypeWithMetadata<S: OntologyType> {
     pub schema: S,
     pub metadata: S::Metadata,
+}
+
+pub trait OntologyTypeProvider<O> {
+    fn provide_type(
+        &self,
+        type_id: &VersionedUrl,
+    ) -> impl Future<Output = Result<impl Borrow<O> + Send, Report<impl Context>>> + Send;
+}
+
+pub trait DataTypeProvider: OntologyTypeProvider<DataTypeWithMetadata> {
+    fn is_parent_of(
+        &self,
+        child: &VersionedUrl,
+        parent: &BaseUrl,
+    ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
+
+    fn has_children(
+        &self,
+        data_type: &VersionedUrl,
+    ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
+
+    fn find_conversion(
+        &self,
+        source_data_type_id: &VersionedUrl,
+        target_data_type_id: &VersionedUrl,
+    ) -> impl Future<
+        Output = Result<impl Iterator<Item = ConversionExpression>, Report<impl Context>>,
+    > + Send;
+}
+
+pub trait PropertyTypeProvider: OntologyTypeProvider<PropertyType> {}
+
+pub trait EntityTypeProvider: OntologyTypeProvider<ClosedEntityType> {
+    fn is_parent_of(
+        &self,
+        child: &VersionedUrl,
+        parent: &BaseUrl,
+    ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
+
+    fn provide_closed_type<'a, I>(
+        &self,
+        type_ids: I,
+    ) -> impl Future<Output = Result<ClosedEntityType, Report<impl Context>>> + Send
+    where
+        Self: Sync,
+        I: IntoIterator<Item = &'a VersionedUrl, IntoIter: Send> + Send,
+    {
+        stream::iter(type_ids)
+            .then(|entity_type_url| async {
+                Ok(self.provide_type(entity_type_url).await?.borrow().clone())
+            })
+            .try_collect::<ClosedEntityType>()
+    }
 }

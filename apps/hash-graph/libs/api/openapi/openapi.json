@@ -3372,6 +3372,12 @@
               "provenance"
             ],
             "properties": {
+              "conversions": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/Conversions"
+                }
+              },
               "ownedById": {
                 "$ref": "#/components/schemas/OwnedById"
               },
@@ -3396,6 +3402,12 @@
               "provenance"
             ],
             "properties": {
+              "conversions": {
+                "type": "object",
+                "additionalProperties": {
+                  "$ref": "#/components/schemas/Conversions"
+                }
+              },
               "fetchedAt": {
                 "$ref": "#/components/schemas/Timestamp"
               },
@@ -4009,6 +4021,7 @@
           "uuid",
           "archived",
           "properties",
+          "propertyMetadata",
           "label",
           "recordCreatedAtTransactionTime",
           "recordCreatedAtDecisionTime",
@@ -4028,6 +4041,7 @@
           "ownedById",
           "type",
           "properties",
+          "propertyMetadata",
           "label",
           "provenance",
           "editionProvenance",
@@ -8255,6 +8269,10 @@
           "dataTypeId"
         ],
         "properties": {
+          "canonical": {
+            "type": "object",
+            "additionalProperties": {}
+          },
           "confidence": {
             "allOf": [
               {
@@ -8269,6 +8287,13 @@
               }
             ],
             "nullable": true
+          },
+          "originalDataTypeId": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/VersionedUrl"
+              }
+            ]
           },
           "provenance": {
             "$ref": "#/components/schemas/PropertyProvenance"

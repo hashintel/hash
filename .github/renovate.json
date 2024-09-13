@@ -47,13 +47,6 @@
       "schedule": ["before 2am on saturday"]
     },
     {
-      "matchPackageNames": [
-        "actions/download-artifact",
-        "actions/upload-artifact"
-      ],
-      "dependencyDashboardApproval": true
-    },
-    {
       "matchManagers": ["docker-compose", "dockerfile"],
       "commitMessageTopic": "Docker tag `{{depName}}`",
       "additionalBranchPrefix": "docker/",
