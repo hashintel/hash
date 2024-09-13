@@ -21,7 +21,7 @@ pub struct ValueMetadata {
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
     pub original_data_type_id: Option<VersionedUrl>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub canonical: HashMap<BaseUrl, f64>,
+    pub canonical: HashMap<BaseUrl, serde_json::Value>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]

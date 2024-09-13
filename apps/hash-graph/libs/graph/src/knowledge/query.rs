@@ -679,6 +679,7 @@ pub enum EntityQuerySortingToken {
     Uuid,
     Archived,
     Properties,
+    PropertyMetadata,
     Label,
     RecordCreatedAtTransactionTime,
     RecordCreatedAtDecisionTime,
@@ -695,9 +696,9 @@ pub struct EntityQuerySortingVisitor {
 
 impl EntityQuerySortingVisitor {
     pub const EXPECTING: &'static str =
-        "one of `uuid`, `archived`, `properties`, `label`, `recordCreatedAtTransactionTime`, \
-         `recordCreatedAtDecisionTime`, `createdAtTransactionTime`, `createdAtDecisionTime`, \
-         `typeTitle`";
+        "one of `uuid`, `archived`, `properties`, `propertyMetadata`, `label`, \
+         `recordCreatedAtTransactionTime`, `recordCreatedAtDecisionTime`, \
+         `createdAtTransactionTime`, `createdAtDecisionTime`, `typeTitle`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -762,6 +763,19 @@ impl<'de> Visitor<'de> for EntityQuerySortingVisitor {
                     EntityQueryPath::Properties(None)
                 } else {
                     EntityQueryPath::Properties(Some(JsonPath::from_path_tokens(path_tokens)))
+                }
+            }
+            EntityQuerySortingToken::PropertyMetadata => {
+                let mut path_tokens = Vec::new();
+                while let Some(property) = seq.next_element::<PathToken<'de>>()? {
+                    path_tokens.push(property);
+                    self.position += 1;
+                }
+
+                if path_tokens.is_empty() {
+                    EntityQueryPath::PropertyMetadata(None)
+                } else {
+                    EntityQueryPath::PropertyMetadata(Some(JsonPath::from_path_tokens(path_tokens)))
                 }
             }
         })

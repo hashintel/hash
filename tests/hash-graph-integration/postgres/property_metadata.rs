@@ -204,7 +204,7 @@ async fn initial_metadata() {
                         confidence: Confidence::new(0.5),
                         data_type_id: Some(text_data_type_id()),
                         original_data_type_id: Some(text_data_type_id()),
-                        canonical: HashMap::default(),
+                        canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
                     },
                 },
             )]),
@@ -215,13 +215,6 @@ async fn initial_metadata() {
         }
     );
 
-    let name_property_metadata = ValueMetadata {
-        provenance: property_provenance_a(),
-        confidence: Confidence::new(0.6),
-        data_type_id: None,
-        original_data_type_id: None,
-        canonical: HashMap::default(),
-    };
     let updated_entity = api
         .patch_entity(
             api.account_id,
@@ -234,7 +227,13 @@ async fn initial_metadata() {
                     .collect(),
                     property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
                         value: json!("Bob"),
-                        metadata: name_property_metadata.clone(),
+                        metadata: ValueMetadata {
+                            provenance: property_provenance_a(),
+                            confidence: Confidence::new(0.6),
+                            data_type_id: None,
+                            original_data_type_id: None,
+                            canonical: HashMap::new(),
+                        },
                     }),
                 }],
                 entity_type_ids: HashSet::new(),
@@ -259,7 +258,7 @@ async fn initial_metadata() {
                         confidence: Confidence::new(0.6),
                         data_type_id: Some(text_data_type_id()),
                         original_data_type_id: Some(text_data_type_id()),
-                        canonical: HashMap::default(),
+                        canonical: HashMap::from([(text_data_type_id().base_url, json!("Bob"))]),
                     }
                 }
             )]),
@@ -332,7 +331,7 @@ async fn no_initial_metadata() {
                         confidence: None,
                         data_type_id: Some(text_data_type_id()),
                         original_data_type_id: Some(text_data_type_id()),
-                        canonical: HashMap::default(),
+                        canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
                     },
                 },
             )]),
@@ -388,7 +387,7 @@ async fn no_initial_metadata() {
                         confidence: None,
                         data_type_id: Some(text_data_type_id()),
                         original_data_type_id: Some(text_data_type_id()),
-                        canonical: HashMap::default(),
+                        canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
                     },
                 },
             )]),
@@ -437,7 +436,7 @@ async fn no_initial_metadata() {
                         confidence: Confidence::new(0.5),
                         data_type_id: Some(text_data_type_id()),
                         original_data_type_id: Some(text_data_type_id()),
-                        canonical: HashMap::default(),
+                        canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
                     },
                 },
             )]),
@@ -474,7 +473,7 @@ async fn no_initial_metadata() {
                         confidence: Confidence::new(0.5),
                         data_type_id: Some(text_data_type_id()),
                         original_data_type_id: Some(text_data_type_id()),
-                        canonical: HashMap::default(),
+                        canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
                     },
                 },
             )]),
@@ -555,7 +554,10 @@ async fn properties_add() {
                             confidence: None,
                             data_type_id: Some(text_data_type_id()),
                             original_data_type_id: Some(text_data_type_id()),
-                            canonical: HashMap::default(),
+                            canonical: HashMap::from([(
+                                text_data_type_id().base_url,
+                                json!("Alice")
+                            )]),
                         },
                     },
                 ),
@@ -567,7 +569,7 @@ async fn properties_add() {
                             confidence: Confidence::new(0.5),
                             data_type_id: Some(number_data_type_id()),
                             original_data_type_id: Some(number_data_type_id()),
-                            canonical: HashMap::default(),
+                            canonical: HashMap::from([(number_data_type_id().base_url, json!(30))]),
                         },
                     },
                 )
@@ -667,7 +669,10 @@ async fn properties_remove() {
                             confidence: None,
                             data_type_id: Some(text_data_type_id()),
                             original_data_type_id: Some(text_data_type_id()),
-                            canonical: HashMap::default(),
+                            canonical: HashMap::from([(
+                                text_data_type_id().base_url,
+                                json!("Alice")
+                            )]),
                         },
                     },
                 ),
@@ -682,7 +687,10 @@ async fn properties_remove() {
                                     confidence: Confidence::new(0.5),
                                     data_type_id: Some(text_data_type_id()),
                                     original_data_type_id: Some(text_data_type_id()),
-                                    canonical: HashMap::default(),
+                                    canonical: HashMap::from([(
+                                        text_data_type_id().base_url,
+                                        json!("Fight Club")
+                                    )]),
                                 },
                             },
                         )]),
@@ -727,7 +735,7 @@ async fn properties_remove() {
                         confidence: None,
                         data_type_id: Some(text_data_type_id()),
                         original_data_type_id: Some(text_data_type_id()),
-                        canonical: HashMap::default(),
+                        canonical: HashMap::from([(text_data_type_id().base_url, json!("Alice"))]),
                     },
                 },
             )]),

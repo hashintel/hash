@@ -4021,6 +4021,7 @@
           "uuid",
           "archived",
           "properties",
+          "propertyMetadata",
           "label",
           "recordCreatedAtTransactionTime",
           "recordCreatedAtDecisionTime",
@@ -8270,10 +8271,7 @@
         "properties": {
           "canonical": {
             "type": "object",
-            "additionalProperties": {
-              "type": "number",
-              "format": "double"
-            }
+            "additionalProperties": {}
           },
           "confidence": {
             "allOf": [
