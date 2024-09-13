@@ -115,6 +115,11 @@
       "matchPackageNames": ["/^@ory//"]
     },
     {
+      "groupName": "rollup npm packages",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["/^@rollup//", "/^rollup$/"]
+    },
+    {
       "groupName": "signia npm packages",
       "matchManagers": ["npm"],
       "matchPackageNames": ["/^signia/", "/signia$/"]
