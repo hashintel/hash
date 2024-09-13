@@ -117,7 +117,8 @@
     {
       "groupName": "rollup npm packages",
       "matchManagers": ["npm"],
-      "matchPackageNames": ["/^@rollup//", "/^rollup$/"]
+      "matchPackageNames": ["/^@rollup//", "/^rollup$/"],
+      "dependencyDashboardApproval": false
     },
     {
       "groupName": "signia npm packages",
