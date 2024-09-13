@@ -8,7 +8,6 @@ use tarpc::{
     server::{self, Channel},
 };
 use tokio::time::timeout;
-use tokio_serde::formats::Json;
 use type_fetcher::{
     fetcher::{Fetcher, FetcherRequest, FetcherResponse},
     fetcher_server::FetchServer,
@@ -68,7 +67,7 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), GraphError> {
             args.address.type_fetcher_host,
             args.address.type_fetcher_port,
         ),
-        Json::default,
+        tarpc::tokio_serde::formats::Json::default,
     )
     .await
     .change_context(GraphError)?;
@@ -97,7 +96,7 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), GraphError> {
 async fn healthcheck(address: TypeFetcherAddress) -> Result<(), HealthcheckError> {
     let transport = tarpc::serde_transport::tcp::connect(
         (address.type_fetcher_host, address.type_fetcher_port),
-        Json::default,
+        tarpc::tokio_serde::formats::Json::default,
     );
 
     let _: Transport<_, FetcherRequest, FetcherResponse, _> =

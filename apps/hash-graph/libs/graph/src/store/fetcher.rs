@@ -28,7 +28,6 @@ use tarpc::context;
 use temporal_client::TemporalClient;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use tokio::net::ToSocketAddrs;
-use tokio_serde::formats::Json;
 use type_fetcher::fetcher::{FetchedOntologyType, FetcherClient};
 use type_system::{
     schema::{DataType, EntityType, EntityTypeReference, PropertyType},
@@ -198,11 +197,13 @@ where
         A: Send + ToSocketAddrs,
     {
         let connection_info = self.connection_info()?;
-        let transport =
-            tarpc::serde_transport::tcp::connect(&connection_info.address, Json::default)
-                .await
-                .change_context(StoreError)
-                .attach_printable("Could not connect to type fetcher")?;
+        let transport = tarpc::serde_transport::tcp::connect(
+            &connection_info.address,
+            tarpc::tokio_serde::formats::Json::default,
+        )
+        .await
+        .change_context(StoreError)
+        .attach_printable("Could not connect to type fetcher")?;
         Ok(FetcherClient::new(connection_info.config.clone(), transport).spawn())
     }
 
