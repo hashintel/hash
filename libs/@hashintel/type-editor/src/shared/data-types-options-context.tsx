@@ -186,9 +186,13 @@ const getArrayDataTypeDisplay = (
         `Could not find itemDataType for array data type ${dataType.$id}`,
       );
     }
-    return expectedValuesDisplayMap[
-      `${itemDataType.type}Array` as keyof typeof expectedValuesDisplayMap
-    ];
+    if (Array.isArray(itemDataType.type)) {
+      return expectedValuesDisplayMap.mixedArray;
+    } else {
+      return expectedValuesDisplayMap[
+        `${itemDataType.type}Array` as keyof typeof expectedValuesDisplayMap
+      ];
+    }
   }
 
   return expectedValuesDisplayMap.mixedArray;

@@ -478,12 +478,16 @@ impl EntityVisitor for EntityPreprocessor {
                                         } else {
                                             extend_report!(
                                                 status,
-                                                TraversalError::InvalidType {
+                                                Report::new(TraversalError::InvalidType {
                                                     actual: JsonSchemaValueType::from(
                                                         &property.value
                                                     ),
                                                     expected: JsonSchemaValueType::Number,
-                                                }
+                                                })
+                                                .attach_printable(
+                                                    "Values other than numbers are not yet \
+                                                     supported for conversions"
+                                                )
                                             );
                                         }
                                     }
@@ -498,10 +502,14 @@ impl EntityVisitor for EntityPreprocessor {
                         } else {
                             extend_report!(
                                 status,
-                                TraversalError::InvalidType {
+                                Report::new(TraversalError::InvalidType {
                                     actual: JsonSchemaValueType::from(&property.value),
                                     expected: JsonSchemaValueType::Number,
-                                }
+                                })
+                                .attach_printable(
+                                    "Values other than numbers are not yet supported for \
+                                     conversions"
+                                )
                             );
                         }
                     }

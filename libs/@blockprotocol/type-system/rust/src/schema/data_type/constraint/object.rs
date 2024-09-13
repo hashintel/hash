@@ -10,12 +10,12 @@ pub(crate) fn check_object_constraints(
     data_type: &DataType,
     result: &mut Result<(), Report<ConstraintError>>,
 ) {
-    if data_type.json_type != JsonSchemaValueType::Object {
+    if !data_type.json_type.contains(&JsonSchemaValueType::Object) {
         extend_report!(
             *result,
             ConstraintError::InvalidType {
                 actual: JsonSchemaValueType::Object,
-                expected: data_type.json_type
+                expected: data_type.json_type.clone()
             }
         );
     }

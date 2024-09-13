@@ -133,8 +133,12 @@ pub struct DataType {
     pub label: DataTypeLabel,
 
     // constraints for any types
-    #[serde(rename = "type")]
-    pub json_type: JsonSchemaValueType,
+    #[serde(rename = "type", with = "json_type")]
+    #[cfg_attr(
+        target_arch = "wasm32",
+        tsify(type = "JsonSchemaValueType | [JsonSchemaValueType, ...JsonSchemaValueType[]]")
+    )]
+    pub json_type: HashSet<JsonSchemaValueType>,
     #[serde(rename = "const", default, skip_serializing_if = "Option::is_none")]
     pub const_value: Option<JsonValue>,
     #[serde(rename = "enum", default, skip_serializing_if = "Vec::is_empty")]
@@ -167,6 +171,58 @@ pub struct DataType {
     pub pattern: Option<Regex>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub format: Option<StringFormat>,
+}
+
+mod json_type {
+    use std::collections::HashSet;
+
+    use serde::{Deserialize, Serialize};
+
+    use crate::schema::JsonSchemaValueType;
+
+    #[derive(Serialize, Deserialize)]
+    #[serde(untagged)]
+    enum MaybeSet {
+        Value(JsonSchemaValueType),
+        Set(HashSet<JsonSchemaValueType>),
+    }
+
+    pub(super) fn serialize<S>(
+        types: &HashSet<JsonSchemaValueType>,
+        serializer: S,
+    ) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        if types.len() == 1 {
+            types
+                .iter()
+                .next()
+                .expect("Set should have exactly one element")
+                .serialize(serializer)
+        } else {
+            types.serialize(serializer)
+        }
+    }
+
+    pub(super) fn deserialize<'de, D>(
+        deserializer: D,
+    ) -> Result<HashSet<JsonSchemaValueType>, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let maybe_set = MaybeSet::deserialize(deserializer)?;
+        match maybe_set {
+            MaybeSet::Value(value) => Ok(HashSet::from([value])),
+            MaybeSet::Set(set) => {
+                if set.is_empty() {
+                    Err(serde::de::Error::custom("At least one type is required"))
+                } else {
+                    Ok(set)
+                }
+            }
+        }
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

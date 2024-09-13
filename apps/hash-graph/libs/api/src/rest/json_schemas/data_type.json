@@ -23,7 +23,18 @@
       "type": "string"
     },
     "type": {
-      "type": "string"
+      "oneOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      ]
     }
   },
   "required": ["$schema", "kind", "$id", "title", "type"],

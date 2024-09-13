@@ -8,12 +8,12 @@ pub(crate) fn check_boolean_constraints(
     data_type: &DataType,
     result: &mut Result<(), Report<ConstraintError>>,
 ) {
-    if data_type.json_type != JsonSchemaValueType::Boolean {
+    if !data_type.json_type.contains(&JsonSchemaValueType::Boolean) {
         extend_report!(
             *result,
             ConstraintError::InvalidType {
                 actual: JsonSchemaValueType::Boolean,
-                expected: data_type.json_type
+                expected: data_type.json_type.clone()
             }
         );
     }
