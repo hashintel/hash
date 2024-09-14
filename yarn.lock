@@ -15195,10 +15195,10 @@ d3-contour@4:
   dependencies:
     d3-array "^3.2.0"
 
-d3-dag@1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/d3-dag/-/d3-dag-1.0.0.tgz#0d2093e54688266414fb7cc0e5445e4364f704fa"
-  integrity sha512-OJaaYqd9tSu0TB8QWfAVO74btk7xWH4g8pJissMnSC12JnUU87HDBSGJ6ebriPvLS9Rt8PFGgkqXdg/fYdPovQ==
+d3-dag@1.1.0:
+  version "1.1.0"
+  resolved "https://registry.yarnpkg.com/d3-dag/-/d3-dag-1.1.0.tgz#cb7b6fb4d51c95410971230cfbc8effcfa8b9430"
+  integrity sha512-N8IxsIHcUaIxLrV3cElTC47kVJGFiY3blqSuJubQhyhYBJs0syfFPTnRSj2Cq0LBxxi4mzJmcqCvHIv9sPdILQ==
   dependencies:
     d3-array "^3.2.4"
     javascript-lp-solver "0.4.24"
