@@ -24,6 +24,6 @@
     "eslint": "8.57.0",
     "fix-esm-import-path": "1.10.0",
     "rimraf": "6.0.1",
-    "typescript": "5.5.4"
+    "typescript": "5.6.2"
   }
 }
