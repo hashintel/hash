@@ -56,10 +56,10 @@
   },
   "devDependencies": {
     "@blockprotocol/type-system": "0.1.2-canary.0",
-    "@graphql-codegen/cli": "5.0.0",
+    "@graphql-codegen/cli": "5.0.2",
     "@graphql-codegen/fragment-matcher": "3.3.3",
-    "@graphql-codegen/typescript": "2.8.7",
-    "@graphql-codegen/typescript-operations": "2.5.12",
+    "@graphql-codegen/typescript": "2.8.8",
+    "@graphql-codegen/typescript-operations": "2.5.13",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@temporalio/workflow": "1.10.1",
