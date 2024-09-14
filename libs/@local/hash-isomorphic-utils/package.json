@@ -68,7 +68,7 @@
     "@types/pluralize": "0.0.33",
     "@vitest/coverage-istanbul": "2.1.1",
     "eslint": "8.57.0",
-    "graphql": "16.8.1",
+    "graphql": "16.9.0",
     "next": "13.5.5",
     "react": "18.2.0",
     "rimraf": "6.0.1",

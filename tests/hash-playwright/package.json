@@ -20,7 +20,7 @@
     "@playwright/test": "1.47.1",
     "eslint": "8.57.0",
     "execa": "5.1.1",
-    "graphql": "16.8.1",
+    "graphql": "16.9.0",
     "js-yaml": "4.1.0",
     "typescript": "5.6.2"
   },
