@@ -19,7 +19,10 @@ exclude = ["package.json", "macros", "experimental"]
 # Public third-party dependencies
 anyhow = { version = ">=1.0.73", public = true, default-features = false, optional = true }
 eyre = { version = ">=0.6", public = true, default-features = false, optional = true }
+orx-selfref-col = "1.8.0"
+orx-split-vec = "3.8.0"
 serde = { version = ">=1", default-features = false, public = true, optional = true }
+smallvec = "1.13.2"
 
 # Private workspace dependencies
 

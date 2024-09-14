@@ -7,7 +7,7 @@ use core::{any::Any, fmt};
 use crate::{AttachmentKind, Context, Frame, FrameKind};
 
 /// Internal representation of a [`Frame`].
-pub(super) trait FrameImpl: Send + Sync + 'static {
+pub(crate) trait FrameImpl: Send + Sync + 'static {
     fn kind(&self) -> FrameKind<'_>;
 
     fn as_any(&self) -> &dyn Any;
@@ -18,6 +18,8 @@ pub(super) trait FrameImpl: Send + Sync + 'static {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, request: &mut Request<'a>);
 }
+
+pub(crate) type BoxedFrameImpl = Box<dyn FrameImpl>;
 
 #[cfg(nightly)]
 impl fmt::Debug for Box<dyn FrameImpl> {
@@ -205,7 +207,7 @@ impl FrameImpl for EyreContext {
     }
 }
 
-impl Frame {
+impl Frame<'_> {
     /// Creates a frame from a [`Context`].
     pub(crate) fn from_context<C>(context: C, sources: Box<[Self]>) -> Self
     where

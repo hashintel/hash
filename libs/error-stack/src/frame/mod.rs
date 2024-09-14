@@ -7,8 +7,10 @@ use alloc::boxed::Box;
 use core::error::{self, Error};
 use core::{any::TypeId, fmt};
 
+pub(crate) use self::frame_impl::BoxedFrameImpl;
 use self::frame_impl::FrameImpl;
 pub use self::kind::{AttachmentKind, FrameKind};
+use crate::report::FrameNode;
 
 /// A single context or attachment inside of a [`Report`].
 ///
@@ -21,20 +23,37 @@ pub use self::kind::{AttachmentKind, FrameKind};
 /// [`Report::frames()`]: crate::Report::frames
 /// [`Report::new()`]: crate::Report::new
 /// [`Report::request_ref()`]: crate::Report::request_ref
-pub struct Frame {
-    frame: Box<dyn FrameImpl>,
-    sources: Box<[Frame]>,
+pub struct Frame<'a> {
+    node: &'a FrameNode<'a>,
 }
 
-impl Frame {
+impl<'a> Frame<'a> {
+    pub(crate) fn new(node: &'a FrameNode<'a>) -> Self {
+        Frame { node }
+    }
+
+    pub(crate) fn into_node(self) -> &'a FrameNode<'a> {
+        self.node
+    }
+
+    pub(crate) fn node(&self) -> &'a FrameNode<'a> {
+        self.node
+    }
+
+    pub(crate) fn data(&self) -> &Box<dyn FrameImpl> {
+        self.node
+            .data()
+            .unwrap_or_else(|| unreachable!("data is never invalidated in the backing collection"))
+    }
+
     /// Returns a shared reference to the source of this `Frame`.
     ///
     /// This corresponds to the `Frame` below this one in a [`Report`].
     ///
     /// [`Report`]: crate::Report
     #[must_use]
-    pub const fn sources(&self) -> &[Self] {
-        &self.sources
+    pub fn sources(&self) -> &[Self] {
+        self.node.next().as_slice()
     }
 
     /// Returns a mutable reference to the sources of this `Frame`.
@@ -50,7 +69,7 @@ impl Frame {
     /// Returns how the `Frame` was created.
     #[must_use]
     pub fn kind(&self) -> FrameKind<'_> {
-        self.frame.kind()
+        self.data().kind()
     }
 
     /// Requests the reference to `T` from the `Frame` if provided.
@@ -76,34 +95,41 @@ impl Frame {
     /// Returns if `T` is the held context or attachment by this frame.
     #[must_use]
     pub fn is<T: Send + Sync + 'static>(&self) -> bool {
-        self.frame.as_any().is::<T>()
+        self.data().as_any().is::<T>()
     }
 
     /// Downcasts this frame if the held context or attachment is the same as `T`.
     #[must_use]
     pub fn downcast_ref<T: Send + Sync + 'static>(&self) -> Option<&T> {
-        self.frame.as_any().downcast_ref()
+        self.data().as_any().downcast_ref()
     }
 
     /// Downcasts this frame if the held context or attachment is the same as `T`.
     #[must_use]
     pub fn downcast_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
-        self.frame.as_any_mut().downcast_mut()
+        self.data().as_any_mut().downcast_mut()
     }
 
     /// Returns the [`TypeId`] of the held context or attachment by this frame.
     #[must_use]
     pub fn type_id(&self) -> TypeId {
-        self.frame.as_any().type_id()
+        self.data().as_any().type_id()
     }
 
     #[cfg(nightly)]
     pub(crate) fn as_error(&self) -> &impl Error {
-        &self.frame
+        self.data()
     }
 }
 
-impl fmt::Debug for Frame {
+impl Copy for Frame<'_> {}
+impl Clone for Frame<'_> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+
+impl fmt::Debug for Frame<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut debug = fmt.debug_struct("Frame");
 

@@ -1,3 +1,6 @@
+mod r#impl;
+mod r#ref;
+
 #[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{boxed::Box, vec, vec::Vec};
 #[cfg(rust_1_81)]
@@ -13,6 +16,7 @@ use std::process::ExitCode;
 #[cfg(feature = "spantrace")]
 use tracing_error::{SpanTrace, SpanTraceStatus};
 
+pub(crate) use self::r#impl::FrameNode;
 #[cfg(any(feature = "std", rust_1_81))]
 use crate::context::SourceContext;
 #[cfg(nightly)]
@@ -253,8 +257,9 @@ pub struct Report<C: ?Sized> {
     // still have at least the size of `Report`, even at the happy path. It's unexpected, that
     // creating or traversing a report will happen in the hot path, so a double indirection is
     // a good trade-off.
-    #[allow(clippy::box_collection)]
-    pub(super) frames: Box<Vec<Frame>>,
+    // #[allow(clippy::box_collection)]
+    // pub(super) frames: Box<Vec<Frame>>,
+    pub(super) inner: ReportImpl,
     _context: PhantomData<fn() -> *const C>,
 }
 
