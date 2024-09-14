@@ -24622,15 +24622,15 @@ oembed-providers@1.0.20240830:
   resolved "https://registry.yarnpkg.com/oembed-providers/-/oembed-providers-1.0.20240830.tgz#62c117fecd594b8722ff888245993b75d5012fcc"
   integrity sha512-O2Cqys3Y13125ooqL6ahJCQSt/Q0M0wlz3VkV+KSTf8AxXn20zqd7YUUHKTzdvoGK+bXvbhMc+/KpOi5HqJ/+w==
 
-officeparser@4.0.6:
-  version "4.0.6"
-  resolved "https://registry.yarnpkg.com/officeparser/-/officeparser-4.0.6.tgz#41e8f056c9a4031f9d83da8f724f06690d7518d1"
-  integrity sha512-VG5JWcXlbsXJotXj9cz5bZzq1YHK14lYwRBT36XW6Eu2/UUpr/8FQLIYfbnssj46E6zE4MjVVR3LDf+DkUMl0Q==
+officeparser@4.1.1:
+  version "4.1.1"
+  resolved "https://registry.yarnpkg.com/officeparser/-/officeparser-4.1.1.tgz#5c08eb3158c0f8d6d85f12e1e6a95b54f590a677"
+  integrity sha512-bOh7l6Bt/caeyU9t+9yGdQF2N30j8puR7PhXmSI/NqssHNnfnTLp1ehpBo4KuIMeOvzhr8mvkXHFpR2qhH1uhg==
   dependencies:
     "@xmldom/xmldom" "^0.8.10"
     decompress "^4.2.0"
     file-type "^16.5.4"
-    pdf-parse "^1.1.1"
+    node-ensure "^0.0.0"
     rimraf "^2.6.3"
 
 on-finished@2.4.1:
@@ -25316,14 +25316,6 @@ pathval@^2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/pathval/-/pathval-2.0.0.tgz#7e2550b422601d4f6b8e26f1301bc8f15a741a25"
   integrity sha512-vE7JKRyES09KiunauX7nd2Q9/L7lhok4smP9RZTDeD4MVs72Dp2qNFVz39Nz5a0FVEW0BJR6C0DYrq6unoziZA==
-
-pdf-parse@^1.1.1:
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/pdf-parse/-/pdf-parse-1.1.1.tgz#745e07408679548b3995ff896fd38e96e19d14a7"
-  integrity sha512-v6ZJ/efsBpGrGGknjtq9J/oC8tZWq0KWL5vQrk2GlzLEQPUDB1ex+13Rmidl1neNN358Jn9EHZw5y07FFtaC7A==
-  dependencies:
-    debug "^3.1.0"
-    node-ensure "^0.0.0"
 
 pdf2json@^3.0.5:
   version "3.0.5"

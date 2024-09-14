@@ -78,7 +78,7 @@
     "lodash.pickby": "4.6.0",
     "md5": "2.3.0",
     "mime-types": "2.1.35",
-    "officeparser": "4.0.6",
+    "officeparser": "4.1.1",
     "openai": "4.55.0",
     "openai-chat-tokens": "0.2.8",
     "papaparse": "5.4.1",
