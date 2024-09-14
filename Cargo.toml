@@ -190,7 +190,7 @@ similar-asserts = { version = "=1.6.0", default-features = false }
 spin = { version = "=0.9", default-features = false }
 supports-color = { version = "=3.0.1", default-features = false }
 supports-unicode = { version = "=3.0.0", default-features = false }
-sval = { version = "=2.13.0", default-features = false }
+sval = { version = "=2.13.1", default-features = false }
 syn = { version = "=2.0.77", default-features = false }
 tachyonix = { version = "=0.3.1", default-features = false }
 tarpc = { version = "=0.33", default-features = false }
