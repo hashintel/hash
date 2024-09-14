@@ -26,8 +26,8 @@
     "@rust/graph-type-defs": "0.0.0-private",
     "execa": "5.1.1",
     "fractional-indexing": "2.1.0",
-    "graphql": "16.8.1",
-    "graphql-request": "3.4.0",
+    "graphql": "16.9.0",
+    "graphql-request": "3.7.0",
     "node-fetch": "2.7.0"
   },
   "devDependencies": {
