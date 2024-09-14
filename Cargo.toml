@@ -165,7 +165,7 @@ memchr = { version = "=2.7.4", default-features = false }
 mimalloc = { version = "=0.1.43", default-features = false }
 mime = { version = "=0.3.17", default-features = false }
 num-traits = { version = "=0.2.19", default-features = false }
-once_cell = { version = "=1.19.0", default-features = false }
+once_cell = { version = "=1.20.0", default-features = false }
 opentelemetry = { version = "=0.23.0", default-features = false }
 opentelemetry-otlp = { version = "=0.16.0", default-features = false }
 opentelemetry_sdk = { version = "=0.23.0", default-features = false }
