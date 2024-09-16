@@ -16,7 +16,7 @@ use std::process::ExitCode;
 #[cfg(feature = "spantrace")]
 use tracing_error::{SpanTrace, SpanTraceStatus};
 
-pub(crate) use self::r#impl::FrameNode;
+pub(crate) use self::r#impl::{FrameNode, RawSlice};
 #[cfg(any(feature = "std", rust_1_81))]
 use crate::context::SourceContext;
 #[cfg(nightly)]

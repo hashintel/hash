@@ -7,10 +7,9 @@ use alloc::boxed::Box;
 use core::error::{self, Error};
 use core::{any::TypeId, fmt};
 
-pub(crate) use self::frame_impl::BoxedFrameImpl;
-use self::frame_impl::FrameImpl;
+pub(crate) use self::frame_impl::{BoxedFrameImpl, FrameImpl};
 pub use self::kind::{AttachmentKind, FrameKind};
-use crate::report::FrameNode;
+use crate::report::RawSlice;
 
 /// A single context or attachment inside of a [`Report`].
 ///
@@ -19,41 +18,35 @@ use crate::report::FrameNode;
 /// the root context created by [`Report::new()`]. The next `Frame` can be accessed by requesting it
 /// by calling [`Report::request_ref()`].
 ///
+/// The `Frame` is deliberately unsized to ensure that it is only ever allocated as part of a
+/// `Report`.
+///
 /// [`Report`]: crate::Report
 /// [`Report::frames()`]: crate::Report::frames
 /// [`Report::new()`]: crate::Report::new
 /// [`Report::request_ref()`]: crate::Report::request_ref
-pub struct Frame<'a> {
-    node: &'a FrameNode<'a>,
+// We use `#[repr(C)]` to ensure a predictable memory layout, as the `Rust` repr is not guaranteed.
+#[repr(C)]
+pub struct Frame {
+    sources: Option<RawSlice>,
+    // We force `Frame` to be unsized, as we only allocate it in `Report` this gives us additional
+    // guarantees.
+    r#impl: dyn FrameImpl,
 }
 
-impl<'a> Frame<'a> {
-    pub(crate) fn new(node: &'a FrameNode<'a>) -> Self {
-        Frame { node }
-    }
-
-    pub(crate) fn into_node(self) -> &'a FrameNode<'a> {
-        self.node
-    }
-
-    pub(crate) fn node(&self) -> &'a FrameNode<'a> {
-        self.node
-    }
-
-    pub(crate) fn data(&self) -> &Box<dyn FrameImpl> {
-        self.node
-            .data()
-            .unwrap_or_else(|| unreachable!("data is never invalidated in the backing collection"))
-    }
-
+impl Frame {
     /// Returns a shared reference to the source of this `Frame`.
     ///
     /// This corresponds to the `Frame` below this one in a [`Report`].
     ///
     /// [`Report`]: crate::Report
     #[must_use]
-    pub fn sources(&self) -> &[Self] {
-        self.node.next().as_slice()
+    pub fn sources(&self) -> &[Box<Self>] {
+        let Some(sources) = &self.sources else {
+            return &[];
+        };
+
+        sources.as_slice()
     }
 
     /// Returns a mutable reference to the sources of this `Frame`.
@@ -62,14 +55,18 @@ impl<'a> Frame<'a> {
     ///
     /// [`Report`]: crate::Report
     #[must_use]
-    pub fn sources_mut(&mut self) -> &mut [Self] {
-        &mut self.sources
+    pub fn sources_mut(&mut self) -> &mut [Box<Self>] {
+        let Some(sources) = &mut self.sources else {
+            return &mut [];
+        };
+
+        sources.as_slice_mut()
     }
 
     /// Returns how the `Frame` was created.
     #[must_use]
     pub fn kind(&self) -> FrameKind<'_> {
-        self.data().kind()
+        self.r#impl.kind()
     }
 
     /// Requests the reference to `T` from the `Frame` if provided.
@@ -95,41 +92,34 @@ impl<'a> Frame<'a> {
     /// Returns if `T` is the held context or attachment by this frame.
     #[must_use]
     pub fn is<T: Send + Sync + 'static>(&self) -> bool {
-        self.data().as_any().is::<T>()
+        self.r#impl.as_any().is::<T>()
     }
 
     /// Downcasts this frame if the held context or attachment is the same as `T`.
     #[must_use]
     pub fn downcast_ref<T: Send + Sync + 'static>(&self) -> Option<&T> {
-        self.data().as_any().downcast_ref()
+        self.r#impl.as_any().downcast_ref()
     }
 
     /// Downcasts this frame if the held context or attachment is the same as `T`.
     #[must_use]
     pub fn downcast_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
-        self.data().as_any_mut().downcast_mut()
+        self.r#impl.as_any_mut().downcast_mut()
     }
 
     /// Returns the [`TypeId`] of the held context or attachment by this frame.
     #[must_use]
     pub fn type_id(&self) -> TypeId {
-        self.data().as_any().type_id()
+        self.r#impl.as_any().type_id()
     }
 
     #[cfg(nightly)]
-    pub(crate) fn as_error(&self) -> &impl Error {
-        self.data()
+    pub(crate) fn as_error(&self) -> &(impl Error + ?Sized) {
+        &self.r#impl
     }
 }
 
-impl Copy for Frame<'_> {}
-impl Clone for Frame<'_> {
-    fn clone(&self) -> Self {
-        *self
-    }
-}
-
-impl fmt::Debug for Frame<'_> {
+impl fmt::Debug for Frame {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         let mut debug = fmt.debug_struct("Frame");
 

@@ -22,21 +22,21 @@ pub(crate) trait FrameImpl: Send + Sync + 'static {
 pub(crate) type BoxedFrameImpl = Box<dyn FrameImpl>;
 
 #[cfg(nightly)]
-impl fmt::Debug for Box<dyn FrameImpl> {
+impl fmt::Debug for &dyn FrameImpl {
     fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result {
         unreachable!()
     }
 }
 
 #[cfg(nightly)]
-impl fmt::Display for Box<dyn FrameImpl> {
+impl fmt::Display for &dyn FrameImpl {
     fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result {
         unreachable!()
     }
 }
 
 #[cfg(nightly)]
-impl Error for Box<dyn FrameImpl> {
+impl Error for &dyn FrameImpl {
     fn provide<'a>(&'a self, request: &mut Request<'a>) {
         (**self).provide(request);
     }
