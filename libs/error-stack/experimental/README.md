@@ -6,7 +6,7 @@
 
 [![crates.io](https://img.shields.io/crates/v/error-stack-experimental)][crates.io]
 [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack--experimental-orange)][libs.rs]
-[![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.63.0/nightly-2024-09-09&color=blue)][rust-version]
+[![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.63.0/nightly-2024-09-16&color=blue)][rust-version]
 [![documentation](https://img.shields.io/docsrs/error-stack-experimental)][documentation]
 [![license](https://img.shields.io/crates/l/error-stack)][license]
 
