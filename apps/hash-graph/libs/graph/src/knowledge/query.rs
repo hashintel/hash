@@ -503,7 +503,7 @@ impl QueryPath for EntityQueryPath<'_> {
             Self::TypeVersions => {
                 ParameterType::Vector(Box::new(ParameterType::OntologyTypeVersion))
             }
-            Self::Properties { .. }
+            Self::Properties(_)
             | Self::Label { .. }
             | Self::Provenance(_)
             | Self::EditionProvenance(_)
