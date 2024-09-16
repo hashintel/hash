@@ -45,7 +45,11 @@ import { renderChipCell } from "../../shared/chip-cell";
 import type { TextIconCell } from "../../shared/entities-table/text-icon-cell";
 import { createRenderTextIconCell } from "../../shared/entities-table/text-icon-cell";
 import { TypeSlideOverStack } from "../../shared/entity-type-page/type-slide-over-stack";
+import { TableHeaderToggle } from "../../shared/table-header-toggle";
+import type { TableView } from "../../shared/table-views";
+import { tableViewIcons } from "../../shared/table-views";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
+import { TypesGraph } from "../../shared/types-graph";
 
 const typesTableColumnIds = [
   "title",
@@ -108,6 +112,8 @@ export const TypesTable: FunctionComponent<{
   kind: TypeTableKind;
 }> = ({ types, kind }) => {
   const router = useRouter();
+
+  const [view, setView] = useState<TableView>("Table");
 
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
@@ -237,8 +243,8 @@ export const TypesTable: FunctionComponent<{
                   ? "link-type"
                   : "entity-type"
                 : type.schema.kind === "propertyType"
-                  ? "property-type"
-                  : "data-type",
+                ? "property-type"
+                : "data-type",
             external: isExternal,
             webShortname,
             archived: isTypeArchived(type),
@@ -267,22 +273,22 @@ export const TypesTable: FunctionComponent<{
         ["lastEditedBy", "createdBy"].includes(key);
 
       const value1: string = isActorSort(sort.columnKey)
-        ? (a[sort.columnKey]?.displayName ?? "")
+        ? a[sort.columnKey]?.displayName ?? ""
         : String(a[sort.columnKey]);
 
       const value2: string = isActorSort(sort.columnKey)
-        ? (b[sort.columnKey]?.displayName ?? "")
+        ? b[sort.columnKey]?.displayName ?? ""
         : String(b[sort.columnKey]);
 
       const previousValue1: string | undefined = previousSort
         ? isActorSort(previousSort.columnKey)
-          ? (a[previousSort.columnKey]?.displayName ?? "")
+          ? a[previousSort.columnKey]?.displayName ?? ""
           : String(a[previousSort.columnKey])
         : undefined;
 
       const previousValue2: string | undefined = previousSort?.columnKey
         ? isActorSort(previousSort.columnKey)
-          ? (b[previousSort.columnKey]?.displayName ?? "")
+          ? b[previousSort.columnKey]?.displayName ?? ""
           : String(b[previousSort.columnKey])
         : undefined;
 
@@ -438,6 +444,19 @@ export const TypesTable: FunctionComponent<{
       )}
       <Box>
         <TableHeader
+          endAdornment={
+            <TableHeaderToggle
+              value={view}
+              setValue={setView}
+              options={(["Table", "Graph"] as const satisfies TableView[]).map(
+                (optionValue) => ({
+                  icon: tableViewIcons[optionValue],
+                  label: `${optionValue} view`,
+                  value: optionValue,
+                }),
+              )}
+            />
+          }
           internalWebIds={internalWebIds}
           itemLabelPlural="types"
           items={types}
@@ -451,40 +470,46 @@ export const TypesTable: FunctionComponent<{
           )}
           onBulkActionCompleted={() => setSelectedRows([])}
         />
-        <Grid
-          showSearch={showSearch}
-          onSearchClose={() => setShowSearch(false)}
-          columns={typesTableColumns}
-          dataLoading={!types}
-          rows={filteredRows}
-          enableCheckboxSelection
-          selectedRows={selectedRows}
-          currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-          onSelectedRowsChange={(updatedSelectedRows) =>
-            setSelectedRows(updatedSelectedRows)
-          }
-          sortable
-          sortRows={sortRows}
-          firstColumnLeftPadding={16}
-          createGetCellContent={createGetCellContent}
-          // define max height if there are lots of rows
-          height={`
+        {view === "Table" ? (
+          <Grid
+            showSearch={showSearch}
+            onSearchClose={() => setShowSearch(false)}
+            columns={typesTableColumns}
+            dataLoading={!types}
+            rows={filteredRows}
+            enableCheckboxSelection
+            selectedRows={selectedRows}
+            currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+            onSelectedRowsChange={(updatedSelectedRows) =>
+              setSelectedRows(updatedSelectedRows)
+            }
+            sortable
+            sortRows={sortRows}
+            firstColumnLeftPadding={16}
+            createGetCellContent={createGetCellContent}
+            // define max height if there are lots of rows
+            height={`
           min(
             calc(100vh - (${
               HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + tableHeaderHeight
             }px + ${theme.spacing(5)}) - ${theme.spacing(5)}),
             calc(
               ${gridHeaderHeightWithBorder}px +
-              (${filteredRows?.length ? filteredRows.length : 1} * ${gridRowHeight}px) +
+              (${
+                filteredRows?.length ? filteredRows.length : 1
+              } * ${gridRowHeight}px) +
               ${gridHorizontalScrollbarHeight}px
             )
           )`}
-          customRenderers={[
-            createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
-            renderChipCell,
-          ]}
-          freezeColumns={1}
-        />
+            customRenderers={[
+              createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
+              renderChipCell,
+            ]}
+            freezeColumns={1}
+          />
+        ) : (
+          <TypesGraph subgraph={null as Subgraph} />
+        )}
       </Box>
     </>
   );

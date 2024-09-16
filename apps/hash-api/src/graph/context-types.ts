@@ -25,7 +25,7 @@ export type ImpureGraphFunction<
   ReturnType,
   WithUpload extends boolean = false,
   WithTemporal extends boolean = false,
-> = (
+> = <T>(
   context: ImpureGraphContext<WithUpload, WithTemporal>,
   authentication: AuthenticationContext,
   params: Parameters,

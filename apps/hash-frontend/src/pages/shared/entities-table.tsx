@@ -2,7 +2,6 @@ import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { CustomCell, Item, TextCell } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { EntitiesGraphChart } from "@hashintel/block-design-system";
-import { ListRegularIcon } from "@hashintel/design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -16,16 +15,9 @@ import {
   type Subgraph,
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import {
-  Box,
-  ToggleButton,
-  toggleButtonClasses,
-  ToggleButtonGroup,
-  Tooltip,
-  useTheme,
-} from "@mui/material";
+import { Box, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
-import type { FunctionComponent, ReactNode } from "react";
+import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { GridProps } from "../../components/grid/grid";
@@ -40,8 +32,6 @@ import type { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
 import type { ColumnFilter } from "../../components/grid/utils/filtering";
 import { useEntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { ChartNetworkRegularIcon } from "../../shared/icons/chart-network-regular-icon";
-import { GridSolidIcon } from "../../shared/icons/grid-solid-icon";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import type { FilterState } from "../../shared/table-header";
 import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
@@ -59,7 +49,9 @@ import { useEntitiesTable } from "./entities-table/use-entities-table";
 import { useGetEntitiesTableAdditionalCsvData } from "./entities-table/use-get-entities-table-additional-csv-data";
 import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
 import { generateEntityRootedSubgraph } from "./subgraphs";
+import { TableHeaderToggle } from "./table-header-toggle";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
+import { tableViewIcons, TableView } from "./table-views";
 
 /**
  * @todo: avoid having to maintain this list, potentially by
@@ -82,16 +74,6 @@ const allFileEntityTypeIds = allFileEntityTypeOntologyIds.map(
 const allFileEntityTypeBaseUrl = allFileEntityTypeOntologyIds.map(
   ({ entityTypeBaseUrl }) => entityTypeBaseUrl,
 );
-
-const entitiesTableViews = ["Table", "Graph", "Grid"] as const;
-
-type EntityTableView = (typeof entitiesTableViews)[number];
-
-const entitiesTableViewIcons: Record<EntityTableView, ReactNode> = {
-  Table: <ListRegularIcon sx={{ fontSize: 18 }} />,
-  Graph: <ChartNetworkRegularIcon sx={{ fontSize: 18 }} />,
-  Grid: <GridSolidIcon sx={{ fontSize: 14 }} />,
-};
 
 export const EntitiesTable: FunctionComponent<{
   hideEntityTypeVersionColumn?: boolean;
@@ -144,7 +126,7 @@ export const EntitiesTable: FunctionComponent<{
 
   const supportGridView = isDisplayingFilesOnly;
 
-  const [view, setView] = useState<EntityTableView>(
+  const [view, setView] = useState<TableView>(
     isDisplayingFilesOnly ? "Grid" : "Table",
   );
 
@@ -665,65 +647,21 @@ export const EntitiesTable: FunctionComponent<{
           currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
           getAdditionalCsvData={getEntitiesTableAdditionalCsvData}
           endAdornment={
-            <ToggleButtonGroup
+            <TableHeaderToggle
               value={view}
-              exclusive
-              onChange={(_, updatedView) => {
-                if (updatedView) {
-                  setView(updatedView);
-                }
-              }}
-              aria-label="view"
-              size="small"
-              sx={{
-                [`.${toggleButtonClasses.root}`]: {
-                  backgroundColor: ({ palette }) => palette.common.white,
-                  "&:not(:last-of-type)": {
-                    borderRightColor: ({ palette }) => palette.gray[20],
-                    borderRightStyle: "solid",
-                    borderRightWidth: 2,
-                  },
-                  "&:hover": {
-                    backgroundColor: ({ palette }) => palette.common.white,
-                    svg: {
-                      color: ({ palette }) => palette.gray[80],
-                    },
-                  },
-                  [`&.${toggleButtonClasses.selected}`]: {
-                    backgroundColor: ({ palette }) => palette.common.white,
-                    svg: {
-                      color: ({ palette }) => palette.gray[90],
-                    },
-                  },
-                  svg: {
-                    transition: ({ transitions }) =>
-                      transitions.create("color"),
-                    color: ({ palette }) => palette.gray[50],
-                  },
-                },
-              }}
-            >
-              {(
+              setValue={setView}
+              options={(
                 [
                   "Table",
                   ...(supportGridView ? (["Grid"] as const) : []),
                   "Graph",
-                ] satisfies EntityTableView[]
-              ).map((viewName) => (
-                <ToggleButton
-                  key={viewName}
-                  disableRipple
-                  value={viewName}
-                  aria-label={viewName}
-                >
-                  <Tooltip title={`${viewName} view`} placement="top">
-                    <Box sx={{ lineHeight: 0 }}>
-                      {entitiesTableViewIcons[viewName]}
-                    </Box>
-                  </Tooltip>
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
+                ] as const satisfies TableView[]
+              ).map((optionValue) => ({
+                icon: tableViewIcons[optionValue],
+                label: `${optionValue} view`,
+                value: optionValue,
+              }))}
+            />
           }
           filterState={filterState}
           setFilterState={setFilterState}
@@ -740,8 +678,8 @@ export const EntitiesTable: FunctionComponent<{
                 ? extractBaseUrl(entity.metadata.entityTypeId) ===
                   entityTypeBaseUrl
                 : entityTypeId
-                  ? entityTypeId === entity.metadata.entityTypeId
-                  : true
+                ? entityTypeId === entity.metadata.entityTypeId
+                : true
             }
             filterEntity={(entity) =>
               filterState.includeGlobal

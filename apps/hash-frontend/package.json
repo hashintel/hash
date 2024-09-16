@@ -52,6 +52,7 @@
     "@ory/client": "1.1.41",
     "@ory/integrations": "1.1.4",
     "@popperjs/core": "2.11.8",
+    "@react-sigma/core": "4.0.3",
     "@sentry/nextjs": "7.119.0",
     "@sentry/react": "7.119.0",
     "@svgr/webpack": "8.1.0",
@@ -69,6 +70,7 @@
     "emoji-mart": "5.2.1",
     "fractional-indexing": "2.1.0",
     "framer-motion": "6.5.1",
+    "graphology": "0.25.4",
     "graphql": "16.9.0",
     "iframe-resizer": "4.4.5",
     "immer": "9.0.21",
@@ -106,6 +108,7 @@
     "rooks": "7.14.1",
     "safe-stable-stringify": "2.5.0",
     "setimmediate": "1.0.5",
+    "sigma": "3.0.0-beta.29",
     "signia": "0.1.5",
     "signia-react": "0.1.5",
     "url-regex-safe": "4.0.0",
@@ -145,3 +148,4 @@
     "node": ">= v20"
   }
 }
+
