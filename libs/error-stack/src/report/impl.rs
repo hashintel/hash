@@ -1,6 +1,6 @@
-//! Internal implementation of the self referential structure using orx
+//! Internal implementation of the self referential structure
 
-use alloc::{boxed::Box, vec::Vec};
+use alloc::{boxed::Box, vec, vec::Vec};
 
 use crate::{frame::FrameImpl, Frame};
 
@@ -131,10 +131,12 @@ pub(crate) struct ReportImpl {
 }
 
 impl ReportImpl {
-    pub(crate) const fn new() -> Self {
+    pub(crate) fn new() -> Self {
+        const INITIAL_FRAGMENT_CAPACITY: usize = 16;
+
         Self {
             current: Vec::new(),
-            fragments: Vec::new(),
+            fragments: vec![Fragment::new(INITIAL_FRAGMENT_CAPACITY)],
         }
     }
 
