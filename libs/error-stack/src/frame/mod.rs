@@ -7,6 +7,10 @@ use alloc::boxed::Box;
 use core::error::{self, Error};
 use core::{any::TypeId, fmt};
 
+#[cfg(feature = "anyhow")]
+pub(crate) use self::frame_impl::AnyhowContext;
+#[cfg(feature = "eyre")]
+pub(crate) use self::frame_impl::EyreContext;
 pub(crate) use self::frame_impl::{
     AttachmentFrame, ContextFrame, FrameImpl, FrameImplError, PrintableAttachmentFrame,
 };

@@ -141,7 +141,14 @@ impl<A: 'static + fmt::Debug + fmt::Display + Send + Sync> FrameImpl
 }
 
 #[cfg(feature = "anyhow")]
-struct AnyhowContext(anyhow::Error);
+pub(crate) struct AnyhowContext(anyhow::Error);
+
+#[cfg(feature = "anyhow")]
+impl AnyhowContext {
+    pub(crate) const fn new(error: anyhow::Error) -> Self {
+        Self(error)
+    }
+}
 
 #[cfg(feature = "anyhow")]
 impl fmt::Debug for AnyhowContext {
@@ -188,7 +195,14 @@ impl FrameImpl for AnyhowContext {
 }
 
 #[cfg(feature = "eyre")]
-struct EyreContext(eyre::Report);
+pub(crate) struct EyreContext(eyre::Report);
+
+#[cfg(feature = "eyre")]
+impl EyreContext {
+    pub(crate) const fn new(report: eyre::Report) -> Self {
+        Self(report)
+    }
+}
 
 #[cfg(feature = "eyre")]
 impl fmt::Debug for EyreContext {

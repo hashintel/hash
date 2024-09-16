@@ -39,7 +39,7 @@ impl TypedFrame<dyn FrameImpl> {
 /// and is only constructed in the `ReportImpl` we know that the sources of the `Frame` are
 /// **always** in the same `ReportImpl` and therefore have the same lifetime.
 pub(crate) struct RawSlice {
-    ptr: *const Box<Frame>,
+    ptr: *mut Box<Frame>,
     len: usize,
 }
 
@@ -80,7 +80,7 @@ impl RawSlice {
         // - The pointer and length are guaranteed to be valid for the lifetime of `RawSlice`.
         // - `Frame`s and their sources coexist within the same report structure.
         // - The report prohibits cycles, ensuring no aliasing can occur.
-        unsafe { core::slice::from_raw_parts_mut(self.ptr as *mut _, self.len) }
+        unsafe { core::slice::from_raw_parts_mut(self.ptr, self.len) }
     }
 }
 
@@ -111,10 +111,15 @@ impl Fragment {
             let start = self.items.len();
             self.items.extend(frames);
 
-            Ok(RawSlice {
-                ptr: self.items[start..].as_ptr(),
-                len,
-            })
+            // we gain a mutable reference to the slice, because we'll be the only ones to ever
+            // access it
+            let ptr = self.items.as_mut_ptr();
+            // add the length of the slice to the pointer
+            // SAFETY: we know that the pointer is valid len is non-zero and we pushed at least a
+            //  single item.
+            let ptr = unsafe { ptr.add(start) };
+
+            Ok(RawSlice { ptr, len })
         } else {
             Err(frames)
         }

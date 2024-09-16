@@ -14,7 +14,7 @@
 //! ```
 
 #[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::{format, vec, vec::Vec};
+use alloc::{boxed::Box, format, vec, vec::Vec};
 
 use serde::{ser::SerializeMap, Serialize, Serializer};
 
@@ -74,7 +74,7 @@ impl<'a, 'b> Serialize for SerializeAttachmentList<'a, 'b> {
 struct SerializeContext<'a> {
     attachments: Vec<&'a Frame>,
     context: &'a dyn Context,
-    sources: &'a [Frame],
+    sources: &'a [Box<Frame>],
 }
 
 impl<'a> Serialize for SerializeContext<'a> {
@@ -97,7 +97,7 @@ impl<'a> Serialize for SerializeContext<'a> {
     }
 }
 
-struct SerializeSources<'a>(&'a [Frame]);
+struct SerializeSources<'a>(&'a [Box<Frame>]);
 
 impl<'a> Serialize for SerializeSources<'a> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>

@@ -1,6 +1,6 @@
 use anyhow::Error as AnyhowError;
 
-use crate::{Frame, IntoReportCompat, Report, Result};
+use crate::{frame::AnyhowContext, Frame, IntoReportCompat, Report, Result};
 
 impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
     type Err = AnyhowError;
@@ -20,7 +20,7 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
 
                 #[cfg_attr(not(feature = "std"), allow(unused_mut))]
                 let mut report: Report<AnyhowError> =
-                    Report::from_frame(Frame::from_anyhow(anyhow, alloc::boxed::Box::new([])));
+                    Report::from_frame(AnyhowContext::new(anyhow));
 
                 #[cfg(feature = "std")]
                 for source in sources {
