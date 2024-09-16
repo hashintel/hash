@@ -7,6 +7,7 @@ use serde::{
     Deserialize, Deserializer,
 };
 use temporal_versioning::{ClosedTemporalBound, TemporalTagged, TimeAxis};
+use type_system::url::BaseUrl;
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
@@ -313,14 +314,41 @@ pub enum EntityQueryPath<'p> {
     /// # use graph::knowledge::EntityQueryPath;
     /// let path = EntityQueryPath::deserialize(json!([
     ///     "properties",
-    ///     "https://blockprotocol.org/@blockprotocol/types/property-type/address/",
-    ///     0,
-    ///     "street"
+    ///     "https://blockprotocol.org/@blockprotocol/types/property-type/address/"
     /// ]))?;
     /// assert_eq!(
     ///     path.to_string(),
-    ///     r#"properties.$."https://blockprotocol.org/@blockprotocol/types/property-type/address/"[0]."street""#
+    ///     r#"properties.$."https://blockprotocol.org/@blockprotocol/types/property-type/address/""#
     /// );
+    /// # Ok::<(), serde_json::Error>(())
+    /// ```
+    ///
+    /// It is possible to also refer to the value's data type ID or the canonical value:
+    ///
+    /// ```rust
+    /// # use serde::Deserialize;
+    /// # use serde_json::json;
+    /// # use graph::knowledge::EntityQueryPath;
+    /// let path = EntityQueryPath::deserialize(json!([
+    ///     "properties",
+    ///     "https://blockprotocol.org/@blockprotocol/types/property-type/length/",
+    ///     "dataTypeId"
+    /// ]))?;
+    /// # assert_eq!(
+    /// #     path.to_string(),
+    /// #     r#"propertyMetadata.$."value"."https://blockprotocol.org/@blockprotocol/types/property-type/length/"."metadata"."dataTypeId""#
+    /// # );
+    ///
+    /// let path = EntityQueryPath::deserialize(json!([
+    ///     "properties",
+    ///     "https://blockprotocol.org/@blockprotocol/types/property-type/length/",
+    ///     "convert",
+    ///     "http://localhost:3000/@alice/types/data-type/meter/"
+    /// ]))?;
+    /// # assert_eq!(
+    /// #     path.to_string(),
+    /// #     r#"propertyMetadata.$."value"."https://blockprotocol.org/@blockprotocol/types/property-type/length/"."metadata"."canonical"."http://localhost:3000/@alice/types/data-type/meter/""#
+    /// # );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     Properties(Option<JsonPath<'p>>),
@@ -506,7 +534,6 @@ pub enum EntityQueryToken {
     OwnedById,
     Type,
     Properties,
-    PropertyMetadata,
     Label,
     Provenance,
     EditionProvenance,
@@ -526,12 +553,92 @@ pub struct EntityQueryPathVisitor {
 impl EntityQueryPathVisitor {
     pub const EXPECTING: &'static str =
         "one of `uuid`, `editionId`, `draftId`, `archived`, `ownedById`, `type`, `properties`, \
-         `propertyMetadata`, `label`, `provenance`, `editionProvenance`, `embedding`, \
-         `incomingLinks`, `outgoingLinks`, `leftEntity`, `rightEntity`";
+         `label`, `provenance`, `editionProvenance`, `embedding`, `incomingLinks`, \
+         `outgoingLinks`, `leftEntity`, `rightEntity`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
         Self { position }
+    }
+}
+
+struct EntityPropertiesPathVisitor {
+    position: usize,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+enum MetaTag {
+    Convert,
+    DataTypeId,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum PropertiesToken<'k> {
+    Property(Cow<'k, BaseUrl>),
+    Index(usize),
+    Meta(MetaTag),
+}
+
+impl<'de> Visitor<'de> for EntityPropertiesPathVisitor {
+    type Value = EntityQueryPath<'de>;
+
+    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+        formatter.write_str("a sequence of property path elements")
+    }
+
+    fn visit_seq<A>(mut self, mut seq: A) -> Result<Self::Value, A::Error>
+    where
+        A: SeqAccess<'de>,
+    {
+        let mut path_tokens = Vec::new();
+        let mut is_metadata_path = false;
+        while let Some(token) = seq.next_element::<PropertiesToken<'de>>()? {
+            match token {
+                PropertiesToken::Property(base_url) => {
+                    path_tokens.push(PathToken::Field(Cow::Owned(base_url.to_string())));
+                }
+                PropertiesToken::Index(index) => {
+                    if is_metadata_path {
+                        return Err(de::Error::custom("Unexpected index found in property path"));
+                    }
+                    path_tokens.push(PathToken::Index(index));
+                }
+                PropertiesToken::Meta(meta) => {
+                    // We convert the underlying value so we look at the property metadata's
+                    // canonical value instead of the actual value
+                    if is_metadata_path {
+                        return Err(de::Error::custom(
+                            "Unexpected meta tag found in property path",
+                        ));
+                    }
+                    path_tokens = path_tokens
+                        .into_iter()
+                        .flat_map(|token| [PathToken::Field(Cow::Borrowed("value")), token])
+                        .chain([PathToken::Field(Cow::Borrowed("metadata"))])
+                        .collect();
+                    is_metadata_path = true;
+
+                    match meta {
+                        MetaTag::Convert => {
+                            path_tokens.push(PathToken::Field(Cow::Borrowed("canonical")));
+                        }
+                        MetaTag::DataTypeId => {
+                            path_tokens.push(PathToken::Field(Cow::Borrowed("dataTypeId")));
+                        }
+                    }
+                }
+            }
+            self.position += 1;
+        }
+
+        let json_path = (!path_tokens.is_empty()).then(|| JsonPath::from_path_tokens(path_tokens));
+        if is_metadata_path {
+            Ok(EntityQueryPath::PropertyMetadata(json_path))
+        } else {
+            Ok(EntityQueryPath::Properties(json_path))
+        }
     }
 }
 
@@ -542,7 +649,6 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
         formatter.write_str(Self::EXPECTING)
     }
 
-    #[expect(clippy::too_many_lines)]
     fn visit_seq<A>(mut self, mut seq: A) -> Result<Self::Value, A::Error>
     where
         A: SeqAccess<'de>,
@@ -569,32 +675,10 @@ impl<'de> Visitor<'de> for EntityQueryPathVisitor {
                     .transpose()
                     .map_err(de::Error::custom)?,
             },
-            EntityQueryToken::Properties => {
-                let mut path_tokens = Vec::new();
-                while let Some(property) = seq.next_element::<PathToken<'de>>()? {
-                    path_tokens.push(property);
-                    self.position += 1;
-                }
-
-                if path_tokens.is_empty() {
-                    EntityQueryPath::Properties(None)
-                } else {
-                    EntityQueryPath::Properties(Some(JsonPath::from_path_tokens(path_tokens)))
-                }
+            EntityQueryToken::Properties => EntityPropertiesPathVisitor {
+                position: self.position,
             }
-            EntityQueryToken::PropertyMetadata => {
-                let mut path_tokens = Vec::new();
-                while let Some(property) = seq.next_element::<PathToken<'de>>()? {
-                    path_tokens.push(property);
-                    self.position += 1;
-                }
-
-                if path_tokens.is_empty() {
-                    EntityQueryPath::PropertyMetadata(None)
-                } else {
-                    EntityQueryPath::PropertyMetadata(Some(JsonPath::from_path_tokens(path_tokens)))
-                }
-            }
+            .visit_seq(seq)?,
             EntityQueryToken::Label => EntityQueryPath::Label {
                 inheritance_depth: parameters
                     .remove("inheritanceDepth")
@@ -679,7 +763,6 @@ pub enum EntityQuerySortingToken {
     Uuid,
     Archived,
     Properties,
-    PropertyMetadata,
     Label,
     RecordCreatedAtTransactionTime,
     RecordCreatedAtDecisionTime,
@@ -696,9 +779,9 @@ pub struct EntityQuerySortingVisitor {
 
 impl EntityQuerySortingVisitor {
     pub const EXPECTING: &'static str =
-        "one of `uuid`, `archived`, `properties`, `propertyMetadata`, `label`, \
-         `recordCreatedAtTransactionTime`, `recordCreatedAtDecisionTime`, \
-         `createdAtTransactionTime`, `createdAtDecisionTime`, `typeTitle`";
+        "one of `uuid`, `archived`, `properties`, `label`, `recordCreatedAtTransactionTime`, \
+         `recordCreatedAtDecisionTime`, `createdAtTransactionTime`, `createdAtDecisionTime`, \
+         `typeTitle`";
 
     #[must_use]
     pub const fn new(position: usize) -> Self {
@@ -722,7 +805,6 @@ impl<'de> Visitor<'de> for EntityQuerySortingVisitor {
             .ok_or_else(|| de::Error::invalid_length(self.position, &self))?;
         let (token, mut parameters) = parse_query_token(&query_token)?;
         self.position += 1;
-
         Ok(match token {
             EntityQuerySortingToken::Uuid => EntityQueryPath::Uuid,
             EntityQuerySortingToken::Archived => EntityQueryPath::Archived,
@@ -752,32 +834,10 @@ impl<'de> Visitor<'de> for EntityQuerySortingVisitor {
                     .transpose()
                     .map_err(de::Error::custom)?,
             },
-            EntityQuerySortingToken::Properties => {
-                let mut path_tokens = Vec::new();
-                while let Some(property) = seq.next_element::<PathToken<'de>>()? {
-                    path_tokens.push(property);
-                    self.position += 1;
-                }
-
-                if path_tokens.is_empty() {
-                    EntityQueryPath::Properties(None)
-                } else {
-                    EntityQueryPath::Properties(Some(JsonPath::from_path_tokens(path_tokens)))
-                }
+            EntityQuerySortingToken::Properties => EntityPropertiesPathVisitor {
+                position: self.position,
             }
-            EntityQuerySortingToken::PropertyMetadata => {
-                let mut path_tokens = Vec::new();
-                while let Some(property) = seq.next_element::<PathToken<'de>>()? {
-                    path_tokens.push(property);
-                    self.position += 1;
-                }
-
-                if path_tokens.is_empty() {
-                    EntityQueryPath::PropertyMetadata(None)
-                } else {
-                    EntityQueryPath::PropertyMetadata(Some(JsonPath::from_path_tokens(path_tokens)))
-                }
-            }
+            .visit_seq(seq)?,
         })
     }
 }
