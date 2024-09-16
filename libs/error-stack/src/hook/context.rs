@@ -69,7 +69,7 @@ macro_rules! impl_hook_context {
 //  is currently not implemented for repr(transparent).
 $(#[$meta])*
 #[cfg_attr(not(doc), repr(transparent))]
-$vis struct HookContext<T> {
+$vis struct HookContext<T: ?Sized> {
     inner: $crate::hook::context::Inner<$extra>,
     _marker: core::marker::PhantomData<fn(&T)>,
 }
@@ -83,7 +83,7 @@ impl HookContext<()> {
     }
 }
 
-impl<T> HookContext<T> {
+impl<T: ?Sized> HookContext<T> {
     pub(crate) const fn inner(&self) -> &$crate::hook::context::Inner<$extra> {
         &self.inner
     }
@@ -102,7 +102,7 @@ impl<T> HookContext<T> {
 }
 
 #[cfg(any(feature = "std", feature = "hooks"))]
-impl<T> HookContext<T> {
+impl<T: ?Sized> HookContext<T> {
     /// Cast the [`HookContext`] to a new type `U`.
     ///
     /// The storage of [`HookContext`] is partitioned, meaning that if `T` and `U` are different
@@ -165,7 +165,7 @@ impl<T> HookContext<T> {
     #[doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/tests/snapshots/doc/fmt__hookcontext_cast.snap"))]
     /// </pre>
     #[must_use]
-    pub fn cast<U>(&mut self) -> &mut HookContext<U> {
+    pub fn cast<U: ?Sized>(&mut self) -> &mut HookContext<U> {
         // SAFETY: `HookContext` is marked as repr(transparent) and the changed generic is only used
         // inside of the `PhantomData`
         unsafe { &mut *(self as *mut Self).cast::<HookContext<U>>() }
@@ -173,7 +173,7 @@ impl<T> HookContext<T> {
 }
 
 #[cfg(any(feature = "std", feature = "hooks"))]
-impl<T: 'static> HookContext<T> {
+impl<T: ?Sized + 'static> HookContext<T> {
     /// Return a reference to a value of type `U`, if a value of that type exists.
     ///
     /// Values returned are isolated and "bound" to `T`, this means that [`HookContext<_, Warning>`]

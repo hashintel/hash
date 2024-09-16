@@ -1,5 +1,6 @@
 //! Iterators over [`Frame`]s.
 
+use alloc::boxed::Box;
 #[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{vec, vec::Vec};
 #[cfg(nightly)]
@@ -79,11 +80,11 @@ fn next<I: Iterator<Item = T>, T>(iter: &mut Vec<I>) -> Option<T> {
 #[must_use]
 #[derive(Clone)]
 pub struct Frames<'r> {
-    stack: Vec<Iter<'r, Frame>>,
+    stack: Vec<Iter<'r, Box<Frame>>>,
 }
 
 impl<'r> Frames<'r> {
-    pub(crate) fn new(frames: &'r [Frame]) -> Self {
+    pub(crate) fn new(frames: &'r [Box<Frame>]) -> Self {
         Self {
             stack: vec![frames.iter()],
         }
@@ -117,11 +118,11 @@ impl fmt::Debug for Frames<'_> {
 /// [`Report::frames_mut()`]: crate::Report::frames_mut
 #[must_use]
 pub struct FramesMut<'r> {
-    stack: Vec<IterMut<'r, Frame>>,
+    stack: Vec<IterMut<'r, Box<Frame>>>,
 }
 
 impl<'r> FramesMut<'r> {
-    pub(crate) fn new(frames: &'r mut [Frame]) -> Self {
+    pub(crate) fn new(frames: &'r mut [Box<Frame>]) -> Self {
         Self {
             stack: vec![frames.iter_mut()],
         }
@@ -132,7 +133,7 @@ impl<'r> Iterator for FramesMut<'r> {
     type Item = &'r mut Frame;
 
     fn next(&mut self) -> Option<Self::Item> {
-        let frame = next(&mut self.stack)?;
+        let frame = &mut **next(&mut self.stack)?;
         let frame: *mut Frame = frame;
 
         // SAFETY:
@@ -167,7 +168,7 @@ pub struct RequestRef<'r, T: ?Sized> {
 
 #[cfg(nightly)]
 impl<'r, T: ?Sized> RequestRef<'r, T> {
-    pub(super) fn new(frames: &'r [Frame]) -> Self {
+    pub(super) fn new(frames: &'r [Box<Frame>]) -> Self {
         Self {
             frames: Frames::new(frames),
             _marker: PhantomData,
@@ -225,7 +226,7 @@ pub struct RequestValue<'r, T> {
 
 #[cfg(nightly)]
 impl<'r, T> RequestValue<'r, T> {
-    pub(super) fn new(frames: &'r [Frame]) -> Self {
+    pub(super) fn new(frames: &'r [Box<Frame>]) -> Self {
         Self {
             frames: Frames::new(frames),
             _marker: PhantomData,

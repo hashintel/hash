@@ -7,7 +7,9 @@ use alloc::boxed::Box;
 use core::error::{self, Error};
 use core::{any::TypeId, fmt};
 
-pub(crate) use self::frame_impl::{BoxedFrameImpl, FrameImpl};
+pub(crate) use self::frame_impl::{
+    AttachmentFrame, ContextFrame, FrameImpl, FrameImplError, PrintableAttachmentFrame,
+};
 pub use self::kind::{AttachmentKind, FrameKind};
 use crate::report::RawSlice;
 
@@ -115,7 +117,7 @@ impl Frame {
 
     #[cfg(nightly)]
     pub(crate) fn as_error(&self) -> &(impl Error + ?Sized) {
-        &self.r#impl
+        FrameImplError::new(&self.r#impl)
     }
 }
 

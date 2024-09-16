@@ -15,15 +15,15 @@ impl<F> TypedFrame<F>
 where
     F: FrameImpl,
 {
-    fn into_dyn(this: Box<TypedFrame<F>>) -> Box<TypedFrame<dyn FrameImpl>> {
-        this
+    fn into_dyn(self: Box<Self>) -> Box<TypedFrame<dyn FrameImpl>> {
+        self
     }
 }
 
 impl TypedFrame<dyn FrameImpl> {
     /// Erase the type information of the frame.
-    fn erase(this: Box<Self>) -> Box<Frame> {
-        let raw_ptr = Box::into_raw(this) as *mut Frame;
+    fn erase(self: Box<Self>) -> Box<Frame> {
+        let raw_ptr = Box::into_raw(self) as *mut Frame;
 
         // SAFETY: We can safely transmute between `TypedFrame<dyn FrameImpl>` and `Frame` because:
         // - Both structs have the same fields in the same order.
@@ -42,6 +42,13 @@ pub(crate) struct RawSlice {
     ptr: *const Box<Frame>,
     len: usize,
 }
+
+// RawSlice acts like a slice (in the same way as `&[T]`) and therefore is also Send and Sync if
+// Frame is (which it is because `FrameImpl` is `Send` and `Sync`).
+// SAFETY: `RawSlice` is `Send` and `Sync` if `Frame` is `Send` and `Sync`.
+unsafe impl Send for RawSlice {}
+// SAFETY: `RawSlice` is `Send` and `Sync` if `Frame` is `Send` and `Sync`.
+unsafe impl Sync for RawSlice {}
 
 impl RawSlice {
     /// Returns a reference to the slice of `Box<Frame>`.
@@ -124,11 +131,19 @@ pub(crate) struct ReportImpl {
 }
 
 impl ReportImpl {
-    fn new() -> Self {
+    pub(crate) const fn new() -> Self {
         Self {
             current: Vec::new(),
             fragments: Vec::new(),
         }
+    }
+
+    pub(crate) fn current(&self) -> &[Box<Frame>] {
+        &self.current
+    }
+
+    pub(crate) fn current_mut(&mut self) -> &mut [Box<Frame>] {
+        &mut self.current
     }
 
     fn alloc_frame(frame: impl FrameImpl, sources: Option<RawSlice>) -> Box<Frame> {
@@ -138,12 +153,11 @@ impl ReportImpl {
         });
 
         let dynamic = TypedFrame::into_dyn(typed);
-        let erased = TypedFrame::erase(dynamic);
 
-        erased
+        TypedFrame::erase(dynamic)
     }
 
-    fn stack(&mut self, frame: impl FrameImpl) {
+    pub(crate) fn layer(&mut self, frame: impl FrameImpl) {
         if self.current.is_empty() {
             // no need to push the sources, simply allocate a new fragment as the current
             let frame = Self::alloc_frame(frame, None);
@@ -156,7 +170,7 @@ impl ReportImpl {
         let fragment = self
             .fragments
             .last_mut()
-            .unwrap_or_else(|| unreachable!("There is always at least a single fragment"));
+            .unwrap_or_else(|| unreachable!("there is always at least a single fragment"));
 
         let frame = match fragment.append(drain) {
             Ok(slice) => {
@@ -181,7 +195,7 @@ impl ReportImpl {
         self.current.push(frame);
     }
 
-    fn union(&mut self, other: Self) {
+    pub(crate) fn union(&mut self, other: Self) {
         // pretty simple and won't lead to any data being reallocated that is referenced to by a
         // `RawSlice`
         self.current.extend(other.current);

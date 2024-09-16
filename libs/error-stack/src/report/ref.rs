@@ -1,7 +1,6 @@
 use orx_selfref_col::{Node, NodeRefs};
 use smallvec::SmallVec;
 
-use super::{r#impl::ReportVariant, FrameNode};
 use crate::{frame::BoxedFrameImpl, Frame};
 
 const INLINE_CAPACITY: usize = 4;
