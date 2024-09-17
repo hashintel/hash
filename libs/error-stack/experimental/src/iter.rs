@@ -1,39 +1,37 @@
-use core::ops::{ControlFlow, FromResidual, Residual, Try};
-
-use error_stack::Report;
-
-// see: https://doc.rust-lang.org/src/core/ops/try_trait.rs.html#367
-type ChangeOutputType<T: Try<Residual: Residual<V>>, V> = <T::Residual as Residual<V>>::TryType;
+use error_stack::{Context, Report, Result};
 
 // inspired by the implementation in `std`, see: https://doc.rust-lang.org/1.81.0/src/core/iter/adapters/mod.rs.html#157
-struct ReportShunt<'a, I, C> {
+// except with the removal of the Try trait, as it is unstable.
+struct ReportShunt<'a, I, T, C> {
     iter: I,
     residual: &'a mut Option<Report<[C]>>,
+    _marker: core::marker::PhantomData<fn() -> *const T>,
 }
 
-impl<I, R, C> Iterator for ReportShunt<'_, I, C>
+impl<I, T, R, C> Iterator for ReportShunt<'_, I, T, C>
 where
-    I: Iterator<Item: Try<Residual = R>>,
+    I: Iterator<Item = core::result::Result<T, R>>,
     R: Into<Report<[C]>>,
 {
-    type Item = <I::Item as Try>::Output;
+    type Item = T;
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
             let item = self.iter.next()?;
+            let item = item.map_err(Into::into);
 
-            match (Try::branch(item), self.residual.as_mut()) {
-                (ControlFlow::Continue(output), None) => return Some(output),
-                (ControlFlow::Continue(_), Some(_)) => {
+            match (item, self.residual.as_mut()) {
+                (Ok(output), None) => return Some(output),
+                (Ok(_), Some(_)) => {
                     // we're now just consuming the iterator to return all related errors
                     // so we can just ignore the output
                     continue;
                 }
-                (ControlFlow::Break(residual), None) => {
-                    *self.residual = Some(residual.into());
+                (Err(residual), None) => {
+                    *self.residual = Some(residual);
                 }
-                (ControlFlow::Break(residual), Some(report)) => {
-                    report.append(residual.into());
+                (Err(residual), Some(report)) => {
+                    report.append(residual);
                 }
             }
         }
@@ -50,21 +48,43 @@ where
     }
 }
 
-fn try_process_reports<I, T, R, C, F, U>(iter: I, mut f: F) -> ChangeOutputType<I::Item, U>
+fn try_process_reports<I, T, R, C, F, U>(iter: I, mut collect: F) -> Result<U, [C]>
 where
-    I: Iterator<Item: Try<Output = T, Residual = R>>,
-    R: Into<Report<[C]>> + Residual<U, TryType: FromResidual<Report<[C]>>>,
-    for<'a> F: FnMut(ReportShunt<'a, I, C>) -> U,
+    I: Iterator<Item = core::result::Result<T, R>>,
+    R: Into<Report<[C]>>,
+    for<'a> F: FnMut(ReportShunt<'a, I, T, C>) -> U,
 {
     let mut residual = None;
     let shunt = ReportShunt {
         iter,
         residual: &mut residual,
+        _marker: core::marker::PhantomData,
     };
 
-    let value = f(shunt);
-    match residual {
-        Some(residual) => FromResidual::from_residual(residual),
-        None => Try::from_output(value),
+    let value = collect(shunt);
+    residual.map_or_else(|| Ok(value), |residual| Err(residual))
+}
+
+pub trait IteratorExt<C> {
+    type Output;
+
+    fn try_collect<A>(self) -> Result<A, [C]>
+    where
+        A: FromIterator<Self::Output>;
+}
+
+impl<T, C, R, I> IteratorExt<C> for I
+where
+    I: Iterator<Item = core::result::Result<T, R>>,
+    R: Into<Report<[C]>>,
+    C: Context,
+{
+    type Output = T;
+
+    fn try_collect<A>(self) -> Result<A, [C]>
+    where
+        A: FromIterator<Self::Output>,
+    {
+        try_process_reports(self, |shunt| shunt.collect())
     }
 }
