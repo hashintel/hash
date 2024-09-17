@@ -1679,7 +1679,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
 %}
 
 ### Get all link entities
-POST http://127.0.0.1:4000/entity-types/query
+POST http://127.0.0.1:4000/entities/query
 Content-Type: application/json
 X-Authenticated-User-Actor-Id: {{account_id}}
 
@@ -1688,11 +1688,12 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "equal": [
       {
         "path": [
-            "inheritsFrom", "*", "baseUrl"
+          "type",
+          "versionedUrl"
         ]
       },
       {
-        "parameter": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/"
+        "parameter": "https://blockprotocol.org/@blockprotocol/types/entity-type/link/v/1"
       }
     ]
   },
@@ -2138,10 +2139,6 @@ X-Authenticated-User-Actor-Id: {{account_id}}
        "subjectId": "administratorFromWeb"
     }
   }],
-  "linkData": {
-    "leftEntityId": "{{person_a_entity_id}}",
-    "rightEntityId": "{{person_b_entity_id}}"
-  },
   "decisionTime": "2020-01-01T00:00:00.000Z"
 }
 
