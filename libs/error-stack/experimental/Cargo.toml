@@ -17,5 +17,13 @@ publish = false
 # Public workspace dependencies
 error-stack = { path = "..", public = true }
 
+[build-dependencies]
+rustc_version = "0.4.1"
+
 [lints]
 workspace = true
+
+[package.metadata.docs.rs]
+all-features = true
+cargo-args = ["-Z", "unstable-options", "-Z", "rustdoc-scrape-examples"]
+targets = ["x86_64-unknown-linux-gnu"]

@@ -876,8 +876,7 @@ impl<C> Report<[C]> {
     /// This method is similar to [`current_context`], but instead of returning a single context,
     /// it returns an iterator over all contexts in the `Report`.
     ///
-    /// The contexts are returned in the order they were added to the `Report`, with the least
-    /// recent context being the first element of the iterator.
+    /// The order of the contexts should not be relied upon, as it is not guaranteed to be stable.
     ///
     /// ## Example
     ///
@@ -914,6 +913,9 @@ impl<C> Report<[C]> {
         // attachments.
         let mut output = Vec::new();
 
+        // this implementation does some "weaving" in a sense, it goes L->R for the frames, then
+        // R->L for the sources, which means that some sources might be out of order, but this
+        // simplifies implementation.
         let mut stack = vec![self.current_frames()];
         while let Some(frames) = stack.pop() {
             for frame in frames {
