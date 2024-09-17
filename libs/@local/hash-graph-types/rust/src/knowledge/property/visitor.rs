@@ -206,8 +206,7 @@ macro_rules! extend_report {
 
 /// Walks through a JSON value using the provided schema.
 ///
-/// Depending on the property, [`EntityVisitor::visit_one_of_property`],
-/// [`EntityVisitor::visit_one_of_array`], or [`EntityVisitor::visit_one_of_object`] is called.
+/// For all referenced data types [`EntityVisitor::visit_value`] is called.
 ///
 /// # Errors
 ///
