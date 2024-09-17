@@ -392,8 +392,10 @@ pub enum FilterExpression<'p, R: QueryRecord> {
 }
 
 impl<R: QueryRecord> FilterExpression<'_, R> {
-    /// Applies a conversion to the expression if the expression is a [`Parameter`] and
-    /// [`Parameter::convert`] is not [`None`].
+    /// Applies a conversion to the expression if the expression is a
+    /// [`FilterExpression::Parameter`] and [`convert`] is not [`None`].
+    ///
+    /// [`convert`]: [`FilterExpression::Parameter::convert`]
     ///
     /// # Errors
     ///
