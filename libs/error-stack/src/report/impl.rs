@@ -272,7 +272,6 @@ mod test {
         let mut r#impl = ReportImpl::new();
 
         let fragment_ptr = r#impl.fragments[0].items.as_ptr();
-        println!("{}", r#impl.fragments[0].capacity());
         assert_eq!(r#impl.fragments.len(), 1);
 
         // we need to add an additional fragment, because 1 fragment is always stored in `current`
