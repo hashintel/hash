@@ -31,7 +31,9 @@ use crate::report::RawSlice;
 /// [`Report::frames()`]: crate::Report::frames
 /// [`Report::new()`]: crate::Report::new
 /// [`Report::request_ref()`]: crate::Report::request_ref
-// We use `#[repr(C)]` to ensure a predictable memory layout, as the `Rust` repr is not guaranteed.
+// DO NOT CHANGE THE LAYOUT OF THIS STRUCT WITHOUT CHANGING THE LAYOUT OF `TypedFrame`.
+// We use `#[repr(C)]` to ensure a predictable memory layout, as the `Rust` repr is not
+// guaranteed.
 #[repr(C)]
 pub struct Frame {
     sources: Option<RawSlice>,

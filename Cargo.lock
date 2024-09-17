@@ -1947,13 +1947,10 @@ dependencies = [
  "futures",
  "insta",
  "once_cell",
- "orx-selfref-col",
- "orx-split-vec",
  "owo-colors",
  "regex",
  "rustc_version",
  "serde",
- "smallvec",
  "spin 0.9.8",
  "supports-color",
  "supports-unicode",
@@ -4532,31 +4529,6 @@ name = "orx-pseudo-default"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b97dde303d83e7609797d0c1222a9fb02e66445abc47643cc3d7168fd7c804cc"
-dependencies = [
- "orx-pseudo-default-derive",
-]
-
-[[package]]
-name = "orx-pseudo-default-derive"
-version = "1.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d77aee6e747b82e8de9b0224bdc6751d3a803f78b12def53fb8453b55e210352"
-dependencies = [
- "quote",
- "syn 2.0.77",
-]
-
-[[package]]
-name = "orx-selfref-col"
-version = "1.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b84c2b7b998a9fc844f473881c9b8a3ffa5b964192ec114261f8cbe97d6ab178"
-dependencies = [
- "orx-fixed-vec",
- "orx-pinned-vec",
- "orx-pseudo-default",
- "orx-split-vec",
-]
 
 [[package]]
 name = "orx-split-vec"
