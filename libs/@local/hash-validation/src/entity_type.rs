@@ -9,7 +9,8 @@ use graph_types::{
         link::LinkData,
         property::{
             visitor::{
-                walk_array, walk_object, walk_one_of_property_value, EntityVisitor, TraversalError,
+                walk_array, walk_object, walk_one_of_property_value, walk_value, EntityVisitor,
+                TraversalError,
             },
             PropertyPath, PropertyWithMetadataArray, PropertyWithMetadataObject,
             PropertyWithMetadataValue, ValueMetadata,
@@ -275,6 +276,26 @@ pub struct EntityPreprocessor {
     pub components: ValidateEntityComponents,
 }
 
+struct ValueValidator;
+
+impl EntityVisitor for ValueValidator {
+    async fn visit_value<P>(
+        &mut self,
+        data_type: &DataTypeWithMetadata,
+        value: &mut JsonValue,
+        _: &mut ValueMetadata,
+        _: &P,
+    ) -> Result<(), Report<TraversalError>>
+    where
+        P: DataTypeProvider + Sync,
+    {
+        data_type
+            .schema
+            .validate_constraints(value)
+            .change_context(TraversalError::ConstraintUnfulfilled)
+    }
+}
+
 impl EntityVisitor for EntityPreprocessor {
     async fn visit_value<P>(
         &mut self,
@@ -329,13 +350,20 @@ impl EntityVisitor for EntityPreprocessor {
             extend_report!(status, TraversalError::AmbiguousDataType);
         }
 
-        if let Err(err) = data_type
-            .schema
-            .validate_constraints(value)
-            .change_context(TraversalError::ConstraintUnfulfilled)
+        if let Err(err) = ValueValidator
+            .visit_value(data_type, value, metadata, type_provider)
+            .await
         {
             extend_report!(status, err);
         }
+        walk_value(
+            &mut ValueValidator,
+            data_type,
+            value,
+            metadata,
+            type_provider,
+        )
+        .await?;
 
         status
     }

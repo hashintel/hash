@@ -60,8 +60,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "$id": "http://localhost:3000/@alice/types/data-type/meter/v/1",
         "title": "Meter",
         "type": "number",
-        "description": "A unit of length",
-        "minimum": 0
+        "description": "A unit of length"
       }
   ],
   "conversions": {},
@@ -96,8 +95,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "$id": "http://localhost:3000/@alice/types/data-type/millimeter/v/1",
     "title": "Millimeter",
     "type": "number",
-    "description": "A unit of length",
-    "minimum": 0
+    "description": "A unit of length"
   },
   "conversions": {
     "http://localhost:3000/@alice/types/data-type/meter/": {
@@ -133,8 +131,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "$id": "http://localhost:3000/@alice/types/data-type/miles/v/1",
     "title": "Miles",
     "type": "number",
-    "description": "A unit of length",
-    "minimum": 0
+    "description": "A unit of length"
   },
   "conversions": {
     "http://localhost:3000/@alice/types/data-type/meter/": {

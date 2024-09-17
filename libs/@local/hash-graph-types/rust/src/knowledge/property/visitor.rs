@@ -88,7 +88,6 @@ pub trait EntityVisitor: Sized + Send + Sync {
     /// Visits a leaf value.
     ///
     /// By default, this does nothing.
-    #[expect(unused_variables, reason = "No-op implementation")]
     fn visit_value<P>(
         &mut self,
         data_type: &DataTypeWithMetadata,
@@ -99,7 +98,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
     where
         P: DataTypeProvider + Sync,
     {
-        async { Ok(()) }
+        walk_value(self, data_type, value, metadata, type_provider)
     }
 
     /// Visits a property.
@@ -203,6 +202,49 @@ macro_rules! extend_report {
             $status = Err(error_stack::report!($error))
         }
     };
+}
+
+/// Walks through a JSON value using the provided schema.
+///
+/// Depending on the property, [`EntityVisitor::visit_one_of_property`],
+/// [`EntityVisitor::visit_one_of_array`], or [`EntityVisitor::visit_one_of_object`] is called.
+///
+/// # Errors
+///
+/// Any error that can be returned by the visitor methods.
+pub async fn walk_value<V, P>(
+    visitor: &mut V,
+    data_type: &DataTypeWithMetadata,
+    value: &mut JsonValue,
+    metadata: &mut ValueMetadata,
+    type_provider: &P,
+) -> Result<(), Report<TraversalError>>
+where
+    V: EntityVisitor,
+    P: DataTypeProvider + Sync,
+{
+    let mut status = Ok::<_, Report<TraversalError>>(());
+    for parent in &data_type.schema.all_of {
+        match type_provider
+            .provide_type(&parent.url)
+            .await
+            .change_context_lazy(|| TraversalError::DataTypeRetrieval { id: parent.clone() })
+        {
+            Ok(parent) => {
+                if let Err(error) = visitor
+                    .visit_value(parent.borrow(), value, metadata, type_provider)
+                    .await
+                {
+                    extend_report!(status, error);
+                }
+            }
+            Err(error) => {
+                extend_report!(status, error);
+                continue;
+            }
+        }
+    }
+    status
 }
 
 /// Walks through a property using the provided schema.
