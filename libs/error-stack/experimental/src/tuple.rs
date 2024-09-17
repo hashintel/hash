@@ -90,7 +90,6 @@ macro_rules! all_the_tuples {
 
 macro_rules! impl_ext {
     ($([$type:ident, $output:ident]),+) => {
-        #[doc(hidden)]
         impl<$($type, $output),*, T, R, Context> TryReportTupleExt<Context> for ($($type),*, core::result::Result<T, R>)
         where
             R: Into<Report<[Context]>>,
