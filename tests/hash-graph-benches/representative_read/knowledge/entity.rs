@@ -84,7 +84,7 @@ pub fn bench_get_entities_by_property<A: AuthorizationApi>(
     graph_resolve_depths: GraphResolveDepths,
 ) {
     bencher.to_async(runtime).iter(|| async move {
-        let mut filter = Filter::Equal(
+        let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::Properties(Some(
                 JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
                     "https://blockprotocol.org/@alice/types/property-type/name/",
@@ -94,9 +94,6 @@ pub fn bench_get_entities_by_property<A: AuthorizationApi>(
                 "Alice",
             )))),
         );
-        filter
-            .convert_parameters()
-            .expect("failed to convert parameters");
         let response = store
             .get_entity_subgraph(
                 actor_id,
@@ -138,7 +135,7 @@ pub fn bench_get_link_by_target_by_property<A: AuthorizationApi>(
     graph_resolve_depths: GraphResolveDepths,
 ) {
     bencher.to_async(runtime).iter(|| async move {
-        let mut filter = Filter::Equal(
+        let filter = Filter::Equal(
             Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
                 edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
                 path: Box::new(EntityQueryPath::Properties(Some(
@@ -152,9 +149,6 @@ pub fn bench_get_link_by_target_by_property<A: AuthorizationApi>(
                 "Alice",
             )))),
         );
-        filter
-            .convert_parameters()
-            .expect("failed to convert parameters");
         let response = store
             .get_entity_subgraph(
                 actor_id,

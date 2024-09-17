@@ -51,8 +51,8 @@ use crate::{
             query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
             TraversalContext,
         },
-        AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, SubgraphRecord,
-        UpdateError,
+        AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, StoreCache,
+        StoreProvider, SubgraphRecord, UpdateError,
     },
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
@@ -531,9 +531,19 @@ where
     //       types anyway.
     async fn count_property_types(
         &self,
-        _actor_id: AccountId,
-        params: CountPropertyTypesParams<'_>,
+        actor_id: AccountId,
+        mut params: CountPropertyTypesParams<'_>,
     ) -> Result<usize, QueryError> {
+        params
+            .filter
+            .convert_parameters(&StoreProvider {
+                store: self,
+                cache: StoreCache::default(),
+                authorization: Some((actor_id, Consistency::FullyConsistent)),
+            })
+            .await
+            .change_context(QueryError)?;
+
         Ok(self
             .read(
                 &params.filter,
@@ -548,8 +558,18 @@ where
     async fn get_property_types(
         &self,
         actor_id: AccountId,
-        params: GetPropertyTypesParams<'_>,
+        mut params: GetPropertyTypesParams<'_>,
     ) -> Result<GetPropertyTypesResponse, QueryError> {
+        params
+            .filter
+            .convert_parameters(&StoreProvider {
+                store: self,
+                cache: StoreCache::default(),
+                authorization: Some((actor_id, Consistency::FullyConsistent)),
+            })
+            .await
+            .change_context(QueryError)?;
+
         let temporal_axes = params.temporal_axes.clone().resolve();
         self.get_property_types_impl(actor_id, params, &temporal_axes)
             .await
@@ -560,8 +580,18 @@ where
     async fn get_property_type_subgraph(
         &self,
         actor_id: AccountId,
-        params: GetPropertyTypeSubgraphParams<'_>,
+        mut params: GetPropertyTypeSubgraphParams<'_>,
     ) -> Result<GetPropertyTypeSubgraphResponse, QueryError> {
+        params
+            .filter
+            .convert_parameters(&StoreProvider {
+                store: self,
+                cache: StoreCache::default(),
+                authorization: Some((actor_id, Consistency::FullyConsistent)),
+            })
+            .await
+            .change_context(QueryError)?;
+
         let temporal_axes = params.temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 

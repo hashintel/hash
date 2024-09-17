@@ -5,7 +5,7 @@ use derive_where::derive_where;
 use error_stack::{bail, Context, Report, ResultExt};
 use graph_types::{
     knowledge::entity::{Entity, EntityEditionId, EntityId},
-    ontology::{DataTypeId, DataTypeWithMetadata, EntityTypeId, PropertyTypeId},
+    ontology::{DataTypeId, DataTypeProvider, DataTypeWithMetadata, EntityTypeId, PropertyTypeId},
     Embedding,
 };
 use serde::Deserialize;
@@ -194,12 +194,20 @@ where
     /// # Errors
     ///
     /// Returns [`ParameterConversionError`] if conversion fails.
-    pub fn convert_parameters(&mut self) -> Result<(), Report<ParameterConversionError>> {
+    pub(crate) async fn convert_parameters<P>(
+        &mut self,
+        data_type_provider: &P,
+    ) -> Result<(), Report<ParameterConversionError>>
+    where
+        P: DataTypeProvider + Sync,
+    {
         match self {
             Self::All(filters) | Self::Any(filters) => {
-                filters.iter_mut().try_for_each(Self::convert_parameters)?;
+                for filter in filters.iter_mut() {
+                    Box::pin(filter.convert_parameters(data_type_provider)).await?;
+                }
             }
-            Self::Not(filter) => filter.convert_parameters()?,
+            Self::Not(filter) => Box::pin(filter.convert_parameters(data_type_provider)).await?,
             Self::Equal(lhs, rhs) | Self::NotEqual(lhs, rhs) => match (lhs, rhs) {
                 (
                     Some(FilterExpression::Parameter(parameter)),
@@ -314,6 +322,20 @@ impl<'p> Parameter<'p> {
             Parameter::Timestamp(timestamp) => Parameter::Timestamp(*timestamp),
         }
     }
+
+    pub fn parameter_type(&self) -> ParameterType {
+        match self {
+            Parameter::Boolean(_) => ParameterType::Boolean,
+            Parameter::I32(_) => ParameterType::I32,
+            Parameter::F64(_) => ParameterType::F64,
+            Parameter::Text(_) => ParameterType::Text,
+            Parameter::Vector(_) => ParameterType::Vector(Box::new(ParameterType::F64)),
+            Parameter::Any(_) => ParameterType::Any,
+            Parameter::Uuid(_) => ParameterType::Uuid,
+            Parameter::OntologyTypeVersion(_) => ParameterType::OntologyTypeVersion,
+            Parameter::Timestamp(_) => ParameterType::Timestamp,
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -389,12 +411,7 @@ impl Parameter<'_> {
     ) -> Result<(), Report<ParameterConversionError>> {
         match (&mut *self, &expected) {
             // identity
-            (Parameter::Boolean(_), ParameterType::Boolean)
-            | (Parameter::I32(_), ParameterType::I32)
-            | (Parameter::F64(_), ParameterType::F64)
-            | (Parameter::Text(_), ParameterType::Text)
-            | (Parameter::Any(_), ParameterType::Any) => {}
-            (Parameter::Vector(_), ParameterType::Vector(rhs)) if **rhs == ParameterType::F64 => {}
+            (actual, expected) if actual.parameter_type() == *expected => {}
 
             // Boolean conversions
             (Parameter::Boolean(bool), ParameterType::Any) => {
@@ -536,28 +553,63 @@ impl Parameter<'_> {
 
 #[cfg(test)]
 mod tests {
+
     use graph_types::{
         knowledge::entity::{DraftId, EntityUuid},
-        ontology::DataTypeWithMetadata,
+        ontology::{DataTypeWithMetadata, OntologyTypeProvider},
         owned_by_id::OwnedById,
     };
     use serde_json::json;
+    use type_system::schema::ConversionExpression;
 
     use super::*;
     use crate::ontology::DataTypeQueryPath;
 
-    fn test_filter_representation<'de, R>(actual: &Filter<'de, R>, expected: &'de serde_json::Value)
-    where
+    struct TestDataTypeProvider;
+
+    #[expect(refining_impl_trait)]
+    impl OntologyTypeProvider<DataTypeWithMetadata> for TestDataTypeProvider {
+        async fn provide_type(&self, _: &VersionedUrl) -> Result<DataTypeWithMetadata, Report<!>> {
+            unimplemented!()
+        }
+    }
+
+    #[expect(refining_impl_trait)]
+    impl DataTypeProvider for TestDataTypeProvider {
+        async fn is_parent_of(&self, _: &VersionedUrl, _: &BaseUrl) -> Result<bool, Report<!>> {
+            unimplemented!()
+        }
+
+        async fn has_children(&self, _: &VersionedUrl) -> Result<bool, Report<!>> {
+            unimplemented!()
+        }
+
+        async fn find_conversion(
+            &self,
+            _: &VersionedUrl,
+            _: &VersionedUrl,
+        ) -> Result<Vec<ConversionExpression>, Report<!>> {
+            unimplemented!()
+        }
+    }
+
+    async fn test_filter_representation<'de, R>(
+        actual: &Filter<'de, R>,
+        expected: &'de serde_json::Value,
+    ) where
         R: QueryRecord<QueryPath<'de>: fmt::Debug + fmt::Display + PartialEq + Deserialize<'de>>,
     {
         let mut expected =
             Filter::<R>::deserialize(expected).expect("Could not deserialize filter");
-        expected.convert_parameters().expect("invalid filter");
+        expected
+            .convert_parameters(&TestDataTypeProvider)
+            .await
+            .expect("invalid filter");
         assert_eq!(*actual, expected);
     }
 
-    #[test]
-    fn for_versioned_url() {
+    #[tokio::test]
+    async fn for_versioned_url() {
         let url = VersionedUrl {
             base_url: BaseUrl::new(
                 "https://blockprotocol.org/@blockprotocol/types/data-type/text/".to_owned(),
@@ -582,11 +634,12 @@ mod tests {
         test_filter_representation(
             &Filter::<DataTypeWithMetadata>::for_versioned_url(&url),
             &expected,
-        );
+        )
+        .await;
     }
 
-    #[test]
-    fn for_entity_by_entity_id() {
+    #[tokio::test]
+    async fn for_entity_by_entity_id() {
         let entity_id = EntityId {
             owned_by_id: OwnedById::new(Uuid::new_v4()),
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
@@ -606,11 +659,11 @@ mod tests {
           ]
         });
 
-        test_filter_representation(&Filter::for_entity_by_entity_id(entity_id), &expected);
+        test_filter_representation(&Filter::for_entity_by_entity_id(entity_id), &expected).await;
     }
 
-    #[test]
-    fn for_entity_by_entity_draft_id() {
+    #[tokio::test]
+    async fn for_entity_by_entity_draft_id() {
         let entity_id = EntityId {
             owned_by_id: OwnedById::new(Uuid::new_v4()),
             entity_uuid: EntityUuid::new(Uuid::new_v4()),
@@ -634,11 +687,11 @@ mod tests {
           ]
         });
 
-        test_filter_representation(&Filter::for_entity_by_entity_id(entity_id), &expected);
+        test_filter_representation(&Filter::for_entity_by_entity_id(entity_id), &expected).await;
     }
 
-    #[test]
-    fn null_check() {
+    #[tokio::test]
+    async fn null_check() {
         let expected = json!({
           "notEqual": [
             { "path": ["description"] },
@@ -654,6 +707,7 @@ mod tests {
                 None,
             ),
             &expected,
-        );
+        )
+        .await;
     }
 }
