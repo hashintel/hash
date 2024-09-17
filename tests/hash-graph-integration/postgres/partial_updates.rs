@@ -2,15 +2,10 @@ use core::{iter::once, str::FromStr};
 use std::collections::{HashMap, HashSet};
 
 use authorization::AuthorizationApi;
-use graph::{
-    store::{
-        knowledge::{CreateEntityParams, GetEntitiesParams, PatchEntityParams},
-        query::Filter,
-        EntityQuerySorting, EntityStore,
-    },
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
-    },
+use graph::store::{
+    knowledge::{CreateEntityParams, GetEntitiesParams, PatchEntityParams},
+    query::Filter,
+    EntityQuerySorting, EntityStore,
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
@@ -23,6 +18,9 @@ use graph_types::{
         },
     },
     owned_by_id::OwnedById,
+};
+use hash_graph_store::subgraph::temporal_axes::{
+    PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
 };
 use pretty_assertions::assert_eq;
 use serde_json::json;

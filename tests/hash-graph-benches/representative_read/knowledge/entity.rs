@@ -9,15 +9,14 @@ use graph::{
         query::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
         EntityQuerySorting, EntityStore,
     },
-    subgraph::{
-        edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind},
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
-            VariableTemporalAxisUnresolved,
-        },
-    },
 };
 use graph_types::{account::AccountId, knowledge::entity::EntityUuid};
+use hash_graph_store::subgraph::{
+    edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind},
+    temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+    },
+};
 use rand::{prelude::IteratorRandom, thread_rng};
 use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;

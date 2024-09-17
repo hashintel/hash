@@ -3,6 +3,7 @@ use core::{
     str::FromStr,
 };
 
+use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
 use serde::{
     de::{self, Deserializer, SeqAccess, Visitor},
     Deserialize, Serialize,
@@ -15,7 +16,6 @@ use crate::{
     store::query::{
         parse_query_token, JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath,
     },
-    subgraph::edges::{EdgeDirection, OntologyEdgeKind},
 };
 
 /// A path to a [`DataType`] field.

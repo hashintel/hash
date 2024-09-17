@@ -4,15 +4,13 @@ use core::{
     iter::{once, Chain, Once},
 };
 
+use hash_graph_store::subgraph::edges::EdgeDirection;
 use postgres_types::ToSql;
 use temporal_versioning::TimeAxis;
 
-use crate::{
-    store::{
-        postgres::query::{expression::JoinType, Condition, Constant, Expression, Transpile},
-        query::{JsonPath, ParameterType},
-    },
-    subgraph::edges::EdgeDirection,
+use crate::store::{
+    postgres::query::{expression::JoinType, Condition, Constant, Expression, Transpile},
+    query::{JsonPath, ParameterType},
 };
 
 /// The name of a [`Table`] in the Postgres database.

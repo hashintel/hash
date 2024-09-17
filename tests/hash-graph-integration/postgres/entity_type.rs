@@ -1,17 +1,15 @@
-use graph::{
-    store::{
-        ontology::{CreateEntityTypeParams, GetEntityTypesParams, UpdateEntityTypesParams},
-        query::Filter,
-        ConflictBehavior, EntityTypeStore,
-    },
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
-    },
+use graph::store::{
+    ontology::{CreateEntityTypeParams, GetEntityTypesParams, UpdateEntityTypesParams},
+    query::Filter,
+    ConflictBehavior, EntityTypeStore,
 };
 use graph_test_data::{data_type, entity_type, property_type};
 use graph_types::{
     ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
     owned_by_id::OwnedById,
+};
+use hash_graph_store::subgraph::temporal_axes::{
+    PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
 };
 use temporal_versioning::TemporalBound;
 use type_system::schema::EntityType;

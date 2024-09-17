@@ -2616,10 +2616,13 @@ name = "hash-graph-store"
 version = "0.0.0"
 dependencies = [
  "authorization",
+ "derive-where",
  "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "graph-types",
  "serde",
+ "temporal-versioning",
  "thiserror",
+ "type-system",
  "utoipa",
  "uuid",
 ]

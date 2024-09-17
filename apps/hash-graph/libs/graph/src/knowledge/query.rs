@@ -2,11 +2,11 @@ use alloc::borrow::Cow;
 use core::{fmt, str::FromStr};
 
 use graph_types::knowledge::entity::Entity;
+use hash_graph_store::subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind};
 use serde::{
     de::{self, SeqAccess, Visitor},
     Deserialize, Deserializer,
 };
-use temporal_versioning::{ClosedTemporalBound, TemporalTagged, TimeAxis};
 use type_system::url::BaseUrl;
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
@@ -15,11 +15,7 @@ use crate::{
     ontology::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
     store::{
         query::{parse_query_token, JsonPath, ParameterType, PathToken, QueryPath},
-        QueryRecord, SubgraphRecord,
-    },
-    subgraph::{
-        edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
-        identifier::EntityVertexId,
+        QueryRecord,
     },
 };
 
@@ -906,32 +902,6 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
 
 impl QueryRecord for Entity {
     type QueryPath<'p> = EntityQueryPath<'p>;
-}
-
-impl SubgraphRecord for Entity {
-    type VertexId = EntityVertexId;
-
-    #[must_use]
-    fn vertex_id(&self, time_axis: TimeAxis) -> EntityVertexId {
-        let ClosedTemporalBound::Inclusive(timestamp) = match time_axis {
-            TimeAxis::DecisionTime => self
-                .metadata
-                .temporal_versioning
-                .decision_time
-                .start()
-                .cast(),
-            TimeAxis::TransactionTime => self
-                .metadata
-                .temporal_versioning
-                .transaction_time
-                .start()
-                .cast(),
-        };
-        EntityVertexId {
-            base_id: self.metadata.record_id.entity_id,
-            revision_id: timestamp,
-        }
-    }
 }
 
 #[cfg(test)]

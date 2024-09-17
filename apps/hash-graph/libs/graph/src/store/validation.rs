@@ -19,6 +19,9 @@ use graph_types::{
         PropertyTypeWithMetadata,
     },
 };
+use hash_graph_store::subgraph::temporal_axes::{
+    PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+};
 use tokio::sync::RwLock;
 use tokio_postgres::GenericClient;
 use type_system::{
@@ -27,12 +30,7 @@ use type_system::{
 };
 use validation::EntityProvider;
 
-use crate::{
-    store::{crud::Read, query::Filter, AsClient, PostgresStore, QueryError},
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
-    },
-};
+use crate::store::{crud::Read, query::Filter, AsClient, PostgresStore, QueryError};
 
 #[derive(Debug, Clone)]
 enum Access<T> {

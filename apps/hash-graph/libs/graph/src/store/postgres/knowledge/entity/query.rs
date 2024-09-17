@@ -7,6 +7,11 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
+use hash_graph_store::subgraph::{
+    edges::{EdgeDirection, KnowledgeGraphEdgeKind},
+    identifier::EntityVertexId,
+    temporal_axes::{QueryTemporalAxes, VariableAxis},
+};
 use temporal_versioning::{
     ClosedTemporalBound, LeftClosedTemporalInterval, TemporalTagged, TimeAxis,
 };
@@ -28,11 +33,6 @@ use crate::{
         },
         query::Parameter,
         NullOrdering, Ordering,
-    },
-    subgraph::{
-        edges::{EdgeDirection, KnowledgeGraphEdgeKind},
-        identifier::EntityVertexId,
-        temporal_axes::{QueryTemporalAxes, VariableAxis},
     },
 };
 

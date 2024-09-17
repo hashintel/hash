@@ -1,5 +1,6 @@
 use core::{fmt, fmt::Write};
 
+use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
 use serde::{
     de::{self, Deserializer, SeqAccess, Visitor},
     Deserialize, Serialize,
@@ -12,7 +13,6 @@ use crate::{
         data_type::DataTypeQueryPathVisitor, DataTypeQueryPath, EntityTypeQueryPath, Selector,
     },
     store::query::{JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath},
-    subgraph::edges::{EdgeDirection, OntologyEdgeKind},
 };
 
 /// A path to a [`PropertyType`] field.

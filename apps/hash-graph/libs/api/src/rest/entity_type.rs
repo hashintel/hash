@@ -35,7 +35,6 @@ use graph::{
         },
         ConflictBehavior, EntityTypeStore, StorePool,
     },
-    subgraph::identifier::EntityTypeVertexId,
 };
 use graph_type_defs::error::{ErrorInfo, Status, StatusPayloads};
 use graph_types::{
@@ -47,6 +46,7 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
+use hash_graph_store::subgraph::identifier::EntityTypeVertexId;
 use hash_map::HashMap;
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;

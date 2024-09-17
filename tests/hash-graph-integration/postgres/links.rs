@@ -11,13 +11,6 @@ use graph::{
         query::{Filter, FilterExpression, Parameter},
         EntityQuerySorting, EntityStore,
     },
-    subgraph::{
-        edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
-            VariableTemporalAxisUnresolved,
-        },
-    },
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
@@ -27,6 +20,12 @@ use graph_types::{
         property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
     },
     owned_by_id::OwnedById,
+};
+use hash_graph_store::subgraph::{
+    edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
+    temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+    },
 };
 use temporal_versioning::TemporalBound;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};

@@ -123,6 +123,7 @@ mod tests {
     use alloc::borrow::Cow;
 
     use graph_types::ontology::DataTypeWithMetadata;
+    use hash_graph_store::subgraph::temporal_axes::QueryTemporalAxesUnresolved;
 
     use super::*;
     use crate::{
@@ -131,7 +132,6 @@ mod tests {
             postgres::query::{test_helper::trim_whitespace, SelectCompiler},
             query::{Filter, FilterExpression, Parameter},
         },
-        subgraph::temporal_axes::QueryTemporalAxesUnresolved,
     };
 
     #[test]

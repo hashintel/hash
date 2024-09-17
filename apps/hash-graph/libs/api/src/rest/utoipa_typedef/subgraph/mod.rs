@@ -1,7 +1,7 @@
 mod edges;
 mod vertices;
 
-use graph::subgraph::{
+use hash_graph_store::subgraph::{
     edges::GraphResolveDepths, identifier::GraphElementVertexId,
     temporal_axes::SubgraphTemporalAxes,
 };
@@ -26,8 +26,8 @@ pub(crate) struct Subgraph {
     temporal_axes: SubgraphTemporalAxes,
 }
 
-impl From<graph::subgraph::Subgraph> for Subgraph {
-    fn from(subgraph: graph::subgraph::Subgraph) -> Self {
+impl From<hash_graph_store::subgraph::Subgraph> for Subgraph {
+    fn from(subgraph: hash_graph_store::subgraph::Subgraph) -> Self {
         Self {
             roots: subgraph.roots,
             vertices: subgraph.vertices.into(),

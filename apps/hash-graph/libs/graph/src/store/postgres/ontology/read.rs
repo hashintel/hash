@@ -3,6 +3,10 @@ use alloc::borrow::Cow;
 use error_stack::{Result, ResultExt};
 use futures::{Stream, StreamExt};
 use graph_types::ontology::{EntityTypeId, EntityTypeWithMetadata};
+use hash_graph_store::subgraph::{
+    edges::GraphResolveDepths,
+    temporal_axes::{QueryTemporalAxes, VariableAxis},
+};
 use postgres_types::Json;
 use temporal_versioning::RightBoundedTemporalInterval;
 use tokio_postgres::GenericClient;
@@ -20,10 +24,6 @@ use crate::{
         },
         query::Filter,
         AsClient, PostgresStore, QueryError,
-    },
-    subgraph::{
-        edges::GraphResolveDepths,
-        temporal_axes::{QueryTemporalAxes, VariableAxis},
     },
 };
 

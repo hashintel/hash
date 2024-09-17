@@ -2,15 +2,10 @@ use core::{assert_matches::assert_matches, str::FromStr};
 use std::collections::HashSet;
 
 use authorization::AuthorizationApi;
-use graph::{
-    store::{
-        knowledge::{CreateEntityParams, GetEntitiesParams, PatchEntityParams},
-        query::Filter,
-        EntityQuerySorting, EntityStore, InsertionError,
-    },
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
-    },
+use graph::store::{
+    knowledge::{CreateEntityParams, GetEntitiesParams, PatchEntityParams},
+    query::Filter,
+    EntityQuerySorting, EntityStore, InsertionError,
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
@@ -19,6 +14,9 @@ use graph_types::{
         property::{PropertyObject, PropertyWithMetadataObject},
     },
     owned_by_id::OwnedById,
+};
+use hash_graph_store::subgraph::temporal_axes::{
+    PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
 };
 use pretty_assertions::assert_eq;
 use type_system::url::VersionedUrl;

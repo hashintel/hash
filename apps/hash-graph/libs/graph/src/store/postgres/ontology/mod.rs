@@ -15,6 +15,7 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
+use hash_graph_store::subgraph::{temporal_axes::QueryTemporalAxes, SubgraphRecord};
 use serde::Deserialize;
 use time::OffsetDateTime;
 use tokio_postgres::{Row, Transaction};
@@ -31,9 +32,8 @@ use crate::{
             query::{Distinctness, PostgresSorting, SelectCompiler},
         },
         query::Parameter,
-        AsClient, Ordering, PostgresStore, SubgraphRecord,
+        AsClient, Ordering, PostgresStore,
     },
-    subgraph::temporal_axes::QueryTemporalAxes,
 };
 
 impl<A> PostgresStore<Transaction<'_>, A>

@@ -19,6 +19,15 @@ use graph_types::{
     },
     Embedding,
 };
+use hash_graph_store::subgraph::{
+    edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
+    identifier::{DataTypeVertexId, GraphElementVertexId},
+    temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved, VariableAxis,
+        VariableTemporalAxisUnresolved,
+    },
+    Subgraph, SubgraphRecord,
+};
 use postgres_types::{Json, ToSql};
 use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use tokio_postgres::{GenericClient, Row};
@@ -53,17 +62,7 @@ use crate::{
             TraversalContext,
         },
         query::{Filter, FilterExpression, ParameterList},
-        AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, SubgraphRecord,
-        UpdateError,
-    },
-    subgraph::{
-        edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
-        identifier::{DataTypeVertexId, GraphElementVertexId},
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
-            VariableAxis, VariableTemporalAxisUnresolved,
-        },
-        Subgraph,
+        AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
     },
 };
 

@@ -1,17 +1,12 @@
 use core::str::FromStr;
 use std::collections::{HashMap, HashSet};
 
-use graph::{
-    store::{
-        error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
-        knowledge::CreateEntityParams,
-        ontology::{CreateDataTypeParams, GetDataTypesParams, UpdateDataTypesParams},
-        query::Filter,
-        BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore, EntityStore,
-    },
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
-    },
+use graph::store::{
+    error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
+    knowledge::CreateEntityParams,
+    ontology::{CreateDataTypeParams, GetDataTypesParams, UpdateDataTypesParams},
+    query::Filter,
+    BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore, EntityStore,
 };
 use graph_types::{
     knowledge::{
@@ -26,6 +21,9 @@ use graph_types::{
         ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
+};
+use hash_graph_store::subgraph::temporal_axes::{
+    PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
 };
 use serde_json::json;
 use temporal_versioning::TemporalBound;

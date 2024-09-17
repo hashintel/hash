@@ -18,8 +18,11 @@ graph-types = { workspace = true }
 utoipa = { workspace = true, public = true, optional = true }
 
 # Private workspace dependencies
+temporal-versioning = { workspace = true }
+type-system = { workspace = true }
 
 # Private third-party dependencies
+derive-where = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 thiserror = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
@@ -29,6 +32,7 @@ utoipa = [
     "dep:utoipa",
     "graph-types/utoipa",
     "authorization/utoipa",
+    "type-system/utoipa",
 ]
 
 [lints]

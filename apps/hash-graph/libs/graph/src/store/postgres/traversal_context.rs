@@ -9,6 +9,9 @@ use graph_types::{
         PropertyTypeWithMetadata,
     },
 };
+use hash_graph_store::subgraph::{
+    edges::GraphResolveDepths, temporal_axes::VariableAxis, Subgraph, SubgraphRecord,
+};
 use temporal_versioning::RightBoundedTemporalInterval;
 
 use crate::{
@@ -17,9 +20,8 @@ use crate::{
     store::{
         crud::Read,
         query::{Filter, FilterExpression, ParameterList},
-        AsClient, PostgresStore, QueryError, SubgraphRecord,
+        AsClient, PostgresStore, QueryError,
     },
-    subgraph::{edges::GraphResolveDepths, temporal_axes::VariableAxis, Subgraph},
 };
 
 impl<C, A> PostgresStore<C, A>

@@ -34,6 +34,16 @@ use graph_types::{
     owned_by_id::OwnedById,
     Embedding,
 };
+use hash_graph_store::subgraph::{
+    edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
+    identifier::{EntityIdWithInterval, EntityVertexId},
+    temporal_axes::{
+        PinnedTemporalAxis, PinnedTemporalAxisUnresolved, QueryTemporalAxes,
+        QueryTemporalAxesUnresolved, VariableAxis, VariableTemporalAxis,
+        VariableTemporalAxisUnresolved,
+    },
+    Subgraph, SubgraphRecord,
+};
 use hash_status::StatusCode;
 use postgres_types::ToSql;
 use serde_json::Value as JsonValue;
@@ -73,18 +83,7 @@ use crate::{
         },
         query::{Filter, FilterExpression, Parameter},
         validation::StoreProvider,
-        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, StoreCache,
-        SubgraphRecord, UpdateError,
-    },
-    subgraph::{
-        edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
-        identifier::{EntityIdWithInterval, EntityVertexId},
-        temporal_axes::{
-            PinnedTemporalAxis, PinnedTemporalAxisUnresolved, QueryTemporalAxes,
-            QueryTemporalAxesUnresolved, VariableAxis, VariableTemporalAxis,
-            VariableTemporalAxisUnresolved,
-        },
-        Subgraph,
+        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, StoreCache, UpdateError,
     },
 };
 

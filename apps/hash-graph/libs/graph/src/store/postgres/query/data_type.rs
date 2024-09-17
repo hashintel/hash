@@ -1,5 +1,7 @@
 use core::iter::once;
 
+use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
+
 use crate::{
     ontology::DataTypeQueryPath,
     store::postgres::query::{
@@ -10,7 +12,6 @@ use crate::{
         },
         PostgresQueryPath,
     },
-    subgraph::edges::{EdgeDirection, OntologyEdgeKind},
 };
 
 impl PostgresQueryPath for DataTypeQueryPath<'_> {

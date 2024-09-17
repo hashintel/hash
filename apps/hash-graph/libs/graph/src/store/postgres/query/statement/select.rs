@@ -120,6 +120,10 @@ mod tests {
         ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
         Embedding,
     };
+    use hash_graph_store::subgraph::{
+        edges::{EdgeDirection, KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
+        temporal_axes::QueryTemporalAxesUnresolved,
+    };
     use postgres_types::ToSql;
     use uuid::Uuid;
 
@@ -132,10 +136,6 @@ mod tests {
             },
             query::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
             NullOrdering, Ordering,
-        },
-        subgraph::{
-            edges::{EdgeDirection, KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
-            temporal_axes::QueryTemporalAxesUnresolved,
         },
     };
 

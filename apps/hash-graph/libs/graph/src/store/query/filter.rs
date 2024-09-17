@@ -8,6 +8,11 @@ use graph_types::{
     ontology::{DataTypeId, DataTypeWithMetadata, EntityTypeId, PropertyTypeId},
     Embedding,
 };
+use hash_graph_store::subgraph::{
+    edges::{EdgeDirection, OntologyEdgeKind, SharedEdgeKind},
+    identifier::VertexId,
+    SubgraphRecord,
+};
 use serde::Deserialize;
 use serde_json::{Number, Value};
 use temporal_versioning::Timestamp;
@@ -19,11 +24,7 @@ use crate::{
     ontology::{DataTypeQueryPath, EntityTypeQueryPath},
     store::{
         query::{OntologyQueryPath, ParameterType, QueryPath},
-        QueryRecord, SubgraphRecord,
-    },
-    subgraph::{
-        edges::{EdgeDirection, OntologyEdgeKind, SharedEdgeKind},
-        identifier::VertexId,
+        QueryRecord,
     },
 };
 
@@ -64,7 +65,7 @@ pub enum Filter<'p, R: QueryRecord> {
 
 impl<'p, R> Filter<'p, R>
 where
-    R: SubgraphRecord<QueryPath<'p>: OntologyQueryPath>,
+    R: SubgraphRecord + QueryRecord<QueryPath<'p>: OntologyQueryPath>,
     R::VertexId: VertexId<BaseId = BaseUrl, RevisionId = OntologyTypeVersion>,
 {
     /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its

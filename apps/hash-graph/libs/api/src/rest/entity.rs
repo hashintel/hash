@@ -34,7 +34,6 @@ use graph::{
         EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
         EntityValidationType, NullOrdering, Ordering, StorePool,
     },
-    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
 use graph_types::{
     account::{CreatedById, EditionCreatedById},
@@ -58,7 +57,10 @@ use graph_types::{
     owned_by_id::OwnedById,
     Embedding,
 };
-use hash_graph_store::account::AccountStore;
+use hash_graph_store::{
+    account::AccountStore,
+    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
+};
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use type_system::url::VersionedUrl;

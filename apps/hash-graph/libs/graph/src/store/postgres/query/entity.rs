@@ -1,5 +1,7 @@
 use core::iter::once;
 
+use hash_graph_store::subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind};
+
 use crate::{
     knowledge::EntityQueryPath,
     ontology::EntityTypeQueryPath,
@@ -11,7 +13,6 @@ use crate::{
         },
         PostgresQueryPath,
     },
-    subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
 };
 
 impl PostgresQueryPath for EntityQueryPath<'_> {

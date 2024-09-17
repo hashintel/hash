@@ -23,6 +23,7 @@ use core::{
 use bytes::BytesMut;
 use error_stack::Context;
 use graph_types::knowledge::entity::Entity;
+use hash_graph_store::subgraph::temporal_axes::QueryTemporalAxes;
 use postgres_types::{FromSql, IsNull, ToSql, Type, WasNull};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -42,18 +43,15 @@ pub use self::{
     },
     table::{Alias, AliasedTable, Column, ForeignKeyReference, ReferenceTable, Table},
 };
-use crate::{
-    store::{
-        crud::Sorting,
-        knowledge::{EntityQueryCursor, EntityQuerySorting},
-        postgres::{
-            crud::QueryRecordDecode,
-            query::table::{JsonField, Relation},
-        },
-        query::ParameterConversionError,
-        QueryRecord,
+use crate::store::{
+    crud::Sorting,
+    knowledge::{EntityQueryCursor, EntityQuerySorting},
+    postgres::{
+        crud::QueryRecordDecode,
+        query::table::{JsonField, Relation},
     },
-    subgraph::temporal_axes::QueryTemporalAxes,
+    query::ParameterConversionError,
+    QueryRecord,
 };
 
 pub trait PostgresRecord: QueryRecord + QueryRecordDecode<Output = Self> {

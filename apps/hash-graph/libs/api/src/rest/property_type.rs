@@ -35,7 +35,6 @@ use graph::{
         BaseUrlAlreadyExists, ConflictBehavior, OntologyVersionDoesNotExist, PropertyTypeStore,
         StorePool,
     },
-    subgraph::identifier::PropertyTypeVertexId,
 };
 use graph_types::{
     ontology::{
@@ -45,6 +44,7 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
+use hash_graph_store::subgraph::identifier::PropertyTypeVertexId;
 use hash_status::Status;
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;

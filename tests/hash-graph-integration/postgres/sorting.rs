@@ -9,9 +9,6 @@ use graph::{
         query::{Filter, JsonPath, PathToken},
         EntityQuerySorting, EntityQuerySortingRecord, EntityStore, NullOrdering, Ordering,
     },
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
-    },
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
@@ -20,6 +17,9 @@ use graph_types::{
         property::{PropertyObject, PropertyWithMetadataObject},
     },
     owned_by_id::OwnedById,
+};
+use hash_graph_store::subgraph::temporal_axes::{
+    PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
 };
 use pretty_assertions::assert_eq;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
