@@ -1375,10 +1375,12 @@ where
         let previous_entity = Read::<Entity>::read_one(
             &transaction,
             &Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::EditionId)),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    locked_row.entity_edition_id.into_uuid(),
-                ))),
+                Some(FilterExpression::Path {
+                    path: EntityQueryPath::EditionId,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Uuid(locked_row.entity_edition_id.into_uuid()),
+                }),
             ),
             Some(&QueryTemporalAxes::DecisionTime {
                 pinned: PinnedTemporalAxis::new(locked_transaction_time),

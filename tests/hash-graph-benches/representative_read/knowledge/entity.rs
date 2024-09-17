@@ -45,10 +45,12 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
                     actor_id,
                     GetEntitiesParams {
                         filter: Filter::Equal(
-                            Some(FilterExpression::Path(EntityQueryPath::Uuid)),
-                            Some(FilterExpression::Parameter(Parameter::Uuid(
-                                entity_uuid.into_uuid(),
-                            ))),
+                            Some(FilterExpression::Path {
+                                path: EntityQueryPath::Uuid,
+                            }),
+                            Some(FilterExpression::Parameter {
+                                parameter: Parameter::Uuid(entity_uuid.into_uuid()),
+                            }),
                         ),
                         temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                             pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -85,14 +87,16 @@ pub fn bench_get_entities_by_property<A: AuthorizationApi>(
 ) {
     bencher.to_async(runtime).iter(|| async move {
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::Properties(Some(
-                JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
-                    "https://blockprotocol.org/@alice/types/property-type/name/",
-                ))]),
-            )))),
-            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                "Alice",
-            )))),
+            Some(FilterExpression::Path {
+                path: EntityQueryPath::Properties(Some(JsonPath::from_path_tokens(vec![
+                    PathToken::Field(Cow::Borrowed(
+                        "https://blockprotocol.org/@alice/types/property-type/name/",
+                    )),
+                ]))),
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed("Alice")),
+            }),
         );
         let response = store
             .get_entity_subgraph(
@@ -136,18 +140,20 @@ pub fn bench_get_link_by_target_by_property<A: AuthorizationApi>(
 ) {
     bencher.to_async(runtime).iter(|| async move {
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
-                path: Box::new(EntityQueryPath::Properties(Some(
-                    JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
-                        "https://blockprotocol.org/@alice/types/property-type/name/",
-                    ))]),
-                ))),
-                direction: EdgeDirection::Outgoing,
-            })),
-            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                "Alice",
-            )))),
+            Some(FilterExpression::Path {
+                path: EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                    path: Box::new(EntityQueryPath::Properties(Some(
+                        JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
+                            "https://blockprotocol.org/@alice/types/property-type/name/",
+                        ))]),
+                    ))),
+                    direction: EdgeDirection::Outgoing,
+                },
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed("Alice")),
+            }),
         );
         let response = store
             .get_entity_subgraph(

@@ -73,16 +73,20 @@ where
     pub fn for_versioned_url(versioned_url: &'p VersionedUrl) -> Self {
         Self::All(vec![
             Self::Equal(
-                Some(FilterExpression::Path(<R::QueryPath<'p>>::base_url())),
-                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    versioned_url.base_url.as_str(),
-                )))),
+                Some(FilterExpression::Path {
+                    path: <R::QueryPath<'p>>::base_url(),
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed(versioned_url.base_url.as_str())),
+                }),
             ),
             Self::Equal(
-                Some(FilterExpression::Path(<R::QueryPath<'p>>::version())),
-                Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
-                    versioned_url.version,
-                ))),
+                Some(FilterExpression::Path {
+                    path: <R::QueryPath<'p>>::version(),
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::OntologyTypeVersion(versioned_url.version),
+                }),
             ),
         ])
     }
@@ -95,12 +99,14 @@ impl<'p> Filter<'p, DataTypeWithMetadata> {
         inheritance_depth: Option<u32>,
     ) -> Self {
         Filter::In(
-            FilterExpression::Path(DataTypeQueryPath::DataTypeEdge {
-                edge_kind: OntologyEdgeKind::InheritsFrom,
-                direction: EdgeDirection::Incoming,
-                inheritance_depth,
-                path: Box::new(DataTypeQueryPath::OntologyId),
-            }),
+            FilterExpression::Path {
+                path: DataTypeQueryPath::DataTypeEdge {
+                    edge_kind: OntologyEdgeKind::InheritsFrom,
+                    direction: EdgeDirection::Incoming,
+                    inheritance_depth,
+                    path: Box::new(DataTypeQueryPath::OntologyId),
+                },
+            },
             ParameterList::DataTypeIds(data_type_ids),
         )
     }
@@ -112,15 +118,17 @@ impl<'p> Filter<'p, DataTypeWithMetadata> {
     ) -> Self {
         let data_type_id = DataTypeId::from_url(versioned_url);
         Filter::Equal(
-            Some(FilterExpression::Path(DataTypeQueryPath::DataTypeEdge {
-                edge_kind: OntologyEdgeKind::InheritsFrom,
-                direction: EdgeDirection::Outgoing,
-                inheritance_depth,
-                path: Box::new(DataTypeQueryPath::OntologyId),
-            })),
-            Some(FilterExpression::Parameter(Parameter::Uuid(
-                data_type_id.into_uuid(),
-            ))),
+            Some(FilterExpression::Path {
+                path: DataTypeQueryPath::DataTypeEdge {
+                    edge_kind: OntologyEdgeKind::InheritsFrom,
+                    direction: EdgeDirection::Outgoing,
+                    inheritance_depth,
+                    path: Box::new(DataTypeQueryPath::OntologyId),
+                },
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Uuid(data_type_id.into_uuid()),
+            }),
         )
     }
 }
@@ -130,16 +138,20 @@ impl<'p> Filter<'p, Entity> {
     #[must_use]
     pub fn for_entity_by_entity_id(entity_id: EntityId) -> Self {
         let owned_by_id_filter = Self::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::OwnedById)),
-            Some(FilterExpression::Parameter(Parameter::Uuid(
-                entity_id.owned_by_id.into_uuid(),
-            ))),
+            Some(FilterExpression::Path {
+                path: EntityQueryPath::OwnedById,
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Uuid(entity_id.owned_by_id.into_uuid()),
+            }),
         );
         let entity_uuid_filter = Self::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::Uuid)),
-            Some(FilterExpression::Parameter(Parameter::Uuid(
-                entity_id.entity_uuid.into_uuid(),
-            ))),
+            Some(FilterExpression::Path {
+                path: EntityQueryPath::Uuid,
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Uuid(entity_id.entity_uuid.into_uuid()),
+            }),
         );
 
         if let Some(draft_id) = entity_id.draft_id {
@@ -147,10 +159,12 @@ impl<'p> Filter<'p, Entity> {
                 owned_by_id_filter,
                 entity_uuid_filter,
                 Self::Equal(
-                    Some(FilterExpression::Path(EntityQueryPath::DraftId)),
-                    Some(FilterExpression::Parameter(Parameter::Uuid(
-                        draft_id.into_uuid(),
-                    ))),
+                    Some(FilterExpression::Path {
+                        path: EntityQueryPath::DraftId,
+                    }),
+                    Some(FilterExpression::Parameter {
+                        parameter: Parameter::Uuid(draft_id.into_uuid()),
+                    }),
                 ),
             ])
         } else {
@@ -162,24 +176,28 @@ impl<'p> Filter<'p, Entity> {
     pub fn for_entity_by_type_id(entity_type_id: &'p VersionedUrl) -> Self {
         Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
-                    edge_kind: SharedEdgeKind::IsOfType,
-                    path: EntityTypeQueryPath::BaseUrl,
-                    inheritance_depth: Some(0),
-                })),
-                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    entity_type_id.base_url.as_str(),
-                )))),
+                Some(FilterExpression::Path {
+                    path: EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::BaseUrl,
+                        inheritance_depth: Some(0),
+                    },
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed(entity_type_id.base_url.as_str())),
+                }),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
-                    edge_kind: SharedEdgeKind::IsOfType,
-                    path: EntityTypeQueryPath::Version,
-                    inheritance_depth: Some(0),
-                })),
-                Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
-                    entity_type_id.version,
-                ))),
+                Some(FilterExpression::Path {
+                    path: EntityQueryPath::EntityTypeEdge {
+                        edge_kind: SharedEdgeKind::IsOfType,
+                        path: EntityTypeQueryPath::Version,
+                        inheritance_depth: Some(0),
+                    },
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::OntologyTypeVersion(entity_type_id.version),
+                }),
             ),
         ])
     }
@@ -210,12 +228,12 @@ where
             Self::Not(filter) => Box::pin(filter.convert_parameters(data_type_provider)).await?,
             Self::Equal(lhs, rhs) | Self::NotEqual(lhs, rhs) => match (lhs, rhs) {
                 (
-                    Some(FilterExpression::Parameter(parameter)),
-                    Some(FilterExpression::Path(path)),
+                    Some(FilterExpression::Parameter { parameter }),
+                    Some(FilterExpression::Path { path }),
                 )
                 | (
-                    Some(FilterExpression::Path(path)),
-                    Some(FilterExpression::Parameter(parameter)),
+                    Some(FilterExpression::Path { path }),
+                    Some(FilterExpression::Parameter { parameter }),
                 ) => parameter.convert_to_parameter_type(path.expected_type())?,
                 (..) => {}
             },
@@ -223,26 +241,32 @@ where
             | Self::GreaterOrEqual(lhs, rhs)
             | Self::Less(lhs, rhs)
             | Self::LessOrEqual(lhs, rhs) => match (lhs, rhs) {
-                (FilterExpression::Parameter(parameter), FilterExpression::Path(path))
-                | (FilterExpression::Path(path), FilterExpression::Parameter(parameter)) => {
+                (FilterExpression::Parameter { parameter }, FilterExpression::Path { path })
+                | (FilterExpression::Path { path }, FilterExpression::Parameter { parameter }) => {
                     parameter.convert_to_parameter_type(path.expected_type())?;
                 }
                 (..) => {}
             },
             Self::CosineDistance(lhs, rhs, max) => {
-                if let FilterExpression::Parameter(parameter) = max {
+                if let FilterExpression::Parameter { parameter } = max {
                     parameter.convert_to_parameter_type(ParameterType::F64)?;
                 }
                 match (lhs, rhs) {
-                    (FilterExpression::Parameter(parameter), FilterExpression::Path(path))
-                    | (FilterExpression::Path(path), FilterExpression::Parameter(parameter)) => {
+                    (
+                        FilterExpression::Parameter { parameter },
+                        FilterExpression::Path { path },
+                    )
+                    | (
+                        FilterExpression::Path { path },
+                        FilterExpression::Parameter { parameter },
+                    ) => {
                         parameter.convert_to_parameter_type(path.expected_type())?;
                     }
                     (..) => {}
                 }
             }
             Self::In(lhs, rhs) => {
-                if let FilterExpression::Parameter(parameter) = lhs {
+                if let FilterExpression::Parameter { parameter } = lhs {
                     match rhs {
                         ParameterList::DataTypeIds(_)
                         | ParameterList::PropertyTypeIds(_)
@@ -257,10 +281,10 @@ where
             | Self::EndsWith(lhs, rhs)
             | Self::ContainsSegment(lhs, rhs) => {
                 // TODO: We need to find a way to support lists in addition to strings as well
-                if let FilterExpression::Parameter(parameter) = lhs {
+                if let FilterExpression::Parameter { parameter } = lhs {
                     parameter.convert_to_parameter_type(ParameterType::Text)?;
                 }
-                if let FilterExpression::Parameter(parameter) = rhs {
+                if let FilterExpression::Parameter { parameter } = rhs {
                     parameter.convert_to_parameter_type(ParameterType::Text)?;
                 }
             }
@@ -273,13 +297,10 @@ where
 /// A leaf value in a [`Filter`].
 #[derive(Deserialize)]
 #[derive_where(Debug, Clone, PartialEq; R::QueryPath<'p>)]
-#[serde(
-    rename_all = "camelCase",
-    bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>"
-)]
+#[serde(untagged, bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>")]
 pub enum FilterExpression<'p, R: QueryRecord> {
-    Path(R::QueryPath<'p>),
-    Parameter(Parameter<'p>),
+    Path { path: R::QueryPath<'p> },
+    Parameter { parameter: Parameter<'p> },
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -323,6 +344,7 @@ impl<'p> Parameter<'p> {
         }
     }
 
+    #[must_use]
     pub fn parameter_type(&self) -> ParameterType {
         match self {
             Parameter::Boolean(_) => ParameterType::Boolean,
@@ -700,10 +722,10 @@ mod tests {
         });
 
         test_filter_representation(
-            &Filter::NotEqual(
-                Some(FilterExpression::<DataTypeWithMetadata>::Path(
-                    DataTypeQueryPath::Description,
-                )),
+            &Filter::<DataTypeWithMetadata>::NotEqual(
+                Some(FilterExpression::Path {
+                    path: DataTypeQueryPath::Description,
+                }),
                 None,
             ),
             &expected,

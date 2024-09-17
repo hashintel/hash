@@ -435,8 +435,8 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 self.compile_filter_expression(rhs).0,
             ),
             Filter::CosineDistance(lhs, rhs, max) => match (lhs, rhs) {
-                (FilterExpression::Path(path), FilterExpression::Parameter(parameter))
-                | (FilterExpression::Parameter(parameter), FilterExpression::Path(path)) => {
+                (FilterExpression::Path { path }, FilterExpression::Parameter { parameter })
+                | (FilterExpression::Parameter { parameter }, FilterExpression::Path { path }) => {
                     // We don't support custom sorting yet and limit/cursor implicitly set an order.
                     // We special case the distance function to allow sorting by distance, so we
                     // need to make sure that we don't have a limit or cursor.
@@ -727,12 +727,16 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         match filter {
             Filter::Equal(lhs, rhs) | Filter::NotEqual(lhs, rhs) => match (lhs, rhs) {
                 (
-                    Some(FilterExpression::Path(path)),
-                    Some(FilterExpression::Parameter(Parameter::Text(parameter))),
+                    Some(FilterExpression::Path { path }),
+                    Some(FilterExpression::Parameter {
+                        parameter: Parameter::Text(parameter),
+                    }),
                 )
                 | (
-                    Some(FilterExpression::Parameter(Parameter::Text(parameter))),
-                    Some(FilterExpression::Path(path)),
+                    Some(FilterExpression::Parameter {
+                        parameter: Parameter::Text(parameter),
+                    }),
+                    Some(FilterExpression::Path { path }),
                 ) => match (path.terminating_column().0, filter, parameter.as_ref()) {
                     (Column::OntologyIds(OntologyIds::Version), Filter::Equal(..), "latest") => {
                         Some(
@@ -883,7 +887,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         R::QueryPath<'q>: PostgresQueryPath,
     {
         match expression {
-            FilterExpression::Path(path) => {
+            FilterExpression::Path { path } => {
                 let (column, json_field) = path.terminating_column();
                 let parameter_type = if let Some(JsonField::StaticText(_)) = json_field {
                     ParameterType::Text
@@ -892,7 +896,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 };
                 (self.compile_path_column(path), parameter_type)
             }
-            FilterExpression::Parameter(parameter) => self.compile_parameter(parameter),
+            FilterExpression::Parameter { parameter } => self.compile_parameter(parameter),
         }
     }
 

@@ -510,7 +510,9 @@ where
         let parent_schemas = self
             .read_closed_schemas(
                 &Filter::In(
-                    FilterExpression::Path(EntityTypeQueryPath::OntologyId),
+                    FilterExpression::Path {
+                        path: EntityTypeQueryPath::OntologyId,
+                    },
                     ParameterList::EntityTypeIds(&parent_entity_type_ids),
                 ),
                 Some(

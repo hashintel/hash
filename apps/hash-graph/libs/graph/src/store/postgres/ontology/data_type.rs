@@ -442,7 +442,9 @@ where
                 actor_id,
                 GetDataTypesParams {
                     filter: Filter::In(
-                        FilterExpression::Path(DataTypeQueryPath::OntologyId),
+                        FilterExpression::Path {
+                            path: DataTypeQueryPath::OntologyId,
+                        },
                         ParameterList::DataTypeIds(&required_parent_ids),
                     ),
                     temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
@@ -800,7 +802,9 @@ where
                 actor_id,
                 GetDataTypesParams {
                     filter: Filter::In(
-                        FilterExpression::Path(DataTypeQueryPath::OntologyId),
+                        FilterExpression::Path {
+                            path: DataTypeQueryPath::OntologyId,
+                        },
                         ParameterList::DataTypeIds(&required_parent_ids),
                     ),
                     temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
