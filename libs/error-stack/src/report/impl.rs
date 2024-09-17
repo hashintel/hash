@@ -116,9 +116,10 @@ impl Fragment {
         // access it
         let ptr = self.items.as_mut_ptr();
         // add the length of the slice to the pointer (we could also use
-        // `&mut self.items[start..].as_mut_ptr()` but that isn't supported by miri)
-        // SAFETY: we know that the pointer is valid len is non-zero and we pushed at least a
-        //  single item.
+        // `self.items[start..].as_mut_ptr()` but that isn't supported by stacked-borrows - it works
+        // under tree borrows)
+        // SAFETY: we know that the pointer is valid len is non-zero and
+        //  we pushed at least a single item.
         let ptr = unsafe { NonNull::new_unchecked(ptr.add(start)) };
 
         Ok(RawSlice { ptr, len })
