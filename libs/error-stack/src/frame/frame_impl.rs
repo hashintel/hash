@@ -5,6 +5,8 @@ use core::{any::Any, fmt};
 use crate::{AttachmentKind, Context, FrameKind};
 
 /// Internal representation of a [`Frame`].
+///
+/// [`Frame`]: crate::Frame
 pub(crate) trait FrameImpl: Send + Sync + 'static {
     fn kind(&self) -> FrameKind<'_>;
 
