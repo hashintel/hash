@@ -252,6 +252,7 @@ mod tests {
                     parameter: Parameter::Text(Cow::Borrowed(
                         "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                     )),
+                    convert: None,
                 }),
             )]),
             r#"("data_types_0_1_0"."schema"->>'$id' = $1)"#,
@@ -268,6 +269,7 @@ mod tests {
                         parameter: Parameter::Text(Cow::Borrowed(
                             "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                         )),
+                        convert: None,
                     }),
                 ),
                 Filter::Equal(
@@ -276,6 +278,7 @@ mod tests {
                     }),
                     Some(FilterExpression::Parameter {
                         parameter: Parameter::I32(1),
+                        convert: None,
                     }),
                 ),
             ]),
@@ -298,6 +301,7 @@ mod tests {
                     parameter: Parameter::Text(Cow::Borrowed(
                         "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                     )),
+                    convert: None,
                 }),
             )]),
             r#"("data_types_0_1_0"."schema"->>'$id' = $1)"#,
@@ -314,6 +318,7 @@ mod tests {
                         parameter: Parameter::Text(Cow::Borrowed(
                             "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                         )),
+                        convert: None,
                     }),
                 ),
                 Filter::Equal(
@@ -322,6 +327,7 @@ mod tests {
                     }),
                     Some(FilterExpression::Parameter {
                         parameter: Parameter::I32(1),
+                        convert: None,
                     }),
                 ),
             ]),
@@ -344,6 +350,7 @@ mod tests {
                     parameter: Parameter::Text(Cow::Borrowed(
                         "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                     )),
+                    convert: None,
                 }),
             ))),
             r#"NOT("data_types_0_1_0"."schema"->>'$id' = $1)"#,

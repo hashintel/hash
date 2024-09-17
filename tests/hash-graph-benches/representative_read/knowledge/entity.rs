@@ -50,6 +50,7 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
                             }),
                             Some(FilterExpression::Parameter {
                                 parameter: Parameter::Uuid(entity_uuid.into_uuid()),
+                                convert: None,
                             }),
                         ),
                         temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
@@ -96,6 +97,7 @@ pub fn bench_get_entities_by_property<A: AuthorizationApi>(
             }),
             Some(FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("Alice")),
+                convert: None,
             }),
         );
         let response = store
@@ -153,6 +155,7 @@ pub fn bench_get_link_by_target_by_property<A: AuthorizationApi>(
             }),
             Some(FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("Alice")),
+                convert: None,
             }),
         );
         let response = store

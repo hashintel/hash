@@ -1380,6 +1380,7 @@ where
                 }),
                 Some(FilterExpression::Parameter {
                     parameter: Parameter::Uuid(locked_row.entity_edition_id.into_uuid()),
+                    convert: None,
                 }),
             ),
             Some(&QueryTemporalAxes::DecisionTime {

@@ -187,6 +187,7 @@ mod tests {
                 parameter: Parameter::Text(Cow::Borrowed(
                     "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 )),
+                convert: None,
             }),
         ));
         test_compilation(
@@ -216,6 +217,7 @@ mod tests {
             }),
             Some(FilterExpression::Parameter {
                 parameter: Parameter::Uuid(Uuid::nil()),
+                convert: None,
             }),
         );
         compiler.add_filter(&filter);
@@ -246,6 +248,7 @@ mod tests {
             }),
             Some(FilterExpression::Parameter {
                 parameter: Parameter::Uuid(Uuid::nil()),
+                convert: None,
             }),
         );
         compiler.add_filter(&filter);
@@ -277,6 +280,7 @@ mod tests {
                     parameter: Parameter::Text(Cow::Borrowed(
                         "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                     )),
+                    convert: None,
                 }),
             ),
             Filter::Equal(
@@ -285,6 +289,7 @@ mod tests {
                 }),
                 Some(FilterExpression::Parameter {
                     parameter: Parameter::I32(1),
+                    convert: None,
                 }),
             ),
         ]);
@@ -321,6 +326,7 @@ mod tests {
             }),
             Some(FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("latest")),
+                convert: None,
             }),
         ));
 
@@ -352,6 +358,7 @@ mod tests {
             }),
             Some(FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("latest")),
+                convert: None,
             }),
         ));
 
@@ -386,6 +393,7 @@ mod tests {
             }),
             Some(FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("Text")),
+                convert: None,
             }),
         ));
 
@@ -419,6 +427,7 @@ mod tests {
                     parameter: Parameter::Text(Cow::Borrowed(
                         "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                     )),
+                    convert: None,
                 }),
             ),
             Filter::Equal(
@@ -430,6 +439,7 @@ mod tests {
                 }),
                 Some(FilterExpression::Parameter {
                     parameter: Parameter::I32(1),
+                    convert: None,
                 }),
             ),
         ]);
@@ -484,6 +494,7 @@ mod tests {
             }),
             Some(FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("Text")),
+                convert: None,
             }),
         );
         compiler.add_filter(&filter);
@@ -524,6 +535,7 @@ mod tests {
             }),
             Some(FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("Name")),
+                convert: None,
             }),
         );
         compiler.add_filter(&filter);
@@ -570,6 +582,7 @@ mod tests {
             }),
             Some(FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("Friend Of")),
+                convert: None,
             }),
         );
         compiler.add_filter(&filter);
@@ -619,6 +632,7 @@ mod tests {
                 parameter: Parameter::Text(Cow::Borrowed(
                     "https://blockprotocol.org/@blockprotocol/types/entity-type/link/",
                 )),
+                convert: None,
             }),
         );
         compiler.add_filter(&filter);
@@ -657,6 +671,7 @@ mod tests {
             }),
             Some(FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("12345678-ABCD-4321-5678-ABCD5555DCBA")),
+                convert: None,
             }),
         );
         compiler.add_filter(&filter);
@@ -702,6 +717,7 @@ mod tests {
             }),
             Some(FilterExpression::Parameter {
                 parameter: Parameter::Uuid(Uuid::nil()),
+                convert: None,
             }),
         );
         compiler.add_filter(&filter);
@@ -746,6 +762,7 @@ mod tests {
             }),
             Some(FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("Bob")),
+                convert: None,
             }),
         );
         compiler.add_filter(&filter);
@@ -828,6 +845,7 @@ mod tests {
             }),
             Some(FilterExpression::Parameter {
                 parameter: Parameter::I32(10),
+                convert: None,
             }),
         );
         compiler.add_filter(&filter);
@@ -884,6 +902,7 @@ mod tests {
             }),
             Some(FilterExpression::Parameter {
                 parameter: Parameter::I32(10),
+                convert: None,
             }),
         );
         compiler.add_filter(&filter);
@@ -937,6 +956,7 @@ mod tests {
                 }),
                 Some(FilterExpression::Parameter {
                     parameter: Parameter::Uuid(Uuid::nil()),
+                    convert: None,
                 }),
             ),
             Filter::Equal(
@@ -949,6 +969,7 @@ mod tests {
                 }),
                 Some(FilterExpression::Parameter {
                     parameter: Parameter::Uuid(Uuid::nil()),
+                    convert: None,
                 }),
             ),
             Filter::Equal(
@@ -961,6 +982,7 @@ mod tests {
                 }),
                 Some(FilterExpression::Parameter {
                     parameter: Parameter::Uuid(Uuid::nil()),
+                    convert: None,
                 }),
             ),
             Filter::Equal(
@@ -973,6 +995,7 @@ mod tests {
                 }),
                 Some(FilterExpression::Parameter {
                     parameter: Parameter::Uuid(Uuid::nil()),
+                    convert: None,
                 }),
             ),
         ]);
@@ -1031,6 +1054,7 @@ mod tests {
                     parameter: Parameter::Text(Cow::Borrowed(
                         "https://example.com/@example-org/types/entity-type/address",
                     )),
+                    convert: None,
                 }),
             ),
             Filter::Equal(
@@ -1049,6 +1073,7 @@ mod tests {
                     parameter: Parameter::Text(Cow::Borrowed(
                         "https://example.com/@example-org/types/entity-type/name",
                     )),
+                    convert: None,
                 }),
             ),
         ]);
@@ -1116,9 +1141,11 @@ mod tests {
             },
             FilterExpression::Parameter {
                 parameter: Parameter::Vector(Embedding::from(vec![0.0; 1536])),
+                convert: None,
             },
             FilterExpression::Parameter {
                 parameter: Parameter::F64(0.5),
+                convert: None,
             },
         );
         compiler.add_filter(&filter);

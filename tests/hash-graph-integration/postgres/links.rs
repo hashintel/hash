@@ -166,6 +166,7 @@ async fn insert() {
                                     .entity_uuid
                                     .into_uuid(),
                             ),
+                            convert: None,
                         }),
                     ),
                     Filter::Equal(
@@ -185,6 +186,7 @@ async fn insert() {
                                     .owned_by_id
                                     .into_uuid(),
                             ),
+                            convert: None,
                         }),
                     ),
                     Filter::Equal(
@@ -199,6 +201,7 @@ async fn insert() {
                             parameter: Parameter::Text(Cow::Borrowed(
                                 friend_of_type_id.base_url.as_str(),
                             )),
+                            convert: None,
                         }),
                     ),
                     Filter::Equal(
@@ -211,6 +214,7 @@ async fn insert() {
                         }),
                         Some(FilterExpression::Parameter {
                             parameter: Parameter::OntologyTypeVersion(friend_of_type_id.version),
+                            convert: None,
                         }),
                     ),
                 ]),
@@ -442,6 +446,7 @@ async fn get_entity_links() {
                                 .entity_uuid
                                 .into_uuid(),
                         ),
+                        convert: None,
                     }),
                 ),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
@@ -631,6 +636,7 @@ async fn remove_link() {
                                     .entity_uuid
                                     .into_uuid(),
                             ),
+                            convert: None,
                         }),
                     ),
                     Filter::Equal(
@@ -639,6 +645,7 @@ async fn remove_link() {
                         }),
                         Some(FilterExpression::Parameter {
                             parameter: Parameter::Boolean(false),
+                            convert: None,
                         }),
                     ),
                 ]),
@@ -692,6 +699,7 @@ async fn remove_link() {
                                     .entity_uuid
                                     .into_uuid(),
                             ),
+                            convert: None,
                         }),
                     ),
                     Filter::Equal(
@@ -700,6 +708,7 @@ async fn remove_link() {
                         }),
                         Some(FilterExpression::Parameter {
                             parameter: Parameter::Boolean(false),
+                            convert: None,
                         }),
                     ),
                 ]),

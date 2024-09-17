@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::{fmt, mem, str::FromStr};
+use core::{borrow::Borrow, fmt, mem, str::FromStr};
 
 use derive_where::derive_where;
 use error_stack::{bail, Context, Report, ResultExt};
@@ -78,6 +78,7 @@ where
                 }),
                 Some(FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed(versioned_url.base_url.as_str())),
+                    convert: None,
                 }),
             ),
             Self::Equal(
@@ -86,6 +87,7 @@ where
                 }),
                 Some(FilterExpression::Parameter {
                     parameter: Parameter::OntologyTypeVersion(versioned_url.version),
+                    convert: None,
                 }),
             ),
         ])
@@ -128,6 +130,7 @@ impl<'p> Filter<'p, DataTypeWithMetadata> {
             }),
             Some(FilterExpression::Parameter {
                 parameter: Parameter::Uuid(data_type_id.into_uuid()),
+                convert: None,
             }),
         )
     }
@@ -143,6 +146,7 @@ impl<'p> Filter<'p, Entity> {
             }),
             Some(FilterExpression::Parameter {
                 parameter: Parameter::Uuid(entity_id.owned_by_id.into_uuid()),
+                convert: None,
             }),
         );
         let entity_uuid_filter = Self::Equal(
@@ -151,6 +155,7 @@ impl<'p> Filter<'p, Entity> {
             }),
             Some(FilterExpression::Parameter {
                 parameter: Parameter::Uuid(entity_id.entity_uuid.into_uuid()),
+                convert: None,
             }),
         );
 
@@ -164,6 +169,7 @@ impl<'p> Filter<'p, Entity> {
                     }),
                     Some(FilterExpression::Parameter {
                         parameter: Parameter::Uuid(draft_id.into_uuid()),
+                        convert: None,
                     }),
                 ),
             ])
@@ -185,6 +191,7 @@ impl<'p> Filter<'p, Entity> {
                 }),
                 Some(FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed(entity_type_id.base_url.as_str())),
+                    convert: None,
                 }),
             ),
             Filter::Equal(
@@ -197,6 +204,7 @@ impl<'p> Filter<'p, Entity> {
                 }),
                 Some(FilterExpression::Parameter {
                     parameter: Parameter::OntologyTypeVersion(entity_type_id.version),
+                    convert: None,
                 }),
             ),
         ])
@@ -212,6 +220,11 @@ where
     /// # Errors
     ///
     /// Returns [`ParameterConversionError`] if conversion fails.
+    #[expect(
+        clippy::too_many_lines,
+        reason = "This is one big match statement. Structural queries has to be changed in the \
+                  future so we keep the structure as it is."
+    )]
     pub(crate) async fn convert_parameters<P>(
         &mut self,
         data_type_provider: &P,
@@ -226,39 +239,85 @@ where
                 }
             }
             Self::Not(filter) => Box::pin(filter.convert_parameters(data_type_provider)).await?,
-            Self::Equal(lhs, rhs) | Self::NotEqual(lhs, rhs) => match (lhs, rhs) {
-                (
-                    Some(FilterExpression::Parameter { parameter }),
-                    Some(FilterExpression::Path { path }),
-                )
-                | (
-                    Some(FilterExpression::Path { path }),
-                    Some(FilterExpression::Parameter { parameter }),
-                ) => parameter.convert_to_parameter_type(path.expected_type())?,
-                (..) => {}
-            },
+            Self::Equal(lhs, rhs) | Self::NotEqual(lhs, rhs) => {
+                if let Some(lhs) = lhs {
+                    lhs.apply_parameter_conversion(data_type_provider).await?;
+                }
+                if let Some(rhs) = rhs {
+                    rhs.apply_parameter_conversion(data_type_provider).await?;
+                }
+
+                match (lhs, rhs) {
+                    (
+                        Some(FilterExpression::Parameter {
+                            parameter,
+                            convert: _,
+                        }),
+                        Some(FilterExpression::Path { path }),
+                    )
+                    | (
+                        Some(FilterExpression::Path { path }),
+                        Some(FilterExpression::Parameter {
+                            parameter,
+                            convert: _,
+                        }),
+                    ) => parameter.convert_to_parameter_type(path.expected_type())?,
+                    (..) => {}
+                }
+            }
             Self::Greater(lhs, rhs)
             | Self::GreaterOrEqual(lhs, rhs)
             | Self::Less(lhs, rhs)
-            | Self::LessOrEqual(lhs, rhs) => match (lhs, rhs) {
-                (FilterExpression::Parameter { parameter }, FilterExpression::Path { path })
-                | (FilterExpression::Path { path }, FilterExpression::Parameter { parameter }) => {
-                    parameter.convert_to_parameter_type(path.expected_type())?;
-                }
-                (..) => {}
-            },
-            Self::CosineDistance(lhs, rhs, max) => {
-                if let FilterExpression::Parameter { parameter } = max {
-                    parameter.convert_to_parameter_type(ParameterType::F64)?;
-                }
+            | Self::LessOrEqual(lhs, rhs) => {
+                lhs.apply_parameter_conversion(data_type_provider).await?;
+                rhs.apply_parameter_conversion(data_type_provider).await?;
+
                 match (lhs, rhs) {
                     (
-                        FilterExpression::Parameter { parameter },
+                        FilterExpression::Parameter {
+                            parameter,
+                            convert: _,
+                        },
                         FilterExpression::Path { path },
                     )
                     | (
                         FilterExpression::Path { path },
-                        FilterExpression::Parameter { parameter },
+                        FilterExpression::Parameter {
+                            parameter,
+                            convert: _,
+                        },
+                    ) => {
+                        parameter.convert_to_parameter_type(path.expected_type())?;
+                    }
+                    (..) => {}
+                }
+            }
+            Self::CosineDistance(lhs, rhs, max) => {
+                lhs.apply_parameter_conversion(data_type_provider).await?;
+                rhs.apply_parameter_conversion(data_type_provider).await?;
+                max.apply_parameter_conversion(data_type_provider).await?;
+
+                if let FilterExpression::Parameter {
+                    parameter,
+                    convert: _,
+                } = max
+                {
+                    parameter.convert_to_parameter_type(ParameterType::F64)?;
+                }
+                match (lhs, rhs) {
+                    (
+                        FilterExpression::Parameter {
+                            parameter,
+                            convert: _,
+                        },
+                        FilterExpression::Path { path },
+                    )
+                    | (
+                        FilterExpression::Path { path },
+                        FilterExpression::Parameter {
+                            parameter,
+                            convert: _,
+                        },
                     ) => {
                         parameter.convert_to_parameter_type(path.expected_type())?;
                     }
@@ -266,7 +325,13 @@ where
                 }
             }
             Self::In(lhs, rhs) => {
-                if let FilterExpression::Parameter { parameter } = lhs {
+                lhs.apply_parameter_conversion(data_type_provider).await?;
+
+                if let FilterExpression::Parameter {
+                    parameter,
+                    convert: _,
+                } = lhs
+                {
                     match rhs {
                         ParameterList::DataTypeIds(_)
                         | ParameterList::PropertyTypeIds(_)
@@ -280,11 +345,22 @@ where
             Self::StartsWith(lhs, rhs)
             | Self::EndsWith(lhs, rhs)
             | Self::ContainsSegment(lhs, rhs) => {
+                lhs.apply_parameter_conversion(data_type_provider).await?;
+                rhs.apply_parameter_conversion(data_type_provider).await?;
+
                 // TODO: We need to find a way to support lists in addition to strings as well
-                if let FilterExpression::Parameter { parameter } = lhs {
+                if let FilterExpression::Parameter {
+                    parameter,
+                    convert: _,
+                } = lhs
+                {
                     parameter.convert_to_parameter_type(ParameterType::Text)?;
                 }
-                if let FilterExpression::Parameter { parameter } = rhs {
+                if let FilterExpression::Parameter {
+                    parameter,
+                    convert: _,
+                } = rhs
+                {
                     parameter.convert_to_parameter_type(ParameterType::Text)?;
                 }
             }
@@ -294,13 +370,71 @@ where
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+pub struct ParameterConversion {
+    from: VersionedUrl,
+    to: VersionedUrl,
+}
+
 /// A leaf value in a [`Filter`].
 #[derive(Deserialize)]
 #[derive_where(Debug, Clone, PartialEq; R::QueryPath<'p>)]
 #[serde(untagged, bound = "'de: 'p, R::QueryPath<'p>: Deserialize<'de>")]
 pub enum FilterExpression<'p, R: QueryRecord> {
-    Path { path: R::QueryPath<'p> },
-    Parameter { parameter: Parameter<'p> },
+    Path {
+        path: R::QueryPath<'p>,
+    },
+    Parameter {
+        parameter: Parameter<'p>,
+        convert: Option<ParameterConversion>,
+    },
+}
+
+impl<R: QueryRecord> FilterExpression<'_, R> {
+    /// Applies a conversion to the expression if the expression is a [`Parameter`] and
+    /// [`Parameter::convert`] is not [`None`].
+    ///
+    /// # Errors
+    ///
+    /// - [`InvalidParameterType`] if the parameter type is not compatible with the conversion.
+    /// - [`NoConversionFound`] if no conversion is found.
+    ///
+    /// [`InvalidParameterType`]: ParameterConversionError::InvalidParameterType
+    /// [`NoConversionFound`]: ParameterConversionError::NoConversionFound
+    pub async fn apply_parameter_conversion<D>(
+        &mut self,
+        provider: &D,
+    ) -> Result<(), Report<ParameterConversionError>>
+    where
+        D: DataTypeProvider + Sync,
+    {
+        if let Self::Parameter { parameter, convert } = self {
+            if let Some(conversion) = convert.take() {
+                let Parameter::F64(mut number) = parameter else {
+                    bail!(ParameterConversionError::InvalidParameterType {
+                        actual: ActualParameterType::Parameter(parameter.to_owned()),
+                        expected: ParameterType::F64,
+                    });
+                };
+
+                let conversions = provider
+                    .find_conversion(&conversion.from, &conversion.to)
+                    .await
+                    .change_context_lazy(|| ParameterConversionError::NoConversionFound {
+                        from: conversion.from.clone(),
+                        to: conversion.to.clone(),
+                    })?;
+                for conversion in conversions.borrow() {
+                    number = conversion.evaluate(number);
+                }
+
+                *parameter = Parameter::F64(number);
+            }
+        }
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -361,7 +495,7 @@ impl<'p> Parameter<'p> {
 }
 
 #[derive(Debug)]
-enum ActualParameterType {
+pub enum ActualParameterType {
     Parameter(Parameter<'static>),
     Value(serde_json::Value),
 }
@@ -379,43 +513,55 @@ impl From<serde_json::Value> for ActualParameterType {
 }
 
 #[derive(Debug)]
-#[must_use]
-pub struct ParameterConversionError {
-    actual: ActualParameterType,
-    expected: ParameterType,
+pub enum ParameterConversionError {
+    NoConversionFound {
+        from: VersionedUrl,
+        to: VersionedUrl,
+    },
+    InvalidParameterType {
+        actual: ActualParameterType,
+        expected: ParameterType,
+    },
 }
 
 impl fmt::Display for ParameterConversionError {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let actual = match &self.actual {
-            ActualParameterType::Parameter(parameter) => match parameter {
-                Parameter::Any(Value::Null) => "null".to_owned(),
-                Parameter::Boolean(boolean) | Parameter::Any(Value::Bool(boolean)) => {
-                    boolean.to_string()
-                }
-                Parameter::I32(number) => number.to_string(),
-                Parameter::F64(number) => number.to_string(),
-                Parameter::Any(Value::Number(number)) => number.to_string(),
-                Parameter::Text(text) => text.to_string(),
-                Parameter::Vector(_) => "vector".to_owned(),
-                Parameter::Any(Value::String(string)) => string.clone(),
-                Parameter::Uuid(uuid) => uuid.to_string(),
-                Parameter::OntologyTypeVersion(version) => version.inner().to_string(),
-                Parameter::Timestamp(timestamp) => timestamp.to_string(),
-                Parameter::Any(Value::Object(_)) => "object".to_owned(),
-                Parameter::Any(Value::Array(_)) => "array".to_owned(),
-            },
-            ActualParameterType::Value(value) => match value {
-                Value::Null => "null".to_owned(),
-                Value::Bool(boolean) => boolean.to_string(),
-                Value::Number(number) => number.to_string(),
-                Value::String(string) => string.clone(),
-                Value::Array(_) => "array".to_owned(),
-                Value::Object(_) => "object".to_owned(),
-            },
-        };
+        match self {
+            Self::InvalidParameterType { actual, expected } => {
+                let actual = match actual {
+                    ActualParameterType::Parameter(parameter) => match parameter {
+                        Parameter::Any(Value::Null) => "null".to_owned(),
+                        Parameter::Boolean(boolean) | Parameter::Any(Value::Bool(boolean)) => {
+                            boolean.to_string()
+                        }
+                        Parameter::I32(number) => number.to_string(),
+                        Parameter::F64(number) => number.to_string(),
+                        Parameter::Any(Value::Number(number)) => number.to_string(),
+                        Parameter::Text(text) => text.to_string(),
+                        Parameter::Vector(_) => "vector".to_owned(),
+                        Parameter::Any(Value::String(string)) => string.clone(),
+                        Parameter::Uuid(uuid) => uuid.to_string(),
+                        Parameter::OntologyTypeVersion(version) => version.inner().to_string(),
+                        Parameter::Timestamp(timestamp) => timestamp.to_string(),
+                        Parameter::Any(Value::Object(_)) => "object".to_owned(),
+                        Parameter::Any(Value::Array(_)) => "array".to_owned(),
+                    },
+                    ActualParameterType::Value(value) => match value {
+                        Value::Null => "null".to_owned(),
+                        Value::Bool(boolean) => boolean.to_string(),
+                        Value::Number(number) => number.to_string(),
+                        Value::String(string) => string.clone(),
+                        Value::Array(_) => "array".to_owned(),
+                        Value::Object(_) => "object".to_owned(),
+                    },
+                };
 
-        write!(fmt, "could not convert {actual} to {}", self.expected)
+                write!(fmt, "could not convert {actual} to {expected}")
+            }
+            Self::NoConversionFound { from, to } => {
+                write!(fmt, "no conversion found from `{from}` to `{to}`")
+            }
+        }
     }
 }
 
@@ -449,13 +595,13 @@ impl Parameter<'_> {
             }
             (Parameter::Any(Value::Number(number)), ParameterType::I32) => {
                 let number = number.as_i64().ok_or_else(|| {
-                    Report::new(ParameterConversionError {
+                    Report::new(ParameterConversionError::InvalidParameterType {
                         actual: self.to_owned().into(),
                         expected,
                     })
                 })?;
                 *self = Parameter::I32(i32::try_from(number).change_context_lazy(|| {
-                    ParameterConversionError {
+                    ParameterConversionError::InvalidParameterType {
                         actual: self.to_owned().into(),
                         expected: ParameterType::OntologyTypeVersion,
                     }
@@ -463,9 +609,11 @@ impl Parameter<'_> {
             }
             (Parameter::I32(number), ParameterType::OntologyTypeVersion) => {
                 *self = Parameter::OntologyTypeVersion(OntologyTypeVersion::new(
-                    u32::try_from(*number).change_context_lazy(|| ParameterConversionError {
-                        actual: self.to_owned().into(),
-                        expected: ParameterType::OntologyTypeVersion,
+                    u32::try_from(*number).change_context_lazy(|| {
+                        ParameterConversionError::InvalidParameterType {
+                            actual: self.to_owned().into(),
+                            expected: ParameterType::OntologyTypeVersion,
+                        }
                     })?,
                 ));
             }
@@ -477,7 +625,7 @@ impl Parameter<'_> {
             (Parameter::F64(number), ParameterType::Any) => {
                 *self = Parameter::Any(Value::Number(Number::from_f64(*number).ok_or_else(
                     || {
-                        Report::new(ParameterConversionError {
+                        Report::new(ParameterConversionError::InvalidParameterType {
                             actual: self.to_owned().into(),
                             expected,
                         })
@@ -486,7 +634,7 @@ impl Parameter<'_> {
             }
             (Parameter::Any(Value::Number(number)), ParameterType::F64) => {
                 *self = Parameter::F64(number.as_f64().ok_or_else(|| {
-                    Report::new(ParameterConversionError {
+                    Report::new(ParameterConversionError::InvalidParameterType {
                         actual: self.to_owned().into(),
                         expected,
                     })
@@ -510,7 +658,7 @@ impl Parameter<'_> {
             }
             (Parameter::Text(text), ParameterType::Uuid) => {
                 *self = Parameter::Uuid(Uuid::from_str(&*text).change_context_lazy(|| {
-                    ParameterConversionError {
+                    ParameterConversionError::InvalidParameterType {
                         actual: self.to_owned().into(),
                         expected: ParameterType::Uuid,
                     }
@@ -525,7 +673,7 @@ impl Parameter<'_> {
                         .map(|value| {
                             Number::from_f64(f64::from(value))
                                 .ok_or_else(|| {
-                                    Report::new(ParameterConversionError {
+                                    Report::new(ParameterConversionError::InvalidParameterType {
                                         actual: Parameter::Vector(vector.to_owned()).into(),
                                         expected: expected.clone(),
                                     })
@@ -549,7 +697,7 @@ impl Parameter<'_> {
                             value
                                 .as_f64()
                                 .ok_or_else(|| {
-                                    Report::new(ParameterConversionError {
+                                    Report::new(ParameterConversionError::InvalidParameterType {
                                         actual: self.to_owned().into(),
                                         expected: expected.clone(),
                                     })
@@ -562,7 +710,7 @@ impl Parameter<'_> {
 
             // Fallback
             (actual, expected) => {
-                bail!(ParameterConversionError {
+                bail!(ParameterConversionError::InvalidParameterType {
                     actual: actual.to_owned().into(),
                     expected: expected.clone(),
                 });

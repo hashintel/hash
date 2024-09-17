@@ -148,6 +148,7 @@ mod tests {
             }),
             Some(FilterExpression::Parameter {
                 parameter: Parameter::Text(Cow::Borrowed("latest")),
+                convert: None,
             }),
         );
         where_clause.add_condition(compiler.compile_filter(&filter_a));
@@ -166,6 +167,7 @@ mod tests {
                     parameter: Parameter::Text(Cow::Borrowed(
                         "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
                     )),
+                    convert: None,
                 }),
             ),
             Filter::Equal(
@@ -174,6 +176,7 @@ mod tests {
                 }),
                 Some(FilterExpression::Parameter {
                     parameter: Parameter::I32(1),
+                    convert: None,
                 }),
             ),
         ]);
@@ -213,6 +216,7 @@ mod tests {
                 }),
                 Some(FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed("some title")),
+                    convert: None,
                 }),
             ),
             Filter::Equal(
@@ -221,6 +225,7 @@ mod tests {
                 }),
                 Some(FilterExpression::Parameter {
                     parameter: Parameter::Text(Cow::Borrowed("some description")),
+                    convert: None,
                 }),
             ),
         ]);
