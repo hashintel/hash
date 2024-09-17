@@ -31,7 +31,9 @@ use axum::{
 use error_stack::{Report, ResultExt};
 use graph::{
     ontology::{domain_validator::DomainValidator, Selector},
-    store::{error::VersionedUrlAlreadyExists, Store, StorePool, TypeFetcher},
+    store::{
+        error::VersionedUrlAlreadyExists, query::ParameterConversion, Store, StorePool, TypeFetcher,
+    },
     subgraph::{
         edges::{
             EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
@@ -725,7 +727,8 @@ impl Modify for FilterSchemaAddon {
                             ObjectBuilder::new()
                                 .title(Some("ParameterExpression"))
                                 .property("parameter", Any::schema().1)
-                                .required("parameter"),
+                                .required("parameter")
+                                .property("convert", ParameterConversion::schema().1),
                         )
                         .build(),
                 )

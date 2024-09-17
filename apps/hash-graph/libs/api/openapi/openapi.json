@@ -5029,6 +5029,21 @@
               "parameter"
             ],
             "properties": {
+              "convert": {
+                "type": "object",
+                "required": [
+                  "from",
+                  "to"
+                ],
+                "properties": {
+                  "from": {
+                    "$ref": "#/components/schemas/VersionedUrl"
+                  },
+                  "to": {
+                    "$ref": "#/components/schemas/VersionedUrl"
+                  }
+                }
+              },
               "parameter": {}
             }
           }

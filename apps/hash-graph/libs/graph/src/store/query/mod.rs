@@ -10,7 +10,10 @@ use serde::{
 };
 
 pub use self::{
-    filter::{Filter, FilterExpression, Parameter, ParameterConversionError, ParameterList},
+    filter::{
+        Filter, FilterExpression, Parameter, ParameterConversion, ParameterConversionError,
+        ParameterList,
+    },
     path::{JsonPath, PathToken},
 };
 
