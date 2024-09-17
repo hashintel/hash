@@ -6,7 +6,7 @@ use error_stack::{Report, Result};
 /// containing a tuple of the successful values, or an error if any of the results failed.
 ///
 /// The trait is implemented for tuples of up to 16 elements.
-pub trait TupleExt<C> {
+pub trait TryReportTupleExt<C> {
     /// The type of the successful output, typically a tuple of the inner types of the `Result`s.
     type Output;
 
@@ -21,7 +21,7 @@ pub trait TupleExt<C> {
     ///
     /// ```
     /// use error_stack::{Report, Result};
-    /// use error_stack_experimental::TupleExt;
+    /// use error_stack_experimental::TryReportTupleExt;
     ///
     /// #[derive(Debug)]
     /// struct CustomError;
@@ -50,7 +50,7 @@ pub trait TupleExt<C> {
     fn try_collect(self) -> Result<Self::Output, [C]>;
 }
 
-impl<T, R, C> TupleExt<C> for (core::result::Result<T, R>,)
+impl<T, R, C> TryReportTupleExt<C> for (core::result::Result<T, R>,)
 where
     R: Into<Report<[C]>>,
 {
@@ -91,10 +91,10 @@ macro_rules! all_the_tuples {
 macro_rules! impl_ext {
     ($([$type:ident, $output:ident]),+) => {
         #[doc(hidden)]
-        impl<$($type, $output),*, T, R, Context> TupleExt<Context> for ($($type),*, core::result::Result<T, R>)
+        impl<$($type, $output),*, T, R, Context> TryReportTupleExt<Context> for ($($type),*, core::result::Result<T, R>)
         where
             R: Into<Report<[Context]>>,
-            ($($type,)*): TupleExt<Context, Output = ($($output,)*)>,
+            ($($type,)*): TryReportTupleExt<Context, Output = ($($output,)*)>,
         {
             type Output = ($($output),*, T);
 
@@ -126,7 +126,7 @@ mod test {
 
     use error_stack::{Report, Result};
 
-    use super::TupleExt;
+    use super::TryReportTupleExt;
 
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     struct TestError(usize);

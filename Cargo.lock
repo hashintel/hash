@@ -1979,7 +1979,11 @@ name = "error-stack-experimental"
 version = "0.0.0-reserved"
 dependencies = [
  "error-stack 0.5.0",
+ "futures-core",
+ "futures-util",
+ "pin-project-lite",
  "rustc_version",
+ "tokio",
 ]
 
 [[package]]

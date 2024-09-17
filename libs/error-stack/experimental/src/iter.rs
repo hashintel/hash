@@ -85,16 +85,16 @@ where
 ///
 /// This trait provides additional functionality to iterators that yield `Result` items,
 /// allowing them to be collected into a container while propagating any errors encountered.
-pub trait IteratorExt<C> {
+pub trait TryReportIteratorExt<C> {
     /// The type of the successful items in the iterator.
-    type Output;
+    type Ok;
 
     /// Collects the successful items from the iterator into a container, or returns all errors that
     /// occured.
     ///
     /// This method attempts to collect all successful items from the iterator into the specified
-    /// container type. If an error is encountered during iteration, the method immediately returns
-    /// that error, discarding any previously collected items.
+    /// container type. If an error is encountered during iteration, the method will exhaust the
+    /// iterator and return a `Report` containing all errors encountered.
     ///
     /// # Errors
     ///
@@ -106,7 +106,7 @@ pub trait IteratorExt<C> {
     /// ```
     /// use error_stack::{Result, ResultExt, Report};
     /// use std::io;
-    /// use error_stack_experimental::IteratorExt;
+    /// use error_stack_experimental::TryReportIteratorExt;
     ///
     /// fn fetch_fail() -> Result<u8, io::Error> {
     ///    # stringify! {
@@ -123,7 +123,7 @@ pub trait IteratorExt<C> {
     /// ```
     fn try_collect_reports<A>(self) -> Result<A, [C]>
     where
-        A: FromIterator<Self::Output>;
+        A: FromIterator<Self::Ok>;
 
     /// Collects the successful items from the iterator into a container or returns all errors up to
     /// the specified bound.
@@ -142,7 +142,7 @@ pub trait IteratorExt<C> {
     /// ```
     /// use error_stack::{Result, ResultExt, Report};
     /// use std::io;
-    /// use error_stack_experimental::IteratorExt;
+    /// use error_stack_experimental::TryReportIteratorExt;
     ///
     /// fn fetch_fail() -> Result<u8, io::Error> {
     ///    # stringify! {
@@ -159,27 +159,27 @@ pub trait IteratorExt<C> {
     /// ```
     fn try_collect_reports_bounded<A>(self, bound: usize) -> Result<A, [C]>
     where
-        A: FromIterator<Self::Output>;
+        A: FromIterator<Self::Ok>;
 }
 
-impl<T, C, R, I> IteratorExt<C> for I
+impl<T, C, R, I> TryReportIteratorExt<C> for I
 where
     I: Iterator<Item = core::result::Result<T, R>>,
     R: Into<Report<[C]>>,
     C: Context,
 {
-    type Output = T;
+    type Ok = T;
 
     fn try_collect_reports<A>(self) -> Result<A, [C]>
     where
-        A: FromIterator<Self::Output>,
+        A: FromIterator<Self::Ok>,
     {
         try_process_reports(self, None, |shunt| shunt.collect())
     }
 
     fn try_collect_reports_bounded<A>(self, bound: usize) -> Result<A, [C]>
     where
-        A: FromIterator<Self::Output>,
+        A: FromIterator<Self::Ok>,
     {
         try_process_reports(self, Some(bound), |shunt| shunt.collect())
     }
