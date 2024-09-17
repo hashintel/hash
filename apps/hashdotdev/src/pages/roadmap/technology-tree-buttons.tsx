@@ -1,8 +1,10 @@
+import {
+  ArrowDownLeftAndArrowUpRightToCenterIcon,
+  ArrowUpRightAndArrowDownLeftFromCenterIcon,
+} from "@hashintel/design-system";
 import { Box, IconButton, styled } from "@mui/material";
 import type { FunctionComponent } from "react";
 
-import { ArrowDownLeftAndArrowUpRightToCenterIcon } from "../../components/icons/arrow-down-left-and-arrow-up-right-to-center-icon";
-import { ArrowUpRightAndArrowDownLeftFromCenterIcon } from "../../components/icons/arrow-up-right-and-arrow-down-left-from-center-icon";
 import { FilterRegularIcon } from "../../components/icons/filter-regular-icon";
 
 const TechnologyTreeIconButton = styled(IconButton)(({ theme }) => ({

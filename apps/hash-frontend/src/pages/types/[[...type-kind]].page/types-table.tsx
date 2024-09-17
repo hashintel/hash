@@ -243,8 +243,8 @@ export const TypesTable: FunctionComponent<{
                   ? "link-type"
                   : "entity-type"
                 : type.schema.kind === "propertyType"
-                ? "property-type"
-                : "data-type",
+                  ? "property-type"
+                  : "data-type",
             external: isExternal,
             webShortname,
             archived: isTypeArchived(type),
@@ -273,22 +273,22 @@ export const TypesTable: FunctionComponent<{
         ["lastEditedBy", "createdBy"].includes(key);
 
       const value1: string = isActorSort(sort.columnKey)
-        ? a[sort.columnKey]?.displayName ?? ""
+        ? (a[sort.columnKey]?.displayName ?? "")
         : String(a[sort.columnKey]);
 
       const value2: string = isActorSort(sort.columnKey)
-        ? b[sort.columnKey]?.displayName ?? ""
+        ? (b[sort.columnKey]?.displayName ?? "")
         : String(b[sort.columnKey]);
 
       const previousValue1: string | undefined = previousSort
         ? isActorSort(previousSort.columnKey)
-          ? a[previousSort.columnKey]?.displayName ?? ""
+          ? (a[previousSort.columnKey]?.displayName ?? "")
           : String(a[previousSort.columnKey])
         : undefined;
 
       const previousValue2: string | undefined = previousSort?.columnKey
         ? isActorSort(previousSort.columnKey)
-          ? b[previousSort.columnKey]?.displayName ?? ""
+          ? (b[previousSort.columnKey]?.displayName ?? "")
           : String(b[previousSort.columnKey])
         : undefined;
 
@@ -432,6 +432,10 @@ export const TypesTable: FunctionComponent<{
 
   const theme = useTheme();
 
+  const maxTableHeight = `calc(100vh - (${
+    HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + tableHeaderHeight
+  }px + ${theme.spacing(5)}) - ${theme.spacing(5)})`;
+
   const currentlyDisplayedRowsRef = useRef<TypesTableRow[] | null>(null);
 
   return (
@@ -490,9 +494,7 @@ export const TypesTable: FunctionComponent<{
             // define max height if there are lots of rows
             height={`
           min(
-            calc(100vh - (${
-              HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + tableHeaderHeight
-            }px + ${theme.spacing(5)}) - ${theme.spacing(5)}),
+            ${maxTableHeight},
             calc(
               ${gridHeaderHeightWithBorder}px +
               (${
@@ -508,7 +510,11 @@ export const TypesTable: FunctionComponent<{
             freezeColumns={1}
           />
         ) : (
-          <TypesGraph subgraph={null as Subgraph} />
+          <TypesGraph
+            height={maxTableHeight}
+            onTypeClick={setSelectedEntityTypeId}
+            types={types ?? []}
+          />
         )}
       </Box>
     </>
