@@ -106,8 +106,8 @@ macro_rules! impl_ext {
                     (Ok(($($type,)*)), Ok(value)) => Ok(($($type),*, value)),
                     (Err(report), Ok(_)) => Err(report),
                     (Ok(_), Err(report)) => Err(report.into()),
-                    (Err(mut report), Err(residual)) => {
-                        report.append(residual.into());
+                    (Err(mut report), Err(error)) => {
+                        report.append(error.into());
                         Err(report)
                     }
                 }

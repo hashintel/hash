@@ -19,8 +19,8 @@ pin_project! {
         stream: S,
         output: Result<A, [C]>,
 
-        residual_len: usize,
-        residual_bound: usize
+        context_len: usize,
+        context_bound: usize
     }
 }
 
@@ -33,8 +33,8 @@ where
         Self {
             stream,
             output: Ok(Default::default()),
-            residual_len: 0,
-            residual_bound: bound.unwrap_or(usize::MAX),
+            context_len: 0,
+            context_bound: bound.unwrap_or(usize::MAX),
         }
     }
 }
@@ -60,7 +60,7 @@ where
         let mut this = self.project();
 
         let value = loop {
-            if *this.residual_len >= *this.residual_bound {
+            if *this.context_len >= *this.context_bound {
                 break mem::replace(this.output, Ok(A::default()));
             }
 
@@ -73,13 +73,13 @@ where
                     // we're now just consuming the iterator to return all related errors
                     // so we can just ignore the output
                 }
-                (Some(Err(residual)), output @ Ok(_)) => {
-                    *output = Err(residual.into());
-                    *this.residual_len += 1;
+                (Some(Err(error)), output @ Ok(_)) => {
+                    *output = Err(error.into());
+                    *this.context_len += 1;
                 }
-                (Some(Err(residual)), Err(report)) => {
-                    report.append(residual.into());
-                    *this.residual_len += 1;
+                (Some(Err(error)), Err(report)) => {
+                    report.append(error.into());
+                    *this.context_len += 1;
                 }
                 (None, output) => {
                     break mem::replace(output, Ok(A::default()));

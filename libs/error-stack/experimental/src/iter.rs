@@ -5,9 +5,9 @@ use error_stack::{Context, Report, Result};
 struct ReportShunt<'a, I, T, C> {
     iter: I,
 
-    residual: &'a mut Option<Report<[C]>>,
-    residual_len: usize,
-    residual_bound: usize,
+    report: &'a mut Option<Report<[C]>>,
+    context_len: usize,
+    context_bound: usize,
 
     _marker: core::marker::PhantomData<fn() -> *const T>,
 }
@@ -21,34 +21,34 @@ where
 
     fn next(&mut self) -> Option<Self::Item> {
         loop {
-            if self.residual_len >= self.residual_bound {
+            if self.context_len >= self.context_bound {
                 return None;
             }
 
             let item = self.iter.next()?;
             let item = item.map_err(Into::into);
 
-            match (item, self.residual.as_mut()) {
+            match (item, self.report.as_mut()) {
                 (Ok(output), None) => return Some(output),
                 (Ok(_), Some(_)) => {
                     // we're now just consuming the iterator to return all related errors
                     // so we can just ignore the output
                     continue;
                 }
-                (Err(residual), None) => {
-                    *self.residual = Some(residual);
-                    self.residual_len += 1;
+                (Err(error), None) => {
+                    *self.report = Some(error);
+                    self.context_len += 1;
                 }
-                (Err(residual), Some(report)) => {
-                    report.append(residual);
-                    self.residual_len += 1;
+                (Err(error), Some(report)) => {
+                    report.append(error);
+                    self.context_len += 1;
                 }
             }
         }
     }
 
     fn size_hint(&self) -> (usize, Option<usize>) {
-        if self.residual.is_some() {
+        if self.report.is_some() {
             (0, Some(0))
         } else {
             let (_, upper) = self.iter.size_hint();
@@ -68,17 +68,17 @@ where
     R: Into<Report<[C]>>,
     for<'a> F: FnMut(ReportShunt<'a, I, T, C>) -> U,
 {
-    let mut residual = None;
+    let mut report = None;
     let shunt = ReportShunt {
         iter,
-        residual: &mut residual,
-        residual_len: 0,
-        residual_bound: bound.unwrap_or(usize::MAX),
+        report: &mut report,
+        context_len: 0,
+        context_bound: bound.unwrap_or(usize::MAX),
         _marker: core::marker::PhantomData,
     };
 
     let value = collect(shunt);
-    residual.map_or_else(|| Ok(value), |residual| Err(residual))
+    report.map_or_else(|| Ok(value), |report| Err(report))
 }
 
 /// An extension trait for iterators that allows collecting items while handling errors.
