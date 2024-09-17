@@ -6,10 +6,9 @@ use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion, Sampling
 use criterion_macro::criterion;
 use graph::{
     store::{
-        account::{InsertAccountIdParams, InsertWebIdParams},
         knowledge::{CreateEntityParams, GetEntitySubgraphParams},
         query::Filter,
-        AccountStore, EntityQuerySorting, EntityStore,
+        EntityQuerySorting, EntityStore,
     },
     subgraph::{
         edges::{EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth},
@@ -29,6 +28,7 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
+use hash_graph_store::account::{AccountStore, InsertAccountIdParams, InsertWebIdParams};
 use rand::{prelude::IteratorRandom, thread_rng};
 use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;

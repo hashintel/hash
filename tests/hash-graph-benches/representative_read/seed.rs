@@ -2,11 +2,7 @@ use core::{iter::repeat, str::FromStr};
 use std::collections::{hash_map::Entry, HashMap, HashSet};
 
 use authorization::{schema::WebOwnerSubject, AuthorizationApi};
-use graph::store::{
-    account::{InsertAccountIdParams, InsertWebIdParams},
-    knowledge::CreateEntityParams,
-    AccountStore, AsClient, EntityStore,
-};
+use graph::store::{knowledge::CreateEntityParams, AsClient, EntityStore};
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     account::AccountId,
@@ -17,6 +13,7 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
+use hash_graph_store::account::{AccountStore, InsertAccountIdParams, InsertWebIdParams};
 use type_system::{schema::EntityType, url::VersionedUrl};
 use uuid::Uuid;
 

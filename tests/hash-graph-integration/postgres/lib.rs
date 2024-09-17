@@ -41,7 +41,6 @@ use error_stack::Result;
 use graph::{
     load_env,
     store::{
-        account::{InsertAccountIdParams, InsertWebIdParams},
         knowledge::{
             CountEntitiesParams, CreateEntityParams, GetEntitiesParams, GetEntitiesResponse,
             GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams,
@@ -59,9 +58,9 @@ use graph::{
             UpdateDataTypeEmbeddingParams, UpdateDataTypesParams, UpdateEntityTypeEmbeddingParams,
             UpdateEntityTypesParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
         },
-        AccountStore, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo, DatabasePoolConfig,
-        DatabaseType, EntityStore, EntityTypeStore, InsertionError, PostgresStore,
-        PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
+        ConflictBehavior, DataTypeStore, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType,
+        EntityStore, EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool,
+        PropertyTypeStore, QueryError, StorePool, UpdateError,
     },
     Environment,
 };
@@ -75,6 +74,7 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
+use hash_graph_store::account::{AccountStore, InsertAccountIdParams, InsertWebIdParams};
 use hash_tracing::logging::env_filter;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use tokio_postgres::{NoTls, Transaction};

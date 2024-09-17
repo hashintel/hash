@@ -31,7 +31,7 @@ use graph::{
             QueryConversion, UpdateEntityEmbeddingsParams, ValidateEntityParams,
         },
         query::Filter,
-        AccountStore, EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
+        EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
         EntityValidationType, NullOrdering, Ordering, StorePool,
     },
     subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
@@ -58,6 +58,7 @@ use graph_types::{
     owned_by_id::OwnedById,
     Embedding,
 };
+use hash_graph_store::account::AccountStore;
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use type_system::url::VersionedUrl;
