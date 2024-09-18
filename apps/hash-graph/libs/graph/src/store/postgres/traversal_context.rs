@@ -9,18 +9,17 @@ use graph_types::{
         PropertyTypeWithMetadata,
     },
 };
+use hash_graph_store::{
+    data_type::DataTypeQueryPath,
+    entity::EntityQueryPath,
+    entity_type::EntityTypeQueryPath,
+    filter::{Filter, FilterExpression, ParameterList},
+    property_type::PropertyTypeQueryPath,
+    subgraph::{edges::GraphResolveDepths, temporal_axes::VariableAxis, Subgraph, SubgraphRecord},
+};
 use temporal_versioning::RightBoundedTemporalInterval;
 
-use crate::{
-    knowledge::EntityQueryPath,
-    ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
-    store::{
-        crud::Read,
-        query::{Filter, FilterExpression, ParameterList},
-        AsClient, PostgresStore, QueryError, SubgraphRecord,
-    },
-    subgraph::{edges::GraphResolveDepths, temporal_axes::VariableAxis, Subgraph},
-};
+use crate::store::{crud::Read, AsClient, PostgresStore, QueryError};
 
 impl<C, A> PostgresStore<C, A>
 where

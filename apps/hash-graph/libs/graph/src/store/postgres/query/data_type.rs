@@ -1,16 +1,17 @@
 use core::iter::once;
 
-use crate::{
-    ontology::DataTypeQueryPath,
-    store::postgres::query::{
-        table::{
-            Column, DataTypeConversionAggregation, DataTypeEmbeddings, DataTypes, JsonField,
-            OntologyAdditionalMetadata, OntologyIds, OntologyOwnedMetadata,
-            OntologyTemporalMetadata, ReferenceTable, Relation,
-        },
-        PostgresQueryPath,
-    },
+use hash_graph_store::{
+    data_type::DataTypeQueryPath,
     subgraph::edges::{EdgeDirection, OntologyEdgeKind},
+};
+
+use crate::store::postgres::query::{
+    table::{
+        Column, DataTypeConversionAggregation, DataTypeEmbeddings, DataTypes, JsonField,
+        OntologyAdditionalMetadata, OntologyIds, OntologyOwnedMetadata, OntologyTemporalMetadata,
+        ReferenceTable, Relation,
+    },
+    PostgresQueryPath,
 };
 
 impl PostgresQueryPath for DataTypeQueryPath<'_> {

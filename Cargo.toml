@@ -56,6 +56,7 @@ graph.path = "apps/hash-graph/libs/graph"
 harpc-net.path = "libs/@local/harpc/net"
 harpc-types.path = "libs/@local/harpc/types"
 harpc-wire-protocol.path = "libs/@local/harpc/wire-protocol"
+hash-graph-store.path = "apps/hash-graph/libs/store"
 hash-status.path = "libs/@local/status/rust"
 hash-tracing.path = "libs/@local/tracing"
 hql-cst.path = "libs/@local/hql/cst"
@@ -136,13 +137,13 @@ approx = { version = "=0.5.1", default-features = false }
 async-scoped = { version = "=0.9.0", default-features = false }
 async-trait = { version = "=0.1.82", default-features = false }
 aws-config = { version = "=1.5.6" }
-aws-sdk-s3 = { version = "=1.49.0", default-features = false }
+aws-sdk-s3 = { version = "=1.50.0", default-features = false }
 base64 = { version = "=0.22.1", default-features = false }
 bitvec = { version = "=1.0.1", default-features = false }
 bytes-utils = { version = "=0.1.4", default-features = false }
 chrono = { version = "=0.4.38", default-features = false }
 clap = { version = "=4.5.17", features = ["std", "color", "help", "usage", "error-context", "suggestions"] }
-clap_complete = { version = "=4.5.26", default-features = false }
+clap_complete = { version = "=4.5.28", default-features = false }
 coverage-helper = { version = "=0.2.2", default-features = false }
 criterion-macro = { version = "=0.4.0", default-features = false }
 derive-where = { version = "=1.2.7", default-features = false, features = ["nightly"] }

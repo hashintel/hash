@@ -4,7 +4,7 @@ use crate::store::postgres::query::{Expression, Transpile};
 
 /// A [`Filter`], which can be transpiled.
 ///
-/// [`Filter`]: crate::store::query::Filter
+/// [`Filter`]: hash_graph_store::filter::Filter
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Condition {
     All(Vec<Self>),
@@ -150,15 +150,13 @@ mod tests {
     use alloc::borrow::Cow;
 
     use graph_types::ontology::DataTypeWithMetadata;
+    use hash_graph_store::{
+        data_type::DataTypeQueryPath,
+        filter::{Filter, FilterExpression, Parameter},
+    };
     use postgres_types::ToSql;
 
-    use crate::{
-        ontology::DataTypeQueryPath,
-        store::{
-            postgres::query::{SelectCompiler, Transpile},
-            query::{Filter, FilterExpression, Parameter},
-        },
-    };
+    use crate::store::postgres::query::{SelectCompiler, Transpile};
 
     fn test_condition<'p, 'f: 'p>(
         filter: &'f Filter<'p, DataTypeWithMetadata>,

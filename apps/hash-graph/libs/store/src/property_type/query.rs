@@ -8,10 +8,9 @@ use serde::{
 use utoipa::ToSchema;
 
 use crate::{
-    ontology::{
-        data_type::DataTypeQueryPathVisitor, DataTypeQueryPath, EntityTypeQueryPath, Selector,
-    },
-    store::query::{JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath},
+    data_type::{DataTypeQueryPath, DataTypeQueryPathVisitor},
+    entity_type::EntityTypeQueryPath,
+    filter::{JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath, Selector},
     subgraph::edges::{EdgeDirection, OntologyEdgeKind},
 };
 
@@ -25,7 +24,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// # use hash_graph_store::property_type::PropertyTypeQueryPath;
     /// let path = PropertyTypeQueryPath::deserialize(json!(["baseUrl"]))?;
     /// assert_eq!(path, PropertyTypeQueryPath::BaseUrl);
     /// # Ok::<(), serde_json::Error>(())
@@ -39,7 +38,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// # use hash_graph_store::property_type::PropertyTypeQueryPath;
     /// let path = PropertyTypeQueryPath::deserialize(json!(["version"]))?;
     /// assert_eq!(path, PropertyTypeQueryPath::Version);
     /// # Ok::<(), serde_json::Error>(())
@@ -56,7 +55,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// # use hash_graph_store::property_type::PropertyTypeQueryPath;
     /// let path = PropertyTypeQueryPath::deserialize(json!(["versionedUrl"]))?;
     /// assert_eq!(path, PropertyTypeQueryPath::VersionedUrl);
     /// # Ok::<(), serde_json::Error>(())
@@ -77,7 +76,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// # use hash_graph_store::property_type::PropertyTypeQueryPath;
     /// let path = PropertyTypeQueryPath::deserialize(json!(["ownedById"]))?;
     /// assert_eq!(path, PropertyTypeQueryPath::OwnedById);
     /// # Ok::<(), serde_json::Error>(())
@@ -94,7 +93,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// # use hash_graph_store::property_type::PropertyTypeQueryPath;
     /// let path = PropertyTypeQueryPath::deserialize(json!(["title"]))?;
     /// assert_eq!(path, PropertyTypeQueryPath::Title);
     /// # Ok::<(), serde_json::Error>(())
@@ -107,7 +106,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// # use hash_graph_store::property_type::PropertyTypeQueryPath;
     /// let path = PropertyTypeQueryPath::deserialize(json!(["description"]))?;
     /// assert_eq!(path, PropertyTypeQueryPath::Description);
     /// # Ok::<(), serde_json::Error>(())
@@ -134,8 +133,8 @@ pub enum PropertyTypeQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::{DataTypeQueryPath, PropertyTypeQueryPath};
-    /// # use graph::subgraph::edges::OntologyEdgeKind;
+    /// # use hash_graph_store::{data_type::DataTypeQueryPath, property_type::PropertyTypeQueryPath};
+    /// # use hash_graph_store::subgraph::edges::OntologyEdgeKind;
     /// let path = PropertyTypeQueryPath::deserialize(json!(["dataTypes", "*", "title"]))?;
     /// assert_eq!(
     ///     path,
@@ -168,8 +167,8 @@ pub enum PropertyTypeQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::PropertyTypeQueryPath;
-    /// # use graph::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
+    /// # use hash_graph_store::property_type::PropertyTypeQueryPath;
+    /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path = PropertyTypeQueryPath::deserialize(json!(["propertyTypes", "*", "title"]))?;
     /// assert_eq!(
     ///     path,
@@ -222,7 +221,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// # use hash_graph_store::property_type::PropertyTypeQueryPath;
     /// let path = PropertyTypeQueryPath::deserialize(json!(["editionProvenance", "createdById"]))?;
     /// assert_eq!(path.to_string(), r#"editionProvenance.$."createdById""#);
     /// # Ok::<(), serde_json::Error>(())
@@ -235,7 +234,7 @@ pub enum PropertyTypeQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::PropertyTypeQueryPath;
+    /// # use hash_graph_store::property_type::PropertyTypeQueryPath;
     /// let path = PropertyTypeQueryPath::deserialize(json!(["embedding"]))?;
     /// assert_eq!(path, PropertyTypeQueryPath::Embedding);
     /// # Ok::<(), serde_json::Error>(())
@@ -341,18 +340,18 @@ pub enum PropertyTypeQueryToken {
 }
 
 /// Deserializes a [`PropertyTypeQueryPath`] from a string sequence.
-pub struct PropertyTypeQueryPathVisitor {
+pub(crate) struct PropertyTypeQueryPathVisitor {
     /// The current position in the sequence when deserializing.
     position: usize,
 }
 
 impl PropertyTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str =
+    pub(crate) const EXPECTING: &'static str =
         "one of `baseUrl`, `version`, `versionedUrl`, `ownedById`, `title`, `description`, \
          `editionProvenance`, `dataTypes`, `propertyTypes`, `embedding`";
 
     #[must_use]
-    pub const fn new(position: usize) -> Self {
+    pub(crate) const fn new(position: usize) -> Self {
         Self { position }
     }
 }
@@ -492,6 +491,7 @@ mod tests {
     use core::iter::once;
 
     use super::*;
+    use crate::data_type::DataTypeQueryPathVisitor;
 
     fn deserialize<'p>(segments: impl IntoIterator<Item = &'p str>) -> PropertyTypeQueryPath<'p> {
         PropertyTypeQueryPath::deserialize(de::value::SeqDeserializer::<_, de::value::Error>::new(

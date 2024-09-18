@@ -123,16 +123,14 @@ mod tests {
     use alloc::borrow::Cow;
 
     use graph_types::ontology::DataTypeWithMetadata;
-
-    use super::*;
-    use crate::{
-        ontology::DataTypeQueryPath,
-        store::{
-            postgres::query::{test_helper::trim_whitespace, SelectCompiler},
-            query::{Filter, FilterExpression, Parameter},
-        },
+    use hash_graph_store::{
+        data_type::DataTypeQueryPath,
+        filter::{Filter, FilterExpression, Parameter},
         subgraph::temporal_axes::QueryTemporalAxesUnresolved,
     };
+
+    use super::*;
+    use crate::store::postgres::query::{test_helper::trim_whitespace, SelectCompiler};
 
     #[test]
     #[expect(clippy::too_many_lines)]

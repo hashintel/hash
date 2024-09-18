@@ -24,6 +24,19 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
+use hash_graph_store::{
+    account::{
+        AccountGroupInsertionError, AccountInsertionError, AccountStore,
+        InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams, QueryWebError,
+        WebInsertionError,
+    },
+    filter::{Filter, QueryRecord},
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
+        VariableTemporalAxisUnresolved,
+    },
+    ConflictBehavior,
+};
 use tarpc::context;
 use temporal_client::TemporalClient;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
@@ -37,7 +50,6 @@ use type_system::{
 use crate::{
     ontology::domain_validator::DomainValidator,
     store::{
-        account::{InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams},
         crud::{QueryResult, Read, ReadPaginated, Sorting},
         knowledge::{
             CountEntitiesParams, CreateEntityParams, GetEntitiesParams, GetEntitiesResponse,
@@ -56,14 +68,8 @@ use crate::{
             UpdateDataTypeEmbeddingParams, UpdateDataTypesParams, UpdateEntityTypeEmbeddingParams,
             UpdateEntityTypesParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
         },
-        query::Filter,
-        AccountStore, ConflictBehavior, DataTypeStore, EntityStore, EntityTypeStore,
-        InsertionError, PropertyTypeStore, QueryError, QueryRecord, StoreError, StorePool,
-        UpdateError,
-    },
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
-        VariableTemporalAxisUnresolved,
+        DataTypeStore, EntityStore, EntityTypeStore, InsertionError, PropertyTypeStore, QueryError,
+        StoreError, StorePool, UpdateError,
     },
 };
 
@@ -769,7 +775,6 @@ where
     }
 }
 
-#[async_trait]
 impl<S, A> AccountStore for FetchingStore<S, A>
 where
     S: AccountStore + Send + Sync,
@@ -779,7 +784,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: InsertAccountIdParams,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<(), AccountInsertionError> {
         self.store.insert_account_id(actor_id, params).await
     }
 
@@ -787,7 +792,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: InsertAccountGroupIdParams,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<(), AccountGroupInsertionError> {
         self.store.insert_account_group_id(actor_id, params).await
     }
 
@@ -795,14 +800,14 @@ where
         &mut self,
         actor_id: AccountId,
         params: InsertWebIdParams,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<(), WebInsertionError> {
         self.store.insert_web_id(actor_id, params).await
     }
 
     async fn identify_owned_by_id(
         &self,
         owned_by_id: OwnedById,
-    ) -> Result<WebOwnerSubject, QueryError> {
+    ) -> Result<WebOwnerSubject, QueryWebError> {
         self.store.identify_owned_by_id(owned_by_id).await
     }
 }

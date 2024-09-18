@@ -24,7 +24,7 @@ use error_stack::{Report, ResultExt};
 use graph::{
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, EntityTypeQueryToken,
+        patch_id_and_parse,
     },
     store::{
         error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
@@ -33,9 +33,8 @@ use graph::{
             GetEntityTypesParams, GetEntityTypesResponse, UnarchiveEntityTypeParams,
             UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
         },
-        ConflictBehavior, EntityTypeStore, StorePool,
+        EntityTypeStore, StorePool,
     },
-    subgraph::identifier::EntityTypeVertexId,
 };
 use graph_type_defs::error::{ErrorInfo, Status, StatusPayloads};
 use graph_types::{
@@ -46,6 +45,9 @@ use graph_types::{
         OntologyTypeReference, ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
+};
+use hash_graph_store::{
+    entity_type::EntityTypeQueryToken, subgraph::identifier::EntityTypeVertexId, ConflictBehavior,
 };
 use hash_map::HashMap;
 use serde::{Deserialize, Serialize};

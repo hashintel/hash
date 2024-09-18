@@ -1,0 +1,41 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "hash-graph-store"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Public workspace dependencies
+authorization = { workspace = true, public = true }
+error-stack = { workspace = true }
+graph-types = { workspace = true }
+
+# Public third-party dependencies
+utoipa = { workspace = true, public = true, optional = true }
+postgres-types = { workspace = true, public = true, optional = true, features = ["derive", "with-serde_json-1"] }
+
+# Private workspace dependencies
+temporal-versioning = { workspace = true }
+type-system = { workspace = true }
+
+# Private third-party dependencies
+bytes = { workspace = true, optional = true }
+derive-where = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+uuid = { workspace = true, features = ["v4"] }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros"] }
+
+[features]
+utoipa = ["dep:utoipa", "temporal-versioning/utoipa"]
+postgres = ["dep:postgres-types", "dep:bytes"]
+
+[lints]
+workspace = true

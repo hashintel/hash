@@ -21,20 +21,15 @@ use axum::{
     Extension, Router,
 };
 use error_stack::{Report, ResultExt};
-use graph::{
-    knowledge::{EntityQueryPath, EntityQuerySortingToken, EntityQueryToken},
-    store::{
-        error::{EntityDoesNotExist, RaceConditionOnUpdate},
-        knowledge::{
-            CountEntitiesParams, CreateEntityRequest, DiffEntityParams, DiffEntityResult,
-            GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams, PatchEntityParams,
-            QueryConversion, UpdateEntityEmbeddingsParams, ValidateEntityParams,
-        },
-        query::Filter,
-        AccountStore, EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
-        EntityValidationType, NullOrdering, Ordering, StorePool,
+use graph::store::{
+    error::{EntityDoesNotExist, RaceConditionOnUpdate},
+    knowledge::{
+        CountEntitiesParams, CreateEntityRequest, DiffEntityParams, DiffEntityResult,
+        GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams, PatchEntityParams,
+        QueryConversion, UpdateEntityEmbeddingsParams, ValidateEntityParams,
     },
-    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
+    EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
+    EntityValidationType, NullOrdering, Ordering, StorePool,
 };
 use graph_types::{
     account::{CreatedById, EditionCreatedById},
@@ -57,6 +52,12 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
     Embedding,
+};
+use hash_graph_store::{
+    account::AccountStore,
+    entity::{EntityQueryPath, EntityQuerySortingToken, EntityQueryToken},
+    filter::Filter,
+    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;

@@ -10,7 +10,6 @@ use alloc::sync::Arc;
 use core::{fmt::Debug, hash::Hash};
 use std::collections::HashMap;
 
-use async_trait::async_trait;
 use authorization::{
     backend::ModifyRelationshipOperation,
     schema::{
@@ -28,6 +27,14 @@ use graph_types::{
         OntologyTypeClassificationMetadata, OntologyTypeRecordId,
     },
     owned_by_id::OwnedById,
+};
+use hash_graph_store::{
+    account::{
+        AccountGroupInsertionError, AccountInsertionError, AccountStore,
+        InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams, QueryWebError,
+        WebInsertionError,
+    },
+    ConflictBehavior,
 };
 use postgres_types::Json;
 use temporal_client::TemporalClient;
@@ -50,13 +57,11 @@ pub use self::{
     traversal_context::TraversalContext,
 };
 use crate::store::{
-    account::{InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams},
     error::{
         DeletionError, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
         VersionedUrlAlreadyExists,
     },
-    AccountStore, BaseUrlAlreadyExists, ConflictBehavior, InsertionError, QueryError, StoreError,
-    UpdateError,
+    BaseUrlAlreadyExists, InsertionError, QueryError, StoreError, UpdateError,
 };
 
 /// A Postgres-backed store
@@ -1025,21 +1030,20 @@ where
     }
 }
 
-#[async_trait]
 impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn insert_account_id(
         &mut self,
-        _actor_id: AccountId,
+        actor_id: AccountId,
         params: InsertAccountIdParams,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<(), AccountInsertionError> {
         self.as_client()
             .query(
                 "INSERT INTO accounts (account_id) VALUES ($1);",
                 &[&params.account_id],
             )
             .await
-            .change_context(InsertionError)
+            .change_context(AccountInsertionError)
             .attach_printable(params.account_id)?;
         Ok(())
     }
@@ -1049,8 +1053,11 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
         &mut self,
         actor_id: AccountId,
         params: InsertAccountGroupIdParams,
-    ) -> Result<(), InsertionError> {
-        let transaction = self.transaction().await.change_context(InsertionError)?;
+    ) -> Result<(), AccountGroupInsertionError> {
+        let transaction = self
+            .transaction()
+            .await
+            .change_context(AccountGroupInsertionError)?;
 
         transaction
             .as_client()
@@ -1059,7 +1066,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                 &[&params.account_group_id],
             )
             .await
-            .change_context(InsertionError)
+            .change_context(AccountGroupInsertionError)
             .attach_printable(params.account_group_id)?;
 
         transaction
@@ -1073,9 +1080,13 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                 },
             )])
             .await
-            .change_context(InsertionError)?;
+            .change_context(AccountGroupInsertionError)?;
 
-        if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
+        if let Err(mut error) = transaction
+            .commit()
+            .await
+            .change_context(AccountGroupInsertionError)
+        {
             if let Err(auth_error) = self
                 .authorization_api
                 .modify_account_group_relations([(
@@ -1087,7 +1098,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                     },
                 )])
                 .await
-                .change_context(InsertionError)
+                .change_context(AccountGroupInsertionError)
             {
                 // TODO: Use `add_child`
                 //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
@@ -1103,10 +1114,10 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn insert_web_id(
         &mut self,
-        _actor_id: AccountId,
+        actor_id: AccountId,
         params: InsertWebIdParams,
-    ) -> Result<(), InsertionError> {
-        let transaction = self.transaction().await.change_context(InsertionError)?;
+    ) -> Result<(), WebInsertionError> {
+        let transaction = self.transaction().await.change_context(WebInsertionError)?;
 
         transaction
             .as_client()
@@ -1115,7 +1126,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                 &[&params.owned_by_id],
             )
             .await
-            .change_context(InsertionError)
+            .change_context(WebInsertionError)
             .attach_printable(params.owned_by_id)?;
 
         let mut relationships = vec![
@@ -1171,9 +1182,9 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                     }),
             )
             .await
-            .change_context(InsertionError)?;
+            .change_context(WebInsertionError)?;
 
-        if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
+        if let Err(mut error) = transaction.commit().await.change_context(WebInsertionError) {
             if let Err(auth_error) = self
                 .authorization_api
                 .modify_web_relations(relationships.into_iter().map(|relation_and_subject| {
@@ -1184,7 +1195,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                     )
                 }))
                 .await
-                .change_context(InsertionError)
+                .change_context(WebInsertionError)
             {
                 // TODO: Use `add_child`
                 //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
@@ -1201,7 +1212,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
     async fn identify_owned_by_id(
         &self,
         owned_by_id: OwnedById,
-    ) -> Result<WebOwnerSubject, QueryError> {
+    ) -> Result<WebOwnerSubject, QueryWebError> {
         let row = self
             .as_client()
             .query_one(
@@ -1219,10 +1230,10 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                 &[&owned_by_id],
             )
             .await
-            .change_context(QueryError)?;
+            .change_context(QueryWebError)?;
 
         match (row.get(0), row.get(1)) {
-            (false, false) => Err(Report::new(QueryError)
+            (false, false) => Err(Report::new(QueryWebError)
                 .attach_printable("Record does not exist")
                 .attach_printable(owned_by_id)),
             (true, false) => Ok(WebOwnerSubject::Account {
@@ -1231,7 +1242,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
             (false, true) => Ok(WebOwnerSubject::AccountGroup {
                 id: AccountGroupId::new(owned_by_id.into_uuid()),
             }),
-            (true, true) => Err(Report::new(QueryError)
+            (true, true) => Err(Report::new(QueryWebError)
                 .attach_printable("Record exists in both accounts and account_groups")
                 .attach_printable(owned_by_id)),
         }

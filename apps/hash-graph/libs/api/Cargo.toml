@@ -18,6 +18,7 @@ path = "src/bin/openapi-spec-generator.rs"
 authorization = { workspace = true, public = true }
 graph = { workspace = true, public = true, features = ["utoipa"] }
 graph-types = { workspace = true, public = true, features = ["utoipa"] }
+hash-graph-store = { workspace = true, features = ["utoipa"] }
 temporal-client = { workspace = true, public = true }
 
 # Public third-party dependencies

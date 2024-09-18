@@ -22,7 +22,7 @@ use error_stack::{Report, ResultExt};
 use graph::{
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, DataTypeQueryToken,
+        patch_id_and_parse,
     },
     store::{
         error::VersionedUrlAlreadyExists,
@@ -31,10 +31,8 @@ use graph::{
             GetDataTypesParams, GetDataTypesResponse, UnarchiveDataTypeParams,
             UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
         },
-        BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore, OntologyVersionDoesNotExist,
-        StorePool,
+        BaseUrlAlreadyExists, DataTypeStore, OntologyVersionDoesNotExist, StorePool,
     },
-    subgraph::identifier::DataTypeVertexId,
 };
 use graph_types::{
     ontology::{
@@ -43,6 +41,9 @@ use graph_types::{
         ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
+};
+use hash_graph_store::{
+    data_type::DataTypeQueryToken, subgraph::identifier::DataTypeVertexId, ConflictBehavior,
 };
 use hash_status::Status;
 use serde::{Deserialize, Serialize};
