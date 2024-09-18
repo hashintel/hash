@@ -2331,6 +2331,7 @@ dependencies = [
  "futures",
  "futures-sink",
  "graph-types",
+ "hash-graph-store",
  "hash-status",
  "postgres-types",
  "refinery",
@@ -2365,6 +2366,7 @@ dependencies = [
  "graph",
  "graph-type-defs",
  "graph-types",
+ "hash-graph-store",
  "hash-status",
  "http 1.1.0",
  "hyper 1.4.1",
@@ -2397,6 +2399,7 @@ dependencies = [
  "graph",
  "graph-test-data",
  "graph-types",
+ "hash-graph-store",
  "rand",
  "repo-chores",
  "serde_json",
@@ -2419,6 +2422,7 @@ dependencies = [
  "graph",
  "graph-test-data",
  "graph-types",
+ "hash-graph-store",
  "hash-tracing",
  "pretty_assertions",
  "serde_json",
@@ -2605,6 +2609,19 @@ dependencies = [
  "tracing",
  "type-fetcher",
  "validation",
+]
+
+[[package]]
+name = "hash-graph-store"
+version = "0.0.0"
+dependencies = [
+ "authorization",
+ "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "graph-types",
+ "serde",
+ "thiserror",
+ "utoipa",
+ "uuid",
 ]
 
 [[package]]

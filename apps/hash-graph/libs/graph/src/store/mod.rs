@@ -2,7 +2,6 @@ pub mod crud;
 pub mod error;
 pub mod query;
 
-pub mod account;
 mod config;
 pub mod knowledge;
 mod migration;
@@ -15,12 +14,12 @@ mod fetcher;
 pub(crate) mod postgres;
 
 use async_trait::async_trait;
+use hash_graph_store::account::AccountStore;
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
 pub use self::{
-    account::AccountStore,
     config::{DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType},
     error::{
         BaseUrlAlreadyExists, InsertionError, OntologyVersionDoesNotExist, QueryError, StoreError,

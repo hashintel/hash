@@ -1,0 +1,35 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "hash-graph-store"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Public workspace dependencies
+authorization = { workspace = true, public = true }
+error-stack = { workspace = true }
+graph-types = { workspace = true }
+
+# Public third-party dependencies
+utoipa = { workspace = true, public = true, optional = true }
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+serde = { workspace = true, features = ["derive"] }
+thiserror = { workspace = true }
+uuid = { workspace = true, features = ["v4"] }
+
+[features]
+utoipa = [
+    "dep:utoipa",
+    "graph-types/utoipa",
+    "authorization/utoipa",
+]
+
+[lints]
+workspace = true
