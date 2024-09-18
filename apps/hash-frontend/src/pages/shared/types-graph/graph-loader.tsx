@@ -9,8 +9,11 @@ import { useTheme } from "@mui/material";
 import { useLoadGraph, useRegisterEvents, useSigma } from "@react-sigma/core";
 import { MultiDirectedGraph } from "graphology";
 import { useEffect, useRef } from "react";
+import type { SigmaNodeEventPayload } from "sigma/types";
 
 import { useEntityTypesContextRequired } from "../../../shared/entity-types-context/hooks/use-entity-types-context-required";
+import { useDefaultSettings } from "./shared/settings";
+import type { GraphState } from "./shared/state";
 import { useLayout } from "./use-layout";
 
 export type TypesGraphProps = {
@@ -21,11 +24,6 @@ export type TypesGraphProps = {
     | EntityTypeWithMetadata
     | PropertyTypeWithMetadata
   )[];
-};
-
-type GraphState = {
-  hoveredNodeId: string | null;
-  hoveredNeighborIds: Set<string> | null;
 };
 
 export const GraphLoader = ({
@@ -47,103 +45,70 @@ export const GraphLoader = ({
   const graphState = useRef<GraphState>({
     hoveredNodeId: null,
     hoveredNeighborIds: null,
+    selectedNodeId: null,
   });
 
+  useDefaultSettings(graphState.current);
+
   useEffect(() => {
+    const highlightNode = (event: SigmaNodeEventPayload) => {
+      graphState.current.hoveredNodeId = event.node;
+
+      const getNeighbors = (
+        nodeId: string,
+        neighborIds: Set<string> = new Set(),
+        depth = 1,
+      ) => {
+        if (depth > highlightDepth) {
+          return neighborIds;
+        }
+
+        const directNeighbors = sigma.getGraph().neighbors(nodeId);
+
+        for (const neighbor of directNeighbors) {
+          neighborIds.add(neighbor);
+          getNeighbors(neighbor, neighborIds, depth + 1);
+        }
+
+        return neighborIds;
+      };
+
+      graphState.current.hoveredNeighborIds = getNeighbors(event.node);
+
+      sigma.refresh({ skipIndexation: true });
+    };
+
+    const removeHighlights = () => {
+      graphState.current.hoveredNodeId = null;
+      graphState.current.hoveredNeighborIds = null;
+      sigma.refresh({ skipIndexation: true });
+    };
+
     registerEvents({
       clickNode: (event) => {
         onTypeClick(event.node.split("~")[0]! as VersionedUrl);
+        graphState.current.selectedNodeId = event.node;
+        highlightNode(event);
+      },
+      clickStage: () => {
+        if (!graphState.current.selectedNodeId) {
+          return;
+        }
+        graphState.current.selectedNodeId = null;
+        removeHighlights();
       },
       enterNode: (event) => {
-        graphState.current.hoveredNodeId = event.node;
-
-        const getNeighbors = (
-          nodeId: string,
-          neighborIds: Set<string> = new Set(),
-          depth = 1,
-        ) => {
-          if (depth > highlightDepth) {
-            return neighborIds;
-          }
-
-          const directNeighbors = sigma.getGraph().neighbors(nodeId);
-
-          for (const neighbor of directNeighbors) {
-            neighborIds.add(neighbor);
-            getNeighbors(neighbor, neighborIds, depth + 1);
-          }
-
-          return neighborIds;
-        };
-
-        graphState.current.hoveredNeighborIds = getNeighbors(event.node);
-
-        sigma.refresh({ skipIndexation: true });
+        graphState.current.selectedNodeId = null;
+        highlightNode(event);
       },
       leaveNode: () => {
-        graphState.current.hoveredNodeId = null;
-        graphState.current.hoveredNeighborIds = null;
-        sigma.refresh({ skipIndexation: true });
+        if (graphState.current.selectedNodeId) {
+          return;
+        }
+        removeHighlights();
       },
     });
   }, [highlightDepth, onTypeClick, registerEvents, sigma]);
-
-  useEffect(() => {
-    sigma.setSetting("nodeReducer", (node, data) => {
-      const nodeData = { ...data };
-
-      const state = graphState.current;
-
-      if (!state.hoveredNodeId || !state.hoveredNeighborIds) {
-        return nodeData;
-      }
-
-      if (state.hoveredNodeId !== node && !state.hoveredNeighborIds.has(node)) {
-        nodeData.color = palette.gray[30];
-        nodeData.label = "";
-      } else {
-        nodeData.forceLabel = true;
-      }
-
-      return nodeData;
-    });
-
-    sigma.setSetting("edgeReducer", (edge, data) => {
-      const edgeData = { ...data };
-
-      const state = graphState.current;
-
-      if (!state.hoveredNodeId || !state.hoveredNeighborIds) {
-        return edgeData;
-      }
-
-      const activeIds = [...state.hoveredNodeId, ...state.hoveredNeighborIds];
-
-      let targetIsShown = false;
-      let sourceIsShown = false;
-
-      const graph = sigma.getGraph();
-      const source = graph.source(edge);
-      const target = graph.target(edge);
-
-      for (const id of activeIds) {
-        if (source === id) {
-          sourceIsShown = true;
-        }
-        if (target === id) {
-          targetIsShown = true;
-        }
-
-        if (sourceIsShown && targetIsShown) {
-          break;
-        }
-      }
-
-      edgeData.hidden = !(sourceIsShown && targetIsShown);
-
-      return edgeData;
-    });
-  }, [palette, sigma]);
 
   useEffect(() => {
     const graph = new MultiDirectedGraph();
@@ -160,7 +125,7 @@ export const GraphLoader = ({
       x: 0,
       y: 0,
       label: "Anything",
-      size: 15,
+      size: 18,
     };
     const anythingNodeId = "anything";
 
@@ -184,7 +149,7 @@ export const GraphLoader = ({
         x: addedNodeIds.size % 20,
         y: Math.floor(addedNodeIds.size / 20),
         label: schema.title,
-        size: 10,
+        size: 14,
       });
       addedNodeIds.add(entityTypeId);
 
@@ -211,7 +176,7 @@ export const GraphLoader = ({
             x: addedNodeIds.size % 20,
             y: Math.floor(addedNodeIds.size / 20),
             label: linkSchema.title,
-            size: 10,
+            size: 12,
           });
           addedNodeIds.add(linkNodeId);
 

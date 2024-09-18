@@ -3,20 +3,15 @@ import {
   ArrowUpRightAndArrowDownLeftFromCenterIcon,
   IconButton,
 } from "@hashintel/design-system";
-import type { FullScreenHandle } from "react-full-screen";
 
-import { useLayout } from "./use-layout";
+import { useFullScreen } from "./shared/full-screen";
 
-export const FullScreenButton = ({ handle }: { handle: FullScreenHandle }) => {
-  const layout = useLayout();
+export const FullScreenButton = () => {
+  const { isFullScreen, toggleFullScreen } = useFullScreen();
 
   return (
     <IconButton
-      onClick={() => {
-        void (handle.active ? handle.exit : handle.enter)().then(() =>
-          layout(),
-        );
-      }}
+      onClick={toggleFullScreen}
       sx={({ palette }) => ({
         background: palette.common.white,
         borderColor: palette.gray[30],
@@ -29,7 +24,7 @@ export const FullScreenButton = ({ handle }: { handle: FullScreenHandle }) => {
         transition: "none",
       })}
     >
-      {handle.active ? (
+      {isFullScreen ? (
         <ArrowDownLeftAndArrowUpRightToCenterIcon />
       ) : (
         <ArrowUpRightAndArrowDownLeftFromCenterIcon />

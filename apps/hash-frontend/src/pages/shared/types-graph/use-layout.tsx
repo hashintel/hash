@@ -10,7 +10,13 @@ export const useLayout = () => {
 
     const settings = forceAtlas2.inferSettings(graph);
 
-    forceAtlas2.assign(sigma.getGraph(), { iterations: 20, settings });
+    forceAtlas2.assign(sigma.getGraph(), {
+      iterations: 20,
+      settings: {
+        ...settings,
+        gravity: 1,
+      },
+    });
   }, [sigma]);
 
   return layout;
