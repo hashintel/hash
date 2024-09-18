@@ -1,26 +1,18 @@
 use alloc::borrow::Cow;
 use core::{fmt, str::FromStr};
 
-use graph_types::knowledge::entity::Entity;
 use serde::{
     de::{self, SeqAccess, Visitor},
     Deserialize, Deserializer,
 };
-use temporal_versioning::{ClosedTemporalBound, TemporalTagged, TimeAxis};
 use type_system::url::BaseUrl;
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
 use crate::{
-    ontology::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
-    store::{
-        query::{parse_query_token, JsonPath, ParameterType, PathToken, QueryPath},
-        QueryRecord, SubgraphRecord,
-    },
-    subgraph::{
-        edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
-        identifier::EntityVertexId,
-    },
+    entity_type::{EntityTypeQueryPath, EntityTypeQueryPathVisitor},
+    filter::{parse_query_token, JsonPath, ParameterType, PathToken, QueryPath},
+    subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -30,12 +22,13 @@ pub enum EntityQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
+    /// # use hash_graph_store::entity::EntityQueryPath;
     /// let path = EntityQueryPath::deserialize(json!(["uuid"]))?;
     /// assert_eq!(path, EntityQueryPath::Uuid);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     /// [`EntityUuid`]: graph_types::knowledge::entity::EntityUuid
     /// [`EntityId`]: graph_types::knowledge::entity::EntityId
     Uuid,
@@ -44,12 +37,13 @@ pub enum EntityQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
+    /// # use hash_graph_store::entity::EntityQueryPath;
     /// let path = EntityQueryPath::deserialize(json!(["ownedById"]))?;
     /// assert_eq!(path, EntityQueryPath::OwnedById);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     /// [`OwnedById`]: graph_types::owned_by_id::OwnedById
     /// [`EntityId`]: graph_types::knowledge::entity::EntityId
     OwnedById,
@@ -58,12 +52,13 @@ pub enum EntityQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
+    /// # use hash_graph_store::entity::EntityQueryPath;
     /// let path = EntityQueryPath::deserialize(json!(["draftId"]))?;
     /// assert_eq!(path, EntityQueryPath::DraftId);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     /// [`DraftId`]: graph_types::knowledge::entity::DraftId
     /// [`EntityId`]: graph_types::knowledge::entity::EntityId
     DraftId,
@@ -72,12 +67,13 @@ pub enum EntityQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
+    /// # use hash_graph_store::entity::EntityQueryPath;
     /// let path = EntityQueryPath::deserialize(json!(["editionId"]))?;
     /// assert_eq!(path, EntityQueryPath::EditionId);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     /// [`EntityEditionId`]: graph_types::knowledge::entity::EntityEditionId
     /// [`EntityRecordId`]: graph_types::knowledge::entity::EntityRecordId
     EditionId,
@@ -87,6 +83,7 @@ pub enum EntityQueryPath<'p> {
     /// `temporalAxes` parameter on the request. The decision time is returned as part of
     /// [`EntityTemporalMetadata`] of the [`EntityMetadata`].
     ///
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     /// [`EntityMetadata`]: graph_types::knowledge::entity::EntityMetadata
     /// [`EntityTemporalMetadata`]: graph_types::knowledge::entity::EntityTemporalMetadata
     DecisionTime,
@@ -96,6 +93,7 @@ pub enum EntityQueryPath<'p> {
     /// `temporalAxes` parameter on the request. The transaction time is returned as part
     /// of [`EntityTemporalMetadata`] of the [`EntityMetadata`].
     ///
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     /// [`EntityMetadata`]: graph_types::knowledge::entity::EntityMetadata
     /// [`EntityTemporalMetadata`]: graph_types::knowledge::entity::EntityTemporalMetadata
     TransactionTime,
@@ -104,6 +102,7 @@ pub enum EntityQueryPath<'p> {
     /// It's currently not possible to query for the list of types directly. Use [`EntityTypeEdge`]
     /// instead.
     ///
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     /// [`BaseUrl`]: type_system::url::BaseUrl
     /// [`EntityType`]: type_system::schema::EntityType
     /// [`EntityTypeEdge`]: Self::EntityTypeEdge
@@ -113,39 +112,52 @@ pub enum EntityQueryPath<'p> {
     /// It's currently not possible to query for the list of types directly. Use [`EntityTypeEdge`]
     /// instead.
     ///
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     /// [`EntityType`]: type_system::schema::EntityType
     /// [`EntityTypeEdge`]: Self::EntityTypeEdge
     TypeVersions,
     /// The confidence value for the [`Entity`].
     ///
     /// It's currently not possible to query for the entity confidence value directly.
+    ///
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     EntityConfidence,
     /// The confidence value for the [`Entity`]'s left entity link.
     ///
     /// It's currently not possible to query for the entity confidence value directly.
+    ///
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     LeftEntityConfidence,
     /// The provenance for the [`Entity`]'s left entity link.
     ///
     /// It's currently not possible to query for the link provenance value directly.
+    ///
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     LeftEntityProvenance,
     /// The confidence value for the [`Entity`]'s right entity link.
     ///
     /// It's currently not possible to query for the entity confidence value directly.
+    ///
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     RightEntityConfidence,
     /// The list of all property pointers of an [`Entity`].
     ///
     /// It's currently not possible to query for the list of property pointers directly.
+    ///
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     RightEntityProvenance,
     /// Whether or not the [`Entity`] is in a draft state.
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
+    /// # use hash_graph_store::entity::EntityQueryPath;
     /// let path = EntityQueryPath::deserialize(json!(["archived"]))?;
     /// assert_eq!(path, EntityQueryPath::Archived);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     Archived,
     /// An edge from this [`Entity`] to it's [`EntityType`] using a [`SharedEdgeKind`].
     ///
@@ -156,8 +168,8 @@ pub enum EntityQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::{knowledge::EntityQueryPath, ontology::EntityTypeQueryPath};
-    /// # use graph::subgraph::edges::SharedEdgeKind;
+    /// # use hash_graph_store::{entity::EntityQueryPath, entity_type::EntityTypeQueryPath};
+    /// # use hash_graph_store::subgraph::edges::SharedEdgeKind;
     /// let path = EntityQueryPath::deserialize(json!(["type", "baseUrl"]))?;
     /// assert_eq!(
     ///     path,
@@ -175,8 +187,8 @@ pub enum EntityQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::{knowledge::EntityQueryPath, ontology::EntityTypeQueryPath};
-    /// # use graph::subgraph::edges::SharedEdgeKind;
+    /// # use hash_graph_store::{entity::EntityQueryPath, entity_type::EntityTypeQueryPath};
+    /// # use hash_graph_store::subgraph::edges::SharedEdgeKind;
     /// let path = EntityQueryPath::deserialize(json!(["type(inheritanceDepth = 10)", "baseUrl"]))?;
     /// assert_eq!(
     ///     path,
@@ -189,6 +201,7 @@ pub enum EntityQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     /// [`EntityType`]: type_system::schema::PropertyType
     EntityTypeEdge {
         edge_kind: SharedEdgeKind,
@@ -207,8 +220,8 @@ pub enum EntityQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
-    /// # use graph::subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind};
+    /// # use hash_graph_store::entity::EntityQueryPath;
+    /// # use hash_graph_store::subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind};
     /// let path = EntityQueryPath::deserialize(json!(["leftEntity", "uuid"]))?;
     /// assert_eq!(
     ///     path,
@@ -233,8 +246,8 @@ pub enum EntityQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
-    /// # use graph::subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind};
+    /// # use hash_graph_store::entity::EntityQueryPath;
+    /// # use hash_graph_store::subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind};
     /// let path = EntityQueryPath::deserialize(json!(["rightEntity", "uuid"]))?;
     /// assert_eq!(
     ///     path,
@@ -260,8 +273,8 @@ pub enum EntityQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
-    /// # use graph::subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind};
+    /// # use hash_graph_store::entity::EntityQueryPath;
+    /// # use hash_graph_store::subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind};
     /// let path = EntityQueryPath::deserialize(json!(["incomingLinks", "uuid"]))?;
     /// assert_eq!(
     ///     path,
@@ -285,8 +298,8 @@ pub enum EntityQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
-    /// # use graph::subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind};
+    /// # use hash_graph_store::entity::EntityQueryPath;
+    /// # use hash_graph_store::subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind};
     /// let path = EntityQueryPath::deserialize(json!(["outgoingLinks", "uuid"]))?;
     /// assert_eq!(
     ///     path,
@@ -298,6 +311,8 @@ pub enum EntityQueryPath<'p> {
     /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     EntityEdge {
         edge_kind: KnowledgeGraphEdgeKind,
         path: Box<Self>,
@@ -311,7 +326,7 @@ pub enum EntityQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
+    /// # use hash_graph_store::entity::EntityQueryPath;
     /// let path = EntityQueryPath::deserialize(json!([
     ///     "properties",
     ///     "https://blockprotocol.org/@blockprotocol/types/property-type/address/"
@@ -328,7 +343,7 @@ pub enum EntityQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
+    /// # use hash_graph_store::entity::EntityQueryPath;
     /// let path = EntityQueryPath::deserialize(json!([
     ///     "properties",
     ///     "https://blockprotocol.org/@blockprotocol/types/property-type/length/",
@@ -351,13 +366,16 @@ pub enum EntityQueryPath<'p> {
     /// # );
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
+    /// [`Entity::properties`]: graph_types::knowledge::entity::Entity::properties
     Properties(Option<JsonPath<'p>>),
     /// The property defined as [`label_property`] in the corresponding entity type metadata.
     ///
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
+    /// # use hash_graph_store::entity::EntityQueryPath;
     /// let path = EntityQueryPath::deserialize(json!(["label"]))?;
     /// assert_eq!(
     ///     path,
@@ -373,7 +391,7 @@ pub enum EntityQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
+    /// # use hash_graph_store::entity::EntityQueryPath;
     /// let path = EntityQueryPath::deserialize(json!(["label(inheritanceDepth = 10)"]))?;
     /// assert_eq!(
     ///     path,
@@ -394,11 +412,13 @@ pub enum EntityQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
+    /// # use hash_graph_store::entity::EntityQueryPath;
     /// let path = EntityQueryPath::deserialize(json!(["provenance", "createdById"]))?;
     /// assert_eq!(path.to_string(), r#"provenance.$."createdById""#);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     Provenance(Option<JsonPath<'p>>),
     /// Corresponds to the provenance data of the [`Entity`].
     ///
@@ -408,15 +428,19 @@ pub enum EntityQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
+    /// # use hash_graph_store::entity::EntityQueryPath;
     /// let path = EntityQueryPath::deserialize(json!(["editionProvenance", "createdById"]))?;
     /// assert_eq!(path.to_string(), r#"editionProvenance.$."createdById""#);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     EditionProvenance(Option<JsonPath<'p>>),
     /// Corresponds to the metadata data of the properties of the [`Entity`].
     ///
     /// It's currently not possible to query for the list of property provenance values directly.
+    ///
+    /// [`Entity`]: graph_types::knowledge::entity::Entity
     PropertyMetadata(Option<JsonPath<'p>>),
     /// The embedding for the whole entity blob.
     ///
@@ -425,7 +449,7 @@ pub enum EntityQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::knowledge::EntityQueryPath;
+    /// # use hash_graph_store::entity::EntityQueryPath;
     /// let path = EntityQueryPath::deserialize(json!(["embedding"]))?;
     /// assert_eq!(path, EntityQueryPath::Embedding);
     /// # Ok::<(), serde_json::Error>(())
@@ -545,19 +569,19 @@ pub enum EntityQueryToken {
 }
 
 /// Deserializes an [`EntityQueryPath`] from a string sequence.
-pub struct EntityQueryPathVisitor {
+pub(crate) struct EntityQueryPathVisitor {
     /// The current position in the sequence when deserializing.
     position: usize,
 }
 
 impl EntityQueryPathVisitor {
-    pub const EXPECTING: &'static str =
+    pub(crate) const EXPECTING: &'static str =
         "one of `uuid`, `editionId`, `draftId`, `archived`, `ownedById`, `type`, `properties`, \
          `label`, `provenance`, `editionProvenance`, `embedding`, `incomingLinks`, \
          `outgoingLinks`, `leftEntity`, `rightEntity`";
 
     #[must_use]
-    pub const fn new(position: usize) -> Self {
+    pub(crate) const fn new(position: usize) -> Self {
         Self { position }
     }
 }
@@ -772,19 +796,19 @@ pub enum EntityQuerySortingToken {
 }
 
 /// Deserializes an [`EntityQueryPath`] from a string sequence.
-pub struct EntityQuerySortingVisitor {
+pub(crate) struct EntityQuerySortingVisitor {
     /// The current position in the sequence when deserializing.
     position: usize,
 }
 
 impl EntityQuerySortingVisitor {
-    pub const EXPECTING: &'static str =
+    pub(crate) const EXPECTING: &'static str =
         "one of `uuid`, `archived`, `properties`, `label`, `recordCreatedAtTransactionTime`, \
          `recordCreatedAtDecisionTime`, `createdAtTransactionTime`, `createdAtDecisionTime`, \
          `typeTitle`";
 
     #[must_use]
-    pub const fn new(position: usize) -> Self {
+    pub(crate) const fn new(position: usize) -> Self {
         Self { position }
     }
 }
@@ -900,36 +924,6 @@ impl<'de: 'p, 'p> EntityQueryPath<'p> {
             Self::PropertyMetadata(path) => {
                 EntityQueryPath::PropertyMetadata(path.map(JsonPath::into_owned))
             }
-        }
-    }
-}
-
-impl QueryRecord for Entity {
-    type QueryPath<'p> = EntityQueryPath<'p>;
-}
-
-impl SubgraphRecord for Entity {
-    type VertexId = EntityVertexId;
-
-    #[must_use]
-    fn vertex_id(&self, time_axis: TimeAxis) -> EntityVertexId {
-        let ClosedTemporalBound::Inclusive(timestamp) = match time_axis {
-            TimeAxis::DecisionTime => self
-                .metadata
-                .temporal_versioning
-                .decision_time
-                .start()
-                .cast(),
-            TimeAxis::TransactionTime => self
-                .metadata
-                .temporal_versioning
-                .transaction_time
-                .start()
-                .cast(),
-        };
-        EntityVertexId {
-            base_id: self.metadata.record_id.entity_id,
-            revision_id: timestamp,
         }
     }
 }

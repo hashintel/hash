@@ -4,19 +4,9 @@ use std::collections::HashSet;
 use authorization::{schema::WebOwnerSubject, AuthorizationApi, NoAuthorization};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion, SamplingMode};
 use criterion_macro::criterion;
-use graph::{
-    store::{
-        knowledge::{CreateEntityParams, GetEntitySubgraphParams},
-        query::Filter,
-        EntityQuerySorting, EntityStore,
-    },
-    subgraph::{
-        edges::{EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth},
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
-            VariableTemporalAxisUnresolved,
-        },
-    },
+use graph::store::{
+    knowledge::{CreateEntityParams, GetEntitySubgraphParams},
+    EntityQuerySorting, EntityStore,
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
@@ -28,7 +18,17 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::account::{AccountStore, InsertAccountIdParams, InsertWebIdParams};
+use hash_graph_store::{
+    account::{AccountStore, InsertAccountIdParams, InsertWebIdParams},
+    filter::Filter,
+    subgraph::{
+        edges::{EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth},
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
+            VariableTemporalAxisUnresolved,
+        },
+    },
+};
 use rand::{prelude::IteratorRandom, thread_rng};
 use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;

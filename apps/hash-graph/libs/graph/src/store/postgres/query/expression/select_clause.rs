@@ -28,11 +28,10 @@ impl Transpile for SelectExpression {
 
 #[cfg(test)]
 mod tests {
+    use hash_graph_store::data_type::DataTypeQueryPath;
+
     use super::*;
-    use crate::{
-        ontology::DataTypeQueryPath,
-        store::postgres::query::{Alias, Function, PostgresQueryPath, WindowStatement},
-    };
+    use crate::store::postgres::query::{Alias, Function, PostgresQueryPath, WindowStatement};
 
     #[test]
     fn transpile_select_expression() {

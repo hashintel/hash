@@ -2,13 +2,14 @@ use alloc::borrow::Cow;
 
 use authorization::AuthorizationApi;
 use criterion::{BatchSize::SmallInput, Bencher};
-use graph::{
-    knowledge::EntityQueryPath,
-    store::{
-        knowledge::{GetEntitiesParams, GetEntitySubgraphParams},
-        query::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
-        EntityQuerySorting, EntityStore,
-    },
+use graph::store::{
+    knowledge::{GetEntitiesParams, GetEntitySubgraphParams},
+    EntityQuerySorting, EntityStore,
+};
+use graph_types::{account::AccountId, knowledge::entity::EntityUuid};
+use hash_graph_store::{
+    entity::EntityQueryPath,
+    filter::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind},
         temporal_axes::{
@@ -17,7 +18,6 @@ use graph::{
         },
     },
 };
-use graph_types::{account::AccountId, knowledge::entity::EntityUuid};
 use rand::{prelude::IteratorRandom, thread_rng};
 use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;

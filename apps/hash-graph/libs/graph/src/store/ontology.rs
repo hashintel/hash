@@ -16,6 +16,16 @@ use graph_types::{
     owned_by_id::OwnedById,
     Embedding,
 };
+use hash_graph_store::{
+    filter::Filter,
+    subgraph::{
+        edges::GraphResolveDepths,
+        identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
+        temporal_axes::QueryTemporalAxesUnresolved,
+        Subgraph,
+    },
+    ConflictBehavior,
+};
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{Timestamp, TransactionTime};
 use type_system::{
@@ -23,15 +33,7 @@ use type_system::{
     url::{BaseUrl, VersionedUrl},
 };
 
-use crate::{
-    store::{query::Filter, ConflictBehavior, InsertionError, QueryError, UpdateError},
-    subgraph::{
-        edges::GraphResolveDepths,
-        identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
-        temporal_axes::QueryTemporalAxesUnresolved,
-        Subgraph,
-    },
-};
+use crate::store::{InsertionError, QueryError, UpdateError};
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]

@@ -3,21 +3,21 @@ pub mod identifier;
 pub mod temporal_axes;
 pub mod vertices;
 
+mod record;
+
 use core::hash::Hash;
 use std::collections::hash_map::{RandomState, RawEntryMut};
 
+pub use self::record::SubgraphRecord;
 use self::{
     edges::{Edges, GraphResolveDepths},
     identifier::GraphElementVertexId,
     temporal_axes::{QueryTemporalAxes, QueryTemporalAxesUnresolved, SubgraphTemporalAxes},
     vertices::Vertices,
 };
-use crate::{
-    store::SubgraphRecord,
-    subgraph::{
-        edges::{EdgeDirection, EdgeKind},
-        identifier::{EdgeEndpoint, VertexId},
-    },
+use crate::subgraph::{
+    edges::{EdgeDirection, EdgeKind},
+    identifier::{EdgeEndpoint, VertexId},
 };
 
 #[derive(Debug)]

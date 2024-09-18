@@ -2,16 +2,9 @@ use alloc::borrow::Cow;
 use std::collections::HashSet;
 
 use authorization::AuthorizationApi;
-use graph::{
-    knowledge::EntityQueryPath,
-    store::{
-        knowledge::{CreateEntityParams, GetEntitiesParams, GetEntitiesResponse},
-        query::{Filter, JsonPath, PathToken},
-        EntityQuerySorting, EntityQuerySortingRecord, EntityStore, NullOrdering, Ordering,
-    },
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
-    },
+use graph::store::{
+    knowledge::{CreateEntityParams, GetEntitiesParams, GetEntitiesResponse},
+    EntityQuerySorting, EntityQuerySortingRecord, EntityStore, NullOrdering, Ordering,
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
@@ -20,6 +13,13 @@ use graph_types::{
         property::{PropertyObject, PropertyWithMetadataObject},
     },
     owned_by_id::OwnedById,
+};
+use hash_graph_store::{
+    entity::EntityQueryPath,
+    filter::{Filter, JsonPath, PathToken},
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+    },
 };
 use pretty_assertions::assert_eq;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};

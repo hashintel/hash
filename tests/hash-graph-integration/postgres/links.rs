@@ -1,23 +1,9 @@
 use alloc::borrow::Cow;
 use std::collections::HashSet;
 
-use graph::{
-    knowledge::EntityQueryPath,
-    ontology::EntityTypeQueryPath,
-    store::{
-        knowledge::{
-            CountEntitiesParams, CreateEntityParams, GetEntitiesParams, PatchEntityParams,
-        },
-        query::{Filter, FilterExpression, Parameter},
-        EntityQuerySorting, EntityStore,
-    },
-    subgraph::{
-        edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
-            VariableTemporalAxisUnresolved,
-        },
-    },
+use graph::store::{
+    knowledge::{CountEntitiesParams, CreateEntityParams, GetEntitiesParams, PatchEntityParams},
+    EntityQuerySorting, EntityStore,
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
@@ -27,6 +13,18 @@ use graph_types::{
         property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
     },
     owned_by_id::OwnedById,
+};
+use hash_graph_store::{
+    entity::EntityQueryPath,
+    entity_type::EntityTypeQueryPath,
+    filter::{Filter, FilterExpression, Parameter},
+    subgraph::{
+        edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
+            VariableTemporalAxisUnresolved,
+        },
+    },
 };
 use temporal_versioning::TemporalBound;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};

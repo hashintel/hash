@@ -9,12 +9,13 @@
 use async_trait::async_trait;
 use error_stack::Result;
 use futures::{Stream, TryStreamExt};
+use hash_graph_store::{
+    filter::{Filter, QueryRecord},
+    subgraph::{temporal_axes::QueryTemporalAxes, SubgraphRecord},
+};
 use tracing::instrument;
 
-use crate::{
-    store::{query::Filter, QueryError, QueryRecord, SubgraphRecord},
-    subgraph::temporal_axes::QueryTemporalAxes,
-};
+use crate::store::QueryError;
 
 pub trait QueryResult<R, S: Sorting> {
     type Indices: Send;
@@ -87,7 +88,7 @@ impl<'f, R: QueryRecord, S> ReadParameter<'f, R, S> {
     }
 }
 
-impl<'f, R: SubgraphRecord, S> ReadParameter<'f, R, S> {
+impl<'f, R: SubgraphRecord + QueryRecord, S> ReadParameter<'f, R, S> {
     #[must_use]
     pub fn sort_by_vertex_id(self) -> ReadParameter<'f, R, VertexIdSorting<R>> {
         ReadParameter {

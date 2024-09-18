@@ -21,6 +21,15 @@ use graph_types::{
     },
     Embedding,
 };
+use hash_graph_store::{
+    property_type::PropertyTypeQueryPath,
+    subgraph::{
+        edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
+        identifier::{DataTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
+        temporal_axes::{QueryTemporalAxes, VariableAxis},
+        Subgraph, SubgraphRecord,
+    },
+};
 use postgres_types::{Json, ToSql};
 use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use tokio_postgres::{GenericClient, Row};
@@ -31,35 +40,24 @@ use type_system::{
     Validator,
 };
 
-use crate::{
-    ontology::PropertyTypeQueryPath,
-    store::{
-        crud::{QueryResult, Read, ReadPaginated, VertexIdSorting},
-        error::DeletionError,
+use crate::store::{
+    crud::{QueryResult, Read, ReadPaginated, VertexIdSorting},
+    error::DeletionError,
+    ontology::{
+        ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
+        GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse, GetPropertyTypesParams,
+        GetPropertyTypesResponse, UnarchivePropertyTypeParams, UpdatePropertyTypeEmbeddingParams,
+        UpdatePropertyTypesParams,
+    },
+    postgres::{
+        crud::QueryRecordDecode,
         ontology::{
-            ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
-            GetPropertyTypeSubgraphParams, GetPropertyTypeSubgraphResponse, GetPropertyTypesParams,
-            GetPropertyTypesResponse, UnarchivePropertyTypeParams,
-            UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
+            read::OntologyTypeTraversalData, OntologyId, PostgresOntologyTypeClassificationMetadata,
         },
-        postgres::{
-            crud::QueryRecordDecode,
-            ontology::{
-                read::OntologyTypeTraversalData, OntologyId,
-                PostgresOntologyTypeClassificationMetadata,
-            },
-            query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
-            TraversalContext,
-        },
-        AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, SubgraphRecord,
-        UpdateError,
+        query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
+        TraversalContext,
     },
-    subgraph::{
-        edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
-        identifier::{DataTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
-        temporal_axes::{QueryTemporalAxes, VariableAxis},
-        Subgraph,
-    },
+    AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, UpdateError,
 };
 
 impl<C, A> PostgresStore<C, A>

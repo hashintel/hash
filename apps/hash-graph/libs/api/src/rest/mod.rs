@@ -30,8 +30,20 @@ use axum::{
 };
 use error_stack::{Report, ResultExt};
 use graph::{
-    ontology::{domain_validator::DomainValidator, Selector},
+    ontology::domain_validator::DomainValidator,
     store::{error::VersionedUrlAlreadyExists, Store, StorePool, TypeFetcher},
+};
+use graph_types::{
+    account::{AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
+    ontology::{
+        DataTypeMetadata, EntityTypeMetadata, OntologyEditionProvenance, OntologyProvenance,
+        OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeRecordId,
+        OntologyTypeReference, PropertyTypeMetadata, ProvidedOntologyEditionProvenance,
+    },
+    owned_by_id::OwnedById,
+};
+use hash_graph_store::{
+    filter::Selector,
     subgraph::{
         edges::{
             EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
@@ -46,15 +58,6 @@ use graph::{
             SubgraphTemporalAxes,
         },
     },
-};
-use graph_types::{
-    account::{AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
-    ontology::{
-        DataTypeMetadata, EntityTypeMetadata, OntologyEditionProvenance, OntologyProvenance,
-        OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeRecordId,
-        OntologyTypeReference, PropertyTypeMetadata, ProvidedOntologyEditionProvenance,
-    },
-    owned_by_id::OwnedById,
 };
 use hash_status::Status;
 use include_dir::{include_dir, Dir};

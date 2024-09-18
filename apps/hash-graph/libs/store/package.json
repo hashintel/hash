@@ -4,7 +4,9 @@
   "private": true,
   "license": "AGPL-3",
   "dependencies": {
+    "@blockprotocol/type-system-rs": "0.0.0-private",
     "@rust/authorization": "0.0.0-private",
-    "@rust/graph-types": "0.0.0-private"
+    "@rust/graph-types": "0.0.0-private",
+    "@rust/temporal-versioning": "0.0.0-private"
   }
 }

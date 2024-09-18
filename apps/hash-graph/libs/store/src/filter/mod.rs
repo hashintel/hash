@@ -1,31 +1,92 @@
+mod parameter;
+mod path;
+
 use alloc::borrow::Cow;
-use core::{fmt, mem, str::FromStr};
+use core::{fmt, hash::Hash};
+use std::collections::HashMap;
 
 use derive_where::derive_where;
-use error_stack::{bail, Context, Report, ResultExt};
+use error_stack::Report;
 use graph_types::{
-    knowledge::entity::{Entity, EntityEditionId, EntityId},
-    ontology::{DataTypeId, DataTypeWithMetadata, EntityTypeId, PropertyTypeId},
-    Embedding,
+    knowledge::entity::{Entity, EntityId},
+    ontology::{DataTypeId, DataTypeWithMetadata},
 };
-use serde::Deserialize;
-use serde_json::{Number, Value};
-use temporal_versioning::Timestamp;
+use serde::{de, de::IntoDeserializer, Deserialize};
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
-use uuid::Uuid;
 
+pub use self::{
+    parameter::{Parameter, ParameterConversionError, ParameterList, ParameterType},
+    path::{JsonPath, PathToken},
+};
 use crate::{
-    knowledge::EntityQueryPath,
-    ontology::{DataTypeQueryPath, EntityTypeQueryPath},
-    store::{
-        query::{OntologyQueryPath, ParameterType, QueryPath},
-        QueryRecord, SubgraphRecord,
-    },
+    data_type::DataTypeQueryPath,
+    entity::EntityQueryPath,
+    entity_type::EntityTypeQueryPath,
     subgraph::{
         edges::{EdgeDirection, OntologyEdgeKind, SharedEdgeKind},
         identifier::VertexId,
+        SubgraphRecord,
     },
 };
+
+/// Parses a query token of the form `token(key=value)`.
+///
+/// Whitespaces are ignored and multiple parameters are supported.
+///
+/// # Errors
+///
+/// - If the token is not of the form `token`, `token()`, or `token(key=value)`
+/// - If `token` can not be deserialized into `T`
+pub(crate) fn parse_query_token<'de, T: Deserialize<'de>, E: de::Error>(
+    token: &'de str,
+) -> Result<(T, HashMap<&'de str, &'de str>), E> {
+    let Some((token, parameters)) = token.split_once('(') else {
+        return T::deserialize(token.into_deserializer()).map(|token| (token, HashMap::new()));
+    };
+
+    let parameters = parameters
+        .strip_suffix(')')
+        .ok_or_else(|| E::custom("missing closing parenthesis"))?
+        .split(',')
+        .filter(|parameter| !parameter.trim().is_empty())
+        .map(|parameter| {
+            let (key, value) = parameter
+                .split_once('=')
+                .ok_or_else(|| E::custom("missing parameter value, expected `key=value`"))?;
+            Ok((key.trim(), value.trim()))
+        })
+        .collect::<Result<_, _>>()?;
+
+    T::deserialize(token.into_deserializer()).map(|token| (token, parameters))
+}
+
+#[derive(Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+pub enum Selector {
+    #[serde(rename = "*")]
+    Asterisk,
+}
+
+pub trait QueryPath {
+    /// Returns what type this resolved `Path` has.
+    fn expected_type(&self) -> ParameterType;
+}
+
+pub trait QueryRecord: Sized + Send {
+    type QueryPath<'p>: QueryPath + Send + Sync + Eq + Hash;
+}
+
+pub trait OntologyQueryPath {
+    /// Returns the path identifying the [`BaseUrl`].
+    ///
+    /// [`BaseUrl`]: type_system::url::BaseUrl
+    fn base_url() -> Self;
+
+    /// Returns the path identifying the [`OntologyTypeVersion`].
+    ///
+    /// [`OntologyTypeVersion`]: type_system::url::OntologyTypeVersion
+    fn version() -> Self;
+}
 
 /// A set of conditions used for queries.
 #[derive(Deserialize)]
@@ -64,7 +125,7 @@ pub enum Filter<'p, R: QueryRecord> {
 
 impl<'p, R> Filter<'p, R>
 where
-    R: SubgraphRecord<QueryPath<'p>: OntologyQueryPath>,
+    R: SubgraphRecord + QueryRecord<QueryPath<'p>: OntologyQueryPath>,
     R::VertexId: VertexId<BaseId = BaseUrl, RevisionId = OntologyTypeVersion>,
 {
     /// Creates a `Filter` to search for a specific ontology type of kind `R`, identified by its
@@ -274,266 +335,6 @@ pub enum FilterExpression<'p, R: QueryRecord> {
     Parameter(Parameter<'p>),
 }
 
-#[derive(Debug, Clone, PartialEq, Deserialize)]
-#[serde(untagged)]
-pub enum Parameter<'p> {
-    Boolean(bool),
-    I32(i32),
-    F64(f64),
-    Text(Cow<'p, str>),
-    Vector(Embedding<'p>),
-    Any(Value),
-    #[serde(skip)]
-    Uuid(Uuid),
-    #[serde(skip)]
-    OntologyTypeVersion(OntologyTypeVersion),
-    #[serde(skip)]
-    Timestamp(Timestamp<()>),
-}
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ParameterList<'p> {
-    DataTypeIds(&'p [DataTypeId]),
-    PropertyTypeIds(&'p [PropertyTypeId]),
-    EntityTypeIds(&'p [EntityTypeId]),
-    EntityEditionIds(&'p [EntityEditionId]),
-}
-
-impl<'p> Parameter<'p> {
-    #[must_use]
-    pub fn to_owned(&self) -> Parameter<'static> {
-        match self {
-            Parameter::Boolean(bool) => Parameter::Boolean(*bool),
-            Parameter::I32(number) => Parameter::I32(*number),
-            Parameter::F64(number) => Parameter::F64(*number),
-            Parameter::Text(text) => Parameter::Text(Cow::Owned(text.to_string())),
-            Parameter::Vector(vector) => Parameter::Vector(vector.to_owned()),
-            Parameter::Any(value) => Parameter::Any(value.clone()),
-            Parameter::Uuid(uuid) => Parameter::Uuid(*uuid),
-            Parameter::OntologyTypeVersion(version) => Parameter::OntologyTypeVersion(*version),
-            Parameter::Timestamp(timestamp) => Parameter::Timestamp(*timestamp),
-        }
-    }
-}
-
-#[derive(Debug)]
-enum ActualParameterType {
-    Parameter(Parameter<'static>),
-    Value(serde_json::Value),
-}
-
-impl From<Parameter<'static>> for ActualParameterType {
-    fn from(value: Parameter<'static>) -> Self {
-        Self::Parameter(value)
-    }
-}
-
-impl From<serde_json::Value> for ActualParameterType {
-    fn from(value: serde_json::Value) -> Self {
-        Self::Value(value)
-    }
-}
-
-#[derive(Debug)]
-#[must_use]
-pub struct ParameterConversionError {
-    actual: ActualParameterType,
-    expected: ParameterType,
-}
-
-impl fmt::Display for ParameterConversionError {
-    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let actual = match &self.actual {
-            ActualParameterType::Parameter(parameter) => match parameter {
-                Parameter::Any(Value::Null) => "null".to_owned(),
-                Parameter::Boolean(boolean) | Parameter::Any(Value::Bool(boolean)) => {
-                    boolean.to_string()
-                }
-                Parameter::I32(number) => number.to_string(),
-                Parameter::F64(number) => number.to_string(),
-                Parameter::Any(Value::Number(number)) => number.to_string(),
-                Parameter::Text(text) => text.to_string(),
-                Parameter::Vector(_) => "vector".to_owned(),
-                Parameter::Any(Value::String(string)) => string.clone(),
-                Parameter::Uuid(uuid) => uuid.to_string(),
-                Parameter::OntologyTypeVersion(version) => version.inner().to_string(),
-                Parameter::Timestamp(timestamp) => timestamp.to_string(),
-                Parameter::Any(Value::Object(_)) => "object".to_owned(),
-                Parameter::Any(Value::Array(_)) => "array".to_owned(),
-            },
-            ActualParameterType::Value(value) => match value {
-                Value::Null => "null".to_owned(),
-                Value::Bool(boolean) => boolean.to_string(),
-                Value::Number(number) => number.to_string(),
-                Value::String(string) => string.clone(),
-                Value::Array(_) => "array".to_owned(),
-                Value::Object(_) => "object".to_owned(),
-            },
-        };
-
-        write!(fmt, "could not convert {actual} to {}", self.expected)
-    }
-}
-
-impl Context for ParameterConversionError {}
-
-impl Parameter<'_> {
-    #[expect(
-        clippy::too_many_lines,
-        reason = "This is one big match statement. Structural queries has to be changed in the \
-                  near future so we keep the structure as it is."
-    )]
-    fn convert_to_parameter_type(
-        &mut self,
-        expected: ParameterType,
-    ) -> Result<(), Report<ParameterConversionError>> {
-        match (&mut *self, &expected) {
-            // identity
-            (Parameter::Boolean(_), ParameterType::Boolean)
-            | (Parameter::I32(_), ParameterType::I32)
-            | (Parameter::F64(_), ParameterType::F64)
-            | (Parameter::Text(_), ParameterType::Text)
-            | (Parameter::Any(_), ParameterType::Any) => {}
-            (Parameter::Vector(_), ParameterType::Vector(rhs)) if **rhs == ParameterType::F64 => {}
-
-            // Boolean conversions
-            (Parameter::Boolean(bool), ParameterType::Any) => {
-                *self = Parameter::Any(Value::Bool(*bool));
-            }
-            (Parameter::Any(Value::Bool(bool)), ParameterType::Boolean) => {
-                *self = Parameter::Boolean(*bool);
-            }
-
-            // Integral conversions
-            (Parameter::I32(number), ParameterType::Any) => {
-                *self = Parameter::Any(Value::Number(Number::from(*number)));
-            }
-            (Parameter::Any(Value::Number(number)), ParameterType::I32) => {
-                let number = number.as_i64().ok_or_else(|| {
-                    Report::new(ParameterConversionError {
-                        actual: self.to_owned().into(),
-                        expected,
-                    })
-                })?;
-                *self = Parameter::I32(i32::try_from(number).change_context_lazy(|| {
-                    ParameterConversionError {
-                        actual: self.to_owned().into(),
-                        expected: ParameterType::OntologyTypeVersion,
-                    }
-                })?);
-            }
-            (Parameter::I32(number), ParameterType::OntologyTypeVersion) => {
-                *self = Parameter::OntologyTypeVersion(OntologyTypeVersion::new(
-                    u32::try_from(*number).change_context_lazy(|| ParameterConversionError {
-                        actual: self.to_owned().into(),
-                        expected: ParameterType::OntologyTypeVersion,
-                    })?,
-                ));
-            }
-            (Parameter::Text(text), ParameterType::OntologyTypeVersion) if text == "latest" => {
-                // Special case for checking `version == "latest"
-            }
-
-            // Floating point conversions
-            (Parameter::F64(number), ParameterType::Any) => {
-                *self = Parameter::Any(Value::Number(Number::from_f64(*number).ok_or_else(
-                    || {
-                        Report::new(ParameterConversionError {
-                            actual: self.to_owned().into(),
-                            expected,
-                        })
-                    },
-                )?));
-            }
-            (Parameter::Any(Value::Number(number)), ParameterType::F64) => {
-                *self = Parameter::F64(number.as_f64().ok_or_else(|| {
-                    Report::new(ParameterConversionError {
-                        actual: self.to_owned().into(),
-                        expected,
-                    })
-                })?);
-            }
-
-            // Text conversions
-            (Parameter::Text(text), ParameterType::Any) => {
-                *self = Parameter::Any(Value::String((*text).to_string()));
-            }
-            (Parameter::Any(Value::String(string)), ParameterType::Text) => {
-                *self = Parameter::Text(Cow::Owned(string.clone()));
-            }
-            (Parameter::Text(_base_url), ParameterType::BaseUrl) => {
-                // TODO: validate base url
-                //   see https://linear.app/hash/issue/H-3016
-            }
-            (Parameter::Text(_versioned_url), ParameterType::VersionedUrl) => {
-                // TODO: validate versioned url
-                //   see https://linear.app/hash/issue/H-3016
-            }
-            (Parameter::Text(text), ParameterType::Uuid) => {
-                *self = Parameter::Uuid(Uuid::from_str(&*text).change_context_lazy(|| {
-                    ParameterConversionError {
-                        actual: self.to_owned().into(),
-                        expected: ParameterType::Uuid,
-                    }
-                })?);
-            }
-
-            // Vector conversions
-            (Parameter::Vector(vector), ParameterType::Any) => {
-                *self = Parameter::Any(Value::Array(
-                    vector
-                        .iter()
-                        .map(|value| {
-                            Number::from_f64(f64::from(value))
-                                .ok_or_else(|| {
-                                    Report::new(ParameterConversionError {
-                                        actual: Parameter::Vector(vector.to_owned()).into(),
-                                        expected: expected.clone(),
-                                    })
-                                })
-                                .map(Value::Number)
-                        })
-                        .collect::<Result<_, _>>()?,
-                ));
-            }
-            (Parameter::Any(Value::Array(array)), ParameterType::Vector(rhs))
-                if **rhs == ParameterType::F64 =>
-            {
-                *self = Parameter::Vector(
-                    mem::take(array)
-                        .into_iter()
-                        .map(|value| {
-                            #[expect(
-                                clippy::cast_possible_truncation,
-                                reason = "truncation is expected"
-                            )]
-                            value
-                                .as_f64()
-                                .ok_or_else(|| {
-                                    Report::new(ParameterConversionError {
-                                        actual: self.to_owned().into(),
-                                        expected: expected.clone(),
-                                    })
-                                })
-                                .map(|value| value as f32)
-                        })
-                        .collect::<Result<_, _>>()?,
-                );
-            }
-
-            // Fallback
-            (actual, expected) => {
-                bail!(ParameterConversionError {
-                    actual: actual.to_owned().into(),
-                    expected: expected.clone(),
-                });
-            }
-        }
-
-        Ok(())
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use graph_types::{
@@ -542,9 +343,9 @@ mod tests {
         owned_by_id::OwnedById,
     };
     use serde_json::json;
+    use uuid::Uuid;
 
     use super::*;
-    use crate::ontology::DataTypeQueryPath;
 
     fn test_filter_representation<'de, R>(actual: &Filter<'de, R>, expected: &'de serde_json::Value)
     where

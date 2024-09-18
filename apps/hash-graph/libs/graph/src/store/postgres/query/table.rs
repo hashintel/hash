@@ -4,15 +4,15 @@ use core::{
     iter::{once, Chain, Once},
 };
 
+use hash_graph_store::{
+    filter::{JsonPath, ParameterType},
+    subgraph::edges::EdgeDirection,
+};
 use postgres_types::ToSql;
 use temporal_versioning::TimeAxis;
 
-use crate::{
-    store::{
-        postgres::query::{expression::JoinType, Condition, Constant, Expression, Transpile},
-        query::{JsonPath, ParameterType},
-    },
-    subgraph::edges::EdgeDirection,
+use crate::store::postgres::query::{
+    expression::JoinType, Condition, Constant, Expression, Transpile,
 };
 
 /// The name of a [`Table`] in the Postgres database.
@@ -2087,8 +2087,10 @@ impl Relation {
 
 #[cfg(test)]
 mod tests {
+    use hash_graph_store::data_type::DataTypeQueryPath;
+
     use super::*;
-    use crate::{ontology::DataTypeQueryPath, store::postgres::query::PostgresQueryPath};
+    use crate::store::postgres::query::PostgresQueryPath;
 
     #[test]
     fn transpile_table() {

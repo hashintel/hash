@@ -21,6 +21,19 @@ use graph_types::{
     },
     Embedding,
 };
+use hash_graph_store::{
+    entity_type::EntityTypeQueryPath,
+    filter::{Filter, FilterExpression, ParameterList},
+    subgraph::{
+        edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
+        identifier::{EntityTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
+            VariableAxis, VariableTemporalAxisUnresolved,
+        },
+        Subgraph, SubgraphRecord,
+    },
+};
 use postgres_types::{Json, ToSql};
 use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use tokio_postgres::{GenericClient, Row};
@@ -31,39 +44,24 @@ use type_system::{
     Validator,
 };
 
-use crate::{
-    ontology::EntityTypeQueryPath,
-    store::{
-        crud::{QueryResult, Read, ReadPaginated, VertexIdSorting},
-        error::DeletionError,
+use crate::store::{
+    crud::{QueryResult, Read, ReadPaginated, VertexIdSorting},
+    error::DeletionError,
+    ontology::{
+        ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,
+        GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
+        GetEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
+        UpdateEntityTypesParams,
+    },
+    postgres::{
+        crud::QueryRecordDecode,
         ontology::{
-            ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,
-            GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
-            GetEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
-            UpdateEntityTypesParams,
+            read::OntologyTypeTraversalData, OntologyId, PostgresOntologyTypeClassificationMetadata,
         },
-        postgres::{
-            crud::QueryRecordDecode,
-            ontology::{
-                read::OntologyTypeTraversalData, OntologyId,
-                PostgresOntologyTypeClassificationMetadata,
-            },
-            query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
-            ResponseCountMap, TraversalContext,
-        },
-        query::{Filter, FilterExpression, ParameterList},
-        AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, SubgraphRecord,
-        UpdateError,
+        query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
+        ResponseCountMap, TraversalContext,
     },
-    subgraph::{
-        edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
-        identifier::{EntityTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
-        temporal_axes::{
-            PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
-            VariableAxis, VariableTemporalAxisUnresolved,
-        },
-        Subgraph,
-    },
+    AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
 };
 
 impl<C, A> PostgresStore<C, A>

@@ -1,38 +1,12 @@
 //! TODO: DOC
 
-mod data_type;
 pub mod domain_validator;
-mod entity_type;
-mod property_type;
 
 use core::fmt;
 
 use error_stack::{Context, Result, ResultExt};
-use graph_types::ontology::{
-    DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
-};
 use serde::Deserialize;
-use temporal_versioning::TimeAxis;
 use type_system::url::VersionedUrl;
-#[cfg(feature = "utoipa")]
-use utoipa::ToSchema;
-
-pub use self::{
-    data_type::{DataTypeQueryPath, DataTypeQueryPathVisitor, DataTypeQueryToken},
-    entity_type::{EntityTypeQueryPath, EntityTypeQueryPathVisitor, EntityTypeQueryToken},
-    property_type::{PropertyTypeQueryPath, PropertyTypeQueryPathVisitor, PropertyTypeQueryToken},
-};
-use crate::{
-    store::{QueryRecord, SubgraphRecord},
-    subgraph::identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
-};
-
-#[derive(Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(ToSchema))]
-pub enum Selector {
-    #[serde(rename = "*")]
-    Asterisk,
-}
 
 #[derive(Debug)]
 pub struct PatchAndParseError;
@@ -82,55 +56,4 @@ where
     }
 
     serde_json::from_value(value).change_context(PatchAndParseError)
-}
-
-impl QueryRecord for DataTypeWithMetadata {
-    type QueryPath<'p> = DataTypeQueryPath<'p>;
-}
-
-impl SubgraphRecord for DataTypeWithMetadata {
-    type VertexId = DataTypeVertexId;
-
-    #[must_use]
-    fn vertex_id(&self, _time_axis: TimeAxis) -> DataTypeVertexId {
-        let record_id = &self.metadata.record_id;
-        DataTypeVertexId {
-            base_id: record_id.base_url.clone(),
-            revision_id: record_id.version,
-        }
-    }
-}
-
-impl QueryRecord for PropertyTypeWithMetadata {
-    type QueryPath<'p> = PropertyTypeQueryPath<'p>;
-}
-
-impl SubgraphRecord for PropertyTypeWithMetadata {
-    type VertexId = PropertyTypeVertexId;
-
-    #[must_use]
-    fn vertex_id(&self, _time_axis: TimeAxis) -> PropertyTypeVertexId {
-        let record_id = &self.metadata.record_id;
-        PropertyTypeVertexId {
-            base_id: record_id.base_url.clone(),
-            revision_id: record_id.version,
-        }
-    }
-}
-
-impl QueryRecord for EntityTypeWithMetadata {
-    type QueryPath<'p> = EntityTypeQueryPath<'p>;
-}
-
-impl SubgraphRecord for EntityTypeWithMetadata {
-    type VertexId = EntityTypeVertexId;
-
-    #[must_use]
-    fn vertex_id(&self, _time_axis: TimeAxis) -> EntityTypeVertexId {
-        let record_id = &self.metadata.record_id;
-        EntityTypeVertexId {
-            base_id: record_id.base_url.clone(),
-            revision_id: record_id.version,
-        }
-    }
 }

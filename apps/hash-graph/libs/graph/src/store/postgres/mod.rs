@@ -28,9 +28,13 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::account::{
-    AccountGroupInsertionError, AccountInsertionError, AccountStore, InsertAccountGroupIdParams,
-    InsertAccountIdParams, InsertWebIdParams, QueryWebError, WebInsertionError,
+use hash_graph_store::{
+    account::{
+        AccountGroupInsertionError, AccountInsertionError, AccountStore,
+        InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams, QueryWebError,
+        WebInsertionError,
+    },
+    ConflictBehavior,
 };
 use postgres_types::Json;
 use temporal_client::TemporalClient;
@@ -57,7 +61,7 @@ use crate::store::{
         DeletionError, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
         VersionedUrlAlreadyExists,
     },
-    BaseUrlAlreadyExists, ConflictBehavior, InsertionError, QueryError, StoreError, UpdateError,
+    BaseUrlAlreadyExists, InsertionError, QueryError, StoreError, UpdateError,
 };
 
 /// A Postgres-backed store

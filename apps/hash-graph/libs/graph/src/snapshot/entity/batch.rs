@@ -8,6 +8,7 @@ use graph_types::{
     },
     ontology::EntityTypeProvider,
 };
+use hash_graph_store::filter::Filter;
 use tokio_postgres::GenericClient;
 use validation::{EntityPreprocessor, Validate, ValidateEntityComponents};
 
@@ -19,7 +20,6 @@ use crate::{
             EntityDraftRow, EntityEditionRow, EntityEmbeddingRow, EntityHasLeftEntityRow,
             EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow, EntityTemporalMetadataRow,
         },
-        query::Filter,
         AsClient, InsertionError, PostgresStore, StoreCache, StoreProvider,
     },
 };

@@ -5,6 +5,7 @@ use async_trait::async_trait;
 use authorization::{backend::ZanzibarBackend, schema::DataTypeRelationAndSubject};
 use error_stack::{Result, ResultExt};
 use graph_types::ontology::{DataTypeId, DataTypeWithMetadata};
+use hash_graph_store::filter::Filter;
 use tokio_postgres::GenericClient;
 use type_system::schema::OntologyTypeResolver;
 
@@ -13,7 +14,6 @@ use crate::{
     store::{
         crud::Read,
         postgres::query::rows::{DataTypeConversionsRow, DataTypeEmbeddingRow, DataTypeRow},
-        query::Filter,
         AsClient, InsertionError, PostgresStore,
     },
 };

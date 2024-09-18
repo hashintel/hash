@@ -6,6 +6,11 @@ use graph_types::{
     knowledge::entity::{EntityEditionId, EntityId, EntityUuid},
     owned_by_id::OwnedById,
 };
+use hash_graph_store::subgraph::{
+    edges::{EdgeDirection, GraphResolveDepths},
+    identifier::{EntityTypeVertexId, EntityVertexId},
+    temporal_axes::{PinnedAxis, VariableAxis},
+};
 use temporal_versioning::{
     LeftClosedTemporalInterval, RightBoundedTemporalInterval, TimeAxis, Timestamp,
 };
@@ -13,19 +18,12 @@ use tokio_postgres::GenericClient;
 use tracing::Instrument;
 use type_system::url::BaseUrl;
 
-use crate::{
-    store::{
-        postgres::{
-            ontology::OntologyId,
-            query::{ForeignKeyReference, ReferenceTable, Table, Transpile},
-        },
-        AsClient, PostgresStore, QueryError,
+use crate::store::{
+    postgres::{
+        ontology::OntologyId,
+        query::{ForeignKeyReference, ReferenceTable, Table, Transpile},
     },
-    subgraph::{
-        edges::{EdgeDirection, GraphResolveDepths},
-        identifier::{EntityTypeVertexId, EntityVertexId},
-        temporal_axes::{PinnedAxis, VariableAxis},
-    },
+    AsClient, PostgresStore, QueryError,
 };
 
 #[derive(Debug)]

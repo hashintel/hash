@@ -4,7 +4,7 @@ use graph_types::{
     account::{AccountGroupId, AccountId},
     owned_by_id::OwnedById,
 };
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use thiserror::Error;
 
 fn random_account_id() -> AccountId {
@@ -19,7 +19,7 @@ fn random_account_group_id() -> AccountGroupId {
 #[error("Could not insert account")]
 pub struct AccountInsertionError;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct InsertAccountIdParams {
@@ -31,7 +31,7 @@ pub struct InsertAccountIdParams {
 #[error("Could not insert account group")]
 pub struct AccountGroupInsertionError;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct InsertAccountGroupIdParams {
@@ -43,7 +43,7 @@ pub struct InsertAccountGroupIdParams {
 #[error("Could not insert web")]
 pub struct WebInsertionError;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct InsertWebIdParams {

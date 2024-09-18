@@ -2,29 +2,31 @@ use alloc::borrow::Cow;
 use core::iter::once;
 use std::collections::{HashMap, HashSet};
 
+use hash_graph_store::{
+    filter::{
+        Filter, FilterExpression, Parameter, ParameterList, ParameterType, PathToken, QueryRecord,
+    },
+    subgraph::temporal_axes::QueryTemporalAxes,
+};
 use postgres_types::ToSql;
 use temporal_versioning::TimeAxis;
 use tracing::instrument;
 
-use crate::{
-    store::{
-        postgres::query::{
-            expression::{GroupByExpression, PostgresType},
-            statement::FromItem,
-            table::{
-                DataTypeEmbeddings, DatabaseColumn, EntityEmbeddings, EntityTemporalMetadata,
-                EntityTypeEmbeddings, EntityTypes, JsonField, OntologyIds,
-                OntologyTemporalMetadata, PropertyTypeEmbeddings,
-            },
-            Alias, AliasedTable, Column, Condition, Distinctness, EqualityOperator, Expression,
-            Function, JoinExpression, OrderByExpression, PostgresQueryPath, PostgresRecord,
-            SelectExpression, SelectStatement, Table, Transpile, WhereExpression, WindowStatement,
-            WithExpression,
+use crate::store::{
+    postgres::query::{
+        expression::{GroupByExpression, PostgresType},
+        statement::FromItem,
+        table::{
+            DataTypeEmbeddings, DatabaseColumn, EntityEmbeddings, EntityTemporalMetadata,
+            EntityTypeEmbeddings, EntityTypes, JsonField, OntologyIds, OntologyTemporalMetadata,
+            PropertyTypeEmbeddings,
         },
-        query::{Filter, FilterExpression, Parameter, ParameterList, ParameterType, PathToken},
-        NullOrdering, Ordering, QueryRecord,
+        Alias, AliasedTable, Column, Condition, Distinctness, EqualityOperator, Expression,
+        Function, JoinExpression, OrderByExpression, PostgresQueryPath, PostgresRecord,
+        SelectExpression, SelectStatement, Table, Transpile, WhereExpression, WindowStatement,
+        WithExpression,
     },
-    subgraph::temporal_axes::QueryTemporalAxes,
+    NullOrdering, Ordering,
 };
 
 // # Lifetime guidance

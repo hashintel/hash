@@ -64,11 +64,10 @@ impl Transpile for OrderByExpression {
 
 #[cfg(test)]
 mod tests {
+    use hash_graph_store::data_type::DataTypeQueryPath;
+
     use super::*;
-    use crate::{
-        ontology::DataTypeQueryPath,
-        store::postgres::query::{test_helper::trim_whitespace, Alias, PostgresQueryPath},
-    };
+    use crate::store::postgres::query::{test_helper::trim_whitespace, Alias, PostgresQueryPath};
 
     #[test]
     fn order_one() {
