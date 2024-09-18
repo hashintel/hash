@@ -50,8 +50,9 @@ import { useGetEntitiesTableAdditionalCsvData } from "./entities-table/use-get-e
 import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
 import { generateEntityRootedSubgraph } from "./subgraphs";
 import { TableHeaderToggle } from "./table-header-toggle";
+import type { TableView } from "./table-views";
+import { tableViewIcons } from "./table-views";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
-import { tableViewIcons, TableView } from "./table-views";
 
 /**
  * @todo: avoid having to maintain this list, potentially by
@@ -678,8 +679,8 @@ export const EntitiesTable: FunctionComponent<{
                 ? extractBaseUrl(entity.metadata.entityTypeId) ===
                   entityTypeBaseUrl
                 : entityTypeId
-                ? entityTypeId === entity.metadata.entityTypeId
-                : true
+                  ? entityTypeId === entity.metadata.entityTypeId
+                  : true
             }
             filterEntity={(entity) =>
               filterState.includeGlobal

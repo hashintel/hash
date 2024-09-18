@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from "react";
 import { createContext, useCallback, useContext, useMemo } from "react";
-import { useFullScreenHandle, FullScreen } from "react-full-screen";
+import { FullScreen, useFullScreenHandle } from "react-full-screen";
 
 export type FullScreenContextType = {
   isFullScreen: boolean;
