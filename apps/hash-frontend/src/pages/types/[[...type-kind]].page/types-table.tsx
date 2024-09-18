@@ -45,7 +45,11 @@ import { renderChipCell } from "../../shared/chip-cell";
 import type { TextIconCell } from "../../shared/entities-table/text-icon-cell";
 import { createRenderTextIconCell } from "../../shared/entities-table/text-icon-cell";
 import { TypeSlideOverStack } from "../../shared/entity-type-page/type-slide-over-stack";
+import { TableHeaderToggle } from "../../shared/table-header-toggle";
+import type { TableView } from "../../shared/table-views";
+import { tableViewIcons } from "../../shared/table-views";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
+import { TypesGraph } from "../../shared/types-graph";
 
 const typesTableColumnIds = [
   "title",
@@ -108,6 +112,8 @@ export const TypesTable: FunctionComponent<{
   kind: TypeTableKind;
 }> = ({ types, kind }) => {
   const router = useRouter();
+
+  const [view, setView] = useState<TableView>("Table");
 
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
@@ -426,6 +432,10 @@ export const TypesTable: FunctionComponent<{
 
   const theme = useTheme();
 
+  const maxTableHeight = `calc(100vh - (${
+    HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + tableHeaderHeight
+  }px + ${theme.spacing(5)}) - ${theme.spacing(5)})`;
+
   const currentlyDisplayedRowsRef = useRef<TypesTableRow[] | null>(null);
 
   return (
@@ -438,6 +448,19 @@ export const TypesTable: FunctionComponent<{
       )}
       <Box>
         <TableHeader
+          endAdornment={
+            <TableHeaderToggle
+              value={view}
+              setValue={setView}
+              options={(["Table", "Graph"] as const satisfies TableView[]).map(
+                (optionValue) => ({
+                  icon: tableViewIcons[optionValue],
+                  label: `${optionValue} view`,
+                  value: optionValue,
+                }),
+              )}
+            />
+          }
           internalWebIds={internalWebIds}
           itemLabelPlural="types"
           items={types}
@@ -451,40 +474,48 @@ export const TypesTable: FunctionComponent<{
           )}
           onBulkActionCompleted={() => setSelectedRows([])}
         />
-        <Grid
-          showSearch={showSearch}
-          onSearchClose={() => setShowSearch(false)}
-          columns={typesTableColumns}
-          dataLoading={!types}
-          rows={filteredRows}
-          enableCheckboxSelection
-          selectedRows={selectedRows}
-          currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-          onSelectedRowsChange={(updatedSelectedRows) =>
-            setSelectedRows(updatedSelectedRows)
-          }
-          sortable
-          sortRows={sortRows}
-          firstColumnLeftPadding={16}
-          createGetCellContent={createGetCellContent}
-          // define max height if there are lots of rows
-          height={`
+        {view === "Table" ? (
+          <Grid
+            showSearch={showSearch}
+            onSearchClose={() => setShowSearch(false)}
+            columns={typesTableColumns}
+            dataLoading={!types}
+            rows={filteredRows}
+            enableCheckboxSelection
+            selectedRows={selectedRows}
+            currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+            onSelectedRowsChange={(updatedSelectedRows) =>
+              setSelectedRows(updatedSelectedRows)
+            }
+            sortable
+            sortRows={sortRows}
+            firstColumnLeftPadding={16}
+            createGetCellContent={createGetCellContent}
+            // define max height if there are lots of rows
+            height={`
           min(
-            calc(100vh - (${
-              HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + tableHeaderHeight
-            }px + ${theme.spacing(5)}) - ${theme.spacing(5)}),
+            ${maxTableHeight},
             calc(
               ${gridHeaderHeightWithBorder}px +
-              (${filteredRows?.length ? filteredRows.length : 1} * ${gridRowHeight}px) +
+              (${
+                filteredRows?.length ? filteredRows.length : 1
+              } * ${gridRowHeight}px) +
               ${gridHorizontalScrollbarHeight}px
             )
           )`}
-          customRenderers={[
-            createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
-            renderChipCell,
-          ]}
-          freezeColumns={1}
-        />
+            customRenderers={[
+              createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
+              renderChipCell,
+            ]}
+            freezeColumns={1}
+          />
+        ) : (
+          <TypesGraph
+            height={maxTableHeight}
+            onTypeClick={setSelectedEntityTypeId}
+            types={types ?? []}
+          />
+        )}
       </Box>
     </>
   );
