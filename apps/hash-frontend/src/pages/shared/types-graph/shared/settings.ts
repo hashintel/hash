@@ -2,8 +2,9 @@ import { useTheme } from "@mui/material";
 import { useSigma } from "@react-sigma/core";
 import { useEffect } from "react";
 
-import type { GraphState } from "./state";
+import { drawRoundRect } from "../../../../components/grid/utils/draw-round-rect";
 import { useFullScreen } from "./full-screen";
+import type { GraphState } from "./state";
 
 export const labelRenderedSizeThreshold = {
   fullScreen: 14,
@@ -18,7 +19,7 @@ export const useDefaultSettings = (state: GraphState) => {
 
   useEffect(() => {
     sigma.setSetting("labelFont", `"Inter", "Helvetica", "sans-serif"`);
-    sigma.setSetting("labelSize", 13);
+    sigma.setSetting("labelSize", 12);
     sigma.setSetting("labelColor", { color: palette.common.black });
     sigma.setSetting("labelWeight", "400");
 
@@ -54,8 +55,23 @@ export const useDefaultSettings = (state: GraphState) => {
         context.font = `${weight} ${size}px ${font}`;
         const width = context.measureText(data.label).width + 8;
 
-        context.fillStyle = "#ffffffcc";
-        context.fillRect(data.x + data.size, data.y + size / 3 - 15, width, 20);
+        const xYWidthHeight = [
+          data.x + data.size,
+          data.y + size / 3 - 15,
+          width,
+          20,
+        ] as const;
+
+        context.fillStyle = "#ffffffee";
+        context.beginPath();
+        drawRoundRect(context, ...xYWidthHeight, 5);
+        context.fill();
+
+        context.beginPath();
+        drawRoundRect(context, ...xYWidthHeight, 5);
+        context.strokeStyle = palette.gray[20];
+        context.lineWidth = 1;
+        context.stroke();
 
         context.fillStyle = "#000";
         context.fillText(data.label, data.x + data.size + 3, data.y + size / 3);
@@ -70,12 +86,13 @@ export const useDefaultSettings = (state: GraphState) => {
       }
 
       if (state.hoveredNodeId !== node && !state.hoveredNeighborIds.has(node)) {
-        nodeData.color = palette.gray[10];
-        nodeData.label = "";
-        nodeData.zIndex = 1;
+        /**
+         * Nodes are always drawn over edges by the library, so anything other than hiding non-highlighted nodes
+         * means that they can obscure the highlighted edges.
+         */
+        nodeData.hidden = true;
       } else {
         nodeData.forceLabel = true;
-        nodeData.zIndex = 2;
       }
 
       return nodeData;
