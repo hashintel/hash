@@ -15,8 +15,16 @@ const Graph = ({
   onTypeClick,
   types,
 }: Omit<TypesGraphProps, "highlightDepth"> & { height: string | number }) => {
-  const [highlightDepth, setHighlightDepth] = useState(2);
+  /**
+   * When a node is hovered or selected, we highlight its neighbors up to this depth.
+   *
+   * Not currently exposed as a user setting but could be, thus the state.
+   */
+  const [highlightDepth, _setHighlightDepth] = useState(2);
 
+  /**
+   * WebGL APIs aren't available in the server, so we need to dynamically load any module which uses Sigma/graphology.
+   */
   const SigmaContainer = dynamic(
     import("@react-sigma/core").then((module) => module.SigmaContainer),
     { ssr: false },

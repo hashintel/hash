@@ -41,6 +41,9 @@ export const useDefaultSettings = (state: GraphState) => {
 
     sigma.setSetting("zIndex", true);
 
+    /**
+     * Provide a custom renderer for node labels.
+     */
     sigma.setSetting(
       "defaultDrawNodeLabel",
       (context: CanvasRenderingContext2D, data, settings) => {
@@ -62,22 +65,35 @@ export const useDefaultSettings = (state: GraphState) => {
           20,
         ] as const;
 
+        /**
+         * Draw the background for the label
+         */
         context.fillStyle = "#ffffffee";
         context.beginPath();
         drawRoundRect(context, ...xYWidthHeight, 5);
         context.fill();
 
+        /**
+         * Draw a border on the background
+         */
         context.beginPath();
         drawRoundRect(context, ...xYWidthHeight, 5);
         context.strokeStyle = palette.gray[20];
         context.lineWidth = 1;
         context.stroke();
 
-        context.fillStyle = "#000";
+        /**
+         * Draw the label text
+         */
+        context.fillStyle = palette.gray[80];
         context.fillText(data.label, data.x + data.size + 3, data.y + size / 3);
       },
     );
 
+    /**
+     * A 'reducer' in sigma terms – a function to dynamically draw a node.
+     * We use it to take account of the graph state (e.g. highlighted nodes).
+     */
     sigma.setSetting("nodeReducer", (node, data) => {
       const nodeData = { ...data };
 
@@ -104,6 +120,10 @@ export const useDefaultSettings = (state: GraphState) => {
       if (!state.hoveredNodeId || !state.hoveredNeighborIds) {
         return edgeData;
       }
+
+      /**
+       * If we have highlighted nodes, we only draw the edge if both the source and target are highlighted.
+       */
 
       const activeIds = [...state.hoveredNodeId, ...state.hoveredNeighborIds];
 
