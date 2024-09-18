@@ -7,10 +7,14 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::subgraph::{
-    edges::{EdgeDirection, KnowledgeGraphEdgeKind},
-    identifier::EntityVertexId,
-    temporal_axes::{QueryTemporalAxes, VariableAxis},
+use hash_graph_store::{
+    entity::EntityQueryPath,
+    filter::Parameter,
+    subgraph::{
+        edges::{EdgeDirection, KnowledgeGraphEdgeKind},
+        identifier::EntityVertexId,
+        temporal_axes::{QueryTemporalAxes, VariableAxis},
+    },
 };
 use temporal_versioning::{
     ClosedTemporalBound, LeftClosedTemporalInterval, TemporalTagged, TimeAxis,
@@ -20,20 +24,16 @@ use tracing::instrument;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 use uuid::Uuid;
 
-use crate::{
-    knowledge::EntityQueryPath,
-    store::{
-        crud::{Sorting, VertexIdSorting},
-        postgres::{
-            crud::QueryRecordDecode,
-            query::{
-                Distinctness, Expression, Function, PostgresRecord, PostgresSorting,
-                SelectCompiler, Table,
-            },
+use crate::store::{
+    crud::{Sorting, VertexIdSorting},
+    postgres::{
+        crud::QueryRecordDecode,
+        query::{
+            Distinctness, Expression, Function, PostgresRecord, PostgresSorting, SelectCompiler,
+            Table,
         },
-        query::Parameter,
-        NullOrdering, Ordering,
     },
+    NullOrdering, Ordering,
 };
 
 #[derive(Debug, Copy, Clone)]

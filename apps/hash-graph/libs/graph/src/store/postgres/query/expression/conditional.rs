@@ -2,12 +2,11 @@ use core::fmt::{
     Display, Formatter, Write, {self},
 };
 
-use crate::store::{
-    postgres::query::{
-        table::DatabaseColumn, Alias, AliasedTable, Column, SelectStatement, Table, Transpile,
-        WindowStatement,
-    },
-    query::PathToken,
+use hash_graph_store::filter::PathToken;
+
+use crate::store::postgres::query::{
+    table::DatabaseColumn, Alias, AliasedTable, Column, SelectStatement, Table, Transpile,
+    WindowStatement,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -263,10 +262,11 @@ impl Transpile for Option<Expression> {
 
 #[cfg(test)]
 mod tests {
+    use hash_graph_store::data_type::DataTypeQueryPath;
+
     use super::*;
-    use crate::{
-        ontology::DataTypeQueryPath,
-        store::postgres::query::{test_helper::max_version_expression, Alias, PostgresQueryPath},
+    use crate::store::postgres::query::{
+        test_helper::max_version_expression, Alias, PostgresQueryPath,
     };
 
     #[test]

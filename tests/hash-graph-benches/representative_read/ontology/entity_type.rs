@@ -1,9 +1,12 @@
 use authorization::AuthorizationApi;
 use criterion::{BatchSize::SmallInput, Bencher};
-use graph::store::{ontology::GetEntityTypesParams, query::Filter, EntityTypeStore};
+use graph::store::{ontology::GetEntityTypesParams, EntityTypeStore};
 use graph_types::account::AccountId;
-use hash_graph_store::subgraph::temporal_axes::{
-    PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+use hash_graph_store::{
+    filter::Filter,
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+    },
 };
 use rand::{prelude::IteratorRandom, thread_rng};
 use temporal_versioning::TemporalBound;

@@ -21,14 +21,18 @@ use graph_types::{
     },
     Embedding,
 };
-use hash_graph_store::subgraph::{
-    edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
-    identifier::{EntityTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
-    temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved, VariableAxis,
-        VariableTemporalAxisUnresolved,
+use hash_graph_store::{
+    entity_type::EntityTypeQueryPath,
+    filter::{Filter, FilterExpression, ParameterList},
+    subgraph::{
+        edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
+        identifier::{EntityTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
+            VariableAxis, VariableTemporalAxisUnresolved,
+        },
+        Subgraph, SubgraphRecord,
     },
-    Subgraph, SubgraphRecord,
 };
 use postgres_types::{Json, ToSql};
 use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
@@ -40,29 +44,24 @@ use type_system::{
     Validator,
 };
 
-use crate::{
-    ontology::EntityTypeQueryPath,
-    store::{
-        crud::{QueryResult, Read, ReadPaginated, VertexIdSorting},
-        error::DeletionError,
-        ontology::{
-            ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,
-            GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
-            GetEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
-            UpdateEntityTypesParams,
-        },
-        postgres::{
-            crud::QueryRecordDecode,
-            ontology::{
-                read::OntologyTypeTraversalData, OntologyId,
-                PostgresOntologyTypeClassificationMetadata,
-            },
-            query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
-            ResponseCountMap, TraversalContext,
-        },
-        query::{Filter, FilterExpression, ParameterList},
-        AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
+use crate::store::{
+    crud::{QueryResult, Read, ReadPaginated, VertexIdSorting},
+    error::DeletionError,
+    ontology::{
+        ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,
+        GetEntityTypeSubgraphParams, GetEntityTypeSubgraphResponse, GetEntityTypesParams,
+        GetEntityTypesResponse, UnarchiveEntityTypeParams, UpdateEntityTypeEmbeddingParams,
+        UpdateEntityTypesParams,
     },
+    postgres::{
+        crud::QueryRecordDecode,
+        ontology::{
+            read::OntologyTypeTraversalData, OntologyId, PostgresOntologyTypeClassificationMetadata,
+        },
+        query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
+        ResponseCountMap, TraversalContext,
+    },
+    AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
 };
 
 impl<C, A> PostgresStore<C, A>

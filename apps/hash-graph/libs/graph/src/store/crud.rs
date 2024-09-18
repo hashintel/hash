@@ -9,10 +9,13 @@
 use async_trait::async_trait;
 use error_stack::Result;
 use futures::{Stream, TryStreamExt};
-use hash_graph_store::subgraph::{temporal_axes::QueryTemporalAxes, SubgraphRecord};
+use hash_graph_store::{
+    filter::{Filter, QueryRecord},
+    subgraph::{temporal_axes::QueryTemporalAxes, SubgraphRecord},
+};
 use tracing::instrument;
 
-use crate::store::{query::Filter, QueryError, QueryRecord};
+use crate::store::QueryError;
 
 pub trait QueryResult<R, S: Sorting> {
     type Indices: Send;

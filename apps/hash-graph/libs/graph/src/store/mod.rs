@@ -1,13 +1,11 @@
 pub mod crud;
 pub mod error;
-pub mod query;
 
 mod config;
 pub mod knowledge;
 mod migration;
 pub mod ontology;
 mod pool;
-mod record;
 mod validation;
 
 mod fetcher;
@@ -15,7 +13,7 @@ pub(crate) mod postgres;
 
 use async_trait::async_trait;
 use hash_graph_store::account::AccountStore;
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
@@ -34,7 +32,6 @@ pub use self::{
     ontology::{DataTypeStore, EntityTypeStore, PropertyTypeStore},
     pool::StorePool,
     postgres::{AsClient, PostgresStore, PostgresStorePool},
-    record::QueryRecord,
     validation::{StoreCache, StoreProvider},
 };
 
@@ -52,14 +49,6 @@ pub trait Store:
 impl<S> Store for S where
     S: AccountStore + DataTypeStore + PropertyTypeStore + EntityTypeStore + EntityStore
 {
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-pub enum ConflictBehavior {
-    /// If a conflict is detected, the operation will fail.
-    Fail,
-    /// If a conflict is detected, the operation will be skipped.
-    Skip,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Deserialize)]

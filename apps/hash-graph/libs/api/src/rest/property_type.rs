@@ -23,7 +23,7 @@ use error_stack::{Report, ResultExt};
 use graph::{
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, PropertyTypeQueryToken,
+        patch_id_and_parse,
     },
     store::{
         error::VersionedUrlAlreadyExists,
@@ -32,8 +32,7 @@ use graph::{
             GetPropertyTypesParams, GetPropertyTypesResponse, UnarchivePropertyTypeParams,
             UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
         },
-        BaseUrlAlreadyExists, ConflictBehavior, OntologyVersionDoesNotExist, PropertyTypeStore,
-        StorePool,
+        BaseUrlAlreadyExists, OntologyVersionDoesNotExist, PropertyTypeStore, StorePool,
     },
 };
 use graph_types::{
@@ -44,7 +43,10 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::subgraph::identifier::PropertyTypeVertexId;
+use hash_graph_store::{
+    property_type::PropertyTypeQueryToken, subgraph::identifier::PropertyTypeVertexId,
+    ConflictBehavior,
+};
 use hash_status::Status;
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;

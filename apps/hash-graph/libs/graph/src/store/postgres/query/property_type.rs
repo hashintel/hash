@@ -1,17 +1,16 @@
 use core::iter::once;
 
-use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
+use hash_graph_store::{
+    property_type::PropertyTypeQueryPath,
+    subgraph::edges::{EdgeDirection, OntologyEdgeKind},
+};
 
-use crate::{
-    ontology::PropertyTypeQueryPath,
-    store::postgres::query::{
-        table::{
-            Column, JsonField, OntologyAdditionalMetadata, OntologyIds, OntologyOwnedMetadata,
-            OntologyTemporalMetadata, PropertyTypeEmbeddings, PropertyTypes, ReferenceTable,
-            Relation,
-        },
-        PostgresQueryPath,
+use crate::store::postgres::query::{
+    table::{
+        Column, JsonField, OntologyAdditionalMetadata, OntologyIds, OntologyOwnedMetadata,
+        OntologyTemporalMetadata, PropertyTypeEmbeddings, PropertyTypes, ReferenceTable, Relation,
     },
+    PostgresQueryPath,
 };
 
 impl PostgresQueryPath for PropertyTypeQueryPath<'_> {

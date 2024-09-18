@@ -30,7 +30,7 @@ use axum::{
 };
 use error_stack::{Report, ResultExt};
 use graph::{
-    ontology::{domain_validator::DomainValidator, Selector},
+    ontology::domain_validator::DomainValidator,
     store::{error::VersionedUrlAlreadyExists, Store, StorePool, TypeFetcher},
 };
 use graph_types::{
@@ -42,18 +42,21 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::subgraph::{
-    edges::{
-        EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
-        OutgoingEdgeResolveDepth, SharedEdgeKind,
-    },
-    identifier::{
-        DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, EntityVertexId,
-        GraphElementVertexId, PropertyTypeVertexId,
-    },
-    temporal_axes::{
-        QueryTemporalAxes, QueryTemporalAxesUnresolved, RightBoundedTemporalIntervalUnresolved,
-        SubgraphTemporalAxes,
+use hash_graph_store::{
+    filter::Selector,
+    subgraph::{
+        edges::{
+            EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
+            OutgoingEdgeResolveDepth, SharedEdgeKind,
+        },
+        identifier::{
+            DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, EntityVertexId,
+            GraphElementVertexId, PropertyTypeVertexId,
+        },
+        temporal_axes::{
+            QueryTemporalAxes, QueryTemporalAxesUnresolved, RightBoundedTemporalIntervalUnresolved,
+            SubgraphTemporalAxes,
+        },
     },
 };
 use hash_status::Status;

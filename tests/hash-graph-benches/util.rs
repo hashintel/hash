@@ -16,9 +16,9 @@ use graph::{
             CreateDataTypeParams, CreateEntityTypeParams, CreatePropertyTypeParams,
             UpdateDataTypesParams, UpdateEntityTypesParams, UpdatePropertyTypesParams,
         },
-        AsClient, BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo,
-        DatabasePoolConfig, DatabaseType, EntityTypeStore, PostgresStore, PostgresStorePool,
-        PropertyTypeStore, StoreMigration, StorePool,
+        AsClient, BaseUrlAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabasePoolConfig,
+        DatabaseType, EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore,
+        StoreMigration, StorePool,
     },
     Environment,
 };
@@ -27,6 +27,7 @@ use graph_types::{
     ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
     owned_by_id::OwnedById,
 };
+use hash_graph_store::ConflictBehavior;
 use repo_chores::benches::generate_path;
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;

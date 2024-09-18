@@ -6,7 +6,6 @@ use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::store::{
     knowledge::{CreateEntityParams, GetEntitiesParams},
-    query::Filter,
     EntityQuerySorting, EntityStore,
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
@@ -20,6 +19,7 @@ use graph_types::{
 };
 use hash_graph_store::{
     account::{AccountStore, InsertAccountIdParams, InsertWebIdParams},
+    filter::Filter,
     subgraph::temporal_axes::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },

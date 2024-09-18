@@ -17,8 +17,10 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::subgraph::{
-    edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved, Subgraph,
+use hash_graph_store::{
+    entity::EntityQueryPath,
+    filter::Filter,
+    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved, Subgraph},
 };
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
@@ -33,12 +35,9 @@ use utoipa::{
 };
 use validation::ValidateEntityComponents;
 
-use crate::{
-    knowledge::EntityQueryPath,
-    store::{
-        crud::Sorting, postgres::CursorField, query::Filter, InsertionError, NullOrdering,
-        Ordering, QueryError, UpdateError,
-    },
+use crate::store::{
+    crud::Sorting, postgres::CursorField, InsertionError, NullOrdering, Ordering, QueryError,
+    UpdateError,
 };
 
 #[derive(Debug, Clone, Deserialize)]

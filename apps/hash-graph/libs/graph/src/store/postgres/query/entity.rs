@@ -1,18 +1,17 @@
 use core::iter::once;
 
-use hash_graph_store::subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind};
+use hash_graph_store::{
+    entity::EntityQueryPath,
+    entity_type::EntityTypeQueryPath,
+    subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
+};
 
-use crate::{
-    knowledge::EntityQueryPath,
-    ontology::EntityTypeQueryPath,
-    store::postgres::query::{
-        table::{
-            Column, EntityEditions, EntityEmbeddings, EntityHasLeftEntity, EntityHasRightEntity,
-            EntityIds, EntityIsOfTypeIds, EntityTemporalMetadata, JsonField, ReferenceTable,
-            Relation,
-        },
-        PostgresQueryPath,
+use crate::store::postgres::query::{
+    table::{
+        Column, EntityEditions, EntityEmbeddings, EntityHasLeftEntity, EntityHasRightEntity,
+        EntityIds, EntityIsOfTypeIds, EntityTemporalMetadata, JsonField, ReferenceTable, Relation,
     },
+    PostgresQueryPath,
 };
 
 impl PostgresQueryPath for EntityQueryPath<'_> {

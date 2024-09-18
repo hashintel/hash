@@ -6,7 +6,6 @@ use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion, Sampling
 use criterion_macro::criterion;
 use graph::store::{
     knowledge::{CreateEntityParams, GetEntitySubgraphParams},
-    query::Filter,
     EntityQuerySorting, EntityStore,
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
@@ -21,6 +20,7 @@ use graph_types::{
 };
 use hash_graph_store::{
     account::{AccountStore, InsertAccountIdParams, InsertWebIdParams},
+    filter::Filter,
     subgraph::{
         edges::{EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth},
         temporal_axes::{

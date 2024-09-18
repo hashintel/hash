@@ -2,7 +2,6 @@ use std::collections::HashSet;
 
 use graph::store::{
     knowledge::{CountEntitiesParams, CreateEntityParams, GetEntitiesParams, PatchEntityParams},
-    query::Filter,
     EntityQuerySorting, EntityStore,
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
@@ -16,8 +15,11 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::subgraph::temporal_axes::{
-    PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+use hash_graph_store::{
+    filter::Filter,
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+    },
 };
 use temporal_versioning::{ClosedTemporalBound, LimitedTemporalBound, TemporalBound};
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};

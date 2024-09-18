@@ -47,6 +47,7 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
+use hash_graph_store::filter::{Filter, QueryRecord};
 use hash_status::StatusCode;
 use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
@@ -61,10 +62,7 @@ use crate::{
         },
         restore::SnapshotRecordBatch,
     },
-    store::{
-        crud::Read, query::Filter, AsClient, InsertionError, PostgresStore, PostgresStorePool,
-        QueryRecord, StorePool,
-    },
+    store::{crud::Read, AsClient, InsertionError, PostgresStore, PostgresStorePool, StorePool},
 };
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -3,7 +3,6 @@ use core::{
     str::FromStr,
 };
 
-use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
 use serde::{
     de::{self, Deserializer, SeqAccess, Visitor},
     Deserialize, Serialize,
@@ -12,10 +11,12 @@ use serde::{
 use utoipa::ToSchema;
 
 use crate::{
-    ontology::{PropertyTypeQueryPath, Selector},
-    store::query::{
+    filter::{
         parse_query_token, JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath,
+        Selector,
     },
+    property_type::PropertyTypeQueryPath,
+    subgraph::edges::{EdgeDirection, OntologyEdgeKind},
 };
 
 /// A path to a [`DataType`] field.
@@ -34,7 +35,7 @@ pub enum DataTypeQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::DataTypeQueryPath;
+    /// # use hash_graph_store::data_type::DataTypeQueryPath;
     /// let path = DataTypeQueryPath::deserialize(json!(["baseUrl"]))?;
     /// assert_eq!(path, DataTypeQueryPath::BaseUrl);
     /// # Ok::<(), serde_json::Error>(())
@@ -48,7 +49,7 @@ pub enum DataTypeQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::DataTypeQueryPath;
+    /// # use hash_graph_store::data_type::DataTypeQueryPath;
     /// let path = DataTypeQueryPath::deserialize(json!(["version"]))?;
     /// assert_eq!(path, DataTypeQueryPath::Version);
     /// # Ok::<(), serde_json::Error>(())
@@ -62,8 +63,8 @@ pub enum DataTypeQueryPath<'p> {
     /// # use std::borrow::Cow;
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::{store::query::{Filter, FilterExpression, Parameter}};
-    /// # use graph::ontology::DataTypeQueryPath;
+    /// # use hash_graph_store::{filter::{Filter, FilterExpression, Parameter}};
+    /// # use hash_graph_store::data_type::DataTypeQueryPath;
     /// # use graph_types::ontology::DataTypeWithMetadata;
     /// let filter_value = json!({ "equal": [{ "path": ["version"] }, { "parameter": "latest" }] });
     /// let path = Filter::<DataTypeWithMetadata>::deserialize(filter_value)?;
@@ -81,7 +82,7 @@ pub enum DataTypeQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::DataTypeQueryPath;
+    /// # use hash_graph_store::data_type::DataTypeQueryPath;
     /// let path = DataTypeQueryPath::deserialize(json!(["versionedUrl"]))?;
     /// assert_eq!(path, DataTypeQueryPath::VersionedUrl);
     /// # Ok::<(), serde_json::Error>(())
@@ -102,7 +103,7 @@ pub enum DataTypeQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::DataTypeQueryPath;
+    /// # use hash_graph_store::data_type::DataTypeQueryPath;
     /// let path = DataTypeQueryPath::deserialize(json!(["ownedById"]))?;
     /// assert_eq!(path, DataTypeQueryPath::OwnedById);
     /// # Ok::<(), serde_json::Error>(())
@@ -117,7 +118,7 @@ pub enum DataTypeQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::DataTypeQueryPath;
+    /// # use hash_graph_store::data_type::DataTypeQueryPath;
     /// let path = DataTypeQueryPath::deserialize(json!(["title"]))?;
     /// assert_eq!(path, DataTypeQueryPath::Title);
     /// # Ok::<(), serde_json::Error>(())
@@ -130,7 +131,7 @@ pub enum DataTypeQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::DataTypeQueryPath;
+    /// # use hash_graph_store::data_type::DataTypeQueryPath;
     /// let path = DataTypeQueryPath::deserialize(json!(["description"]))?;
     /// assert_eq!(path, DataTypeQueryPath::Description);
     /// # Ok::<(), serde_json::Error>(())
@@ -143,7 +144,7 @@ pub enum DataTypeQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::DataTypeQueryPath;
+    /// # use hash_graph_store::data_type::DataTypeQueryPath;
     /// let path = DataTypeQueryPath::deserialize(json!(["type"]))?;
     /// assert_eq!(path, DataTypeQueryPath::Type);
     /// # Ok::<(), serde_json::Error>(())
@@ -180,8 +181,8 @@ pub enum DataTypeQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::DataTypeQueryPath;
-    /// # use graph::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
+    /// # use hash_graph_store::data_type::DataTypeQueryPath;
+    /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path = DataTypeQueryPath::deserialize(json!(["inheritsFrom", "*", "baseUrl"]))?;
     /// assert_eq!(
     ///     path,
@@ -200,8 +201,8 @@ pub enum DataTypeQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::DataTypeQueryPath;
-    /// # use graph::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
+    /// # use hash_graph_store::data_type::DataTypeQueryPath;
+    /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path = DataTypeQueryPath::deserialize(json!(["children", "*", "baseUrl"]))?;
     /// assert_eq!(
     ///     path,
@@ -222,8 +223,8 @@ pub enum DataTypeQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::DataTypeQueryPath;
-    /// # use graph::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
+    /// # use hash_graph_store::data_type::DataTypeQueryPath;
+    /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path = DataTypeQueryPath::deserialize(json!([
     ///     "inheritsFrom(inheritanceDepth=10)",
     ///     "*",
@@ -246,8 +247,8 @@ pub enum DataTypeQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::DataTypeQueryPath;
-    /// # use graph::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
+    /// # use hash_graph_store::data_type::DataTypeQueryPath;
+    /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path =
     ///     DataTypeQueryPath::deserialize(json!(["children(inheritanceDepth=10)", "*", "baseUrl"]))?;
     /// assert_eq!(
@@ -292,7 +293,7 @@ pub enum DataTypeQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::DataTypeQueryPath;
+    /// # use hash_graph_store::data_type::DataTypeQueryPath;
     /// let path = DataTypeQueryPath::deserialize(json!(["embedding"]))?;
     /// assert_eq!(path, DataTypeQueryPath::Embedding);
     /// # Ok::<(), serde_json::Error>(())
@@ -308,7 +309,7 @@ pub enum DataTypeQueryPath<'p> {
     /// ```rust
     /// # use serde::Deserialize;
     /// # use serde_json::json;
-    /// # use graph::ontology::DataTypeQueryPath;
+    /// # use hash_graph_store::data_type::DataTypeQueryPath;
     /// let path = DataTypeQueryPath::deserialize(json!(["editionProvenance", "createdById"]))?;
     /// assert_eq!(path.to_string(), r#"editionProvenance.$."createdById""#);
     /// # Ok::<(), serde_json::Error>(())
@@ -416,18 +417,18 @@ pub enum DataTypeQueryToken {
 }
 
 /// Deserializes a [`DataTypeQueryPath`] from a string sequence.
-pub struct DataTypeQueryPathVisitor {
+pub(crate) struct DataTypeQueryPathVisitor {
     /// The current position in the sequence when deserializing.
     position: usize,
 }
 
 impl DataTypeQueryPathVisitor {
-    pub const EXPECTING: &'static str =
+    pub(crate) const EXPECTING: &'static str =
         "one of `baseUrl`, `version`, `versionedUrl`, `ownedById`, `title`, `description`, \
          `type`, `inheritsFrom`, `children`, `editionProvenance`, `embedding`";
 
     #[must_use]
-    pub const fn new(position: usize) -> Self {
+    pub(crate) const fn new(position: usize) -> Self {
         Self { position }
     }
 }

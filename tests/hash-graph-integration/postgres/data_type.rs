@@ -5,8 +5,7 @@ use graph::store::{
     error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
     knowledge::CreateEntityParams,
     ontology::{CreateDataTypeParams, GetDataTypesParams, UpdateDataTypesParams},
-    query::Filter,
-    BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore, EntityStore,
+    BaseUrlAlreadyExists, DataTypeStore, EntityStore,
 };
 use graph_types::{
     knowledge::{
@@ -22,8 +21,12 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::subgraph::temporal_axes::{
-    PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+use hash_graph_store::{
+    filter::Filter,
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+    },
+    ConflictBehavior,
 };
 use serde_json::json;
 use temporal_versioning::TemporalBound;

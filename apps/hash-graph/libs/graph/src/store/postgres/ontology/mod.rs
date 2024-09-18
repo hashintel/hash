@@ -15,25 +15,27 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::subgraph::{temporal_axes::QueryTemporalAxes, SubgraphRecord};
+use hash_graph_store::{
+    data_type::DataTypeQueryPath,
+    entity_type::EntityTypeQueryPath,
+    filter::Parameter,
+    property_type::PropertyTypeQueryPath,
+    subgraph::{temporal_axes::QueryTemporalAxes, SubgraphRecord},
+};
 use serde::Deserialize;
 use time::OffsetDateTime;
 use tokio_postgres::{Row, Transaction};
 use type_system::url::BaseUrl;
 
 pub use self::ontology_id::OntologyId;
-use crate::{
-    ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
-    store::{
-        crud::{Sorting, VertexIdSorting},
-        error::DeletionError,
-        postgres::{
-            crud::QueryRecordDecode,
-            query::{Distinctness, PostgresSorting, SelectCompiler},
-        },
-        query::Parameter,
-        AsClient, Ordering, PostgresStore,
+use crate::store::{
+    crud::{Sorting, VertexIdSorting},
+    error::DeletionError,
+    postgres::{
+        crud::QueryRecordDecode,
+        query::{Distinctness, PostgresSorting, SelectCompiler},
     },
+    AsClient, Ordering, PostgresStore,
 };
 
 impl<A> PostgresStore<Transaction<'_>, A>

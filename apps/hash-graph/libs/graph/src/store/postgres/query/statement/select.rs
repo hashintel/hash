@@ -120,23 +120,25 @@ mod tests {
         ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
         Embedding,
     };
-    use hash_graph_store::subgraph::{
-        edges::{EdgeDirection, KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
-        temporal_axes::QueryTemporalAxesUnresolved,
+    use hash_graph_store::{
+        data_type::DataTypeQueryPath,
+        entity::EntityQueryPath,
+        entity_type::EntityTypeQueryPath,
+        filter::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
+        property_type::PropertyTypeQueryPath,
+        subgraph::{
+            edges::{EdgeDirection, KnowledgeGraphEdgeKind, OntologyEdgeKind, SharedEdgeKind},
+            temporal_axes::QueryTemporalAxesUnresolved,
+        },
     };
     use postgres_types::ToSql;
     use uuid::Uuid;
 
-    use crate::{
-        knowledge::EntityQueryPath,
-        ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
-        store::{
-            postgres::query::{
-                test_helper::trim_whitespace, Distinctness, PostgresRecord, SelectCompiler,
-            },
-            query::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
-            NullOrdering, Ordering,
+    use crate::store::{
+        postgres::query::{
+            test_helper::trim_whitespace, Distinctness, PostgresRecord, SelectCompiler,
         },
+        NullOrdering, Ordering,
     };
 
     fn test_compilation<'p, 'q: 'p, T: PostgresRecord + 'static>(

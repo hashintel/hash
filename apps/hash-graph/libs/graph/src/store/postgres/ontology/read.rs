@@ -3,28 +3,28 @@ use alloc::borrow::Cow;
 use error_stack::{Result, ResultExt};
 use futures::{Stream, StreamExt};
 use graph_types::ontology::{EntityTypeId, EntityTypeWithMetadata};
-use hash_graph_store::subgraph::{
-    edges::GraphResolveDepths,
-    temporal_axes::{QueryTemporalAxes, VariableAxis},
+use hash_graph_store::{
+    entity_type::EntityTypeQueryPath,
+    filter::Filter,
+    subgraph::{
+        edges::GraphResolveDepths,
+        temporal_axes::{QueryTemporalAxes, VariableAxis},
+    },
 };
 use postgres_types::Json;
 use temporal_versioning::RightBoundedTemporalInterval;
 use tokio_postgres::GenericClient;
 use type_system::{schema::ClosedEntityType, url::VersionedUrl};
 
-use crate::{
-    ontology::EntityTypeQueryPath,
-    store::{
-        postgres::{
-            ontology::OntologyId,
-            query::{
-                table::DatabaseColumn, Distinctness, ForeignKeyReference, ReferenceTable,
-                SelectCompiler, Table, Transpile,
-            },
+use crate::store::{
+    postgres::{
+        ontology::OntologyId,
+        query::{
+            table::DatabaseColumn, Distinctness, ForeignKeyReference, ReferenceTable,
+            SelectCompiler, Table, Transpile,
         },
-        query::Filter,
-        AsClient, PostgresStore, QueryError,
     },
+    AsClient, PostgresStore, QueryError,
 };
 
 #[derive(Debug, Default)]

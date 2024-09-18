@@ -2,7 +2,12 @@ use alloc::borrow::Cow;
 use core::iter::once;
 use std::collections::{HashMap, HashSet};
 
-use hash_graph_store::subgraph::temporal_axes::QueryTemporalAxes;
+use hash_graph_store::{
+    filter::{
+        Filter, FilterExpression, Parameter, ParameterList, ParameterType, PathToken, QueryRecord,
+    },
+    subgraph::temporal_axes::QueryTemporalAxes,
+};
 use postgres_types::ToSql;
 use temporal_versioning::TimeAxis;
 use tracing::instrument;
@@ -21,8 +26,7 @@ use crate::store::{
         SelectExpression, SelectStatement, Table, Transpile, WhereExpression, WindowStatement,
         WithExpression,
     },
-    query::{Filter, FilterExpression, Parameter, ParameterList, ParameterType, PathToken},
-    NullOrdering, Ordering, QueryRecord,
+    NullOrdering, Ordering,
 };
 
 // # Lifetime guidance

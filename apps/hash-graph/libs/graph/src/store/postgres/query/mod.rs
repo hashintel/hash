@@ -23,7 +23,10 @@ use core::{
 use bytes::BytesMut;
 use error_stack::Context;
 use graph_types::knowledge::entity::Entity;
-use hash_graph_store::subgraph::temporal_axes::QueryTemporalAxes;
+use hash_graph_store::{
+    filter::{ParameterConversionError, QueryRecord},
+    subgraph::temporal_axes::QueryTemporalAxes,
+};
 use postgres_types::{FromSql, IsNull, ToSql, Type, WasNull};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -50,8 +53,6 @@ use crate::store::{
         crud::QueryRecordDecode,
         query::table::{JsonField, Relation},
     },
-    query::ParameterConversionError,
-    QueryRecord,
 };
 
 pub trait PostgresRecord: QueryRecord + QueryRecordDecode<Output = Self> {
@@ -277,9 +278,10 @@ where
 
 #[cfg(test)]
 mod test_helper {
-    use crate::{
-        ontology::DataTypeQueryPath,
-        store::postgres::query::{Alias, Expression, Function, PostgresQueryPath, WindowStatement},
+    use hash_graph_store::data_type::DataTypeQueryPath;
+
+    use crate::store::postgres::query::{
+        Alias, Expression, Function, PostgresQueryPath, WindowStatement,
     };
 
     pub fn trim_whitespace(string: impl Into<String>) -> String {

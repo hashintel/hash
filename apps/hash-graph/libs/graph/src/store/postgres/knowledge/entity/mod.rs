@@ -34,15 +34,19 @@ use graph_types::{
     owned_by_id::OwnedById,
     Embedding,
 };
-use hash_graph_store::subgraph::{
-    edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
-    identifier::{EntityIdWithInterval, EntityVertexId},
-    temporal_axes::{
-        PinnedTemporalAxis, PinnedTemporalAxisUnresolved, QueryTemporalAxes,
-        QueryTemporalAxesUnresolved, VariableAxis, VariableTemporalAxis,
-        VariableTemporalAxisUnresolved,
+use hash_graph_store::{
+    entity::EntityQueryPath,
+    filter::{Filter, FilterExpression, Parameter},
+    subgraph::{
+        edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
+        identifier::{EntityIdWithInterval, EntityVertexId},
+        temporal_axes::{
+            PinnedTemporalAxis, PinnedTemporalAxisUnresolved, QueryTemporalAxes,
+            QueryTemporalAxesUnresolved, VariableAxis, VariableTemporalAxis,
+            VariableTemporalAxisUnresolved,
+        },
+        Subgraph, SubgraphRecord,
     },
-    Subgraph, SubgraphRecord,
 };
 use hash_status::StatusCode;
 use postgres_types::ToSql;
@@ -57,34 +61,29 @@ use type_system::url::VersionedUrl;
 use uuid::Uuid;
 use validation::{EntityPreprocessor, Validate, ValidateEntityComponents};
 
-use crate::{
-    knowledge::EntityQueryPath,
-    store::{
-        crud::{QueryResult, Read, ReadPaginated, Sorting},
-        error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
-        knowledge::{
-            CountEntitiesParams, CreateEntityParams, EntityQuerySorting, EntityValidationType,
-            GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams,
-            GetEntitySubgraphResponse, PatchEntityParams, QueryConversion,
-            UpdateEntityEmbeddingsParams, ValidateEntityError, ValidateEntityParams,
-        },
-        postgres::{
-            knowledge::entity::read::EntityEdgeTraversalData,
-            ontology::OntologyId,
-            query::{
-                rows::{
-                    EntityDraftRow, EntityEditionRow, EntityHasLeftEntityRow,
-                    EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow,
-                    EntityTemporalMetadataRow,
-                },
-                InsertStatementBuilder, ReferenceTable, Table,
-            },
-            ResponseCountMap, TraversalContext,
-        },
-        query::{Filter, FilterExpression, Parameter},
-        validation::StoreProvider,
-        AsClient, EntityStore, InsertionError, PostgresStore, QueryError, StoreCache, UpdateError,
+use crate::store::{
+    crud::{QueryResult, Read, ReadPaginated, Sorting},
+    error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
+    knowledge::{
+        CountEntitiesParams, CreateEntityParams, EntityQuerySorting, EntityValidationType,
+        GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams, GetEntitySubgraphResponse,
+        PatchEntityParams, QueryConversion, UpdateEntityEmbeddingsParams, ValidateEntityError,
+        ValidateEntityParams,
     },
+    postgres::{
+        knowledge::entity::read::EntityEdgeTraversalData,
+        ontology::OntologyId,
+        query::{
+            rows::{
+                EntityDraftRow, EntityEditionRow, EntityHasLeftEntityRow, EntityHasRightEntityRow,
+                EntityIdRow, EntityIsOfTypeRow, EntityTemporalMetadataRow,
+            },
+            InsertStatementBuilder, ReferenceTable, Table,
+        },
+        ResponseCountMap, TraversalContext,
+    },
+    validation::StoreProvider,
+    AsClient, EntityStore, InsertionError, PostgresStore, QueryError, StoreCache, UpdateError,
 };
 
 #[derive(Debug)]

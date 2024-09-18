@@ -1,7 +1,11 @@
 use alloc::borrow::Cow;
-use core::{error::Error, fmt, fmt::Write};
+#[cfg(feature = "postgres")]
+use core::error::Error;
+use core::fmt::{self, Write};
 
+#[cfg(feature = "postgres")]
 use bytes::BytesMut;
+#[cfg(feature = "postgres")]
 use postgres_types::{IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize, Serializer};
 
@@ -76,6 +80,7 @@ impl Serialize for JsonPath<'_> {
     }
 }
 
+#[cfg(feature = "postgres")]
 impl ToSql for JsonPath<'_> {
     // Ideally, we want to accept `JSONPATH`, but that requires a special format, which we don't
     // know, so we accept `TEXT` instead and have to cast it to `JSONPATH` in postgres.

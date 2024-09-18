@@ -2,19 +2,20 @@ use alloc::borrow::Cow;
 
 use authorization::AuthorizationApi;
 use criterion::{BatchSize::SmallInput, Bencher};
-use graph::{
-    knowledge::EntityQueryPath,
-    store::{
-        knowledge::{GetEntitiesParams, GetEntitySubgraphParams},
-        query::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
-        EntityQuerySorting, EntityStore,
-    },
+use graph::store::{
+    knowledge::{GetEntitiesParams, GetEntitySubgraphParams},
+    EntityQuerySorting, EntityStore,
 };
 use graph_types::{account::AccountId, knowledge::entity::EntityUuid};
-use hash_graph_store::subgraph::{
-    edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind},
-    temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+use hash_graph_store::{
+    entity::EntityQueryPath,
+    filter::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
+    subgraph::{
+        edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind},
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved,
+            VariableTemporalAxisUnresolved,
+        },
     },
 };
 use rand::{prelude::IteratorRandom, thread_rng};

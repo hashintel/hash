@@ -1,34 +1,12 @@
 //! TODO: DOC
 
-mod data_type;
 pub mod domain_validator;
-mod entity_type;
-mod property_type;
 
 use core::fmt;
 
 use error_stack::{Context, Result, ResultExt};
-use graph_types::ontology::{
-    DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata,
-};
 use serde::Deserialize;
 use type_system::url::VersionedUrl;
-#[cfg(feature = "utoipa")]
-use utoipa::ToSchema;
-
-pub use self::{
-    data_type::{DataTypeQueryPath, DataTypeQueryPathVisitor, DataTypeQueryToken},
-    entity_type::{EntityTypeQueryPath, EntityTypeQueryPathVisitor, EntityTypeQueryToken},
-    property_type::{PropertyTypeQueryPath, PropertyTypeQueryPathVisitor, PropertyTypeQueryToken},
-};
-use crate::store::QueryRecord;
-
-#[derive(Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(ToSchema))]
-pub enum Selector {
-    #[serde(rename = "*")]
-    Asterisk,
-}
 
 #[derive(Debug)]
 pub struct PatchAndParseError;
@@ -78,16 +56,4 @@ where
     }
 
     serde_json::from_value(value).change_context(PatchAndParseError)
-}
-
-impl QueryRecord for DataTypeWithMetadata {
-    type QueryPath<'p> = DataTypeQueryPath<'p>;
-}
-
-impl QueryRecord for PropertyTypeWithMetadata {
-    type QueryPath<'p> = PropertyTypeQueryPath<'p>;
-}
-
-impl QueryRecord for EntityTypeWithMetadata {
-    type QueryPath<'p> = EntityTypeQueryPath<'p>;
 }
