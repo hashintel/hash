@@ -14,6 +14,25 @@ categories = ["rust-patterns", "no-std"]
 publish = false
 
 [dependencies]
+# Public workspace dependencies
+error-stack = { path = "..", public = true }
+futures-core = { workspace = true, public = true, optional = true }
+pin-project-lite = { workspace = true, optional = true }
+
+[build-dependencies]
+rustc_version = "0.4.1"
 
 [lints]
 workspace = true
+
+[features]
+stream = ["dep:futures-core", "dep:pin-project-lite"]
+
+[dev-dependencies]
+futures-util.workspace = true
+tokio = { workspace = true, features = ["rt-multi-thread"] }
+
+[package.metadata.docs.rs]
+all-features = true
+cargo-args = ["-Z", "unstable-options", "-Z", "rustdoc-scrape-examples"]
+targets = ["x86_64-unknown-linux-gnu"]
