@@ -37,7 +37,7 @@ use crate::{
 ///
 /// - If the token is not of the form `token`, `token()`, or `token(key=value)`
 /// - If `token` can not be deserialized into `T`
-pub fn parse_query_token<'de, T: Deserialize<'de>, E: de::Error>(
+pub(crate) fn parse_query_token<'de, T: Deserialize<'de>, E: de::Error>(
     token: &'de str,
 ) -> Result<(T, HashMap<&'de str, &'de str>), E> {
     let Some((token, parameters)) = token.split_once('(') else {
