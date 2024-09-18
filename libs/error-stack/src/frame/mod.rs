@@ -7,8 +7,15 @@ use alloc::boxed::Box;
 use core::error::{self, Error};
 use core::{any::TypeId, fmt};
 
-use self::frame_impl::FrameImpl;
+#[cfg(feature = "anyhow")]
+pub(crate) use self::frame_impl::AnyhowContext;
+#[cfg(feature = "eyre")]
+pub(crate) use self::frame_impl::EyreContext;
+pub(crate) use self::frame_impl::{
+    AttachmentFrame, ContextFrame, FrameImpl, FrameImplError, PrintableAttachmentFrame,
+};
 pub use self::kind::{AttachmentKind, FrameKind};
+use crate::report::RawSlice;
 
 /// A single context or attachment inside of a [`Report`].
 ///
@@ -17,13 +24,22 @@ pub use self::kind::{AttachmentKind, FrameKind};
 /// the root context created by [`Report::new()`]. The next `Frame` can be accessed by requesting it
 /// by calling [`Report::request_ref()`].
 ///
+/// The `Frame` is deliberately unsized to ensure that it is only ever allocated as part of a
+/// `Report`.
+///
 /// [`Report`]: crate::Report
 /// [`Report::frames()`]: crate::Report::frames
 /// [`Report::new()`]: crate::Report::new
 /// [`Report::request_ref()`]: crate::Report::request_ref
+// DO NOT CHANGE THE LAYOUT OF THIS STRUCT WITHOUT CHANGING THE LAYOUT OF `TypedFrame`.
+// We use `#[repr(C)]` to ensure a predictable memory layout, as the `Rust` repr is not
+// guaranteed.
+#[repr(C)]
 pub struct Frame {
-    frame: Box<dyn FrameImpl>,
-    sources: Box<[Frame]>,
+    sources: Option<RawSlice>,
+    // We force `Frame` to be unsized, as we only allocate it in `Report` this gives us additional
+    // guarantees.
+    r#impl: dyn FrameImpl,
 }
 
 impl Frame {
@@ -33,8 +49,12 @@ impl Frame {
     ///
     /// [`Report`]: crate::Report
     #[must_use]
-    pub const fn sources(&self) -> &[Self] {
-        &self.sources
+    pub fn sources(&self) -> &[Box<Self>] {
+        let Some(sources) = &self.sources else {
+            return &[];
+        };
+
+        sources.as_slice()
     }
 
     /// Returns a mutable reference to the sources of this `Frame`.
@@ -43,14 +63,18 @@ impl Frame {
     ///
     /// [`Report`]: crate::Report
     #[must_use]
-    pub fn sources_mut(&mut self) -> &mut [Self] {
-        &mut self.sources
+    pub fn sources_mut(&mut self) -> &mut [Box<Self>] {
+        let Some(sources) = &mut self.sources else {
+            return &mut [];
+        };
+
+        sources.as_slice_mut()
     }
 
     /// Returns how the `Frame` was created.
     #[must_use]
     pub fn kind(&self) -> FrameKind<'_> {
-        self.frame.kind()
+        self.r#impl.kind()
     }
 
     /// Requests the reference to `T` from the `Frame` if provided.
@@ -76,30 +100,30 @@ impl Frame {
     /// Returns if `T` is the held context or attachment by this frame.
     #[must_use]
     pub fn is<T: Send + Sync + 'static>(&self) -> bool {
-        self.frame.as_any().is::<T>()
+        self.r#impl.as_any().is::<T>()
     }
 
     /// Downcasts this frame if the held context or attachment is the same as `T`.
     #[must_use]
     pub fn downcast_ref<T: Send + Sync + 'static>(&self) -> Option<&T> {
-        self.frame.as_any().downcast_ref()
+        self.r#impl.as_any().downcast_ref()
     }
 
     /// Downcasts this frame if the held context or attachment is the same as `T`.
     #[must_use]
     pub fn downcast_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
-        self.frame.as_any_mut().downcast_mut()
+        self.r#impl.as_any_mut().downcast_mut()
     }
 
     /// Returns the [`TypeId`] of the held context or attachment by this frame.
     #[must_use]
     pub fn type_id(&self) -> TypeId {
-        self.frame.as_any().type_id()
+        self.r#impl.as_any().type_id()
     }
 
     #[cfg(nightly)]
-    pub(crate) fn as_error(&self) -> &impl Error {
-        &self.frame
+    pub(crate) fn as_error(&self) -> &(impl Error + ?Sized) {
+        FrameImplError::new(&self.r#impl)
     }
 }
 

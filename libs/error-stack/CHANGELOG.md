@@ -11,11 +11,13 @@ All notable changes to `error-stack` will be documented in this file.
 ### Features
 
 - Report has been split into `Report<C>` and `Report<[C]>` to distinguish between a group of related errors and a single error. These errors can still be nested.
+- Report now makes fewer allocations, leading to improved performance when creating large reports.
 
 ### Breaking Changes
 
 - `Extend` is no longer implemented by `Report<C>`, instead it is implemented on `Report<[C]>`, either use `From` or `Report::expand` to convert between `Report<C>` into `Report<[C]>`.
 - `extend_one` has been renamed to `push` and is only implemented on `Report<[C]>`.
+- `Frame` is now `Unsized` and can only be accessed through `&Frame` and `&mut Frame`.
 
 ## [0.5.0](https://github.com/hashintel/hash/tree/error-stack%400.5.0/libs/error-stack) - 2024-07-12
 

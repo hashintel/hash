@@ -1,11 +1,11 @@
 <b>could not parse &quot;./path/to/config.file&quot;</b>
-├╴at <i>libs/error-stack/src/report.rs:59:14</i>
+├╴at <i>libs/error-stack/src/report/mod.rs:59:14</i>
 │
 ├─▶ <b>config file is invalid</b>
-│   ╰╴at <i>libs/error-stack/src/report.rs:51:44</i>
+│   ╰╴at <i>libs/error-stack/src/report/mod.rs:51:44</i>
 │
 ╰─▶ <b>No such file or directory (os error 2)</b>
-    ├╴at <i>libs/error-stack/src/report.rs:51:44</i>
+    ├╴at <i>libs/error-stack/src/report/mod.rs:51:44</i>
     ╰╴backtrace (1)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

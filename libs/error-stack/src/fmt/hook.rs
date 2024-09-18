@@ -226,7 +226,7 @@ crate::hook::context::impl_hook_context! {
     pub struct HookContext<Format> { .. }
 }
 
-impl<T> HookContext<T> {
+impl<T: ?Sized> HookContext<T> {
     pub(crate) fn appendix(&self) -> &[String] {
         self.inner().extra().appendix()
     }

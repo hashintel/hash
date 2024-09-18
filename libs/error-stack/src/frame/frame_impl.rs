@@ -1,13 +1,13 @@
-#[cfg_attr(feature = "std", allow(unused_imports))]
-use alloc::boxed::Box;
 #[cfg(nightly)]
 use core::error::{Error, Request};
 use core::{any::Any, fmt};
 
-use crate::{AttachmentKind, Context, Frame, FrameKind};
+use crate::{AttachmentKind, Context, FrameKind};
 
 /// Internal representation of a [`Frame`].
-pub(super) trait FrameImpl: Send + Sync + 'static {
+///
+/// [`Frame`]: crate::Frame
+pub(crate) trait FrameImpl: Send + Sync + 'static {
     fn kind(&self) -> FrameKind<'_>;
 
     fn as_any(&self) -> &dyn Any;
@@ -20,28 +20,47 @@ pub(super) trait FrameImpl: Send + Sync + 'static {
 }
 
 #[cfg(nightly)]
-impl fmt::Debug for Box<dyn FrameImpl> {
+#[repr(transparent)]
+pub(crate) struct FrameImplError(dyn FrameImpl);
+
+#[cfg(nightly)]
+impl FrameImplError {
+    pub(crate) fn new(frame: &dyn FrameImpl) -> &Self {
+        // SAFETY: `FrameImplError` is a transparent wrapper around `dyn FrameImpl`, so the layout
+        // is the same.
+        unsafe { &*(frame as *const dyn FrameImpl as *const Self) }
+    }
+}
+
+#[cfg(nightly)]
+impl fmt::Debug for FrameImplError {
     fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result {
         unreachable!()
     }
 }
 
 #[cfg(nightly)]
-impl fmt::Display for Box<dyn FrameImpl> {
+impl fmt::Display for FrameImplError {
     fn fmt(&self, _: &mut fmt::Formatter<'_>) -> fmt::Result {
         unreachable!()
     }
 }
 
 #[cfg(nightly)]
-impl Error for Box<dyn FrameImpl> {
+impl Error for FrameImplError {
     fn provide<'a>(&'a self, request: &mut Request<'a>) {
-        (**self).provide(request);
+        self.0.provide(request);
     }
 }
 
-struct ContextFrame<C> {
+pub(crate) struct ContextFrame<C> {
     context: C,
+}
+
+impl<C> ContextFrame<C> {
+    pub(crate) const fn new(context: C) -> Self {
+        Self { context }
+    }
 }
 
 impl<C: Context> FrameImpl for ContextFrame<C> {
@@ -63,8 +82,14 @@ impl<C: Context> FrameImpl for ContextFrame<C> {
     }
 }
 
-struct AttachmentFrame<A> {
+pub(crate) struct AttachmentFrame<A> {
     attachment: A,
+}
+
+impl<A> AttachmentFrame<A> {
+    pub(crate) const fn new(attachment: A) -> Self {
+        Self { attachment }
+    }
 }
 
 impl<A: 'static + Send + Sync> FrameImpl for AttachmentFrame<A> {
@@ -86,8 +111,14 @@ impl<A: 'static + Send + Sync> FrameImpl for AttachmentFrame<A> {
     }
 }
 
-struct PrintableAttachmentFrame<A> {
+pub(crate) struct PrintableAttachmentFrame<A> {
     attachment: A,
+}
+
+impl<A> PrintableAttachmentFrame<A> {
+    pub(crate) const fn new(attachment: A) -> Self {
+        Self { attachment }
+    }
 }
 
 impl<A: 'static + fmt::Debug + fmt::Display + Send + Sync> FrameImpl
@@ -112,7 +143,14 @@ impl<A: 'static + fmt::Debug + fmt::Display + Send + Sync> FrameImpl
 }
 
 #[cfg(feature = "anyhow")]
-struct AnyhowContext(anyhow::Error);
+pub(crate) struct AnyhowContext(anyhow::Error);
+
+#[cfg(feature = "anyhow")]
+impl AnyhowContext {
+    pub(crate) const fn new(error: anyhow::Error) -> Self {
+        Self(error)
+    }
+}
 
 #[cfg(feature = "anyhow")]
 impl fmt::Debug for AnyhowContext {
@@ -159,7 +197,14 @@ impl FrameImpl for AnyhowContext {
 }
 
 #[cfg(feature = "eyre")]
-struct EyreContext(eyre::Report);
+pub(crate) struct EyreContext(eyre::Report);
+
+#[cfg(feature = "eyre")]
+impl EyreContext {
+    pub(crate) const fn new(report: eyre::Report) -> Self {
+        Self(report)
+    }
+}
 
 #[cfg(feature = "eyre")]
 impl fmt::Debug for EyreContext {
@@ -202,61 +247,5 @@ impl FrameImpl for EyreContext {
     #[inline]
     fn provide<'a>(&'a self, request: &mut Request<'a>) {
         Context::provide(self, request);
-    }
-}
-
-impl Frame {
-    /// Creates a frame from a [`Context`].
-    pub(crate) fn from_context<C>(context: C, sources: Box<[Self]>) -> Self
-    where
-        C: Context,
-    {
-        Self {
-            frame: Box::new(ContextFrame { context }),
-            sources,
-        }
-    }
-
-    /// Creates a frame from an attachment.
-    pub(crate) fn from_attachment<A>(attachment: A, sources: Box<[Self]>) -> Self
-    where
-        A: Send + Sync + 'static,
-    {
-        Self {
-            frame: Box::new(AttachmentFrame { attachment }),
-            sources,
-        }
-    }
-
-    /// Creates a frame from an attachment which implements [`Debug`] and [`Display`].
-    ///
-    /// [`Debug`]: core::fmt::Debug
-    /// [`Display`]: core::fmt::Display
-    pub(crate) fn from_printable_attachment<A>(attachment: A, sources: Box<[Self]>) -> Self
-    where
-        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
-    {
-        Self {
-            frame: Box::new(PrintableAttachmentFrame { attachment }),
-            sources,
-        }
-    }
-
-    /// Creates a frame from an [`anyhow::Error`].
-    #[cfg(feature = "anyhow")]
-    pub(crate) fn from_anyhow(error: anyhow::Error, sources: Box<[Self]>) -> Self {
-        Self {
-            frame: Box::new(AnyhowContext(error)),
-            sources,
-        }
-    }
-
-    /// Creates a frame from an [`eyre::Report`].
-    #[cfg(feature = "eyre")]
-    pub(crate) fn from_eyre(report: eyre::Report, sources: Box<[Self]>) -> Self {
-        Self {
-            frame: Box::new(EyreContext(report)),
-            sources,
-        }
     }
 }

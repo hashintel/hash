@@ -1,6 +1,6 @@
 use eyre::Report as EyreReport;
 
-use crate::{Frame, IntoReportCompat, Report, Result};
+use crate::{frame::EyreContext, IntoReportCompat, Report, Result};
 
 impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
     type Err = EyreReport;
@@ -18,8 +18,7 @@ impl<T> IntoReportCompat for core::result::Result<T, EyreReport> {
                     .collect::<alloc::vec::Vec<_>>();
 
                 #[cfg_attr(not(feature = "std"), allow(unused_mut))]
-                let mut report: Report<EyreReport> =
-                    Report::from_frame(Frame::from_eyre(eyre, Box::new([])));
+                let mut report: Report<EyreReport> = Report::from_frame(EyreContext::new(eyre));
 
                 for source in sources {
                     report = report.attach_printable(source);

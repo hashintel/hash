@@ -1,8 +1,10 @@
+mod r#impl;
+
 #[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{boxed::Box, vec, vec::Vec};
 #[cfg(rust_1_81)]
 use core::error::Error;
-use core::{fmt, marker::PhantomData, mem, panic::Location};
+use core::{fmt, marker::PhantomData, panic::Location};
 #[cfg(feature = "backtrace")]
 use std::backtrace::{Backtrace, BacktraceStatus};
 #[cfg(all(feature = "std", not(rust_1_81)))]
@@ -13,11 +15,14 @@ use std::process::ExitCode;
 #[cfg(feature = "spantrace")]
 use tracing_error::{SpanTrace, SpanTraceStatus};
 
+pub(crate) use self::r#impl::RawSlice;
+use self::r#impl::ReportImpl;
 #[cfg(any(feature = "std", rust_1_81))]
 use crate::context::SourceContext;
 #[cfg(nightly)]
 use crate::iter::{RequestRef, RequestValue};
 use crate::{
+    frame::{AttachmentFrame, ContextFrame, FrameImpl, FrameImplError, PrintableAttachmentFrame},
     iter::{Frames, FramesMut},
     Context, Frame,
 };
@@ -253,8 +258,9 @@ pub struct Report<C: ?Sized> {
     // still have at least the size of `Report`, even at the happy path. It's unexpected, that
     // creating or traversing a report will happen in the hot path, so a double indirection is
     // a good trade-off.
-    #[allow(clippy::box_collection)]
-    pub(super) frames: Box<Vec<Frame>>,
+    // #[allow(clippy::box_collection)]
+    // pub(super) frames: Box<Vec<Frame>>,
+    pub(super) inner: Box<ReportImpl>,
     _context: PhantomData<fn() -> *const C>,
 }
 
@@ -282,27 +288,29 @@ impl<C> Report<C> {
                 current_source = source;
             }
 
-            // We create a new report with the oldest source as the base
-            let mut report = Report::from_frame(Frame::from_context(
-                sources.pop().expect("At least one context is guaranteed"),
-                Box::new([]),
-            ));
+            let base = sources.pop().expect("At least one context is guaranteed");
+            let mut report = Report::from_frame(ContextFrame::new(base));
+
             // We then extend the report with the rest of the sources
             while let Some(source) = sources.pop() {
                 report = report.change_context(source);
             }
+
             // Finally, we add the new context passed to this function
             return report.change_context(context);
         }
 
         // We don't have any sources, directly create the `Report` from the context
-        Self::from_frame(Frame::from_context(context, Box::new([])))
+        Self::from_frame(ContextFrame::new(context))
     }
 
     #[track_caller]
-    pub(crate) fn from_frame(frame: Frame) -> Self {
+    pub(crate) fn from_frame(frame: impl FrameImpl) -> Self {
         #[cfg(nightly)]
-        let location = core::error::request_ref::<Location>(&frame.as_error())
+        let error = FrameImplError::new(&frame);
+
+        #[cfg(nightly)]
+        let location = core::error::request_ref::<Location>(error)
             .is_none()
             .then_some(Location::caller());
 
@@ -310,7 +318,7 @@ impl<C> Report<C> {
         let location = Some(Location::caller());
 
         #[cfg(all(nightly, feature = "backtrace"))]
-        let backtrace = core::error::request_ref::<Backtrace>(&frame.as_error())
+        let backtrace = core::error::request_ref::<Backtrace>(error)
             .filter(|backtrace| backtrace.status() == BacktraceStatus::Captured)
             .is_none()
             .then(Backtrace::capture);
@@ -319,7 +327,7 @@ impl<C> Report<C> {
         let backtrace = Some(Backtrace::capture());
 
         #[cfg(all(nightly, feature = "spantrace"))]
-        let span_trace = core::error::request_ref::<SpanTrace>(&frame.as_error())
+        let span_trace = core::error::request_ref::<SpanTrace>(error)
             .filter(|span_trace| span_trace.status() == SpanTraceStatus::CAPTURED)
             .is_none()
             .then(SpanTrace::capture);
@@ -327,9 +335,12 @@ impl<C> Report<C> {
         #[cfg(all(not(nightly), feature = "spantrace"))]
         let span_trace = Some(SpanTrace::capture());
 
+        let mut r#impl = ReportImpl::new();
+        r#impl.layer(frame);
+
         #[allow(unused_mut)]
         let mut report = Self {
-            frames: Box::new(vec![frame]),
+            inner: Box::new(r#impl),
             _context: PhantomData,
         };
 
@@ -386,7 +397,7 @@ impl<C> Report<C> {
     /// ```
     pub fn expand(self) -> Report<[C]> {
         Report {
-            frames: self.frames,
+            inner: self.inner,
             _context: PhantomData,
         }
     }
@@ -411,7 +422,7 @@ impl<C> Report<C> {
     pub fn current_frame(&self) -> &Frame {
         // this never fails, because one cannot push an additional frame without making it a
         // `Report<[C]>`
-        &self.frames[0]
+        &self.inner.current()[0]
     }
 
     /// Adds additional information to the [`Frame`] stack.
@@ -430,11 +441,7 @@ impl<C> Report<C> {
     where
         A: Send + Sync + 'static,
     {
-        let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
-        self.frames.push(Frame::from_attachment(
-            attachment,
-            old_frames.into_boxed_slice(),
-        ));
+        self.inner.layer(AttachmentFrame::new(attachment));
         self
     }
 
@@ -480,11 +487,7 @@ impl<C> Report<C> {
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
-        self.frames.push(Frame::from_printable_attachment(
-            attachment,
-            old_frames.into_boxed_slice(),
-        ));
+        self.inner.layer(PrintableAttachmentFrame::new(attachment));
         self
     }
 
@@ -565,8 +568,8 @@ impl<C: ?Sized> Report<C> {
     /// such as [`Debug`]. It allows for code reuse between `Report<C>` and `Report<[C]>`
     /// implementations without duplicating logic.
     #[must_use]
-    pub(crate) fn current_frames_unchecked(&self) -> &[Frame] {
-        &self.frames
+    pub(crate) fn current_frames_unchecked(&self) -> &[Box<Frame>] {
+        self.inner.current()
     }
 
     /// Add a new [`Context`] object to the top of the [`Frame`] stack, changing the type of the
@@ -578,40 +581,37 @@ impl<C: ?Sized> Report<C> {
     where
         T: Context,
     {
-        let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
-        let context_frame = vec![Frame::from_context(context, old_frames.into_boxed_slice())];
-        self.frames.push(Frame::from_attachment(
-            *Location::caller(),
-            context_frame.into_boxed_slice(),
-        ));
+        self.inner.layer(ContextFrame::new(context));
+        self.inner.layer(AttachmentFrame::new(*Location::caller()));
+
         Report {
-            frames: self.frames,
+            inner: self.inner,
             _context: PhantomData,
         }
     }
 
     /// Returns an iterator over the [`Frame`] stack of the report.
     pub fn frames(&self) -> Frames<'_> {
-        Frames::new(&self.frames)
+        Frames::new(self.inner.current())
     }
 
     /// Returns an iterator over the [`Frame`] stack of the report with mutable elements.
     pub fn frames_mut(&mut self) -> FramesMut<'_> {
-        FramesMut::new(&mut self.frames)
+        FramesMut::new(self.inner.current_mut())
     }
 
     /// Creates an iterator of references of type `T` that have been [`attached`](Self::attach) or
     /// that are [`provide`](Error::provide)d by [`Context`] objects.
     #[cfg(nightly)]
     pub fn request_ref<T: ?Sized + Send + Sync + 'static>(&self) -> RequestRef<'_, T> {
-        RequestRef::new(&self.frames)
+        RequestRef::new(self.inner.current())
     }
 
     /// Creates an iterator of values of type `T` that have been [`attached`](Self::attach) or
     /// that are [`provide`](Error::provide)d by [`Context`] objects.
     #[cfg(nightly)]
     pub fn request_value<T: Send + Sync + 'static>(&self) -> RequestValue<'_, T> {
-        RequestValue::new(&self.frames)
+        RequestValue::new(self.inner.current())
     }
 
     /// Returns if `T` is the type held by any frame inside of the report.
@@ -692,12 +692,7 @@ impl<C> Report<[C]> {
     where
         A: Send + Sync + 'static,
     {
-        let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
-        self.frames.push(Frame::from_attachment(
-            attachment,
-            old_frames.into_boxed_slice(),
-        ));
-
+        self.inner.layer(AttachmentFrame::new(attachment));
         self
     }
 
@@ -743,12 +738,7 @@ impl<C> Report<[C]> {
     where
         A: fmt::Display + fmt::Debug + Send + Sync + 'static,
     {
-        let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
-        self.frames.push(Frame::from_printable_attachment(
-            attachment,
-            old_frames.into_boxed_slice(),
-        ));
-
+        self.inner.layer(PrintableAttachmentFrame::new(attachment));
         self
     }
 
@@ -772,8 +762,8 @@ impl<C> Report<[C]> {
     /// [`frames()`]: Self::frames
     /// [`extend_one()`]: Self::extend_one
     #[must_use]
-    pub fn current_frames(&self) -> &[Frame] {
-        &self.frames
+    pub fn current_frames(&self) -> &[Box<Frame>] {
+        self.inner.current()
     }
 
     /// Pushes a new context to the `Report`.
@@ -821,8 +811,8 @@ impl<C> Report<[C]> {
     /// error1.push(error3);
     /// ```
     #[allow(clippy::same_name_method)]
-    pub fn push(&mut self, mut report: Report<C>) {
-        self.frames.append(&mut report.frames);
+    pub fn push(&mut self, report: Report<C>) {
+        self.inner.union(*report.inner);
     }
 
     /// Appends the frames from another `Report` to this one.
@@ -867,8 +857,8 @@ impl<C> Report<[C]> {
     /// error1.push(error2);
     /// error3.append(error1);
     /// ```
-    pub fn append(&mut self, mut report: Self) {
-        self.frames.append(&mut report.frames);
+    pub fn append(&mut self, report: Self) {
+        self.inner.union(*report.inner);
     }
 
     /// Returns an iterator over the current contexts of the `Report`.
@@ -973,7 +963,7 @@ impl<C: 'static> From<Report<C>> for Box<dyn Error + Send + Sync> {
 impl<C> From<Report<C>> for Report<[C]> {
     fn from(report: Report<C>) -> Self {
         Self {
-            frames: report.frames,
+            inner: report.inner,
             _context: PhantomData,
         }
     }
@@ -1011,8 +1001,8 @@ impl<C> FromIterator<Report<[C]>> for Option<Report<[C]>> {
         let mut iter = iter.into_iter();
 
         let mut base = iter.next()?;
-        for mut rest in iter {
-            base.frames.append(&mut rest.frames);
+        for rest in iter {
+            base.inner.union(*rest.inner);
         }
 
         Some(base)
@@ -1029,8 +1019,8 @@ impl<C> Extend<Report<C>> for Report<[C]> {
 
 impl<C> Extend<Self> for Report<[C]> {
     fn extend<T: IntoIterator<Item = Self>>(&mut self, iter: T) {
-        for mut item in iter {
-            self.frames.append(&mut item.frames);
+        for item in iter {
+            self.inner.union(*item.inner);
         }
     }
 }

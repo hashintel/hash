@@ -299,7 +299,6 @@ mod hook;
 mod location;
 mod r#override;
 
-use alloc::collections::VecDeque;
 #[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{
     borrow::ToOwned,
@@ -308,6 +307,7 @@ use alloc::{
     vec,
     vec::Vec,
 };
+use alloc::{boxed::Box, collections::VecDeque};
 use core::{
     fmt::{self, Debug, Display, Formatter},
     iter::once,
@@ -728,7 +728,7 @@ impl FromIterator<Line> for Lines {
 /// Collect the current "stack", a stack are the current frames which only have a single
 /// source/parent.
 /// This searches until it finds a stack "split", where a frame has more than a single source.
-fn collect<'a>(root: &'a Frame, prefix: &'a [&Frame]) -> (Vec<&'a Frame>, &'a [Frame]) {
+fn collect<'a>(root: &'a Frame, prefix: &'a [&Frame]) -> (Vec<&'a Frame>, &'a [Box<Frame>]) {
     let mut stack = vec![];
     stack.extend(prefix);
     stack.push(root);

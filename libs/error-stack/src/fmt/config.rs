@@ -22,7 +22,7 @@ impl Config {
         Self::new(color_mode, charset, alternate)
     }
 
-    pub(crate) fn context<T>(&mut self) -> &mut HookContext<T> {
+    pub(crate) fn context<T: ?Sized>(&mut self) -> &mut HookContext<T> {
         self.context.cast()
     }
 
