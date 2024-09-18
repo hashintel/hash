@@ -42,9 +42,7 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::{
-    data_type::DataTypeQueryToken, subgraph::identifier::DataTypeVertexId, ConflictBehavior,
-};
+use hash_graph_store::{data_type::DataTypeQueryToken, ConflictBehavior};
 use hash_status::Status;
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
@@ -455,7 +453,7 @@ where
 #[serde(rename_all = "camelCase")]
 struct GetDataTypeSubgraphResponse {
     subgraph: Subgraph,
-    cursor: Option<DataTypeVertexId>,
+    cursor: Option<VersionedUrl>,
 }
 
 #[utoipa::path(

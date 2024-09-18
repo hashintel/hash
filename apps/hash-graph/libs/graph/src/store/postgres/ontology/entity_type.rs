@@ -45,7 +45,7 @@ use type_system::{
 };
 
 use crate::store::{
-    crud::{QueryResult, Read, ReadPaginated, VertexIdSorting},
+    crud::{QueryResult, Read, ReadPaginated, VersionedUrlSorting},
     error::DeletionError,
     ontology::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,
@@ -183,19 +183,19 @@ where
         // TODO: Remove again when subgraph logic was revisited
         //   see https://linear.app/hash/issue/H-297
         let mut visited_ontology_ids = HashSet::new();
-        let time_axis = temporal_axes.variable_time_axis();
 
-        let (data, artifacts) = ReadPaginated::<EntityTypeWithMetadata>::read_paginated_vec(
-            self,
-            &params.filter,
-            Some(temporal_axes),
-            &VertexIdSorting {
-                cursor: params.after,
-            },
-            params.limit,
-            params.include_drafts,
-        )
-        .await?;
+        let (data, artifacts) =
+            ReadPaginated::<EntityTypeWithMetadata, VersionedUrlSorting>::read_paginated_vec(
+                self,
+                &params.filter,
+                Some(temporal_axes),
+                &VersionedUrlSorting {
+                    cursor: params.after,
+                },
+                params.limit,
+                params.include_drafts,
+            )
+            .await?;
         let entity_types = data
             .into_iter()
             .filter_map(|row| {
@@ -238,7 +238,7 @@ where
                 cursor: if params.limit.is_some() {
                     entity_types
                         .last()
-                        .map(|entity_type| entity_type.vertex_id(time_axis))
+                        .map(|entity_type| entity_type.schema.id.clone())
                 } else {
                     None
                 },

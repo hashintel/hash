@@ -14,6 +14,7 @@ use hash_graph_store::{
     subgraph::{temporal_axes::QueryTemporalAxes, SubgraphRecord},
 };
 use tracing::instrument;
+use type_system::url::VersionedUrl;
 
 use crate::store::QueryError;
 
@@ -32,12 +33,12 @@ pub trait Sorting {
     fn set_cursor(&mut self, cursor: Self::Cursor);
 }
 
-pub struct VertexIdSorting<R: SubgraphRecord> {
-    pub cursor: Option<R::VertexId>,
+pub struct VersionedUrlSorting {
+    pub cursor: Option<VersionedUrl>,
 }
 
-impl<R: SubgraphRecord> Sorting for VertexIdSorting<R> {
-    type Cursor = R::VertexId;
+impl Sorting for VersionedUrlSorting {
+    type Cursor = VersionedUrl;
 
     fn cursor(&self) -> Option<&Self::Cursor> {
         self.cursor.as_ref()
@@ -90,12 +91,12 @@ impl<'f, R: QueryRecord, S> ReadParameter<'f, R, S> {
 
 impl<'f, R: SubgraphRecord + QueryRecord, S> ReadParameter<'f, R, S> {
     #[must_use]
-    pub fn sort_by_vertex_id(self) -> ReadParameter<'f, R, VertexIdSorting<R>> {
+    pub fn sort_by_vertex_id(self) -> ReadParameter<'f, R, VersionedUrlSorting> {
         ReadParameter {
             filters: self.filters,
             temporal_axes: self.temporal_axes,
             include_drafts: self.include_drafts,
-            sorting: Some(VertexIdSorting { cursor: None }),
+            sorting: Some(VersionedUrlSorting { cursor: None }),
             limit: self.limit,
         }
     }
@@ -150,7 +151,7 @@ impl<'f, R: QueryRecord, S: Sorting> ReadParameter<'f, R, S> {
 /// Read access to a [`Store`].
 ///
 /// [`Store`]: crate::store::Store
-pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync = VertexIdSorting<R>>: Read<R> {
+pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync>: Read<R> {
     type QueryResult: QueryResult<R, S> + Send;
 
     type ReadPaginatedStream: Stream<Item = Result<Self::QueryResult, QueryError>> + Send + Sync;
