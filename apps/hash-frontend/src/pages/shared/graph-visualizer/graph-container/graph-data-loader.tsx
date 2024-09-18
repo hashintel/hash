@@ -8,14 +8,15 @@ import { useDefaultSettings } from "./shared/settings";
 import type { GraphState } from "./shared/state";
 import { useLayout } from "./use-layout";
 
-export type GraphNode = {
+export type GraphVizNode = {
+  borderColor?: string;
   color: string;
   nodeId: string;
   label: string;
   size: number;
 };
 
-export type GraphEdge = {
+export type GraphVizEdge = {
   edgeId: string;
   label?: string;
   size: number;
@@ -25,13 +26,13 @@ export type GraphEdge = {
 
 export type GraphLoaderProps = {
   highlightDepth: number;
-  edges: GraphEdge[];
-  nodes: GraphNode[];
+  edges: GraphVizEdge[];
+  nodes: GraphVizNode[];
   onEdgeClick?: (params: { edgeId: string; isFullScreen: boolean }) => void;
   onNodeClick?: (params: { nodeId: string; isFullScreen: boolean }) => void;
 };
 
-export const GraphLoader = ({
+export const GraphDataLoader = ({
   highlightDepth,
   edges,
   nodes,
@@ -165,11 +166,13 @@ export const GraphLoader = ({
 
     for (const [index, node] of nodes.entries()) {
       graph.addNode(node.nodeId, {
+        borderColor: node.borderColor ?? node.color,
         color: node.color,
         x: index % 20,
         y: Math.floor(index / 20),
         label: node.label,
         size: node.size,
+        type: "bordered",
       });
     }
 

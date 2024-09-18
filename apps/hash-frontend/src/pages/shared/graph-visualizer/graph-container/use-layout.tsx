@@ -24,7 +24,6 @@ export const useLayout = () => {
        */
       settings: {
         ...settings,
-        gravity: 1,
       },
     });
   }, [sigma]);

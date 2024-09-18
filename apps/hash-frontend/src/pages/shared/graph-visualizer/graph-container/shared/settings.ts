@@ -2,12 +2,12 @@ import { useTheme } from "@mui/material";
 import { useSigma } from "@react-sigma/core";
 import { useEffect } from "react";
 
-import { drawRoundRect } from "../../../../components/grid/utils/draw-round-rect";
+import { drawRoundRect } from "../../../../../components/grid/utils/draw-round-rect";
 import { useFullScreen } from "./full-screen";
 import type { GraphState } from "./state";
 
 export const labelRenderedSizeThreshold = {
-  fullScreen: 14,
+  fullScreen: 12,
   normal: 16,
 };
 
@@ -29,7 +29,7 @@ export const useDefaultSettings = (state: GraphState) => {
      *
      * Labels are prioritised for display by node size.
      */
-    sigma.setSetting("labelDensity", 50);
+    sigma.setSetting("labelDensity", 1);
 
     /**
      * Controls what labels will be shown at which zoom levels.

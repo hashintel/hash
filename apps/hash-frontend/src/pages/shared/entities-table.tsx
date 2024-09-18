@@ -1,7 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { CustomCell, Item, TextCell } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
-import { EntitiesGraphChart } from "@hashintel/block-design-system";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -53,6 +52,7 @@ import { TableHeaderToggle } from "./table-header-toggle";
 import type { TableView } from "./table-views";
 import { tableViewIcons } from "./table-views";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
+import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 
 /**
  * @todo: avoid having to maintain this list, potentially by
@@ -611,6 +611,10 @@ export const EntitiesTable: FunctionComponent<{
       addPropertiesColumns: hidePropertiesColumns,
     });
 
+  const maximumTableHeight = `calc(100vh - (${
+    HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 179 + tableHeaderHeight
+  }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`;
+
   return (
     <>
       {selectedEntityTypeId && (
@@ -672,36 +676,30 @@ export const EntitiesTable: FunctionComponent<{
           onBulkActionCompleted={() => setSelectedRows([])}
         />
         {view === "Graph" && subgraph ? (
-          <EntitiesGraphChart
-            entities={entities}
-            isPrimaryEntity={(entity) =>
-              entityTypeBaseUrl
-                ? extractBaseUrl(entity.metadata.entityTypeId) ===
-                  entityTypeBaseUrl
-                : entityTypeId
+          <Box height={maximumTableHeight}>
+            <EntityGraphVisualizer
+              entities={entities}
+              isPrimaryEntity={(entity) =>
+                entityTypeBaseUrl
+                  ? extractBaseUrl(entity.metadata.entityTypeId) ===
+                    entityTypeBaseUrl
+                  : entityTypeId
                   ? entityTypeId === entity.metadata.entityTypeId
                   : true
-            }
-            filterEntity={(entity) =>
-              filterState.includeGlobal
-                ? true
-                : internalWebIds.includes(
-                    extractOwnedByIdFromEntityId(
-                      entity.metadata.recordId.entityId,
-                    ),
-                  )
-            }
-            onEntityClick={handleEntityClick}
-            sx={{
-              background: ({ palette }) => palette.common.white,
-              height: `calc(100vh - (${
-                HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 179 + tableHeaderHeight
-              }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`,
-              borderBottomRightRadius: 6,
-              borderBottomLeftRadius: 6,
-            }}
-            subgraphWithTypes={subgraph}
-          />
+              }
+              filterEntity={(entity) =>
+                filterState.includeGlobal
+                  ? true
+                  : internalWebIds.includes(
+                      extractOwnedByIdFromEntityId(
+                        entity.metadata.recordId.entityId,
+                      ),
+                    )
+              }
+              onEntityClick={handleEntityClick}
+              subgraphWithTypes={subgraph}
+            />
+          </Box>
         ) : view === "Grid" ? (
           <GridView entities={entities} />
         ) : (
@@ -721,12 +719,7 @@ export const EntitiesTable: FunctionComponent<{
             firstColumnLeftPadding={16}
             height={`
                min(
-                 calc(100vh - (${
-                   HEADER_HEIGHT +
-                   TOP_CONTEXT_BAR_HEIGHT +
-                   179 +
-                   tableHeaderHeight
-                 }px + ${theme.spacing(5)} + ${theme.spacing(5)})),
+                 ${maximumTableHeight},
                 calc(
                  ${gridHeaderHeightWithBorder}px +
                  (${rows?.length ? rows.length : 1} * ${gridRowHeight}px) +

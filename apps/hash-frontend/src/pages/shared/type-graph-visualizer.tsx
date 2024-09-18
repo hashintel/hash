@@ -11,16 +11,17 @@ import { useCallback, useMemo } from "react";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import type { GraphVisualizerProps } from "./graph-visualizer";
 import { GraphVisualizer } from "./graph-visualizer";
-import type { GraphEdge, GraphNode } from "./graph-visualizer/graph-loader";
+import type {
+  GraphVizEdge,
+  GraphVizNode,
+} from "./graph-visualizer/graph-container/graph-data-loader";
 
 const anythingNodeId = "anything";
 
-export const TypesGraphVisualizer = ({
-  height,
+export const TypeGraphVisualizer = ({
   onTypeClick,
   types,
 }: {
-  height: string | number;
   onTypeClick: (typeId: VersionedUrl) => void;
   types: (
     | DataTypeWithMetadata
@@ -33,12 +34,12 @@ export const TypesGraphVisualizer = ({
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
   const { edges, nodes } = useMemo(() => {
-    const edgesToAdd: GraphEdge[] = [];
-    const nodesToAdd: GraphNode[] = [];
+    const edgesToAdd: GraphVizEdge[] = [];
+    const nodesToAdd: GraphVizNode[] = [];
 
     const addedNodeIds = new Set<string>();
 
-    const anythingNode: GraphNode = {
+    const anythingNode: GraphVizNode = {
       color: palette.gray[30],
       nodeId: anythingNodeId,
       label: "Anything",
@@ -90,7 +91,9 @@ export const TypesGraphVisualizer = ({
          * But we can re-use any with the same destination set.
          * The id is therefore based on the link type and the destination types.
          */
-        const linkNodeId = `${linkTypeId}~${destinationTypeIds?.join("-") ?? "anything"}`;
+        const linkNodeId = `${linkTypeId}~${
+          destinationTypeIds?.join("-") ?? "anything"
+        }`;
 
         if (!addedNodeIds.has(linkNodeId)) {
           const linkSchema = types.find(
@@ -173,11 +176,6 @@ export const TypesGraphVisualizer = ({
   );
 
   return (
-    <GraphVisualizer
-      height={height}
-      onNodeClick={onNodeClick}
-      edges={edges}
-      nodes={nodes}
-    />
+    <GraphVisualizer onNodeClick={onNodeClick} edges={edges} nodes={nodes} />
   );
 };

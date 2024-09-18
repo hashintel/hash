@@ -49,7 +49,7 @@ import { TableHeaderToggle } from "../../shared/table-header-toggle";
 import type { TableView } from "../../shared/table-views";
 import { tableViewIcons } from "../../shared/table-views";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
-import { TypesGraphVisualizer } from "../../shared/types-graph-visualizer";
+import { TypeGraphVisualizer } from "../../shared/type-graph-visualizer";
 
 const typesTableColumnIds = [
   "title",
@@ -243,8 +243,8 @@ export const TypesTable: FunctionComponent<{
                   ? "link-type"
                   : "entity-type"
                 : type.schema.kind === "propertyType"
-                  ? "property-type"
-                  : "data-type",
+                ? "property-type"
+                : "data-type",
             external: isExternal,
             webShortname,
             archived: isTypeArchived(type),
@@ -273,22 +273,22 @@ export const TypesTable: FunctionComponent<{
         ["lastEditedBy", "createdBy"].includes(key);
 
       const value1: string = isActorSort(sort.columnKey)
-        ? (a[sort.columnKey]?.displayName ?? "")
+        ? a[sort.columnKey]?.displayName ?? ""
         : String(a[sort.columnKey]);
 
       const value2: string = isActorSort(sort.columnKey)
-        ? (b[sort.columnKey]?.displayName ?? "")
+        ? b[sort.columnKey]?.displayName ?? ""
         : String(b[sort.columnKey]);
 
       const previousValue1: string | undefined = previousSort
         ? isActorSort(previousSort.columnKey)
-          ? (a[previousSort.columnKey]?.displayName ?? "")
+          ? a[previousSort.columnKey]?.displayName ?? ""
           : String(a[previousSort.columnKey])
         : undefined;
 
       const previousValue2: string | undefined = previousSort?.columnKey
         ? isActorSort(previousSort.columnKey)
-          ? (b[previousSort.columnKey]?.displayName ?? "")
+          ? b[previousSort.columnKey]?.displayName ?? ""
           : String(b[previousSort.columnKey])
         : undefined;
 
@@ -510,11 +510,12 @@ export const TypesTable: FunctionComponent<{
             freezeColumns={1}
           />
         ) : (
-          <TypesGraphVisualizer
-            height={maxTableHeight}
-            onTypeClick={setSelectedEntityTypeId}
-            types={types ?? []}
-          />
+          <Box height={maxTableHeight}>
+            <TypeGraphVisualizer
+              onTypeClick={setSelectedEntityTypeId}
+              types={types ?? []}
+            />
+          </Box>
         )}
       </Box>
     </>

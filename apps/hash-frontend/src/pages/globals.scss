@@ -57,8 +57,7 @@
   font-style: normal;
   font-weight: 500;
   font-display: swap;
-  src:
-    url("/fonts/OpenSauceTwo-Medium.ttf") format("truetype"),
+  src: url("/fonts/OpenSauceTwo-Medium.ttf") format("truetype"),
     url("/fonts/OpenSauceTwo-Medium.woff") format("woff");
 }
 @font-face {
@@ -113,4 +112,8 @@ html {
 
 body {
   overflow: auto;
+}
+
+.full-height-for-react-full-screen {
+  height: 100%;
 }
