@@ -64,8 +64,8 @@ pub enum EntityTypeQueryPath<'p> {
     /// let filter_value = json!({ "equal": [{ "path": ["version"] }, { "parameter": "latest" }] });
     /// let path = Filter::<EntityTypeWithMetadata>::deserialize(filter_value)?;
     /// assert_eq!(path, Filter::Equal(
-    ///     Some(FilterExpression::Path(EntityTypeQueryPath::Version)),
-    ///     Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed("latest")))))
+    ///     Some(FilterExpression::Path { path: EntityTypeQueryPath::Version }),
+    ///     Some(FilterExpression::Parameter { parameter: Parameter::Text(Cow::Borrowed("latest")), convert: None }))
     /// );
     /// # Ok::<(), serde_json::Error>(())
     /// ```

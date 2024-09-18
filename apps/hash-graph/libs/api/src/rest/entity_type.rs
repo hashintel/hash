@@ -731,15 +731,13 @@ where
         .await
         .map_err(report_to_response)?;
 
-    // Manually deserialize the query from a JSON value to allow borrowed deserialization and better
-    // error reporting.
-    let mut request = GetEntityTypesParams::deserialize(&request).map_err(report_to_response)?;
-    request
-        .filter
-        .convert_parameters()
-        .map_err(report_to_response)?;
     store
-        .get_entity_types(actor_id, request)
+        .get_entity_types(
+            actor_id,
+            // Manually deserialize the query from a JSON value to allow borrowed deserialization
+            // and better error reporting.
+            GetEntityTypesParams::deserialize(&request).map_err(report_to_response)?,
+        )
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -803,14 +801,11 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let mut request =
-        GetEntityTypeSubgraphParams::deserialize(&request).map_err(report_to_response)?;
-    request
-        .filter
-        .convert_parameters()
-        .map_err(report_to_response)?;
     store
-        .get_entity_type_subgraph(actor_id, request)
+        .get_entity_type_subgraph(
+            actor_id,
+            GetEntityTypeSubgraphParams::deserialize(&request).map_err(report_to_response)?,
+        )
         .await
         .map_err(report_to_response)
         .map(|response| {

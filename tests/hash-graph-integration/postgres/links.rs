@@ -148,54 +148,72 @@ async fn insert() {
             GetEntitiesParams {
                 filter: Filter::All(vec![
                     Filter::Equal(
-                        Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                            path: Box::new(EntityQueryPath::Uuid),
-                            direction: EdgeDirection::Outgoing,
-                        })),
-                        Some(FilterExpression::Parameter(Parameter::Uuid(
-                            alice_entity
-                                .metadata
-                                .record_id
-                                .entity_id
-                                .entity_uuid
-                                .into_uuid(),
-                        ))),
+                        Some(FilterExpression::Path {
+                            path: EntityQueryPath::EntityEdge {
+                                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                                path: Box::new(EntityQueryPath::Uuid),
+                                direction: EdgeDirection::Outgoing,
+                            },
+                        }),
+                        Some(FilterExpression::Parameter {
+                            parameter: Parameter::Uuid(
+                                alice_entity
+                                    .metadata
+                                    .record_id
+                                    .entity_id
+                                    .entity_uuid
+                                    .into_uuid(),
+                            ),
+                            convert: None,
+                        }),
                     ),
                     Filter::Equal(
-                        Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                            path: Box::new(EntityQueryPath::OwnedById),
-                            direction: EdgeDirection::Outgoing,
-                        })),
-                        Some(FilterExpression::Parameter(Parameter::Uuid(
-                            alice_entity
-                                .metadata
-                                .record_id
-                                .entity_id
-                                .owned_by_id
-                                .into_uuid(),
-                        ))),
+                        Some(FilterExpression::Path {
+                            path: EntityQueryPath::EntityEdge {
+                                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                                path: Box::new(EntityQueryPath::OwnedById),
+                                direction: EdgeDirection::Outgoing,
+                            },
+                        }),
+                        Some(FilterExpression::Parameter {
+                            parameter: Parameter::Uuid(
+                                alice_entity
+                                    .metadata
+                                    .record_id
+                                    .entity_id
+                                    .owned_by_id
+                                    .into_uuid(),
+                            ),
+                            convert: None,
+                        }),
                     ),
                     Filter::Equal(
-                        Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
-                            edge_kind: SharedEdgeKind::IsOfType,
-                            path: EntityTypeQueryPath::BaseUrl,
-                            inheritance_depth: Some(0),
-                        })),
-                        Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                            friend_of_type_id.base_url.as_str(),
-                        )))),
+                        Some(FilterExpression::Path {
+                            path: EntityQueryPath::EntityTypeEdge {
+                                edge_kind: SharedEdgeKind::IsOfType,
+                                path: EntityTypeQueryPath::BaseUrl,
+                                inheritance_depth: Some(0),
+                            },
+                        }),
+                        Some(FilterExpression::Parameter {
+                            parameter: Parameter::Text(Cow::Borrowed(
+                                friend_of_type_id.base_url.as_str(),
+                            )),
+                            convert: None,
+                        }),
                     ),
                     Filter::Equal(
-                        Some(FilterExpression::Path(EntityQueryPath::EntityTypeEdge {
-                            edge_kind: SharedEdgeKind::IsOfType,
-                            path: EntityTypeQueryPath::Version,
-                            inheritance_depth: Some(0),
-                        })),
-                        Some(FilterExpression::Parameter(Parameter::OntologyTypeVersion(
-                            friend_of_type_id.version,
-                        ))),
+                        Some(FilterExpression::Path {
+                            path: EntityQueryPath::EntityTypeEdge {
+                                edge_kind: SharedEdgeKind::IsOfType,
+                                path: EntityTypeQueryPath::Version,
+                                inheritance_depth: Some(0),
+                            },
+                        }),
+                        Some(FilterExpression::Parameter {
+                            parameter: Parameter::OntologyTypeVersion(friend_of_type_id.version),
+                            convert: None,
+                        }),
                     ),
                 ]),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
@@ -410,19 +428,24 @@ async fn get_entity_links() {
             api.account_id,
             GetEntitiesParams {
                 filter: Filter::Equal(
-                    Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                        edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                        path: Box::new(EntityQueryPath::Uuid),
-                        direction: EdgeDirection::Outgoing,
-                    })),
-                    Some(FilterExpression::Parameter(Parameter::Uuid(
-                        alice_entity
-                            .metadata
-                            .record_id
-                            .entity_id
-                            .entity_uuid
-                            .into_uuid(),
-                    ))),
+                    Some(FilterExpression::Path {
+                        path: EntityQueryPath::EntityEdge {
+                            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                            path: Box::new(EntityQueryPath::Uuid),
+                            direction: EdgeDirection::Outgoing,
+                        },
+                    }),
+                    Some(FilterExpression::Parameter {
+                        parameter: Parameter::Uuid(
+                            alice_entity
+                                .metadata
+                                .record_id
+                                .entity_id
+                                .entity_uuid
+                                .into_uuid(),
+                        ),
+                        convert: None,
+                    }),
                 ),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -595,23 +618,33 @@ async fn remove_link() {
             CountEntitiesParams {
                 filter: Filter::All(vec![
                     Filter::Equal(
-                        Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                            path: Box::new(EntityQueryPath::Uuid),
-                            direction: EdgeDirection::Outgoing,
-                        })),
-                        Some(FilterExpression::Parameter(Parameter::Uuid(
-                            alice_entity
-                                .metadata
-                                .record_id
-                                .entity_id
-                                .entity_uuid
-                                .into_uuid(),
-                        ))),
+                        Some(FilterExpression::Path {
+                            path: EntityQueryPath::EntityEdge {
+                                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                                path: Box::new(EntityQueryPath::Uuid),
+                                direction: EdgeDirection::Outgoing,
+                            },
+                        }),
+                        Some(FilterExpression::Parameter {
+                            parameter: Parameter::Uuid(
+                                alice_entity
+                                    .metadata
+                                    .record_id
+                                    .entity_id
+                                    .entity_uuid
+                                    .into_uuid(),
+                            ),
+                            convert: None,
+                        }),
                     ),
                     Filter::Equal(
-                        Some(FilterExpression::Path(EntityQueryPath::Archived)),
-                        Some(FilterExpression::Parameter(Parameter::Boolean(false))),
+                        Some(FilterExpression::Path {
+                            path: EntityQueryPath::Archived,
+                        }),
+                        Some(FilterExpression::Parameter {
+                            parameter: Parameter::Boolean(false),
+                            convert: None,
+                        }),
                     ),
                 ]),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
@@ -648,23 +681,33 @@ async fn remove_link() {
             CountEntitiesParams {
                 filter: Filter::All(vec![
                     Filter::Equal(
-                        Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                            edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                            path: Box::new(EntityQueryPath::Uuid),
-                            direction: EdgeDirection::Outgoing,
-                        })),
-                        Some(FilterExpression::Parameter(Parameter::Uuid(
-                            alice_entity
-                                .metadata
-                                .record_id
-                                .entity_id
-                                .entity_uuid
-                                .into_uuid(),
-                        ))),
+                        Some(FilterExpression::Path {
+                            path: EntityQueryPath::EntityEdge {
+                                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                                path: Box::new(EntityQueryPath::Uuid),
+                                direction: EdgeDirection::Outgoing,
+                            },
+                        }),
+                        Some(FilterExpression::Parameter {
+                            parameter: Parameter::Uuid(
+                                alice_entity
+                                    .metadata
+                                    .record_id
+                                    .entity_id
+                                    .entity_uuid
+                                    .into_uuid(),
+                            ),
+                            convert: None,
+                        }),
                     ),
                     Filter::Equal(
-                        Some(FilterExpression::Path(EntityQueryPath::Archived)),
-                        Some(FilterExpression::Parameter(Parameter::Boolean(false))),
+                        Some(FilterExpression::Path {
+                            path: EntityQueryPath::Archived,
+                        }),
+                        Some(FilterExpression::Parameter {
+                            parameter: Parameter::Boolean(false),
+                            convert: None,
+                        }),
                     ),
                 ]),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {

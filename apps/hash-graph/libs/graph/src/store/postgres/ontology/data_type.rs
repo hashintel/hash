@@ -62,7 +62,8 @@ use crate::store::{
         },
         TraversalContext,
     },
-    AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
+    AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, StoreCache, StoreProvider,
+    UpdateError,
 };
 
 impl<C, A> PostgresStore<C, A>
@@ -440,7 +441,9 @@ where
                 actor_id,
                 GetDataTypesParams {
                     filter: Filter::In(
-                        FilterExpression::Path(DataTypeQueryPath::OntologyId),
+                        FilterExpression::Path {
+                            path: DataTypeQueryPath::OntologyId,
+                        },
                         ParameterList::DataTypeIds(&required_parent_ids),
                     ),
                     temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
@@ -590,8 +593,18 @@ where
     async fn get_data_types(
         &self,
         actor_id: AccountId,
-        params: GetDataTypesParams<'_>,
+        mut params: GetDataTypesParams<'_>,
     ) -> Result<GetDataTypesResponse, QueryError> {
+        params
+            .filter
+            .convert_parameters(&StoreProvider {
+                store: self,
+                cache: StoreCache::default(),
+                authorization: Some((actor_id, Consistency::FullyConsistent)),
+            })
+            .await
+            .change_context(QueryError)?;
+
         let temporal_axes = params.temporal_axes.clone().resolve();
         self.get_data_types_impl(actor_id, params, &temporal_axes)
             .await
@@ -602,9 +615,19 @@ where
     //       anyway.
     async fn count_data_types(
         &self,
-        _actor_id: AccountId,
-        params: CountDataTypesParams<'_>,
+        actor_id: AccountId,
+        mut params: CountDataTypesParams<'_>,
     ) -> Result<usize, QueryError> {
+        params
+            .filter
+            .convert_parameters(&StoreProvider {
+                store: self,
+                cache: StoreCache::default(),
+                authorization: Some((actor_id, Consistency::FullyConsistent)),
+            })
+            .await
+            .change_context(QueryError)?;
+
         Ok(self
             .read(
                 &params.filter,
@@ -620,8 +643,18 @@ where
     async fn get_data_type_subgraph(
         &self,
         actor_id: AccountId,
-        params: GetDataTypeSubgraphParams<'_>,
+        mut params: GetDataTypeSubgraphParams<'_>,
     ) -> Result<GetDataTypeSubgraphResponse, QueryError> {
+        params
+            .filter
+            .convert_parameters(&StoreProvider {
+                store: self,
+                cache: StoreCache::default(),
+                authorization: Some((actor_id, Consistency::FullyConsistent)),
+            })
+            .await
+            .change_context(QueryError)?;
+
         let temporal_axes = params.temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
@@ -768,7 +801,9 @@ where
                 actor_id,
                 GetDataTypesParams {
                     filter: Filter::In(
-                        FilterExpression::Path(DataTypeQueryPath::OntologyId),
+                        FilterExpression::Path {
+                            path: DataTypeQueryPath::OntologyId,
+                        },
                         ParameterList::DataTypeIds(&required_parent_ids),
                     ),
                     temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {

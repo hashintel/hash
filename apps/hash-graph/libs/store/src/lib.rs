@@ -1,4 +1,4 @@
-#![feature(hash_raw_entry, impl_trait_in_assoc_type)]
+#![feature(hash_raw_entry, impl_trait_in_assoc_type, never_type)]
 
 extern crate alloc;
 

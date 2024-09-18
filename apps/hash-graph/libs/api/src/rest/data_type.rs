@@ -439,15 +439,13 @@ where
         .await
         .map_err(report_to_response)?;
 
-    // Manually deserialize the query from a JSON value to allow borrowed deserialization and better
-    // error reporting.
-    let mut request = GetDataTypesParams::deserialize(&request).map_err(report_to_response)?;
-    request
-        .filter
-        .convert_parameters()
-        .map_err(report_to_response)?;
     store
-        .get_data_types(actor_id, request)
+        .get_data_types(
+            actor_id,
+            // Manually deserialize the query from a JSON value to allow borrowed deserialization
+            // and better error reporting.
+            GetDataTypesParams::deserialize(&request).map_err(report_to_response)?,
+        )
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -505,16 +503,13 @@ where
         .await
         .map_err(report_to_response)?;
 
-    // Manually deserialize the query from a JSON value to allow borrowed deserialization and better
-    // error reporting.
-    let mut request =
-        GetDataTypeSubgraphParams::deserialize(&request).map_err(report_to_response)?;
-    request
-        .filter
-        .convert_parameters()
-        .map_err(report_to_response)?;
     store
-        .get_data_type_subgraph(actor_id, request)
+        .get_data_type_subgraph(
+            actor_id,
+            // Manually deserialize the query from a JSON value to allow borrowed deserialization
+            // and better error reporting.
+            GetDataTypeSubgraphParams::deserialize(&request).map_err(report_to_response)?,
+        )
         .await
         .map_err(report_to_response)
         .map(|response| {

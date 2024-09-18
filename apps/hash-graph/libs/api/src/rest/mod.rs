@@ -43,7 +43,7 @@ use graph_types::{
     owned_by_id::OwnedById,
 };
 use hash_graph_store::{
-    filter::Selector,
+    filter::{ParameterConversion, Selector},
     subgraph::{
         edges::{
             EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
@@ -728,7 +728,8 @@ impl Modify for FilterSchemaAddon {
                             ObjectBuilder::new()
                                 .title(Some("ParameterExpression"))
                                 .property("parameter", Any::schema().1)
-                                .required("parameter"),
+                                .required("parameter")
+                                .property("convert", ParameterConversion::schema().1),
                         )
                         .build(),
                 )

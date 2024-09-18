@@ -182,10 +182,15 @@ mod tests {
         let mut compiler =
             SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
         compiler.add_filter(&Filter::Equal(
-            Some(FilterExpression::Path(DataTypeQueryPath::VersionedUrl)),
-            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-            )))),
+            Some(FilterExpression::Path {
+                path: DataTypeQueryPath::VersionedUrl,
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed(
+                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                )),
+                convert: None,
+            }),
         ));
         test_compilation(
             &compiler,
@@ -209,8 +214,13 @@ mod tests {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::Uuid)),
-            Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
+            Some(FilterExpression::Path {
+                path: EntityQueryPath::Uuid,
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Uuid(Uuid::nil()),
+                convert: None,
+            }),
         );
         compiler.add_filter(&filter);
         test_compilation(
@@ -235,8 +245,13 @@ mod tests {
     fn full_temporal() {
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(None, false);
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::Uuid)),
-            Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
+            Some(FilterExpression::Path {
+                path: EntityQueryPath::Uuid,
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Uuid(Uuid::nil()),
+                convert: None,
+            }),
         );
         compiler.add_filter(&filter);
         test_compilation(
@@ -260,14 +275,24 @@ mod tests {
 
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(DataTypeQueryPath::BaseUrl)),
-                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
-                )))),
+                Some(FilterExpression::Path {
+                    path: DataTypeQueryPath::BaseUrl,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed(
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
+                    )),
+                    convert: None,
+                }),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(DataTypeQueryPath::Version)),
-                Some(FilterExpression::Parameter(Parameter::I32(1))),
+                Some(FilterExpression::Path {
+                    path: DataTypeQueryPath::Version,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::I32(1),
+                    convert: None,
+                }),
             ),
         ]);
         compiler.add_filter(&filter);
@@ -298,10 +323,13 @@ mod tests {
             SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
         compiler.add_filter(&Filter::Equal(
-            Some(FilterExpression::Path(DataTypeQueryPath::Version)),
-            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                "latest",
-            )))),
+            Some(FilterExpression::Path {
+                path: DataTypeQueryPath::Version,
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed("latest")),
+                convert: None,
+            }),
         ));
 
         test_compilation(
@@ -327,10 +355,13 @@ mod tests {
             SelectCompiler::<DataTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
         compiler.add_filter(&Filter::NotEqual(
-            Some(FilterExpression::Path(DataTypeQueryPath::Version)),
-            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                "latest",
-            )))),
+            Some(FilterExpression::Path {
+                path: DataTypeQueryPath::Version,
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed("latest")),
+                convert: None,
+            }),
         ));
 
         test_compilation(
@@ -356,15 +387,16 @@ mod tests {
             SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
         compiler.add_filter(&Filter::Equal(
-            Some(FilterExpression::Path(
-                PropertyTypeQueryPath::DataTypeEdge {
+            Some(FilterExpression::Path {
+                path: PropertyTypeQueryPath::DataTypeEdge {
                     edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
                     path: DataTypeQueryPath::Title,
                 },
-            )),
-            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                "Text",
-            )))),
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed("Text")),
+                convert: None,
+            }),
         ));
 
         test_compilation(
@@ -387,24 +419,30 @@ mod tests {
 
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(
-                    PropertyTypeQueryPath::DataTypeEdge {
+                Some(FilterExpression::Path {
+                    path: PropertyTypeQueryPath::DataTypeEdge {
                         edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
                         path: DataTypeQueryPath::BaseUrl,
                     },
-                )),
-                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
-                )))),
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed(
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
+                    )),
+                    convert: None,
+                }),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(
-                    PropertyTypeQueryPath::DataTypeEdge {
+                Some(FilterExpression::Path {
+                    path: PropertyTypeQueryPath::DataTypeEdge {
                         edge_kind: OntologyEdgeKind::ConstrainsValuesOn,
                         path: DataTypeQueryPath::Version,
                     },
-                )),
-                Some(FilterExpression::Parameter(Parameter::I32(1))),
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::I32(1),
+                    convert: None,
+                }),
             ),
         ]);
         compiler.add_filter(&filter);
@@ -449,16 +487,17 @@ mod tests {
             SelectCompiler::<PropertyTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(
-                PropertyTypeQueryPath::PropertyTypeEdge {
+            Some(FilterExpression::Path {
+                path: PropertyTypeQueryPath::PropertyTypeEdge {
                     edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                     path: Box::new(PropertyTypeQueryPath::Title),
                     direction: EdgeDirection::Outgoing,
                 },
-            )),
-            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                "Text",
-            )))),
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed("Text")),
+                convert: None,
+            }),
         );
         compiler.add_filter(&filter);
 
@@ -489,16 +528,17 @@ mod tests {
             SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(
-                EntityTypeQueryPath::PropertyTypeEdge {
+            Some(FilterExpression::Path {
+                path: EntityTypeQueryPath::PropertyTypeEdge {
                     edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
                     path: PropertyTypeQueryPath::Title,
                     inheritance_depth: Some(0),
                 },
-            )),
-            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                "Name",
-            )))),
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed("Name")),
+                convert: None,
+            }),
         );
         compiler.add_filter(&filter);
 
@@ -529,8 +569,8 @@ mod tests {
             SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(
-                EntityTypeQueryPath::EntityTypeEdge {
+            Some(FilterExpression::Path {
+                path: EntityTypeQueryPath::EntityTypeEdge {
                     edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
                     path: Box::new(EntityTypeQueryPath::EntityTypeEdge {
                         edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
@@ -541,10 +581,11 @@ mod tests {
                     direction: EdgeDirection::Outgoing,
                     inheritance_depth: Some(0),
                 },
-            )),
-            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                "Friend Of",
-            )))),
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed("Friend Of")),
+                convert: None,
+            }),
         );
         compiler.add_filter(&filter);
 
@@ -581,17 +622,20 @@ mod tests {
             SelectCompiler::<EntityTypeWithMetadata>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(
-                EntityTypeQueryPath::EntityTypeEdge {
+            Some(FilterExpression::Path {
+                path: EntityTypeQueryPath::EntityTypeEdge {
                     edge_kind: OntologyEdgeKind::InheritsFrom,
                     path: Box::new(EntityTypeQueryPath::BaseUrl),
                     direction: EdgeDirection::Outgoing,
                     inheritance_depth: Some(0),
                 },
-            )),
-            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                "https://blockprotocol.org/@blockprotocol/types/entity-type/link/",
-            )))),
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed(
+                    "https://blockprotocol.org/@blockprotocol/types/entity-type/link/",
+                )),
+                convert: None,
+            }),
         );
         compiler.add_filter(&filter);
 
@@ -624,10 +668,13 @@ mod tests {
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::Uuid)),
-            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                "12345678-ABCD-4321-5678-ABCD5555DCBA",
-            )))),
+            Some(FilterExpression::Path {
+                path: EntityQueryPath::Uuid,
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed("12345678-ABCD-4321-5678-ABCD5555DCBA")),
+                convert: None,
+            }),
         );
         compiler.add_filter(&filter);
 
@@ -667,8 +714,13 @@ mod tests {
         compiler.add_selection_path(&EntityQueryPath::Properties(None));
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::DraftId)),
-            Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
+            Some(FilterExpression::Path {
+                path: EntityQueryPath::DraftId,
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Uuid(Uuid::nil()),
+                convert: None,
+            }),
         );
         compiler.add_filter(&filter);
 
@@ -707,12 +759,13 @@ mod tests {
         ))]);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::Properties(Some(
-                json_path.clone(),
-            )))),
-            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                "Bob",
-            )))),
+            Some(FilterExpression::Path {
+                path: EntityQueryPath::Properties(Some(json_path.clone())),
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed("Bob")),
+                convert: None,
+            }),
         );
         compiler.add_filter(&filter);
 
@@ -747,9 +800,9 @@ mod tests {
         ))]);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::Properties(Some(
-                json_path.clone(),
-            )))),
+            Some(FilterExpression::Path {
+                path: EntityQueryPath::Properties(Some(json_path.clone())),
+            }),
             None,
         );
         compiler.add_filter(&filter);
@@ -781,16 +834,21 @@ mod tests {
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                path: Box::new(EntityQueryPath::EntityEdge {
-                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
-                    path: Box::new(EntityQueryPath::EditionId),
-                    direction: EdgeDirection::Outgoing,
-                }),
-                direction: EdgeDirection::Incoming,
-            })),
-            Some(FilterExpression::Parameter(Parameter::I32(10))),
+            Some(FilterExpression::Path {
+                path: EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                    path: Box::new(EntityQueryPath::EntityEdge {
+                        edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                        path: Box::new(EntityQueryPath::EditionId),
+                        direction: EdgeDirection::Outgoing,
+                    }),
+                    direction: EdgeDirection::Incoming,
+                },
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::I32(10),
+                convert: None,
+            }),
         );
         compiler.add_filter(&filter);
 
@@ -833,16 +891,21 @@ mod tests {
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(Some(&temporal_axes), false);
 
         let filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
-                path: Box::new(EntityQueryPath::EntityEdge {
-                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                    path: Box::new(EntityQueryPath::EditionId),
-                    direction: EdgeDirection::Outgoing,
-                }),
-                direction: EdgeDirection::Incoming,
-            })),
-            Some(FilterExpression::Parameter(Parameter::I32(10))),
+            Some(FilterExpression::Path {
+                path: EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                    path: Box::new(EntityQueryPath::EntityEdge {
+                        edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                        path: Box::new(EntityQueryPath::EditionId),
+                        direction: EdgeDirection::Outgoing,
+                    }),
+                    direction: EdgeDirection::Incoming,
+                },
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::I32(10),
+                convert: None,
+            }),
         );
         compiler.add_filter(&filter);
 
@@ -886,36 +949,56 @@ mod tests {
 
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                    path: Box::new(EntityQueryPath::Uuid),
-                    direction: EdgeDirection::Outgoing,
-                })),
-                Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
+                Some(FilterExpression::Path {
+                    path: EntityQueryPath::EntityEdge {
+                        edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                        path: Box::new(EntityQueryPath::Uuid),
+                        direction: EdgeDirection::Outgoing,
+                    },
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Uuid(Uuid::nil()),
+                    convert: None,
+                }),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                    path: Box::new(EntityQueryPath::OwnedById),
-                    direction: EdgeDirection::Outgoing,
-                })),
-                Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
+                Some(FilterExpression::Path {
+                    path: EntityQueryPath::EntityEdge {
+                        edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                        path: Box::new(EntityQueryPath::OwnedById),
+                        direction: EdgeDirection::Outgoing,
+                    },
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Uuid(Uuid::nil()),
+                    convert: None,
+                }),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
-                    path: Box::new(EntityQueryPath::Uuid),
-                    direction: EdgeDirection::Outgoing,
-                })),
-                Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
+                Some(FilterExpression::Path {
+                    path: EntityQueryPath::EntityEdge {
+                        edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                        path: Box::new(EntityQueryPath::Uuid),
+                        direction: EdgeDirection::Outgoing,
+                    },
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Uuid(Uuid::nil()),
+                    convert: None,
+                }),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
-                    path: Box::new(EntityQueryPath::OwnedById),
-                    direction: EdgeDirection::Outgoing,
-                })),
-                Some(FilterExpression::Parameter(Parameter::Uuid(Uuid::nil()))),
+                Some(FilterExpression::Path {
+                    path: EntityQueryPath::EntityEdge {
+                        edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                        path: Box::new(EntityQueryPath::OwnedById),
+                        direction: EdgeDirection::Outgoing,
+                    },
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Uuid(Uuid::nil()),
+                    convert: None,
+                }),
             ),
         ]);
         compiler.add_filter(&filter);
@@ -958,32 +1041,42 @@ mod tests {
 
         let filter = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                    edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
-                    path: Box::new(EntityQueryPath::EntityTypeEdge {
-                        edge_kind: SharedEdgeKind::IsOfType,
-                        path: EntityTypeQueryPath::BaseUrl,
-                        inheritance_depth: Some(0),
-                    }),
-                    direction: EdgeDirection::Outgoing,
-                })),
-                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    "https://example.com/@example-org/types/entity-type/address",
-                )))),
+                Some(FilterExpression::Path {
+                    path: EntityQueryPath::EntityEdge {
+                        edge_kind: KnowledgeGraphEdgeKind::HasLeftEntity,
+                        path: Box::new(EntityQueryPath::EntityTypeEdge {
+                            edge_kind: SharedEdgeKind::IsOfType,
+                            path: EntityTypeQueryPath::BaseUrl,
+                            inheritance_depth: Some(0),
+                        }),
+                        direction: EdgeDirection::Outgoing,
+                    },
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed(
+                        "https://example.com/@example-org/types/entity-type/address",
+                    )),
+                    convert: None,
+                }),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
-                    path: Box::new(EntityQueryPath::EntityTypeEdge {
-                        edge_kind: SharedEdgeKind::IsOfType,
-                        path: EntityTypeQueryPath::BaseUrl,
-                        inheritance_depth: Some(0),
-                    }),
-                    direction: EdgeDirection::Outgoing,
-                })),
-                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    "https://example.com/@example-org/types/entity-type/name",
-                )))),
+                Some(FilterExpression::Path {
+                    path: EntityQueryPath::EntityEdge {
+                        edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                        path: Box::new(EntityQueryPath::EntityTypeEdge {
+                            edge_kind: SharedEdgeKind::IsOfType,
+                            path: EntityTypeQueryPath::BaseUrl,
+                            inheritance_depth: Some(0),
+                        }),
+                        direction: EdgeDirection::Outgoing,
+                    },
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed(
+                        "https://example.com/@example-org/types/entity-type/name",
+                    )),
+                    convert: None,
+                }),
             ),
         ]);
         compiler.add_filter(&filter);
@@ -1045,9 +1138,17 @@ mod tests {
         let mut compiler = SelectCompiler::<Entity>::with_asterisk(None, false);
 
         let filter = Filter::CosineDistance(
-            FilterExpression::Path(EntityQueryPath::Embedding),
-            FilterExpression::Parameter(Parameter::Vector(Embedding::from(vec![0.0; 1536]))),
-            FilterExpression::Parameter(Parameter::F64(0.5)),
+            FilterExpression::Path {
+                path: EntityQueryPath::Embedding,
+            },
+            FilterExpression::Parameter {
+                parameter: Parameter::Vector(Embedding::from(vec![0.0; 1536])),
+                convert: None,
+            },
+            FilterExpression::Parameter {
+                parameter: Parameter::F64(0.5),
+                convert: None,
+            },
         );
         compiler.add_filter(&filter);
 

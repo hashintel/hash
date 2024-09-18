@@ -2633,6 +2633,7 @@ dependencies = [
  "serde_json",
  "temporal-versioning",
  "thiserror",
+ "tokio",
  "type-system",
  "utoipa",
  "uuid",

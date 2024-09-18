@@ -61,7 +61,8 @@ use crate::store::{
         query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
         ResponseCountMap, TraversalContext,
     },
-    AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, UpdateError,
+    AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, StoreCache,
+    StoreProvider, UpdateError,
 };
 
 impl<C, A> PostgresStore<C, A>
@@ -508,7 +509,9 @@ where
         let parent_schemas = self
             .read_closed_schemas(
                 &Filter::In(
-                    FilterExpression::Path(EntityTypeQueryPath::OntologyId),
+                    FilterExpression::Path {
+                        path: EntityTypeQueryPath::OntologyId,
+                    },
                     ParameterList::EntityTypeIds(&parent_entity_type_ids),
                 ),
                 Some(
@@ -757,9 +760,19 @@ where
     //       types anyway.
     async fn count_entity_types(
         &self,
-        _actor_id: AccountId,
-        params: CountEntityTypesParams<'_>,
+        actor_id: AccountId,
+        mut params: CountEntityTypesParams<'_>,
     ) -> Result<usize, QueryError> {
+        params
+            .filter
+            .convert_parameters(&StoreProvider {
+                store: self,
+                cache: StoreCache::default(),
+                authorization: Some((actor_id, Consistency::FullyConsistent)),
+            })
+            .await
+            .change_context(QueryError)?;
+
         Ok(self
             .read(
                 &params.filter,
@@ -774,8 +787,18 @@ where
     async fn get_entity_types(
         &self,
         actor_id: AccountId,
-        params: GetEntityTypesParams<'_>,
+        mut params: GetEntityTypesParams<'_>,
     ) -> Result<GetEntityTypesResponse, QueryError> {
+        params
+            .filter
+            .convert_parameters(&StoreProvider {
+                store: self,
+                cache: StoreCache::default(),
+                authorization: Some((actor_id, Consistency::FullyConsistent)),
+            })
+            .await
+            .change_context(QueryError)?;
+
         let temporal_axes = params.temporal_axes.clone().resolve();
         self.get_entity_types_impl(actor_id, params, &temporal_axes)
             .await
@@ -786,8 +809,18 @@ where
     async fn get_entity_type_subgraph(
         &self,
         actor_id: AccountId,
-        params: GetEntityTypeSubgraphParams<'_>,
+        mut params: GetEntityTypeSubgraphParams<'_>,
     ) -> Result<GetEntityTypeSubgraphResponse, QueryError> {
+        params
+            .filter
+            .convert_parameters(&StoreProvider {
+                store: self,
+                cache: StoreCache::default(),
+                authorization: Some((actor_id, Consistency::FullyConsistent)),
+            })
+            .await
+            .change_context(QueryError)?;
+
         let temporal_axes = params.temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 

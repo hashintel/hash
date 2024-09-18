@@ -587,12 +587,7 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let mut request = GetEntitiesRequest::deserialize(&request).map_err(report_to_response)?;
-    request
-        .filter
-        .convert_parameters()
-        .map_err(report_to_response)?;
-
+    let request = GetEntitiesRequest::deserialize(&request).map_err(report_to_response)?;
     store
         .get_entities(
             actor_id,
@@ -728,13 +723,7 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let mut request =
-        GetEntitySubgraphRequest::deserialize(&request).map_err(report_to_response)?;
-    request
-        .filter
-        .convert_parameters()
-        .map_err(report_to_response)?;
-
+    let request = GetEntitySubgraphRequest::deserialize(&request).map_err(report_to_response)?;
     store
         .get_entity_subgraph(
             actor_id,
@@ -817,14 +806,11 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let mut query = CountEntitiesParams::deserialize(&request).map_err(report_to_response)?;
-    query
-        .filter
-        .convert_parameters()
-        .map_err(report_to_response)?;
-
     store
-        .count_entities(actor_id, query)
+        .count_entities(
+            actor_id,
+            CountEntitiesParams::deserialize(&request).map_err(report_to_response)?,
+        )
         .await
         .map(Json)
         .map_err(report_to_response)

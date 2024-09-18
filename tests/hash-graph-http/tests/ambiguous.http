@@ -361,7 +361,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
   "filter": {
     "greater": [
       { "path": ["properties", "http://localhost:3000/@alice/types/property-type/length/", "convert", "http://localhost:3000/@alice/types/data-type/meter/"] },
-      { "parameter": 100 }
+      { "parameter": 1000.0, "convert": { "from": "http://localhost:3000/@alice/types/data-type/millimeter/v/1", "to": "http://localhost:3000/@alice/types/data-type/meter/v/1" } }
     ]
   },
   "conversions": [

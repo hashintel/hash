@@ -1047,8 +1047,18 @@ where
     async fn get_entities(
         &self,
         actor_id: AccountId,
-        params: GetEntitiesParams<'_>,
+        mut params: GetEntitiesParams<'_>,
     ) -> Result<GetEntitiesResponse<'static>, QueryError> {
+        params
+            .filter
+            .convert_parameters(&StoreProvider {
+                store: self,
+                cache: StoreCache::default(),
+                authorization: Some((actor_id, Consistency::FullyConsistent)),
+            })
+            .await
+            .change_context(QueryError)?;
+
         let temporal_axes = params.temporal_axes.resolve();
 
         let mut response = self
@@ -1090,8 +1100,18 @@ where
     async fn get_entity_subgraph(
         &self,
         actor_id: AccountId,
-        params: GetEntitySubgraphParams<'_>,
+        mut params: GetEntitySubgraphParams<'_>,
     ) -> Result<GetEntitySubgraphResponse<'static>, QueryError> {
+        params
+            .filter
+            .convert_parameters(&StoreProvider {
+                store: self,
+                cache: StoreCache::default(),
+                authorization: Some((actor_id, Consistency::FullyConsistent)),
+            })
+            .await
+            .change_context(QueryError)?;
+
         let unresolved_temporal_axes = params.temporal_axes;
         let temporal_axes = unresolved_temporal_axes.clone().resolve();
 
@@ -1200,8 +1220,18 @@ where
     async fn count_entities(
         &self,
         actor_id: AccountId,
-        params: CountEntitiesParams<'_>,
+        mut params: CountEntitiesParams<'_>,
     ) -> Result<usize, QueryError> {
+        params
+            .filter
+            .convert_parameters(&StoreProvider {
+                store: self,
+                cache: StoreCache::default(),
+                authorization: Some((actor_id, Consistency::FullyConsistent)),
+            })
+            .await
+            .change_context(QueryError)?;
+
         let temporal_axes = params.temporal_axes.resolve();
 
         let entity_ids = Read::<Entity>::read(
@@ -1343,10 +1373,13 @@ where
         let previous_entity = Read::<Entity>::read_one(
             &transaction,
             &Filter::Equal(
-                Some(FilterExpression::Path(EntityQueryPath::EditionId)),
-                Some(FilterExpression::Parameter(Parameter::Uuid(
-                    locked_row.entity_edition_id.into_uuid(),
-                ))),
+                Some(FilterExpression::Path {
+                    path: EntityQueryPath::EditionId,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Uuid(locked_row.entity_edition_id.into_uuid()),
+                    convert: None,
+                }),
             ),
             Some(&QueryTemporalAxes::DecisionTime {
                 pinned: PinnedTemporalAxis::new(locked_transaction_time),
