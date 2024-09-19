@@ -93,6 +93,8 @@ export const GraphDataLoader = ({
 
       graphState.current.hoveredNeighborIds = getNeighbors(event.node);
 
+      sigma.setSetting("renderEdgeLabels", true);
+
       /**
        * We haven't touched the graph data, so don't need to re-index.
        * An additional optimization would be to supply partialGraph here and only redraw the affected nodes,
@@ -105,6 +107,7 @@ export const GraphDataLoader = ({
     const removeHighlights = () => {
       graphState.current.hoveredNodeId = null;
       graphState.current.hoveredNeighborIds = null;
+      sigma.setSetting("renderEdgeLabels", false);
       sigma.refresh({ skipIndexation: true });
     };
 
@@ -178,6 +181,8 @@ export const GraphDataLoader = ({
 
     for (const edge of edges) {
       graph.addEdgeWithKey(edge.edgeId, edge.source, edge.target, {
+        color: "rgba(230, 230, 230, 1)",
+        label: edge.label,
         size: edge.size,
         type: "arrow",
       });

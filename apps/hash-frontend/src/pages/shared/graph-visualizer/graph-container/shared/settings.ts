@@ -11,6 +11,9 @@ export const labelRenderedSizeThreshold = {
   normal: 16,
 };
 
+/**
+ * See also {@link GraphContainer} for additional settings
+ */
 export const useDefaultSettings = (state: GraphState) => {
   const { palette } = useTheme();
   const sigma = useSigma();
@@ -30,6 +33,13 @@ export const useDefaultSettings = (state: GraphState) => {
      * Labels are prioritised for display by node size.
      */
     sigma.setSetting("labelDensity", 1);
+
+    /**
+     * Edge labels are only shown on hover, controlled in the event handlers.
+     */
+    sigma.setSetting("edgeLabelColor", { color: "rgba(80, 80, 80, 0.6)" });
+    sigma.setSetting("edgeLabelFont", `"Inter", "Helvetica", "sans-serif"`);
+    sigma.setSetting("edgeLabelSize", 10);
 
     /**
      * Controls what labels will be shown at which zoom levels.
@@ -104,9 +114,14 @@ export const useDefaultSettings = (state: GraphState) => {
       if (state.hoveredNodeId !== node && !state.hoveredNeighborIds.has(node)) {
         /**
          * Nodes are always drawn over edges by the library, so anything other than hiding non-highlighted nodes
-         * means that they can obscure the highlighted edges.
+         * means that they can obscure the highlighted edges, as is the case here.
+         *
+         * If they are hidden, it is much more jarring when hovering over nodes because of the rest of the graph
+         * fully disappears, so having the 'non-highlighted' nodes remain like this is a UX compromise.
          */
-        nodeData.hidden = true;
+        nodeData.color = "rgba(170, 170, 170, 0.7)";
+        nodeData.borderColor = "rgba(170, 170, 170, 0.7)";
+        nodeData.label = "";
       } else {
         nodeData.forceLabel = true;
       }
@@ -147,8 +162,12 @@ export const useDefaultSettings = (state: GraphState) => {
         }
       }
 
-      edgeData.hidden = !(sourceIsShown && targetIsShown);
-      edgeData.zIndex = 2;
+      if (sourceIsShown && targetIsShown) {
+        edgeData.zIndex = 2;
+        edgeData.forceLabel = true;
+      } else {
+        edgeData.hidden = true;
+      }
 
       return edgeData;
     });

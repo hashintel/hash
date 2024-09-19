@@ -1,5 +1,5 @@
 import { SigmaContainer } from "@react-sigma/core";
-import { NodeBorderProgram } from "@sigma/node-border";
+import { createNodeBorderProgram } from "@sigma/node-border";
 import { MultiDirectedGraph } from "graphology";
 import { useState } from "react";
 
@@ -28,10 +28,28 @@ export const GraphContainer = ({
       <SigmaContainer
         graph={MultiDirectedGraph}
         settings={{
+          /**
+           * @see {@link useDefaultSettings} for more settings
+           */
+          /**
+           * These settings need to be set before the graph is rendered.
+           */
           defaultNodeType: "bordered",
           nodeProgramClasses: {
-            bordered: NodeBorderProgram,
+            bordered: createNodeBorderProgram({
+              borders: [
+                {
+                  size: { value: 2, mode: "pixels" },
+                  color: { attribute: "borderColor" },
+                },
+                { size: { fill: true }, color: { attribute: "color" } },
+              ],
+            }),
           },
+          /**
+           * This setting is dependent on props, and is easiest to set here.
+           */
+          enableEdgeEvents: !!onEdgeClick,
         }}
       >
         <FullScreenButton />
