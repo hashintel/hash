@@ -1,6 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { CustomCell, Item, TextCell } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -46,13 +47,13 @@ import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
 import type { TypeEntitiesRow } from "./entities-table/use-entities-table";
 import { useEntitiesTable } from "./entities-table/use-entities-table";
 import { useGetEntitiesTableAdditionalCsvData } from "./entities-table/use-get-entities-table-additional-csv-data";
+import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
 import { generateEntityRootedSubgraph } from "./subgraphs";
 import { TableHeaderToggle } from "./table-header-toggle";
 import type { TableView } from "./table-views";
 import { tableViewIcons } from "./table-views";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
-import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 
 /**
  * @todo: avoid having to maintain this list, potentially by
@@ -615,6 +616,26 @@ export const EntitiesTable: FunctionComponent<{
     HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 179 + tableHeaderHeight
   }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`;
 
+  const isPrimaryEntity = useCallback(
+    (entity: Entity) =>
+      entityTypeBaseUrl
+        ? extractBaseUrl(entity.metadata.entityTypeId) === entityTypeBaseUrl
+        : entityTypeId
+          ? entityTypeId === entity.metadata.entityTypeId
+          : false,
+    [entityTypeId, entityTypeBaseUrl],
+  );
+
+  const filterEntity = useCallback(
+    (entity: Entity) =>
+      filterState.includeGlobal
+        ? true
+        : internalWebIds.includes(
+            extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId),
+          ),
+    [filterState, internalWebIds],
+  );
+
   return (
     <>
       {selectedEntityTypeId && (
@@ -679,23 +700,8 @@ export const EntitiesTable: FunctionComponent<{
           <Box height={maximumTableHeight}>
             <EntityGraphVisualizer
               entities={entities}
-              isPrimaryEntity={(entity) =>
-                entityTypeBaseUrl
-                  ? extractBaseUrl(entity.metadata.entityTypeId) ===
-                    entityTypeBaseUrl
-                  : entityTypeId
-                  ? entityTypeId === entity.metadata.entityTypeId
-                  : true
-              }
-              filterEntity={(entity) =>
-                filterState.includeGlobal
-                  ? true
-                  : internalWebIds.includes(
-                      extractOwnedByIdFromEntityId(
-                        entity.metadata.recordId.entityId,
-                      ),
-                    )
-              }
+              isPrimaryEntity={isPrimaryEntity}
+              filterEntity={filterEntity}
               onEntityClick={handleEntityClick}
               subgraphWithTypes={subgraph}
             />

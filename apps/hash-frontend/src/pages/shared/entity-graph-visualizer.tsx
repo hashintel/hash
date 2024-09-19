@@ -18,7 +18,6 @@ import type {
   GraphVizNode,
 } from "./graph-visualizer";
 import { GraphVisualizer } from "./graph-visualizer";
-import { Entity } from "@local/hash-graph-sdk/entity";
 
 export type EntityForGraph = {
   linkData?: LinkData;
@@ -26,6 +25,9 @@ export type EntityForGraph = {
     Partial<Pick<EntityMetadata, "temporalVersioning">>;
   properties: PropertyObject;
 };
+
+const maxNodeSize = 32;
+const minNodeSize = 10;
 
 export const EntityGraphVisualizer = <T extends EntityForGraph>({
   entities,
@@ -36,101 +38,112 @@ export const EntityGraphVisualizer = <T extends EntityForGraph>({
   onEntityTypeClick,
 }: {
   entities?: T[];
+  /**
+   * A function to filter out entities from display. If the function returns false, the entity will not be displayed.
+   */
   filterEntity?: (entity: T) => boolean;
   onEntityClick?: (entityId: EntityId) => void;
   onEntityTypeClick?: (entityTypeId: VersionedUrl) => void;
+  /**
+   * Whether this entity should receive a special highlight.
+   */
   isPrimaryEntity?: (entity: T) => boolean;
   subgraphWithTypes: Subgraph;
 }) => {
   const { palette } = useTheme();
 
-  const nonLinkEntities = useMemo(
-    () =>
-      entities?.filter(
-        (entity) =>
-          !entity.linkData && (filterEntity ? filterEntity(entity) : true),
-      ),
-    [entities, filterEntity],
-  );
-
-  const linkEntities = useMemo(
-    () =>
-      entities && nonLinkEntities
-        ? entities.filter(
-            (
-              entity,
-            ): entity is T & {
-              linkData: NonNullable<T["linkData"]>;
-            } =>
-              !!entity.linkData &&
-              nonLinkEntities.some(
-                (nonLinkEntity) =>
-                  entity.linkData!.leftEntityId ===
-                  nonLinkEntity.metadata.recordId.entityId,
-              ) &&
-              nonLinkEntities.some(
-                (nonLinkEntity) =>
-                  entity.linkData!.rightEntityId ===
-                  nonLinkEntity.metadata.recordId.entityId,
-              ),
-          )
-        : undefined,
-    [entities, nonLinkEntities],
-  );
+  const nodeColors = useMemo(() => {
+    return [
+      {
+        color: palette.blue[30],
+        borderColor: palette.blue[40],
+      },
+      {
+        color: palette.purple[30],
+        borderColor: palette.purple[40],
+      },
+      {
+        color: palette.green[50],
+        borderColor: palette.green[60],
+      },
+    ] as const;
+  }, [palette]);
 
   const { nodes, edges } = useMemo<{
     nodes: GraphVizNode[];
     edges: GraphVizEdge[];
   }>(() => {
-    const nodesToAdd: GraphVizNode[] = [];
+    const nodesToAddByNodeId: Record<string, GraphVizNode> = {};
     const edgesToAdd: GraphVizEdge[] = [];
 
-    const typesAlreadyAdded: Set<VersionedUrl> = new Set();
+    const nonLinkEntitiesIncluded = new Set<EntityId>();
+    const linkEntitiesToAdd: (T & {
+      linkData: NonNullable<T["linkData"]>;
+    })[] = [];
 
-    const nonLinkEntitiesSeen = new Set<EntityId>();
-    const linkEntitiesToAdd: Entity[] = [];
+    const entityTypeIdToColor = new Map<string, number>();
 
-    for (const entity of nonLinkEntities ?? []) {
-      nodesToAdd.push({
+    const nodeIdToIncomingEdges = new Map<string, number>();
+
+    for (const entity of entities ?? []) {
+      /**
+       * If we have been provided a filter function, check it doesn't filter out the entity
+       */
+      if (filterEntity) {
+        if (!filterEntity(entity)) {
+          continue;
+        }
+      }
+
+      if (entity.linkData) {
+        /**
+         * We process links afterwards, because we only want to add them if both source and target are in the graph.
+         */
+        linkEntitiesToAdd.push(
+          entity as T & {
+            linkData: NonNullable<T["linkData"]>;
+          },
+        );
+        continue;
+      }
+
+      nonLinkEntitiesIncluded.add(entity.metadata.recordId.entityId);
+
+      const specialHighlight = isPrimaryEntity?.(entity) ?? false;
+
+      if (!entityTypeIdToColor.has(entity.metadata.entityTypeId)) {
+        entityTypeIdToColor.set(
+          entity.metadata.entityTypeId,
+          entityTypeIdToColor.size % nodeColors.length,
+        );
+      }
+
+      const { color, borderColor } = specialHighlight
+        ? { color: palette.blue[50], borderColor: palette.blue[60] }
+        : nodeColors[entityTypeIdToColor.get(entity.metadata.entityTypeId)!]!;
+
+      nodesToAddByNodeId[entity.metadata.recordId.entityId] = {
         label: generateEntityLabel(subgraphWithTypes, entity),
         nodeId: entity.metadata.recordId.entityId,
-        color: isPrimaryEntity ? palette.blue[30] : palette.blue[20],
-        borderColor: isPrimaryEntity ? palette.blue[40] : palette.blue[30],
-        size: 14,
-      });
+        color,
+        borderColor,
+        size: minNodeSize,
+      };
 
-      const entityType = getEntityTypeById(
-        subgraphWithTypes,
-        entity.metadata.entityTypeId,
-      );
-
-      if (entityType) {
-        const {
-          schema: { title, $id },
-        } = entityType;
-
-        if (!typesAlreadyAdded.has($id)) {
-          typesAlreadyAdded.add($id);
-
-          nodesToAdd.push({
-            label: title,
-            nodeId: $id,
-            color: palette.blue[70],
-            size: 15,
-          });
-        }
-
-        edgesToAdd.push({
-          source: entity.metadata.recordId.entityId,
-          target: $id,
-          edgeId: `${entity.metadata.recordId.entityId}~${$id}`,
-          label: "is of type",
-          size: 3,
-        });
-      }
+      nodeIdToIncomingEdges.set(entity.metadata.recordId.entityId, 0);
     }
 
-    for (const linkEntity of linkEntities ?? []) {
+    for (const linkEntity of linkEntitiesToAdd) {
+      if (
+        !nonLinkEntitiesIncluded.has(linkEntity.linkData.leftEntityId) ||
+        !nonLinkEntitiesIncluded.has(linkEntity.linkData.rightEntityId)
+      ) {
+        /**
+         * We don't have both sides of this link in the graph.
+         */
+        continue;
+      }
+
       const linkEntityType = getEntityTypeById(
         subgraphWithTypes,
         linkEntity.metadata.entityTypeId,
@@ -141,18 +154,55 @@ export const EntityGraphVisualizer = <T extends EntityForGraph>({
         target: linkEntity.linkData.rightEntityId,
         edgeId: linkEntity.metadata.recordId.entityId,
         label: linkEntityType?.schema.title ?? "Unknown",
-        size: 3,
+        size: 1,
       });
+
+      nodeIdToIncomingEdges.set(
+        linkEntity.linkData.rightEntityId,
+        (nodeIdToIncomingEdges.get(linkEntity.linkData.rightEntityId) ?? 0) + 1,
+      );
+    }
+
+    const fewestIncomingEdges = Math.min(...nodeIdToIncomingEdges.values());
+    const mostIncomingEdges = Math.max(...nodeIdToIncomingEdges.values());
+
+    const incomingEdgeRange = mostIncomingEdges - fewestIncomingEdges;
+
+    /**
+     * If incomingEdgeRange is 0, all nodes have the same number of incoming edges
+     */
+    if (incomingEdgeRange > 0) {
+      for (const [nodeId, incomingEdges] of nodeIdToIncomingEdges) {
+        if (!nodesToAddByNodeId[nodeId]) {
+          continue;
+        }
+
+        const relativeEdgeCount = incomingEdges / incomingEdgeRange;
+
+        const maxSizeIncrease = maxNodeSize - minNodeSize;
+
+        /**
+         * Scale the size of the node based on the number of incoming edges within the range of incoming edges
+         */
+        nodesToAddByNodeId[nodeId].size = Math.min(
+          maxNodeSize,
+          Math.max(
+            minNodeSize,
+            relativeEdgeCount * maxSizeIncrease + minNodeSize,
+          ),
+        );
+      }
     }
 
     return {
-      nodes: nodesToAdd,
+      nodes: Object.values(nodesToAddByNodeId),
       edges: edgesToAdd,
     };
   }, [
+    entities,
+    filterEntity,
     isPrimaryEntity,
-    linkEntities,
-    nonLinkEntities,
+    nodeColors,
     palette,
     subgraphWithTypes,
   ]);
