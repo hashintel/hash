@@ -55,6 +55,7 @@
     "@react-sigma/core": "4.0.3",
     "@sentry/nextjs": "7.119.0",
     "@sentry/react": "7.119.0",
+    "@sigma/node-border": "3.0.0-beta.4",
     "@svgr/webpack": "8.1.0",
     "@tldraw/editor": "2.0.0-alpha.12",
     "@tldraw/primitives": "2.0.0-alpha.12",

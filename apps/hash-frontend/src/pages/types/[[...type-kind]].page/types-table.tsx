@@ -49,7 +49,7 @@ import { TableHeaderToggle } from "../../shared/table-header-toggle";
 import type { TableView } from "../../shared/table-views";
 import { tableViewIcons } from "../../shared/table-views";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
-import { TypesGraph } from "../../shared/types-graph";
+import { TypeGraphVisualizer } from "../../shared/type-graph-visualizer";
 
 const typesTableColumnIds = [
   "title",
@@ -510,11 +510,12 @@ export const TypesTable: FunctionComponent<{
             freezeColumns={1}
           />
         ) : (
-          <TypesGraph
-            height={maxTableHeight}
-            onTypeClick={setSelectedEntityTypeId}
-            types={types ?? []}
-          />
+          <Box height={maxTableHeight}>
+            <TypeGraphVisualizer
+              onTypeClick={setSelectedEntityTypeId}
+              types={types ?? []}
+            />
+          </Box>
         )}
       </Box>
     </>

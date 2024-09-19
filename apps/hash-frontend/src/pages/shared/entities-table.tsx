@@ -1,7 +1,7 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { CustomCell, Item, TextCell } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
-import { EntitiesGraphChart } from "@hashintel/block-design-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
@@ -47,6 +47,7 @@ import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
 import type { TypeEntitiesRow } from "./entities-table/use-entities-table";
 import { useEntitiesTable } from "./entities-table/use-entities-table";
 import { useGetEntitiesTableAdditionalCsvData } from "./entities-table/use-get-entities-table-additional-csv-data";
+import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
 import { generateEntityRootedSubgraph } from "./subgraphs";
 import { TableHeaderToggle } from "./table-header-toggle";
@@ -611,6 +612,30 @@ export const EntitiesTable: FunctionComponent<{
       addPropertiesColumns: hidePropertiesColumns,
     });
 
+  const maximumTableHeight = `calc(100vh - (${
+    HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 179 + tableHeaderHeight
+  }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`;
+
+  const isPrimaryEntity = useCallback(
+    (entity: Entity) =>
+      entityTypeBaseUrl
+        ? extractBaseUrl(entity.metadata.entityTypeId) === entityTypeBaseUrl
+        : entityTypeId
+          ? entityTypeId === entity.metadata.entityTypeId
+          : false,
+    [entityTypeId, entityTypeBaseUrl],
+  );
+
+  const filterEntity = useCallback(
+    (entity: Entity) =>
+      filterState.includeGlobal
+        ? true
+        : internalWebIds.includes(
+            extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId),
+          ),
+    [filterState, internalWebIds],
+  );
+
   return (
     <>
       {selectedEntityTypeId && (
@@ -672,36 +697,15 @@ export const EntitiesTable: FunctionComponent<{
           onBulkActionCompleted={() => setSelectedRows([])}
         />
         {view === "Graph" && subgraph ? (
-          <EntitiesGraphChart
-            entities={entities}
-            isPrimaryEntity={(entity) =>
-              entityTypeBaseUrl
-                ? extractBaseUrl(entity.metadata.entityTypeId) ===
-                  entityTypeBaseUrl
-                : entityTypeId
-                  ? entityTypeId === entity.metadata.entityTypeId
-                  : true
-            }
-            filterEntity={(entity) =>
-              filterState.includeGlobal
-                ? true
-                : internalWebIds.includes(
-                    extractOwnedByIdFromEntityId(
-                      entity.metadata.recordId.entityId,
-                    ),
-                  )
-            }
-            onEntityClick={handleEntityClick}
-            sx={{
-              background: ({ palette }) => palette.common.white,
-              height: `calc(100vh - (${
-                HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 179 + tableHeaderHeight
-              }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`,
-              borderBottomRightRadius: 6,
-              borderBottomLeftRadius: 6,
-            }}
-            subgraphWithTypes={subgraph}
-          />
+          <Box height={maximumTableHeight}>
+            <EntityGraphVisualizer
+              entities={entities}
+              isPrimaryEntity={isPrimaryEntity}
+              filterEntity={filterEntity}
+              onEntityClick={handleEntityClick}
+              subgraphWithTypes={subgraph}
+            />
+          </Box>
         ) : view === "Grid" ? (
           <GridView entities={entities} />
         ) : (
@@ -721,12 +725,7 @@ export const EntitiesTable: FunctionComponent<{
             firstColumnLeftPadding={16}
             height={`
                min(
-                 calc(100vh - (${
-                   HEADER_HEIGHT +
-                   TOP_CONTEXT_BAR_HEIGHT +
-                   179 +
-                   tableHeaderHeight
-                 }px + ${theme.spacing(5)} + ${theme.spacing(5)})),
+                 ${maximumTableHeight},
                 calc(
                  ${gridHeaderHeightWithBorder}px +
                  (${rows?.length ? rows.length : 1} * ${gridRowHeight}px) +

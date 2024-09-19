@@ -7237,31 +7237,10 @@
   dependencies:
     "@babel/runtime" "^7.13.10"
 
-"@react-sigma/core@4.0.3", "@react-sigma/core@^4.0.3":
+"@react-sigma/core@4.0.3":
   version "4.0.3"
   resolved "https://registry.yarnpkg.com/@react-sigma/core/-/core-4.0.3.tgz#b97c1cf835df84a1401d715b176997f27c0fe7a9"
   integrity sha512-/y/U1GH18xjGYMWNYXXqHGJ+8tHf+e4z1i0gNSm9iuhch8sGFJooO3VfyPJlBox42Wl4/gCapQhOHAfVW0pRtw==
-
-"@react-sigma/layout-core@4.0.3", "@react-sigma/layout-core@^4.0.3":
-  version "4.0.3"
-  resolved "https://registry.yarnpkg.com/@react-sigma/layout-core/-/layout-core-4.0.3.tgz#a6835cf416ab591ed9de0a64a8d5a25b03034433"
-  integrity sha512-0zt2JJw2Hjp/I8kn3RJgLR9M9u4SRSSlmp7XNuMqG4FLrHrL5MZ8nFhUMzMgNuxUn0rLtpdh7NDd8wgdhKeQjA==
-  dependencies:
-    "@react-sigma/core" "^4.0.3"
-
-"@react-sigma/layout-forceatlas2@4.0.3":
-  version "4.0.3"
-  resolved "https://registry.yarnpkg.com/@react-sigma/layout-forceatlas2/-/layout-forceatlas2-4.0.3.tgz#58f4c05d40f6fc6bf30e851b76c64731eb123bfb"
-  integrity sha512-JpYmFetlV6Sn/uslsOpqtuWyaRADASyQ+fMkkUsh9iPG7Vm/srGwLOR33kUw31yt1gBiagp3vy+4EKjUxex1Uw==
-  dependencies:
-    "@react-sigma/layout-core" "^4.0.3"
-
-"@react-sigma/layout-random@4.0.3":
-  version "4.0.3"
-  resolved "https://registry.yarnpkg.com/@react-sigma/layout-random/-/layout-random-4.0.3.tgz#f60e4a146085bd8f85eb6208c9443b15b24195fe"
-  integrity sha512-FjRWgKzrhdqaCkCIXSrGru+fFMMA/olcMFGuaNX2vC5CPzMildj0IZbSOhxju/QeLSMieDm5stG8VC5iZaKWyw==
-  dependencies:
-    "@react-sigma/layout-core" "^4.0.3"
 
 "@reactflow/background@11.3.14":
   version "11.3.14"
@@ -7857,6 +7836,11 @@
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/@sideway/pinpoint/-/pinpoint-2.0.0.tgz#cff8ffadc372ad29fd3f78277aeb29e632cc70df"
   integrity "sha1-z/j/rcNyrSn9P3gneusp5jLMcN8= sha512-RNiOoTPkptFtSVzQevY/yWtZwf/RxyVnPy/OcA9HBM3MlGDnBEYL5B41H0MTn0Uec8Hi+2qUtTfG2WWZBmMejQ=="
+
+"@sigma/node-border@3.0.0-beta.4":
+  version "3.0.0-beta.4"
+  resolved "https://registry.yarnpkg.com/@sigma/node-border/-/node-border-3.0.0-beta.4.tgz#0bd5c34d5acc68a93c04dc2ce4d9c6e2d0022e12"
+  integrity sha512-vELXc8e1laGNqEhS2+2flf8AqjDPEH0jQargeWJyfMdEjI9XTWR6qiiglyxsNwyp+plJi2LiDiUd0UzfWbRK2Q==
 
 "@sigstore/bundle@^2.3.2":
   version "2.3.2"

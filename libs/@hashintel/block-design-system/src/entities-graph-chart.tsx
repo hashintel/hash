@@ -38,6 +38,10 @@ const generateEntityLabel = (
 
 const nodeCategories = [{ name: "entity" }, { name: "entityType" }];
 
+/**
+ * @deprecated use EntityGraphVisualizer instead.
+ *    This is still referenced by the Chart block, but the blocks need updating to use the new libraries.
+ */
 export const EntitiesGraphChart = <T extends EntityForGraphChart>({
   entities,
   filterEntity,
