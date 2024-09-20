@@ -82,7 +82,7 @@ const createHashEntity = async (params: {
       undefined,
     ),
     provenance,
-    entityTypeId: params.partialEntity.entityTypeId,
+    entityTypeIds: [params.partialEntity.entityTypeId],
   });
 
   await Entity.createMultiple(
@@ -94,7 +94,7 @@ const createHashEntity = async (params: {
         leftEntityId: entity.metadata.recordId.entityId,
         rightEntityId: destinationEntityId,
       },
-      entityTypeId: linkEntityTypeId,
+      entityTypeIds: [linkEntityTypeId],
       properties: { value: {} },
       provenance,
       draft: false,
@@ -166,7 +166,7 @@ const createOrUpdateHashEntity = async (params: {
       (linkEntity) =>
         !actualOutgoingLinks.some(
           ({ linkEntityTypeId, destinationEntityId }) =>
-            linkEntityTypeId === linkEntity.metadata.entityTypeId &&
+            linkEntity.metadata.entityTypeIds.includes(linkEntityTypeId) &&
             destinationEntityId === linkEntity.linkData.rightEntityId,
         ),
     );
@@ -175,8 +175,9 @@ const createOrUpdateHashEntity = async (params: {
       (newOutgoingLink) =>
         !existingOutgoingLinks.some(
           (linkEntity) =>
-            newOutgoingLink.linkEntityTypeId ===
-              linkEntity.metadata.entityTypeId &&
+            linkEntity.metadata.entityTypeIds.includes(
+              newOutgoingLink.linkEntityTypeId,
+            ) &&
             newOutgoingLink.destinationEntityId ===
               linkEntity.linkData.rightEntityId,
         ),
@@ -194,7 +195,7 @@ const createOrUpdateHashEntity = async (params: {
       ),
       ...addedOutgoingLinks.map(({ linkEntityTypeId, destinationEntityId }) =>
         Entity.create(graphApiClient, params.authentication, {
-          entityTypeId: linkEntityTypeId,
+          entityTypeIds: [linkEntityTypeId],
           linkData: {
             leftEntityId: existingEntity.metadata.recordId.entityId,
             rightEntityId: destinationEntityId,
@@ -424,14 +425,14 @@ export const createLinearIntegrationActivities = ({
 
   async updateLinearData({
     apiKey,
-    entityTypeId,
+    entityTypeIds,
     authentication,
     linearId,
     entity,
   }: Parameters<UpdateLinearDataWorkflow>[0]): Promise<void> {
     const client = createLinearClient(apiKey);
 
-    const mapping = getLinearMappingByHashEntityTypeId({ entityTypeId });
+    const mapping = getLinearMappingByHashEntityTypeId({ entityTypeIds });
 
     const linearUpdateInput = await mapHashEntityToLinearUpdateInput({
       graphApiClient,
