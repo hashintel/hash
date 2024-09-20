@@ -490,6 +490,7 @@
     feature(error_generic_member_access),
     allow(clippy::incompatible_msrv)
 )]
+#![cfg_attr(all(nightly, feature = "unstable"), feature(try_trait_v2))]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(all(nightly, feature = "std"), feature(backtrace_frames))]
 #![cfg_attr(
@@ -523,11 +524,15 @@ pub mod fmt;
 mod hook;
 #[cfg(feature = "serde")]
 mod serde;
+#[cfg(feature = "unstable")]
+mod sink;
 
 #[cfg(all(feature = "unstable", feature = "futures"))]
 pub use self::ext::stream::TryReportStreamExt;
 #[cfg(feature = "unstable")]
 pub use self::ext::{iter::TryReportIteratorExt, tuple::TryReportTupleExt};
+#[cfg(feature = "unstable")]
+pub use self::sink::ReportSink;
 pub use self::{
     compat::IntoReportCompat,
     context::Context,
