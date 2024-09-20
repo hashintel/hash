@@ -173,7 +173,7 @@ export const entityTypedef = gql`
     """
     The new type(s) of the updated entity
     """
-    entityTypeId: [VersionedUrl!]
+    entityTypeIds: [VersionedUrl!]
     """
     Whether the updated entity should be a draft
     """
@@ -192,7 +192,7 @@ export const entityTypedef = gql`
       """
       The type(s) of the new entity.
       """
-      entityTypeId: [VersionedUrl!]!
+      entityTypeIds: [VersionedUrl!]!
       """
       The properties of the new entity.
       """
