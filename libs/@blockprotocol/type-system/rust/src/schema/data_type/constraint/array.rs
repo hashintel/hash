@@ -41,10 +41,9 @@ pub enum ArrayValidationError {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(untagged, deny_unknown_fields)]
 pub enum ItemsConstraints {
-    False(bool),
+    Boolean(bool),
     Value(Box<ValueConstraints>),
 }
 
@@ -146,8 +145,8 @@ impl ArraySchema {
         }
 
         match &self.items {
-            None | Some(ItemsConstraints::False(true)) => {}
-            Some(ItemsConstraints::False(false)) => {
+            None | Some(ItemsConstraints::Boolean(true)) => {}
+            Some(ItemsConstraints::Boolean(false)) => {
                 if values.next().is_some() {
                     extend_report!(
                         validation_status,
