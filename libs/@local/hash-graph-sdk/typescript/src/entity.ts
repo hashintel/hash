@@ -1,4 +1,3 @@
-import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import { typedEntries, typedKeys } from "@local/advanced-types/typed-entries";
 import type {
   CreateEntityRequest as GraphApiCreateEntityRequest,
@@ -62,12 +61,12 @@ export type CreateEntityParameters<
   T extends EntityProperties = EntityProperties,
 > = Omit<
   GraphApiCreateEntityRequest,
-  "entityTypeIds" | "decisionTime" | "draft" | "properties" | "provenance"
+  "decisionTime" | "draft" | "properties" | "provenance"
 > & {
   ownedById: OwnedById;
   properties: T["propertiesWithMetadata"];
   linkData?: LinkData;
-  entityTypeId: T["entityTypeId"];
+  entityTypeIds: T["entityTypeIds"];
   entityUuid?: EntityUuid;
   provenance: EnforcedEntityEditionProvenance;
   draft?: boolean;
@@ -75,9 +74,8 @@ export type CreateEntityParameters<
 
 export type PatchEntityParameters = Omit<
   GraphApiPatchEntityParams,
-  "entityId" | "entityTypeIds" | "decisionTime" | "properties" | "provenance"
+  "entityId" | "decisionTime" | "properties" | "provenance"
 > & {
-  entityTypeId?: VersionedUrl;
   propertyPatches?: PropertyPatchOperation[];
   provenance: EnforcedEntityEditionProvenance;
 };
@@ -95,7 +93,7 @@ export interface SerializedEntity<
 }
 
 type EntityData<Properties extends EntityProperties = EntityProperties> = {
-  metadata: EntityMetadata<Properties["entityTypeId"]> & {
+  metadata: EntityMetadata<Properties["entityTypeIds"]> & {
     confidence?: number;
     properties?: PropertyMetadataObject;
   };
@@ -478,7 +476,8 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
         metadata: {
           ...entity.metadata,
           recordId: entity.metadata.recordId as EntityRecordId,
-          entityTypeId: entity.metadata.entityTypeIds[0] as VersionedUrl,
+          entityTypeIds: entity.metadata
+            .entityTypeIds as PropertyMap["entityTypeIds"],
           temporalVersioning: entity.metadata
             .temporalVersioning as EntityTemporalVersioningMetadata,
           properties: entity.metadata.properties as PropertyMetadataObject,
@@ -535,8 +534,8 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
     return graphAPI
       .createEntities(
         authentication.actorId,
-        params.map(({ entityTypeId, draft, provenance, ...rest }) => ({
-          entityTypeIds: [entityTypeId],
+        params.map(({ entityTypeIds, draft, provenance, ...rest }) => ({
+          entityTypeIds,
           draft: draft ?? false,
           provenance: {
             ...provenance,
@@ -574,7 +573,7 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
     {
-      entityTypeId,
+      entityTypeIds,
       propertyPatches,
       provenance,
       ...params
@@ -593,7 +592,7 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
     return graphAPI
       .patchEntity(authentication.actorId, {
         entityId: this.entityId,
-        entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+        entityTypeIds,
         properties: propertyPatches,
         provenance: {
           ...provenance,
@@ -741,8 +740,8 @@ export class LinkEntity<
     return graphAPI
       .createEntities(
         authentication.actorId,
-        params.map(({ entityTypeId, draft, provenance, ...rest }) => ({
-          entityTypeIds: [entityTypeId],
+        params.map(({ entityTypeIds, draft, provenance, ...rest }) => ({
+          entityTypeIds,
           draft: draft ?? false,
           provenance: {
             ...provenance,
@@ -778,7 +777,7 @@ export class LinkEntity<
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
     {
-      entityTypeId,
+      entityTypeIds,
       propertyPatches,
       provenance,
       ...params
@@ -787,7 +786,7 @@ export class LinkEntity<
     return graphAPI
       .patchEntity(authentication.actorId, {
         entityId: this.entityId,
-        entityTypeIds: entityTypeId ? [entityTypeId] : undefined,
+        entityTypeIds,
         properties: propertyPatches,
         provenance: {
           ...provenance,

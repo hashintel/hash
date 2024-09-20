@@ -66,17 +66,18 @@ export type EntityTemporalVersioningMetadata = Subtype<
   Record<TemporalAxis, HalfClosedInterval>
 >;
 
-export type EntityMetadata<EntityTypeId extends VersionedUrl = VersionedUrl> =
-  Subtype<
-    EntityMetadataBp,
-    {
-      recordId: EntityRecordId;
-      entityTypeId: EntityTypeId;
-      temporalVersioning: EntityTemporalVersioningMetadata;
-      archived: boolean;
-      provenance: EntityProvenance;
-    }
-  >;
+export type EntityMetadata<
+  EntityTypeIds extends VersionedUrl[] = VersionedUrl[],
+> = Subtype<
+  EntityMetadataBp,
+  {
+    recordId: EntityRecordId;
+    entityTypeIds: EntityTypeIds;
+    temporalVersioning: EntityTemporalVersioningMetadata;
+    archived: boolean;
+    provenance: EntityProvenance;
+  }
+>;
 
 /**
  * The value of a property.
@@ -104,7 +105,7 @@ export type PropertyObject = {
 };
 
 export type EntityProperties = {
-  entityTypeId: VersionedUrl;
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   properties: PropertyObject;
   propertiesWithMetadata: PropertyObjectWithMetadata;
 };
