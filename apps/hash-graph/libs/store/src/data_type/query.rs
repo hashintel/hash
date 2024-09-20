@@ -136,6 +136,8 @@ pub enum DataTypeQueryPath<'p> {
     /// assert_eq!(path, DataTypeQueryPath::Description);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
+    ///
+    /// [`DataType`]: type_system::schema::DataType
     Description,
     /// Corresponds to [`DataType`]'s type.
     ///
@@ -148,7 +150,7 @@ pub enum DataTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`DataType::json_type()`]: type_system::schema::DataType::json_type
+    /// [`DataType`]: type_system::schema::DataType
     Type,
     /// Only used internally and not available for deserialization.
     OntologyId,
