@@ -6021,31 +6021,31 @@
     pump "^3.0.0"
     tar-fs "^2.1.1"
 
-"@nestjs/axios@3.0.2":
-  version "3.0.2"
-  resolved "https://registry.yarnpkg.com/@nestjs/axios/-/axios-3.0.2.tgz#0078c101a29fb46f5c566d68a4315fddabc083ed"
-  integrity sha512-Z6GuOUdNQjP7FX+OuV2Ybyamse+/e0BFdTWBX5JxpBDKA+YkdLynDgG6HTF04zy6e9zPa19UX0WA2VDoehwhXQ==
+"@nestjs/axios@3.0.3":
+  version "3.0.3"
+  resolved "https://registry.yarnpkg.com/@nestjs/axios/-/axios-3.0.3.tgz#a663cb13cff07ea6b9a7107263de2ae472d41118"
+  integrity sha512-h6TCn3yJwD6OKqqqfmtRS5Zo4E46Ip2n+gK1sqwzNBC+qxQ9xpCu+ODVRFur6V3alHSCSBxb3nNtt73VEdluyA==
 
-"@nestjs/common@10.3.0":
-  version "10.3.0"
-  resolved "https://registry.yarnpkg.com/@nestjs/common/-/common-10.3.0.tgz#d78f0ff2062d1d53c79c170a79c12a1548e2e598"
-  integrity sha512-DGv34UHsZBxCM3H5QGE2XE/+oLJzz5+714JQjBhjD9VccFlQs3LRxo/epso4l7nJIiNlZkPyIUC8WzfU/5RTsQ==
+"@nestjs/common@10.4.3":
+  version "10.4.3"
+  resolved "https://registry.yarnpkg.com/@nestjs/common/-/common-10.4.3.tgz#b9059313d928aea335a4a185a621e32c1858c845"
+  integrity sha512-4hbLd3XIJubHSylYd/1WSi4VQvG68KM/ECYpMDqA3k3J1/T17SAg40sDoq3ZoO5OZgU0xuNyjuISdOTjs11qVg==
   dependencies:
     uid "2.0.2"
     iterare "1.2.1"
-    tslib "2.6.2"
+    tslib "2.7.0"
 
-"@nestjs/core@10.3.0":
-  version "10.3.0"
-  resolved "https://registry.yarnpkg.com/@nestjs/core/-/core-10.3.0.tgz#d5c6b26d6d9280664910d5481153d25c5da4ec00"
-  integrity sha512-N06P5ncknW/Pm8bj964WvLIZn2gNhHliCBoAO1LeBvNImYkecqKcrmLbY49Fa1rmMfEM3MuBHeDys3edeuYAOA==
+"@nestjs/core@10.4.3":
+  version "10.4.3"
+  resolved "https://registry.yarnpkg.com/@nestjs/core/-/core-10.4.3.tgz#b2a3dcfc6a948a74618feeee8affc3186afe52da"
+  integrity sha512-6OQz+5C8mT8yRtfvE5pPCq+p6w5jDot+oQku1KzQ24ABn+lay1KGuJwcKZhdVNuselx+8xhdMxknZTA8wrGLIg==
   dependencies:
     uid "2.0.2"
     "@nuxtjs/opencollective" "0.3.2"
     fast-safe-stringify "2.1.1"
     iterare "1.2.1"
-    path-to-regexp "3.2.0"
-    tslib "2.6.2"
+    path-to-regexp "3.3.0"
+    tslib "2.7.0"
 
 "@next/bundle-analyzer@12.3.4":
   version "12.3.4"
@@ -6294,14 +6294,14 @@
     chalk "^4"
     fast-levenshtein "^3.0.0"
 
-"@openapitools/openapi-generator-cli@2.13.5":
-  version "2.13.5"
-  resolved "https://registry.yarnpkg.com/@openapitools/openapi-generator-cli/-/openapi-generator-cli-2.13.5.tgz#6fc835e18bce9c84be268264fcfa37456ef46025"
-  integrity sha512-9VgeKOTiiatKSwZDKKB3C86cW8tN9eDcFohotD4eisdK38UQswk/4Ysoq9KChRCbymjoMp6AIDHPtK1DQ2fTgw==
+"@openapitools/openapi-generator-cli@2.13.7":
+  version "2.13.7"
+  resolved "https://registry.yarnpkg.com/@openapitools/openapi-generator-cli/-/openapi-generator-cli-2.13.7.tgz#fc0945cef85a4224c4e0006de279c4a1f2bceaba"
+  integrity sha512-DS3wWEma1WXPhlqcv+XRVPlCBkME0hkKBVr7GSwlQWvWwIekm/fU4PR8sxhVXYJ33EIpKHfGofT0ZH9+K2lvjQ==
   dependencies:
-    "@nestjs/axios" "3.0.2"
-    "@nestjs/common" "10.3.0"
-    "@nestjs/core" "10.3.0"
+    "@nestjs/axios" "3.0.3"
+    "@nestjs/common" "10.4.3"
+    "@nestjs/core" "10.4.3"
     "@nuxtjs/opencollective" "0.3.2"
     axios "1.7.4"
     chalk "4.1.2"
@@ -25358,10 +25358,10 @@ path-to-regexp@2.2.1:
   resolved "https://registry.yarnpkg.com/path-to-regexp/-/path-to-regexp-2.2.1.tgz#90b617025a16381a879bc82a38d4e8bdeb2bcf45"
   integrity sha512-gu9bD6Ta5bwGrrU8muHzVOBFFREpp2iRkVfhBJahwJ6p6Xw20SjT0MxLnwkjOibQmGSYhiUnf2FLe7k+jcFmGQ==
 
-path-to-regexp@3.2.0:
-  version "3.2.0"
-  resolved "https://registry.yarnpkg.com/path-to-regexp/-/path-to-regexp-3.2.0.tgz#fa7877ecbc495c601907562222453c43cc204a5f"
-  integrity "sha1-+nh37LxJXGAZB1YiIkU8Q8wgSl8= sha512-jczvQbCUS7XmS7o+y1aEO9OBVFeZBQ1MDSEqmO7xSoPgOPoowY/SxLpZ6Vh97/8qHZOteiCKb7gkG9gA2ZUxJA=="
+path-to-regexp@3.3.0:
+  version "3.3.0"
+  resolved "https://registry.yarnpkg.com/path-to-regexp/-/path-to-regexp-3.3.0.tgz#f7f31d32e8518c2660862b644414b6d5c63a611b"
+  integrity sha512-qyCH421YQPS2WFDxDjftfc1ZR5WKQzVzqsp4n9M2kQhVOo/ByahFoUNJfl58kOcEGfQ//7weFTDhm+ss8Ecxgw==
 
 path-type@^4.0.0:
   version "4.0.0"
