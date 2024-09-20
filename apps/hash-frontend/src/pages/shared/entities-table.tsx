@@ -5,7 +5,7 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import {
@@ -170,7 +170,7 @@ export const EntitiesTable: FunctionComponent<{
     () =>
       !!entities?.length &&
       entities.every(({ metadata }) =>
-        isPageEntityTypeId(metadata.entityTypeId),
+        includesPageEntityTypeId(metadata.entityTypeIds),
       ),
     [entities],
   );
@@ -199,7 +199,7 @@ export const EntitiesTable: FunctionComponent<{
               )) &&
           (filterState.includeArchived === undefined ||
           filterState.includeArchived ||
-          !isPageEntityTypeId(entity.metadata.entityTypeId)
+          !includesPageEntityTypeId(entity.metadata.entityTypeIds)
             ? true
             : simplifyProperties(entity.properties as PageProperties)
                 .archived !== true),

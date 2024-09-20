@@ -3,7 +3,7 @@ import { AsteriskRegularIcon } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import { Box } from "@mui/material";
@@ -39,7 +39,7 @@ export const useEntityIcon = (params: {
        * if we do so we may wish to check if the icon is a URL, and show an image if it is
        * consider as part of H-783
        */
-      if (isPageEntityTypeId(entity.metadata.entityTypeId)) {
+      if (includesPageEntityTypeId(entity.metadata.entityTypeId)) {
         const { icon: customPageIcon } = simplifyProperties(
           entity.properties as PageProperties,
         );
@@ -58,7 +58,7 @@ export const useEntityIcon = (params: {
        */
       return pageIcon &&
         // @todo when implementing H-783 – do we need this check? see comment above
-        isPageEntityTypeId(entity.metadata.entityTypeId)
+        includesPageEntityTypeId(entity.metadata.entityTypeId)
         ? pageIcon
         : (entityTypeIcons[entity.metadata.entityTypeId] ??
             entityType?.metadata.icon ?? (

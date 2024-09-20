@@ -20,7 +20,7 @@ import {
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
-  isPageEntityTypeId,
+  includesPageEntityTypeId,
   pageEntityTypeIds,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import type { EntityRootType } from "@local/hash-subgraph";
@@ -537,7 +537,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               propertyTypeBaseUrl,
             });
           }
-        } else if (isPageEntityTypeId(entityTypeId)) {
+        } else if (includesPageEntityTypeId(entityTypeId)) {
           onChange({ kind: "page", entityId });
         } else if (entityTypeId === systemEntityTypes.user.entityTypeId) {
           onChange({ kind: "user", entityId });

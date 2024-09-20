@@ -12,19 +12,21 @@ export const pageEntityTypeIds: VersionedUrl[] = [
 ];
 
 /**
- * Whether or not this Versioned URL is one which belongs to a 'Page'.
+ * Whether or not these Versioned URLs contains one which belongs to a 'Page'.
  * We have two types of 'Page', 'Document' and 'Canvas'.
  * In some places we want to show a user their 'Pages'.
  *
- * This function allows checking whether an entityTypeId is that of a 'Page',
+ * This function allows checking whether entityTypeIds include that of a 'Page',
  * by a check against the two types of 'Page' we know currently exist.
  *
  * One potential alternative would be to check whether an entity's type
  * inherits from 'Page'. This would be required if we want users to
  * be able to create their own page types which showed where we list 'Pages'.
  */
-export const isPageEntityTypeId = (entityTypeId: VersionedUrl) =>
-  pageEntityTypeIds.includes(entityTypeId);
+export const includesPageEntityTypeId = (entityTypeIds: VersionedUrl[]) =>
+  entityTypeIds.some((entityTypeId) =>
+    pageEntityTypeIds.includes(entityTypeId),
+  );
 
 /**
  * A structural query filter to match against any of the system-defined Page types.

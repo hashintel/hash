@@ -9,7 +9,7 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -189,7 +189,9 @@ export const useEntitiesTable = (params: {
 
             const entityId = entity.metadata.recordId.entityId;
 
-            const isPage = isPageEntityTypeId(entity.metadata.entityTypeId);
+            const isPage = includesPageEntityTypeId(
+              entity.metadata.entityTypeId,
+            );
 
             /**
              * @todo: consider displaying handling this differently for pages, where
