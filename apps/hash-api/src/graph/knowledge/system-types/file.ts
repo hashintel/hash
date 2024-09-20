@@ -8,6 +8,7 @@ import {
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type { OwnedById } from "@local/hash-graph-types/web";
 import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { createDefaultAuthorizationRelationships } from "@local/hash-isomorphic-utils/graph-queries";
 import { normalizeWhitespace } from "@local/hash-isomorphic-utils/normalize";
@@ -41,7 +42,12 @@ const generateCommonParameters = async (
     "fileEntityCreationInput" | "fileEntityUpdateInput"
   >,
   filename: string,
-) => {
+): Promise<{
+  existingEntity: Entity<File> | null;
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
+  mimeType: string;
+  ownedById: OwnedById;
+}> => {
   const mimeType = mime.lookup(filename) || "application/octet-stream";
 
   const { fileEntityCreationInput, fileEntityUpdateInput } = entityInput;
@@ -58,9 +64,9 @@ const generateCommonParameters = async (
 
     return {
       existingEntity,
-      entityTypeId:
-        fileEntityUpdateInput.entityTypeId ??
-        existingEntity.metadata.entityTypeId,
+      entityTypeIds: fileEntityUpdateInput.entityTypeId
+        ? [fileEntityUpdateInput.entityTypeId]
+        : existingEntity.metadata.entityTypeIds,
       mimeType,
       ownedById: extractOwnedByIdFromEntityId(
         existingEntity.metadata.recordId.entityId,
@@ -112,7 +118,7 @@ const generateCommonParameters = async (
 
     return {
       existingEntity: null,
-      entityTypeId,
+      entityTypeIds: [entityTypeId],
       mimeType,
       ownedById: fileEntityCreationInput.ownedById,
     };
@@ -137,7 +143,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
 
   const name = normalizeWhitespace(unnormalizedFilename);
 
-  const { entityTypeId, existingEntity, mimeType, ownedById } =
+  const { entityTypeIds, existingEntity, mimeType, ownedById } =
     await generateCommonParameters(ctx, authentication, params, name);
 
   const initialProperties: File["propertiesWithMetadata"] = {
@@ -222,7 +228,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
     fileEntity = await createEntity<File>(ctx, authentication, {
       ownedById,
       properties: initialProperties,
-      entityTypeId: entityTypeId as File["entityTypeId"],
+      entityTypeIds: entityTypeIds as File["entityTypeIds"],
       relationships: createDefaultAuthorizationRelationships(authentication),
     });
   }
@@ -263,7 +269,7 @@ export const createFileFromUploadRequest: ImpureGraphFunction<
 
     const entity = await updateEntity<File>(ctx, authentication, {
       entity: fileEntity,
-      entityTypeId,
+      entityTypeIds,
       propertyPatches: typedEntries(updatedProperties.value).map(
         ([baseUrl, property]) => ({
           op: "add",
@@ -292,7 +298,7 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
 
   const filename = normalizeWhitespace(url.split("/").pop()!);
 
-  const { entityTypeId, existingEntity, mimeType, ownedById } =
+  const { entityTypeIds, existingEntity, mimeType, ownedById } =
     await generateCommonParameters(ctx, authentication, params, filename);
 
   try {
@@ -376,7 +382,7 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
     return existingEntity
       ? await updateEntity<File>(ctx, authentication, {
           entity: existingEntity,
-          entityTypeId,
+          entityTypeIds,
           propertyPatches: typedEntries(properties.value)
             .filter(
               ([baseUrl, property]) =>
@@ -391,7 +397,7 @@ export const createFileFromExternalUrl: ImpureGraphFunction<
       : await createEntity(ctx, authentication, {
           ownedById,
           properties,
-          entityTypeId: entityTypeId as File["entityTypeId"],
+          entityTypeIds: entityTypeIds as File["entityTypeIds"],
           relationships:
             createDefaultAuthorizationRelationships(authentication),
         });

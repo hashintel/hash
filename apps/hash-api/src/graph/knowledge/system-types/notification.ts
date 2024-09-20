@@ -92,8 +92,9 @@ export type MentionNotification = {
 export const isEntityMentionNotificationEntity = (
   entity: Entity,
 ): entity is Entity<MentionNotificationEntity> =>
-  entity.metadata.entityTypeId ===
-  systemEntityTypes.mentionNotification.entityTypeId;
+  entity.metadata.entityTypeIds.includes(
+    systemEntityTypes.mentionNotification.entityTypeId,
+  );
 
 export const getMentionNotificationFromEntity: PureGraphFunction<
   { entity: Entity },
@@ -103,7 +104,7 @@ export const getMentionNotificationFromEntity: PureGraphFunction<
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
       systemEntityTypes.mentionNotification.entityTypeId,
-      entity.metadata.entityTypeId,
+      entity.metadata.entityTypeIds,
     );
   }
 
@@ -149,7 +150,7 @@ export const createMentionNotification: ImpureGraphFunction<
     {
       ownedById,
       properties: { value: {} },
-      entityTypeId: systemEntityTypes.mentionNotification.entityTypeId,
+      entityTypeIds: [systemEntityTypes.mentionNotification.entityTypeId],
       relationships: notificationEntityRelationships,
     },
   );
@@ -170,7 +171,7 @@ export const createMentionNotification: ImpureGraphFunction<
           leftEntityId: entity.metadata.recordId.entityId,
           rightEntityId: triggeredByUser.entity.metadata.recordId.entityId,
         },
-        entityTypeId: systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
+        entityTypeIds: [systemLinkEntityTypes.triggeredByUser.linkEntityTypeId],
         relationships: linkEntityRelationships,
       }),
       createLinkEntity<OccurredInEntity>(context, userAuthentication, {
@@ -180,7 +181,9 @@ export const createMentionNotification: ImpureGraphFunction<
           leftEntityId: entity.metadata.recordId.entityId,
           rightEntityId: occurredInEntity.entity.metadata.recordId.entityId,
         },
-        entityTypeId: systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+        entityTypeIds: [
+          systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+        ],
         relationships: linkEntityRelationships,
       }),
       createLinkEntity<OccurredInBlock>(context, userAuthentication, {
@@ -190,7 +193,7 @@ export const createMentionNotification: ImpureGraphFunction<
           leftEntityId: entity.metadata.recordId.entityId,
           rightEntityId: occurredInBlock.entity.metadata.recordId.entityId,
         },
-        entityTypeId: systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
+        entityTypeIds: [systemLinkEntityTypes.occurredInBlock.linkEntityTypeId],
         relationships: linkEntityRelationships,
       }),
       occurredInComment
@@ -202,8 +205,9 @@ export const createMentionNotification: ImpureGraphFunction<
               rightEntityId:
                 occurredInComment.entity.metadata.recordId.entityId,
             },
-            entityTypeId:
+            entityTypeIds: [
               systemLinkEntityTypes.occurredInComment.linkEntityTypeId,
+            ],
             relationships: linkEntityRelationships,
           })
         : [],
@@ -214,7 +218,7 @@ export const createMentionNotification: ImpureGraphFunction<
           leftEntityId: entity.metadata.recordId.entityId,
           rightEntityId: occurredInText.entity.metadata.recordId.entityId,
         },
-        entityTypeId: systemLinkEntityTypes.occurredInText.linkEntityTypeId,
+        entityTypeIds: [systemLinkEntityTypes.occurredInText.linkEntityTypeId],
         relationships: linkEntityRelationships,
       }),
     ].flat(),
@@ -279,34 +283,34 @@ export const getMentionNotification: ImpureGraphFunction<
       entity.metadata.recordId.entityId,
     ).map((linkEntity) => new LinkEntity(linkEntity));
 
-    const triggeredByUserLink = outgoingLinks.find(
-      ({ metadata }) =>
-        metadata.entityTypeId ===
+    const triggeredByUserLink = outgoingLinks.find(({ metadata }) =>
+      metadata.entityTypeIds.includes(
         systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
+      ),
     );
 
-    const occurredInEntityLink = outgoingLinks.find(
-      ({ metadata }) =>
-        metadata.entityTypeId ===
+    const occurredInEntityLink = outgoingLinks.find(({ metadata }) =>
+      metadata.entityTypeIds.includes(
         systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+      ),
     );
 
-    const occurredInBlockLink = outgoingLinks.find(
-      ({ metadata }) =>
-        metadata.entityTypeId ===
+    const occurredInBlockLink = outgoingLinks.find(({ metadata }) =>
+      metadata.entityTypeId.includes(
         systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
+      ),
     );
 
-    const occurredInTextLink = outgoingLinks.find(
-      ({ metadata }) =>
-        metadata.entityTypeId ===
+    const occurredInTextLink = outgoingLinks.find(({ metadata }) =>
+      metadata.entityTypeIds.includes(
         systemLinkEntityTypes.occurredInText.linkEntityTypeId,
+      ),
     );
 
-    const occurredInCommentLink = outgoingLinks.find(
-      ({ metadata }) =>
-        metadata.entityTypeId ===
+    const occurredInCommentLink = outgoingLinks.find(({ metadata }) =>
+      metadata.entityTypeId.includes(
         systemLinkEntityTypes.occurredInComment.linkEntityTypeId,
+      ),
     );
 
     return (
@@ -352,8 +356,9 @@ export type CommentNotification = {
 export const isEntityCommentNotificationEntity = (
   entity: Entity,
 ): entity is Entity<CommentNotificationEntity> =>
-  entity.metadata.entityTypeId ===
-  systemEntityTypes.commentNotification.entityTypeId;
+  entity.metadata.entityTypeIds.includes(
+    systemEntityTypes.commentNotification.entityTypeId,
+  );
 
 export const getCommentNotificationFromEntity: PureGraphFunction<
   { entity: Entity },
@@ -363,7 +368,7 @@ export const getCommentNotificationFromEntity: PureGraphFunction<
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
       systemEntityTypes.commentNotification.entityTypeId,
-      entity.metadata.entityTypeId,
+      entity.metadata.entityTypeIds,
     );
   }
 
@@ -409,7 +414,7 @@ export const createCommentNotification: ImpureGraphFunction<
     {
       ownedById,
       properties: { value: {} },
-      entityTypeId: systemEntityTypes.commentNotification.entityTypeId,
+      entityTypeIds: [systemEntityTypes.commentNotification.entityTypeId],
       relationships: notificationEntityRelationships,
     },
   );
@@ -462,7 +467,7 @@ export const createCommentNotification: ImpureGraphFunction<
           leftEntityId,
           rightEntityId,
         },
-        entityTypeId,
+        entityTypeIds,
         relationships: linkEntityRelationships,
       }),
     ),
@@ -557,34 +562,34 @@ export const getCommentNotification: ImpureGraphFunction<
       entity.metadata.recordId.entityId,
     ).map((linkEntity) => new LinkEntity(linkEntity));
 
-    const triggeredByUserLink = outgoingLinks.find(
-      ({ metadata }) =>
-        metadata.entityTypeId ===
+    const triggeredByUserLink = outgoingLinks.find(({ metadata }) =>
+      metadata.entityTypeIds.includes(
         systemLinkEntityTypes.triggeredByUser.linkEntityTypeId,
+      ),
     );
 
-    const occurredInEntityLink = outgoingLinks.find(
-      ({ metadata }) =>
-        metadata.entityTypeId ===
+    const occurredInEntityLink = outgoingLinks.find(({ metadata }) =>
+      metadata.entityTypeIds.includes(
         systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+      ),
     );
 
-    const occurredInBlockLink = outgoingLinks.find(
-      ({ metadata }) =>
-        metadata.entityTypeId ===
+    const occurredInBlockLink = outgoingLinks.find(({ metadata }) =>
+      metadata.entityTypeIds.includes(
         systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
+      ),
     );
 
-    const triggeredByCommentLink = outgoingLinks.find(
-      ({ metadata }) =>
-        metadata.entityTypeId ===
+    const triggeredByCommentLink = outgoingLinks.find(({ metadata }) =>
+      metadata.entityTypeIds.includes(
         systemLinkEntityTypes.triggeredByComment.linkEntityTypeId,
+      ),
     );
 
-    const repliedToCommentLink = outgoingLinks.find(
-      ({ metadata }) =>
-        metadata.entityTypeId ===
+    const repliedToCommentLink = outgoingLinks.find(({ metadata }) =>
+      metadata.entityTypeIds.includes(
         systemLinkEntityTypes.repliedToComment.linkEntityTypeId,
+      ),
     );
 
     return (

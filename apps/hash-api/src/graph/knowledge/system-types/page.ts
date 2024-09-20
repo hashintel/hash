@@ -17,7 +17,7 @@ import {
   systemPropertyTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import {
-  isPageEntityTypeId,
+  includesPageEntityTypeId,
   pageEntityTypeFilter,
   pageEntityTypeIds,
 } from "@local/hash-isomorphic-utils/page-entity-type-ids";
@@ -65,11 +65,11 @@ export type Page = {
 function assertPageEntity(
   entity: Entity,
 ): asserts entity is Entity<Canvas | Document> {
-  if (!isPageEntityTypeId(entity.metadata.entityTypeId)) {
+  if (!includesPageEntityTypeId(entity.metadata.entityTypeIds)) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
       pageEntityTypeIds,
-      entity.metadata.entityTypeId,
+      entity.metadata.entityTypeIds,
     );
   }
 }
@@ -166,10 +166,11 @@ export const createPage: ImpureGraphFunction<
   const entity = await createEntity<Canvas | Document>(ctx, authentication, {
     ownedById,
     properties,
-    entityTypeId:
+    entityTypeIds: [
       type === "document"
         ? systemEntityTypes.document.entityTypeId
         : systemEntityTypes.canvas.entityTypeId,
+    ],
     relationships: createDefaultAuthorizationRelationships(authentication),
   });
 
@@ -441,7 +442,7 @@ export const setPageParentPage: ImpureGraphFunction<
         leftEntityId: page.entity.metadata.recordId.entityId,
         rightEntityId: parentPage.entity.metadata.recordId.entityId,
       },
-      entityTypeId: systemLinkEntityTypes.hasParent.linkEntityTypeId,
+      entityTypeId: [systemLinkEntityTypes.hasParent.linkEntityTypeId],
       relationships: createDefaultAuthorizationRelationships(authentication),
     });
   }

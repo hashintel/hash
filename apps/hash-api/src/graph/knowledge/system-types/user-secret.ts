@@ -180,7 +180,7 @@ export const createUserSecret = async <
     { graphApi, provenance },
     authentication,
     {
-      entityTypeId: systemEntityTypes.userSecret.entityTypeId,
+      entityTypeIds: [systemEntityTypes.userSecret.entityTypeId],
       ownedById: userAccountId as OwnedById,
       properties: secretMetadata,
       relationships: botEditorUserViewerOnly,
@@ -198,7 +198,7 @@ export const createUserSecret = async <
         leftEntityId: sourceIntegrationEntityId,
         rightEntityId: userSecretEntity.metadata.recordId.entityId,
       },
-      entityTypeId: systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
+      entityTypeIds: [systemLinkEntityTypes.usesUserSecret.linkEntityTypeId],
       relationships: botEditorUserViewerOnly,
     },
   );

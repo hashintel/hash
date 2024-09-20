@@ -33,7 +33,7 @@ export const submitEarlyAccessFormResolver: ResolverFn<
     { actorId: systemAccountId },
     {
       ownedById: user.accountId as OwnedById,
-      entityTypeId: systemEntityTypes.prospectiveUser.entityTypeId,
+      entityTypeIds: [systemEntityTypes.prospectiveUser.entityTypeId],
       properties: {
         value: {
           "https://hash.ai/@hash/types/property-type/current-approach/": {

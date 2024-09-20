@@ -38,13 +38,14 @@ export const getOrgMembershipFromLinkEntity: PureGraphFunction<
   OrgMembership
 > = ({ linkEntity }) => {
   if (
-    linkEntity.metadata.entityTypeId !==
-    systemLinkEntityTypes.isMemberOf.linkEntityTypeId
+    !linkEntity.metadata.entityTypeId.includes(
+      systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
+    )
   ) {
     throw new EntityTypeMismatchError(
       linkEntity.metadata.recordId.entityId,
       systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
-      linkEntity.metadata.entityTypeId,
+      linkEntity.metadata.entityTypeIds,
     );
   }
 
@@ -88,7 +89,7 @@ export const createOrgMembership: ImpureGraphFunction<
         leftEntityId: userEntityId,
         rightEntityId: orgEntityId,
       },
-      entityTypeId: systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
+      entityTypeIds: [systemLinkEntityTypes.isMemberOf.linkEntityTypeId],
       relationships: createOrgMembershipAuthorizationRelationships({
         memberAccountId: userAccountId,
       }),

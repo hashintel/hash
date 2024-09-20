@@ -127,8 +127,9 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
     ...removedSyncedWorkspaces.map(
       async ({ syncLinearDataWithLinkEntity, workspaceEntity }) => {
         if (
-          workspaceEntity.metadata.entityTypeId ===
-          systemEntityTypes.organization.entityTypeId
+          workspaceEntity.metadata.entityTypeIds.includes(
+            systemEntityTypes.organization.entityTypeId,
+          )
         ) {
           /** @todo: remove system account id as account group member if there are no other integrations */
         }

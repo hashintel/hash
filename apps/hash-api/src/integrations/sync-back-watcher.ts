@@ -20,7 +20,11 @@ const sendEntityToRelevantProcessor = (
   entity: Entity,
   graphApiClient: GraphApi,
 ) => {
-  if (supportedLinearTypeIds.includes(entity.metadata.entityTypeId)) {
+  if (
+    entity.metadata.entityTypeIds.some((entityTypeId) =>
+      supportedLinearTypeIds.includes(entityTypeId),
+    )
+  ) {
     void processLinearEntityChange(entity, graphApiClient);
   }
 };

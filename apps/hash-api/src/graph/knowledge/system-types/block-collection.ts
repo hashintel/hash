@@ -37,7 +37,7 @@ import { getBlockFromEntity } from "./block";
 export const getBlockCollectionBlocks: ImpureGraphFunction<
   {
     blockCollectionEntityId: EntityId;
-    blockCollectionEntityTypeId: VersionedUrl;
+    blockCollectionEntityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   },
   Promise<
     {
@@ -48,10 +48,11 @@ export const getBlockCollectionBlocks: ImpureGraphFunction<
 > = async (
   ctx,
   authentication,
-  { blockCollectionEntityId, blockCollectionEntityTypeId },
+  { blockCollectionEntityId, blockCollectionEntityTypeIds },
 ) => {
-  const isCanvas =
-    blockCollectionEntityTypeId === systemEntityTypes.canvas.entityTypeId;
+  const isCanvas = blockCollectionEntityTypeIds.includes(
+    systemEntityTypes.canvas.entityTypeId,
+  );
 
   const outgoingBlockDataLinks = (await getEntityOutgoingLinks(
     ctx,
@@ -111,9 +112,9 @@ export const addBlockToBlockCollection: ImpureGraphFunction<
       leftEntityId: blockCollectionEntityId,
       rightEntityId: block.entity.metadata.recordId.entityId,
     },
-    entityTypeId: canvasPosition
-      ? systemLinkEntityTypes.hasSpatiallyPositionedContent.linkEntityTypeId
-      : systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
+    entityTypeIds: canvasPosition
+      ? [systemLinkEntityTypes.hasSpatiallyPositionedContent.linkEntityTypeId]
+      : [systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId],
     relationships: createDefaultAuthorizationRelationships(authentication),
   });
 

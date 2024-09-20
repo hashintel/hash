@@ -112,7 +112,7 @@ export const createEntity = async <Properties extends EntityProperties>(
   let properties = params.properties;
 
   for (const beforeCreateHook of beforeCreateEntityHooks) {
-    if (beforeCreateHook.entityTypeId === createParams.entityTypeId) {
+    if (createParams.entityTypeIds.includes(beforeCreateHook.entityTypeId)) {
       const { properties: hookReturnedProperties } =
         await beforeCreateHook.callback({
           context,
@@ -145,7 +145,7 @@ export const createEntity = async <Properties extends EntityProperties>(
   }
 
   for (const afterCreateHook of afterCreateEntityHooks) {
-    if (afterCreateHook.entityTypeId === entity.metadata.entityTypeId) {
+    if (entity.metadata.entityTypeIds.includes(afterCreateHook.entityTypeId)) {
       void afterCreateHook.callback({
         context,
         entity,
@@ -404,7 +404,7 @@ export const createEntityWithLinks = async <
   ...args: Parameters<CreateEntityWithLinksFunction<Properties>>
 ): ReturnType<CreateEntityWithLinksFunction<Properties>> => {
   const [context, authentication, params] = args;
-  const { entityTypeId, properties, linkedEntities, ...createParams } = params;
+  const { entityTypeIds, properties, linkedEntities, ...createParams } = params;
 
   const entitiesInTree = linkedTreeFlatten<
     EntityDefinition,
@@ -413,7 +413,7 @@ export const createEntityWithLinks = async <
     "entity"
   >(
     {
-      entityTypeId,
+      entityTypeIds,
       entityProperties: properties,
       linkedEntities,
     },
@@ -432,10 +432,10 @@ export const createEntityWithLinks = async <
 
       if (
         !existingEntityId &&
-        (!definition.entityProperties || !definition.entityTypeId)
+        (!definition.entityProperties || !definition.entityTypeIds)
       ) {
         throw new Error(
-          `One of existingEntityId or (entityProperties && entityTypeId) must be provided in linked entity definition: ${JSON.stringify(
+          `One of existingEntityId or (entityProperties && entityTypeIds) must be provided in linked entity definition: ${JSON.stringify(
             definition,
           )}`,
         );
@@ -454,7 +454,7 @@ export const createEntityWithLinks = async <
         : await createEntity<Properties>(context, authentication, {
             ...createParams,
             properties: definition.entityProperties!,
-            entityTypeId: definition.entityTypeId!,
+            entityTypeIds: definition.entityTypeIds!,
           });
 
       return {
@@ -496,7 +496,7 @@ export const createEntityWithLinks = async <
             leftEntityId: parentEntity.entity.metadata.recordId.entityId,
             rightEntityId: entity.metadata.recordId.entityId,
           },
-          entityTypeId: link.meta.linkEntityTypeId,
+          entityTypeIds: [link.meta.linkEntityTypeId],
           draft:
             /** If either side of the link is a draft entity, the link entity must be draft also */
             params.draft ||
@@ -513,7 +513,7 @@ type UpdateEntityFunction<Properties extends EntityProperties> =
   ImpureGraphFunction<
     {
       entity: Entity<Properties>;
-      entityTypeId?: VersionedUrl;
+      entityTypeIds?: [VersionedUrl, ...VersionedUrl[]];
       propertyPatches?: PropertyPatchOperation[];
       draft?: boolean;
     },
@@ -529,10 +529,10 @@ export const updateEntity = async <Properties extends EntityProperties>(
   ...args: Parameters<UpdateEntityFunction<Properties>>
 ): ReturnType<UpdateEntityFunction<Properties>> => {
   const [context, authentication, params] = args;
-  const { entity, entityTypeId, propertyPatches } = params;
+  const { entity, entityTypeIds, propertyPatches } = params;
 
   for (const beforeUpdateHook of beforeUpdateEntityHooks) {
-    if (beforeUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
+    if (entity.metadata.entityTypeIds.includes(beforeUpdateHook.entityTypeId)) {
       await beforeUpdateHook.callback({
         context,
         previousEntity: entity,
@@ -549,7 +549,7 @@ export const updateEntity = async <Properties extends EntityProperties>(
     graphApi,
     { actorId },
     {
-      entityTypeId,
+      entityTypeIds,
       draft: params.draft,
       propertyPatches,
       provenance: context.provenance,
@@ -557,7 +557,7 @@ export const updateEntity = async <Properties extends EntityProperties>(
   );
 
   for (const afterUpdateHook of afterUpdateEntityHooks) {
-    if (afterUpdateHook.entityTypeId === entity.metadata.entityTypeId) {
+    if (entity.metadata.entityTypeIds.includes(afterUpdateHook.entityTypeId)) {
       void afterUpdateHook.callback({
         context,
         previousEntity: entity,
@@ -853,9 +853,9 @@ export const checkPermissionsOnEntity: ImpureGraphFunction<
 
   const { entityId } = entity.metadata.recordId;
 
-  const isAccountGroup =
-    entity.metadata.entityTypeId ===
-    systemEntityTypes.organization.entityTypeId;
+  const isAccountGroup = entity.metadata.entityTypeIds.includes(
+    systemEntityTypes.organization.entityTypeId,
+  );
 
   const isPublicUser = actorId === publicUserAccountId;
 

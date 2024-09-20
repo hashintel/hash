@@ -97,6 +97,12 @@ export const upgradeWebEntities = async ({
 
   await Promise.all(
     existingEntities.map(async (entity) => {
+      for (const baseUrlsBeingUpgraded of entityTypeBaseUrls) {
+        /**
+         * @todo account for multiple types, and also inheritance
+         */
+      }
+
       const baseUrl = extractBaseUrl(entity.metadata.entityTypeId);
 
       const currentVersion = extractVersion(entity.metadata.entityTypeId);

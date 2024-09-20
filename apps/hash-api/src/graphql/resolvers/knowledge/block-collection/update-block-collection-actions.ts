@@ -1,3 +1,4 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { AuthenticationContext } from "@local/hash-graph-sdk/authentication-context";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -61,9 +62,18 @@ export const createEntityWithPlaceholdersFn =
         );
       }
     } else {
+      if (!entityDefinition.entityTypeIds?.[0]) {
+        throw new Error(
+          `Must provide at least one entry in entityTypesIds if not providing existingEntityId`,
+        );
+      }
+
       return await createEntityWithLinks(context, authentication, {
         ownedById,
-        entityTypeId: entityDefinition.entityTypeId!,
+        entityTypeIds: entityDefinition.entityTypeIds as [
+          VersionedUrl,
+          ...VersionedUrl[],
+        ],
         properties: entityDefinition.entityProperties ?? { value: {} },
         linkedEntities: entityDefinition.linkedEntities ?? undefined,
         relationships: createDefaultAuthorizationRelationships(authentication),

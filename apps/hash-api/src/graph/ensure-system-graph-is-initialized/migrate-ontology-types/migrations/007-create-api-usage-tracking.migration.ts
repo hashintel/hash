@@ -428,8 +428,9 @@ const migrate: MigrationFunction = async ({
     );
 
     await createEntity<ServiceFeature>(context, authentication, {
-      entityTypeId: serviceFeatureEntityType.schema
-        .$id as ServiceFeature["entityTypeId"],
+      entityTypeIds: [
+        serviceFeatureEntityType.schema.$id,
+      ] as ServiceFeature["entityTypeIds"],
       properties: {
         value: {
           "https://hash.ai/@hash/types/property-type/service-name/": {
