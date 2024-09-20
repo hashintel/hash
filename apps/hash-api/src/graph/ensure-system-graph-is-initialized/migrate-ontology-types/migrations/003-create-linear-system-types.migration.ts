@@ -687,7 +687,7 @@ const migrate: MigrationFunction = async ({
       entityTypeDefinition: {
         title: "User",
         description:
-          "A user that has access to the the resources of an organization.",
+          "A user that has access to the resources of an organization.",
         properties: [
           {
             propertyType: activePropertyType,
