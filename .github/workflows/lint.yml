@@ -182,14 +182,14 @@ jobs:
         working-directory: ${{ matrix.directory }}
         env:
           RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
-        run: just doc
+        run: cargo doc --all-features --no-deps -Zrustdoc-scrape-examples
 
       - name: Check private documentation
         if: always() && steps.lints.outputs.has-rust == 'true'
         working-directory: ${{ matrix.directory }}
         env:
           RUSTDOCFLAGS: "--check -Z unstable-options -D warnings"
-        run: just doc --document-private-items
+        run: cargo doc --all-features --no-deps -Zrustdoc-scrape-examples  --document-private-items
 
       - name: Show disk usage
         run: df -h
