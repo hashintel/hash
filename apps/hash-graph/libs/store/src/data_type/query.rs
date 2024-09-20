@@ -126,7 +126,7 @@ pub enum DataTypeQueryPath<'p> {
     ///
     /// [`DataType::title()`]: type_system::schema::DataType::title
     Title,
-    /// Corresponds to [`DataType::description()`]
+    /// Corresponds to [`DataType`]'s description.
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -136,10 +136,8 @@ pub enum DataTypeQueryPath<'p> {
     /// assert_eq!(path, DataTypeQueryPath::Description);
     /// # Ok::<(), serde_json::Error>(())
     /// ```
-    ///
-    /// [`DataType::description()`]: type_system::schema::DataType::description
     Description,
-    /// Corresponds to [`DataType::json_type()`].
+    /// Corresponds to [`DataType`]'s type.
     ///
     /// ```rust
     /// # use serde::Deserialize;

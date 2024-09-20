@@ -197,7 +197,7 @@ impl NumberSchema {
                 clippy::modulo_arithmetic,
                 reason = "Validation requires floating point arithmetic"
             )]
-            if float_eq(float % expected, 0.0) {
+            if !float_eq(float % expected, 0.0) {
                 extend_report!(
                     status,
                     NumberValidationError::MultipleOf {
