@@ -24,7 +24,7 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
         await Promise.all([
           createEntity({
             data: {
-              entityTypeId: systemEntityTypes[kind].entityTypeId,
+              entityTypeIds: [systemEntityTypes[kind].entityTypeId],
               properties: {} satisfies BlockCollectionProperties,
             },
           }).then(({ data }) => {
@@ -36,7 +36,7 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
           }),
           createEntity({
             data: {
-              entityTypeId: systemEntityTypes.block.entityTypeId,
+              entityTypeIds: [systemEntityTypes.block.entityTypeId],
               properties: {
                 [systemPropertyTypes.componentId.propertyTypeBaseUrl]:
                   paragraphBlockComponentId,
@@ -51,7 +51,7 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
           }),
           createEntity({
             data: {
-              entityTypeId: systemEntityTypes.text.entityTypeId,
+              entityTypeIds: [systemEntityTypes.text.entityTypeId],
               properties: {
                 [blockProtocolPropertyTypes.textualContent.propertyTypeBaseUrl]:
                   [],
@@ -69,8 +69,9 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
       await Promise.all([
         createEntity({
           data: {
-            entityTypeId:
+            entityTypeIds: [
               systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
+            ],
             linkData: {
               leftEntityId: blockCollectionEntity.metadata.recordId.entityId,
               rightEntityId: blockEntity.metadata.recordId.entityId,
@@ -83,7 +84,7 @@ export const useCreateBlockCollection = (props: { ownedById: OwnedById }) => {
         }),
         createEntity({
           data: {
-            entityTypeId: systemLinkEntityTypes.hasData.linkEntityTypeId,
+            entityTypeIds: [systemLinkEntityTypes.hasData.linkEntityTypeId],
             linkData: {
               leftEntityId: blockEntity.metadata.recordId.entityId,
               rightEntityId: textEntity.metadata.recordId.entityId,

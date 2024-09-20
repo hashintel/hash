@@ -62,14 +62,15 @@ const EntityRow: FunctionComponent<{
   const icon = useEntityIcon({
     entity,
     entityType,
-    pageIcon:
-      entity.metadata.entityTypeId === systemEntityTypes.canvas.entityTypeId ? (
-        <CanvasIcon
-          sx={{ fontSize: 20, fill: ({ palette }) => palette.gray[40] }}
-        />
-      ) : (
-        <PageLightIcon sx={{ fontSize: 18 }} />
-      ),
+    pageIcon: entity.metadata.entityTypeIds.includes(
+      systemEntityTypes.canvas.entityTypeId,
+    ) ? (
+      <CanvasIcon
+        sx={{ fontSize: 20, fill: ({ palette }) => palette.gray[40] }}
+      />
+    ) : (
+      <PageLightIcon sx={{ fontSize: 18 }} />
+    ),
   });
 
   return (

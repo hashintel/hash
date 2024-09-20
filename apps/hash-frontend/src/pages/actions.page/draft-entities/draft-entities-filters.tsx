@@ -82,7 +82,7 @@ export const getDraftEntityTypes = (params: {
   draftEntitiesSubgraph: Subgraph<EntityRootType>;
 }): EntityTypeWithMetadata[] =>
   params.draftEntities
-    .map((draftEntity) => draftEntity.metadata.entityTypeId)
+    .flatMap((draftEntity) => draftEntity.metadata.entityTypeIds)
     .filter((entityTypeId, index, all) => all.indexOf(entityTypeId) === index)
     .reduce<VersionedUrl[]>((prev, entityTypeId) => {
       const previousEntityTypeId = prev.find(
@@ -253,8 +253,10 @@ export const filterDraftEntities = (params: {
   return draftEntitiesWithCreators.filter(
     ({ entity, creator }) =>
       (omitFilters?.includes("type") ||
-        filterState.entityTypeBaseUrls.includes(
-          extractBaseUrl(entity.metadata.entityTypeId),
+        filterState.entityTypeBaseUrls.some((baseUrl) =>
+          entity.metadata.entityTypeIds.some(
+            (entityTypeId) => extractBaseUrl(entityTypeId) === baseUrl,
+          ),
         )) &&
       (omitFilters?.includes("source") ||
         filterState.sourceAccountIds.includes(creator.accountId)) &&
@@ -419,8 +421,10 @@ export const DraftEntitiesFilters: FunctionComponent<{
                 !!filterState?.entityTypeBaseUrls.includes(entityTypeBaseUrl),
               count: filteredDraftEntitiesExceptForFilter?.type.filter(
                 ({ entity }) =>
-                  extractBaseUrl(entity.metadata.entityTypeId) ===
-                  entityTypeBaseUrl,
+                  entity.metadata.entityTypeIds.some(
+                    (entityTypeId) =>
+                      extractBaseUrl(entityTypeId) === entityTypeBaseUrl,
+                  ),
               ).length,
             };
           }) ?? [],

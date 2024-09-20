@@ -32,4 +32,4 @@ export const isTypePropertyType = (
 ) => type.schema.kind === "propertyType";
 
 export const isEntityPageEntity = (item: Entity) =>
-  includesPageEntityTypeId(item.metadata.entityTypeId);
+  includesPageEntityTypeId(item.metadata.entityTypeIds);

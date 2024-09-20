@@ -110,7 +110,11 @@ const BlockContextMenu: ForwardRefRenderFunction<
                 <LoadEntityMenuContent
                   blockEntityId={entityId}
                   childEntityEntityTypeId={
-                    blockEntity?.blockChildEntity?.metadata.entityTypeId ?? null
+                    /**
+                     * @todo make menu properly support multi-type entities
+                     */
+                    blockEntity?.blockChildEntity?.metadata.entityTypeIds[0] ??
+                    null
                   }
                   childEntityEntityId={
                     blockEntity?.blockChildEntity?.metadata.recordId.entityId ??

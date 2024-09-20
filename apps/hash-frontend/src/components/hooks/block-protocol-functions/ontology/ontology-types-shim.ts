@@ -164,7 +164,7 @@ export type GetEntityTypeMessageCallback = MessageCallback<
 >;
 
 export type UpdateEntityTypeRequest = {
-  entityTypeId: VersionedUrl;
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   entityType: Omit<EntityType, SystemDefinedOntologyTypeProperties>;
 };
 export type UpdateEntityTypeMessageCallback = MessageCallback<

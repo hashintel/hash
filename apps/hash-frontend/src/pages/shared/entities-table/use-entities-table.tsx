@@ -82,7 +82,12 @@ export const useEntitiesTable = (params: {
       !!entities &&
       !!entities.length &&
       entities
-        .map(({ metadata: { entityTypeId } }) => extractBaseUrl(entityTypeId))
+        .map(({ metadata: { entityTypeIds } }) =>
+          entityTypeIds
+            .sort()
+            .map((entityTypeId) => extractBaseUrl(entityTypeId))
+            .join(","),
+        )
         .every((value, _i, all) => value === all[0]),
     [entities],
   );

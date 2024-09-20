@@ -75,7 +75,7 @@ export const useFetchBlockSubgraph = (): ((
               entityId: "placeholder-account~entity-id-not-set" as EntityId,
               editionId: now,
             },
-            entityTypeId: blockEntityTypeId,
+            entityTypeIds: [blockEntityTypeId],
             temporalVersioning: {
               decisionTime: {
                 start: {

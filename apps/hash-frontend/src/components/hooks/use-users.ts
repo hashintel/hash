@@ -65,7 +65,7 @@ export const useUsers = (): {
     return getRoots(subgraph).map((userEntity) => {
       if (!isEntityUserEntity(userEntity)) {
         throw new Error(
-          `Entity with type ${userEntity.metadata.entityTypeId} is not a user entity`,
+          `Entity with type(s) ${userEntity.metadata.entityTypeIds.join(", ")} is not a user entity`,
         );
       }
 

@@ -158,7 +158,7 @@ export const CreateOrEditSheetsSync = ({
     if (!queryEntityId) {
       const { data } = await createEntity({
         variables: {
-          entityTypeId: blockProtocolEntityTypes.query.entityTypeId,
+          entityTypeIds: [blockProtocolEntityTypes.query.entityTypeId],
           ownedById: authenticatedUser.accountId as OwnedById,
           properties: {
             value: {

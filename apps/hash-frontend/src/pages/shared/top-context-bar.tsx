@@ -128,8 +128,8 @@ export const TopContextBar = ({
 
   const isCanvasPage =
     item &&
-    "entityTypeId" in item &&
-    item.entityTypeId === systemEntityTypes.canvas.entityTypeId;
+    "entityTypeIds" in item &&
+    item.entityTypeIds.includes(systemEntityTypes.canvas.entityTypeId);
 
   // @todo make 'additional buttons' a prop and move this to the page page
   const setCanvasLockState = (shouldLock: boolean) => {

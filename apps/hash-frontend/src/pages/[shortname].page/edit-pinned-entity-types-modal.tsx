@@ -141,7 +141,7 @@ export const EditPinnedEntityTypesModal: FunctionComponent<
       variables: {
         entityUpdate: {
           entityId: profile.entity.metadata.recordId.entityId,
-          entityTypeId: profile.entity.metadata.entityTypeId,
+          entityTypeIds: profile.entity.metadata.entityTypeIds,
           propertyPatches: [
             {
               op: "add",

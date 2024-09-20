@@ -42,7 +42,10 @@ export const useLinearIntegrations = () => {
                   value: authenticatedUser.accountId,
                 },
                 {
-                  field: ["metadata", "entityTypeId"],
+                  /**
+                   * @todo ***BEFORE MERGING*** is this field path right / does it work
+                   */
+                  field: ["metadata", "entityTypeIds", "0"],
                   operator: "EQUALS",
                   value: systemEntityTypes.linearIntegration.entityTypeId,
                 },
@@ -74,9 +77,10 @@ export const useLinearIntegrations = () => {
                   const linkEntity = linkAndTarget.linkEntity[0]!;
 
                   return (
-                    linkEntity.metadata.entityTypeId ===
-                      systemLinkEntityTypes.syncLinearDataWith
-                        .linkEntityTypeId && !linkEntity.metadata.archived
+                    !linkEntity.metadata.archived &&
+                    linkEntity.metadata.entityTypeIds.includes(
+                      systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
+                    )
                   );
                 })
                 .map((linkAndTarget) => {
