@@ -1,4 +1,4 @@
-use error_stack::{Context, Report, Result};
+use crate::{Context, Report, Result};
 
 // inspired by the implementation in `std`, see: https://doc.rust-lang.org/1.81.0/src/core/iter/adapters/mod.rs.html#157
 // except with the removal of the Try trait, as it is unstable.
@@ -81,10 +81,22 @@ where
     report.map_or_else(|| Ok(value), |report| Err(report))
 }
 
-/// An extension trait for iterators that allows collecting items while handling errors.
+/// An extension trait for iterators that enables error-aware collection of items.
 ///
-/// This trait provides additional functionality to iterators that yield `Result` items,
-/// allowing them to be collected into a container while propagating any errors encountered.
+/// This trait enhances iterators yielding `Result` items by providing methods to
+/// collect successful items into a container while aggregating encountered errors.
+///
+/// # Performance Considerations
+///
+/// These methods may have performance implications as they potentially iterate
+/// through the entire collection, even after encountering errors.
+///
+/// # Unstable Feature
+///
+/// This trait is currently available only under the `unstable` feature flag and
+/// does not adhere to semver guarantees. Its API may change in future releases.
+///
+/// [`Report`]: crate::Report
 pub trait TryReportIteratorExt<C> {
     /// The type of the successful items in the iterator.
     type Ok;
@@ -104,9 +116,8 @@ pub trait TryReportIteratorExt<C> {
     /// # Examples
     ///
     /// ```
-    /// use error_stack::{Result, ResultExt, Report};
+    /// use error_stack::{Result, ResultExt, Report, TryReportIteratorExt};
     /// use std::io;
-    /// use error_stack_experimental::TryReportIteratorExt;
     ///
     /// fn fetch_fail() -> Result<u8, io::Error> {
     ///    # stringify! {
@@ -140,9 +151,8 @@ pub trait TryReportIteratorExt<C> {
     /// # Examples
     ///
     /// ```
-    /// use error_stack::{Result, ResultExt, Report};
+    /// use error_stack::{Result, ResultExt, Report, TryReportIteratorExt};
     /// use std::io;
-    /// use error_stack_experimental::TryReportIteratorExt;
     ///
     /// fn fetch_fail() -> Result<u8, io::Error> {
     ///    # stringify! {

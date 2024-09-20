@@ -1,4 +1,4 @@
-use error_stack::{Report, Result};
+use crate::{Report, Result};
 
 /// Extends tuples with error-handling capabilities.
 ///
@@ -6,6 +6,11 @@ use error_stack::{Report, Result};
 /// containing a tuple of the successful values, or an error if any of the results failed.
 ///
 /// The trait is implemented for tuples of up to 16 elements.
+///
+/// # Stability
+///
+/// This trait is only available behind the `unstable` feature flag and is not covered by
+/// semver guarantees. It may change or be removed in future versions without notice.
 pub trait TryReportTupleExt<C> {
     /// The type of the successful output, typically a tuple of the inner types of the `Result`s.
     type Output;
@@ -20,8 +25,7 @@ pub trait TryReportTupleExt<C> {
     /// # Examples
     ///
     /// ```
-    /// use error_stack::{Report, Result};
-    /// use error_stack_experimental::TryReportTupleExt;
+    /// use error_stack::{Report, Result, TryReportTupleExt};
     ///
     /// #[derive(Debug)]
     /// struct CustomError;
@@ -123,9 +127,8 @@ mod test {
     use core::{error::Error, fmt::Display};
     use std::collections::HashSet;
 
-    use error_stack::{Report, Result};
-
     use super::TryReportTupleExt;
+    use crate::{Report, Result};
 
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     struct TestError(usize);

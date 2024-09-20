@@ -472,6 +472,8 @@
 //! `serde`        | Enables serialization support for [`Report`]                        | disabled
 //! `anyhow`       | Provides `into_report` to convert [`anyhow::Error`] to [`Report`]   | disabled
 //! `eyre`         | Provides `into_report` to convert [`eyre::Report`] to [`Report`]    | disabled
+//! `futures`      | Enables support for [`futures::Stream`], requires `unstable`        | disabled
+//! `unstable`     | Enables unstable features, these features are not covered by semver | disabled
 //!
 //!
 //! [`set_debug_hook`]: Report::set_debug_hook
@@ -514,12 +516,18 @@ mod result;
 
 mod context;
 mod error;
+#[cfg(feature = "unstable")]
+pub mod ext;
 pub mod fmt;
 #[cfg(any(feature = "std", feature = "hooks"))]
 mod hook;
 #[cfg(feature = "serde")]
 mod serde;
 
+#[cfg(all(feature = "unstable", feature = "futures"))]
+pub use self::ext::stream::TryReportStreamExt;
+#[cfg(feature = "unstable")]
+pub use self::ext::{iter::TryReportIteratorExt, tuple::TryReportTupleExt};
 pub use self::{
     compat::IntoReportCompat,
     context::Context,
