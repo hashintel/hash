@@ -119,7 +119,7 @@ export abstract class BlockElementBase<
     return this.graphModule.updateEntity({
       data: {
         entityId: blockEntity.metadata.recordId.entityId,
-        entityTypeId: blockEntity.metadata.entityTypeId,
+        entityTypeIds: blockEntity.metadata.entityTypeIds,
         properties,
       },
     });

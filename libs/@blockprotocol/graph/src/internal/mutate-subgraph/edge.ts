@@ -298,41 +298,44 @@ export const inferEntityEdgesInSubgraphByMutation = (
         subgraph.temporalAxes.resolved.variable.axis
       ];
 
-    const entityTypeId = vertex.inner.metadata.entityTypeId;
-    const entityTypeBaseUrl = extractBaseUrl(entityTypeId);
-    const entityTypeRevisionId = extractVersion(entityTypeId).toString();
+    const entityTypeIds = vertex.inner.metadata.entityTypeIds;
 
-    // If the entity type vertex is currently in the subgraph, we add the appropriate edge.
-    // We expect all vertices to be present before adding edges.
-    if (subgraph.vertices[entityTypeBaseUrl]?.[entityTypeRevisionId]) {
-      // Add IS_OF_TYPE edges for the entity and entity type
-      addOutwardEdgeToSubgraphByMutation(
-        subgraph,
-        entityId,
-        intervalStartLimit,
-        {
-          kind: "IS_OF_TYPE",
-          reversed: false,
-          rightEndpoint: {
-            baseId: entityTypeBaseUrl,
-            revisionId: entityTypeRevisionId.toString(),
-          },
-        },
-      );
+    for (const entityTypeId of entityTypeIds) {
+      const entityTypeBaseUrl = extractBaseUrl(entityTypeId);
+      const entityTypeRevisionId = extractVersion(entityTypeId).toString();
 
-      addOutwardEdgeToSubgraphByMutation(
-        subgraph,
-        entityTypeBaseUrl,
-        entityTypeRevisionId,
-        {
-          kind: "IS_OF_TYPE",
-          reversed: true,
-          rightEndpoint: {
-            entityId,
-            interval: entityInterval,
+      // If the entity type vertex is currently in the subgraph, we add the appropriate edge.
+      // We expect all vertices to be present before adding edges.
+      if (subgraph.vertices[entityTypeBaseUrl]?.[entityTypeRevisionId]) {
+        // Add IS_OF_TYPE edges for the entity and entity type
+        addOutwardEdgeToSubgraphByMutation(
+          subgraph,
+          entityId,
+          intervalStartLimit,
+          {
+            kind: "IS_OF_TYPE",
+            reversed: false,
+            rightEndpoint: {
+              baseId: entityTypeBaseUrl,
+              revisionId: entityTypeRevisionId.toString(),
+            },
           },
-        },
-      );
+        );
+
+        addOutwardEdgeToSubgraphByMutation(
+          subgraph,
+          entityTypeBaseUrl,
+          entityTypeRevisionId,
+          {
+            kind: "IS_OF_TYPE",
+            reversed: true,
+            rightEndpoint: {
+              entityId,
+              interval: entityInterval,
+            },
+          },
+        );
+      }
     }
 
     if (entity.linkData) {
