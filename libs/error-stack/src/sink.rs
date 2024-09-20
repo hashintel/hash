@@ -19,16 +19,27 @@ use crate::Report;
 /// This runtime check complements the compile-time `#[must_use]` attribute,
 /// providing a more robust mechanism to prevent `ReportSink` not being consumed.
 #[derive(Debug, Default)]
-enum Bomb {
+enum BombState {
     Panic,
     #[default]
     Warn,
     Defused,
 }
 
+#[derive(Debug, Default)]
+struct Bomb(BombState);
+
 impl Bomb {
+    const fn panic() -> Self {
+        Self(BombState::Panic)
+    }
+
+    const fn warn() -> Self {
+        Self(BombState::Warn)
+    }
+
     fn defuse(&mut self) {
-        *self = Self::Defused;
+        self.0 = BombState::Defused;
     }
 }
 
@@ -39,13 +50,13 @@ impl Drop for Bomb {
             return;
         }
 
-        match self {
-            Self::Panic => panic!("ReportSink was dropped without being consumed"),
+        match self.0 {
+            BombState::Panic => panic!("ReportSink was dropped without being consumed"),
             #[allow(clippy::print_stderr)]
-            Self::Warn => {
+            BombState::Warn => {
                 eprintln!("ReportSink was dropped without being consumed");
             }
-            Self::Defused => {}
+            BombState::Defused => {}
         }
     }
 }
@@ -113,7 +124,7 @@ impl<C> ReportSink<C> {
     pub const fn new() -> Self {
         Self {
             report: None,
-            bomb: Bomb::Warn,
+            bomb: Bomb::warn(),
         }
     }
 
@@ -123,7 +134,7 @@ impl<C> ReportSink<C> {
     pub const fn new_armed() -> Self {
         Self {
             report: None,
-            bomb: Bomb::Panic,
+            bomb: Bomb::panic(),
         }
     }
 
@@ -301,7 +312,8 @@ impl<C> Try for ReportSink<C> {
         }
     }
 
-    fn branch(self) -> core::ops::ControlFlow<Self::Residual, Self::Output> {
+    fn branch(mut self) -> core::ops::ControlFlow<Self::Residual, Self::Output> {
+        self.bomb.defuse();
         self.report.map_or(
             core::ops::ControlFlow::Continue(()), //
             |report| core::ops::ControlFlow::Break(Err(report)),
@@ -459,12 +471,12 @@ mod test {
         let report = sink().expect_err("should have failed");
 
         let contexts: BTreeSet<_> = report.current_contexts().collect();
-        assert_eq!(contexts.len(), 2);
+        assert_eq!(contexts.len(), 1);
         assert!(contexts.contains(&TestError(0)));
     }
 
     #[test]
-    #[should_panic(expected = "must be consumed")]
+    #[should_panic(expected = "without being consumed")]
     fn panic_on_unused() {
         #[allow(clippy::unnecessary_wraps)]
         fn sink() -> Result<(), Report<[TestError]>> {

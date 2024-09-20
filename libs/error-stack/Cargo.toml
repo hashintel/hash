@@ -49,7 +49,7 @@ thiserror = { workspace = true }
 rustc_version = { workspace = true }
 
 [features]
-default = ["std", "backtrace", "unstable", "futures"]
+default = ["std", "backtrace"]
 
 std = ["anyhow?/std"]  # Enables support for `Error`
 backtrace = ["std"]  # Enables automatic capturing of `Backtrace`s (requires Rust 1.65+)
