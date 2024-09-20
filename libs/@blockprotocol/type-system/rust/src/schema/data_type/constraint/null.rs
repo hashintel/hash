@@ -1,19 +1,19 @@
-use error_stack::Report;
+use serde::{Deserialize, Serialize};
 
-use super::{extend_report, ConstraintError};
-use crate::schema::{DataType, JsonSchemaValueType};
+use crate::schema::DataTypeLabel;
 
-pub(crate) fn check_null_constraints(
-    data_type: &DataType,
-    result: &mut Result<(), Report<ConstraintError>>,
-) {
-    if !data_type.json_type.contains(&JsonSchemaValueType::Null) {
-        extend_report!(
-            *result,
-            ConstraintError::InvalidType {
-                actual: JsonSchemaValueType::Null,
-                expected: data_type.json_type.clone()
-            }
-        );
-    }
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct NullSchema {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "DataTypeLabel::is_empty")]
+    pub label: DataTypeLabel,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub r#const: Option<()>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "[null]"))]
+    pub r#enum: Vec<()>,
 }

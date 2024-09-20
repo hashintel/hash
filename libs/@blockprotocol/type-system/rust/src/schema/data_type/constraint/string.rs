@@ -2,20 +2,20 @@ use core::{
     net::{Ipv4Addr, Ipv6Addr},
     str::FromStr,
 };
-use std::sync::OnceLock;
+use std::{collections::HashSet, sync::OnceLock};
 
 use email_address::EmailAddress;
 use error_stack::Report;
 use iso8601_duration::Duration;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
+use thiserror::Error;
 use url::{Host, Url};
 use uuid::Uuid;
 
-use super::{extend_report, ConstraintError};
-use crate::schema::{
-    data_type::constraint::error::StringFormatError, DataType, JsonSchemaValueType,
-};
+use super::extend_report;
+use crate::schema::{data_type::constraint::error::StringFormatError, DataTypeLabel};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -125,63 +125,147 @@ impl StringFormat {
     }
 }
 
-pub(crate) fn check_string_constraints(
-    actual: &str,
-    data_type: &DataType,
-    result: &mut Result<(), Report<ConstraintError>>,
-) {
-    if !data_type.json_type.contains(&JsonSchemaValueType::String) {
-        extend_report!(
-            *result,
-            ConstraintError::InvalidType {
-                actual: JsonSchemaValueType::String,
-                expected: data_type.json_type.clone()
-            }
-        );
-    }
+#[derive(Debug, Error)]
+pub enum ArrayValidationError {
+    #[error(
+        "the provided value is not equal to the expected value, expected `{actual}` to be equal \
+         to `{expected}`"
+    )]
+    InvalidConstValue { actual: String, expected: String },
+    #[error("the provided value is not one of the expected values, expected `{actual}` to be one of `{}`", json!(expected))]
+    InvalidEnumValue {
+        actual: String,
+        expected: HashSet<String>,
+    },
 
-    if let Some(expected) = data_type.min_length {
-        if actual.len() < expected {
+    #[error(
+        "the provided value is not greater than or equal to the minimum length, expected \
+         the length of `{}` to be greater than or equal to `{expected}` but it is `{}`",
+        .actual,
+        .actual.len(),
+    )]
+    MinLength { actual: String, expected: usize },
+    #[error(
+        "the provided value is not less than or equal to the maximum length, expected \
+         the length of `{}` to be less than or equal to `{expected}` but it is `{}`", .actual, .actual.len(),
+    )]
+    MaxLength { actual: String, expected: usize },
+    #[error(
+        "the provided value does not match the expected pattern, expected `{actual}` to match the \
+         pattern `{}`", .expected.as_str()
+    )]
+    Pattern { actual: String, expected: Regex },
+    #[error(
+        "the provided value does not match the expected format, expected `{actual}` to match the \
+         format `{}`", .expected.as_str()
+    )]
+    Format {
+        actual: String,
+        expected: StringFormat,
+    },
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct StringSchema {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "DataTypeLabel::is_empty")]
+    pub label: DataTypeLabel,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub r#const: Option<String>,
+    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "[string, ...string[]]"))]
+    pub r#enum: HashSet<String>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub min_length: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub max_length: Option<usize>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        with = "codec::serde::regex::option"
+    )]
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "string"))]
+    pub pattern: Option<Regex>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub format: Option<StringFormat>,
+}
+
+impl StringSchema {
+    pub fn validate_value(&self, string: &str) -> Result<(), Report<ArrayValidationError>> {
+        let mut status = Ok::<(), Report<ArrayValidationError>>(());
+
+        if let Some(expected) = &self.r#const {
+            if expected != string {
+                extend_report!(
+                    status,
+                    ArrayValidationError::InvalidConstValue {
+                        expected: expected.clone(),
+                        actual: string.to_owned(),
+                    }
+                );
+            }
+        }
+
+        if !self.r#enum.is_empty() && !self.r#enum.contains(string) {
             extend_report!(
-                *result,
-                ConstraintError::MinLength {
-                    actual: actual.to_owned(),
-                    expected
+                status,
+                ArrayValidationError::InvalidEnumValue {
+                    expected: self.r#enum.clone(),
+                    actual: string.to_owned(),
                 }
             );
         }
-    }
-    if let Some(expected) = data_type.max_length {
-        if actual.len() > expected {
-            extend_report!(
-                *result,
-                ConstraintError::MaxLength {
-                    actual: actual.to_owned(),
-                    expected
-                }
-            );
+
+        if let Some(expected) = self.min_length {
+            if string.len() < expected {
+                extend_report!(
+                    status,
+                    ArrayValidationError::MinLength {
+                        actual: string.to_owned(),
+                        expected
+                    }
+                );
+            }
         }
-    }
-    if let Some(expected) = &data_type.pattern {
-        if !expected.is_match(actual) {
-            extend_report!(
-                *result,
-                ConstraintError::Pattern {
-                    actual: actual.to_owned(),
-                    expected: expected.clone()
-                }
-            );
+        if let Some(expected) = self.max_length {
+            if string.len() > expected {
+                extend_report!(
+                    status,
+                    ArrayValidationError::MaxLength {
+                        actual: string.to_owned(),
+                        expected
+                    }
+                );
+            }
         }
-    }
-    if let Some(expected) = data_type.format {
-        if let Err(error) = expected.validate(actual) {
-            extend_report!(
-                *result,
-                error.change_context(ConstraintError::Format {
-                    actual: actual.to_owned(),
-                    expected
-                })
-            );
+        if let Some(expected) = &self.pattern {
+            if !expected.is_match(string) {
+                extend_report!(
+                    status,
+                    ArrayValidationError::Pattern {
+                        actual: string.to_owned(),
+                        expected: expected.clone()
+                    }
+                );
+            }
         }
+        if let Some(expected) = self.format {
+            if let Err(error) = expected.validate(string) {
+                extend_report!(
+                    status,
+                    error.change_context(ArrayValidationError::Format {
+                        actual: string.to_owned(),
+                        expected
+                    })
+                );
+            }
+        }
+
+        status
     }
 }

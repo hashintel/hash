@@ -121,7 +121,7 @@ export type NumberConstraint = {
   exclusiveMinimum?: boolean;
   exclusiveMaximum?: boolean;
   multipleOf?: number;
-  type: "number" | "integer";
+  type: "number";
 };
 
 export type BooleanConstraint = {
@@ -143,7 +143,7 @@ export type StringEnumConstraint = {
 
 export type NumberEnumConstraint = {
   enum: [number, ...number[]];
-  type: "number" | "integer";
+  type: "number";
 };
 
 /** @see https://json-schema.org/understanding-json-schema/reference/enum */
@@ -156,7 +156,7 @@ export type StringConstConstraint = {
 
 export type NumberConstConstraint = {
   const: number;
-  type: "number" | "integer";
+  type: "number";
 };
 
 export type ConstConstraint = StringConstConstraint | NumberConstConstraint;
@@ -184,7 +184,7 @@ export type ArrayConstraint = {
 export type TupleConstraint = {
   type: "array";
   items: false; // disallow additional items;
-  prefixItems: ValueConstraint[];
+  prefixItems: [ValueConstraint, ...ValueConstraint[]];
 };
 
 export type ValueConstraint = (

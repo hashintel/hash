@@ -1,9 +1,9 @@
 import type {
-  ArraySchema,
   EntityType,
-  ObjectSchema,
   OneOfSchema,
   PropertyType,
+  PropertyValueArray,
+  PropertyValueObject,
   PropertyValues,
   ValueOrArray,
   VersionedUrl,
@@ -31,14 +31,14 @@ import { generateSimplifiedTypeId } from "../infer-entities/shared/generate-simp
 
 type MinimalDataType = Omit<CustomDataType, "$id" | "$schema" | "kind">;
 
-type MinimalPropertyObject = ObjectSchema<
+type MinimalPropertyObject = PropertyValueObject<
   ValueOrArray<DereferencedPropertyType>
 > & { additionalProperties: false };
 
 export type MinimalPropertyTypeValue =
   | MinimalDataType
   | MinimalPropertyObject
-  | ArraySchema<OneOfSchema<MinimalPropertyTypeValue>>;
+  | PropertyValueArray<OneOfSchema<MinimalPropertyTypeValue>>;
 
 export type DereferencedPropertyType = Pick<
   PropertyType,
@@ -57,7 +57,7 @@ export type DereferencedEntityType<
 > = Pick<EntityType, "$id" | "description" | "links" | "required" | "title"> & {
   properties: Record<
     PropertyTypeKey,
-    DereferencedPropertyType | ArraySchema<DereferencedPropertyType>
+    DereferencedPropertyType | PropertyValueArray<DereferencedPropertyType>
   >;
   additionalProperties: false;
 } & Pick<EntityTypeMetadata, "labelProperty">;
