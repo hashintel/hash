@@ -38,6 +38,7 @@ export {
   getEntityRevisionsByEntityId,
 } from "./stdlib/subgraph/element/entity.js";
 export {
+  getBreadthFirstEntityTypesAndParents,
   getEntityTypeAndDescendantsById,
   getEntityTypeAndParentsById,
   getEntityTypeById,

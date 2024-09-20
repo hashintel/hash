@@ -337,14 +337,9 @@ const mapEntityTemporalVersioningMetadata = (
 const mapEntityMetadata = (
   metadata: EntityMetadataGraphApi,
 ): EntityMetadata => {
-  if (metadata.entityTypeIds.length !== 1) {
-    throw new Error(
-      `Expected entity metadata to have exactly one entity type id, but got ${metadata.entityTypeIds.length}`,
-    );
-  }
   return {
     recordId: mapEntityRecordId(metadata.recordId),
-    entityTypeId: metadata.entityTypeIds[0] as VersionedUrl,
+    entityTypeIds: metadata.entityTypeIds as VersionedUrl[],
     temporalVersioning: mapEntityTemporalVersioningMetadata(
       metadata.temporalVersioning,
     ),

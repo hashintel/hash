@@ -4,7 +4,7 @@ import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { extractEntityUuidFromEntityId } from "@local/hash-subgraph";
 import {
-  getEntityTypeAndParentsById,
+  getBreadthFirstEntityTypesAndParents,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
 
@@ -13,7 +13,6 @@ import { simplifyProperties } from "./simplify-properties.js";
 const getLabelPropertyValue = (
   entityToLabel: {
     properties: Entity["properties"];
-    metadata: Pick<EntityMetadata, "recordId" | "entityTypeId">;
   },
   entityType: EntityTypeWithMetadata,
 ) => {
@@ -35,7 +34,7 @@ const getFallbackLabel = ({
   entityType?: EntityTypeWithMetadata;
   entity: {
     properties: Entity["properties"];
-    metadata: Pick<EntityMetadata, "recordId" | "entityTypeId">;
+    metadata: Pick<EntityMetadata, "recordId" | "entityTypeIds">;
   };
 }) => {
   // fallback to the entity type and a few characters of the entityUuid
@@ -53,14 +52,14 @@ export function generateEntityLabel(
   entitySubgraph: Subgraph<EntityRootType>,
   entity?: {
     properties: Entity["properties"];
-    metadata: Pick<EntityMetadata, "recordId" | "entityTypeId">;
+    metadata: Pick<EntityMetadata, "recordId" | "entityTypeIds">;
   },
 ): string;
 export function generateEntityLabel(
   entitySubgraph: Subgraph | null,
   entity: {
     properties: Entity["properties"];
-    metadata: Pick<EntityMetadata, "recordId" | "entityTypeId">;
+    metadata: Pick<EntityMetadata, "recordId" | "entityTypeIds">;
   },
 ): string;
 /**
@@ -75,7 +74,7 @@ export function generateEntityLabel(
   entitySubgraph: Subgraph | null,
   entity?: {
     properties: Entity["properties"];
-    metadata: Pick<EntityMetadata, "recordId" | "entityTypeId">;
+    metadata: Pick<EntityMetadata, "recordId" | "entityTypeIds">;
   },
 ): string {
   if (!entitySubgraph && !entity) {
@@ -91,14 +90,14 @@ export function generateEntityLabel(
 
   let entityType: EntityTypeWithMetadata | undefined;
   if (entitySubgraph) {
-    let entityTypeAndAncestors: EntityTypeWithMetadata[] | undefined;
+    let entityTypesAndAncestors: EntityTypeWithMetadata[] | undefined;
     try {
-      entityTypeAndAncestors = getEntityTypeAndParentsById(
+      entityTypesAndAncestors = getBreadthFirstEntityTypesAndParents(
         entitySubgraph,
-        entityToLabel.metadata.entityTypeId,
+        entityToLabel.metadata.entityTypeIds,
       );
 
-      entityType = entityTypeAndAncestors[0];
+      entityType = entityTypesAndAncestors[0];
     } catch (error) {
       // eslint-disable-next-line no-console -- prefer not to crash here but still have some feedback that there's an issue
       console.error(
@@ -108,28 +107,12 @@ export function generateEntityLabel(
       );
     }
 
-    const entityTypesToCheck = entityType ? [entityType] : [];
-
-    /**
-     * Return any truthy value for a property which is set as the labelProperty for the entity's type,
-     * or any of its ancestors, using a breadth-first search in the inheritance tree starting from the entity's own type.
-     */
-    for (let i = 0; i < entityTypesToCheck.length; i++) {
-      const typeToCheck = entityTypesToCheck[i]!;
-
+    for (const typeToCheck of entityTypesAndAncestors ?? []) {
       const label = getLabelPropertyValue(entityToLabel, typeToCheck);
 
       if (label) {
         return label;
       }
-
-      entityTypesToCheck.push(
-        ...(entityTypeAndAncestors ?? []).filter((type) =>
-          typeToCheck.schema.allOf?.find(
-            ({ $ref }) => $ref === type.schema.$id,
-          ),
-        ),
-      );
     }
   }
 
