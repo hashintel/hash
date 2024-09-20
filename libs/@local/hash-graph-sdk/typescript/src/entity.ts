@@ -61,7 +61,7 @@ export type CreateEntityParameters<
   T extends EntityProperties = EntityProperties,
 > = Omit<
   GraphApiCreateEntityRequest,
-  "decisionTime" | "draft" | "properties" | "provenance"
+  "decisionTime" | "entityTypeIds" | "draft" | "properties" | "provenance"
 > & {
   ownedById: OwnedById;
   properties: T["propertiesWithMetadata"];

@@ -67,7 +67,10 @@ export type EntityTemporalVersioningMetadata = Subtype<
 >;
 
 export type EntityMetadata<
-  EntityTypeIds extends VersionedUrl[] = VersionedUrl[],
+  EntityTypeIds extends [VersionedUrl, ...VersionedUrl[]] = [
+    VersionedUrl,
+    ...VersionedUrl[],
+  ],
 > = Subtype<
   EntityMetadataBp,
   {
