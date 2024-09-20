@@ -44,7 +44,7 @@ import type {
   UsesUserSecretPropertiesWithMetadata,
   VaultPathPropertyValue,
   VaultPathPropertyValueWithMetadata,
-} from "./shared.js";
+} from "./shared";
 
 export type {
   Account,
@@ -103,7 +103,9 @@ export type ActorTypeDataTypeMetadata = {
  * The account that something is associated with.
  */
 export type AssociatedWithAccount = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/associated-with-account/v/1";
+  entityTypeIds: [
+    "https://hash.ai/@hash/types/entity-type/associated-with-account/v/1",
+  ];
   properties: AssociatedWithAccountProperties;
   propertiesWithMetadata: AssociatedWithAccountPropertiesWithMetadata;
 };
@@ -181,7 +183,7 @@ export type DescriptionPropertyValueWithMetadata = TextDataTypeWithMetadata;
  * A file hosted at a URL
  */
 export type File = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/file/v/2";
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/file/v/2"];
   properties: FileProperties;
   propertiesWithMetadata: FilePropertiesWithMetadata;
 };
@@ -322,7 +324,9 @@ export type FileURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
  * A Google Sheets file.
  */
 export type GoogleSheetsFile = {
-  entityTypeId: "https://hash.ai/@google/types/entity-type/google-sheets-file/v/1";
+  entityTypeIds: [
+    "https://hash.ai/@google/types/entity-type/google-sheets-file/v/1",
+  ];
   properties: GoogleSheetsFileProperties;
   propertiesWithMetadata: GoogleSheetsFilePropertiesWithMetadata;
 };
@@ -363,7 +367,7 @@ export type GoogleSheetsFilePropertiesWithMetadata2 = {
     "https://hash.ai/@hash/types/property-type/data-audience/": DataAudiencePropertyValueWithMetadata;
     "https://hash.ai/@hash/types/property-type/file-id/": FileIdPropertyValueWithMetadata;
   };
-} & SpreadsheetFilePropertiesWithMetadata;
+};
 
 /**
  * A MIME (Multipurpose Internet Mail Extensions) type.
@@ -415,7 +419,9 @@ export type OriginalURLPropertyValueWithMetadata = TextDataTypeWithMetadata;
  * A spreadsheet file.
  */
 export type SpreadsheetFile = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/spreadsheet-file/v/1";
+  entityTypeIds: [
+    "https://hash.ai/@hash/types/entity-type/spreadsheet-file/v/1",
+  ];
   properties: SpreadsheetFileProperties;
   propertiesWithMetadata: SpreadsheetFilePropertiesWithMetadata;
 };
@@ -441,7 +447,7 @@ export type SpreadsheetFilePropertiesWithMetadata1 = FilePropertiesWithMetadata;
 export type SpreadsheetFilePropertiesWithMetadata2 = {
   metadata?: ObjectMetadata;
   value: {};
-} & FilePropertiesWithMetadata;
+};
 
 /**
  * The timestamp when the upload of something has completed

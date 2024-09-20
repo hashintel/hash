@@ -12,7 +12,7 @@ export type { BooleanDataType, BooleanDataTypeWithMetadata };
  * An instance of HASH.
  */
 export type HASHInstance = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/hash-instance/v/1";
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/hash-instance/v/1"];
   properties: HASHInstanceProperties;
   propertiesWithMetadata: HASHInstancePropertiesWithMetadata;
 };

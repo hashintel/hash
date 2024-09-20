@@ -37,7 +37,7 @@ export type {
  * A claim made about something.
  */
 export type Claim = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/claim/v/1";
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/claim/v/1"];
   properties: ClaimProperties;
   propertiesWithMetadata: ClaimPropertiesWithMetadata;
 };
@@ -80,7 +80,7 @@ export type ClaimPropertiesWithMetadata = {
  * The object something has
  */
 export type HasObject = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/has-object/v/1";
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/has-object/v/1"];
   properties: HasObjectProperties;
   propertiesWithMetadata: HasObjectPropertiesWithMetadata;
 };
@@ -110,7 +110,7 @@ export type HasObjectPropertiesWithMetadata2 = {
  * The subject something has
  */
 export type HasSubject = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/has-subject/v/1";
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/has-subject/v/1"];
   properties: HasSubjectProperties;
   propertiesWithMetadata: HasSubjectPropertiesWithMetadata;
 };

@@ -402,7 +402,9 @@ export type {
  * An instance of an integration with Linear.
  */
 export type LinearIntegration = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/linear-integration/v/7";
+  entityTypeIds: [
+    "https://hash.ai/@hash/types/entity-type/linear-integration/v/7",
+  ];
   properties: LinearIntegrationProperties;
   propertiesWithMetadata: LinearIntegrationPropertiesWithMetadata;
 };
@@ -458,7 +460,9 @@ export type LinearTeamIdPropertyValueWithMetadata = TextDataTypeWithMetadata;
  * Something that syncs linear data with something.
  */
 export type SyncLinearDataWith = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/sync-linear-data-with/v/1";
+  entityTypeIds: [
+    "https://hash.ai/@hash/types/entity-type/sync-linear-data-with/v/1",
+  ];
   properties: SyncLinearDataWithProperties;
   propertiesWithMetadata: SyncLinearDataWithPropertiesWithMetadata;
 };
@@ -498,7 +502,9 @@ export type SyncLinearDataWithPropertiesWithMetadata2 = {
  * The user secret something uses.
  */
 export type UsesUserSecret = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1";
+  entityTypeIds: [
+    "https://hash.ai/@hash/types/entity-type/uses-user-secret/v/1",
+  ];
   properties: UsesUserSecretProperties;
   propertiesWithMetadata: UsesUserSecretPropertiesWithMetadata;
 };
