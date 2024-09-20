@@ -49,7 +49,57 @@ impl Drop for Bomb {
         }
     }
 }
-
+/// A sink for collecting multiple [`Report`]s into a single [`Result`].
+///
+/// [`ReportSink`] allows you to accumulate multiple errors or reports and then
+/// finalize them into a single `Result`. This is particularly useful when you
+/// need to collect errors from multiple operations before deciding whether to
+/// proceed or fail.
+///
+/// The sink is equipped with a "bomb" mechanism to ensure proper usage,
+/// if the sink hasn't been finished when dropped, it will emit a warning or panic,
+/// depending on the constructor used.
+///
+/// # Examples
+///
+/// ```
+/// use error_stack::{Report, ReportSink, Result};
+///
+/// #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+/// struct InternalError;
+///
+/// impl core::fmt::Display for InternalError {
+///     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+///         f.write_str("Internal error")
+///     }
+/// }
+///
+/// impl core::error::Error for InternalError {}
+///
+/// fn operation1() -> Result<u32, MyError> {
+///     // ...
+///     # todo!()
+/// }
+///
+/// fn operation2() -> Result<(), MyError> {
+///     // ...
+///     # todo!()
+/// }
+///
+/// fn process_data() -> Result<(), Report<[MyError]>> {
+///     let mut sink = ReportSink::new();
+///
+///     if let Some(value) = sink.attempt(operation1()) {
+///         // process value
+///     }
+///
+///     if let Err(e) = operation2() {
+///         sink.add(e);
+///     }
+///
+///     sink.finish()
+/// }
+/// ```
 #[must_use]
 pub struct ReportSink<C> {
     report: Option<Report<[C]>>,
@@ -57,6 +107,9 @@ pub struct ReportSink<C> {
 }
 
 impl<C> ReportSink<C> {
+    /// Creates a new [`ReportSink`].
+    ///
+    /// If the sink hasn't been finished when dropped, it will emit a warning.
     pub const fn new() -> Self {
         Self {
             report: None,
@@ -64,6 +117,9 @@ impl<C> ReportSink<C> {
         }
     }
 
+    /// Creates a new [`ReportSink`].
+    ///
+    /// If the sink hasn't been finished when dropped, it will panic.
     pub const fn new_armed() -> Self {
         Self {
             report: None,
@@ -71,6 +127,14 @@ impl<C> ReportSink<C> {
         }
     }
 
+    /// Adds a [`Report`] to the sink.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut sink = ReportSink::new();
+    /// sink.add(Report::new(MyError::SomeError));
+    /// ```
     pub fn add(&mut self, report: impl Into<Report<[C]>>) {
         let report = report.into();
 
@@ -80,6 +144,19 @@ impl<C> ReportSink<C> {
         }
     }
 
+    /// Captures a single error or report in the sink.
+    ///
+    /// This method is similar to [`add`], but allows for bare errors without prior [`Report`]
+    /// creation.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut sink = ReportSink::new();
+    /// sink.capture(MyError::AnotherError);
+    /// ```
+    ///
+    /// [`add`]: ReportSink::add
     pub fn capture(&mut self, error: impl Into<Report<C>>) {
         let report = error.into();
 
@@ -89,21 +166,104 @@ impl<C> ReportSink<C> {
         }
     }
 
+    /// Attempts to execute a fallible operation and collect any errors.
+    ///
+    /// This method takes a [`Result`] and returns an [`Option`]:
+    /// - If the [`Result`] is [`Ok`], it returns [`Some(T)`] with the successful value.
+    /// - If the [`Result`] is [`Err`], it captures the error in the sink and returns [`None`].
+    ///
+    /// This is useful for concisely handling operations that may fail, allowing you to
+    /// collect errors while continuing execution.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut sink = ReportSink::new();
+    /// let value = sink.attempt(fallible_operation());
+    /// if let Some(v) = value {
+    ///     // Use the successful value
+    /// }
+    /// // Any errors are now collected in the sink
+    /// ```
+    pub fn attempt<T, R>(&mut self, result: Result<T, R>) -> Option<T>
+    where
+        R: Into<Report<C>>,
+    {
+        match result {
+            Ok(value) => Some(value),
+            Err(error) => {
+                self.capture(error);
+                None
+            }
+        }
+    }
+
+    /// Finishes the sink and returns a [`Result`].
+    ///
+    /// This method consumes the sink, and returns `Ok(())` if no errors
+    /// were collected, or `Err(Report<[C]>)` containing all collected errors otherwise.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut sink = ReportSink::new();
+    /// // ... add errors ...
+    /// let result = sink.finish();
+    /// ```
     pub fn finish(mut self) -> Result<(), Report<[C]>> {
         self.bomb.defuse();
         self.report.map_or(Ok(()), Err)
     }
 
+    /// Finishes the sink and returns a [`Result`] with a custom success value.
+    ///
+    /// Similar to [`finish`], but allows specifying a function to generate the success value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut sink = ReportSink::new();
+    /// // ... add errors ...
+    /// let result = sink.finish_with(|| "Operation completed");
+    /// ```
+    ///
+    /// [`finish`]: ReportSink::finish
     pub fn finish_with<T>(mut self, ok: impl FnOnce() -> T) -> Result<T, Report<[C]>> {
         self.bomb.defuse();
         self.report.map_or_else(|| Ok(ok()), Err)
     }
 
+    /// Finishes the sink and returns a [`Result`] with a default success value.
+    ///
+    /// Similar to [`finish`], but uses `T::default()` as the success value.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut sink = ReportSink::new();
+    /// // ... add errors ...
+    /// let result: Result<Vec<String>, _> = sink.finish_with_default();
+    /// ```
+    ///
+    /// [`finish`]: ReportSink::finish
     pub fn finish_with_default<T: Default>(mut self) -> Result<T, Report<[C]>> {
         self.bomb.defuse();
         self.report.map_or_else(|| Ok(T::default()), Err)
     }
 
+    /// Finishes the sink and returns a [`Result`] with a provided success value.
+    ///
+    /// Similar to [`finish`], but allows specifying a concrete value for the success case.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut sink = ReportSink::new();
+    /// // ... add errors ...
+    /// let result = sink.finish_with_value(42);
+    /// ```
+    ///
+    /// [`finish`]: ReportSink::finish
     pub fn finish_with_value<T>(mut self, ok: T) -> Result<T, Report<[C]>> {
         self.bomb.defuse();
         self.report.map_or(Ok(ok), Err)

@@ -472,7 +472,7 @@
 //! `serde`        | Enables serialization support for [`Report`]                        | disabled
 //! `anyhow`       | Provides `into_report` to convert [`anyhow::Error`] to [`Report`]   | disabled
 //! `eyre`         | Provides `into_report` to convert [`eyre::Report`] to [`Report`]    | disabled
-//! `futures`      | Enables support for [`futures::Stream`], requires `unstable`        | disabled
+//! `futures`      | Enables support for [`Stream`], requires `unstable`                 | disabled
 //! `unstable`     | Enables unstable features, these features are not covered by semver | disabled
 //!
 //!
@@ -484,6 +484,7 @@
 //! [`Display`]: core::fmt::Display
 //! [`Debug`]: core::fmt::Debug
 //! [`SpanTrace`]: tracing_error::SpanTrace
+//! [`Stream`]: futures_core::Stream
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(
     nightly,
