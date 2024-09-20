@@ -156,9 +156,9 @@ export const createMachineActorEntity = async (
     { actorId: machineAccountId },
     {
       draft: false,
-      entityTypeId:
-        (machineEntityTypeId as Machine["entityTypeId"] | undefined) ??
-        systemEntityTypes.machine.entityTypeId,
+      entityTypeIds: machineEntityTypeId
+        ? ([machineEntityTypeId] as Machine["entityTypeIds"])
+        : [systemEntityTypes.machine.entityTypeId],
       ownedById,
       properties: {
         value: {

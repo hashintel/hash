@@ -85,11 +85,12 @@ export const getSecretEntitiesForIntegration = async ({
 
       for (const link of linkEntities) {
         if (
-          link.metadata.entityTypeId !==
-          systemLinkEntityTypes.usesUserSecret.linkEntityTypeId
+          !link.metadata.entityTypeIds.includes(
+            systemLinkEntityTypes.usesUserSecret.linkEntityTypeId,
+          )
         ) {
           throw new Error(
-            `Unexpected entity type ${link.metadata.entityTypeId} in getSecretsForAccount subgraph`,
+            `Unexpected entity type ${link.metadata.entityTypeIds.join(", ")} in getSecretsForAccount subgraph`,
           );
         }
 
@@ -108,11 +109,12 @@ export const getSecretEntitiesForIntegration = async ({
         }
 
         if (
-          target.metadata.entityTypeId !==
-          systemEntityTypes.userSecret.entityTypeId
+          !target.metadata.entityTypeIds.includes(
+            systemEntityTypes.userSecret.entityTypeId,
+          )
         ) {
           throw new Error(
-            `Unexpected entity type ${target.metadata.entityTypeId} in getSecretsForAccount subgraph`,
+            `Unexpected entity type(s) ${target.metadata.entityTypeIds.join(", ")} in getSecretsForAccount subgraph`,
           );
         }
 
