@@ -124,8 +124,8 @@ all_the_tuples!(impl_ext);
 
 #[cfg(test)]
 mod test {
+    use alloc::{borrow::ToOwned, collections::BTreeSet, string::String};
     use core::{error::Error, fmt::Display};
-    use std::collections::HashSet;
 
     use super::TryReportTupleExt;
     use crate::{Report, Result};
@@ -150,7 +150,7 @@ mod test {
         let combined = (result1, result2, result3).try_collect();
         let report = combined.expect_err("should have error");
 
-        let contexts: HashSet<_> = report.current_contexts().collect();
+        let contexts: BTreeSet<_> = report.current_contexts().collect();
         assert_eq!(contexts.len(), 1);
         assert!(contexts.contains(&TestError(0)));
     }
@@ -179,7 +179,7 @@ mod test {
         let report = combined.expect_err("should have error");
 
         // order of contexts is not guaranteed
-        let contexts: HashSet<_> = report.current_contexts().collect();
+        let contexts: BTreeSet<_> = report.current_contexts().collect();
         assert_eq!(contexts.len(), 1);
         assert!(contexts.contains(&TestError(0)));
     }
@@ -194,7 +194,7 @@ mod test {
         let report = combined.expect_err("should have error");
 
         // order of contexts is not guaranteed
-        let contexts: HashSet<_> = report.current_contexts().collect();
+        let contexts: BTreeSet<_> = report.current_contexts().collect();
         assert_eq!(contexts.len(), 2);
         assert!(contexts.contains(&TestError(0)));
         assert!(contexts.contains(&TestError(1)));
@@ -210,7 +210,7 @@ mod test {
         let report = combined.expect_err("should have error");
 
         // order of contexts is not guaranteed
-        let contexts: HashSet<_> = report.current_contexts().collect();
+        let contexts: BTreeSet<_> = report.current_contexts().collect();
         assert_eq!(contexts.len(), 2);
         assert!(contexts.contains(&TestError(0)));
         assert!(contexts.contains(&TestError(1)));

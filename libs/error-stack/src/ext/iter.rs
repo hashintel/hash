@@ -197,8 +197,8 @@ where
 #[cfg(test)]
 mod tests {
     #![allow(clippy::integer_division_remainder_used)]
+    use alloc::{collections::BTreeSet, vec::Vec};
     use core::fmt;
-    use std::collections::HashSet;
 
     use super::*;
 
@@ -226,7 +226,7 @@ mod tests {
         let result: Result<Vec<_>, [CustomError]> = iter.try_collect_reports();
         let report = result.expect_err("should have failed");
 
-        let contexts: HashSet<_> = report.current_contexts().collect();
+        let contexts: BTreeSet<_> = report.current_contexts().collect();
         assert_eq!(contexts.len(), 2);
         assert!(contexts.contains(&CustomError(1)));
         assert!(contexts.contains(&CustomError(3)));
@@ -245,7 +245,7 @@ mod tests {
         let result: Result<Vec<_>, [CustomError]> = iter.try_collect_reports_bounded(3);
         let report = result.expect_err("should have failed");
 
-        let contexts: HashSet<_> = report.current_contexts().collect();
+        let contexts: BTreeSet<_> = report.current_contexts().collect();
         assert_eq!(contexts.len(), 3);
         assert!(contexts.contains(&CustomError(1)));
         assert!(contexts.contains(&CustomError(3)));
@@ -275,7 +275,7 @@ mod tests {
         let result: Result<Vec<_>, [CustomError]> = iter.try_collect_reports();
         let report = result.expect_err("should have failed");
 
-        let contexts: HashSet<_> = report.current_contexts().collect();
+        let contexts: BTreeSet<_> = report.current_contexts().collect();
         assert_eq!(contexts.len(), 2);
         assert!(contexts.contains(&CustomError(1)));
         assert!(contexts.contains(&CustomError(3)));
