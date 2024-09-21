@@ -152,7 +152,7 @@ pub trait TryReportStreamExt<C>: TryStream<Error: Into<Report<[C]>>> {
     /// assert_eq!(report.current_contexts().count(), 2);
     /// # }
     /// #
-    /// # tokio::runtime::Runtime::new().unwrap().block_on(example());
+    /// # futures::executor::block_on(example());
     /// ```
     fn try_collect_reports<A>(self) -> TryCollectReports<Self, A, C>
     where
@@ -198,7 +198,7 @@ pub trait TryReportStreamExt<C>: TryStream<Error: Into<Report<[C]>>> {
     /// assert_eq!(report.current_contexts().count(), 1);
     /// # }
     /// #
-    /// # tokio::runtime::Runtime::new().unwrap().block_on(example());
+    /// # futures::executor::block_on(example());
     /// ```
     fn try_collect_reports_bounded<A>(self, bound: usize) -> TryCollectReports<Self, A, C>
     where

@@ -1946,6 +1946,7 @@ dependencies = [
  "eyre",
  "futures",
  "futures-core",
+ "futures-util",
  "insta",
  "once_cell",
  "owo-colors",

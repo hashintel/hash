@@ -44,6 +44,7 @@ supports-color = { workspace = true }
 supports-unicode = { workspace = true }
 owo-colors = { workspace = true }
 thiserror = { workspace = true }
+futures-util.workspace = true
 
 [build-dependencies]
 rustc_version = { workspace = true }

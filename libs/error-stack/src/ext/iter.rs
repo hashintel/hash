@@ -116,7 +116,7 @@ pub trait TryReportIteratorExt<C> {
     /// # Examples
     ///
     /// ```
-    /// use error_stack::{Result, ResultExt, Report, TryReportIteratorExt};
+    /// use error_stack::{Result, Report, TryReportIteratorExt};
     /// use std::io;
     ///
     /// fn fetch_fail() -> Result<u8, io::Error> {
@@ -151,7 +151,7 @@ pub trait TryReportIteratorExt<C> {
     /// # Examples
     ///
     /// ```
-    /// use error_stack::{Result, ResultExt, Report, TryReportIteratorExt};
+    /// use error_stack::{Result, Report, TryReportIteratorExt};
     /// use std::io;
     ///
     /// fn fetch_fail() -> Result<u8, io::Error> {

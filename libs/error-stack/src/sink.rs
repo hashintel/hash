@@ -74,7 +74,7 @@ impl Drop for Bomb {
 /// # Examples
 ///
 /// ```
-/// use error_stack::{Report, ReportSink, Result};
+/// use error_stack::{ReportSink, Result};
 ///
 /// #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 /// struct InternalError;
@@ -87,21 +87,22 @@ impl Drop for Bomb {
 ///
 /// impl core::error::Error for InternalError {}
 ///
-/// fn operation1() -> Result<u32, MyError> {
+/// fn operation1() -> Result<u32, InternalError> {
 ///     // ...
-///     # todo!()
+///     # Ok(42)
 /// }
 ///
-/// fn operation2() -> Result<(), MyError> {
+/// fn operation2() -> Result<(), InternalError> {
 ///     // ...
-///     # todo!()
+///     # Ok(())
 /// }
 ///
-/// fn process_data() -> Result<(), Report<[MyError]>> {
+/// fn process_data() -> Result<(), [InternalError]> {
 ///     let mut sink = ReportSink::new();
 ///
 ///     if let Some(value) = sink.attempt(operation1()) {
 ///         // process value
+///         # let _value = value;
 ///     }
 ///
 ///     if let Err(e) = operation2() {
@@ -110,6 +111,7 @@ impl Drop for Bomb {
 ///
 ///     sink.finish()
 /// }
+/// # let _result = process_data();
 /// ```
 #[must_use]
 pub struct ReportSink<C> {
@@ -143,8 +145,13 @@ impl<C> ReportSink<C> {
     /// # Examples
     ///
     /// ```
+    /// # use error_stack::{ReportSink, Report};
+    /// # use std::io;
     /// let mut sink = ReportSink::new();
-    /// sink.add(Report::new(MyError::SomeError));
+    /// sink.add(Report::new(io::Error::new(
+    ///     io::ErrorKind::Other,
+    ///     "I/O error",
+    /// )));
     /// ```
     pub fn add(&mut self, report: impl Into<Report<[C]>>) {
         let report = report.into();
@@ -163,8 +170,10 @@ impl<C> ReportSink<C> {
     /// # Examples
     ///
     /// ```
+    /// # use error_stack::ReportSink;
+    /// # use std::io;
     /// let mut sink = ReportSink::new();
-    /// sink.capture(MyError::AnotherError);
+    /// sink.capture(io::Error::new(io::ErrorKind::Other, "I/O error"));
     /// ```
     ///
     /// [`add`]: ReportSink::add
@@ -189,12 +198,21 @@ impl<C> ReportSink<C> {
     /// # Examples
     ///
     /// ```
+    /// # use error_stack::ReportSink;
+    /// # use std::io;
+    /// fn fallible_operation() -> Result<u32, io::Error> {
+    ///     // ...
+    ///     # Ok(42)
+    /// }
+    ///
     /// let mut sink = ReportSink::new();
     /// let value = sink.attempt(fallible_operation());
     /// if let Some(v) = value {
     ///     // Use the successful value
+    ///     # let _v = v;
     /// }
     /// // Any errors are now collected in the sink
+    /// # let _result = sink.finish();
     /// ```
     pub fn attempt<T, R>(&mut self, result: Result<T, R>) -> Option<T>
     where
@@ -217,9 +235,14 @@ impl<C> ReportSink<C> {
     /// # Examples
     ///
     /// ```
+    /// # use error_stack::ReportSink;
+    /// # use std::io;
     /// let mut sink = ReportSink::new();
+    /// # // needed for type inference
+    /// # sink.capture(io::Error::new(io::ErrorKind::Other, "I/O error"));
     /// // ... add errors ...
     /// let result = sink.finish();
+    /// # let _result = result;
     /// ```
     pub fn finish(mut self) -> Result<(), Report<[C]>> {
         self.bomb.defuse();
@@ -233,9 +256,14 @@ impl<C> ReportSink<C> {
     /// # Examples
     ///
     /// ```
+    /// # use error_stack::ReportSink;
+    /// # use std::io;
     /// let mut sink = ReportSink::new();
+    /// # // needed for type inference
+    /// # sink.capture(io::Error::new(io::ErrorKind::Other, "I/O error"));
     /// // ... add errors ...
     /// let result = sink.finish_with(|| "Operation completed");
+    /// # let _result = result;
     /// ```
     ///
     /// [`finish`]: ReportSink::finish
@@ -251,9 +279,14 @@ impl<C> ReportSink<C> {
     /// # Examples
     ///
     /// ```
+    /// # use error_stack::ReportSink;
+    /// # use std::io;
     /// let mut sink = ReportSink::new();
+    /// # // needed for type inference
+    /// # sink.capture(io::Error::new(io::ErrorKind::Other, "I/O error"));
     /// // ... add errors ...
     /// let result: Result<Vec<String>, _> = sink.finish_with_default();
+    /// # let _result = result;
     /// ```
     ///
     /// [`finish`]: ReportSink::finish
@@ -269,9 +302,14 @@ impl<C> ReportSink<C> {
     /// # Examples
     ///
     /// ```
+    /// # use error_stack::ReportSink;
+    /// # use std::io;
     /// let mut sink = ReportSink::new();
+    /// # // needed for type inference
+    /// # sink.capture(io::Error::new(io::ErrorKind::Other, "I/O error"));
     /// // ... add errors ...
     /// let result = sink.finish_with_value(42);
+    /// # let _result = result;
     /// ```
     ///
     /// [`finish`]: ReportSink::finish
