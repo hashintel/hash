@@ -786,9 +786,9 @@ dependencies = [
 
 [[package]]
 name = "axum"
-version = "0.7.5"
+version = "0.7.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3a6c9af12842a67734c9a2e355436e5d03b22383ed60cf13cd0c18fbfe3dcbcf"
+checksum = "8f43644eed690f5374f1af436ecd6aea01cd201f6fbdf0178adaf6907afb2cec"
 dependencies = [
  "async-trait",
  "axum-core 0.4.4",
@@ -812,7 +812,7 @@ dependencies = [
  "serde_urlencoded",
  "sync_wrapper 1.0.1",
  "tokio",
- "tower 0.4.13",
+ "tower 0.5.1",
  "tower-layer",
  "tower-service",
  "tracing",
@@ -2367,7 +2367,7 @@ version = "0.0.0"
 dependencies = [
  "async-trait",
  "authorization",
- "axum 0.7.5",
+ "axum 0.7.6",
  "axum-core 0.4.4",
  "bytes",
  "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -2595,7 +2595,7 @@ name = "hash-graph"
 version = "0.0.0"
 dependencies = [
  "authorization",
- "axum 0.7.5",
+ "axum 0.7.6",
  "clap",
  "clap_complete",
  "codec",
@@ -6647,7 +6647,7 @@ name = "test-server"
 version = "0.0.0"
 dependencies = [
  "authorization",
- "axum 0.7.5",
+ "axum 0.7.6",
  "codec",
  "error-stack 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "futures",
@@ -7047,8 +7047,10 @@ dependencies = [
  "futures-util",
  "pin-project-lite",
  "sync_wrapper 0.1.2",
+ "tokio",
  "tower-layer",
  "tower-service",
+ "tracing",
 ]
 
 [[package]]
