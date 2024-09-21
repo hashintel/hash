@@ -1082,11 +1082,13 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
             .await
             .change_context(AccountGroupInsertionError)?;
 
-        if let Err(mut error) = transaction
+        if let Err(error) = transaction
             .commit()
             .await
             .change_context(AccountGroupInsertionError)
         {
+            let mut error = error.expand();
+
             if let Err(auth_error) = self
                 .authorization_api
                 .modify_account_group_relations([(
@@ -1100,12 +1102,10 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                 .await
                 .change_context(AccountGroupInsertionError)
             {
-                // TODO: Use `add_child`
-                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
-                error.extend_one(auth_error);
+                error.push(auth_error);
             }
 
-            Err(error)
+            Err(error.change_context(AccountGroupInsertionError))
         } else {
             Ok(())
         }
@@ -1184,7 +1184,9 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
             .await
             .change_context(WebInsertionError)?;
 
-        if let Err(mut error) = transaction.commit().await.change_context(WebInsertionError) {
+        if let Err(error) = transaction.commit().await.change_context(WebInsertionError) {
+            let mut error = error.expand();
+
             if let Err(auth_error) = self
                 .authorization_api
                 .modify_web_relations(relationships.into_iter().map(|relation_and_subject| {
@@ -1197,12 +1199,10 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                 .await
                 .change_context(WebInsertionError)
             {
-                // TODO: Use `add_child`
-                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
-                error.extend_one(auth_error);
+                error.push(auth_error);
             }
 
-            Err(error)
+            Err(error.change_context(WebInsertionError))
         } else {
             Ok(())
         }

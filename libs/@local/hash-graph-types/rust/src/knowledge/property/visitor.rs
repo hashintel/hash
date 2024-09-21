@@ -1,6 +1,6 @@
 use core::{borrow::Borrow, future::Future};
 
-use error_stack::{bail, Report, ResultExt};
+use error_stack::{bail, Report, ReportSink, ResultExt};
 use serde_json::Value as JsonValue;
 use type_system::{
     schema::{
@@ -95,7 +95,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
         value: &mut JsonValue,
         metadata: &mut ValueMetadata,
         type_provider: &P,
-    ) -> impl Future<Output = Result<(), Report<TraversalError>>> + Send
+    ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
     where
         P: DataTypeProvider + Sync,
     {
@@ -110,7 +110,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
         schema: &PropertyType,
         property: &mut PropertyWithMetadata,
         type_provider: &P,
-    ) -> impl Future<Output = Result<(), Report<TraversalError>>> + Send
+    ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
     where
         P: DataTypeProvider + PropertyTypeProvider + Sync,
     {
@@ -125,7 +125,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
         schema: &PropertyValueArray<T>,
         array: &mut PropertyWithMetadataArray,
         type_provider: &P,
-    ) -> impl Future<Output = Result<(), Report<TraversalError>>> + Send
+    ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
     where
         T: PropertyValueSchema + Sync,
         P: DataTypeProvider + PropertyTypeProvider + Sync,
@@ -141,7 +141,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
         schema: &T,
         object: &mut PropertyWithMetadataObject,
         type_provider: &P,
-    ) -> impl Future<Output = Result<(), Report<TraversalError>>> + Send
+    ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
     where
         T: PropertyObjectSchema<Value = ValueOrArray<PropertyTypeReference>> + Sync,
         P: DataTypeProvider + PropertyTypeProvider + Sync,
@@ -157,7 +157,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
         schema: &[PropertyValues],
         property: &mut PropertyWithMetadataValue,
         type_provider: &P,
-    ) -> impl Future<Output = Result<(), Report<TraversalError>>> + Send
+    ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
     where
         P: DataTypeProvider + Sync,
     {
@@ -172,7 +172,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
         schema: &[PropertyValues],
         array: &mut PropertyWithMetadataArray,
         type_provider: &P,
-    ) -> impl Future<Output = Result<(), Report<TraversalError>>> + Send
+    ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
     where
         P: DataTypeProvider + PropertyTypeProvider + Sync,
     {
@@ -187,22 +187,12 @@ pub trait EntityVisitor: Sized + Send + Sync {
         schema: &[PropertyValues],
         object: &mut PropertyWithMetadataObject,
         type_provider: &P,
-    ) -> impl Future<Output = Result<(), Report<TraversalError>>> + Send
+    ) -> impl Future<Output = Result<(), Report<[TraversalError]>>> + Send
     where
         P: DataTypeProvider + PropertyTypeProvider + Sync,
     {
         walk_one_of_object(self, schema, object, type_provider)
     }
-}
-
-macro_rules! extend_report {
-    ($status:ident, $error:expr $(,)?) => {
-        if let Err(ref mut report) = $status {
-            report.extend_one(error_stack::report!($error))
-        } else {
-            $status = Err(error_stack::report!($error))
-        }
-    };
 }
 
 /// Walks through a JSON value using the provided schema.
@@ -218,12 +208,13 @@ pub async fn walk_value<V, P>(
     value: &mut JsonValue,
     metadata: &mut ValueMetadata,
     type_provider: &P,
-) -> Result<(), Report<TraversalError>>
+) -> Result<(), Report<[TraversalError]>>
 where
     V: EntityVisitor,
     P: DataTypeProvider + Sync,
 {
-    let mut status = Ok::<_, Report<TraversalError>>(());
+    let mut status = ReportSink::new();
+
     for parent in &data_type.schema.all_of {
         match type_provider
             .provide_type(&parent.url)
@@ -235,16 +226,18 @@ where
                     .visit_value(parent.borrow(), value, metadata, type_provider)
                     .await
                 {
-                    extend_report!(status, error);
+                    status.add(error);
                 }
             }
             Err(error) => {
-                extend_report!(status, error);
+                status.add(error);
+
                 continue;
             }
         }
     }
-    status
+
+    status.finish()
 }
 
 /// Walks through a property using the provided schema.
@@ -260,7 +253,7 @@ pub async fn walk_property<V, P>(
     schema: &PropertyType,
     property: &mut PropertyWithMetadata,
     type_provider: &P,
-) -> Result<(), Report<TraversalError>>
+) -> Result<(), Report<[TraversalError]>>
 where
     V: EntityVisitor,
     P: DataTypeProvider + PropertyTypeProvider + Sync,
@@ -297,13 +290,14 @@ pub async fn walk_array<V, S, P>(
     schema: &PropertyValueArray<S>,
     array: &mut PropertyWithMetadataArray,
     type_provider: &P,
-) -> Result<(), Report<TraversalError>>
+) -> Result<(), Report<[TraversalError]>>
 where
     V: EntityVisitor,
     S: PropertyValueSchema + Sync,
     P: DataTypeProvider + PropertyTypeProvider + Sync,
 {
-    let mut status = Ok::<_, Report<TraversalError>>(());
+    let mut status = ReportSink::new();
+
     for property in &mut array.value {
         match property {
             PropertyWithMetadata::Value(value) => {
@@ -311,7 +305,7 @@ where
                     .visit_one_of_property(schema.items.possibilities(), value, type_provider)
                     .await
                 {
-                    extend_report!(status, error);
+                    status.add(error);
                 }
             }
             PropertyWithMetadata::Array(array) => {
@@ -319,7 +313,7 @@ where
                     .visit_one_of_array(schema.items.possibilities(), array, type_provider)
                     .await
                 {
-                    extend_report!(status, error);
+                    status.add(error);
                 }
             }
             PropertyWithMetadata::Object(object) => {
@@ -327,13 +321,13 @@ where
                     .visit_one_of_object(schema.items.possibilities(), object, type_provider)
                     .await
                 {
-                    extend_report!(status, error);
+                    status.add(error);
                 }
             }
         }
     }
 
-    status
+    status.finish()
 }
 
 /// Walks through a property object using the provided schema.
@@ -360,22 +354,20 @@ pub async fn walk_object<V, S, P>(
     schema: &S,
     object: &mut PropertyWithMetadataObject,
     type_provider: &P,
-) -> Result<(), Report<TraversalError>>
+) -> Result<(), Report<[TraversalError]>>
 where
     V: EntityVisitor,
     S: PropertyObjectSchema<Value = ValueOrArray<PropertyTypeReference>> + Sync,
     P: DataTypeProvider + PropertyTypeProvider + Sync,
 {
-    let mut status = Ok::<_, Report<TraversalError>>(());
+    let mut status = ReportSink::new();
 
     for (base_url, property) in &mut object.value {
         let Some(property_type_reference) = schema.properties().get(base_url) else {
-            extend_report!(
-                status,
-                TraversalError::UnexpectedProperty {
-                    key: base_url.clone()
-                }
-            );
+            status.capture(TraversalError::UnexpectedProperty {
+                key: base_url.clone(),
+            });
+
             continue;
         };
 
@@ -417,19 +409,20 @@ where
                         )
                         .await;
                     if let Err(error) = result {
-                        extend_report!(status, error);
+                        status.add(error);
                     }
                 }
                 PropertyWithMetadata::Object { .. } | PropertyWithMetadata::Value(_) => {
-                    bail!(TraversalError::InvalidType {
+                    bail![TraversalError::InvalidType {
                         actual: property.json_type(),
                         expected: JsonSchemaValueType::Array,
-                    })
+                    },]
                 }
             },
         };
     }
-    status
+
+    status.finish()
 }
 
 /// Walks through a property value using the provided schema list.
@@ -449,12 +442,12 @@ pub async fn walk_one_of_property_value<V, P>(
     schema: &[PropertyValues],
     property: &mut PropertyWithMetadataValue,
     type_provider: &P,
-) -> Result<(), Report<TraversalError>>
+) -> Result<(), Report<[TraversalError]>>
 where
     V: EntityVisitor,
     P: DataTypeProvider + Sync,
 {
-    let mut status: Result<(), Report<TraversalError>> = Ok(());
+    let mut status = ReportSink::new();
     let mut passed: usize = 0;
 
     for schema in schema {
@@ -475,41 +468,32 @@ where
                     )
                     .await
                 {
-                    extend_report!(status, error);
+                    status.add(error);
                 } else {
                     passed += 1;
                 }
             }
             PropertyValues::ArrayOfPropertyValues(_) => {
-                extend_report!(
-                    status,
-                    TraversalError::ExpectedValue {
-                        actual: JsonSchemaValueType::Array,
-                    }
-                );
+                status.capture(TraversalError::ExpectedValue {
+                    actual: JsonSchemaValueType::Array,
+                });
             }
             PropertyValues::PropertyTypeObject(_) => {
-                extend_report!(
-                    status,
-                    TraversalError::ExpectedValue {
-                        actual: JsonSchemaValueType::Object,
-                    }
-                );
+                status.capture(TraversalError::ExpectedValue {
+                    actual: JsonSchemaValueType::Object,
+                });
             }
         }
     }
 
     match passed {
-        0 => status,
+        0 => status.finish(),
         1 => Ok(()),
         _ => {
-            extend_report!(
-                status,
-                TraversalError::AmbiguousProperty {
-                    actual: PropertyWithMetadata::Value(property.clone()),
-                }
-            );
-            status
+            status.capture(TraversalError::AmbiguousProperty {
+                actual: PropertyWithMetadata::Value(property.clone()),
+            });
+            status.finish()
         }
     }
 }
@@ -529,55 +513,47 @@ pub async fn walk_one_of_array<V, P>(
     schema: &[PropertyValues],
     array: &mut PropertyWithMetadataArray,
     type_provider: &P,
-) -> Result<(), Report<TraversalError>>
+) -> Result<(), Report<[TraversalError]>>
 where
     V: EntityVisitor,
     P: DataTypeProvider + PropertyTypeProvider + Sync,
 {
-    let mut status: Result<(), Report<TraversalError>> = Ok(());
+    let mut status = ReportSink::new();
     let mut passed: usize = 0;
 
     for schema in schema {
         match schema {
             PropertyValues::DataTypeReference(_) => {
-                extend_report!(
-                    status,
-                    TraversalError::ExpectedValue {
-                        actual: JsonSchemaValueType::Array,
-                    }
-                );
+                status.capture(TraversalError::ExpectedValue {
+                    actual: JsonSchemaValueType::Array,
+                });
             }
             PropertyValues::ArrayOfPropertyValues(array_schema) => {
                 if let Err(error) =
                     Box::pin(visitor.visit_array(array_schema, array, type_provider)).await
                 {
-                    extend_report!(status, error);
+                    status.add(error);
                 } else {
                     passed += 1;
                 }
             }
             PropertyValues::PropertyTypeObject(_) => {
-                extend_report!(
-                    status,
-                    TraversalError::ExpectedValue {
-                        actual: JsonSchemaValueType::Object,
-                    }
-                );
+                status.capture(TraversalError::ExpectedValue {
+                    actual: JsonSchemaValueType::Object,
+                });
             }
         }
     }
 
     match passed {
-        0 => status,
+        0 => status.finish(),
         1 => Ok(()),
         _ => {
-            extend_report!(
-                status,
-                TraversalError::AmbiguousProperty {
-                    actual: PropertyWithMetadata::Array(array.clone()),
-                }
-            );
-            status
+            status.capture(TraversalError::AmbiguousProperty {
+                actual: PropertyWithMetadata::Array(array.clone()),
+            });
+
+            status.finish()
         }
     }
 }
@@ -597,37 +573,31 @@ pub async fn walk_one_of_object<V, P>(
     schema: &[PropertyValues],
     object: &mut PropertyWithMetadataObject,
     type_provider: &P,
-) -> Result<(), Report<TraversalError>>
+) -> Result<(), Report<[TraversalError]>>
 where
     V: EntityVisitor,
     P: DataTypeProvider + PropertyTypeProvider + Sync,
 {
-    let mut status: Result<(), Report<TraversalError>> = Ok(());
+    let mut status = ReportSink::new();
     let mut passed: usize = 0;
 
     for schema in schema {
         match schema {
             PropertyValues::DataTypeReference(_) => {
-                extend_report!(
-                    status,
-                    TraversalError::ExpectedValue {
-                        actual: JsonSchemaValueType::Array,
-                    }
-                );
+                status.capture(TraversalError::ExpectedValue {
+                    actual: JsonSchemaValueType::Array,
+                });
             }
             PropertyValues::ArrayOfPropertyValues(_) => {
-                extend_report!(
-                    status,
-                    TraversalError::ExpectedValue {
-                        actual: JsonSchemaValueType::Object,
-                    }
-                );
+                status.capture(TraversalError::ExpectedValue {
+                    actual: JsonSchemaValueType::Object,
+                });
             }
             PropertyValues::PropertyTypeObject(object_schema) => {
                 if let Err(error) =
                     Box::pin(visitor.visit_object(object_schema, object, type_provider)).await
                 {
-                    extend_report!(status, error);
+                    status.add(error);
                 } else {
                     passed += 1;
                 }
@@ -636,16 +606,14 @@ where
     }
 
     match passed {
-        0 => status,
+        0 => status.finish(),
         1 => Ok(()),
         _ => {
-            extend_report!(
-                status,
-                TraversalError::AmbiguousProperty {
-                    actual: PropertyWithMetadata::Object(object.clone()),
-                }
-            );
-            status
+            status.capture(TraversalError::AmbiguousProperty {
+                actual: PropertyWithMetadata::Object(object.clone()),
+            });
+
+            status.finish()
         }
     }
 }

@@ -70,7 +70,7 @@ type-system.path = "libs/@blockprotocol/type-system/rust"
 validation.path = "libs/@local/hash-validation"
 
 # Pinned workspace members
-error-stack = { version = "=0.5.0", default-features = false }
+error-stack = { path = "./libs/error-stack", default-features = false }
 
 # Public dependencies
 ahash = { version = "=0.8.11", default-features = false }

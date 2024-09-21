@@ -2,12 +2,12 @@ use deer::{
     error::{ArrayAccessError, ArrayLengthError, DeserializerError, Error, Variant},
     Context, Deserialize, Deserializer as _,
 };
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, ReportSink, Result, ResultExt};
 use justjson::parser::{PeekableTokenKind, Token};
 
 use crate::{
     deserializer::Deserializer,
-    error::{ErrorAccumulator, Position, SyntaxError},
+    error::{Position, SyntaxError},
     skip::skip_tokens,
 };
 
@@ -50,7 +50,7 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
     where
         T: Deserialize<'de>,
     {
-        let mut errors = ErrorAccumulator::new();
+        let mut errors = ReportSink::new();
 
         if self.dirty {
             // we parse in a way where every subsequent invocation (except the first one)
@@ -60,8 +60,12 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
             // the statement after this _will_ fail and return the visitor, therefore we don't
             // need to check for EOF
             if let Err(error) = self.try_skip_comma() {
-                errors.extend_one(error);
+                errors.add(error);
             }
+        }
+
+        if let Err(error) = errors.finish() {
+            return Some(Err(error.change_context(ArrayAccessError)));
         }
 
         self.dirty = true;

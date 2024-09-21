@@ -1,11 +1,10 @@
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt, TryReportTupleExt};
 
 use crate::{
     error::{
         DeserializerError, ExpectedLength, ExpectedType, ObjectLengthError, ReceivedLength,
         ReceivedType, TypeError, Variant, VisitorError,
     },
-    ext::TupleExt,
     schema::visitor::ObjectSchema,
     Context, Deserializer, EnumVisitor, FieldVisitor, IdentifierVisitor, ObjectAccess,
     OptionalVisitor, Reflection, StructVisitor, Visitor,
@@ -108,7 +107,7 @@ where
         };
 
         let (value, ()) = (value, access.end())
-            .fold_reports()
+            .try_collect()
             .change_context(DeserializerError)?;
 
         Ok(value)

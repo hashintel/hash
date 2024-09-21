@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{ReportSink, Result, ResultExt};
 use futures::{Stream, TryStreamExt};
 use graph_types::{
     account::{AccountGroupId, AccountId},
@@ -15,8 +15,7 @@ use crate::{
         BulkCheckItem, BulkCheckResponse, CheckError, CheckResponse, DeleteRelationshipError,
         DeleteRelationshipResponse, ExportSchemaError, ExportSchemaResponse, ImportSchemaError,
         ImportSchemaResponse, ModifyRelationError, ModifyRelationshipError,
-        ModifyRelationshipOperation, ModifyRelationshipResponse, ReadError, RpcError,
-        ZanzibarBackend,
+        ModifyRelationshipOperation, ModifyRelationshipResponse, ReadError, ZanzibarBackend,
     },
     schema::{
         AccountGroupPermission, AccountGroupRelationAndSubject, DataTypePermission,
@@ -235,7 +234,9 @@ where
                 consistency,
             )
             .await?;
-        let mut status = Ok::<(), Report<RpcError>>(());
+
+        let mut status = ReportSink::new();
+
         let permissions = response
             .permissions
             .into_iter()
@@ -243,11 +244,8 @@ where
                 let permission = match item.has_permission {
                     Ok(permissionship) => permissionship,
                     Err(error) => {
-                        if let Err(report) = &mut status {
-                            report.extend_one(Report::new(error));
-                        } else {
-                            status = Err(Report::new(error));
-                        }
+                        status.capture(error);
+
                         return None;
                     }
                 };
@@ -256,8 +254,8 @@ where
             .collect();
 
         status
+            .finish_with(|| (permissions, response.checked_at))
             .change_context(CheckError)
-            .map(|()| (permissions, response.checked_at))
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -332,7 +330,9 @@ where
                 consistency,
             )
             .await?;
-        let mut status = Ok::<(), Report<RpcError>>(());
+
+        let mut status = ReportSink::new();
+
         let permissions = response
             .permissions
             .into_iter()
@@ -340,11 +340,8 @@ where
                 let permission = match item.has_permission {
                     Ok(permissionship) => permissionship,
                     Err(error) => {
-                        if let Err(report) = &mut status {
-                            report.extend_one(Report::new(error));
-                        } else {
-                            status = Err(Report::new(error));
-                        }
+                        status.capture(error);
+
                         return None;
                     }
                 };
@@ -353,8 +350,8 @@ where
             .collect();
 
         status
+            .finish_with(|| (permissions, response.checked_at))
             .change_context(CheckError)
-            .map(|()| (permissions, response.checked_at))
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -431,7 +428,9 @@ where
                 consistency,
             )
             .await?;
-        let mut status = Ok::<(), Report<RpcError>>(());
+
+        let mut status = ReportSink::new();
+
         let permissions = response
             .permissions
             .into_iter()
@@ -439,11 +438,8 @@ where
                 let permission = match item.has_permission {
                     Ok(permissionship) => permissionship,
                     Err(error) => {
-                        if let Err(report) = &mut status {
-                            report.extend_one(Report::new(error));
-                        } else {
-                            status = Err(Report::new(error));
-                        }
+                        status.capture(error);
+
                         return None;
                     }
                 };
@@ -452,8 +448,8 @@ where
             .collect();
 
         status
+            .finish_with(|| (permissions, response.checked_at))
             .change_context(CheckError)
-            .map(|()| (permissions, response.checked_at))
     }
 
     #[tracing::instrument(level = "info", skip(self))]
@@ -528,7 +524,9 @@ where
                 consistency,
             )
             .await?;
-        let mut status = Ok::<(), Report<RpcError>>(());
+
+        let mut status = ReportSink::new();
+
         let permissions = response
             .permissions
             .into_iter()
@@ -536,11 +534,8 @@ where
                 let permission = match item.has_permission {
                     Ok(permissionship) => permissionship,
                     Err(error) => {
-                        if let Err(report) = &mut status {
-                            report.extend_one(Report::new(error));
-                        } else {
-                            status = Err(Report::new(error));
-                        }
+                        status.capture(error);
+
                         return None;
                     }
                 };
@@ -549,8 +544,8 @@ where
             .collect();
 
         status
+            .finish_with(|| (permissions, response.checked_at))
             .change_context(CheckError)
-            .map(|()| (permissions, response.checked_at))
     }
 
     #[tracing::instrument(level = "info", skip(self))]

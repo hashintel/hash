@@ -1,13 +1,12 @@
 use core::marker::PhantomData;
 
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt, TryReportTupleExt};
 
 use crate::{
     error::{
         ArrayLengthError, DeserializeError, ExpectedLength, Location, ReceivedLength, Variant,
         VisitorError,
     },
-    ext::TupleExt,
     ArrayAccess, Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
 };
 
@@ -88,10 +87,10 @@ macro_rules! impl_tuple {
                 length += 1;
                 )*
 
-                let value = ($($elem,)*).fold_reports();
+                let value = ($($elem,)*).try_collect();
 
                 (value, array.end())
-                    .fold_reports()
+                    .try_collect()
                     .map(|(value, ())| value)
                     .change_context(VisitorError)
             }
