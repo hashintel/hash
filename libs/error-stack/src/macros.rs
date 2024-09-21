@@ -265,13 +265,18 @@ macro_rules! bail {
     }};
 
     [$($err:expr),+ $(,)?] => {{
-        let mut error: core::result::Result<(), Report<[_]>> = core::result::Result::Ok(());
+        let mut sink = $crate::ReportSink::new();
 
         $(
-            $crate::ResultMultiExt::accumulate(&mut error, $crate::report!($err));
+            sink.capture($err);
         )+
 
-        return error;
+        let error = match sink.finish() {
+            Ok(()) => unreachable!(),
+            Err(error) => error,
+        };
+
+        return core::result::Result::Err(error);
     }};
 }
 
