@@ -52,14 +52,9 @@ impl Drop for Bomb {
 
         match self.0 {
             BombState::Panic => panic!("ReportSink was dropped without being consumed"),
-            #[cfg(feature = "tracing")]
-            BombState::Warn => {
-                tracing::warn!("ReportSink was dropped without being consumed");
-            }
-            #[cfg(not(feature = "tracing"))]
             #[allow(clippy::print_stderr)]
             BombState::Warn => {
-                #[cfg(not(target_arch = "wasm32"))]
+                #[cfg(all(not(target_arch = "wasm32"), feature = "std"))]
                 eprintln!("ReportSink was dropped without being consumed");
             }
             BombState::Defused => {}
