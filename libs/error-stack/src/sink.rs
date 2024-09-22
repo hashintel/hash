@@ -291,7 +291,7 @@ impl<C> ReportSink<C> {
     /// ```
     ///
     /// [`finish`]: ReportSink::finish
-    pub fn finish_with_default<T: Default>(mut self) -> Result<T, Report<[C]>> {
+    pub fn finish_default<T: Default>(mut self) -> Result<T, Report<[C]>> {
         self.bomb.defuse();
         self.report.map_or_else(|| Ok(T::default()), Err)
     }
@@ -600,9 +600,7 @@ mod test {
         sink.append(Report::new(TestError(0)));
         sink.append(Report::new(TestError(1)));
 
-        let report = sink
-            .finish_with_default::<u8>()
-            .expect_err("should have failed");
+        let report = sink.finish_default::<u8>().expect_err("should have failed");
 
         let contexts: BTreeSet<_> = report.current_contexts().collect();
         assert_eq!(contexts.len(), 2);
@@ -614,9 +612,7 @@ mod test {
     fn finish_with_default_ok() {
         let sink: ReportSink<TestError> = ReportSink::new();
 
-        let value = sink
-            .finish_with_default::<u8>()
-            .expect("should have succeeded");
+        let value = sink.finish_default::<u8>().expect("should have succeeded");
         assert_eq!(value, 0);
     }
 
