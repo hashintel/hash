@@ -377,7 +377,7 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
 
             if let Err(error) = self.try_skip(PeekableTokenKind::Colon, SyntaxError::ExpectedColon)
             {
-                errors.add(error);
+                errors.append(error);
             }
 
             let errors = errors.finish().change_context(DeserializerError);

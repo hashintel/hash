@@ -60,7 +60,7 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
                 Some(Err(error)) => {
                     let error = error.attach(Location::Array(index));
 
-                    result.add(error);
+                    result.append(error);
 
                     failed = true;
                 }
@@ -68,7 +68,7 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
         }
 
         if let Err(error) = array.end() {
-            result.add(error);
+            result.append(error);
         }
 
         if let Some(size_hint) = size_hint {
@@ -81,7 +81,7 @@ impl<'de, T: Deserialize<'de>, const N: usize> Visitor<'de> for ArrayVisitor<'de
                     .change_context(ArrayAccessError);
 
                 // we received less items, which means we can emit another error
-                result.add(error);
+                result.append(error);
             }
         }
 

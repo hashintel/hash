@@ -149,12 +149,12 @@ impl<C> ReportSink<C> {
     /// # use error_stack::{ReportSink, Report};
     /// # use std::io;
     /// let mut sink = ReportSink::new();
-    /// sink.add(Report::new(io::Error::new(
+    /// sink.append(Report::new(io::Error::new(
     ///     io::ErrorKind::Other,
     ///     "I/O error",
     /// )));
     /// ```
-    pub fn add(&mut self, report: impl Into<Report<[C]>>) {
+    pub fn append(&mut self, report: impl Into<Report<[C]>>) {
         let report = report.into();
 
         match self.report.as_mut() {
@@ -384,7 +384,7 @@ mod test {
     fn add_single() {
         let mut sink = ReportSink::new();
 
-        sink.add(Report::new(TestError(0)));
+        sink.append(Report::new(TestError(0)));
 
         let report = sink.finish().expect_err("should have failed");
 
@@ -397,8 +397,8 @@ mod test {
     fn add_multiple() {
         let mut sink = ReportSink::new();
 
-        sink.add(Report::new(TestError(0)));
-        sink.add(Report::new(TestError(1)));
+        sink.append(Report::new(TestError(0)));
+        sink.append(Report::new(TestError(1)));
 
         let report = sink.finish().expect_err("should have failed");
 
@@ -461,7 +461,7 @@ mod test {
         fn sink() -> Result<(), Report<[TestError]>> {
             let mut sink = ReportSink::new();
 
-            sink.add(Report::new(TestError(0)));
+            sink.append(Report::new(TestError(0)));
 
             sink?;
             Ok(())
@@ -480,8 +480,8 @@ mod test {
         fn sink() -> Result<(), Report<[TestError]>> {
             let mut sink = ReportSink::new();
 
-            sink.add(Report::new(TestError(0)));
-            sink.add(Report::new(TestError(1)));
+            sink.append(Report::new(TestError(0)));
+            sink.append(Report::new(TestError(1)));
 
             sink?;
             Ok(())
@@ -501,7 +501,7 @@ mod test {
         fn sink() -> Result<u8, Report<[TestError]>> {
             let mut sink = ReportSink::new();
 
-            sink.add(Report::new(TestError(0)));
+            sink.append(Report::new(TestError(0)));
 
             sink?;
             Ok(8)
@@ -521,7 +521,7 @@ mod test {
         fn sink() -> Result<(), Report<[TestError]>> {
             let mut sink = ReportSink::new_armed();
 
-            sink.add(Report::new(TestError(0)));
+            sink.append(Report::new(TestError(0)));
 
             Ok(())
         }
@@ -535,7 +535,7 @@ mod test {
         fn sink() -> Result<(), Report<[TestError]>> {
             let mut sink = ReportSink::new_armed();
 
-            sink.add(Report::new(TestError(0)));
+            sink.append(Report::new(TestError(0)));
 
             sink?;
             Ok(())
@@ -552,8 +552,8 @@ mod test {
     fn finish() {
         let mut sink = ReportSink::new();
 
-        sink.add(Report::new(TestError(0)));
-        sink.add(Report::new(TestError(1)));
+        sink.append(Report::new(TestError(0)));
+        sink.append(Report::new(TestError(1)));
 
         let report = sink.finish().expect_err("should have failed");
 
@@ -574,8 +574,8 @@ mod test {
     fn finish_with() {
         let mut sink = ReportSink::new();
 
-        sink.add(Report::new(TestError(0)));
-        sink.add(Report::new(TestError(1)));
+        sink.append(Report::new(TestError(0)));
+        sink.append(Report::new(TestError(1)));
 
         let report = sink.finish_with(|| 8).expect_err("should have failed");
 
@@ -597,8 +597,8 @@ mod test {
     fn finish_with_default() {
         let mut sink = ReportSink::new();
 
-        sink.add(Report::new(TestError(0)));
-        sink.add(Report::new(TestError(1)));
+        sink.append(Report::new(TestError(0)));
+        sink.append(Report::new(TestError(1)));
 
         let report = sink
             .finish_with_default::<u8>()
@@ -624,8 +624,8 @@ mod test {
     fn finish_with_value() {
         let mut sink = ReportSink::new();
 
-        sink.add(Report::new(TestError(0)));
-        sink.add(Report::new(TestError(1)));
+        sink.append(Report::new(TestError(0)));
+        sink.append(Report::new(TestError(1)));
 
         let report = sink.finish_with_value(8).expect_err("should have failed");
 

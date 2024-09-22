@@ -999,7 +999,7 @@ where
 
             if schema.schemas.is_empty() {
                 let error = Report::new(validation::EntityValidationError::EmptyEntityTypes);
-                status.add(error);
+                status.append(error);
             };
 
             let pre_process_result = EntityPreprocessor {
@@ -1013,7 +1013,7 @@ where
             .await
             .change_context(validation::EntityValidationError::InvalidProperties);
             if let Err(error) = pre_process_result {
-                status.add(error);
+                status.append(error);
             }
 
             if let Err(error) = params
@@ -1022,7 +1022,7 @@ where
                 .validate(&schema, params.components, &validator_provider)
                 .await
             {
-                status.add(error);
+                status.append(error);
             }
         }
 

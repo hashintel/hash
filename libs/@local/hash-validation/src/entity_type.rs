@@ -96,7 +96,7 @@ where
             }
 
             if let Err(error) = schema.validate_value(*link_data, components, context).await {
-                status.add(error);
+                status.append(error);
             }
         } else if is_link {
             status.capture(EntityValidationError::MissingLinkData);
@@ -134,7 +134,7 @@ where
             .validate(schema, components, context)
             .await
         {
-            status.add(error);
+            status.append(error);
         }
         if let Err(error) = self
             .metadata
@@ -142,7 +142,7 @@ where
             .validate(&self.properties, components, context)
             .await
         {
-            status.add(error);
+            status.append(error);
         }
 
         status.finish()
@@ -336,7 +336,7 @@ impl EntityVisitor for EntityPreprocessor {
             .visit_value(data_type, value, metadata, type_provider)
             .await
         {
-            status.add(error);
+            status.append(error);
         }
 
         walk_value(
@@ -483,7 +483,7 @@ impl EntityVisitor for EntityPreprocessor {
                                                 );
                                             }
                                         } else {
-                                            status.add(
+                                            status.append(
                                                 Report::new(TraversalError::InvalidType {
                                                     actual: JsonSchemaValueType::from(
                                                         &property.value,
@@ -506,7 +506,7 @@ impl EntityVisitor for EntityPreprocessor {
                                 }
                             }
                         } else {
-                            status.add(
+                            status.append(
                                 Report::new(TraversalError::InvalidType {
                                     actual: JsonSchemaValueType::from(&property.value),
                                     expected: JsonSchemaValueType::Number,
@@ -520,7 +520,7 @@ impl EntityVisitor for EntityPreprocessor {
                     }
                 }
                 Err(error) => {
-                    status.add(error);
+                    status.append(error);
                 }
             }
         } else {
@@ -529,7 +529,7 @@ impl EntityVisitor for EntityPreprocessor {
 
         if let Err(error) = walk_one_of_property_value(self, schema, property, type_provider).await
         {
-            status.add(error);
+            status.append(error);
         }
 
         status.finish()
@@ -547,7 +547,7 @@ impl EntityVisitor for EntityPreprocessor {
     {
         let mut status = ReportSink::new();
         if let Err(error) = walk_array(self, schema, array, type_provider).await {
-            status.add(error);
+            status.append(error);
         }
 
         if self.components.num_items {
@@ -585,7 +585,7 @@ impl EntityVisitor for EntityPreprocessor {
     {
         let mut status = ReportSink::new();
         if let Err(error) = walk_object(self, schema, object, type_provider).await {
-            status.add(error);
+            status.append(error);
         }
 
         if self.components.required_properties {

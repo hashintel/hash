@@ -371,11 +371,11 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
                             .attach(ExpectedLength::new(1))
                             .change_context(VisitorError);
 
-                        errors.add(error);
+                        errors.append(error);
                     }
                     Some(Ok(VariantField::Id(value))) => id = Some(value),
                     Some(Err(error)) => {
-                        errors.add(error.change_context(VisitorError));
+                        errors.append(error.change_context(VisitorError));
                     }
                 }
 
@@ -384,7 +384,7 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
                         .attach(Location::Field("id"))
                         .attach(ExpectedType::new(u8::reflection()));
 
-                    errors.add(error.change_context(VisitorError));
+                    errors.append(error.change_context(VisitorError));
                 }
 
                 errors.finish().change_context(VisitorError)?;

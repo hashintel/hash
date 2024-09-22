@@ -60,7 +60,7 @@ impl<'de> deer::ArrayAccess<'de> for ArrayAccess<'_, '_, 'de> {
             // the statement after this _will_ fail and return the visitor, therefore we don't
             // need to check for EOF
             if let Err(error) = self.try_skip_comma() {
-                errors.add(error);
+                errors.append(error);
             }
         }
 
