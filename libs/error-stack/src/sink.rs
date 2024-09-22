@@ -11,18 +11,18 @@ use crate::Report;
 /// when methods like `&mut self` are called, marking the value as used prematurely.
 ///
 /// By moving this check to runtime, `Bomb` ensures that `ReportSink` is properly
-/// consumed. Depending on its configuration, it will either:
-/// - Panic if the `ReportSink` is dropped without being used (when set to `Panic` mode)
-/// - Emit a warning to stderr (when in `Warn` mode, which is the default)
-/// - Do nothing if properly defused (i.e., when `ReportSink` is correctly used)
+/// consumed.
 ///
 /// This runtime check complements the compile-time `#[must_use]` attribute,
 /// providing a more robust mechanism to prevent `ReportSink` not being consumed.
 #[derive(Debug, Default)]
 enum BombState {
+    /// Panic if the `ReportSink` is dropped without being used.
     Panic,
+    /// Emit a warning to stderr if the `ReportSink` is dropped without being used.
     #[default]
     Warn,
+    /// Do nothing if the `ReportSink` is properly consumed.
     Defused,
 }
 
