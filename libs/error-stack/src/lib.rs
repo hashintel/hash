@@ -492,7 +492,7 @@
     allow(clippy::incompatible_msrv)
 )]
 #![cfg_attr(all(nightly, feature = "unstable"), feature(try_trait_v2))]
-#![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
+#![cfg_attr(all(doc, nightly), feature(doc_auto_cfg, doc_cfg))]
 #![cfg_attr(all(nightly, feature = "std"), feature(backtrace_frames))]
 #![cfg_attr(
     not(miri),

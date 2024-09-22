@@ -165,7 +165,7 @@ impl<C> ReportSink<C> {
 
     /// Captures a single error or report in the sink.
     ///
-    /// This method is similar to [`add`], but allows for bare errors without prior [`Report`]
+    /// This method is similar to [`append`], but allows for bare errors without prior [`Report`]
     /// creation.
     ///
     /// # Examples
@@ -177,7 +177,7 @@ impl<C> ReportSink<C> {
     /// sink.capture(io::Error::new(io::ErrorKind::Other, "I/O error"));
     /// ```
     ///
-    /// [`add`]: ReportSink::add
+    /// [`append`]: ReportSink::append
     pub fn capture(&mut self, error: impl Into<Report<C>>) {
         let report = error.into();
 
