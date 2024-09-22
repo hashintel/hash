@@ -43,7 +43,7 @@
     "@fortawesome/free-solid-svg-icons": "6.6.0",
     "clsx": "1.2.1",
     "echarts": "5.5.1",
-    "react-loading-skeleton": "3.4.0"
+    "react-loading-skeleton": "3.5.0"
   },
   "devDependencies": {
     "@emotion/cache": "11.13.1",
