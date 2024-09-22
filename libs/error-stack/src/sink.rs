@@ -309,12 +309,12 @@ impl<C> ReportSink<C> {
     /// # // needed for type inference
     /// # sink.capture(io::Error::new(io::ErrorKind::Other, "I/O error"));
     /// // ... add errors ...
-    /// let result = sink.finish_with_value(42);
+    /// let result = sink.finish_ok(42);
     /// # let _result = result;
     /// ```
     ///
     /// [`finish`]: ReportSink::finish
-    pub fn finish_with_value<T>(mut self, ok: T) -> Result<T, Report<[C]>> {
+    pub fn finish_ok<T>(mut self, ok: T) -> Result<T, Report<[C]>> {
         self.bomb.defuse();
         self.report.map_or(Ok(ok), Err)
     }
@@ -627,7 +627,7 @@ mod test {
         sink.append(Report::new(TestError(0)));
         sink.append(Report::new(TestError(1)));
 
-        let report = sink.finish_with_value(8).expect_err("should have failed");
+        let report = sink.finish_ok(8).expect_err("should have failed");
 
         let contexts: BTreeSet<_> = report.current_contexts().collect();
         assert_eq!(contexts.len(), 2);
@@ -639,7 +639,7 @@ mod test {
     fn finish_with_value_ok() {
         let sink: ReportSink<TestError> = ReportSink::new();
 
-        let value = sink.finish_with_value(8).expect("should have succeeded");
+        let value = sink.finish_ok(8).expect("should have succeeded");
         assert_eq!(value, 8);
     }
 }
