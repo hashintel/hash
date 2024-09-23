@@ -273,7 +273,7 @@ macro_rules! bail {
 /// # type Resource = u32;
 /// # let create_user = 0;
 /// # let create_resource = 0;
-/// use error_stack::{bail, Context};
+/// use error_stack::bail;
 ///
 /// #[derive(Debug)]
 /// # #[allow(dead_code)]
@@ -297,6 +297,7 @@ macro_rules! bail {
 ///         PermissionDenied(user, create_resource)
 ///     ];
 /// }
+/// # Ok(())
 /// ```
 #[cfg(feature = "unstable")]
 #[cfg_attr(doc, doc(cfg(all())))]

@@ -107,7 +107,7 @@ impl Drop for Bomb {
 ///     }
 ///
 ///     if let Err(e) = operation2() {
-///         sink.add(e);
+///         sink.append(e);
 ///     }
 ///
 ///     sink.finish()
@@ -286,7 +286,7 @@ impl<C> ReportSink<C> {
     /// # // needed for type inference
     /// # sink.capture(io::Error::new(io::ErrorKind::Other, "I/O error"));
     /// // ... add errors ...
-    /// let result: Result<Vec<String>, _> = sink.finish_with_default();
+    /// let result: Result<Vec<String>, _> = sink.finish_default();
     /// # let _result = result;
     /// ```
     ///
@@ -594,7 +594,7 @@ mod test {
     }
 
     #[test]
-    fn finish_with_default() {
+    fn finish_default() {
         let mut sink = ReportSink::new();
 
         sink.append(Report::new(TestError(0)));
@@ -609,7 +609,7 @@ mod test {
     }
 
     #[test]
-    fn finish_with_default_ok() {
+    fn finish_default_ok() {
         let sink: ReportSink<TestError> = ReportSink::new();
 
         let value = sink.finish_default::<u8>().expect("should have succeeded");
