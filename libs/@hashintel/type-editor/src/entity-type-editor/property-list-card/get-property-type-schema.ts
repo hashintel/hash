@@ -1,10 +1,10 @@
 import type {
-  ArraySchema,
   BaseUrl,
-  ObjectSchema,
   OneOfSchema,
   PropertyType,
   PropertyTypeReference,
+  PropertyValueArray,
+  PropertyValueObject,
   PropertyValues,
   ValueOrArray,
   VersionedUrl,
@@ -25,7 +25,7 @@ const getPrimitiveSchema = ($ref: VersionedUrl): PropertyTypeReference => ({
 
 const getObjectSchema = (
   properties: Property[],
-): ObjectSchema<ValueOrArray<PropertyTypeReference>> => {
+): PropertyValueObject<ValueOrArray<PropertyTypeReference>> => {
   const propertyList: Record<BaseUrl, ValueOrArray<PropertyTypeReference>> = {};
   const requiredArray: BaseUrl[] = [];
 
@@ -58,7 +58,7 @@ const getObjectSchema = (
 const getArraySchema = (
   flattenedExpectedValues: Record<string, CustomExpectedValue>,
   { minItems, maxItems, infinity, itemIds }: ArrayExpectedValue,
-): ArraySchema<OneOfSchema<PropertyValues>> => ({
+): PropertyValueArray<OneOfSchema<PropertyValues>> => ({
   type: "array",
   items: {
     oneOf: itemIds.map((itemId) =>

@@ -17,7 +17,7 @@ const compileIndividualSchemaToTypescript = async (
   type: DataType | PropertyType | EntityType | JsonSchema,
   context: CompileContext,
 ): Promise<CompiledTsType> =>
-  compileJsonSchema(type, type.title, {
+  compileJsonSchema(type as unknown as JsonSchema, type.title, {
     bannerComment: "",
     enableConstEnums: true,
     declareExternallyReferenced: true,

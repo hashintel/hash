@@ -12,7 +12,9 @@ use std::collections::HashSet;
 use serde::{Deserialize, Serialize, Serializer};
 
 use crate::{
-    schema::{ArraySchema, DataTypeReference, ObjectSchema, OneOfSchema, ValueOrArray},
+    schema::{
+        DataTypeReference, OneOfSchema, PropertyValueArray, PropertyValueObject, ValueOrArray,
+    },
     url::VersionedUrl,
 };
 
@@ -62,8 +64,8 @@ impl Serialize for PropertyType {
 )]
 pub enum PropertyValues {
     DataTypeReference(DataTypeReference),
-    PropertyTypeObject(ObjectSchema<ValueOrArray<PropertyTypeReference>>),
-    ArrayOfPropertyValues(ArraySchema<OneOfSchema<PropertyValues>>),
+    PropertyTypeObject(PropertyValueObject<ValueOrArray<PropertyTypeReference>>),
+    ArrayOfPropertyValues(PropertyValueArray<OneOfSchema<PropertyValues>>),
 }
 
 impl PropertyValues {

@@ -8,8 +8,8 @@ use tsify::Tsify;
 
 use crate::{
     schema::{
-        entity_type::InverseEntityTypeMetadata, ArraySchema, EntityTypeReference, OneOfSchema,
-        PropertyTypeReference, ValueOrArray,
+        entity_type::InverseEntityTypeMetadata, EntityTypeReference, OneOfSchema,
+        PropertyTypeReference, PropertyValueArray, ValueOrArray,
     },
     url::{BaseUrl, VersionedUrl},
 };
@@ -36,7 +36,7 @@ enum EntityTypeSchemaTag {
     V3,
 }
 
-type Links = HashMap<VersionedUrl, ArraySchema<Option<OneOfSchema<EntityTypeReference>>>>;
+type Links = HashMap<VersionedUrl, PropertyValueArray<Option<OneOfSchema<EntityTypeReference>>>>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(Tsify))]
@@ -66,7 +66,7 @@ pub struct EntityType<'a> {
     #[cfg_attr(
         target_arch = "wasm32",
         tsify(
-            type = "Record<VersionedUrl, ArraySchema<OneOfSchema<EntityTypeReference> | \
+            type = "Record<VersionedUrl, PropertyValueArray<OneOfSchema<EntityTypeReference> | \
                     Record<string, never>>>"
         )
     )]
@@ -85,7 +85,7 @@ mod links {
     use serde::{Deserialize, Serialize};
 
     use crate::{
-        schema::{entity_type::raw::Links, ArraySchema, EntityTypeReference, OneOfSchema},
+        schema::{entity_type::raw::Links, EntityTypeReference, OneOfSchema, PropertyValueArray},
         url::VersionedUrl,
     };
 
@@ -108,7 +108,7 @@ mod links {
         for (url, val) in links {
             map.serialize_entry(
                 &url,
-                &ArraySchema {
+                &PropertyValueArray {
                     items: Maybe {
                         inner: val.items.as_ref(),
                     },
@@ -140,8 +140,8 @@ mod links {
                 A: MapAccess<'de>,
             {
                 let mut links = HashMap::new();
-                while let Some((key, value)) = map.next_entry::<VersionedUrl, ArraySchema<Maybe<OneOfSchema<EntityTypeReference>>>>()? {
-                    links.insert(key, ArraySchema {
+                while let Some((key, value)) = map.next_entry::<VersionedUrl, PropertyValueArray<Maybe<OneOfSchema<EntityTypeReference>>>>()? {
+                    links.insert(key, PropertyValueArray {
                         items: value.items.inner,
                         min_items: value.min_items,
                         max_items: value.max_items,

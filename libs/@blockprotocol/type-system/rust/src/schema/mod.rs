@@ -14,7 +14,7 @@ mod object;
 mod one_of;
 
 pub use self::{
-    array::{ArraySchema, PropertyArraySchema, ValueOrArray},
+    array::{PropertyArraySchema, PropertyValueArray, ValueOrArray},
     data_type::{
         ClosedDataType, ClosedDataTypeMetadata, ConversionDefinition, ConversionExpression,
         ConversionValue, Conversions, DataType, DataTypeLabel, DataTypeReference,
@@ -26,7 +26,8 @@ pub use self::{
         EntityTypeValidationError, EntityTypeValidator,
     },
     object::{
-        ObjectSchema, ObjectSchemaValidationError, ObjectSchemaValidator, PropertyObjectSchema,
+        ObjectSchemaValidationError, ObjectSchemaValidator, PropertyObjectSchema,
+        PropertyValueObject,
     },
     one_of::{OneOfSchema, OneOfSchemaValidationError, OneOfSchemaValidator},
     property_type::{

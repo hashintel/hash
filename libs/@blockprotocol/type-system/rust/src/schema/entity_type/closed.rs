@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     schema::{
-        entity_type::extend_links, one_of::OneOfSchema, ArraySchema, EntityType,
-        EntityTypeReference, PropertyTypeReference, ValueOrArray,
+        entity_type::extend_links, one_of::OneOfSchema, EntityType, EntityTypeReference,
+        PropertyTypeReference, PropertyValueArray, ValueOrArray,
     },
     url::{BaseUrl, VersionedUrl},
 };
@@ -25,7 +25,7 @@ pub struct ClosedEntityType {
     #[serde(default, skip_serializing_if = "HashSet::is_empty")]
     pub required: HashSet<BaseUrl>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
-    pub links: HashMap<VersionedUrl, ArraySchema<Option<OneOfSchema<EntityTypeReference>>>>,
+    pub links: HashMap<VersionedUrl, PropertyValueArray<Option<OneOfSchema<EntityTypeReference>>>>,
     #[serde(default, skip_serializing_if = "HashSet::is_empty")]
     pub all_of: HashSet<EntityTypeReference>,
 }

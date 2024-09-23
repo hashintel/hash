@@ -25,8 +25,8 @@ use serde_json::Value as JsonValue;
 use thiserror::Error;
 use type_system::{
     schema::{
-        ArraySchema, ClosedEntityType, DataTypeReference, JsonSchemaValueType,
-        PropertyObjectSchema, PropertyType, PropertyTypeReference, PropertyValueSchema,
+        ClosedEntityType, DataTypeReference, JsonSchemaValueType, PropertyObjectSchema,
+        PropertyType, PropertyTypeReference, PropertyValueArray, PropertyValueSchema,
         PropertyValues, ValueOrArray,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
@@ -560,7 +560,7 @@ impl EntityVisitor for EntityPreprocessor {
 
     async fn visit_array<T, P>(
         &mut self,
-        schema: &ArraySchema<T>,
+        schema: &PropertyValueArray<T>,
         array: &mut PropertyWithMetadataArray,
         type_provider: &P,
     ) -> Result<(), Report<TraversalError>>

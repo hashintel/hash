@@ -1,22 +1,76 @@
 use error_stack::Report;
+use serde::{Deserialize, Serialize};
+use serde_json::{json, Map as JsonMap, Value as JsonValue};
+use thiserror::Error;
 
-use super::{extend_report, ConstraintError};
-use crate::schema::{DataType, JsonSchemaValueType};
+use crate::schema::DataTypeLabel;
 
-type JsonObject = serde_json::Map<String, serde_json::Value>;
+#[derive(Debug, Error)]
+pub enum ObjectValidationError {
+    #[error(
+        "the provided value is not equal to the expected value, expected `{}` to be equal \
+         to `{}`", json!(actual), json!(expected)
+    )]
+    InvalidConstValue {
+        actual: JsonMap<String, JsonValue>,
+        expected: JsonMap<String, JsonValue>,
+    },
+    #[error("the provided value is not one of the expected values, expected `{}` to be one of `{}`", json!(actual), json!(expected))]
+    InvalidEnumValue {
+        actual: JsonMap<String, JsonValue>,
+        expected: Vec<JsonMap<String, JsonValue>>,
+    },
+}
 
-pub(crate) fn check_object_constraints(
-    _actual: &JsonObject,
-    data_type: &DataType,
-    result: &mut Result<(), Report<ConstraintError>>,
-) {
-    if !data_type.json_type.contains(&JsonSchemaValueType::Object) {
-        extend_report!(
-            *result,
-            ConstraintError::InvalidType {
-                actual: JsonSchemaValueType::Object,
-                expected: data_type.json_type.clone()
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ObjectSchema {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "DataTypeLabel::is_empty")]
+    pub label: DataTypeLabel,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(target_arch = "wasm32", tsify(type = "Record<string, JsonValue>"))]
+    pub r#const: Option<JsonMap<String, JsonValue>>,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    #[cfg_attr(
+        target_arch = "wasm32",
+        tsify(type = "[Record<string, JsonValue>, ...Record<string, JsonValue>[]]")
+    )]
+    pub r#enum: Vec<JsonMap<String, JsonValue>>,
+}
+
+impl ObjectSchema {
+    pub fn validate_value(
+        &self,
+        object: &JsonMap<String, JsonValue>,
+    ) -> Result<(), Report<ObjectValidationError>> {
+        let mut validation_status = Ok::<(), Report<ObjectValidationError>>(());
+
+        if let Some(expected) = &self.r#const {
+            if expected != object {
+                extend_report!(
+                    validation_status,
+                    ObjectValidationError::InvalidConstValue {
+                        expected: expected.clone(),
+                        actual: object.clone(),
+                    }
+                );
             }
-        );
+        }
+
+        if !self.r#enum.is_empty() && !self.r#enum.iter().any(|expected| expected == object) {
+            extend_report!(
+                validation_status,
+                ObjectValidationError::InvalidEnumValue {
+                    expected: self.r#enum.clone(),
+                    actual: object.clone(),
+                }
+            );
+        }
+
+        validation_status
     }
 }
