@@ -112,7 +112,7 @@ impl ArraySchema {
             .zip(&self.prefix_items)
         {
             if let Err(error) = constraint.validate_value(value) {
-                item_status.add(error);
+                item_status.append(error);
             }
         }
 
@@ -145,14 +145,14 @@ impl ArraySchema {
             Some(ItemsConstraints::Value(items)) => {
                 for value in values {
                     if let Err(error) = items.validate_value(value) {
-                        item_status.add(error);
+                        item_status.append(error);
                     }
                 }
             }
         }
 
         if let Err(error) = item_status.finish() {
-            validation_status.add(error.change_context(ArrayValidationError::Items));
+            validation_status.append(error.change_context(ArrayValidationError::Items));
         }
 
         validation_status.finish()

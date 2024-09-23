@@ -70,7 +70,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
             // the statement after this _will_ fail and return the visitor, therefore we don't
             // need to check for EOF
             if let Err(error) = self.try_skip_comma() {
-                errors.add(error);
+                errors.append(error);
             }
         }
 
@@ -91,12 +91,12 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
             let span = self.deserializer.skip(); // skip key
 
             if let Err(skip) = self.try_skip_colon() {
-                errors.add(skip);
+                errors.append(skip);
             }
 
             self.deserializer.skip(); // skip value
 
-            errors.add(
+            errors.append(
                 Report::new(SyntaxError::ObjectKeyMustBeString.into_error())
                     .attach(Span::new(span)),
             );
@@ -130,7 +130,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
         // key value are separated by `:`, if one forgets we will still error out but _try_ to
         // deserialize
         if let Err(skip) = self.try_skip_colon() {
-            errors.add(skip);
+            errors.append(skip);
         }
 
         // same as `(result, errors).into_result()`

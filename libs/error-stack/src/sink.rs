@@ -11,18 +11,18 @@ use crate::Report;
 /// when methods like `&mut self` are called, marking the value as used prematurely.
 ///
 /// By moving this check to runtime, `Bomb` ensures that `ReportSink` is properly
-/// consumed. Depending on its configuration, it will either:
-/// - Panic if the `ReportSink` is dropped without being used (when set to `Panic` mode)
-/// - Emit a warning to stderr (when in `Warn` mode, which is the default)
-/// - Do nothing if properly defused (i.e., when `ReportSink` is correctly used)
+/// consumed.
 ///
 /// This runtime check complements the compile-time `#[must_use]` attribute,
 /// providing a more robust mechanism to prevent `ReportSink` not being consumed.
 #[derive(Debug, Default)]
 enum BombState {
+    /// Panic if the `ReportSink` is dropped without being used.
     Panic,
+    /// Emit a warning to stderr if the `ReportSink` is dropped without being used.
     #[default]
     Warn,
+    /// Do nothing if the `ReportSink` is properly consumed.
     Defused,
 }
 
@@ -107,7 +107,7 @@ impl Drop for Bomb {
 ///     }
 ///
 ///     if let Err(e) = operation2() {
-///         sink.add(e);
+///         sink.append(e);
 ///     }
 ///
 ///     sink.finish()
@@ -149,12 +149,12 @@ impl<C> ReportSink<C> {
     /// # use error_stack::{ReportSink, Report};
     /// # use std::io;
     /// let mut sink = ReportSink::new();
-    /// sink.add(Report::new(io::Error::new(
+    /// sink.append(Report::new(io::Error::new(
     ///     io::ErrorKind::Other,
     ///     "I/O error",
     /// )));
     /// ```
-    pub fn add(&mut self, report: impl Into<Report<[C]>>) {
+    pub fn append(&mut self, report: impl Into<Report<[C]>>) {
         let report = report.into();
 
         match self.report.as_mut() {
@@ -165,7 +165,7 @@ impl<C> ReportSink<C> {
 
     /// Captures a single error or report in the sink.
     ///
-    /// This method is similar to [`add`], but allows for bare errors without prior [`Report`]
+    /// This method is similar to [`append`], but allows for bare errors without prior [`Report`]
     /// creation.
     ///
     /// # Examples
@@ -177,7 +177,7 @@ impl<C> ReportSink<C> {
     /// sink.capture(io::Error::new(io::ErrorKind::Other, "I/O error"));
     /// ```
     ///
-    /// [`add`]: ReportSink::add
+    /// [`append`]: ReportSink::append
     pub fn capture(&mut self, error: impl Into<Report<C>>) {
         let report = error.into();
 
@@ -286,12 +286,12 @@ impl<C> ReportSink<C> {
     /// # // needed for type inference
     /// # sink.capture(io::Error::new(io::ErrorKind::Other, "I/O error"));
     /// // ... add errors ...
-    /// let result: Result<Vec<String>, _> = sink.finish_with_default();
+    /// let result: Result<Vec<String>, _> = sink.finish_default();
     /// # let _result = result;
     /// ```
     ///
     /// [`finish`]: ReportSink::finish
-    pub fn finish_with_default<T: Default>(mut self) -> Result<T, Report<[C]>> {
+    pub fn finish_default<T: Default>(mut self) -> Result<T, Report<[C]>> {
         self.bomb.defuse();
         self.report.map_or_else(|| Ok(T::default()), Err)
     }
@@ -309,12 +309,12 @@ impl<C> ReportSink<C> {
     /// # // needed for type inference
     /// # sink.capture(io::Error::new(io::ErrorKind::Other, "I/O error"));
     /// // ... add errors ...
-    /// let result = sink.finish_with_value(42);
+    /// let result = sink.finish_ok(42);
     /// # let _result = result;
     /// ```
     ///
     /// [`finish`]: ReportSink::finish
-    pub fn finish_with_value<T>(mut self, ok: T) -> Result<T, Report<[C]>> {
+    pub fn finish_ok<T>(mut self, ok: T) -> Result<T, Report<[C]>> {
         self.bomb.defuse();
         self.report.map_or(Ok(ok), Err)
     }
@@ -384,7 +384,7 @@ mod test {
     fn add_single() {
         let mut sink = ReportSink::new();
 
-        sink.add(Report::new(TestError(0)));
+        sink.append(Report::new(TestError(0)));
 
         let report = sink.finish().expect_err("should have failed");
 
@@ -397,8 +397,8 @@ mod test {
     fn add_multiple() {
         let mut sink = ReportSink::new();
 
-        sink.add(Report::new(TestError(0)));
-        sink.add(Report::new(TestError(1)));
+        sink.append(Report::new(TestError(0)));
+        sink.append(Report::new(TestError(1)));
 
         let report = sink.finish().expect_err("should have failed");
 
@@ -461,7 +461,7 @@ mod test {
         fn sink() -> Result<(), Report<[TestError]>> {
             let mut sink = ReportSink::new();
 
-            sink.add(Report::new(TestError(0)));
+            sink.append(Report::new(TestError(0)));
 
             sink?;
             Ok(())
@@ -480,8 +480,8 @@ mod test {
         fn sink() -> Result<(), Report<[TestError]>> {
             let mut sink = ReportSink::new();
 
-            sink.add(Report::new(TestError(0)));
-            sink.add(Report::new(TestError(1)));
+            sink.append(Report::new(TestError(0)));
+            sink.append(Report::new(TestError(1)));
 
             sink?;
             Ok(())
@@ -501,7 +501,7 @@ mod test {
         fn sink() -> Result<u8, Report<[TestError]>> {
             let mut sink = ReportSink::new();
 
-            sink.add(Report::new(TestError(0)));
+            sink.append(Report::new(TestError(0)));
 
             sink?;
             Ok(8)
@@ -521,7 +521,7 @@ mod test {
         fn sink() -> Result<(), Report<[TestError]>> {
             let mut sink = ReportSink::new_armed();
 
-            sink.add(Report::new(TestError(0)));
+            sink.append(Report::new(TestError(0)));
 
             Ok(())
         }
@@ -535,7 +535,7 @@ mod test {
         fn sink() -> Result<(), Report<[TestError]>> {
             let mut sink = ReportSink::new_armed();
 
-            sink.add(Report::new(TestError(0)));
+            sink.append(Report::new(TestError(0)));
 
             sink?;
             Ok(())
@@ -552,8 +552,8 @@ mod test {
     fn finish() {
         let mut sink = ReportSink::new();
 
-        sink.add(Report::new(TestError(0)));
-        sink.add(Report::new(TestError(1)));
+        sink.append(Report::new(TestError(0)));
+        sink.append(Report::new(TestError(1)));
 
         let report = sink.finish().expect_err("should have failed");
 
@@ -574,8 +574,8 @@ mod test {
     fn finish_with() {
         let mut sink = ReportSink::new();
 
-        sink.add(Report::new(TestError(0)));
-        sink.add(Report::new(TestError(1)));
+        sink.append(Report::new(TestError(0)));
+        sink.append(Report::new(TestError(1)));
 
         let report = sink.finish_with(|| 8).expect_err("should have failed");
 
@@ -594,15 +594,13 @@ mod test {
     }
 
     #[test]
-    fn finish_with_default() {
+    fn finish_default() {
         let mut sink = ReportSink::new();
 
-        sink.add(Report::new(TestError(0)));
-        sink.add(Report::new(TestError(1)));
+        sink.append(Report::new(TestError(0)));
+        sink.append(Report::new(TestError(1)));
 
-        let report = sink
-            .finish_with_default::<u8>()
-            .expect_err("should have failed");
+        let report = sink.finish_default::<u8>().expect_err("should have failed");
 
         let contexts: BTreeSet<_> = report.current_contexts().collect();
         assert_eq!(contexts.len(), 2);
@@ -611,12 +609,10 @@ mod test {
     }
 
     #[test]
-    fn finish_with_default_ok() {
+    fn finish_default_ok() {
         let sink: ReportSink<TestError> = ReportSink::new();
 
-        let value = sink
-            .finish_with_default::<u8>()
-            .expect("should have succeeded");
+        let value = sink.finish_default::<u8>().expect("should have succeeded");
         assert_eq!(value, 0);
     }
 
@@ -624,10 +620,10 @@ mod test {
     fn finish_with_value() {
         let mut sink = ReportSink::new();
 
-        sink.add(Report::new(TestError(0)));
-        sink.add(Report::new(TestError(1)));
+        sink.append(Report::new(TestError(0)));
+        sink.append(Report::new(TestError(1)));
 
-        let report = sink.finish_with_value(8).expect_err("should have failed");
+        let report = sink.finish_ok(8).expect_err("should have failed");
 
         let contexts: BTreeSet<_> = report.current_contexts().collect();
         assert_eq!(contexts.len(), 2);
@@ -639,7 +635,7 @@ mod test {
     fn finish_with_value_ok() {
         let sink: ReportSink<TestError> = ReportSink::new();
 
-        let value = sink.finish_with_value(8).expect("should have succeeded");
+        let value = sink.finish_ok(8).expect("should have succeeded");
         assert_eq!(value, 8);
     }
 }

@@ -414,80 +414,6 @@ impl<C> Report<C> {
         &self.frames[0]
     }
 
-    /// Adds additional information to the [`Frame`] stack.
-    ///
-    /// This behaves like [`attach_printable()`] but will not be shown when printing the [`Report`].
-    /// To benefit from seeing attachments in normal error outputs, use [`attach_printable()`]
-    ///
-    /// **Note:** [`attach_printable()`] will be deprecated when specialization is stabilized and
-    /// it becomes possible to merge these two methods.
-    ///
-    /// [`Display`]: core::fmt::Display
-    /// [`Debug`]: core::fmt::Debug
-    /// [`attach_printable()`]: Self::attach_printable
-    #[track_caller]
-    pub fn attach<A>(mut self, attachment: A) -> Self
-    where
-        A: Send + Sync + 'static,
-    {
-        let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
-        self.frames.push(Frame::from_attachment(
-            attachment,
-            old_frames.into_boxed_slice(),
-        ));
-        self
-    }
-
-    /// Adds additional (printable) information to the [`Frame`] stack.
-    ///
-    /// This behaves like [`attach()`] but the display implementation will be called when
-    /// printing the [`Report`].
-    ///
-    /// **Note:** This will be deprecated in favor of [`attach()`] when specialization is
-    /// stabilized it becomes possible to merge these two methods.
-    ///
-    /// [`attach()`]: Self::attach
-    ///
-    /// ## Example
-    ///
-    /// ```rust
-    /// use core::fmt;
-    /// use std::fs;
-    ///
-    /// use error_stack::ResultExt;
-    ///
-    /// #[derive(Debug)]
-    /// pub struct Suggestion(&'static str);
-    ///
-    /// impl fmt::Display for Suggestion {
-    ///     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-    ///         fmt.write_str(self.0)
-    ///     }
-    /// }
-    ///
-    /// let error = fs::read_to_string("config.txt")
-    ///     .attach(Suggestion("better use a file which exists next time!"));
-    /// # #[cfg_attr(not(nightly), allow(unused_variables))]
-    /// let report = error.unwrap_err();
-    /// # #[cfg(nightly)]
-    /// let suggestion = report.request_ref::<Suggestion>().next().unwrap();
-    ///
-    /// # #[cfg(nightly)]
-    /// assert_eq!(suggestion.0, "better use a file which exists next time!");
-    /// ```
-    #[track_caller]
-    pub fn attach_printable<A>(mut self, attachment: A) -> Self
-    where
-        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
-    {
-        let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
-        self.frames.push(Frame::from_printable_attachment(
-            attachment,
-            old_frames.into_boxed_slice(),
-        ));
-        self
-    }
-
     /// Returns the current context of the `Report`.
     ///
     /// If the user want to get the latest context, `current_context` can be called. If the user
@@ -567,6 +493,80 @@ impl<C: ?Sized> Report<C> {
     #[must_use]
     pub(crate) fn current_frames_unchecked(&self) -> &[Frame] {
         &self.frames
+    }
+
+    /// Adds additional information to the [`Frame`] stack.
+    ///
+    /// This behaves like [`attach_printable()`] but will not be shown when printing the [`Report`].
+    /// To benefit from seeing attachments in normal error outputs, use [`attach_printable()`]
+    ///
+    /// **Note:** [`attach_printable()`] will be deprecated when specialization is stabilized and
+    /// it becomes possible to merge these two methods.
+    ///
+    /// [`Display`]: core::fmt::Display
+    /// [`Debug`]: core::fmt::Debug
+    /// [`attach_printable()`]: Self::attach_printable
+    #[track_caller]
+    pub fn attach<A>(mut self, attachment: A) -> Self
+    where
+        A: Send + Sync + 'static,
+    {
+        let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
+        self.frames.push(Frame::from_attachment(
+            attachment,
+            old_frames.into_boxed_slice(),
+        ));
+        self
+    }
+
+    /// Adds additional (printable) information to the [`Frame`] stack.
+    ///
+    /// This behaves like [`attach()`] but the display implementation will be called when
+    /// printing the [`Report`].
+    ///
+    /// **Note:** This will be deprecated in favor of [`attach()`] when specialization is
+    /// stabilized it becomes possible to merge these two methods.
+    ///
+    /// [`attach()`]: Self::attach
+    ///
+    /// ## Example
+    ///
+    /// ```rust
+    /// use core::fmt;
+    /// use std::fs;
+    ///
+    /// use error_stack::ResultExt;
+    ///
+    /// #[derive(Debug)]
+    /// pub struct Suggestion(&'static str);
+    ///
+    /// impl fmt::Display for Suggestion {
+    ///     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+    ///         fmt.write_str(self.0)
+    ///     }
+    /// }
+    ///
+    /// let error = fs::read_to_string("config.txt")
+    ///     .attach(Suggestion("better use a file which exists next time!"));
+    /// # #[cfg_attr(not(nightly), allow(unused_variables))]
+    /// let report = error.unwrap_err();
+    /// # #[cfg(nightly)]
+    /// let suggestion = report.request_ref::<Suggestion>().next().unwrap();
+    ///
+    /// # #[cfg(nightly)]
+    /// assert_eq!(suggestion.0, "better use a file which exists next time!");
+    /// ```
+    #[track_caller]
+    pub fn attach_printable<A>(mut self, attachment: A) -> Self
+    where
+        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
+    {
+        let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
+        self.frames.push(Frame::from_printable_attachment(
+            attachment,
+            old_frames.into_boxed_slice(),
+        ));
+        self
     }
 
     /// Add a new [`Context`] object to the top of the [`Frame`] stack, changing the type of the
@@ -676,82 +676,6 @@ impl<C: ?Sized> Report<C> {
 }
 
 impl<C> Report<[C]> {
-    /// Adds additional information to the [`Frame`] stack.
-    ///
-    /// This behaves like [`attach_printable()`] but will not be shown when printing the [`Report`].
-    /// To benefit from seeing attachments in normal error outputs, use [`attach_printable()`]
-    ///
-    /// **Note:** [`attach_printable()`] will be deprecated when specialization is stabilized and
-    /// it becomes possible to merge these two methods.
-    ///
-    /// [`Display`]: core::fmt::Display
-    /// [`Debug`]: core::fmt::Debug
-    /// [`attach_printable()`]: Self::attach_printable
-    #[track_caller]
-    pub fn attach<A>(mut self, attachment: A) -> Self
-    where
-        A: Send + Sync + 'static,
-    {
-        let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
-        self.frames.push(Frame::from_attachment(
-            attachment,
-            old_frames.into_boxed_slice(),
-        ));
-
-        self
-    }
-
-    /// Adds additional (printable) information to the [`Frame`] stack.
-    ///
-    /// This behaves like [`attach()`] but the display implementation will be called when
-    /// printing the [`Report`].
-    ///
-    /// **Note:** This will be deprecated in favor of [`attach()`] when specialization is
-    /// stabilized it becomes possible to merge these two methods.
-    ///
-    /// [`attach()`]: Self::attach
-    ///
-    /// ## Example
-    ///
-    /// ```rust
-    /// use core::fmt;
-    /// use std::fs;
-    ///
-    /// use error_stack::ResultExt;
-    ///
-    /// #[derive(Debug)]
-    /// pub struct Suggestion(&'static str);
-    ///
-    /// impl fmt::Display for Suggestion {
-    ///     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
-    ///         fmt.write_str(self.0)
-    ///     }
-    /// }
-    ///
-    /// let error = fs::read_to_string("config.txt")
-    ///     .attach(Suggestion("better use a file which exists next time!"));
-    /// # #[cfg_attr(not(nightly), allow(unused_variables))]
-    /// let report = error.unwrap_err();
-    /// # #[cfg(nightly)]
-    /// let suggestion = report.request_ref::<Suggestion>().next().unwrap();
-    ///
-    /// # #[cfg(nightly)]
-    /// assert_eq!(suggestion.0, "better use a file which exists next time!");
-    /// ```
-    #[track_caller]
-    pub fn attach_printable<A>(mut self, attachment: A) -> Self
-    where
-        A: fmt::Display + fmt::Debug + Send + Sync + 'static,
-    {
-        let old_frames = mem::replace(self.frames.as_mut(), Vec::with_capacity(1));
-        self.frames.push(Frame::from_printable_attachment(
-            attachment,
-            old_frames.into_boxed_slice(),
-        ));
-
-        self
-    }
-
     /// Return the direct current frames of this report,
     /// to get an iterator over the topological sorting of all frames refer to [`frames()`]
     ///

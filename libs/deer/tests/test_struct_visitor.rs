@@ -235,7 +235,7 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
             c: &mut c,
         }) {
             if let Err(error) = field {
-                errors.add(error);
+                errors.append(error);
             }
         }
 

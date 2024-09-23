@@ -240,7 +240,7 @@ impl StringSchema {
         }
         if let Some(expected) = self.format {
             if let Err(error) = expected.validate(string) {
-                status.add(error.change_context(ArrayValidationError::Format {
+                status.append(error.change_context(ArrayValidationError::Format {
                     actual: string.to_owned(),
                     expected,
                 }));

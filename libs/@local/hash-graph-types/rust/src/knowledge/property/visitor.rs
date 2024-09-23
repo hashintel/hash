@@ -226,11 +226,11 @@ where
                     .visit_value(parent.borrow(), value, metadata, type_provider)
                     .await
                 {
-                    status.add(error);
+                    status.append(error);
                 }
             }
             Err(error) => {
-                status.add(error);
+                status.append(error);
 
                 continue;
             }
@@ -305,7 +305,7 @@ where
                     .visit_one_of_property(schema.items.possibilities(), value, type_provider)
                     .await
                 {
-                    status.add(error);
+                    status.append(error);
                 }
             }
             PropertyWithMetadata::Array(array) => {
@@ -313,7 +313,7 @@ where
                     .visit_one_of_array(schema.items.possibilities(), array, type_provider)
                     .await
                 {
-                    status.add(error);
+                    status.append(error);
                 }
             }
             PropertyWithMetadata::Object(object) => {
@@ -321,7 +321,7 @@ where
                     .visit_one_of_object(schema.items.possibilities(), object, type_provider)
                     .await
                 {
-                    status.add(error);
+                    status.append(error);
                 }
             }
         }
@@ -409,7 +409,7 @@ where
                         )
                         .await;
                     if let Err(error) = result {
-                        status.add(error);
+                        status.append(error);
                     }
                 }
                 PropertyWithMetadata::Object { .. } | PropertyWithMetadata::Value(_) => {
@@ -468,7 +468,7 @@ where
                     )
                     .await
                 {
-                    status.add(error);
+                    status.append(error);
                 } else {
                     passed += 1;
                 }
@@ -532,7 +532,7 @@ where
                 if let Err(error) =
                     Box::pin(visitor.visit_array(array_schema, array, type_provider)).await
                 {
-                    status.add(error);
+                    status.append(error);
                 } else {
                     passed += 1;
                 }
@@ -597,7 +597,7 @@ where
                 if let Err(error) =
                     Box::pin(visitor.visit_object(object_schema, object, type_provider)).await
                 {
-                    status.add(error);
+                    status.append(error);
                 } else {
                     passed += 1;
                 }

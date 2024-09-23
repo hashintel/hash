@@ -74,7 +74,7 @@ impl<'de> Visitor<'de> for ArrayStatsVisitor {
                     }
                 }
                 Err(error) => {
-                    errors.add(error);
+                    errors.append(error);
                 }
             }
         }
@@ -292,7 +292,7 @@ impl<'de> Visitor<'de> for ObjectStatsVisitor {
                     }
                 }
                 Err(error) => {
-                    errors.add(error);
+                    errors.append(error);
                 }
             }
         }
