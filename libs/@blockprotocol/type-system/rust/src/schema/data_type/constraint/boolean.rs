@@ -1,6 +1,6 @@
 use std::collections::HashSet;
 
-use error_stack::Report;
+use error_stack::{Report, ReportSink};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use thiserror::Error;
@@ -38,31 +38,25 @@ pub struct BooleanSchema {
 }
 
 impl BooleanSchema {
-    pub fn validate_value(&self, boolean: bool) -> Result<(), Report<BooleanValidationError>> {
-        let mut status = Ok::<(), Report<BooleanValidationError>>(());
+    pub fn validate_value(&self, boolean: bool) -> Result<(), Report<[BooleanValidationError]>> {
+        let mut status = ReportSink::new();
 
         if let Some(expected) = &self.r#const {
             if *expected != boolean {
-                extend_report!(
-                    status,
-                    BooleanValidationError::InvalidConstValue {
-                        expected: *expected,
-                        actual: boolean,
-                    }
-                );
+                status.capture(BooleanValidationError::InvalidConstValue {
+                    expected: *expected,
+                    actual: boolean,
+                });
             }
         }
 
         if !self.r#enum.is_empty() && !self.r#enum.contains(&boolean) {
-            extend_report!(
-                status,
-                BooleanValidationError::InvalidEnumValue {
-                    expected: self.r#enum.clone(),
-                    actual: boolean,
-                }
-            );
+            status.capture(BooleanValidationError::InvalidEnumValue {
+                expected: self.r#enum.clone(),
+                actual: boolean,
+            });
         }
 
-        status
+        status.finish()
     }
 }
