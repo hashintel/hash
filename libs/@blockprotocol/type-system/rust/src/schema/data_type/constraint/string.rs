@@ -5,7 +5,7 @@ use core::{
 use std::{collections::HashSet, sync::OnceLock};
 
 use email_address::EmailAddress;
-use error_stack::Report;
+use error_stack::{Report, ReportSink};
 use iso8601_duration::Duration;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -14,7 +14,6 @@ use thiserror::Error;
 use url::{Host, Url};
 use uuid::Uuid;
 
-use super::extend_report;
 use crate::schema::{data_type::constraint::error::StringFormatError, DataTypeLabel};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
@@ -196,76 +195,58 @@ pub struct StringSchema {
 }
 
 impl StringSchema {
-    pub fn validate_value(&self, string: &str) -> Result<(), Report<ArrayValidationError>> {
-        let mut status = Ok::<(), Report<ArrayValidationError>>(());
+    pub fn validate_value(&self, string: &str) -> Result<(), Report<[ArrayValidationError]>> {
+        let mut status = ReportSink::new();
 
         if let Some(expected) = &self.r#const {
             if expected != string {
-                extend_report!(
-                    status,
-                    ArrayValidationError::InvalidConstValue {
-                        expected: expected.clone(),
-                        actual: string.to_owned(),
-                    }
-                );
+                status.capture(ArrayValidationError::InvalidConstValue {
+                    expected: expected.clone(),
+                    actual: string.to_owned(),
+                });
             }
         }
 
         if !self.r#enum.is_empty() && !self.r#enum.contains(string) {
-            extend_report!(
-                status,
-                ArrayValidationError::InvalidEnumValue {
-                    expected: self.r#enum.clone(),
-                    actual: string.to_owned(),
-                }
-            );
+            status.capture(ArrayValidationError::InvalidEnumValue {
+                expected: self.r#enum.clone(),
+                actual: string.to_owned(),
+            });
         }
 
         if let Some(expected) = self.min_length {
             if string.len() < expected {
-                extend_report!(
-                    status,
-                    ArrayValidationError::MinLength {
-                        actual: string.to_owned(),
-                        expected
-                    }
-                );
+                status.capture(ArrayValidationError::MinLength {
+                    actual: string.to_owned(),
+                    expected,
+                });
             }
         }
         if let Some(expected) = self.max_length {
             if string.len() > expected {
-                extend_report!(
-                    status,
-                    ArrayValidationError::MaxLength {
-                        actual: string.to_owned(),
-                        expected
-                    }
-                );
+                status.capture(ArrayValidationError::MaxLength {
+                    actual: string.to_owned(),
+                    expected,
+                });
             }
         }
         if let Some(expected) = &self.pattern {
             if !expected.is_match(string) {
-                extend_report!(
-                    status,
-                    ArrayValidationError::Pattern {
-                        actual: string.to_owned(),
-                        expected: expected.clone()
-                    }
-                );
+                status.capture(ArrayValidationError::Pattern {
+                    actual: string.to_owned(),
+                    expected: expected.clone(),
+                });
             }
         }
         if let Some(expected) = self.format {
             if let Err(error) = expected.validate(string) {
-                extend_report!(
-                    status,
-                    error.change_context(ArrayValidationError::Format {
-                        actual: string.to_owned(),
-                        expected
-                    })
-                );
+                status.add(error.change_context(ArrayValidationError::Format {
+                    actual: string.to_owned(),
+                    expected,
+                }));
             }
         }
 
-        status
+        status.finish()
     }
 }

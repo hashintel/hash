@@ -266,34 +266,3 @@ pub(crate) fn convert_tokenizer_error(error: &justjson::Error) -> Report<deer::e
 
     Report::new(error).attach(Position::new(offset))
 }
-
-// In theory we could use `DropBomb` here to require that the accumulator is used
-#[must_use]
-pub(crate) struct ErrorAccumulator<C> {
-    inner: Option<Report<C>>,
-}
-
-impl<C> ErrorAccumulator<C> {
-    pub(crate) const fn new() -> Self {
-        Self { inner: None }
-    }
-
-    pub(crate) fn extend_one(&mut self, error: Report<C>) {
-        match &mut self.inner {
-            Some(inner) => inner.extend_one(error),
-            inner => *inner = Some(error),
-        }
-    }
-
-    pub(crate) fn into_result(self) -> Result<(), Report<C>> {
-        self.inner.map_or_else(|| Ok(()), Err)
-    }
-
-    pub(crate) fn extend_existing(self, mut error: Report<C>) -> Report<C> {
-        if let Some(inner) = self.inner {
-            error.extend_one(inner);
-        }
-
-        error
-    }
-}

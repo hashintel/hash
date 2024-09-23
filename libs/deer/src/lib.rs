@@ -40,7 +40,6 @@ mod impls;
 #[macro_use]
 mod macros;
 mod bound;
-mod ext;
 pub mod helpers;
 mod number;
 pub mod schema;

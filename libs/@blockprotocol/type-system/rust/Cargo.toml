@@ -16,7 +16,7 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 # Public workspace dependencies
-error-stack = { workspace = true, public = true }
+error-stack = { workspace = true, public = true, features = ["unstable"]}
 
 # Public third-party dependencies
 bytes = { workspace = true, public = true }

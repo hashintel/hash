@@ -25,7 +25,7 @@ where
     response
 }
 
-pub(crate) fn report_to_response<C>(report: impl Into<Report<C>>) -> Response
+pub(crate) fn report_to_response<C>(report: impl Into<Report<[C]>>) -> Response
 where
     C: Context,
 {

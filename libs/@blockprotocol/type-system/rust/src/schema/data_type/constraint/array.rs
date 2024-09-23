@@ -1,12 +1,9 @@
-use error_stack::Report;
+use error_stack::{Report, ReportSink};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as JsonValue};
 use thiserror::Error;
 
-use crate::schema::{
-    data_type::constraint::{ConstraintError, ValueConstraints},
-    DataTypeLabel,
-};
+use crate::schema::{data_type::constraint::ValueConstraints, DataTypeLabel};
 
 #[derive(Debug, Error)]
 pub enum ArrayValidationError {
@@ -82,65 +79,56 @@ pub struct ArraySchema {
 }
 
 impl ArraySchema {
-    pub fn validate_value(&self, values: &[JsonValue]) -> Result<(), Report<ArrayValidationError>> {
-        let mut validation_status = Ok::<(), Report<ArrayValidationError>>(());
+    pub fn validate_value(
+        &self,
+        values: &[JsonValue],
+    ) -> Result<(), Report<[ArrayValidationError]>> {
+        let mut validation_status = ReportSink::new();
 
         if let Some(expected) = &self.r#const {
             if expected != values {
-                extend_report!(
-                    validation_status,
-                    ArrayValidationError::InvalidConstValue {
-                        expected: expected.clone(),
-                        actual: values.to_owned(),
-                    }
-                );
+                validation_status.capture(ArrayValidationError::InvalidConstValue {
+                    expected: expected.clone(),
+                    actual: values.to_owned(),
+                });
             }
         }
 
         if !self.r#enum.is_empty() && !self.r#enum.iter().any(|expected| expected == values) {
-            extend_report!(
-                validation_status,
-                ArrayValidationError::InvalidEnumValue {
-                    expected: self.r#enum.clone(),
-                    actual: values.to_owned(),
-                }
-            );
+            validation_status.capture(ArrayValidationError::InvalidEnumValue {
+                expected: self.r#enum.clone(),
+                actual: values.to_owned(),
+            });
         }
 
         let num_values = values.len();
 
         let mut values = values.iter();
 
-        let mut item_status = Ok::<(), Report<ConstraintError>>(());
+        let mut item_status = ReportSink::new();
         for (value, constraint) in values
             .by_ref()
             .take(self.prefix_items.len())
             .zip(&self.prefix_items)
         {
             if let Err(error) = constraint.validate_value(value) {
-                extend_report!(item_status, error);
+                item_status.add(error);
             }
         }
 
         let expected_num_items = self.prefix_items.len().max(self.min_items.unwrap_or(0));
         if num_values < expected_num_items {
-            extend_report!(
-                validation_status,
-                ArrayValidationError::MinItems {
-                    actual: num_values,
-                    expected: expected_num_items,
-                }
-            );
+            validation_status.capture(ArrayValidationError::MinItems {
+                actual: num_values,
+                expected: expected_num_items,
+            });
         }
         if let Some(max_items) = self.max_items {
             if num_values > max_items {
-                extend_report!(
-                    validation_status,
-                    ArrayValidationError::MaxItems {
-                        actual: num_values,
-                        expected: max_items,
-                    }
-                );
+                validation_status.capture(ArrayValidationError::MaxItems {
+                    actual: num_values,
+                    expected: max_items,
+                });
             }
         }
 
@@ -148,31 +136,25 @@ impl ArraySchema {
             None | Some(ItemsConstraints::Boolean(true)) => {}
             Some(ItemsConstraints::Boolean(false)) => {
                 if values.next().is_some() {
-                    extend_report!(
-                        validation_status,
-                        ArrayValidationError::MaxItems {
-                            actual: num_values,
-                            expected: self.prefix_items.len(),
-                        }
-                    );
+                    validation_status.capture(ArrayValidationError::MaxItems {
+                        actual: num_values,
+                        expected: self.prefix_items.len(),
+                    });
                 }
             }
             Some(ItemsConstraints::Value(items)) => {
                 for value in values {
                     if let Err(error) = items.validate_value(value) {
-                        extend_report!(item_status, error);
+                        item_status.add(error);
                     }
                 }
             }
         }
 
-        if let Err(error) = item_status {
-            extend_report!(
-                validation_status,
-                error.change_context(ArrayValidationError::Items)
-            );
+        if let Err(error) = item_status.finish() {
+            validation_status.add(error.change_context(ArrayValidationError::Items));
         }
 
-        validation_status
+        validation_status.finish()
     }
 }

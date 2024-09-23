@@ -490,7 +490,9 @@ where
             .await
             .change_context(InsertionError)?;
 
-        if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
+        if let Err(error) = transaction.commit().await.change_context(InsertionError) {
+            let mut error = error.expand();
+
             if let Err(auth_error) = self
                 .authorization_api
                 .modify_property_type_relations(relationships.into_iter().map(
@@ -505,12 +507,10 @@ where
                 .await
                 .change_context(InsertionError)
             {
-                // TODO: Use `add_child`
-                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
-                error.extend_one(auth_error);
+                error.push(auth_error);
             }
 
-            Err(error)
+            Err(error.change_context(InsertionError))
         } else {
             if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
@@ -767,7 +767,9 @@ where
             .await
             .change_context(UpdateError)?;
 
-        if let Err(mut error) = transaction.commit().await.change_context(UpdateError) {
+        if let Err(error) = transaction.commit().await.change_context(UpdateError) {
+            let mut error = error.expand();
+
             if let Err(auth_error) = self
                 .authorization_api
                 .modify_property_type_relations(relationships.into_iter().map(
@@ -782,12 +784,10 @@ where
                 .await
                 .change_context(UpdateError)
             {
-                // TODO: Use `add_child`
-                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
-                error.extend_one(auth_error);
+                error.push(auth_error);
             }
 
-            Err(error)
+            Err(error.change_context(UpdateError))
         } else {
             let metadata = PropertyTypeMetadata {
                 record_id: OntologyTypeRecordId::from(params.schema.id.clone()),

@@ -6,5 +6,8 @@
   "scripts": {
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy"
+  },
+  "dependencies": {
+    "@rust/error-stack": "0.5.0"
   }
 }

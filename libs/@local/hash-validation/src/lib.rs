@@ -24,7 +24,7 @@ pub trait Schema<V: ?Sized, P: Sync> {
         value: &'a V,
         components: ValidateEntityComponents,
         provider: &'a P,
-    ) -> impl Future<Output = Result<(), Report<Self::Error>>> + Send + 'a;
+    ) -> impl Future<Output = Result<(), Report<[Self::Error]>>> + Send + 'a;
 }
 
 const fn default_true() -> bool {
@@ -80,7 +80,7 @@ pub trait Validate<S, C> {
         schema: &S,
         components: ValidateEntityComponents,
         context: &C,
-    ) -> impl Future<Output = Result<(), Report<Self::Error>>> + Send;
+    ) -> impl Future<Output = Result<(), Report<[Self::Error]>>> + Send;
 }
 
 pub trait EntityProvider {
@@ -318,7 +318,7 @@ mod tests {
         property_types: impl IntoIterator<Item = &'static str> + Send,
         data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
-    ) -> Result<PropertyWithMetadataObject, Report<TraversalError>> {
+    ) -> Result<PropertyWithMetadataObject, Report<[TraversalError]>> {
         install_error_stack_hooks();
 
         let provider = Provider::new(
@@ -358,7 +358,7 @@ mod tests {
         property_types: impl IntoIterator<Item = &'static str> + Send,
         data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
-    ) -> Result<PropertyWithMetadata, Report<TraversalError>> {
+    ) -> Result<PropertyWithMetadata, Report<[TraversalError]>> {
         install_error_stack_hooks();
         let property = Property::deserialize(property).expect("failed to deserialize property");
 
@@ -388,7 +388,7 @@ mod tests {
         mut value: JsonValue,
         data_type: &str,
         components: ValidateEntityComponents,
-    ) -> Result<PropertyWithMetadataValue, Report<TraversalError>> {
+    ) -> Result<PropertyWithMetadataValue, Report<[TraversalError]>> {
         install_error_stack_hooks();
 
         let provider = Provider::new([], [], [], []);

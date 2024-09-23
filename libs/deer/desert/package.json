@@ -3,6 +3,7 @@
   "version": "0.0.0-private",
   "private": true,
   "dependencies": {
-    "@rust/deer": "0.0.0-reserved-private"
+    "@rust/deer": "0.0.0-reserved-private",
+    "@rust/error-stack": "0.5.0"
   }
 }

@@ -196,11 +196,9 @@ macro_rules! deserialize_identifier {
         where
             V: IdentifierVisitor<'de>,
         {
-            let value = self
-                .value
-                .try_into()
+            let value = TryFrom::try_from(self.value)
                 .map_err(Report::new)
-                .change_context(TypeError.into_error())
+                .map_err(|error| error.change_context(TypeError.into_error()))
                 .attach(ExpectedType::new(visitor.expecting()))
                 .attach(ReceivedType::new(<$primitive>::document()))
                 .change_context(DeserializerError)?;

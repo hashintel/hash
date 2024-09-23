@@ -15,7 +15,7 @@ publish = false
 
 [dependencies]
 # Public workspace dependencies
-error-stack = { workspace = true, public = true, default-features = false }
+error-stack = { workspace = true, public = true, default-features = false, features = ["unstable"]}
 
 # Public third-party dependencies
 erased-serde = { workspace = true, public = true, features = ['alloc'] }

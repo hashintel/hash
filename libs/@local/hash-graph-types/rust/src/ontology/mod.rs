@@ -213,7 +213,9 @@ pub trait EntityTypeProvider: OntologyTypeProvider<ClosedEntityType> {
     {
         stream::iter(type_ids)
             .then(|entity_type_url| async {
-                Ok(self.provide_type(entity_type_url).await?.borrow().clone())
+                self.provide_type(entity_type_url)
+                    .await
+                    .map(|entity_type| entity_type.borrow().clone())
             })
             .try_collect::<ClosedEntityType>()
     }
