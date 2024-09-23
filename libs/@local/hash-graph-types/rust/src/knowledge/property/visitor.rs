@@ -4,8 +4,9 @@ use error_stack::{bail, Report, ResultExt};
 use serde_json::Value as JsonValue;
 use type_system::{
     schema::{
-        ArraySchema, DataTypeReference, JsonSchemaValueType, PropertyObjectSchema, PropertyType,
-        PropertyTypeReference, PropertyValueSchema, PropertyValues, ValueOrArray,
+        DataTypeReference, JsonSchemaValueType, PropertyObjectSchema, PropertyType,
+        PropertyTypeReference, PropertyValueArray, PropertyValueSchema, PropertyValues,
+        ValueOrArray,
     },
     url::{BaseUrl, VersionedUrl},
 };
@@ -121,7 +122,7 @@ pub trait EntityVisitor: Sized + Send + Sync {
     /// By default, this forwards to [`walk_array`].
     fn visit_array<T, P>(
         &mut self,
-        schema: &ArraySchema<T>,
+        schema: &PropertyValueArray<T>,
         array: &mut PropertyWithMetadataArray,
         type_provider: &P,
     ) -> impl Future<Output = Result<(), Report<TraversalError>>> + Send
@@ -293,7 +294,7 @@ where
 /// Any error that can be returned by the visitor methods.
 pub async fn walk_array<V, S, P>(
     visitor: &mut V,
-    schema: &ArraySchema<S>,
+    schema: &PropertyValueArray<S>,
     array: &mut PropertyWithMetadataArray,
     type_provider: &P,
 ) -> Result<(), Report<TraversalError>>
@@ -406,7 +407,7 @@ where
                     })?;
                     let result = visitor
                         .visit_array(
-                            &ArraySchema {
+                            &PropertyValueArray {
                                 items: property_type.borrow(),
                                 min_items: array_schema.min_items,
                                 max_items: array_schema.max_items,

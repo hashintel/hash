@@ -14,7 +14,7 @@ enum ObjectTypeTag {
 #[derive(Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub(super) struct ObjectSchema<T> {
+pub(super) struct PropertyValueObject<T> {
     #[serde(rename = "type")]
     _type: ObjectTypeTag,
     properties: HashMap<BaseUrl, T>,
@@ -23,8 +23,8 @@ pub(super) struct ObjectSchema<T> {
     required: HashSet<BaseUrl>,
 }
 
-impl<T> From<ObjectSchema<T>> for super::ObjectSchema<T> {
-    fn from(object: ObjectSchema<T>) -> Self {
+impl<T> From<PropertyValueObject<T>> for super::PropertyValueObject<T> {
+    fn from(object: PropertyValueObject<T>) -> Self {
         Self {
             properties: object.properties,
             required: object.required,
@@ -41,8 +41,8 @@ pub(super) struct ObjectSchemaRef<'a, T> {
     required: &'a HashSet<BaseUrl>,
 }
 
-impl<'a, T> From<&'a super::ObjectSchema<T>> for ObjectSchemaRef<'a, T> {
-    fn from(object: &'a super::ObjectSchema<T>) -> Self {
+impl<'a, T> From<&'a super::PropertyValueObject<T>> for ObjectSchemaRef<'a, T> {
+    fn from(object: &'a super::PropertyValueObject<T>) -> Self {
         Self {
             r#type: ObjectTypeTag::Object,
             properties: &object.properties,

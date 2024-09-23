@@ -14,7 +14,7 @@ use std::collections::{hash_map::Entry, HashMap, HashSet};
 use serde::{Deserialize, Serialize, Serializer};
 
 use crate::{
-    schema::{one_of::OneOfSchema, ArraySchema, PropertyTypeReference, ValueOrArray},
+    schema::{one_of::OneOfSchema, PropertyTypeReference, PropertyValueArray, ValueOrArray},
     url::{BaseUrl, VersionedUrl},
 };
 
@@ -27,7 +27,7 @@ pub struct EntityType {
     pub properties: HashMap<BaseUrl, ValueOrArray<PropertyTypeReference>>,
     pub required: HashSet<BaseUrl>,
     pub all_of: HashSet<EntityTypeReference>,
-    pub links: HashMap<VersionedUrl, ArraySchema<Option<OneOfSchema<EntityTypeReference>>>>,
+    pub links: HashMap<VersionedUrl, PropertyValueArray<Option<OneOfSchema<EntityTypeReference>>>>,
     #[deprecated]
     pub examples: Vec<HashMap<BaseUrl, serde_json::Value>>,
 }
@@ -71,11 +71,14 @@ impl EntityType {
 }
 
 fn extend_links(
-    current: &mut HashMap<VersionedUrl, ArraySchema<Option<OneOfSchema<EntityTypeReference>>>>,
+    current: &mut HashMap<
+        VersionedUrl,
+        PropertyValueArray<Option<OneOfSchema<EntityTypeReference>>>,
+    >,
     iter: impl IntoIterator<
         Item = (
             VersionedUrl,
-            ArraySchema<Option<OneOfSchema<EntityTypeReference>>>,
+            PropertyValueArray<Option<OneOfSchema<EntityTypeReference>>>,
         ),
     >,
 ) {

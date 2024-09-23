@@ -4,14 +4,14 @@ import path, { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type {
-  ArraySchema,
   Conversions,
   DataTypeReference,
   EntityType,
-  ObjectSchema,
   OneOfSchema,
   PropertyType,
   PropertyTypeReference,
+  PropertyValueArray,
+  PropertyValueObject,
   PropertyValues,
   ValueOrArray,
   VersionedUrl,
@@ -362,7 +362,7 @@ export const generateSystemPropertyTypeSchema = (
         };
         inner = dataTypeReference;
       } else if (propertyTypeObjectProperties) {
-        const propertyTypeObject: ObjectSchema<
+        const propertyTypeObject: PropertyValueObject<
           ValueOrArray<PropertyTypeReference>
         > = {
           type: "object" as const,
@@ -380,13 +380,14 @@ export const generateSystemPropertyTypeSchema = (
 
       // Optionally wrap inner in an array
       if (array) {
-        const arrayOfPropertyValues: ArraySchema<OneOfSchema<PropertyValues>> =
-          {
-            type: "array",
-            items: {
-              oneOf: [inner],
-            },
-          };
+        const arrayOfPropertyValues: PropertyValueArray<
+          OneOfSchema<PropertyValues>
+        > = {
+          type: "array",
+          items: {
+            oneOf: [inner],
+          },
+        };
         return arrayOfPropertyValues;
       } else {
         return inner;

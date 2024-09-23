@@ -11,7 +11,7 @@ enum ArrayTypeTag {
 #[derive(Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub(super) struct ArraySchema<T> {
+pub(super) struct PropertyValueArray<T> {
     #[serde(rename = "type")]
     _type: ArrayTypeTag,
     items: T,
@@ -21,8 +21,8 @@ pub(super) struct ArraySchema<T> {
     max_items: Option<usize>,
 }
 
-impl<T> From<ArraySchema<T>> for super::ArraySchema<T> {
-    fn from(object: ArraySchema<T>) -> Self {
+impl<T> From<PropertyValueArray<T>> for super::PropertyValueArray<T> {
+    fn from(object: PropertyValueArray<T>) -> Self {
         Self {
             items: object.items,
             min_items: object.min_items,
@@ -42,8 +42,8 @@ pub(super) struct ArraySchemaRef<'a, T> {
     max_items: Option<usize>,
 }
 
-impl<'a, T> From<&'a super::ArraySchema<T>> for ArraySchemaRef<'a, T> {
-    fn from(object: &'a super::ArraySchema<T>) -> Self {
+impl<'a, T> From<&'a super::PropertyValueArray<T>> for ArraySchemaRef<'a, T> {
+    fn from(object: &'a super::PropertyValueArray<T>) -> Self {
         Self {
             r#type: ArrayTypeTag::Array,
             items: &object.items,

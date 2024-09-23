@@ -1,4 +1,9 @@
-import type { DataType, VersionedUrl } from "@blockprotocol/type-system/slim";
+import type {
+  ArraySchema,
+  DataType,
+  ValueConstraints,
+  VersionedUrl,
+} from "@blockprotocol/type-system/slim";
 import {
   faList,
   faListCheck,
@@ -166,26 +171,35 @@ export const DataTypesOptionsContext =
   createContext<DataTypesContextValue | null>(null);
 
 const getArrayDataTypeDisplay = (
-  dataType: Pick<DataType, "$id"> & {
-    items?: DataType[];
-    prefixItems?: DataType[];
-  },
+  dataType: Pick<ArraySchema, "items" | "prefixItems">,
 ): Omit<ExpectedValueDisplay, "title"> => {
-  const items = dataType.prefixItems ?? dataType.items;
+  let items: [ValueConstraints, ...ValueConstraints[]];
 
-  if (!items) {
+  if (dataType.items === undefined || dataType.items === true) {
+    // We have no constraints on the items in the array, so we can't determine the type
     return expectedValuesDisplayMap.array;
+  } else if (dataType.prefixItems) {
+    // We have prefixItems, so we can determine the type of the array. If `items` is set and is
+    // not false, we should include it in the list of items
+    items = [
+      ...dataType.prefixItems,
+      ...(dataType.items ? [dataType.items] : []),
+    ];
+  } else if (dataType.items === false) {
+    // We don't have prefixItems, but we have a constraint that disallows additional items, so this
+    // is always an empty list
+    return expectedValuesDisplayMap.emptyList;
+  } else {
+    return expectedValuesDisplayMap[
+      `${dataType.items.type}Array` as keyof typeof expectedValuesDisplayMap
+    ];
   }
 
   const itemTypes = items.map((item) => item.type);
 
   if (new Set(itemTypes).size === 1) {
     const itemDataType = items[0];
-    if (!itemDataType) {
-      throw new Error(
-        `Could not find itemDataType for array data type ${dataType.$id}`,
-      );
-    }
+
     if (Array.isArray(itemDataType.type)) {
       return expectedValuesDisplayMap.mixedArray;
     } else {
@@ -277,8 +291,7 @@ export const DataTypesOptionsContextProvider = ({
             return {
               title: `${dataType.title} Array`,
               ...getArrayDataTypeDisplay({
-                items: [dataType],
-                $id: dataType.$id,
+                items: dataType,
               }),
             };
           }

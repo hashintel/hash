@@ -1,8 +1,8 @@
 import type {
-  ArraySchema,
-  ObjectSchema,
   OneOfSchema,
   PropertyTypeReference,
+  PropertyValueArray,
+  PropertyValueObject,
   PropertyValues,
   ValueOrArray,
 } from "@blockprotocol/type-system";
@@ -13,12 +13,14 @@ export function isNonNullable<T>(value: T): value is NonNullable<T> {
 
 export const isPropertyValueArray = (
   propertyValue: PropertyValues,
-): propertyValue is ArraySchema<OneOfSchema<PropertyValues>> => {
+): propertyValue is PropertyValueArray<OneOfSchema<PropertyValues>> => {
   return "type" in propertyValue && propertyValue.type === "array";
 };
 
-export const isPropertyValuePropertyObject = (
+export const isPropertyValueObject = (
   propertyValue: PropertyValues,
-): propertyValue is ObjectSchema<ValueOrArray<PropertyTypeReference>> => {
+): propertyValue is PropertyValueObject<
+  ValueOrArray<PropertyTypeReference>
+> => {
   return "type" in propertyValue && propertyValue.type === "object";
 };

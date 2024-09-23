@@ -148,13 +148,6 @@ clippy *arguments: install-cargo-hack
   @just in-pr cargo clippy --profile {{profile}} --all-features --all-targets --no-deps {{arguments}}
   @just not-in-pr cargo hack --optional-deps --feature-powerset clippy --profile {{profile}} --all-targets --no-deps {{arguments}}
 
-# Creates the documentation for the crate
-[no-cd]
-doc *arguments:
-  @just in-pr RUSTDOCFLAGS=-Dwarnings cargo doc --all-features --workspace --no-deps -Zunstable-options -Zrustdoc-scrape-examples {{arguments}}
-  @just not-in-pr cargo doc --all-features --workspace --no-deps -Zunstable-options -Zrustdoc-scrape-examples {{arguments}}
-
-
 # Builds the crate
 [no-cd]
 build *arguments:

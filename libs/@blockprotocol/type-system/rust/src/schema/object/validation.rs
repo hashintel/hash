@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use thiserror::Error;
 
 use crate::{
-    schema::{object::ObjectSchema, ClosedEntityType, EntityType},
+    schema::{object::PropertyValueObject, ClosedEntityType, EntityType},
     url::BaseUrl,
     Valid, Validator,
 };
@@ -35,13 +35,13 @@ impl<T> ObjectSchemaRef<'_, T> {
     }
 }
 
-impl<T: Sync> Validator<ObjectSchema<T>> for ObjectSchemaValidator {
+impl<T: Sync> Validator<PropertyValueObject<T>> for ObjectSchemaValidator {
     type Error = ObjectSchemaValidationError;
 
     async fn validate_ref<'v>(
         &self,
-        value: &'v ObjectSchema<T>,
-    ) -> Result<&'v Valid<ObjectSchema<T>>, Self::Error> {
+        value: &'v PropertyValueObject<T>,
+    ) -> Result<&'v Valid<PropertyValueObject<T>>, Self::Error> {
         ObjectSchemaRef {
             properties: &value.properties,
             required: &value.required,

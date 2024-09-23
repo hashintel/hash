@@ -65,7 +65,7 @@ export const guessEditorTypeFromExpectedType = (
     throw new Error("Array data types are not yet handled.");
   }
 
-  return dataType.type === "integer" ? "number" : dataType.type;
+  return dataType.type;
 };
 
 export const isBlankStringOrNullish = (value: unknown) => {
