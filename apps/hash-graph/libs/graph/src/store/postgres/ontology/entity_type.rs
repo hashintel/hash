@@ -595,7 +595,6 @@ where
                     classification: param.classification,
                     label_property: param.label_property,
                     icon: param.icon,
-                    inverse: param.inverse,
                 },
                 param.conflict_behavior,
                 param.relationships,
@@ -676,7 +675,6 @@ where
                     provenance,
                     label_property: metadata.label_property,
                     icon: metadata.icon,
-                    inverse: metadata.inverse,
                 };
 
                 inserted_ontology_ids.push(ontology_id);
@@ -996,7 +994,6 @@ where
             label_property: params.label_property,
             icon: params.icon,
             classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
-            inverse: params.inverse,
         };
 
         transaction
@@ -1061,7 +1058,6 @@ where
                 provenance,
                 label_property: metadata.label_property,
                 icon: metadata.icon,
-                inverse: metadata.inverse,
             };
 
             if let Some(temporal_client) = &self.temporal_client {
@@ -1193,8 +1189,6 @@ pub struct EntityTypeRowIndices {
     pub additional_metadata: usize,
     pub label_property: usize,
     pub icon: usize,
-
-    pub inverse: usize,
 }
 
 impl QueryRecordDecode for EntityTypeWithMetadata {
@@ -1233,7 +1227,6 @@ impl QueryRecordDecode for EntityTypeWithMetadata {
                     .transpose()
                     .expect("label property returned from Postgres is not valid"),
                 icon: row.get(indices.icon),
-                inverse: row.get(indices.inverse),
             },
         }
     }
@@ -1276,7 +1269,6 @@ impl PostgresRecord for EntityTypeWithMetadata {
                 .add_selection_path(&EntityTypeQueryPath::AdditionalMetadata),
             label_property: compiler.add_selection_path(&EntityTypeQueryPath::LabelProperty),
             icon: compiler.add_selection_path(&EntityTypeQueryPath::Icon),
-            inverse: compiler.add_selection_path(&EntityTypeQueryPath::Schema(None)),
         }
     }
 }

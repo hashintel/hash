@@ -41,8 +41,8 @@ use graph_types::{
     account::EditionCreatedById,
     ontology::{
         EntityTypeEmbedding, EntityTypeId, EntityTypeMetadata, EntityTypeWithMetadata,
-        InverseEntityTypeMetadata, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
-        OntologyTypeMetadata, OntologyTypeReference, ProvidedOntologyEditionProvenance,
+        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeMetadata,
+        OntologyTypeReference, ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
 };
@@ -99,7 +99,6 @@ use crate::rest::{
             EntityTypeEmbedding,
 
             CreateEntityTypeRequest,
-            InverseEntityTypeMetadata,
             LoadExternalEntityTypeRequest,
             UpdateEntityTypeRequest,
             UpdateEntityTypeEmbeddingParams,
@@ -177,8 +176,6 @@ struct CreateEntityTypeRequest {
     relationships: Vec<EntityTypeRelationAndSubject>,
     #[serde(default)]
     provenance: ProvidedOntologyEditionProvenance,
-    #[serde(default)]
-    inverse: InverseEntityTypeMetadata,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -425,7 +422,6 @@ where
         icon,
         relationships,
         provenance,
-        inverse,
     }) = body;
 
     let is_list = matches!(&schema, ListOrValue::List(_));
@@ -463,7 +459,6 @@ where
                     label_property: label_property.clone(),
                     conflict_behavior: ConflictBehavior::Fail,
                     provenance: provenance.clone(),
-                    inverse: inverse.clone(),
                 })
             }).collect::<Result<Vec<_>, _>>()?
         )
@@ -552,8 +547,6 @@ enum LoadExternalEntityTypeRequest {
         relationships: Vec<EntityTypeRelationAndSubject>,
         #[serde(default)]
         provenance: Box<ProvidedOntologyEditionProvenance>,
-        #[serde(default)]
-        inverse: InverseEntityTypeMetadata,
     },
 }
 
@@ -653,7 +646,6 @@ where
             icon,
             relationships,
             provenance,
-            inverse,
         } => {
             if domain_validator.validate_url(schema.id.base_url.as_str()) {
                 let error = "Ontology type is not external".to_owned();
@@ -679,7 +671,6 @@ where
                             relationships,
                             conflict_behavior: ConflictBehavior::Fail,
                             provenance: *provenance,
-                            inverse,
                         },
                     )
                     .await
@@ -822,7 +813,7 @@ where
         })
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct UpdateEntityTypeRequest {
     #[schema(value_type = VAR_UPDATE_ENTITY_TYPE)]
@@ -835,8 +826,6 @@ struct UpdateEntityTypeRequest {
     relationships: Vec<EntityTypeRelationAndSubject>,
     #[serde(default)]
     provenance: ProvidedOntologyEditionProvenance,
-    #[serde(default)]
-    inverse: InverseEntityTypeMetadata,
 }
 
 #[utoipa::path(
@@ -879,7 +868,6 @@ where
         icon,
         relationships,
         provenance,
-        inverse,
     }) = body;
 
     type_to_update.version = OntologyTypeVersion::new(type_to_update.version.inner() + 1);
@@ -914,7 +902,6 @@ where
                 icon,
                 relationships,
                 provenance,
-                inverse,
             },
         )
         .await

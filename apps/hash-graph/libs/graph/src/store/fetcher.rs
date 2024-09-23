@@ -17,10 +17,10 @@ use graph_types::{
     account::AccountId,
     knowledge::entity::{Entity, EntityId},
     ontology::{
-        DataTypeMetadata, EntityTypeMetadata, InverseEntityTypeMetadata, OntologyTemporalMetadata,
-        OntologyType, OntologyTypeClassificationMetadata, OntologyTypeMetadata,
-        OntologyTypeReference, PartialDataTypeMetadata, PartialEntityTypeMetadata,
-        PartialPropertyTypeMetadata, PropertyTypeMetadata, ProvidedOntologyEditionProvenance,
+        DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata, OntologyType,
+        OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
+        PartialDataTypeMetadata, PartialEntityTypeMetadata, PartialPropertyTypeMetadata,
+        PropertyTypeMetadata, ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
 };
@@ -453,11 +453,14 @@ where
                             },
                             icon: None,
                             label_property: None,
-                            inverse: InverseEntityTypeMetadata::default(),
                         };
 
                         for referenced_ontology_type in self
-                            .collect_external_ontology_types(actor_id, &entity_type, bypassed_types)
+                            .collect_external_ontology_types(
+                                actor_id,
+                                &*entity_type,
+                                bypassed_types,
+                            )
                             .await
                             .change_context(StoreError)?
                         {
@@ -469,7 +472,7 @@ where
 
                         fetched_ontology_types
                             .entity_types
-                            .push((entity_type, metadata));
+                            .push((*entity_type, metadata));
                     }
                 }
             }
@@ -567,7 +570,6 @@ where
                             relationships: ENTITY_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
                             provenance: ProvidedOntologyEditionProvenance::default(),
-                            inverse: metadata.inverse,
                         }),
                 )
                 .await?;
@@ -656,7 +658,6 @@ where
                                 relationships: ENTITY_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
                                 provenance: ProvidedOntologyEditionProvenance::default(),
-                                inverse: metadata.inverse,
                             },
                         ),
                     )

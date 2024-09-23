@@ -723,7 +723,6 @@ impl DatabaseColumn for PropertyTypes {
 pub enum EntityTypes {
     OntologyId,
     Schema,
-    Inverse,
     ClosedSchema,
     LabelProperty,
     Icon,
@@ -733,7 +732,7 @@ impl DatabaseColumn for EntityTypes {
     fn parameter_type(self) -> ParameterType {
         match self {
             Self::OntologyId => ParameterType::Uuid,
-            Self::Schema | Self::Inverse | Self::ClosedSchema => ParameterType::Any,
+            Self::Schema | Self::ClosedSchema => ParameterType::Any,
             Self::Icon => ParameterType::Text,
             Self::LabelProperty => ParameterType::BaseUrl,
         }
@@ -741,7 +740,7 @@ impl DatabaseColumn for EntityTypes {
 
     fn nullable(self) -> bool {
         match self {
-            Self::OntologyId | Self::Schema | Self::Inverse | Self::ClosedSchema => false,
+            Self::OntologyId | Self::Schema | Self::ClosedSchema => false,
             Self::LabelProperty | Self::Icon => true,
         }
     }
@@ -750,7 +749,6 @@ impl DatabaseColumn for EntityTypes {
         match self {
             Self::OntologyId => "ontology_id",
             Self::Schema => "schema",
-            Self::Inverse => "inverse",
             Self::ClosedSchema => "closed_schema",
             Self::LabelProperty => "label_property",
             Self::Icon => "icon",

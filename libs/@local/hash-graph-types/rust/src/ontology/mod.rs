@@ -22,7 +22,7 @@ pub use self::{
     data_type::{DataTypeId, DataTypeMetadata, DataTypeWithMetadata, PartialDataTypeMetadata},
     entity_type::{
         EntityTypeEmbedding, EntityTypeId, EntityTypeMetadata, EntityTypeWithMetadata,
-        InverseEntityTypeMetadata, PartialEntityTypeMetadata,
+        PartialEntityTypeMetadata,
     },
     property_type::{
         PartialPropertyTypeMetadata, PropertyTypeEmbedding, PropertyTypeId, PropertyTypeMetadata,

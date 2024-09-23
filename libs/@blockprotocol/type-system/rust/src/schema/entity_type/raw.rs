@@ -7,7 +7,10 @@ use serde_json::Value as JsonValue;
 use tsify::Tsify;
 
 use crate::{
-    schema::{ArraySchema, EntityTypeReference, OneOfSchema, PropertyTypeReference, ValueOrArray},
+    schema::{
+        entity_type::InverseEntityTypeMetadata, ArraySchema, EntityTypeReference, OneOfSchema,
+        PropertyTypeReference, ValueOrArray,
+    },
     url::{BaseUrl, VersionedUrl},
 };
 
@@ -67,6 +70,8 @@ pub struct EntityType<'a> {
     )]
     #[serde(with = "links", default, skip_serializing_if = "HashMap::is_empty")]
     links: Links,
+    #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
+    inverse: InverseEntityTypeMetadata,
     #[serde(default, skip_serializing_if = "<[_]>::is_empty")]
     examples: Cow<'a, [HashMap<BaseUrl, JsonValue>]>,
 }
@@ -160,6 +165,7 @@ impl From<EntityType<'_>> for super::EntityType {
             required: entity_type.required.into_owned(),
             all_of: entity_type.all_of.into_owned(),
             links: entity_type.links,
+            inverse: entity_type.inverse,
             examples: entity_type.examples.into_owned(),
         }
     }
@@ -178,6 +184,7 @@ impl<'a> From<&'a super::EntityType> for EntityType<'a> {
             required: Cow::Borrowed(&entity_type.required),
             all_of: Cow::Borrowed(&entity_type.all_of),
             links: entity_type.links.clone(),
+            inverse: entity_type.inverse.clone(),
             #[expect(deprecated)]
             examples: Cow::Borrowed(&entity_type.examples),
         }
