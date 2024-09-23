@@ -5061,7 +5061,7 @@
           "after": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/DataTypeVertexId"
+                "$ref": "#/components/schemas/VersionedUrl"
               }
             ],
             "nullable": true
@@ -5098,7 +5098,7 @@
           "cursor": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/DataTypeVertexId"
+                "$ref": "#/components/schemas/VersionedUrl"
               }
             ],
             "nullable": true
@@ -5119,7 +5119,7 @@
           "after": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/DataTypeVertexId"
+                "$ref": "#/components/schemas/VersionedUrl"
               }
             ],
             "nullable": true
@@ -5158,7 +5158,7 @@
           "cursor": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/DataTypeVertexId"
+                "$ref": "#/components/schemas/VersionedUrl"
               }
             ],
             "nullable": true
@@ -5416,7 +5416,7 @@
           "after": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/EntityTypeVertexId"
+                "$ref": "#/components/schemas/VersionedUrl"
               }
             ],
             "nullable": true
@@ -5464,7 +5464,7 @@
           "cursor": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/EntityTypeVertexId"
+                "$ref": "#/components/schemas/VersionedUrl"
               }
             ],
             "nullable": true
@@ -5499,7 +5499,7 @@
           "after": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/EntityTypeVertexId"
+                "$ref": "#/components/schemas/VersionedUrl"
               }
             ],
             "nullable": true
@@ -5544,7 +5544,7 @@
           "cursor": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/EntityTypeVertexId"
+                "$ref": "#/components/schemas/VersionedUrl"
               }
             ],
             "nullable": true
@@ -5583,7 +5583,7 @@
           "after": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/PropertyTypeVertexId"
+                "$ref": "#/components/schemas/VersionedUrl"
               }
             ],
             "nullable": true
@@ -5620,7 +5620,7 @@
           "cursor": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/PropertyTypeVertexId"
+                "$ref": "#/components/schemas/VersionedUrl"
               }
             ],
             "nullable": true
@@ -5641,7 +5641,7 @@
           "after": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/PropertyTypeVertexId"
+                "$ref": "#/components/schemas/VersionedUrl"
               }
             ],
             "nullable": true
@@ -5680,7 +5680,7 @@
           "cursor": {
             "allOf": [
               {
-                "$ref": "#/components/schemas/PropertyTypeVertexId"
+                "$ref": "#/components/schemas/VersionedUrl"
               }
             ],
             "nullable": true

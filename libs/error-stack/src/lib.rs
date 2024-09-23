@@ -472,6 +472,8 @@
 //! `serde`        | Enables serialization support for [`Report`]                        | disabled
 //! `anyhow`       | Provides `into_report` to convert [`anyhow::Error`] to [`Report`]   | disabled
 //! `eyre`         | Provides `into_report` to convert [`eyre::Report`] to [`Report`]    | disabled
+//! `futures`      | Enables support for [`Stream`], requires `unstable`                 | disabled
+//! `unstable`     | Enables unstable features, these features are not covered by semver | disabled
 //!
 //!
 //! [`set_debug_hook`]: Report::set_debug_hook
@@ -482,12 +484,14 @@
 //! [`Display`]: core::fmt::Display
 //! [`Debug`]: core::fmt::Debug
 //! [`SpanTrace`]: tracing_error::SpanTrace
+//! [`Stream`]: futures_core::Stream
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(
     nightly,
     feature(error_generic_member_access),
     allow(clippy::incompatible_msrv)
 )]
+#![cfg_attr(all(nightly, feature = "unstable"), feature(try_trait_v2))]
 #![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
 #![cfg_attr(all(nightly, feature = "std"), feature(backtrace_frames))]
 #![cfg_attr(
@@ -514,12 +518,22 @@ mod result;
 
 mod context;
 mod error;
+#[cfg(feature = "unstable")]
+pub mod ext;
 pub mod fmt;
 #[cfg(any(feature = "std", feature = "hooks"))]
 mod hook;
 #[cfg(feature = "serde")]
 mod serde;
+#[cfg(feature = "unstable")]
+mod sink;
 
+#[cfg(all(feature = "unstable", feature = "futures"))]
+pub use self::ext::stream::TryReportStreamExt;
+#[cfg(feature = "unstable")]
+pub use self::ext::{iter::TryReportIteratorExt, tuple::TryReportTupleExt};
+#[cfg(feature = "unstable")]
+pub use self::sink::ReportSink;
 pub use self::{
     compat::IntoReportCompat,
     context::Context,

@@ -29,7 +29,6 @@ members = [
     "libs/deer/macros",
     "libs/error-stack",
     "libs/error-stack/macros",
-    "libs/error-stack/experimental",
     "libs/sarif",
 ]
 default-members = [

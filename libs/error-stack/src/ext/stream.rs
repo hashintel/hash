@@ -5,9 +5,10 @@ use core::{
     task::{ready, Context, Poll},
 };
 
-use error_stack::{Report, Result};
 use futures_core::{FusedFuture, FusedStream, TryStream};
 use pin_project_lite::pin_project;
+
+use crate::{Report, Result};
 
 pin_project! {
     /// Future for the [`try_collect_reports`](TryReportStreamExt::try_collect_reports)
@@ -91,8 +92,28 @@ where
     }
 }
 
-/// Trait extending `TryStream` with methods for collecting error-stack results in a fail-slow
+/// Trait extending [`TryStream`] with methods for collecting error-stack results in a fail-slow
 /// manner.
+///
+/// This trait provides additional functionality to [`TryStream`]s, allowing for the collection of
+/// successful items while accumulating errors. It's particularly useful when you want to continue
+/// processing a stream even after encountering errors, gathering all successful results and errors
+/// until the stream is exhausted or a specified error limit is reached.
+///
+/// The fail-slow approach means that the stream processing continues after encountering errors,
+/// unlike traditional error handling that might stop at the first error.
+///
+/// # Performance Considerations
+///
+/// These methods may have performance implications as they potentially iterate
+/// through the entire stream, even after encountering errors.
+///
+/// # Note
+///
+/// This trait is only available behind the `unstable` flag and is not covered by semver guarantees.
+/// It may be subject to breaking changes in future releases.
+///
+/// [`TryStream`]: futures_core::stream::TryStream
 pub trait TryReportStreamExt<C>: TryStream<Error: Into<Report<[C]>>> {
     /// Collects all successful items from the stream into a collection, accumulating all errors.
     ///
@@ -102,9 +123,8 @@ pub trait TryReportStreamExt<C>: TryStream<Error: Into<Report<[C]>>> {
     /// # Examples
     ///
     /// ```
-    /// # use error_stack::{Report, Result};
+    /// # use error_stack::{Report, Result, TryReportStreamExt};
     /// # use futures_util::stream;
-    /// # use error_stack_experimental::TryReportStreamExt;
     ///
     /// #[derive(Debug, Clone, PartialEq, Eq)]
     /// pub struct UnknownError;
@@ -132,7 +152,7 @@ pub trait TryReportStreamExt<C>: TryStream<Error: Into<Report<[C]>>> {
     /// assert_eq!(report.current_contexts().count(), 2);
     /// # }
     /// #
-    /// # tokio::runtime::Runtime::new().unwrap().block_on(example());
+    /// # futures::executor::block_on(example());
     /// ```
     fn try_collect_reports<A>(self) -> TryCollectReports<Self, A, C>
     where
@@ -149,9 +169,8 @@ pub trait TryReportStreamExt<C>: TryStream<Error: Into<Report<[C]>>> {
     /// once the number of accumulated errors reaches the specified `bound`.
     ///
     /// ```
-    /// # use error_stack::{Report, Result};
+    /// # use error_stack::{Report, Result, TryReportStreamExt};
     /// # use futures_util::stream;
-    /// # use error_stack_experimental::TryReportStreamExt;
     ///
     /// #[derive(Debug, Clone, PartialEq, Eq)]
     /// pub struct UnknownError;
@@ -179,7 +198,7 @@ pub trait TryReportStreamExt<C>: TryStream<Error: Into<Report<[C]>>> {
     /// assert_eq!(report.current_contexts().count(), 1);
     /// # }
     /// #
-    /// # tokio::runtime::Runtime::new().unwrap().block_on(example());
+    /// # futures::executor::block_on(example());
     /// ```
     fn try_collect_reports_bounded<A>(self, bound: usize) -> TryCollectReports<Self, A, C>
     where

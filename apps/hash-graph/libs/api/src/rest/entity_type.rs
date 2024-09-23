@@ -46,9 +46,7 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::{
-    entity_type::EntityTypeQueryToken, subgraph::identifier::EntityTypeVertexId, ConflictBehavior,
-};
+use hash_graph_store::{entity_type::EntityTypeQueryToken, ConflictBehavior};
 use hash_map::HashMap;
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
@@ -741,7 +739,7 @@ where
 #[serde(rename_all = "camelCase")]
 struct GetEntityTypeSubgraphResponse {
     subgraph: Subgraph,
-    cursor: Option<EntityTypeVertexId>,
+    cursor: Option<VersionedUrl>,
     count: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
