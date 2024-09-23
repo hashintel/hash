@@ -53,7 +53,7 @@ impl Serialize for PropertyType {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(
     untagged,
     expecting = "Expected a data type reference, a property type object, or an array of property \

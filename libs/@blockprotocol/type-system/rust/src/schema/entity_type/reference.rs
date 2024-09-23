@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::url::VersionedUrl;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(deny_unknown_fields)]
 #[repr(transparent)]
 pub struct EntityTypeReference {

@@ -5,14 +5,14 @@ use serde::{Deserialize, Serialize};
 use crate::url::BaseUrl;
 
 #[derive(Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase")]
 enum ObjectTypeTag {
     Object,
 }
 
 #[derive(Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(super) struct ObjectSchema<T> {
     #[serde(rename = "type")]

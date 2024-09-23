@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 use utoipa::openapi;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Conversions {
@@ -20,7 +20,7 @@ pub struct Conversions {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ConversionDefinition {
@@ -55,7 +55,7 @@ impl ToSql for ConversionDefinition {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub enum Variable {
     #[serde(rename = "self")]
@@ -106,7 +106,7 @@ impl utoipa::ToSchema<'_> for ConversionValue {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 pub enum Operator {
     #[serde(rename = "+")]
@@ -193,7 +193,7 @@ mod codec {
     use super::{ConversionExpression, ConversionValue, Operator, Variable};
 
     #[derive(Serialize, Deserialize)]
-    #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+    #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
     #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
     #[serde(rename_all = "camelCase")]
     pub(super) enum NumberTypeTag {
@@ -201,7 +201,7 @@ mod codec {
     }
 
     #[derive(Serialize, Deserialize)]
-    #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+    #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
     #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
     #[serde(untagged, rename = "ConversionValue")]
     pub(super) enum SerializableValue {
@@ -240,7 +240,7 @@ mod codec {
 
     #[derive(Serialize, Deserialize)]
     #[serde(rename = "ConversionExpression")]
-    #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+    #[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
     pub(super) struct SerializableExpression(Operator, ConversionValue, ConversionValue);
 
     impl From<SerializableExpression> for ConversionExpression {

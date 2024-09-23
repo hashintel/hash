@@ -4,7 +4,7 @@ use std::collections::{HashMap, HashSet};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 #[cfg(target_arch = "wasm32")]
-use tsify::Tsify;
+use tsify_next::Tsify;
 
 use crate::{
     schema::{ArraySchema, EntityTypeReference, OneOfSchema, PropertyTypeReference, ValueOrArray},

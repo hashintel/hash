@@ -16,7 +16,7 @@ mod error;
 // #[cfg(target_arch = "wasm32")]
 // mod wasm;
 
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[cfg_attr(feature = "postgres", derive(ToSql), postgres(transparent))]
 #[derive(Clone, PartialEq, Eq, Ord, PartialOrd, Hash)]
 pub struct BaseUrl(String);
@@ -176,7 +176,7 @@ pub struct VersionedUrl {
 }
 
 #[cfg(target_arch = "wasm32")]
-#[derive(tsify::Tsify)]
+#[derive(tsify_next::Tsify)]
 #[serde(rename = "VersionedUrl")]
 #[expect(dead_code, reason = "Used in the generated TypeScript types")]
 pub struct VersionedUrlPatch(#[tsify(type = "`${BaseUrl}v/${number}`")] String);

@@ -32,7 +32,7 @@ use crate::{
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "kebab-case")]
 pub enum JsonSchemaValueType {
     Null,
@@ -59,7 +59,7 @@ impl fmt::Display for JsonSchemaValueType {
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase")]
 pub struct DataTypeLabel {
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -88,14 +88,14 @@ impl From<&JsonValue> for JsonSchemaValueType {
     }
 }
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase")]
 pub enum DataTypeTag {
     DataType,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase")]
 pub enum DataTypeSchemaTag {
     #[serde(rename = "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type")]
@@ -111,7 +111,7 @@ const fn is_false(value: &bool) -> bool {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename = "DataType", rename_all = "camelCase", deny_unknown_fields)]
 pub struct DataType {
     #[serde(rename = "$schema")]

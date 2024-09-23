@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::{schema::DataType, url::VersionedUrl, Valid};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 pub struct ClosedDataType {
     #[serde(flatten)]
     pub schema: Arc<DataType>,

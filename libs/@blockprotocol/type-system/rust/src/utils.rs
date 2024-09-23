@@ -1,7 +1,7 @@
 #[cfg(target_arch = "wasm32")]
 mod wasm {
     use serde::{Deserialize, Serialize};
-    use tsify::Tsify;
+    use tsify_next::Tsify;
 
     #[cfg(debug_assertions)]
     pub fn set_panic_hook() {

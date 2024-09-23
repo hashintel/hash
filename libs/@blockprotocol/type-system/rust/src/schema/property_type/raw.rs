@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::{schema::PropertyValues, url::VersionedUrl};
 
 #[derive(Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase")]
 enum PropertyTypeSchemaTag {
     #[serde(rename = "https://blockprotocol.org/types/modules/graph/0.3/schema/property-type")]
@@ -13,14 +13,14 @@ enum PropertyTypeSchemaTag {
 }
 
 #[derive(Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase")]
 enum PropertyTypeTag {
     PropertyType,
 }
 
 #[derive(Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct PropertyType<'a> {
     #[serde(rename = "$schema")]

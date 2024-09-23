@@ -2,14 +2,14 @@ use serde::{Deserialize, Serialize};
 
 /// Will serialize as a constant value `"array"`
 #[derive(Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase")]
 enum ArrayTypeTag {
     Array,
 }
 
 #[derive(Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify_next::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(super) struct ArraySchema<T> {
     #[serde(rename = "type")]

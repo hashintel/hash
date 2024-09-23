@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 #[cfg(target_arch = "wasm32")]
-use tsify::Tsify;
+use tsify_next::Tsify;
 
 #[cfg_attr(target_arch = "wasm32", derive(Tsify))]
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Error)]
