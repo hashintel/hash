@@ -18,12 +18,7 @@ use graph_types::{
 };
 use hash_graph_store::{
     filter::Filter,
-    subgraph::{
-        edges::GraphResolveDepths,
-        identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
-        temporal_axes::QueryTemporalAxesUnresolved,
-        Subgraph,
-    },
+    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved, Subgraph},
     ConflictBehavior,
 };
 use serde::{Deserialize, Serialize};
@@ -63,7 +58,7 @@ pub struct GetDataTypeSubgraphParams<'p> {
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
     #[serde(default)]
-    pub after: Option<DataTypeVertexId>,
+    pub after: Option<VersionedUrl>,
     #[serde(default)]
     pub limit: Option<usize>,
     #[serde(default)]
@@ -73,7 +68,7 @@ pub struct GetDataTypeSubgraphParams<'p> {
 #[derive(Debug)]
 pub struct GetDataTypeSubgraphResponse {
     pub subgraph: Subgraph,
-    pub cursor: Option<DataTypeVertexId>,
+    pub cursor: Option<VersionedUrl>,
     pub count: Option<usize>,
 }
 
@@ -96,7 +91,7 @@ pub struct GetDataTypesParams<'p> {
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
     #[serde(default)]
-    pub after: Option<DataTypeVertexId>,
+    pub after: Option<VersionedUrl>,
     #[serde(default)]
     pub limit: Option<usize>,
     #[serde(default)]
@@ -108,7 +103,7 @@ pub struct GetDataTypesParams<'p> {
 #[serde(rename_all = "camelCase")]
 pub struct GetDataTypesResponse {
     pub data_types: Vec<DataTypeWithMetadata>,
-    pub cursor: Option<DataTypeVertexId>,
+    pub cursor: Option<VersionedUrl>,
     pub count: Option<usize>,
 }
 
@@ -303,7 +298,7 @@ pub struct GetPropertyTypeSubgraphParams<'p> {
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
     #[serde(default)]
-    pub after: Option<PropertyTypeVertexId>,
+    pub after: Option<VersionedUrl>,
     #[serde(default)]
     pub limit: Option<usize>,
     #[serde(default)]
@@ -313,7 +308,7 @@ pub struct GetPropertyTypeSubgraphParams<'p> {
 #[derive(Debug)]
 pub struct GetPropertyTypeSubgraphResponse {
     pub subgraph: Subgraph,
-    pub cursor: Option<PropertyTypeVertexId>,
+    pub cursor: Option<VersionedUrl>,
     pub count: Option<usize>,
 }
 
@@ -336,7 +331,7 @@ pub struct GetPropertyTypesParams<'p> {
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
     #[serde(default)]
-    pub after: Option<PropertyTypeVertexId>,
+    pub after: Option<VersionedUrl>,
     #[serde(default)]
     pub limit: Option<usize>,
     #[serde(default)]
@@ -348,7 +343,7 @@ pub struct GetPropertyTypesParams<'p> {
 #[serde(rename_all = "camelCase")]
 pub struct GetPropertyTypesResponse {
     pub property_types: Vec<PropertyTypeWithMetadata>,
-    pub cursor: Option<PropertyTypeVertexId>,
+    pub cursor: Option<VersionedUrl>,
     pub count: Option<usize>,
 }
 
@@ -543,7 +538,7 @@ pub struct GetEntityTypeSubgraphParams<'p> {
     pub filter: Filter<'p, EntityTypeWithMetadata>,
     pub graph_resolve_depths: GraphResolveDepths,
     pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub after: Option<EntityTypeVertexId>,
+    pub after: Option<VersionedUrl>,
     pub limit: Option<usize>,
     pub include_drafts: bool,
     #[serde(default)]
@@ -557,7 +552,7 @@ pub struct GetEntityTypeSubgraphParams<'p> {
 #[derive(Debug)]
 pub struct GetEntityTypeSubgraphResponse {
     pub subgraph: Subgraph,
-    pub cursor: Option<EntityTypeVertexId>,
+    pub cursor: Option<VersionedUrl>,
     pub count: Option<usize>,
     pub web_ids: Option<HashMap<OwnedById, usize>>,
     pub edition_created_by_ids: Option<HashMap<EditionCreatedById, usize>>,
@@ -583,7 +578,7 @@ pub struct GetEntityTypesParams<'p> {
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
     #[serde(default)]
-    pub after: Option<EntityTypeVertexId>,
+    pub after: Option<VersionedUrl>,
     #[serde(default)]
     pub limit: Option<usize>,
     #[serde(default)]
@@ -599,7 +594,7 @@ pub struct GetEntityTypesParams<'p> {
 #[serde(rename_all = "camelCase")]
 pub struct GetEntityTypesResponse {
     pub entity_types: Vec<EntityTypeWithMetadata>,
-    pub cursor: Option<EntityTypeVertexId>,
+    pub cursor: Option<VersionedUrl>,
     pub count: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[cfg_attr(feature = "utoipa", schema(nullable = false))]
