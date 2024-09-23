@@ -4558,15 +4558,15 @@ dependencies = [
 
 [[package]]
 name = "orx-concurrent-option"
-version = "1.1.0"
+version = "1.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6495f6cd6c808d8ffe4fbee6e21a2bf06df9804fba90c5c3fd25ecb10c713757"
+checksum = "7f6316222b51039f5d61cae27dccf7167ba4d2fe98816e0fe46af8abd27a5ed3"
 
 [[package]]
 name = "orx-concurrent-vec"
-version = "2.7.1"
+version = "3.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0431bcfa60dd48cb4716e8a232ffb8a71969f90ae9412f42f3c874053f38a3d"
+checksum = "e5d660536386afbc2bf4b472ebcae42aab527ba829c63c966ea4a9e000b4ffb3"
 dependencies = [
  "orx-concurrent-option",
  "orx-fixed-vec",
@@ -4578,9 +4578,9 @@ dependencies = [
 
 [[package]]
 name = "orx-fixed-vec"
-version = "3.8.0"
+version = "3.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2163154a7cad2b05ed5db2d6f9293244d8e6d24d3e08d8f431439abc0cdbc93c"
+checksum = "a599bc903d8f7af099503fa67237aeb51f81918b37ebe043849baf4437168a58"
 dependencies = [
  "orx-pinned-vec",
  "orx-pseudo-default",
@@ -4588,9 +4588,9 @@ dependencies = [
 
 [[package]]
 name = "orx-pinned-concurrent-col"
-version = "2.7.0"
+version = "2.8.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "aa1aef70fb69d5e676f9a4d385cd42edd1b7761ca0813cda526b7f124b2164f3"
+checksum = "859bd0a451eff1c98da539ca79372c2295004e191b24371c2819f2e8c2608496"
 dependencies = [
  "orx-fixed-vec",
  "orx-pinned-vec",
@@ -4600,9 +4600,9 @@ dependencies = [
 
 [[package]]
 name = "orx-pinned-vec"
-version = "3.8.0"
+version = "3.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "eca16b2e706b4bedd7b91b7df231b543eab524d08e81b240eb120a6e9a3f0ceb"
+checksum = "cd9630a8f2fb79750ce034d355fdce8d1729d39f42e76b9b849ddc6b9dda3110"
 dependencies = [
  "orx-pseudo-default",
 ]
@@ -4615,9 +4615,9 @@ checksum = "b97dde303d83e7609797d0c1222a9fb02e66445abc47643cc3d7168fd7c804cc"
 
 [[package]]
 name = "orx-split-vec"
-version = "3.8.0"
+version = "3.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0243f5d278f22aa324d282b790c671fc82339ed70032d3738d09c750bcb79322"
+checksum = "35e520e3d4ae1c69a0dd0e03751f956f10d990bfa06d20791470aeeda2a758fa"
 dependencies = [
  "orx-pinned-vec",
  "orx-pseudo-default",

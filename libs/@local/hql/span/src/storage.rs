@@ -1,6 +1,6 @@
 use orx_concurrent_vec::ConcurrentVec;
 
-use crate::{tree::SpanNode, Span, SpanId};
+use crate::{entry::Entry, tree::SpanNode, Span, SpanId};
 
 /// A collection of spans within a single source.
 ///
@@ -42,10 +42,20 @@ where
     }
 
     #[must_use]
-    pub fn get(&self, span: SpanId) -> Option<&S> {
+    pub fn get(&self, span: SpanId) -> Option<Entry<S>> {
         let index = span.value() as usize;
 
-        self.inner.get(index)
+        self.inner.get(index).map(Entry::new)
+    }
+
+    #[must_use]
+    pub fn get_cloned(&self, span: SpanId) -> Option<S>
+    where
+        S: Clone,
+    {
+        let index = span.value() as usize;
+
+        self.inner.get_cloned(index)
     }
 
     fn resolve_inner(&self, span: SpanId, visited: &mut Vec<SpanId>) -> Option<SpanNode<S>>
@@ -56,7 +66,7 @@ where
 
         visited.push(span);
 
-        let current = self.get(span).cloned()?;
+        let current = self.get_cloned(span)?;
 
         let parent = current
             .parent_id()
