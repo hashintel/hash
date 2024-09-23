@@ -20,9 +20,9 @@ clippy *arguments:
 [private]
 test *arguments:
   @just install-cargo-nextest
-  @just install-cargo-hack
 
-  RUST_BACKTRACE=1 cargo hack --optional-deps --feature-powerset {{cargo-hack-groups}} nextest run --cargo-profile {{profile}} {{arguments}}
+  RUST_BACKTRACE=1 cargo nextest run --all-features --all-targets --cargo-profile {{profile}} {{arguments}}
+  RUST_BACKTRACE=1 cargo nextest run --no-default-features --all-targets --cargo-profile {{profile}} {{arguments}}
   RUST_BACKTRACE=1 cargo test --profile {{profile}} --all-features --doc {{arguments}}
 
 [private]
