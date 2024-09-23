@@ -24,6 +24,8 @@ use crate::{
 pub struct InverseEntityTypeMetadata {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_plural: Option<String>,
 }
 
 impl InverseEntityTypeMetadata {
@@ -38,6 +40,7 @@ impl InverseEntityTypeMetadata {
 pub struct EntityType {
     pub id: VersionedUrl,
     pub title: String,
+    pub title_plural: Option<String>,
     pub description: Option<String>,
     pub properties: HashMap<BaseUrl, ValueOrArray<PropertyTypeReference>>,
     pub required: HashSet<BaseUrl>,

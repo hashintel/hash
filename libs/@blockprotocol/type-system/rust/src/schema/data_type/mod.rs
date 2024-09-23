@@ -127,6 +127,8 @@ pub struct DataType {
     pub all_of: Vec<DataTypeReference>,
     pub title: String,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_plural: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
 
     #[serde(default, skip_serializing_if = "DataTypeLabel::is_empty")]
