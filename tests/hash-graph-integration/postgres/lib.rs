@@ -68,7 +68,7 @@ use graph_types::{
     account::AccountId,
     knowledge::entity::{Entity, EntityId},
     ontology::{
-        DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata,
+        DataTypeMetadata, EntityTypeMetadata, InverseEntityTypeMetadata, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, PropertyTypeMetadata,
         ProvidedOntologyEditionProvenance,
     },
@@ -276,6 +276,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                         relationships: entity_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
                         provenance: ProvidedOntologyEditionProvenance::default(),
+                        inverse: InverseEntityTypeMetadata::default(),
                     }
                 }),
             )

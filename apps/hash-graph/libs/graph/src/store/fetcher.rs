@@ -17,10 +17,10 @@ use graph_types::{
     account::AccountId,
     knowledge::entity::{Entity, EntityId},
     ontology::{
-        DataTypeMetadata, EntityTypeMetadata, OntologyTemporalMetadata, OntologyType,
-        OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
-        PartialDataTypeMetadata, PartialEntityTypeMetadata, PartialPropertyTypeMetadata,
-        PropertyTypeMetadata, ProvidedOntologyEditionProvenance,
+        DataTypeMetadata, EntityTypeMetadata, InverseEntityTypeMetadata, OntologyTemporalMetadata,
+        OntologyType, OntologyTypeClassificationMetadata, OntologyTypeMetadata,
+        OntologyTypeReference, PartialDataTypeMetadata, PartialEntityTypeMetadata,
+        PartialPropertyTypeMetadata, PropertyTypeMetadata, ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
 };
@@ -453,6 +453,7 @@ where
                             },
                             icon: None,
                             label_property: None,
+                            inverse: InverseEntityTypeMetadata::default(),
                         };
 
                         for referenced_ontology_type in self
@@ -566,6 +567,7 @@ where
                             relationships: ENTITY_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
                             provenance: ProvidedOntologyEditionProvenance::default(),
+                            inverse: metadata.inverse,
                         }),
                 )
                 .await?;
@@ -654,6 +656,7 @@ where
                                 relationships: ENTITY_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
                                 provenance: ProvidedOntologyEditionProvenance::default(),
+                                inverse: metadata.inverse,
                             },
                         ),
                     )

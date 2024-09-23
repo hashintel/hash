@@ -4,7 +4,10 @@ use graph::store::{
 };
 use graph_test_data::{data_type, entity_type, property_type};
 use graph_types::{
-    ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
+    ontology::{
+        InverseEntityTypeMetadata, OntologyTypeClassificationMetadata,
+        ProvidedOntologyEditionProvenance,
+    },
     owned_by_id::OwnedById,
 };
 use hash_graph_store::{
@@ -57,6 +60,7 @@ async fn insert() {
             relationships: entity_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance::default(),
+            inverse: InverseEntityTypeMetadata::default(),
         },
     )
     .await
@@ -86,6 +90,7 @@ async fn query() {
             relationships: entity_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance::default(),
+            inverse: InverseEntityTypeMetadata::default(),
         },
     )
     .await
@@ -167,6 +172,7 @@ async fn update() {
             relationships: entity_type_relationships(),
             conflict_behavior: ConflictBehavior::Fail,
             provenance: ProvidedOntologyEditionProvenance::default(),
+            inverse: InverseEntityTypeMetadata::default(),
         },
     )
     .await
@@ -180,6 +186,7 @@ async fn update() {
             icon: None,
             relationships: entity_type_relationships(),
             provenance: ProvidedOntologyEditionProvenance::default(),
+            inverse: InverseEntityTypeMetadata::default(),
         },
     )
     .await

@@ -24,7 +24,10 @@ use graph::{
 };
 use graph_types::{
     account::AccountId,
-    ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
+    ontology::{
+        InverseEntityTypeMetadata, OntologyTypeClassificationMetadata,
+        ProvidedOntologyEditionProvenance,
+    },
     owned_by_id::OwnedById,
 };
 use hash_graph_store::ConflictBehavior;
@@ -405,6 +408,7 @@ pub async fn seed<D, P, E, C, A>(
                     }],
                     conflict_behavior: ConflictBehavior::Fail,
                     provenance: ProvidedOntologyEditionProvenance::default(),
+                    inverse: InverseEntityTypeMetadata::default(),
                 },
             )
             .await
@@ -430,6 +434,7 @@ pub async fn seed<D, P, E, C, A>(
                                     },
                                 ],
                                 provenance: ProvidedOntologyEditionProvenance::default(),
+                                inverse: InverseEntityTypeMetadata::default(),
                             },
                         )
                         .await

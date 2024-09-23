@@ -1,7 +1,10 @@
+#[cfg(feature = "postgres")]
+use core::error::Error;
 use core::iter::once;
 
+use bytes::BytesMut;
 #[cfg(feature = "postgres")]
-use postgres_types::{FromSql, ToSql};
+use postgres_types::{FromSql, IsNull, Json, ToSql, Type};
 use serde::{Deserialize, Serialize};
 use type_system::{
     schema::EntityType,
@@ -62,6 +65,40 @@ impl EntityTypeId {
     }
 }
 
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct InverseEntityTypeMetadata {
+    pub title: Option<String>,
+}
+
+#[cfg(feature = "postgres")]
+impl<'a> FromSql<'a> for InverseEntityTypeMetadata {
+    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
+        Ok(Json::from_sql(ty, raw)?.0)
+    }
+
+    fn accepts(ty: &Type) -> bool {
+        <Json<Self> as FromSql>::accepts(ty)
+    }
+}
+
+#[cfg(feature = "postgres")]
+impl ToSql for InverseEntityTypeMetadata {
+    postgres_types::to_sql_checked!();
+
+    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>
+    where
+        Self: Sized,
+    {
+        Json(self).to_sql(ty, out)
+    }
+
+    fn accepts(ty: &Type) -> bool {
+        <Json<Self> as ToSql>::accepts(ty)
+    }
+}
+
 /// An [`EntityTypeMetadata`] that has not yet been fully resolved.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PartialEntityTypeMetadata {
@@ -69,10 +106,11 @@ pub struct PartialEntityTypeMetadata {
     pub classification: OntologyTypeClassificationMetadata,
     pub label_property: Option<BaseUrl>,
     pub icon: Option<String>,
+    pub inverse: InverseEntityTypeMetadata,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct EntityTypeMetadata {
     pub record_id: OntologyTypeRecordId,
     #[serde(flatten)]
@@ -83,6 +121,8 @@ pub struct EntityTypeMetadata {
     pub label_property: Option<BaseUrl>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub icon: Option<String>,
+    #[serde(default)]
+    pub inverse: InverseEntityTypeMetadata,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -121,6 +161,10 @@ impl ToSchema<'static> for EntityTypeMetadata {
                                     .schema_type(SchemaType::String)
                                     .build(),
                             )
+                            .property(
+                                "inverse",
+                                Ref::from_schema_name("InverseEntityTypeMetadata"),
+                            )
                             .build(),
                     )
                     .item(
@@ -143,6 +187,10 @@ impl ToSchema<'static> for EntityTypeMetadata {
                                 schema::ObjectBuilder::new()
                                     .schema_type(SchemaType::String)
                                     .build(),
+                            )
+                            .property(
+                                "inverse",
+                                Ref::from_schema_name("InverseEntityTypeMetadata"),
                             )
                             .build(),
                     )

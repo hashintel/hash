@@ -26,6 +26,7 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             | Self::LabelProperty
             | Self::Icon
             | Self::Schema(_)
+            | Self::Inverse(_)
             | Self::ClosedSchema(_) => vec![Relation::EntityTypeIds],
             Self::BaseUrl | Self::Version => vec![Relation::OntologyIds],
             Self::OwnedById => vec![Relation::OntologyOwnedMetadata],
@@ -133,6 +134,10 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
             ),
             Self::Schema(path) => (
                 Column::EntityTypes(EntityTypes::Schema),
+                path.as_ref().map(JsonField::JsonPath),
+            ),
+            Self::Inverse(path) => (
+                Column::EntityTypes(EntityTypes::Inverse),
                 path.as_ref().map(JsonField::JsonPath),
             ),
             Self::ClosedSchema(path) => (

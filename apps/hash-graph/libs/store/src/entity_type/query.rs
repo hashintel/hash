@@ -443,6 +443,8 @@ pub enum EntityTypeQueryPath<'p> {
     /// Only used internally and not available for deserialization.
     Schema(Option<JsonPath<'p>>),
     /// Only used internally and not available for deserialization.
+    Inverse(Option<JsonPath<'p>>),
+    /// Only used internally and not available for deserialization.
     ClosedSchema(Option<JsonPath<'p>>),
     /// Only used internally and not available for deserialization.
     AdditionalMetadata,
@@ -491,9 +493,10 @@ impl QueryPath for EntityTypeQueryPath<'_> {
     fn expected_type(&self) -> ParameterType {
         match self {
             Self::OntologyId | Self::OwnedById => ParameterType::Uuid,
-            Self::Schema(_) | Self::ClosedSchema(_) | Self::AdditionalMetadata => {
-                ParameterType::Object
-            }
+            Self::Schema(_)
+            | Self::Inverse(_)
+            | Self::ClosedSchema(_)
+            | Self::AdditionalMetadata => ParameterType::Object,
             Self::Examples | Self::Required | Self::EditionProvenance(_) => ParameterType::Any,
             Self::BaseUrl | Self::LabelProperty => ParameterType::BaseUrl,
             Self::VersionedUrl => ParameterType::VersionedUrl,
@@ -519,6 +522,8 @@ impl fmt::Display for EntityTypeQueryPath<'_> {
             Self::OwnedById => fmt.write_str("ownedById"),
             Self::Schema(Some(path)) => write!(fmt, "schema.{path}"),
             Self::Schema(None) => fmt.write_str("schema"),
+            Self::Inverse(Some(path)) => write!(fmt, "inverse.{path}"),
+            Self::Inverse(None) => fmt.write_str("inverse"),
             Self::ClosedSchema(Some(path)) => write!(fmt, "closedSchema.{path}"),
             Self::ClosedSchema(None) => fmt.write_str("closedSchema"),
             Self::Title => fmt.write_str("title"),
@@ -855,6 +860,7 @@ impl EntityTypeQueryPath<'_> {
             },
             Self::OntologyId => EntityTypeQueryPath::OntologyId,
             Self::Schema(path) => EntityTypeQueryPath::Schema(path.map(JsonPath::into_owned)),
+            Self::Inverse(path) => EntityTypeQueryPath::Inverse(path.map(JsonPath::into_owned)),
             Self::Embedding => EntityTypeQueryPath::Embedding,
             Self::ClosedSchema(path) => {
                 EntityTypeQueryPath::ClosedSchema(path.map(JsonPath::into_owned))

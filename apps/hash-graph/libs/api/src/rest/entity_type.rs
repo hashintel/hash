@@ -41,8 +41,8 @@ use graph_types::{
     account::EditionCreatedById,
     ontology::{
         EntityTypeEmbedding, EntityTypeId, EntityTypeMetadata, EntityTypeWithMetadata,
-        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeMetadata,
-        OntologyTypeReference, ProvidedOntologyEditionProvenance,
+        InverseEntityTypeMetadata, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
+        OntologyTypeMetadata, OntologyTypeReference, ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
 };
@@ -99,6 +99,7 @@ use crate::rest::{
             EntityTypeEmbedding,
 
             CreateEntityTypeRequest,
+            InverseEntityTypeMetadata,
             LoadExternalEntityTypeRequest,
             UpdateEntityTypeRequest,
             UpdateEntityTypeEmbeddingParams,
@@ -163,22 +164,21 @@ impl RoutedResource for EntityTypeResource {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct CreateEntityTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfEntityType,
     owned_by_id: OwnedById,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     label_property: Option<BaseUrl>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     icon: Option<String>,
     relationships: Vec<EntityTypeRelationAndSubject>,
-    #[serde(
-        default,
-        skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
-    )]
+    #[serde(default)]
     provenance: ProvidedOntologyEditionProvenance,
+    #[serde(default)]
+    inverse: InverseEntityTypeMetadata,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
@@ -425,6 +425,7 @@ where
         icon,
         relationships,
         provenance,
+        inverse,
     }) = body;
 
     let is_list = matches!(&schema, ListOrValue::List(_));
@@ -461,7 +462,8 @@ where
                     icon: icon.clone(),
                     label_property: label_property.clone(),
                     conflict_behavior: ConflictBehavior::Fail,
-                    provenance: provenance.clone()
+                    provenance: provenance.clone(),
+                    inverse: inverse.clone(),
                 })
             }).collect::<Result<Vec<_>, _>>()?
         )
@@ -534,7 +536,7 @@ where
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, untagged)]
 enum LoadExternalEntityTypeRequest {
     #[serde(rename_all = "camelCase")]
@@ -543,16 +545,15 @@ enum LoadExternalEntityTypeRequest {
     Create {
         #[schema(value_type = VAR_ENTITY_TYPE)]
         schema: Box<EntityType>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(default)]
         label_property: Option<BaseUrl>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(default)]
         icon: Option<String>,
         relationships: Vec<EntityTypeRelationAndSubject>,
-        #[serde(
-            default,
-            skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
-        )]
+        #[serde(default)]
         provenance: Box<ProvidedOntologyEditionProvenance>,
+        #[serde(default)]
+        inverse: InverseEntityTypeMetadata,
     },
 }
 
@@ -652,6 +653,7 @@ where
             icon,
             relationships,
             provenance,
+            inverse,
         } => {
             if domain_validator.validate_url(schema.id.base_url.as_str()) {
                 let error = "Ontology type is not external".to_owned();
@@ -677,6 +679,7 @@ where
                             relationships,
                             conflict_behavior: ConflictBehavior::Fail,
                             provenance: *provenance,
+                            inverse,
                         },
                     )
                     .await
@@ -825,16 +828,15 @@ struct UpdateEntityTypeRequest {
     #[schema(value_type = VAR_UPDATE_ENTITY_TYPE)]
     schema: serde_json::Value,
     type_to_update: VersionedUrl,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     label_property: Option<BaseUrl>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     icon: Option<String>,
     relationships: Vec<EntityTypeRelationAndSubject>,
-    #[serde(
-        default,
-        skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
-    )]
+    #[serde(default)]
     provenance: ProvidedOntologyEditionProvenance,
+    #[serde(default)]
+    inverse: InverseEntityTypeMetadata,
 }
 
 #[utoipa::path(
@@ -877,6 +879,7 @@ where
         icon,
         relationships,
         provenance,
+        inverse,
     }) = body;
 
     type_to_update.version = OntologyTypeVersion::new(type_to_update.version.inner() + 1);
@@ -911,6 +914,7 @@ where
                 icon,
                 relationships,
                 provenance,
+                inverse,
             },
         )
         .await

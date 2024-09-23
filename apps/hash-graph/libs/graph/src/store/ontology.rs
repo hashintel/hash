@@ -10,8 +10,8 @@ use graph_types::{
     account::{AccountId, EditionCreatedById},
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
-        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, PropertyTypeMetadata,
-        PropertyTypeWithMetadata, ProvidedOntologyEditionProvenance,
+        InverseEntityTypeMetadata, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
+        PropertyTypeMetadata, PropertyTypeWithMetadata, ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
     Embedding,
@@ -530,8 +530,10 @@ pub struct CreateEntityTypeParams<R> {
     pub icon: Option<String>,
     pub relationships: R,
     pub conflict_behavior: ConflictBehavior,
-    #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
+    #[serde(default)]
     pub provenance: ProvidedOntologyEditionProvenance,
+    #[serde(default)]
+    pub inverse: InverseEntityTypeMetadata,
 }
 
 #[derive(Debug, Deserialize)]
@@ -617,8 +619,10 @@ pub struct UpdateEntityTypesParams<R> {
     pub label_property: Option<BaseUrl>,
     pub icon: Option<String>,
     pub relationships: R,
-    #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
+    #[serde(default)]
     pub provenance: ProvidedOntologyEditionProvenance,
+    #[serde(default)]
+    pub inverse: InverseEntityTypeMetadata,
 }
 
 #[derive(Debug, Deserialize)]
