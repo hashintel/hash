@@ -291,6 +291,11 @@ export const EntitiesTable: FunctionComponent<{
               },
             };
           } else if (["web", "entityTypeVersion"].includes(columnId)) {
+            /**
+             * @TODO BEFORE MERGING ***
+             *
+             * we need a new 'multi-chip cell' for entityTypeValueStrings
+             */
             const cellValue = row[columnId];
             const stringValue = String(cellValue);
 
@@ -619,9 +624,11 @@ export const EntitiesTable: FunctionComponent<{
   const isPrimaryEntity = useCallback(
     (entity: Entity) =>
       entityTypeBaseUrl
-        ? extractBaseUrl(entity.metadata.entityTypeId) === entityTypeBaseUrl
+        ? entity.metadata.entityTypeIds.some(
+            (typeId) => extractBaseUrl(typeId) === entityTypeBaseUrl,
+          )
         : entityTypeId
-          ? entityTypeId === entity.metadata.entityTypeId
+          ? entity.metadata.entityTypeIds.includes(entityTypeId)
           : false,
     [entityTypeId, entityTypeBaseUrl],
   );

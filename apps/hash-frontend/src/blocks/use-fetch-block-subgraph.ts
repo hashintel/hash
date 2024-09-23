@@ -25,7 +25,7 @@ type SubgraphAndPermissions = Omit<SubgraphAndPermissionsGQL, "subgraph"> & {
 };
 
 export const useFetchBlockSubgraph = (): ((
-  blockEntityTypeId: VersionedUrl,
+  blockEntityTypeIds: [VersionedUrl, ...VersionedUrl[]],
   blockEntityId?: EntityId,
   fallbackBlockProperties?: PropertyObject,
 ) => Promise<
@@ -42,7 +42,7 @@ export const useFetchBlockSubgraph = (): ((
 
   const fetchBlockSubgraph = useCallback(
     async (
-      blockEntityTypeId: VersionedUrl,
+      blockEntityTypeIds: [VersionedUrl, ...VersionedUrl[]],
       blockEntityId?: EntityId,
       fallbackBlockProperties?: PropertyObject,
     ) => {
@@ -75,7 +75,7 @@ export const useFetchBlockSubgraph = (): ((
               entityId: "placeholder-account~entity-id-not-set" as EntityId,
               editionId: now,
             },
-            entityTypeIds: [blockEntityTypeId],
+            entityTypeIds: blockEntityTypeIds,
             temporalVersioning: {
               decisionTime: {
                 start: {

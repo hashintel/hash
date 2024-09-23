@@ -46,7 +46,7 @@ export type ProposedEntity = {
   provenance: EnforcedEntityEditionProvenance;
   propertyMetadata: PropertyMetadataObject;
   localEntityId: EntityId;
-  entityTypeIds: VersionedUrl[];
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   summary?: string;
   properties: PropertyObject;
   sourceEntityId?: LocalOrExistingEntityId;

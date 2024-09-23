@@ -7,7 +7,6 @@ type Filter = NonNullable<MultiFilter["filters"]>[number];
 export const entityHasEntityTypeByVersionedUrlFilter = (
   entityTypeId: VersionedUrl,
 ): Filter => ({
-  /** @todo update these filters */
   field: ["metadata", "entityTypeId"],
   operator: "EQUALS",
   value: entityTypeId,

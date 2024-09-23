@@ -131,7 +131,7 @@ const createColumnsForEntity = (
   for (const baseUrl of [...properties]) {
     const { propertyType } = getPropertyTypeForEntity(
       subgraph,
-      entityType.$id,
+      [entityType.$id],
       baseUrl,
     );
     columns[`properties.${baseUrl}`] = {

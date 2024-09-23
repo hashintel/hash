@@ -26,7 +26,7 @@ export interface EntityEditorProps extends DraftLinkState {
 export const EntityEditor = (props: EntityEditorProps) => {
   const { entitySubgraph } = props;
 
-  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
+  const { includesSpecialEntityTypes } = useEntityTypesContextRequired();
 
   const entity = useMemo(() => {
     const roots = getRoots(entitySubgraph);
@@ -54,8 +54,8 @@ export const EntityEditor = (props: EntityEditorProps) => {
   }, [entitySubgraph]);
 
   const isLinkEntity = useMemo(
-    () => isSpecialEntityTypeLookup?.[entity.metadata.entityTypeId]?.isLink,
-    [entity, isSpecialEntityTypeLookup],
+    () => includesSpecialEntityTypes?.(entity.metadata.entityTypeIds).isLink,
+    [entity, includesSpecialEntityTypes],
   );
 
   const tab = useEntityEditorTab();
@@ -66,7 +66,9 @@ export const EntityEditor = (props: EntityEditorProps) => {
         <HistorySection entityId={entity.metadata.recordId.entityId} />
       ) : (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 6.5 }}>
-          {isLinkEntity ? <LinkSection /> : <TypesSection />}
+          <TypesSection />
+
+          {isLinkEntity && <LinkSection />}
 
           <FilePreviewSection />
 

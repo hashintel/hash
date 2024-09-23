@@ -92,7 +92,11 @@ export const useGetEntitiesTableAdditionalCsvData = (props: {
         .map((linkEntity) => {
           const linkEntityType = getEntityTypeById(
             outgoingLinksSubgraph,
-            linkEntity.metadata.entityTypeId,
+            /**
+             * @TODO BEFORE MERGING
+             * what should happen here? a column per link type?
+             */
+            linkEntity.metadata.entityTypeIds[0],
           )!;
 
           return {

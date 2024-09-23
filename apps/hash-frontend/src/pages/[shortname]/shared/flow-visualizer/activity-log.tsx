@@ -73,10 +73,10 @@ const getEntityLabelFromLog = (log: StepProgressLog): string => {
       ? entity.localEntityId
       : entity.metadata.recordId.entityId;
 
-  const entityTypeId =
-    "entityTypeId" in entity
-      ? entity.entityTypeId
-      : entity.metadata.entityTypeId;
+  const entityTypeIds =
+    "entityTypeIds" in entity
+      ? entity.entityTypeIds
+      : entity.metadata.entityTypeIds;
 
   const entityLabel = generateEntityLabel(null, {
     properties: entity.properties,
@@ -85,7 +85,7 @@ const getEntityLabelFromLog = (log: StepProgressLog): string => {
         editionId: "irrelevant-here",
         entityId: `ownedBy~${entityId}` as EntityId,
       } satisfies EntityRecordId,
-      entityTypeId: entityTypeId satisfies VersionedUrl,
+      entityTypeIds,
     } as EntityMetadata,
   });
 

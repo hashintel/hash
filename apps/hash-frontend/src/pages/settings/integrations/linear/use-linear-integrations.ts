@@ -42,10 +42,7 @@ export const useLinearIntegrations = () => {
                   value: authenticatedUser.accountId,
                 },
                 {
-                  /**
-                   * @todo ***BEFORE MERGING*** is this field path right / does it work
-                   */
-                  field: ["metadata", "entityTypeIds", "0"],
+                  field: ["metadata", "entityTypeId"],
                   operator: "EQUALS",
                   value: systemEntityTypes.linearIntegration.entityTypeId,
                 },

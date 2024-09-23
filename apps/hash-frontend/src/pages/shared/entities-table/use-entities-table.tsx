@@ -1,8 +1,4 @@
-import type {
-  EntityType,
-  PropertyType,
-  VersionedUrl,
-} from "@blockprotocol/type-system";
+import type { EntityType, PropertyType } from "@blockprotocol/type-system";
 import { extractVersion } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -27,8 +23,7 @@ export interface TypeEntitiesRow {
   entityId: EntityId;
   entity: Entity;
   entityLabel: string;
-  entityTypeId: VersionedUrl;
-  entityTypeVersion: string;
+  entityTypeValueStrings: string[];
   archived?: boolean;
   lastEdited: string;
   lastEditedBy?: MinimalActor;
@@ -114,7 +109,7 @@ export const useEntitiesTable = (params: {
       {
         title: entitiesHaveSameType
           ? (entityTypes?.find(
-              ({ $id }) => $id === entities?.[0]?.metadata.entityTypeId,
+              ({ $id }) => $id === entities?.[0]?.metadata.entityTypeIds[0],
             )?.title ?? "Entity")
           : "Entity",
         id: "entityLabel",
@@ -178,15 +173,9 @@ export const useEntitiesTable = (params: {
         ? entities?.map((entity) => {
             const entityLabel = generateEntityLabel(subgraph, entity);
 
-            const entityType = entityTypes.find(
-              (type) => type.$id === entity.metadata.entityTypeId,
+            const currentEntitysTypes = entityTypes.filter((type) =>
+              entity.metadata.entityTypeIds.includes(type.$id),
             );
-
-            if (!entityType) {
-              throw new Error(
-                `Could not find entity type with id ${entity.metadata.entityTypeId} in subgraph`,
-              );
-            }
 
             const { shortname: entityNamespace } = getOwnerForEntity({
               entityId: entity.metadata.recordId.entityId,
@@ -195,7 +184,7 @@ export const useEntitiesTable = (params: {
             const entityId = entity.metadata.recordId.entityId;
 
             const isPage = includesPageEntityTypeId(
-              entity.metadata.entityTypeId,
+              entity.metadata.entityTypeIds,
             );
 
             /**
@@ -230,8 +219,10 @@ export const useEntitiesTable = (params: {
               entityId,
               entity,
               entityLabel,
-              entityTypeId: entityType.$id,
-              entityTypeVersion: `${entityType.title} v${extractVersion(entityType.$id)}`,
+              entityTypeValueStrings: currentEntitysTypes.map(
+                (entityType) =>
+                  `${entityType.title} v${extractVersion(entityType.$id)}`,
+              ),
               web: `@${entityNamespace}`,
               archived: isPage
                 ? simplifyProperties(entity.properties as PageProperties)

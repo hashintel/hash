@@ -88,7 +88,7 @@ export const getDeliverables = (
       if (fileUrl) {
         deliverables.push({
           displayName,
-          entityTypeId: entity.metadata.entityTypeId,
+          entityTypeId: entity.metadata.entityTypeIds[0],
           fileName,
           fileUrl,
           type: "file",
@@ -259,7 +259,7 @@ const mockEntityFromProposedEntity = (
         entityId: proposedEntity.localEntityId,
         editionId,
       },
-      entityTypeIds: [proposedEntity.entityTypeId],
+      entityTypeIds: proposedEntity.entityTypeIds,
       temporalVersioning: {
         decisionTime: temporalInterval,
         transactionTime: temporalInterval,
@@ -358,8 +358,14 @@ export const Outputs = ({
     fetchPolicy: "cache-and-network",
     variables: {
       filter: {
-        any: proposedEntities.map((proposedEntity) =>
-          generateVersionedUrlMatchingFilter(proposedEntity.entityTypeId, {
+        any: [
+          ...new Set(
+            proposedEntities.flatMap(
+              (proposedEntity) => proposedEntity.entityTypeIds,
+            ),
+          ),
+        ].map((entityTypeId) =>
+          generateVersionedUrlMatchingFilter(entityTypeId, {
             forEntityType: true,
           }),
         ),
@@ -512,7 +518,7 @@ export const Outputs = ({
 
     for (const entity of proposedEntities) {
       const {
-        entityTypeId,
+        entityTypeIds,
         localEntityId,
         properties,
         sourceEntityId,
@@ -540,7 +546,7 @@ export const Outputs = ({
             editionId,
             entityId: localEntityId,
           },
-          entityTypeId,
+          entityTypeIds,
         },
         properties,
       });

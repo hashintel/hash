@@ -74,10 +74,10 @@ export const AuthInfoProvider: FunctionComponent<AuthInfoProviderProps> = ({
       userEntity.metadata.recordId.entityId,
       intervalForTimestamp(new Date().toISOString() as Timestamp),
     )
-      .filter(
-        (linkEntity) =>
-          linkEntity.metadata.entityTypeId ===
+      .filter((linkEntity) =>
+        linkEntity.metadata.entityTypeIds.includes(
           systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
+        ),
       )
       .map((linkEntity) => new LinkEntity<IsMemberOf>(linkEntity));
   }, [authenticatedUserSubgraph]);

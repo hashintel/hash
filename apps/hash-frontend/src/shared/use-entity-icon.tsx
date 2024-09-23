@@ -14,6 +14,9 @@ import { FileRegularIcon } from "./icons/file-regular-icon";
 import { UserIcon } from "./icons/user-icon";
 import { UsersRegularIcon } from "./icons/users-regular-icon";
 
+/**
+ * @todo H-2014 support URL icons on entity types and remove these overrides
+ */
 export const entityTypeIcons: Record<VersionedUrl, ReactNode> = {
   [systemEntityTypes.user.entityTypeId]: <UserIcon sx={{ fontSize: 12 }} />,
   [systemEntityTypes.organization.entityTypeId]: (
@@ -22,24 +25,17 @@ export const entityTypeIcons: Record<VersionedUrl, ReactNode> = {
   [systemEntityTypes.document.entityTypeId]: (
     <FileRegularIcon sx={{ fontSize: 12 }} />
   ),
-  // @todo canvas icon
 };
 
 export const useEntityIcon = (params: {
   entity?: Entity;
-  entityType?: EntityTypeWithMetadata;
+  entityTypes?: EntityTypeWithMetadata[];
   pageIcon?: JSX.Element;
 }) => {
-  const { entity, entityType, pageIcon } = params;
+  const { entity, entityTypes, pageIcon } = params;
   return useMemo(() => {
     if (entity) {
-      /**
-       * @todo do we need this check for page? and the same below
-       * we could let people set an icon on any entity and use it
-       * if we do so we may wish to check if the icon is a URL, and show an image if it is
-       * consider as part of H-783
-       */
-      if (includesPageEntityTypeId(entity.metadata.entityTypeId)) {
+      if (includesPageEntityTypeId(entity.metadata.entityTypeIds)) {
         const { icon: customPageIcon } = simplifyProperties(
           entity.properties as PageProperties,
         );
@@ -51,19 +47,21 @@ export const useEntityIcon = (params: {
             </Box>
           );
         }
+
+        return pageIcon;
       }
-      /**
-       * @todo: use the entity type icon
-       * @see https://linear.app/hash/issue/H-783/implement-entity-type-icons
-       */
-      return pageIcon &&
-        // @todo when implementing H-783 – do we need this check? see comment above
-        includesPageEntityTypeId(entity.metadata.entityTypeId)
-        ? pageIcon
-        : (entityTypeIcons[entity.metadata.entityTypeId] ??
-            entityType?.metadata.icon ?? (
-              <AsteriskRegularIcon sx={{ fontSize: 12 }} />
-            ));
+
+      for (const entityType of entityTypes ?? []) {
+        if (entityType.metadata.icon) {
+          return entityType.metadata.icon;
+        }
+
+        if (entityTypeIcons[entityType.schema.$id]) {
+          return entityTypeIcons[entityType.schema.$id];
+        }
+      }
+
+      return <AsteriskRegularIcon sx={{ fontSize: 12 }} />;
     }
-  }, [entity, entityType, pageIcon]);
+  }, [entity, entityTypes, pageIcon]);
 };

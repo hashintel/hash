@@ -113,7 +113,8 @@ export const useNotificationsWithLinks = () => {
 const isLinkAndRightEntityWithLinkType =
   (linkEntityTypeId: VersionedUrl) =>
   ({ linkEntity }: LinkEntityAndRightEntity) =>
-    linkEntity[0] && linkEntity[0].metadata.entityTypeId === linkEntityTypeId;
+    linkEntity[0] &&
+    linkEntity[0].metadata.entityTypeIds.includes(linkEntityTypeId);
 
 export const useNotificationsWithLinksContextValue =
   (): NotificationsWithLinksContextValue => {
@@ -185,7 +186,7 @@ export const useNotificationsWithLinksContextValue =
         .map((entity) => {
           const {
             metadata: {
-              entityTypeId,
+              entityTypeIds,
               recordId: { entityId },
             },
           } = entity;
@@ -198,7 +199,9 @@ export const useNotificationsWithLinksContextValue =
           );
 
           if (
-            entityTypeId === systemEntityTypes.mentionNotification.entityTypeId
+            entityTypeIds.includes(
+              systemEntityTypes.mentionNotification.entityTypeId,
+            )
           ) {
             const occurredInEntity = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
@@ -269,7 +272,9 @@ export const useNotificationsWithLinksContextValue =
               triggeredByUser,
             } satisfies PageMentionNotification;
           } else if (
-            entityTypeId === systemEntityTypes.commentNotification.entityTypeId
+            entityTypeIds.includes(
+              systemEntityTypes.commentNotification.entityTypeId,
+            )
           ) {
             const occurredInEntity = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
@@ -341,8 +346,9 @@ export const useNotificationsWithLinksContextValue =
               triggeredByUser,
             } satisfies NewCommentNotification;
           } else if (
-            entityTypeId ===
-            systemEntityTypes.graphChangeNotification.entityTypeId
+            entityTypeIds.includes(
+              systemEntityTypes.graphChangeNotification.entityTypeId,
+            )
           ) {
             const occurredInEntityLink = outgoingLinks.find(
               isLinkAndRightEntityWithLinkType(
@@ -430,7 +436,9 @@ export const useNotificationsWithLinksContextValue =
                 ],
             } satisfies GraphChangeNotification;
           }
-          throw new Error(`Notification of type "${entityTypeId}" not handled`);
+          throw new Error(
+            `Notification with type(s) "${entityTypeIds.join(", ")}" not handled`,
+          );
         })
         .filter(
           (notification): notification is NonNullable<typeof notification> =>

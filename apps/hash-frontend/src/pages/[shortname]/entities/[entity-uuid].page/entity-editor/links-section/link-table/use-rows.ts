@@ -1,10 +1,11 @@
+import type { VersionedUrl } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import {
-  getEntityTypeAndParentsById,
+  getBreadthFirstEntityTypesAndParents,
   getEntityTypeById,
   getOutgoingLinkAndTargetEntities,
   getRoots,
@@ -56,9 +57,9 @@ export const useRows = () => {
 
   const rows = useMemo<LinkRow[]>(() => {
     const entity = getRoots(entitySubgraph)[0]!;
-    const entityTypeAndAncestors = getEntityTypeAndParentsById(
+    const entityTypesAndAncestors = getBreadthFirstEntityTypesAndParents(
       entitySubgraph,
-      entity.metadata.entityTypeId,
+      entity.metadata.entityTypeIds,
     );
 
     const variableAxis = entitySubgraph.temporalAxes.resolved.variable.axis;
@@ -70,9 +71,15 @@ export const useRows = () => {
       entityInterval,
     );
 
-    return entityTypeAndAncestors.flatMap((entityType) =>
-      typedEntries(entityType.schema.links ?? {}).map(
+    const processedLinkEntityTypeIds = new Set<VersionedUrl>();
+
+    return entityTypesAndAncestors.flatMap((entityType) =>
+      typedEntries(entityType.schema.links ?? {}).flatMap(
         ([linkEntityTypeId, linkSchema]) => {
+          if (processedLinkEntityTypeIds.has(linkEntityTypeId)) {
+            return [];
+          }
+
           const linkEntityType = getEntityTypeById(
             entitySubgraph,
             linkEntityTypeId,
@@ -116,10 +123,10 @@ export const useRows = () => {
             });
           }
 
-          const additions = draftLinksToCreate.filter(
-            (draftToCreate) =>
-              draftToCreate.linkEntity.metadata.entityTypeId ===
+          const additions = draftLinksToCreate.filter((draftToCreate) =>
+            draftToCreate.linkEntity.metadata.entityTypeIds.includes(
               linkEntityTypeId,
+            ),
           );
 
           const linkAndTargetEntities = [];
@@ -157,10 +164,10 @@ export const useRows = () => {
               );
             }
 
-            const { entityTypeId, recordId } =
+            const { entityTypeIds, recordId } =
               latestLinkEntityRevision.metadata;
 
-            const isMatching = entityTypeId === linkEntityTypeId;
+            const isMatching = entityTypeIds.includes(linkEntityTypeId);
             const isMarkedToArchive = draftLinksToArchive.some(
               (markedLinkId) => markedLinkId === recordId.entityId,
             );
@@ -189,6 +196,8 @@ export const useRows = () => {
             relevantUpload?.status === "error"
               ? () => uploadFile(relevantUpload)
               : undefined;
+
+          processedLinkEntityTypeIds.add(linkEntityTypeId);
 
           return {
             rowId: linkEntityTypeId,

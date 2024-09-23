@@ -3,7 +3,10 @@ import { extractVersion } from "@blockprotocol/type-system/slim";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { EntityTypeIdDiff } from "@local/hash-graph-client";
 import type { EntityId, PropertyPath } from "@local/hash-graph-types/entity";
-import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import type {
+  BaseUrl,
+  EntityTypeWithMetadata,
+} from "@local/hash-graph-types/ontology";
 import type { Timestamp } from "@local/hash-graph-types/temporal-versioning";
 import type { Subgraph } from "@local/hash-subgraph";
 import {
@@ -161,7 +164,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
         try {
           const propertyTypeWithMetadata = getPropertyTypeForEntity(
             subgraph,
-            firstEntityEdition.metadata.entityTypeId,
+            firstEntityEdition.metadata.entityTypeIds,
 
             propertyBaseUrl,
           );
@@ -181,7 +184,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
           });
         } catch (err) {
           throw new Error(
-            `Could not find property type with baseUrl ${propertyBaseUrl} for entity type with id ${firstEntityEdition.metadata.entityTypeId} in subgraph`,
+            `Could not find property type with baseUrl ${propertyBaseUrl} among entity types with ids ${firstEntityEdition.metadata.entityTypeIds.join(", ")} in subgraph`,
           );
         }
       }
@@ -214,7 +217,7 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
     try {
       const propertyTypeWithMetadata = getPropertyTypeForEntity(
         subgraph,
-        firstEntityEdition.metadata.entityTypeId,
+        firstEntityEdition.metadata.entityTypeIds,
         key,
       );
 
@@ -238,27 +241,30 @@ export const getHistoryEvents = (diffs: EntityDiff[], subgraph: Subgraph) => {
       });
     } catch {
       throw new Error(
-        `Could not find entity type with id ${firstEntityEdition.metadata.entityTypeId} in subgraph`,
+        `Could not find property type with baseUrl ${key} among entity types with ids ${firstEntityEdition.metadata.entityTypeIds.join(", ")} in subgraph`,
       );
     }
   }
 
-  const firstEntityType = getEntityTypeById(
-    subgraph,
-    firstEntityEdition.metadata.entityTypeId,
-  );
+  const firstEntityTypes: EntityTypeWithMetadata[] = [];
 
-  if (!firstEntityType) {
-    throw new Error(
-      `Could not find entity type with id ${firstEntityEdition.metadata.entityTypeId} in subgraph`,
-    );
+  for (const entityTypeId of firstEntityEdition.metadata.entityTypeIds) {
+    const firstEntityType = getEntityTypeById(subgraph, entityTypeId);
+
+    if (!firstEntityType) {
+      throw new Error(
+        `Could not find entity type with id ${entityTypeId} in subgraph`,
+      );
+    }
+
+    firstEntityTypes.push(firstEntityType);
   }
 
   events.push({
     type: "created",
     number: "1",
     entity: firstEntityEdition,
-    entityType: firstEntityType.schema,
+    entityTypes: firstEntityTypes.map((type) => type.schema),
     timestamp: firstEditionIdentifier.revisionId,
     provenance: {
       edition: firstEntityEdition.metadata.provenance.edition,

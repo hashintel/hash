@@ -233,9 +233,9 @@ const BlockContextMenu: ForwardRefRenderFunction<
       return;
     }
 
-    const { recordId, entityTypeId } = blockEntity.blockChildEntity.metadata;
+    const { recordId, entityTypeIds } = blockEntity.blockChildEntity.metadata;
     const newBlockSubgraph = await fetchBlockSubgraph(
-      entityTypeId,
+      entityTypeIds,
       recordId.entityId,
     );
 

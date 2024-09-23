@@ -62,7 +62,7 @@ import { TableSkeleton } from "./shared/table-skeleton";
 const fixedFieldIds = [
   "relevance",
   "status",
-  "entityTypeId",
+  "entityTypeIds",
   "entityLabel",
 ] as const;
 
@@ -160,8 +160,8 @@ const generateColumns = ({
       width: 100,
     },
     {
-      label: "Type",
-      id: "entityTypeId",
+      label: "Type(s)",
+      id: "entityTypeIds",
       sortable: true,
       width: 120,
     },
@@ -196,8 +196,8 @@ const generateColumns = ({
 
 type EntityResultRow = {
   entityLabel: string;
-  entityTypeId: VersionedUrl;
-  entityType: EntityType;
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
+  entityTypes: EntityType[];
   proposedEntityId?: EntityId;
   onEntityClick: (entityId: EntityId) => void;
   onEntityTypeClick: (entityTypeId: VersionedUrl) => void;
@@ -225,8 +225,6 @@ const TableRow = memo(
     columns: VirtualizedTableColumn<FieldId, EntityColumnMetadata>[];
     row: EntityResultRow;
   }) => {
-    const entityTypeTitle = row.entityType.title;
-
     const hasRelevanceColumn =
       columns[0]?.id === ("relevance" satisfies FixedFieldId);
 
@@ -274,22 +272,31 @@ const TableRow = memo(
             px: 0.5,
           }}
         >
-          <Box
-            component="button"
-            onClick={() => row.onEntityTypeClick(row.entityTypeId)}
-            sx={{ background: "none", border: "none", p: 0 }}
-          >
-            <ValueChip
-              type
-              sx={{
-                cursor: "pointer",
-                ml: 1,
-                ...typographySx,
-              }}
-            >
-              {entityTypeTitle}
-            </ValueChip>
-          </Box>
+          {row.entityTypeIds.map((entityTypeId) => {
+            const entityTypeTitle = row.entityTypes.find(
+              (type) => type.$id === entityTypeId,
+            )?.title;
+
+            return (
+              <Box
+                component="button"
+                key={entityTypeId}
+                onClick={() => row.onEntityTypeClick(entityTypeId)}
+                sx={{ background: "none", border: "none", p: 0 }}
+              >
+                <ValueChip
+                  type
+                  sx={{
+                    cursor: "pointer",
+                    ml: 1,
+                    ...typographySx,
+                  }}
+                >
+                  {entityTypeTitle}
+                </ValueChip>
+              </Box>
+            );
+          })}
         </TableCell>
         <TableCell
           sx={{
@@ -336,8 +343,8 @@ const TableRow = memo(
           )
           .map((column) => {
             const appliesToEntity =
-              column.metadata?.appliesToEntityTypeIds.some(
-                (id) => id === row.entityTypeId,
+              column.metadata?.appliesToEntityTypeIds.some((id) =>
+                row.entityTypeIds.includes(id),
               );
 
             if (!appliesToEntity) {
@@ -494,7 +501,7 @@ export const EntityResultTable = memo(
           options: {} as VirtualizedTableFilterDefinition["options"],
           type: "checkboxes",
         },
-        entityTypeId: {
+        entityTypeIds: {
           header: "Type",
           initialValue: new Set<string>(),
           options: {} as VirtualizedTableFilterDefinition["options"],
@@ -573,7 +580,7 @@ export const EntityResultTable = memo(
         const linkData =
           "linkData" in entity && !!entity.linkData
             ? {
-                linkEntityTypeId: entity.metadata.entityTypeId,
+                linkEntityTypeIds: entity.metadata.entityTypeIds,
                 sourceEntityId: entity.linkData.leftEntityId,
                 targetEntityId: entity.linkData.rightEntityId,
               }
@@ -582,7 +589,7 @@ export const EntityResultTable = memo(
                 "targetEntityId" in entity &&
                 entity.targetEntityId
               ? {
-                  linkEntityTypeId: entity.entityTypeId,
+                  linkEntityTypeIds: entity.entityTypeIds,
                   sourceEntityId:
                     entity.sourceEntityId.kind === "proposed-entity"
                       ? entity.sourceEntityId.localId
@@ -598,15 +605,17 @@ export const EntityResultTable = memo(
           const sourceEntityId = linkData.sourceEntityId;
 
           outgoingLinksBySourceEntityId[sourceEntityId] ??= {};
-          outgoingLinksBySourceEntityId[sourceEntityId][
-            linkData.linkEntityTypeId
-          ] ??= [];
-          outgoingLinksBySourceEntityId[sourceEntityId][
-            linkData.linkEntityTypeId
-          ]!.push({
-            targetEntityId: linkData.targetEntityId,
-            linkEntityId: entityId,
-          });
+
+          for (const linkEntityTypeId of linkData.linkEntityTypeIds) {
+            outgoingLinksBySourceEntityId[sourceEntityId][linkEntityTypeId] ??=
+              [];
+            outgoingLinksBySourceEntityId[sourceEntityId][
+              linkEntityTypeId
+            ].push({
+              targetEntityId: linkData.targetEntityId,
+              linkEntityId: entityId,
+            });
+          }
 
           /**
            * We show linked entities as chips in the source entity's row, so we don't want to include them in our
@@ -626,10 +635,10 @@ export const EntityResultTable = memo(
                 editionId: "irrelevant-here",
                 entityId: `ownedBy~${entityId}` as EntityId,
               } satisfies EntityRecordId,
-              entityTypeId:
-                "entityTypeId" in entity
-                  ? entity.entityTypeId
-                  : entity.metadata.entityTypeId,
+              entityTypeIds:
+                "entityTypeIds" in entity
+                  ? entity.entityTypeIds
+                  : entity.metadata.entityTypeIds,
             } as EntityMetadata,
           },
         );
@@ -642,10 +651,10 @@ export const EntityResultTable = memo(
       )) {
         const isProposed = "localEntityId" in record;
 
-        const entityTypeId =
-          "entityTypeId" in entity
-            ? entity.entityTypeId
-            : entity.metadata.entityTypeId;
+        const entityTypeIds =
+          "entityTypeIds" in entity
+            ? entity.entityTypeIds
+            : entity.metadata.entityTypeIds;
 
         const subgraph = isProposed
           ? proposedEntitiesTypesSubgraph
@@ -655,45 +664,143 @@ export const EntityResultTable = memo(
           continue;
         }
 
-        let entityType = entityTypesRecord[entityTypeId]?.entityType;
-        if (!entityType) {
-          const entityTypeWithMetadata = getEntityTypeById(
-            subgraph,
-            entityTypeId,
-          );
+        const outgoingLinksByLinkTypeId: EntityResultRow["outgoingLinksByLinkTypeId"] =
+          {};
 
-          if (!entityTypeWithMetadata) {
-            // The data for the types may not arrive at the same time as the proposal
-            continue;
+        const entityTypes: EntityType[] = [];
+        for (const entityTypeId of entityTypeIds) {
+          let entityType = entityTypesRecord[entityTypeId]?.entityType;
+
+          if (!entityType) {
+            const entityTypeWithMetadata = getEntityTypeById(
+              subgraph,
+              entityTypeId,
+            );
+
+            if (!entityTypeWithMetadata) {
+              // The data for the types may not arrive at the same time as the proposal
+              continue;
+            }
+
+            entityType = entityTypeWithMetadata.schema;
+
+            entityTypesRecord[entityTypeId] = {
+              entitiesCount: 0,
+              entityType,
+              linkTypes: [
+                ...getPossibleLinkTypesForEntityType(
+                  entityTypeId,
+                  subgraph,
+                ).values(),
+              ],
+              propertyTypes: [
+                ...getPropertyTypesForEntityType(entityType, subgraph).values(),
+              ],
+            };
           }
 
-          entityType = entityTypeWithMetadata.schema;
+          entityTypes.push(entityType);
 
-          entityTypesRecord[entityTypeId] = {
-            entitiesCount: 0,
-            entityType,
-            linkTypes: [
-              ...getPossibleLinkTypesForEntityType(
-                entityTypeId,
-                subgraph,
-              ).values(),
-            ],
-            propertyTypes: [
-              ...getPropertyTypesForEntityType(entityType, subgraph).values(),
-            ],
+          entityTypesRecord[entityTypeId]!.entitiesCount++;
+
+          staticFilterDefs.entityTypeIds.options[entityTypeId] ??= {
+            label: entityType.title,
+            count: 0,
+            value: entityTypeId,
           };
-        }
+          staticFilterDefs.entityTypeIds.options[entityTypeId].count++;
+          staticFilterDefs.entityTypeIds.initialValue.add(entityTypeId);
 
-        entityTypesRecord[entityTypeId]!.entitiesCount++;
+          for (const linkType of entityTypesRecord[entityTypeId]!.linkTypes) {
+            const linkTypeId = linkType.schema.$id;
+
+            dynamicFilterDefs[linkTypeId] ??= {
+              header: linkType.schema.title,
+              initialValue: new Set<string | null>(),
+              options: {},
+              type: "checkboxes",
+            } as const;
+
+            const linkedEntities =
+              outgoingLinksByLinkTypeId[linkType.schema.$id] ?? [];
+
+            if (linkedEntities.length) {
+              /**
+               * For each possible link from the entity, account for each target entity
+               */
+              for (const {
+                targetEntityId,
+                targetEntityLabel,
+              } of linkedEntities) {
+                dynamicFilterDefs[linkTypeId].options[targetEntityId] ??= {
+                  label: targetEntityLabel,
+                  count: 0,
+                  value: targetEntityId,
+                };
+                dynamicFilterDefs[linkTypeId].options[targetEntityId].count++;
+                (
+                  dynamicFilterDefs[linkTypeId].initialValue as Set<
+                    string | null
+                  >
+                ).add(targetEntityId);
+              }
+            } else {
+              /**
+               * If we have no targets for this link, we need to add the 'None' filter and increase its count.
+               */
+              dynamicFilterDefs[linkTypeId].options[missingValueString] ??= {
+                label: "None",
+                count: 0,
+                value: null,
+              };
+              dynamicFilterDefs[linkTypeId].options[missingValueString]!
+                .count++;
+              (
+                dynamicFilterDefs[linkTypeId].initialValue as Set<string | null>
+              ).add(null);
+            }
+          }
+
+          for (const propertyType of entityTypesRecord[entityTypeId]!
+            .propertyTypes) {
+            const propertyTypeId = propertyType.schema.$id;
+
+            const baseUrl = extractBaseUrl(propertyTypeId);
+
+            dynamicFilterDefs[propertyTypeId] ??= {
+              header: propertyType.schema.title,
+              initialValue: new Set<string>(),
+              options: {},
+              type: "checkboxes",
+            };
+
+            const value =
+              entity.properties[baseUrl] === undefined
+                ? null
+                : stringifyPropertyValue(entity.properties[baseUrl]);
+
+            const optionsKey = value ?? missingValueString;
+
+            dynamicFilterDefs[propertyTypeId].options[optionsKey] ??= {
+              label: value ?? "Missing",
+              count: 0,
+              value,
+            };
+
+            dynamicFilterDefs[propertyTypeId].options[optionsKey].count++;
+            (
+              dynamicFilterDefs[propertyTypeId].initialValue as Set<
+                string | null
+              >
+            ).add(value);
+          }
+        }
 
         const status = isProposed
           ? "Proposed"
           : record.operation === "update"
             ? "Updated"
             : "Created";
-
-        const outgoingLinksByLinkTypeId: EntityResultRow["outgoingLinksByLinkTypeId"] =
-          {};
 
         const outgoingLinks = outgoingLinksBySourceEntityId[entityId];
         if (outgoingLinks) {
@@ -722,7 +829,7 @@ export const EntityResultTable = memo(
         const relevance = relevantEntityIds.includes(entityId) ? "Yes" : "No";
 
         /**
-         * Account for the entity's values in the filters
+         * Account for the entity's values in the filters, other than types which are handled above when processing the entity's types.
          */
         staticFilterDefs.relevance.options.All!.count++;
 
@@ -744,14 +851,6 @@ export const EntityResultTable = memo(
         staticFilterDefs.status.options[status].count++;
         staticFilterDefs.status.initialValue.add(status);
 
-        staticFilterDefs.entityTypeId.options[entityTypeId] ??= {
-          label: entityType.title,
-          count: 0,
-          value: entityTypeId,
-        };
-        staticFilterDefs.entityTypeId.options[entityTypeId].count++;
-        staticFilterDefs.entityTypeId.initialValue.add(entityTypeId);
-
         staticFilterDefs.entityLabel.options[entityLabel] ??= {
           label: entityLabel,
           count: 0,
@@ -760,91 +859,12 @@ export const EntityResultTable = memo(
         staticFilterDefs.entityLabel.options[entityLabel].count++;
         staticFilterDefs.entityLabel.initialValue.add(entityLabel);
 
-        for (const linkType of entityTypesRecord[entityTypeId]!.linkTypes) {
-          const linkTypeId = linkType.schema.$id;
-
-          dynamicFilterDefs[linkTypeId] ??= {
-            header: linkType.schema.title,
-            initialValue: new Set<string | null>(),
-            options: {},
-            type: "checkboxes",
-          } as const;
-
-          const linkedEntities =
-            outgoingLinksByLinkTypeId[linkType.schema.$id] ?? [];
-
-          if (linkedEntities.length) {
-            /**
-             * For each possible link from the entity, account for each target entity
-             */
-            for (const {
-              targetEntityId,
-              targetEntityLabel,
-            } of linkedEntities) {
-              dynamicFilterDefs[linkTypeId].options[targetEntityId] ??= {
-                label: targetEntityLabel,
-                count: 0,
-                value: targetEntityId,
-              };
-              dynamicFilterDefs[linkTypeId].options[targetEntityId].count++;
-              (
-                dynamicFilterDefs[linkTypeId].initialValue as Set<string | null>
-              ).add(targetEntityId);
-            }
-          } else {
-            /**
-             * If we have no targets for this link, we need to add the 'None' filter and increase its count.
-             */
-            dynamicFilterDefs[linkTypeId].options[missingValueString] ??= {
-              label: "None",
-              count: 0,
-              value: null,
-            };
-            dynamicFilterDefs[linkTypeId].options[missingValueString]!.count++;
-            (
-              dynamicFilterDefs[linkTypeId].initialValue as Set<string | null>
-            ).add(null);
-          }
-        }
-
-        for (const propertyType of entityTypesRecord[entityTypeId]!
-          .propertyTypes) {
-          const propertyTypeId = propertyType.schema.$id;
-
-          const baseUrl = extractBaseUrl(propertyTypeId);
-
-          dynamicFilterDefs[propertyTypeId] ??= {
-            header: propertyType.schema.title,
-            initialValue: new Set<string>(),
-            options: {},
-            type: "checkboxes",
-          };
-
-          const value =
-            entity.properties[baseUrl] === undefined
-              ? null
-              : stringifyPropertyValue(entity.properties[baseUrl]);
-
-          const optionsKey = value ?? missingValueString;
-
-          dynamicFilterDefs[propertyTypeId].options[optionsKey] ??= {
-            label: value ?? "Missing",
-            count: 0,
-            value,
-          };
-
-          dynamicFilterDefs[propertyTypeId].options[optionsKey].count++;
-          (
-            dynamicFilterDefs[propertyTypeId].initialValue as Set<string | null>
-          ).add(value);
-        }
-
         rowData.push({
           id: entityId,
           data: {
             entityLabel,
-            entityTypeId,
-            entityType,
+            entityTypeIds: entityTypeIds.sort(),
+            entityTypes,
             onEntityClick,
             onEntityTypeClick,
             outgoingLinksByLinkTypeId,
@@ -946,13 +966,38 @@ export const EntityResultTable = memo(
                   if (currentValue === "Yes" && valueToCheck !== "Yes") {
                     return false;
                   }
-                } else if (
-                  !isValueIncludedInFilter({
-                    valueToCheck,
-                    currentValue,
-                  })
-                ) {
-                  return false;
+                } else if (fieldId === "entityTypeIds") {
+                  if (!Array.isArray(valueToCheck)) {
+                    throw new Error(
+                      `Expected array of entityTypeIds for row value, got ${valueToCheck}`,
+                    );
+                  }
+                  if (typeof currentValue === "string") {
+                    throw new Error(
+                      `Expected Set for entityTypeIds filter, got ${currentValue}`,
+                    );
+                  }
+                  if (
+                    !valueToCheck.some((entityTypeId) =>
+                      currentValue.has(entityTypeId),
+                    )
+                  ) {
+                    return false;
+                  }
+                } else {
+                  if (Array.isArray(valueToCheck)) {
+                    throw new Error(
+                      `Expected string for row value, got ${valueToCheck}`,
+                    );
+                  }
+                  if (
+                    !isValueIncludedInFilter({
+                      valueToCheck,
+                      currentValue,
+                    })
+                  ) {
+                    return false;
+                  }
                 }
               } else if (fieldId.includes("/entity-type/")) {
                 if (typeof currentValue === "string") {
@@ -1020,6 +1065,13 @@ export const EntityResultTable = memo(
                   .localeCompare(
                     b.data.properties[baseUrl]?.toString() ?? "",
                   ) ?? 0) * direction
+              );
+            }
+
+            if (field === "entityTypeIds") {
+              return (
+                a.data[field].join(",").localeCompare(b.data[field].join(",")) *
+                direction
               );
             }
 

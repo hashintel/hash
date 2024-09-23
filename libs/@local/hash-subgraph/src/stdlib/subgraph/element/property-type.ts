@@ -27,6 +27,7 @@ import {
   mustGetDataTypeById,
 } from "./data-type.js";
 import {
+  getBreadthFirstEntityTypesAndParents,
   getEntityTypeAndParentsById,
   getEntityTypeById,
 } from "./entity-type.js";
@@ -92,15 +93,15 @@ export const getPropertyTypesByBaseUrl = (
 
 export const getPropertyTypeForEntity = (
   subgraph: Subgraph,
-  entityTypeId: VersionedUrl,
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]],
   propertyBaseUrl: BaseUrl,
 ): {
   propertyType: PropertyType;
   refSchema: EntityType["properties"][string];
 } => {
-  const entityTypeAndParents = getEntityTypeAndParentsById(
+  const entityTypeAndParents = getBreadthFirstEntityTypesAndParents(
     subgraph,
-    entityTypeId,
+    entityTypeIds,
   );
 
   for (const entityType of entityTypeAndParents) {
@@ -126,7 +127,7 @@ export const getPropertyTypeForEntity = (
   }
 
   throw new Error(
-    `Property ${propertyBaseUrl} not found on entity type ${entityTypeId} or any ancestors`,
+    `Property ${propertyBaseUrl} not found on entity types ${entityTypeIds.join(", ")} or any ancestors`,
   );
 };
 

@@ -61,7 +61,7 @@ const EntityRow: FunctionComponent<{
 
   const icon = useEntityIcon({
     entity,
-    entityType,
+    entityTypes: entityType ? [entityType] : undefined,
     pageIcon: entity.metadata.entityTypeIds.includes(
       systemEntityTypes.canvas.entityTypeId,
     ) ? (

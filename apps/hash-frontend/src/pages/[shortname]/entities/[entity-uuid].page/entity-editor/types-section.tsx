@@ -32,7 +32,7 @@ export const TypesSection = () => {
   >(updateEntityMutation);
 
   const {
-    metadata: { recordId, entityTypeId },
+    metadata: { recordId, entityTypeIds },
   } = entity;
 
   const { queryEntityTypes } = useBlockProtocolQueryEntityTypes();
