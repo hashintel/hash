@@ -130,7 +130,7 @@
     "@types/dotenv-flow": "3.3.3",
     "@types/emoji-mart": "3.0.9",
     "@types/gapi": "0.0.47",
-    "@types/google.accounts": "0.0.14",
+    "@types/google.accounts": "0.0.15",
     "@types/google.picker": "0.0.42",
     "@types/iframe-resizer": "3.5.13",
     "@types/jsonpath": "0.2.4",
