@@ -9,5 +9,8 @@
     "fix:clippy": "just clippy --fix",
     "lint:clippy": "just clippy",
     "upload-benchmarks": "../../../../target/debug/repo-chores-cli benches upload"
+  },
+  "dependencies": {
+    "@rust/error-stack": "0.5.0"
   }
 }

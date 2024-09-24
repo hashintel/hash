@@ -10,7 +10,7 @@ use deer::{
     Context, Deserialize, EnumVisitor, IdentifierVisitor, Number, OptionalVisitor, Reflection,
     StructVisitor, Visitor,
 };
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, ReportSink, Result, ResultExt};
 use justjson::{
     parser::{PeekableTokenKind, Token, Tokenizer},
     AnyStr,
@@ -19,8 +19,7 @@ use justjson::{
 use crate::{
     array::ArrayAccess,
     error::{
-        convert_tokenizer_error, BytesUnsupportedError, ErrorAccumulator, Position,
-        RecursionLimitError, SyntaxError,
+        convert_tokenizer_error, BytesUnsupportedError, Position, RecursionLimitError, SyntaxError,
     },
     number::try_convert_number,
     object::ObjectAccess,
@@ -373,24 +372,25 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
 
         let discriminant = result?;
 
-        let mut value = if is_map {
-            let mut errors = ErrorAccumulator::new();
+        let value = if is_map {
+            let mut errors = ReportSink::new();
 
             if let Err(error) = self.try_skip(PeekableTokenKind::Colon, SyntaxError::ExpectedColon)
             {
-                errors.extend_one(error);
+                errors.append(error);
             }
 
-            let errors = errors.into_result().change_context(DeserializerError);
+            let errors = errors.finish().change_context(DeserializerError);
             let value = visitor
                 .visit_value(discriminant, &mut *self)
                 .change_context(DeserializerError);
 
             // same as folding the tuple in main deer
             match (value, errors) {
-                (Err(mut value), Err(errors)) => {
-                    value.extend_one(errors);
-                    Err(value)
+                (Err(value), Err(errors)) => {
+                    let mut value = value.expand();
+                    value.push(errors);
+                    Err(value.change_context(DeserializerError))
                 }
                 (Err(error), Ok(())) | (Ok(_), Err(error)) => Err(error),
                 (Ok(value), Ok(())) => Ok(value),
@@ -400,6 +400,8 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
                 .visit_value(discriminant, NoneDeserializer::new(self.context))
                 .change_context(DeserializerError)
         };
+
+        let mut value = value.map_err(Report::expand);
 
         if is_map {
             if self.peek() == Some(PeekableTokenKind::ObjectEnd) {
@@ -416,13 +418,13 @@ impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
                     .change_context(DeserializerError);
 
                 match &mut value {
-                    Err(value) => value.extend_one(error),
-                    value => *value = Err(error),
+                    Err(value) => value.push(error),
+                    value => *value = Err(error.expand()),
                 }
             }
         }
 
-        value
+        value.change_context(DeserializerError)
     }
 
     fn deserialize_struct<V>(self, visitor: V) -> Result<V::Value, DeserializerError>

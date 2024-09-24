@@ -342,6 +342,16 @@ export const EntitiesTable: FunctionComponent<{
             const actor =
               columnId === "lastEditedBy" ? row.lastEditedBy : row.createdBy;
 
+            if (actor === "loading") {
+              return {
+                kind: GridCellKind.Text,
+                readonly: true,
+                allowOverlay: false,
+                displayData: "Loading...",
+                data: "Loading...",
+              };
+            }
+
             const actorName = actor ? actor.displayName : undefined;
 
             const actorIcon = actor
@@ -481,10 +491,10 @@ export const EntitiesTable: FunctionComponent<{
     const lastEditedBySet = new Set<MinimalActor>();
     const createdBySet = new Set<MinimalActor>();
     for (const row of rows ?? []) {
-      if (row.lastEditedBy) {
+      if (row.lastEditedBy && row.lastEditedBy !== "loading") {
         lastEditedBySet.add(row.lastEditedBy);
       }
-      if (row.createdBy) {
+      if (row.createdBy && row.createdBy !== "loading") {
         createdBySet.add(row.createdBy);
       }
     }
@@ -566,7 +576,7 @@ export const EntitiesTable: FunctionComponent<{
         selectedFilterItemIds: selectedLastEditedByAccountIds,
         setSelectedFilterItemIds: setSelectedLastEditedByAccountIds,
         isRowFiltered: (row) =>
-          row.lastEditedBy
+          row.lastEditedBy && row.lastEditedBy !== "loading"
             ? !selectedLastEditedByAccountIds.includes(
                 row.lastEditedBy.accountId,
               )
@@ -581,7 +591,7 @@ export const EntitiesTable: FunctionComponent<{
         selectedFilterItemIds: selectedCreatedByAccountIds,
         setSelectedFilterItemIds: setSelectedCreatedByAccountIds,
         isRowFiltered: (row) =>
-          row.createdBy
+          row.createdBy && row.createdBy !== "loading"
             ? !selectedCreatedByAccountIds.includes(row.createdBy.accountId)
             : false,
       },

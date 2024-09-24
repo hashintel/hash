@@ -2,12 +2,12 @@ use deer::{
     error::{DeserializerError, Error, ObjectAccessError, ObjectLengthError, Variant},
     Context, Deserializer as _, FieldVisitor,
 };
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, ReportSink, Result, ResultExt};
 use justjson::parser::{PeekableTokenKind, Token};
 
 use crate::{
     deserializer::Deserializer,
-    error::{ErrorAccumulator, Position, Span, SyntaxError},
+    error::{Position, Span, SyntaxError},
     skip::skip_tokens,
 };
 
@@ -60,7 +60,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
     where
         F: FieldVisitor<'de>,
     {
-        let mut errors = ErrorAccumulator::new();
+        let mut errors = ReportSink::new();
 
         if self.dirty {
             // we parse in a way where every subsequent invocation (except the first one)
@@ -70,7 +70,7 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
             // the statement after this _will_ fail and return the visitor, therefore we don't
             // need to check for EOF
             if let Err(error) = self.try_skip_comma() {
-                errors.extend_one(error);
+                errors.append(error);
             }
         }
 
@@ -91,17 +91,20 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
             let span = self.deserializer.skip(); // skip key
 
             if let Err(skip) = self.try_skip_colon() {
-                errors.extend_one(skip);
+                errors.append(skip);
             }
 
             self.deserializer.skip(); // skip value
 
-            let error = errors.extend_existing(
+            errors.append(
                 Report::new(SyntaxError::ObjectKeyMustBeString.into_error())
                     .attach(Span::new(span)),
             );
 
-            return Ok(Err(error.change_context(ObjectAccessError)));
+            return Ok(Err(errors
+                .finish()
+                .change_context(ObjectAccessError)
+                .expect_err("infallible")));
         }
 
         let key = visitor.visit_key(&mut *self.deserializer);
@@ -109,12 +112,13 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
         let result = match key {
             Ok(key) => visitor
                 .visit_value(key, &mut *self.deserializer)
-                .change_context(ObjectAccessError),
+                .change_context(ObjectAccessError)
+                .map_err(Report::expand),
             Err(error) => {
-                let mut error = error.change_context(ObjectAccessError);
+                let mut error = error.change_context(ObjectAccessError).expand();
 
                 if let Err(skip) = self.try_skip_colon() {
-                    error.extend_one(skip.change_context(ObjectAccessError));
+                    error.push(skip.change_context(ObjectAccessError));
                 }
 
                 self.deserializer.skip(); // skip value
@@ -126,18 +130,16 @@ impl<'de> deer::ObjectAccess<'de> for ObjectAccess<'_, '_, 'de> {
         // key value are separated by `:`, if one forgets we will still error out but _try_ to
         // deserialize
         if let Err(skip) = self.try_skip_colon() {
-            errors.extend_one(skip);
+            errors.append(skip);
         }
 
         // same as `(result, errors).into_result()`
-        let result = match (
-            result,
-            errors.into_result().change_context(ObjectAccessError),
-        ) {
-            (Err(error), Ok(())) | (Ok(_), Err(error)) => Err(error),
+        let result = match (result, errors.finish().change_context(ObjectAccessError)) {
+            (Err(error), Ok(())) => Err(error.change_context(ObjectAccessError)),
+            (Ok(_), Err(error)) => Err(error),
             (Err(mut result), Err(errors)) => {
-                result.extend_one(errors);
-                Err(result)
+                result.push(errors);
+                Err(result.change_context(ObjectAccessError))
             }
             (Ok(result), Ok(())) => Ok(result),
         };

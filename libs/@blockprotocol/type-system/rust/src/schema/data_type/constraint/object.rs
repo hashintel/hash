@@ -1,4 +1,4 @@
-use error_stack::Report;
+use error_stack::{Report, ReportSink};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map as JsonMap, Value as JsonValue};
 use thiserror::Error;
@@ -46,31 +46,25 @@ impl ObjectSchema {
     pub fn validate_value(
         &self,
         object: &JsonMap<String, JsonValue>,
-    ) -> Result<(), Report<ObjectValidationError>> {
-        let mut validation_status = Ok::<(), Report<ObjectValidationError>>(());
+    ) -> Result<(), Report<[ObjectValidationError]>> {
+        let mut validation_status = ReportSink::new();
 
         if let Some(expected) = &self.r#const {
             if expected != object {
-                extend_report!(
-                    validation_status,
-                    ObjectValidationError::InvalidConstValue {
-                        expected: expected.clone(),
-                        actual: object.clone(),
-                    }
-                );
+                validation_status.capture(ObjectValidationError::InvalidConstValue {
+                    expected: expected.clone(),
+                    actual: object.clone(),
+                });
             }
         }
 
         if !self.r#enum.is_empty() && !self.r#enum.iter().any(|expected| expected == object) {
-            extend_report!(
-                validation_status,
-                ObjectValidationError::InvalidEnumValue {
-                    expected: self.r#enum.clone(),
-                    actual: object.clone(),
-                }
-            );
+            validation_status.capture(ObjectValidationError::InvalidEnumValue {
+                expected: self.r#enum.clone(),
+                actual: object.clone(),
+            });
         }
 
-        validation_status
+        validation_status.finish()
     }
 }

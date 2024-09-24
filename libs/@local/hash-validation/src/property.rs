@@ -1,4 +1,4 @@
-use error_stack::Report;
+use error_stack::{Report, ReportSink};
 use graph_types::knowledge::property::{PropertyMetadataObject, PropertyObject};
 
 use crate::{EntityValidationError, Validate, ValidateEntityComponents};
@@ -14,8 +14,8 @@ where
         _object: &PropertyObject,
         _components: ValidateEntityComponents,
         _provider: &P,
-    ) -> Result<(), Report<Self::Error>> {
-        let status: Result<(), Report<EntityValidationError>> = Ok(());
+    ) -> Result<(), Report<[Self::Error]>> {
+        let status = ReportSink::new();
 
         // TODO: Validate metadata
         //   - Check that all metadata keys are valid see:
@@ -24,6 +24,6 @@ where
         //     - see: https://linear.app/hash/issue/H-2800/validate-that-allowed-data-types-are-either-unambiguous-or-a-data-type
         //     - see: https://linear.app/hash/issue/H-2801/validate-data-type-in-entity-property-metadata
 
-        status
+        status.finish()
     }
 }

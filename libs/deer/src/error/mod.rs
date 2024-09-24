@@ -203,7 +203,7 @@ pub trait ErrorProperties {
 
     fn value<'a>(stack: &[&'a Frame]) -> Self::Value<'a>;
 
-    fn output<S>(value: Self::Value<'_>, map: &mut S) -> Result<(), SerdeSerializeError>
+    fn output<S>(value: Self::Value<'_>, map: &mut S) -> Result<(), [SerdeSerializeError]>
     where
         S: SerializeMap;
 }
@@ -223,7 +223,7 @@ impl<T: ErrorProperty + 'static> ErrorProperties for T {
         <T as ErrorProperty>::value(stack)
     }
 
-    fn output<S>(value: Self::Value<'_>, map: &mut S) -> Result<(), SerdeSerializeError>
+    fn output<S>(value: Self::Value<'_>, map: &mut S) -> Result<(), [SerdeSerializeError]>
     where
         S: SerializeMap,
     {
@@ -231,7 +231,7 @@ impl<T: ErrorProperty + 'static> ErrorProperties for T {
 
         Ok(map
             .serialize_entry(key, &value)
-            .map_err(|err| SerdeSerializeError::new(&err))?)
+            .map_err(|err| Report::new(SerdeSerializeError::new(&err)))?)
     }
 }
 
@@ -469,21 +469,12 @@ pub trait ReportExt<C: Context> {
 
 impl<C: Context> ReportExt<C> for Report<C> {
     fn export(self) -> Export<C> {
-        Export::new(self)
+        Export::new(self.expand())
     }
 }
 
-pub(crate) trait ResultExtPrivate<C: Context> {
-    fn extend_one(&mut self, error: Report<C>);
-}
-
-impl<T, C: Context> ResultExtPrivate<C> for Result<T, C> {
-    fn extend_one(&mut self, error: Report<C>) {
-        match self {
-            Err(errors) => {
-                errors.extend_one(error);
-            }
-            errors => *errors = Err(error),
-        }
+impl<C: Context> ReportExt<C> for Report<[C]> {
+    fn export(self) -> Export<C> {
+        Export::new(self)
     }
 }

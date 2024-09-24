@@ -2,12 +2,12 @@
 #![expect(clippy::min_ident_chars, reason = "Simplifies test cases")]
 
 use deer::{
-    error::{ArrayAccessError, DeserializeError, ObjectAccessError, VisitorError},
+    error::{DeserializeError, VisitorError},
     schema::Reference,
     ArrayAccess, Deserialize, Deserializer, Document, ObjectAccess, Reflection, Schema, Visitor,
 };
 use deer_desert::{assert_tokens, assert_tokens_error, error, Token};
-use error_stack::{Result, ResultExt};
+use error_stack::{ReportSink, Result, ResultExt};
 use serde::{ser::SerializeMap, Serialize, Serializer};
 use serde_json::json;
 
@@ -62,7 +62,7 @@ impl<'de> Visitor<'de> for ArrayStatsVisitor {
         let mut array = array.into_bound(3).change_context(VisitorError)?;
         let mut stats = ArrayStats { total: 0, some: 0 };
 
-        let mut errors: Result<(), ArrayAccessError> = Ok(());
+        let mut errors = ReportSink::new();
 
         while let Some(value) = array.next::<Option<u8>>() {
             match value {
@@ -73,21 +73,19 @@ impl<'de> Visitor<'de> for ArrayStatsVisitor {
                         stats.some += 1;
                     }
                 }
-                Err(error) => match &mut errors {
-                    Err(errors) => errors.extend_one(error),
-                    errors => *errors = Err(error),
-                },
+                Err(error) => {
+                    errors.append(error);
+                }
             }
         }
 
         let error = array.end();
 
-        match (errors, error) {
-            (Err(errors), Ok(())) | (Ok(()), Err(errors)) => {
-                Err(errors.change_context(VisitorError))
-            }
+        match (errors.finish(), error) {
+            (Err(errors), Ok(())) => Err(errors.change_context(VisitorError)),
+            (Ok(()), Err(errors)) => Err(errors.change_context(VisitorError)),
             (Err(mut errors), Err(error)) => {
-                errors.extend_one(error);
+                errors.push(error);
 
                 Err(errors.change_context(VisitorError))
             }
@@ -276,7 +274,7 @@ impl<'de> Visitor<'de> for ObjectStatsVisitor {
             none: 0,
         };
 
-        let mut errors: Result<(), ObjectAccessError> = Ok(());
+        let mut errors = ReportSink::new();
 
         while let Some(value) = object.next::<Option<&str>, Option<()>>() {
             match value {
@@ -293,21 +291,19 @@ impl<'de> Visitor<'de> for ObjectStatsVisitor {
                         None => stats.none += 1,
                     }
                 }
-                Err(error) => match &mut errors {
-                    Err(errors) => errors.extend_one(error),
-                    errors => *errors = Err(error),
-                },
+                Err(error) => {
+                    errors.append(error);
+                }
             }
         }
 
         let error = object.end();
 
-        match (errors, error) {
-            (Err(errors), Ok(())) | (Ok(()), Err(errors)) => {
-                Err(errors.change_context(VisitorError))
-            }
+        match (errors.finish(), error) {
+            (Err(errors), Ok(())) => Err(errors.change_context(VisitorError)),
+            (Ok(()), Err(errors)) => Err(errors.change_context(VisitorError)),
             (Err(mut errors), Err(error)) => {
-                errors.extend_one(error);
+                errors.push(error);
 
                 Err(errors.change_context(VisitorError))
             }

@@ -5,12 +5,11 @@ use deer::{
     ArrayAccess, Deserialize, Deserializer, Document, FieldVisitor, ObjectAccess, Reflection,
     Schema, StructVisitor, Visitor,
 };
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, ReportSink, Result, ResultExt, TryReportTupleExt};
 use serde_json::json;
 
 mod common;
 
-use common::TupleExt;
 use deer::{
     error::{ExpectedField, Location, ObjectAccessError, ReceivedField, UnknownFieldError},
     helpers::Properties,
@@ -214,7 +213,7 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
             .attach(Location::Tuple(2));
 
         let (a, b, c, ()) = (a, b, c, array.end())
-            .fold_reports()
+            .try_collect()
             .change_context(VisitorError)?;
 
         Ok(Example { a, b, c })
@@ -228,7 +227,7 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
         let mut b = None;
         let mut c = None;
 
-        let mut errors: Result<(), ObjectAccessError> = Ok(());
+        let mut errors = ReportSink::new();
 
         while let Some(field) = object.field(ExampleFieldVisitor {
             a: &mut a,
@@ -236,12 +235,7 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
             c: &mut c,
         }) {
             if let Err(error) = field {
-                match &mut errors {
-                    Err(errors) => {
-                        errors.extend_one(error);
-                    }
-                    errors => *errors = Err(error),
-                }
+                errors.append(error);
             }
         }
 
@@ -272,8 +266,8 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
             Ok,
         );
 
-        let (a, b, c, ..) = (a, b, c, errors, object.end())
-            .fold_reports()
+        let (a, b, c, ..) = (a, b, c, errors.finish(), object.end())
+            .try_collect()
             .change_context(VisitorError)?;
 
         Ok(Example { a, b, c })

@@ -13,7 +13,7 @@ use authorization::{
     zanzibar::{Consistency, Zookie},
     AuthorizationApi,
 };
-use error_stack::{bail, Report, Result, ResultExt};
+use error_stack::{bail, Report, ReportSink, Result, ResultExt};
 use futures::TryStreamExt;
 use graph_types::{
     account::{AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
@@ -933,7 +933,9 @@ where
         }
 
         let commit_result = transaction.commit().await.change_context(InsertionError);
-        if let Err(mut error) = commit_result {
+        if let Err(error) = commit_result {
+            let mut error = error.expand();
+
             if let Err(auth_error) = self
                 .authorization_api
                 .modify_entity_relations(relationships.into_iter().map(
@@ -948,12 +950,10 @@ where
                 .await
                 .change_context(InsertionError)
             {
-                // TODO: Use `add_child`
-                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
-                error.extend_one(auth_error);
+                error.push(auth_error);
             }
 
-            Err(error)
+            Err(error.change_context(InsertionError))
         } else {
             if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
@@ -977,7 +977,7 @@ where
         consistency: Consistency<'_>,
         params: Vec<ValidateEntityParams<'_>>,
     ) -> Result<(), ValidateEntityError> {
-        let mut status: Result<(), validation::EntityValidationError> = Ok(());
+        let mut status = ReportSink::new();
 
         let validator_provider = StoreProvider {
             store: self,
@@ -999,11 +999,7 @@ where
 
             if schema.schemas.is_empty() {
                 let error = Report::new(validation::EntityValidationError::EmptyEntityTypes);
-                if let Err(ref mut report) = status {
-                    report.extend_one(error);
-                } else {
-                    status = Err(error);
-                }
+                status.append(error);
             };
 
             let pre_process_result = EntityPreprocessor {
@@ -1017,11 +1013,7 @@ where
             .await
             .change_context(validation::EntityValidationError::InvalidProperties);
             if let Err(error) = pre_process_result {
-                if let Err(ref mut report) = status {
-                    report.extend_one(error);
-                } else {
-                    status = Err(error);
-                }
+                status.append(error);
             }
 
             if let Err(error) = params
@@ -1030,15 +1022,12 @@ where
                 .validate(&schema, params.components, &validator_provider)
                 .await
             {
-                if let Err(ref mut report) = status {
-                    report.extend_one(error);
-                } else {
-                    status = Err(error);
-                }
+                status.append(error);
             }
         }
 
         status
+            .finish()
             .change_context(ValidateEntityError)
             .attach(StatusCode::InvalidArgument)
     }

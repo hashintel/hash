@@ -259,7 +259,9 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let params = CreateEntityRequest::deserialize(&body).map_err(report_to_response)?;
+    let params = CreateEntityRequest::deserialize(&body)
+        .map_err(Report::from)
+        .map_err(report_to_response)?;
 
     let authorization_api = authorization_api_pool
         .acquire()
@@ -309,7 +311,9 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let params = Vec::<CreateEntityRequest>::deserialize(&body).map_err(report_to_response)?;
+    let params = Vec::<CreateEntityRequest>::deserialize(&body)
+        .map_err(Report::from)
+        .map_err(report_to_response)?;
 
     let authorization_api = authorization_api_pool
         .acquire()
@@ -359,7 +363,9 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let params = ValidateEntityParams::deserialize(&body).map_err(report_to_response)?;
+    let params = ValidateEntityParams::deserialize(&body)
+        .map_err(Report::from)
+        .map_err(report_to_response)?;
 
     let authorization_api = authorization_api_pool
         .acquire()
@@ -587,7 +593,9 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let request = GetEntitiesRequest::deserialize(&request).map_err(report_to_response)?;
+    let request = GetEntitiesRequest::deserialize(&request)
+        .map_err(Report::from)
+        .map_err(report_to_response)?;
     store
         .get_entities(
             actor_id,
@@ -723,7 +731,9 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let request = GetEntitySubgraphRequest::deserialize(&request).map_err(report_to_response)?;
+    let request = GetEntitySubgraphRequest::deserialize(&request)
+        .map_err(Report::from)
+        .map_err(report_to_response)?;
     store
         .get_entity_subgraph(
             actor_id,
@@ -809,7 +819,9 @@ where
     store
         .count_entities(
             actor_id,
-            CountEntitiesParams::deserialize(&request).map_err(report_to_response)?,
+            CountEntitiesParams::deserialize(&request)
+                .map_err(Report::from)
+                .map_err(report_to_response)?,
         )
         .await
         .map(Json)

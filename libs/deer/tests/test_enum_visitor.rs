@@ -10,7 +10,7 @@ use deer::{
     Schema, Visitor,
 };
 use deer_desert::{assert_tokens, assert_tokens_error, error, Token};
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, ReportSink, Result, ResultExt};
 use serde::{ser::SerializeMap, Serializer};
 use serde_json::json;
 
@@ -361,7 +361,7 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
                 let mut object = object.into_bound(1).change_context(VisitorError)?;
 
                 let mut id = None;
-                let mut errors: Result<(), VisitorError> = Ok(());
+                let mut errors = ReportSink::new();
 
                 match object.field(VariantFieldAccess) {
                     None => {
@@ -371,16 +371,12 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
                             .attach(ExpectedLength::new(1))
                             .change_context(VisitorError);
 
-                        match &mut errors {
-                            Ok(()) => errors = Err(error),
-                            Err(errors) => errors.extend_one(error),
-                        }
+                        errors.append(error);
                     }
                     Some(Ok(VariantField::Id(value))) => id = Some(value),
-                    Some(Err(error)) => match &mut errors {
-                        Ok(()) => errors = Err(error.change_context(VisitorError)),
-                        Err(errors) => errors.extend_one(error.change_context(VisitorError)),
-                    },
+                    Some(Err(error)) => {
+                        errors.append(error.change_context(VisitorError));
+                    }
                 }
 
                 if id.is_none() {
@@ -388,13 +384,10 @@ impl<'de> Visitor<'de> for StructEnumVisitor {
                         .attach(Location::Field("id"))
                         .attach(ExpectedType::new(u8::reflection()));
 
-                    match &mut errors {
-                        Ok(()) => errors = Err(error.change_context(VisitorError)),
-                        Err(errors) => errors.extend_one(error.change_context(VisitorError)),
-                    }
+                    errors.append(error.change_context(VisitorError));
                 }
 
-                errors?;
+                errors.finish().change_context(VisitorError)?;
 
                 object.end().change_context(VisitorError)?;
 

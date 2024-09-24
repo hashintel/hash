@@ -3,14 +3,13 @@ use core::{
     ops::{Bound, Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive},
 };
 
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, ReportSink, Result, ResultExt, TryReportTupleExt};
 
 use crate::{
     error::{
-        ArrayAccessError, DeserializeError, DuplicateField, DuplicateFieldError, Location,
-        ObjectAccessError, ResultExtPrivate, Variant, VisitorError,
+        ArrayAccessError, DeserializeError, DuplicateField, DuplicateFieldError, Location, Variant,
+        VisitorError,
     },
-    ext::TupleExt,
     helpers::Properties,
     identifier,
     impls::UnitVariantVisitor,
@@ -208,7 +207,7 @@ where
             .attach(Location::Tuple(1));
 
         let (start, end, ()) = (start, end, array.end())
-            .fold_reports()
+            .try_collect()
             .change_context(VisitorError)?;
 
         Ok((start, end))
@@ -221,14 +220,14 @@ where
         let mut start: Option<T> = None;
         let mut end: Option<U> = None;
 
-        let mut errors: Result<(), ObjectAccessError> = Ok(());
+        let mut errors = ReportSink::new();
 
         while let Some(field) = object.field(RangeFieldVisitor {
             start: &mut start,
             end: &mut end,
         }) {
             if let Err(error) = field {
-                errors.extend_one(error);
+                errors.append(error);
             }
         }
 
@@ -253,10 +252,11 @@ where
         let (start, end, ..) = (
             start,
             end,
-            errors.change_context(VisitorError),
+            errors.finish().change_context(VisitorError),
             object.end().change_context(VisitorError),
         )
-            .fold_reports()?;
+            .try_collect()
+            .change_context(VisitorError)?;
 
         Ok((start, end))
     }

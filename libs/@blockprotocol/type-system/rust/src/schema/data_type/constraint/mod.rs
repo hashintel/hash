@@ -1,15 +1,3 @@
-macro_rules! extend_report {
-    ($status:expr, $error:expr $(,)?) => {
-        if let Err(ref mut report) = $status {
-            report.extend_one(error_stack::report!($error))
-        } else {
-            $status = Err(error_stack::report!($error))
-        }
-    };
-}
-
-pub(crate) use extend_report;
-
 mod array;
 mod boolean;
 mod error;

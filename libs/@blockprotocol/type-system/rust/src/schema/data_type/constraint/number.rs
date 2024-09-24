@@ -1,4 +1,4 @@
-use error_stack::{bail, Report};
+use error_stack::{bail, Report, ReportSink};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Number as JsonNumber};
 use thiserror::Error;
@@ -111,24 +111,24 @@ fn float_less(lhs: f64, rhs: f64) -> bool {
 }
 
 impl NumberSchema {
-    pub fn validate_value(&self, number: &JsonNumber) -> Result<(), Report<NumberValidationError>> {
+    pub fn validate_value(
+        &self,
+        number: &JsonNumber,
+    ) -> Result<(), Report<[NumberValidationError]>> {
         let Some(float) = number.as_f64() else {
-            bail!(NumberValidationError::InsufficientPrecision {
+            bail![NumberValidationError::InsufficientPrecision {
                 actual: number.clone()
-            });
+            },];
         };
 
-        let mut status = Ok::<(), Report<NumberValidationError>>(());
+        let mut status = ReportSink::new();
 
         if let Some(expected) = self.r#const {
             if float_eq(expected, float) {
-                extend_report!(
-                    status,
-                    NumberValidationError::InvalidConstValue {
-                        expected,
-                        actual: float,
-                    }
-                );
+                status.capture(NumberValidationError::InvalidConstValue {
+                    expected,
+                    actual: float,
+                });
             }
         }
 
@@ -138,56 +138,41 @@ impl NumberSchema {
                 .iter()
                 .any(|expected| float_eq(float, *expected))
         {
-            extend_report!(
-                status,
-                NumberValidationError::InvalidEnumValue {
-                    expected: self.r#enum.clone(),
-                    actual: float.to_owned(),
-                }
-            );
+            status.capture(NumberValidationError::InvalidEnumValue {
+                expected: self.r#enum.clone(),
+                actual: float.to_owned(),
+            });
         }
 
         if let Some(minimum) = self.minimum {
             if self.exclusive_minimum {
                 if float_less_eq(float, minimum) {
-                    extend_report!(
-                        status,
-                        NumberValidationError::ExclusiveMinimum {
-                            actual: float,
-                            expected: minimum
-                        }
-                    );
+                    status.capture(NumberValidationError::ExclusiveMinimum {
+                        actual: float,
+                        expected: minimum,
+                    });
                 }
             } else if float_less(float, minimum) {
-                extend_report!(
-                    status,
-                    NumberValidationError::ExclusiveMinimum {
-                        actual: float,
-                        expected: minimum
-                    }
-                );
+                status.capture(NumberValidationError::ExclusiveMinimum {
+                    actual: float,
+                    expected: minimum,
+                });
             }
         }
 
         if let Some(maximum) = self.maximum {
             if self.exclusive_maximum {
                 if float_less_eq(maximum, float) {
-                    extend_report!(
-                        status,
-                        NumberValidationError::ExclusiveMaximum {
-                            actual: float,
-                            expected: maximum
-                        }
-                    );
+                    status.capture(NumberValidationError::ExclusiveMaximum {
+                        actual: float,
+                        expected: maximum,
+                    });
                 }
             } else if float_less(maximum, float) {
-                extend_report!(
-                    status,
-                    NumberValidationError::Maximum {
-                        actual: float,
-                        expected: maximum
-                    }
-                );
+                status.capture(NumberValidationError::Maximum {
+                    actual: float,
+                    expected: maximum,
+                });
             }
         }
 
@@ -198,17 +183,14 @@ impl NumberSchema {
                 reason = "Validation requires floating point arithmetic"
             )]
             if !float_eq(float % expected, 0.0) {
-                extend_report!(
-                    status,
-                    NumberValidationError::MultipleOf {
-                        actual: float,
-                        expected
-                    }
-                );
+                status.capture(NumberValidationError::MultipleOf {
+                    actual: float,
+                    expected,
+                });
             }
         }
 
-        status
+        status.finish()
     }
 }
 
