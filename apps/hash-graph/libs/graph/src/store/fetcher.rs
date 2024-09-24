@@ -447,7 +447,11 @@ where
                         };
 
                         for referenced_ontology_type in self
-                            .collect_external_ontology_types(actor_id, &entity_type, bypassed_types)
+                            .collect_external_ontology_types(
+                                actor_id,
+                                &*entity_type,
+                                bypassed_types,
+                            )
                             .await
                             .change_context(StoreError)?
                         {
@@ -459,7 +463,7 @@ where
 
                         fetched_ontology_types
                             .entity_types
-                            .push((entity_type, metadata));
+                            .push((*entity_type, metadata));
                     }
                 }
             }

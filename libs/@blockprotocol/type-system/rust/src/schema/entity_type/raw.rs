@@ -9,6 +9,7 @@ use tsify::Tsify;
 use crate::{
     schema::{
         EntityTypeReference, OneOfSchema, PropertyTypeReference, PropertyValueArray, ValueOrArray,
+        entity_type::InverseEntityTypeMetadata,
     },
     url::{BaseUrl, VersionedUrl},
 };
@@ -49,6 +50,8 @@ pub struct EntityType<'a> {
     id: Cow<'a, VersionedUrl>,
     title: Cow<'a, str>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    title_plural: Option<Cow<'a, str>>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     description: Option<Cow<'a, str>>,
     #[serde(default, skip_serializing_if = "HashSet::is_empty")]
     #[cfg_attr(
@@ -69,6 +72,8 @@ pub struct EntityType<'a> {
     )]
     #[serde(with = "links", default, skip_serializing_if = "HashMap::is_empty")]
     links: Links,
+    #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
+    inverse: InverseEntityTypeMetadata,
     #[serde(default, skip_serializing_if = "<[_]>::is_empty")]
     examples: Cow<'a, [HashMap<BaseUrl, JsonValue>]>,
 }
@@ -154,11 +159,13 @@ impl From<EntityType<'_>> for super::EntityType {
         Self {
             id: entity_type.id.into_owned(),
             title: entity_type.title.into_owned(),
+            title_plural: entity_type.title_plural.map(Cow::into_owned),
             description: entity_type.description.map(Cow::into_owned),
             properties: entity_type.properties.into_owned(),
             required: entity_type.required.into_owned(),
             all_of: entity_type.all_of.into_owned(),
             links: entity_type.links,
+            inverse: entity_type.inverse,
             examples: entity_type.examples.into_owned(),
         }
     }
@@ -172,11 +179,13 @@ impl<'a> From<&'a super::EntityType> for EntityType<'a> {
             r#type: EntityTypeTag::Object,
             id: Cow::Borrowed(&entity_type.id),
             title: Cow::Borrowed(&entity_type.title),
+            title_plural: entity_type.title_plural.as_deref().map(Cow::Borrowed),
             description: entity_type.description.as_deref().map(Cow::Borrowed),
             properties: Cow::Borrowed(&entity_type.properties),
             required: Cow::Borrowed(&entity_type.required),
             all_of: Cow::Borrowed(&entity_type.all_of),
             links: entity_type.links.clone(),
+            inverse: entity_type.inverse.clone(),
             #[expect(deprecated)]
             examples: Cow::Borrowed(&entity_type.examples),
         }
