@@ -8,6 +8,7 @@ use harpc_wire_protocol::{
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
+        Request,
         begin::RequestBegin,
         body::RequestBody,
         flags::{RequestFlag, RequestFlags},
@@ -16,16 +17,15 @@ use harpc_wire_protocol::{
         id::RequestId,
         procedure::ProcedureDescriptor,
         service::ServiceDescriptor,
-        Request,
     },
     response::{
+        Response,
         begin::ResponseBegin,
         body::ResponseBody,
         flags::{ResponseFlag, ResponseFlags},
         frame::ResponseFrame,
         header::ResponseHeader,
         kind::ResponseKind,
-        Response,
     },
 };
 use tokio::sync::mpsc;

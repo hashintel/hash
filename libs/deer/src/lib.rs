@@ -804,8 +804,8 @@ pub(crate) mod test {
 
     use error_stack::{Context, Frame, Report};
     use serde::{
-        ser::{Error as _, SerializeMap},
         Serialize, Serializer,
+        ser::{Error as _, SerializeMap},
     };
 
     use crate::error::{Error, ErrorProperties, Variant};

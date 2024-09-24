@@ -7,8 +7,8 @@ use utoipa::ToSchema;
 
 use crate::subgraph::{
     edges::{
-        endpoint::{EdgeEndpointSet, EntityIdWithIntervalSet},
         AdjacencyList, EdgeDirection, Edges,
+        endpoint::{EdgeEndpointSet, EntityIdWithIntervalSet},
     },
     identifier::{
         DataTypeVertexId, EdgeEndpoint, EntityIdWithInterval, EntityTypeVertexId, EntityVertexId,

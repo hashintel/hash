@@ -1,16 +1,16 @@
 #[cfg(nightly)]
 use core::num::Saturating;
 use core::num::{
-    NonZeroI128, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI8, NonZeroIsize, NonZeroU128,
-    NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU8, NonZeroUsize, Wrapping,
+    NonZeroI8, NonZeroI16, NonZeroI32, NonZeroI64, NonZeroI128, NonZeroIsize, NonZeroU8,
+    NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128, NonZeroUsize, Wrapping,
 };
 
 use error_stack::{Report, ResultExt};
-use serde::{ser::SerializeMap, Serialize, Serializer};
+use serde::{Serialize, Serializer, ser::SerializeMap};
 
 use crate::{
-    error::{DeserializeError, Error, ExpectedType, ReceivedValue, ValueError},
     Deserialize, Deserializer, Document, Reflection, Schema,
+    error::{DeserializeError, Error, ExpectedType, ReceivedValue, ValueError},
 };
 
 struct Zero;

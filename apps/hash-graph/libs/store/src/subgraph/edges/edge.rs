@@ -1,6 +1,6 @@
-use serde::{ser::SerializeStruct, Serialize, Serializer};
+use serde::{Serialize, Serializer, ser::SerializeStruct};
 #[cfg(feature = "utoipa")]
-use utoipa::{openapi, ToSchema};
+use utoipa::{ToSchema, openapi};
 
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub struct OutwardEdge<K, E> {

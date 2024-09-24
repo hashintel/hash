@@ -3,11 +3,11 @@ use core::{marker::PhantomData, mem, mem::MaybeUninit, ptr};
 use error_stack::{Report, ReportSink, Result, ResultExt};
 
 use crate::{
+    ArrayAccess, Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
     error::{
         ArrayAccessError, ArrayLengthError, DeserializeError, ExpectedLength, Location,
         ReceivedLength, Variant, VisitorError,
     },
-    ArrayAccess, Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
 };
 
 struct ArrayVisitor<'de, T: Deserialize<'de>, const N: usize>(PhantomData<fn(&'de ()) -> [T; N]>);

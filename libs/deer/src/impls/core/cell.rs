@@ -2,7 +2,7 @@ use core::cell::{Cell, RefCell, UnsafeCell};
 #[cfg(nightly)]
 use core::cell::{OnceCell, SyncUnsafeCell};
 
-use crate::{error::DeserializeError, Deserialize, Deserializer, Document, Reflection, Schema};
+use crate::{Deserialize, Deserializer, Document, Reflection, Schema, error::DeserializeError};
 
 macro_rules! impl_cell {
     ($(#[$attr:meta])* $cell:ident) => {

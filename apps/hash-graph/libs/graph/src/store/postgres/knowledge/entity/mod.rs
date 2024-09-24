@@ -5,39 +5,40 @@ use core::{borrow::Borrow, iter::once, mem};
 use std::collections::{HashMap, HashSet};
 
 use authorization::{
+    AuthorizationApi,
     backend::ModifyRelationshipOperation,
     schema::{
         EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, EntityTypePermission,
         WebPermission,
     },
     zanzibar::{Consistency, Zookie},
-    AuthorizationApi,
 };
-use error_stack::{bail, Report, ReportSink, Result, ResultExt};
+use error_stack::{Report, ReportSink, Result, ResultExt, bail};
 use futures::TryStreamExt;
 use graph_types::{
+    Embedding,
     account::{AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
     knowledge::{
+        Confidence,
         entity::{
             DraftId, Entity, EntityEditionId, EntityEditionProvenance, EntityEmbedding, EntityId,
             EntityMetadata, EntityProvenance, EntityRecordId, EntityTemporalMetadata, EntityUuid,
             InferredEntityProvenance,
         },
         property::{
-            visitor::EntityVisitor, Property, PropertyMetadata, PropertyMetadataObject,
-            PropertyObject, PropertyPath, PropertyPathError, PropertyWithMetadata,
-            PropertyWithMetadataObject, PropertyWithMetadataValue,
+            Property, PropertyMetadata, PropertyMetadataObject, PropertyObject, PropertyPath,
+            PropertyPathError, PropertyWithMetadata, PropertyWithMetadataObject,
+            PropertyWithMetadataValue, visitor::EntityVisitor,
         },
-        Confidence,
     },
     ontology::{DataTypeProvider, EntityTypeId, EntityTypeProvider},
     owned_by_id::OwnedById,
-    Embedding,
 };
 use hash_graph_store::{
     entity::EntityQueryPath,
     filter::{Filter, FilterExpression, Parameter},
     subgraph::{
+        Subgraph, SubgraphRecord,
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
         identifier::{EntityIdWithInterval, EntityVertexId},
         temporal_axes::{
@@ -45,7 +46,6 @@ use hash_graph_store::{
             QueryTemporalAxesUnresolved, VariableAxis, VariableTemporalAxis,
             VariableTemporalAxisUnresolved,
         },
-        Subgraph, SubgraphRecord,
     },
 };
 use hash_status::StatusCode;
@@ -56,12 +56,13 @@ use temporal_versioning::{
     OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, TemporalTagged, Timestamp,
     TransactionTime,
 };
-use tokio_postgres::{error::SqlState, GenericClient, Row};
+use tokio_postgres::{GenericClient, Row, error::SqlState};
 use type_system::url::VersionedUrl;
 use uuid::Uuid;
 use validation::{EntityPreprocessor, Validate, ValidateEntityComponents};
 
 use crate::store::{
+    AsClient, EntityStore, InsertionError, PostgresStore, QueryError, StoreCache, UpdateError,
     crud::{QueryResult, Read, ReadPaginated, Sorting},
     error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
     knowledge::{
@@ -71,19 +72,18 @@ use crate::store::{
         ValidateEntityParams,
     },
     postgres::{
+        ResponseCountMap, TraversalContext,
         knowledge::entity::read::EntityEdgeTraversalData,
         ontology::OntologyId,
         query::{
+            InsertStatementBuilder, ReferenceTable, Table,
             rows::{
                 EntityDraftRow, EntityEditionRow, EntityHasLeftEntityRow, EntityHasRightEntityRow,
                 EntityIdRow, EntityIsOfTypeRow, EntityTemporalMetadataRow,
             },
-            InsertStatementBuilder, ReferenceTable, Table,
         },
-        ResponseCountMap, TraversalContext,
     },
     validation::StoreProvider,
-    AsClient, EntityStore, InsertionError, PostgresStore, QueryError, StoreCache, UpdateError,
 };
 
 #[derive(Debug)]

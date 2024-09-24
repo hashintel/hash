@@ -6,24 +6,24 @@ use alloc::sync::Arc;
 use core::{fmt::Debug, future};
 use std::io;
 
-use futures::{stream, FutureExt, Sink, Stream, StreamExt};
+use futures::{FutureExt, Sink, Stream, StreamExt, stream};
 use harpc_wire_protocol::{
-    request::{body::RequestBody, id::RequestId, Request},
-    response::{kind::ResponseKind, Response},
+    request::{Request, body::RequestBody, id::RequestId},
+    response::{Response, kind::ResponseKind},
 };
 use libp2p::PeerId;
 use tokio::{
     pin, select,
-    sync::{broadcast, mpsc, OwnedSemaphorePermit, Semaphore},
+    sync::{OwnedSemaphorePermit, Semaphore, broadcast, mpsc},
 };
-use tokio_stream::{wrappers::ReceiverStream, StreamNotifyClose};
+use tokio_stream::{StreamNotifyClose, wrappers::ReceiverStream};
 use tokio_util::{either::Either, sync::CancellationToken, task::TaskTracker};
 
 use self::collection::TransactionCollection;
 use super::{
+    SessionConfig, SessionEvent,
     session_id::SessionId,
     transaction::{Transaction, TransactionParts},
-    SessionConfig, SessionEvent,
 };
 use crate::{
     codec::{ErrorEncoder, WireError},
@@ -174,17 +174,14 @@ where
                     }
                 };
 
-                let (transaction, task) = Transaction::from_request(
-                    begin,
-                    TransactionParts {
-                        peer: self.peer,
-                        session: self.session,
-                        config: self.config,
-                        rx: request_rx,
-                        tx: tx.clone(),
-                        permit,
-                    },
-                );
+                let (transaction, task) = Transaction::from_request(begin, TransactionParts {
+                    peer: self.peer,
+                    session: self.session,
+                    config: self.config,
+                    rx: request_rx,
+                    tx: tx.clone(),
+                    permit,
+                });
 
                 // The channel size is a non-zero, meaning that we always have space in the buffer
                 // to send the request and resolve immediately.

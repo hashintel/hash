@@ -1,7 +1,7 @@
 use core::str::FromStr;
 use std::collections::HashSet;
 
-use graph::store::{knowledge::CreateEntityParams, EntityStore};
+use graph::store::{EntityStore, knowledge::CreateEntityParams};
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
@@ -118,10 +118,11 @@ async fn insert() {
     };
 
     let entities = api
-        .create_entities(
-            api.account_id,
-            vec![alice_entity, friendship_entity, bob_entity],
-        )
+        .create_entities(api.account_id, vec![
+            alice_entity,
+            friendship_entity,
+            bob_entity,
+        ])
         .await
         .expect("could not create entity");
 

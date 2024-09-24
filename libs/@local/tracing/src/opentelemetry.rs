@@ -1,15 +1,15 @@
 use core::time::Duration;
 
-use opentelemetry::{global, KeyValue};
+use opentelemetry::{KeyValue, global};
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::{
+    Resource,
     propagation::TraceContextPropagator,
     trace::{RandomIdGenerator, Sampler},
-    Resource,
 };
 use tokio::runtime::Handle;
 use tracing::Subscriber;
-use tracing_subscriber::{registry::LookupSpan, Layer};
+use tracing_subscriber::{Layer, registry::LookupSpan};
 
 /// Arguments for configuring the logging setup
 #[derive(Debug, Clone)]

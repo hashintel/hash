@@ -1,14 +1,14 @@
 use alloc::sync::Arc;
 
 use hql_diagnostics::Diagnostic;
-use hql_span::{storage::SpanStorage, SpanId};
+use hql_span::{SpanId, storage::SpanStorage};
 use logos::SpannedIter;
 use text_size::{TextRange, TextSize};
 
 use self::{
     error::{
-        from_hifijson_num_error, from_hifijson_str_error, from_unrecognized_character_error,
-        LexingError,
+        LexingError, from_hifijson_num_error, from_hifijson_str_error,
+        from_unrecognized_character_error,
     },
     token::Token,
     token_kind::TokenKind,

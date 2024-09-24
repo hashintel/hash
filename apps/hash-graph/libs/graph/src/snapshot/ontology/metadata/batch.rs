@@ -5,11 +5,11 @@ use tokio_postgres::GenericClient;
 use crate::{
     snapshot::WriteBatch,
     store::{
+        AsClient, InsertionError, PostgresStore,
         postgres::query::rows::{
             OntologyExternalMetadataRow, OntologyIdRow, OntologyOwnedMetadataRow,
             OntologyTemporalMetadataRow,
         },
-        AsClient, InsertionError, PostgresStore,
     },
 };
 

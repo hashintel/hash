@@ -6,13 +6,13 @@ use alloc::sync::Arc;
 use core::ops::ControlFlow;
 
 use bytes::Bytes;
-use futures::{prelude::future::FutureExt, Stream, StreamExt};
+use futures::{Stream, StreamExt, prelude::future::FutureExt};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
-    request::{id::RequestId, procedure::ProcedureDescriptor, service::ServiceDescriptor, Request},
+    request::{Request, id::RequestId, procedure::ProcedureDescriptor, service::ServiceDescriptor},
     response::{
-        begin::ResponseBegin, body::ResponseBody, flags::ResponseFlag, frame::ResponseFrame,
-        kind::ResponseKind, Response,
+        Response, begin::ResponseBegin, body::ResponseBody, flags::ResponseFlag,
+        frame::ResponseFrame, kind::ResponseKind,
     },
 };
 use tokio::{pin, select, sync::mpsc};

@@ -11,7 +11,7 @@ use error_stack::Result;
 use futures::{Stream, TryStreamExt};
 use hash_graph_store::{
     filter::{Filter, QueryRecord},
-    subgraph::{temporal_axes::QueryTemporalAxes, SubgraphRecord},
+    subgraph::{SubgraphRecord, temporal_axes::QueryTemporalAxes},
 };
 use tracing::instrument;
 use type_system::url::VersionedUrl;

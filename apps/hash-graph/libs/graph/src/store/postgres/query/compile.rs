@@ -13,7 +13,12 @@ use temporal_versioning::TimeAxis;
 use tracing::instrument;
 
 use crate::store::{
+    NullOrdering, Ordering,
     postgres::query::{
+        Alias, AliasedTable, Column, Condition, Distinctness, EqualityOperator, Expression,
+        Function, JoinExpression, OrderByExpression, PostgresQueryPath, PostgresRecord,
+        SelectExpression, SelectStatement, Table, Transpile, WhereExpression, WindowStatement,
+        WithExpression,
         expression::{GroupByExpression, PostgresType},
         statement::FromItem,
         table::{
@@ -21,12 +26,7 @@ use crate::store::{
             EntityTypeEmbeddings, EntityTypes, JsonField, OntologyIds, OntologyTemporalMetadata,
             PropertyTypeEmbeddings,
         },
-        Alias, AliasedTable, Column, Condition, Distinctness, EqualityOperator, Expression,
-        Function, JoinExpression, OrderByExpression, PostgresQueryPath, PostgresRecord,
-        SelectExpression, SelectStatement, Table, Transpile, WhereExpression, WindowStatement,
-        WithExpression,
     },
-    NullOrdering, Ordering,
 };
 
 // # Lifetime guidance
@@ -328,15 +328,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             }
 
             let index = self.statement.selects.len() - 1;
-            self.selections.insert(
-                path,
-                PathSelection {
-                    column: expression,
-                    index,
-                    distinctness,
-                    ordering,
-                },
-            );
+            self.selections.insert(path, PathSelection {
+                column: expression,
+                index,
+                distinctness,
+                ordering,
+            });
             index
         }
     }
@@ -674,9 +671,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         };
 
         // Add a WITH expression selecting the partitioned version
-        self.statement.with.add_statement(
-            Table::OntologyIds,
-            SelectStatement {
+        self.statement
+            .with
+            .add_statement(Table::OntologyIds, SelectStatement {
                 with: WithExpression::default(),
                 distinct: Vec::new(),
                 selects: vec![
@@ -706,8 +703,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 order_by_expression: OrderByExpression::default(),
                 group_by_expression: GroupByExpression::default(),
                 limit: None,
-            },
-        );
+            });
 
         let alias = self.add_join_statements(path);
         // Join the table of `path` and compare the version to the latest version

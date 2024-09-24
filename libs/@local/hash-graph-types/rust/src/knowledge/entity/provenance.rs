@@ -12,8 +12,8 @@ use time::OffsetDateTime;
 use url::Url;
 #[cfg(feature = "utoipa")]
 use utoipa::{
-    openapi::{ObjectBuilder, OneOfBuilder, RefOr, Schema, SchemaType},
     ToSchema,
+    openapi::{ObjectBuilder, OneOfBuilder, RefOr, Schema, SchemaType},
 };
 
 use crate::{

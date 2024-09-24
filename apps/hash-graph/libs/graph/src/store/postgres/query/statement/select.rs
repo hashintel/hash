@@ -1,9 +1,9 @@
 use core::fmt::{self, Write};
 
 use crate::store::postgres::query::{
-    expression::{GroupByExpression, OrderByExpression},
     Alias, AliasedTable, Expression, Function, JoinExpression, SelectExpression, Table, Transpile,
     WhereExpression, WithExpression,
+    expression::{GroupByExpression, OrderByExpression},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -116,9 +116,9 @@ mod tests {
     use alloc::borrow::Cow;
 
     use graph_types::{
+        Embedding,
         knowledge::entity::Entity,
         ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
-        Embedding,
     };
     use hash_graph_store::{
         data_type::DataTypeQueryPath,
@@ -135,10 +135,10 @@ mod tests {
     use uuid::Uuid;
 
     use crate::store::{
-        postgres::query::{
-            test_helper::trim_whitespace, Distinctness, PostgresRecord, SelectCompiler,
-        },
         NullOrdering, Ordering,
+        postgres::query::{
+            Distinctness, PostgresRecord, SelectCompiler, test_helper::trim_whitespace,
+        },
     };
 
     fn test_compilation<'p, 'q: 'p, T: PostgresRecord + 'static>(

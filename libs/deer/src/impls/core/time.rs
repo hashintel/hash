@@ -2,7 +2,7 @@ use core::time::Duration;
 
 use error_stack::Result;
 
-use crate::{error::DeserializeError, Deserialize, Deserializer};
+use crate::{Deserialize, Deserializer, error::DeserializeError};
 
 impl<'de> Deserialize<'de> for Duration {
     type Reflection = <f64 as Deserialize<'de>>::Reflection;

@@ -1,6 +1,6 @@
 use std::process::exit;
 
-use rustc_version::{version_meta, Channel, Version};
+use rustc_version::{Channel, Version, version_meta};
 
 fn main() {
     let version_meta = version_meta().expect("Could not get Rust version");

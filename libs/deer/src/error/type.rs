@@ -4,7 +4,7 @@ use core::{
     fmt::{Display, Formatter},
 };
 
-use super::{ErrorProperties, ErrorProperty, Id, Namespace, Variant, NAMESPACE};
+use super::{ErrorProperties, ErrorProperty, Id, NAMESPACE, Namespace, Variant};
 use crate::{error::Location, helpers::ExpectNone, id, schema::Document};
 
 #[derive(serde::Serialize)]
@@ -108,10 +108,10 @@ mod tests {
 
     use super::*;
     use crate::{
-        error::Error,
-        schema::{visitor::StringSchema, Reflection},
-        test::{to_json, to_message},
         Deserialize,
+        error::Error,
+        schema::{Reflection, visitor::StringSchema},
+        test::{to_json, to_message},
     };
 
     #[test]

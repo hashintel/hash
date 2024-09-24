@@ -97,9 +97,9 @@ mod tests {
     use graph_types::{
         account::{AccountId, EditionCreatedById},
         knowledge::property::{
-            visitor::{EntityVisitor, TraversalError},
             Property, PropertyMetadata, PropertyObject, PropertyProvenance, PropertyWithMetadata,
             PropertyWithMetadataObject, PropertyWithMetadataValue, ValueMetadata,
+            visitor::{EntityVisitor, TraversalError},
         },
         ontology::{
             DataTypeMetadata, DataTypeProvider, DataTypeWithMetadata, EntityTypeProvider,

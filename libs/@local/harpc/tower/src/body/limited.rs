@@ -1,6 +1,6 @@
 use core::{
     pin::Pin,
-    task::{ready, Context, Poll},
+    task::{Context, Poll, ready},
 };
 
 use bytes::Buf;
@@ -122,8 +122,8 @@ mod test {
 
     use super::Limited;
     use crate::body::{
-        full::Full, limited::LimitedError, stream::StreamBody, test::poll_frame_unpin, Body,
-        BodyExt, BodyState, Frame, SizeHint,
+        Body, BodyExt, BodyState, Frame, SizeHint, full::Full, limited::LimitedError,
+        stream::StreamBody, test::poll_frame_unpin,
     };
 
     const EXPECTED: &[u8] = b"hello, world";

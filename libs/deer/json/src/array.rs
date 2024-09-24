@@ -1,6 +1,6 @@
 use deer::{
-    error::{ArrayAccessError, ArrayLengthError, DeserializerError, Error, Variant},
     Context, Deserialize, Deserializer as _,
+    error::{ArrayAccessError, ArrayLengthError, DeserializerError, Error, Variant},
 };
 use error_stack::{Report, ReportSink, Result, ResultExt};
 use justjson::parser::{PeekableTokenKind, Token};

@@ -225,8 +225,8 @@ pub(crate) mod tests {
     use serde_json::json;
 
     use crate::schema::{
-        tests::validate_schema, ReportingDescriptor, Run, SarifLog, SchemaVersion, Tool,
-        ToolComponent,
+        ReportingDescriptor, Run, SarifLog, SchemaVersion, Tool, ToolComponent,
+        tests::validate_schema,
     };
 
     #[test]

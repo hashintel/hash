@@ -8,18 +8,18 @@ mod type_fetcher;
 
 use core::time::Duration;
 
-use error_stack::{ensure, Result};
-use hash_tracing::{init_tracing, TracingConfig};
+use error_stack::{Result, ensure};
+use hash_tracing::{TracingConfig, init_tracing};
 use tokio::{runtime::Handle, time::sleep};
 
 #[cfg(feature = "test-server")]
-pub use self::test_server::{test_server, TestServerArgs};
+pub use self::test_server::{TestServerArgs, test_server};
 pub use self::{
-    completions::{completions, CompletionsArgs},
-    migrate::{migrate, MigrateArgs},
-    server::{server, ServerArgs},
-    snapshot::{snapshot, SnapshotArgs},
-    type_fetcher::{type_fetcher, TypeFetcherArgs},
+    completions::{CompletionsArgs, completions},
+    migrate::{MigrateArgs, migrate},
+    server::{ServerArgs, server},
+    snapshot::{SnapshotArgs, snapshot},
+    type_fetcher::{TypeFetcherArgs, type_fetcher},
 };
 use crate::error::{GraphError, HealthcheckError};
 

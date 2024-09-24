@@ -108,14 +108,11 @@ mod test {
 
     #[test]
     fn encode() {
-        assert_encode(
-            &EXAMPLE_REQUEST,
-            expect![[r"
+        assert_encode(&EXAMPLE_REQUEST, expect![[r"
                 0x01 0x02 0x03 0x04 0x05 0x06 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00
                 0x00 0x00 0x00 0x00 '\r' b'H' b'e' b'l' b'l' b'o' b',' b' ' b'w' b'o' b'r' b'l'
                 b'd' b'!'
-            "]],
-        );
+            "]]);
     }
 
     #[test]

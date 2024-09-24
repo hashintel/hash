@@ -1,15 +1,15 @@
 use core::{
     pin::Pin,
     result::Result as StdResult,
-    task::{ready, Context, Poll},
+    task::{Context, Poll, ready},
 };
 
 use authorization::schema::EntityRelationAndSubject;
 use error_stack::{Report, ResultExt};
 use futures::{
-    channel::mpsc::{self, Sender, UnboundedReceiver, UnboundedSender},
-    stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
+    channel::mpsc::{self, Sender, UnboundedReceiver, UnboundedSender},
+    stream::{BoxStream, SelectAll, select_all},
 };
 use graph_types::{
     knowledge::entity::EntityUuid,
@@ -18,6 +18,7 @@ use graph_types::{
 
 use crate::{
     snapshot::{
+        AuthorizationRelation, SnapshotEntry, SnapshotMetadata, SnapshotRestoreError,
         entity::{self, EntitySender},
         ontology::{self, DataTypeSender, EntityTypeSender, PropertyTypeSender},
         owner,
@@ -25,7 +26,6 @@ use crate::{
         restore::batch::SnapshotRecordBatch,
         web,
         web::WebSender,
-        AuthorizationRelation, SnapshotEntry, SnapshotMetadata, SnapshotRestoreError,
     },
     store::postgres::query::rows::{
         DataTypeEmbeddingRow, EntityEmbeddingRow, EntityTypeEmbeddingRow, PropertyTypeEmbeddingRow,

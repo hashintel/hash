@@ -1,9 +1,9 @@
 use core::{
     pin::Pin,
-    task::{ready, Context, Poll},
+    task::{Context, Poll, ready},
 };
 
-use futures::{prelude::stream::StreamExt, stream::FusedStream, Stream};
+use futures::{Stream, prelude::stream::StreamExt, stream::FusedStream};
 
 #[derive(Debug)]
 enum TerminatedChannelStreamState<T> {

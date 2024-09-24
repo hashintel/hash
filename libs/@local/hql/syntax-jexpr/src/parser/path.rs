@@ -1,15 +1,15 @@
 use hql_cst::expr::path::Path;
 use winnow::{
+    Parser, Stateful,
     combinator::trace,
     error::ParserError,
     stream::{AsChar, Compare, Location, Stream, StreamIsPartial},
-    Parser, Stateful,
 };
 
 use super::{
-    string::{separated_boxed1, ParseState},
-    symbol::{parse_symbol, ParseRestriction},
     IntoTextRange,
+    string::{ParseState, separated_boxed1},
+    symbol::{ParseRestriction, parse_symbol},
 };
 use crate::span::Span;
 
@@ -57,11 +57,11 @@ mod test {
     use hql_span::storage::SpanStorage;
     use insta::{assert_debug_snapshot, assert_snapshot};
     use winnow::{
-        error::{ContextError, ErrMode, ParseError},
         Located, Parser, Stateful,
+        error::{ContextError, ErrMode, ParseError},
     };
 
-    use super::{parse_path, Path};
+    use super::{Path, parse_path};
     use crate::parser::{string::ParseState, symbol::ParseRestriction};
 
     #[track_caller]

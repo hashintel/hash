@@ -26,13 +26,13 @@ use type_system::url::{BaseUrl, VersionedUrl};
 
 pub use self::ontology_id::OntologyId;
 use crate::store::{
+    AsClient, Ordering, PostgresStore,
     crud::{Sorting, VersionedUrlSorting},
     error::DeletionError,
     postgres::{
         crud::QueryRecordDecode,
         query::{Distinctness, PostgresSorting, SelectCompiler},
     },
-    AsClient, Ordering, PostgresStore,
 };
 
 impl<A> PostgresStore<Transaction<'_>, A>

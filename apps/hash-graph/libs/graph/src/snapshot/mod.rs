@@ -22,6 +22,7 @@ use core::future::ready;
 use async_scoped::TokioScope;
 use async_trait::async_trait;
 use authorization::{
+    AuthorizationApi, NoAuthorization,
     backend::ZanzibarBackend,
     schema::{
         AccountGroupRelationAndSubject, DataTypeRelationAndSubject, EntityNamespace,
@@ -29,14 +30,13 @@ use authorization::{
         WebRelationAndSubject,
     },
     zanzibar::{
-        types::{RelationshipFilter, ResourceFilter},
         Consistency,
+        types::{RelationshipFilter, ResourceFilter},
     },
-    AuthorizationApi, NoAuthorization,
 };
-use error_stack::{ensure, Context, Report, Result, ResultExt};
+use error_stack::{Context, Report, Result, ResultExt, ensure};
 use futures::{
-    channel::mpsc, stream, Sink, SinkExt, Stream, StreamExt, TryFutureExt, TryStreamExt,
+    Sink, SinkExt, Stream, StreamExt, TryFutureExt, TryStreamExt, channel::mpsc, stream,
 };
 use graph_types::{
     account::{AccountGroupId, AccountId},
@@ -62,7 +62,7 @@ use crate::{
         },
         restore::SnapshotRecordBatch,
     },
-    store::{crud::Read, AsClient, InsertionError, PostgresStore, PostgresStorePool, StorePool},
+    store::{AsClient, InsertionError, PostgresStore, PostgresStorePool, StorePool, crud::Read},
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -277,10 +277,8 @@ impl PostgresStorePool {
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
-            .query_raw(
-                "SELECT account_id FROM accounts",
-                [] as [&(dyn ToSql + Sync); 0],
-            )
+            .query_raw("SELECT account_id FROM accounts", []
+                as [&(dyn ToSql + Sync); 0])
             .await
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
             .map_ok(|row| Account { id: row.get(0) })
@@ -301,10 +299,8 @@ impl PostgresStorePool {
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
-            .query_raw(
-                "SELECT account_group_id FROM account_groups",
-                [] as [&(dyn ToSql + Sync); 0],
-            )
+            .query_raw("SELECT account_group_id FROM account_groups", []
+                as [&(dyn ToSql + Sync); 0])
             .await
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read))

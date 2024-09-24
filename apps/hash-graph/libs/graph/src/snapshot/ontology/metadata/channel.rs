@@ -1,13 +1,13 @@
 use core::{
     pin::Pin,
-    task::{ready, Context, Poll},
+    task::{Context, Poll, ready},
 };
 
 use error_stack::{Report, ResultExt};
 use futures::{
-    channel::mpsc::{self, Sender},
-    stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
+    channel::mpsc::{self, Sender},
+    stream::{BoxStream, SelectAll, select_all},
 };
 use graph_types::ontology::{
     OntologyProvenance, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
@@ -15,13 +15,13 @@ use graph_types::ontology::{
 };
 
 use crate::{
-    snapshot::{ontology::OntologyTypeMetadataRowBatch, SnapshotRestoreError},
+    snapshot::{SnapshotRestoreError, ontology::OntologyTypeMetadataRowBatch},
     store::postgres::{
+        OntologyId,
         query::rows::{
             OntologyExternalMetadataRow, OntologyIdRow, OntologyOwnedMetadataRow,
             OntologyTemporalMetadataRow,
         },
-        OntologyId,
     },
 };
 

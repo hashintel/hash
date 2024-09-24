@@ -344,13 +344,10 @@ impl PropertyWithMetadata {
             Self::Array(array) => {
                 let (properties, metadata_elements) =
                     array.value.into_iter().map(Self::into_parts).unzip();
-                (
-                    Property::Array(properties),
-                    PropertyMetadata::Array {
-                        value: metadata_elements,
-                        metadata: array.metadata,
-                    },
-                )
+                (Property::Array(properties), PropertyMetadata::Array {
+                    value: metadata_elements,
+                    metadata: array.metadata,
+                })
             }
             Self::Object(object) => {
                 let (properties, metadata_properties) = object
@@ -369,12 +366,9 @@ impl PropertyWithMetadata {
                     },
                 )
             }
-            Self::Value(property) => (
-                Property::Value(property.value),
-                PropertyMetadata::Value {
-                    metadata: property.metadata,
-                },
-            ),
+            Self::Value(property) => (Property::Value(property.value), PropertyMetadata::Value {
+                metadata: property.metadata,
+            }),
         }
     }
 }

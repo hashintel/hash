@@ -3,7 +3,7 @@ use alloc::borrow::Cow;
 use serde::{Deserialize, Serialize};
 use type_system::url::BaseUrl;
 #[cfg(feature = "utoipa")]
-use utoipa::{openapi, ToSchema};
+use utoipa::{ToSchema, openapi};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]

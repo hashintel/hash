@@ -3,33 +3,33 @@ use core::{iter::once, mem};
 use std::collections::{HashMap, HashSet};
 
 use authorization::{
+    AuthorizationApi,
     backend::ModifyRelationshipOperation,
     schema::{DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject, WebPermission},
     zanzibar::{Consistency, Zookie},
-    AuthorizationApi,
 };
 use error_stack::{Result, ResultExt};
 use futures::StreamExt;
 use graph_types::{
+    Embedding,
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
         DataTypeId, DataTypeMetadata, DataTypeWithMetadata, OntologyEditionProvenance,
         OntologyProvenance, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
         OntologyTypeRecordId,
     },
-    Embedding,
 };
 use hash_graph_store::{
     data_type::DataTypeQueryPath,
     filter::{Filter, FilterExpression, ParameterList},
     subgraph::{
+        Subgraph, SubgraphRecord,
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
         identifier::{DataTypeVertexId, GraphElementVertexId},
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
             VariableAxis, VariableTemporalAxisUnresolved,
         },
-        Subgraph, SubgraphRecord,
     },
 };
 use postgres_types::{Json, ToSql};
@@ -37,12 +37,14 @@ use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTi
 use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
+    Validator,
     schema::{ConversionDefinition, Conversions, DataTypeValidator, OntologyTypeResolver},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    Validator,
 };
 
 use crate::store::{
+    AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, StoreCache, StoreProvider,
+    UpdateError,
     crud::{QueryResult, Read, ReadPaginated, VersionedUrlSorting},
     error::DeletionError,
     ontology::{
@@ -52,18 +54,16 @@ use crate::store::{
         UpdateDataTypesParams,
     },
     postgres::{
+        TraversalContext,
         crud::QueryRecordDecode,
         ontology::{
-            read::OntologyTypeTraversalData, OntologyId, PostgresOntologyTypeClassificationMetadata,
+            OntologyId, PostgresOntologyTypeClassificationMetadata, read::OntologyTypeTraversalData,
         },
         query::{
-            rows::DataTypeConversionsRow, Distinctness, InsertStatementBuilder, PostgresRecord,
-            ReferenceTable, SelectCompiler, Table,
+            Distinctness, InsertStatementBuilder, PostgresRecord, ReferenceTable, SelectCompiler,
+            Table, rows::DataTypeConversionsRow,
         },
-        TraversalContext,
     },
-    AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, StoreCache, StoreProvider,
-    UpdateError,
 };
 
 impl<C, A> PostgresStore<C, A>
@@ -119,14 +119,11 @@ where
         #[expect(clippy::if_then_some_else_none, reason = "Function is async")]
         let count = if params.include_count {
             Some(
-                self.count_data_types(
-                    actor_id,
-                    CountDataTypesParams {
-                        filter: params.filter.clone(),
-                        temporal_axes: params.temporal_axes.clone(),
-                        include_drafts: params.include_drafts,
-                    },
-                )
+                self.count_data_types(actor_id, CountDataTypesParams {
+                    filter: params.filter.clone(),
+                    temporal_axes: params.temporal_axes.clone(),
+                    include_drafts: params.include_drafts,
+                })
                 .await?,
             )
         } else {
@@ -380,13 +377,10 @@ where
                     .assert_permission()
                     .change_context(InsertionError)?;
 
-                relationships.insert((
-                    data_type_id,
-                    DataTypeRelationAndSubject::Owner {
-                        subject: DataTypeOwnerSubject::Web { id: *owned_by_id },
-                        level: 0,
-                    },
-                ));
+                relationships.insert((data_type_id, DataTypeRelationAndSubject::Owner {
+                    subject: DataTypeOwnerSubject::Web { id: *owned_by_id },
+                    level: 0,
+                }));
             }
 
             relationships.extend(
@@ -437,25 +431,22 @@ where
         //   see https://linear.app/hash/issue/H-3082/allow-querying-of-closed-data-schema
         // We need need the parents itself ...
         transaction
-            .get_data_types(
-                actor_id,
-                GetDataTypesParams {
-                    filter: Filter::In(
-                        FilterExpression::Path {
-                            path: DataTypeQueryPath::OntologyId,
-                        },
-                        ParameterList::DataTypeIds(&required_parent_ids),
-                    ),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
+            .get_data_types(actor_id, GetDataTypesParams {
+                filter: Filter::In(
+                    FilterExpression::Path {
+                        path: DataTypeQueryPath::OntologyId,
                     },
-                    include_drafts: false,
-                    after: None,
-                    limit: None,
-                    include_count: false,
+                    ParameterList::DataTypeIds(&required_parent_ids),
+                ),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
                 },
-            )
+                include_drafts: false,
+                after: None,
+                limit: None,
+                include_count: false,
+            })
             .await
             .change_context(InsertionError)
             .attach_printable("Could not read parent data types")?
@@ -464,20 +455,17 @@ where
             .chain(
                 // ... and their parents (recursively)
                 transaction
-                    .get_data_types(
-                        actor_id,
-                        GetDataTypesParams {
-                            filter: Filter::for_data_type_parents(&required_parent_ids, None),
-                            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                                pinned: PinnedTemporalAxisUnresolved::new(None),
-                                variable: VariableTemporalAxisUnresolved::new(None, None),
-                            },
-                            include_drafts: false,
-                            after: None,
-                            limit: None,
-                            include_count: false,
+                    .get_data_types(actor_id, GetDataTypesParams {
+                        filter: Filter::for_data_type_parents(&required_parent_ids, None),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
                         },
-                    )
+                        include_drafts: false,
+                        after: None,
+                        limit: None,
+                        include_count: false,
+                    })
                     .await
                     .change_context(InsertionError)
                     .attach_printable("Could not read parent data types")?
@@ -797,25 +785,22 @@ where
         //   see https://linear.app/hash/issue/H-3082/allow-querying-of-closed-data-schema
         // We need need the parents itself ...
         transaction
-            .get_data_types(
-                actor_id,
-                GetDataTypesParams {
-                    filter: Filter::In(
-                        FilterExpression::Path {
-                            path: DataTypeQueryPath::OntologyId,
-                        },
-                        ParameterList::DataTypeIds(&required_parent_ids),
-                    ),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
+            .get_data_types(actor_id, GetDataTypesParams {
+                filter: Filter::In(
+                    FilterExpression::Path {
+                        path: DataTypeQueryPath::OntologyId,
                     },
-                    include_drafts: false,
-                    after: None,
-                    limit: None,
-                    include_count: false,
+                    ParameterList::DataTypeIds(&required_parent_ids),
+                ),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
                 },
-            )
+                include_drafts: false,
+                after: None,
+                limit: None,
+                include_count: false,
+            })
             .await
             .change_context(UpdateError)
             .attach_printable("Could not read parent data types")?
@@ -824,20 +809,17 @@ where
             .chain(
                 // ... and their parents (recursively)
                 transaction
-                    .get_data_types(
-                        actor_id,
-                        GetDataTypesParams {
-                            filter: Filter::for_data_type_parents(&required_parent_ids, None),
-                            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                                pinned: PinnedTemporalAxisUnresolved::new(None),
-                                variable: VariableTemporalAxisUnresolved::new(None, None),
-                            },
-                            include_drafts: false,
-                            after: None,
-                            limit: None,
-                            include_count: false,
+                    .get_data_types(actor_id, GetDataTypesParams {
+                        filter: Filter::for_data_type_parents(&required_parent_ids, None),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
                         },
-                    )
+                        include_drafts: false,
+                        after: None,
+                        limit: None,
+                        include_count: false,
+                    })
                     .await
                     .change_context(UpdateError)
                     .attach_printable("Could not read parent data types")?
@@ -949,13 +931,10 @@ where
 
             if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
-                    .start_update_data_type_embeddings_workflow(
-                        actor_id,
-                        &[DataTypeWithMetadata {
-                            schema: params.schema,
-                            metadata: metadata.clone(),
-                        }],
-                    )
+                    .start_update_data_type_embeddings_workflow(actor_id, &[DataTypeWithMetadata {
+                        schema: params.schema,
+                        metadata: metadata.clone(),
+                    }])
                     .await
                     .change_context(UpdateError)?;
             }
@@ -980,14 +959,11 @@ where
         actor_id: AccountId,
         params: UnarchiveDataTypeParams,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.unarchive_ontology_type(
-            &params.data_type_id,
-            &OntologyEditionProvenance {
-                created_by_id: EditionCreatedById::new(actor_id),
-                archived_by_id: None,
-                user_defined: params.provenance,
-            },
-        )
+        self.unarchive_ontology_type(&params.data_type_id, &OntologyEditionProvenance {
+            created_by_id: EditionCreatedById::new(actor_id),
+            archived_by_id: None,
+            user_defined: params.provenance,
+        })
         .await
     }
 

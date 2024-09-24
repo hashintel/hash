@@ -8,9 +8,10 @@ use graph_types::{
     ontology::{DataTypeId, EntityTypeId, PropertyTypeId},
     owned_by_id::OwnedById,
 };
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 use crate::{
+    AuthorizationApi,
     backend::{
         BulkCheckItem, BulkCheckResponse, CheckError, CheckResponse, DeleteRelationshipError,
         DeleteRelationshipResponse, ExportSchemaError, ExportSchemaResponse, ImportSchemaError,
@@ -25,10 +26,9 @@ use crate::{
         WebPermission, WebRelationAndSubject,
     },
     zanzibar::{
-        types::{Relationship, RelationshipFilter, Resource, Subject},
         Consistency, Permission, Zookie,
+        types::{Relationship, RelationshipFilter, Resource, Subject},
     },
-    AuthorizationApi,
 };
 
 #[derive(Debug, Clone)]

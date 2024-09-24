@@ -9,8 +9,8 @@ use num_traits::{FromPrimitive, ToPrimitive};
 use serde::{Serialize, Serializer};
 
 use crate::{
-    error::{DeserializeError, VisitorError},
     Deserialize, Deserializer, Document, Reflection, Schema,
+    error::{DeserializeError, VisitorError},
 };
 
 // This indirection helps us to "disguise" the underlying storage, enabling us to seamlessly convert

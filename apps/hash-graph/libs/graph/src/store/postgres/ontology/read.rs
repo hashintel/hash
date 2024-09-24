@@ -17,14 +17,14 @@ use tokio_postgres::GenericClient;
 use type_system::{schema::ClosedEntityType, url::VersionedUrl};
 
 use crate::store::{
+    AsClient, PostgresStore, QueryError,
     postgres::{
         ontology::OntologyId,
         query::{
-            table::DatabaseColumn, Distinctness, ForeignKeyReference, ReferenceTable,
-            SelectCompiler, Table, Transpile,
+            Distinctness, ForeignKeyReference, ReferenceTable, SelectCompiler, Table, Transpile,
+            table::DatabaseColumn,
         },
     },
-    AsClient, PostgresStore, QueryError,
 };
 
 #[derive(Debug, Default)]
@@ -161,22 +161,19 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
                     unreachable!("invalid index: {error}")
                 });
                 let right_endpoint_ontology_id = row.get(5);
-                (
+                (right_endpoint_ontology_id, OntologyEdgeTraversal {
+                    left_endpoint: L::from(VersionedUrl {
+                        base_url: row.get(1),
+                        version: row.get(2),
+                    }),
+                    right_endpoint: R::from(VersionedUrl {
+                        base_url: row.get(3),
+                        version: row.get(4),
+                    }),
                     right_endpoint_ontology_id,
-                    OntologyEdgeTraversal {
-                        left_endpoint: L::from(VersionedUrl {
-                            base_url: row.get(1),
-                            version: row.get(2),
-                        }),
-                        right_endpoint: R::from(VersionedUrl {
-                            base_url: row.get(3),
-                            version: row.get(4),
-                        }),
-                        right_endpoint_ontology_id,
-                        resolve_depths: record_ids.resolve_depths[index],
-                        traversal_interval: record_ids.traversal_intervals[index],
-                    },
-                )
+                    resolve_depths: record_ids.resolve_depths[index],
+                    traversal_interval: record_ids.traversal_intervals[index],
+                })
             }))
     }
 }

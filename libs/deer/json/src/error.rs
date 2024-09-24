@@ -114,7 +114,10 @@ impl Position {
 }
 
 impl ErrorProperty for Position {
-    type Value<'a> = Option<usize> where Self: 'a ;
+    type Value<'a>
+        = Option<usize>
+    where
+        Self: 'a;
 
     fn key() -> &'static str {
         "position"
@@ -138,7 +141,10 @@ impl Span {
 }
 
 impl ErrorProperty for Span {
-    type Value<'a> = Option<&'a Range<usize>> where Self: 'a ;
+    type Value<'a>
+        = Option<&'a Range<usize>>
+    where
+        Self: 'a;
 
     fn key() -> &'static str {
         "span"

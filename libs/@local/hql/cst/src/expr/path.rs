@@ -3,7 +3,7 @@ use core::fmt::{self, Display};
 use hql_span::SpanId;
 
 use super::ExprKind;
-use crate::{arena, symbol::Symbol, Spanned};
+use crate::{Spanned, arena, symbol::Symbol};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Path<'arena> {

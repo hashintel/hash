@@ -9,18 +9,18 @@ use type_system::{
 };
 #[cfg(feature = "utoipa")]
 use utoipa::{
-    openapi::{schema, Ref, RefOr, Schema, SchemaType},
     ToSchema,
+    openapi::{Ref, RefOr, Schema, SchemaType, schema},
 };
 use uuid::Uuid;
 
 use crate::{
+    Embedding,
     ontology::{
         OntologyProvenance, OntologyTemporalMetadata, OntologyType,
         OntologyTypeClassificationMetadata, OntologyTypeRecordId, OntologyTypeReference,
         OntologyTypeWithMetadata,
     },
-    Embedding,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

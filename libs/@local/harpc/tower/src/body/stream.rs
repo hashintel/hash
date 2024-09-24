@@ -1,6 +1,6 @@
 use core::{
     pin::Pin,
-    task::{ready, Context, Poll},
+    task::{Context, Poll, ready},
 };
 
 use bytes::Buf;
@@ -156,8 +156,8 @@ mod test {
 
     use super::{BodyStream, StreamBody};
     use crate::body::{
-        test::{poll_frame_unpin, poll_stream_unpin},
         Body, BodyState, Frame,
+        test::{poll_frame_unpin, poll_stream_unpin},
     };
 
     const VAL_A: &[u8] = b"hello";

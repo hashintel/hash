@@ -1,19 +1,19 @@
 use core::borrow::Borrow;
-use std::collections::{hash_map::RawEntryMut, HashSet};
+use std::collections::{HashSet, hash_map::RawEntryMut};
 
 use error_stack::{Report, ReportSink, ResultExt};
-use futures::{stream, StreamExt, TryStreamExt};
+use futures::{StreamExt, TryStreamExt, stream};
 use graph_types::{
     knowledge::{
         entity::{Entity, EntityId},
         link::LinkData,
         property::{
-            visitor::{
-                walk_array, walk_object, walk_one_of_property_value, walk_value, EntityVisitor,
-                TraversalError,
-            },
             PropertyPath, PropertyWithMetadataArray, PropertyWithMetadataObject,
             PropertyWithMetadataValue, ValueMetadata,
+            visitor::{
+                EntityVisitor, TraversalError, walk_array, walk_object, walk_one_of_property_value,
+                walk_value,
+            },
         },
     },
     ontology::{
@@ -604,7 +604,7 @@ impl EntityVisitor for EntityPreprocessor {
 
 #[cfg(test)]
 mod tests {
-    use crate::{tests::validate_entity, ValidateEntityComponents};
+    use crate::{ValidateEntityComponents, tests::validate_entity};
 
     #[tokio::test]
     async fn address() {

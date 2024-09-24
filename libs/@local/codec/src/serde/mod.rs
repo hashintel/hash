@@ -2,7 +2,7 @@ pub mod string_hash_map;
 
 mod size_hint;
 
-use ::time::format_description::well_known::{iso8601, Iso8601};
+use ::time::format_description::well_known::{Iso8601, iso8601};
 
 const CONFIG: iso8601::EncodedConfig = iso8601::Config::DEFAULT
     .set_year_is_six_digits(false)
@@ -80,7 +80,7 @@ pub mod regex {
         use alloc::borrow::Cow;
 
         use regex::Regex;
-        use serde::{ser::SerializeSeq, Deserialize, Deserializer, Serializer};
+        use serde::{Deserialize, Deserializer, Serializer, ser::SerializeSeq};
 
         /// Serialize a sequence of [`Regex`]es.
         ///

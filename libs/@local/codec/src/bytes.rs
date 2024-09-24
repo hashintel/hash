@@ -4,7 +4,7 @@ use std::io::{self, Write};
 use bytes::{BufMut, BytesMut};
 use derive_where::derive_where;
 use error_stack::{Report, ResultExt};
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use tokio_util::codec::{Decoder, Encoder, LinesCodec};
 
 #[derive_where(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]

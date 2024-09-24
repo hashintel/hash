@@ -9,11 +9,11 @@ use tokio_postgres::GenericClient;
 use crate::{
     snapshot::WriteBatch,
     store::{
+        AsClient, InsertionError, PostgresStore,
         postgres::query::rows::{
             PropertyTypeConstrainsPropertiesOnRow, PropertyTypeConstrainsValuesOnRow,
             PropertyTypeEmbeddingRow, PropertyTypeRow,
         },
-        AsClient, InsertionError, PostgresStore,
     },
 };
 

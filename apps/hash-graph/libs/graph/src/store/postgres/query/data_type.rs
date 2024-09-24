@@ -6,12 +6,12 @@ use hash_graph_store::{
 };
 
 use crate::store::postgres::query::{
+    PostgresQueryPath,
     table::{
         Column, DataTypeConversionAggregation, DataTypeEmbeddings, DataTypes, JsonField,
         OntologyAdditionalMetadata, OntologyIds, OntologyOwnedMetadata, OntologyTemporalMetadata,
         ReferenceTable, Relation,
     },
-    PostgresQueryPath,
 };
 
 impl PostgresQueryPath for DataTypeQueryPath<'_> {

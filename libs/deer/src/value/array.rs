@@ -1,11 +1,11 @@
 use error_stack::{Report, Result, ResultExt};
 
 use crate::{
+    ArrayAccess, Context, Deserializer, EnumVisitor, IdentifierVisitor, OptionalVisitor,
+    Reflection, StructVisitor, Visitor,
     error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
     schema::visitor::ArraySchema,
     value::EnumUnitDeserializer,
-    ArrayAccess, Context, Deserializer, EnumVisitor, IdentifierVisitor, OptionalVisitor,
-    Reflection, StructVisitor, Visitor,
 };
 
 // TODO: SliceDeserializer/IteratorDeserializer

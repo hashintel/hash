@@ -1,9 +1,9 @@
 use core::time::Duration;
 
-use futures::{stream, StreamExt, TryStreamExt};
+use futures::{StreamExt, TryStreamExt, stream};
 use reqwest::{
-    header::{ACCEPT, USER_AGENT},
     Client,
+    header::{ACCEPT, USER_AGENT},
 };
 use tarpc::context::Context;
 use time::OffsetDateTime;

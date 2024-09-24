@@ -9,7 +9,7 @@ use graph_types::{
 use serde::Serialize;
 use temporal_io_client::{WorkflowClientTrait, WorkflowOptions};
 use temporal_io_sdk_core_protos::{
-    temporal::api::common::v1::Payload, ENCODING_PAYLOAD_KEY, JSON_ENCODING_VAL,
+    ENCODING_PAYLOAD_KEY, JSON_ENCODING_VAL, temporal::api::common::v1::Payload,
 };
 use uuid::Uuid;
 
@@ -154,13 +154,10 @@ impl TemporalClient {
             entities: &'a [Entity],
         }
 
-        self.start_ai_workflow(
-            "updateEntityEmbeddings",
-            &UpdateEntityEmbeddingsParams {
-                authentication: AuthenticationContext { actor_id },
-                entities,
-            },
-        )
+        self.start_ai_workflow("updateEntityEmbeddings", &UpdateEntityEmbeddingsParams {
+            authentication: AuthenticationContext { actor_id },
+            entities,
+        })
         .await
     }
 }

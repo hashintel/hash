@@ -4,19 +4,19 @@ use alloc::sync::Arc;
 use std::collections::HashMap;
 
 use authorization::{
+    AuthorizationApi, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
         DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject, DataTypeViewerSubject,
     },
     zanzibar::Consistency,
-    AuthorizationApi, AuthorizationApiPool,
 };
 use axum::{
+    Extension, Router,
     extract::Path,
     http::StatusCode,
     response::Response,
     routing::{get, post, put},
-    Extension, Router,
 };
 use error_stack::{Report, ResultExt};
 use graph::{
@@ -25,13 +25,13 @@ use graph::{
         patch_id_and_parse,
     },
     store::{
+        BaseUrlAlreadyExists, DataTypeStore, OntologyVersionDoesNotExist, StorePool,
         error::VersionedUrlAlreadyExists,
         ontology::{
             ArchiveDataTypeParams, CreateDataTypeParams, GetDataTypeSubgraphParams,
             GetDataTypesParams, GetDataTypesResponse, UnarchiveDataTypeParams,
             UpdateDataTypeEmbeddingParams, UpdateDataTypesParams,
         },
-        BaseUrlAlreadyExists, DataTypeStore, OntologyVersionDoesNotExist, StorePool,
     },
 };
 use graph_types::{
@@ -42,7 +42,7 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::{data_type::DataTypeQueryToken, ConflictBehavior};
+use hash_graph_store::{ConflictBehavior, data_type::DataTypeQueryToken};
 use hash_status::Status;
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
@@ -58,10 +58,10 @@ use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
 use crate::rest::{
+    AuthenticatedUserHeader, PermissionResponse, RestApiStore,
     json::Json,
     status::{report_to_response, status_to_response},
-    utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfDataType},
-    AuthenticatedUserHeader, PermissionResponse, RestApiStore,
+    utoipa_typedef::{ListOrValue, MaybeListOfDataType, subgraph::Subgraph},
 };
 
 #[derive(OpenApi)]
@@ -372,19 +372,16 @@ where
 
             Ok(Json(
                 store
-                    .create_data_type(
-                        actor_id,
-                        CreateDataTypeParams {
-                            schema,
-                            classification: OntologyTypeClassificationMetadata::External {
-                                fetched_at: OffsetDateTime::now_utc(),
-                            },
-                            relationships,
-                            conflict_behavior: ConflictBehavior::Fail,
-                            provenance: *provenance,
-                            conversions: conversions.clone(),
+                    .create_data_type(actor_id, CreateDataTypeParams {
+                        schema,
+                        classification: OntologyTypeClassificationMetadata::External {
+                            fetched_at: OffsetDateTime::now_utc(),
                         },
-                    )
+                        relationships,
+                        conflict_behavior: ConflictBehavior::Fail,
+                        provenance: *provenance,
+                        conversions: conversions.clone(),
+                    })
                     .await
                     .map_err(report_to_response)?,
             ))
@@ -601,15 +598,12 @@ where
         })?;
 
     store
-        .update_data_type(
-            actor_id,
-            UpdateDataTypesParams {
-                schema: data_type,
-                relationships,
-                provenance,
-                conversions,
-            },
-        )
+        .update_data_type(actor_id, UpdateDataTypesParams {
+            schema: data_type,
+            relationships,
+            provenance,
+            conversions,
+        })
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update data type");

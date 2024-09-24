@@ -8,32 +8,32 @@ use std::io;
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use error_stack::Report;
-use futures::{stream, StreamExt};
+use futures::{StreamExt, stream};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
+        Request,
         begin::RequestBegin,
         body::RequestBody,
         flags::{RequestFlag, RequestFlags},
         frame::RequestFrame,
         header::RequestHeader,
-        Request,
     },
     response::{
+        Response,
         begin::ResponseBegin,
         body::ResponseBody,
         flags::{ResponseFlag, ResponseFlags},
         frame::ResponseFrame,
         header::ResponseHeader,
         kind::ResponseKind,
-        Response,
     },
     test_utils::mock_request_id,
 };
 use tachyonix::RecvTimeoutError;
-use tokio::sync::{mpsc, Notify};
+use tokio::sync::{Notify, mpsc};
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_util::{
     sync::{CancellationToken, PollSender},
@@ -45,13 +45,13 @@ use crate::{
     macros::non_zero,
     session::{
         client::{
+            TransactionStream, ValueStream,
             config::SessionConfig,
             connection::{
-                collection::TransactionCollection, ConnectionRequestDelegateTask,
-                ConnectionResponseDelegateTask,
+                ConnectionRequestDelegateTask, ConnectionResponseDelegateTask,
+                collection::TransactionCollection,
             },
-            transaction::{stream::StreamState, ClientTransactionPermit},
-            TransactionStream, ValueStream,
+            transaction::{ClientTransactionPermit, stream::StreamState},
         },
         error::ConnectionPartiallyClosedError,
         gc::ConnectionGarbageCollectorTask,

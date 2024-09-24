@@ -7,7 +7,7 @@ use graph_types::knowledge::property::{PropertyMetadata, PropertyProvenance, Val
 use serde_json::json;
 use type_system::url::VersionedUrl;
 
-use crate::{tests::validate_property, ValidateEntityComponents};
+use crate::{ValidateEntityComponents, tests::validate_property};
 
 #[tokio::test]
 async fn address_line_1() {

@@ -345,7 +345,7 @@ macro_rules! bail {
 /// # let resource = 0;
 /// # use core::fmt;
 ///
-/// use error_stack::{ensure, Context};
+/// use error_stack::{Context, ensure};
 ///
 /// #[derive(Debug)]
 /// # #[allow(dead_code)]

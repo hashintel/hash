@@ -7,7 +7,7 @@ use core::{
 use hql_span::SpanId;
 use json_number::Number;
 
-use crate::{arena, Spanned};
+use crate::{Spanned, arena};
 
 /// Key of an object
 ///

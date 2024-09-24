@@ -8,6 +8,7 @@ use harpc_wire_protocol::{
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
+        Request,
         begin::RequestBegin,
         body::RequestBody,
         flags::{RequestFlag, RequestFlags},
@@ -16,15 +17,14 @@ use harpc_wire_protocol::{
         id::RequestId,
         procedure::ProcedureDescriptor,
         service::ServiceDescriptor,
-        Request,
     },
     response::{
+        Response,
         begin::ResponseBegin,
         body::ResponseBody,
         flags::{ResponseFlag, ResponseFlags},
         frame::ResponseFrame,
         kind::{ErrorCode, ResponseKind},
-        Response,
     },
     test_utils::mock_request_id,
 };
@@ -36,8 +36,8 @@ use super::{ServerTransactionPermit, TransactionStream};
 use crate::session::{
     error::TransactionError,
     server::{
-        connection::test::make_transaction_permit, transaction::TransactionSendDelegateTask,
-        SessionConfig,
+        SessionConfig, connection::test::make_transaction_permit,
+        transaction::TransactionSendDelegateTask,
     },
 };
 
@@ -169,14 +169,11 @@ async fn send_delay_perfect_buffer() {
     let available = response_rx.recv_many(&mut responses, 1).await;
     assert_eq!(available, 1);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            kind: ResponseKind::Ok,
-            payload: &payload,
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        kind: ResponseKind::Ok,
+        payload: &payload,
+    });
 }
 
 #[tokio::test]
@@ -203,22 +200,16 @@ async fn send_delay_split_large() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 2);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &payload[..Payload::MAX_SIZE],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &payload[..Payload::MAX_SIZE],
+    });
 
-    assert_frame(
-        &responses[1],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &payload[Payload::MAX_SIZE..],
-        },
-    );
+    assert_frame(&responses[1], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &payload[Payload::MAX_SIZE..],
+    });
 }
 
 #[tokio::test]
@@ -245,30 +236,21 @@ async fn send_delay_split_large_multiple() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 3);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &payload[..Payload::MAX_SIZE],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &payload[..Payload::MAX_SIZE],
+    });
 
-    assert_frame(
-        &responses[1],
-        ExpectedFrame {
-            flags: ResponseFlags::EMPTY,
-            payload: &payload[Payload::MAX_SIZE..(Payload::MAX_SIZE * 2)],
-        },
-    );
+    assert_frame(&responses[1], ExpectedFrame {
+        flags: ResponseFlags::EMPTY,
+        payload: &payload[Payload::MAX_SIZE..(Payload::MAX_SIZE * 2)],
+    });
 
-    assert_frame(
-        &responses[2],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &payload[(Payload::MAX_SIZE * 2)..],
-        },
-    );
+    assert_frame(&responses[2], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &payload[(Payload::MAX_SIZE * 2)..],
+    });
 }
 
 #[tokio::test]
@@ -298,14 +280,11 @@ async fn send_delay_merge_small() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            kind: ResponseKind::Ok,
-            payload: &payload.repeat(4),
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        kind: ResponseKind::Ok,
+        payload: &payload.repeat(4),
+    });
 }
 
 #[tokio::test]
@@ -330,14 +309,11 @@ async fn send_delay_flush_remaining() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &payload[..Payload::MAX_SIZE],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &payload[..Payload::MAX_SIZE],
+    });
 
     // dropping the sender means that we now flush the remaining messages
     drop(bytes_tx);
@@ -353,13 +329,10 @@ async fn send_delay_flush_remaining() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_frame(
-        &responses[0],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &payload[Payload::MAX_SIZE..],
-        },
-    );
+    assert_frame(&responses[0], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &payload[Payload::MAX_SIZE..],
+    });
 }
 
 #[tokio::test]
@@ -397,14 +370,11 @@ async fn send_delay_flush_empty() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            kind: ResponseKind::Ok,
-            payload: &payload.repeat(4),
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        kind: ResponseKind::Ok,
+        payload: &payload.repeat(4),
+    });
 }
 
 #[tokio::test]
@@ -424,14 +394,11 @@ async fn send_delay_empty() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            kind: ResponseKind::Ok,
-            payload: &[],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        kind: ResponseKind::Ok,
+        payload: &[],
+    });
 }
 
 #[tokio::test]
@@ -456,14 +423,11 @@ async fn send_delay_empty_bytes() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            kind: ResponseKind::Ok,
-            payload: &[],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        kind: ResponseKind::Ok,
+        payload: &[],
+    });
 }
 
 #[tokio::test]
@@ -493,14 +457,11 @@ async fn send_delay_error_immediate() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            kind: ResponseKind::Err(code),
-            payload: &payload,
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        kind: ResponseKind::Err(code),
+        payload: &payload,
+    });
 }
 
 #[tokio::test]
@@ -540,23 +501,17 @@ async fn send_delay_error_delayed() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 2);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &payload_ok[..Payload::MAX_SIZE],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &payload_ok[..Payload::MAX_SIZE],
+    });
 
-    assert_begin(
-        &responses[1],
-        ExpectedBegin {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            kind: ResponseKind::Err(code),
-            payload: &payload_err,
-        },
-    );
+    assert_begin(&responses[1], ExpectedBegin {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        kind: ResponseKind::Err(code),
+        payload: &payload_err,
+    });
 }
 
 #[tokio::test]
@@ -594,23 +549,17 @@ async fn send_delay_error_multiple() {
 
     // the first four should be the same
     for response in &responses[..4] {
-        assert_begin(
-            response,
-            ExpectedBegin {
-                flags: ResponseFlags::EMPTY,
-                kind: ResponseKind::Err(code),
-                payload: &payload_err[..Payload::MAX_SIZE],
-            },
-        );
+        assert_begin(response, ExpectedBegin {
+            flags: ResponseFlags::EMPTY,
+            kind: ResponseKind::Err(code),
+            payload: &payload_err[..Payload::MAX_SIZE],
+        });
     }
 
-    assert_frame(
-        &responses[4],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &payload_err[Payload::MAX_SIZE..],
-        },
-    );
+    assert_frame(&responses[4], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &payload_err[Payload::MAX_SIZE..],
+    });
 }
 
 #[tokio::test]
@@ -649,33 +598,24 @@ async fn send_delay_error_interspersed() {
     let available = response_rx.recv_many(&mut responses, 8).await;
     assert_eq!(available, 6);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &payload_ok[..Payload::MAX_SIZE],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &payload_ok[..Payload::MAX_SIZE],
+    });
 
     for response in &responses[1..5] {
-        assert_begin(
-            response,
-            ExpectedBegin {
-                flags: ResponseFlags::EMPTY,
-                kind: ResponseKind::Err(code),
-                payload: &payload_err[..Payload::MAX_SIZE],
-            },
-        );
+        assert_begin(response, ExpectedBegin {
+            flags: ResponseFlags::EMPTY,
+            kind: ResponseKind::Err(code),
+            payload: &payload_err[..Payload::MAX_SIZE],
+        });
     }
 
-    assert_frame(
-        &responses[5],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &payload_err[Payload::MAX_SIZE..],
-        },
-    );
+    assert_frame(&responses[5], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &payload_err[Payload::MAX_SIZE..],
+    });
 }
 
 #[tokio::test]
@@ -714,14 +654,11 @@ async fn send_delay_error_interspersed_small() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            kind: ResponseKind::Err(code),
-            payload: &payload_ok,
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        kind: ResponseKind::Err(code),
+        payload: &payload_ok,
+    });
 }
 
 #[tokio::test]
@@ -752,22 +689,16 @@ async fn send_delay_error_split_large() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 2);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Err(code),
-            payload: &payload_err[..Payload::MAX_SIZE],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Err(code),
+        payload: &payload_err[..Payload::MAX_SIZE],
+    });
 
-    assert_frame(
-        &responses[1],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &payload_err[Payload::MAX_SIZE..],
-        },
-    );
+    assert_frame(&responses[1], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &payload_err[Payload::MAX_SIZE..],
+    });
 }
 
 #[tokio::test]
@@ -790,22 +721,16 @@ async fn send_no_delay_split_large() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 2);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &payload_ok[..Payload::MAX_SIZE],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &payload_ok[..Payload::MAX_SIZE],
+    });
 
-    assert_frame(
-        &responses[1],
-        ExpectedFrame {
-            flags: ResponseFlags::EMPTY,
-            payload: &payload_ok[Payload::MAX_SIZE..],
-        },
-    );
+    assert_frame(&responses[1], ExpectedFrame {
+        flags: ResponseFlags::EMPTY,
+        payload: &payload_ok[Payload::MAX_SIZE..],
+    });
 
     drop(bytes_tx);
 
@@ -819,13 +744,10 @@ async fn send_no_delay_split_large() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_frame(
-        &responses[0],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &[],
-        },
-    );
+    assert_frame(&responses[0], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &[],
+    });
 }
 
 #[tokio::test]
@@ -848,30 +770,21 @@ async fn send_no_delay_split_large_multiple() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 3);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &payload_ok[..Payload::MAX_SIZE],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &payload_ok[..Payload::MAX_SIZE],
+    });
 
-    assert_frame(
-        &responses[1],
-        ExpectedFrame {
-            flags: ResponseFlags::EMPTY,
-            payload: &payload_ok[Payload::MAX_SIZE..(Payload::MAX_SIZE * 2)],
-        },
-    );
+    assert_frame(&responses[1], ExpectedFrame {
+        flags: ResponseFlags::EMPTY,
+        payload: &payload_ok[Payload::MAX_SIZE..(Payload::MAX_SIZE * 2)],
+    });
 
-    assert_frame(
-        &responses[2],
-        ExpectedFrame {
-            flags: ResponseFlags::EMPTY,
-            payload: &payload_ok[(Payload::MAX_SIZE * 2)..],
-        },
-    );
+    assert_frame(&responses[2], ExpectedFrame {
+        flags: ResponseFlags::EMPTY,
+        payload: &payload_ok[(Payload::MAX_SIZE * 2)..],
+    });
 
     drop(bytes_tx);
 
@@ -885,13 +798,10 @@ async fn send_no_delay_split_large_multiple() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_frame(
-        &responses[0],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &[],
-        },
-    );
+    assert_frame(&responses[0], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &[],
+    });
 }
 
 #[tokio::test]
@@ -916,23 +826,17 @@ async fn send_no_delay_no_merge_small() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 4);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &payload_ok,
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &payload_ok,
+    });
 
     for response in &responses[1..] {
-        assert_frame(
-            response,
-            ExpectedFrame {
-                flags: ResponseFlags::EMPTY,
-                payload: &payload_ok,
-            },
-        );
+        assert_frame(response, ExpectedFrame {
+            flags: ResponseFlags::EMPTY,
+            payload: &payload_ok,
+        });
     }
 
     drop(bytes_tx);
@@ -947,13 +851,10 @@ async fn send_no_delay_no_merge_small() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_frame(
-        &responses[0],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &[],
-        },
-    );
+    assert_frame(&responses[0], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &[],
+    });
 }
 
 #[tokio::test]
@@ -971,14 +872,11 @@ async fn send_no_delay_empty() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            kind: ResponseKind::Ok,
-            payload: &[],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        kind: ResponseKind::Ok,
+        payload: &[],
+    });
 }
 
 #[tokio::test]
@@ -1001,14 +899,11 @@ async fn send_no_delay_empty_pushed() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 1);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            kind: ResponseKind::Ok,
-            payload: &[],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        kind: ResponseKind::Ok,
+        payload: &[],
+    });
 }
 
 #[tokio::test]
@@ -1041,30 +936,21 @@ async fn send_no_delay_skip_empty() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 3);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &[0x00, 0x01],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &[0x00, 0x01],
+    });
 
-    assert_frame(
-        &responses[1],
-        ExpectedFrame {
-            flags: ResponseFlags::EMPTY,
-            payload: &[0x02, 0x03],
-        },
-    );
+    assert_frame(&responses[1], ExpectedFrame {
+        flags: ResponseFlags::EMPTY,
+        payload: &[0x02, 0x03],
+    });
 
-    assert_frame(
-        &responses[2],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &[],
-        },
-    );
+    assert_frame(&responses[2], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &[],
+    });
 }
 
 #[tokio::test]
@@ -1093,22 +979,16 @@ async fn send_no_delay_error_immediate() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 2);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Err(code),
-            payload: &payload_err,
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Err(code),
+        payload: &payload_err,
+    });
 
-    assert_frame(
-        &responses[1],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &[],
-        },
-    );
+    assert_frame(&responses[1], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &[],
+    });
 }
 
 #[tokio::test]
@@ -1143,31 +1023,22 @@ async fn send_no_delay_error_delayed() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 3);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &payload_ok,
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &payload_ok,
+    });
 
-    assert_begin(
-        &responses[1],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Err(code),
-            payload: &payload_err,
-        },
-    );
+    assert_begin(&responses[1], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Err(code),
+        payload: &payload_err,
+    });
 
-    assert_frame(
-        &responses[2],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &[],
-        },
-    );
+    assert_frame(&responses[2], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &[],
+    });
 }
 
 #[tokio::test]
@@ -1204,33 +1075,24 @@ async fn send_no_delay_error_multiple() {
     let available = response_rx.recv_many(&mut responses, 8).await;
     assert_eq!(available, 5);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &payload_ok,
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &payload_ok,
+    });
 
     for response in &responses[1..4] {
-        assert_begin(
-            response,
-            ExpectedBegin {
-                flags: ResponseFlags::EMPTY,
-                kind: ResponseKind::Err(code),
-                payload: &payload_err,
-            },
-        );
+        assert_begin(response, ExpectedBegin {
+            flags: ResponseFlags::EMPTY,
+            kind: ResponseKind::Err(code),
+            payload: &payload_err,
+        });
     }
 
-    assert_frame(
-        &responses[4],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &[],
-        },
-    );
+    assert_frame(&responses[4], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &[],
+    });
 }
 
 #[tokio::test]
@@ -1267,33 +1129,24 @@ async fn send_no_delay_error_interspersed() {
     let available = response_rx.recv_many(&mut responses, 8).await;
     assert_eq!(available, 5);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Ok,
-            payload: &payload_ok,
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Ok,
+        payload: &payload_ok,
+    });
 
     for response in &responses[1..4] {
-        assert_begin(
-            response,
-            ExpectedBegin {
-                flags: ResponseFlags::EMPTY,
-                kind: ResponseKind::Err(code),
-                payload: &payload_err,
-            },
-        );
+        assert_begin(response, ExpectedBegin {
+            flags: ResponseFlags::EMPTY,
+            kind: ResponseKind::Err(code),
+            payload: &payload_err,
+        });
     }
 
-    assert_frame(
-        &responses[4],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &[],
-        },
-    );
+    assert_frame(&responses[4], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &[],
+    });
 }
 
 #[tokio::test]
@@ -1322,30 +1175,21 @@ async fn send_no_delay_error_split_large() {
     let available = response_rx.recv_many(&mut responses, 4).await;
     assert_eq!(available, 3);
 
-    assert_begin(
-        &responses[0],
-        ExpectedBegin {
-            flags: ResponseFlags::EMPTY,
-            kind: ResponseKind::Err(code),
-            payload: &payload_err[..Payload::MAX_SIZE],
-        },
-    );
+    assert_begin(&responses[0], ExpectedBegin {
+        flags: ResponseFlags::EMPTY,
+        kind: ResponseKind::Err(code),
+        payload: &payload_err[..Payload::MAX_SIZE],
+    });
 
-    assert_frame(
-        &responses[1],
-        ExpectedFrame {
-            flags: ResponseFlags::EMPTY,
-            payload: &payload_err[Payload::MAX_SIZE..],
-        },
-    );
+    assert_frame(&responses[1], ExpectedFrame {
+        flags: ResponseFlags::EMPTY,
+        payload: &payload_err[Payload::MAX_SIZE..],
+    });
 
-    assert_frame(
-        &responses[2],
-        ExpectedFrame {
-            flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
-            payload: &[],
-        },
-    );
+    assert_frame(&responses[2], ExpectedFrame {
+        flags: ResponseFlags::from(ResponseFlag::EndOfResponse),
+        payload: &[],
+    });
 }
 
 async fn setup_recv() -> (tachyonix::Sender<Request>, TransactionStream) {

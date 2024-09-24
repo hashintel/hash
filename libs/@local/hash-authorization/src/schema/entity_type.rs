@@ -10,12 +10,12 @@ use uuid::Uuid;
 
 use crate::{
     schema::{
-        error::{InvalidRelationship, InvalidResource},
         PublicAccess,
+        error::{InvalidRelationship, InvalidResource},
     },
     zanzibar::{
-        types::{LeveledRelation, Relationship, RelationshipParts, Resource},
         Permission, Relation,
+        types::{LeveledRelation, Relationship, RelationshipParts, Resource},
     },
 };
 
@@ -277,19 +277,35 @@ impl Relationship for (EntityTypeId, EntityTypeRelationAndSubject) {
 
     #[expect(clippy::too_many_lines)]
     fn from_parts(parts: RelationshipParts<Self>) -> Result<Self, impl Error> {
-        Ok((
-            parts.resource,
-            match parts.relation.name {
-                EntityTypeResourceRelation::Owner => match (parts.subject, parts.subject_set) {
-                    (EntityTypeSubject::Web(id), None) => EntityTypeRelationAndSubject::Owner {
-                        subject: EntityTypeOwnerSubject::Web { id },
-                        level: parts.relation.level,
-                    },
-                    (EntityTypeSubject::Web(_), _) => {
+        Ok((parts.resource, match parts.relation.name {
+            EntityTypeResourceRelation::Owner => match (parts.subject, parts.subject_set) {
+                (EntityTypeSubject::Web(id), None) => EntityTypeRelationAndSubject::Owner {
+                    subject: EntityTypeOwnerSubject::Web { id },
+                    level: parts.relation.level,
+                },
+                (EntityTypeSubject::Web(_), _) => {
+                    return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
+                }
+                (
+                    EntityTypeSubject::Setting(_)
+                    | EntityTypeSubject::Public
+                    | EntityTypeSubject::Account(_)
+                    | EntityTypeSubject::AccountGroup(_),
+                    _,
+                ) => {
+                    return Err(InvalidRelationship::<Self>::invalid_subject(parts));
+                }
+            },
+            EntityTypeResourceRelation::Setting => EntityTypeRelationAndSubject::Setting {
+                subject: match (parts.subject, parts.subject_set) {
+                    (EntityTypeSubject::Setting(id), None) => {
+                        EntityTypeSettingSubject::Setting { id }
+                    }
+                    (EntityTypeSubject::Setting(_), _) => {
                         return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
                     }
                     (
-                        EntityTypeSubject::Setting(_)
+                        EntityTypeSubject::Web(_)
                         | EntityTypeSubject::Public
                         | EntityTypeSubject::Account(_)
                         | EntityTypeSubject::AccountGroup(_),
@@ -298,33 +314,57 @@ impl Relationship for (EntityTypeId, EntityTypeRelationAndSubject) {
                         return Err(InvalidRelationship::<Self>::invalid_subject(parts));
                     }
                 },
-                EntityTypeResourceRelation::Setting => EntityTypeRelationAndSubject::Setting {
-                    subject: match (parts.subject, parts.subject_set) {
-                        (EntityTypeSubject::Setting(id), None) => {
-                            EntityTypeSettingSubject::Setting { id }
-                        }
-                        (EntityTypeSubject::Setting(_), _) => {
-                            return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
-                        }
-                        (
-                            EntityTypeSubject::Web(_)
-                            | EntityTypeSubject::Public
-                            | EntityTypeSubject::Account(_)
-                            | EntityTypeSubject::AccountGroup(_),
-                            _,
-                        ) => {
-                            return Err(InvalidRelationship::<Self>::invalid_subject(parts));
-                        }
-                    },
-                    level: parts.relation.level,
+                level: parts.relation.level,
+            },
+            EntityTypeResourceRelation::Editor => EntityTypeRelationAndSubject::Editor {
+                subject: match (parts.subject, parts.subject_set) {
+                    (EntityTypeSubject::Account(id), None) => {
+                        EntityTypeEditorSubject::Account { id }
+                    }
+                    (EntityTypeSubject::AccountGroup(id), Some(set)) => {
+                        EntityTypeEditorSubject::AccountGroup { id, set }
+                    }
+                    (EntityTypeSubject::Account(_) | EntityTypeSubject::AccountGroup(_), _) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
+                    }
+                    (
+                        EntityTypeSubject::Web(_)
+                        | EntityTypeSubject::Setting(_)
+                        | EntityTypeSubject::Public,
+                        _,
+                    ) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject(parts));
+                    }
                 },
-                EntityTypeResourceRelation::Editor => EntityTypeRelationAndSubject::Editor {
+                level: parts.relation.level,
+            },
+            EntityTypeResourceRelation::Viewer => EntityTypeRelationAndSubject::Viewer {
+                subject: match (parts.subject, parts.subject_set) {
+                    (EntityTypeSubject::Public, None) => EntityTypeViewerSubject::Public,
+                    (EntityTypeSubject::Public, _) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
+                    }
+                    (
+                        EntityTypeSubject::Web(_)
+                        | EntityTypeSubject::Setting(_)
+                        | EntityTypeSubject::Account(_)
+                        | EntityTypeSubject::AccountGroup(_),
+                        _,
+                    ) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject(parts));
+                    }
+                },
+                level: parts.relation.level,
+            },
+            EntityTypeResourceRelation::Instantiator => {
+                EntityTypeRelationAndSubject::Instantiator {
                     subject: match (parts.subject, parts.subject_set) {
+                        (EntityTypeSubject::Public, None) => EntityTypeInstantiatorSubject::Public,
                         (EntityTypeSubject::Account(id), None) => {
-                            EntityTypeEditorSubject::Account { id }
+                            EntityTypeInstantiatorSubject::Account { id }
                         }
                         (EntityTypeSubject::AccountGroup(id), Some(set)) => {
-                            EntityTypeEditorSubject::AccountGroup { id, set }
+                            EntityTypeInstantiatorSubject::AccountGroup { id, set }
                         }
                         (EntityTypeSubject::Account(_) | EntityTypeSubject::AccountGroup(_), _) => {
                             return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
@@ -339,59 +379,9 @@ impl Relationship for (EntityTypeId, EntityTypeRelationAndSubject) {
                         }
                     },
                     level: parts.relation.level,
-                },
-                EntityTypeResourceRelation::Viewer => EntityTypeRelationAndSubject::Viewer {
-                    subject: match (parts.subject, parts.subject_set) {
-                        (EntityTypeSubject::Public, None) => EntityTypeViewerSubject::Public,
-                        (EntityTypeSubject::Public, _) => {
-                            return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
-                        }
-                        (
-                            EntityTypeSubject::Web(_)
-                            | EntityTypeSubject::Setting(_)
-                            | EntityTypeSubject::Account(_)
-                            | EntityTypeSubject::AccountGroup(_),
-                            _,
-                        ) => {
-                            return Err(InvalidRelationship::<Self>::invalid_subject(parts));
-                        }
-                    },
-                    level: parts.relation.level,
-                },
-                EntityTypeResourceRelation::Instantiator => {
-                    EntityTypeRelationAndSubject::Instantiator {
-                        subject: match (parts.subject, parts.subject_set) {
-                            (EntityTypeSubject::Public, None) => {
-                                EntityTypeInstantiatorSubject::Public
-                            }
-                            (EntityTypeSubject::Account(id), None) => {
-                                EntityTypeInstantiatorSubject::Account { id }
-                            }
-                            (EntityTypeSubject::AccountGroup(id), Some(set)) => {
-                                EntityTypeInstantiatorSubject::AccountGroup { id, set }
-                            }
-                            (
-                                EntityTypeSubject::Account(_) | EntityTypeSubject::AccountGroup(_),
-                                _,
-                            ) => {
-                                return Err(InvalidRelationship::<Self>::invalid_subject_set(
-                                    parts,
-                                ));
-                            }
-                            (
-                                EntityTypeSubject::Web(_)
-                                | EntityTypeSubject::Setting(_)
-                                | EntityTypeSubject::Public,
-                                _,
-                            ) => {
-                                return Err(InvalidRelationship::<Self>::invalid_subject(parts));
-                            }
-                        },
-                        level: parts.relation.level,
-                    }
                 }
-            },
-        ))
+            }
+        }))
     }
 
     fn to_parts(&self) -> RelationshipParts<Self> {

@@ -7,6 +7,7 @@ use authorization::schema::{
 };
 use error_stack::Result;
 use graph_types::{
+    Embedding,
     account::{AccountId, EditionCreatedById},
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
@@ -14,12 +15,11 @@ use graph_types::{
         PropertyTypeWithMetadata, ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
-    Embedding,
 };
 use hash_graph_store::{
-    filter::Filter,
-    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved, Subgraph},
     ConflictBehavior,
+    filter::Filter,
+    subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{Timestamp, TransactionTime};

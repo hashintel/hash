@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use crate::zanzibar::{
-    types::{LeveledRelation, Relationship, RelationshipParts, Resource},
     Permission, Relation,
+    types::{LeveledRelation, Relationship, RelationshipParts, Resource},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -141,29 +141,26 @@ impl Relationship for (AccountGroupId, AccountGroupRelationAndSubject) {
 
     #[expect(refining_impl_trait)]
     fn from_parts(parts: RelationshipParts<Self>) -> Result<Self, !> {
-        Ok((
-            parts.resource,
-            match parts.relation.name {
-                AccountGroupResourceRelation::Administrator => {
-                    AccountGroupRelationAndSubject::Administrator {
-                        subject: match (parts.subject, parts.subject_set) {
-                            (AccountGroupSubject::Account(id), None) => {
-                                AccountGroupAdministratorSubject::Account { id }
-                            }
-                        },
-                        level: parts.relation.level,
-                    }
-                }
-                AccountGroupResourceRelation::Member => AccountGroupRelationAndSubject::Member {
+        Ok((parts.resource, match parts.relation.name {
+            AccountGroupResourceRelation::Administrator => {
+                AccountGroupRelationAndSubject::Administrator {
                     subject: match (parts.subject, parts.subject_set) {
                         (AccountGroupSubject::Account(id), None) => {
-                            AccountGroupMemberSubject::Account { id }
+                            AccountGroupAdministratorSubject::Account { id }
                         }
                     },
                     level: parts.relation.level,
+                }
+            }
+            AccountGroupResourceRelation::Member => AccountGroupRelationAndSubject::Member {
+                subject: match (parts.subject, parts.subject_set) {
+                    (AccountGroupSubject::Account(id), None) => {
+                        AccountGroupMemberSubject::Account { id }
+                    }
                 },
+                level: parts.relation.level,
             },
-        ))
+        }))
     }
 
     fn to_parts(&self) -> RelationshipParts<Self> {

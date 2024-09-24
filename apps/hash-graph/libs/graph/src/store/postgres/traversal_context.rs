@@ -15,11 +15,11 @@ use hash_graph_store::{
     entity_type::EntityTypeQueryPath,
     filter::{Filter, FilterExpression, ParameterList},
     property_type::PropertyTypeQueryPath,
-    subgraph::{edges::GraphResolveDepths, temporal_axes::VariableAxis, Subgraph, SubgraphRecord},
+    subgraph::{Subgraph, SubgraphRecord, edges::GraphResolveDepths, temporal_axes::VariableAxis},
 };
 use temporal_versioning::RightBoundedTemporalInterval;
 
-use crate::store::{crud::Read, AsClient, PostgresStore, QueryError};
+use crate::store::{AsClient, PostgresStore, QueryError, crud::Read};
 
 impl<C, A> PostgresStore<C, A>
 where

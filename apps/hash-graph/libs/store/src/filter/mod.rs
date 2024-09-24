@@ -6,12 +6,12 @@ use core::{borrow::Borrow, fmt, hash::Hash};
 use std::collections::HashMap;
 
 use derive_where::derive_where;
-use error_stack::{bail, Report, ResultExt};
+use error_stack::{Report, ResultExt, bail};
 use graph_types::{
     knowledge::entity::{Entity, EntityId},
     ontology::{DataTypeId, DataTypeProvider, DataTypeWithMetadata},
 };
-use serde::{de, de::IntoDeserializer, Deserialize};
+use serde::{Deserialize, de, de::IntoDeserializer};
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 pub use self::{
@@ -24,9 +24,9 @@ use crate::{
     entity_type::EntityTypeQueryPath,
     filter::parameter::ActualParameterType,
     subgraph::{
+        SubgraphRecord,
         edges::{EdgeDirection, OntologyEdgeKind, SharedEdgeKind},
         identifier::VertexId,
-        SubgraphRecord,
     },
 };
 

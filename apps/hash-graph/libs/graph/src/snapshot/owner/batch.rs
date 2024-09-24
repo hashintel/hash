@@ -6,8 +6,8 @@ use tokio_postgres::GenericClient;
 
 use crate::{
     snapshot::{
-        owner::{AccountGroupRow, AccountRow},
         WriteBatch,
+        owner::{AccountGroupRow, AccountRow},
     },
     store::{AsClient, InsertionError, PostgresStore},
 };
