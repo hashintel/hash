@@ -6,7 +6,7 @@ mod number;
 mod object;
 mod string;
 
-use error_stack::{Report, ResultExt, TryReportIteratorExt, bail};
+use error_stack::{bail, Report, ResultExt, TryReportIteratorExt};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
@@ -24,8 +24,12 @@ use crate::schema::{DataTypeLabel, JsonSchemaValueType};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct AnyOfConstraint {
-    pub any_of: Vec<ValueConstraints>,
+pub struct AnyOfSchema {
+    #[cfg_attr(
+        target_arch = "wasm32",
+        tsify(type = "[ValueConstraints, ...ValueConstraints[]]")
+    )]
+    pub any_of: Vec<ValueSchema>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(default, skip_serializing_if = "DataTypeLabel::is_empty")]
@@ -35,17 +39,17 @@ pub struct AnyOfConstraint {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(untagged, rename_all = "camelCase")]
-pub enum ValueConstraints {
+pub enum ValueSchema {
     Null(NullSchema),
     Boolean(BooleanSchema),
     Number(NumberSchema),
     String(StringSchema),
     Array(ArraySchema),
     Object(ObjectSchema),
-    AnyOf(AnyOfConstraint),
+    AnyOf(AnyOfSchema),
 }
 
-impl ValueConstraints {
+impl ValueSchema {
     /// Validates the provided value against the constraints.
     ///
     /// # Errors
@@ -129,7 +133,7 @@ impl ValueConstraints {
                     })
                 }
             }
-            Self::AnyOf(AnyOfConstraint { any_of, .. }) => {
+            Self::AnyOf(AnyOfSchema { any_of, .. }) => {
                 let mut num_successes = 0;
                 let status = any_of
                     .iter()

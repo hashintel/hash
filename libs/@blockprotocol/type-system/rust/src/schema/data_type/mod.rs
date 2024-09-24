@@ -8,7 +8,7 @@ pub use self::{
         BooleanValidationError, ConstraintError, NullSchema, NullTypeTag, NumberSchema,
         NumberTypeTag, NumberValidationError, ObjectSchema, ObjectTypeTag, ObjectValidationError,
         StringFormat, StringFormatError, StringSchema, StringTypeTag, StringValidationError,
-        ValueConstraints,
+        ValueSchema,
     },
     conversion::{
         ConversionDefinition, ConversionExpression, ConversionValue, Conversions, Operator,
@@ -25,9 +25,9 @@ mod validation;
 
 use alloc::sync::Arc;
 use core::{cmp, fmt, mem};
-use std::collections::{HashMap, HashSet, hash_map::RawEntryMut};
+use std::collections::{hash_map::RawEntryMut, HashMap, HashSet};
 
-use error_stack::{Report, bail};
+use error_stack::{bail, Report};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use thiserror::Error;
@@ -109,11 +109,11 @@ mod raw {
     use super::{DataTypeSchemaTag, DataTypeTag};
     use crate::{
         schema::{
-            DataTypeReference,
             data_type::constraint::{
-                AnyOfConstraint, ArraySchema, BooleanSchema, NullSchema, NumberSchema,
-                ObjectSchema, StringSchema, ValueConstraints,
+                AnyOfSchema, ArraySchema, BooleanSchema, NullSchema, NumberSchema, ObjectSchema,
+                StringSchema, ValueSchema,
             },
+            DataTypeReference,
         },
         url::VersionedUrl,
     };
@@ -180,7 +180,7 @@ mod raw {
         },
         AnyOf {
             #[serde(flatten)]
-            schema: AnyOfConstraint,
+            schema: AnyOfSchema,
             #[serde(flatten)]
             common: UnconstrainedDataType,
         },
@@ -189,13 +189,13 @@ mod raw {
     impl From<DataType> for super::DataType {
         fn from(value: DataType) -> Self {
             let (common, constraints) = match value {
-                DataType::Null { schema, common } => (common, ValueConstraints::Null(schema)),
-                DataType::Boolean { schema, common } => (common, ValueConstraints::Boolean(schema)),
-                DataType::Number { schema, common } => (common, ValueConstraints::Number(schema)),
-                DataType::String { schema, common } => (common, ValueConstraints::String(schema)),
-                DataType::Array { schema, common } => (common, ValueConstraints::Array(schema)),
-                DataType::Object { schema, common } => (common, ValueConstraints::Object(schema)),
-                DataType::AnyOf { schema, common } => (common, ValueConstraints::AnyOf(schema)),
+                DataType::Null { schema, common } => (common, ValueSchema::Null(schema)),
+                DataType::Boolean { schema, common } => (common, ValueSchema::Boolean(schema)),
+                DataType::Number { schema, common } => (common, ValueSchema::Number(schema)),
+                DataType::String { schema, common } => (common, ValueSchema::String(schema)),
+                DataType::Array { schema, common } => (common, ValueSchema::Array(schema)),
+                DataType::Object { schema, common } => (common, ValueSchema::Object(schema)),
+                DataType::AnyOf { schema, common } => (common, ValueSchema::AnyOf(schema)),
             };
 
             Self {
@@ -226,7 +226,7 @@ pub struct DataType {
     pub all_of: Vec<DataTypeReference>,
 
     #[serde(flatten)]
-    pub constraints: ValueConstraints,
+    pub constraints: ValueSchema,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -267,20 +267,26 @@ impl OntologyTypeResolver {
             .raw_entry_mut()
             .from_key(&data_type.id)
             .or_insert_with(|| {
-                (data_type.id.clone(), DataTypeCacheEntry {
-                    data_type,
-                    metadata: None,
-                })
+                (
+                    data_type.id.clone(),
+                    DataTypeCacheEntry {
+                        data_type,
+                        metadata: None,
+                    },
+                )
             });
     }
 
     pub fn add_closed(&mut self, data_type: Arc<DataType>, metadata: Arc<ClosedDataTypeMetadata>) {
         match self.data_types.raw_entry_mut().from_key(&data_type.id) {
             RawEntryMut::Vacant(entry) => {
-                entry.insert(data_type.id.clone(), DataTypeCacheEntry {
-                    data_type,
-                    metadata: Some(metadata),
-                });
+                entry.insert(
+                    data_type.id.clone(),
+                    DataTypeCacheEntry {
+                        data_type,
+                        metadata: Some(metadata),
+                    },
+                );
             }
             RawEntryMut::Occupied(mut entry) => {
                 entry.insert(DataTypeCacheEntry {
@@ -526,7 +532,7 @@ impl DataType {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::tests::{JsonEqualityCheck, ensure_validation_from_str};
+    use crate::utils::tests::{ensure_validation_from_str, JsonEqualityCheck};
 
     #[tokio::test]
     async fn value() {

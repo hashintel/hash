@@ -23,7 +23,7 @@ pub use self::{
         NullTypeTag, NumberSchema, NumberTypeTag, NumberValidationError, ObjectSchema,
         ObjectTypeTag, ObjectValidationError, OntologyTypeResolver, Operator, StringFormat,
         StringFormatError, StringSchema, StringTypeTag, StringValidationError,
-        ValidateDataTypeError, ValueConstraints, Variable,
+        ValidateDataTypeError, ValueSchema, Variable,
     },
     entity_type::{
         ClosedEntityType, ClosedEntityTypeSchemaData, EntityType, EntityTypeReference,

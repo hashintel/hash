@@ -4,6 +4,15 @@ import type {
   OntologyElementMetadata as OntologyElementMetadataBp,
   PropertyTypeWithMetadata as PropertyTypeWithMetadataBp,
 } from "@blockprotocol/graph";
+import type {
+  BooleanSchema,
+  DataTypeLabel,
+  NullSchema,
+  NumberSchema,
+  ObjectSchema,
+  StringFormat,
+  StringSchema,
+} from "@blockprotocol/type-system";
 import { validateBaseUrl } from "@blockprotocol/type-system";
 import type {
   BaseUrl as BaseUrlBp,
@@ -85,93 +94,49 @@ type OntologyElementMetadata = Subtype<
   OwnedOntologyElementMetadata | ExternalOntologyElementMetadata
 >;
 
-/**
- * Non-exhaustive list of possible values for 'format'
- *
- * The presence of a format in this list does _NOT_ mean that:
- * 1. The Graph will validate it
- * 2. The frontend will treat it differently for input or display
- *
- * @see https://json-schema.org/understanding-json-schema/reference/string
- */
-type StringFormat =
-  | "date"
-  | "time"
-  | "date-time"
-  | "duration"
-  | "email"
-  | "hostname"
-  | "ipv4"
-  | "ipv6"
-  | "regex"
-  | "uri"
-  | "uuid";
+export type StringEnumConstraint = Subtype<
+  StringSchema,
+  {
+    enum: [string, ...string[]];
+    type: "string";
+  }
+>;
 
-export type StringConstraint = {
-  format?: StringFormat;
-  minLength?: number; // Int
-  maxLength?: number; // Int
-  pattern?: string; // RegExp
-  type: "string";
-};
-
-export type NumberConstraint = {
-  minimum?: number;
-  maximum?: number;
-  exclusiveMinimum?: boolean;
-  exclusiveMaximum?: boolean;
-  multipleOf?: number;
-  type: "number";
-};
-
-export type BooleanConstraint = {
-  type: "boolean";
-};
-
-export type NullConstraint = {
-  type: "null";
-};
-
-export type ObjectConstraint = {
-  type: "object";
-};
-
-export type StringEnumConstraint = {
-  enum: [string, ...string[]];
-  type: "string";
-};
-
-export type NumberEnumConstraint = {
-  enum: [number, ...number[]];
-  type: "number";
-};
+export type NumberEnumConstraint = Subtype<
+  NumberSchema,
+  {
+    enum: [number, ...number[]];
+    type: "number";
+  }
+>;
 
 /** @see https://json-schema.org/understanding-json-schema/reference/enum */
 export type EnumConstraint = StringEnumConstraint | NumberEnumConstraint;
 
-export type StringConstConstraint = {
-  const: string;
-  type: "string";
-};
+export type StringConstConstraint = Subtype<
+  StringSchema,
+  {
+    const: string;
+    type: "string";
+  }
+>;
 
-export type NumberConstConstraint = {
-  const: number;
-  type: "number";
-};
+export type NumberConstConstraint = Subtype<
+  NumberSchema,
+  {
+    const: number;
+    type: "number";
+  }
+>;
 
 export type ConstConstraint = StringConstConstraint | NumberConstConstraint;
 
-type ValueLabel = {
-  left?: string;
-  right?: string;
-};
-
 export type SingleValueConstraint =
-  | BooleanConstraint
-  | NullConstraint
-  | ObjectConstraint
-  | StringConstraint
-  | NumberConstraint
+  | BooleanSchema
+  | NullSchema
+  | ObjectSchema
+  | StringSchema
+  | NumberSchema
   | EnumConstraint
   | ConstConstraint;
 
@@ -191,7 +156,8 @@ export type ValueConstraint = (
   | SingleValueConstraint
   | ArrayConstraint
   | TupleConstraint
-) & { description?: string; label?: ValueLabel };
+  | { anyOf: [ValueConstraint, ...ValueConstraint[]] }
+) & { description?: string; label?: DataTypeLabel };
 
 export type CustomDataType = Subtype<
   DataType,
