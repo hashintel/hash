@@ -1,6 +1,6 @@
 use error_stack::{Report, ReportSink};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Map as JsonMap, Value as JsonValue};
+use serde_json::{Map as JsonMap, Value as JsonValue, json};
 use thiserror::Error;
 
 use crate::schema::DataTypeLabel;

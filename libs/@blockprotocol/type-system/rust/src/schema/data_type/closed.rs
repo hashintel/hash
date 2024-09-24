@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::{schema::DataType, url::VersionedUrl, Valid};
+use crate::{Valid, schema::DataType, url::VersionedUrl};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 // #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]

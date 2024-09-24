@@ -258,7 +258,7 @@ mod codec {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::{self, json, Value as JsonValue};
+    use serde_json::{self, Value as JsonValue, json};
 
     use super::*;
 

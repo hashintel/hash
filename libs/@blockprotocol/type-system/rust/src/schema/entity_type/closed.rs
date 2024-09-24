@@ -4,8 +4,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     schema::{
-        entity_type::extend_links, one_of::OneOfSchema, EntityType, EntityTypeReference,
-        PropertyTypeReference, PropertyValueArray, ValueOrArray,
+        EntityType, EntityTypeReference, PropertyTypeReference, PropertyValueArray, ValueOrArray,
+        entity_type::extend_links, one_of::OneOfSchema,
     },
     url::{BaseUrl, VersionedUrl},
 };
@@ -33,13 +33,10 @@ pub struct ClosedEntityType {
 impl From<EntityType> for ClosedEntityType {
     fn from(entity_type: EntityType) -> Self {
         Self {
-            schemas: HashMap::from([(
-                entity_type.id,
-                ClosedEntityTypeSchemaData {
-                    title: entity_type.title,
-                    description: entity_type.description,
-                },
-            )]),
+            schemas: HashMap::from([(entity_type.id, ClosedEntityTypeSchemaData {
+                title: entity_type.title,
+                description: entity_type.description,
+            })]),
             properties: entity_type.properties,
             required: entity_type.required,
             links: entity_type.links,
@@ -82,13 +79,10 @@ impl Extend<EntityType> for ClosedEntityType {
     fn extend<T: IntoIterator<Item = EntityType>>(&mut self, iter: T) {
         for other in iter {
             self.all_of.extend(other.all_of);
-            self.schemas.insert(
-                other.id,
-                ClosedEntityTypeSchemaData {
-                    title: other.title,
-                    description: other.description,
-                },
-            );
+            self.schemas.insert(other.id, ClosedEntityTypeSchemaData {
+                title: other.title,
+                description: other.description,
+            });
             self.properties.extend(other.properties);
             self.required.extend(other.required);
             extend_links(&mut self.links, other.links);
@@ -103,7 +97,7 @@ mod tests {
     use crate::{
         schema::{ClosedEntityType, EntityType},
         url::BaseUrl,
-        utils::tests::{ensure_serialization_from_str, JsonEqualityCheck},
+        utils::tests::{JsonEqualityCheck, ensure_serialization_from_str},
     };
 
     #[test]

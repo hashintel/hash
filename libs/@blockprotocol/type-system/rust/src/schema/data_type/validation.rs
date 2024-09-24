@@ -4,9 +4,9 @@ use serde_json::Value as JsonValue;
 use thiserror::Error;
 
 use crate::{
+    Valid, Validator,
     schema::{ClosedDataType, DataType},
     url::VersionedUrl,
-    Valid, Validator,
 };
 
 #[derive(Debug, Error)]

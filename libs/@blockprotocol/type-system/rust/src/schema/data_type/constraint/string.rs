@@ -14,7 +14,7 @@ use thiserror::Error;
 use url::{Host, Url};
 use uuid::Uuid;
 
-use crate::schema::{data_type::constraint::error::StringFormatError, DataTypeLabel};
+use crate::schema::{DataTypeLabel, data_type::constraint::error::StringFormatError};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
