@@ -109,7 +109,6 @@ async fn query() {
 }
 
 #[tokio::test]
-#[expect(clippy::too_many_lines)]
 async fn update() {
     let page_et_v1: EntityType = serde_json::from_str(entity_type::PAGE_V1)
         .expect("could not parse entity type representation");

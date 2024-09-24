@@ -451,7 +451,6 @@ async fn update() {
 }
 
 #[tokio::test]
-#[expect(clippy::too_many_lines)]
 async fn insert_same_base_url() {
     let object_dt_v1: DataType = serde_json::from_str(graph_test_data::data_type::OBJECT_V1)
         .expect("could not parse data type representation");
