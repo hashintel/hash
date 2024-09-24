@@ -59,7 +59,7 @@
     "@svgr/webpack": "8.1.0",
     "@tldraw/editor": "2.0.0-alpha.12",
     "@tldraw/primitives": "2.0.0-alpha.12",
-    "@tldraw/tldraw": "2.0.0-alpha.12",
+    "@tldraw/tldraw": "3.0.3",
     "@tldraw/tlvalidate": "2.0.0-alpha.12",
     "@types/prismjs": "1.26.4",
     "axios": "1.7.7",
