@@ -24,12 +24,8 @@ use crate::schema::{DataTypeLabel, JsonSchemaValueType};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct AnyOfSchema {
-    #[cfg_attr(
-        target_arch = "wasm32",
-        tsify(type = "[ValueConstraints, ...ValueConstraints[]]")
-    )]
-    pub any_of: Vec<ValueSchema>,
+pub struct AnyOfConstraint {
+    pub any_of: Vec<ValueConstraints>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(default, skip_serializing_if = "DataTypeLabel::is_empty")]
@@ -39,17 +35,17 @@ pub struct AnyOfSchema {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(untagged, rename_all = "camelCase")]
-pub enum ValueSchema {
+pub enum ValueConstraints {
     Null(NullSchema),
     Boolean(BooleanSchema),
     Number(NumberSchema),
     String(StringSchema),
     Array(ArraySchema),
     Object(ObjectSchema),
-    AnyOf(AnyOfSchema),
+    AnyOf(AnyOfConstraint),
 }
 
-impl ValueSchema {
+impl ValueConstraints {
     /// Validates the provided value against the constraints.
     ///
     /// # Errors
@@ -133,7 +129,7 @@ impl ValueSchema {
                     })
                 }
             }
-            Self::AnyOf(AnyOfSchema { any_of, .. }) => {
+            Self::AnyOf(AnyOfConstraint { any_of, .. }) => {
                 let mut num_successes = 0;
                 let status = any_of
                     .iter()

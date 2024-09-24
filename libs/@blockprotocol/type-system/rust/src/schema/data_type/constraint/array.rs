@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value as JsonValue};
 use thiserror::Error;
 
-use crate::schema::{data_type::constraint::ValueSchema, DataTypeLabel};
+use crate::schema::{data_type::constraint::ValueConstraints, DataTypeLabel};
 
 #[derive(Debug, Error)]
 pub enum ArrayValidationError {
@@ -41,7 +41,7 @@ pub enum ArrayValidationError {
 #[serde(untagged, deny_unknown_fields)]
 pub enum ItemsConstraints {
     Boolean(bool),
-    Value(Box<ValueSchema>),
+    Value(Box<ValueConstraints>),
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -83,7 +83,7 @@ pub struct ArraySchema {
         target_arch = "wasm32",
         tsify(type = "[ValueConstraints, ...ValueConstraints[]]")
     )]
-    pub prefix_items: Vec<ValueSchema>,
+    pub prefix_items: Vec<ValueConstraints>,
 }
 
 impl ArraySchema {

@@ -5,6 +5,7 @@ import type {
   PropertyTypeWithMetadata as PropertyTypeWithMetadataBp,
 } from "@blockprotocol/graph";
 import type {
+  ArraySchema,
   BooleanSchema,
   DataTypeLabel,
   NullSchema,
@@ -94,6 +95,50 @@ type OntologyElementMetadata = Subtype<
   OwnedOntologyElementMetadata | ExternalOntologyElementMetadata
 >;
 
+export type StringConstraint = Subtype<
+  StringSchema,
+  {
+    format?: StringFormat;
+    minLength?: number; // Int
+    maxLength?: number; // Int
+    pattern?: string; // RegExp
+    type: "string";
+  }
+>;
+
+export type NumberConstraint = Subtype<
+  NumberSchema,
+  {
+    minimum?: number;
+    maximum?: number;
+    exclusiveMinimum?: boolean;
+    exclusiveMaximum?: boolean;
+    multipleOf?: number;
+    type: "number";
+  }
+>;
+
+export type BooleanConstraint = Subtype<
+  BooleanSchema,
+  {
+    type: "boolean";
+  }
+>;
+
+export type NullConstraint = Subtype<
+  NullSchema,
+  {
+    type: "null";
+  }
+>;
+
+export type ObjectConstraint = Subtype<
+  ObjectSchema,
+  {
+    type: "object";
+  }
+>;
+
 export type StringEnumConstraint = Subtype<
   StringSchema,
   {
@@ -132,25 +177,31 @@ export type NumberConstConstraint = Subtype<
 export type ConstConstraint = StringConstConstraint | NumberConstConstraint;
 
 export type SingleValueConstraint =
-  | BooleanSchema
-  | NullSchema
-  | ObjectSchema
-  | StringSchema
-  | NumberSchema
+  | BooleanConstraint
+  | NullConstraint
+  | ObjectConstraint
+  | StringConstraint
+  | NumberConstraint
   | EnumConstraint
   | ConstConstraint;
 
-export type ArrayConstraint = {
-  type: "array";
-  items: ValueConstraint;
-};
+export type ArrayConstraint = Subtype<
+  ArraySchema,
+  {
+    type: "array";
+    items: ValueConstraint;
+  }
+>;
 
 /** @see https://json-schema.org/understanding-json-schema/reference/array#tuple-validation */
-export type TupleConstraint = {
-  type: "array";
-  items: false; // disallow additional items;
-  prefixItems: [ValueConstraint, ...ValueConstraint[]];
-};
+export type TupleConstraint = Subtype<
+  ArraySchema,
+  {
+    type: "array";
+    items: false; // disallow additional items;
+    prefixItems: [ValueConstraint, ...ValueConstraint[]];
+  }
+>;
 
 export type ValueConstraint = (
   | SingleValueConstraint

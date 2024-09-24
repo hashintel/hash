@@ -8,7 +8,7 @@ pub use self::{
         BooleanValidationError, ConstraintError, NullSchema, NullTypeTag, NumberSchema,
         NumberTypeTag, NumberValidationError, ObjectSchema, ObjectTypeTag, ObjectValidationError,
         StringFormat, StringFormatError, StringSchema, StringTypeTag, StringValidationError,
-        ValueSchema,
+        ValueConstraints,
     },
     conversion::{
         ConversionDefinition, ConversionExpression, ConversionValue, Conversions, Operator,
@@ -110,8 +110,8 @@ mod raw {
     use crate::{
         schema::{
             data_type::constraint::{
-                AnyOfSchema, ArraySchema, BooleanSchema, NullSchema, NumberSchema, ObjectSchema,
-                StringSchema, ValueSchema,
+                AnyOfConstraint, ArraySchema, BooleanSchema, NullSchema, NumberSchema,
+                ObjectSchema, StringSchema, ValueConstraints,
             },
             DataTypeReference,
         },
@@ -180,7 +180,7 @@ mod raw {
         },
         AnyOf {
             #[serde(flatten)]
-            schema: AnyOfSchema,
+            schema: AnyOfConstraint,
             #[serde(flatten)]
             common: UnconstrainedDataType,
         },
@@ -189,13 +189,13 @@ mod raw {
     impl From<DataType> for super::DataType {
         fn from(value: DataType) -> Self {
             let (common, constraints) = match value {
-                DataType::Null { schema, common } => (common, ValueSchema::Null(schema)),
-                DataType::Boolean { schema, common } => (common, ValueSchema::Boolean(schema)),
-                DataType::Number { schema, common } => (common, ValueSchema::Number(schema)),
-                DataType::String { schema, common } => (common, ValueSchema::String(schema)),
-                DataType::Array { schema, common } => (common, ValueSchema::Array(schema)),
-                DataType::Object { schema, common } => (common, ValueSchema::Object(schema)),
-                DataType::AnyOf { schema, common } => (common, ValueSchema::AnyOf(schema)),
+                DataType::Null { schema, common } => (common, ValueConstraints::Null(schema)),
+                DataType::Boolean { schema, common } => (common, ValueConstraints::Boolean(schema)),
+                DataType::Number { schema, common } => (common, ValueConstraints::Number(schema)),
+                DataType::String { schema, common } => (common, ValueConstraints::String(schema)),
+                DataType::Array { schema, common } => (common, ValueConstraints::Array(schema)),
+                DataType::Object { schema, common } => (common, ValueConstraints::Object(schema)),
+                DataType::AnyOf { schema, common } => (common, ValueConstraints::AnyOf(schema)),
             };
 
             Self {
@@ -226,7 +226,7 @@ pub struct DataType {
     pub all_of: Vec<DataTypeReference>,
 
     #[serde(flatten)]
-    pub constraints: ValueSchema,
+    pub constraints: ValueConstraints,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
