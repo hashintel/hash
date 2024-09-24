@@ -283,7 +283,7 @@ impl EntityVisitor for ValueValidator {
         );
 
         if metadata.data_type_id.as_ref() == Some(&data_type.schema.id)
-            && data_type.schema.is_abstract
+            && data_type.schema.r#abstract
         {
             status.capture(TraversalError::AbstractDataType {
                 id: data_type.schema.id.clone(),
