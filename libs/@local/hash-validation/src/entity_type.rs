@@ -312,20 +312,20 @@ impl EntityVisitor for EntityPreprocessor {
                     });
                 }
 
-                if let Err(error) = type_provider
+                let desired_data_type = type_provider
                     .provide_type(data_type_url)
                     .await
                     .change_context_lazy(|| TraversalError::DataTypeRetrieval {
                         id: DataTypeReference {
                             url: data_type.schema.id.clone(),
                         },
-                    })?
-                    .borrow()
-                    .schema
-                    .validate_constraints(value)
-                    .change_context(TraversalError::ConstraintUnfulfilled)
+                    })?;
+
+                if let Err(error) = ValueValidator
+                    .visit_value(desired_data_type.borrow(), value, metadata, type_provider)
+                    .await
                 {
-                    status.capture(error);
+                    status.append(error);
                 }
             }
         } else {

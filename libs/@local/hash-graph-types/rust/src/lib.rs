@@ -2,7 +2,6 @@
 #![feature(hash_raw_entry)]
 
 extern crate alloc;
-extern crate core;
 
 pub mod knowledge;
 pub mod ontology;
