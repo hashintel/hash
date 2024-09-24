@@ -1,4 +1,7 @@
-import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import {
+  blockProtocolDataTypes,
+  blockProtocolPropertyTypes,
+} from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 
 import { enabledIntegrations } from "../../../../integrations/enabled-integrations";
@@ -124,6 +127,7 @@ const migrate: MigrationFunction = async ({
     authentication,
     {
       dataTypeDefinition: {
+        allOf: [{ $ref: blockProtocolDataTypes.text.dataTypeId }],
         title: "Actor Type",
         description:
           "The type of thing that can, should or will act on something.",

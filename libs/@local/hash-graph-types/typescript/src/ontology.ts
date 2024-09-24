@@ -196,6 +196,7 @@ export type ValueConstraint = (
 export type CustomDataType = Subtype<
   DataType,
   {
+    allOf?: DataType["allOf"];
     description?: string;
     $id: VersionedUrl;
     kind: "dataType";
