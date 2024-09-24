@@ -161,21 +161,18 @@ impl RoutedResource for EntityTypeResource {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct CreateEntityTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfEntityType,
     owned_by_id: OwnedById,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     label_property: Option<BaseUrl>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     icon: Option<String>,
     relationships: Vec<EntityTypeRelationAndSubject>,
-    #[serde(
-        default,
-        skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
-    )]
+    #[serde(default)]
     provenance: ProvidedOntologyEditionProvenance,
 }
 
@@ -459,7 +456,7 @@ where
                     icon: icon.clone(),
                     label_property: label_property.clone(),
                     conflict_behavior: ConflictBehavior::Fail,
-                    provenance: provenance.clone()
+                    provenance: provenance.clone(),
                 })
             }).collect::<Result<Vec<_>, _>>()?
         )
@@ -532,7 +529,7 @@ where
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, untagged)]
 enum LoadExternalEntityTypeRequest {
     #[serde(rename_all = "camelCase")]
@@ -541,15 +538,12 @@ enum LoadExternalEntityTypeRequest {
     Create {
         #[schema(value_type = VAR_ENTITY_TYPE)]
         schema: Box<EntityType>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(default)]
         label_property: Option<BaseUrl>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(default)]
         icon: Option<String>,
         relationships: Vec<EntityTypeRelationAndSubject>,
-        #[serde(
-            default,
-            skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
-        )]
+        #[serde(default)]
         provenance: Box<ProvidedOntologyEditionProvenance>,
     },
 }
@@ -821,21 +815,18 @@ where
         })
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct UpdateEntityTypeRequest {
     #[schema(value_type = VAR_UPDATE_ENTITY_TYPE)]
     schema: serde_json::Value,
     type_to_update: VersionedUrl,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     label_property: Option<BaseUrl>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     icon: Option<String>,
     relationships: Vec<EntityTypeRelationAndSubject>,
-    #[serde(
-        default,
-        skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
-    )]
+    #[serde(default)]
     provenance: ProvidedOntologyEditionProvenance,
 }
 

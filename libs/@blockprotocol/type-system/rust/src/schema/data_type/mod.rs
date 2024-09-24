@@ -124,6 +124,8 @@ mod raw {
         #[serde(rename = "$id")]
         id: VersionedUrl,
         title: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        title_plural: Option<String>,
         #[cfg_attr(
             target_arch = "wasm32",
             tsify(type = "[DataTypeReference, ...DataTypeReference[]]")
@@ -190,6 +192,7 @@ mod raw {
                 kind: common.kind,
                 id: common.id,
                 title: common.title,
+                title_plural: common.title_plural,
                 all_of: common.all_of,
                 constraints,
             }
@@ -206,6 +209,8 @@ pub struct DataType {
     #[serde(rename = "$id")]
     pub id: VersionedUrl,
     pub title: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub title_plural: Option<String>,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub all_of: Vec<DataTypeReference>,
 

@@ -23,6 +23,7 @@ use crate::{
 pub struct PropertyType {
     pub id: VersionedUrl,
     pub title: String,
+    pub title_plural: Option<String>,
     pub description: Option<String>,
     pub one_of: Vec<PropertyValues>,
 }

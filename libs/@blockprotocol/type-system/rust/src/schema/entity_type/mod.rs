@@ -18,16 +18,35 @@ use crate::{
     url::{BaseUrl, VersionedUrl},
 };
 
+#[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct InverseEntityTypeMetadata {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title_plural: Option<String>,
+}
+
+impl InverseEntityTypeMetadata {
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
+        self.title.is_none()
+    }
+}
+
 #[derive(Debug, Clone, Deserialize)]
 #[serde(from = "raw::EntityType")]
 pub struct EntityType {
     pub id: VersionedUrl,
     pub title: String,
+    pub title_plural: Option<String>,
     pub description: Option<String>,
     pub properties: HashMap<BaseUrl, ValueOrArray<PropertyTypeReference>>,
     pub required: HashSet<BaseUrl>,
     pub all_of: HashSet<EntityTypeReference>,
     pub links: HashMap<VersionedUrl, PropertyValueArray<Option<OneOfSchema<EntityTypeReference>>>>,
+    pub inverse: InverseEntityTypeMetadata,
     #[deprecated]
     pub examples: Vec<HashMap<BaseUrl, serde_json::Value>>,
 }
