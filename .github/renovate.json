@@ -121,10 +121,16 @@
       "dependencyDashboardApproval": false
     },
     {
+      "groupName": "sigma npm packages",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["/^@sigma/", "/sigma$/"]
+    },
+    {
       "groupName": "signia npm packages",
       "matchManagers": ["npm"],
       "matchPackageNames": ["/^signia/", "/signia$/"]
     },
+
     {
       "groupName": "Block Protocol npm packages",
       "matchManagers": ["npm"],
