@@ -126,7 +126,7 @@ utoipa = { version = "=4.2.3", default-features = false }
 uuid = { version = "=1.10.0", default-features = false }
 time = { version = "=0.3.36", default-features = false }
 tokio-postgres = { version = "=0.7.12", default-features = false }
-tower-http = { version = "=0.6.0", features = ["trace"] }
+tower-http = { version = "=0.6.1", features = ["trace"] }
 
 # Shared third-party dependencies
 ansi-to-html = { version = "=0.2.1", default-features = false }
