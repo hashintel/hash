@@ -14,6 +14,7 @@ const migrate: MigrationFunction = async ({
     {
       dataTypeDefinition: {
         allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
+        /** @todo H-3356 add abstract: true */
         title: "Currency",
         description:
           "a system of money in common use within a specific environment over time, especially for people in a nation state.",
