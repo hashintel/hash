@@ -1,4 +1,8 @@
 version: 2
 updates:
   - package-ecosystem: "npm"
+    directories:
+      - "**/*"
+    schedule:
+      interval: "daily"
     labels: []
