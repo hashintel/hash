@@ -19,11 +19,11 @@ use tracing::Instrument;
 use type_system::url::BaseUrl;
 
 use crate::store::{
+    AsClient, PostgresStore, QueryError,
     postgres::{
         ontology::OntologyId,
         query::{ForeignKeyReference, ReferenceTable, Table, Transpile},
     },
-    AsClient, PostgresStore, QueryError,
 };
 
 #[derive(Debug)]
@@ -157,26 +157,23 @@ where
             .map(|row| {
                 let index = usize::try_from(row.get::<_, i64>(0) - 1).expect("invalid index");
                 let right_endpoint_ontology_id = row.get(3);
-                (
-                    right_endpoint_ontology_id,
-                    SharedEdgeTraversal {
-                        left_endpoint: EntityVertexId {
-                            base_id: EntityId {
-                                owned_by_id: traversal_data.owned_by_ids[index],
-                                entity_uuid: traversal_data.entity_uuids[index],
-                                draft_id: None,
-                            },
-                            revision_id: traversal_data.entity_revision_ids[index],
+                (right_endpoint_ontology_id, SharedEdgeTraversal {
+                    left_endpoint: EntityVertexId {
+                        base_id: EntityId {
+                            owned_by_id: traversal_data.owned_by_ids[index],
+                            entity_uuid: traversal_data.entity_uuids[index],
+                            draft_id: None,
                         },
-                        right_endpoint: EntityTypeVertexId {
-                            base_id: BaseUrl::new(row.get(1)).expect("invalid URL"),
-                            revision_id: row.get(2),
-                        },
-                        right_endpoint_ontology_id,
-                        resolve_depths: traversal_data.resolve_depths[index],
-                        traversal_interval: row.get(4),
+                        revision_id: traversal_data.entity_revision_ids[index],
                     },
-                )
+                    right_endpoint: EntityTypeVertexId {
+                        base_id: BaseUrl::new(row.get(1)).expect("invalid URL"),
+                        revision_id: row.get(2),
+                    },
+                    right_endpoint_ontology_id,
+                    resolve_depths: traversal_data.resolve_depths[index],
+                    traversal_interval: row.get(4),
+                })
             }))
     }
 
@@ -272,27 +269,24 @@ where
                     entity_uuid: row.get(2),
                     draft_id: None,
                 };
-                (
-                    right_endpoint_base_id,
-                    KnowledgeEdgeTraversal {
-                        left_endpoint: EntityVertexId {
-                            base_id: EntityId {
-                                owned_by_id: traversal_data.owned_by_ids[index],
-                                entity_uuid: traversal_data.entity_uuids[index],
-                                draft_id: None,
-                            },
-                            revision_id: traversal_data.entity_revision_ids[index],
+                (right_endpoint_base_id, KnowledgeEdgeTraversal {
+                    left_endpoint: EntityVertexId {
+                        base_id: EntityId {
+                            owned_by_id: traversal_data.owned_by_ids[index],
+                            entity_uuid: traversal_data.entity_uuids[index],
+                            draft_id: None,
                         },
-                        right_endpoint: EntityVertexId {
-                            base_id: right_endpoint_base_id,
-                            revision_id: row.get(3),
-                        },
-                        right_endpoint_edition_id: row.get(4),
-                        edge_interval: row.get(5),
-                        resolve_depths: traversal_data.resolve_depths[index],
-                        traversal_interval: row.get(6),
+                        revision_id: traversal_data.entity_revision_ids[index],
                     },
-                )
+                    right_endpoint: EntityVertexId {
+                        base_id: right_endpoint_base_id,
+                        revision_id: row.get(3),
+                    },
+                    right_endpoint_edition_id: row.get(4),
+                    edge_interval: row.get(5),
+                    resolve_depths: traversal_data.resolve_depths[index],
+                    traversal_interval: row.get(6),
+                })
             }))
     }
 }

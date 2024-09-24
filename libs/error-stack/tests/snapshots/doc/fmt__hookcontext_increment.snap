@@ -1,5 +1,5 @@
 <b>invalid input parameter</b>
-├╴at <i>libs/error-stack/src/fmt/hook.rs:19:14</i>
+├╴at <i>libs/error-stack/src/hook/context.rs:19:14</i>
 ├╴backtrace (1)
 ├╴suggestion 0: use a file you can read next time!
 ╰╴suggestion 1: don&#39;t press any random keys!

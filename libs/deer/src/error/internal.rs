@@ -1,7 +1,7 @@
 use core::fmt::{Display, Formatter};
 
 use crate::{
-    error::{ErrorProperties, Id, Location, Namespace, Variant, NAMESPACE},
+    error::{ErrorProperties, Id, Location, NAMESPACE, Namespace, Variant},
     id,
 };
 

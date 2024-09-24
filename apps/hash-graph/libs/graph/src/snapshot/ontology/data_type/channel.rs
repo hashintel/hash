@@ -1,25 +1,25 @@
 use core::{
     pin::Pin,
-    task::{ready, Context, Poll},
+    task::{Context, Poll, ready},
 };
 
 use authorization::schema::DataTypeRelationAndSubject;
 use error_stack::{Report, ResultExt};
 use futures::{
-    channel::mpsc::{self, Receiver, Sender},
-    stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
+    channel::mpsc::{self, Receiver, Sender},
+    stream::{BoxStream, SelectAll, select_all},
 };
 use graph_types::ontology::DataTypeId;
 use type_system::Valid;
 
 use crate::{
     snapshot::{
-        ontology::{
-            data_type::batch::DataTypeRowBatch, metadata::OntologyTypeMetadata,
-            DataTypeSnapshotRecord, OntologyTypeMetadataSender,
-        },
         SnapshotRestoreError,
+        ontology::{
+            DataTypeSnapshotRecord, OntologyTypeMetadataSender, data_type::batch::DataTypeRowBatch,
+            metadata::OntologyTypeMetadata,
+        },
     },
     store::postgres::query::rows::{DataTypeConversionsRow, DataTypeEmbeddingRow, DataTypeRow},
 };

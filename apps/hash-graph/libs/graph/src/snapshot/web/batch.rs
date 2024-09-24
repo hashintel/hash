@@ -6,7 +6,7 @@ use tokio_postgres::GenericClient;
 
 use crate::{
     snapshot::WriteBatch,
-    store::{postgres::query::rows::WebRow, AsClient, InsertionError, PostgresStore},
+    store::{AsClient, InsertionError, PostgresStore, postgres::query::rows::WebRow},
 };
 
 pub enum WebBatch {

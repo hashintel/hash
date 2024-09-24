@@ -11,13 +11,13 @@ use core::{fmt::Debug, hash::Hash};
 use std::collections::HashMap;
 
 use authorization::{
+    AuthorizationApi,
     backend::ModifyRelationshipOperation,
     schema::{
         AccountGroupAdministratorSubject, AccountGroupRelationAndSubject, WebDataTypeViewerSubject,
         WebEntityCreatorSubject, WebEntityEditorSubject, WebEntityTypeViewerSubject,
         WebOwnerSubject, WebPropertyTypeViewerSubject, WebRelationAndSubject, WebSubjectSet,
     },
-    AuthorizationApi,
 };
 use error_stack::{Report, Result, ResultExt};
 use graph_types::{
@@ -29,25 +29,25 @@ use graph_types::{
     owned_by_id::OwnedById,
 };
 use hash_graph_store::{
+    ConflictBehavior,
     account::{
         AccountGroupInsertionError, AccountInsertionError, AccountStore,
         InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams, QueryWebError,
         WebInsertionError,
     },
-    ConflictBehavior,
 };
 use postgres_types::Json;
 use temporal_client::TemporalClient;
 use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;
-use tokio_postgres::{error::SqlState, GenericClient};
+use tokio_postgres::{GenericClient, error::SqlState};
 use type_system::{
+    Valid,
     schema::{
         ClosedDataTypeMetadata, ClosedEntityType, Conversions, DataType, DataTypeReference,
         EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    Valid,
 };
 
 pub use self::{
@@ -57,11 +57,11 @@ pub use self::{
     traversal_context::TraversalContext,
 };
 use crate::store::{
+    BaseUrlAlreadyExists, InsertionError, QueryError, StoreError, UpdateError,
     error::{
         DeletionError, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
         VersionedUrlAlreadyExists,
     },
-    BaseUrlAlreadyExists, InsertionError, QueryError, StoreError, UpdateError,
 };
 
 /// A Postgres-backed store
@@ -142,10 +142,9 @@ where
         match on_conflict {
             ConflictBehavior::Fail => {
                 self.as_client()
-                    .query(
-                        "INSERT INTO base_urls (base_url) VALUES ($1);",
-                        &[&base_url.as_str()],
-                    )
+                    .query("INSERT INTO base_urls (base_url) VALUES ($1);", &[
+                        &base_url.as_str(),
+                    ])
                     .await
                     .map_err(Report::new)
                     .map_err(|report| match report.current_context().code() {
@@ -241,14 +240,11 @@ where
             }
         };
         self.as_client()
-            .query_opt(
-                query,
-                &[
-                    &OntologyId::from_record_id(record_id),
-                    &record_id.base_url.as_str(),
-                    &record_id.version,
-                ],
-            )
+            .query_opt(query, &[
+                &OntologyId::from_record_id(record_id),
+                &record_id.base_url.as_str(),
+                &record_id.version,
+            ])
             .await
             .map_err(Report::new)
             .map_err(|report| match report.current_context().code() {
@@ -891,10 +887,9 @@ where
                         .await?;
                     self.create_ontology_owned_metadata(ontology_id, *owned_by_id)
                         .await?;
-                    Ok(Some((
-                        ontology_id,
-                        OntologyTemporalMetadata { transaction_time },
-                    )))
+                    Ok(Some((ontology_id, OntologyTemporalMetadata {
+                        transaction_time,
+                    })))
                 } else {
                     Ok(None)
                 }
@@ -913,10 +908,9 @@ where
                         .await?;
                     self.create_ontology_external_metadata(ontology_id, *fetched_at)
                         .await?;
-                    Ok(Some((
-                        ontology_id,
-                        OntologyTemporalMetadata { transaction_time },
-                    )))
+                    Ok(Some((ontology_id, OntologyTemporalMetadata {
+                        transaction_time,
+                    })))
                 } else {
                     Ok(None)
                 }
@@ -1008,11 +1002,9 @@ where
             .await
             .change_context(UpdateError)?;
 
-        Ok((
-            ontology_id,
-            owned_by_id,
-            OntologyTemporalMetadata { transaction_time },
-        ))
+        Ok((ontology_id, owned_by_id, OntologyTemporalMetadata {
+            transaction_time,
+        }))
     }
 
     /// # Errors
@@ -1038,10 +1030,9 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
         params: InsertAccountIdParams,
     ) -> Result<(), AccountInsertionError> {
         self.as_client()
-            .query(
-                "INSERT INTO accounts (account_id) VALUES ($1);",
-                &[&params.account_id],
-            )
+            .query("INSERT INTO accounts (account_id) VALUES ($1);", &[
+                &params.account_id
+            ])
             .await
             .change_context(AccountInsertionError)
             .attach_printable(params.account_id)?;
@@ -1121,10 +1112,9 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
 
         transaction
             .as_client()
-            .query(
-                "INSERT INTO webs (web_id) VALUES ($1);",
-                &[&params.owned_by_id],
-            )
+            .query("INSERT INTO webs (web_id) VALUES ($1);", &[
+                &params.owned_by_id
+            ])
             .await
             .change_context(WebInsertionError)
             .attach_printable(params.owned_by_id)?;

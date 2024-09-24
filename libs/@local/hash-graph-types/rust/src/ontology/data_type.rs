@@ -9,8 +9,8 @@ use type_system::{
 };
 #[cfg(feature = "utoipa")]
 use utoipa::{
-    openapi::{schema, ObjectBuilder, Ref, RefOr, Schema},
     ToSchema,
+    openapi::{ObjectBuilder, Ref, RefOr, Schema, schema},
 };
 use uuid::Uuid;
 

@@ -3,8 +3,8 @@ use core::marker::PhantomData;
 use error_stack::ResultExt;
 
 use crate::{
-    error::{DeserializeError, VisitorError},
     Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
+    error::{DeserializeError, VisitorError},
 };
 
 struct BytesVisitor<'de>(PhantomData<fn() -> &'de ()>);

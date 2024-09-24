@@ -1,9 +1,9 @@
 use deer::{
-    error::{Error, Variant},
     Deserialize, Document, Number, Reflection, Schema,
+    error::{Error, Variant},
 };
 use error_stack::Report;
-use justjson::{parser::Token, JsonNumber, JsonString};
+use justjson::{JsonNumber, JsonString, parser::Token};
 
 use crate::error::SyntaxError;
 

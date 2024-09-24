@@ -1,8 +1,8 @@
 use core::fmt::Debug;
 
 use axum::{
-    response::{IntoResponse, Response},
     Json,
+    response::{IntoResponse, Response},
 };
 use error_stack::{Context, Report};
 use hash_status::{Status, StatusCode};
@@ -41,9 +41,7 @@ where
     // hash_tracing::sentry::capture_report(&report);
     tracing::error!(error = ?report, tags.code = ?status_code.to_http_code());
 
-    status_to_response(Status::new(
-        status_code,
-        Some(report.to_string()),
-        vec![report],
-    ))
+    status_to_response(Status::new(status_code, Some(report.to_string()), vec![
+        report,
+    ]))
 }

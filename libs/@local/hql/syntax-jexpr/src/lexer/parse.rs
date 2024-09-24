@@ -1,6 +1,6 @@
 use alloc::{borrow::Cow, sync::Arc};
 
-use hifijson::{num::LexWrite, str::LexAlloc, SliceLexer};
+use hifijson::{SliceLexer, num::LexWrite, str::LexAlloc};
 use hql_span::{TextRange, TextSize};
 use json_number::Number;
 use logos::Lexer;

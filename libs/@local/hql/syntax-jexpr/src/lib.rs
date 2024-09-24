@@ -4,10 +4,10 @@ use alloc::sync::Arc;
 
 use hql_cst::{arena::Arena, expr::Expr};
 use hql_diagnostics::Diagnostic;
-use hql_span::{storage::SpanStorage, SpanId};
+use hql_span::{SpanId, storage::SpanStorage};
 
 use self::{
-    parser::{error::expected_eof, TokenStream},
+    parser::{TokenStream, error::expected_eof},
     span::Span,
 };
 

@@ -97,19 +97,15 @@ mod test {
 
     #[test]
     fn encode() {
-        assert_encode(
-            &RequestFlags::EMPTY,
-            expect![[r#"
+        assert_encode(&RequestFlags::EMPTY, expect![[r#"
             0x00
-        "#]],
-        );
+        "#]]);
 
-        assert_encode(
-            &RequestFlags::from(RequestFlag::BeginOfRequest),
-            expect![[r#"
+        assert_encode(&RequestFlags::from(RequestFlag::BeginOfRequest), expect![[
+            r#"
                 0x80
-            "#]],
-        );
+            "#
+        ]]);
 
         assert_encode(
             &RequestFlags::from(RequestFlag::BeginOfRequest | RequestFlag::EndOfRequest),
@@ -118,12 +114,11 @@ mod test {
             "#]],
         );
 
-        assert_encode(
-            &RequestFlags::from(RequestFlag::EndOfRequest),
-            expect![[r#"
+        assert_encode(&RequestFlags::from(RequestFlag::EndOfRequest), expect![[
+            r#"
                 0x01
-            "#]],
-        );
+            "#
+        ]]);
     }
 
     #[test]

@@ -1,11 +1,11 @@
 use authorization::schema::EntityRelationAndSubject;
 use graph_types::{
+    Embedding,
     knowledge::{
         entity::{EntityId, EntityMetadata, EntityUuid},
         link::LinkData,
         property::PropertyObject,
     },
-    Embedding,
 };
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};

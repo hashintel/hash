@@ -81,11 +81,11 @@ mod tests {
 
     use super::*;
     use crate::{
-        schema::{object::validation::ObjectSchemaValidator, PropertyTypeReference},
+        schema::{PropertyTypeReference, object::validation::ObjectSchemaValidator},
         url::VersionedUrl,
         utils::tests::{
-            check_repr_serialization_from_value, ensure_failed_deserialization,
-            ensure_failed_validation, ensure_validation, JsonEqualityCheck,
+            JsonEqualityCheck, check_repr_serialization_from_value, ensure_failed_deserialization,
+            ensure_failed_validation, ensure_validation,
         },
     };
 
@@ -156,19 +156,15 @@ mod tests {
         )
         .await;
 
-        assert_eq!(
-            *object_from_json,
-            PropertyValueObject {
-                properties: HashMap::from([
-                    (
-                        url_a.base_url.clone(),
-                        PropertyTypeReference { url: url_a.clone() },
-                    ),
-                    (url_b.base_url.clone(), PropertyTypeReference { url: url_b }),
-                ]),
-                required: HashSet::from([url_a.base_url]),
-            },
-        );
+        assert_eq!(*object_from_json, PropertyValueObject {
+            properties: HashMap::from([
+                (url_a.base_url.clone(), PropertyTypeReference {
+                    url: url_a.clone()
+                },),
+                (url_b.base_url.clone(), PropertyTypeReference { url: url_b }),
+            ]),
+            required: HashSet::from([url_a.base_url]),
+        },);
     }
 
     #[test]

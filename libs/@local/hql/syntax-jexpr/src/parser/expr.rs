@@ -1,11 +1,11 @@
 use alloc::borrow::Cow;
 
-use hql_cst::expr::{call::Call, Expr, ExprKind};
+use hql_cst::expr::{Expr, ExprKind, call::Call};
 use hql_diagnostics::Diagnostic;
 use hql_span::{SpanId, TextRange};
 use winnow::{
-    error::{ContextError, ErrMode, ParseError},
     Located, Parser,
+    error::{ContextError, ErrMode, ParseError},
 };
 
 use super::{
@@ -15,12 +15,12 @@ use super::{
 use crate::{
     lexer::{syntax_kind::SyntaxKind, token::Token, token_kind::TokenKind},
     parser::{
+        IntoTextRange,
         error::{expected_callee, invalid_identifier, invalid_signature},
         path::parse_path,
         signature::parse_signature,
         string::ParseState,
         symbol::ParseRestriction,
-        IntoTextRange,
     },
     span::Span,
 };
@@ -50,10 +50,11 @@ pub(crate) fn parse_expr<'arena, 'source>(
 
             let span = stream.insert_span(span);
 
-            Err(unexpected_token(
-                span,
-                [SyntaxKind::String, SyntaxKind::LBracket, SyntaxKind::LBrace],
-            ))
+            Err(unexpected_token(span, [
+                SyntaxKind::String,
+                SyntaxKind::LBracket,
+                SyntaxKind::LBrace,
+            ]))
         }
     }
 }
@@ -200,7 +201,7 @@ mod test {
     use super::ExprKind;
     use crate::{
         lexer::Lexer,
-        parser::{parse_expr, TokenStream},
+        parser::{TokenStream, parse_expr},
         span::Span,
     };
 

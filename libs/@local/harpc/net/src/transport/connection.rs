@@ -4,10 +4,10 @@ use core::{
 };
 
 use futures::{
+    Stream,
     prelude::stream::StreamExt,
     ready,
     stream::{SplitSink, SplitStream},
-    Stream,
 };
 use harpc_wire_protocol::{request::Request, response::Response};
 use libp2p::PeerId;

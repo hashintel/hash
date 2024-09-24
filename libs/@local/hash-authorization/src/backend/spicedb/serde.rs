@@ -1,9 +1,9 @@
-use serde::{de::IntoDeserializer, Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Deserializer, Serialize, de::IntoDeserializer};
 
 use crate::zanzibar::types::Resource;
 
 pub(crate) mod resource {
-    use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+    use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
     use crate::zanzibar::types::Resource;
 
@@ -55,7 +55,7 @@ pub(crate) mod resource_ref {
 pub(crate) mod relation {
     use alloc::borrow::Cow;
 
-    use serde::{de, de::IntoDeserializer, ser, Deserialize, Deserializer, Serialize, Serializer};
+    use serde::{Deserialize, Deserializer, Serialize, Serializer, de, de::IntoDeserializer, ser};
 
     use crate::zanzibar::types::LeveledRelation;
 
@@ -142,7 +142,7 @@ pub(crate) mod subject_ref {
 }
 
 pub(crate) mod subject {
-    use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+    use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
     use crate::{
         backend::spicedb::serde::SerializedSubject,
@@ -189,13 +189,13 @@ where
 }
 
 pub(crate) mod relationship {
-    use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+    use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 
     use crate::{
         backend::spicedb::serde::SerializedSubject,
         zanzibar::{
-            types::{LeveledRelation, Relationship, RelationshipParts, Resource},
             Relation,
+            types::{LeveledRelation, Relationship, RelationshipParts, Resource},
         },
     };
 

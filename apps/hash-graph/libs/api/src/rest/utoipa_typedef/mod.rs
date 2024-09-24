@@ -4,8 +4,8 @@ use graph_types::ontology::{DataTypeMetadata, EntityTypeMetadata, PropertyTypeMe
 use serde::{Deserialize, Serialize};
 use type_system::schema::{DataType, EntityType, PropertyType};
 use utoipa::{
-    openapi::{OneOfBuilder, Ref, RefOr, Schema},
     ToSchema,
+    openapi::{OneOfBuilder, Ref, RefOr, Schema},
 };
 
 #[derive(Debug, Copy, Clone)]

@@ -22,16 +22,16 @@ use std::{fs, io};
 use async_trait::async_trait;
 use authorization::AuthorizationApiPool;
 use axum::{
+    Extension, Json, Router,
     extract::{FromRequestParts, Path},
-    http::{request::Parts, StatusCode},
+    http::{StatusCode, request::Parts},
     response::{IntoResponse, Response},
     routing::get,
-    Extension, Json, Router,
 };
 use error_stack::{Report, ResultExt};
 use graph::{
     ontology::domain_validator::DomainValidator,
-    store::{error::VersionedUrlAlreadyExists, Store, StorePool, TypeFetcher},
+    store::{Store, StorePool, TypeFetcher, error::VersionedUrlAlreadyExists},
 };
 use graph_types::{
     account::{AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
@@ -60,7 +60,7 @@ use hash_graph_store::{
     },
 };
 use hash_status::Status;
-use include_dir::{include_dir, Dir};
+use include_dir::{Dir, include_dir};
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::Serialize;
 use temporal_client::TemporalClient;
@@ -70,11 +70,11 @@ use temporal_versioning::{
 };
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 use utoipa::{
-    openapi::{
-        self, schema, ArrayBuilder, KnownFormat, Object, ObjectBuilder, OneOfBuilder, Ref, RefOr,
-        Schema, SchemaFormat, SchemaType,
-    },
     Modify, OpenApi, ToSchema,
+    openapi::{
+        self, ArrayBuilder, KnownFormat, Object, ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema,
+        SchemaFormat, SchemaType, schema,
+    },
 };
 use uuid::Uuid;
 
@@ -83,13 +83,13 @@ use self::{
     middleware::span_trace_layer,
     status::{report_to_response, status_to_response},
     utoipa_typedef::{
+        MaybeListOfDataTypeMetadata, MaybeListOfEntityTypeMetadata,
+        MaybeListOfPropertyTypeMetadata,
         subgraph::{
             Edges, KnowledgeGraphOutwardEdge, KnowledgeGraphVertex, KnowledgeGraphVertices,
             OntologyOutwardEdge, OntologyTypeVertexId, OntologyVertex, OntologyVertices, Subgraph,
             Vertex, Vertices,
         },
-        MaybeListOfDataTypeMetadata, MaybeListOfEntityTypeMetadata,
-        MaybeListOfPropertyTypeMetadata,
     },
 };
 

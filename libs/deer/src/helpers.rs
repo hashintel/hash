@@ -1,11 +1,11 @@
 use error_stack::{Result, ResultExt, TryReportTupleExt};
-use serde::{ser::SerializeMap, Serialize, Serializer};
+use serde::{Serialize, Serializer, ser::SerializeMap};
 
 use crate::{
-    error::{DeserializeError, VisitorError},
-    schema::Reference,
     Deserialize, Deserializer, Document, EnumVisitor, FieldVisitor, ObjectAccess, Reflection,
     Schema, Visitor,
+    error::{DeserializeError, VisitorError},
+    schema::Reference,
 };
 
 struct EnumObjectFieldVisitor<T> {

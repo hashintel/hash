@@ -129,12 +129,9 @@ pub(crate) mod test {
 
     #[test]
     fn encode_id() {
-        assert_encode(
-            &RequestId(0x01_02_03_04),
-            expect![[r#"
+        assert_encode(&RequestId(0x01_02_03_04), expect![[r#"
                 0x01 0x02 0x03 0x04
-            "#]],
-        );
+            "#]]);
     }
 
     #[test]

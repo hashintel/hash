@@ -365,7 +365,7 @@ mod test {
     use alloc::collections::BTreeSet;
     use core::fmt::Display;
 
-    use crate::{sink::ReportSink, Report};
+    use crate::{Report, sink::ReportSink};
 
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     struct TestError(u8);

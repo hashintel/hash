@@ -4,6 +4,6 @@ mod record;
 
 pub(crate) use self::{
     batch::EntityRowBatch,
-    channel::{channel, EntitySender},
+    channel::{EntitySender, channel},
     record::{EntityEmbeddingRecord, EntitySnapshotRecord},
 };

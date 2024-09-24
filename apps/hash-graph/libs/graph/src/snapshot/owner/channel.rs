@@ -1,21 +1,21 @@
 use core::{
     pin::Pin,
     result::Result as StdResult,
-    task::{ready, Context, Poll},
+    task::{Context, Poll, ready},
 };
 
 use authorization::schema::AccountGroupRelationAndSubject;
 use error_stack::{Report, ResultExt};
 use futures::{
-    channel::mpsc::{self, Sender},
-    stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
+    channel::mpsc::{self, Sender},
+    stream::{BoxStream, SelectAll, select_all},
 };
 use graph_types::account::AccountGroupId;
 
 use crate::snapshot::{
-    owner::{AccountGroupRow, AccountRow, AccountRowBatch, Owner},
     SnapshotRestoreError,
+    owner::{AccountGroupRow, AccountRow, AccountRowBatch, Owner},
 };
 
 /// A sink to insert [`AccountId`]s and [`AccountGroupId`]s.

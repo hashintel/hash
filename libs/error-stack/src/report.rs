@@ -18,8 +18,8 @@ use crate::context::SourceContext;
 #[cfg(nightly)]
 use crate::iter::{RequestRef, RequestValue};
 use crate::{
-    iter::{Frames, FramesMut},
     Context, Frame,
+    iter::{Frames, FramesMut},
 };
 
 /// Contains a [`Frame`] stack consisting of [`Context`]s and attachments.

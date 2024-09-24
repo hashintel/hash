@@ -5,7 +5,7 @@ use core::fmt::{Display, Formatter};
 
 #[allow(clippy::wildcard_imports)]
 use common::*;
-use error_stack::{report, Context, Report};
+use error_stack::{Context, Report, report};
 
 #[derive(Debug)]
 struct Error;

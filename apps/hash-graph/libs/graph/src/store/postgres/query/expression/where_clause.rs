@@ -1,8 +1,8 @@
 use core::fmt;
 
 use crate::store::{
-    postgres::query::{expression::conditional::Transpiler, Condition, Expression, Transpile},
     NullOrdering, Ordering,
+    postgres::query::{Condition, Expression, Transpile, expression::conditional::Transpiler},
 };
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
@@ -130,7 +130,7 @@ mod tests {
     };
 
     use super::*;
-    use crate::store::postgres::query::{test_helper::trim_whitespace, SelectCompiler};
+    use crate::store::postgres::query::{SelectCompiler, test_helper::trim_whitespace};
 
     #[test]
     #[expect(clippy::too_many_lines)]
@@ -247,15 +247,12 @@ mod tests {
             .map(|parameter| format!("{parameter:?}"))
             .collect::<Vec<_>>();
 
-        assert_eq!(
-            parameters,
-            &[
-                format!("{:?}", temporal_axes.pinned_timestamp()).as_str(),
-                "\"https://blockprotocol.org/@blockprotocol/types/data-type/text/\"",
-                "1",
-                "\"some title\"",
-                "\"some description\""
-            ]
-        );
+        assert_eq!(parameters, &[
+            format!("{:?}", temporal_axes.pinned_timestamp()).as_str(),
+            "\"https://blockprotocol.org/@blockprotocol/types/data-type/text/\"",
+            "1",
+            "\"some title\"",
+            "\"some description\""
+        ]);
     }
 }

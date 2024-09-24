@@ -4,19 +4,19 @@ use alloc::sync::Arc;
 use std::collections::HashMap;
 
 use authorization::{
+    AuthorizationApi,
     backend::ZanzibarBackend,
     schema::{
         AccountGroupNamespace, DataTypeNamespace, EntityNamespace, EntityTypeNamespace,
         PropertyTypeNamespace, WebNamespace,
     },
     zanzibar::types::{RelationshipFilter, ResourceFilter},
-    AuthorizationApi,
 };
 use axum::{
+    Extension, Router,
     body::Body,
     response::Response,
     routing::{delete, post},
-    Extension, Router,
 };
 use error_stack::{Context, Report};
 use futures::TryStreamExt;

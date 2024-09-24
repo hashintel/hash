@@ -1,9 +1,9 @@
 use error_stack::{Report, ReportSink};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value as JsonValue};
+use serde_json::{Value as JsonValue, json};
 use thiserror::Error;
 
-use crate::schema::{data_type::constraint::ValueConstraints, DataTypeLabel};
+use crate::schema::{DataTypeLabel, data_type::constraint::ValueConstraints};
 
 #[derive(Debug, Error)]
 pub enum ArrayValidationError {

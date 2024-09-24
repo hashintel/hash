@@ -6,9 +6,9 @@ use tokio_postgres::{GenericClient, Row};
 use tracing::Instrument;
 
 use crate::store::{
+    AsClient, PostgresStore, QueryError,
     crud::{QueryResult, Read, ReadPaginated, Sorting},
     postgres::query::{PostgresQueryPath, PostgresRecord, PostgresSorting, SelectCompiler},
-    AsClient, PostgresStore, QueryError,
 };
 
 pub struct QueryIndices<R: QueryRecordDecode, S: QueryRecordDecode> {

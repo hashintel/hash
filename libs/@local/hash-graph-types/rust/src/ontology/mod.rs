@@ -6,7 +6,7 @@ mod provenance;
 use core::{borrow::Borrow, fmt};
 
 use error_stack::{Context, Report};
-use futures::{stream, StreamExt, TryStreamExt};
+use futures::{StreamExt, TryStreamExt, stream};
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;

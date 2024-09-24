@@ -1,25 +1,25 @@
 use core::ops::Range;
 
 use deer::{
+    Context, Deserialize, EnumVisitor, IdentifierVisitor, Number, OptionalVisitor, Reflection,
+    StructVisitor, Visitor,
     error::{
         DeserializerError, Error, ExpectedLength, ExpectedType, ObjectLengthError, ReceivedType,
         TypeError, Variant,
     },
     schema::Document,
     value::NoneDeserializer,
-    Context, Deserialize, EnumVisitor, IdentifierVisitor, Number, OptionalVisitor, Reflection,
-    StructVisitor, Visitor,
 };
 use error_stack::{Report, ReportSink, Result, ResultExt};
 use justjson::{
-    parser::{PeekableTokenKind, Token, Tokenizer},
     AnyStr,
+    parser::{PeekableTokenKind, Token, Tokenizer},
 };
 
 use crate::{
     array::ArrayAccess,
     error::{
-        convert_tokenizer_error, BytesUnsupportedError, Position, RecursionLimitError, SyntaxError,
+        BytesUnsupportedError, Position, RecursionLimitError, SyntaxError, convert_tokenizer_error,
     },
     number::try_convert_number,
     object::ObjectAccess,

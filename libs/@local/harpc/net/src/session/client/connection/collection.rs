@@ -4,7 +4,7 @@ use harpc_wire_protocol::{
     request::id::{RequestId, RequestIdProducer},
     response::Response,
 };
-use scc::{hash_index::Entry, HashIndex};
+use scc::{HashIndex, hash_index::Entry};
 use tokio::sync::Notify;
 use tokio_util::sync::CancellationToken;
 

@@ -59,10 +59,10 @@ pub(crate) fn parse_array<'arena, 'source>(
                 parent_id: None,
             });
 
-            return Err(unexpected_token(
-                span,
-                [SyntaxKind::Comma, SyntaxKind::RBracket],
-            ));
+            return Err(unexpected_token(span, [
+                SyntaxKind::Comma,
+                SyntaxKind::RBracket,
+            ]));
         };
 
         stream.descend(

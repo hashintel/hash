@@ -6,7 +6,7 @@ use core::{
 
 use bytes::Buf;
 
-use super::{empty::Empty, Body, BodyState, Frame};
+use super::{Body, BodyState, Frame, empty::Empty};
 
 /// Boxed Body
 ///

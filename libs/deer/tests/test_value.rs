@@ -1,14 +1,14 @@
 use deer::{
+    Context, Deserialize, Deserializer, Document, Number, Reflection, Schema, Visitor,
     error::{DeserializeError, ExpectedType, ReceivedValue, ValueError, Variant, VisitorError},
     value::{
         BoolDeserializer, BorrowedBytesDeserializer, BorrowedStrDeserializer,
         BytesBufferDeserializer, BytesDeserializer, CharDeserializer, F32Deserializer,
-        F64Deserializer, I128Deserializer, I16Deserializer, I32Deserializer, I64Deserializer,
-        I8Deserializer, IntoDeserializer, IsizeDeserializer, NullDeserializer, NumberDeserializer,
-        StrDeserializer, U128Deserializer, U16Deserializer, U32Deserializer, U64Deserializer,
-        U8Deserializer, UsizeDeserializer,
+        F64Deserializer, I8Deserializer, I16Deserializer, I32Deserializer, I64Deserializer,
+        I128Deserializer, IntoDeserializer, IsizeDeserializer, NullDeserializer,
+        NumberDeserializer, StrDeserializer, U8Deserializer, U16Deserializer, U32Deserializer,
+        U64Deserializer, U128Deserializer, UsizeDeserializer,
     },
-    Context, Deserialize, Deserializer, Document, Number, Reflection, Schema, Visitor,
 };
 use error_stack::{Report, Result, ResultExt};
 use proptest::prelude::*;

@@ -142,12 +142,9 @@ mod test {
 
     #[test]
     fn encode_version() {
-        assert_encode(
-            &ProtocolVersion::V1,
-            expect![[r#"
+        assert_encode(&ProtocolVersion::V1, expect![[r#"
             0x01
-        "#]],
-        );
+        "#]]);
     }
 
     #[test]

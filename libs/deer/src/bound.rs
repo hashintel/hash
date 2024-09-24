@@ -1,9 +1,9 @@
 use error_stack::{Report, Result, ResultExt};
 
 use crate::{
+    ArrayAccess, Context, Deserialize, FieldVisitor, ObjectAccess,
     error::{ArrayAccessError, BoundedContractViolationError, ObjectAccessError, Variant},
     value::NoneDeserializer,
-    ArrayAccess, Context, Deserialize, FieldVisitor, ObjectAccess,
 };
 
 pub struct BoundObjectAccess<A> {

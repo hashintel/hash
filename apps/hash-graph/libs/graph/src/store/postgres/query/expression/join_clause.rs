@@ -1,8 +1,8 @@
 use core::{fmt, fmt::Write};
 
 use crate::store::postgres::query::{
-    table::{Column, ForeignKeyReference},
     Alias, AliasedTable, Expression, SelectStatement, Transpile,
+    table::{Column, ForeignKeyReference},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

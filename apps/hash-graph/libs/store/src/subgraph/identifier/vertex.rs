@@ -10,7 +10,7 @@ use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
-use crate::subgraph::{temporal_axes::VariableAxis, vertices::Vertices, EdgeEndpoint};
+use crate::subgraph::{EdgeEndpoint, temporal_axes::VariableAxis, vertices::Vertices};
 
 pub trait VertexId: Sized {
     type BaseId;

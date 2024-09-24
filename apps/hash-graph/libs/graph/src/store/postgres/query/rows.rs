@@ -1,23 +1,23 @@
 use graph_types::{
+    Embedding,
     account::{AccountGroupId, AccountId},
     knowledge::{
+        Confidence,
         entity::{
             DraftId, EntityEditionId, EntityEditionProvenance, EntityUuid, InferredEntityProvenance,
         },
         property::{PropertyMetadataObject, PropertyObject, PropertyProvenance},
-        Confidence,
     },
     ontology::{DataTypeId, EntityTypeId, OntologyEditionProvenance, PropertyTypeId},
     owned_by_id::OwnedById,
-    Embedding,
 };
 use postgres_types::ToSql;
 use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime};
 use time::OffsetDateTime;
 use type_system::{
+    Valid,
     schema::{ClosedEntityType, ConversionDefinition, DataType, EntityType, PropertyType},
     url::{BaseUrl, OntologyTypeVersion},
-    Valid,
 };
 
 use crate::store::postgres::{ontology::OntologyId, query::Table};

@@ -1,13 +1,13 @@
 use error_stack::{Report, Result, ResultExt, TryReportTupleExt};
 
 use crate::{
+    Context, Deserializer, EnumVisitor, FieldVisitor, IdentifierVisitor, ObjectAccess,
+    OptionalVisitor, Reflection, StructVisitor, Visitor,
     error::{
         DeserializerError, ExpectedLength, ExpectedType, ObjectLengthError, ReceivedLength,
         ReceivedType, TypeError, Variant, VisitorError,
     },
     schema::visitor::ObjectSchema,
-    Context, Deserializer, EnumVisitor, FieldVisitor, IdentifierVisitor, ObjectAccess,
-    OptionalVisitor, Reflection, StructVisitor, Visitor,
 };
 
 // TODO: MapDeserializer/IteratorDeserializer

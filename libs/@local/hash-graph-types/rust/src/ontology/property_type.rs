@@ -4,18 +4,18 @@ use serde::{Deserialize, Serialize};
 use type_system::{schema::PropertyType, url::VersionedUrl};
 #[cfg(feature = "utoipa")]
 use utoipa::{
-    openapi::{schema, Ref, RefOr, Schema},
     ToSchema,
+    openapi::{Ref, RefOr, Schema, schema},
 };
 use uuid::Uuid;
 
 use crate::{
+    Embedding,
     ontology::{
         OntologyProvenance, OntologyTemporalMetadata, OntologyType,
         OntologyTypeClassificationMetadata, OntologyTypeRecordId, OntologyTypeReference,
         OntologyTypeWithMetadata,
     },
-    Embedding,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]

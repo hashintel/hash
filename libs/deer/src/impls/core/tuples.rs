@@ -3,11 +3,11 @@ use core::marker::PhantomData;
 use error_stack::{Report, Result, ResultExt, TryReportTupleExt};
 
 use crate::{
+    ArrayAccess, Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
     error::{
         ArrayLengthError, DeserializeError, ExpectedLength, Location, ReceivedLength, Variant,
         VisitorError,
     },
-    ArrayAccess, Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
 };
 
 #[rustfmt::skip]

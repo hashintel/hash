@@ -319,16 +319,16 @@ pub use color::ColorMode;
 #[cfg(any(feature = "std", feature = "hooks"))]
 pub use hook::HookContext;
 #[cfg(any(feature = "std", feature = "hooks"))]
-pub(crate) use hook::{install_builtin_hooks, Format, Hooks};
+pub(crate) use hook::{Format, Hooks, install_builtin_hooks};
 #[cfg(not(any(feature = "std", feature = "hooks")))]
 use location::LocationAttachment;
 
 use crate::{
+    AttachmentKind, Context, Frame, FrameKind, Report,
     fmt::{
         color::{Color, DisplayStyle, Style},
         config::Config,
     },
-    AttachmentKind, Context, Frame, FrameKind, Report,
 };
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]

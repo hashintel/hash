@@ -2,13 +2,13 @@
 #![expect(clippy::min_ident_chars, reason = "Simplifies test cases")]
 
 use deer::{
+    ArrayAccess, Deserialize, Deserializer, Document, ObjectAccess, Reflection, Schema, Visitor,
     error::{DeserializeError, VisitorError},
     schema::Reference,
-    ArrayAccess, Deserialize, Deserializer, Document, ObjectAccess, Reflection, Schema, Visitor,
 };
-use deer_desert::{assert_tokens, assert_tokens_error, error, Token};
+use deer_desert::{Token, assert_tokens, assert_tokens_error, error};
 use error_stack::{ReportSink, Result, ResultExt};
-use serde::{ser::SerializeMap, Serialize, Serializer};
+use serde::{Serialize, Serializer, ser::SerializeMap};
 use serde_json::json;
 
 struct Properties<const N: usize>([(&'static str, Reference); N]);
@@ -106,29 +106,23 @@ impl<'de> Deserialize<'de> for ArrayStats {
 
 #[test]
 fn array_access_ok() {
-    assert_tokens(
-        &ArrayStats { total: 3, some: 3 },
-        &[
-            Token::Array { length: Some(3) },
-            Token::Number(0.into()),
-            Token::Number(0.into()),
-            Token::Number(0.into()),
-            Token::ArrayEnd,
-        ],
-    );
+    assert_tokens(&ArrayStats { total: 3, some: 3 }, &[
+        Token::Array { length: Some(3) },
+        Token::Number(0.into()),
+        Token::Number(0.into()),
+        Token::Number(0.into()),
+        Token::ArrayEnd,
+    ]);
 }
 
 #[test]
 fn array_access_not_enough_ok() {
-    assert_tokens(
-        &ArrayStats { total: 3, some: 2 },
-        &[
-            Token::Array { length: Some(3) },
-            Token::Number(0.into()),
-            Token::Number(0.into()),
-            Token::ArrayEnd,
-        ],
-    );
+    assert_tokens(&ArrayStats { total: 3, some: 2 }, &[
+        Token::Array { length: Some(3) },
+        Token::Number(0.into()),
+        Token::Number(0.into()),
+        Token::ArrayEnd,
+    ]);
 }
 
 #[test]

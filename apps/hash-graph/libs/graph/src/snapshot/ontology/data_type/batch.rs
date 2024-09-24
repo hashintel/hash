@@ -12,9 +12,9 @@ use type_system::schema::OntologyTypeResolver;
 use crate::{
     snapshot::WriteBatch,
     store::{
+        AsClient, InsertionError, PostgresStore,
         crud::Read,
         postgres::query::rows::{DataTypeConversionsRow, DataTypeEmbeddingRow, DataTypeRow},
-        AsClient, InsertionError, PostgresStore,
     },
 };
 

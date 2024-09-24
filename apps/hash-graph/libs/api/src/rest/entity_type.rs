@@ -4,6 +4,7 @@ use alloc::sync::Arc;
 use std::collections::hash_map;
 
 use authorization::{
+    AuthorizationApi, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
         EntityTypeEditorSubject, EntityTypeInstantiatorSubject, EntityTypeOwnerSubject,
@@ -11,14 +12,13 @@ use authorization::{
         EntityTypeSettingSubject, EntityTypeViewerSubject,
     },
     zanzibar::Consistency,
-    AuthorizationApi, AuthorizationApiPool,
 };
 use axum::{
+    Extension, Router,
     extract::Path,
     http::StatusCode,
     response::Response,
     routing::{get, post, put},
-    Extension, Router,
 };
 use error_stack::{Report, ResultExt};
 use graph::{
@@ -27,13 +27,13 @@ use graph::{
         patch_id_and_parse,
     },
     store::{
+        EntityTypeStore, StorePool,
         error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
         ontology::{
             ArchiveEntityTypeParams, CreateEntityTypeParams, GetEntityTypeSubgraphParams,
             GetEntityTypesParams, GetEntityTypesResponse, UnarchiveEntityTypeParams,
             UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
         },
-        EntityTypeStore, StorePool,
     },
 };
 use graph_type_defs::error::{ErrorInfo, Status, StatusPayloads};
@@ -46,7 +46,7 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::{entity_type::EntityTypeQueryToken, ConflictBehavior};
+use hash_graph_store::{ConflictBehavior, entity_type::EntityTypeQueryToken};
 use hash_map::HashMap;
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
@@ -58,11 +58,11 @@ use type_system::{
 use utoipa::{OpenApi, ToSchema};
 
 use crate::rest::{
+    AuthenticatedUserHeader, PermissionResponse, RestApiStore,
     api_resource::RoutedResource,
     json::Json,
     status::{report_to_response, status_to_response},
-    utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfEntityType},
-    AuthenticatedUserHeader, PermissionResponse, RestApiStore,
+    utoipa_typedef::{ListOrValue, MaybeListOfEntityType, subgraph::Subgraph},
 };
 
 #[derive(OpenApi)]
@@ -657,20 +657,17 @@ where
 
             Ok(Json(
                 store
-                    .create_entity_type(
-                        actor_id,
-                        CreateEntityTypeParams {
-                            schema: *schema,
-                            label_property,
-                            icon,
-                            classification: OntologyTypeClassificationMetadata::External {
-                                fetched_at: OffsetDateTime::now_utc(),
-                            },
-                            relationships,
-                            conflict_behavior: ConflictBehavior::Fail,
-                            provenance: *provenance,
+                    .create_entity_type(actor_id, CreateEntityTypeParams {
+                        schema: *schema,
+                        label_property,
+                        icon,
+                        classification: OntologyTypeClassificationMetadata::External {
+                            fetched_at: OffsetDateTime::now_utc(),
                         },
-                    )
+                        relationships,
+                        conflict_behavior: ConflictBehavior::Fail,
+                        provenance: *provenance,
+                    })
                     .await
                     .map_err(report_to_response)?,
             ))
@@ -896,16 +893,13 @@ where
         })?;
 
     store
-        .update_entity_type(
-            actor_id,
-            UpdateEntityTypesParams {
-                schema: entity_type,
-                label_property,
-                icon,
-                relationships,
-                provenance,
-            },
-        )
+        .update_entity_type(actor_id, UpdateEntityTypesParams {
+            schema: entity_type,
+            label_property,
+            icon,
+            relationships,
+            provenance,
+        })
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity type");

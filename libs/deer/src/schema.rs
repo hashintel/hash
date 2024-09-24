@@ -4,9 +4,9 @@
 use alloc::collections::BTreeMap;
 #[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{boxed::Box, format, string::String};
-use core::any::{type_name, TypeId};
+use core::any::{TypeId, type_name};
 
-use serde::{ser::SerializeMap, Serialize, Serializer};
+use serde::{Serialize, Serializer, ser::SerializeMap};
 
 pub trait Reflection: 'static {
     fn schema(doc: &mut Document) -> Schema;
@@ -246,20 +246,17 @@ impl Serialize for Document {
             .get(&self.id)
             .expect("`new()` should have created a schema for the main schema");
         map.serialize_entry("$ref", &id.as_path())?;
-        map.serialize_entry(
-            "$defs",
-            &SerializeDefinitions {
-                schemas: &self.schemas,
-                references: &self.references,
-            },
-        )?;
+        map.serialize_entry("$defs", &SerializeDefinitions {
+            schemas: &self.schemas,
+            references: &self.references,
+        })?;
 
         map.end()
     }
 }
 
 pub(crate) mod visitor {
-    use crate::{schema::Reflection, Document, Schema};
+    use crate::{Document, Schema, schema::Reflection};
 
     // TODO: below here these are temporary until stdlib is implemented
     #[expect(dead_code)]

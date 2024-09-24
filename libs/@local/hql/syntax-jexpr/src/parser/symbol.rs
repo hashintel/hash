@@ -2,15 +2,15 @@ use ecow::EcoString;
 use hql_cst::symbol::Symbol;
 use unicode_ident::{is_xid_continue, is_xid_start};
 use winnow::{
+    PResult, Parser, Stateful,
     combinator::{delimited, empty, fail, opt, peek},
     dispatch,
     error::ParserError,
     stream::{AsChar, Compare, Location, Stream, StreamIsPartial},
     token::{any, one_of, take_while},
-    PResult, Parser, Stateful,
 };
 
-use super::{string::ParseState, IntoTextRange};
+use super::{IntoTextRange, string::ParseState};
 use crate::span::Span;
 
 /// Restrictions on the valid symbols that can be used
@@ -165,8 +165,8 @@ mod test {
     use hql_span::storage::SpanStorage;
     use insta::{assert_debug_snapshot, assert_snapshot};
     use winnow::{
-        error::{ContextError, ErrMode, ParseError},
         Located, Parser, Stateful,
+        error::{ContextError, ErrMode, ParseError},
     };
 
     use super::{ParseRestriction, Symbol};

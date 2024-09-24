@@ -15,6 +15,7 @@ use harpc_wire_protocol::{
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
+        Request,
         begin::RequestBegin,
         body::RequestBody,
         flags::{RequestFlag, RequestFlags},
@@ -22,9 +23,8 @@ use harpc_wire_protocol::{
         header::RequestHeader,
         procedure::ProcedureDescriptor,
         service::ServiceDescriptor,
-        Request,
     },
-    response::{flags::ResponseFlag, Response},
+    response::{Response, flags::ResponseFlag},
     test_utils::mock_request_id,
 };
 use libp2p::Multiaddr;
@@ -32,17 +32,17 @@ use libp2p_stream::OpenStreamError;
 use tokio::{pin, sync::Notify};
 
 use super::{
-    transaction::{TransactionSink, TransactionStream},
     ListenStream, SessionConfig, SessionLayer,
+    transaction::{TransactionSink, TransactionStream},
 };
 use crate::{
     macros::non_zero,
     session::{server::config::ConcurrentConnectionLimit, test::StringEncoder},
     transport::{
+        TransportLayer,
         connection::OutgoingConnection,
         error::TransportError,
         test::{layer, memory_address},
-        TransportLayer,
     },
 };
 

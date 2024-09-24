@@ -1,8 +1,8 @@
 use core::{fmt, fmt::Write};
 
 use serde::{
-    de::{self, Deserializer, SeqAccess, Visitor},
     Deserialize, Serialize,
+    de::{self, Deserializer, SeqAccess, Visitor},
 };
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
@@ -170,14 +170,11 @@ pub enum PropertyTypeQueryPath<'p> {
     /// # use hash_graph_store::property_type::PropertyTypeQueryPath;
     /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path = PropertyTypeQueryPath::deserialize(json!(["propertyTypes", "*", "title"]))?;
-    /// assert_eq!(
-    ///     path,
-    ///     PropertyTypeQueryPath::PropertyTypeEdge {
-    ///         edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
-    ///         path: Box::new(PropertyTypeQueryPath::Title),
-    ///         direction: EdgeDirection::Outgoing,
-    ///     }
-    /// );
+    /// assert_eq!(path, PropertyTypeQueryPath::PropertyTypeEdge {
+    ///     edge_kind: OntologyEdgeKind::ConstrainsPropertiesOn,
+    ///     path: Box::new(PropertyTypeQueryPath::Title),
+    ///     direction: EdgeDirection::Outgoing,
+    /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     PropertyTypeEdge {

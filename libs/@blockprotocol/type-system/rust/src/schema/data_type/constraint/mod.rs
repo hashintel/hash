@@ -6,7 +6,7 @@ mod number;
 mod object;
 mod string;
 
-use error_stack::{bail, Report, ResultExt};
+use error_stack::{Report, ResultExt, bail};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 

@@ -8,13 +8,13 @@ use async_trait::async_trait;
 use axum::{
     body::{Body, Bytes},
     extract::FromRequest,
-    http::{header, HeaderMap, HeaderValue, Request},
+    http::{HeaderMap, HeaderValue, Request, header},
     response::{IntoResponse, Response},
 };
 use bytes::{BufMut, BytesMut};
 use graph_type_defs::error::{ErrorInfo, Status, StatusPayloads};
 use hash_status::StatusCode;
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{Serialize, de::DeserializeOwned};
 use serde_json::error::Category;
 
 use crate::rest::status::status_to_response;

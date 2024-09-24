@@ -3,12 +3,12 @@ use core::{borrow::Borrow, fmt::Debug, hash::Hash};
 use std::collections::HashMap;
 
 use authorization::{
+    AuthorizationApi,
     backend::PermissionAssertion,
     schema::{DataTypePermission, EntityPermission, EntityTypePermission, PropertyTypePermission},
     zanzibar::Consistency,
-    AuthorizationApi,
 };
-use error_stack::{ensure, Report, ResultExt};
+use error_stack::{Report, ResultExt, ensure};
 use futures::TryStreamExt;
 use graph_types::{
     account::AccountId,
@@ -33,7 +33,7 @@ use type_system::{
 };
 use validation::EntityProvider;
 
-use crate::store::{crud::Read, AsClient, PostgresStore, QueryError};
+use crate::store::{AsClient, PostgresStore, QueryError, crud::Read};
 
 #[derive(Debug, Clone)]
 enum Access<T> {

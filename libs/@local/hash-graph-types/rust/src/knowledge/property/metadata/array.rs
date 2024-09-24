@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::knowledge::{property::PropertyProvenance, Confidence};
+use crate::knowledge::{Confidence, property::PropertyProvenance};
 
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]

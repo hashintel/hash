@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use type_system::url::{BaseUrl, VersionedUrl};
 
-use crate::knowledge::{property::PropertyProvenance, Confidence};
+use crate::knowledge::{Confidence, property::PropertyProvenance};
 
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]

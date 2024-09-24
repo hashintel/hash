@@ -10,8 +10,8 @@ use core::fmt::{Display, Formatter};
 use std::path::Path;
 
 use error_stack::{
-    fmt::{Charset, ColorMode},
     Report, Result,
+    fmt::{Charset, ColorMode},
 };
 
 type Config = String;

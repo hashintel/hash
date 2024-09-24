@@ -8,19 +8,19 @@ use futures::TryFutureExt;
 use graph_types::{
     account::{AccountId, CreatedById, EditionCreatedById},
     knowledge::{
+        Confidence, EntityTypeIdDiff,
         entity::{Entity, EntityEmbedding, EntityId, EntityUuid, ProvidedEntityEditionProvenance},
         link::LinkData,
         property::{
             PropertyDiff, PropertyPatchOperation, PropertyPath, PropertyWithMetadataObject,
         },
-        Confidence, EntityTypeIdDiff,
     },
     owned_by_id::OwnedById,
 };
 use hash_graph_store::{
     entity::EntityQueryPath,
     filter::Filter,
-    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved, Subgraph},
+    subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
@@ -30,14 +30,14 @@ use type_system::{
 };
 #[cfg(feature = "utoipa")]
 use utoipa::{
-    openapi::{self, schema, Ref, RefOr, Schema},
     ToSchema,
+    openapi::{self, Ref, RefOr, Schema, schema},
 };
 use validation::ValidateEntityComponents;
 
 use crate::store::{
-    crud::Sorting, postgres::CursorField, InsertionError, NullOrdering, Ordering, QueryError,
-    UpdateError,
+    InsertionError, NullOrdering, Ordering, QueryError, UpdateError, crud::Sorting,
+    postgres::CursorField,
 };
 
 #[derive(Debug, Clone, Deserialize)]

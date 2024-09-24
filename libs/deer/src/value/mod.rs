@@ -2,9 +2,9 @@ use error_stack::{Report, Result, ResultExt};
 use num_traits::NumCast;
 
 use crate::{
-    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
     Context, Deserialize, Deserializer, EnumVisitor, IdentifierVisitor, Number, OptionalVisitor,
     Reflection, StructVisitor, Visitor,
+    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
 };
 
 pub trait IntoDeserializer<'de> {

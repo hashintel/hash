@@ -5,7 +5,7 @@ use temporal_versioning::{
     TemporalBound, TemporalInterval, TemporalTagged, TimeAxis, Timestamp, TransactionTime,
 };
 #[cfg(feature = "utoipa")]
-use utoipa::{openapi, ToSchema};
+use utoipa::{ToSchema, openapi};
 
 /// Marker trait for any temporal axis.
 ///

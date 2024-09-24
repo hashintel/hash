@@ -8,9 +8,9 @@ use derive_where::derive_where;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, ToSql, Type};
 use serde::{Deserialize, Serialize};
-use time::{format_description::well_known::Iso8601, OffsetDateTime};
+use time::{OffsetDateTime, format_description::well_known::Iso8601};
 #[cfg(feature = "utoipa")]
-use utoipa::{openapi, ToSchema};
+use utoipa::{ToSchema, openapi};
 
 use crate::TemporalTagged;
 

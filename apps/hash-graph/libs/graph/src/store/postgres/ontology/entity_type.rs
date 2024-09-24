@@ -2,16 +2,17 @@ use core::iter::once;
 use std::collections::{HashMap, HashSet};
 
 use authorization::{
+    AuthorizationApi,
     backend::ModifyRelationshipOperation,
     schema::{
         EntityTypeOwnerSubject, EntityTypePermission, EntityTypeRelationAndSubject, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
-    AuthorizationApi,
 };
-use error_stack::{ensure, Report, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt, ensure};
 use futures::{StreamExt, TryStreamExt};
 use graph_types::{
+    Embedding,
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
         DataTypeId, EntityTypeId, EntityTypeMetadata, EntityTypeWithMetadata,
@@ -19,19 +20,18 @@ use graph_types::{
         OntologyTypeClassificationMetadata, OntologyTypeRecordId, PartialEntityTypeMetadata,
         PropertyTypeId,
     },
-    Embedding,
 };
 use hash_graph_store::{
     entity_type::EntityTypeQueryPath,
     filter::{Filter, FilterExpression, ParameterList},
     subgraph::{
+        Subgraph, SubgraphRecord,
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
         identifier::{EntityTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
             VariableAxis, VariableTemporalAxisUnresolved,
         },
-        Subgraph, SubgraphRecord,
     },
 };
 use postgres_types::{Json, ToSql};
@@ -39,12 +39,14 @@ use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTi
 use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
+    Validator,
     schema::{ClosedEntityType, EntityType, EntityTypeValidator},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    Validator,
 };
 
 use crate::store::{
+    AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, StoreCache,
+    StoreProvider, UpdateError,
     crud::{QueryResult, Read, ReadPaginated, VersionedUrlSorting},
     error::DeletionError,
     ontology::{
@@ -54,15 +56,13 @@ use crate::store::{
         UpdateEntityTypesParams,
     },
     postgres::{
+        ResponseCountMap, TraversalContext,
         crud::QueryRecordDecode,
         ontology::{
-            read::OntologyTypeTraversalData, OntologyId, PostgresOntologyTypeClassificationMetadata,
+            OntologyId, PostgresOntologyTypeClassificationMetadata, read::OntologyTypeTraversalData,
         },
         query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
-        ResponseCountMap, TraversalContext,
     },
-    AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, StoreCache,
-    StoreProvider, UpdateError,
 };
 
 impl<C, A> PostgresStore<C, A>
@@ -634,13 +634,10 @@ where
                     .assert_permission()
                     .change_context(InsertionError)?;
 
-                relationships.insert((
-                    entity_type_id,
-                    EntityTypeRelationAndSubject::Owner {
-                        subject: EntityTypeOwnerSubject::Web { id: *owned_by_id },
-                        level: 0,
-                    },
-                ));
+                relationships.insert((entity_type_id, EntityTypeRelationAndSubject::Owner {
+                    subject: EntityTypeOwnerSubject::Web { id: *owned_by_id },
+                    level: 0,
+                }));
             }
 
             if let Some((ontology_id, temporal_versioning)) = transaction
@@ -1062,13 +1059,12 @@ where
 
             if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
-                    .start_update_entity_type_embeddings_workflow(
-                        actor_id,
-                        &[EntityTypeWithMetadata {
+                    .start_update_entity_type_embeddings_workflow(actor_id, &[
+                        EntityTypeWithMetadata {
                             schema,
                             metadata: metadata.clone(),
-                        }],
-                    )
+                        },
+                    ])
                     .await
                     .change_context(UpdateError)?;
             }
@@ -1093,14 +1089,11 @@ where
         actor_id: AccountId,
         params: UnarchiveEntityTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.unarchive_ontology_type(
-            &params.entity_type_id,
-            &OntologyEditionProvenance {
-                created_by_id: EditionCreatedById::new(actor_id),
-                archived_by_id: None,
-                user_defined: params.provenance,
-            },
-        )
+        self.unarchive_ontology_type(&params.entity_type_id, &OntologyEditionProvenance {
+            created_by_id: EditionCreatedById::new(actor_id),
+            archived_by_id: None,
+            user_defined: params.provenance,
+        })
         .await
     }
 

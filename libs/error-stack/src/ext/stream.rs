@@ -2,7 +2,7 @@ use core::{
     future::Future,
     mem,
     pin::Pin,
-    task::{ready, Context, Poll},
+    task::{Context, Poll, ready},
 };
 
 use futures_core::{FusedFuture, FusedStream, TryStream};

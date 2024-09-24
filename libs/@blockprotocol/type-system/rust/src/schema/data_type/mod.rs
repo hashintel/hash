@@ -18,9 +18,9 @@ mod validation;
 
 use alloc::sync::Arc;
 use core::{cmp, fmt, mem};
-use std::collections::{hash_map::RawEntryMut, HashMap, HashSet};
+use std::collections::{HashMap, HashSet, hash_map::RawEntryMut};
 
-use error_stack::{bail, Report};
+use error_stack::{Report, bail};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use thiserror::Error;
@@ -105,11 +105,11 @@ mod raw {
     use super::{DataTypeSchemaTag, DataTypeTag};
     use crate::{
         schema::{
+            DataTypeReference,
             data_type::constraint::{
                 ArraySchema, BooleanSchema, NullSchema, NumberSchema, ObjectSchema, StringSchema,
                 ValueConstraints,
             },
-            DataTypeReference,
         },
         url::VersionedUrl,
     };
@@ -256,26 +256,20 @@ impl OntologyTypeResolver {
             .raw_entry_mut()
             .from_key(&data_type.id)
             .or_insert_with(|| {
-                (
-                    data_type.id.clone(),
-                    DataTypeCacheEntry {
-                        data_type,
-                        metadata: None,
-                    },
-                )
+                (data_type.id.clone(), DataTypeCacheEntry {
+                    data_type,
+                    metadata: None,
+                })
             });
     }
 
     pub fn add_closed(&mut self, data_type: Arc<DataType>, metadata: Arc<ClosedDataTypeMetadata>) {
         match self.data_types.raw_entry_mut().from_key(&data_type.id) {
             RawEntryMut::Vacant(entry) => {
-                entry.insert(
-                    data_type.id.clone(),
-                    DataTypeCacheEntry {
-                        data_type,
-                        metadata: Some(metadata),
-                    },
-                );
+                entry.insert(data_type.id.clone(), DataTypeCacheEntry {
+                    data_type,
+                    metadata: Some(metadata),
+                });
             }
             RawEntryMut::Occupied(mut entry) => {
                 entry.insert(DataTypeCacheEntry {
@@ -521,7 +515,7 @@ impl DataType {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::tests::{ensure_validation_from_str, JsonEqualityCheck};
+    use crate::utils::tests::{JsonEqualityCheck, ensure_validation_from_str};
 
     #[tokio::test]
     async fn text() {

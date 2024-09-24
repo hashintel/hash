@@ -1,6 +1,6 @@
 use deer::{
-    error::{DeserializerError, Error, ObjectAccessError, ObjectLengthError, Variant},
     Context, Deserializer as _, FieldVisitor,
+    error::{DeserializerError, Error, ObjectAccessError, ObjectLengthError, Variant},
 };
 use error_stack::{Report, ReportSink, Result, ResultExt};
 use justjson::parser::{PeekableTokenKind, Token};

@@ -10,11 +10,11 @@ use harpc_wire_protocol::response::kind::{ErrorCode, ResponseKind};
 use tower::{Layer, Service, ServiceExt};
 
 use crate::{
-    body::{controlled::Controlled, full::Full, Body},
+    Extensions,
+    body::{Body, controlled::Controlled, full::Full},
     either::Either,
     request::Request,
     response::{Parts, Response},
-    Extensions,
 };
 
 pub struct BoxedError(Box<dyn Error + Send + Sync + 'static>);
@@ -164,12 +164,12 @@ pub(crate) mod test {
     use tower_test::mock::spawn_layer;
 
     use crate::{
-        body::{controlled::Controlled, full::Full, BodyExt, Frame},
+        Extensions,
+        body::{BodyExt, Frame, controlled::Controlled, full::Full},
         either::Either,
         layer::error::HandleErrorLayer,
         request::{self, Request},
         response::{self, Response},
-        Extensions,
     };
 
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]

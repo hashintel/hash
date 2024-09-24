@@ -1,12 +1,12 @@
 use core::{iter::repeat, str::FromStr};
 use std::collections::HashSet;
 
-use authorization::{schema::WebOwnerSubject, AuthorizationApi, NoAuthorization};
+use authorization::{AuthorizationApi, NoAuthorization, schema::WebOwnerSubject};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
 use graph::store::{
-    knowledge::{CreateEntityParams, GetEntitiesParams},
     EntityQuerySorting, EntityStore,
+    knowledge::{CreateEntityParams, GetEntitiesParams},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
@@ -30,7 +30,7 @@ use tokio::runtime::Runtime;
 use type_system::schema::EntityType;
 use uuid::Uuid;
 
-use crate::util::{seed, setup, setup_subscriber, Store, StoreWrapper};
+use crate::util::{Store, StoreWrapper, seed, setup, setup_subscriber};
 
 const DB_NAME: &str = "entity_scale";
 
@@ -57,13 +57,10 @@ async fn seed_db<A: AuthorizationApi>(
         .await
         .expect("could not insert account id");
     transaction
-        .insert_web_id(
-            account_id,
-            InsertWebIdParams {
-                owned_by_id: OwnedById::new(account_id.into_uuid()),
-                owner: WebOwnerSubject::Account { id: account_id },
-            },
-        )
+        .insert_web_id(account_id, InsertWebIdParams {
+            owned_by_id: OwnedById::new(account_id.into_uuid()),
+            owner: WebOwnerSubject::Account { id: account_id },
+        })
         .await
         .expect("could not create web id");
 
@@ -154,31 +151,28 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
         },
         |entity_record_id| async move {
             store
-                .get_entities(
-                    actor_id,
-                    GetEntitiesParams {
-                        filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(
-                                Some(TemporalBound::Unbounded),
-                                None,
-                            ),
-                        },
-                        sorting: EntityQuerySorting {
-                            paths: Vec::new(),
-                            cursor: None,
-                        },
-                        limit: None,
-                        conversions: Vec::new(),
-                        include_count: false,
-                        include_drafts: false,
-                        include_web_ids: false,
-                        include_created_by_ids: false,
-                        include_edition_created_by_ids: false,
-                        include_type_ids: false,
+                .get_entities(actor_id, GetEntitiesParams {
+                    filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(
+                            Some(TemporalBound::Unbounded),
+                            None,
+                        ),
                     },
-                )
+                    sorting: EntityQuerySorting {
+                        paths: Vec::new(),
+                        cursor: None,
+                    },
+                    limit: None,
+                    conversions: Vec::new(),
+                    include_count: false,
+                    include_drafts: false,
+                    include_web_ids: false,
+                    include_created_by_ids: false,
+                    include_edition_created_by_ids: false,
+                    include_type_ids: false,
+                })
                 .await
                 .expect("failed to read entity from store");
         },

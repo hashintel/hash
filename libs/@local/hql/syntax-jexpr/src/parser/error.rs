@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
 
 use hql_diagnostics::{
-    category::Category, help::Help, label::Label, rob::RefOrBox, severity::Severity, Diagnostic,
+    Diagnostic, category::Category, help::Help, label::Label, rob::RefOrBox, severity::Severity,
 };
 use hql_span::SpanId;
 use winnow::error::{ContextError, ErrMode, ParseError};

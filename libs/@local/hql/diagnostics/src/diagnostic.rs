@@ -5,7 +5,7 @@ use core::{
 
 use ariadne::ColorGenerator;
 use error_stack::{Report, Result, TryReportIteratorExt, TryReportTupleExt};
-use hql_span::{storage::SpanStorage, tree::SpanNode, Span, SpanId};
+use hql_span::{Span, SpanId, storage::SpanStorage, tree::SpanNode};
 
 use crate::{
     category::Category,
@@ -16,7 +16,7 @@ use crate::{
     note::Note,
     rob::RefOrBox,
     severity::Severity,
-    span::{absolute_span, AbsoluteDiagnosticSpan, TransformSpan},
+    span::{AbsoluteDiagnosticSpan, TransformSpan, absolute_span},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]

@@ -8,8 +8,8 @@ use tsify::Tsify;
 
 use crate::{
     schema::{
-        entity_type::InverseEntityTypeMetadata, EntityTypeReference, OneOfSchema,
-        PropertyTypeReference, PropertyValueArray, ValueOrArray,
+        EntityTypeReference, OneOfSchema, PropertyTypeReference, PropertyValueArray, ValueOrArray,
+        entity_type::InverseEntityTypeMetadata,
     },
     url::{BaseUrl, VersionedUrl},
 };
@@ -85,7 +85,7 @@ mod links {
     use serde::{Deserialize, Serialize};
 
     use crate::{
-        schema::{entity_type::raw::Links, EntityTypeReference, OneOfSchema, PropertyValueArray},
+        schema::{EntityTypeReference, OneOfSchema, PropertyValueArray, entity_type::raw::Links},
         url::VersionedUrl,
     };
 
@@ -106,16 +106,13 @@ mod links {
 
         let mut map = serializer.serialize_map(Some(links.len()))?;
         for (url, val) in links {
-            map.serialize_entry(
-                &url,
-                &PropertyValueArray {
-                    items: Maybe {
-                        inner: val.items.as_ref(),
-                    },
-                    min_items: val.min_items,
-                    max_items: val.max_items,
+            map.serialize_entry(&url, &PropertyValueArray {
+                items: Maybe {
+                    inner: val.items.as_ref(),
                 },
-            )?;
+                min_items: val.min_items,
+                max_items: val.max_items,
+            })?;
         }
         map.end()
     }

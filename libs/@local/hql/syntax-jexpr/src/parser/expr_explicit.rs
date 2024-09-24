@@ -1,9 +1,9 @@
 use hql_cst::{
-    expr::{constant::Constant, Expr, ExprKind},
+    expr::{Expr, ExprKind, constant::Constant},
     r#type::Type,
     value::Value,
 };
-use hql_diagnostics::{help::Help, Diagnostic};
+use hql_diagnostics::{Diagnostic, help::Help};
 use hql_span::SpanId;
 use winnow::{Located, Parser};
 
@@ -12,7 +12,7 @@ use super::{
         duplicate_key, expected_non_empty_object, invalid_type, required_key, unexpected_token,
         unknown_key,
     },
-    object::{parse_object, Key},
+    object::{Key, parse_object},
     stream::TokenStream,
     string::ParseState,
     r#type::parse_type,

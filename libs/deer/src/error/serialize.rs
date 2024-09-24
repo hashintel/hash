@@ -9,8 +9,8 @@ use core::{
 
 use error_stack::{Context, Frame, Report};
 use serde::{
-    ser::{Error as _, SerializeMap},
     Serialize, Serializer,
+    ser::{Error as _, SerializeMap},
 };
 
 use crate::error::{Error, ErrorProperties, Id, Namespace, Variant};
@@ -282,14 +282,14 @@ mod tests {
     use similar_asserts::assert_serde_eq;
 
     use crate::{
+        Deserialize, Number, Reflection,
         error::{
-            serialize::{divide_frames, FrameSplitIterator},
-            Error, ErrorProperties, ExpectedType, Id, Location, MissingError, Namespace,
-            ReceivedValue, ReportExt, ValueError, Variant, VisitorError, NAMESPACE,
+            Error, ErrorProperties, ExpectedType, Id, Location, MissingError, NAMESPACE, Namespace,
+            ReceivedValue, ReportExt, ValueError, Variant, VisitorError,
+            serialize::{FrameSplitIterator, divide_frames},
         },
         id,
         schema::visitor::StringSchema,
-        Deserialize, Number, Reflection,
     };
 
     #[derive(Debug)]
@@ -477,10 +477,9 @@ mod tests {
         // [A, G, Y Error, Z Error]
         // [A, G, Y Error, Z Error, Z Error]
         assert_stack(&stacks[0], &["A", "B", "Y Error", "Z Error"]);
-        assert_stack(
-            &stacks[1],
-            &["A", "B", "Y Error", "Z Error", "D", "Z Error"],
-        );
+        assert_stack(&stacks[1], &[
+            "A", "B", "Y Error", "Z Error", "D", "Z Error",
+        ]);
         assert_stack(&stacks[2], &["A", "B", "Y Error", "E", "Z Error"]);
         assert_stack(&stacks[3], &["A", "C", "Y Error", "F", "Z Error"]);
         assert_stack(&stacks[4], &["A", "G", "Y Error", "Z Error"]);
@@ -510,10 +509,9 @@ mod tests {
         let mut frames = divide_frames(split).into_iter();
 
         assert_stack(&frames.next().expect("first chain"), &["D", "C", "Z Error"]);
-        assert_stack(
-            &frames.next().expect("second chain"),
-            &["D", "C", "Z Error", "B", "A", "Z Error"],
-        );
+        assert_stack(&frames.next().expect("second chain"), &[
+            "D", "C", "Z Error", "B", "A", "Z Error",
+        ]);
     }
 
     #[test]

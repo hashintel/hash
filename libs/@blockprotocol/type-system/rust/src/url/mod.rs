@@ -7,10 +7,10 @@ use bytes::BytesMut;
 pub use error::{ParseBaseUrlError, ParseVersionedUrlError};
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use url::Url;
 #[cfg(feature = "utoipa")]
-use utoipa::{openapi, ToSchema};
+use utoipa::{ToSchema, openapi};
 
 mod error;
 // #[cfg(target_arch = "wasm32")]

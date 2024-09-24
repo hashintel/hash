@@ -1,8 +1,8 @@
 use core::{iter::repeat, str::FromStr};
-use std::collections::{hash_map::Entry, HashMap, HashSet};
+use std::collections::{HashMap, HashSet, hash_map::Entry};
 
-use authorization::{schema::WebOwnerSubject, AuthorizationApi};
-use graph::store::{knowledge::CreateEntityParams, AsClient, EntityStore};
+use authorization::{AuthorizationApi, schema::WebOwnerSubject};
+use graph::store::{AsClient, EntityStore, knowledge::CreateEntityParams};
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     account::AccountId,
@@ -17,7 +17,7 @@ use hash_graph_store::account::{AccountStore, InsertAccountIdParams, InsertWebId
 use type_system::{schema::EntityType, url::VersionedUrl};
 use uuid::Uuid;
 
-use crate::util::{seed, StoreWrapper};
+use crate::util::{StoreWrapper, seed};
 
 // SEE: This is quite temporary at the moment. We'll want a lot more variation, a greater
 //  quantity of types, increased number of versions, etc.
@@ -136,13 +136,10 @@ async fn seed_db<A: AuthorizationApi>(account_id: AccountId, store_wrapper: &mut
         .await
         .expect("could not insert account id");
     transaction
-        .insert_web_id(
-            account_id,
-            InsertWebIdParams {
-                owned_by_id: OwnedById::new(account_id.into_uuid()),
-                owner: WebOwnerSubject::Account { id: account_id },
-            },
-        )
+        .insert_web_id(account_id, InsertWebIdParams {
+            owned_by_id: OwnedById::new(account_id.into_uuid()),
+            owner: WebOwnerSubject::Account { id: account_id },
+        })
         .await
         .expect("could not create web id");
 

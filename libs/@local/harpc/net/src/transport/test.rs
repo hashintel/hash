@@ -6,22 +6,22 @@ use core::{
     time::Duration,
 };
 
-use futures::{sink, SinkExt, StreamExt};
+use futures::{SinkExt, StreamExt, sink};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
-        body::RequestBody, flags::RequestFlags, frame::RequestFrame, header::RequestHeader, Request,
+        Request, body::RequestBody, flags::RequestFlags, frame::RequestFrame, header::RequestHeader,
     },
     response::{
-        body::ResponseBody, flags::ResponseFlags, frame::ResponseFrame, header::ResponseHeader,
-        Response,
+        Response, body::ResponseBody, flags::ResponseFlags, frame::ResponseFrame,
+        header::ResponseHeader,
     },
     test_utils::mock_request_id,
 };
 use libp2p::{
-    core::transport::MemoryTransport, multiaddr, swarm::DialError, Multiaddr, TransportError,
+    Multiaddr, TransportError, core::transport::MemoryTransport, multiaddr, swarm::DialError,
 };
 use libp2p_stream::OpenStreamError;
 use tokio_util::sync::CancellationToken;

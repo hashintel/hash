@@ -80,7 +80,7 @@ pub use unknown::{
 };
 pub use value::{MissingError, ReceivedValue, ValueError};
 
-use crate::error::serialize::{impl_serialize, Export};
+use crate::error::serialize::{Export, impl_serialize};
 
 mod duplicate;
 mod extra;

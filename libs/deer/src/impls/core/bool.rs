@@ -1,8 +1,8 @@
 use error_stack::{Result, ResultExt};
 
 use crate::{
-    error::{DeserializeError, VisitorError},
     Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
+    error::{DeserializeError, VisitorError},
 };
 
 struct BoolVisitor;

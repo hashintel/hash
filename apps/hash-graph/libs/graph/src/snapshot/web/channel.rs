@@ -1,20 +1,20 @@
 use core::{
     pin::Pin,
     result::Result as StdResult,
-    task::{ready, Context, Poll},
+    task::{Context, Poll, ready},
 };
 
 use authorization::schema::WebRelationAndSubject;
 use error_stack::{Report, ResultExt};
 use futures::{
-    channel::mpsc::{self, Sender},
-    stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
+    channel::mpsc::{self, Sender},
+    stream::{BoxStream, SelectAll, select_all},
 };
 use graph_types::owned_by_id::OwnedById;
 
 use crate::{
-    snapshot::{web::WebBatch, SnapshotRestoreError, Web},
+    snapshot::{SnapshotRestoreError, Web, web::WebBatch},
     store::postgres::query::rows::WebRow,
 };
 

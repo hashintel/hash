@@ -45,7 +45,7 @@ pub(crate) mod tests {
     use coverage_helper::test;
 
     use crate::schema::{
-        tests::validate_schema, Run, SarifLog, SchemaVersion, Tool, ToolComponent,
+        Run, SarifLog, SchemaVersion, Tool, ToolComponent, tests::validate_schema,
     };
 
     #[test]

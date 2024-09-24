@@ -7,11 +7,11 @@ use hash_graph_store::{
 };
 
 use crate::store::postgres::query::{
+    PostgresQueryPath,
     table::{
         Column, EntityEditions, EntityEmbeddings, EntityHasLeftEntity, EntityHasRightEntity,
         EntityIds, EntityIsOfTypeIds, EntityTemporalMetadata, JsonField, ReferenceTable, Relation,
     },
-    PostgresQueryPath,
 };
 
 impl PostgresQueryPath for EntityQueryPath<'_> {

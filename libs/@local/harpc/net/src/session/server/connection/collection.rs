@@ -1,8 +1,8 @@
 use alloc::sync::Arc;
 use core::sync::atomic::{AtomicU64, Ordering};
 
-use harpc_wire_protocol::request::{id::RequestId, Request};
-use scc::{ebr::Guard, hash_index::Entry, HashIndex};
+use harpc_wire_protocol::request::{Request, id::RequestId};
+use scc::{HashIndex, ebr::Guard, hash_index::Entry};
 use tachyonix::SendTimeoutError;
 use tokio::sync::{Notify, OwnedSemaphorePermit, Semaphore};
 use tokio_util::sync::CancellationToken;
@@ -10,7 +10,7 @@ use tokio_util::sync::CancellationToken;
 use crate::session::{
     error::{ConnectionTransactionLimitReachedError, TransactionLaggingError},
     gc::IsCancelled,
-    server::{transaction::ServerTransactionPermit, SessionConfig},
+    server::{SessionConfig, transaction::ServerTransactionPermit},
 };
 
 #[derive(Debug)]
