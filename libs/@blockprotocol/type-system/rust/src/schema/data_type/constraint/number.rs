@@ -58,9 +58,20 @@ pub enum NumberValidationError {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase")]
+pub enum NumberTypeTag {
+    Number,
+    #[serde(skip)]
+    Integer,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NumberSchema {
+    pub r#type: NumberTypeTag,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(default, skip_serializing_if = "DataTypeLabel::is_empty")]
@@ -111,6 +122,28 @@ fn float_less(lhs: f64, rhs: f64) -> bool {
 }
 
 impl NumberSchema {
+    /// Validates the provided value against the number constraints.
+    ///
+    /// # Errors
+    ///
+    /// - [`InsufficientPrecision`] if the value cannot be converted into a 64-bit representation of
+    ///   EEE floating point number.
+    /// - [`InvalidConstValue`] if the value is not equal to the expected value.
+    /// - [`InvalidEnumValue`] if the value is not one of the expected values.
+    /// - [`Minimum`] if the value is less than the minimum value.
+    /// - [`Maximum`] if the value is greater than the maximum value.
+    /// - [`ExclusiveMinimum`] if the value is less than or equal to the minimum value.
+    /// - [`ExclusiveMaximum`] if the value is greater than or equal to the maximum value.
+    /// - [`MultipleOf`] if the value is not a multiple of the expected value.
+    ///
+    /// [`InsufficientPrecision`]: NumberValidationError::InsufficientPrecision
+    /// [`InvalidConstValue`]: NumberValidationError::InvalidConstValue
+    /// [`InvalidEnumValue`]: NumberValidationError::InvalidEnumValue
+    /// [`Minimum`]: NumberValidationError::Minimum
+    /// [`Maximum`]: NumberValidationError::Maximum
+    /// [`ExclusiveMinimum`]: NumberValidationError::ExclusiveMinimum
+    /// [`ExclusiveMaximum`]: NumberValidationError::ExclusiveMaximum
+    /// [`MultipleOf`]: NumberValidationError::MultipleOf
     pub fn validate_value(
         &self,
         number: &JsonNumber,
@@ -176,7 +209,10 @@ impl NumberSchema {
             }
         }
 
-        if let Some(expected) = self.multiple_of {
+        if let Some(expected) = self
+            .multiple_of
+            .or_else(|| matches!(self.r#type, NumberTypeTag::Integer).then_some(1.0))
+        {
             #[expect(
                 clippy::float_arithmetic,
                 clippy::modulo_arithmetic,

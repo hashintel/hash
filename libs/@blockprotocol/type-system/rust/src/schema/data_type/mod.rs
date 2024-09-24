@@ -3,6 +3,13 @@ mod conversion;
 
 pub use self::{
     closed::{ClosedDataType, ClosedDataTypeMetadata},
+    constraint::{
+        ArraySchema, ArrayTypeTag, ArrayValidationError, BooleanSchema, BooleanTypeTag,
+        BooleanValidationError, ConstraintError, NullSchema, NullTypeTag, NumberSchema,
+        NumberTypeTag, NumberValidationError, ObjectSchema, ObjectTypeTag, ObjectValidationError,
+        StringFormat, StringFormatError, StringSchema, StringTypeTag, StringValidationError,
+        ValueConstraints,
+    },
     conversion::{
         ConversionDefinition, ConversionExpression, ConversionValue, Conversions, Operator,
         Variable,
@@ -25,10 +32,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use thiserror::Error;
 
-use crate::{
-    schema::data_type::constraint::{ConstraintError, ValueConstraints},
-    url::VersionedUrl,
-};
+use crate::url::VersionedUrl;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -107,8 +111,8 @@ mod raw {
         schema::{
             DataTypeReference,
             data_type::constraint::{
-                ArraySchema, BooleanSchema, NullSchema, NumberSchema, ObjectSchema, StringSchema,
-                ValueConstraints,
+                AnyOfConstraint, ArraySchema, BooleanSchema, NullSchema, NumberSchema,
+                ObjectSchema, StringSchema, ValueConstraints,
             },
         },
         url::VersionedUrl,
@@ -136,7 +140,7 @@ mod raw {
 
     #[derive(Deserialize)]
     #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
-    #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
+    #[serde(untagged, rename_all = "camelCase", deny_unknown_fields)]
     pub enum DataType {
         Null {
             #[serde(flatten)]
@@ -174,6 +178,12 @@ mod raw {
             #[serde(flatten)]
             common: UnconstrainedDataType,
         },
+        AnyOf {
+            #[serde(flatten)]
+            schema: AnyOfConstraint,
+            #[serde(flatten)]
+            common: UnconstrainedDataType,
+        },
     }
 
     impl From<DataType> for super::DataType {
@@ -185,6 +195,7 @@ mod raw {
                 DataType::String { schema, common } => (common, ValueConstraints::String(schema)),
                 DataType::Array { schema, common } => (common, ValueConstraints::Array(schema)),
                 DataType::Object { schema, common } => (common, ValueConstraints::Object(schema)),
+                DataType::AnyOf { schema, common } => (common, ValueConstraints::AnyOf(schema)),
             };
 
             Self {
@@ -516,6 +527,16 @@ impl DataType {
 mod tests {
     use super::*;
     use crate::utils::tests::{JsonEqualityCheck, ensure_validation_from_str};
+
+    #[tokio::test]
+    async fn value() {
+        ensure_validation_from_str::<DataType, _>(
+            graph_test_data::data_type::VALUE_V1,
+            DataTypeValidator,
+            JsonEqualityCheck::Yes,
+        )
+        .await;
+    }
 
     #[tokio::test]
     async fn text() {

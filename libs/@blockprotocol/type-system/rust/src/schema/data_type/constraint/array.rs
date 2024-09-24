@@ -46,8 +46,16 @@ pub enum ItemsConstraints {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase")]
+pub enum ArrayTypeTag {
+    Array,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ArraySchema {
+    pub r#type: ArrayTypeTag,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(default, skip_serializing_if = "DataTypeLabel::is_empty")]
@@ -79,6 +87,23 @@ pub struct ArraySchema {
 }
 
 impl ArraySchema {
+    /// Validates the provided value against the array constraints.
+    ///
+    /// # Errors
+    ///
+    /// - [`InvalidConstValue`] if the value is not equal to the expected value.
+    /// - [`InvalidEnumValue`] if the value is not one of the expected values.
+    /// - [`MinItems`] if the value has too few items.
+    /// - [`MaxItems`] if the value has too many items.
+    /// - [`Items`] if the value does not match the expected item constraints.
+    /// - [`PrefixItems`] if the value does not match the expected prefix item constraints.
+    ///
+    /// [`InvalidConstValue`]: ArrayValidationError::InvalidConstValue
+    /// [`InvalidEnumValue`]: ArrayValidationError::InvalidEnumValue
+    /// [`MinItems`]: ArrayValidationError::MinItems
+    /// [`MaxItems`]: ArrayValidationError::MaxItems
+    /// [`Items`]: ArrayValidationError::Items
+    /// [`PrefixItems`]: ArrayValidationError::PrefixItems
     pub fn validate_value(
         &self,
         values: &[JsonValue],

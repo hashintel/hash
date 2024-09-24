@@ -1,12 +1,12 @@
 use core::{
-    net::{Ipv4Addr, Ipv6Addr},
+    net::{AddrParseError, Ipv4Addr, Ipv6Addr},
     str::FromStr,
 };
 use std::{collections::HashSet, sync::OnceLock};
 
 use email_address::EmailAddress;
 use error_stack::{Report, ReportSink};
-use iso8601_duration::Duration;
+use iso8601_duration::{Duration, ParseDurationError};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
@@ -14,7 +14,29 @@ use thiserror::Error;
 use url::{Host, Url};
 use uuid::Uuid;
 
-use crate::schema::{DataTypeLabel, data_type::constraint::error::StringFormatError};
+use crate::schema::DataTypeLabel;
+
+#[derive(Debug, Error)]
+pub enum StringFormatError {
+    #[error(transparent)]
+    Url(url::ParseError),
+    #[error(transparent)]
+    Uuid(uuid::Error),
+    #[error(transparent)]
+    Regex(regex::Error),
+    #[error(transparent)]
+    Email(email_address::Error),
+    #[error(transparent)]
+    IpAddress(AddrParseError),
+    #[error("The value does not match the date-time format `YYYY-MM-DDTHH:MM:SS.sssZ`")]
+    DateTime,
+    #[error("The value does not match the date format `YYYY-MM-DD`")]
+    Date,
+    #[error("The value does not match the time format `HH:MM:SS.sss`")]
+    Time,
+    #[error("{0:?}")]
+    Duration(ParseDurationError),
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -52,6 +74,32 @@ impl StringFormat {
 }
 
 impl StringFormat {
+    /// Validates the provided value against the string format.
+    ///
+    /// # Errors
+    ///
+    /// - [`Url`] if the value is not a valid URL.
+    /// - [`IpAddress`] if the value is not a valid IP address as specified by [`Ipv4Addr`] or
+    ///   [`Ipv6Addr`].
+    /// - [`Uuid`] if the value is not a valid [UUID][uuid::Uuid].
+    /// - [`Regex`] if the value is not a valid [regular expression][regex::Regex].
+    /// - [`Email`] if the value is not a valid [email address][email_address::EmailAddress].
+    /// - [`Date`] if the value is not a valid date in the format `YYYY-MM-DD`.
+    /// - [`Time`] if the value is not a valid time in the format `HH:MM:SS.sss`.
+    /// - [`DateTime`] if the value is not a valid date-time in the format
+    ///   `YYYY-MM-DDTHH:MM:SS.sssZ`.
+    /// - [`Duration`] if the value is not a valid [ISO 8601 duration][iso8601_duration::Duration].
+    ///
+    /// [`Url`]: StringFormatError::Url
+    /// [`IpAddress`]: StringFormatError::IpAddress
+    /// [`Uuid`]: StringFormatError::Uuid
+    /// [`Regex`]: StringFormatError::Regex
+    /// [`Email`]: StringFormatError::Email
+    /// [`Date`]: StringFormatError::Date
+    /// [`Time`]: StringFormatError::Time
+    /// [`DateTime`]: StringFormatError::DateTime
+    /// [`Duration`]: StringFormatError::Duration
+    #[expect(clippy::missing_panics_doc)]
     pub fn validate(self, value: &str) -> Result<(), Report<StringFormatError>> {
         // Only the simplest date format are supported in all three, RFC-3339, ISO-8601 and HTML
         const DATE_REGEX_STRING: &str = r"(?P<Y>\d{4})-(?P<M>\d{2})-(?P<D>\d{2})";
@@ -125,7 +173,7 @@ impl StringFormat {
 }
 
 #[derive(Debug, Error)]
-pub enum ArrayValidationError {
+pub enum StringValidationError {
     #[error(
         "the provided value is not equal to the expected value, expected `{actual}` to be equal \
          to `{expected}`"
@@ -166,8 +214,16 @@ pub enum ArrayValidationError {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase")]
+pub enum StringTypeTag {
+    String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct StringSchema {
+    pub r#type: StringTypeTag,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(default, skip_serializing_if = "DataTypeLabel::is_empty")]
@@ -195,12 +251,29 @@ pub struct StringSchema {
 }
 
 impl StringSchema {
-    pub fn validate_value(&self, string: &str) -> Result<(), Report<[ArrayValidationError]>> {
+    /// Validates the provided value against the string constraints.
+    ///
+    /// # Errors
+    ///
+    /// - [`InvalidConstValue`] if the value is not equal to the expected value.
+    /// - [`InvalidEnumValue`] if the value is not one of the expected values.
+    /// - [`MinLength`] if the value is shorter than the minimum length.
+    /// - [`MaxLength`] if the value is longer than the maximum length.
+    /// - [`Pattern`] if the value does not match the expected [`Regex`].
+    /// - [`Format`] if the value does not match the expected [`StringFormat`].
+    ///
+    /// [`InvalidConstValue`]: StringValidationError::InvalidConstValue
+    /// [`InvalidEnumValue`]: StringValidationError::InvalidEnumValue
+    /// [`MinLength`]: StringValidationError::MinLength
+    /// [`MaxLength`]: StringValidationError::MaxLength
+    /// [`Pattern`]: StringValidationError::Pattern
+    /// [`Format`]: StringValidationError::Format
+    pub fn validate_value(&self, string: &str) -> Result<(), Report<[StringValidationError]>> {
         let mut status = ReportSink::new();
 
         if let Some(expected) = &self.r#const {
             if expected != string {
-                status.capture(ArrayValidationError::InvalidConstValue {
+                status.capture(StringValidationError::InvalidConstValue {
                     expected: expected.clone(),
                     actual: string.to_owned(),
                 });
@@ -208,7 +281,7 @@ impl StringSchema {
         }
 
         if !self.r#enum.is_empty() && !self.r#enum.contains(string) {
-            status.capture(ArrayValidationError::InvalidEnumValue {
+            status.capture(StringValidationError::InvalidEnumValue {
                 expected: self.r#enum.clone(),
                 actual: string.to_owned(),
             });
@@ -216,7 +289,7 @@ impl StringSchema {
 
         if let Some(expected) = self.min_length {
             if string.len() < expected {
-                status.capture(ArrayValidationError::MinLength {
+                status.capture(StringValidationError::MinLength {
                     actual: string.to_owned(),
                     expected,
                 });
@@ -224,7 +297,7 @@ impl StringSchema {
         }
         if let Some(expected) = self.max_length {
             if string.len() > expected {
-                status.capture(ArrayValidationError::MaxLength {
+                status.capture(StringValidationError::MaxLength {
                     actual: string.to_owned(),
                     expected,
                 });
@@ -232,7 +305,7 @@ impl StringSchema {
         }
         if let Some(expected) = &self.pattern {
             if !expected.is_match(string) {
-                status.capture(ArrayValidationError::Pattern {
+                status.capture(StringValidationError::Pattern {
                     actual: string.to_owned(),
                     expected: expected.clone(),
                 });
@@ -240,7 +313,7 @@ impl StringSchema {
         }
         if let Some(expected) = self.format {
             if let Err(error) = expected.validate(string) {
-                status.append(error.change_context(ArrayValidationError::Format {
+                status.append(error.change_context(StringValidationError::Format {
                     actual: string.to_owned(),
                     expected,
                 }));

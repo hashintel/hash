@@ -1,6 +1,3 @@
-use core::net::AddrParseError;
-
-use iso8601_duration::ParseDurationError;
 use thiserror::Error;
 
 use crate::schema::JsonSchemaValueType;
@@ -17,26 +14,6 @@ pub enum ConstraintError {
         actual: JsonSchemaValueType,
         expected: JsonSchemaValueType,
     },
-}
-
-#[derive(Debug, Error)]
-pub enum StringFormatError {
-    #[error(transparent)]
-    Url(url::ParseError),
-    #[error(transparent)]
-    Uuid(uuid::Error),
-    #[error(transparent)]
-    Regex(regex::Error),
-    #[error(transparent)]
-    Email(email_address::Error),
-    #[error(transparent)]
-    IpAddress(AddrParseError),
-    #[error("The value does not match the date-time format `YYYY-MM-DDTHH:MM:SS.sssZ`")]
-    DateTime,
-    #[error("The value does not match the date format `YYYY-MM-DD`")]
-    Date,
-    #[error("The value does not match the time format `HH:MM:SS.sss`")]
-    Time,
-    #[error("{0:?}")]
-    Duration(ParseDurationError),
+    #[error("None of the provided values match the expected values")]
+    AnyOf,
 }

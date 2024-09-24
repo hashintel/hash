@@ -1,12 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-/// Will serialize as a constant value `"array"`
-#[derive(Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
-#[serde(rename_all = "camelCase")]
-enum ArrayTypeTag {
-    Array,
-}
+use crate::schema::data_type::ArrayTypeTag;
 
 #[derive(Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]

@@ -24,8 +24,16 @@ pub enum ObjectValidationError {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase")]
+pub enum ObjectTypeTag {
+    Object,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ObjectSchema {
+    pub r#type: ObjectTypeTag,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     #[serde(default, skip_serializing_if = "DataTypeLabel::is_empty")]
@@ -43,6 +51,15 @@ pub struct ObjectSchema {
 }
 
 impl ObjectSchema {
+    /// Validates the provided value against the object constraints.
+    ///
+    /// # Errors
+    ///
+    /// - [`InvalidConstValue`] if the value is not equal to the expected value.
+    /// - [`InvalidEnumValue`] if the value is not one of the expected values.
+    ///
+    /// [`InvalidConstValue`]: ObjectValidationError::InvalidConstValue
+    /// [`InvalidEnumValue`]: ObjectValidationError::InvalidEnumValue
     pub fn validate_value(
         &self,
         object: &JsonMap<String, JsonValue>,
