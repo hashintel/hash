@@ -60,6 +60,8 @@ pub enum TraversalError {
         actual: VersionedUrl,
         expected: VersionedUrl,
     },
+    #[error("Values cannot be assigned to an abstract data type. `{id}` is abstract.")]
+    AbstractDataType { id: VersionedUrl },
     #[error("the value provided does not match the constraints of the data type")]
     ConstraintUnfulfilled,
     #[error("the property `{key}` was required, but not specified")]

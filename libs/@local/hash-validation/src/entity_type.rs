@@ -267,17 +267,30 @@ impl EntityVisitor for ValueValidator {
         &mut self,
         data_type: &DataTypeWithMetadata,
         value: &mut JsonValue,
-        _: &mut ValueMetadata,
+        metadata: &mut ValueMetadata,
         _: &P,
     ) -> Result<(), Report<[TraversalError]>>
     where
         P: DataTypeProvider + Sync,
     {
-        data_type
-            .schema
-            .validate_constraints(value)
-            .change_context(TraversalError::ConstraintUnfulfilled)
-            .map_err(Report::expand)
+        let mut status = ReportSink::new();
+
+        status.attempt(
+            data_type
+                .schema
+                .validate_constraints(value)
+                .change_context(TraversalError::ConstraintUnfulfilled),
+        );
+
+        if metadata.data_type_id.as_ref() == Some(&data_type.schema.id)
+            && data_type.schema.is_abstract
+        {
+            status.capture(TraversalError::AbstractDataType {
+                id: data_type.schema.id.clone(),
+            });
+        }
+
+        status.finish()
     }
 }
 
