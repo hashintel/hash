@@ -130,7 +130,7 @@
       "matchManagers": ["npm"],
       "matchPackageNames": ["/^signia/", "/signia$/"]
     },
-    
+
     {
       "groupName": "Block Protocol npm packages",
       "matchManagers": ["npm"],
