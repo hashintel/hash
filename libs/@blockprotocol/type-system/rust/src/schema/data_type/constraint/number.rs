@@ -1,6 +1,6 @@
-use error_stack::{bail, Report, ReportSink, ResultExt};
+use error_stack::{Report, ReportSink, ResultExt, bail};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Number as JsonNumber, Value as JsonValue};
+use serde_json::{Number as JsonNumber, Value as JsonValue, json};
 use thiserror::Error;
 
 use crate::schema::ConstraintError;
@@ -110,10 +110,12 @@ impl NumberSchema {
     /// [`ValueConstraint`]: ConstraintError::ValueConstraint
     pub fn validate_value(&self, number: &JsonNumber) -> Result<(), Report<ConstraintError>> {
         let Some(float) = number.as_f64() else {
-            bail!(Report::new(NumberValidationError::InsufficientPrecision {
-                actual: number.clone()
-            })
-            .change_context(ConstraintError::ValueConstraint));
+            bail!(
+                Report::new(NumberValidationError::InsufficientPrecision {
+                    actual: number.clone()
+                })
+                .change_context(ConstraintError::ValueConstraint)
+            );
         };
 
         match self {
@@ -232,11 +234,11 @@ mod tests {
 
     use super::*;
     use crate::schema::{
-        data_type::constraint::{
-            tests::{check_constraints, check_constraints_error, read_schema},
-            ValueConstraints,
-        },
         JsonSchemaValueType, NumberValidationError,
+        data_type::constraint::{
+            ValueConstraints,
+            tests::{check_constraints, check_constraints_error, read_schema},
+        },
     };
 
     #[test]
@@ -277,14 +279,12 @@ mod tests {
         }));
 
         check_constraints(&number_schema, &json!(0));
-        check_constraints_error(
-            &number_schema,
-            &json!("NaN"),
-            [ConstraintError::InvalidType {
+        check_constraints_error(&number_schema, &json!("NaN"), [
+            ConstraintError::InvalidType {
                 actual: JsonSchemaValueType::String,
                 expected: JsonSchemaValueType::Number,
-            }],
-        );
+            },
+        ]);
     }
 
     #[test]
@@ -296,30 +296,24 @@ mod tests {
         }));
 
         check_constraints(&number_schema, &json!(5));
-        check_constraints_error(
-            &number_schema,
-            &json!("2"),
-            [ConstraintError::InvalidType {
+        check_constraints_error(&number_schema, &json!("2"), [
+            ConstraintError::InvalidType {
                 actual: JsonSchemaValueType::String,
                 expected: JsonSchemaValueType::Number,
-            }],
-        );
-        check_constraints_error(
-            &number_schema,
-            &json!(-2),
-            [NumberValidationError::Minimum {
+            },
+        ]);
+        check_constraints_error(&number_schema, &json!(-2), [
+            NumberValidationError::Minimum {
                 actual: -2.0,
                 expected: 0.0,
-            }],
-        );
-        check_constraints_error(
-            &number_schema,
-            &json!(15),
-            [NumberValidationError::Maximum {
+            },
+        ]);
+        check_constraints_error(&number_schema, &json!(15), [
+            NumberValidationError::Maximum {
                 actual: 15.0,
                 expected: 10.0,
-            }],
-        );
+            },
+        ]);
     }
 
     #[test]
@@ -330,14 +324,12 @@ mod tests {
         }));
 
         check_constraints(&number_schema, &json!(50));
-        check_constraints_error(
-            &number_schema,
-            &json!(10),
-            [ConstraintError::InvalidConstValue {
+        check_constraints_error(&number_schema, &json!(10), [
+            ConstraintError::InvalidConstValue {
                 actual: json!(10),
                 expected: json!(50.0),
-            }],
-        );
+            },
+        ]);
     }
 
     #[test]
@@ -348,14 +340,12 @@ mod tests {
         }));
 
         check_constraints(&number_schema, &json!(50));
-        check_constraints_error(
-            &number_schema,
-            &json!(10),
-            [ConstraintError::InvalidEnumValue {
+        check_constraints_error(&number_schema, &json!(10), [
+            ConstraintError::InvalidEnumValue {
                 actual: json!(10),
                 expected: vec![json!(20.0), json!(50.0)],
-            }],
-        );
+            },
+        ]);
     }
 
     #[test]

@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use thiserror::Error;
 
-use crate::schema::{data_type::constraint::SimpleValueSchema, ConstraintError};
+use crate::schema::{ConstraintError, data_type::constraint::SimpleValueSchema};
 
 #[derive(Debug, Error)]
 pub enum ArrayValidationError {
@@ -163,11 +163,11 @@ mod tests {
 
     use super::*;
     use crate::schema::{
-        data_type::constraint::{
-            tests::{check_constraints, check_constraints_error, read_schema},
-            ValueConstraints,
-        },
         NumberValidationError,
+        data_type::constraint::{
+            ValueConstraints,
+            tests::{check_constraints, check_constraints_error, read_schema},
+        },
     };
 
     #[test]
@@ -194,30 +194,22 @@ mod tests {
 
         check_constraints(&array_schema, &json!([]));
         check_constraints(&array_schema, &json!([1, 2, 3]));
-        check_constraints_error(
-            &array_schema,
-            &json!([1, "2", true]),
-            [ArrayValidationError::Items],
-        );
-        check_constraints_error(
-            &array_schema,
-            &json!([1, -2, 0]),
-            [ArrayValidationError::Items],
-        );
-        check_constraints_error(
-            &array_schema,
-            &json!([1, -2, -4]),
-            [
-                NumberValidationError::Minimum {
-                    actual: -2.0,
-                    expected: 0.0,
-                },
-                NumberValidationError::Minimum {
-                    actual: -4.0,
-                    expected: 0.0,
-                },
-            ],
-        );
+        check_constraints_error(&array_schema, &json!([1, "2", true]), [
+            ArrayValidationError::Items,
+        ]);
+        check_constraints_error(&array_schema, &json!([1, -2, 0]), [
+            ArrayValidationError::Items,
+        ]);
+        check_constraints_error(&array_schema, &json!([1, -2, -4]), [
+            NumberValidationError::Minimum {
+                actual: -2.0,
+                expected: 0.0,
+            },
+            NumberValidationError::Minimum {
+                actual: -4.0,
+                expected: 0.0,
+            },
+        ]);
     }
 
     #[test]
@@ -232,31 +224,25 @@ mod tests {
             }],
         }));
 
-        check_constraints_error(
-            &array_schema,
-            &json!([]),
-            [ArrayValidationError::MinItems {
+        check_constraints_error(&array_schema, &json!([]), [
+            ArrayValidationError::MinItems {
                 actual: 0,
                 expected: 1,
-            }],
-        );
-        check_constraints_error(
-            &array_schema,
-            &json!([1, 2, 3]),
-            [ArrayValidationError::MaxItems {
+            },
+        ]);
+        check_constraints_error(&array_schema, &json!([1, 2, 3]), [
+            ArrayValidationError::MaxItems {
                 actual: 3,
                 expected: 1,
-            }],
-        );
+            },
+        ]);
         check_constraints(&array_schema, &json!([1]));
-        check_constraints_error(
-            &array_schema,
-            &json!([15]),
-            [NumberValidationError::Maximum {
+        check_constraints_error(&array_schema, &json!([15]), [
+            NumberValidationError::Maximum {
                 actual: 15.0,
                 expected: 10.0,
-            }],
-        );
+            },
+        ]);
     }
 
     #[test]
@@ -267,14 +253,12 @@ mod tests {
         }));
 
         check_constraints(&array_schema, &json!([]));
-        check_constraints_error(
-            &array_schema,
-            &json!([null]),
-            [ArrayValidationError::MaxItems {
+        check_constraints_error(&array_schema, &json!([null]), [
+            ArrayValidationError::MaxItems {
                 actual: 1,
                 expected: 0,
-            }],
-        );
+            },
+        ]);
     }
 
     #[test]

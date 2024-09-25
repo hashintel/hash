@@ -1,4 +1,4 @@
-use serde_json::{json, Value as JsonValue};
+use serde_json::{Value as JsonValue, json};
 use thiserror::Error;
 
 use crate::schema::JsonSchemaValueType;
