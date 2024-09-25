@@ -1,4 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import { mustHaveAtLeastOne } from "@blockprotocol/type-system";
 import type { OriginProvenance } from "@local/hash-graph-client";
 import type { EnforcedEntityEditionProvenance } from "@local/hash-graph-sdk/entity";
 import {
@@ -168,13 +169,13 @@ const toolNames = ["proposeEntity", "abandonEntity"] as const;
 type ToolName = (typeof toolNames)[number];
 
 const generateToolDefinitions = (params: {
-  dereferencedEntityType: DereferencedEntityType;
+  dereferencedEntityTypes: DereferencedEntityType[];
   proposeOutgoingLinkEntityTypes: {
     schema: DereferencedEntityType;
     simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
   }[];
 }): Record<ToolName, LlmToolDefinition> => {
-  const { dereferencedEntityType, proposeOutgoingLinkEntityTypes } = params;
+  const { dereferencedEntityTypes, proposeOutgoingLinkEntityTypes } = params;
 
   return {
     proposeEntity: {
@@ -183,8 +184,7 @@ const generateToolDefinitions = (params: {
       inputSchema: {
         type: "object",
         additionalProperties: false,
-        title: dereferencedEntityType.title,
-        description: dereferencedEntityType.description,
+        title: `Proposed Entity with ${dereferencedEntityTypes.length > 1 ? "types" : "type"} ${dereferencedEntityTypes.map((type) => type.title).join(", ")}`,
         properties: {
           properties: {
             description: "The properties to set on the entity",
@@ -192,7 +192,12 @@ const generateToolDefinitions = (params: {
             type: "object",
             additionalProperties: false,
             properties: mapPropertiesSchemaToInputPropertiesSchema({
-              properties: dereferencedEntityType.properties,
+              properties: dereferencedEntityTypes.reduce((prev, type) => {
+                return {
+                  ...prev,
+                  ...type.properties,
+                };
+              }, {}),
             }),
           },
           ...(proposeOutgoingLinkEntityTypes.length > 0
@@ -296,7 +301,7 @@ export const proposeEntityFromClaimsAgent = async (params: {
     isObjectOf: Claim[];
     isSubjectOf: Claim[];
   };
-  dereferencedEntityType: DereferencedEntityType;
+  dereferencedEntityTypes: DereferencedEntityType[];
   simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
   proposeOutgoingLinkEntityTypes: {
     schema: DereferencedEntityType;
@@ -327,7 +332,7 @@ export const proposeEntityFromClaimsAgent = async (params: {
   const {
     entitySummary,
     claims,
-    dereferencedEntityType,
+    dereferencedEntityTypes,
     simplifiedPropertyTypeMappings,
     retryContext,
     proposeOutgoingLinkEntityTypes,
@@ -348,7 +353,7 @@ export const proposeEntityFromClaimsAgent = async (params: {
       model: "gpt-4o-2024-08-06",
       tools: Object.values(
         generateToolDefinitions({
-          dereferencedEntityType,
+          dereferencedEntityTypes,
           proposeOutgoingLinkEntityTypes,
         }),
       ),
@@ -473,7 +478,7 @@ export const proposeEntityFromClaimsAgent = async (params: {
 
     try {
       await Entity.validate(graphApiClient, userAuthentication, {
-        entityTypes: [dereferencedEntityType.$id],
+        entityTypes: dereferencedEntityTypes.map((type) => type.$id),
         components: {
           linkData: false,
           numItems: false,
@@ -630,7 +635,7 @@ export const proposeEntityFromClaimsAgent = async (params: {
                     kind: "existing-entity",
                     entityId: targetEntitySummary.entityId,
                   },
-            entityTypeId: outgoingLink.entityTypeId as VersionedUrl,
+            entityTypeIds: [outgoingLink.entityTypeId as VersionedUrl],
             propertyMetadata: outgoingLinkPropertyMetadata,
             properties: outgoingLinkProperties,
             provenance: editionProvenance,
@@ -667,7 +672,9 @@ export const proposeEntityFromClaimsAgent = async (params: {
       localEntityId: entitySummary.localId,
       propertyMetadata,
       summary: entitySummary.summary,
-      entityTypeId: dereferencedEntityType.$id,
+      entityTypeIds: mustHaveAtLeastOne(
+        dereferencedEntityTypes.map((type) => type.$id),
+      ),
       properties,
       provenance: editionProvenance,
     };

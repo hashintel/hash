@@ -132,7 +132,7 @@ export const getFileEntityFromUrl = async (params: {
   url: string;
   propertyMetadata?: PropertyMetadataObject;
   provenance?: EnforcedEntityEditionProvenance;
-  entityTypeId?: VersionedUrl;
+  entityTypeIds?: [VersionedUrl, ...VersionedUrl[]];
   description?: string;
   displayName?: string;
 }): Promise<
@@ -183,10 +183,9 @@ export const getFileEntityFromUrl = async (params: {
   }
 
   const mimeType = mime.lookup(filename) || "application/octet-stream";
-  const entityTypeId =
-    params.entityTypeId ??
-    getEntityTypeIdForMimeType(mimeType) ??
-    systemEntityTypes.file.entityTypeId;
+  const entityTypeIds = params.entityTypeIds ?? [
+      getEntityTypeIdForMimeType(mimeType),
+    ] ?? [systemEntityTypes.file.entityTypeId];
 
   const stats = statSync(localFilePath);
   const fileSizeInBytes = stats.size;
@@ -253,7 +252,9 @@ export const getFileEntityFromUrl = async (params: {
         initialProperties,
         propertyMetadata,
       ),
-      entityTypeId: entityTypeId as typeof systemEntityTypes.file.entityTypeId,
+      entityTypeIds: entityTypeIds as [
+        typeof systemEntityTypes.file.entityTypeId,
+      ],
       relationships:
         createDefaultAuthorizationRelationships(userAuthentication),
       provenance,

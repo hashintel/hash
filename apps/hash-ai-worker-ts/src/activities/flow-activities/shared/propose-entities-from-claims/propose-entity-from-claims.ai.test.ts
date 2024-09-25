@@ -30,8 +30,9 @@ const huntingPlcEntitySummary: LocalEntitySummary = {
   name: "HUNTING PLC ORD 25P",
   summary:
     "HUNTING PLC, represented by the stock code HTG, has a market cap of 614.40 million GBX, a last recorded price of 452.50 GBX, and experienced a recent price change of 80.00 GBX, translating to a 21.48% increase.",
-  entityTypeId:
+  entityTypeIds: [
     "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
+  ],
 };
 
 const huntingPlcEntityClaims = [
@@ -103,7 +104,7 @@ test(
         isSubjectOf: huntingPlcEntityClaimsWithSources,
         isObjectOf: [],
       },
-      dereferencedEntityType,
+      dereferencedEntityTypes: [dereferencedEntityType],
       simplifiedPropertyTypeMappings,
       proposeOutgoingLinkEntityTypes: [],
       possibleOutgoingLinkTargetEntitySummaries: [],
@@ -124,7 +125,7 @@ const graphicsCardEntitySummary: LocalEntitySummary = {
   name: "NVIDIA GeForce RTX 2080 Ti",
   summary:
     "The GeForce RTX 2080 Ti is a PC GPU based on the TU102 graphics processor with 11GB of memory, 352-bit memory bus, and approximately 120 teraflops of performance.",
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/graphics-card/v/1",
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/graphics-card/v/1"],
 };
 
 const claimsAboutGraphicsCard: Claim[] = [
@@ -254,7 +255,7 @@ test(
         isSubjectOf: claimsAboutGraphicsCard,
         isObjectOf: [],
       },
-      dereferencedEntityType,
+      dereferencedEntityTypes: [dereferencedEntityType],
       simplifiedPropertyTypeMappings,
       proposeOutgoingLinkEntityTypes: [],
       possibleOutgoingLinkTargetEntitySummaries: [],

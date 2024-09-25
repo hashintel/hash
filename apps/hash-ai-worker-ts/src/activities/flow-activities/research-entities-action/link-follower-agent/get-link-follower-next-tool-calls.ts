@@ -83,7 +83,7 @@ const generateUserMessage = (
 <Entities>
 Here is the information about entities you have already gathered:
 ${JSON.stringify(
-  entitySummaries.map(({ localId, name, summary, entityTypeId }) => {
+  entitySummaries.map(({ localId, name, summary, entityTypeIds }) => {
     const claimsAboutEntity = claimsGathered.filter(
       (claim) => claim.subjectEntityLocalId === localId,
     );
@@ -91,7 +91,7 @@ ${JSON.stringify(
     return {
       name,
       summary,
-      entityType: entityTypeId,
+      entityTypes: entityTypeIds,
       claims: JSON.stringify(
         claimsAboutEntity.map(simplifyClaimForLlmConsumption),
       ),

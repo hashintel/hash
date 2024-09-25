@@ -4,7 +4,7 @@ import type { EntityId } from "@local/hash-graph-types/entity";
 
 type SimplifiedEntity = {
   entityId: EntityId;
-  entityTypeId: VersionedUrl;
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   properties: Entity["properties"];
   sourceEntityId?: EntityId;
   targetEntityId?: EntityId;
@@ -12,10 +12,12 @@ type SimplifiedEntity = {
 
 /**
  * Simplify the definition of an entity for LLM consumption.
+ *
+ * @todo consolidate with simplifyProposedEntityForLlmConsumption
  */
 export const simplifyEntity = (entity: Entity): SimplifiedEntity => ({
   entityId: entity.metadata.recordId.entityId,
-  entityTypeId: entity.metadata.entityTypeId,
+  entityTypeIds: entity.metadata.entityTypeIds,
   /**
    * @todo: consider simplifying property keys
    */

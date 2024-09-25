@@ -45,8 +45,10 @@ export const parseTextFromFile = async (
 
   const fileBuffer = await fetchFileFromUrl(presignedFileDownloadUrl);
 
-  const textParsingFunction =
-    fileEntityTypeToParsingFunction[fileEntity.metadata.entityTypeId];
+  let textParsingFunction: TextParsingFunction | undefined;
+  for (const entityTypeId of fileEntity.metadata.entityTypeIds) {
+    textParsingFunction = fileEntityTypeToParsingFunction[entityTypeId];
+  }
 
   if (textParsingFunction) {
     const textualContent = await textParsingFunction(fileBuffer);

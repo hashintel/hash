@@ -566,7 +566,7 @@ export const proposeEntities = async (params: {
                          */
                         entity.entityId.toString() as EntityUuid,
                       ),
-                      entityTypeId: entityTypeId as VersionedUrl,
+                      entityTypeIds: [entityTypeId as VersionedUrl],
                       properties: entity.properties ?? {},
                       propertyMetadata: { value: {} },
                       sourceEntityId:

@@ -275,11 +275,14 @@ export const convertSubgraphToSheetRequests = ({
   for (const entity of sortedEntities) {
     const entityType = getEntityTypeById(
       subgraph,
-      entity.metadata.entityTypeId,
+      /**
+       * @todo H-3364 update Google Sheet output for multi-type entities (currently we assign entities to sheets based on type)
+       */
+      entity.metadata.entityTypeIds[0],
     );
     if (!entityType) {
       throw new Error(
-        `Entity type ${entity.metadata.entityTypeId} not found for entity ${entity.metadata.recordId.entityId}`,
+        `Entity type ${entity.metadata.entityTypeIds[0]} not found for entity ${entity.metadata.recordId.entityId}`,
       );
     }
 

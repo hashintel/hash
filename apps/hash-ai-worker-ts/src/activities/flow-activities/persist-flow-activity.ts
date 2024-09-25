@@ -60,7 +60,7 @@ export const persistFlowActivity = async (
     await Entity.create<FlowRun>(graphApiClient, userAuthentication, {
       ownedById: webId,
       entityUuid: flowRunId,
-      entityTypeId: systemEntityTypes.flowRun.entityTypeId,
+      entityTypeIds: [systemEntityTypes.flowRun.entityTypeId],
       properties: flowRunProperties,
       provenance,
       draft: false,

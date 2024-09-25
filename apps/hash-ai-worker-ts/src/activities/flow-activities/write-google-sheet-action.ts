@@ -431,7 +431,7 @@ export const writeGoogleSheetAction: FlowActionActivity<{
       graphApiClient,
       { actorId: webBotActorId },
       {
-        entityTypeId: googleEntityTypes.googleSheetsFile.entityTypeId,
+        entityTypeIds: [googleEntityTypes.googleSheetsFile.entityTypeId],
         properties: fileProperties,
         draft: false,
         ownedById: webId,
@@ -445,8 +445,9 @@ export const writeGoogleSheetAction: FlowActionActivity<{
       { actorId: webBotActorId },
       {
         draft: false,
-        entityTypeId:
+        entityTypeIds: [
           systemLinkEntityTypes.associatedWithAccount.linkEntityTypeId,
+        ],
         ownedById: webId,
         linkData: {
           leftEntityId: entityToReturn.metadata.recordId.entityId,

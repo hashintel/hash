@@ -88,24 +88,22 @@ const getIdForLinkEndpoint = (endpoint: LocalOrExistingEntityId) =>
 
 export const simplifyProposedEntityForLlmConsumption = (params: {
   proposedEntity: ProposedEntity;
-  entityType: DereferencedEntityTypeWithSimplifiedKeys;
+  entityTypes: DereferencedEntityTypeWithSimplifiedKeys[];
 }) => {
-  const { proposedEntity, entityType } = params;
+  const { proposedEntity, entityTypes } = params;
 
   const {
-    entityTypeId,
+    entityTypeIds,
     localEntityId,
     sourceEntityId,
     targetEntityId,
     properties: entityProperties,
   } = proposedEntity;
 
-  const { schema, simplifiedPropertyTypeMappings } = entityType;
-
   return `
 <Entity>
 <EntityId>${localEntityId}</EntityId>
-<EntityType>EntityType: ${urlToTitleCase(entityTypeId)}</EntityType>
+<EntityType>${entityTypeIds.length > 1 ? "Entity Types" : "Entity Type"}: ${entityTypeIds.map((entityTypeId) => urlToTitleCase(entityTypeId) ?? "").join(", ")}</EntityType>
 <Properties>
 ${Object.entries(entityProperties)
   .map(
@@ -119,15 +117,18 @@ ${Object.entries(entityProperties)
         ? `\n<LinkData>SourceEntityId: ${getIdForLinkEndpoint(sourceEntityId)}\nTargetEntityId: ${getIdForLinkEndpoint(targetEntityId)}</LinkData>`
         : ""
     }
-<MissingProperties>${Object.entries(schema.properties)
-    .filter(
-      ([simpleKey]) =>
-        entityProperties[simplifiedPropertyTypeMappings[simpleKey]!] ===
-        undefined,
-    )
-    .map(
-      ([_key, propertySchema]) =>
-        `${"items" in propertySchema ? propertySchema.items.title : propertySchema.title}`,
+<MissingProperties>${entityTypes
+    .flatMap(({ schema, simplifiedPropertyTypeMappings }) =>
+      Object.entries(schema.properties)
+        .filter(
+          ([simpleKey]) =>
+            entityProperties[simplifiedPropertyTypeMappings[simpleKey]!] ===
+            undefined,
+        )
+        .map(
+          ([_key, propertySchema]) =>
+            `${"items" in propertySchema ? propertySchema.items.title : propertySchema.title}`,
+        ),
     )
     .join(", ")}
     </MissingProperties>
