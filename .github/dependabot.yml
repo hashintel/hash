@@ -6,3 +6,4 @@ updates:
     schedule:
       interval: "daily"
     labels: []
+    open-pull-requests-limit: 0
