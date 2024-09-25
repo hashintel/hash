@@ -1,4 +1,7 @@
-import { extractVersion, type VersionedUrl } from "@blockprotocol/type-system";
+import {
+  mustHaveAtLeastOne,
+  type VersionedUrl,
+} from "@blockprotocol/type-system";
 import { getWebMachineActorId } from "@local/hash-backend-utils/machine-actors";
 import { propertyObjectToPatches } from "@local/hash-graph-sdk/entity";
 import type { AccountId } from "@local/hash-graph-types/account";
@@ -7,6 +10,7 @@ import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { OwnedById } from "@local/hash-graph-types/web";
 import {
   currentTimeInstantTemporalAxes,
+  fullOntologyResolveDepths,
   zeroedGraphResolveDepths,
 } from "@local/hash-isomorphic-utils/graph-queries";
 import {
@@ -14,11 +18,11 @@ import {
   systemEntityTypes,
   systemLinkEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { getRoots } from "@local/hash-subgraph/stdlib";
 import {
-  extractBaseUrl,
-  versionedUrlFromComponents,
-} from "@local/hash-subgraph/type-system-patch";
+  getBreadthFirstEntityTypesAndParents,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
+import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 import isEqual from "lodash/isEqual";
 
 import type { ImpureGraphContext } from "../../../context-types";
@@ -55,90 +59,118 @@ export const upgradeWebEntities = async ({
 
   const webBotAuthentication = { actorId: webBotAccountId };
 
-  const existingEntities = await getEntitySubgraph(
-    context,
-    webBotAuthentication,
-    {
-      filter: {
-        all: [
-          {
-            any: entityTypeBaseUrls.map((baseUrl) => ({
-              all: [
-                {
-                  equal: [
-                    { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
-                    { parameter: baseUrl },
-                  ],
-                },
-                {
-                  less: [
-                    { path: ["type(inheritanceDepth = 0)", "version"] },
-                    { parameter: migrationState.entityTypeVersions[baseUrl] },
-                  ],
-                },
-              ],
-            })),
-          },
-          {
-            equal: [
-              { path: ["ownedById"] },
+  const subgraph = await getEntitySubgraph(context, webBotAuthentication, {
+    filter: {
+      all: [
+        {
+          any: entityTypeBaseUrls.map((baseUrl) => ({
+            all: [
               {
-                parameter: webOwnedById,
+                equal: [
+                  { path: ["type(inheritanceDepth = 0)", "baseUrl"] },
+                  { parameter: baseUrl },
+                ],
+              },
+              {
+                less: [
+                  { path: ["type(inheritanceDepth = 0)", "version"] },
+                  { parameter: migrationState.entityTypeVersions[baseUrl] },
+                ],
               },
             ],
-          },
-        ],
-      },
-      graphResolveDepths: zeroedGraphResolveDepths,
-      includeDrafts: true,
-      temporalAxes: currentTimeInstantTemporalAxes,
+          })),
+        },
+        {
+          equal: [
+            { path: ["ownedById"] },
+            {
+              parameter: webOwnedById,
+            },
+          ],
+        },
+      ],
     },
-  ).then((subgraph) => getRoots(subgraph));
+    graphResolveDepths: {
+      ...zeroedGraphResolveDepths,
+      ...fullOntologyResolveDepths,
+    },
+    includeDrafts: true,
+    temporalAxes: currentTimeInstantTemporalAxes,
+  });
+
+  const existingEntities = getRoots(subgraph);
 
   await Promise.all(
     existingEntities.map(async (entity) => {
-      for (const baseUrlsBeingUpgraded of entityTypeBaseUrls) {
-        /**
-         * @todo account for multiple types, and also inheritance
-         */
-      }
+      /**
+       * the entity may have multiple types, and each of these may have multiple parents (direct or indirect).
+       * we need to upgrade the entity if it belongs to any of the types that are being upgraded.
+       */
+      const allTypeRecordIdsForEntity = getBreadthFirstEntityTypesAndParents(
+        subgraph,
+        entity.metadata.entityTypeIds,
+      ).map((type) => type.metadata.recordId);
 
-      const baseUrl = extractBaseUrl(entity.metadata.entityTypeId);
+      /**
+       * Multiple upgrades may apply to an entity – we apply one at a time.
+       */
+      for (const baseUrlBeingUpgraded of entityTypeBaseUrls) {
+        const newVersion =
+          migrationState.entityTypeVersions[baseUrlBeingUpgraded];
 
-      const currentVersion = extractVersion(entity.metadata.entityTypeId);
+        if (typeof newVersion === "undefined") {
+          throw new Error(
+            `Could not find the version for base URL ${baseUrlBeingUpgraded} in the migration state`,
+          );
+        }
 
-      const newVersion = migrationState.entityTypeVersions[baseUrl];
-
-      if (typeof newVersion === "undefined") {
-        throw new Error(
-          `Could not find the version for base URL ${baseUrl} in the migration state`,
+        const matchingTypeRecordId = allTypeRecordIdsForEntity.find(
+          (recordId) => recordId.baseUrl === baseUrlBeingUpgraded,
         );
-      }
 
-      if (currentVersion < newVersion) {
-        const newEntityTypeId = versionedUrlFromComponents(baseUrl, newVersion);
-        const currentEntityTypeId = entity.metadata.entityTypeId;
+        if (
+          !matchingTypeRecordId ||
+          matchingTypeRecordId.version >= newVersion
+        ) {
+          continue;
+        }
 
-        const migratePropertiesFunction = migrateProperties?.[baseUrl];
+        const newEntityTypeId = versionedUrlFromComponents(
+          baseUrlBeingUpgraded,
+          newVersion,
+        );
+
+        const currentEntityTypeId = versionedUrlFromComponents(
+          baseUrlBeingUpgraded,
+          matchingTypeRecordId.version,
+        );
+
+        const migratePropertiesFunction =
+          migrateProperties?.[baseUrlBeingUpgraded];
 
         let updateAuthentication = webBotAuthentication;
 
         const temporaryEntityTypePermissionsGranted: VersionedUrl[] = [];
 
+        /**
+         * Determine the actor that should update the entity.
+         */
         if (
-          baseUrl === systemEntityTypes.userSecret.entityTypeBaseUrl ||
-          baseUrl ===
+          baseUrlBeingUpgraded ===
+            systemEntityTypes.userSecret.entityTypeBaseUrl ||
+          baseUrlBeingUpgraded ===
             systemLinkEntityTypes.usesUserSecret.linkEntityTypeBaseUrl ||
-          baseUrl === googleEntityTypes.account.entityTypeBaseUrl
+          baseUrlBeingUpgraded === googleEntityTypes.account.entityTypeBaseUrl
         ) {
           /**
-           *These entities are only editable by the bot that created them
+           * These entities are only editable by the bot that created them
            */
           updateAuthentication = {
             actorId: entity.metadata.provenance.createdById,
           };
-        }
-        if (baseUrl === systemEntityTypes.machine.entityTypeBaseUrl) {
+        } else if (
+          baseUrlBeingUpgraded === systemEntityTypes.machine.entityTypeBaseUrl
+        ) {
           /**
            * If we are updating machine entities, we use the account ID
            * of the machine user as the actor for the update.
@@ -192,10 +224,24 @@ export const upgradeWebEntities = async ({
           }
         }
 
+        /**
+         * We've determined the actor, now perform the update.
+         */
         try {
           await updateEntity(context, updateAuthentication, {
             entity,
-            entityTypeId: newEntityTypeId,
+            entityTypeIds: mustHaveAtLeastOne(
+              allTypeRecordIdsForEntity.map((recordId) => {
+                if (recordId.baseUrl === baseUrlBeingUpgraded) {
+                  return newEntityTypeId;
+                }
+
+                return versionedUrlFromComponents(
+                  recordId.baseUrl,
+                  recordId.version,
+                );
+              }),
+            ),
             propertyPatches: migratePropertiesFunction
               ? propertyObjectToPatches(
                   migratePropertiesFunction(entity.propertiesWithMetadata),

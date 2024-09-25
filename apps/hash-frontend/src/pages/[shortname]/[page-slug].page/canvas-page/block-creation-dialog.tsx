@@ -43,7 +43,9 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
 
   const createBlock = useCallback(
     async (blockMeta: HashBlockMeta) => {
-      const blockEntityTypeId = blockMeta.schema as VersionedUrl;
+      const blockEntityTypeIds: [VersionedUrl] = [
+        blockMeta.schema as VersionedUrl,
+      ];
 
       const width = defaultBlockWidth;
       const height = defaultBlockHeight;
@@ -65,7 +67,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
               insertBlock: {
                 componentId: blockMeta.componentId,
                 entity: {
-                  entityTypeId: blockEntityTypeId,
+                  entityTypeIds: blockEntityTypeIds,
                   entityProperties: { value: {} },
                 },
                 ownedById: accountId as OwnedById,
@@ -133,7 +135,7 @@ export const BlockCreationDialog = ({ onClose }: DialogProps) => {
         linkEntityId: newBlock.linkEntity.metadata.recordId.entityId,
         blockLoaderProps: {
           blockEntityId,
-          blockEntityTypeId,
+          blockEntityTypeIds,
           blockMetadata: blockMeta,
           readonly: false,
           wrappingEntityId,

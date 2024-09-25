@@ -38,7 +38,7 @@ export const getOrgMembershipFromLinkEntity: PureGraphFunction<
   OrgMembership
 > = ({ linkEntity }) => {
   if (
-    !linkEntity.metadata.entityTypeId.includes(
+    !linkEntity.metadata.entityTypeIds.includes(
       systemLinkEntityTypes.isMemberOf.linkEntityTypeId,
     )
   ) {

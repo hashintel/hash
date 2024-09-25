@@ -103,7 +103,7 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
           ) : (
             <EntityTypeIcon />
           )),
-        typeId: $id,
+        typeIds: [$id],
         title,
         description,
       })}

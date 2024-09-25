@@ -442,7 +442,7 @@ export const setPageParentPage: ImpureGraphFunction<
         leftEntityId: page.entity.metadata.recordId.entityId,
         rightEntityId: parentPage.entity.metadata.recordId.entityId,
       },
-      entityTypeId: [systemLinkEntityTypes.hasParent.linkEntityTypeId],
+      entityTypeIds: [systemLinkEntityTypes.hasParent.linkEntityTypeId],
       relationships: createDefaultAuthorizationRelationships(authentication),
     });
   }

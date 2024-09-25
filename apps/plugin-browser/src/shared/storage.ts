@@ -163,7 +163,7 @@ const debouncedEntityUpdate = debounce(async () => {
 
   await updateEntity<BrowserPluginSettings>({
     entityId: settingsEntityId,
-    entityTypeId: systemEntityTypes.browserPluginSettings.entityTypeId,
+    entityTypeIds: [systemEntityTypes.browserPluginSettings.entityTypeId],
     updatedProperties: {
       value: {
         "https://hash.ai/@hash/types/property-type/automatic-inference-configuration/":

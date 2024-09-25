@@ -454,7 +454,8 @@ export const createEntityWithLinks = async <
         : await createEntity<Properties>(context, authentication, {
             ...createParams,
             properties: definition.entityProperties!,
-            entityTypeIds: definition.entityTypeIds!,
+            entityTypeIds:
+              definition.entityTypeIds as Properties["entityTypeIds"],
           });
 
       return {

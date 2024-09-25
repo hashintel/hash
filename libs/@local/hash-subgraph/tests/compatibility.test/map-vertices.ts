@@ -339,7 +339,7 @@ const mapEntityMetadata = (
 ): EntityMetadata => {
   return {
     recordId: mapEntityRecordId(metadata.recordId),
-    entityTypeIds: metadata.entityTypeIds as VersionedUrl[],
+    entityTypeIds: metadata.entityTypeIds as [VersionedUrl, ...VersionedUrl[]],
     temporalVersioning: mapEntityTemporalVersioningMetadata(
       metadata.temporalVersioning,
     ),

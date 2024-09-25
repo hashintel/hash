@@ -296,7 +296,7 @@ export const getMentionNotification: ImpureGraphFunction<
     );
 
     const occurredInBlockLink = outgoingLinks.find(({ metadata }) =>
-      metadata.entityTypeId.includes(
+      metadata.entityTypeIds.includes(
         systemLinkEntityTypes.occurredInBlock.linkEntityTypeId,
       ),
     );
@@ -308,7 +308,7 @@ export const getMentionNotification: ImpureGraphFunction<
     );
 
     const occurredInCommentLink = outgoingLinks.find(({ metadata }) =>
-      metadata.entityTypeId.includes(
+      metadata.entityTypeIds.includes(
         systemLinkEntityTypes.occurredInComment.linkEntityTypeId,
       ),
     );
@@ -467,7 +467,7 @@ export const createCommentNotification: ImpureGraphFunction<
           leftEntityId,
           rightEntityId,
         },
-        entityTypeIds,
+        entityTypeIds: [entityTypeId],
         relationships: linkEntityRelationships,
       }),
     ),

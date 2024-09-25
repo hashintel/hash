@@ -586,12 +586,10 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
               return (
                 <MentionSuggesterEntity
                   key={entity.metadata.recordId.entityId}
-                  entityType={
-                    getEntityTypeById(
-                      entitiesSubgraph,
-                      entity.metadata.entityTypeIds[0],
-                    )!
-                  }
+                  entityTypes={entity.metadata.entityTypeIds.map(
+                    (entityTypeId) =>
+                      getEntityTypeById(entitiesSubgraph, entityTypeId)!,
+                  )}
                   ref={selected ? selectedEntityRef : undefined}
                   selected={selected}
                   displaySubMenu={selected && displayEntitySubMenu}
@@ -672,7 +670,7 @@ export const MentionSuggester: FunctionComponent<MentionSuggesterProps> = ({
                       return (
                         <Fragment key={entity.metadata.recordId.entityId}>
                           <MentionSuggesterEntity
-                            entityType={entityType}
+                            entityTypes={[entityType]}
                             entitiesSubgraph={entitiesSubgraph}
                             entity={entity}
                             ref={selected ? selectedEntityRef : undefined}

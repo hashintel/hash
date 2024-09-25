@@ -34,13 +34,13 @@ const createQuickNote = async (text: string) => {
 
   const [quickNoteEntity, ...blockEntities] = await Promise.all([
     createEntity<QuickNote>({
-      entityTypeId: systemEntityTypes.quickNote.entityTypeId,
+      entityTypeIds: [systemEntityTypes.quickNote.entityTypeId],
       properties: { value: {} },
     }),
     ...paragraphs.map(async (paragraph) => {
       const [textEntity, blockEntity] = await Promise.all([
         createEntity<Text>({
-          entityTypeId: systemEntityTypes.text.entityTypeId,
+          entityTypeIds: [systemEntityTypes.text.entityTypeId],
           properties: {
             value: {
               "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
@@ -62,7 +62,7 @@ const createQuickNote = async (text: string) => {
           },
         }),
         createEntity<Block>({
-          entityTypeId: systemEntityTypes.block.entityTypeId,
+          entityTypeIds: [systemEntityTypes.block.entityTypeId],
           properties: {
             value: {
               "https://hash.ai/@hash/types/property-type/component-id/": {
@@ -78,7 +78,7 @@ const createQuickNote = async (text: string) => {
       ]);
 
       await createEntity<HasData>({
-        entityTypeId: systemLinkEntityTypes.hasData.linkEntityTypeId,
+        entityTypeIds: [systemLinkEntityTypes.hasData.linkEntityTypeId],
         properties: { value: {} },
         linkData: {
           leftEntityId: blockEntity.metadata.recordId.entityId,
@@ -99,7 +99,9 @@ const createQuickNote = async (text: string) => {
   await Promise.all(
     blockEntities.map(async (blockEntity, index) =>
       createEntity<HasIndexedContent>({
-        entityTypeId: systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
+        entityTypeIds: [
+          systemLinkEntityTypes.hasIndexedContent.linkEntityTypeId,
+        ],
         properties: {
           value: {
             "https://hash.ai/@hash/types/property-type/fractional-index/": {

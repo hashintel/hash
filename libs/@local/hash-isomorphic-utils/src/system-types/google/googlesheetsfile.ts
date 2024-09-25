@@ -44,7 +44,7 @@ import type {
   UsesUserSecretPropertiesWithMetadata,
   VaultPathPropertyValue,
   VaultPathPropertyValueWithMetadata,
-} from "./shared";
+} from "./shared.js";
 
 export type {
   Account,
