@@ -132,6 +132,9 @@ mod raw {
         )]
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         all_of: Vec<DataTypeReference>,
+
+        #[serde(default)]
+        r#abstract: bool,
     }
 
     #[derive(Deserialize)]
@@ -194,6 +197,7 @@ mod raw {
                 title: common.title,
                 title_plural: common.title_plural,
                 all_of: common.all_of,
+                r#abstract: common.r#abstract,
                 constraints,
             }
         }
@@ -214,6 +218,7 @@ pub struct DataType {
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub all_of: Vec<DataTypeReference>,
 
+    pub r#abstract: bool,
     #[serde(flatten)]
     pub constraints: ValueConstraints,
 }

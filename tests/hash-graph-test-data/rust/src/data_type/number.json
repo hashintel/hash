@@ -4,5 +4,6 @@
   "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
   "title": "Number",
   "description": "An arithmetical value (in the Real number system)",
-  "type": "number"
+  "type": "number",
+  "abstract": false
 }

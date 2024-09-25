@@ -4,5 +4,6 @@
   "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
   "title": "Object",
   "description": "A plain JSON object with no pre-defined structure",
-  "type": "object"
+  "type": "object",
+  "abstract": false
 }

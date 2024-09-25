@@ -1,6 +1,8 @@
 #![feature(extend_one)]
 #![feature(hash_raw_entry)]
 
+extern crate alloc;
+
 pub mod error;
 
 pub use self::entity_type::{EntityPreprocessor, EntityValidationError};
@@ -92,6 +94,7 @@ pub trait EntityProvider {
 
 #[cfg(test)]
 mod tests {
+    use alloc::sync::Arc;
     use std::collections::HashMap;
 
     use graph_types::{
@@ -150,9 +153,9 @@ mod tests {
 
     struct Provider {
         entities: HashMap<EntityId, Entity>,
-        entity_types: HashMap<VersionedUrl, ClosedEntityType>,
-        property_types: HashMap<VersionedUrl, PropertyType>,
-        data_types: HashMap<VersionedUrl, DataTypeWithMetadata>,
+        entity_types: HashMap<VersionedUrl, Arc<ClosedEntityType>>,
+        property_types: HashMap<VersionedUrl, Arc<PropertyType>>,
+        data_types: HashMap<VersionedUrl, Arc<DataTypeWithMetadata>>,
     }
     impl Provider {
         fn new(
@@ -166,14 +169,22 @@ mod tests {
                     .into_iter()
                     .map(|entity| (entity.metadata.record_id.entity_id, entity))
                     .collect(),
-                entity_types: entity_types.into_iter().collect(),
+                entity_types: entity_types
+                    .into_iter()
+                    .map(|(url, schema)| (url, Arc::new(schema)))
+                    .collect(),
                 property_types: property_types
                     .into_iter()
-                    .map(|schema| (schema.id.clone(), schema))
+                    .map(|schema| (schema.id.clone(), Arc::new(schema)))
                     .collect(),
                 data_types: data_types
                     .into_iter()
-                    .map(|schema| (schema.id.clone(), generate_data_type_metadata(schema)))
+                    .map(|schema| {
+                        (
+                            schema.id.clone(),
+                            Arc::new(generate_data_type_metadata(schema)),
+                        )
+                    })
                     .collect(),
             }
         }
@@ -232,42 +243,54 @@ mod tests {
     }
 
     impl OntologyTypeProvider<ClosedEntityType> for Provider {
+        type Value = Arc<ClosedEntityType>;
+
         #[expect(refining_impl_trait)]
         async fn provide_type(
             &self,
             type_id: &VersionedUrl,
-        ) -> Result<&ClosedEntityType, Report<InvalidEntityType>> {
-            self.entity_types.get(type_id).ok_or_else(|| {
-                Report::new(InvalidEntityType {
-                    id: type_id.clone(),
+        ) -> Result<Arc<ClosedEntityType>, Report<InvalidEntityType>> {
+            self.entity_types
+                .get(type_id)
+                .map(Arc::clone)
+                .ok_or_else(|| {
+                    Report::new(InvalidEntityType {
+                        id: type_id.clone(),
+                    })
                 })
-            })
         }
     }
 
     impl OntologyTypeProvider<PropertyType> for Provider {
+        type Value = Arc<PropertyType>;
+
         #[expect(refining_impl_trait)]
         async fn provide_type(
             &self,
             type_id: &VersionedUrl,
-        ) -> Result<&PropertyType, Report<InvalidPropertyType>> {
-            self.property_types.get(type_id).ok_or_else(|| {
-                Report::new(InvalidPropertyType {
-                    id: type_id.clone(),
+        ) -> Result<Arc<PropertyType>, Report<InvalidPropertyType>> {
+            self.property_types
+                .get(type_id)
+                .map(Arc::clone)
+                .ok_or_else(|| {
+                    Report::new(InvalidPropertyType {
+                        id: type_id.clone(),
+                    })
                 })
-            })
         }
     }
 
     impl PropertyTypeProvider for Provider {}
 
     impl OntologyTypeProvider<DataTypeWithMetadata> for Provider {
+        type Value = Arc<DataTypeWithMetadata>;
+
         #[expect(refining_impl_trait)]
         async fn provide_type(
             &self,
             type_id: &VersionedUrl,
-        ) -> Result<&DataTypeWithMetadata, Report<InvalidDataType>> {
-            self.data_types.get(type_id).ok_or_else(|| {
+        ) -> Result<Arc<DataTypeWithMetadata>, Report<InvalidDataType>> {
+            self.data_types.get(type_id).map(Arc::clone).ok_or_else(|| {
                 Report::new(InvalidDataType {
                     id: type_id.clone(),
                 })
