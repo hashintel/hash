@@ -160,6 +160,8 @@ where
     C: AsClient,
     A: AuthorizationApi,
 {
+    type Value = Arc<DataTypeWithMetadata>;
+
     #[expect(refining_impl_trait)]
     async fn provide_type(
         &self,
@@ -345,6 +347,8 @@ where
     C: AsClient,
     A: AuthorizationApi,
 {
+    type Value = Arc<PropertyType>;
+
     #[expect(refining_impl_trait)]
     async fn provide_type(
         &self,
@@ -464,6 +468,8 @@ where
     C: AsClient,
     A: AuthorizationApi,
 {
+    type Value = Arc<ClosedEntityType>;
+
     #[expect(refining_impl_trait)]
     async fn provide_type(
         &self,

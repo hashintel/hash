@@ -519,6 +519,8 @@ mod tests {
 
     #[expect(refining_impl_trait)]
     impl OntologyTypeProvider<DataTypeWithMetadata> for TestDataTypeProvider {
+        type Value = DataTypeWithMetadata;
+
         async fn provide_type(&self, _: &VersionedUrl) -> Result<DataTypeWithMetadata, Report<!>> {
             unimplemented!()
         }

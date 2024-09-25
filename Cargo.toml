@@ -157,7 +157,7 @@ include_dir = { version = "=0.7.4", default-features = false }
 insta = { version = "=1.40.0", default-features = false }
 jsonschema = { version = "=0.20.0", default-features = false }
 justjson = { version = "=0.3.0", default-features = false }
-lexical = { version = "=7.0.1", default-features = false }
+lexical = { version = "=7.0.2", default-features = false }
 libp2p = { version = "=0.54.1", default-features = false }
 libp2p-stream = { version = "=0.2.0-alpha", default-features = false }
 logos = { version = "=0.14.2", default-features = false }

@@ -49,7 +49,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
         "title": "Length",
         "type": "number",
         "description": "A unit of length",
-        "minimum": 0
+        "minimum": 0,
+        "abstract": true
       },
       {
         "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",

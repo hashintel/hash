@@ -169,10 +169,12 @@ pub struct OntologyTypeWithMetadata<S: OntologyType> {
 }
 
 pub trait OntologyTypeProvider<O> {
+    type Value: Borrow<O> + Send;
+
     fn provide_type(
         &self,
         type_id: &VersionedUrl,
-    ) -> impl Future<Output = Result<impl Borrow<O> + Send, Report<impl Context>>> + Send;
+    ) -> impl Future<Output = Result<Self::Value, Report<impl Context>>> + Send;
 }
 
 pub trait DataTypeProvider: OntologyTypeProvider<DataTypeWithMetadata> {
