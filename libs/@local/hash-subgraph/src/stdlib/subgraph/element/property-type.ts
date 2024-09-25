@@ -215,8 +215,12 @@ export const guessSchemaForPropertyValue = (
           const guessedSchemas = value.map((innerValue) => {
             const jsonSchemaType = getJsonSchemaTypeFromValue(innerValue);
 
-            const dataType = possibleDataTypes.find(
-              ({ schema }) => schema.type === jsonSchemaType,
+            const dataType = possibleDataTypes.find(({ schema }) =>
+              "type" in schema
+                ? schema.type === jsonSchemaType
+                : schema.anyOf.some(
+                    (anyOfOption) => anyOfOption.type === jsonSchemaType,
+                  ),
             );
 
             if (!dataType) {
@@ -261,7 +265,11 @@ export const guessSchemaForPropertyValue = (
 
       const guessedDataType = possibleDataTypes.find(({ schema }) => {
         const jsonSchemaType = getJsonSchemaTypeFromValue(value);
-        return schema.type === jsonSchemaType;
+        return "type" in schema
+          ? schema.type === jsonSchemaType
+          : schema.anyOf.some(
+              (anyOfOption) => anyOfOption.type === jsonSchemaType,
+            );
       });
 
       return {
