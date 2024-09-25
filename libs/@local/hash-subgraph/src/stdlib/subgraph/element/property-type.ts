@@ -28,7 +28,6 @@ import {
 } from "./data-type.js";
 import {
   getBreadthFirstEntityTypesAndParents,
-  getEntityTypeAndParentsById,
   getEntityTypeById,
 } from "./entity-type.js";
 

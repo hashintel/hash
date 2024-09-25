@@ -18,10 +18,7 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { AccountGroupEntityId } from "@local/hash-subgraph";
 import { extractAccountGroupId } from "@local/hash-subgraph";
-import {
-  extractBaseUrl,
-  versionedUrlFromComponents,
-} from "@local/hash-subgraph/type-system-patch";
+import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 
 import {
   createAccountGroup,

@@ -10,10 +10,6 @@ import type {
 } from "@local/hash-graph-types/entity";
 
 import type { ImpureGraphFunction } from "../../context-types";
-import {
-  getEntityTypeById,
-  isEntityTypeLinkEntityType,
-} from "../../ontology/primitive/entity-type";
 import { getLatestEntityById } from "./entity";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 

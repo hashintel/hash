@@ -183,9 +183,10 @@ export const getFileEntityFromUrl = async (params: {
   }
 
   const mimeType = mime.lookup(filename) || "application/octet-stream";
-  const entityTypeIds = params.entityTypeIds ?? [
-      getEntityTypeIdForMimeType(mimeType),
-    ] ?? [systemEntityTypes.file.entityTypeId];
+  const entityTypeIds =
+    (params.entityTypeIds ?? getEntityTypeIdForMimeType(mimeType))
+      ? [getEntityTypeIdForMimeType(mimeType)]
+      : [systemEntityTypes.file.entityTypeId];
 
   const stats = statSync(localFilePath);
   const fileSizeInBytes = stats.size;

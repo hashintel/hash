@@ -64,7 +64,7 @@ export const createEntityWithPlaceholdersFn =
     } else {
       if (!entityDefinition.entityTypeIds?.[0]) {
         throw new Error(
-          `Must provide at least one entry in entityTypesIds if not providing existingEntityId`,
+          `Must provide at least one entry in entityTypeIds if not providing existingEntityId`,
         );
       }
 
