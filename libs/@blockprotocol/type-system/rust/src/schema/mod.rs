@@ -16,14 +16,14 @@ mod one_of;
 pub use self::{
     array::{PropertyArraySchema, PropertyValueArray, ValueOrArray},
     data_type::{
-        ArraySchema, ArrayTypeTag, ArrayValidationError, BooleanSchema, BooleanTypeTag,
-        BooleanValidationError, ClosedDataType, ClosedDataTypeMetadata, ConstraintError,
-        ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
-        DataTypeLabel, DataTypeReference, DataTypeValidator, JsonSchemaValueType, NullSchema,
-        NullTypeTag, NumberSchema, NumberTypeTag, NumberValidationError, ObjectSchema,
-        ObjectTypeTag, ObjectValidationError, OntologyTypeResolver, Operator, StringFormat,
-        StringFormatError, StringSchema, StringTypeTag, StringValidationError,
-        ValidateDataTypeError, ValueConstraints, Variable,
+        AnyOfConstraints, AnyOfSchema, ArrayConstraints, ArraySchema, ArrayTypeTag,
+        ArrayValidationError, BooleanTypeTag, ClosedDataType, ClosedDataTypeMetadata,
+        ConstraintError, ConversionDefinition, ConversionExpression, ConversionValue, Conversions,
+        DataType, DataTypeReference, DataTypeValidator, JsonSchemaValueType, NullTypeTag,
+        NumberConstraints, NumberSchema, NumberTypeTag, NumberValidationError, ObjectTypeTag,
+        OntologyTypeResolver, Operator, StringConstraints, StringFormat, StringFormatError,
+        StringSchema, StringTypeTag, StringValidationError, TupleConstraints,
+        TypedValueConstraints, ValidateDataTypeError, ValueLabel, Variable,
     },
     entity_type::{
         ClosedEntityType, ClosedEntityTypeSchemaData, EntityType, EntityTypeReference,

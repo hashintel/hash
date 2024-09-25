@@ -1,7 +1,7 @@
 import type {
   ArraySchema,
   DataType,
-  ValueConstraints,
+  SimpleValueSchema,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 import {
@@ -28,6 +28,7 @@ import {
   faText,
 } from "@hashintel/design-system";
 import { theme } from "@hashintel/design-system/theme";
+import { isTupleConstraints } from "@local/hash-graph-types/ontology";
 import type { PropsWithChildren } from "react";
 import { createContext, useCallback, useContext, useMemo } from "react";
 
@@ -171,24 +172,17 @@ export const DataTypesOptionsContext =
   createContext<DataTypesContextValue | null>(null);
 
 const getArrayDataTypeDisplay = (
-  dataType: Pick<ArraySchema, "items" | "prefixItems">,
+  dataType: ArraySchema,
 ): Omit<ExpectedValueDisplay, "title"> => {
-  let items: [ValueConstraints, ...ValueConstraints[]];
+  let items: [SimpleValueSchema, ...SimpleValueSchema[]];
 
-  if (dataType.items === undefined || dataType.items === true) {
-    // We have no constraints on the items in the array, so we can't determine the type
-    return expectedValuesDisplayMap.array;
-  } else if (dataType.prefixItems) {
-    // We have prefixItems, so we can determine the type of the array. If `items` is set and is
-    // not false, we should include it in the list of items
-    items = [
-      ...dataType.prefixItems,
-      ...(dataType.items ? [dataType.items] : []),
-    ];
-  } else if (dataType.items === false) {
-    // We don't have prefixItems, but we have a constraint that disallows additional items, so this
-    // is always an empty list
-    return expectedValuesDisplayMap.emptyList;
+  if (isTupleConstraints(dataType)) {
+    if (!dataType.prefixItems) {
+      return expectedValuesDisplayMap.emptyList;
+    }
+    items = dataType.prefixItems;
+  } else if (!dataType.items) {
+    return expectedValuesDisplayMap.mixedArray;
   } else {
     return expectedValuesDisplayMap[
       `${dataType.items.type}Array` as keyof typeof expectedValuesDisplayMap
@@ -198,15 +192,9 @@ const getArrayDataTypeDisplay = (
   const itemTypes = items.map((item) => item.type);
 
   if (new Set(itemTypes).size === 1) {
-    const itemDataType = items[0];
-
-    if (Array.isArray(itemDataType.type)) {
-      return expectedValuesDisplayMap.mixedArray;
-    } else {
-      return expectedValuesDisplayMap[
-        `${itemDataType.type}Array` as keyof typeof expectedValuesDisplayMap
-      ];
-    }
+    return expectedValuesDisplayMap[
+      `${items[0].type}Array` as keyof typeof expectedValuesDisplayMap
+    ];
   }
 
   return expectedValuesDisplayMap.mixedArray;

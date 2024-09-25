@@ -5,38 +5,16 @@ use core::{
 use std::{collections::HashSet, sync::OnceLock};
 
 use email_address::EmailAddress;
-use error_stack::{Report, ReportSink};
+use error_stack::{bail, Report, ReportSink, ResultExt};
 use iso8601_duration::{Duration, ParseDurationError};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+use serde_json::Value as JsonValue;
 use thiserror::Error;
 use url::{Host, Url};
 use uuid::Uuid;
 
-use crate::schema::DataTypeLabel;
-
-#[derive(Debug, Error)]
-pub enum StringFormatError {
-    #[error(transparent)]
-    Url(url::ParseError),
-    #[error(transparent)]
-    Uuid(uuid::Error),
-    #[error(transparent)]
-    Regex(regex::Error),
-    #[error(transparent)]
-    Email(email_address::Error),
-    #[error(transparent)]
-    IpAddress(AddrParseError),
-    #[error("The value does not match the date-time format `YYYY-MM-DDTHH:MM:SS.sssZ`")]
-    DateTime,
-    #[error("The value does not match the date format `YYYY-MM-DD`")]
-    Date,
-    #[error("The value does not match the time format `HH:MM:SS.sss`")]
-    Time,
-    #[error("{0:?}")]
-    Duration(ParseDurationError),
-}
+use crate::schema::ConstraintError;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -71,6 +49,28 @@ impl StringFormat {
             Self::Duration => "duration",
         }
     }
+}
+
+#[derive(Debug, Error)]
+pub enum StringFormatError {
+    #[error(transparent)]
+    Url(url::ParseError),
+    #[error(transparent)]
+    Uuid(uuid::Error),
+    #[error(transparent)]
+    Regex(regex::Error),
+    #[error(transparent)]
+    Email(email_address::Error),
+    #[error(transparent)]
+    IpAddress(AddrParseError),
+    #[error("The value does not match the date-time format `YYYY-MM-DDTHH:MM:SS.sssZ`")]
+    DateTime,
+    #[error("The value does not match the date format `YYYY-MM-DD`")]
+    Date,
+    #[error("The value does not match the time format `HH:MM:SS.sss`")]
+    Time,
+    #[error("{0:?}")]
+    Duration(ParseDurationError),
 }
 
 impl StringFormat {
@@ -175,17 +175,6 @@ impl StringFormat {
 #[derive(Debug, Error)]
 pub enum StringValidationError {
     #[error(
-        "the provided value is not equal to the expected value, expected `{actual}` to be equal \
-         to `{expected}`"
-    )]
-    InvalidConstValue { actual: String, expected: String },
-    #[error("the provided value is not one of the expected values, expected `{actual}` to be one of `{}`", json!(expected))]
-    InvalidEnumValue {
-        actual: String,
-        expected: HashSet<String>,
-    },
-
-    #[error(
         "the provided value is not greater than or equal to the minimum length, expected \
          the length of `{}` to be greater than or equal to `{expected}` but it is `{}`",
         .actual,
@@ -221,20 +210,60 @@ pub enum StringTypeTag {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(untagged, rename_all = "camelCase")]
+pub enum StringSchema {
+    Constrained(StringConstraints),
+    Const {
+        r#const: String,
+    },
+    Enum {
+        #[cfg_attr(target_arch = "wasm32", tsify(type = "[string, ...string[]]"))]
+        r#enum: HashSet<String>,
+    },
+}
+
+impl StringSchema {
+    /// Validates the provided value against the string schema.
+    ///
+    /// # Errors
+    ///
+    /// - [`InvalidConstValue`] if the value is not equal to the expected value.
+    /// - [`InvalidEnumValue`] if the value is not one of the expected values.
+    /// - [`ValueConstraint`] if the value does not match the expected constraints.
+    ///
+    /// [`InvalidConstValue`]: ConstraintError::InvalidConstValue
+    /// [`InvalidEnumValue`]: ConstraintError::InvalidEnumValue
+    /// [`ValueConstraint`]: ConstraintError::ValueConstraint
+    pub fn validate_value(&self, string: &str) -> Result<(), Report<ConstraintError>> {
+        match self {
+            Self::Constrained(constraints) => constraints
+                .validate_value(string)
+                .change_context(ConstraintError::ValueConstraint)?,
+            Self::Const { r#const } => {
+                if string != *r#const {
+                    bail!(ConstraintError::InvalidConstValue {
+                        actual: JsonValue::String(string.to_owned()),
+                        expected: JsonValue::String(r#const.clone()),
+                    });
+                }
+            }
+            Self::Enum { r#enum } => {
+                if !r#enum.contains(string) {
+                    bail!(ConstraintError::InvalidEnumValue {
+                        actual: JsonValue::String(string.to_owned()),
+                        expected: r#enum.iter().cloned().map(JsonValue::String).collect(),
+                    });
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct StringSchema {
-    pub r#type: StringTypeTag,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    #[serde(default, skip_serializing_if = "DataTypeLabel::is_empty")]
-    pub label: DataTypeLabel,
-
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub r#const: Option<String>,
-    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "[string, ...string[]]"))]
-    pub r#enum: HashSet<String>,
-
+pub struct StringConstraints {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub min_length: Option<usize>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -250,42 +279,22 @@ pub struct StringSchema {
     pub format: Option<StringFormat>,
 }
 
-impl StringSchema {
+impl StringConstraints {
     /// Validates the provided value against the string constraints.
     ///
     /// # Errors
     ///
-    /// - [`InvalidConstValue`] if the value is not equal to the expected value.
-    /// - [`InvalidEnumValue`] if the value is not one of the expected values.
     /// - [`MinLength`] if the value is shorter than the minimum length.
     /// - [`MaxLength`] if the value is longer than the maximum length.
     /// - [`Pattern`] if the value does not match the expected [`Regex`].
     /// - [`Format`] if the value does not match the expected [`StringFormat`].
     ///
-    /// [`InvalidConstValue`]: StringValidationError::InvalidConstValue
-    /// [`InvalidEnumValue`]: StringValidationError::InvalidEnumValue
     /// [`MinLength`]: StringValidationError::MinLength
     /// [`MaxLength`]: StringValidationError::MaxLength
     /// [`Pattern`]: StringValidationError::Pattern
     /// [`Format`]: StringValidationError::Format
     pub fn validate_value(&self, string: &str) -> Result<(), Report<[StringValidationError]>> {
         let mut status = ReportSink::new();
-
-        if let Some(expected) = &self.r#const {
-            if expected != string {
-                status.capture(StringValidationError::InvalidConstValue {
-                    expected: expected.clone(),
-                    actual: string.to_owned(),
-                });
-            }
-        }
-
-        if !self.r#enum.is_empty() && !self.r#enum.contains(string) {
-            status.capture(StringValidationError::InvalidEnumValue {
-                expected: self.r#enum.clone(),
-                actual: string.to_owned(),
-            });
-        }
 
         if let Some(expected) = self.min_length {
             if string.len() < expected {

@@ -5,14 +5,9 @@ import type {
   PropertyTypeWithMetadata as PropertyTypeWithMetadataBp,
 } from "@blockprotocol/graph";
 import type {
+  ArrayConstraints,
   ArraySchema,
-  BooleanSchema,
-  DataTypeLabel,
-  NullSchema,
-  NumberSchema,
-  ObjectSchema,
-  StringFormat,
-  StringSchema,
+  TupleConstraints,
 } from "@blockprotocol/type-system";
 import { validateBaseUrl } from "@blockprotocol/type-system";
 import type {
@@ -20,7 +15,6 @@ import type {
   DataType,
   EntityType,
   PropertyType,
-  VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 import type { Brand } from "@local/advanced-types/brand";
 import type { DistributiveOmit } from "@local/advanced-types/distribute";
@@ -95,134 +89,20 @@ type OntologyElementMetadata = Subtype<
   OwnedOntologyElementMetadata | ExternalOntologyElementMetadata
 >;
 
-export type StringConstraint = Subtype<
-  StringSchema,
-  {
-    format?: StringFormat;
-    minLength?: number; // Int
-    maxLength?: number; // Int
-    pattern?: string; // RegExp
-    type: "string";
-  }
->;
+export const isArrayConstraints = (
+  schema: ArraySchema,
+): schema is ArrayConstraints => {
+  return schema.items !== undefined && schema.items !== false;
+};
 
-export type NumberConstraint = Subtype<
-  NumberSchema,
-  {
-    minimum?: number;
-    maximum?: number;
-    exclusiveMinimum?: boolean;
-    exclusiveMaximum?: boolean;
-    multipleOf?: number;
-    type: "number";
-  }
->;
-
-export type BooleanConstraint = Subtype<
-  BooleanSchema,
-  {
-    type: "boolean";
-  }
->;
-
-export type NullConstraint = Subtype<
-  NullSchema,
-  {
-    type: "null";
-  }
->;
-
-export type ObjectConstraint = Subtype<
-  ObjectSchema,
-  {
-    type: "object";
-  }
->;
-
-export type StringEnumConstraint = Subtype<
-  StringSchema,
-  {
-    enum: [string, ...string[]];
-    type: "string";
-  }
->;
-
-export type NumberEnumConstraint = Subtype<
-  NumberSchema,
-  {
-    enum: [number, ...number[]];
-    type: "number";
-  }
->;
-
-/** @see https://json-schema.org/understanding-json-schema/reference/enum */
-export type EnumConstraint = StringEnumConstraint | NumberEnumConstraint;
-
-export type StringConstConstraint = Subtype<
-  StringSchema,
-  {
-    const: string;
-    type: "string";
-  }
->;
-
-export type NumberConstConstraint = Subtype<
-  NumberSchema,
-  {
-    const: number;
-    type: "number";
-  }
->;
-
-export type ConstConstraint = StringConstConstraint | NumberConstConstraint;
-
-export type SingleValueConstraint =
-  | BooleanConstraint
-  | NullConstraint
-  | ObjectConstraint
-  | StringConstraint
-  | NumberConstraint
-  | EnumConstraint
-  | ConstConstraint;
-
-export type ArrayConstraint = Subtype<
-  ArraySchema,
-  {
-    type: "array";
-    items: ValueConstraint;
-  }
->;
-
-/** @see https://json-schema.org/understanding-json-schema/reference/array#tuple-validation */
-export type TupleConstraint = Subtype<
-  ArraySchema,
-  {
-    type: "array";
-    items: false; // disallow additional items;
-    prefixItems: [ValueConstraint, ...ValueConstraint[]];
-  }
->;
-
-export type ValueConstraint = (
-  | SingleValueConstraint
-  | ArrayConstraint
-  | TupleConstraint
-  | { anyOf: [ValueConstraint, ...ValueConstraint[]] }
-) & { description?: string; label?: DataTypeLabel };
-
-export type CustomDataType = Subtype<
-  DataType,
-  {
-    description?: string;
-    $id: VersionedUrl;
-    kind: "dataType";
-    $schema: "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type";
-    title: string;
-  } & ValueConstraint
->;
+export const isTupleConstraints = (
+  schema: ArraySchema,
+): schema is TupleConstraints => {
+  return schema.items === false;
+};
 
 export type ConstructDataTypeParams = DistributiveOmit<
-  CustomDataType,
+  DataType,
   "$id" | "kind" | "$schema"
 >;
 
@@ -242,7 +122,7 @@ export type EntityTypeMetadata = EditableOntologyElementMetadata &
 export type DataTypeWithMetadata = Subtype<
   DataTypeWithMetadataBp,
   {
-    schema: CustomDataType;
+    schema: DataType;
     metadata: OntologyElementMetadata;
   }
 >;

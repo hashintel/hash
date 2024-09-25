@@ -4,12 +4,5 @@
   "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1",
   "title": "Value",
   "description": "A value that can be stored in a graph",
-  "anyOf": [
-    { "type": "null" },
-    { "type": "boolean" },
-    { "type": "number" },
-    { "type": "string" },
-    { "type": "array" },
-    { "type": "object" }
-  ]
+  "anyOf": [{ "type": "null" }]
 }
