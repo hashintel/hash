@@ -87,6 +87,7 @@ export const EntitiesTable: FunctionComponent<{
 
   const [filterState, setFilterState] = useState<FilterState>({
     includeGlobal: false,
+    limitToWebs: false,
   });
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
