@@ -52,6 +52,7 @@ export const TypeCard = ({
           "&:hover": {
             backgroundColor: "blue.5",
           },
+          whiteSpace: "nowrap",
         }}
       >
         <FontAwesomeIcon icon={faAsterisk} />

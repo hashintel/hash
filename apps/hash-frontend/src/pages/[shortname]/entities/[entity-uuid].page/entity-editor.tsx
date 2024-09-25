@@ -66,9 +66,7 @@ export const EntityEditor = (props: EntityEditorProps) => {
         <HistorySection entityId={entity.metadata.recordId.entityId} />
       ) : (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 6.5 }}>
-          <TypesSection />
-
-          {isLinkEntity && <LinkSection />}
+          {isLinkEntity ? <LinkSection /> : <TypesSection />}
 
           <FilePreviewSection />
 

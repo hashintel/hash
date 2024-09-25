@@ -16,6 +16,7 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
   disableCreate,
   disableCreateNewEmpty,
   excludeEntityTypeIds,
+  excludeLinkTypes,
   inputHeight,
   autoFocus,
   multiple,
@@ -26,6 +27,7 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
   value,
 }: {
   excludeEntityTypeIds?: VersionedUrl[];
+  excludeLinkTypes?: boolean;
   inputHeight?: number;
   multiple?: Multiple;
   onSelect: (
@@ -51,9 +53,17 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
   const filteredEntityTypes = useMemo(
     () =>
       latestEntityTypes?.filter(
-        ({ schema }) => !excludeEntityTypeIds?.includes(schema.$id),
+        ({ schema }) =>
+          !excludeEntityTypeIds?.includes(schema.$id) &&
+          (!excludeLinkTypes ||
+            !isSpecialEntityTypeLookup?.[schema.$id]?.isLink),
       ),
-    [excludeEntityTypeIds, latestEntityTypes],
+    [
+      excludeEntityTypeIds,
+      excludeLinkTypes,
+      isSpecialEntityTypeLookup,
+      latestEntityTypes,
+    ],
   );
 
   const [open, setOpen] = useState(false);
