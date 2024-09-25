@@ -93,7 +93,7 @@ describe("Comment Notification", () => {
           { actorId: recipientUser.accountId },
           {
             ownedById: testOrg.accountGroupId as OwnedById,
-            entityTypeId: systemEntityTypes.text.entityTypeId,
+            entityTypeIds: [systemEntityTypes.text.entityTypeId],
             properties: {
               value: {
                 "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":
@@ -180,7 +180,7 @@ describe("Comment Notification", () => {
           { actorId: triggerUser.accountId },
           {
             ownedById: testOrg.accountGroupId as OwnedById,
-            entityTypeId: systemEntityTypes.text.entityTypeId,
+            entityTypeIds: [systemEntityTypes.text.entityTypeId],
             properties: {
               value: {
                 "https://blockprotocol.org/@blockprotocol/types/property-type/textual-content/":

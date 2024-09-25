@@ -226,7 +226,7 @@ describe("Entity CRU", () => {
           },
         },
       },
-      entityTypeId: entityType.schema.$id,
+      entityTypeIds: [entityType.schema.$id],
       relationships: createDefaultAuthorizationRelationships(authentication),
     });
   });
@@ -352,7 +352,7 @@ describe("Entity CRU", () => {
       {
         ownedById: testUser.accountId as OwnedById,
         // First create a new entity given the following definition
-        entityTypeId: entityType.schema.$id,
+        entityTypeIds: [entityType.schema.$id],
         properties: {
           value: {
             [namePropertyType.metadata.recordId.baseUrl]: {
@@ -405,7 +405,7 @@ describe("Entity CRU", () => {
         { linkEntity },
       ),
     ).toEqual(updatedEntity);
-    expect(linkEntity.metadata.entityTypeId).toEqual(
+    expect(linkEntity.metadata.entityTypeIds).toContain(
       linkEntityTypeFriend.schema.$id,
     );
   });
