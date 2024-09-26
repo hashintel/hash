@@ -197,6 +197,7 @@ export type CustomDataType = Subtype<
   DataType,
   {
     allOf?: DataType["allOf"];
+    abstract?: DataType["abstract"];
     description?: string;
     $id: VersionedUrl;
     kind: "dataType";

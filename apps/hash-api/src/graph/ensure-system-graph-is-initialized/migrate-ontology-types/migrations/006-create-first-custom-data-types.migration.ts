@@ -44,7 +44,7 @@ const migrate: MigrationFunction = async ({
     {
       dataTypeDefinition: {
         allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
-        /** @todo H-3356 add abstract: true */
+        abstract: true,
         title: "Length",
         description: "A measure of distance.",
         type: "number",
@@ -61,7 +61,7 @@ const migrate: MigrationFunction = async ({
     {
       dataTypeDefinition: {
         allOf: [{ $ref: lengthDataType.schema.$id }],
-        /** @todo H-3356 add abstract: true */
+        abstract: true,
         title: "Metric Length (SI)",
         description:
           "A measure of distance in the International System of Units (SI), the international standard for decimal-based measurements.",
@@ -79,7 +79,7 @@ const migrate: MigrationFunction = async ({
     {
       dataTypeDefinition: {
         allOf: [{ $ref: lengthDataType.schema.$id }],
-        /** @todo H-3356 add abstract: true */
+        abstract: true,
         title: "Imperial Length (UK)",
         description:
           "A measure of distance in the system of units defined in the British Weights and Measures Acts, in use alongside metric units in the UK and elsewhere.",
@@ -97,7 +97,7 @@ const migrate: MigrationFunction = async ({
     {
       dataTypeDefinition: {
         allOf: [{ $ref: lengthDataType.schema.$id }],
-        /** @todo H-3356 add abstract: true */
+        abstract: true,
         title: "Imperial Length (US)",
         description:
           "A measure of distance in the system of units commonly used in the United States, formally known as United States customary units.",
@@ -340,7 +340,7 @@ const migrate: MigrationFunction = async ({
     {
       dataTypeDefinition: {
         allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
-        /** @todo H-3356 add abstract: true */
+        abstract: true,
         title: "Frequency",
         description:
           "The number of occurrences of a repeating event per unit of time (temporal frequency).",
@@ -441,7 +441,7 @@ const migrate: MigrationFunction = async ({
     {
       dataTypeDefinition: {
         allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
-        /** @todo H-3356 add abstract: true */
+        abstract: true,
         title: "Information",
         description: "A measure of information content.",
         type: "number",
@@ -577,7 +577,7 @@ const migrate: MigrationFunction = async ({
     {
       dataTypeDefinition: {
         allOf: [{ $ref: blockProtocolDataTypes.number.dataTypeId }],
-        /** @todo H-3356 add abstract: true */
+        abstract: true,
         title: "Power",
         description:
           "The amount of energy transferred or converted per unit time.",
