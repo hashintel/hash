@@ -225,7 +225,6 @@ mod raw {
             common: ValueSchemaMetadata,
             r#const: [JsonValue; 0],
         },
-        #[serde(skip)]
         AnyOf {
             #[serde(flatten)]
             common: ValueSchemaMetadata,
@@ -695,7 +694,6 @@ mod tests {
     };
 
     #[tokio::test]
-    #[ignore = "AnyOf constraint is not exposed"]
     async fn value() {
         ensure_validation_from_str::<DataType, _>(
             graph_test_data::data_type::VALUE_V1,

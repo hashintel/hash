@@ -64,7 +64,6 @@ mod wasm {
 #[serde(untagged, rename_all = "camelCase")]
 pub enum SimpleValueSchema {
     Typed(SimpleTypedValueSchema),
-    #[serde(skip)]
     AnyOf(AnyOfSchema),
 }
 
@@ -169,7 +168,6 @@ impl SimpleTypedValueConstraint {
 #[serde(untagged, rename_all = "camelCase")]
 pub enum ValueConstraints {
     Typed(TypedValueConstraints),
-    #[serde(skip)]
     AnyOf(AnyOfConstraints),
 }
 
