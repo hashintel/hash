@@ -1,7 +1,8 @@
+#[cfg(all(not(target_arch = "wasm32"), feature = "std"))]
+use core::panic::Location;
 use core::{
     convert::Infallible,
     ops::{FromResidual, Try},
-    panic::Location,
 };
 
 use crate::Report;
@@ -21,7 +22,7 @@ enum BombState {
     /// Panic if the `ReportSink` is dropped without being used.
     Panic,
     /// Emit a warning to stderr if the `ReportSink` is dropped without being used.
-    Warn(&'static Location<'static>),
+    Warn(#[cfg(all(not(target_arch = "wasm32"), feature = "std"))] &'static Location<'static>),
     /// Do nothing if the `ReportSink` is properly consumed.
     Defused,
 }
@@ -29,7 +30,10 @@ enum BombState {
 impl Default for BombState {
     #[track_caller]
     fn default() -> Self {
-        Self::Warn(Location::caller())
+        Self::Warn(
+            #[cfg(all(not(target_arch = "wasm32"), feature = "std"))]
+            Location::caller(),
+        )
     }
 }
 
@@ -43,7 +47,10 @@ impl Bomb {
 
     #[track_caller]
     const fn warn() -> Self {
-        Self(BombState::Warn(Location::caller()))
+        Self(BombState::Warn(
+            #[cfg(all(not(target_arch = "wasm32"), feature = "std"))]
+            Location::caller(),
+        ))
     }
 
     fn defuse(&mut self) {
@@ -60,7 +67,8 @@ impl Drop for Bomb {
 
         match self.0 {
             BombState::Panic => panic!("ReportSink was dropped without being consumed"),
-            #[allow(clippy::print_stderr)]
+            #[allow(clippy::print_stderr, unused_variables)]
+            #[cfg(all(not(target_arch = "wasm32"), feature = "std"))]
             BombState::Warn(location) => {
                 #[cfg(feature = "tracing")]
                 tracing::warn!(
@@ -71,7 +79,7 @@ impl Drop for Bomb {
                 #[cfg(all(not(target_arch = "wasm32"), not(feature = "tracing"), feature = "std"))]
                 eprintln!("`ReportSink` was dropped without being consumed at {location}");
             }
-            BombState::Defused => {}
+            _ => {}
         }
     }
 }
