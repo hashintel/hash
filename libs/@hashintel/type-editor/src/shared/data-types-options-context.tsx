@@ -28,7 +28,10 @@ import {
   faText,
 } from "@hashintel/design-system";
 import { theme } from "@hashintel/design-system/theme";
-import { isTupleConstraints } from "@local/hash-graph-types/ontology";
+import {
+  isArrayConstraints,
+  isTupleConstraints,
+} from "@local/hash-graph-types/ontology";
 import type { PropsWithChildren } from "react";
 import { createContext, useCallback, useContext, useMemo } from "react";
 
@@ -181,6 +184,10 @@ const getArrayDataTypeDisplay = (
       return expectedValuesDisplayMap.emptyList;
     }
     items = dataType.prefixItems;
+    // TODO: Remove when `const` is not allowed on arrays
+    //   see https://linear.app/hash/issue/H-3368/remove-const-from-array-constraints
+  } else if (!isArrayConstraints(dataType)) {
+    return expectedValuesDisplayMap.emptyList;
   } else if (!dataType.items) {
     return expectedValuesDisplayMap.mixedArray;
   } else {

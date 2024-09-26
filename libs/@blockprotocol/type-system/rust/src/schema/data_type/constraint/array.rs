@@ -1,5 +1,5 @@
 use codec::serde::constant::ConstBool;
-use error_stack::{Report, ReportSink, ResultExt, TryReportIteratorExt};
+use error_stack::{Report, ReportSink, ResultExt, TryReportIteratorExt, bail};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use thiserror::Error;
@@ -37,6 +37,9 @@ pub enum ArrayTypeTag {
 pub enum ArraySchema {
     Constrained(ArrayConstraints),
     Tuple(TupleConstraints),
+    // TODO: Remove
+    //   see https://linear.app/hash/issue/H-3368/remove-const-from-array-constraints
+    Const { r#const: [JsonValue; 0] },
 }
 
 impl ArraySchema {
@@ -55,6 +58,14 @@ impl ArraySchema {
             Self::Tuple(constraints) => constraints
                 .validate_value(array)
                 .change_context(ConstraintError::ValueConstraint)?,
+            Self::Const { r#const } => {
+                if array != *r#const {
+                    bail!(ConstraintError::InvalidConstValue {
+                        actual: JsonValue::Array(array.to_vec()),
+                        expected: JsonValue::Array(r#const.to_vec()),
+                    });
+                }
+            }
         }
         Ok(())
     }

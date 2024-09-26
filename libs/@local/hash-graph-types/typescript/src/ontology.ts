@@ -92,13 +92,19 @@ type OntologyElementMetadata = Subtype<
 export const isArrayConstraints = (
   schema: ArraySchema,
 ): schema is ArrayConstraints => {
-  return schema.items !== undefined && schema.items !== false;
+  // TODO: Remove `"items" in schema` check when `const` is not allowed on arrays
+  //   see https://linear.app/hash/issue/H-3368/remove-const-from-array-constraints
+  return (
+    "items" in schema && schema.items !== undefined && schema.items !== false
+  );
 };
 
 export const isTupleConstraints = (
   schema: ArraySchema,
 ): schema is TupleConstraints => {
-  return schema.items === false;
+  // TODO: Remove `"items" in schema` check when `const` is not allowed on arrays
+  //   see https://linear.app/hash/issue/H-3368/remove-const-from-array-constraints
+  return "items" in schema && schema.items === false;
 };
 
 export type ConstructDataTypeParams = DistributiveOmit<

@@ -7,7 +7,6 @@
 )]
 
 extern crate alloc;
-extern crate core;
 
 pub mod url;
 
