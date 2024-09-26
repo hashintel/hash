@@ -48,7 +48,7 @@ export const useOrgs = (): {
       hasLeftEntity: { incoming: 0, outgoing: 0 },
       hasRightEntity: { incoming: 0, outgoing: 0 },
     },
-    fetchPolicy: "cache-first",
+    fetchPolicy: "cache-and-network",
   });
 
   const { queryEntities: subgraphAndPermissions } = data ?? {};
@@ -72,7 +72,7 @@ export const useOrgs = (): {
         return constructMinimalOrg({ orgEntity });
       });
     },
-    [subgraphAndPermissions]
+    [subgraphAndPermissions],
     /**
      * Check if the previous and new orgs are the same.
      * If they are, the return value from the hook won't change, avoiding unnecessary re-renders.
@@ -83,8 +83,7 @@ export const useOrgs = (): {
      * for all the orgs every time the hook is run, but instead use polling (or a subscription) to get updates.
      *
      * An identical approach is taken in {@link useUsers}. Update that too if this is changed.
-     */,
-    (a, b) => {
+     */ (a, b) => {
       if (a === undefined || b === undefined) {
         return false;
       }
