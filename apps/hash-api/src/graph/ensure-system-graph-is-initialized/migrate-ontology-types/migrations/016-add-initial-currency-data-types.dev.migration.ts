@@ -17,7 +17,7 @@ const migrate: MigrationFunction = async ({
         abstract: true,
         title: "Currency",
         description:
-          "a system of money in common use within a specific environment over time, especially for people in a nation state.",
+          "A system of money in common use within a specific environment over time, especially for people in a nation state.",
         type: "number",
       },
       conversions: {},
@@ -30,7 +30,7 @@ const migrate: MigrationFunction = async ({
     dataTypeDefinition: {
       allOf: [{ $ref: currencyDataTypes.schema.$id }],
       title: "USD",
-      description: "An amount denominated in US Dollars",
+      description: "An amount denominated in US Dollars.",
       type: "number",
       label: {
         left: "$",
@@ -45,7 +45,7 @@ const migrate: MigrationFunction = async ({
     dataTypeDefinition: {
       allOf: [{ $ref: currencyDataTypes.schema.$id }],
       title: "GBP",
-      description: "An amount denominated in British pounds sterling",
+      description: "An amount denominated in British pounds sterling.",
       type: "number",
       label: {
         left: "£",
@@ -60,7 +60,7 @@ const migrate: MigrationFunction = async ({
     dataTypeDefinition: {
       allOf: [{ $ref: currencyDataTypes.schema.$id }],
       title: "EUR",
-      description: "An amount denominated in Euros",
+      description: "An amount denominated in Euros.",
       type: "number",
       label: {
         left: "€",
