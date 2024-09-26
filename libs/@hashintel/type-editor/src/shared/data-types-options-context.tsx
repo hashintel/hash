@@ -1,7 +1,9 @@
 import type {
+  ArrayConstraints,
   ArraySchema,
   DataType,
   SimpleValueSchema,
+  TupleConstraints,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 import {
@@ -28,10 +30,6 @@ import {
   faText,
 } from "@hashintel/design-system";
 import { theme } from "@hashintel/design-system/theme";
-import {
-  isArrayConstraints,
-  isTupleConstraints,
-} from "@local/hash-graph-types/ontology";
 import type { PropsWithChildren } from "react";
 import { createContext, useCallback, useContext, useMemo } from "react";
 
@@ -173,6 +171,24 @@ export type DataTypesContextValue = {
 
 export const DataTypesOptionsContext =
   createContext<DataTypesContextValue | null>(null);
+
+const isArrayConstraints = (
+  schema: ArraySchema,
+): schema is ArrayConstraints => {
+  // TODO: Remove `"items" in schema` check when `const` is not allowed on arrays
+  //   see https://linear.app/hash/issue/H-3368/remove-const-from-array-constraints
+  return (
+    "items" in schema && schema.items !== undefined && schema.items !== false
+  );
+};
+
+const isTupleConstraints = (
+  schema: ArraySchema,
+): schema is TupleConstraints => {
+  // TODO: Remove `"items" in schema` check when `const` is not allowed on arrays
+  //   see https://linear.app/hash/issue/H-3368/remove-const-from-array-constraints
+  return "items" in schema && schema.items === false;
+};
 
 const getArrayDataTypeDisplay = (
   dataType: ArraySchema,

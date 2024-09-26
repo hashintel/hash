@@ -6,8 +6,8 @@ use core::{
 };
 
 use super::{
-    r#type::ExpectedType, ErrorProperties, ErrorProperty, Id, Location, Namespace, Variant,
-    NAMESPACE,
+    ErrorProperties, ErrorProperty, Id, Location, NAMESPACE, Namespace, Variant,
+    r#type::ExpectedType,
 };
 use crate::id;
 
@@ -110,8 +110,8 @@ mod tests {
 
     use super::*;
     use crate::{
-        test::{to_json, to_message},
         Deserialize,
+        test::{to_json, to_message},
     };
 
     #[test]

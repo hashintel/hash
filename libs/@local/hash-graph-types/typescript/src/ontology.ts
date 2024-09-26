@@ -4,11 +4,6 @@ import type {
   OntologyElementMetadata as OntologyElementMetadataBp,
   PropertyTypeWithMetadata as PropertyTypeWithMetadataBp,
 } from "@blockprotocol/graph";
-import type {
-  ArrayConstraints,
-  ArraySchema,
-  TupleConstraints,
-} from "@blockprotocol/type-system";
 import { validateBaseUrl } from "@blockprotocol/type-system";
 import type {
   BaseUrl as BaseUrlBp,
@@ -88,24 +83,6 @@ type OntologyElementMetadata = Subtype<
   OntologyElementMetadataBp,
   OwnedOntologyElementMetadata | ExternalOntologyElementMetadata
 >;
-
-export const isArrayConstraints = (
-  schema: ArraySchema,
-): schema is ArrayConstraints => {
-  // TODO: Remove `"items" in schema` check when `const` is not allowed on arrays
-  //   see https://linear.app/hash/issue/H-3368/remove-const-from-array-constraints
-  return (
-    "items" in schema && schema.items !== undefined && schema.items !== false
-  );
-};
-
-export const isTupleConstraints = (
-  schema: ArraySchema,
-): schema is TupleConstraints => {
-  // TODO: Remove `"items" in schema` check when `const` is not allowed on arrays
-  //   see https://linear.app/hash/issue/H-3368/remove-const-from-array-constraints
-  return "items" in schema && schema.items === false;
-};
 
 export type ConstructDataTypeParams = DistributiveOmit<
   DataType,
