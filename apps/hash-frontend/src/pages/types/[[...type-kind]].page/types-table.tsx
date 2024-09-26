@@ -122,6 +122,7 @@ export const TypesTable: FunctionComponent<{
   const [filterState, setFilterState] = useState<FilterState>({
     includeArchived: false,
     includeGlobal: false,
+    limitToWebs: false,
   });
 
   const [selectedEntityTypeId, setSelectedEntityTypeId] =
@@ -201,68 +202,85 @@ export const TypesTable: FunctionComponent<{
     ];
   }, [authenticatedUser]);
 
+  const filteredTypes = useMemo(() => {
+    const filtered: ((
+      | EntityTypeWithMetadata
+      | PropertyTypeWithMetadata
+      | DataTypeWithMetadata
+    ) & { isExternal: boolean; webShortname?: string; archived: boolean })[] =
+      [];
+
+    for (const type of types ?? []) {
+      const isExternal = isExternalOntologyElementMetadata(type.metadata)
+        ? true
+        : !internalWebIds.includes(type.metadata.ownedById);
+
+      const namespaceOwnedById = isExternalOntologyElementMetadata(
+        type.metadata,
+      )
+        ? undefined
+        : type.metadata.ownedById;
+
+      const webShortname = namespaces?.find(
+        (workspace) => extractOwnedById(workspace) === namespaceOwnedById,
+      )?.shortname;
+
+      const isArchived = isTypeArchived(type);
+
+      if (
+        (filterState.includeGlobal ? true : !isExternal) &&
+        (filterState.includeArchived ? true : !isArchived) &&
+        (filterState.limitToWebs
+          ? webShortname && filterState.limitToWebs.includes(webShortname)
+          : true)
+      ) {
+        filtered.push({
+          ...type,
+          isExternal,
+          webShortname,
+          archived: isArchived,
+        });
+      }
+    }
+
+    return filtered;
+  }, [types, filterState, namespaces, internalWebIds]);
+
   const filteredRows = useMemo<TypesTableRow[] | undefined>(
     () =>
-      types
-        ?.map((type) => {
-          const isExternal = isExternalOntologyElementMetadata(type.metadata)
-            ? true
-            : !internalWebIds.includes(type.metadata.ownedById);
+      filteredTypes.map((type) => {
+        const lastEdited = format(
+          new Date(
+            type.metadata.temporalVersioning.transactionTime.start.limit,
+          ),
+          "yyyy-MM-dd HH:mm",
+        );
 
-          const namespaceOwnedById = isExternalOntologyElementMetadata(
-            type.metadata,
-          )
-            ? undefined
-            : type.metadata.ownedById;
+        const lastEditedBy = actors?.find(
+          ({ accountId }) =>
+            accountId === type.metadata.provenance.edition.createdById,
+        );
 
-          const webShortname = namespaces?.find(
-            (workspace) => extractOwnedById(workspace) === namespaceOwnedById,
-          )?.shortname;
-
-          const lastEdited = format(
-            new Date(
-              type.metadata.temporalVersioning.transactionTime.start.limit,
-            ),
-            "yyyy-MM-dd HH:mm",
-          );
-
-          const lastEditedBy = actors?.find(
-            ({ accountId }) =>
-              accountId === type.metadata.provenance.edition.createdById,
-          );
-
-          return {
-            rowId: type.schema.$id,
-            typeId: type.schema.$id,
-            title: type.schema.title,
-            lastEdited,
-            lastEditedBy,
-            kind:
-              type.schema.kind === "entityType"
-                ? isSpecialEntityTypeLookup?.[type.schema.$id]?.isFile
-                  ? "link-type"
-                  : "entity-type"
-                : type.schema.kind === "propertyType"
-                  ? "property-type"
-                  : "data-type",
-            external: isExternal,
-            webShortname,
-            archived: isTypeArchived(type),
-          } as const;
-        })
-        .filter(
-          ({ external, archived }) =>
-            (filterState.includeGlobal ? true : !external) &&
-            (filterState.includeArchived ? true : !archived),
-        ),
-    [
-      actors,
-      internalWebIds,
-      isSpecialEntityTypeLookup,
-      types,
-      namespaces,
-      filterState,
-    ],
+        return {
+          rowId: type.schema.$id,
+          typeId: type.schema.$id,
+          title: type.schema.title,
+          lastEdited,
+          lastEditedBy,
+          kind:
+            type.schema.kind === "entityType"
+              ? isSpecialEntityTypeLookup?.[type.schema.$id]?.isFile
+                ? "link-type"
+                : "entity-type"
+              : type.schema.kind === "propertyType"
+                ? "property-type"
+                : "data-type",
+          external: type.isExternal,
+          webShortname: type.webShortname,
+          archived: type.archived,
+        } as const;
+      }),
+    [actors, isSpecialEntityTypeLookup, filteredTypes],
   );
 
   const sortRows = useCallback<
@@ -513,7 +531,7 @@ export const TypesTable: FunctionComponent<{
           <Box height={maxTableHeight}>
             <TypeGraphVisualizer
               onTypeClick={setSelectedEntityTypeId}
-              types={types ?? []}
+              types={filteredTypes}
             />
           </Box>
         )}

@@ -40,7 +40,7 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
        * This assumes that there are no link entities which link to other link entities, which require being able to
        * create multiple entities at once in a single transaction (since they refer to each other).
        *
-       * @todo handle links pointing to other links via creating many entities at once, unblocked by H-1178
+       * @todo handle links pointing to other links via creating many entities at once, unblocked by H-1178. See also entity-result-table
        */
       if (
         (a.sourceEntityId && b.sourceEntityId) ||

@@ -181,7 +181,7 @@ export const GraphDataLoader = ({
 
     for (const edge of edges) {
       graph.addEdgeWithKey(edge.edgeId, edge.source, edge.target, {
-        color: "rgba(230, 230, 230, 1)",
+        color: "rgba(50, 50, 50, 0.5)",
         label: edge.label,
         size: edge.size,
         type: "arrow",

@@ -410,7 +410,7 @@ type BaseCreateTypeIfNotExistsParameters = {
   migrationState: MigrationState;
 };
 
-const generateSystemDataTypeSchema = ({
+export const generateSystemDataTypeSchema = ({
   dataTypeId,
   ...rest
 }: ConstructDataTypeParams & { dataTypeId: VersionedUrl }): CustomDataType => {

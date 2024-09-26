@@ -46,10 +46,17 @@ export const TypeGraphVisualizer = ({
       size: 18,
     };
 
+    /**
+     * Link types can appear multiple times in the visualization (one per each destination combination).
+     * We need to track all the occurrences of a link type, so that if we encounter a link A which links to a link B,
+     * we can link from link A to all the occurrences of link B.
+     */
+    const linkNodesByEntityTypeId: Record<VersionedUrl, string[]> = {};
+
     for (const { schema } of types) {
       if (schema.kind !== "entityType") {
         /**
-         * Don't yet add property or data types to the graph.
+         * We don't yet support visualizing property or data types to the graph.
          */
         continue;
       }
@@ -59,7 +66,7 @@ export const TypeGraphVisualizer = ({
       const isLink = isSpecialEntityTypeLookup?.[entityTypeId]?.isLink;
       if (isLink) {
         /**
-         * We'll add the links as we process each entity type.
+         * We'll add the links as we process each entity type – this means that any link types which are unused won't appear in the graph.
          */
         continue;
       }
@@ -112,14 +119,29 @@ export const TypeGraphVisualizer = ({
           });
           addedNodeIds.add(linkNodeId);
 
+          linkNodesByEntityTypeId[linkTypeId] ??= [];
+          linkNodesByEntityTypeId[linkTypeId].push(linkNodeId);
+
           if (destinationTypeIds) {
             for (const destinationTypeId of destinationTypeIds) {
-              edgesToAdd.push({
-                edgeId: `${linkNodeId}~${destinationTypeId}`,
-                size: 3,
-                source: linkNodeId,
-                target: destinationTypeId,
-              });
+              let targetNodeIds: string[] = [destinationTypeId];
+
+              if (isSpecialEntityTypeLookup?.[destinationTypeId]?.isLink) {
+                /**
+                 * If the destination is itself a link, we need to account for the multiple places the destination link may appear.
+                 */
+                targetNodeIds =
+                  linkNodesByEntityTypeId[destinationTypeId] ?? [];
+              }
+
+              for (const targetNodeId of targetNodeIds) {
+                edgesToAdd.push({
+                  edgeId: `${linkNodeId}~${targetNodeId}`,
+                  size: 3,
+                  source: linkNodeId,
+                  target: targetNodeId,
+                });
+              }
             }
           } else {
             /**
