@@ -107,6 +107,7 @@ mod raw {
     use std::collections::HashSet;
 
     use serde::{Deserialize, Serialize};
+    use serde_json::Value as JsonValue;
 
     use super::{DataTypeSchemaTag, DataTypeTag};
     use crate::{
@@ -218,6 +219,12 @@ mod raw {
             #[serde(flatten)]
             constraints: TupleConstraints,
         },
+        ArrayConst {
+            r#type: ArrayTypeTag,
+            #[serde(flatten)]
+            common: ValueSchemaMetadata,
+            r#const: [JsonValue; 0],
+        },
         #[serde(skip)]
         AnyOf {
             #[serde(flatten)]
@@ -327,6 +334,16 @@ mod raw {
                     ValueConstraints::Typed(TypedValueConstraints::Array(ArraySchema::Tuple(
                         constraints,
                     ))),
+                ),
+                DataType::ArrayConst {
+                    r#type: _,
+                    common,
+                    r#const,
+                } => (
+                    common,
+                    ValueConstraints::Typed(TypedValueConstraints::Array(ArraySchema::Const {
+                        r#const,
+                    })),
                 ),
                 DataType::AnyOf {
                     common,
