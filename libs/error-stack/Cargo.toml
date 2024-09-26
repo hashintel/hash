@@ -28,6 +28,7 @@ pin-project-lite = { workspace = true, optional = true }
 # Private third-party dependencies
 spin = { version = ">=0.9", default-features = false, optional = true, features = ['rwlock', 'once'] }
 tracing-error = { version = ">=0.2", optional = true, default-features = false }
+tracing = { version = ">=0.1", optional = true, default-features = false }
 
 [dev-dependencies]
 serde = { workspace = true, features = ["derive"] }
@@ -55,7 +56,8 @@ default = ["std", "backtrace"]
 std = ["anyhow?/std"]  # Enables support for `Error`
 backtrace = ["std"]  # Enables automatic capturing of `Backtrace`s (requires Rust 1.65+)
 
-spantrace = ["dep:tracing-error", "std"]  # Enables automatic capturing of `SpanTrace`s
+tracing = ["dep:tracing"]  # Uses the `tracing` library if messages would be printed to the terminal
+spantrace = ["dep:tracing-error", "tracing", "std"]  # Enables automatic capturing of `SpanTrace`s
 serde = ["dep:serde"]  # Enables serialization support
 hooks = ['dep:spin']  # Enables hooks on `no-std` platforms using spin locks
 

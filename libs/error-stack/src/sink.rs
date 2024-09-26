@@ -1,3 +1,5 @@
+#[cfg(any(all(not(target_arch = "wasm32"), feature = "std"), feature = "tracing"))]
+use core::panic::Location;
 use core::{
     convert::Infallible,
     ops::{FromResidual, Try},
@@ -15,15 +17,29 @@ use crate::Report;
 ///
 /// This runtime check complements the compile-time `#[must_use]` attribute,
 /// providing a more robust mechanism to prevent `ReportSink` not being consumed.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 enum BombState {
     /// Panic if the `ReportSink` is dropped without being used.
     Panic,
     /// Emit a warning to stderr if the `ReportSink` is dropped without being used.
-    #[default]
-    Warn,
+    Warn(
+        // We capture the location if either `tracing` is enabled or `std` is enabled on non-WASM
+        // targets.
+        #[cfg(any(all(not(target_arch = "wasm32"), feature = "std"), feature = "tracing"))]
+        &'static Location<'static>,
+    ),
     /// Do nothing if the `ReportSink` is properly consumed.
     Defused,
+}
+
+impl Default for BombState {
+    #[track_caller]
+    fn default() -> Self {
+        Self::Warn(
+            #[cfg(any(all(not(target_arch = "wasm32"), feature = "std"), feature = "tracing"))]
+            Location::caller(),
+        )
+    }
 }
 
 #[derive(Debug, Default)]
@@ -34,8 +50,12 @@ impl Bomb {
         Self(BombState::Panic)
     }
 
+    #[track_caller]
     const fn warn() -> Self {
-        Self(BombState::Warn)
+        Self(BombState::Warn(
+            #[cfg(any(all(not(target_arch = "wasm32"), feature = "std"), feature = "tracing"))]
+            Location::caller(),
+        ))
     }
 
     fn defuse(&mut self) {
@@ -53,11 +73,18 @@ impl Drop for Bomb {
         match self.0 {
             BombState::Panic => panic!("ReportSink was dropped without being consumed"),
             #[allow(clippy::print_stderr)]
-            BombState::Warn => {
-                #[cfg(all(not(target_arch = "wasm32"), feature = "std"))]
-                eprintln!("ReportSink was dropped without being consumed");
+            #[cfg(any(all(not(target_arch = "wasm32"), feature = "std"), feature = "tracing"))]
+            BombState::Warn(location) => {
+                #[cfg(feature = "tracing")]
+                tracing::warn!(
+                    target: "error_stack",
+                    %location,
+                    "`ReportSink` was dropped without being consumed"
+                );
+                #[cfg(not(feature = "tracing"))]
+                eprintln!("`ReportSink` was dropped without being consumed at {location}");
             }
-            BombState::Defused => {}
+            _ => {}
         }
     }
 }
@@ -124,6 +151,7 @@ impl<C> ReportSink<C> {
     /// Creates a new [`ReportSink`].
     ///
     /// If the sink hasn't been finished when dropped, it will emit a warning.
+    #[track_caller]
     pub const fn new() -> Self {
         Self {
             report: None,
