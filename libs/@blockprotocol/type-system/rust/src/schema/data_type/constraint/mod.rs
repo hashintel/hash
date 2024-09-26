@@ -7,7 +7,7 @@ mod number;
 mod object;
 mod string;
 
-use error_stack::{Report, bail};
+use error_stack::{bail, Report};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
@@ -40,7 +40,7 @@ pub struct SimpleTypedValueSchema {
 #[cfg(target_arch = "wasm32")]
 #[expect(
     dead_code,
-    reason = "Used to export type to TypeScript to Tsify generating interfaces"
+    reason = "Used to export type to TypeScript to prevent Tsify generating interfaces"
 )]
 mod wasm {
     use super::*;
