@@ -210,7 +210,7 @@ pub enum StringTypeTag {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
-#[serde(untagged, rename_all = "camelCase")]
+#[serde(untagged, rename_all = "camelCase", deny_unknown_fields)]
 pub enum StringSchema {
     Constrained(StringConstraints),
     Const {
@@ -330,5 +330,130 @@ impl StringConstraints {
         }
 
         status.finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::{from_value, json};
+
+    use super::*;
+    use crate::schema::{
+        JsonSchemaValueType,
+        data_type::constraint::{
+            ValueConstraints,
+            tests::{check_constraints, check_constraints_error, read_schema},
+        },
+    };
+    #[test]
+    fn unconstrained() {
+        let string_schema = read_schema(&json!({
+            "type": "string",
+        }));
+
+        check_constraints(&string_schema, &json!("NaN"));
+        check_constraints_error(&string_schema, &json!(10), [ConstraintError::InvalidType {
+            actual: JsonSchemaValueType::Number,
+            expected: JsonSchemaValueType::String,
+        }]);
+    }
+
+    #[test]
+    fn simple_string() {
+        let string_schema = read_schema(&json!({
+            "type": "string",
+            "minLength": 5,
+            "maxLength": 10,
+        }));
+
+        check_constraints(&string_schema, &json!("12345"));
+        check_constraints(&string_schema, &json!("1234567890"));
+        check_constraints_error(&string_schema, &json!(2), [ConstraintError::InvalidType {
+            actual: JsonSchemaValueType::Number,
+            expected: JsonSchemaValueType::String,
+        }]);
+        check_constraints_error(&string_schema, &json!("1234"), [
+            StringValidationError::MinLength {
+                actual: "1234".to_owned(),
+                expected: 5,
+            },
+        ]);
+        check_constraints_error(&string_schema, &json!("12345678901"), [
+            StringValidationError::MaxLength {
+                actual: "12345678901".to_owned(),
+                expected: 10,
+            },
+        ]);
+    }
+
+    #[test]
+    fn constant() {
+        let string_schema = read_schema(&json!({
+            "type": "string",
+            "const": "foo",
+        }));
+
+        check_constraints(&string_schema, &json!("foo"));
+        check_constraints_error(&string_schema, &json!("bar"), [
+            ConstraintError::InvalidConstValue {
+                actual: json!("bar"),
+                expected: json!("foo"),
+            },
+        ]);
+    }
+
+    #[test]
+    fn enumeration() {
+        let string_schema = read_schema(&json!({
+            "type": "string",
+            "enum": ["foo"],
+        }));
+
+        check_constraints(&string_schema, &json!("foo"));
+        check_constraints_error(&string_schema, &json!("bar"), [
+            ConstraintError::InvalidEnumValue {
+                actual: json!("bar"),
+                expected: vec![json!("foo")],
+            },
+        ]);
+    }
+
+    #[test]
+    fn missing_type() {
+        from_value::<ValueConstraints>(json!({
+            "minLength": 0.0,
+        }))
+        .expect_err("Deserialized string schema without type");
+    }
+
+    #[test]
+    fn additional_string_properties() {
+        from_value::<ValueConstraints>(json!({
+            "type": "string",
+            "additional": false,
+        }))
+        .expect_err("Deserialized string schema with additional properties");
+    }
+
+    #[test]
+    fn mixed() {
+        from_value::<ValueConstraints>(json!({
+            "type": "string",
+            "const": "foo",
+            "minLength": 5,
+        }))
+        .expect_err("Deserialized string schema with mixed properties");
+        from_value::<ValueConstraints>(json!({
+            "type": "string",
+            "enum": ["foo", "bar"],
+            "minLength": 5,
+        }))
+        .expect_err("Deserialized string schema with mixed properties");
+        from_value::<ValueConstraints>(json!({
+            "type": "string",
+            "const": "bar",
+            "enum": ["foo", "bar"],
+        }))
+        .expect_err("Deserialized string schema with mixed properties");
     }
 }

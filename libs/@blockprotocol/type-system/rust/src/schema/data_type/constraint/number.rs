@@ -96,6 +96,18 @@ fn float_less(lhs: f64, rhs: f64) -> bool {
     float_less_eq(lhs, rhs) && !float_eq(lhs, rhs)
 }
 
+#[expect(
+    clippy::float_arithmetic,
+    reason = "Validation requires floating point arithmetic"
+)]
+fn float_multiple_of(lhs: f64, rhs: f64) -> bool {
+    if float_eq(rhs, 0.0) {
+        return false;
+    }
+    let quotient = lhs / rhs;
+    (quotient - quotient.floor()).abs() < f64::EPSILON
+}
+
 impl NumberSchema {
     /// Validates the provided value against the number schema.
     ///
@@ -211,12 +223,7 @@ impl NumberConstraints {
         }
 
         if let Some(expected) = self.multiple_of {
-            #[expect(
-                clippy::float_arithmetic,
-                clippy::modulo_arithmetic,
-                reason = "Validation requires floating point arithmetic"
-            )]
-            if !float_eq(number % expected, 0.0) {
+            if !float_multiple_of(number, expected) {
                 status.capture(NumberValidationError::MultipleOf {
                     actual: number,
                     expected,
@@ -273,6 +280,20 @@ mod tests {
     }
 
     #[test]
+    fn compare_modulo() {
+        assert!(float_multiple_of(10.0, 5.0));
+        assert!(!float_multiple_of(10.0, 3.0));
+        assert!(float_multiple_of(10.0, 2.5));
+        assert!(float_multiple_of(1e9, 1e6));
+        assert!(float_multiple_of(0.0001, 0.00001));
+        assert!(float_multiple_of(-10.0, -5.0));
+        assert!(float_multiple_of(-10.0, 5.0));
+        assert!(!float_multiple_of(10.0, 0.0));
+        assert!(float_multiple_of(0.0, 5.0));
+        assert!(!float_multiple_of(0.1, 0.03));
+    }
+
+    #[test]
     fn unconstrained() {
         let number_schema = read_schema(&json!({
             "type": "number",
@@ -295,7 +316,8 @@ mod tests {
             "maximum": 10.0,
         }));
 
-        check_constraints(&number_schema, &json!(5));
+        check_constraints(&number_schema, &json!(0));
+        check_constraints(&number_schema, &json!(10));
         check_constraints_error(&number_schema, &json!("2"), [
             ConstraintError::InvalidType {
                 actual: JsonSchemaValueType::String,
@@ -312,6 +334,61 @@ mod tests {
             NumberValidationError::Maximum {
                 actual: 15.0,
                 expected: 10.0,
+            },
+        ]);
+    }
+
+    #[test]
+    fn simple_number_exclusive() {
+        let number_schema = read_schema(&json!({
+            "type": "number",
+            "minimum": 0.0,
+            "exclusiveMinimum": true,
+            "maximum": 10.0,
+            "exclusiveMaximum": true,
+        }));
+
+        check_constraints(&number_schema, &json!(0.1));
+        check_constraints(&number_schema, &json!(0.9));
+        check_constraints_error(&number_schema, &json!("2"), [
+            ConstraintError::InvalidType {
+                actual: JsonSchemaValueType::String,
+                expected: JsonSchemaValueType::Number,
+            },
+        ]);
+        check_constraints_error(&number_schema, &json!(0), [
+            NumberValidationError::ExclusiveMinimum {
+                actual: 0.0,
+                expected: 0.0,
+            },
+        ]);
+        check_constraints_error(&number_schema, &json!(10), [
+            NumberValidationError::ExclusiveMaximum {
+                actual: 10.0,
+                expected: 10.0,
+            },
+        ]);
+    }
+
+    #[test]
+    fn multiple_of() {
+        let number_schema = read_schema(&json!({
+            "type": "number",
+            "multipleOf": 0.1,
+        }));
+
+        check_constraints(&number_schema, &json!(0.1));
+        check_constraints(&number_schema, &json!(0.9));
+        check_constraints_error(&number_schema, &json!("2"), [
+            ConstraintError::InvalidType {
+                actual: JsonSchemaValueType::String,
+                expected: JsonSchemaValueType::Number,
+            },
+        ]);
+        check_constraints_error(&number_schema, &json!(0.11), [
+            NumberValidationError::MultipleOf {
+                actual: 0.11,
+                expected: 0.1,
             },
         ]);
     }
