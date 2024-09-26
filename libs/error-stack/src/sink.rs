@@ -1,4 +1,4 @@
-#[cfg(all(not(target_arch = "wasm32"), feature = "std"))]
+#[cfg(any(all(not(target_arch = "wasm32"), feature = "std"), feature = "tracing"))]
 use core::panic::Location;
 use core::{
     convert::Infallible,
@@ -22,7 +22,12 @@ enum BombState {
     /// Panic if the `ReportSink` is dropped without being used.
     Panic,
     /// Emit a warning to stderr if the `ReportSink` is dropped without being used.
-    Warn(#[cfg(all(not(target_arch = "wasm32"), feature = "std"))] &'static Location<'static>),
+    Warn(
+        // We capture the location if either `tracing` is enabled or `std` is enabled on non-WASM
+        // targets.
+        #[cfg(any(all(not(target_arch = "wasm32"), feature = "std"), feature = "tracing"))]
+        &'static Location<'static>,
+    ),
     /// Do nothing if the `ReportSink` is properly consumed.
     Defused,
 }
@@ -31,7 +36,7 @@ impl Default for BombState {
     #[track_caller]
     fn default() -> Self {
         Self::Warn(
-            #[cfg(all(not(target_arch = "wasm32"), feature = "std"))]
+            #[cfg(any(all(not(target_arch = "wasm32"), feature = "std"), feature = "tracing"))]
             Location::caller(),
         )
     }
@@ -48,7 +53,7 @@ impl Bomb {
     #[track_caller]
     const fn warn() -> Self {
         Self(BombState::Warn(
-            #[cfg(all(not(target_arch = "wasm32"), feature = "std"))]
+            #[cfg(any(all(not(target_arch = "wasm32"), feature = "std"), feature = "tracing"))]
             Location::caller(),
         ))
     }
@@ -68,7 +73,7 @@ impl Drop for Bomb {
         match self.0 {
             BombState::Panic => panic!("ReportSink was dropped without being consumed"),
             #[allow(clippy::print_stderr)]
-            #[cfg(all(not(target_arch = "wasm32"), feature = "std"))]
+            #[cfg(any(all(not(target_arch = "wasm32"), feature = "std"), feature = "tracing"))]
             BombState::Warn(location) => {
                 #[cfg(feature = "tracing")]
                 tracing::warn!(
