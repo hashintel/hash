@@ -1,4 +1,5 @@
 use core::time::Duration;
+use std::collections::HashMap;
 
 use clap::Parser;
 use error_stack::{Result, ResultExt};
@@ -83,7 +84,13 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), GraphError> {
         .filter_map(|result| future::ready(result.ok()))
         .map(server::BaseChannel::with_defaults)
         .map(|channel| {
-            let server = FetchServer { buffer_size: 10 };
+            let mut server = FetchServer {
+                buffer_size: 10,
+                predefined_types: HashMap::new(),
+            };
+            server
+                .load_predefined_types()
+                .expect("should be able to load predefined types");
             channel.execute(server.serve())
         })
         .buffer_unordered(255)

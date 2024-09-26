@@ -2611,6 +2611,7 @@ dependencies = [
  "tokio-util",
  "tracing",
  "type-fetcher",
+ "type-system",
  "validation",
 ]
 
@@ -7326,10 +7327,12 @@ dependencies = [
  "futures",
  "reqwest",
  "serde",
+ "serde_json",
  "tarpc",
  "time",
  "tracing",
  "type-system",
+ "walkdir",
 ]
 
 [[package]]

@@ -6,6 +6,7 @@
 )]
 
 extern crate alloc;
+extern crate core;
 
 mod args;
 mod error;

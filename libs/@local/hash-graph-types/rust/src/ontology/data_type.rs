@@ -143,7 +143,9 @@ impl OntologyType for DataType {
     }
 
     fn traverse_references(&self) -> Vec<OntologyTypeReference> {
-        vec![]
+        self.data_type_references()
+            .map(|(reference, _)| OntologyTypeReference::DataTypeReference(reference))
+            .collect()
     }
 }
 

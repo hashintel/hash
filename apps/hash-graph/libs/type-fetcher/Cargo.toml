@@ -15,6 +15,7 @@ type-system = { workspace = true, public = true }
 
 # Public third-party dependencies
 time = { workspace = true, public = true, features = ["serde", "std"] }
+serde_json = { workspace = true, public = true }
 
 # Private workspace dependencies
 
@@ -24,6 +25,7 @@ reqwest = { workspace = true, features = ["json"] }
 serde = { workspace = true, features = ["derive"] }
 tarpc = { workspace = true, features = ["tokio1"] }
 tracing = { workspace = true }
+walkdir = { workspace = true }
 
 [lints]
 workspace = true
