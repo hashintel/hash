@@ -64,7 +64,7 @@ export const DataTypesContextProvider = ({ children }: PropsWithChildren) => {
       ]?.inner.schema as DataTypeWithMetadata["schema"] | undefined;
 
       if (!dataType) {
-        return formatDataValue(value?.toString() ?? "null", null);
+        return formatDataValue(value?.toString() ?? "null", undefined);
       }
 
       return formatDataValue(value, dataType);

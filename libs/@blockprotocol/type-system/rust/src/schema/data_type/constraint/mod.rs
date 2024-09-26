@@ -7,7 +7,7 @@ mod number;
 mod object;
 mod string;
 
-use error_stack::{Report, bail};
+use error_stack::{bail, Report};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
@@ -64,6 +64,7 @@ mod wasm {
 #[serde(untagged, rename_all = "camelCase")]
 pub enum SimpleValueSchema {
     Typed(SimpleTypedValueSchema),
+    #[serde(skip)]
     AnyOf(AnyOfSchema),
 }
 
@@ -168,6 +169,7 @@ impl SimpleTypedValueConstraint {
 #[serde(untagged, rename_all = "camelCase")]
 pub enum ValueConstraints {
     Typed(TypedValueConstraints),
+    #[serde(skip)]
     AnyOf(AnyOfConstraints),
 }
 
