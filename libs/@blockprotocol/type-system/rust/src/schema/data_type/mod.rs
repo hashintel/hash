@@ -808,7 +808,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn array2() {
+    async fn array() {
         ensure_validation::<DataType, _>(
             json!({
               "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
