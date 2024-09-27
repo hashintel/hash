@@ -180,19 +180,13 @@ export const DataTypesOptionsContext =
 const isArrayConstraints = (
   schema: ArraySchema,
 ): schema is ArrayConstraints => {
-  // TODO: Remove `"items" in schema` check when `const` is not allowed on arrays
-  //   see https://linear.app/hash/issue/H-3368/remove-const-from-array-constraints
-  return (
-    "items" in schema && schema.items !== undefined && schema.items !== false
-  );
+  return schema.items !== undefined && schema.items !== false;
 };
 
 const isTupleConstraints = (
   schema: ArraySchema,
 ): schema is TupleConstraints => {
-  // TODO: Remove `"items" in schema` check when `const` is not allowed on arrays
-  //   see https://linear.app/hash/issue/H-3368/remove-const-from-array-constraints
-  return "items" in schema && schema.items === false;
+  schema.items === false;
 };
 
 const isArrayItemsSchema = (
@@ -213,11 +207,6 @@ const getArrayDataTypeDisplay = (
     }
 
     items = dataType.prefixItems;
-
-    // TODO: Remove when `const` is not allowed on arrays
-    //   see https://linear.app/hash/issue/H-3368/remove-const-from-array-constraints
-  } else if (!isArrayConstraints(dataType)) {
-    return expectedValuesDisplayMap.emptyList;
   } else if (!dataType.items) {
     return expectedValuesDisplayMap.mixedArray;
   } else {
