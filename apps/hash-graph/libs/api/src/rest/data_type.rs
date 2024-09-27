@@ -285,7 +285,7 @@ enum LoadExternalDataTypeRequest {
     #[serde(rename_all = "camelCase")]
     Create {
         #[schema(value_type = VAR_DATA_TYPE)]
-        schema: DataType,
+        schema: Box<DataType>,
         relationships: Vec<DataTypeRelationAndSubject>,
         #[serde(
             default,
@@ -373,7 +373,7 @@ where
             Ok(Json(
                 store
                     .create_data_type(actor_id, CreateDataTypeParams {
-                        schema,
+                        schema: *schema,
                         classification: OntologyTypeClassificationMetadata::External {
                             fetched_at: OffsetDateTime::now_utc(),
                         },

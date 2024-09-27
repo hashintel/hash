@@ -1,3 +1,4 @@
+import type { DataType } from "@blockprotocol/type-system";
 import type { IconDefinition } from "@fortawesome/free-solid-svg-icons";
 import {
   fa100,
@@ -14,7 +15,6 @@ import {
   faSquareCheck,
   faText,
 } from "@hashintel/design-system";
-import type { CustomDataType } from "@local/hash-graph-types/ontology";
 
 import type { CustomIcon } from "../../../../../../../../../components/grid/utils/custom-grid-icons";
 import type { EditorType } from "./types";
@@ -87,7 +87,7 @@ const identifierTypeTitles = ["URL", "URI"];
 
 export const getEditorSpecs = (
   editorType: EditorType,
-  dataType?: CustomDataType,
+  dataType?: DataType,
 ): EditorSpec => {
   switch (editorType) {
     case "boolean":

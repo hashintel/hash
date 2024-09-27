@@ -3,6 +3,13 @@ mod conversion;
 
 pub use self::{
     closed::{ClosedDataType, ClosedDataTypeMetadata},
+    constraint::{
+        AnyOfConstraints, AnyOfSchema, ArrayConstraints, ArraySchema, ArrayTypeTag,
+        ArrayValidationError, BooleanTypeTag, ConstraintError, NullTypeTag, NumberConstraints,
+        NumberSchema, NumberTypeTag, NumberValidationError, ObjectTypeTag, StringConstraints,
+        StringFormat, StringFormatError, StringSchema, StringTypeTag, StringValidationError,
+        TupleConstraints, TypedValueConstraints,
+    },
     conversion::{
         ConversionDefinition, ConversionExpression, ConversionValue, Conversions, Operator,
         Variable,
@@ -25,10 +32,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use thiserror::Error;
 
-use crate::{
-    schema::data_type::constraint::{ConstraintError, ValueConstraints},
-    url::VersionedUrl,
-};
+use crate::{schema::data_type::constraint::ValueConstraints, url::VersionedUrl};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -58,14 +62,14 @@ impl fmt::Display for JsonSchemaValueType {
 #[derive(Debug, Default, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase")]
-pub struct DataTypeLabel {
+pub struct ValueLabel {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub left: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub right: Option<String>,
 }
 
-impl DataTypeLabel {
+impl ValueLabel {
     #[must_use]
     pub const fn is_empty(&self) -> bool {
         self.left.is_none() && self.right.is_none()
@@ -100,24 +104,29 @@ pub enum DataTypeSchemaTag {
 }
 
 mod raw {
-    use serde::Deserialize;
+    use std::collections::HashSet;
+
+    use serde::{Deserialize, Serialize};
+    use serde_json::Value as JsonValue;
 
     use super::{DataTypeSchemaTag, DataTypeTag};
     use crate::{
         schema::{
-            DataTypeReference,
+            ArrayTypeTag, BooleanTypeTag, DataTypeReference, NullTypeTag, NumberTypeTag,
+            ObjectTypeTag, StringTypeTag, ValueLabel,
             data_type::constraint::{
-                ArraySchema, BooleanSchema, NullSchema, NumberSchema, ObjectSchema, StringSchema,
+                AnyOfConstraints, ArrayConstraints, ArraySchema, NumberConstraints, NumberSchema,
+                StringConstraints, StringSchema, TupleConstraints, TypedValueConstraints,
                 ValueConstraints,
             },
         },
         url::VersionedUrl,
     };
 
-    #[derive(Deserialize)]
+    #[derive(Serialize, Deserialize)]
     #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
     #[serde(rename_all = "camelCase", deny_unknown_fields)]
-    pub struct UnconstrainedDataType {
+    pub struct ValueSchemaMetadata {
         #[serde(rename = "$schema")]
         schema: DataTypeSchemaTag,
         kind: DataTypeTag,
@@ -126,10 +135,10 @@ mod raw {
         title: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         title_plural: Option<String>,
-        #[cfg_attr(
-            target_arch = "wasm32",
-            tsify(type = "[DataTypeReference, ...DataTypeReference[]]")
-        )]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        description: Option<String>,
+        #[serde(default, skip_serializing_if = "ValueLabel::is_empty")]
+        label: ValueLabel,
         #[serde(default, skip_serializing_if = "Vec::is_empty")]
         all_of: Vec<DataTypeReference>,
 
@@ -137,57 +146,209 @@ mod raw {
         r#abstract: bool,
     }
 
-    #[derive(Deserialize)]
+    #[derive(Serialize, Deserialize)]
     #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
-    #[serde(tag = "type", rename_all = "camelCase", deny_unknown_fields)]
+    #[serde(untagged, rename_all = "camelCase", deny_unknown_fields)]
     pub enum DataType {
         Null {
+            r#type: NullTypeTag,
             #[serde(flatten)]
-            schema: NullSchema,
-            #[serde(flatten)]
-            common: UnconstrainedDataType,
+            common: ValueSchemaMetadata,
         },
         Boolean {
+            r#type: BooleanTypeTag,
             #[serde(flatten)]
-            schema: BooleanSchema,
-            #[serde(flatten)]
-            common: UnconstrainedDataType,
+            common: ValueSchemaMetadata,
         },
         Number {
+            r#type: NumberTypeTag,
             #[serde(flatten)]
-            schema: NumberSchema,
+            common: ValueSchemaMetadata,
             #[serde(flatten)]
-            common: UnconstrainedDataType,
+            constraints: NumberConstraints,
+        },
+        NumberConst {
+            r#type: NumberTypeTag,
+            #[serde(flatten)]
+            common: ValueSchemaMetadata,
+            r#const: f64,
+        },
+        NumberEnum {
+            r#type: NumberTypeTag,
+            #[serde(flatten)]
+            common: ValueSchemaMetadata,
+            #[cfg_attr(target_arch = "wasm32", tsify(type = "[number, ...number[]]"))]
+            r#enum: Vec<f64>,
         },
         String {
+            r#type: StringTypeTag,
             #[serde(flatten)]
-            schema: StringSchema,
+            common: ValueSchemaMetadata,
             #[serde(flatten)]
-            common: UnconstrainedDataType,
+            constraints: StringConstraints,
         },
-        Array {
+        StringConst {
+            r#type: StringTypeTag,
             #[serde(flatten)]
-            schema: ArraySchema,
+            common: ValueSchemaMetadata,
+            r#const: String,
+        },
+        StringEnum {
+            r#type: StringTypeTag,
             #[serde(flatten)]
-            common: UnconstrainedDataType,
+            common: ValueSchemaMetadata,
+            #[cfg_attr(target_arch = "wasm32", tsify(type = "[string, ...string[]]"))]
+            r#enum: HashSet<String>,
         },
         Object {
+            r#type: ObjectTypeTag,
             #[serde(flatten)]
-            schema: ObjectSchema,
+            common: ValueSchemaMetadata,
+        },
+        Array {
+            r#type: ArrayTypeTag,
             #[serde(flatten)]
-            common: UnconstrainedDataType,
+            common: ValueSchemaMetadata,
+            #[serde(flatten)]
+            constraints: ArrayConstraints,
+        },
+        Tuple {
+            r#type: ArrayTypeTag,
+            #[serde(flatten)]
+            common: ValueSchemaMetadata,
+            #[serde(flatten)]
+            constraints: TupleConstraints,
+        },
+        ArrayConst {
+            r#type: ArrayTypeTag,
+            #[serde(flatten)]
+            common: ValueSchemaMetadata,
+            r#const: [JsonValue; 0],
+        },
+        #[serde(skip)]
+        AnyOf {
+            #[serde(flatten)]
+            common: ValueSchemaMetadata,
+            #[serde(flatten)]
+            constraints: AnyOfConstraints,
         },
     }
 
     impl From<DataType> for super::DataType {
+        #[expect(
+            clippy::too_many_lines,
+            reason = "The conversion is only required to allow `deny_unknown_fields` in serde. \
+                      The better option would be to manually implement the deserialization logic, \
+                      however, this is quite straightforward and would be a lot of code for \
+                      little benefit."
+        )]
         fn from(value: DataType) -> Self {
             let (common, constraints) = match value {
-                DataType::Null { schema, common } => (common, ValueConstraints::Null(schema)),
-                DataType::Boolean { schema, common } => (common, ValueConstraints::Boolean(schema)),
-                DataType::Number { schema, common } => (common, ValueConstraints::Number(schema)),
-                DataType::String { schema, common } => (common, ValueConstraints::String(schema)),
-                DataType::Array { schema, common } => (common, ValueConstraints::Array(schema)),
-                DataType::Object { schema, common } => (common, ValueConstraints::Object(schema)),
+                DataType::Null { r#type: _, common } => {
+                    (common, ValueConstraints::Typed(TypedValueConstraints::Null))
+                }
+                DataType::Boolean { r#type: _, common } => (
+                    common,
+                    ValueConstraints::Typed(TypedValueConstraints::Boolean),
+                ),
+                DataType::Number {
+                    r#type: _,
+                    common,
+                    constraints,
+                } => (
+                    common,
+                    ValueConstraints::Typed(TypedValueConstraints::Number(
+                        NumberSchema::Constrained(constraints),
+                    )),
+                ),
+                DataType::NumberConst {
+                    r#type: _,
+                    common,
+                    r#const,
+                } => (
+                    common,
+                    ValueConstraints::Typed(TypedValueConstraints::Number(NumberSchema::Const {
+                        r#const,
+                    })),
+                ),
+                DataType::NumberEnum {
+                    r#type: _,
+                    common,
+                    r#enum,
+                } => (
+                    common,
+                    ValueConstraints::Typed(TypedValueConstraints::Number(NumberSchema::Enum {
+                        r#enum,
+                    })),
+                ),
+                DataType::String {
+                    r#type: _,
+                    common,
+                    constraints,
+                } => (
+                    common,
+                    ValueConstraints::Typed(TypedValueConstraints::String(
+                        StringSchema::Constrained(constraints),
+                    )),
+                ),
+                DataType::StringConst {
+                    r#type: _,
+                    common,
+                    r#const,
+                } => (
+                    common,
+                    ValueConstraints::Typed(TypedValueConstraints::String(StringSchema::Const {
+                        r#const,
+                    })),
+                ),
+                DataType::StringEnum {
+                    r#type: _,
+                    common,
+                    r#enum,
+                } => (
+                    common,
+                    ValueConstraints::Typed(TypedValueConstraints::String(StringSchema::Enum {
+                        r#enum,
+                    })),
+                ),
+                DataType::Object { r#type: _, common } => (
+                    common,
+                    ValueConstraints::Typed(TypedValueConstraints::Object),
+                ),
+                DataType::Array {
+                    r#type: _,
+                    common,
+                    constraints,
+                } => (
+                    common,
+                    ValueConstraints::Typed(TypedValueConstraints::Array(
+                        ArraySchema::Constrained(constraints),
+                    )),
+                ),
+                DataType::Tuple {
+                    r#type: _,
+                    common,
+                    constraints,
+                } => (
+                    common,
+                    ValueConstraints::Typed(TypedValueConstraints::Array(ArraySchema::Tuple(
+                        constraints,
+                    ))),
+                ),
+                DataType::ArrayConst {
+                    r#type: _,
+                    common,
+                    r#const,
+                } => (
+                    common,
+                    ValueConstraints::Typed(TypedValueConstraints::Array(ArraySchema::Const {
+                        r#const,
+                    })),
+                ),
+                DataType::AnyOf {
+                    common,
+                    constraints: any_of,
+                } => (common, ValueConstraints::AnyOf(any_of)),
             };
 
             Self {
@@ -196,6 +357,8 @@ mod raw {
                 id: common.id,
                 title: common.title,
                 title_plural: common.title_plural,
+                description: common.description,
+                label: common.label,
                 all_of: common.all_of,
                 r#abstract: common.r#abstract,
                 constraints,
@@ -215,6 +378,10 @@ pub struct DataType {
     pub title: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub title_plural: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "ValueLabel::is_empty")]
+    pub label: ValueLabel,
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub all_of: Vec<DataTypeReference>,
 
@@ -513,14 +680,30 @@ impl DataType {
     ///
     /// Returns an error if the JSON value is not a valid instance of the data type.
     pub fn validate_constraints(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
-        self.constraints.validate_value(value)
+        match &self.constraints {
+            ValueConstraints::Typed(typed_schema) => typed_schema.validate_value(value),
+            ValueConstraints::AnyOf(constraints) => constraints.validate_value(value),
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::utils::tests::{JsonEqualityCheck, ensure_validation_from_str};
+    use crate::utils::tests::{
+        JsonEqualityCheck, ensure_failed_deserialization, ensure_validation_from_str,
+    };
+
+    #[tokio::test]
+    #[ignore = "AnyOf constraint is not exposed"]
+    async fn value() {
+        ensure_validation_from_str::<DataType, _>(
+            graph_test_data::data_type::VALUE_V1,
+            DataTypeValidator,
+            JsonEqualityCheck::Yes,
+        )
+        .await;
+    }
 
     #[tokio::test]
     async fn text() {
@@ -580,5 +763,24 @@ mod tests {
             JsonEqualityCheck::Yes,
         )
         .await;
+    }
+
+    #[test]
+    fn additional_properties() {
+        // The error is suboptimal, but most importantly, it does error.
+        ensure_failed_deserialization::<DataType>(
+            serde_json::json!({
+              "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+              "kind": "dataType",
+              "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1",
+              "title": "Value",
+              "description": "A value that can be stored in a graph",
+              "anyOf": [
+                { "type": "null" }
+              ],
+              "additional": false
+            }),
+            &"data did not match any variant of untagged enum DataType",
+        );
     }
 }

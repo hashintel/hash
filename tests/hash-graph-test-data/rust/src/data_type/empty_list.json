@@ -5,6 +5,6 @@
   "title": "Empty List",
   "description": "An Empty List",
   "type": "array",
-  "const": [],
+  "items": false,
   "abstract": false
 }

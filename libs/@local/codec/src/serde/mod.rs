@@ -1,3 +1,4 @@
+pub mod constant;
 pub mod string_hash_map;
 
 mod size_hint;

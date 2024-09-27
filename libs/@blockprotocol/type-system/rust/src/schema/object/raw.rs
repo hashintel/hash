@@ -2,14 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use serde::{Deserialize, Serialize};
 
-use crate::url::BaseUrl;
-
-#[derive(Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
-#[serde(rename_all = "camelCase")]
-enum ObjectTypeTag {
-    Object,
-}
+use crate::{schema::data_type::ObjectTypeTag, url::BaseUrl};
 
 #[derive(Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]

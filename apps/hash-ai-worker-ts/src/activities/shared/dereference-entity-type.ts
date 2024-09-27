@@ -1,4 +1,5 @@
 import type {
+  DataType,
   EntityType,
   OneOfSchema,
   PropertyType,
@@ -12,7 +13,6 @@ import { atLeastOne, extractVersion } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
   BaseUrl,
-  CustomDataType,
   EntityTypeMetadata,
 } from "@local/hash-graph-types/ontology";
 import type { Subgraph } from "@local/hash-subgraph";
@@ -29,7 +29,7 @@ import {
 
 import { generateSimplifiedTypeId } from "../infer-entities/shared/generate-simplified-type-id.js";
 
-type MinimalDataType = Omit<CustomDataType, "$id" | "$schema" | "kind">;
+type MinimalDataType = Omit<DataType, "$id" | "$schema" | "kind" | "allOf">;
 
 type MinimalPropertyObject = PropertyValueObject<
   ValueOrArray<DereferencedPropertyType>
