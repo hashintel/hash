@@ -5,8 +5,8 @@ import { getUser } from "../shared/get-user";
 import type {
   GetTabContentRequest,
   GetTabContentReturn,
-  Message,
 } from "../shared/messages";
+import { isWellFormattedMessage } from "../shared/messages";
 import {
   clearLocalStorage,
   getFromLocalStorage,
@@ -36,7 +36,11 @@ browser.runtime.onInstalled.addListener(({ reason }) => {
   }
 });
 
-browser.runtime.onMessage.addListener(async (message: Message, sender) => {
+browser.runtime.onMessage.addListener(async (message, sender) => {
+  if (!isWellFormattedMessage(message)) {
+    return `Unrecognised message format ${String(message)}`;
+  }
+
   if (sender.tab) {
     // We are not expecting any messages from the content script
     return;
@@ -63,9 +67,12 @@ browser.tabs.onUpdated.addListener((tabId, changeInfo) => {
             setTimeout(resolve, 2_000);
           });
 
-          const webPage = await (browser.tabs.sendMessage(tabId, {
+          const webPage = await browser.tabs.sendMessage<
+            GetTabContentRequest,
+            GetTabContentReturn
+          >(tabId, {
             type: "get-tab-content",
-          } satisfies GetTabContentRequest) as Promise<GetTabContentReturn>);
+          });
 
           const applicableRules = automaticInferenceConfig.rules.filter(
             ({ restrictToDomains }) => {

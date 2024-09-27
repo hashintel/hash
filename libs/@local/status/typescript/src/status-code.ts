@@ -1,6 +1,6 @@
-import { StatusCode } from "../../type-defs/status-code.js";
+import { StatusCode } from "../type-defs/status-code.js";
 
-export { StatusCode } from "../../type-defs/status-code.js";
+export { StatusCode } from "../type-defs/status-code.js";
 
 const STATUS_CODE_TO_HTTP_CODE: Record<StatusCode, number> = {
   OK: 200,

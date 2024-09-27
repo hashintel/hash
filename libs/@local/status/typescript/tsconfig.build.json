@@ -1,6 +1,6 @@
 {
   "extends": "./tsconfig.json",
-  "include": ["pkg", "type-defs"],
+  "include": ["src", "type-defs"],
   "compilerOptions": {
     "declaration": true,
     "outDir": "dist",

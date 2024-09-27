@@ -1,6 +1,6 @@
 {
   "extends": "@local/tsconfig/legacy-base-tsconfig-to-refactor.json",
-  "include": ["./pkg/src/", "./scripts", "./type-defs"],
+  "include": ["./src/", "./scripts", "./type-defs"],
   "compilerOptions": {
     "module": "NodeNext",
     "moduleResolution": "NodeNext"
