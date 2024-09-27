@@ -8,7 +8,7 @@ use harpc_wire_protocol::response::kind::ErrorCode;
 
 use crate::session::error::TransactionError;
 
-pub trait ValueEncoder<T> {
+pub trait ValueEncoder<T>: Sized {
     type Error: Context;
 
     fn encode_stream(

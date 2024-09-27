@@ -18,7 +18,7 @@ pub trait Role: sealed::Sealed {
     ///
     /// This allows different roles to have different session structures,
     /// tailored to their specific needs in the communication process.
-    type Session;
+    type Session: Send + Sync;
 }
 
 /// Role representing the server side of a session.
@@ -32,9 +32,12 @@ pub struct Server<S> {
     _marker: PhantomData<fn() -> *const S>,
 }
 
-impl<S> sealed::Sealed for Server<S> {}
+impl<S> sealed::Sealed for Server<S> where S: Send + Sync {}
 
-impl<S> Role for Server<S> {
+impl<S> Role for Server<S>
+where
+    S: Send + Sync,
+{
     type Session = S;
 }
 
@@ -62,11 +65,11 @@ pub struct Client<S> {
     _marker: PhantomData<fn() -> *const S>,
 }
 
-impl<S> sealed::Sealed for Client<S> where S: ClientSession {}
+impl<S> sealed::Sealed for Client<S> where S: ClientSession + Send + Sync {}
 
 impl<S> Role for Client<S>
 where
-    S: ClientSession,
+    S: ClientSession + Send + Sync,
 {
     type Session = S;
 }
