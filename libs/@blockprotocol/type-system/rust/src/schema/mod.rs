@@ -16,14 +16,14 @@ mod one_of;
 pub use self::{
     array::{PropertyArraySchema, PropertyValueArray, ValueOrArray},
     data_type::{
-        AnyOfConstraints, AnyOfSchema, ArrayConstraints, ArraySchema, ArrayTypeTag,
-        ArrayValidationError, BooleanTypeTag, ClosedDataType, ClosedDataTypeMetadata,
-        ConstraintError, ConversionDefinition, ConversionExpression, ConversionValue, Conversions,
-        DataType, DataTypeReference, DataTypeValidator, JsonSchemaValueType, NullTypeTag,
-        NumberConstraints, NumberSchema, NumberTypeTag, NumberValidationError, ObjectTypeTag,
-        OntologyTypeResolver, Operator, StringConstraints, StringFormat, StringFormatError,
-        StringSchema, StringTypeTag, StringValidationError, TupleConstraints,
-        TypedValueConstraints, ValidateDataTypeError, ValueLabel, Variable,
+        AnyOfConstraints, ArrayConstraints, ArraySchema, ArrayTypeTag, ArrayValidationError,
+        BooleanTypeTag, ClosedDataType, ClosedDataTypeMetadata, ConstraintError,
+        ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
+        DataTypeReference, DataTypeValidator, JsonSchemaValueType, NullTypeTag, NumberConstraints,
+        NumberSchema, NumberTypeTag, NumberValidationError, ObjectTypeTag, OntologyTypeResolver,
+        Operator, SingleValueConstraints, SingleValueSchema, StringConstraints, StringFormat,
+        StringFormatError, StringSchema, StringTypeTag, StringValidationError, TupleConstraints,
+        ValidateDataTypeError, ValueLabel, Variable,
     },
     entity_type::{
         ClosedEntityType, ClosedEntityTypeSchemaData, EntityType, EntityTypeReference,

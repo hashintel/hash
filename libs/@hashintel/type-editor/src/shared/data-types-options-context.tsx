@@ -1,10 +1,10 @@
 import type {
   ArrayConstraints,
+  ArrayItemsSchema,
   ArraySchema,
   DataType,
-  SimpleTypedValueSchema,
-  SimpleValueSchema,
   TupleConstraints,
+  ValueConstraints,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 import {
@@ -195,15 +195,17 @@ const isTupleConstraints = (
   return "items" in schema && schema.items === false;
 };
 
+const isArrayItemsSchema = (
+  schema: ValueConstraints,
+): schema is ArrayItemsSchema => {
+  return "type" in schema && schema.type === "array";
+};
+
 const getArrayDataTypeDisplay = (
   dataType: ArraySchema,
 ): Omit<ExpectedValueDisplay, "title"> => {
   // `items` are either the elements of a tuple or the items of a mixed anyOf-array
-  let items: [SimpleValueSchema, ...SimpleValueSchema[]];
-
-  if (isTupleConstraints(dataType) && !dataType.prefixItems) {
-    return expectedValuesDisplayMap.emptyList;
-  }
+  let items: [ArrayItemsSchema, ...ArrayItemsSchema[]];
 
   if (isTupleConstraints(dataType)) {
     if (!dataType.prefixItems) {
@@ -218,13 +220,11 @@ const getArrayDataTypeDisplay = (
     return expectedValuesDisplayMap.emptyList;
   } else if (!dataType.items) {
     return expectedValuesDisplayMap.mixedArray;
-  } else if ("anyOf" in dataType.items) {
-    items = dataType.items.anyOf;
   } else {
     return expectedValuesDisplayMap[`${dataType.items.type}Array`];
   }
 
-  const itemTypes = new Set<SimpleTypedValueSchema["type"]>();
+  const itemTypes = new Set<ArrayItemsSchema["type"]>();
 
   for (const item of items) {
     if ("anyOf" in item) {
@@ -331,7 +331,7 @@ export const DataTypesOptionsContextProvider = ({
             };
           }
           const dataType = dataTypeOptions[type];
-          if (dataType) {
+          if (dataType && isArrayItemsSchema(dataType)) {
             return {
               title: `${dataType.title} Array`,
               ...getArrayDataTypeDisplay({

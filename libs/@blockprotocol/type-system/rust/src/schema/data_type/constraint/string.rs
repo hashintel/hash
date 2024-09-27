@@ -14,7 +14,7 @@ use thiserror::Error;
 use url::{Host, Url};
 use uuid::Uuid;
 
-use crate::schema::ConstraintError;
+use crate::schema::{ConstraintError, JsonSchemaValueType};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -202,7 +202,6 @@ pub enum StringValidationError {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase")]
 pub enum StringTypeTag {
     String,
@@ -330,6 +329,20 @@ impl StringConstraints {
         }
 
         status.finish()
+    }
+}
+
+pub(crate) fn validate_string_value(
+    value: &JsonValue,
+    schema: &StringSchema,
+) -> Result<(), Report<ConstraintError>> {
+    if let JsonValue::String(string) = value {
+        schema.validate_value(string)
+    } else {
+        bail!(ConstraintError::InvalidType {
+            actual: JsonSchemaValueType::from(value),
+            expected: JsonSchemaValueType::String,
+        });
     }
 }
 

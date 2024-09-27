@@ -4,7 +4,13 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use thiserror::Error;
 
-use crate::schema::{ConstraintError, data_type::constraint::SimpleValueSchema};
+use crate::schema::{
+    ConstraintError, JsonSchemaValueType, NumberSchema, StringSchema, ValueLabel,
+    data_type::constraint::{
+        boolean::validate_boolean_value, number::validate_number_value,
+        string::validate_string_value,
+    },
+};
 
 #[derive(Debug, Error)]
 pub enum ArrayValidationError {
@@ -29,6 +35,58 @@ pub enum ArrayValidationError {
 #[serde(rename_all = "camelCase")]
 pub enum ArrayTypeTag {
     Array,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum ArrayItemConstraints {
+    Boolean,
+    Number(NumberSchema),
+    String(StringSchema),
+}
+
+impl ArrayItemConstraints {
+    pub fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
+        match self {
+            Self::Boolean => validate_boolean_value(value),
+            Self::Number(schema) => validate_number_value(value, schema),
+            Self::String(schema) => validate_string_value(value, schema),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArrayItemsSchema {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "ValueLabel::is_empty")]
+    pub label: ValueLabel,
+    #[serde(flatten)]
+    pub constraints: ArrayItemConstraints,
+}
+
+#[cfg(target_arch = "wasm32")]
+#[expect(
+    dead_code,
+    reason = "Used to export type to TypeScript to prevent Tsify generating interfaces"
+)]
+mod wasm {
+    use super::*;
+
+    #[derive(tsify::Tsify)]
+    #[serde(untagged)]
+    enum ArrayItemsSchema {
+        Schema {
+            #[serde(default, skip_serializing_if = "Option::is_none")]
+            description: Option<String>,
+            #[serde(default)]
+            label: ValueLabel,
+            #[serde(flatten)]
+            constraints: ArrayItemConstraints,
+        },
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -76,7 +134,7 @@ impl ArraySchema {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ArrayConstraints {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub items: Option<SimpleValueSchema>,
+    pub items: Option<ArrayItemsSchema>,
 }
 
 impl ArrayConstraints {
@@ -97,7 +155,7 @@ impl ArrayConstraints {
             status.attempt(
                 values
                     .iter()
-                    .map(|value| items.validate_value(value))
+                    .map(|value| items.constraints.validate_value(value))
                     .try_collect_reports::<Vec<()>>()
                     .change_context(ArrayValidationError::Items),
             );
@@ -116,9 +174,9 @@ pub struct TupleConstraints {
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     #[cfg_attr(
         target_arch = "wasm32",
-        tsify(type = "[SimpleValueSchema, ...SimpleValueSchema[]]")
+        tsify(type = "[ArrayItemsSchema, ...ArrayItemsSchema[]]")
     )]
-    pub prefix_items: Vec<SimpleValueSchema>,
+    pub prefix_items: Vec<ArrayItemsSchema>,
 }
 
 impl TupleConstraints {
@@ -159,12 +217,26 @@ impl TupleConstraints {
             self.prefix_items
                 .iter()
                 .zip(values)
-                .map(|(schema, value)| schema.validate_value(value))
+                .map(|(schema, value)| schema.constraints.validate_value(value))
                 .try_collect_reports::<Vec<()>>()
                 .change_context(ArrayValidationError::PrefixItems),
         );
 
         status.finish()
+    }
+}
+
+pub(crate) fn validate_array_value(
+    value: &JsonValue,
+    schema: &ArraySchema,
+) -> Result<(), Report<ConstraintError>> {
+    if let JsonValue::Array(string) = value {
+        schema.validate_value(string)
+    } else {
+        bail!(ConstraintError::InvalidType {
+            actual: JsonSchemaValueType::from(value),
+            expected: JsonSchemaValueType::Array,
+        });
     }
 }
 
