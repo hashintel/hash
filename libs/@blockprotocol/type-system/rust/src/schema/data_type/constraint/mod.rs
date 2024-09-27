@@ -47,7 +47,7 @@ impl ValueConstraints {
     /// # Errors
     ///
     /// - For [`Typed`] schemas, see [`SingleValueConstraints::validate_value`].
-    /// - For [`AnyOf`] schemas, see [`SimpleTypedValueConstraint::validate_value`].
+    /// - For [`AnyOf`] schemas, see [`AnyOfConstraints::validate_value`].
     ///
     /// [`Typed`]: Self::Typed
     /// [`AnyOf`]: Self::AnyOf
