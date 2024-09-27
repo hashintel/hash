@@ -1,3 +1,4 @@
+import type { DataType } from "@blockprotocol/type-system/slim";
 import type { DataTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import isPlainObject from "lodash/isPlainObject";
 
@@ -5,42 +6,49 @@ import type { EditorType } from "./types";
 
 const isEmptyArray = (value: unknown) => Array.isArray(value) && !value.length;
 
+const isValidTypeForSchemas = (
+  type: "string" | "boolean" | "number" | "object" | "null",
+  expectedTypes: DataType[],
+) =>
+  expectedTypes.some((dataType) =>
+    "type" in dataType
+      ? dataType.type === type
+      : dataType.anyOf.some((subType) => subType.type === type),
+  );
+
+/**
+ * @todo H-3374 we don't need to guess the type anymore, because the exact dataTypeId will be in the entity's metadata
+ */
 export const guessEditorTypeFromValue = (
   value: unknown,
   expectedTypes: DataTypeWithMetadata["schema"][],
 ): EditorType => {
   if (
     typeof value === "string" &&
-    expectedTypes.some((dataType) => dataType.type === "string")
+    isValidTypeForSchemas("string", expectedTypes)
   ) {
     return "string";
   }
 
   if (
     typeof value === "boolean" &&
-    expectedTypes.some((dataType) => dataType.type === "boolean")
+    isValidTypeForSchemas("boolean", expectedTypes)
   ) {
     return "boolean";
   }
 
   if (
     typeof value === "number" &&
-    expectedTypes.some((dataType) => dataType.type === "number")
+    isValidTypeForSchemas("number", expectedTypes)
   ) {
     return "number";
   }
 
-  if (
-    isPlainObject(value) &&
-    expectedTypes.some((dataType) => dataType.type === "object")
-  ) {
+  if (isPlainObject(value) && isValidTypeForSchemas("object", expectedTypes)) {
     return "object";
   }
 
-  if (
-    value === null &&
-    expectedTypes.some((dataType) => dataType.type === "null")
-  ) {
+  if (value === null && isValidTypeForSchemas("null", expectedTypes)) {
     return "null";
   }
 
@@ -61,11 +69,25 @@ export const guessEditorTypeFromExpectedType = (
     return "emptyList";
   }
 
-  if (dataType.type === "array") {
+  let type: "string" | "number" | "boolean" | "object" | "null" | "array";
+
+  if ("anyOf" in dataType) {
+    /**
+     * @todo H-3374 support multiple expected data types
+     */
+    type = dataType.anyOf[0].type;
+  } else {
+    type = dataType.type;
+  }
+
+  if (type === "array") {
+    /**
+     * @todo H-3374 support array and tuple data types
+     */
     throw new Error("Array data types are not yet handled.");
   }
 
-  return dataType.type;
+  return type;
 };
 
 export const isBlankStringOrNullish = (value: unknown) => {

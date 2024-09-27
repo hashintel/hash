@@ -40,9 +40,13 @@ export const formatDataValue = (
   value: JsonValue,
   schema?: DataType | SimpleValueSchema,
 ): FormattedValuePart[] => {
-  const { type } = schema ?? {
-    type: getJsonSchemaTypeFromValue(value),
-  };
+  /**
+   * @todo H-3374 callers should always provide a schema, because the dataTypeId will be in the entity's metadata
+   */
+  const type =
+    schema && "type" in schema
+      ? schema.type
+      : getJsonSchemaTypeFromValue(value);
 
   if (type === "null") {
     return createFormattedParts({ inner: "Null", schema });
