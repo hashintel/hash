@@ -105,7 +105,7 @@ fn float_multiple_of(lhs: f64, rhs: f64) -> bool {
         return false;
     }
     let quotient = lhs / rhs;
-    (quotient - quotient.floor()).abs() < f64::EPSILON
+    (quotient - quotient.round()).abs() < f64::EPSILON
 }
 
 impl NumberSchema {
