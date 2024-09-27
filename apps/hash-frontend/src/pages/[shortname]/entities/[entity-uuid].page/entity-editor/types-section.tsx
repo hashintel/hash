@@ -19,17 +19,13 @@ import type {
 } from "../../../../../graphql/api-types.gen";
 import { updateEntityMutation } from "../../../../../graphql/queries/knowledge/entity.queries";
 import { queryEntityTypesQuery } from "../../../../../graphql/queries/ontology/entity-type.queries";
+import { Button } from "../../../../../shared/ui/button";
 import { Link } from "../../../../../shared/ui/link";
+import { EntityTypeSelector } from "../../../../shared/entity-type-selector";
+import { nonAssignableTypes } from "../../../../shared/hidden-types";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
-import { EntityTypeUpdateModal } from "./types-section/entity-type-update-modal";
-import { Button } from "../../../../../shared/ui/button";
-import { EntityTypeSelector } from "../../../../shared/entity-type-selector";
-import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import {
-  hiddenEntityTypeIds,
-  nonAssignableTypes,
-} from "../../../../shared/hidden-types";
+import { EntityTypeChangeModal } from "./types-section/entity-type-change-modal";
 
 export const TypeButton = ({
   entity,
@@ -116,9 +112,9 @@ export const TypeButton = ({
         }
       />
       {newVersion && (
-        <EntityTypeUpdateModal
+        <EntityTypeChangeModal
           open={updateModalOpen}
-          onClose={closeModal}
+          onReject={closeModal}
           currentVersion={currentEntityType.metadata.recordId.version}
           newVersion={newVersion}
           entityTypeTitle={currentEntityType.schema.title}
