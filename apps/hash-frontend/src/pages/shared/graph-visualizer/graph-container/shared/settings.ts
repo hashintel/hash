@@ -8,7 +8,7 @@ import type { GraphState } from "./state";
 
 export const labelRenderedSizeThreshold = {
   fullScreen: 12,
-  normal: 16,
+  normal: 14,
 };
 
 /**
@@ -78,7 +78,7 @@ export const useDefaultSettings = (state: GraphState) => {
         /**
          * Draw the background for the label
          */
-        context.fillStyle = "#ffffffee";
+        context.fillStyle = "#ffffffaa";
         context.beginPath();
         drawRoundRect(context, ...xYWidthHeight, 5);
         context.fill();
@@ -140,7 +140,7 @@ export const useDefaultSettings = (state: GraphState) => {
        * If we have highlighted nodes, we only draw the edge if both the source and target are highlighted.
        */
 
-      const activeIds = [...state.hoveredNodeId, ...state.hoveredNeighborIds];
+      const activeIds = [state.hoveredNodeId, ...state.hoveredNeighborIds];
 
       let targetIsShown = false;
       let sourceIsShown = false;

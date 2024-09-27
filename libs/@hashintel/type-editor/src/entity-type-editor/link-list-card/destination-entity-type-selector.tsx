@@ -11,7 +11,7 @@ import {
 import type { PopperPlacementType } from "@mui/material";
 import { Box } from "@mui/material";
 import type { MouseEvent } from "react";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import { useFormContext, useWatch } from "react-hook-form";
 import { useResizeObserverRef } from "rooks";
@@ -58,7 +58,7 @@ export const DestinationEntityTypeSelector = ({
     }
   });
 
-  const { entityTypes } = useEntityTypesOptions();
+  const { entityTypes, linkTypes } = useEntityTypesOptions();
 
   const chosenEntityTypeIds = useWatch({
     control,
@@ -68,8 +68,21 @@ export const DestinationEntityTypeSelector = ({
   const entityTypesArray = Object.values(entityTypes).map(
     (type) => type.schema,
   );
-  const chosenEntityTypeSchemas = entityTypesArray.filter((type) =>
-    chosenEntityTypeIds.includes(type.$id),
+
+  /**
+   * An entity type may link to a link (via API, migration or AI inference),
+   * so we need to account for one of the chosen destination types being a link,
+   * even though we don't currently support selecting links as destination types in the UI.
+   */
+  const chosenEntityTypeSchemas = useMemo(
+    () =>
+      Object.values({
+        ...entityTypes,
+        ...linkTypes,
+      })
+        .map((type) => type.schema)
+        .filter((type) => chosenEntityTypeIds.includes(type.$id)),
+    [chosenEntityTypeIds, linkTypes, entityTypes],
   );
 
   const entityTypeOptions = useFilterTypeOptions({
@@ -134,7 +147,13 @@ export const DestinationEntityTypeSelector = ({
       >
         {chosenEntityTypeIds.length ? (
           chosenEntityTypeIds.map((entityTypeId) => {
-            const entityType = entityTypes[entityTypeId];
+            /**
+             * An entity type may link to a link (via API, migration or AI inference),
+             * so we need to account for one of the chosen destination types being a link,
+             * even though we don't currently support selecting links as destination types in the UI.
+             */
+            const entityType =
+              entityTypes[entityTypeId] ?? linkTypes[entityTypeId];
 
             if (!entityType) {
               throw new Error(
