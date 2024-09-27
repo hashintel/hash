@@ -1,4 +1,8 @@
-import type { EntityType, PropertyType } from "@blockprotocol/type-system";
+import type {
+  EntityType,
+  PropertyType,
+  VersionedUrl,
+} from "@blockprotocol/type-system";
 import { extractVersion } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
 import type { Entity } from "@local/hash-graph-sdk/entity";
@@ -23,7 +27,10 @@ export interface TypeEntitiesRow {
   entityId: EntityId;
   entity: Entity;
   entityLabel: string;
-  entityTypeValueStrings: string[];
+  entityTypes: {
+    entityTypeId: VersionedUrl;
+    title: string;
+  }[];
   archived?: boolean;
   lastEdited: string;
   lastEditedBy?: MinimalActor;
@@ -121,7 +128,7 @@ export const useEntitiesTable = (params: {
         : [
             {
               title: "Entity Type Version",
-              id: "entityTypeVersion",
+              id: "entityTypes",
               width: 250,
             },
           ]),
@@ -219,10 +226,10 @@ export const useEntitiesTable = (params: {
               entityId,
               entity,
               entityLabel,
-              entityTypeValueStrings: currentEntitysTypes.map(
-                (entityType) =>
-                  `${entityType.title} v${extractVersion(entityType.$id)}`,
-              ),
+              entityTypes: currentEntitysTypes.map((entityType) => ({
+                title: `${entityType.title} v${extractVersion(entityType.$id)}`,
+                entityTypeId: entityType.$id,
+              })),
               web: `@${entityNamespace}`,
               archived: isPage
                 ? simplifyProperties(entity.properties as PageProperties)

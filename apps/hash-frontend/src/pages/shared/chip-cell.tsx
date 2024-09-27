@@ -9,6 +9,9 @@ import { Box } from "@mui/material";
 import type { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
 import { drawCellFadeOutGradient } from "../../components/grid/utils/draw-cell-fade-out-gradient";
 import { drawChipWithIcon } from "../../components/grid/utils/draw-chip-with-icon";
+import { InteractableManager } from "../../components/grid/utils/interactable-manager";
+import { Interactable } from "../../components/grid/utils/interactable-manager/types";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 
 export type ChipCellColor = "blue" | "gray" | "white";
 export type ChipCellVariant = "outlined" | "filled";
@@ -18,6 +21,7 @@ export interface ChipCellProps {
   chips: {
     text: string;
     icon?: CustomIcon;
+    onClick?: () => void;
     faIconDefinition?: Pick<IconDefinition, "icon">;
   }[];
   color?: ChipCellColor;
@@ -75,9 +79,11 @@ export const renderChipCell: CustomRenderer<ChipCell> = {
     const chipGap = 8;
     let chipLeft = rect.x + theme.cellHorizontalPadding;
 
+    const interactables: Interactable[] = [];
+
     for (let i = 0; i < chips.length; i++) {
-      const { icon, text = "" } = chips[i] ?? {};
-      const chipWidth = drawChipWithIcon({
+      const { icon, text = "", onClick } = chips[i] ?? {};
+      const { width, height, top } = drawChipWithIcon({
         args,
         color,
         text,
@@ -86,8 +92,25 @@ export const renderChipCell: CustomRenderer<ChipCell> = {
         variant,
       });
 
-      chipLeft += chipWidth + chipGap;
+      if (onClick) {
+        interactables.push(
+          InteractableManager.createCellInteractable(args, {
+            id: generateUuid(),
+            pos: {
+              left: chipLeft,
+              right: chipLeft + width,
+              top,
+              bottom: top + height,
+            },
+            onClick,
+          }),
+        );
+      }
+
+      chipLeft += width + chipGap;
     }
+
+    InteractableManager.setInteractablesForCell(args, interactables);
 
     drawCellFadeOutGradient(args);
   },

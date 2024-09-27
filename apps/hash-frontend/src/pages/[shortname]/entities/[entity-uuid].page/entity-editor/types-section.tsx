@@ -1,4 +1,5 @@
 import { useMutation, useQuery } from "@apollo/client";
+import type { VersionedUrl } from "@blockprotocol/type-system-rs/pkg/type-system";
 import { PlusIcon, TypeCard } from "@hashintel/design-system";
 import { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
@@ -9,7 +10,7 @@ import {
 import type { EntityTypeRootType } from "@local/hash-subgraph";
 import { getEntityTypeById, getRoots } from "@local/hash-subgraph/stdlib";
 import { Box, Stack } from "@mui/material";
-import { useCallback, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 import type {
   QueryEntityTypesQuery,
@@ -25,6 +26,7 @@ import { EntityTypeSelector } from "../../../../shared/entity-type-selector";
 import { nonAssignableTypes } from "../../../../shared/hidden-types";
 import { SectionWrapper } from "../../../shared/section-wrapper";
 import { useEntityEditor } from "./entity-editor-context";
+import type { EntityTypeChangeDetails } from "./types-section/entity-type-change-modal";
 import { EntityTypeChangeModal } from "./types-section/entity-type-change-modal";
 
 export const TypeButton = ({
@@ -40,31 +42,23 @@ export const TypeButton = ({
 
   const newVersion = newerEntityType?.metadata.recordId.version;
 
-  const [updateModalOpen, setUpdateModalOpen] = useState(false);
-  const [updatingVersion, setUpdatingVersion] = useState(false);
+  const [changeDetails, setChangeDetails] =
+    useState<EntityTypeChangeDetails | null>(null);
+
+  const [updatingTypes, setUpdatingTypes] = useState(false);
 
   const [updateEntity] = useMutation<
     UpdateEntityMutation,
     UpdateEntityMutationVariables
   >(updateEntityMutation);
 
-  const handleUpdateVersion = async () => {
+  const handleUpdateTypes = async (newEntityTypeIds: VersionedUrl[]) => {
     if (!newerEntityType) {
       return;
     }
 
     try {
-      setUpdatingVersion(true);
-
-      const newEntityTypeIds = entity.metadata.entityTypeIds.map(
-        (entityTypeId) => {
-          if (entityTypeId === currentEntityType.schema.$id) {
-            return newerEntityType.schema.$id;
-          }
-
-          return entityTypeId;
-        },
-      );
+      setUpdatingTypes(true);
 
       const res = await updateEntity({
         variables: {
@@ -80,15 +74,57 @@ export const TypeButton = ({
         onEntityUpdated?.(new Entity(res.data.updateEntity));
       }
     } finally {
-      setUpdateModalOpen(false);
-      setUpdatingVersion(false);
+      setChangeDetails(null);
+      setUpdatingTypes(false);
     }
   };
 
-  const handleDeleteType = useCallback(() => {}, []);
+  const onUpgradeClicked = () => {
+    if (!newerEntityType) {
+      throw new Error(`No newer entity type to upgrade to`);
+    }
 
-  const closeModal = () => setUpdateModalOpen(false);
-  const openModal = () => setUpdateModalOpen(true);
+    const newEntityTypeIds = entity.metadata.entityTypeIds.map(
+      (entityTypeId) => {
+        if (entityTypeId === currentEntityType.schema.$id) {
+          return newerEntityType.schema.$id;
+        }
+
+        return entityTypeId;
+      },
+    );
+
+    setChangeDetails({
+      onAccept: () => handleUpdateTypes(newEntityTypeIds),
+      proposedChange: {
+        type: "Update",
+        entityTypeTitle: currentEntityType.schema.title,
+        currentVersion: currentEntityType.metadata.recordId.version,
+        newVersion: newerEntityType.metadata.recordId.version,
+      },
+      linkChanges: [],
+      propertyChanges: [],
+    });
+  };
+
+  const onDeleteClicked = () => {
+    const newEntityTypeIds = entity.metadata.entityTypeIds.filter(
+      (entityTypeId) => entityTypeId !== currentEntityType.schema.$id,
+    );
+
+    setChangeDetails({
+      onAccept: () => handleUpdateTypes(newEntityTypeIds),
+      proposedChange: {
+        type: "Remove",
+        entityTypeTitle: currentEntityType.schema.title,
+        currentVersion: currentEntityType.metadata.recordId.version,
+      },
+      linkChanges: [],
+      propertyChanges: [],
+    });
+  };
+
+  const closeModal = () => setChangeDetails(null);
 
   const entityTypeId = currentEntityType.schema.$id;
   const entityTypeTitle = currentEntityType.schema.title;
@@ -98,7 +134,7 @@ export const TypeButton = ({
     <>
       <TypeCard
         LinkComponent={Link}
-        onDelete={handleDeleteType}
+        onDelete={onDeleteClicked}
         url={entityTypeId}
         title={entityTypeTitle}
         version={currentVersion}
@@ -106,20 +142,17 @@ export const TypeButton = ({
           !readonly && newVersion
             ? {
                 newVersion,
-                onUpdateVersion: openModal,
+                onUpdateVersion: onUpgradeClicked,
               }
             : undefined
         }
       />
-      {newVersion && (
+      {changeDetails && (
         <EntityTypeChangeModal
-          open={updateModalOpen}
+          changeIsProcessing={updatingTypes}
+          open
           onReject={closeModal}
-          currentVersion={currentEntityType.metadata.recordId.version}
-          newVersion={newVersion}
-          entityTypeTitle={currentEntityType.schema.title}
-          onUpdateVersion={handleUpdateVersion}
-          updatingVersion={updatingVersion}
+          {...changeDetails}
         />
       )}
     </>
@@ -127,7 +160,7 @@ export const TypeButton = ({
 };
 
 export const TypesSection = () => {
-  const { entitySubgraph, onEntityUpdated, readonly } = useEntityEditor();
+  const { entitySubgraph, readonly, onEntityUpdated } = useEntityEditor();
 
   const entity = getRoots(entitySubgraph)[0]!;
 
@@ -189,7 +222,34 @@ export const TypesSection = () => {
     });
   }, [entitySubgraph, entityTypeIds, latestEntityTypesData]);
 
+  const [updateEntity] = useMutation<
+    UpdateEntityMutation,
+    UpdateEntityMutationVariables
+  >(updateEntityMutation);
+
   const [addingType, setAddingType] = useState(false);
+
+  const onNewTypeSelected = async (entityTypeId: VersionedUrl) => {
+    try {
+      setAddingType(true);
+
+      const res = await updateEntity({
+        variables: {
+          entityUpdate: {
+            entityTypeIds: [...entityTypeIds, entityTypeId],
+            entityId: entity.metadata.recordId.entityId,
+            propertyPatches: [],
+          },
+        },
+      });
+
+      if (res.data) {
+        onEntityUpdated?.(new Entity(res.data.updateEntity));
+      }
+    } finally {
+      setAddingType(false);
+    }
+  };
 
   return (
     <SectionWrapper
@@ -222,7 +282,7 @@ export const TypesSection = () => {
                 disableCreate
                 inputHeight={40}
                 onSelect={(entityType) => {
-                  console.log(entityType);
+                  void onNewTypeSelected(entityType.schema.$id);
                 }}
                 onCancel={() => setAddingType(false)}
                 sx={{

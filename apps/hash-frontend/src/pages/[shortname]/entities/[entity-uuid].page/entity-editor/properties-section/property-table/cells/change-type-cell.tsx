@@ -67,7 +67,7 @@ export const createRenderChangeTypeCell = (
           icon: editorSpec.gridIcon,
         });
 
-      const chipWidth = drawTheLeftChip();
+      const { width: chipWidth } = drawTheLeftChip();
 
       const changeTextLeft = chipLeft + chipWidth + changeTextGap;
 

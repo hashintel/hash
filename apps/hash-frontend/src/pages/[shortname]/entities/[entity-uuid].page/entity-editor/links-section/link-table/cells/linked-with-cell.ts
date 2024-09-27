@@ -141,7 +141,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
 
       const imageSrc = getImageUrlFromEntityProperties(rightEntity.properties);
 
-      const chipWidth = drawChipWithIcon({
+      const { width: chipWidth } = drawChipWithIcon({
         args,
         color: "white",
         imageSrc,

@@ -120,6 +120,9 @@ export const drawChipWithIcon = ({
 
   let chipWidth = iconHeight + gap + textWidth + 2 * paddingX;
 
+  let chipHeight;
+  let chipTop;
+
   if (imageSrc) {
     const image = imageLoader.loadOrGetImage(imageSrc, col, row);
 
@@ -129,23 +132,39 @@ export const drawChipWithIcon = ({
       const proposedWidth = (image.width / image.height) * iconHeight;
 
       const width = Math.min(proposedWidth, maxWidth);
-      const height = (image.height / image.width) * width;
-      const top = iconTop + (iconHeight - height) / 2;
+      const imageHeight = (image.height / image.width) * width;
+      const imageTop = iconTop + (iconHeight - imageHeight) / 2;
 
       chipWidth = width + gap + textWidth + 2 * paddingX;
 
-      drawChip(args, left, chipWidth, bgColor, borderColor);
+      ({ height: chipHeight, top: chipTop } = drawChip(
+        args,
+        left,
+        chipWidth,
+        bgColor,
+        borderColor,
+      ));
+
       drawClippedImage({
         ctx,
         image,
         left: iconLeft,
-        top,
-        height,
+        top: imageTop,
+        height: imageHeight,
         width,
       });
+    } else {
+      throw new Error(`Image not loaded: ${imageSrc}`);
     }
   } else {
-    drawChip(args, left, chipWidth, bgColor, borderColor);
+    ({ height: chipHeight, top: chipTop } = drawChip(
+      args,
+      left,
+      chipWidth,
+      bgColor,
+      borderColor,
+    ));
+
     args.spriteManager.drawSprite(
       icon,
       "normal",
@@ -162,5 +181,9 @@ export const drawChipWithIcon = ({
   ctx.fillStyle = textColor;
   ctx.fillText(text, textLeft, yCenter);
 
-  return chipWidth;
+  return {
+    height: chipHeight,
+    width: chipWidth,
+    top: chipTop,
+  };
 };

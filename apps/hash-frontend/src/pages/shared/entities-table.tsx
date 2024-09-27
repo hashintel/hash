@@ -290,12 +290,24 @@ export const EntitiesTable: FunctionComponent<{
                 },
               },
             };
-          } else if (["web", "entityTypeVersion"].includes(columnId)) {
-            /**
-             * @TODO BEFORE MERGING ***
-             *
-             * we need a new 'multi-chip cell' for entityTypeValueStrings
-             */
+          } else if (columnId === "entityTypes") {
+            return {
+              kind: GridCellKind.Custom,
+              allowOverlay: false,
+              readonly: true,
+              copyData: row.entityTypes.map((type) => type.title).join(", "),
+              data: {
+                kind: "chip-cell",
+                chips: row.entityTypes.map((value) => ({
+                  text: value.title,
+                  icon: null,
+                  onClick: () => setSelectedEntityTypeId(value.entityTypeId),
+                })),
+                color: "gray",
+                variant: "filled",
+              },
+            };
+          } else if (columnId === "webId") {
             const cellValue = row[columnId];
             const stringValue = String(cellValue);
 
@@ -310,11 +322,7 @@ export const EntitiesTable: FunctionComponent<{
                 icon: null,
                 value: stringValue,
                 onClick: () => {
-                  if (columnId === "web") {
-                    void router.push(`/${cellValue}`);
-                  } else {
-                    setSelectedEntityTypeId(row.entityTypeId);
-                  }
+                  void router.push(`/${cellValue}`);
                 },
               },
             };
