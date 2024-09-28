@@ -16,7 +16,7 @@
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
-    "@openapitools/openapi-generator-cli": "2.13.9",
+    "@openapitools/openapi-generator-cli": "2.13.12",
     "@types/node": "20.16.7",
     "eslint": "8.57.0",
     "rimraf": "6.0.1",
