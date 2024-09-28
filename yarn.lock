@@ -18035,10 +18035,10 @@ find-yarn-workspace-root@^2.0.0:
   dependencies:
     micromatch "^4.0.2"
 
-fix-esm-import-path@1.10.0:
-  version "1.10.0"
-  resolved "https://registry.yarnpkg.com/fix-esm-import-path/-/fix-esm-import-path-1.10.0.tgz#f2d3921f1230dd539240698d6af21f1cb5455fe4"
-  integrity sha512-c4BoKC4qA8GFAPrApmF4j0QNDWeeaGy51C9/QQw2z671sgfdDmOwUbGmPp/bdyQ4SoThB7CEjy97PJ3LlfuvfA==
+fix-esm-import-path@1.10.1:
+  version "1.10.1"
+  resolved "https://registry.yarnpkg.com/fix-esm-import-path/-/fix-esm-import-path-1.10.1.tgz#c68059a33680eb436d2494b69a75dd5da60aa96d"
+  integrity sha512-9PyPwTRujdf6UWDWMz4W1HUlPVHliD68aOC2tpRO+XvRfM1lQjJb8eo1yNVo8G9XZfYoWLPstoXxaUnnpP3TIA==
   dependencies:
     debug "^4.3.2"
 
