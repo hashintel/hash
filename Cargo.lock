@@ -3350,9 +3350,9 @@ dependencies = [
 
 [[package]]
 name = "jsonptr"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "2da813f8b5a216ec36e2d562a97d18d458a847df98d3c7f6f1f88d848cbc9381"
+checksum = "e9a4700eecf4d4e552ee64d8d4ace43a16664942421643fe516875fd0f92cfbf"
 dependencies = [
  "serde",
  "serde_json",
