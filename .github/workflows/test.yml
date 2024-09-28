@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   setup:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       unit-tests: ${{ steps.packages.outputs.unit-tests }}
       integration-tests: ${{ steps.packages.outputs.integration-tests }}
@@ -104,7 +104,7 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.unit-tests) }}
       fail-fast: false
     if: needs.setup.outputs.unit-tests != '{"package":[],"include":[]}'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
@@ -186,7 +186,7 @@ jobs:
 
   build:
     name: Build
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs: [setup]
     strategy:
       matrix: ${{ fromJSON(needs.setup.outputs.dockers) }}
@@ -212,7 +212,7 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.integration-tests) }}
       fail-fast: false
     if: needs.setup.outputs.integration-tests != '{"package":[],"include":[]}'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
@@ -372,7 +372,7 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJSON(needs.setup.outputs.publish) }}
     if: needs.setup.outputs.publish != '{"package":[],"include":[]}'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout source code
         uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938 # v4.2.0
