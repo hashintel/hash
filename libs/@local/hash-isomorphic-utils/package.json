@@ -36,7 +36,7 @@
     "@sentry/browser": "7.119.0",
     "@sindresorhus/slugify": "1.1.2",
     "apollo-server-express": "3.9.0",
-    "fix-esm-import-path": "1.10.0",
+    "fix-esm-import-path": "1.10.1",
     "fractional-indexing": "2.1.0",
     "id128": "1.6.6",
     "immer": "9.0.21",
