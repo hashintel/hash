@@ -1,8 +1,6 @@
 use alloc::sync::Arc;
-use std::{
-    cmp,
-    collections::{HashMap, hash_map::RawEntryMut},
-};
+use core::cmp;
+use std::collections::{HashMap, hash_map::RawEntryMut};
 
 use serde::{Deserialize, Serialize};
 

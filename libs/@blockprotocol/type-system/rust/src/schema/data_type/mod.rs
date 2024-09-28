@@ -492,7 +492,9 @@ impl OntologyTypeResolver {
         // We add all requested types to the cache to ensure that we can resolve all types. The
         // cache will be updated with the resolved metadata. We extract the IDs so that we can
         // resolve the metadata in the correct order.
-        let mut data_types_to_resolve = vec![Arc::clone(&data_type_entry.data_type)];
+        // Double buffering is used to avoid unnecessary allocations.
+        let mut data_types_to_resolve = Vec::new();
+        let mut next_data_types_to_resolve = vec![Arc::clone(&data_type_entry.data_type)];
 
         // We keep a list of all schemas that are missing from the cache. If we encounter a schema
         // that is not in the cache, we add it to this list. If we are unable to resolve all
@@ -510,8 +512,14 @@ impl OntologyTypeResolver {
         };
 
         let mut current_depth = 0;
-        while !data_types_to_resolve.is_empty() {
-            for data_type in mem::take(&mut data_types_to_resolve) {
+        while !next_data_types_to_resolve.is_empty() {
+            mem::swap(&mut data_types_to_resolve, &mut next_data_types_to_resolve);
+            #[expect(
+                clippy::iter_with_drain,
+                reason = "False positive, we re-use the iterator to avoid unnecessary allocations.\
+                          See https://github.com/rust-lang/rust-clippy/issues/8539"
+            )]
+            for data_type in data_types_to_resolve.drain(..) {
                 for (data_type_reference, edge) in data_type.data_type_references() {
                     if processed_schemas.contains(&data_type_reference.url) {
                         // We ignore the already processed schemas to prevent infinite loops.
@@ -544,7 +552,7 @@ impl OntologyTypeResolver {
                         // We encountered a schema that we haven't resolved yet. We add it to the
                         // list of schemas to find and update the inheritance depth of the current
                         // type.
-                        data_types_to_resolve.push(Arc::clone(&data_type_entry.data_type));
+                        next_data_types_to_resolve.push(Arc::clone(&data_type_entry.data_type));
                     }
                 }
             }
