@@ -11,7 +11,7 @@ name: Publish blocks to production
 jobs:
   pick-blocks:
     name: Pick blocks
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       block-dir-names: ${{ steps.list-block-dir-names.outputs.block-dir-names }}
     steps:
@@ -29,7 +29,7 @@ jobs:
 
   process:
     name: Publish
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     needs:
       - pick-blocks
     strategy:

@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   setup:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     outputs:
       sourcemaps: ${{ steps.packages.outputs.sourcemaps }}
     steps:
@@ -49,7 +49,7 @@ jobs:
       matrix: ${{ fromJSON(needs.setup.outputs.sourcemaps) }}
       fail-fast: false
     if: needs.setup.outputs.sourcemaps != '{"package":[],"include":[]}'
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-24.04
     permissions:
       id-token: write
       contents: read
