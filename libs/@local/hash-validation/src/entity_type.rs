@@ -377,6 +377,8 @@ impl EntityVisitor for EntityPreprocessor {
         let mut status = ReportSink::new();
 
         // We try to infer the data type ID
+        // TODO: Remove when the data type ID is forced to be passed
+        //   see https://linear.app/hash/issue/H-2800/validate-that-a-data-type-id-is-always-specified
         if property.metadata.data_type_id.is_none() {
             let mut possible_data_types = HashSet::new();
 
@@ -394,14 +396,14 @@ impl EntityVisitor for EntityPreprocessor {
                         break;
                     }
 
-                    let data_type = type_provider
-                        .provide_type(&data_type_ref.url)
+                    let has_non_abstract_parents = type_provider
+                        .has_non_abstract_parents(&data_type_ref.url)
                         .await
                         .change_context_lazy(|| TraversalError::DataTypeRetrieval {
                             id: data_type_ref.clone(),
                         })?;
 
-                    if !data_type.borrow().schema.all_of.is_empty() {
+                    if has_non_abstract_parents {
                         status.capture(TraversalError::AmbiguousDataType);
                         possible_data_types.clear();
                         break;

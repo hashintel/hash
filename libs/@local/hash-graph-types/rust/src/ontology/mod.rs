@@ -184,7 +184,16 @@ pub trait DataTypeProvider: OntologyTypeProvider<DataTypeWithMetadata> {
         parent: &BaseUrl,
     ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
 
+    // TODO: Remove when the data type ID is forced to be passed
+    //   see https://linear.app/hash/issue/H-2800/validate-that-a-data-type-id-is-always-specified
     fn has_children(
+        &self,
+        data_type: &VersionedUrl,
+    ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
+
+    // TODO: Remove when the data type ID is forced to be passed
+    //   see https://linear.app/hash/issue/H-2800/validate-that-a-data-type-id-is-always-specified
+    fn has_non_abstract_parents(
         &self,
         data_type: &VersionedUrl,
     ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;

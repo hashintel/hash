@@ -251,6 +251,32 @@ where
     }
 
     #[expect(refining_impl_trait)]
+    async fn has_non_abstract_parents(
+        &self,
+        data_type: &VersionedUrl,
+    ) -> Result<bool, Report<QueryError>> {
+        let client = self.store.as_client().client();
+
+        Ok(client
+            .query_one(
+                "
+                    SELECT EXISTS (
+                        SELECT 1
+                        FROM data_type_inherits_from
+                        JOIN data_types
+                          ON data_types.ontology_id = target_data_type_ontology_id
+                        WHERE source_data_type_ontology_id = $1
+                          AND data_types.schema->>'abstract' = 'false'
+                    );
+                ",
+                &[&DataTypeId::from_url(data_type)],
+            )
+            .await
+            .change_context(QueryError)?
+            .get(0))
+    }
+
+    #[expect(refining_impl_trait)]
     async fn find_conversion(
         &self,
         source_data_type_id: &VersionedUrl,
