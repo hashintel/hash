@@ -27,7 +27,11 @@ async fn seed<A: AuthorizationApi>(
 ) -> DatabaseApi<'_, &mut A> {
     database
         .seed(
-            [data_type::TEXT_V1, data_type::NUMBER_V1],
+            [
+                data_type::VALUE_V1,
+                data_type::TEXT_V1,
+                data_type::NUMBER_V1,
+            ],
             [
                 property_type::NAME_V1,
                 property_type::AGE_V1,
