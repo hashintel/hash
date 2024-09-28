@@ -35,7 +35,7 @@
     "@graphql-codegen/cli": "5.0.2",
     "@graphql-codegen/introspection": "2.2.3",
     "@graphql-codegen/typescript": "2.8.8",
-    "@graphql-codegen/typescript-graphql-request": "4.5.9",
+    "@graphql-codegen/typescript-graphql-request": "6.2.0",
     "@graphql-codegen/typescript-resolvers": "2.7.13",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
