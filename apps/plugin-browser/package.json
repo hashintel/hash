@@ -81,7 +81,7 @@
     "react-refresh": "0.14.0",
     "react-refresh-typescript": "2.0.9",
     "sass": "1.79.4",
-    "sass-loader": "13.3.3",
+    "sass-loader": "16.0.2",
     "source-map-loader": "3.0.2",
     "style-loader": "3.3.4",
     "terser-webpack-plugin": "5.3.10",
