@@ -324,6 +324,14 @@ mod tests {
         }
 
         #[expect(refining_impl_trait)]
+        async fn has_non_abstract_parents(
+            &self,
+            _data_type: &VersionedUrl,
+        ) -> Result<bool, Report<InvalidDataType>> {
+            Ok(false)
+        }
+
+        #[expect(refining_impl_trait)]
         async fn find_conversion(
             &self,
             _: &VersionedUrl,
