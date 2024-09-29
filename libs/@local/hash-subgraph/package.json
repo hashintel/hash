@@ -36,11 +36,11 @@
     "@local/hash-graph-client": "0.0.0-private",
     "@local/hash-graph-sdk": "0.0.0-private",
     "@local/hash-graph-types": "0.0.0-private",
-    "uuid": "9.0.1"
+    "uuid": "10.0.0"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
-    "@types/uuid": "8.3.4",
+    "@types/uuid": "10.0.0",
     "@vitest/coverage-istanbul": "2.1.1",
     "typescript": "5.6.2",
     "vitest": "2.1.1"

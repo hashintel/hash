@@ -118,7 +118,7 @@
     "signia-react": "0.1.5",
     "url-regex-safe": "4.0.0",
     "use-font-face-observer": "1.2.2",
-    "uuid": "9.0.1"
+    "uuid": "10.0.0"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "5.0.2",
@@ -141,7 +141,7 @@
     "@types/react-beautiful-dnd": "13.1.8",
     "@types/react-dom": "18.2.25",
     "@types/url-regex-safe": "1.0.2",
-    "@types/uuid": "8.3.4",
+    "@types/uuid": "10.0.0",
     "@welldone-software/why-did-you-render": "8.0.3",
     "eslint": "8.57.0",
     "graphology-types": "0.24.7",
