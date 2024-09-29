@@ -1,9 +1,10 @@
 import type {
   ArrayConstraints,
+  ArrayItemsSchema,
   ArraySchema,
   DataType,
-  SimpleValueSchema,
   TupleConstraints,
+  ValueConstraints,
   VersionedUrl,
 } from "@blockprotocol/type-system/slim";
 import {
@@ -123,6 +124,10 @@ const expectedValuesDisplayMap = {
     icon: faListCheck.icon,
     colors: chipColors.blue,
   },
+  nullArray: {
+    icon: faEmptySet,
+    colors: chipColors.blue,
+  },
   numberArray: {
     icon: faListOl.icon,
     colors: chipColors.blue,
@@ -190,16 +195,25 @@ const isTupleConstraints = (
   return "items" in schema && schema.items === false;
 };
 
+const isArrayItemsSchema = (
+  schema: ValueConstraints,
+): schema is ArrayItemsSchema => {
+  return "type" in schema && schema.type === "array";
+};
+
 const getArrayDataTypeDisplay = (
   dataType: ArraySchema,
 ): Omit<ExpectedValueDisplay, "title"> => {
-  let items: [SimpleValueSchema, ...SimpleValueSchema[]];
+  // `items` are either the elements of a tuple or the items of a mixed anyOf-array
+  let items: [ArrayItemsSchema, ...ArrayItemsSchema[]];
 
   if (isTupleConstraints(dataType)) {
     if (!dataType.prefixItems) {
       return expectedValuesDisplayMap.emptyList;
     }
+
     items = dataType.prefixItems;
+
     // TODO: Remove when `const` is not allowed on arrays
     //   see https://linear.app/hash/issue/H-3368/remove-const-from-array-constraints
   } else if (!isArrayConstraints(dataType)) {
@@ -207,19 +221,34 @@ const getArrayDataTypeDisplay = (
   } else if (!dataType.items) {
     return expectedValuesDisplayMap.mixedArray;
   } else {
+    return expectedValuesDisplayMap[`${dataType.items.type}Array`];
+  }
+
+  const itemTypes = new Set<ArrayItemsSchema["type"]>();
+
+  for (const item of items) {
+    if ("anyOf" in item) {
+      /**
+       * @todo H-3373 support data types which can have multiple different values in a position
+       */
+      return expectedValuesDisplayMap.mixedArray;
+    }
+
+    itemTypes.add(item.type);
+  }
+
+  if (itemTypes.size === 1) {
+    /**
+     * @todo H-3373 support data types with a fixed number of single values
+     */
     return expectedValuesDisplayMap[
-      `${dataType.items.type}Array` as keyof typeof expectedValuesDisplayMap
+      `${itemTypes.values().next().value}Array` as keyof typeof expectedValuesDisplayMap
     ];
   }
 
-  const itemTypes = items.map((item) => item.type);
-
-  if (new Set(itemTypes).size === 1) {
-    return expectedValuesDisplayMap[
-      `${items[0].type}Array` as keyof typeof expectedValuesDisplayMap
-    ];
-  }
-
+  /**
+   * @todo H-3373 support mixed data types with different types of values in each position
+   */
   return expectedValuesDisplayMap.mixedArray;
 };
 
@@ -251,15 +280,19 @@ export const DataTypesOptionsContextProvider = ({
           throw new Error(`Could not find dataType for ${expectedValue}`);
         }
 
-        if (dataType.type === "array") {
+        if ("type" in dataType && dataType.type === "array") {
           return {
             title: dataType.title,
             ...getArrayDataTypeDisplay(dataType),
           };
         }
 
-        let displayType =
-          dataType.type as keyof typeof expectedValuesDisplayMap;
+        let displayType: keyof typeof expectedValuesDisplayMap =
+          /**
+           * @todo H-3373 support data types which can have multiple different single values
+           */
+          "anyOf" in dataType ? dataType.anyOf[0].type : dataType.type;
+
         if (measurementTypeTitles.includes(dataType.title)) {
           displayType = "measurement";
         } else if (identifierTypeTitles.includes(dataType.title)) {
@@ -298,7 +331,7 @@ export const DataTypesOptionsContextProvider = ({
             };
           }
           const dataType = dataTypeOptions[type];
-          if (dataType) {
+          if (dataType && isArrayItemsSchema(dataType)) {
             return {
               title: `${dataType.title} Array`,
               ...getArrayDataTypeDisplay({

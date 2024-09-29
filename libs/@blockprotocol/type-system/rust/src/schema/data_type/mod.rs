@@ -4,11 +4,11 @@ mod conversion;
 pub use self::{
     closed::{ClosedDataType, ClosedDataTypeMetadata},
     constraint::{
-        AnyOfConstraints, AnyOfSchema, ArrayConstraints, ArraySchema, ArrayTypeTag,
-        ArrayValidationError, BooleanTypeTag, ConstraintError, NullTypeTag, NumberConstraints,
-        NumberSchema, NumberTypeTag, NumberValidationError, ObjectTypeTag, StringConstraints,
-        StringFormat, StringFormatError, StringSchema, StringTypeTag, StringValidationError,
-        TupleConstraints, TypedValueConstraints,
+        AnyOfConstraints, ArrayConstraints, ArraySchema, ArrayTypeTag, ArrayValidationError,
+        BooleanTypeTag, ConstraintError, NullTypeTag, NumberConstraints, NumberSchema,
+        NumberTypeTag, NumberValidationError, ObjectTypeTag, SingleValueConstraints,
+        SingleValueSchema, StringConstraints, StringFormat, StringFormatError, StringSchema,
+        StringTypeTag, StringValidationError, TupleConstraints,
     },
     conversion::{
         ConversionDefinition, ConversionExpression, ConversionValue, Conversions, Operator,
@@ -116,7 +116,7 @@ mod raw {
             ObjectTypeTag, StringTypeTag, ValueLabel,
             data_type::constraint::{
                 AnyOfConstraints, ArrayConstraints, ArraySchema, NumberConstraints, NumberSchema,
-                StringConstraints, StringSchema, TupleConstraints, TypedValueConstraints,
+                SingleValueConstraints, StringConstraints, StringSchema, TupleConstraints,
                 ValueConstraints,
             },
         },
@@ -147,7 +147,6 @@ mod raw {
     }
 
     #[derive(Serialize, Deserialize)]
-    #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
     #[serde(untagged, rename_all = "camelCase", deny_unknown_fields)]
     pub enum DataType {
         Null {
@@ -177,7 +176,6 @@ mod raw {
             r#type: NumberTypeTag,
             #[serde(flatten)]
             common: ValueSchemaMetadata,
-            #[cfg_attr(target_arch = "wasm32", tsify(type = "[number, ...number[]]"))]
             r#enum: Vec<f64>,
         },
         String {
@@ -197,7 +195,6 @@ mod raw {
             r#type: StringTypeTag,
             #[serde(flatten)]
             common: ValueSchemaMetadata,
-            #[cfg_attr(target_arch = "wasm32", tsify(type = "[string, ...string[]]"))]
             r#enum: HashSet<String>,
         },
         Object {
@@ -225,13 +222,32 @@ mod raw {
             common: ValueSchemaMetadata,
             r#const: [JsonValue; 0],
         },
-        #[serde(skip)]
         AnyOf {
             #[serde(flatten)]
             common: ValueSchemaMetadata,
             #[serde(flatten)]
             constraints: AnyOfConstraints,
         },
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    #[expect(
+        dead_code,
+        reason = "Used to export type to TypeScript to prevent Tsify generating interfaces"
+    )]
+    mod wasm {
+        use super::*;
+
+        #[derive(tsify::Tsify)]
+        #[serde(untagged)]
+        enum DataType {
+            Schema {
+                #[serde(flatten)]
+                common: ValueSchemaMetadata,
+                #[serde(flatten)]
+                constraints: ValueConstraints,
+            },
+        }
     }
 
     impl From<DataType> for super::DataType {
@@ -244,12 +260,13 @@ mod raw {
         )]
         fn from(value: DataType) -> Self {
             let (common, constraints) = match value {
-                DataType::Null { r#type: _, common } => {
-                    (common, ValueConstraints::Typed(TypedValueConstraints::Null))
-                }
+                DataType::Null { r#type: _, common } => (
+                    common,
+                    ValueConstraints::Typed(SingleValueConstraints::Null),
+                ),
                 DataType::Boolean { r#type: _, common } => (
                     common,
-                    ValueConstraints::Typed(TypedValueConstraints::Boolean),
+                    ValueConstraints::Typed(SingleValueConstraints::Boolean),
                 ),
                 DataType::Number {
                     r#type: _,
@@ -257,7 +274,7 @@ mod raw {
                     constraints,
                 } => (
                     common,
-                    ValueConstraints::Typed(TypedValueConstraints::Number(
+                    ValueConstraints::Typed(SingleValueConstraints::Number(
                         NumberSchema::Constrained(constraints),
                     )),
                 ),
@@ -267,7 +284,7 @@ mod raw {
                     r#const,
                 } => (
                     common,
-                    ValueConstraints::Typed(TypedValueConstraints::Number(NumberSchema::Const {
+                    ValueConstraints::Typed(SingleValueConstraints::Number(NumberSchema::Const {
                         r#const,
                     })),
                 ),
@@ -277,7 +294,7 @@ mod raw {
                     r#enum,
                 } => (
                     common,
-                    ValueConstraints::Typed(TypedValueConstraints::Number(NumberSchema::Enum {
+                    ValueConstraints::Typed(SingleValueConstraints::Number(NumberSchema::Enum {
                         r#enum,
                     })),
                 ),
@@ -287,7 +304,7 @@ mod raw {
                     constraints,
                 } => (
                     common,
-                    ValueConstraints::Typed(TypedValueConstraints::String(
+                    ValueConstraints::Typed(SingleValueConstraints::String(
                         StringSchema::Constrained(constraints),
                     )),
                 ),
@@ -297,7 +314,7 @@ mod raw {
                     r#const,
                 } => (
                     common,
-                    ValueConstraints::Typed(TypedValueConstraints::String(StringSchema::Const {
+                    ValueConstraints::Typed(SingleValueConstraints::String(StringSchema::Const {
                         r#const,
                     })),
                 ),
@@ -307,13 +324,13 @@ mod raw {
                     r#enum,
                 } => (
                     common,
-                    ValueConstraints::Typed(TypedValueConstraints::String(StringSchema::Enum {
+                    ValueConstraints::Typed(SingleValueConstraints::String(StringSchema::Enum {
                         r#enum,
                     })),
                 ),
                 DataType::Object { r#type: _, common } => (
                     common,
-                    ValueConstraints::Typed(TypedValueConstraints::Object),
+                    ValueConstraints::Typed(SingleValueConstraints::Object),
                 ),
                 DataType::Array {
                     r#type: _,
@@ -321,7 +338,7 @@ mod raw {
                     constraints,
                 } => (
                     common,
-                    ValueConstraints::Typed(TypedValueConstraints::Array(
+                    ValueConstraints::Typed(SingleValueConstraints::Array(
                         ArraySchema::Constrained(constraints),
                     )),
                 ),
@@ -331,7 +348,7 @@ mod raw {
                     constraints,
                 } => (
                     common,
-                    ValueConstraints::Typed(TypedValueConstraints::Array(ArraySchema::Tuple(
+                    ValueConstraints::Typed(SingleValueConstraints::Array(ArraySchema::Tuple(
                         constraints,
                     ))),
                 ),
@@ -341,7 +358,7 @@ mod raw {
                     r#const,
                 } => (
                     common,
-                    ValueConstraints::Typed(TypedValueConstraints::Array(ArraySchema::Const {
+                    ValueConstraints::Typed(SingleValueConstraints::Array(ArraySchema::Const {
                         r#const,
                     })),
                 ),
@@ -689,13 +706,15 @@ impl DataType {
 
 #[cfg(test)]
 mod tests {
+    use serde_json::json;
+
     use super::*;
     use crate::utils::tests::{
-        JsonEqualityCheck, ensure_failed_deserialization, ensure_validation_from_str,
+        JsonEqualityCheck, ensure_failed_deserialization, ensure_validation,
+        ensure_validation_from_str,
     };
 
     #[tokio::test]
-    #[ignore = "AnyOf constraint is not exposed"]
     async fn value() {
         ensure_validation_from_str::<DataType, _>(
             graph_test_data::data_type::VALUE_V1,
@@ -759,6 +778,48 @@ mod tests {
     async fn empty_list() {
         ensure_validation_from_str::<DataType, _>(
             graph_test_data::data_type::EMPTY_LIST_V1,
+            DataTypeValidator,
+            JsonEqualityCheck::Yes,
+        )
+        .await;
+    }
+
+    #[tokio::test]
+    async fn tuple() {
+        ensure_validation::<DataType, _>(
+            json!({
+              "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+              "kind": "dataType",
+              "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/two-numbers/v/1",
+              "title": "Two Numbers",
+              "description": "A tuple of two numbers",
+              "type": "array",
+              "abstract": false,
+              "items": false,
+              "prefixItems": [
+                { "type": "number" },
+                { "type": "number" }
+              ]
+            }),
+            DataTypeValidator,
+            JsonEqualityCheck::Yes,
+        )
+        .await;
+    }
+
+    #[tokio::test]
+    async fn array() {
+        ensure_validation::<DataType, _>(
+            json!({
+              "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
+              "kind": "dataType",
+              "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/array/v/1",
+              "title": "Number List",
+              "description": "A list of numbers",
+              "type": "array",
+              "abstract": false,
+              "items": { "type": "number" },
+            }),
             DataTypeValidator,
             JsonEqualityCheck::Yes,
         )

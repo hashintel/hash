@@ -2,7 +2,7 @@ use error_stack::{Report, ReportSink, ResultExt};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
-use crate::schema::{ConstraintError, ValueLabel, data_type::constraint::SimpleTypedValueSchema};
+use crate::schema::{ConstraintError, SingleValueSchema};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -10,9 +10,9 @@ use crate::schema::{ConstraintError, ValueLabel, data_type::constraint::SimpleTy
 pub struct AnyOfConstraints {
     #[cfg_attr(
         target_arch = "wasm32",
-        tsify(type = "[SimpleTypedValueSchema, ...SimpleTypedValueSchema[]]")
+        tsify(type = "[SingleValueSchema, ...SingleValueSchema[]]")
     )]
-    pub any_of: Vec<SimpleTypedValueSchema>,
+    pub any_of: Vec<SingleValueSchema>,
 }
 
 impl AnyOfConstraints {
@@ -26,24 +26,13 @@ impl AnyOfConstraints {
     pub fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
         let mut status = ReportSink::<ConstraintError>::new();
         for schema in &self.any_of {
-            if let Err(error) = schema.constraints.validate_value(value) {
-                status.capture(error);
-            } else {
+            if status
+                .attempt(schema.constraints.validate_value(value))
+                .is_some()
+            {
                 return Ok(());
             }
         }
         status.finish().change_context(ConstraintError::AnyOf)
     }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct AnyOfSchema {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    #[serde(default, skip_serializing_if = "ValueLabel::is_empty")]
-    pub label: ValueLabel,
-    #[serde(flatten)]
-    pub constraints: AnyOfConstraints,
 }

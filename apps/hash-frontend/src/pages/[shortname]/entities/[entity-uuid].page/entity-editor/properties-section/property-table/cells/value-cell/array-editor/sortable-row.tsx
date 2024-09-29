@@ -65,7 +65,15 @@ export const SortableRow = ({
 
   const editorType =
     overriddenEditorType ?? guessEditorTypeFromValue(value, expectedTypes);
-  const expectedType = expectedTypes.find((type) => type.type === editorType);
+
+  const expectedType = expectedTypes.find((type) =>
+    "type" in type
+      ? type.type === editorType
+      : /**
+         * @todo H-3374 support multiple expected data types
+         */
+        type.anyOf.some((subType) => subType.type === editorType),
+  );
 
   const editorSpec = getEditorSpecs(editorType, expectedType);
 

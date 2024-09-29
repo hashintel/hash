@@ -7,12 +7,12 @@ mod number;
 mod object;
 mod string;
 
-use error_stack::{Report, bail};
+use error_stack::Report;
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
 pub use self::{
-    any_of::{AnyOfConstraints, AnyOfSchema},
+    any_of::AnyOfConstraints,
     array::{ArrayConstraints, ArraySchema, ArrayTypeTag, ArrayValidationError, TupleConstraints},
     boolean::BooleanTypeTag,
     error::ConstraintError,
@@ -24,152 +24,20 @@ pub use self::{
         StringValidationError,
     },
 };
-use crate::schema::{JsonSchemaValueType, ValueLabel};
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SimpleTypedValueSchema {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    #[serde(default, skip_serializing_if = "ValueLabel::is_empty")]
-    pub label: ValueLabel,
-    #[serde(flatten)]
-    pub constraints: SimpleTypedValueConstraint,
-}
-
-#[cfg(target_arch = "wasm32")]
-#[expect(
-    dead_code,
-    reason = "Used to export type to TypeScript to prevent Tsify generating interfaces"
-)]
-mod wasm {
-    use super::*;
-
-    #[derive(tsify::Tsify)]
-    #[serde(untagged)]
-    enum SimpleTypedValueSchema {
-        Schema {
-            #[serde(default, skip_serializing_if = "Option::is_none")]
-            description: Option<String>,
-            #[serde(default)]
-            label: ValueLabel,
-            #[serde(flatten)]
-            constraints: SimpleTypedValueConstraint,
-        },
-    }
-}
+use crate::schema::{
+    ValueLabel,
+    data_type::constraint::{
+        array::validate_array_value, boolean::validate_boolean_value, null::validate_null_value,
+        number::validate_number_value, object::validate_object_value,
+        string::validate_string_value,
+    },
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
-#[serde(untagged, rename_all = "camelCase")]
-pub enum SimpleValueSchema {
-    Typed(SimpleTypedValueSchema),
-    #[serde(skip)]
-    AnyOf(AnyOfSchema),
-}
-
-impl SimpleValueSchema {
-    /// Forwards the value validation to the appropriate schema.
-    ///
-    /// # Errors
-    ///
-    /// - For [`Typed`] schemas, see [`TypedValueConstraints::validate_value`].
-    /// - For [`AnyOf`] schemas, see [`AnyOfConstraints::validate_value`].
-    ///
-    /// [`Typed`]: Self::Typed
-    /// [`AnyOf`]: Self::AnyOf
-    pub fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
-        match self {
-            Self::Typed(schema) => schema.constraints.validate_value(value),
-            Self::AnyOf(schema) => schema.constraints.validate_value(value),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
-#[serde(tag = "type", rename_all = "camelCase")]
-pub enum SimpleTypedValueConstraint {
-    Null,
-    Boolean,
-    Number(NumberSchema),
-    String(StringSchema),
-    Array,
-    Object,
-}
-
-impl SimpleTypedValueConstraint {
-    pub fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
-        match self {
-            Self::Null => {
-                if value.is_null() {
-                    Ok(())
-                } else {
-                    bail!(ConstraintError::InvalidType {
-                        actual: JsonSchemaValueType::from(value),
-                        expected: JsonSchemaValueType::Null,
-                    })
-                }
-            }
-            Self::Boolean => {
-                if value.is_boolean() {
-                    Ok(())
-                } else {
-                    bail!(ConstraintError::InvalidType {
-                        actual: JsonSchemaValueType::from(value),
-                        expected: JsonSchemaValueType::Boolean,
-                    })
-                }
-            }
-            Self::Number(schema) => {
-                if let JsonValue::Number(number) = value {
-                    schema.validate_value(number)
-                } else {
-                    bail!(ConstraintError::InvalidType {
-                        actual: JsonSchemaValueType::from(value),
-                        expected: JsonSchemaValueType::Number,
-                    })
-                }
-            }
-            Self::String(schema) => {
-                if let JsonValue::String(string) = value {
-                    schema.validate_value(string)
-                } else {
-                    bail!(ConstraintError::InvalidType {
-                        actual: JsonSchemaValueType::from(value),
-                        expected: JsonSchemaValueType::String,
-                    })
-                }
-            }
-            Self::Array => {
-                if value.is_array() {
-                    Ok(())
-                } else {
-                    bail!(ConstraintError::InvalidType {
-                        actual: JsonSchemaValueType::from(value),
-                        expected: JsonSchemaValueType::Array,
-                    })
-                }
-            }
-            Self::Object => {
-                if value.is_object() {
-                    Ok(())
-                } else {
-                    bail!(ConstraintError::InvalidType {
-                        actual: JsonSchemaValueType::from(value),
-                        expected: JsonSchemaValueType::Object,
-                    })
-                }
-            }
-        }
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged, rename_all = "camelCase")]
 pub enum ValueConstraints {
-    Typed(TypedValueConstraints),
-    #[serde(skip)]
+    Typed(SingleValueConstraints),
     AnyOf(AnyOfConstraints),
 }
 
@@ -178,8 +46,8 @@ impl ValueConstraints {
     ///
     /// # Errors
     ///
-    /// - For [`Typed`] schemas, see [`TypedValueConstraints::validate_value`].
-    /// - For [`AnyOf`] schemas, see [`SimpleTypedValueConstraint::validate_value`].
+    /// - For [`Typed`] schemas, see [`SingleValueConstraints::validate_value`].
+    /// - For [`AnyOf`] schemas, see [`AnyOfConstraints::validate_value`].
     ///
     /// [`Typed`]: Self::Typed
     /// [`AnyOf`]: Self::AnyOf
@@ -192,8 +60,9 @@ impl ValueConstraints {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(tag = "type", rename_all = "camelCase")]
-pub enum TypedValueConstraints {
+pub enum SingleValueConstraints {
     Null,
     Boolean,
     Number(NumberSchema),
@@ -202,7 +71,7 @@ pub enum TypedValueConstraints {
     Object,
 }
 
-impl TypedValueConstraints {
+impl SingleValueConstraints {
     /// Validates the provided value against the constraints.
     ///
     /// # Errors
@@ -216,67 +85,46 @@ impl TypedValueConstraints {
     /// [`AnyOf`]: ConstraintError::AnyOf
     pub fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
         match self {
-            Self::Null => {
-                if value.is_null() {
-                    Ok(())
-                } else {
-                    bail!(ConstraintError::InvalidType {
-                        actual: JsonSchemaValueType::from(value),
-                        expected: JsonSchemaValueType::Null,
-                    })
-                }
-            }
-            Self::Boolean => {
-                if value.is_boolean() {
-                    Ok(())
-                } else {
-                    bail!(ConstraintError::InvalidType {
-                        actual: JsonSchemaValueType::from(value),
-                        expected: JsonSchemaValueType::Boolean,
-                    })
-                }
-            }
-            Self::Number(schema) => {
-                if let JsonValue::Number(number) = value {
-                    schema.validate_value(number)
-                } else {
-                    bail!(ConstraintError::InvalidType {
-                        actual: JsonSchemaValueType::from(value),
-                        expected: JsonSchemaValueType::Number,
-                    })
-                }
-            }
-            Self::String(schema) => {
-                if let JsonValue::String(string) = value {
-                    schema.validate_value(string)
-                } else {
-                    bail!(ConstraintError::InvalidType {
-                        actual: JsonSchemaValueType::from(value),
-                        expected: JsonSchemaValueType::String,
-                    })
-                }
-            }
-            Self::Array(schema) => {
-                if let JsonValue::Array(array) = value {
-                    schema.validate_value(array)
-                } else {
-                    bail!(ConstraintError::InvalidType {
-                        actual: JsonSchemaValueType::from(value),
-                        expected: JsonSchemaValueType::Array,
-                    })
-                }
-            }
-            Self::Object => {
-                if value.is_object() {
-                    Ok(())
-                } else {
-                    bail!(ConstraintError::InvalidType {
-                        actual: JsonSchemaValueType::from(value),
-                        expected: JsonSchemaValueType::Object,
-                    })
-                }
-            }
+            Self::Null => validate_null_value(value),
+            Self::Boolean => validate_boolean_value(value),
+            Self::Number(schema) => validate_number_value(value, schema),
+            Self::String(schema) => validate_string_value(value, schema),
+            Self::Array(array) => validate_array_value(value, array),
+            Self::Object => validate_object_value(value),
         }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SingleValueSchema {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "ValueLabel::is_empty")]
+    pub label: ValueLabel,
+    #[serde(flatten)]
+    pub constraints: SingleValueConstraints,
+}
+
+#[cfg(target_arch = "wasm32")]
+#[expect(
+    dead_code,
+    reason = "Used to export type to TypeScript to prevent Tsify generating interfaces"
+)]
+mod wasm {
+    use super::*;
+
+    #[derive(tsify::Tsify)]
+    #[serde(untagged)]
+    enum SingleValueSchema {
+        Schema {
+            #[serde(default, skip_serializing_if = "Option::is_none")]
+            description: Option<String>,
+            #[serde(default)]
+            label: ValueLabel,
+            #[serde(flatten)]
+            constraints: SingleValueConstraints,
+        },
     }
 }
 

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Number as JsonNumber, Value as JsonValue, json};
 use thiserror::Error;
 
-use crate::schema::ConstraintError;
+use crate::schema::{ConstraintError, JsonSchemaValueType};
 
 #[expect(
     clippy::trivially_copy_pass_by_ref,
@@ -152,6 +152,20 @@ impl NumberSchema {
             }
         }
         Ok(())
+    }
+}
+
+pub(crate) fn validate_number_value(
+    value: &JsonValue,
+    schema: &NumberSchema,
+) -> Result<(), Report<ConstraintError>> {
+    if let JsonValue::Number(number) = value {
+        schema.validate_value(number)
+    } else {
+        bail!(ConstraintError::InvalidType {
+            actual: JsonSchemaValueType::from(value),
+            expected: JsonSchemaValueType::Number,
+        });
     }
 }
 
