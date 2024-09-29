@@ -475,9 +475,17 @@ where
                 ontology_type_resolver.add_open(Arc::new(data_type.schema));
             });
 
-        let schema_metadata = ontology_type_resolver
-            .resolve_data_type_metadata(inserted_data_types.iter().map(Arc::clone))
-            .change_context(InsertionError)?;
+        for inserted_data_type in &inserted_data_types {
+            ontology_type_resolver.add_open(Arc::clone(inserted_data_type));
+        }
+        let schema_metadata = inserted_data_types
+            .iter()
+            .map(|inserted_data_type| {
+                ontology_type_resolver
+                    .resolve_data_type_metadata(&inserted_data_type.id)
+                    .change_context(InsertionError)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
 
         let data_type_validator = DataTypeValidator;
         for data_type in &inserted_data_types {
@@ -829,11 +837,11 @@ where
                 ontology_type_resolver.add_open(Arc::new(data_type.schema));
             });
 
-        let [metadata] = ontology_type_resolver
-            .resolve_data_type_metadata([Arc::new(schema.clone().into_inner())])
-            .change_context(UpdateError)?
-            .try_into()
-            .expect("Expected exactly one closed data type metadata");
+        ontology_type_resolver.add_open(Arc::new(schema.clone().into_inner()));
+        let metadata = ontology_type_resolver
+            .resolve_data_type_metadata(&schema.id)
+            .change_context(UpdateError)?;
+
         let closed_schema = data_type_validator
             .validate(
                 ontology_type_resolver
