@@ -44,7 +44,7 @@
     "@opentelemetry/semantic-conventions": "1.27.0",
     "@ory/client": "1.1.41",
     "artillery": "2.0.20",
-    "dotenv-flow": "3.3.0",
+    "dotenv-flow": "4.1.0",
     "uuid": "9.0.1"
   },
   "devDependencies": {

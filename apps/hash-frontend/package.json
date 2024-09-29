@@ -67,7 +67,7 @@
     "buffer": "6.0.3",
     "clsx": "1.2.1",
     "date-fns": "4.1.0",
-    "dotenv-flow": "3.3.0",
+    "dotenv-flow": "4.1.0",
     "elkjs": "0.9.3",
     "emoji-mart": "5.2.1",
     "fractional-indexing": "2.1.0",

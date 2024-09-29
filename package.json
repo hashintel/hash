@@ -104,7 +104,7 @@
     "check-dependency-version-consistency": "3.0.3",
     "concurrently": "7.6.0",
     "cross-env": "7.0.3",
-    "dotenv-flow": "3.3.0",
+    "dotenv-flow": "4.1.0",
     "husky": "8.0.3",
     "lint-staged": "15.2.10",
     "lockfile-lint": "4.14.0",
