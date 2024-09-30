@@ -779,11 +779,16 @@ mod tests {
             serde_json::json!({
               "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
               "kind": "dataType",
-              "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1",
+              "description": "A piece of data that can be used to convey information about an attribute, quality or state of something.",
               "title": "Value",
               "description": "A value that can be stored in a graph",
               "anyOf": [
-                { "type": "null" }
+                { "type": "null" },
+                { "type": "boolean" },
+                { "type": "number" },
+                { "type": "string" },
+                { "type": "array" },
+                { "type": "object" }
               ],
               "additional": false
             }),
