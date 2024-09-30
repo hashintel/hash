@@ -1,8 +1,9 @@
 use core::time::Duration;
-use std::{collections::HashMap, fs::File, io, path::PathBuf};
+use std::{collections::HashMap, io};
 
 use error_stack::{Report, ResultExt};
 use futures::{StreamExt, TryStreamExt, stream};
+use include_dir::{Dir, DirEntry, include_dir};
 use reqwest::{
     Client,
     header::{ACCEPT, USER_AGENT},
@@ -10,7 +11,6 @@ use reqwest::{
 use tarpc::context::Context;
 use time::OffsetDateTime;
 use type_system::url::VersionedUrl;
-use walkdir::WalkDir;
 
 use crate::fetcher::{FetchedOntologyType, Fetcher, FetcherError};
 
@@ -20,6 +20,8 @@ pub struct FetchServer {
     pub predefined_types: HashMap<VersionedUrl, FetchedOntologyType>,
 }
 
+const PREDEFINED_TYPES: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/predefined_types");
+
 impl FetchServer {
     /// Load predefined types from the `predefined_types` directory
     ///
@@ -28,70 +30,35 @@ impl FetchServer {
     /// - If the predefined types directory cannot be found
     /// - If a predefined type cannot be deserialized
     pub fn load_predefined_types(&mut self) -> Result<(), Report<io::Error>> {
-        let directory = PathBuf::from(file!())
-            .canonicalize()
-            .attach_printable_lazy(|| file!().to_string())?;
-        let directory = directory.parent().ok_or_else(|| {
+        for entry in PREDEFINED_TYPES.find("**/*.json").change_context_lazy(|| {
             io::Error::new(
                 io::ErrorKind::NotFound,
-                format!(
-                    "Could not find parent directory of `{}`",
-                    directory.display()
-                ),
+                "No JSON files in predefined types directory found",
             )
-        })?;
-        let directory = directory.parent().ok_or_else(|| {
-            io::Error::new(
-                io::ErrorKind::NotFound,
-                format!(
-                    "Could not find parent directory of `{}`",
-                    directory.display()
-                ),
-            )
-        })?;
-        let directory = directory.join("predefined_types");
-        let directory = directory
-            .canonicalize()
-            .attach_printable_lazy(|| directory.display().to_string())?;
-        for entry in WalkDir::new(directory) {
-            let entry = match &entry {
-                Ok(entry) => entry,
-                Err(error) => {
-                    tracing::error!(error=?error, "Could not read entry");
-                    continue;
-                }
-            };
-
-            if entry.file_type().is_dir() {
-                continue;
-            }
-
-            self.load_predefined_type(
-                serde_json::from_reader(File::open(entry.path())?)
+        })? {
+            if let DirEntry::File(file) = entry {
+                let ontology_type = serde_json::from_slice(file.contents())
                     .map_err(io::Error::from)
-                    .attach_printable_lazy(|| entry.path().display().to_string())?,
-            );
+                    .attach_printable_lazy(|| file.path().display().to_string())?;
+                let id = match &ontology_type {
+                    FetchedOntologyType::DataType(data_type) => {
+                        tracing::info!(%data_type.id, "Loaded predefined data type");
+                        data_type.id.clone()
+                    }
+                    FetchedOntologyType::PropertyType(property_type) => {
+                        tracing::info!(%property_type.id, "Loaded predefined property type");
+                        property_type.id.clone()
+                    }
+                    FetchedOntologyType::EntityType(entity_type) => {
+                        tracing::info!(%entity_type.id, "Loaded predefined entity type");
+                        entity_type.id.clone()
+                    }
+                };
+                self.predefined_types.insert(id, ontology_type);
+            }
         }
 
         Ok(())
-    }
-
-    pub fn load_predefined_type(&mut self, ontology_type: FetchedOntologyType) {
-        let id = match &ontology_type {
-            FetchedOntologyType::DataType(data_type) => {
-                tracing::info!(%data_type.id, "Loaded predefined data type");
-                data_type.id.clone()
-            }
-            FetchedOntologyType::PropertyType(property_type) => {
-                tracing::info!(%property_type.id, "Loaded predefined property type");
-                property_type.id.clone()
-            }
-            FetchedOntologyType::EntityType(entity_type) => {
-                tracing::info!(%entity_type.id, "Loaded predefined entity type");
-                entity_type.id.clone()
-            }
-        };
-        self.predefined_types.insert(id, ontology_type);
     }
 }
 

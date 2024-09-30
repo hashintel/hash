@@ -22,11 +22,11 @@ error-stack = { workspace = true }
 
 # Private third-party dependencies
 futures = { workspace = true }
+include_dir = { workspace = true, features = ["glob"] }
 reqwest = { workspace = true, features = ["json"] }
 serde = { workspace = true, features = ["derive"] }
 tarpc = { workspace = true, features = ["tokio1"] }
 tracing = { workspace = true }
-walkdir = { workspace = true }
 
 [lints]
 workspace = true
