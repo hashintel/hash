@@ -33,8 +33,10 @@ impl FetchServer {
             .join("hash-graph")
             .join("libs")
             .join("type-fetcher")
-            .join("predefined_types")
-            .canonicalize()?;
+            .join("predefined_types");
+        let directory = directory
+            .canonicalize()
+            .attach_printable_lazy(|| directory.display().to_string())?;
         for entry in WalkDir::new(directory) {
             let entry = match &entry {
                 Ok(entry) => entry,
