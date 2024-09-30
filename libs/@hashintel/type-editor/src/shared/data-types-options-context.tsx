@@ -177,23 +177,12 @@ export type DataTypesContextValue = {
 export const DataTypesOptionsContext =
   createContext<DataTypesContextValue | null>(null);
 
-const isArrayConstraints = (
-  schema: ArraySchema,
-): schema is ArrayConstraints => {
-  return schema.items !== undefined && schema.items !== false;
-};
-
-const isTupleConstraints = (
-  schema: ArraySchema,
-): schema is TupleConstraints => {
+const isTupleConstraints = (schema: ArraySchema): schema is TupleConstraints =>
   schema.items === false;
-};
 
 const isArrayItemsSchema = (
   schema: ValueConstraints,
-): schema is ArrayItemsSchema => {
-  return "type" in schema && schema.type === "array";
-};
+): schema is ArrayItemsSchema => "type" in schema && schema.type === "array";
 
 const getArrayDataTypeDisplay = (
   dataType: ArraySchema,
