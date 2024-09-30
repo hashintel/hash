@@ -60,26 +60,5 @@ export const isCursorOnInteractable = (
   const hovered =
     cursorX > left && cursorX < right && cursorY < bottom && cursorY > top;
 
-  /**
-   * @todo why does cellRect change flakily
-   */
-  console.log(
-    JSON.stringify(
-      {
-        cellRect,
-        interactablePos,
-        left,
-        right,
-        top,
-        bottom,
-        cursorX,
-        cursorY,
-        hovered,
-      },
-      undefined,
-      2,
-    ),
-  );
-
   return hovered;
 };

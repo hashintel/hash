@@ -4,14 +4,14 @@ import type { CustomCell, CustomRenderer } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import { Chip, FontAwesomeIcon } from "@hashintel/design-system";
 import { customColors } from "@hashintel/design-system/theme";
+import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
 import { Box } from "@mui/material";
 
 import type { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
 import { drawCellFadeOutGradient } from "../../components/grid/utils/draw-cell-fade-out-gradient";
 import { drawChipWithIcon } from "../../components/grid/utils/draw-chip-with-icon";
 import { InteractableManager } from "../../components/grid/utils/interactable-manager";
-import { Interactable } from "../../components/grid/utils/interactable-manager/types";
-import { generateUuid } from "@local/hash-isomorphic-utils/generate-uuid";
+import type { Interactable } from "../../components/grid/utils/interactable-manager/types";
 
 export type ChipCellColor = "blue" | "gray" | "white";
 export type ChipCellVariant = "outlined" | "filled";

@@ -29,6 +29,7 @@ export interface TypeEntitiesRow {
   entityLabel: string;
   entityTypes: {
     entityTypeId: VersionedUrl;
+    icon?: string;
     title: string;
   }[];
   archived?: boolean;

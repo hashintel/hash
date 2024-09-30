@@ -40,6 +40,7 @@ import { isAiMachineActor } from "../../shared/use-actors";
 import { useEntityTypeEntities } from "../../shared/use-entity-type-entities";
 import { EditEntitySlideOver } from "../[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
 import { useAuthenticatedUser } from "./auth-info-context";
+import type { ChipCellProps } from "./chip-cell";
 import { renderChipCell } from "./chip-cell";
 import { GridView } from "./entities-table/grid-view";
 import type { TextIconCell } from "./entities-table/text-icon-cell";
@@ -300,12 +301,15 @@ export const EntitiesTable: FunctionComponent<{
                 kind: "chip-cell",
                 chips: row.entityTypes.map((value) => ({
                   text: value.title,
-                  icon: null,
+                  /**
+                   * @todo H-1978: support custom icons in cell renderers, including URLs to SVGs, and emojis
+                   */
+                  icon: undefined,
                   onClick: () => setSelectedEntityTypeId(value.entityTypeId),
                 })),
                 color: "gray",
                 variant: "filled",
-              },
+              } satisfies ChipCellProps,
             };
           } else if (columnId === "webId") {
             const cellValue = row[columnId];

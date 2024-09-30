@@ -49,17 +49,17 @@ class InteractableManagerClass {
   ): Interactable {
     // used -100 to prevent handling events on non-hovered cells
     const { hoverX = -100, hoverY = -100, rect } = args;
-    //
-    // const hovered = isCursorOnInteractable(
-    //   { posX: hoverX, posY: hoverY },
-    //   props.pos,
-    //   rect,
-    // );
+
+    const hovered = isCursorOnInteractable(
+      { posX: hoverX, posY: hoverY },
+      props.pos,
+      rect,
+    );
 
     return {
       ...props,
-      hovered: false,
-      cellRect: rect,
+      hovered,
+      cellRect: { ...rect },
       path: drawArgsToCellPath(args),
     };
   }
@@ -149,14 +149,6 @@ class InteractableManagerClass {
     const foundInteractable = interactables.find(({ pos, cellRect }) =>
       isCursorOnInteractable(event, pos, cellRect),
     );
-
-    console.log({
-      path,
-      store: this.interactableStore,
-      interactables,
-      foundInteractable,
-      event,
-    });
 
     if (!foundInteractable) {
       return false;
