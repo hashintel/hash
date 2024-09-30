@@ -137,7 +137,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
       "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
       "kind": "dataType",
       "$id": "http://localhost:3000/@alice/types/data-type/meter/v/1",
-      "allOf": [{ "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/length/v/1" }],
+      "allOf": [{ "$ref": "http://localhost:3000/@alice/types/data-type/length/v/1" }],
       "title": "Meter",
       "type": "number",
       "description": "A unit of length"
@@ -156,8 +156,8 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     client.test("status", function() {
         client.assert(response.status === 200, "Response status is not 200");
     });
-    client.global.set("meter_data_type_id", `${response.body.recordId.baseUrl}v/${response.body.recordId.version}`);
-    client.global.set("meter_data_type_transaction_time", `${response.body.temporalVersioning.transactionTime.start.limit}`);
+    client.global.set("meter_data_type_id", `${response.body[1].recordId.baseUrl}v/${response.body[1].recordId.version}`);
+    client.global.set("meter_data_type_transaction_time", `${response.body[1].temporalVersioning.transactionTime.start.limit}`);
 %}
 
 ### Update Meter data type embeddings
@@ -2226,3 +2226,4 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     });
     client.global.set("person_c_entity_id", response.body.metadata.recordId.entityId);
 %}
+a

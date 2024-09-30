@@ -1,6 +1,7 @@
 use core::time::Duration;
 use std::{collections::HashMap, env, fs::File, io};
 
+use error_stack::{Report, ResultExt};
 use futures::{StreamExt, TryStreamExt, stream};
 use reqwest::{
     Client,
@@ -26,7 +27,7 @@ impl FetchServer {
     ///
     /// - If the predefined types directory cannot be found
     /// - If a predefined type cannot be deserialized
-    pub fn load_predefined_types(&mut self) -> Result<(), io::Error> {
+    pub fn load_predefined_types(&mut self) -> Result<(), Report<io::Error>> {
         let directory = env::current_dir()?
             .join("apps")
             .join("hash-graph")
@@ -47,7 +48,11 @@ impl FetchServer {
                 continue;
             }
 
-            self.load_predefined_type(serde_json::from_reader(File::open(entry.path())?)?);
+            self.load_predefined_type(
+                serde_json::from_reader(File::open(entry.path())?)
+                    .map_err(io::Error::from)
+                    .attach_printable_lazy(|| entry.path().display().to_string())?,
+            );
         }
 
         Ok(())

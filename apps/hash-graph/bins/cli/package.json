@@ -15,6 +15,7 @@
     "start:test:migrate": "../../../../target/debug/hash-graph migrate --user postgres --password postgres"
   },
   "dependencies": {
+    "@blockprotocol/type-system-rs": "0.0.0-private",
     "@rust/authorization": "0.0.0-private",
     "@rust/codec": "0.0.0-private",
     "@rust/error-stack": "0.5.0",

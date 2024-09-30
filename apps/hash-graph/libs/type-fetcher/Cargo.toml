@@ -18,6 +18,7 @@ time = { workspace = true, public = true, features = ["serde", "std"] }
 serde_json = { workspace = true, public = true }
 
 # Private workspace dependencies
+error-stack = { workspace = true }
 
 # Private third-party dependencies
 futures = { workspace = true }
