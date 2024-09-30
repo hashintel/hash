@@ -1,5 +1,5 @@
 use deer::Deserialize;
-use deer_desert::{assert_tokens, assert_tokens_any_error, assert_tokens_error, error, Token};
+use deer_desert::{Token, assert_tokens, assert_tokens_any_error, assert_tokens_error, error};
 use proptest::prelude::*;
 use serde_json::json;
 

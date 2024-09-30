@@ -4,6 +4,7 @@ use alloc::sync::Arc;
 use std::collections::HashMap;
 
 use authorization::{
+    AuthorizationApi, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
         EntityAdministratorSubject, EntityEditorSubject, EntityOwnerSubject, EntityPermission,
@@ -11,29 +12,30 @@ use authorization::{
         EntityViewerSubject, WebOwnerSubject,
     },
     zanzibar::Consistency,
-    AuthorizationApi, AuthorizationApiPool,
 };
 use axum::{
+    Extension, Router,
     extract::Path,
     http::StatusCode,
     response::Response,
     routing::{get, post},
-    Extension, Router,
 };
 use error_stack::{Report, ResultExt};
 use graph::store::{
+    EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
+    EntityValidationType, NullOrdering, Ordering, StorePool,
     error::{EntityDoesNotExist, RaceConditionOnUpdate},
     knowledge::{
         CountEntitiesParams, CreateEntityRequest, DiffEntityParams, DiffEntityResult,
         GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams, PatchEntityParams,
         QueryConversion, UpdateEntityEmbeddingsParams, ValidateEntityParams,
     },
-    EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
-    EntityValidationType, NullOrdering, Ordering, StorePool,
 };
 use graph_types::{
+    Embedding,
     account::{CreatedById, EditionCreatedById},
     knowledge::{
+        Confidence, EntityTypeIdDiff,
         entity::{
             ActorType, Entity, EntityEditionId, EntityEditionProvenance, EntityEmbedding, EntityId,
             EntityMetadata, EntityProvenance, EntityRecordId, EntityTemporalMetadata, EntityUuid,
@@ -48,10 +50,8 @@ use graph_types::{
             PropertyWithMetadataArray, PropertyWithMetadataObject, PropertyWithMetadataValue,
             ValueMetadata,
         },
-        Confidence, EntityTypeIdDiff,
     },
     owned_by_id::OwnedById,
-    Embedding,
 };
 use hash_graph_store::{
     account::AccountStore,
@@ -66,8 +66,8 @@ use utoipa::{OpenApi, ToSchema};
 use validation::ValidateEntityComponents;
 
 use crate::rest::{
-    api_resource::RoutedResource, json::Json, status::report_to_response,
-    utoipa_typedef::subgraph::Subgraph, AuthenticatedUserHeader, PermissionResponse,
+    AuthenticatedUserHeader, PermissionResponse, api_resource::RoutedResource, json::Json,
+    status::report_to_response, utoipa_typedef::subgraph::Subgraph,
 };
 
 #[derive(OpenApi)]
@@ -259,7 +259,9 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let params = CreateEntityRequest::deserialize(&body).map_err(report_to_response)?;
+    let params = CreateEntityRequest::deserialize(&body)
+        .map_err(Report::from)
+        .map_err(report_to_response)?;
 
     let authorization_api = authorization_api_pool
         .acquire()
@@ -309,7 +311,9 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let params = Vec::<CreateEntityRequest>::deserialize(&body).map_err(report_to_response)?;
+    let params = Vec::<CreateEntityRequest>::deserialize(&body)
+        .map_err(Report::from)
+        .map_err(report_to_response)?;
 
     let authorization_api = authorization_api_pool
         .acquire()
@@ -359,7 +363,9 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let params = ValidateEntityParams::deserialize(&body).map_err(report_to_response)?;
+    let params = ValidateEntityParams::deserialize(&body)
+        .map_err(Report::from)
+        .map_err(report_to_response)?;
 
     let authorization_api = authorization_api_pool
         .acquire()
@@ -587,29 +593,28 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let request = GetEntitiesRequest::deserialize(&request).map_err(report_to_response)?;
+    let request = GetEntitiesRequest::deserialize(&request)
+        .map_err(Report::from)
+        .map_err(report_to_response)?;
     store
-        .get_entities(
-            actor_id,
-            GetEntitiesParams {
-                filter: request.filter,
-                sorting: generate_sorting_paths(
-                    request.sorting_paths,
-                    request.limit,
-                    request.cursor,
-                    &request.temporal_axes,
-                ),
-                limit: request.limit,
-                conversions: request.conversions,
-                include_drafts: request.include_drafts,
-                include_count: request.include_count,
-                temporal_axes: request.temporal_axes,
-                include_web_ids: request.include_web_ids,
-                include_created_by_ids: request.include_created_by_ids,
-                include_edition_created_by_ids: request.include_edition_created_by_ids,
-                include_type_ids: request.include_type_ids,
-            },
-        )
+        .get_entities(actor_id, GetEntitiesParams {
+            filter: request.filter,
+            sorting: generate_sorting_paths(
+                request.sorting_paths,
+                request.limit,
+                request.cursor,
+                &request.temporal_axes,
+            ),
+            limit: request.limit,
+            conversions: request.conversions,
+            include_drafts: request.include_drafts,
+            include_count: request.include_count,
+            temporal_axes: request.temporal_axes,
+            include_web_ids: request.include_web_ids,
+            include_created_by_ids: request.include_created_by_ids,
+            include_edition_created_by_ids: request.include_edition_created_by_ids,
+            include_type_ids: request.include_type_ids,
+        })
         .await
         .map(|response| {
             Json(GetEntitiesResponse {
@@ -723,30 +728,29 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let request = GetEntitySubgraphRequest::deserialize(&request).map_err(report_to_response)?;
+    let request = GetEntitySubgraphRequest::deserialize(&request)
+        .map_err(Report::from)
+        .map_err(report_to_response)?;
     store
-        .get_entity_subgraph(
-            actor_id,
-            GetEntitySubgraphParams {
-                filter: request.filter,
-                sorting: generate_sorting_paths(
-                    request.sorting_paths,
-                    request.limit,
-                    request.cursor,
-                    &request.temporal_axes,
-                ),
-                limit: request.limit,
-                conversions: request.conversions,
-                graph_resolve_depths: request.graph_resolve_depths,
-                include_drafts: request.include_drafts,
-                include_count: request.include_count,
-                temporal_axes: request.temporal_axes,
-                include_web_ids: request.include_web_ids,
-                include_created_by_ids: request.include_created_by_ids,
-                include_edition_created_by_ids: request.include_edition_created_by_ids,
-                include_type_ids: request.include_type_ids,
-            },
-        )
+        .get_entity_subgraph(actor_id, GetEntitySubgraphParams {
+            filter: request.filter,
+            sorting: generate_sorting_paths(
+                request.sorting_paths,
+                request.limit,
+                request.cursor,
+                &request.temporal_axes,
+            ),
+            limit: request.limit,
+            conversions: request.conversions,
+            graph_resolve_depths: request.graph_resolve_depths,
+            include_drafts: request.include_drafts,
+            include_count: request.include_count,
+            temporal_axes: request.temporal_axes,
+            include_web_ids: request.include_web_ids,
+            include_created_by_ids: request.include_created_by_ids,
+            include_edition_created_by_ids: request.include_edition_created_by_ids,
+            include_type_ids: request.include_type_ids,
+        })
         .await
         .map(|response| {
             Json(GetEntitySubgraphResponse {
@@ -809,7 +813,9 @@ where
     store
         .count_entities(
             actor_id,
-            CountEntitiesParams::deserialize(&request).map_err(report_to_response)?,
+            CountEntitiesParams::deserialize(&request)
+                .map_err(Report::from)
+                .map_err(report_to_response)?,
         )
         .await
         .map(Json)

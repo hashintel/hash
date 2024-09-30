@@ -11,17 +11,17 @@ use std::{
 };
 
 #[cfg(feature = "clap")]
-use clap::{builder::TypedValueParser, error::ErrorKind, Arg, Command, Error, Parser};
+use clap::{Arg, Command, Error, Parser, builder::TypedValueParser, error::ErrorKind};
 use error_stack::Report;
 pub use sentry::release_name;
 use sentry::{
+    Hub, Level,
     integrations::tracing::EventFilter,
     protocol::{Event, TemplateInfo},
-    Hub, Level,
 };
 use sentry_types::Dsn;
 use tracing::Subscriber;
-use tracing_subscriber::{registry::LookupSpan, Layer};
+use tracing_subscriber::{Layer, registry::LookupSpan};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "clap", derive(clap::ValueEnum))]

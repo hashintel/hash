@@ -9,5 +9,6 @@
     {
       "$ref": "https://hash.ai/@hash/types/data-type/length/v/1"
     }
-  ]
+  ],
+  "abstract": false
 }

@@ -4,7 +4,6 @@ import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-u
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { useMemo } from "react";
 
 import type {
   QueryEntitiesQuery,
@@ -14,6 +13,7 @@ import { queryEntitiesQuery } from "../../graphql/queries/knowledge/entity.queri
 import type { MinimalOrg } from "../../lib/user-and-org";
 import { constructMinimalOrg, isEntityOrgEntity } from "../../lib/user-and-org";
 import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
+import { useMemoCompare } from "../../shared/use-memo-compare";
 
 /**
  * Retrieves a list of organizations
@@ -53,24 +53,63 @@ export const useOrgs = (): {
 
   const { queryEntities: subgraphAndPermissions } = data ?? {};
 
-  const orgs = useMemo(() => {
-    if (!subgraphAndPermissions) {
-      return undefined;
-    }
-
-    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-      subgraphAndPermissions.subgraph,
-    );
-
-    return getRoots(subgraph).map((orgEntity) => {
-      if (!isEntityOrgEntity(orgEntity)) {
-        throw new Error(
-          `Entity with type(s) ${orgEntity.metadata.entityTypeIds.join(", ")} is not an org entity`,
-        );
+  const orgs = useMemoCompare(
+    () => {
+      if (!subgraphAndPermissions) {
+        return undefined;
       }
-      return constructMinimalOrg({ orgEntity });
-    });
-  }, [subgraphAndPermissions]);
+
+      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        subgraphAndPermissions.subgraph,
+      );
+
+      return getRoots(subgraph).map((orgEntity) => {
+        if (!isEntityOrgEntity(orgEntity)) {
+          throw new Error(
+            `Entity with type(s) ${orgEntity.metadata.entityTypeIds.join(", ")} is not an org entity`,
+          );
+        }
+        return constructMinimalOrg({ orgEntity });
+      });
+    },
+    [subgraphAndPermissions],
+    /**
+     * Check if the previous and new orgs are the same.
+     * If they are, the return value from the hook won't change, avoiding unnecessary re-renders.
+     *
+     * This assumes that the UX/performance benefit of avoiding re-renders outweighs the cost of the comparison.
+     *
+     * An alternative approach would be to not use a 'cache-and-network' fetch policy, which also makes a network request
+     * for all the orgs every time the hook is run, but instead use polling (or a subscription) to get updates.
+     *
+     * An identical approach is taken in {@link useUsers}. Update that too if this is changed.
+     */ (a, b) => {
+      if (a === undefined || b === undefined) {
+        return false;
+      }
+
+      if (a.length !== b.length) {
+        return false;
+      }
+
+      return (
+        a
+          .map(
+            ({ entity }) =>
+              `${entity.metadata.recordId.entityId}${entity.metadata.recordId.editionId}`,
+          )
+          .sort()
+          .join(",") ===
+        b
+          .map(
+            ({ entity }) =>
+              `${entity.metadata.recordId.entityId}${entity.metadata.recordId.editionId}`,
+          )
+          .sort()
+          .join(",")
+      );
+    },
+  );
 
   return {
     loading,

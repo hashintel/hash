@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
     schema::{EntitySetting, PublicAccess},
     zanzibar::{
-        types::{LeveledRelation, Relationship, RelationshipParts, Resource},
         Relation,
+        types::{LeveledRelation, Relationship, RelationshipParts, Resource},
     },
 };
 
@@ -125,33 +125,26 @@ impl Relationship for (SettingName, SettingRelationAndSubject) {
 
     #[expect(refining_impl_trait)]
     fn from_parts(parts: RelationshipParts<Self>) -> Result<Self, !> {
-        Ok((
-            parts.resource,
-            match parts.relation.name {
-                SettingResourceRelation::Administrator => {
-                    match (parts.subject, parts.subject_set) {
-                        (SettingSubject::Public, None) => {
-                            SettingRelationAndSubject::Administrator {
-                                subject: SettingSubject::Public,
-                                level: parts.relation.level,
-                            }
-                        }
-                    }
-                }
-                SettingResourceRelation::Update => match (parts.subject, parts.subject_set) {
-                    (SettingSubject::Public, None) => SettingRelationAndSubject::Update {
-                        subject: SettingSubject::Public,
-                        level: parts.relation.level,
-                    },
-                },
-                SettingResourceRelation::View => match (parts.subject, parts.subject_set) {
-                    (SettingSubject::Public, None) => SettingRelationAndSubject::View {
-                        subject: SettingSubject::Public,
-                        level: parts.relation.level,
-                    },
+        Ok((parts.resource, match parts.relation.name {
+            SettingResourceRelation::Administrator => match (parts.subject, parts.subject_set) {
+                (SettingSubject::Public, None) => SettingRelationAndSubject::Administrator {
+                    subject: SettingSubject::Public,
+                    level: parts.relation.level,
                 },
             },
-        ))
+            SettingResourceRelation::Update => match (parts.subject, parts.subject_set) {
+                (SettingSubject::Public, None) => SettingRelationAndSubject::Update {
+                    subject: SettingSubject::Public,
+                    level: parts.relation.level,
+                },
+            },
+            SettingResourceRelation::View => match (parts.subject, parts.subject_set) {
+                (SettingSubject::Public, None) => SettingRelationAndSubject::View {
+                    subject: SettingSubject::Public,
+                    level: parts.relation.level,
+                },
+            },
+        }))
     }
 
     fn to_parts(&self) -> RelationshipParts<Self> {

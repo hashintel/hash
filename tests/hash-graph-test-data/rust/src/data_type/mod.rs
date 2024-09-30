@@ -1,3 +1,5 @@
+pub const VALUE_V1: &str = include_str!("value.json");
+
 pub const BOOLEAN_V1: &str = include_str!("boolean.json");
 pub const EMPTY_LIST_V1: &str = include_str!("empty_list.json");
 pub const NULL_V1: &str = include_str!("null.json");

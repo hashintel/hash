@@ -7,9 +7,9 @@ use core::{
 };
 
 use authorization::{
+    AuthorizationApi, NoAuthorization,
     backend::{SpiceDbOpenApi, ZanzibarBackend},
     zanzibar::ZanzibarClient,
-    AuthorizationApi, NoAuthorization,
 };
 use clap::Parser;
 use error_stack::{Report, Result, ResultExt};
@@ -19,7 +19,7 @@ use graph::{
         DatabaseConnectionInfo, DatabasePoolConfig, FetchingPool, PostgresStorePool, StorePool,
     },
 };
-use graph_api::rest::{rest_api_router, RestRouterDependencies};
+use graph_api::rest::{RestRouterDependencies, rest_api_router};
 use regex::Regex;
 use reqwest::{Client, Url};
 use temporal_client::TemporalClientConfig;

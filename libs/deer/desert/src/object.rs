@@ -1,6 +1,6 @@
 use deer::{
-    error::{ObjectAccessError, ObjectLengthError},
     Context, Deserializer as _, FieldVisitor,
+    error::{ObjectAccessError, ObjectLengthError},
 };
 use error_stack::{Result, ResultExt};
 

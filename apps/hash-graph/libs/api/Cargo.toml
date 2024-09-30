@@ -29,7 +29,7 @@ tower-http = { workspace = true, public = true }
 tracing = { workspace = true, public = true }
 
 # Private workspace dependencies
-error-stack = { workspace = true }
+error-stack = { workspace = true, features = ["spantrace"] }
 graph-type-defs = { workspace = true }
 hash-status = { workspace = true }
 temporal-versioning = { workspace = true }

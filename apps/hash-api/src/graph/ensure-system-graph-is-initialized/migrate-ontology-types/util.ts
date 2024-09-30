@@ -4,14 +4,15 @@ import path, { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type {
-  ArraySchema,
   Conversions,
+  DataType,
   DataTypeReference,
   EntityType,
-  ObjectSchema,
   OneOfSchema,
   PropertyType,
   PropertyTypeReference,
+  PropertyValueArray,
+  PropertyValueObject,
   PropertyValues,
   ValueOrArray,
   VersionedUrl,
@@ -33,7 +34,6 @@ import type { PropertyObjectWithMetadata } from "@local/hash-graph-types/entity"
 import type {
   BaseUrl,
   ConstructDataTypeParams,
-  CustomDataType,
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
@@ -362,7 +362,7 @@ export const generateSystemPropertyTypeSchema = (
         };
         inner = dataTypeReference;
       } else if (propertyTypeObjectProperties) {
-        const propertyTypeObject: ObjectSchema<
+        const propertyTypeObject: PropertyValueObject<
           ValueOrArray<PropertyTypeReference>
         > = {
           type: "object" as const,
@@ -380,13 +380,14 @@ export const generateSystemPropertyTypeSchema = (
 
       // Optionally wrap inner in an array
       if (array) {
-        const arrayOfPropertyValues: ArraySchema<OneOfSchema<PropertyValues>> =
-          {
-            type: "array",
-            items: {
-              oneOf: [inner],
-            },
-          };
+        const arrayOfPropertyValues: PropertyValueArray<
+          OneOfSchema<PropertyValues>
+        > = {
+          type: "array",
+          items: {
+            oneOf: [inner],
+          },
+        };
         return arrayOfPropertyValues;
       } else {
         return inner;
@@ -409,10 +410,12 @@ type BaseCreateTypeIfNotExistsParameters = {
   migrationState: MigrationState;
 };
 
-const generateSystemDataTypeSchema = ({
+export const generateSystemDataTypeSchema = ({
   dataTypeId,
   ...rest
-}: ConstructDataTypeParams & { dataTypeId: VersionedUrl }): CustomDataType => {
+}: ConstructDataTypeParams & {
+  dataTypeId: VersionedUrl;
+}): DataType => {
   return {
     $id: dataTypeId,
     $schema: DATA_TYPE_META_SCHEMA,

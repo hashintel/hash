@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "@blockprotocol/graph": "0.3.4",
-    "date-fns": "2.30.0",
+    "date-fns": "4.1.0",
     "react-datepicker": "4.25.0"
   },
   "devDependencies": {

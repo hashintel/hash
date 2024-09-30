@@ -7,7 +7,10 @@ use serde_json::Value as JsonValue;
 use tsify::Tsify;
 
 use crate::{
-    schema::{ArraySchema, EntityTypeReference, OneOfSchema, PropertyTypeReference, ValueOrArray},
+    schema::{
+        EntityTypeReference, OneOfSchema, PropertyTypeReference, PropertyValueArray, ValueOrArray,
+        entity_type::InverseEntityTypeMetadata,
+    },
     url::{BaseUrl, VersionedUrl},
 };
 
@@ -33,7 +36,7 @@ enum EntityTypeSchemaTag {
     V3,
 }
 
-type Links = HashMap<VersionedUrl, ArraySchema<Option<OneOfSchema<EntityTypeReference>>>>;
+type Links = HashMap<VersionedUrl, PropertyValueArray<Option<OneOfSchema<EntityTypeReference>>>>;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(Tsify))]
@@ -46,6 +49,8 @@ pub struct EntityType<'a> {
     #[serde(rename = "$id")]
     id: Cow<'a, VersionedUrl>,
     title: Cow<'a, str>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    title_plural: Option<Cow<'a, str>>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     description: Option<Cow<'a, str>>,
     #[serde(default, skip_serializing_if = "HashSet::is_empty")]
@@ -61,12 +66,14 @@ pub struct EntityType<'a> {
     #[cfg_attr(
         target_arch = "wasm32",
         tsify(
-            type = "Record<VersionedUrl, ArraySchema<OneOfSchema<EntityTypeReference> | \
+            type = "Record<VersionedUrl, PropertyValueArray<OneOfSchema<EntityTypeReference> | \
                     Record<string, never>>>"
         )
     )]
     #[serde(with = "links", default, skip_serializing_if = "HashMap::is_empty")]
     links: Links,
+    #[serde(default, skip_serializing_if = "InverseEntityTypeMetadata::is_empty")]
+    inverse: InverseEntityTypeMetadata,
     #[serde(default, skip_serializing_if = "<[_]>::is_empty")]
     examples: Cow<'a, [HashMap<BaseUrl, JsonValue>]>,
 }
@@ -78,7 +85,7 @@ mod links {
     use serde::{Deserialize, Serialize};
 
     use crate::{
-        schema::{entity_type::raw::Links, ArraySchema, EntityTypeReference, OneOfSchema},
+        schema::{EntityTypeReference, OneOfSchema, PropertyValueArray, entity_type::raw::Links},
         url::VersionedUrl,
     };
 
@@ -99,16 +106,13 @@ mod links {
 
         let mut map = serializer.serialize_map(Some(links.len()))?;
         for (url, val) in links {
-            map.serialize_entry(
-                &url,
-                &ArraySchema {
-                    items: Maybe {
-                        inner: val.items.as_ref(),
-                    },
-                    min_items: val.min_items,
-                    max_items: val.max_items,
+            map.serialize_entry(&url, &PropertyValueArray {
+                items: Maybe {
+                    inner: val.items.as_ref(),
                 },
-            )?;
+                min_items: val.min_items,
+                max_items: val.max_items,
+            })?;
         }
         map.end()
     }
@@ -133,8 +137,8 @@ mod links {
                 A: MapAccess<'de>,
             {
                 let mut links = HashMap::new();
-                while let Some((key, value)) = map.next_entry::<VersionedUrl, ArraySchema<Maybe<OneOfSchema<EntityTypeReference>>>>()? {
-                    links.insert(key, ArraySchema {
+                while let Some((key, value)) = map.next_entry::<VersionedUrl, PropertyValueArray<Maybe<OneOfSchema<EntityTypeReference>>>>()? {
+                    links.insert(key, PropertyValueArray {
                         items: value.items.inner,
                         min_items: value.min_items,
                         max_items: value.max_items,
@@ -155,11 +159,13 @@ impl From<EntityType<'_>> for super::EntityType {
         Self {
             id: entity_type.id.into_owned(),
             title: entity_type.title.into_owned(),
+            title_plural: entity_type.title_plural.map(Cow::into_owned),
             description: entity_type.description.map(Cow::into_owned),
             properties: entity_type.properties.into_owned(),
             required: entity_type.required.into_owned(),
             all_of: entity_type.all_of.into_owned(),
             links: entity_type.links,
+            inverse: entity_type.inverse,
             examples: entity_type.examples.into_owned(),
         }
     }
@@ -173,11 +179,13 @@ impl<'a> From<&'a super::EntityType> for EntityType<'a> {
             r#type: EntityTypeTag::Object,
             id: Cow::Borrowed(&entity_type.id),
             title: Cow::Borrowed(&entity_type.title),
+            title_plural: entity_type.title_plural.as_deref().map(Cow::Borrowed),
             description: entity_type.description.as_deref().map(Cow::Borrowed),
             properties: Cow::Borrowed(&entity_type.properties),
             required: Cow::Borrowed(&entity_type.required),
             all_of: Cow::Borrowed(&entity_type.all_of),
             links: entity_type.links.clone(),
+            inverse: entity_type.inverse.clone(),
             #[expect(deprecated)]
             examples: Cow::Borrowed(&entity_type.examples),
         }

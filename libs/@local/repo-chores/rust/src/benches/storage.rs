@@ -2,7 +2,7 @@ use alloc::borrow::Cow;
 
 use aws_config::SdkConfig;
 use aws_sdk_s3::{
-    operation::put_object::{builders::PutObjectFluentBuilder, PutObjectOutput},
+    operation::put_object::{PutObjectOutput, builders::PutObjectFluentBuilder},
     types::ObjectCannedAcl,
 };
 use bytes::Bytes;

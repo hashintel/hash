@@ -1,7 +1,7 @@
 use core::{
     fmt::{self, Debug, Formatter},
     hash::Hash,
-    iter::{once, Chain, Once},
+    iter::{Chain, Once, once},
 };
 
 use hash_graph_store::{
@@ -12,7 +12,7 @@ use postgres_types::ToSql;
 use temporal_versioning::TimeAxis;
 
 use crate::store::postgres::query::{
-    expression::JoinType, Condition, Constant, Expression, Transpile,
+    Condition, Constant, Expression, Transpile, expression::JoinType,
 };
 
 /// The name of a [`Table`] in the Postgres database.

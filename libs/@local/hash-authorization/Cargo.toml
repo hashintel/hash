@@ -17,7 +17,7 @@ futures-core = { workspace = true, public = true }
 
 # Private workspace dependencies
 codec = { workspace = true }
-error-stack = { workspace = true }
+error-stack = { workspace = true, features = ["unstable"]}
 
 # Private third-party dependencies
 derive-where = { workspace = true }

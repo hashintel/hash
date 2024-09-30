@@ -12,9 +12,9 @@ use type_system::schema::OntologyTypeResolver;
 use crate::{
     snapshot::WriteBatch,
     store::{
+        AsClient, InsertionError, PostgresStore,
         crud::Read,
         postgres::query::rows::{DataTypeConversionsRow, DataTypeEmbeddingRow, DataTypeRow},
-        AsClient, InsertionError, PostgresStore,
     },
 };
 
@@ -169,13 +169,13 @@ where
         })
         .collect::<Vec<_>>();
 
-        let schema_metadata = ontology_type_resolver
-            .resolve_data_type_metadata(data_types.iter().map(Arc::clone))
-            .change_context(InsertionError)?;
+        for data_type in &data_types {
+            let schema_metadata = ontology_type_resolver
+                .resolve_data_type_metadata(&data_type.id)
+                .change_context(InsertionError)?;
 
-        for (schema_metadata, data_type) in schema_metadata.iter().zip(&data_types) {
             postgres_client
-                .insert_data_type_references(DataTypeId::from_url(&data_type.id), schema_metadata)
+                .insert_data_type_references(DataTypeId::from_url(&data_type.id), &schema_metadata)
                 .await?;
         }
 

@@ -4,8 +4,8 @@ pub(crate) mod context;
 use alloc::vec::Vec;
 
 use crate::{
-    fmt::{install_builtin_hooks, Hooks},
     Report,
+    fmt::{Hooks, install_builtin_hooks},
 };
 
 #[cfg(feature = "std")]

@@ -1,10 +1,10 @@
 use async_trait::async_trait;
-use authorization::{backend::ZanzibarBackend, schema::EntityRelationAndSubject, AuthorizationApi};
+use authorization::{AuthorizationApi, backend::ZanzibarBackend, schema::EntityRelationAndSubject};
 use error_stack::{Report, ResultExt};
 use graph_types::{
     knowledge::{
         entity::{Entity, EntityUuid},
-        property::{visitor::EntityVisitor, PropertyWithMetadataObject},
+        property::{PropertyWithMetadataObject, visitor::EntityVisitor},
     },
     ontology::EntityTypeProvider,
 };
@@ -15,12 +15,12 @@ use validation::{EntityPreprocessor, Validate, ValidateEntityComponents};
 use crate::{
     snapshot::WriteBatch,
     store::{
+        AsClient, InsertionError, PostgresStore, StoreCache, StoreProvider,
         crud::Read,
         postgres::query::rows::{
             EntityDraftRow, EntityEditionRow, EntityEmbeddingRow, EntityHasLeftEntityRow,
             EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow, EntityTemporalMetadataRow,
         },
-        AsClient, InsertionError, PostgresStore, StoreCache, StoreProvider,
     },
 };
 

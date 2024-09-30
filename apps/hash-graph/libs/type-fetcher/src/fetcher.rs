@@ -34,7 +34,7 @@ impl fmt::Display for FetcherError {
 pub enum FetchedOntologyType {
     DataType(DataType),
     PropertyType(PropertyType),
-    EntityType(EntityType),
+    EntityType(Box<EntityType>),
 }
 
 #[tarpc::service]

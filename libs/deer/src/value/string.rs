@@ -4,10 +4,10 @@ use alloc::string::String;
 use error_stack::{Report, Result, ResultExt};
 
 use crate::{
-    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
-    value::IntoDeserializer,
     Context, Deserializer, EnumVisitor, IdentifierVisitor, OptionalVisitor, Reflection,
     StructVisitor, Visitor,
+    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
+    value::IntoDeserializer,
 };
 
 impl_deserializer!(

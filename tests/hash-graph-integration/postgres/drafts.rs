@@ -2,8 +2,8 @@ use std::collections::HashSet;
 
 use authorization::AuthorizationApi;
 use graph::store::{
-    knowledge::{CreateEntityParams, PatchEntityParams},
     EntityStore,
+    knowledge::{CreateEntityParams, PatchEntityParams},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
@@ -85,22 +85,19 @@ async fn initial_draft() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(
-            api.account_id,
-            CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
-                entity_uuid: None,
-                decision_time: None,
-                entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(alice(), None)
-                    .expect("could not create property with metadata object"),
-                confidence: None,
-                link_data: None,
-                draft: true,
-                relationships: [],
-                provenance: ProvidedEntityEditionProvenance::default(),
-            },
-        )
+        .create_entity(api.account_id, CreateEntityParams {
+            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            entity_uuid: None,
+            decision_time: None,
+            entity_type_ids: HashSet::from([person_entity_type_id()]),
+            properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                .expect("could not create property with metadata object"),
+            confidence: None,
+            link_data: None,
+            draft: true,
+            relationships: [],
+            provenance: ProvidedEntityEditionProvenance::default(),
+        })
         .await
         .expect("could not create entity");
     assert!(entity.metadata.record_id.entity_id.draft_id.is_some());
@@ -124,23 +121,20 @@ async fn initial_draft() {
     );
 
     let updated_entity = api
-        .patch_entity(
-            api.account_id,
-            PatchEntityParams {
-                entity_id: entity.metadata.record_id.entity_id,
-                properties: vec![PropertyPatchOperation::Replace {
-                    path: PropertyPath::default(),
-                    property: PropertyWithMetadata::from_parts(Property::Object(bob()), None)
-                        .expect("could not create property with metadata"),
-                }],
-                entity_type_ids: HashSet::new(),
-                archived: None,
-                draft: Some(true),
-                decision_time: None,
-                confidence: None,
-                provenance: ProvidedEntityEditionProvenance::default(),
-            },
-        )
+        .patch_entity(api.account_id, PatchEntityParams {
+            entity_id: entity.metadata.record_id.entity_id,
+            properties: vec![PropertyPatchOperation::Replace {
+                path: PropertyPath::default(),
+                property: PropertyWithMetadata::from_parts(Property::Object(bob()), None)
+                    .expect("could not create property with metadata"),
+            }],
+            entity_type_ids: HashSet::new(),
+            archived: None,
+            draft: Some(true),
+            decision_time: None,
+            confidence: None,
+            provenance: ProvidedEntityEditionProvenance::default(),
+        })
         .await
         .expect("could not update entity");
 
@@ -175,23 +169,20 @@ async fn initial_draft() {
     );
 
     let updated_live_entity = api
-        .patch_entity(
-            api.account_id,
-            PatchEntityParams {
-                entity_id: updated_entity.metadata.record_id.entity_id,
-                properties: vec![PropertyPatchOperation::Replace {
-                    path: PropertyPath::default(),
-                    property: PropertyWithMetadata::from_parts(Property::Object(charles()), None)
-                        .expect("could not create property with metadata"),
-                }],
-                entity_type_ids: HashSet::new(),
-                archived: None,
-                draft: Some(false),
-                decision_time: None,
-                confidence: None,
-                provenance: ProvidedEntityEditionProvenance::default(),
-            },
-        )
+        .patch_entity(api.account_id, PatchEntityParams {
+            entity_id: updated_entity.metadata.record_id.entity_id,
+            properties: vec![PropertyPatchOperation::Replace {
+                path: PropertyPath::default(),
+                property: PropertyWithMetadata::from_parts(Property::Object(charles()), None)
+                    .expect("could not create property with metadata"),
+            }],
+            entity_type_ids: HashSet::new(),
+            archived: None,
+            draft: Some(false),
+            decision_time: None,
+            confidence: None,
+            provenance: ProvidedEntityEditionProvenance::default(),
+        })
         .await
         .expect("could not update entity");
 
@@ -258,22 +249,19 @@ async fn no_initial_draft() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(
-            api.account_id,
-            CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
-                entity_uuid: None,
-                decision_time: None,
-                entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(alice(), None)
-                    .expect("could not create property with metadata object"),
-                confidence: None,
-                link_data: None,
-                draft: false,
-                relationships: [],
-                provenance: ProvidedEntityEditionProvenance::default(),
-            },
-        )
+        .create_entity(api.account_id, CreateEntityParams {
+            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            entity_uuid: None,
+            decision_time: None,
+            entity_type_ids: HashSet::from([person_entity_type_id()]),
+            properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                .expect("could not create property with metadata object"),
+            confidence: None,
+            link_data: None,
+            draft: false,
+            relationships: [],
+            provenance: ProvidedEntityEditionProvenance::default(),
+        })
         .await
         .expect("could not create entity");
     assert!(entity.metadata.record_id.entity_id.draft_id.is_none());
@@ -302,23 +290,20 @@ async fn no_initial_draft() {
 
     for _ in 0..5 {
         let updated_entity = api
-            .patch_entity(
-                api.account_id,
-                PatchEntityParams {
-                    entity_id: entity.metadata.record_id.entity_id,
-                    properties: vec![PropertyPatchOperation::Replace {
-                        path: PropertyPath::default(),
-                        property: PropertyWithMetadata::from_parts(Property::Object(bob()), None)
-                            .expect("could not create property with metadata"),
-                    }],
-                    entity_type_ids: HashSet::new(),
-                    archived: None,
-                    draft: Some(true),
-                    decision_time: None,
-                    confidence: None,
-                    provenance: ProvidedEntityEditionProvenance::default(),
-                },
-            )
+            .patch_entity(api.account_id, PatchEntityParams {
+                entity_id: entity.metadata.record_id.entity_id,
+                properties: vec![PropertyPatchOperation::Replace {
+                    path: PropertyPath::default(),
+                    property: PropertyWithMetadata::from_parts(Property::Object(bob()), None)
+                        .expect("could not create property with metadata"),
+                }],
+                entity_type_ids: HashSet::new(),
+                archived: None,
+                draft: Some(true),
+                decision_time: None,
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance::default(),
+            })
             .await
             .expect("could not update entity");
 
@@ -358,26 +343,20 @@ async fn no_initial_draft() {
         );
 
         let updated_live_entity = api
-            .patch_entity(
-                api.account_id,
-                PatchEntityParams {
-                    entity_id: updated_entity.metadata.record_id.entity_id,
-                    properties: vec![PropertyPatchOperation::Replace {
-                        path: PropertyPath::default(),
-                        property: PropertyWithMetadata::from_parts(
-                            Property::Object(charles()),
-                            None,
-                        )
+            .patch_entity(api.account_id, PatchEntityParams {
+                entity_id: updated_entity.metadata.record_id.entity_id,
+                properties: vec![PropertyPatchOperation::Replace {
+                    path: PropertyPath::default(),
+                    property: PropertyWithMetadata::from_parts(Property::Object(charles()), None)
                         .expect("could not create property with metadata"),
-                    }],
-                    entity_type_ids: HashSet::new(),
-                    archived: None,
-                    draft: Some(false),
-                    decision_time: None,
-                    confidence: None,
-                    provenance: ProvidedEntityEditionProvenance::default(),
-                },
-            )
+                }],
+                entity_type_ids: HashSet::new(),
+                archived: None,
+                draft: Some(false),
+                decision_time: None,
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance::default(),
+            })
             .await
             .expect("could not update entity");
 
@@ -421,22 +400,19 @@ async fn multiple_drafts() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(
-            api.account_id,
-            CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
-                entity_uuid: None,
-                decision_time: None,
-                entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(alice(), None)
-                    .expect("could not create property with metadata object"),
-                confidence: None,
-                link_data: None,
-                draft: false,
-                relationships: [],
-                provenance: ProvidedEntityEditionProvenance::default(),
-            },
-        )
+        .create_entity(api.account_id, CreateEntityParams {
+            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            entity_uuid: None,
+            decision_time: None,
+            entity_type_ids: HashSet::from([person_entity_type_id()]),
+            properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                .expect("could not create property with metadata object"),
+            confidence: None,
+            link_data: None,
+            draft: false,
+            relationships: [],
+            provenance: ProvidedEntityEditionProvenance::default(),
+        })
         .await
         .expect("could not create entity");
     assert!(entity.metadata.record_id.entity_id.draft_id.is_none());
@@ -465,23 +441,20 @@ async fn multiple_drafts() {
     let mut drafts = Vec::new();
     for _ in 0..5 {
         let updated_entity = api
-            .patch_entity(
-                api.account_id,
-                PatchEntityParams {
-                    entity_id: entity.metadata.record_id.entity_id,
-                    properties: vec![PropertyPatchOperation::Replace {
-                        path: PropertyPath::default(),
-                        property: PropertyWithMetadata::from_parts(Property::Object(bob()), None)
-                            .expect("could not create property with metadata"),
-                    }],
-                    entity_type_ids: HashSet::new(),
-                    archived: None,
-                    draft: Some(true),
-                    decision_time: None,
-                    confidence: None,
-                    provenance: ProvidedEntityEditionProvenance::default(),
-                },
-            )
+            .patch_entity(api.account_id, PatchEntityParams {
+                entity_id: entity.metadata.record_id.entity_id,
+                properties: vec![PropertyPatchOperation::Replace {
+                    path: PropertyPath::default(),
+                    property: PropertyWithMetadata::from_parts(Property::Object(bob()), None)
+                        .expect("could not create property with metadata"),
+                }],
+                entity_type_ids: HashSet::new(),
+                archived: None,
+                draft: Some(true),
+                decision_time: None,
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance::default(),
+            })
             .await
             .expect("could not update entity");
 
@@ -524,26 +497,20 @@ async fn multiple_drafts() {
 
     for draft in drafts {
         let updated_live_entity = api
-            .patch_entity(
-                api.account_id,
-                PatchEntityParams {
-                    entity_id: draft,
-                    properties: vec![PropertyPatchOperation::Replace {
-                        path: PropertyPath::default(),
-                        property: PropertyWithMetadata::from_parts(
-                            Property::Object(charles()),
-                            None,
-                        )
+            .patch_entity(api.account_id, PatchEntityParams {
+                entity_id: draft,
+                properties: vec![PropertyPatchOperation::Replace {
+                    path: PropertyPath::default(),
+                    property: PropertyWithMetadata::from_parts(Property::Object(charles()), None)
                         .expect("could not create property with metadata"),
-                    }],
-                    entity_type_ids: HashSet::new(),
-                    archived: None,
-                    draft: Some(false),
-                    decision_time: None,
-                    confidence: None,
-                    provenance: ProvidedEntityEditionProvenance::default(),
-                },
-            )
+                }],
+                entity_type_ids: HashSet::new(),
+                archived: None,
+                draft: Some(false),
+                decision_time: None,
+                confidence: None,
+                provenance: ProvidedEntityEditionProvenance::default(),
+            })
             .await
             .expect("could not update entity");
 

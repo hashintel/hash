@@ -4,6 +4,7 @@ use alloc::sync::Arc;
 use std::collections::hash_map;
 
 use authorization::{
+    AuthorizationApi, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
         EntityTypeEditorSubject, EntityTypeInstantiatorSubject, EntityTypeOwnerSubject,
@@ -11,14 +12,13 @@ use authorization::{
         EntityTypeSettingSubject, EntityTypeViewerSubject,
     },
     zanzibar::Consistency,
-    AuthorizationApi, AuthorizationApiPool,
 };
 use axum::{
+    Extension, Router,
     extract::Path,
     http::StatusCode,
     response::Response,
     routing::{get, post, put},
-    Extension, Router,
 };
 use error_stack::{Report, ResultExt};
 use graph::{
@@ -27,13 +27,13 @@ use graph::{
         patch_id_and_parse,
     },
     store::{
+        EntityTypeStore, StorePool,
         error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
         ontology::{
             ArchiveEntityTypeParams, CreateEntityTypeParams, GetEntityTypeSubgraphParams,
             GetEntityTypesParams, GetEntityTypesResponse, UnarchiveEntityTypeParams,
             UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
         },
-        EntityTypeStore, StorePool,
     },
 };
 use graph_type_defs::error::{ErrorInfo, Status, StatusPayloads};
@@ -46,9 +46,7 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::{
-    entity_type::EntityTypeQueryToken, subgraph::identifier::EntityTypeVertexId, ConflictBehavior,
-};
+use hash_graph_store::{ConflictBehavior, entity_type::EntityTypeQueryToken};
 use hash_map::HashMap;
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
@@ -60,11 +58,11 @@ use type_system::{
 use utoipa::{OpenApi, ToSchema};
 
 use crate::rest::{
+    AuthenticatedUserHeader, PermissionResponse, RestApiStore,
     api_resource::RoutedResource,
     json::Json,
     status::{report_to_response, status_to_response},
-    utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfEntityType},
-    AuthenticatedUserHeader, PermissionResponse, RestApiStore,
+    utoipa_typedef::{ListOrValue, MaybeListOfEntityType, subgraph::Subgraph},
 };
 
 #[derive(OpenApi)]
@@ -163,21 +161,18 @@ impl RoutedResource for EntityTypeResource {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct CreateEntityTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfEntityType,
     owned_by_id: OwnedById,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     label_property: Option<BaseUrl>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     icon: Option<String>,
     relationships: Vec<EntityTypeRelationAndSubject>,
-    #[serde(
-        default,
-        skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
-    )]
+    #[serde(default)]
     provenance: ProvidedOntologyEditionProvenance,
 }
 
@@ -461,7 +456,7 @@ where
                     icon: icon.clone(),
                     label_property: label_property.clone(),
                     conflict_behavior: ConflictBehavior::Fail,
-                    provenance: provenance.clone()
+                    provenance: provenance.clone(),
                 })
             }).collect::<Result<Vec<_>, _>>()?
         )
@@ -534,7 +529,7 @@ where
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, untagged)]
 enum LoadExternalEntityTypeRequest {
     #[serde(rename_all = "camelCase")]
@@ -543,15 +538,12 @@ enum LoadExternalEntityTypeRequest {
     Create {
         #[schema(value_type = VAR_ENTITY_TYPE)]
         schema: Box<EntityType>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(default)]
         label_property: Option<BaseUrl>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(default)]
         icon: Option<String>,
         relationships: Vec<EntityTypeRelationAndSubject>,
-        #[serde(
-            default,
-            skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
-        )]
+        #[serde(default)]
         provenance: Box<ProvidedOntologyEditionProvenance>,
     },
 }
@@ -665,20 +657,17 @@ where
 
             Ok(Json(
                 store
-                    .create_entity_type(
-                        actor_id,
-                        CreateEntityTypeParams {
-                            schema: *schema,
-                            label_property,
-                            icon,
-                            classification: OntologyTypeClassificationMetadata::External {
-                                fetched_at: OffsetDateTime::now_utc(),
-                            },
-                            relationships,
-                            conflict_behavior: ConflictBehavior::Fail,
-                            provenance: *provenance,
+                    .create_entity_type(actor_id, CreateEntityTypeParams {
+                        schema: *schema,
+                        label_property,
+                        icon,
+                        classification: OntologyTypeClassificationMetadata::External {
+                            fetched_at: OffsetDateTime::now_utc(),
                         },
-                    )
+                        relationships,
+                        conflict_behavior: ConflictBehavior::Fail,
+                        provenance: *provenance,
+                    })
                     .await
                     .map_err(report_to_response)?,
             ))
@@ -736,7 +725,9 @@ where
             actor_id,
             // Manually deserialize the query from a JSON value to allow borrowed deserialization
             // and better error reporting.
-            GetEntityTypesParams::deserialize(&request).map_err(report_to_response)?,
+            GetEntityTypesParams::deserialize(&request)
+                .map_err(Report::from)
+                .map_err(report_to_response)?,
         )
         .await
         .map_err(report_to_response)
@@ -747,7 +738,7 @@ where
 #[serde(rename_all = "camelCase")]
 struct GetEntityTypeSubgraphResponse {
     subgraph: Subgraph,
-    cursor: Option<EntityTypeVertexId>,
+    cursor: Option<VersionedUrl>,
     count: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     #[schema(nullable = false)]
@@ -804,7 +795,9 @@ where
     store
         .get_entity_type_subgraph(
             actor_id,
-            GetEntityTypeSubgraphParams::deserialize(&request).map_err(report_to_response)?,
+            GetEntityTypeSubgraphParams::deserialize(&request)
+                .map_err(Report::from)
+                .map_err(report_to_response)?,
         )
         .await
         .map_err(report_to_response)
@@ -819,21 +812,18 @@ where
         })
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct UpdateEntityTypeRequest {
     #[schema(value_type = VAR_UPDATE_ENTITY_TYPE)]
     schema: serde_json::Value,
     type_to_update: VersionedUrl,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     label_property: Option<BaseUrl>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     icon: Option<String>,
     relationships: Vec<EntityTypeRelationAndSubject>,
-    #[serde(
-        default,
-        skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
-    )]
+    #[serde(default)]
     provenance: ProvidedOntologyEditionProvenance,
 }
 
@@ -903,16 +893,13 @@ where
         })?;
 
     store
-        .update_entity_type(
-            actor_id,
-            UpdateEntityTypesParams {
-                schema: entity_type,
-                label_property,
-                icon,
-                relationships,
-                provenance,
-            },
-        )
+        .update_entity_type(actor_id, UpdateEntityTypesParams {
+            schema: entity_type,
+            label_property,
+            icon,
+            relationships,
+            provenance,
+        })
         .await
         .map_err(|report| {
             tracing::error!(error=?report, "Could not update entity type");

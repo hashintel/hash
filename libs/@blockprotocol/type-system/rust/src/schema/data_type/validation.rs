@@ -4,9 +4,9 @@ use serde_json::Value as JsonValue;
 use thiserror::Error;
 
 use crate::{
+    Valid, Validator,
     schema::{ClosedDataType, DataType},
     url::VersionedUrl,
-    Valid, Validator,
 };
 
 #[derive(Debug, Error)]
@@ -31,17 +31,6 @@ impl Validator<DataType> for DataTypeValidator {
         &self,
         value: &'v DataType,
     ) -> Result<&'v Valid<DataType>, Self::Error> {
-        if let Some(const_value) = &value.const_value {
-            if !value.enum_values.is_empty()
-                && (value.enum_values.len() > 1 || value.enum_values[0] != *const_value)
-            {
-                return Err(ValidateDataTypeError::EnumValuesNotCompatibleWithConst {
-                    const_value: const_value.clone(),
-                    enum_values: value.enum_values.clone(),
-                });
-            }
-        }
-
         // TODO: Implement validation for data types
         //   see https://linear.app/hash/issue/H-2976/validate-ontology-types-on-creation
         Ok(Valid::new_ref_unchecked(value))

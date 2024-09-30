@@ -7,14 +7,14 @@ mod common;
 
 use approx::assert_relative_eq;
 use deer::{
-    value::{
-        F32Deserializer, F64Deserializer, I128Deserializer, I16Deserializer, I32Deserializer,
-        I64Deserializer, I8Deserializer, U128Deserializer, U16Deserializer, U32Deserializer,
-        U64Deserializer, U8Deserializer,
-    },
     Context, Deserialize, Number,
+    value::{
+        F32Deserializer, F64Deserializer, I8Deserializer, I16Deserializer, I32Deserializer,
+        I64Deserializer, I128Deserializer, U8Deserializer, U16Deserializer, U32Deserializer,
+        U64Deserializer, U128Deserializer,
+    },
 };
-use deer_desert::{assert_tokens, assert_tokens_error, error, Token};
+use deer_desert::{Token, assert_tokens, assert_tokens_error, error};
 use num_traits::cast::FromPrimitive;
 use proptest::prelude::*;
 use serde_json::json;

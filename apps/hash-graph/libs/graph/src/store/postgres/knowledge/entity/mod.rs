@@ -5,39 +5,40 @@ use core::{borrow::Borrow, iter::once, mem};
 use std::collections::{HashMap, HashSet};
 
 use authorization::{
+    AuthorizationApi,
     backend::ModifyRelationshipOperation,
     schema::{
         EntityOwnerSubject, EntityPermission, EntityRelationAndSubject, EntityTypePermission,
         WebPermission,
     },
     zanzibar::{Consistency, Zookie},
-    AuthorizationApi,
 };
-use error_stack::{bail, Report, Result, ResultExt};
+use error_stack::{Report, ReportSink, Result, ResultExt, bail};
 use futures::TryStreamExt;
 use graph_types::{
+    Embedding,
     account::{AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
     knowledge::{
+        Confidence,
         entity::{
             DraftId, Entity, EntityEditionId, EntityEditionProvenance, EntityEmbedding, EntityId,
             EntityMetadata, EntityProvenance, EntityRecordId, EntityTemporalMetadata, EntityUuid,
             InferredEntityProvenance,
         },
         property::{
-            visitor::EntityVisitor, Property, PropertyMetadata, PropertyMetadataObject,
-            PropertyObject, PropertyPath, PropertyPathError, PropertyWithMetadata,
-            PropertyWithMetadataObject, PropertyWithMetadataValue,
+            Property, PropertyMetadata, PropertyMetadataObject, PropertyObject, PropertyPath,
+            PropertyPathError, PropertyWithMetadata, PropertyWithMetadataObject,
+            PropertyWithMetadataValue, visitor::EntityVisitor,
         },
-        Confidence,
     },
     ontology::{DataTypeProvider, EntityTypeId, EntityTypeProvider},
     owned_by_id::OwnedById,
-    Embedding,
 };
 use hash_graph_store::{
     entity::EntityQueryPath,
     filter::{Filter, FilterExpression, Parameter},
     subgraph::{
+        Subgraph, SubgraphRecord,
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
         identifier::{EntityIdWithInterval, EntityVertexId},
         temporal_axes::{
@@ -45,7 +46,6 @@ use hash_graph_store::{
             QueryTemporalAxesUnresolved, VariableAxis, VariableTemporalAxis,
             VariableTemporalAxisUnresolved,
         },
-        Subgraph, SubgraphRecord,
     },
 };
 use hash_status::StatusCode;
@@ -56,12 +56,13 @@ use temporal_versioning::{
     OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, TemporalTagged, Timestamp,
     TransactionTime,
 };
-use tokio_postgres::{error::SqlState, GenericClient, Row};
+use tokio_postgres::{GenericClient, Row, error::SqlState};
 use type_system::url::VersionedUrl;
 use uuid::Uuid;
 use validation::{EntityPreprocessor, Validate, ValidateEntityComponents};
 
 use crate::store::{
+    AsClient, EntityStore, InsertionError, PostgresStore, QueryError, StoreCache, UpdateError,
     crud::{QueryResult, Read, ReadPaginated, Sorting},
     error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
     knowledge::{
@@ -71,19 +72,18 @@ use crate::store::{
         ValidateEntityParams,
     },
     postgres::{
+        ResponseCountMap, TraversalContext,
         knowledge::entity::read::EntityEdgeTraversalData,
         ontology::OntologyId,
         query::{
+            InsertStatementBuilder, ReferenceTable, Table,
             rows::{
                 EntityDraftRow, EntityEditionRow, EntityHasLeftEntityRow, EntityHasRightEntityRow,
                 EntityIdRow, EntityIsOfTypeRow, EntityTemporalMetadataRow,
             },
-            InsertStatementBuilder, ReferenceTable, Table,
         },
-        ResponseCountMap, TraversalContext,
     },
     validation::StoreProvider,
-    AsClient, EntityStore, InsertionError, PostgresStore, QueryError, StoreCache, UpdateError,
 };
 
 #[derive(Debug)]
@@ -933,7 +933,9 @@ where
         }
 
         let commit_result = transaction.commit().await.change_context(InsertionError);
-        if let Err(mut error) = commit_result {
+        if let Err(error) = commit_result {
+            let mut error = error.expand();
+
             if let Err(auth_error) = self
                 .authorization_api
                 .modify_entity_relations(relationships.into_iter().map(
@@ -948,12 +950,10 @@ where
                 .await
                 .change_context(InsertionError)
             {
-                // TODO: Use `add_child`
-                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
-                error.extend_one(auth_error);
+                error.push(auth_error);
             }
 
-            Err(error)
+            Err(error.change_context(InsertionError))
         } else {
             if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
@@ -977,7 +977,7 @@ where
         consistency: Consistency<'_>,
         params: Vec<ValidateEntityParams<'_>>,
     ) -> Result<(), ValidateEntityError> {
-        let mut status: Result<(), validation::EntityValidationError> = Ok(());
+        let mut status = ReportSink::new();
 
         let validator_provider = StoreProvider {
             store: self,
@@ -999,11 +999,7 @@ where
 
             if schema.schemas.is_empty() {
                 let error = Report::new(validation::EntityValidationError::EmptyEntityTypes);
-                if let Err(ref mut report) = status {
-                    report.extend_one(error);
-                } else {
-                    status = Err(error);
-                }
+                status.append(error);
             };
 
             let pre_process_result = EntityPreprocessor {
@@ -1017,11 +1013,7 @@ where
             .await
             .change_context(validation::EntityValidationError::InvalidProperties);
             if let Err(error) = pre_process_result {
-                if let Err(ref mut report) = status {
-                    report.extend_one(error);
-                } else {
-                    status = Err(error);
-                }
+                status.append(error);
             }
 
             if let Err(error) = params
@@ -1030,15 +1022,12 @@ where
                 .validate(&schema, params.components, &validator_provider)
                 .await
             {
-                if let Err(ref mut report) = status {
-                    report.extend_one(error);
-                } else {
-                    status = Err(error);
-                }
+                status.append(error);
             }
         }
 
         status
+            .finish()
             .change_context(ValidateEntityError)
             .attach(StatusCode::InvalidArgument)
     }

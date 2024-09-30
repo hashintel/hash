@@ -12,7 +12,7 @@ use std::{
 use clap::Parser;
 use error_stack::{Report, ResultExt};
 use repo_chores::benches::{
-    analyze::{criterion, AnalyzeError, BenchmarkAnalysis},
+    analyze::{AnalyzeError, BenchmarkAnalysis, criterion},
     report::Benchmark,
 };
 

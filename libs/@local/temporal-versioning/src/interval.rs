@@ -4,7 +4,7 @@ use core::{
     cmp::Ordering,
     fmt,
     hash::{Hash, Hasher},
-    iter::{once, Chain, Once},
+    iter::{Chain, Once, once},
     marker::PhantomData,
     ops::{Bound, RangeBounds},
 };
@@ -12,16 +12,16 @@ use core::{
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
 #[cfg(feature = "postgres")]
-use postgres_protocol::types::{timestamp_from_sql, RangeBound};
+use postgres_protocol::types::{RangeBound, timestamp_from_sql};
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, ToSql, Type};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
-use utoipa::{openapi, ToSchema};
+use utoipa::{ToSchema, openapi};
 
-use crate::bounds::{compare_bounds, BoundType, IntervalBound, IntervalBoundHelper};
 #[cfg(feature = "postgres")]
 use crate::Timestamp;
+use crate::bounds::{BoundType, IntervalBound, IntervalBoundHelper, compare_bounds};
 
 enum Return<T> {
     None,

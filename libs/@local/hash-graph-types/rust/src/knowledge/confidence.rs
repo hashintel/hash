@@ -3,8 +3,8 @@ use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "utoipa")]
 use utoipa::{
-    openapi::{self, KnownFormat, SchemaFormat},
     ToSchema,
+    openapi::{self, KnownFormat, SchemaFormat},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Serialize)]

@@ -51,20 +51,22 @@ export const useActors = (params: {
       includePermissions: false,
       request: {
         filter: {
-          any: (params.accountIds ?? []).map((accountId) => ({
-            all: [
-              {
-                equal: [
-                  { path: ["editionProvenance", "createdById"] },
-                  { parameter: accountId },
-                ],
-              },
-              generateVersionedUrlMatchingFilter(
-                systemEntityTypes.machine.entityTypeId,
-                { ignoreParents: true },
-              ),
-            ],
-          })),
+          any: (params.accountIds ? [...new Set(params.accountIds)] : []).map(
+            (accountId) => ({
+              all: [
+                {
+                  equal: [
+                    { path: ["editionProvenance", "createdById"] },
+                    { parameter: accountId },
+                  ],
+                },
+                generateVersionedUrlMatchingFilter(
+                  systemEntityTypes.machine.entityTypeId,
+                  { ignoreParents: true },
+                ),
+              ],
+            }),
+          ),
         },
         graphResolveDepths: zeroedGraphResolveDepths,
         temporalAxes: currentTimeInstantTemporalAxes,

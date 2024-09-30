@@ -2,7 +2,7 @@ use core::fmt::{self, Display, Write};
 
 use hql_span::SpanId;
 
-use crate::{arena, expr::path::Path, Spanned};
+use crate::{Spanned, arena, expr::path::Path};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeKind<'arena> {

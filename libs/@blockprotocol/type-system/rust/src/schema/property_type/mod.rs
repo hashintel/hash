@@ -12,7 +12,9 @@ use std::collections::HashSet;
 use serde::{Deserialize, Serialize, Serializer};
 
 use crate::{
-    schema::{ArraySchema, DataTypeReference, ObjectSchema, OneOfSchema, ValueOrArray},
+    schema::{
+        DataTypeReference, OneOfSchema, PropertyValueArray, PropertyValueObject, ValueOrArray,
+    },
     url::VersionedUrl,
 };
 
@@ -21,6 +23,7 @@ use crate::{
 pub struct PropertyType {
     pub id: VersionedUrl,
     pub title: String,
+    pub title_plural: Option<String>,
     pub description: Option<String>,
     pub one_of: Vec<PropertyValues>,
 }
@@ -61,8 +64,8 @@ impl Serialize for PropertyType {
 )]
 pub enum PropertyValues {
     DataTypeReference(DataTypeReference),
-    PropertyTypeObject(ObjectSchema<ValueOrArray<PropertyTypeReference>>),
-    ArrayOfPropertyValues(ArraySchema<OneOfSchema<PropertyValues>>),
+    PropertyTypeObject(PropertyValueObject<ValueOrArray<PropertyTypeReference>>),
+    ArrayOfPropertyValues(PropertyValueArray<OneOfSchema<PropertyValues>>),
 }
 
 impl PropertyValues {
@@ -129,8 +132,8 @@ mod tests {
         schema::property_type::validation::{PropertyTypeValidationError, PropertyTypeValidator},
         url::BaseUrl,
         utils::tests::{
-            ensure_failed_deserialization, ensure_failed_validation, ensure_validation_from_str,
-            JsonEqualityCheck,
+            JsonEqualityCheck, ensure_failed_deserialization, ensure_failed_validation,
+            ensure_validation_from_str,
         },
     };
 
@@ -180,10 +183,9 @@ mod tests {
         )
         .await;
 
-        test_property_type_data_refs(
-            &property_type,
-            ["https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
-        );
+        test_property_type_data_refs(&property_type, [
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        ]);
 
         test_property_type_property_refs(&property_type, []);
     }
@@ -197,10 +199,9 @@ mod tests {
         )
         .await;
 
-        test_property_type_data_refs(
-            &property_type,
-            ["https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1"],
-        );
+        test_property_type_data_refs(&property_type, [
+            "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+        ]);
 
         test_property_type_property_refs(&property_type, []);
     }
@@ -214,13 +215,10 @@ mod tests {
         )
         .await;
 
-        test_property_type_data_refs(
-            &property_type,
-            [
-                "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
-                "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-            ],
-        );
+        test_property_type_data_refs(&property_type, [
+            "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+            "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+        ]);
 
         test_property_type_property_refs(&property_type, []);
     }
@@ -236,13 +234,10 @@ mod tests {
 
         test_property_type_data_refs(&property_type, []);
 
-        test_property_type_property_refs(
-            &property_type,
-            [
-                "https://blockprotocol.org/@alice/types/property-type/email/v/1",
-                "https://blockprotocol.org/@alice/types/property-type/phone-number/v/1",
-            ],
-        );
+        test_property_type_property_refs(&property_type, [
+            "https://blockprotocol.org/@alice/types/property-type/email/v/1",
+            "https://blockprotocol.org/@alice/types/property-type/phone-number/v/1",
+        ]);
     }
 
     #[tokio::test]
@@ -256,14 +251,11 @@ mod tests {
 
         test_property_type_data_refs(&property_type, []);
 
-        test_property_type_property_refs(
-            &property_type,
-            [
-                "https://blockprotocol.org/@alice/types/property-type/favorite-film/v/1",
-                "https://blockprotocol.org/@alice/types/property-type/favorite-song/v/1",
-                "https://blockprotocol.org/@alice/types/property-type/hobby/v/1",
-            ],
-        );
+        test_property_type_property_refs(&property_type, [
+            "https://blockprotocol.org/@alice/types/property-type/favorite-film/v/1",
+            "https://blockprotocol.org/@alice/types/property-type/favorite-song/v/1",
+            "https://blockprotocol.org/@alice/types/property-type/hobby/v/1",
+        ]);
     }
 
     #[tokio::test]
@@ -275,10 +267,9 @@ mod tests {
         )
         .await;
 
-        test_property_type_data_refs(
-            &property_type,
-            ["https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1"],
-        );
+        test_property_type_data_refs(&property_type, [
+            "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+        ]);
 
         test_property_type_property_refs(&property_type, []);
     }
@@ -292,10 +283,9 @@ mod tests {
         )
         .await;
 
-        test_property_type_data_refs(
-            &property_type,
-            ["https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1"],
-        );
+        test_property_type_data_refs(&property_type, [
+            "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+        ]);
 
         test_property_type_property_refs(&property_type, []);
     }

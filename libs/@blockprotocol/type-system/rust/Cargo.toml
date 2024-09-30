@@ -16,7 +16,8 @@ crate-type = ["cdylib", "rlib"]
 
 [dependencies]
 # Public workspace dependencies
-error-stack = { workspace = true, public = true }
+error-stack = { workspace = true, public = true, features = ["unstable"] }
+codec = { workspace = true, public = true, features = ["serde"] }
 
 # Public third-party dependencies
 bytes = { workspace = true, public = true }
@@ -29,7 +30,6 @@ utoipa = { workspace = true, public = true, features = ["url"], optional = true 
 uuid = { workspace = true, public = true, features = ["std"] }
 
 # Private workspace dependencies
-codec = { workspace = true, features = ["serde"] }
 futures = { workspace = true }
 
 # Private third-party dependencies

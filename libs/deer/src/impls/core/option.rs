@@ -3,8 +3,8 @@ use core::marker::PhantomData;
 use error_stack::{Result, ResultExt};
 
 use crate::{
-    error::{DeserializeError, Location, VisitorError},
     Deserialize, Deserializer, Document, OptionalVisitor, Reflection, Schema,
+    error::{DeserializeError, Location, VisitorError},
 };
 
 struct OptionVisitor<T>(PhantomData<fn() -> *const T>);

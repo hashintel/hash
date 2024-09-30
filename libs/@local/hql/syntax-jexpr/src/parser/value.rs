@@ -41,18 +41,15 @@ pub(crate) fn parse_value<'arena, 'source>(
                 parent_id: None,
             });
 
-            return Err(unexpected_token(
-                span,
-                [
-                    SyntaxKind::True,
-                    SyntaxKind::False,
-                    SyntaxKind::Null,
-                    SyntaxKind::Number,
-                    SyntaxKind::String,
-                    SyntaxKind::LBracket,
-                    SyntaxKind::LBrace,
-                ],
-            ));
+            return Err(unexpected_token(span, [
+                SyntaxKind::True,
+                SyntaxKind::False,
+                SyntaxKind::Null,
+                SyntaxKind::Number,
+                SyntaxKind::String,
+                SyntaxKind::LBracket,
+                SyntaxKind::LBrace,
+            ]));
         }
     };
 
@@ -150,16 +147,16 @@ mod test {
         arena::Arena,
         value::{Value, ValueKind},
     };
-    use hql_diagnostics::{config::ReportConfig, span::DiagnosticSpan, Diagnostic};
-    use hql_span::{storage::SpanStorage, SpanId};
+    use hql_diagnostics::{Diagnostic, config::ReportConfig, span::DiagnosticSpan};
+    use hql_span::{SpanId, storage::SpanStorage};
     use insta::assert_snapshot;
 
     use super::parse_value;
     use crate::{
         lexer::Lexer,
         parser::{
-            error::{expected_eof, DUPLICATE_KEY},
             TokenStream,
+            error::{DUPLICATE_KEY, expected_eof},
         },
         span::Span,
     };

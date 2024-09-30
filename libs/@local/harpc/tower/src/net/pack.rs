@@ -139,12 +139,12 @@ where
 #[cfg(test)]
 mod test {
     use bytes::Bytes;
-    use futures::{stream, StreamExt};
+    use futures::{StreamExt, stream};
     use harpc_net::session::error::TransactionError;
     use harpc_wire_protocol::response::kind::{ErrorCode, ResponseKind};
 
     use crate::{
-        body::{stream::StreamBody, Frame},
+        body::{Frame, stream::StreamBody},
         net::pack::Pack,
     };
 
@@ -162,16 +162,13 @@ mod test {
         let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
-        assert_eq!(
-            values,
-            [
-                Ok(Bytes::from_static(b"hello" as &[_])),
-                Err(TransactionError {
-                    code: ErrorCode::INTERNAL_SERVER_ERROR,
-                    bytes: Bytes::from_static(b"world" as &[_]),
-                }),
-            ]
-        );
+        assert_eq!(values, [
+            Ok(Bytes::from_static(b"hello" as &[_])),
+            Err(TransactionError {
+                code: ErrorCode::INTERNAL_SERVER_ERROR,
+                bytes: Bytes::from_static(b"world" as &[_]),
+            }),
+        ]);
     }
 
     #[tokio::test]
@@ -187,13 +184,10 @@ mod test {
         let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
-        assert_eq!(
-            values,
-            [Err(TransactionError {
-                code: ErrorCode::INTERNAL_SERVER_ERROR,
-                bytes: Bytes::from_static(b"hello world" as &[_]),
-            })]
-        );
+        assert_eq!(values, [Err(TransactionError {
+            code: ErrorCode::INTERNAL_SERVER_ERROR,
+            bytes: Bytes::from_static(b"hello world" as &[_]),
+        })]);
     }
 
     #[tokio::test]
@@ -219,13 +213,10 @@ mod test {
         let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
-        assert_eq!(
-            values,
-            [
-                Ok(Bytes::from_static(b"hello" as &[_])),
-                Ok(Bytes::from_static(b"world" as &[_])),
-            ]
-        );
+        assert_eq!(values, [
+            Ok(Bytes::from_static(b"hello" as &[_])),
+            Ok(Bytes::from_static(b"world" as &[_])),
+        ]);
     }
 
     #[tokio::test]
@@ -245,19 +236,16 @@ mod test {
         let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
-        assert_eq!(
-            values,
-            [
-                Err(TransactionError {
-                    code: ErrorCode::INTERNAL_SERVER_ERROR,
-                    bytes: Bytes::from_static(b"hello world" as &[_]),
-                }),
-                Err(TransactionError {
-                    code: ErrorCode::INTERNAL_SERVER_ERROR,
-                    bytes: Bytes::from_static(b"steven" as &[_]),
-                }),
-            ]
-        );
+        assert_eq!(values, [
+            Err(TransactionError {
+                code: ErrorCode::INTERNAL_SERVER_ERROR,
+                bytes: Bytes::from_static(b"hello world" as &[_]),
+            }),
+            Err(TransactionError {
+                code: ErrorCode::INTERNAL_SERVER_ERROR,
+                bytes: Bytes::from_static(b"steven" as &[_]),
+            }),
+        ]);
     }
 
     #[tokio::test]
@@ -273,14 +261,11 @@ mod test {
         let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
-        assert_eq!(
-            values,
-            [
-                Ok(Bytes::from_static(b"hello " as &[_])),
-                Ok(Bytes::from_static(b"world" as &[_])),
-                Ok(Bytes::from_static(b"steven" as &[_])),
-            ]
-        );
+        assert_eq!(values, [
+            Ok(Bytes::from_static(b"hello " as &[_])),
+            Ok(Bytes::from_static(b"world" as &[_])),
+            Ok(Bytes::from_static(b"steven" as &[_])),
+        ]);
     }
 
     #[tokio::test]
@@ -298,17 +283,14 @@ mod test {
         let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
-        assert_eq!(
-            values,
-            [
-                Ok(Bytes::from_static(b"hello " as &[_])),
-                Ok(Bytes::from_static(b"world" as &[_])),
-                Err(TransactionError {
-                    code: ErrorCode::INTERNAL_SERVER_ERROR,
-                    bytes: Bytes::from_static(b"steven" as &[_]),
-                }),
-            ]
-        );
+        assert_eq!(values, [
+            Ok(Bytes::from_static(b"hello " as &[_])),
+            Ok(Bytes::from_static(b"world" as &[_])),
+            Err(TransactionError {
+                code: ErrorCode::INTERNAL_SERVER_ERROR,
+                bytes: Bytes::from_static(b"steven" as &[_]),
+            }),
+        ]);
     }
 
     #[tokio::test]
@@ -326,16 +308,13 @@ mod test {
         let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
-        assert_eq!(
-            values,
-            [
-                Err(TransactionError {
-                    code: ErrorCode::INTERNAL_SERVER_ERROR,
-                    bytes: Bytes::from_static(b"hello world" as &[_]),
-                }),
-                Ok(Bytes::from_static(b"steven" as &[_])),
-            ]
-        );
+        assert_eq!(values, [
+            Err(TransactionError {
+                code: ErrorCode::INTERNAL_SERVER_ERROR,
+                bytes: Bytes::from_static(b"hello world" as &[_]),
+            }),
+            Ok(Bytes::from_static(b"steven" as &[_])),
+        ]);
     }
 
     #[tokio::test]
@@ -347,12 +326,9 @@ mod test {
         let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
-        assert_eq!(
-            values,
-            [Err(TransactionError {
-                code: ErrorCode::INTERNAL_SERVER_ERROR,
-                bytes: Bytes::new(),
-            })]
-        );
+        assert_eq!(values, [Err(TransactionError {
+            code: ErrorCode::INTERNAL_SERVER_ERROR,
+            bytes: Bytes::new(),
+        })]);
     }
 }

@@ -3,11 +3,11 @@ use core::cmp::{Ordering, Reverse};
 use error_stack::{Report, Result, ResultExt};
 
 use crate::{
+    Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
     error::{
         DeserializeError, ExpectedVariant, ReceivedVariant, UnknownVariantError, Variant,
         VisitorError,
     },
-    Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
 };
 
 impl<'de, T: Deserialize<'de>> Deserialize<'de> for Reverse<T> {

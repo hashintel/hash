@@ -6,7 +6,7 @@ use core::{
 };
 
 use super::{
-    fmt_fold_fields, ErrorProperties, ErrorProperty, Id, Location, Namespace, Variant, NAMESPACE,
+    ErrorProperties, ErrorProperty, Id, Location, NAMESPACE, Namespace, Variant, fmt_fold_fields,
 };
 use crate::id;
 
@@ -240,7 +240,10 @@ impl Display for ExpectedIdentifier {
 }
 
 impl ErrorProperty for ExpectedIdentifier {
-    type Value<'a> = Vec<&'a Self> where Self: 'a;
+    type Value<'a>
+        = Vec<&'a Self>
+    where
+        Self: 'a;
 
     fn key() -> &'static str {
         "expected"
@@ -280,7 +283,10 @@ impl Display for ReceivedIdentifier {
 }
 
 impl ErrorProperty for ReceivedIdentifier {
-    type Value<'a> = Vec<&'a Self> where Self: 'a;
+    type Value<'a>
+        = Vec<&'a Self>
+    where
+        Self: 'a;
 
     fn key() -> &'static str {
         "received"

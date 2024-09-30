@@ -3,12 +3,12 @@ use core::marker::PhantomData;
 use error_stack::{Report, Result, ResultExt};
 
 use crate::{
+    Deserialize, Deserializer, Document, EnumVisitor, Reflection, Schema, Visitor,
     error::{
         DeserializeError, ExpectedVariant, Location, ReceivedVariant, UnknownVariantError, Variant,
         VisitorError,
     },
     schema::Reference,
-    Deserialize, Deserializer, Document, EnumVisitor, Reflection, Schema, Visitor,
 };
 
 enum ResultDiscriminant {
@@ -134,13 +134,10 @@ where
         }
 
         Schema::new("object")
-            .with(
-                "oneOf",
-                [
-                    Properties::Ok(doc.add::<T>()),
-                    Properties::Err(doc.add::<E>()),
-                ],
-            )
+            .with("oneOf", [
+                Properties::Ok(doc.add::<T>()),
+                Properties::Err(doc.add::<E>()),
+            ])
             .with("additionalProperties", false)
     }
 }

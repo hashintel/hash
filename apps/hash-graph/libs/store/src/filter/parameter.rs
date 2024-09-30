@@ -1,11 +1,11 @@
 use alloc::borrow::Cow;
 use core::{fmt, mem, str::FromStr};
 
-use error_stack::{bail, Context, Report, ResultExt};
+use error_stack::{Context, Report, ResultExt, bail};
 use graph_types::{
+    Embedding,
     knowledge::entity::EntityEditionId,
     ontology::{DataTypeId, EntityTypeId, PropertyTypeId},
-    Embedding,
 };
 use serde::Deserialize;
 use serde_json::{Number as JsonNumber, Value as JsonValue};

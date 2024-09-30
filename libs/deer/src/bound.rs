@@ -1,9 +1,9 @@
 use error_stack::{Report, Result, ResultExt};
 
 use crate::{
+    ArrayAccess, Context, Deserialize, FieldVisitor, ObjectAccess,
     error::{ArrayAccessError, BoundedContractViolationError, ObjectAccessError, Variant},
     value::NoneDeserializer,
-    ArrayAccess, Context, Deserialize, FieldVisitor, ObjectAccess,
 };
 
 pub struct BoundObjectAccess<A> {
@@ -94,19 +94,19 @@ where
     }
 
     fn end(self) -> Result<(), ObjectAccessError> {
-        let mut result = self.access.end();
+        let mut result = self.access.end().map_err(Report::expand);
 
         if self.remaining > 0 {
             let error = Report::new(BoundedContractViolationError::EndRemainingItems.into_error())
                 .change_context(ObjectAccessError);
 
             match &mut result {
-                Err(result) => result.extend_one(error),
-                result => *result = Err(error),
+                Err(result) => result.push(error),
+                result => *result = Err(error.expand()),
             }
         }
 
-        result
+        result.change_context(ObjectAccessError)
     }
 }
 
@@ -182,18 +182,18 @@ where
     }
 
     fn end(self) -> Result<(), ArrayAccessError> {
-        let mut result = self.access.end();
+        let mut result = self.access.end().map_err(Report::expand);
 
         if self.remaining > 0 {
             let error = Report::new(BoundedContractViolationError::EndRemainingItems.into_error())
                 .change_context(ArrayAccessError);
 
             match &mut result {
-                Err(result) => result.extend_one(error),
-                result => *result = Err(error),
+                Err(result) => result.push(error),
+                result => *result = Err(error.expand()),
             }
         }
 
-        result
+        result.change_context(ArrayAccessError)
     }
 }

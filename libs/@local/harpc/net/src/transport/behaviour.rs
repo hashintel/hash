@@ -1,4 +1,4 @@
-use libp2p::{identify, ping, swarm::NetworkBehaviour, Swarm};
+use libp2p::{Swarm, identify, ping, swarm::NetworkBehaviour};
 use libp2p_stream as stream;
 
 // in a separate file because `NetworkBehaviour` macro expects that `error-stack::Result` isn't

@@ -1,4 +1,5 @@
 import type {
+  DataType,
   EntityType,
   OneOfSchema,
   PropertyType,
@@ -43,7 +44,6 @@ import type {
 } from "@local/hash-graph-types/entity";
 import type {
   BaseUrl,
-  CustomDataType,
   DataTypeMetadata,
   EntityTypeMetadata,
   OntologyProvenance,
@@ -62,7 +62,7 @@ import type {
 } from "../../src/main.js";
 import { isEntityId } from "../../src/main.js";
 
-const mapDataType = (dataType: DataTypeGraphApi): CustomDataType => {
+const mapDataType = (dataType: DataTypeGraphApi): DataType => {
   const idResult = validateVersionedUrl(dataType.$id);
   if (idResult.type === "Err") {
     throw new Error(
@@ -74,7 +74,7 @@ const mapDataType = (dataType: DataTypeGraphApi): CustomDataType => {
   const { inner: $id } = idResult;
 
   return {
-    ...(dataType as CustomDataType),
+    ...(dataType as DataType),
     $id,
   };
 };

@@ -53,9 +53,7 @@ export const NumberOrTextInput = ({
   const step =
     "multipleOf" in expectedType && expectedType.multipleOf !== undefined
       ? expectedType.multipleOf
-      : expectedType.type === "integer"
-        ? 1
-        : 0.01;
+      : 0.01;
 
   const exclusiveMinimum =
     "exclusiveMinimum" in expectedType &&

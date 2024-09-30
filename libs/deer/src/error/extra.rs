@@ -8,9 +8,9 @@ use core::{
 use error_stack::Report;
 
 use super::{
-    fmt_fold_fields, ErrorProperties, ErrorProperty, Id, Location, Namespace, Variant, NAMESPACE,
+    ErrorProperties, ErrorProperty, Id, Location, NAMESPACE, Namespace, Variant, fmt_fold_fields,
 };
-use crate::{error::Error, id, ArrayAccess, ObjectAccess};
+use crate::{ArrayAccess, ObjectAccess, error::Error, id};
 
 #[derive(serde::Serialize)]
 pub struct ReceivedKey(String);

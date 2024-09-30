@@ -3,7 +3,6 @@ import { mapGqlSubgraphFieldsFragmentToSubgraph } from "@local/hash-isomorphic-u
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import type { EntityRootType } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { useMemo } from "react";
 
 import type {
   QueryEntitiesQuery,
@@ -16,6 +15,7 @@ import {
   isEntityUserEntity,
 } from "../../lib/user-and-org";
 import { entityHasEntityTypeByVersionedUrlFilter } from "../../shared/filters";
+import { useMemoCompare } from "../../shared/use-memo-compare";
 
 export const useUsers = (): {
   loading: boolean;
@@ -53,25 +53,66 @@ export const useUsers = (): {
 
   const { queryEntities: queryEntitiesData } = data ?? {};
 
-  const users = useMemo(() => {
-    if (!queryEntitiesData) {
-      return undefined;
-    }
-
-    const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
-      queryEntitiesData.subgraph,
-    );
-
-    return getRoots(subgraph).map((userEntity) => {
-      if (!isEntityUserEntity(userEntity)) {
-        throw new Error(
-          `Entity with type(s) ${userEntity.metadata.entityTypeIds.join(", ")} is not a user entity`,
-        );
+  const users = useMemoCompare(
+    () => {
+      if (!queryEntitiesData) {
+        return undefined;
       }
 
-      return constructMinimalUser({ userEntity });
-    });
-  }, [queryEntitiesData]);
+      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        queryEntitiesData.subgraph,
+      );
+
+      return getRoots(subgraph).map((userEntity) => {
+        if (!isEntityUserEntity(userEntity)) {
+          throw new Error(
+            `Entity with type(s) ${userEntity.metadata.entityTypeIds.join(", ")} is not a user entity`,
+          );
+        }
+
+        return constructMinimalUser({ userEntity });
+      });
+    },
+    [queryEntitiesData],
+    /**
+     * Check if the previous and new users are the same.
+     * If they are, the return value from the hook won't change, avoiding unnecessary re-renders.
+     *
+     * This assumes that the UX/performance benefit of avoiding re-renders outweighs the cost of the comparison.
+     *
+     * An alternative approach would be to not use a 'cache-and-network' fetch policy, which also makes a network
+     * request for all the users every time the hook is run, but instead use polling (or a subscription) to get
+     * updates.
+     *
+     * An identical approach is taken in {@link useOrgs}. Update that too if this is changed.
+     */
+    (a, b) => {
+      if (a === undefined || b === undefined) {
+        return false;
+      }
+
+      if (a.length !== b.length) {
+        return false;
+      }
+
+      return (
+        a
+          .map(
+            ({ entity }) =>
+              `${entity.metadata.recordId.entityId}${entity.metadata.recordId.editionId}`,
+          )
+          .sort()
+          .join(",") ===
+        b
+          .map(
+            ({ entity }) =>
+              `${entity.metadata.recordId.entityId}${entity.metadata.recordId.editionId}`,
+          )
+          .sort()
+          .join(",")
+      );
+    },
+  );
 
   return {
     loading,

@@ -16,8 +16,8 @@ pub use self::{
     },
 };
 pub(crate) use self::{
-    data_type::{data_type_channel, DataTypeSender},
-    entity_type::{entity_type_channel, EntityTypeSender},
-    metadata::{ontology_metadata_channel, OntologyTypeMetadataSender},
-    property_type::{property_type_channel, PropertyTypeSender},
+    data_type::{DataTypeSender, data_type_channel},
+    entity_type::{EntityTypeSender, entity_type_channel},
+    metadata::{OntologyTypeMetadataSender, ontology_metadata_channel},
+    property_type::{PropertyTypeSender, property_type_channel},
 };

@@ -20,12 +20,15 @@ exclude = ["package.json", "macros", "experimental"]
 anyhow = { version = ">=1.0.73", public = true, default-features = false, optional = true }
 eyre = { version = ">=0.6", public = true, default-features = false, optional = true }
 serde = { version = ">=1", default-features = false, public = true, optional = true }
+futures-core = { workspace = true, public = true, optional = true }
 
 # Private workspace dependencies
+pin-project-lite = { workspace = true, optional = true }
 
 # Private third-party dependencies
 spin = { version = ">=0.9", default-features = false, optional = true, features = ['rwlock', 'once'] }
 tracing-error = { version = ">=0.2", optional = true, default-features = false }
+tracing = { version = ">=0.1", optional = true, default-features = false }
 
 [dev-dependencies]
 serde = { workspace = true, features = ["derive"] }
@@ -42,6 +45,7 @@ supports-color = { workspace = true }
 supports-unicode = { workspace = true }
 owo-colors = { workspace = true }
 thiserror = { workspace = true }
+futures-util.workspace = true
 
 [build-dependencies]
 rustc_version = { workspace = true }
@@ -52,12 +56,17 @@ default = ["std", "backtrace"]
 std = ["anyhow?/std"]  # Enables support for `Error`
 backtrace = ["std"]  # Enables automatic capturing of `Backtrace`s (requires Rust 1.65+)
 
-spantrace = ["dep:tracing-error", "std"]  # Enables automatic capturing of `SpanTrace`s
+tracing = ["dep:tracing"]  # Uses the `tracing` library if messages would be printed to the terminal
+spantrace = ["dep:tracing-error", "tracing", "std"]  # Enables automatic capturing of `SpanTrace`s
 serde = ["dep:serde"]  # Enables serialization support
 hooks = ['dep:spin']  # Enables hooks on `no-std` platforms using spin locks
 
 anyhow = ["dep:anyhow"]  # Provides `into_report` to convert `anyhow::Error` to `Report`
 eyre = ["dep:eyre", "std"]  # Provides `into_report` to convert `eyre::Report` to `Report`
+
+futures = ["dep:futures-core", "dep:pin-project-lite"] # Provides support for `futures` types, such as stream.
+
+unstable = [] # Enables unstable features that are not covered under any stability guarantees
 
 [lints]
 workspace = true

@@ -1,7 +1,7 @@
 use bytes::{Buf, BufMut};
 use error_stack::{Result, ResultExt};
 
-use super::{flags::ResponseFlags, ResponseBody};
+use super::{ResponseBody, flags::ResponseFlags};
 use crate::{
     codec::{Buffer, BufferError, Decode, Encode},
     protocol::Protocol,
@@ -100,12 +100,9 @@ mod test {
             flags: ResponseFlags::EMPTY,
         };
 
-        assert_encode(
-            &header,
-            expect![[r#"
+        assert_encode(&header, expect![[r#"
                 b'h' b'a' b'r' b'p' b'c' 0x01 0x02 0x03 0x04 0x05 0x00
-            "#]],
-        );
+            "#]]);
     }
 
     #[test]

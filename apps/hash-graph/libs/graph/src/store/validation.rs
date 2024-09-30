@@ -3,12 +3,12 @@ use core::{borrow::Borrow, fmt::Debug, hash::Hash};
 use std::collections::HashMap;
 
 use authorization::{
+    AuthorizationApi,
     backend::PermissionAssertion,
     schema::{DataTypePermission, EntityPermission, EntityTypePermission, PropertyTypePermission},
     zanzibar::Consistency,
-    AuthorizationApi,
 };
-use error_stack::{ensure, Report, ResultExt};
+use error_stack::{Report, ResultExt, ensure};
 use futures::TryStreamExt;
 use graph_types::{
     account::AccountId,
@@ -33,7 +33,7 @@ use type_system::{
 };
 use validation::EntityProvider;
 
-use crate::store::{crud::Read, AsClient, PostgresStore, QueryError};
+use crate::store::{AsClient, PostgresStore, QueryError, crud::Read};
 
 #[derive(Debug, Clone)]
 enum Access<T> {
@@ -160,6 +160,8 @@ where
     C: AsClient,
     A: AuthorizationApi,
 {
+    type Value = Arc<DataTypeWithMetadata>;
+
     #[expect(refining_impl_trait)]
     async fn provide_type(
         &self,
@@ -239,6 +241,32 @@ where
                     SELECT EXISTS (
                         SELECT 1 FROM data_type_inherits_from
                         WHERE target_data_type_ontology_id = $1
+                    );
+                ",
+                &[&DataTypeId::from_url(data_type)],
+            )
+            .await
+            .change_context(QueryError)?
+            .get(0))
+    }
+
+    #[expect(refining_impl_trait)]
+    async fn has_non_abstract_parents(
+        &self,
+        data_type: &VersionedUrl,
+    ) -> Result<bool, Report<QueryError>> {
+        let client = self.store.as_client().client();
+
+        Ok(client
+            .query_one(
+                "
+                    SELECT EXISTS (
+                        SELECT 1
+                        FROM data_type_inherits_from
+                        JOIN data_types
+                          ON data_types.ontology_id = target_data_type_ontology_id
+                        WHERE source_data_type_ontology_id = $1
+                          AND data_types.schema->>'abstract' = 'false'
                     );
                 ",
                 &[&DataTypeId::from_url(data_type)],
@@ -345,6 +373,8 @@ where
     C: AsClient,
     A: AuthorizationApi,
 {
+    type Value = Arc<PropertyType>;
+
     #[expect(refining_impl_trait)]
     async fn provide_type(
         &self,
@@ -464,6 +494,8 @@ where
     C: AsClient,
     A: AuthorizationApi,
 {
+    type Value = Arc<ClosedEntityType>;
+
     #[expect(refining_impl_trait)]
     async fn provide_type(
         &self,

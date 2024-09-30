@@ -191,14 +191,7 @@ mod codec {
     use serde::{Deserialize, Serialize};
 
     use super::{ConversionExpression, ConversionValue, Operator, Variable};
-
-    #[derive(Serialize, Deserialize)]
-    #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
-    #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-    #[serde(rename_all = "camelCase")]
-    pub(super) enum NumberTypeTag {
-        Number,
-    }
+    use crate::schema::data_type::constraint::NumberTypeTag;
 
     #[derive(Serialize, Deserialize)]
     #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -258,7 +251,7 @@ mod codec {
 
 #[cfg(test)]
 mod tests {
-    use serde_json::{self, json, Value as JsonValue};
+    use serde_json::{self, Value as JsonValue, json};
 
     use super::*;
 

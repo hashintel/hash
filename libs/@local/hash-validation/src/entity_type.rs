@@ -1,19 +1,19 @@
 use core::borrow::Borrow;
-use std::collections::{hash_map::RawEntryMut, HashSet};
+use std::collections::{HashSet, hash_map::RawEntryMut};
 
-use error_stack::{Report, ResultExt};
-use futures::{stream, StreamExt, TryStreamExt};
+use error_stack::{Report, ReportSink, ResultExt};
+use futures::{StreamExt, TryStreamExt, stream};
 use graph_types::{
     knowledge::{
         entity::{Entity, EntityId},
         link::LinkData,
         property::{
-            visitor::{
-                walk_array, walk_object, walk_one_of_property_value, walk_value, EntityVisitor,
-                TraversalError,
-            },
             PropertyPath, PropertyWithMetadataArray, PropertyWithMetadataObject,
             PropertyWithMetadataValue, ValueMetadata,
+            visitor::{
+                EntityVisitor, TraversalError, walk_array, walk_object, walk_one_of_property_value,
+                walk_value,
+            },
         },
     },
     ontology::{
@@ -25,24 +25,14 @@ use serde_json::Value as JsonValue;
 use thiserror::Error;
 use type_system::{
     schema::{
-        ArraySchema, ClosedEntityType, DataTypeReference, JsonSchemaValueType,
-        PropertyObjectSchema, PropertyType, PropertyTypeReference, PropertyValueSchema,
+        ClosedEntityType, DataTypeReference, JsonSchemaValueType, PropertyObjectSchema,
+        PropertyType, PropertyTypeReference, PropertyValueArray, PropertyValueSchema,
         PropertyValues, ValueOrArray,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
 
 use crate::{EntityProvider, Schema, Validate, ValidateEntityComponents};
-
-macro_rules! extend_report {
-    ($status:ident, $error:expr $(,)?) => {
-        if let Err(ref mut report) = $status {
-            report.extend_one(error_stack::report!($error))
-        } else {
-            $status = Err(error_stack::report!($error))
-        }
-    };
-}
 
 #[derive(Debug, Error)]
 pub enum EntityValidationError {
@@ -81,12 +71,12 @@ where
         schema: &ClosedEntityType,
         components: ValidateEntityComponents,
         context: &P,
-    ) -> Result<(), Report<Self::Error>> {
+    ) -> Result<(), Report<[Self::Error]>> {
         if !components.link_data {
             return Ok(());
         }
 
-        let mut status: Result<(), Report<EntityValidationError>> = Ok(());
+        let mut status = ReportSink::new();
 
         // TODO: The link type should be a const but the type system crate does not allow
         //       to make this a `const` variable.
@@ -102,17 +92,17 @@ where
 
         if let Some(link_data) = self {
             if !is_link {
-                extend_report!(status, EntityValidationError::UnexpectedLinkData);
+                status.capture(EntityValidationError::UnexpectedLinkData);
             }
 
             if let Err(error) = schema.validate_value(*link_data, components, context).await {
-                extend_report!(status, error);
+                status.append(error);
             }
         } else if is_link {
-            extend_report!(status, EntityValidationError::MissingLinkData);
+            status.capture(EntityValidationError::MissingLinkData);
         }
 
-        status
+        status.finish()
     }
 }
 
@@ -131,11 +121,11 @@ where
         schema: &ClosedEntityType,
         components: ValidateEntityComponents,
         context: &P,
-    ) -> Result<(), Report<Self::Error>> {
-        let mut status: Result<(), Report<EntityValidationError>> = Ok(());
+    ) -> Result<(), Report<[Self::Error]>> {
+        let mut status = ReportSink::new();
 
         if self.metadata.entity_type_ids.is_empty() {
-            extend_report!(status, EntityValidationError::EmptyEntityTypes);
+            status.capture(EntityValidationError::EmptyEntityTypes);
         }
 
         if let Err(error) = self
@@ -144,7 +134,7 @@ where
             .validate(schema, components, context)
             .await
         {
-            extend_report!(status, error);
+            status.append(error);
         }
         if let Err(error) = self
             .metadata
@@ -152,10 +142,10 @@ where
             .validate(&self.properties, components, context)
             .await
         {
-            extend_report!(status, error);
+            status.append(error);
         }
 
-        status
+        status.finish()
     }
 }
 
@@ -172,8 +162,8 @@ where
         value: &'a LinkData,
         _: ValidateEntityComponents,
         provider: &'a P,
-    ) -> Result<(), Report<EntityValidationError>> {
-        let mut status: Result<(), Report<EntityValidationError>> = Ok(());
+    ) -> Result<(), Report<[EntityValidationError]>> {
+        let mut status = ReportSink::new();
 
         let left_entity = provider
             .provide_entity(value.left_entity_id)
@@ -250,25 +240,19 @@ where
             }
 
             if !found_match {
-                extend_report!(
-                    status,
-                    EntityValidationError::InvalidLinkTargetId {
-                        target_types: right_entity_type.schemas.keys().cloned().collect(),
-                    }
-                );
+                status.capture(EntityValidationError::InvalidLinkTargetId {
+                    target_types: right_entity_type.schemas.keys().cloned().collect(),
+                });
             }
         }
 
         if !found_link_target {
-            extend_report!(
-                status,
-                EntityValidationError::InvalidLinkTypeId {
-                    link_types: self.schemas.keys().cloned().collect(),
-                }
-            );
+            status.capture(EntityValidationError::InvalidLinkTypeId {
+                link_types: self.schemas.keys().cloned().collect(),
+            });
         }
 
-        status
+        status.finish()
     }
 }
 
@@ -283,16 +267,30 @@ impl EntityVisitor for ValueValidator {
         &mut self,
         data_type: &DataTypeWithMetadata,
         value: &mut JsonValue,
-        _: &mut ValueMetadata,
+        metadata: &mut ValueMetadata,
         _: &P,
-    ) -> Result<(), Report<TraversalError>>
+    ) -> Result<(), Report<[TraversalError]>>
     where
         P: DataTypeProvider + Sync,
     {
-        data_type
-            .schema
-            .validate_constraints(value)
-            .change_context(TraversalError::ConstraintUnfulfilled)
+        let mut status = ReportSink::new();
+
+        status.attempt(
+            data_type
+                .schema
+                .validate_constraints(value)
+                .change_context(TraversalError::ConstraintUnfulfilled),
+        );
+
+        if metadata.data_type_id.as_ref() == Some(&data_type.schema.id)
+            && data_type.schema.r#abstract
+        {
+            status.capture(TraversalError::AbstractDataType {
+                id: data_type.schema.id.clone(),
+            });
+        }
+
+        status.finish()
     }
 }
 
@@ -303,11 +301,11 @@ impl EntityVisitor for EntityPreprocessor {
         value: &mut JsonValue,
         metadata: &mut ValueMetadata,
         type_provider: &P,
-    ) -> Result<(), Report<TraversalError>>
+    ) -> Result<(), Report<[TraversalError]>>
     where
         P: DataTypeProvider + Sync,
     {
-        let mut status: Result<(), Report<TraversalError>> = Ok(());
+        let mut status = ReportSink::new();
 
         if let Some(data_type_url) = &metadata.data_type_id {
             if data_type.schema.id != *data_type_url {
@@ -321,41 +319,39 @@ impl EntityVisitor for EntityPreprocessor {
                     })?;
 
                 if !is_compatible {
-                    extend_report!(
-                        status,
-                        TraversalError::InvalidDataType {
-                            actual: data_type_url.clone(),
-                            expected: data_type.schema.id.clone(),
-                        }
-                    );
+                    status.capture(TraversalError::InvalidDataType {
+                        actual: data_type_url.clone(),
+                        expected: data_type.schema.id.clone(),
+                    });
                 }
 
-                if let Err(err) = type_provider
+                let desired_data_type = type_provider
                     .provide_type(data_type_url)
                     .await
                     .change_context_lazy(|| TraversalError::DataTypeRetrieval {
                         id: DataTypeReference {
                             url: data_type.schema.id.clone(),
                         },
-                    })?
-                    .borrow()
-                    .schema
-                    .validate_constraints(value)
-                    .change_context(TraversalError::ConstraintUnfulfilled)
+                    })?;
+
+                if let Err(error) = ValueValidator
+                    .visit_value(desired_data_type.borrow(), value, metadata, type_provider)
+                    .await
                 {
-                    extend_report!(status, err);
+                    status.append(error);
                 }
             }
         } else {
-            extend_report!(status, TraversalError::AmbiguousDataType);
+            status.capture(TraversalError::AmbiguousDataType);
         }
 
-        if let Err(err) = ValueValidator
+        if let Err(error) = ValueValidator
             .visit_value(data_type, value, metadata, type_provider)
             .await
         {
-            extend_report!(status, err);
+            status.append(error);
         }
+
         walk_value(
             &mut ValueValidator,
             data_type,
@@ -365,7 +361,7 @@ impl EntityVisitor for EntityPreprocessor {
         )
         .await?;
 
-        status
+        status.finish()
     }
 
     #[expect(clippy::too_many_lines, reason = "Need to refactor this function")]
@@ -374,13 +370,15 @@ impl EntityVisitor for EntityPreprocessor {
         schema: &[PropertyValues],
         property: &mut PropertyWithMetadataValue,
         type_provider: &P,
-    ) -> Result<(), Report<TraversalError>>
+    ) -> Result<(), Report<[TraversalError]>>
     where
         P: DataTypeProvider + Sync,
     {
-        let mut status = Ok::<_, Report<TraversalError>>(());
+        let mut status = ReportSink::new();
 
         // We try to infer the data type ID
+        // TODO: Remove when the data type ID is forced to be passed
+        //   see https://linear.app/hash/issue/H-2800/validate-that-a-data-type-id-is-always-specified
         if property.metadata.data_type_id.is_none() {
             let mut possible_data_types = HashSet::new();
 
@@ -393,20 +391,20 @@ impl EntityVisitor for EntityPreprocessor {
                             id: data_type_ref.clone(),
                         })?;
                     if has_children {
-                        extend_report!(status, TraversalError::AmbiguousDataType);
+                        status.capture(TraversalError::AmbiguousDataType);
                         possible_data_types.clear();
                         break;
                     }
 
-                    let data_type = type_provider
-                        .provide_type(&data_type_ref.url)
+                    let has_non_abstract_parents = type_provider
+                        .has_non_abstract_parents(&data_type_ref.url)
                         .await
                         .change_context_lazy(|| TraversalError::DataTypeRetrieval {
                             id: data_type_ref.clone(),
                         })?;
 
-                    if !data_type.borrow().schema.all_of.is_empty() {
-                        extend_report!(status, TraversalError::AmbiguousDataType);
+                    if has_non_abstract_parents {
+                        status.capture(TraversalError::AmbiguousDataType);
                         possible_data_types.clear();
                         break;
                     }
@@ -451,13 +449,10 @@ impl EntityVisitor for EntityPreprocessor {
                     }
                     property.value = JsonValue::from(value);
                 } else {
-                    extend_report!(
-                        status,
-                        TraversalError::InvalidType {
-                            actual: JsonSchemaValueType::from(&property.value),
-                            expected: JsonSchemaValueType::Number,
-                        }
-                    );
+                    status.capture(TraversalError::InvalidType {
+                        actual: JsonSchemaValueType::from(&property.value),
+                        expected: JsonSchemaValueType::Number,
+                    });
                 }
             }
         }
@@ -494,28 +489,26 @@ impl EntityVisitor for EntityPreprocessor {
                                             if f64::abs(current_value - converted_value)
                                                 > f64::EPSILON
                                             {
-                                                extend_report!(
-                                                    status,
+                                                status.capture(
                                                     TraversalError::InvalidCanonicalValue {
                                                         key: target.clone(),
                                                         actual: current_value,
                                                         expected: converted_value,
-                                                    }
+                                                    },
                                                 );
                                             }
                                         } else {
-                                            extend_report!(
-                                                status,
+                                            status.append(
                                                 Report::new(TraversalError::InvalidType {
                                                     actual: JsonSchemaValueType::from(
-                                                        &property.value
+                                                        &property.value,
                                                     ),
                                                     expected: JsonSchemaValueType::Number,
                                                 })
                                                 .attach_printable(
                                                     "Values other than numbers are not yet \
-                                                     supported for conversions"
-                                                )
+                                                     supported for conversions",
+                                                ),
                                             );
                                         }
                                     }
@@ -528,74 +521,71 @@ impl EntityVisitor for EntityPreprocessor {
                                 }
                             }
                         } else {
-                            extend_report!(
-                                status,
+                            status.append(
                                 Report::new(TraversalError::InvalidType {
                                     actual: JsonSchemaValueType::from(&property.value),
                                     expected: JsonSchemaValueType::Number,
                                 })
                                 .attach_printable(
                                     "Values other than numbers are not yet supported for \
-                                     conversions"
-                                )
+                                     conversions",
+                                ),
                             );
                         }
                     }
                 }
-                Err(err) => {
-                    extend_report!(status, err);
+                Err(error) => {
+                    status.append(error);
                 }
             }
         } else {
-            extend_report!(status, TraversalError::AmbiguousDataType);
+            status.capture(TraversalError::AmbiguousDataType);
         }
 
         if let Err(error) = walk_one_of_property_value(self, schema, property, type_provider).await
         {
-            extend_report!(status, error);
+            status.append(error);
         }
 
-        status
+        status.finish()
     }
 
     async fn visit_array<T, P>(
         &mut self,
-        schema: &ArraySchema<T>,
+        schema: &PropertyValueArray<T>,
         array: &mut PropertyWithMetadataArray,
         type_provider: &P,
-    ) -> Result<(), Report<TraversalError>>
+    ) -> Result<(), Report<[TraversalError]>>
     where
         T: PropertyValueSchema + Sync,
         P: DataTypeProvider + PropertyTypeProvider + Sync,
     {
-        let mut status = walk_array(self, schema, array, type_provider).await;
+        let mut status = ReportSink::new();
+        if let Err(error) = walk_array(self, schema, array, type_provider).await {
+            status.append(error);
+        }
+
         if self.components.num_items {
             if let Some(min) = schema.min_items {
                 if array.value.len() < min {
-                    extend_report!(
-                        status,
-                        TraversalError::TooFewItems {
-                            actual: array.value.len(),
-                            min,
-                        },
-                    );
+                    status.capture(TraversalError::TooFewItems {
+                        actual: array.value.len(),
+                        min,
+                    });
                 }
             }
 
             if let Some(max) = schema.max_items {
                 if array.value.len() > max {
-                    extend_report!(
-                        status,
-                        TraversalError::TooManyItems {
-                            actual: array.value.len(),
-                            max,
-                        },
-                    );
+                    status.capture(TraversalError::TooManyItems {
+                        actual: array.value.len(),
+                        max,
+                    });
                 }
             }
         }
 
-        status
+        status.finish()
     }
 
     async fn visit_object<T, P>(
@@ -603,33 +593,33 @@ impl EntityVisitor for EntityPreprocessor {
         schema: &T,
         object: &mut PropertyWithMetadataObject,
         type_provider: &P,
-    ) -> Result<(), Report<TraversalError>>
+    ) -> Result<(), Report<[TraversalError]>>
     where
         T: PropertyObjectSchema<Value = ValueOrArray<PropertyTypeReference>> + Sync,
         P: DataTypeProvider + PropertyTypeProvider + Sync,
     {
-        let mut status = walk_object(self, schema, object, type_provider).await;
+        let mut status = ReportSink::new();
+        if let Err(error) = walk_object(self, schema, object, type_provider).await {
+            status.append(error);
+        }
 
         if self.components.required_properties {
             for required_property in schema.required() {
                 if !object.value.contains_key(required_property) {
-                    extend_report!(
-                        status,
-                        TraversalError::MissingRequiredProperty {
-                            key: required_property.clone(),
-                        }
-                    );
+                    status.capture(TraversalError::MissingRequiredProperty {
+                        key: required_property.clone(),
+                    });
                 }
             }
         }
 
-        status
+        status.finish()
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::{tests::validate_entity, ValidateEntityComponents};
+    use crate::{ValidateEntityComponents, tests::validate_entity};
 
     #[tokio::test]
     async fn address() {

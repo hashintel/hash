@@ -1,7 +1,7 @@
 use authorization::schema::{
     DataTypeRelationAndSubject, EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject,
 };
-use graph_types::{ontology::OntologyType, Embedding};
+use graph_types::{Embedding, ontology::OntologyType};
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{Timestamp, TransactionTime};
 use type_system::{

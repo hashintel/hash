@@ -149,8 +149,8 @@ mod test {
         protocol::{Protocol, ProtocolVersion},
         request::id::test_utils::mock_request_id,
         response::{
-            begin::ResponseBegin, body::ResponseBody, flags::ResponseFlag, frame::ResponseFrame,
-            kind::ResponseKind, Response,
+            Response, begin::ResponseBegin, body::ResponseBody, flags::ResponseFlag,
+            frame::ResponseFrame, kind::ResponseKind,
         },
     };
 

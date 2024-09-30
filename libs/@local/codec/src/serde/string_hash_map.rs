@@ -40,8 +40,8 @@ use core::{
 use std::collections::HashMap;
 
 use serde::{
-    de::{self, Deserialize, DeserializeSeed, Deserializer, MapAccess, Visitor},
     Serialize, Serializer,
+    de::{self, Deserialize, DeserializeSeed, Deserializer, MapAccess, Visitor},
 };
 
 use crate::serde::size_hint;

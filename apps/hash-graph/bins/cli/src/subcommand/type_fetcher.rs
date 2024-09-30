@@ -2,7 +2,7 @@ use core::time::Duration;
 
 use clap::Parser;
 use error_stack::{Result, ResultExt};
-use futures::{future, StreamExt};
+use futures::{StreamExt, future};
 use tarpc::{
     serde_transport::Transport,
     server::{self, Channel},

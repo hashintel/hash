@@ -2,11 +2,11 @@ use alloc::sync::Arc;
 
 use hql_cst::arena::Arena;
 use hql_diagnostics::Diagnostic;
-use hql_span::{storage::SpanStorage, SpanId};
+use hql_span::{SpanId, storage::SpanStorage};
 
 use super::error::unexpected_eof;
 use crate::{
-    lexer::{token::Token, Lexer},
+    lexer::{Lexer, token::Token},
     span::Span,
 };
 

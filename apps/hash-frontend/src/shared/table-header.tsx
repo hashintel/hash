@@ -109,6 +109,7 @@ const NoMaxWidthTooltip = styled(({ className, ...props }: TooltipProps) => (
 export type FilterState = {
   includeArchived?: boolean;
   includeGlobal: boolean;
+  limitToWebs: string[] | false;
 };
 
 export type GetAdditionalCsvDataFunction = () => Promise<{

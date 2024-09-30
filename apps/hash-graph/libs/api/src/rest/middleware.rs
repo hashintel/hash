@@ -4,7 +4,7 @@ use core::{net::SocketAddr, time::Duration};
 use axum::{
     body::Body,
     extract::{ConnectInfo, MatchedPath, OriginalUri},
-    http::{self, uri::Scheme, Request},
+    http::{self, Request, uri::Scheme},
     response::Response,
 };
 use hyper::header;

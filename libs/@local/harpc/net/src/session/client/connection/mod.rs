@@ -7,16 +7,16 @@ use alloc::sync::Arc;
 
 use bytes::Bytes;
 use error_stack::Report;
-use futures::{prelude::future::FutureExt, Sink, Stream, StreamExt};
+use futures::{Sink, Stream, StreamExt, prelude::future::FutureExt};
 use harpc_wire_protocol::{
-    request::{procedure::ProcedureDescriptor, service::ServiceDescriptor, Request},
+    request::{Request, procedure::ProcedureDescriptor, service::ServiceDescriptor},
     response::Response,
 };
 use scc::ebr::Guard;
 use tachyonix::SendTimeoutError;
 use tokio::{
     io, pin, select,
-    sync::{mpsc, Notify},
+    sync::{Notify, mpsc},
     task::AbortHandle,
 };
 use tokio_stream::wrappers::ReceiverStream;

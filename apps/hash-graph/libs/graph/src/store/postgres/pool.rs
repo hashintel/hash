@@ -7,12 +7,12 @@ use deadpool_postgres::{
 use error_stack::{Report, ResultExt};
 use temporal_client::TemporalClient;
 use tokio_postgres::{
-    tls::{MakeTlsConnect, TlsConnect},
     Client, GenericClient, Socket, Transaction,
+    tls::{MakeTlsConnect, TlsConnect},
 };
 
 use crate::store::{
-    config::DatabasePoolConfig, DatabaseConnectionInfo, PostgresStore, StoreError, StorePool,
+    DatabaseConnectionInfo, PostgresStore, StoreError, StorePool, config::DatabasePoolConfig,
 };
 
 pub struct PostgresStorePool {

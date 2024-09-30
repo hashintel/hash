@@ -1,5 +1,5 @@
 use deer::Deserialize;
-use deer_desert::{assert_tokens, assert_tokens_error, error, Token};
+use deer_desert::{Token, assert_tokens, assert_tokens_error, error};
 use proptest::prelude::*;
 use seq_macro::seq;
 use serde_json::json;
@@ -97,12 +97,9 @@ fn tuple_too_many_items_err() {
 
 #[test]
 fn tuple_fallback_to_default_ok() {
-    assert_tokens(
-        &(Some(12_u8), None::<u16>),
-        &[
-            Token::Array { length: Some(1) },
-            Token::Number(12.into()),
-            Token::ArrayEnd,
-        ],
-    );
+    assert_tokens(&(Some(12_u8), None::<u16>), &[
+        Token::Array { length: Some(1) },
+        Token::Number(12.into()),
+        Token::ArrayEnd,
+    ]);
 }

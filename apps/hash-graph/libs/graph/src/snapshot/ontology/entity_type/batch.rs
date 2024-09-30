@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use authorization::{
-    backend::ZanzibarBackend, schema::EntityTypeRelationAndSubject, AuthorizationApi,
+    AuthorizationApi, backend::ZanzibarBackend, schema::EntityTypeRelationAndSubject,
 };
 use error_stack::{Result, ResultExt};
 use futures::TryStreamExt;
@@ -14,12 +14,12 @@ use type_system::schema::EntityType;
 use crate::{
     snapshot::WriteBatch,
     store::{
+        AsClient, InsertionError, PostgresStore,
         postgres::query::rows::{
             EntityTypeConstrainsLinkDestinationsOnRow, EntityTypeConstrainsLinksOnRow,
             EntityTypeConstrainsPropertiesOnRow, EntityTypeEmbeddingRow, EntityTypeInheritsFromRow,
             EntityTypeRow,
         },
-        AsClient, InsertionError, PostgresStore,
     },
 };
 
@@ -229,10 +229,8 @@ where
         let schemas = postgres_client
             .as_client()
             .client()
-            .query_raw(
-                "SELECT ontology_id, schema FROM entity_types_tmp",
-                [] as [&(dyn ToSql + Sync); 0],
-            )
+            .query_raw("SELECT ontology_id, schema FROM entity_types_tmp", []
+                as [&(dyn ToSql + Sync); 0])
             .await
             .change_context(InsertionError)?
             .map_ok(|row| {

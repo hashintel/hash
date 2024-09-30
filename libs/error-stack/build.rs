@@ -1,6 +1,6 @@
 use std::process::exit;
 
-use rustc_version::{version_meta, Channel, Version};
+use rustc_version::{Channel, Version, version_meta};
 
 fn main() {
     let version_meta = version_meta().expect("Could not get Rust version");
@@ -25,5 +25,9 @@ fn main() {
     println!("cargo:rustc-check-cfg=cfg(rust_1_81)");
     if trimmed_rustc_version >= Version::new(1, 81, 0) {
         println!("cargo:rustc-cfg=rust_1_81");
+    }
+
+    if cfg!(feature = "futures") && !cfg!(feature = "unstable") {
+        println!("cargo:warning=The `futures` feature requires the `unstable` feature.");
     }
 }

@@ -4,21 +4,21 @@ use std::io;
 use error_stack::{Report, ResultExt};
 use futures::{Stream, StreamExt, TryStreamExt};
 use reqwest::Response;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use tokio::time::sleep;
 use tokio_util::{codec::FramedRead, io::StreamReader};
 
 use crate::{
     backend::{
-        spicedb::model::{self, Permissionship, RpcError},
         BulkCheckItem, BulkCheckResponse, CheckError, CheckResponse, DeleteRelationshipError,
         DeleteRelationshipResponse, ExportSchemaError, ExportSchemaResponse, ImportSchemaError,
         ImportSchemaResponse, ModifyRelationshipError, ModifyRelationshipOperation,
         ModifyRelationshipResponse, ReadError, SpiceDbOpenApi, ZanzibarBackend,
+        spicedb::model::{self, Permissionship, RpcError},
     },
     zanzibar::{
-        types::{Relationship, RelationshipFilter, Resource, Subject},
         Consistency, Permission,
+        types::{Relationship, RelationshipFilter, Resource, Subject},
     },
 };
 
@@ -576,12 +576,9 @@ impl ZanzibarBackend for SpiceDbOpenApi {
             deleted_at: model::ZedToken,
         }
 
-        self.call::<Response>(
-            "/v1/relationships/delete",
-            &DeleteRelationshipsRequest {
-                relationship_filter: filter,
-            },
-        )
+        self.call::<Response>("/v1/relationships/delete", &DeleteRelationshipsRequest {
+            relationship_filter: filter,
+        })
         .await
         .map(|response| DeleteRelationshipResponse {
             deleted_at: response.deleted_at.into(),

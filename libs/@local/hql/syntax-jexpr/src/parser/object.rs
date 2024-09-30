@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
 use core::assert_matches::debug_assert_matches;
 
-use hql_diagnostics::{help::Help, note::Note, Diagnostic};
+use hql_diagnostics::{Diagnostic, help::Help, note::Note};
 use hql_span::{SpanId, TextRange};
 
 use super::stream::TokenStream;
@@ -59,10 +59,10 @@ pub(crate) fn parse_object<'arena, 'source>(
                 parent_id: None,
             });
 
-            return Err(unexpected_token(
-                span,
-                [SyntaxKind::Comma, SyntaxKind::RBrace],
-            ));
+            return Err(unexpected_token(span, [
+                SyntaxKind::Comma,
+                SyntaxKind::RBrace,
+            ]));
         };
 
         let key_span = key.span;

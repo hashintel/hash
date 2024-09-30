@@ -3,7 +3,7 @@
 use serde_json::json;
 use uuid::Uuid;
 
-use crate::{tests::validate_data, ValidateEntityComponents};
+use crate::{ValidateEntityComponents, tests::validate_data};
 
 #[tokio::test]
 async fn null() {
@@ -45,7 +45,8 @@ async fn integer() {
         "kind": "dataType",
         "$id": "https://localhost:4000/@alice/types/data-type/integer/v/1",
         "title": "Integer",
-        "type": "integer"
+        "type": "number",
+        "multipleOf": 1,
     }))
     .expect("failed to serialize temperature unit type");
 

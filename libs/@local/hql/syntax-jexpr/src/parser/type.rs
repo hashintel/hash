@@ -1,16 +1,16 @@
 use hql_cst::r#type::{Type, TypeKind};
 use winnow::{
+    PResult, Parser, Stateful,
     combinator::{alt, delimited, preceded, repeat},
     error::ParserError,
     stream::{AsChar, Compare, Location, Stream, StreamIsPartial},
-    PResult, Parser, Stateful,
 };
 
 use super::{
+    IntoTextRange,
     path::parse_path,
     string::{self, ParseState},
     symbol::ParseRestriction,
-    IntoTextRange,
 };
 use crate::span::Span;
 
@@ -182,8 +182,8 @@ mod test {
     use hql_span::storage::SpanStorage;
     use insta::assert_snapshot;
     use winnow::{
-        error::{ContextError, ErrMode, ParseError},
         Located, Parser, Stateful,
+        error::{ContextError, ErrMode, ParseError},
     };
 
     use super::Type;

@@ -3,20 +3,20 @@ use alloc::sync::Arc;
 use futures::{FutureExt, StreamExt};
 use tokio::{
     select,
-    sync::{broadcast, mpsc, Semaphore, TryAcquireError},
+    sync::{Semaphore, TryAcquireError, broadcast, mpsc},
 };
 use tokio_util::{sync::CancellationToken, task::TaskTracker};
 
 use super::{
-    connection::collection::TransactionCollection, session_id::SessionIdProducer,
-    transaction::Transaction, SessionConfig, SessionEvent,
+    SessionConfig, SessionEvent, connection::collection::TransactionCollection,
+    session_id::SessionIdProducer, transaction::Transaction,
 };
 use crate::{
     codec::ErrorEncoder,
     session::server::connection::ConnectionTask,
     transport::{
-        connection::{IncomingConnection, IncomingConnections},
         TransportLayer,
+        connection::{IncomingConnection, IncomingConnections},
     },
 };
 

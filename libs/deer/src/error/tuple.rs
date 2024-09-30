@@ -81,18 +81,18 @@ macro_rules! properties {
             fn output<S>(
                 value: Self::Value<'_>,
                 map: &mut S,
-            ) -> error_stack::Result<(), SerdeSerializeError>
+            ) -> error_stack::Result<(), [SerdeSerializeError]>
             where
                 S: SerializeMap,
             {
                 let ($($elem,)*) = value;
-                let mut errors: Option<Report<SerdeSerializeError>> = None;
+                let mut errors: Option<Report<[SerdeSerializeError]>> = None;
 
                 $(
                     if let Err(error) = $elem::output($elem, map) {
                         match &mut errors {
                             Some(errors) => {
-                                errors.extend_one(error);
+                                errors.append(error);
                             }
                             errors => *errors = Some(error),
                         }
@@ -112,7 +112,7 @@ impl ErrorProperties for () {
 
     fn value<'a>(_: &[&'a Frame]) -> Self::Value<'a> {}
 
-    fn output<S>((): Self::Value<'_>, _: &mut S) -> error_stack::Result<(), SerdeSerializeError>
+    fn output<S>((): Self::Value<'_>, _: &mut S) -> error_stack::Result<(), [SerdeSerializeError]>
     where
         S: SerializeMap,
     {

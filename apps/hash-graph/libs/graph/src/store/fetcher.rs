@@ -4,13 +4,13 @@ use std::collections::{HashMap, HashSet};
 
 use async_trait::async_trait;
 use authorization::{
+    AuthorizationApi,
     schema::{
         DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
         EntityTypeInstantiatorSubject, EntityTypeRelationAndSubject, EntityTypeViewerSubject,
         PropertyTypeRelationAndSubject, PropertyTypeViewerSubject, WebOwnerSubject,
     },
     zanzibar::Consistency,
-    AuthorizationApi,
 };
 use error_stack::{Report, Result, ResultExt};
 use graph_types::{
@@ -25,6 +25,7 @@ use graph_types::{
     owned_by_id::OwnedById,
 };
 use hash_graph_store::{
+    ConflictBehavior,
     account::{
         AccountGroupInsertionError, AccountInsertionError, AccountStore,
         InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams, QueryWebError,
@@ -35,7 +36,6 @@ use hash_graph_store::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
         VariableTemporalAxisUnresolved,
     },
-    ConflictBehavior,
 };
 use tarpc::context;
 use temporal_client::TemporalClient;
@@ -50,6 +50,8 @@ use type_system::{
 use crate::{
     ontology::domain_validator::DomainValidator,
     store::{
+        DataTypeStore, EntityStore, EntityTypeStore, InsertionError, PropertyTypeStore, QueryError,
+        StoreError, StorePool, UpdateError,
         crud::{QueryResult, Read, ReadPaginated, Sorting},
         knowledge::{
             CountEntitiesParams, CreateEntityParams, GetEntitiesParams, GetEntitiesResponse,
@@ -68,8 +70,6 @@ use crate::{
             UpdateDataTypeEmbeddingParams, UpdateDataTypesParams, UpdateEntityTypeEmbeddingParams,
             UpdateEntityTypesParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
         },
-        DataTypeStore, EntityStore, EntityTypeStore, InsertionError, PropertyTypeStore, QueryError,
-        StoreError, StorePool, UpdateError,
     },
 };
 
@@ -261,58 +261,49 @@ where
         match ontology_type_reference {
             OntologyTypeReference::DataTypeReference(_) => self
                 .store
-                .get_data_types(
-                    actor_id,
-                    GetDataTypesParams {
-                        filter: Filter::for_versioned_url(url),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
-                        after: None,
-                        limit: None,
-                        include_drafts: true,
-                        include_count: false,
+                .get_data_types(actor_id, GetDataTypesParams {
+                    filter: Filter::for_versioned_url(url),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
-                )
+                    after: None,
+                    limit: None,
+                    include_drafts: true,
+                    include_count: false,
+                })
                 .await
                 .map(|response| !response.data_types.is_empty()),
             OntologyTypeReference::PropertyTypeReference(_) => self
                 .store
-                .get_property_types(
-                    actor_id,
-                    GetPropertyTypesParams {
-                        filter: Filter::for_versioned_url(url),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
-                        after: None,
-                        limit: None,
-                        include_drafts: true,
-                        include_count: false,
+                .get_property_types(actor_id, GetPropertyTypesParams {
+                    filter: Filter::for_versioned_url(url),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
-                )
+                    after: None,
+                    limit: None,
+                    include_drafts: true,
+                    include_count: false,
+                })
                 .await
                 .map(|response| !response.property_types.is_empty()),
             OntologyTypeReference::EntityTypeReference(_) => self
                 .store
-                .get_entity_types(
-                    actor_id,
-                    GetEntityTypesParams {
-                        filter: Filter::for_versioned_url(url),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
-                        after: None,
-                        limit: None,
-                        include_drafts: true,
-                        include_count: false,
-                        include_web_ids: false,
-                        include_edition_created_by_ids: false,
+                .get_entity_types(actor_id, GetEntityTypesParams {
+                    filter: Filter::for_versioned_url(url),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
-                )
+                    after: None,
+                    limit: None,
+                    include_drafts: true,
+                    include_count: false,
+                    include_web_ids: false,
+                    include_edition_created_by_ids: false,
+                })
                 .await
                 .map(|response| !response.entity_types.is_empty()),
         }
@@ -456,7 +447,11 @@ where
                         };
 
                         for referenced_ontology_type in self
-                            .collect_external_ontology_types(actor_id, &entity_type, bypassed_types)
+                            .collect_external_ontology_types(
+                                actor_id,
+                                &*entity_type,
+                                bypassed_types,
+                            )
                             .await
                             .change_context(StoreError)?
                         {
@@ -468,7 +463,7 @@ where
 
                         fetched_ontology_types
                             .entity_types
-                            .push((entity_type, metadata));
+                            .push((*entity_type, metadata));
                     }
                 }
             }

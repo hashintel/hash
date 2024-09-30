@@ -6,12 +6,12 @@ use uuid::Uuid;
 
 use crate::{
     schema::{
-        error::{InvalidRelationship, InvalidResource},
         PublicAccess,
+        error::{InvalidRelationship, InvalidResource},
     },
     zanzibar::{
-        types::{LeveledRelation, Relationship, RelationshipParts, Resource},
         Permission, Relation,
+        types::{LeveledRelation, Relationship, RelationshipParts, Resource},
     },
 };
 
@@ -159,29 +159,26 @@ impl Relationship for (DataTypeId, DataTypeRelationAndSubject) {
     type SubjectSet = !;
 
     fn from_parts(parts: RelationshipParts<Self>) -> Result<Self, impl Error> {
-        Ok((
-            parts.resource,
-            match parts.relation.name {
-                DataTypeResourceRelation::Owner => DataTypeRelationAndSubject::Owner {
-                    subject: match (parts.subject, parts.subject_set) {
-                        (DataTypeSubject::Web(id), None) => DataTypeOwnerSubject::Web { id },
-                        (DataTypeSubject::Public, None) => {
-                            return Err(InvalidRelationship::<Self>::invalid_subject(parts));
-                        }
-                    },
-                    level: parts.relation.level,
+        Ok((parts.resource, match parts.relation.name {
+            DataTypeResourceRelation::Owner => DataTypeRelationAndSubject::Owner {
+                subject: match (parts.subject, parts.subject_set) {
+                    (DataTypeSubject::Web(id), None) => DataTypeOwnerSubject::Web { id },
+                    (DataTypeSubject::Public, None) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject(parts));
+                    }
                 },
-                DataTypeResourceRelation::Viewer => DataTypeRelationAndSubject::Viewer {
-                    subject: match (parts.subject, parts.subject_set) {
-                        (DataTypeSubject::Public, None) => DataTypeViewerSubject::Public,
-                        (DataTypeSubject::Web(_), None) => {
-                            return Err(InvalidRelationship::<Self>::invalid_subject(parts));
-                        }
-                    },
-                    level: parts.relation.level,
-                },
+                level: parts.relation.level,
             },
-        ))
+            DataTypeResourceRelation::Viewer => DataTypeRelationAndSubject::Viewer {
+                subject: match (parts.subject, parts.subject_set) {
+                    (DataTypeSubject::Public, None) => DataTypeViewerSubject::Public,
+                    (DataTypeSubject::Web(_), None) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject(parts));
+                    }
+                },
+                level: parts.relation.level,
+            },
+        }))
     }
 
     fn to_parts(&self) -> RelationshipParts<Self> {

@@ -4,8 +4,8 @@ use core::{
 };
 
 use serde::{
-    de::{self, Deserializer, SeqAccess, Visitor},
     Deserialize, Serialize,
+    de::{self, Deserializer, SeqAccess, Visitor},
 };
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
@@ -13,8 +13,8 @@ use utoipa::ToSchema;
 use crate::{
     entity::EntityQueryPath,
     filter::{
-        parse_query_token, JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath,
-        Selector,
+        JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath, Selector,
+        parse_query_token,
     },
     property_type::{PropertyTypeQueryPath, PropertyTypeQueryPathVisitor},
     subgraph::edges::{EdgeDirection, OntologyEdgeKind, SharedEdgeKind},
@@ -279,15 +279,12 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use hash_graph_store::entity_type::EntityTypeQueryPath;
     /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path = EntityTypeQueryPath::deserialize(json!(["inheritsFrom", "*", "baseUrl"]))?;
-    /// assert_eq!(
-    ///     path,
-    ///     EntityTypeQueryPath::EntityTypeEdge {
-    ///         edge_kind: OntologyEdgeKind::InheritsFrom,
-    ///         path: Box::new(EntityTypeQueryPath::BaseUrl),
-    ///         direction: EdgeDirection::Outgoing,
-    ///         inheritance_depth: None,
-    ///     }
-    /// );
+    /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
+    ///     edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
+    ///     direction: EdgeDirection::Outgoing,
+    ///     inheritance_depth: None,
+    /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -299,15 +296,12 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use hash_graph_store::entity_type::EntityTypeQueryPath;
     /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path = EntityTypeQueryPath::deserialize(json!(["children", "*", "baseUrl"]))?;
-    /// assert_eq!(
-    ///     path,
-    ///     EntityTypeQueryPath::EntityTypeEdge {
-    ///         edge_kind: OntologyEdgeKind::InheritsFrom,
-    ///         path: Box::new(EntityTypeQueryPath::BaseUrl),
-    ///         direction: EdgeDirection::Incoming,
-    ///         inheritance_depth: None,
-    ///     }
-    /// );
+    /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
+    ///     edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
+    ///     direction: EdgeDirection::Incoming,
+    ///     inheritance_depth: None,
+    /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -325,15 +319,12 @@ pub enum EntityTypeQueryPath<'p> {
     ///     "*",
     ///     "baseUrl"
     /// ]))?;
-    /// assert_eq!(
-    ///     path,
-    ///     EntityTypeQueryPath::EntityTypeEdge {
-    ///         edge_kind: OntologyEdgeKind::InheritsFrom,
-    ///         path: Box::new(EntityTypeQueryPath::BaseUrl),
-    ///         direction: EdgeDirection::Outgoing,
-    ///         inheritance_depth: Some(10),
-    ///     }
-    /// );
+    /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
+    ///     edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
+    ///     direction: EdgeDirection::Outgoing,
+    ///     inheritance_depth: Some(10),
+    /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -346,15 +337,12 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path =
     ///     EntityTypeQueryPath::deserialize(json!(["children(inheritanceDepth=10)", "*", "baseUrl"]))?;
-    /// assert_eq!(
-    ///     path,
-    ///     EntityTypeQueryPath::EntityTypeEdge {
-    ///         edge_kind: OntologyEdgeKind::InheritsFrom,
-    ///         path: Box::new(EntityTypeQueryPath::BaseUrl),
-    ///         direction: EdgeDirection::Incoming,
-    ///         inheritance_depth: Some(10),
-    ///     }
-    /// );
+    /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
+    ///     edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
+    ///     direction: EdgeDirection::Incoming,
+    ///     inheritance_depth: Some(10),
+    /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -376,15 +364,12 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use hash_graph_store::entity_type::EntityTypeQueryPath;
     /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path = EntityTypeQueryPath::deserialize(json!(["links", "*", "baseUrl"]))?;
-    /// assert_eq!(
-    ///     path,
-    ///     EntityTypeQueryPath::EntityTypeEdge {
-    ///         edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
-    ///         path: Box::new(EntityTypeQueryPath::BaseUrl),
-    ///         direction: EdgeDirection::Outgoing,
-    ///         inheritance_depth: None,
-    ///     }
-    /// );
+    /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
+    ///     edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
+    ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
+    ///     direction: EdgeDirection::Outgoing,
+    ///     inheritance_depth: None,
+    /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -399,15 +384,12 @@ pub enum EntityTypeQueryPath<'p> {
     /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path =
     ///     EntityTypeQueryPath::deserialize(json!(["links(inheritanceDepth=10)", "*", "baseUrl"]))?;
-    /// assert_eq!(
-    ///     path,
-    ///     EntityTypeQueryPath::EntityTypeEdge {
-    ///         edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
-    ///         path: Box::new(EntityTypeQueryPath::BaseUrl),
-    ///         direction: EdgeDirection::Outgoing,
-    ///         inheritance_depth: Some(10),
-    ///     }
-    /// );
+    /// assert_eq!(path, EntityTypeQueryPath::EntityTypeEdge {
+    ///     edge_kind: OntologyEdgeKind::ConstrainsLinksOn,
+    ///     path: Box::new(EntityTypeQueryPath::BaseUrl),
+    ///     direction: EdgeDirection::Outgoing,
+    ///     inheritance_depth: Some(10),
+    /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///

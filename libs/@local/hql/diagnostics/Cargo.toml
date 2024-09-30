@@ -11,7 +11,7 @@ authors.workspace = true
 [dependencies]
 # Public workspace dependencies
 hql-span = { workspace = true, public = true }
-error-stack = { workspace = true, public = true }
+error-stack = { workspace = true, public = true, features = ["unstable"]}
 
 # Public third-party dependencies
 anstyle = { workspace = true, public = true }

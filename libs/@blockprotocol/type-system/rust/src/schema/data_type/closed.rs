@@ -1,12 +1,17 @@
 use alloc::sync::Arc;
-use std::collections::HashMap;
+use core::cmp;
+use std::collections::{HashMap, hash_map::RawEntryMut};
 
 use serde::{Deserialize, Serialize};
 
-use crate::{schema::DataType, url::VersionedUrl, Valid};
+use crate::{
+    Valid,
+    schema::{DataType, data_type::DataTypeEdge},
+    url::VersionedUrl,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+// #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 pub struct ClosedDataType {
     #[serde(flatten)]
     pub schema: Arc<DataType>,
@@ -25,4 +30,21 @@ impl ClosedDataType {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ClosedDataTypeMetadata {
     pub inheritance_depths: HashMap<VersionedUrl, u32>,
+}
+
+impl ClosedDataTypeMetadata {
+    pub fn add_edge(&mut self, edge: DataTypeEdge, target: &VersionedUrl, depth: u32) {
+        match edge {
+            DataTypeEdge::Inheritance => {
+                match self.inheritance_depths.raw_entry_mut().from_key(target) {
+                    RawEntryMut::Occupied(mut entry) => {
+                        *entry.get_mut() = cmp::min(depth, *entry.get());
+                    }
+                    RawEntryMut::Vacant(entry) => {
+                        entry.insert(target.clone(), depth);
+                    }
+                }
+            }
+        }
+    }
 }

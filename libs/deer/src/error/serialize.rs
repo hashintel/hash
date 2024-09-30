@@ -9,8 +9,8 @@ use core::{
 
 use error_stack::{Context, Frame, Report};
 use serde::{
-    ser::{Error as _, SerializeMap},
     Serialize, Serializer,
+    ser::{Error as _, SerializeMap},
 };
 
 use crate::error::{Error, ErrorProperties, Id, Namespace, Variant};
@@ -134,7 +134,7 @@ struct FrameSplitIterator<'a> {
 }
 
 impl<'a> FrameSplitIterator<'a> {
-    fn new(report: &'a Report<impl Context>) -> Self {
+    fn new(report: &'a Report<[impl Context]>) -> Self {
         let stack = report
             .current_frames()
             .iter()
@@ -198,7 +198,7 @@ fn divide_frames<'a>(
 }
 
 fn serialize_report<S: Serializer>(
-    report: &Report<impl Context>,
+    report: &Report<[impl Context]>,
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
     let frames = FrameSplitIterator::new(report);
@@ -254,10 +254,10 @@ pub(super) fn impl_serialize<'a, E: Variant>(
 ///
 /// These types can then be used to generate a personalized message and will be attached to
 /// `properties` with the predefined key.
-pub struct Export<C: Context>(Report<C>);
+pub struct Export<C: Context>(Report<[C]>);
 
 impl<C: Context> Export<C> {
-    pub(crate) const fn new(report: Report<C>) -> Self {
+    pub(crate) const fn new(report: Report<[C]>) -> Self {
         Self(report)
     }
 }
@@ -282,14 +282,14 @@ mod tests {
     use similar_asserts::assert_serde_eq;
 
     use crate::{
+        Deserialize, Number, Reflection,
         error::{
-            serialize::{divide_frames, FrameSplitIterator},
-            Error, ErrorProperties, ExpectedType, Id, Location, MissingError, Namespace,
-            ReceivedValue, ReportExt, ValueError, Variant, VisitorError, NAMESPACE,
+            Error, ErrorProperties, ExpectedType, Id, Location, MissingError, NAMESPACE, Namespace,
+            ReceivedValue, ReportExt, ValueError, Variant, VisitorError,
+            serialize::{FrameSplitIterator, divide_frames},
         },
         id,
         schema::visitor::StringSchema,
-        Deserialize, Number, Reflection,
     };
 
     #[derive(Debug)]
@@ -347,17 +347,17 @@ mod tests {
     fn split() {
         let report_f = Report::new(Root).attach_printable(Printable("F"));
         let report_e = Report::new(Root).attach_printable(Printable("E"));
-        let mut report_d = Report::new(Root).attach_printable(Printable("D"));
+        let mut report_d = Report::new(Root).attach_printable(Printable("D")).expand();
 
-        report_d.extend_one(report_e);
+        report_d.push(report_e);
 
         let mut report_b = report_d.attach_printable(Printable("B"));
         let report_c = report_f.attach_printable(Printable("C"));
 
         let report_g = Report::new(Root).attach_printable(Printable("G"));
 
-        report_b.extend_one(report_c);
-        report_b.extend_one(report_g);
+        report_b.push(report_c);
+        report_b.push(report_g);
 
         let report_a = report_b.attach_printable(Printable("A"));
 
@@ -436,13 +436,14 @@ mod tests {
         let mut report_d = Report::new(Error::new(ErrorZ))
             .attach_printable(Printable("D"))
             .change_context(Error::new(ErrorZ))
-            .change_context(ErrorY);
+            .change_context(ErrorY)
+            .expand();
 
         let report_e = Report::new(ErrorY)
             .change_context(Error::new(ErrorZ))
             .attach_printable(Printable("E"))
             .change_context(ErrorY);
-        report_d.extend_one(report_e);
+        report_d.push(report_e);
 
         let mut report_b = report_d.attach_printable(Printable("B"));
 
@@ -458,9 +459,9 @@ mod tests {
 
         let report_h = Report::new(ErrorY).attach_printable(Printable("H"));
 
-        report_b.extend_one(report_c);
-        report_b.extend_one(report_g);
-        report_b.extend_one(report_h);
+        report_b.push(report_c);
+        report_b.push(report_g);
+        report_b.push(report_h);
 
         let report_a = report_b.attach_printable(Printable("A"));
 
@@ -476,10 +477,9 @@ mod tests {
         // [A, G, Y Error, Z Error]
         // [A, G, Y Error, Z Error, Z Error]
         assert_stack(&stacks[0], &["A", "B", "Y Error", "Z Error"]);
-        assert_stack(
-            &stacks[1],
-            &["A", "B", "Y Error", "Z Error", "D", "Z Error"],
-        );
+        assert_stack(&stacks[1], &[
+            "A", "B", "Y Error", "Z Error", "D", "Z Error",
+        ]);
         assert_stack(&stacks[2], &["A", "B", "Y Error", "E", "Z Error"]);
         assert_stack(&stacks[3], &["A", "C", "Y Error", "F", "Z Error"]);
         assert_stack(&stacks[4], &["A", "G", "Y Error", "Z Error"]);
@@ -488,7 +488,7 @@ mod tests {
 
     #[test]
     fn divide_ignore() {
-        let report = Report::new(ErrorY).attach(Printable("A"));
+        let report = Report::new(ErrorY).attach(Printable("A")).expand();
         let split = FrameSplitIterator::new(&report);
         let frames = divide_frames(split);
 
@@ -502,16 +502,16 @@ mod tests {
             .attach_printable(Printable("B"))
             .change_context(Error::new(ErrorZ))
             .attach_printable(Printable("C"))
-            .attach_printable(Printable("D"));
+            .attach_printable(Printable("D"))
+            .expand();
 
         let split = FrameSplitIterator::new(&report);
         let mut frames = divide_frames(split).into_iter();
 
         assert_stack(&frames.next().expect("first chain"), &["D", "C", "Z Error"]);
-        assert_stack(
-            &frames.next().expect("second chain"),
-            &["D", "C", "Z Error", "B", "A", "Z Error"],
-        );
+        assert_stack(&frames.next().expect("second chain"), &[
+            "D", "C", "Z Error", "B", "A", "Z Error",
+        ]);
     }
 
     #[test]
@@ -560,7 +560,8 @@ mod tests {
         let mut missing = Report::new(Error::new(MissingError))
             .attach(ExpectedType::new(StringSchema::document()))
             .attach(Location::Field("b"))
-            .change_context(VisitorError);
+            .change_context(VisitorError)
+            .expand();
 
         let value = Report::new(Error::new(ValueError))
             .attach(ReceivedValue::new(256_u16))
@@ -568,7 +569,7 @@ mod tests {
             .attach(Location::Field("a"))
             .change_context(VisitorError);
 
-        missing.extend_one(value);
+        missing.push(value);
 
         let report = missing.attach(Location::Array(0));
 

@@ -144,6 +144,7 @@ mod test {
         payload::Payload,
         protocol::{Protocol, ProtocolVersion},
         request::{
+            Request,
             begin::RequestBegin,
             body::RequestBody,
             flags::{RequestFlag, RequestFlags},
@@ -151,7 +152,6 @@ mod test {
             header::RequestHeader,
             procedure::ProcedureDescriptor,
             service::ServiceDescriptor,
-            Request,
         },
     };
 

@@ -4,5 +4,6 @@
   "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
   "title": "Boolean",
   "description": "A True or False value",
-  "type": "boolean"
+  "type": "boolean",
+  "abstract": false
 }

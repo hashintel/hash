@@ -4,16 +4,16 @@ use core::{
 };
 
 use serde::{
-    de::{self, Deserializer, SeqAccess, Visitor},
     Deserialize, Serialize,
+    de::{self, Deserializer, SeqAccess, Visitor},
 };
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 
 use crate::{
     filter::{
-        parse_query_token, JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath,
-        Selector,
+        JsonPath, OntologyQueryPath, ParameterType, PathToken, QueryPath, Selector,
+        parse_query_token,
     },
     property_type::PropertyTypeQueryPath,
     subgraph::edges::{EdgeDirection, OntologyEdgeKind},
@@ -126,7 +126,7 @@ pub enum DataTypeQueryPath<'p> {
     ///
     /// [`DataType::title()`]: type_system::schema::DataType::title
     Title,
-    /// Corresponds to [`DataType::description()`]
+    /// Corresponds to [`DataType`]'s description.
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -137,9 +137,9 @@ pub enum DataTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`DataType::description()`]: type_system::schema::DataType::description
+    /// [`DataType`]: type_system::schema::DataType
     Description,
-    /// Corresponds to [`DataType::json_type()`].
+    /// Corresponds to [`DataType`]'s type.
     ///
     /// ```rust
     /// # use serde::Deserialize;
@@ -150,7 +150,7 @@ pub enum DataTypeQueryPath<'p> {
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
-    /// [`DataType::json_type()`]: type_system::schema::DataType::json_type
+    /// [`DataType`]: type_system::schema::DataType
     Type,
     /// Only used internally and not available for deserialization.
     OntologyId,
@@ -184,15 +184,12 @@ pub enum DataTypeQueryPath<'p> {
     /// # use hash_graph_store::data_type::DataTypeQueryPath;
     /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path = DataTypeQueryPath::deserialize(json!(["inheritsFrom", "*", "baseUrl"]))?;
-    /// assert_eq!(
-    ///     path,
-    ///     DataTypeQueryPath::DataTypeEdge {
-    ///         edge_kind: OntologyEdgeKind::InheritsFrom,
-    ///         path: Box::new(DataTypeQueryPath::BaseUrl),
-    ///         direction: EdgeDirection::Outgoing,
-    ///         inheritance_depth: None,
-    ///     }
-    /// );
+    /// assert_eq!(path, DataTypeQueryPath::DataTypeEdge {
+    ///     edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///     path: Box::new(DataTypeQueryPath::BaseUrl),
+    ///     direction: EdgeDirection::Outgoing,
+    ///     inheritance_depth: None,
+    /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -204,15 +201,12 @@ pub enum DataTypeQueryPath<'p> {
     /// # use hash_graph_store::data_type::DataTypeQueryPath;
     /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path = DataTypeQueryPath::deserialize(json!(["children", "*", "baseUrl"]))?;
-    /// assert_eq!(
-    ///     path,
-    ///     DataTypeQueryPath::DataTypeEdge {
-    ///         edge_kind: OntologyEdgeKind::InheritsFrom,
-    ///         path: Box::new(DataTypeQueryPath::BaseUrl),
-    ///         direction: EdgeDirection::Incoming,
-    ///         inheritance_depth: None,
-    ///     }
-    /// );
+    /// assert_eq!(path, DataTypeQueryPath::DataTypeEdge {
+    ///     edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///     path: Box::new(DataTypeQueryPath::BaseUrl),
+    ///     direction: EdgeDirection::Incoming,
+    ///     inheritance_depth: None,
+    /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -230,15 +224,12 @@ pub enum DataTypeQueryPath<'p> {
     ///     "*",
     ///     "baseUrl"
     /// ]))?;
-    /// assert_eq!(
-    ///     path,
-    ///     DataTypeQueryPath::DataTypeEdge {
-    ///         edge_kind: OntologyEdgeKind::InheritsFrom,
-    ///         path: Box::new(DataTypeQueryPath::BaseUrl),
-    ///         direction: EdgeDirection::Outgoing,
-    ///         inheritance_depth: Some(10),
-    ///     }
-    /// );
+    /// assert_eq!(path, DataTypeQueryPath::DataTypeEdge {
+    ///     edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///     path: Box::new(DataTypeQueryPath::BaseUrl),
+    ///     direction: EdgeDirection::Outgoing,
+    ///     inheritance_depth: Some(10),
+    /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     ///
@@ -251,15 +242,12 @@ pub enum DataTypeQueryPath<'p> {
     /// # use hash_graph_store::subgraph::edges::{EdgeDirection, OntologyEdgeKind};
     /// let path =
     ///     DataTypeQueryPath::deserialize(json!(["children(inheritanceDepth=10)", "*", "baseUrl"]))?;
-    /// assert_eq!(
-    ///     path,
-    ///     DataTypeQueryPath::DataTypeEdge {
-    ///         edge_kind: OntologyEdgeKind::InheritsFrom,
-    ///         path: Box::new(DataTypeQueryPath::BaseUrl),
-    ///         direction: EdgeDirection::Incoming,
-    ///         inheritance_depth: Some(10),
-    ///     }
-    /// );
+    /// assert_eq!(path, DataTypeQueryPath::DataTypeEdge {
+    ///     edge_kind: OntologyEdgeKind::InheritsFrom,
+    ///     path: Box::new(DataTypeQueryPath::BaseUrl),
+    ///     direction: EdgeDirection::Incoming,
+    ///     inheritance_depth: Some(10),
+    /// });
     /// # Ok::<(), serde_json::Error>(())
     /// ```
     DataTypeEdge {

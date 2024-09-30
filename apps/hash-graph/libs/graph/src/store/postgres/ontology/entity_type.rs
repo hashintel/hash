@@ -2,16 +2,17 @@ use core::iter::once;
 use std::collections::{HashMap, HashSet};
 
 use authorization::{
+    AuthorizationApi,
     backend::ModifyRelationshipOperation,
     schema::{
         EntityTypeOwnerSubject, EntityTypePermission, EntityTypeRelationAndSubject, WebPermission,
     },
     zanzibar::{Consistency, Zookie},
-    AuthorizationApi,
 };
-use error_stack::{ensure, Report, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt, ensure};
 use futures::{StreamExt, TryStreamExt};
 use graph_types::{
+    Embedding,
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
         DataTypeId, EntityTypeId, EntityTypeMetadata, EntityTypeWithMetadata,
@@ -19,19 +20,18 @@ use graph_types::{
         OntologyTypeClassificationMetadata, OntologyTypeRecordId, PartialEntityTypeMetadata,
         PropertyTypeId,
     },
-    Embedding,
 };
 use hash_graph_store::{
     entity_type::EntityTypeQueryPath,
     filter::{Filter, FilterExpression, ParameterList},
     subgraph::{
+        Subgraph, SubgraphRecord,
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
         identifier::{EntityTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
             VariableAxis, VariableTemporalAxisUnresolved,
         },
-        Subgraph, SubgraphRecord,
     },
 };
 use postgres_types::{Json, ToSql};
@@ -39,13 +39,15 @@ use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTi
 use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
+    Validator,
     schema::{ClosedEntityType, EntityType, EntityTypeValidator},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    Validator,
 };
 
 use crate::store::{
-    crud::{QueryResult, Read, ReadPaginated, VertexIdSorting},
+    AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, StoreCache,
+    StoreProvider, UpdateError,
+    crud::{QueryResult, Read, ReadPaginated, VersionedUrlSorting},
     error::DeletionError,
     ontology::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,
@@ -54,15 +56,13 @@ use crate::store::{
         UpdateEntityTypesParams,
     },
     postgres::{
+        ResponseCountMap, TraversalContext,
         crud::QueryRecordDecode,
         ontology::{
-            read::OntologyTypeTraversalData, OntologyId, PostgresOntologyTypeClassificationMetadata,
+            OntologyId, PostgresOntologyTypeClassificationMetadata, read::OntologyTypeTraversalData,
         },
         query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
-        ResponseCountMap, TraversalContext,
     },
-    AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, StoreCache,
-    StoreProvider, UpdateError,
 };
 
 impl<C, A> PostgresStore<C, A>
@@ -183,19 +183,19 @@ where
         // TODO: Remove again when subgraph logic was revisited
         //   see https://linear.app/hash/issue/H-297
         let mut visited_ontology_ids = HashSet::new();
-        let time_axis = temporal_axes.variable_time_axis();
 
-        let (data, artifacts) = ReadPaginated::<EntityTypeWithMetadata>::read_paginated_vec(
-            self,
-            &params.filter,
-            Some(temporal_axes),
-            &VertexIdSorting {
-                cursor: params.after,
-            },
-            params.limit,
-            params.include_drafts,
-        )
-        .await?;
+        let (data, artifacts) =
+            ReadPaginated::<EntityTypeWithMetadata, VersionedUrlSorting>::read_paginated_vec(
+                self,
+                &params.filter,
+                Some(temporal_axes),
+                &VersionedUrlSorting {
+                    cursor: params.after,
+                },
+                params.limit,
+                params.include_drafts,
+            )
+            .await?;
         let entity_types = data
             .into_iter()
             .filter_map(|row| {
@@ -238,7 +238,7 @@ where
                 cursor: if params.limit.is_some() {
                     entity_types
                         .last()
-                        .map(|entity_type| entity_type.vertex_id(time_axis))
+                        .map(|entity_type| entity_type.schema.id.clone())
                 } else {
                     None
                 },
@@ -634,13 +634,10 @@ where
                     .assert_permission()
                     .change_context(InsertionError)?;
 
-                relationships.insert((
-                    entity_type_id,
-                    EntityTypeRelationAndSubject::Owner {
-                        subject: EntityTypeOwnerSubject::Web { id: *owned_by_id },
-                        level: 0,
-                    },
-                ));
+                relationships.insert((entity_type_id, EntityTypeRelationAndSubject::Owner {
+                    subject: EntityTypeOwnerSubject::Web { id: *owned_by_id },
+                    level: 0,
+                }));
             }
 
             if let Some((ontology_id, temporal_versioning)) = transaction
@@ -723,7 +720,9 @@ where
             .await
             .change_context(InsertionError)?;
 
-        if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
+        if let Err(error) = transaction.commit().await.change_context(InsertionError) {
+            let mut error = error.expand();
+
             if let Err(auth_error) = self
                 .authorization_api
                 .modify_entity_type_relations(relationships.into_iter().map(
@@ -738,12 +737,10 @@ where
                 .await
                 .change_context(InsertionError)
             {
-                // TODO: Use `add_child`
-                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
-                error.extend_one(auth_error);
+                error.push(auth_error);
             }
 
-            Err(error)
+            Err(error.change_context(InsertionError))
         } else {
             if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
@@ -1029,7 +1026,9 @@ where
             .await
             .change_context(UpdateError)?;
 
-        if let Err(mut error) = transaction.commit().await.change_context(UpdateError) {
+        if let Err(error) = transaction.commit().await.change_context(UpdateError) {
+            let mut error = error.expand();
+
             if let Err(auth_error) = self
                 .authorization_api
                 .modify_entity_type_relations(relationships.into_iter().map(
@@ -1044,12 +1043,10 @@ where
                 .await
                 .change_context(UpdateError)
             {
-                // TODO: Use `add_child`
-                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
-                error.extend_one(auth_error);
+                error.push(auth_error);
             }
 
-            Err(error)
+            Err(error.change_context(UpdateError))
         } else {
             let metadata = EntityTypeMetadata {
                 record_id: metadata.record_id,
@@ -1062,13 +1059,12 @@ where
 
             if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
-                    .start_update_entity_type_embeddings_workflow(
-                        actor_id,
-                        &[EntityTypeWithMetadata {
+                    .start_update_entity_type_embeddings_workflow(actor_id, &[
+                        EntityTypeWithMetadata {
                             schema,
                             metadata: metadata.clone(),
-                        }],
-                    )
+                        },
+                    ])
                     .await
                     .change_context(UpdateError)?;
             }
@@ -1093,14 +1089,11 @@ where
         actor_id: AccountId,
         params: UnarchiveEntityTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.unarchive_ontology_type(
-            &params.entity_type_id,
-            &OntologyEditionProvenance {
-                created_by_id: EditionCreatedById::new(actor_id),
-                archived_by_id: None,
-                user_defined: params.provenance,
-            },
-        )
+        self.unarchive_ontology_type(&params.entity_type_id, &OntologyEditionProvenance {
+            created_by_id: EditionCreatedById::new(actor_id),
+            archived_by_id: None,
+            user_defined: params.provenance,
+        })
         .await
     }
 

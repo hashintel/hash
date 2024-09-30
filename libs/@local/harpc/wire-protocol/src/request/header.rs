@@ -84,7 +84,7 @@ mod test {
         request::{
             flags::{RequestFlag, RequestFlags},
             header::RequestHeader,
-            id::{test_utils::mock_request_id, RequestIdProducer},
+            id::{RequestIdProducer, test_utils::mock_request_id},
         },
     };
 
@@ -100,12 +100,9 @@ mod test {
             flags: RequestFlags::from(RequestFlag::BeginOfRequest),
         };
 
-        assert_encode(
-            &header,
-            expect![[r#"
+        assert_encode(&header, expect![[r#"
                 b'h' b'a' b'r' b'p' b'c' 0x01 0x00 0x00 0x00 0x00 0x80
-            "#]],
-        );
+            "#]]);
     }
 
     #[test]

@@ -1,11 +1,11 @@
 use hql_cst::arena::{self, Arena};
-use hql_span::{storage::SpanStorage, SpanId};
+use hql_span::{SpanId, storage::SpanStorage};
 use winnow::{
+    Parser,
     ascii::multispace0,
     combinator::{delimited, separated_foldl1, trace},
     error::ParserError,
     stream::{AsChar, Stream, StreamIsPartial},
-    Parser,
 };
 
 use crate::span::Span;

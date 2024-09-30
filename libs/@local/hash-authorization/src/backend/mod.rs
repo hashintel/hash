@@ -3,16 +3,16 @@ mod spicedb;
 use core::{error::Error, fmt, iter::repeat};
 
 use error_stack::Report;
-use futures::{stream, Stream};
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
+use futures::{Stream, stream};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 pub use self::spicedb::{RpcError, SpiceDbOpenApi};
 use crate::{
-    zanzibar::{
-        types::{Relationship, RelationshipFilter, Resource, Subject},
-        Consistency, Permission, Zookie,
-    },
     NoAuthorization,
+    zanzibar::{
+        Consistency, Permission, Zookie,
+        types::{Relationship, RelationshipFilter, Resource, Subject},
+    },
 };
 
 /// Used for mutating a single relationship within the service.

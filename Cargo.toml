@@ -29,7 +29,6 @@ members = [
     "libs/deer/macros",
     "libs/error-stack",
     "libs/error-stack/macros",
-    "libs/error-stack/experimental",
     "libs/sarif",
 ]
 default-members = [
@@ -71,7 +70,7 @@ type-system.path = "libs/@blockprotocol/type-system/rust"
 validation.path = "libs/@local/hash-validation"
 
 # Pinned workspace members
-error-stack = { version = "=0.5.0", default-features = false }
+error-stack = { path = "./libs/error-stack", default-features = false }
 
 # Public dependencies
 ahash = { version = "=0.8.11", default-features = false }
@@ -81,7 +80,7 @@ axum = "0.7.5"
 axum-core = "0.4.3"
 bumpalo = { version = "=3.16.0", default-features = false }
 bytes = "1.6.0"
-clap_builder = { version = "=4.5.17", default-features = false, features = ["std"] }
+clap_builder = { version = "=4.5.18", default-features = false, features = ["std"] }
 criterion = { version = "=0.5.1" }
 deadpool = { version = "=0.12.1", default-features = false }
 deadpool-postgres = { version = "=0.14.0", default-features = false }
@@ -98,8 +97,8 @@ http = { version = "=1.1.0", default-features = false }
 inferno = { version = "=0.11.21", default-features = false }
 iso8601-duration = { version = "=0.2.0", default-features = false }
 json-number = { version = "=0.4.8", default-features = false }
-jsonptr = { version = "=0.6.0", default-features = false }
-multiaddr = { version = "=0.18.1", default-features = false }
+jsonptr = { version = "=0.6.1", default-features = false }
+multiaddr = { version = "=0.18.2", default-features = false }
 multistream-select = { version = "=0.13.0", default-features = false }
 libp2p-core = { version = "=0.42.0", default-features = false }
 libp2p-identity = { version = "=0.2.9", default-features = false }
@@ -109,7 +108,7 @@ libp2p-yamux = { version = "=0.46.0", default-features = false }
 prometheus-client = { version = "=0.22.3", default-features = false }
 postgres-types = { version = "=0.2.8", default-features = false }
 reqwest = { version = "=0.12.7", default-features = false, features = ["rustls-tls"] }
-regex = { version = "=1.10.6", default-features = false, features = ["perf", "unicode"] }
+regex = { version = "=1.11.0", default-features = false, features = ["perf", "unicode"] }
 semver = { version = "=1.0.23", default-features = false }
 sentry-types = { version = "=0.34.0", default-features = false }
 serde = { version = "=1.0.210", default-features = false }
@@ -127,7 +126,7 @@ utoipa = { version = "=4.2.3", default-features = false }
 uuid = { version = "=1.10.0", default-features = false }
 time = { version = "=0.3.36", default-features = false }
 tokio-postgres = { version = "=0.7.12", default-features = false }
-tower-http = { version = "=0.6.0", features = ["trace"] }
+tower-http = { version = "=0.6.1", features = ["trace"] }
 
 # Shared third-party dependencies
 ansi-to-html = { version = "=0.2.1", default-features = false }
@@ -135,15 +134,15 @@ anstyle = { version = "=1.0.8", default-features = false }
 anstyle-yansi = { version = "=2.0.1", default-features = false }
 approx = { version = "=0.5.1", default-features = false }
 async-scoped = { version = "=0.9.0", default-features = false }
-async-trait = { version = "=0.1.82", default-features = false }
-aws-config = { version = "=1.5.6" }
-aws-sdk-s3 = { version = "=1.51.0", default-features = false }
+async-trait = { version = "=0.1.83", default-features = false }
+aws-config = { version = "=1.5.7" }
+aws-sdk-s3 = { version = "=1.52.0", default-features = false }
 base64 = { version = "=0.22.1", default-features = false }
 bitvec = { version = "=1.0.1", default-features = false }
 bytes-utils = { version = "=0.1.4", default-features = false }
 chrono = { version = "=0.4.38", default-features = false }
-clap = { version = "=4.5.17", features = ["std", "color", "help", "usage", "error-context", "suggestions"] }
-clap_complete = { version = "=4.5.28", default-features = false }
+clap = { version = "=4.5.18", features = ["std", "color", "help", "usage", "error-context", "suggestions"] }
+clap_complete = { version = "=4.5.29", default-features = false }
 coverage-helper = { version = "=0.2.2", default-features = false }
 criterion-macro = { version = "=0.4.0", default-features = false }
 derive-where = { version = "=1.2.7", default-features = false, features = ["nightly"] }
@@ -156,9 +155,9 @@ humansize = { version = "=2.1.3", default-features = false }
 hyper = { version = "=1.4.1", default-features = false }
 include_dir = { version = "=0.7.4", default-features = false }
 insta = { version = "=1.40.0", default-features = false }
-jsonschema = { version = "=0.20.0", default-features = false }
+jsonschema = { version = "=0.21.0", default-features = false }
 justjson = { version = "=0.3.0", default-features = false }
-lexical = { version = "=7.0.1", default-features = false }
+lexical = { version = "=7.0.2", default-features = false }
 libp2p = { version = "=0.54.1", default-features = false }
 libp2p-stream = { version = "=0.2.0-alpha", default-features = false }
 logos = { version = "=0.14.2", default-features = false }
@@ -166,11 +165,11 @@ memchr = { version = "=2.7.4", default-features = false }
 mimalloc = { version = "=0.1.43", default-features = false }
 mime = { version = "=0.3.17", default-features = false }
 num-traits = { version = "=0.2.19", default-features = false }
-once_cell = { version = "=1.20.0", default-features = false }
+once_cell = { version = "=1.20.1", default-features = false }
 opentelemetry = { version = "=0.23.0", default-features = false }
 opentelemetry-otlp = { version = "=0.16.0", default-features = false }
 opentelemetry_sdk = { version = "=0.23.0", default-features = false }
-orx-concurrent-vec = { version = "=2.7.1", default-features = false }
+orx-concurrent-vec = { version = "=3.0.1", default-features = false }
 owo-colors = { version = "=4.1.0", default-features = false }
 paste = { version = "=1.0.15", default-features = false }
 pin-project = { version = "=1.1.5", default-features = false }
@@ -192,7 +191,7 @@ spin = { version = "=0.9", default-features = false }
 supports-color = { version = "=3.0.1", default-features = false }
 supports-unicode = { version = "=3.0.0", default-features = false }
 sval = { version = "=2.13.1", default-features = false }
-syn = { version = "=2.0.77", default-features = false }
+syn = { version = "=2.0.79", default-features = false }
 tachyonix = { version = "=0.3.1", default-features = false }
 tarpc = { version = "=0.33", default-features = false }
 temporal-io-client = { git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }
@@ -200,7 +199,7 @@ temporal-io-sdk-core-protos = { git = "https://github.com/temporalio/sdk-core", 
 test-fuzz = { version = "=6.0.0", default-features = false }
 test-log = { version = "=0.2.16", default-features = false }
 test-strategy = { version = "=0.4.0", default-features = false }
-thiserror = { version = "=1.0.63", default-features = false }
+thiserror = { version = "=1.0.64", default-features = false }
 tokio-stream = { version = "=0.1.16", default-features = false }
 tokio-test = { version = "=0.4.4", default-features = false }
 tower = { version = "=0.5.1", default-features = false }
@@ -214,7 +213,7 @@ tsify = { version = "=0.4.5", default-features = false }
 unicode-ident = { version = "=1.0.13", default-features = false }
 virtue = { version = "=0.0.17", default-features = false }
 walkdir = { version = "=2.5.0", default-features = false }
-winnow = { version = "=0.6.18", default-features = false }
+winnow = { version = "=0.6.20", default-features = false }
 
 [profile.production]
 inherits = "release"

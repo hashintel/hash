@@ -1,6 +1,6 @@
 use alloc::collections::BTreeMap;
 use core::hash::Hash;
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::{HashMap, hash_map::Entry};
 
 use graph_types::knowledge::entity::EntityId;
 use hash_graph_store::subgraph::{
@@ -14,8 +14,8 @@ use serde::Serialize;
 use temporal_versioning::Timestamp;
 use type_system::url::{BaseUrl, OntologyTypeVersion};
 use utoipa::{
-    openapi::{schema::AdditionalProperties, ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema},
     ToSchema,
+    openapi::{ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema, schema::AdditionalProperties},
 };
 
 use super::vertices::OntologyTypeVertexId;

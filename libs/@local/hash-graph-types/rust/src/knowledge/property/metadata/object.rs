@@ -10,8 +10,8 @@ use serde::{Deserialize, Serialize};
 use type_system::url::BaseUrl;
 
 use crate::knowledge::{
-    property::{PropertyMetadata, PropertyProvenance},
     Confidence,
+    property::{PropertyMetadata, PropertyProvenance},
 };
 
 #[derive(Debug, Default, Clone, PartialEq, Serialize, Deserialize)]

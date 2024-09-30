@@ -4,30 +4,30 @@ use core::{assert_matches::assert_matches, num::NonZero, time::Duration};
 use std::io;
 
 use bytes::Bytes;
-use futures::{prelude::sink::SinkExt, StreamExt};
+use futures::{StreamExt, prelude::sink::SinkExt};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
+        Request,
         flags::{RequestFlag, RequestFlags},
         id::RequestId,
-        Request,
     },
     response::{
+        Response,
         begin::ResponseBegin,
         body::ResponseBody,
         flags::{ResponseFlag, ResponseFlags},
         frame::ResponseFrame,
         header::ResponseHeader,
         kind::{ErrorCode, ResponseKind},
-        Response,
     },
     test_utils::mock_request_id,
 };
 use libp2p::PeerId;
 use tokio::{
-    sync::{broadcast, mpsc, Barrier, Semaphore},
+    sync::{Barrier, Semaphore, broadcast, mpsc},
     task::{JoinHandle, JoinSet},
 };
 use tokio_stream::wrappers::ReceiverStream;
@@ -37,8 +37,8 @@ use tokio_util::{
 };
 
 use super::{
-    collection::{TransactionPermit, TransactionStorage},
     ConnectionTask,
+    collection::{TransactionPermit, TransactionStorage},
 };
 use crate::session::{
     error::{
@@ -46,11 +46,11 @@ use crate::session::{
         InstanceTransactionLimitReachedError, TransactionLaggingError,
     },
     server::{
+        SessionConfig, SessionEvent, SessionId, Transaction,
         connection::{ConnectionDelegateTask, TransactionCollection},
         session_id::test_utils::mock_session_id,
         test::{make_request_begin, make_request_frame},
         transaction::ServerTransactionPermit,
-        SessionConfig, SessionEvent, SessionId, Transaction,
     },
     test::StringEncoder,
 };
@@ -1146,12 +1146,9 @@ async fn graceful_shutdown() {
         .expect("should not panic");
 
     let event = events.recv().await.expect("should have a shutdown event");
-    assert_eq!(
-        event,
-        SessionEvent::SessionDropped {
-            id: Setup::SESSION_ID
-        }
-    );
+    assert_eq!(event, SessionEvent::SessionDropped {
+        id: Setup::SESSION_ID
+    });
 }
 
 #[tokio::test]

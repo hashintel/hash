@@ -13,7 +13,7 @@ pub use self::{
     transaction::stream::{ErrorStream, TransactionStream, ValueStream},
 };
 use super::error::SessionError;
-use crate::transport::{connection::OutgoingConnection, TransportLayer};
+use crate::transport::{TransportLayer, connection::OutgoingConnection};
 
 pub struct SessionLayer {
     config: SessionConfig,

@@ -1,22 +1,21 @@
 #![expect(clippy::min_ident_chars, reason = "Simplifies test cases")]
 
 use deer::{
-    error::{ArrayAccessError, DeserializeError, Variant, VisitorError},
     ArrayAccess, Deserialize, Deserializer, Document, FieldVisitor, ObjectAccess, Reflection,
     Schema, StructVisitor, Visitor,
+    error::{ArrayAccessError, DeserializeError, Variant, VisitorError},
 };
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, ReportSink, Result, ResultExt, TryReportTupleExt};
 use serde_json::json;
 
 mod common;
 
-use common::TupleExt;
 use deer::{
     error::{ExpectedField, Location, ObjectAccessError, ReceivedField, UnknownFieldError},
     helpers::Properties,
     value::NoneDeserializer,
 };
-use deer_desert::{assert_tokens, assert_tokens_error, error, Token};
+use deer_desert::{Token, assert_tokens, assert_tokens_error, error};
 
 #[derive(Debug, Eq, PartialEq)]
 struct Example {
@@ -214,7 +213,7 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
             .attach(Location::Tuple(2));
 
         let (a, b, c, ()) = (a, b, c, array.end())
-            .fold_reports()
+            .try_collect()
             .change_context(VisitorError)?;
 
         Ok(Example { a, b, c })
@@ -228,7 +227,7 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
         let mut b = None;
         let mut c = None;
 
-        let mut errors: Result<(), ObjectAccessError> = Ok(());
+        let mut errors = ReportSink::new();
 
         while let Some(field) = object.field(ExampleFieldVisitor {
             a: &mut a,
@@ -236,12 +235,7 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
             c: &mut c,
         }) {
             if let Err(error) = field {
-                match &mut errors {
-                    Err(errors) => {
-                        errors.extend_one(error);
-                    }
-                    errors => *errors = Err(error),
-                }
+                errors.append(error);
             }
         }
 
@@ -272,8 +266,8 @@ impl<'de> StructVisitor<'de> for ExampleVisitor {
             Ok,
         );
 
-        let (a, b, c, ..) = (a, b, c, errors, object.end())
-            .fold_reports()
+        let (a, b, c, ..) = (a, b, c, errors.finish(), object.end())
+            .try_collect()
             .change_context(VisitorError)?;
 
         Ok(Example { a, b, c })
@@ -311,36 +305,30 @@ impl<'de> Deserialize<'de> for Example {
 
 #[test]
 fn struct_object_ok() {
-    assert_tokens(
-        &Example { a: 2, b: 3, c: 4 },
-        &[
-            Token::Object { length: Some(3) },
-            Token::Str("a"),
-            Token::Number(2.into()),
-            Token::Str("b"),
-            Token::Number(3.into()),
-            Token::Str("c"),
-            Token::Number(4.into()),
-            Token::ObjectEnd,
-        ],
-    );
+    assert_tokens(&Example { a: 2, b: 3, c: 4 }, &[
+        Token::Object { length: Some(3) },
+        Token::Str("a"),
+        Token::Number(2.into()),
+        Token::Str("b"),
+        Token::Number(3.into()),
+        Token::Str("c"),
+        Token::Number(4.into()),
+        Token::ObjectEnd,
+    ]);
 }
 
 #[test]
 fn struct_object_out_of_order_ok() {
-    assert_tokens(
-        &Example { a: 2, b: 3, c: 4 },
-        &[
-            Token::Object { length: Some(3) },
-            Token::Str("c"),
-            Token::Number(4.into()),
-            Token::Str("b"),
-            Token::Number(3.into()),
-            Token::Str("a"),
-            Token::Number(2.into()),
-            Token::ObjectEnd,
-        ],
-    );
+    assert_tokens(&Example { a: 2, b: 3, c: 4 }, &[
+        Token::Object { length: Some(3) },
+        Token::Str("c"),
+        Token::Number(4.into()),
+        Token::Str("b"),
+        Token::Number(3.into()),
+        Token::Str("a"),
+        Token::Number(2.into()),
+        Token::ObjectEnd,
+    ]);
 }
 
 // TODO: key missing instead of value missing (or discriminant missing) ~> only possible with
@@ -452,16 +440,13 @@ fn struct_object_duplicate_err() {
 
 #[test]
 fn struct_array_ok() {
-    assert_tokens(
-        &Example { a: 2, b: 3, c: 4 },
-        &[
-            Token::Array { length: Some(3) },
-            Token::Number(2.into()),
-            Token::Number(3.into()),
-            Token::Number(4.into()),
-            Token::ArrayEnd,
-        ],
-    );
+    assert_tokens(&Example { a: 2, b: 3, c: 4 }, &[
+        Token::Array { length: Some(3) },
+        Token::Number(2.into()),
+        Token::Number(3.into()),
+        Token::Number(4.into()),
+        Token::ArrayEnd,
+    ]);
 }
 
 #[test]

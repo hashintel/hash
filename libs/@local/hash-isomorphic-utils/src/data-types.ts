@@ -1,5 +1,5 @@
 import type { JsonValue } from "@blockprotocol/core";
-import type { ValueConstraint } from "@local/hash-graph-types/ontology";
+import type { DataType, SingleValueSchema } from "@blockprotocol/type-system";
 import { getJsonSchemaTypeFromValue } from "@local/hash-subgraph/stdlib";
 
 export type FormattedValuePart = {
@@ -13,7 +13,7 @@ const createFormattedParts = ({
   schema,
 }: {
   inner: string | FormattedValuePart[];
-  schema: Pick<ValueConstraint, "label"> | null;
+  schema?: Pick<SingleValueSchema, "label">;
 }): FormattedValuePart[] => {
   const { left = "", right = "" } = schema?.label ?? {};
 
@@ -38,11 +38,15 @@ const createFormattedParts = ({
 
 export const formatDataValue = (
   value: JsonValue,
-  schema: ValueConstraint | null,
+  schema?: DataType | SingleValueSchema,
 ): FormattedValuePart[] => {
-  const { type } = schema ?? {
-    type: getJsonSchemaTypeFromValue(value),
-  };
+  /**
+   * @todo H-3374 callers should always provide a schema, because the dataTypeId will be in the entity's metadata
+   */
+  const type =
+    schema && "type" in schema
+      ? schema.type
+      : getJsonSchemaTypeFromValue(value);
 
   if (type === "null") {
     return createFormattedParts({ inner: "Null", schema });
@@ -72,8 +76,12 @@ export const formatDataValue = (
 
     const innerValue: string = value
       .map((inner, index) => {
-        if (isTuple && index < schema.prefixItems.length) {
-          return formatDataValue(inner, schema.prefixItems[index]!);
+        if (
+          isTuple &&
+          schema.prefixItems &&
+          index < schema.prefixItems.length
+        ) {
+          return formatDataValue(inner, schema.prefixItems[index]);
         }
 
         if (schema && !schema.items) {
@@ -83,7 +91,7 @@ export const formatDataValue = (
           );
         }
 
-        return formatDataValue(inner, schema?.items ?? null);
+        return formatDataValue(inner, schema?.items);
       })
       .join("");
 

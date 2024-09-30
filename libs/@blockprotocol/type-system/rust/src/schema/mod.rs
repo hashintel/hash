@@ -14,19 +14,24 @@ mod object;
 mod one_of;
 
 pub use self::{
-    array::{ArraySchema, PropertyArraySchema, ValueOrArray},
+    array::{PropertyArraySchema, PropertyValueArray, ValueOrArray},
     data_type::{
-        ClosedDataType, ClosedDataTypeMetadata, ConversionDefinition, ConversionExpression,
-        ConversionValue, Conversions, DataType, DataTypeLabel, DataTypeReference,
-        DataTypeValidator, JsonSchemaValueType, OntologyTypeResolver, Operator,
-        ValidateDataTypeError, Variable,
+        AnyOfConstraints, ArrayConstraints, ArraySchema, ArrayTypeTag, ArrayValidationError,
+        BooleanTypeTag, ClosedDataType, ClosedDataTypeMetadata, ConstraintError,
+        ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
+        DataTypeReference, DataTypeValidator, JsonSchemaValueType, NullTypeTag, NumberConstraints,
+        NumberSchema, NumberTypeTag, NumberValidationError, ObjectTypeTag, OntologyTypeResolver,
+        Operator, SingleValueConstraints, SingleValueSchema, StringConstraints, StringFormat,
+        StringFormatError, StringSchema, StringTypeTag, StringValidationError, TupleConstraints,
+        ValidateDataTypeError, ValueLabel, Variable,
     },
     entity_type::{
         ClosedEntityType, ClosedEntityTypeSchemaData, EntityType, EntityTypeReference,
         EntityTypeValidationError, EntityTypeValidator,
     },
     object::{
-        ObjectSchema, ObjectSchemaValidationError, ObjectSchemaValidator, PropertyObjectSchema,
+        ObjectSchemaValidationError, ObjectSchemaValidator, PropertyObjectSchema,
+        PropertyValueObject,
     },
     one_of::{OneOfSchema, OneOfSchemaValidationError, OneOfSchemaValidator},
     property_type::{

@@ -6,7 +6,7 @@ use core::{
 };
 
 use crate::{
-    error::{ErrorProperties, ErrorProperty, Id, Location, Namespace, Variant, NAMESPACE},
+    error::{ErrorProperties, ErrorProperty, Id, Location, NAMESPACE, Namespace, Variant},
     id,
 };
 
@@ -20,7 +20,10 @@ impl DuplicateField {
 }
 
 impl ErrorProperty for DuplicateField {
-    type Value<'a> = Option<&'static str> where Self: 'a;
+    type Value<'a>
+        = Option<&'static str>
+    where
+        Self: 'a;
 
     fn key() -> &'static str {
         "field"
@@ -70,7 +73,10 @@ impl DuplicateKey {
 }
 
 impl ErrorProperty for DuplicateKey {
-    type Value<'a> = Option<&'a str> where Self: 'a;
+    type Value<'a>
+        = Option<&'a str>
+    where
+        Self: 'a;
 
     fn key() -> &'static str {
         "key"

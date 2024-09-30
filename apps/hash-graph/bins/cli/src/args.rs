@@ -1,9 +1,9 @@
 use clap::{
-    builder::{
-        styling::{AnsiColor, Effects},
-        Styles,
-    },
     ColorChoice, CommandFactory, FromArgMatches, Parser,
+    builder::{
+        Styles,
+        styling::{AnsiColor, Effects},
+    },
 };
 use hash_tracing::TracingConfig;
 

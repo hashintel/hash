@@ -2,32 +2,32 @@ use core::iter::once;
 use std::collections::{HashMap, HashSet};
 
 use authorization::{
+    AuthorizationApi,
     backend::ModifyRelationshipOperation,
     schema::{
         PropertyTypeOwnerSubject, PropertyTypePermission, PropertyTypeRelationAndSubject,
         WebPermission,
     },
     zanzibar::{Consistency, Zookie},
-    AuthorizationApi,
 };
 use error_stack::{Result, ResultExt};
 use futures::StreamExt;
 use graph_types::{
+    Embedding,
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
         DataTypeId, OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, OntologyTypeRecordId, PropertyTypeId,
         PropertyTypeMetadata, PropertyTypeWithMetadata,
     },
-    Embedding,
 };
 use hash_graph_store::{
     property_type::PropertyTypeQueryPath,
     subgraph::{
+        Subgraph, SubgraphRecord,
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
         identifier::{DataTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
         temporal_axes::{QueryTemporalAxes, VariableAxis},
-        Subgraph, SubgraphRecord,
     },
 };
 use postgres_types::{Json, ToSql};
@@ -35,13 +35,15 @@ use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTi
 use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
+    Validator,
     schema::PropertyTypeValidator,
     url::{OntologyTypeVersion, VersionedUrl},
-    Validator,
 };
 
 use crate::store::{
-    crud::{QueryResult, Read, ReadPaginated, VertexIdSorting},
+    AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, StoreCache,
+    StoreProvider, UpdateError,
+    crud::{QueryResult, Read, ReadPaginated, VersionedUrlSorting},
     error::DeletionError,
     ontology::{
         ArchivePropertyTypeParams, CountPropertyTypesParams, CreatePropertyTypeParams,
@@ -50,15 +52,13 @@ use crate::store::{
         UpdatePropertyTypesParams,
     },
     postgres::{
+        TraversalContext,
         crud::QueryRecordDecode,
         ontology::{
-            read::OntologyTypeTraversalData, OntologyId, PostgresOntologyTypeClassificationMetadata,
+            OntologyId, PostgresOntologyTypeClassificationMetadata, read::OntologyTypeTraversalData,
         },
         query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
-        TraversalContext,
     },
-    AsClient, InsertionError, PostgresStore, PropertyTypeStore, QueryError, StoreCache,
-    StoreProvider, UpdateError,
 };
 
 impl<C, A> PostgresStore<C, A>
@@ -114,14 +114,11 @@ where
         #[expect(clippy::if_then_some_else_none, reason = "Function is async")]
         let count = if params.include_count {
             Some(
-                self.count_property_types(
-                    actor_id,
-                    CountPropertyTypesParams {
-                        filter: params.filter.clone(),
-                        temporal_axes: params.temporal_axes.clone(),
-                        include_drafts: params.include_drafts,
-                    },
-                )
+                self.count_property_types(actor_id, CountPropertyTypesParams {
+                    filter: params.filter.clone(),
+                    temporal_axes: params.temporal_axes.clone(),
+                    include_drafts: params.include_drafts,
+                })
                 .await?,
             )
         } else {
@@ -131,19 +128,19 @@ where
         // TODO: Remove again when subgraph logic was revisited
         //   see https://linear.app/hash/issue/H-297
         let mut visited_ontology_ids = HashSet::new();
-        let time_axis = temporal_axes.variable_time_axis();
 
-        let (data, artifacts) = ReadPaginated::<PropertyTypeWithMetadata>::read_paginated_vec(
-            self,
-            &params.filter,
-            Some(temporal_axes),
-            &VertexIdSorting {
-                cursor: params.after,
-            },
-            params.limit,
-            params.include_drafts,
-        )
-        .await?;
+        let (data, artifacts) =
+            ReadPaginated::<PropertyTypeWithMetadata, VersionedUrlSorting>::read_paginated_vec(
+                self,
+                &params.filter,
+                Some(temporal_axes),
+                &VersionedUrlSorting {
+                    cursor: params.after,
+                },
+                params.limit,
+                params.include_drafts,
+            )
+            .await?;
         let property_types = data
             .into_iter()
             .filter_map(|row| {
@@ -188,7 +185,7 @@ where
                 cursor: if params.limit.is_some() {
                     property_types
                         .last()
-                        .map(|property_type| property_type.vertex_id(time_axis))
+                        .map(|property_type| property_type.schema.id.clone())
                 } else {
                     None
                 },
@@ -409,13 +406,10 @@ where
                     .assert_permission()
                     .change_context(InsertionError)?;
 
-                relationships.insert((
-                    property_type_id,
-                    PropertyTypeRelationAndSubject::Owner {
-                        subject: PropertyTypeOwnerSubject::Web { id: *owned_by_id },
-                        level: 0,
-                    },
-                ));
+                relationships.insert((property_type_id, PropertyTypeRelationAndSubject::Owner {
+                    subject: PropertyTypeOwnerSubject::Web { id: *owned_by_id },
+                    level: 0,
+                }));
             }
 
             relationships.extend(
@@ -490,7 +484,9 @@ where
             .await
             .change_context(InsertionError)?;
 
-        if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
+        if let Err(error) = transaction.commit().await.change_context(InsertionError) {
+            let mut error = error.expand();
+
             if let Err(auth_error) = self
                 .authorization_api
                 .modify_property_type_relations(relationships.into_iter().map(
@@ -505,12 +501,10 @@ where
                 .await
                 .change_context(InsertionError)
             {
-                // TODO: Use `add_child`
-                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
-                error.extend_one(auth_error);
+                error.push(auth_error);
             }
 
-            Err(error)
+            Err(error.change_context(InsertionError))
         } else {
             if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
@@ -767,7 +761,9 @@ where
             .await
             .change_context(UpdateError)?;
 
-        if let Err(mut error) = transaction.commit().await.change_context(UpdateError) {
+        if let Err(error) = transaction.commit().await.change_context(UpdateError) {
+            let mut error = error.expand();
+
             if let Err(auth_error) = self
                 .authorization_api
                 .modify_property_type_relations(relationships.into_iter().map(
@@ -782,12 +778,10 @@ where
                 .await
                 .change_context(UpdateError)
             {
-                // TODO: Use `add_child`
-                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
-                error.extend_one(auth_error);
+                error.push(auth_error);
             }
 
-            Err(error)
+            Err(error.change_context(UpdateError))
         } else {
             let metadata = PropertyTypeMetadata {
                 record_id: OntologyTypeRecordId::from(params.schema.id.clone()),
@@ -798,13 +792,12 @@ where
 
             if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
-                    .start_update_property_type_embeddings_workflow(
-                        actor_id,
-                        &[PropertyTypeWithMetadata {
+                    .start_update_property_type_embeddings_workflow(actor_id, &[
+                        PropertyTypeWithMetadata {
                             schema: params.schema,
                             metadata: metadata.clone(),
-                        }],
-                    )
+                        },
+                    ])
                     .await
                     .change_context(UpdateError)?;
             }
@@ -829,14 +822,11 @@ where
         actor_id: AccountId,
         params: UnarchivePropertyTypeParams<'_>,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.unarchive_ontology_type(
-            &params.property_type_id,
-            &OntologyEditionProvenance {
-                created_by_id: EditionCreatedById::new(actor_id),
-                archived_by_id: None,
-                user_defined: params.provenance,
-            },
-        )
+        self.unarchive_ontology_type(&params.property_type_id, &OntologyEditionProvenance {
+            created_by_id: EditionCreatedById::new(actor_id),
+            archived_by_id: None,
+            user_defined: params.provenance,
+        })
         .await
     }
 

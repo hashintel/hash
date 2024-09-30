@@ -1,6 +1,6 @@
 use authorization::AuthorizationApi;
 use criterion::{BatchSize::SmallInput, Bencher};
-use graph::store::{ontology::GetEntityTypesParams, EntityTypeStore};
+use graph::store::{EntityTypeStore, ontology::GetEntityTypesParams};
 use graph_types::account::AccountId;
 use hash_graph_store::{
     filter::Filter,
@@ -32,25 +32,22 @@ pub fn bench_get_entity_type_by_id<A: AuthorizationApi>(
         },
         |entity_type_id| async move {
             store
-                .get_entity_types(
-                    actor_id,
-                    GetEntityTypesParams {
-                        filter: Filter::for_versioned_url(entity_type_id),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(
-                                Some(TemporalBound::Unbounded),
-                                None,
-                            ),
-                        },
-                        after: None,
-                        limit: None,
-                        include_drafts: false,
-                        include_count: false,
-                        include_web_ids: false,
-                        include_edition_created_by_ids: false,
+                .get_entity_types(actor_id, GetEntityTypesParams {
+                    filter: Filter::for_versioned_url(entity_type_id),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(
+                            Some(TemporalBound::Unbounded),
+                            None,
+                        ),
                     },
-                )
+                    after: None,
+                    limit: None,
+                    include_drafts: false,
+                    include_count: false,
+                    include_web_ids: false,
+                    include_edition_created_by_ids: false,
+                })
                 .await
                 .expect("failed to read entity type from store");
         },

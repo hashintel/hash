@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use virtue::{
     parse::Attribute,
     prelude::*,
-    utils::{parse_tagged_attribute, ParsedAttribute},
+    utils::{ParsedAttribute, parse_tagged_attribute},
 };
 
 use crate::input::{QueryBuilderField, QueryBuilderInput, QueryBuilderVariant, Redirect};

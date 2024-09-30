@@ -1,6 +1,6 @@
 use error_stack::Result;
 
-use crate::{error::VisitorError, Deserialize, Document, OptionalVisitor};
+use crate::{Deserialize, Document, OptionalVisitor, error::VisitorError};
 
 mod core;
 

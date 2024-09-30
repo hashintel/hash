@@ -101,12 +101,9 @@ mod test {
     fn encode() {
         let flags = RequestFlags::from(RequestFlag::BeginOfRequest);
 
-        assert_encode(
-            &flags,
-            expect![[r#"
+        assert_encode(&flags, expect![[r#"
             0x80
-        "#]],
-        );
+        "#]]);
     }
 
     #[test]

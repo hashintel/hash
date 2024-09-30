@@ -21,7 +21,7 @@ deer = { path = "..", public = true, default-features = false }
 # Public third-party dependencies
 
 # Private workspace dependencies
-error-stack = { workspace = true, default-features = false }
+error-stack = { workspace = true, default-features = false, features = ["unstable"]}
 
 # Private third-party dependencies
 justjson = { workspace = true, features = ["alloc"] }

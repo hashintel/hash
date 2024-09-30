@@ -2,8 +2,8 @@ use error_stack::{Report, Result, ResultExt};
 use num_traits::ToPrimitive;
 
 use crate::{
-    error::{DeserializeError, ExpectedType, ReceivedValue, ValueError, Variant, VisitorError},
     Deserialize, Deserializer, Document, Number, Reflection, Schema, Visitor,
+    error::{DeserializeError, ExpectedType, ReceivedValue, ValueError, Variant, VisitorError},
 };
 
 macro_rules! impl_reflection {

@@ -6,7 +6,7 @@ mod provenance;
 use core::{borrow::Borrow, fmt};
 
 use error_stack::{Context, Report};
-use futures::{stream, StreamExt, TryStreamExt};
+use futures::{StreamExt, TryStreamExt, stream};
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;
@@ -169,10 +169,12 @@ pub struct OntologyTypeWithMetadata<S: OntologyType> {
 }
 
 pub trait OntologyTypeProvider<O> {
+    type Value: Borrow<O> + Send;
+
     fn provide_type(
         &self,
         type_id: &VersionedUrl,
-    ) -> impl Future<Output = Result<impl Borrow<O> + Send, Report<impl Context>>> + Send;
+    ) -> impl Future<Output = Result<Self::Value, Report<impl Context>>> + Send;
 }
 
 pub trait DataTypeProvider: OntologyTypeProvider<DataTypeWithMetadata> {
@@ -182,7 +184,16 @@ pub trait DataTypeProvider: OntologyTypeProvider<DataTypeWithMetadata> {
         parent: &BaseUrl,
     ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
 
+    // TODO: Remove when the data type ID is forced to be passed
+    //   see https://linear.app/hash/issue/H-2800/validate-that-a-data-type-id-is-always-specified
     fn has_children(
+        &self,
+        data_type: &VersionedUrl,
+    ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
+
+    // TODO: Remove when the data type ID is forced to be passed
+    //   see https://linear.app/hash/issue/H-2800/validate-that-a-data-type-id-is-always-specified
+    fn has_non_abstract_parents(
         &self,
         data_type: &VersionedUrl,
     ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
@@ -213,7 +224,9 @@ pub trait EntityTypeProvider: OntologyTypeProvider<ClosedEntityType> {
     {
         stream::iter(type_ids)
             .then(|entity_type_url| async {
-                Ok(self.provide_type(entity_type_url).await?.borrow().clone())
+                self.provide_type(entity_type_url)
+                    .await
+                    .map(|entity_type| entity_type.borrow().clone())
             })
             .try_collect::<ClosedEntityType>()
     }
