@@ -59,7 +59,7 @@
     "@rollup/plugin-node-resolve": "15.3.0",
     "@rollup/plugin-typescript": "11.1.6",
     "@rollup/plugin-wasm": "6.2.2",
-    "@types/node": "20.16.9",
+    "@types/node": "20.16.10",
     "@types/react": "18.2.68",
     "@vitest/coverage-istanbul": "2.1.1",
     "eslint": "8.57.0",
