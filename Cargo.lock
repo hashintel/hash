@@ -2598,6 +2598,7 @@ dependencies = [
  "futures",
  "graph",
  "graph-api",
+ "graph-types",
  "hash-tracing",
  "mimalloc",
  "regex",

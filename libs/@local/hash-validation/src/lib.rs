@@ -3,8 +3,6 @@
 
 extern crate alloc;
 
-pub mod error;
-
 pub use self::entity_type::{EntityPreprocessor, EntityValidationError};
 
 mod entity_type;
@@ -102,6 +100,7 @@ mod tests {
         knowledge::property::{
             Property, PropertyMetadata, PropertyObject, PropertyProvenance, PropertyWithMetadata,
             PropertyWithMetadataObject, PropertyWithMetadataValue, ValueMetadata,
+            error::install_error_stack_hooks,
             visitor::{EntityVisitor, TraversalError},
         },
         ontology::{
@@ -122,7 +121,6 @@ mod tests {
     use uuid::Uuid;
 
     use super::*;
-    use crate::error::install_error_stack_hooks;
 
     fn generate_data_type_metadata(schema: DataType) -> DataTypeWithMetadata {
         let actor = AccountId::new(Uuid::nil());
@@ -313,22 +311,6 @@ mod tests {
                     .iter()
                     .any(|id| id.url.base_url == *parent),
             )
-        }
-
-        #[expect(refining_impl_trait)]
-        async fn has_children(
-            &self,
-            _data_type: &VersionedUrl,
-        ) -> Result<bool, Report<InvalidDataType>> {
-            Ok(false)
-        }
-
-        #[expect(refining_impl_trait)]
-        async fn has_non_abstract_parents(
-            &self,
-            _data_type: &VersionedUrl,
-        ) -> Result<bool, Report<InvalidDataType>> {
-            Ok(false)
         }
 
         #[expect(refining_impl_trait)]
