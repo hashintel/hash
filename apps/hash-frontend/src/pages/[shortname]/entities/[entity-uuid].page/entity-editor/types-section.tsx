@@ -130,16 +130,23 @@ export const TypeButton = ({
   const entityTypeTitle = currentEntityType.schema.title;
   const currentVersion = currentEntityType.metadata.recordId.version;
 
+  /**
+   * @todo H-3379 bring changes to types into the same 'local draft changes' system as properties/links changes,
+   *    which enables the user to make type changes before the entity is persisted to the db.
+   */
+  const isNotYetInDb = entity.metadata.recordId.entityId.includes("draft");
+  const canChangeTypes = !readonly && !isNotYetInDb;
+
   return (
     <>
       <TypeCard
         LinkComponent={Link}
-        onDelete={onDeleteClicked}
+        onDelete={canChangeTypes ? onDeleteClicked : undefined}
         url={entityTypeId}
         title={entityTypeTitle}
         version={currentVersion}
         newVersionConfig={
-          !readonly && newVersion
+          canChangeTypes && newVersion
             ? {
                 newVersion,
                 onUpdateVersion: onUpgradeClicked,
@@ -251,6 +258,13 @@ export const TypesSection = () => {
     }
   };
 
+  /**
+   * @todo H-3379 bring changes to types into the same 'local draft changes' system as properties/links changes,
+   *    which enables the user to make type changes before the entity is persisted to the db.
+   */
+  const isNotYetInDb = entity.metadata.recordId.entityId.includes("draft");
+  const canChangeTypes = !readonly && !isNotYetInDb;
+
   return (
     <SectionWrapper
       title="Types"
@@ -265,7 +279,7 @@ export const TypesSection = () => {
             newerEntityType={newerEntityType}
           />
         ))}
-        {!readonly &&
+        {canChangeTypes &&
           (addingType ? (
             <Box component="form" sx={{ flexGrow: 1 }}>
               <EntityTypeSelector
