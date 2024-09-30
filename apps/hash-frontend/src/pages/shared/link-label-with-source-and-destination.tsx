@@ -20,15 +20,17 @@ import type { BoxProps } from "@mui/material";
 import {
   Box,
   chipClasses,
+  Stack,
   styled,
   Tooltip,
   Typography,
   typographyClasses,
 } from "@mui/material";
 import type { FunctionComponent, ReactNode } from "react";
-import { useMemo } from "react";
+import { forwardRef, Fragment, useMemo, useRef } from "react";
 
 import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-entity";
+import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { LinkRegularIcon } from "../../shared/icons/link-regular-icon";
 import { Link } from "../../shared/ui";
 import { useEntityIcon } from "../../shared/use-entity-icon";
@@ -55,14 +57,17 @@ const stringifyEntityPropertyValue = (value: EntityPropertyValue): string => {
   }
 };
 
-const LeftOrRightEntity: FunctionComponent<{
-  entity?: Entity;
-  subgraph: Subgraph<EntityRootType>;
-  openInNew?: boolean;
-  endAdornment?: ReactNode;
-  label?: ReactNode;
-  sx?: BoxProps["sx"];
-}> = ({ subgraph, entity, endAdornment, sx, label, openInNew }) => {
+const LeftOrRightEntity = forwardRef<
+  HTMLDivElement,
+  {
+    entity?: Entity;
+    subgraph: Subgraph<EntityRootType>;
+    openInNew?: boolean;
+    endAdornment?: ReactNode;
+    label?: ReactNode;
+    sx?: BoxProps["sx"];
+  }
+>(({ subgraph, entity, endAdornment, sx, label, openInNew }, ref) => {
   const entityLabel = useMemo(
     () => (entity ? generateEntityLabel(subgraph, entity) : "Hidden entity"),
     [subgraph, entity],
@@ -107,6 +112,7 @@ const LeftOrRightEntity: FunctionComponent<{
       columnGap={1}
       paddingX={1.5}
       paddingY={0.75}
+      ref={ref}
       sx={[
         {
           borderRadius: "6px",
@@ -351,7 +357,7 @@ const LeftOrRightEntity: FunctionComponent<{
       {contentWithLinkAndTooltip}
     </Box>
   );
-};
+});
 
 export const LinkLabelWithSourceAndDestination: FunctionComponent<{
   linkEntity: LinkEntity;
@@ -374,8 +380,15 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
   displayLabels = false,
   openInNew = false,
 }) => {
-  const { leftEntity, rightEntity } = useMemo(() => {
+  const { leftEntity, rightEntity, linkEntityTypes } = useMemo(() => {
     return {
+      linkEntityTypes: linkEntity.metadata.entityTypeIds.map((entityTypeId) => {
+        const entityType = getEntityTypeById(subgraph, entityTypeId);
+        if (!entityType) {
+          throw new Error(`Entity type not found: ${entityTypeId}`);
+        }
+        return entityType;
+      }),
       leftEntity: getEntityRevision(subgraph, linkEntity.linkData.leftEntityId),
       rightEntity: getEntityRevision(
         subgraph,
@@ -384,13 +397,43 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
     };
   }, [linkEntity, subgraph]);
 
+  /**
+   * If there are multiple link entity types for this link entity,
+   * we want to draw lines from the left/right entity to each of the link types in the middle.
+   * Something like this:
+   *
+   *                 +-----------+
+   *                 |  Link     |
+   *                /|  Type 1   |\
+   * +-----------+ / +-----------+ \ +-----------+
+   * |           |/                 \|           |
+   * |   Left    |                   |   Right   |
+   * |           |\                 /|           |
+   * +-----------+ \ +-----------+ / +-----------+
+   *                \|  Link     |/
+   *                 |  Type 2   |
+   *                 +-----------+
+   *
+   * Otherwise, the left/link/right entities are drawn in a straight line:
+   * +-----------++---------++-----------+
+   * |           |           |           |
+   * |   Left    | Link Type |   Right   |
+   * |           |           |           |
+   * +-----------++---------++-----------+
+   *
+   * We need these refs to draw the lines connecting the entities to the link types.
+   */
+  const linkTypeRefs = useRef<HTMLDivElement[]>([]);
+  const leftEntityRef = useRef<HTMLDivElement>(null);
+  const rightEntityRef = useRef<HTMLDivElement>(null);
+
   return (
-    <Box
+    <Stack
+      alignItems="center"
+      direction="row"
       sx={[
         {
-          display: "flex",
           width: "fit-content",
-          alignItems: "flex-end",
         },
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}
@@ -401,40 +444,184 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
         endAdornment={leftEntityEndAdornment}
         openInNew={openInNew}
         label={displayLabels ? "Source entity" : undefined}
+        ref={leftEntityRef}
         sx={leftEntitySx}
       />
-      <Box
+      <Stack
+        gap={2}
         sx={{
-          background: ({ palette }) => palette.gray[5],
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 1,
-          paddingX: 1.5,
-          paddingY: 0.75,
-          borderColor: ({ palette }) => palette.gray[30],
-          borderWidth: 1,
-          borderStyle: "solid",
-          borderLeftWidth: 0,
-          borderRightWidth: 0,
+          position: "relative",
+          paddingX: linkEntityTypes.length > 1 ? 2 : 0,
         }}
       >
-        <LinkRegularIcon
-          sx={{
-            color: ({ palette }) => palette.common.black,
-            fontSize: 16,
-            transition: ({ transitions }) => transitions.create("color"),
-          }}
-        />
-      </Box>
+        {linkEntityTypes.map((linkEntityType, index) => (
+          <Fragment key={linkEntityType.schema.$id}>
+            <Link
+              openInNew={openInNew}
+              href={generateLinkParameters(linkEntityType.schema.$id).href}
+              noLinkStyle
+            >
+              <Box
+                ref={(el) => {
+                  linkTypeRefs.current[index] = el as HTMLDivElement;
+                }}
+                sx={{
+                  "&:hover": {
+                    [`.${typographyClasses.root}, svg`]: {
+                      color: ({ palette }) => palette.blue[70],
+                    },
+                  },
+                  background: ({ palette }) =>
+                    linkEntityTypes.length > 1
+                      ? palette.common.white
+                      : palette.gray[5],
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 1,
+                  paddingX: 1.5,
+                  paddingY: 0.75,
+                  borderColor: ({ palette }) => palette.gray[30],
+                  borderWidth: 1,
+                  borderStyle: "solid",
+                  borderLeftWidth: linkEntityTypes.length > 1 ? 1 : 0,
+                  borderRightWidth: linkEntityTypes.length > 1 ? 1 : 0,
+                }}
+              >
+                <Box display="flex">
+                  {linkEntityType.metadata.icon ?? (
+                    <LinkRegularIcon
+                      sx={{
+                        color: ({ palette }) => palette.common.black,
+                        fontSize: 16,
+                        transition: ({ transitions }) =>
+                          transitions.create("color"),
+                      }}
+                    />
+                  )}
+                </Box>
+                <ContentTypography>
+                  {linkEntityType.schema.title}
+                  <Box
+                    component="span"
+                    sx={{
+                      color: ({ palette }) => palette.gray[50],
+                      fontSize: 11,
+                      fontWeight: 400,
+                      ml: 0.5,
+                    }}
+                  >
+                    v{linkEntityType.metadata.recordId.version}
+                  </Box>
+                </ContentTypography>
+              </Box>
+            </Link>
+            {linkEntityTypes.length > 0 && linkTypeRefs.current[index] && (
+              /**
+               * In cases where we have multiple link entity types, draw a line from:
+               * 1. The left edge of the link entity type to the right edge of the left entity
+               * 2. The right edge of the link entity type to the left edge of the right entity
+               *
+               * See diagram above.
+               */
+              <svg
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  pointerEvents: "none",
+                  width: "100%",
+                  height: "100%",
+                }}
+              >
+                {(() => {
+                  // Get bounding rect of the outermost Stack of this component
+                  const containerRect =
+                    linkTypeRefs.current[
+                      index
+                    ].parentElement!.parentElement!.getBoundingClientRect();
+
+                  const leftEntityRect =
+                    leftEntityRef.current?.getBoundingClientRect();
+                  const rightEntityRect =
+                    rightEntityRef.current?.getBoundingClientRect();
+                  const linkEntityRect =
+                    linkTypeRefs.current[index].getBoundingClientRect();
+
+                  if (!leftEntityRect || !rightEntityRect) {
+                    return null;
+                  }
+
+                  // Calculate coordinates relative to the container for the origin and target of each line
+                  const leftEntityRightCenter = {
+                    x: leftEntityRect.right - containerRect.left,
+                    y:
+                      leftEntityRect.top +
+                      leftEntityRect.height / 2 -
+                      containerRect.top,
+                  };
+
+                  const linkEntityLeftCenter = {
+                    x: linkEntityRect.left - containerRect.left,
+                    y:
+                      linkEntityRect.top +
+                      linkEntityRect.height / 2 -
+                      containerRect.top,
+                  };
+
+                  const rightEntityLeftCenter = {
+                    x: rightEntityRect.left - containerRect.left,
+                    y:
+                      rightEntityRect.top +
+                      rightEntityRect.height / 2 -
+                      containerRect.top,
+                  };
+
+                  const linkEntityRightCenter = {
+                    x: linkEntityRect.right - containerRect.left,
+                    y:
+                      linkEntityRect.top +
+                      linkEntityRect.height / 2 -
+                      containerRect.top,
+                  };
+
+                  return (
+                    <>
+                      <Box
+                        component="line"
+                        x1={leftEntityRightCenter.x}
+                        y1={leftEntityRightCenter.y}
+                        x2={linkEntityLeftCenter.x}
+                        y2={linkEntityLeftCenter.y}
+                        strokeWidth="1"
+                        sx={{ stroke: ({ palette }) => palette.gray[40] }}
+                      />
+                      <Box
+                        component="line"
+                        x1={rightEntityLeftCenter.x}
+                        y1={rightEntityLeftCenter.y}
+                        x2={linkEntityRightCenter.x}
+                        y2={linkEntityRightCenter.y}
+                        strokeWidth="1"
+                        sx={{ stroke: ({ palette }) => palette.gray[40] }}
+                      />
+                    </>
+                  );
+                })()}
+              </svg>
+            )}
+          </Fragment>
+        ))}
+      </Stack>
       <LeftOrRightEntity
         entity={rightEntity}
         subgraph={subgraph}
         endAdornment={rightEntityEndAdornment}
         sx={rightEntitySx}
         openInNew={openInNew}
+        ref={rightEntityRef}
         label={displayLabels ? "Target entity" : undefined}
       />
-    </Box>
+    </Stack>
   );
 };
