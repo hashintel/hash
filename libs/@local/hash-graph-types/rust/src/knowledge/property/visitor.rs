@@ -492,7 +492,7 @@ where
         0 => status.finish(),
         1 => {
             // We ignore potential errors here, as we have exactly one successful result.
-            let _ = status.finish();
+            let _: Result<(), _> = status.finish();
             Ok(())
         }
         _ => {
@@ -555,7 +555,7 @@ where
         0 => status.finish(),
         1 => {
             // We ignore potential errors here, as we have exactly one successful result.
-            let _ = status.finish();
+            let _: Result<(), _> = status.finish();
             Ok(())
         }
         _ => {
@@ -619,7 +619,7 @@ where
         0 => status.finish(),
         1 => {
             // We ignore potential errors here, as we have exactly one successful result.
-            let _ = status.finish();
+            let _: Result<(), _> = status.finish();
             Ok(())
         }
         _ => {

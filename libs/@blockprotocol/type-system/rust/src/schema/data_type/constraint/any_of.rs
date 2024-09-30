@@ -31,7 +31,7 @@ impl AnyOfConstraints {
                 .is_some()
             {
                 // We found a valid schema, so we can return early.
-                let _ = status.finish();
+                let _: Result<(), _> = status.finish();
                 return Ok(());
             }
         }

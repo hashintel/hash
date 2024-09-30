@@ -1,5 +1,5 @@
 use core::time::Duration;
-use std::{collections::HashMap, env, fs::File, io};
+use std::{collections::HashMap, fs::File, io, path::PathBuf};
 
 use error_stack::{Report, ResultExt};
 use futures::{StreamExt, TryStreamExt, stream};
@@ -28,12 +28,26 @@ impl FetchServer {
     /// - If the predefined types directory cannot be found
     /// - If a predefined type cannot be deserialized
     pub fn load_predefined_types(&mut self) -> Result<(), Report<io::Error>> {
-        let directory = env::current_dir()?
-            .join("apps")
-            .join("hash-graph")
-            .join("libs")
-            .join("type-fetcher")
-            .join("predefined_types");
+        let directory = PathBuf::from(file!());
+        let directory = directory.parent().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::NotFound,
+                format!(
+                    "Could not find parent directory of `{}`",
+                    directory.display()
+                ),
+            )
+        })?;
+        let directory = directory.parent().ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::NotFound,
+                format!(
+                    "Could not find parent directory of `{}`",
+                    directory.display()
+                ),
+            )
+        })?;
+        let directory = directory.join("predefined_types");
         let directory = directory
             .canonicalize()
             .attach_printable_lazy(|| directory.display().to_string())?;
