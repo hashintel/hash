@@ -1,13 +1,19 @@
 #![feature(never_type)]
-use core::marker::PhantomData;
+#![expect(
+    dead_code,
+    clippy::unwrap_used,
+    clippy::empty_enum,
+    clippy::todo,
+    reason = "non-working example code"
+)]
 
 use error_stack::Report;
 use frunk::HList;
-use futures::pin_mut;
+use futures::{StreamExt, pin_mut, stream};
 use graph_types::account::AccountId;
-use harpc_net::codec::{Codec, Decoder, Encoder};
+use harpc_net::codec::{Decoder, Encoder};
 use harpc_service::{
-    delegate::{CodecRequirement, ServiceDelegate},
+    delegate::ServiceDelegate,
     metadata::Metadata,
     procedure::{Procedure, ProcedureIdentifier},
     role::{Client, ClientSession, Role, Server},
@@ -15,8 +21,9 @@ use harpc_service::{
 };
 use harpc_tower::{
     body::{Body, BodyExt},
+    either::Either,
     request::Request,
-    response::Response,
+    response::{Parts, Response},
 };
 use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
 use harpc_wire_protocol::{request::procedure::ProcedureDescriptor, response::kind::ResponseKind};
@@ -101,13 +108,13 @@ where
 
 struct AccountServiceImpl;
 
-impl<T> AccountService<Server<T>> for AccountServiceImpl
+impl<S> AccountService<Server<S>> for AccountServiceImpl
 where
-    T: Send + Sync,
+    S: Send + Sync,
 {
     async fn create_account(
         &self,
-        _: &<Server<T> as Role>::Session,
+        _: &S,
         _: CreateAccount,
     ) -> Result<AccountId, Report<AccountError>> {
         todo!()
@@ -116,86 +123,70 @@ where
 
 struct AccountServiceClient;
 
-impl<T> AccountService<Client<T>> for AccountServiceClient
+impl<S> AccountService<Client<S>> for AccountServiceClient
 where
-    T: ClientSession + Send + Sync,
+    S: ClientSession + Send + Sync,
 {
     async fn create_account(
         &self,
-        _: &<Client<T> as Role>::Session,
+        _: &S,
         _: CreateAccount,
     ) -> Result<AccountId, Report<AccountError>> {
         todo!()
     }
 }
 
-struct AccountServerDelegate<T, S> {
+struct AccountServerDelegate<T> {
     service: T,
-    _session: PhantomData<fn() -> *const S>,
 }
 
-// struct A;
-// struct B;
-// struct C;
-
-struct AccountCodecRequirement;
-impl<C> CodecRequirement<C> for AccountCodecRequirement where C: Codec<CreateAccount> {}
-
-// struct CodecRequirement;
-// impl<E> CodecSatisfies<E> for CodecRequirement where E: Codec<A> + Codec<B> + Codec<C> {}
-
-fn acquire_session<S>() -> S {
-    todo!()
-}
-
-// TODO: SessionStorage
-impl<T, S> ServiceDelegate for AccountServerDelegate<T, S>
+impl<T, S, C> ServiceDelegate<S, C> for AccountServerDelegate<T>
 where
-    T: AccountService<Server<S>>,
+    T: AccountService<Server<S>> + Send + Sync,
     S: Send + Sync,
+    C: Encoder<AccountId> + Decoder<CreateAccount> + Send + Sync,
 {
-    type CodecRequirement = AccountCodecRequirement;
     type Service = Account;
 
-    async fn call<B, C>(
+    async fn call<B>(
         &self,
         request: Request<B>,
+        session: &S,
         codec: &C,
     ) -> Response<impl Body<Control: AsRef<ResponseKind>>>
     where
         B: Body<Control = !> + Send + Sync,
-        AccountCodecRequirement: CodecRequirement<C>,
     {
+        let session_id = request.session();
         let ProcedureDescriptor { id } = request.procedure();
         let id = AccountProcedureId::from_id(id).unwrap();
 
         match id {
             AccountProcedureId::CreateAccount => {
-                let encoder = <C as Codec<CreateAccount>>::encoder(codec);
-                let decoder = <C as Codec<CreateAccount>>::decoder(codec);
-
                 let body = request.into_body();
                 let data = body.into_stream().into_data_stream();
 
-                let stream = decoder.decode_stream(data).await;
+                let stream = codec.decode_stream(data).await;
                 pin_mut!(stream);
 
                 let payload = stream.next().await.unwrap().unwrap();
 
-                let result = self
-                    .service
-                    .create_account(&acquire_session(), payload)
-                    .await;
+                let result = self.service.create_account(session, payload).await;
 
-                let response = match result {
+                match result {
                     Ok(account_id) => {
-                        let data = encoder.encode(account_id).await;
-                        Response::ok(data)
-                    }
-                    Err(_) => Response::error(),
-                };
+                        let data = codec.encode_stream(stream::iter([account_id])).await;
 
-                return response;
+                        Response::from_ok(Parts::new(session_id), data).map_body(Either::Left)
+                    }
+                    Err(error) => {
+                        let error = codec.encode_report(error).await;
+
+                        Response::from_error(Parts::new(session_id), error)
+                            .map_body(|body| body.map_err(|error| match error {}))
+                            .map_body(Either::Right)
+                    }
+                }
             }
         }
     }

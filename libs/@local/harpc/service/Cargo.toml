@@ -25,6 +25,7 @@ thiserror.workspace = true
 futures.workspace = true
 error-stack.workspace = true
 frunk = "0.4.3"
+pin-project-lite.workspace = true
 
 [lints]
 workspace = true

@@ -1,7 +1,7 @@
 use alloc::sync::Arc;
 use core::error::Error;
 
-use bytes::Bytes;
+use bytes::{Buf, Bytes};
 use error_stack::{Context, Report, Result};
 use futures::Stream;
 use harpc_wire_protocol::response::kind::ErrorCode;
@@ -63,10 +63,12 @@ pub trait Encoder<T>: ValueEncoder<T> + ErrorEncoder {}
 pub trait ValueDecoder<T> {
     type Error: Context;
 
-    fn decode_stream(
+    fn decode_stream<B, E>(
         &self,
-        items: impl Stream<Item = Bytes> + Send + Sync + 'static,
-    ) -> impl Future<Output = impl Stream<Item = Result<T, Self::Error>> + Send + Sync + 'static>;
+        items: impl Stream<Item = core::result::Result<B, E>> + Send + Sync,
+    ) -> impl Future<Output = impl Stream<Item = Result<T, Self::Error>> + Send + Sync> + Send
+    where
+        B: Buf;
 }
 
 pub trait ErrorDecoder {
@@ -76,13 +78,13 @@ pub trait ErrorDecoder {
     /// Decode an error report from a stream of bytes.
     fn decode_report(
         &self,
-        bytes: impl Stream<Item = Bytes> + Send + Sync + 'static,
+        bytes: impl Stream<Item = Bytes> + Send + Sync,
     ) -> impl Future<Output = Result<Self::Output, Self::Error>> + Send;
 
     /// Decode a plain error from a stream of bytes.
     fn decode_error(
         &self,
-        bytes: impl Stream<Item = Bytes> + Send + Sync + 'static,
+        bytes: impl Stream<Item = Bytes> + Send + Sync,
     ) -> impl Future<Output = Result<Self::Output, Self::Error>> + Send;
 }
 

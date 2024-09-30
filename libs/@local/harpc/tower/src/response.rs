@@ -1,9 +1,10 @@
 use bytes::Bytes;
+use futures::{Stream, TryStreamExt, stream::MapOk};
 use harpc_net::session::{error::TransactionError, server::SessionId};
 use harpc_wire_protocol::response::kind::ResponseKind;
 
 use crate::{
-    body::{Body, controlled::Controlled, full::Full},
+    body::{Body, Frame, controlled::Controlled, full::Full, stream::StreamBody},
     extensions::Extensions,
 };
 
@@ -12,6 +13,16 @@ pub struct Parts {
     pub session: SessionId,
 
     pub extensions: Extensions,
+}
+
+impl Parts {
+    #[must_use]
+    pub fn new(session: SessionId) -> Self {
+        Self {
+            session,
+            extensions: Extensions::new(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -65,6 +76,21 @@ impl Response<Controlled<ResponseKind, Full<Bytes>>> {
         Self {
             head: parts,
             body: Controlled::new(ResponseKind::Err(error.code), Full::new(error.bytes)),
+        }
+    }
+}
+
+impl<S, E> Response<Controlled<ResponseKind, StreamBody<MapOk<S, fn(Bytes) -> Frame<Bytes, !>>>>>
+where
+    S: Stream<Item = Result<Bytes, E>>,
+{
+    pub fn from_ok(parts: Parts, stream: S) -> Self {
+        Self {
+            head: parts,
+            body: Controlled::new(
+                ResponseKind::Ok,
+                StreamBody::new(stream.map_ok(Frame::new_data)),
+            ),
         }
     }
 }

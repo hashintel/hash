@@ -1,6 +1,5 @@
 #![feature(never_type, marker_trait_attr)]
 
-// mod account;
 pub mod delegate;
 pub mod metadata;
 pub mod procedure;
