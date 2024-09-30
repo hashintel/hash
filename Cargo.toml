@@ -22,6 +22,7 @@ members = [
     "libs/@local/harpc/net",
     "libs/@local/harpc/tower",
     "libs/@local/harpc/service",
+    "libs/@local/harpc/server",
     "libs/@local/hql/*",
     "libs/antsi",
     "libs/deer",
@@ -30,7 +31,7 @@ members = [
     "libs/deer/macros",
     "libs/error-stack",
     "libs/error-stack/macros",
-    "libs/sarif",
+    "libs/sarif", "libs/@local/harpc/server",
 ]
 default-members = [
     "apps/hash-graph/bins/*",
@@ -57,6 +58,7 @@ harpc-net.path = "libs/@local/harpc/net"
 harpc-types.path = "libs/@local/harpc/types"
 harpc-wire-protocol.path = "libs/@local/harpc/wire-protocol"
 harpc-tower.path = "libs/@local/harpc/tower"
+harpc-service.path = "libs/@local/harpc/service"
 hash-graph-store.path = "apps/hash-graph/libs/store"
 hash-status.path = "libs/@local/status/rust"
 hash-tracing.path = "libs/@local/tracing"

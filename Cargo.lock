@@ -2596,6 +2596,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "harpc-server"
+version = "0.0.0"
+dependencies = [
+ "frunk",
+ "harpc-net",
+ "harpc-service",
+ "harpc-tower",
+ "harpc-types",
+ "harpc-wire-protocol",
+ "thiserror",
+]
+
+[[package]]
 name = "harpc-service"
 version = "0.0.0"
 dependencies = [

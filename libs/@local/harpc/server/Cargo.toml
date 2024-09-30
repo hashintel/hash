@@ -1,0 +1,28 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "harpc-server"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+frunk = "0.4.3"
+# Public workspace dependencies
+
+# Public third-party dependencies
+
+# Private workspace dependencies
+harpc-net.workspace = true
+harpc-service = { version = "0.0.0", path = "../service" }
+harpc-tower.workspace = true
+harpc-types.workspace = true
+harpc-wire-protocol.workspace = true
+thiserror.workspace = true
+
+# Private third-party dependencies
+
+[lints]
+workspace = true

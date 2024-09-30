@@ -11,6 +11,7 @@ pub struct ErrorCode(NonZero<u16>);
 
 impl ErrorCode {
     // 0xFF_D0..=0xFF_DF are client layer errors
+    pub const NOT_FOUND: Self = Self(NonZero::new(0xFF_D0).expect("infallible"));
 }
 
 impl ErrorCode {
