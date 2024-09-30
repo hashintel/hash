@@ -28,7 +28,9 @@ impl FetchServer {
     /// - If the predefined types directory cannot be found
     /// - If a predefined type cannot be deserialized
     pub fn load_predefined_types(&mut self) -> Result<(), Report<io::Error>> {
-        let directory = PathBuf::from(file!());
+        let directory = PathBuf::from(file!())
+            .canonicalize()
+            .attach_printable_lazy(|| file!().to_string())?;
         let directory = directory.parent().ok_or_else(|| {
             io::Error::new(
                 io::ErrorKind::NotFound,
