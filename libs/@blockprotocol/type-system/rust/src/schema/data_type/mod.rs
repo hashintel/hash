@@ -666,6 +666,10 @@ impl DataType {
 }
 
 #[cfg(test)]
+#[expect(
+    clippy::needless_return,
+    reason = "False positive, fixed by https://github.com/rust-lang/rust-clippy/pull/13464"
+)]
 mod tests {
     use serde_json::json;
 

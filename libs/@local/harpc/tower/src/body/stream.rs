@@ -87,7 +87,7 @@ where
     type Item = Result<Frame<B::Data, B::Control>, B::Error>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        return self.project().inner.poll_frame(cx);
+        self.project().inner.poll_frame(cx)
     }
 }
 

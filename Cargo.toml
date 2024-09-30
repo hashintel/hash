@@ -246,10 +246,12 @@ expect_used = "allow"
 indexing_slicing = "allow"
 let_underscore_must_use = "allow"
 missing_assert_message = "allow"
+needless_return = "allow" # False positives, https://github.com/rust-lang/rust-clippy/issues/13458
 multiple_inherent_impl = "allow"
 panic = "allow"
 partial_pub_fields = "allow"
 unwrap_in_result = "allow"
+unused_trait_names = "allow" # should be supported by IDEs
 wildcard_enum_match_arm = "allow"
 
 # Consider enabling:
