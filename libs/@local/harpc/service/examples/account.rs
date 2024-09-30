@@ -13,11 +13,11 @@ use futures::{StreamExt, pin_mut, stream};
 use graph_types::account::AccountId;
 use harpc_net::codec::{Decoder, Encoder};
 use harpc_service::{
+    Service,
     delegate::ServiceDelegate,
     metadata::Metadata,
     procedure::{Procedure, ProcedureIdentifier},
     role::{Client, ClientSession, Role, Server},
-    service::Service,
 };
 use harpc_tower::{
     body::{Body, BodyExt},

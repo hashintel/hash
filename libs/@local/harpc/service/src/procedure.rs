@@ -1,7 +1,7 @@
 use frunk::HCons;
 use harpc_types::procedure::ProcedureId;
 
-use crate::{metadata::Metadata, service::Service};
+use crate::{Service, metadata::Metadata};
 
 /// A marker trait for procedures that are included in a service.
 ///

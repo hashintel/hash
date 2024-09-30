@@ -1,7 +1,7 @@
 use harpc_tower::{body::Body, request::Request, response::Response};
 use harpc_wire_protocol::response::kind::ResponseKind;
 
-use crate::service::Service;
+use crate::Service;
 
 pub trait ServiceDelegate<S, C> {
     type Service: Service;
