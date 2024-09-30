@@ -1,15 +1,15 @@
 use core::time::Duration;
 
 use clap::Parser;
-use error_stack::{Result, ResultExt as _};
-use futures::{StreamExt as _, future};
+use error_stack::{Result, ResultExt};
+use futures::{StreamExt, future};
 use tarpc::{
     serde_transport::Transport,
-    server::{self, Channel as _},
+    server::{self, Channel},
 };
 use tokio::time::timeout;
 use type_fetcher::{
-    fetcher::{Fetcher as _, FetcherRequest, FetcherResponse},
+    fetcher::{Fetcher, FetcherRequest, FetcherResponse},
     fetcher_server::FetchServer,
 };
 

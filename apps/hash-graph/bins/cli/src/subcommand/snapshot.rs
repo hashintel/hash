@@ -1,13 +1,13 @@
 use authorization::{
-    AuthorizationApi as _, NoAuthorization,
-    backend::{SpiceDbOpenApi, ZanzibarBackend as _},
+    AuthorizationApi, NoAuthorization,
+    backend::{SpiceDbOpenApi, ZanzibarBackend},
     zanzibar::ZanzibarClient,
 };
 use clap::Parser;
-use error_stack::{Report, ResultExt as _};
+use error_stack::{Report, ResultExt};
 use graph::{
     snapshot::{SnapshotDumpSettings, SnapshotEntry, SnapshotStore},
-    store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, StorePool as _},
+    store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, StorePool},
 };
 use tokio::io;
 use tokio_postgres::NoTls;

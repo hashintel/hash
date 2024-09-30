@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 
-use error_stack::{Report, ResultExt as _};
+use error_stack::{Report, ResultExt};
 use graph_types::{
     account::AccountId,
     knowledge::entity::Entity,
     ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
 };
 use serde::Serialize;
-use temporal_io_client::{WorkflowClientTrait as _, WorkflowOptions};
+use temporal_io_client::{WorkflowClientTrait, WorkflowOptions};
 use temporal_io_sdk_core_protos::{
     ENCODING_PAYLOAD_KEY, JSON_ENCODING_VAL, temporal::api::common::v1::Payload,
 };

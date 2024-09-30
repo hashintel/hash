@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use error_stack::{Report, ResultExt as _};
+use error_stack::{Report, ResultExt};
 
 use crate::benches::{
     analyze::tracing::FoldedStacks,

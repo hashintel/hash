@@ -2,21 +2,21 @@ use alloc::sync::Arc;
 use core::{
     fmt,
     net::{AddrParseError, SocketAddr},
-    str::FromStr as _,
+    str::FromStr,
     time::Duration,
 };
 
 use authorization::{
-    AuthorizationApi as _, NoAuthorization,
-    backend::{SpiceDbOpenApi, ZanzibarBackend as _},
+    AuthorizationApi, NoAuthorization,
+    backend::{SpiceDbOpenApi, ZanzibarBackend},
     zanzibar::ZanzibarClient,
 };
 use clap::Parser;
-use error_stack::{Report, Result, ResultExt as _};
+use error_stack::{Report, Result, ResultExt};
 use graph::{
     ontology::domain_validator::DomainValidator,
     store::{
-        DatabaseConnectionInfo, DatabasePoolConfig, FetchingPool, PostgresStorePool, StorePool as _,
+        DatabaseConnectionInfo, DatabasePoolConfig, FetchingPool, PostgresStorePool, StorePool,
     },
 };
 use graph_api::rest::{RestRouterDependencies, rest_api_router};

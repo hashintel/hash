@@ -67,9 +67,7 @@ mod tests {
     use hash_graph_store::data_type::DataTypeQueryPath;
 
     use super::*;
-    use crate::store::postgres::query::{
-        Alias, PostgresQueryPath as _, test_helper::trim_whitespace,
-    };
+    use crate::store::postgres::query::{Alias, PostgresQueryPath, test_helper::trim_whitespace};
 
     #[test]
     fn order_one() {

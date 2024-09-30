@@ -10,7 +10,7 @@ use core::{
 use error_stack::{Context, Frame, Report};
 use serde::{
     Serialize, Serializer,
-    ser::{Error as _, SerializeMap as _},
+    ser::{Error as _, SerializeMap},
 };
 
 use crate::error::{Error, ErrorProperties, Id, Namespace, Variant};
@@ -282,10 +282,10 @@ mod tests {
     use similar_asserts::assert_serde_eq;
 
     use crate::{
-        Deserialize as _, Number, Reflection as _,
+        Deserialize, Number, Reflection,
         error::{
             Error, ErrorProperties, ExpectedType, Id, Location, MissingError, NAMESPACE, Namespace,
-            ReceivedValue, ReportExt as _, ValueError, Variant, VisitorError,
+            ReceivedValue, ReportExt, ValueError, Variant, VisitorError,
             serialize::{FrameSplitIterator, divide_frames},
         },
         id,

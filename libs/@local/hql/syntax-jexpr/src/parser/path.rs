@@ -7,7 +7,7 @@ use winnow::{
 };
 
 use super::{
-    IntoTextRange as _,
+    IntoTextRange,
     string::{ParseState, separated_boxed1},
     symbol::{ParseRestriction, parse_symbol},
 };
@@ -57,7 +57,7 @@ mod test {
     use hql_span::storage::SpanStorage;
     use insta::{assert_debug_snapshot, assert_snapshot};
     use winnow::{
-        Located, Parser as _, Stateful,
+        Located, Parser, Stateful,
         error::{ContextError, ErrMode, ParseError},
     };
 

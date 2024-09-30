@@ -1,11 +1,11 @@
-use error_stack::{Report, Result, ResultExt as _, TryReportTupleExt as _};
+use error_stack::{Report, Result, ResultExt, TryReportTupleExt};
 
 use crate::{
     Context, Deserializer, EnumVisitor, FieldVisitor, IdentifierVisitor, ObjectAccess,
-    OptionalVisitor, Reflection as _, StructVisitor, Visitor,
+    OptionalVisitor, Reflection, StructVisitor, Visitor,
     error::{
         DeserializerError, ExpectedLength, ExpectedType, ObjectLengthError, ReceivedLength,
-        ReceivedType, TypeError, Variant as _, VisitorError,
+        ReceivedType, TypeError, Variant, VisitorError,
     },
     schema::visitor::ObjectSchema,
 };

@@ -7,7 +7,7 @@ mod read;
 use alloc::borrow::Cow;
 use core::convert::identity;
 
-use error_stack::{Report, ResultExt as _};
+use error_stack::{Report, ResultExt};
 use graph_types::{
     ontology::{
         DataTypeWithMetadata, EntityTypeWithMetadata, OntologyTypeClassificationMetadata,
@@ -26,8 +26,8 @@ use type_system::url::{BaseUrl, VersionedUrl};
 
 pub use self::ontology_id::OntologyId;
 use crate::store::{
-    AsClient as _, Ordering, PostgresStore,
-    crud::{Sorting as _, VersionedUrlSorting},
+    AsClient, Ordering, PostgresStore,
+    crud::{Sorting, VersionedUrlSorting},
     error::DeletionError,
     postgres::{
         crud::QueryRecordDecode,

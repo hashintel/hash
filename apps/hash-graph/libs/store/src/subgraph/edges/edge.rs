@@ -1,4 +1,4 @@
-use serde::{Serialize, Serializer, ser::SerializeStruct as _};
+use serde::{Serialize, Serializer, ser::SerializeStruct};
 #[cfg(feature = "utoipa")]
 use utoipa::{ToSchema, openapi};
 

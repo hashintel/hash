@@ -290,7 +290,7 @@ mod tests {
     use alloc::{
         borrow::Cow,
         format,
-        string::{String, ToString as _},
+        string::{String, ToString},
     };
     use std::{io, process::Command};
 

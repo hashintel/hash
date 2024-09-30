@@ -1,8 +1,8 @@
-use error_stack::{Report, Result, ResultExt as _};
+use error_stack::{Report, Result, ResultExt};
 
 use crate::{
     ArrayAccess, Context, Deserialize, FieldVisitor, ObjectAccess,
-    error::{ArrayAccessError, BoundedContractViolationError, ObjectAccessError, Variant as _},
+    error::{ArrayAccessError, BoundedContractViolationError, ObjectAccessError, Variant},
     value::NoneDeserializer,
 };
 

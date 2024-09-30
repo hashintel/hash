@@ -5,7 +5,7 @@ use hql_cst::{
 };
 use hql_diagnostics::{Diagnostic, help::Help};
 use hql_span::SpanId;
-use winnow::{Located, Parser as _};
+use winnow::{Located, Parser};
 
 use super::{
     error::{

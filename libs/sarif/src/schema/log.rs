@@ -221,7 +221,7 @@ pub(crate) mod tests {
 
     use coverage_helper::test;
     use semver::Version;
-    use serde::Deserialize as _;
+    use serde::Deserialize;
     use serde_json::json;
 
     use crate::schema::{

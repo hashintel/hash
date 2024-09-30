@@ -1,7 +1,7 @@
-use core::{fmt, fmt::Write as _};
+use core::{fmt, fmt::Write};
 
 use serde::{
-    Deserialize, Serialize as _,
+    Deserialize, Serialize,
     de::{self, Deserializer, SeqAccess, Visitor},
 };
 #[cfg(feature = "utoipa")]

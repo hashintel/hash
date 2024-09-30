@@ -6,7 +6,7 @@ use aws_sdk_s3::{
     types::ObjectCannedAcl,
 };
 use bytes::Bytes;
-use error_stack::{Report, ResultExt as _};
+use error_stack::{Report, ResultExt};
 use inferno::flamegraph;
 use serde::Serialize;
 

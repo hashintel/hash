@@ -1,6 +1,6 @@
 use core::marker::PhantomData;
 
-use error_stack::{Result, ResultExt as _};
+use error_stack::{Result, ResultExt};
 
 use crate::{
     Deserialize, Deserializer, Document, Reflection, Schema, Visitor,

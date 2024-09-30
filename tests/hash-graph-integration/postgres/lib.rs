@@ -75,7 +75,7 @@ use graph_types::{
 };
 use hash_graph_store::{
     ConflictBehavior,
-    account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams},
+    account::{AccountStore, InsertAccountIdParams, InsertWebIdParams},
 };
 use hash_tracing::logging::env_filter;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};

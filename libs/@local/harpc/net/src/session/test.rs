@@ -2,8 +2,8 @@ use alloc::sync::Arc;
 use core::{future::ready, iter, net::Ipv4Addr, time::Duration};
 
 use bytes::Bytes;
-use error_stack::{Report, ResultExt as _};
-use futures::{prelude::stream, sink::SinkExt as _, stream::StreamExt as _};
+use error_stack::{Report, ResultExt};
+use futures::{prelude::stream, sink::SinkExt, stream::StreamExt};
 use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
 use harpc_wire_protocol::{
     request::{procedure::ProcedureDescriptor, service::ServiceDescriptor},

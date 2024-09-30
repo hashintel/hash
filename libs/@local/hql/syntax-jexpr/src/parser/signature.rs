@@ -1,13 +1,13 @@
 use hql_cst::expr::signature::{Argument, Generic, List, Return, Signature};
 use winnow::{
-    PResult, Parser as _, Stateful,
+    PResult, Parser, Stateful,
     combinator::{delimited, opt, preceded, separated_pair, trace},
     error::ParserError,
     stream::{AsChar, Compare, Location, Stream, StreamIsPartial},
 };
 
 use super::{
-    IntoTextRange as _,
+    IntoTextRange,
     string::{self, ParseState},
     symbol::{self, parse_symbol},
     r#type::parse_type,
@@ -296,7 +296,7 @@ mod test {
     use hql_span::storage::SpanStorage;
     use insta::assert_snapshot;
     use winnow::{
-        Located, Parser as _, Stateful,
+        Located, Parser, Stateful,
         error::{ContextError, ErrMode, ParseError},
     };
 

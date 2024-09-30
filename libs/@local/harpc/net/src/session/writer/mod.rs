@@ -1,10 +1,10 @@
 #[cfg(test)]
 mod test;
 
-use bytes::{Buf as _, Bytes};
+use bytes::{Buf, Bytes};
 use bytes_utils::SegmentedBuf;
 use harpc_wire_protocol::{
-    flags::BitFlagsOp as _,
+    flags::BitFlagsOp,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{

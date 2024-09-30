@@ -1,7 +1,7 @@
 use alloc::borrow::Cow;
-use core::{fmt, mem, str::FromStr as _};
+use core::{fmt, mem, str::FromStr};
 
-use error_stack::{Context, Report, ResultExt as _, bail};
+use error_stack::{Context, Report, ResultExt, bail};
 use graph_types::{
     Embedding,
     knowledge::entity::EntityEditionId,

@@ -3,7 +3,7 @@ use alloc::borrow::Cow;
 use core::error::Error;
 
 #[cfg(feature = "postgres")]
-use bytes::{BufMut as _, BytesMut};
+use bytes::{BufMut, BytesMut};
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize};

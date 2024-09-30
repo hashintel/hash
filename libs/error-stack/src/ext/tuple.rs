@@ -124,10 +124,10 @@ all_the_tuples!(impl_ext);
 
 #[cfg(test)]
 mod test {
-    use alloc::{borrow::ToOwned as _, collections::BTreeSet, string::String};
+    use alloc::{borrow::ToOwned, collections::BTreeSet, string::String};
     use core::{error::Error, fmt::Display};
 
-    use super::TryReportTupleExt as _;
+    use super::TryReportTupleExt;
     use crate::{Report, Result};
 
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]

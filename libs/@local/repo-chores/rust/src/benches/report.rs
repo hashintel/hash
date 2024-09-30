@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fs::File, io::BufReader, path::Path};
 
 use criterion::Throughput;
-use error_stack::{Report, ResultExt as _};
+use error_stack::{Report, ResultExt};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use walkdir::WalkDir;
 

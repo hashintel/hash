@@ -1,8 +1,8 @@
-use core::{iter::repeat, str::FromStr as _};
+use core::{iter::repeat, str::FromStr};
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
 use authorization::{AuthorizationApi, schema::WebOwnerSubject};
-use graph::store::{AsClient as _, EntityStore as _, knowledge::CreateEntityParams};
+use graph::store::{AsClient, EntityStore, knowledge::CreateEntityParams};
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     account::AccountId,
@@ -13,7 +13,7 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use hash_graph_store::account::{AccountStore as _, InsertAccountIdParams, InsertWebIdParams};
+use hash_graph_store::account::{AccountStore, InsertAccountIdParams, InsertWebIdParams};
 use type_system::{schema::EntityType, url::VersionedUrl};
 use uuid::Uuid;
 

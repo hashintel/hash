@@ -108,9 +108,9 @@ mod tests {
 
     use super::*;
     use crate::{
-        Deserialize as _,
+        Deserialize,
         error::Error,
-        schema::{Reflection as _, visitor::StringSchema},
+        schema::{Reflection, visitor::StringSchema},
         test::{to_json, to_message},
     };
 

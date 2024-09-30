@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use graph::store::{
-    EntityQuerySorting, EntityStore as _,
+    EntityQuerySorting, EntityStore,
     knowledge::{CountEntitiesParams, CreateEntityParams, GetEntitiesParams, PatchEntityParams},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};

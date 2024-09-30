@@ -14,8 +14,8 @@ use tokio::runtime::Handle;
 use tracing::warn;
 use tracing_error::ErrorLayer;
 use tracing_subscriber::{
-    layer::SubscriberExt as _,
-    util::{SubscriberInitExt as _, TryInitError},
+    layer::SubscriberExt,
+    util::{SubscriberInitExt, TryInitError},
 };
 
 use crate::{logging::LoggingConfig, opentelemetry::OpenTelemetryConfig, sentry::SentryConfig};

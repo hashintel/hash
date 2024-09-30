@@ -1,12 +1,12 @@
 use core::{net::SocketAddr, time::Duration};
 
 use authorization::{
-    AuthorizationApi as _,
-    backend::{SpiceDbOpenApi, ZanzibarBackend as _},
+    AuthorizationApi,
+    backend::{SpiceDbOpenApi, ZanzibarBackend},
     zanzibar::ZanzibarClient,
 };
 use clap::Parser;
-use error_stack::{Result, ResultExt as _};
+use error_stack::{Result, ResultExt};
 use graph::{
     snapshot::SnapshotEntry,
     store::{DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool},

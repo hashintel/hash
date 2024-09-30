@@ -1,6 +1,6 @@
 use std::{
     io,
-    io::IsTerminal as _,
+    io::IsTerminal,
     path::{Path, PathBuf},
 };
 

@@ -3,15 +3,15 @@ use deer::{
     Schema, Visitor,
     error::{
         DeserializeError, ExpectedLength, ExpectedType, ExpectedVariant, Location, MissingError,
-        ObjectLengthError, ReceivedLength, ReceivedVariant, UnknownVariantError, Variant as _,
+        ObjectLengthError, ReceivedLength, ReceivedVariant, UnknownVariantError, Variant,
         VisitorError,
     },
     helpers::ExpectNone,
     schema::Reference,
 };
 use deer_desert::{Token, assert_tokens, assert_tokens_error, error};
-use error_stack::{Report, ReportSink, Result, ResultExt as _};
-use serde::{Serializer, ser::SerializeMap as _};
+use error_stack::{Report, ReportSink, Result, ResultExt};
+use serde::{Serializer, ser::SerializeMap};
 use serde_json::json;
 
 struct DiscriminantVisitor;

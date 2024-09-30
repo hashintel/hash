@@ -22,7 +22,7 @@ pub mod time {
 
 pub mod regex {
     use regex::Regex;
-    use serde::{Deserialize as _, Deserializer, Serialize as _, Serializer};
+    use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
     /// Serialize a [`Regex`] to a string.
     ///
@@ -45,7 +45,7 @@ pub mod regex {
 
     pub mod option {
         use regex::Regex;
-        use serde::{Deserialize as _, Deserializer, Serialize as _, Serializer};
+        use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
         /// Serialize an optional [`Regex`] to a string.
         ///
@@ -81,7 +81,7 @@ pub mod regex {
         use alloc::borrow::Cow;
 
         use regex::Regex;
-        use serde::{Deserialize as _, Deserializer, Serializer, ser::SerializeSeq as _};
+        use serde::{Deserialize, Deserializer, Serializer, ser::SerializeSeq};
 
         /// Serialize a sequence of [`Regex`]es.
         ///

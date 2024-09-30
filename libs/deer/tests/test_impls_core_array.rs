@@ -1,6 +1,6 @@
 mod common;
 
-use deer::{Deserialize as _, Number};
+use deer::{Deserialize, Number};
 use deer_desert::{Token, assert_tokens, assert_tokens_error, error};
 use serde_json::json;
 

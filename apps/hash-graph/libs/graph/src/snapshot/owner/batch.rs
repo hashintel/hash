@@ -1,8 +1,8 @@
 use async_trait::async_trait;
 use authorization::{backend::ZanzibarBackend, schema::AccountGroupRelationAndSubject};
-use error_stack::{Result, ResultExt as _};
+use error_stack::{Result, ResultExt};
 use graph_types::account::AccountGroupId;
-use tokio_postgres::GenericClient as _;
+use tokio_postgres::GenericClient;
 
 use crate::{
     snapshot::{

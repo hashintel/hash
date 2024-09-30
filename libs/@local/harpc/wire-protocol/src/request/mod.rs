@@ -1,6 +1,6 @@
 pub use bytes::Bytes;
 use bytes::{Buf, BufMut};
-use error_stack::{Result, ResultExt as _};
+use error_stack::{Result, ResultExt};
 
 use self::{
     body::{RequestBody, RequestBodyContext},
@@ -140,7 +140,7 @@ mod test {
     use super::id::test_utils::mock_request_id;
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode, encode_value},
-        flags::BitFlagsOp as _,
+        flags::BitFlagsOp,
         payload::Payload,
         protocol::{Protocol, ProtocolVersion},
         request::{

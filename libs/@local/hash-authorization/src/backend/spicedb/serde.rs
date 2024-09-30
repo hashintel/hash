@@ -1,4 +1,4 @@
-use serde::{Deserialize, Deserializer, Serialize, de::IntoDeserializer as _};
+use serde::{Deserialize, Deserializer, Serialize, de::IntoDeserializer};
 
 use crate::zanzibar::types::Resource;
 
@@ -55,9 +55,7 @@ pub(crate) mod resource_ref {
 pub(crate) mod relation {
     use alloc::borrow::Cow;
 
-    use serde::{
-        Deserialize, Deserializer, Serialize, Serializer, de, de::IntoDeserializer as _, ser,
-    };
+    use serde::{Deserialize, Deserializer, Serialize, Serializer, de, de::IntoDeserializer, ser};
 
     use crate::zanzibar::types::LeveledRelation;
 

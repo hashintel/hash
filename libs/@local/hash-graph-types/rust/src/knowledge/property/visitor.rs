@@ -1,6 +1,6 @@
-use core::{borrow::Borrow as _, future::Future};
+use core::{borrow::Borrow, future::Future};
 
-use error_stack::{Report, ReportSink, ResultExt as _, bail};
+use error_stack::{Report, ReportSink, ResultExt, bail};
 use serde_json::Value as JsonValue;
 use type_system::{
     schema::{

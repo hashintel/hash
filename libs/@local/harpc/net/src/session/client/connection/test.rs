@@ -6,11 +6,11 @@ use core::{
 };
 use std::io;
 
-use bytes::{Buf as _, BufMut as _, Bytes, BytesMut};
+use bytes::{Buf, BufMut, Bytes, BytesMut};
 use error_stack::Report;
-use futures::{StreamExt as _, stream};
+use futures::{StreamExt, stream};
 use harpc_wire_protocol::{
-    flags::BitFlagsOp as _,
+    flags::BitFlagsOp,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
@@ -45,13 +45,13 @@ use crate::{
     macros::non_zero,
     session::{
         client::{
-            TransactionStream as _, ValueStream,
+            TransactionStream, ValueStream,
             config::SessionConfig,
             connection::{
                 ConnectionRequestDelegateTask, ConnectionResponseDelegateTask,
                 collection::TransactionCollection,
             },
-            transaction::{ClientTransactionPermit as _, stream::StreamState},
+            transaction::{ClientTransactionPermit, stream::StreamState},
         },
         error::ConnectionPartiallyClosedError,
         gc::ConnectionGarbageCollectorTask,

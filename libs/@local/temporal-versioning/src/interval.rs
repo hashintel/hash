@@ -21,7 +21,7 @@ use utoipa::{ToSchema, openapi};
 
 #[cfg(feature = "postgres")]
 use crate::Timestamp;
-use crate::bounds::{BoundType, IntervalBound, IntervalBoundHelper as _, compare_bounds};
+use crate::bounds::{BoundType, IntervalBound, IntervalBoundHelper, compare_bounds};
 
 enum Return<T> {
     None,

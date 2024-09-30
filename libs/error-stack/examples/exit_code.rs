@@ -1,6 +1,6 @@
 //! Example of using `attach` to set a custom exit code. Requires nightly and std feature.
 
-use std::process::{ExitCode, Termination as _};
+use std::process::{ExitCode, Termination};
 
 use error_stack::{Context, Report};
 

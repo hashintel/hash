@@ -2,7 +2,7 @@ mod config;
 mod connection;
 mod transaction;
 
-use error_stack::{Result, ResultExt as _};
+use error_stack::{Result, ResultExt};
 use libp2p::Multiaddr;
 use tokio_util::sync::CancellationToken;
 

@@ -1,6 +1,6 @@
 #![cfg(test)]
 
-use core::str::FromStr as _;
+use core::str::FromStr;
 use std::collections::HashMap;
 
 use graph_types::knowledge::property::{PropertyMetadata, PropertyProvenance, ValueMetadata};

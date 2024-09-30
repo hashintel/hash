@@ -1,7 +1,7 @@
 use core::fmt::Debug;
 
 use bytes::{BufMut, Bytes};
-use error_stack::{Context, Report, Result, ResultExt as _};
+use error_stack::{Context, Report, Result, ResultExt};
 
 use super::{BufferError, buffer::Buffer};
 
@@ -88,7 +88,7 @@ impl Encode for Bytes {
 #[cfg(test)]
 pub(crate) mod test {
     #![expect(clippy::needless_raw_strings)]
-    use core::fmt::Write as _;
+    use core::fmt::Write;
 
     use bytes::{Bytes, BytesMut};
     use expect_test::{Expect, expect};

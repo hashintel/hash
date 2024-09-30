@@ -1,6 +1,6 @@
 use authorization::AuthorizationApi;
 use criterion::{BatchSize::SmallInput, Bencher};
-use graph::store::{EntityTypeStore as _, ontology::GetEntityTypesParams};
+use graph::store::{EntityTypeStore, ontology::GetEntityTypesParams};
 use graph_types::account::AccountId;
 use hash_graph_store::{
     filter::Filter,
@@ -8,7 +8,7 @@ use hash_graph_store::{
         PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
     },
 };
-use rand::{prelude::IteratorRandom as _, thread_rng};
+use rand::{prelude::IteratorRandom, thread_rng};
 use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;
 use type_system::url::VersionedUrl;

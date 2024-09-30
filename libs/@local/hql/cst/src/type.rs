@@ -1,4 +1,4 @@
-use core::fmt::{self, Display, Write as _};
+use core::fmt::{self, Display, Write};
 
 use hql_span::SpanId;
 

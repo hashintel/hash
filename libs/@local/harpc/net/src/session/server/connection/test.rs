@@ -4,9 +4,9 @@ use core::{assert_matches::assert_matches, num::NonZero, time::Duration};
 use std::io;
 
 use bytes::Bytes;
-use futures::{StreamExt as _, prelude::sink::SinkExt as _};
+use futures::{StreamExt, prelude::sink::SinkExt};
 use harpc_wire_protocol::{
-    flags::BitFlagsOp as _,
+    flags::BitFlagsOp,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
@@ -50,7 +50,7 @@ use crate::session::{
         connection::{ConnectionDelegateTask, TransactionCollection},
         session_id::test_utils::mock_session_id,
         test::{make_request_begin, make_request_frame},
-        transaction::ServerTransactionPermit as _,
+        transaction::ServerTransactionPermit,
     },
     test::StringEncoder,
 };

@@ -23,7 +23,7 @@ use alloc::borrow::Cow;
 use core::{cmp::Ordering, fmt, iter, mem};
 use std::{collections::HashMap, io};
 
-use error_stack::{Report, ResultExt as _};
+use error_stack::{Report, ResultExt};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use type_system::{

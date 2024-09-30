@@ -1,11 +1,11 @@
 use core::marker::PhantomData;
 
-use error_stack::{Report, Result, ResultExt as _, TryReportTupleExt as _};
+use error_stack::{Report, Result, ResultExt, TryReportTupleExt};
 
 use crate::{
     ArrayAccess, Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
     error::{
-        ArrayLengthError, DeserializeError, ExpectedLength, Location, ReceivedLength, Variant as _,
+        ArrayLengthError, DeserializeError, ExpectedLength, Location, ReceivedLength, Variant,
         VisitorError,
     },
 };

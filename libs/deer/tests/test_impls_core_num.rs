@@ -12,7 +12,7 @@ use core::num::{
     NonZeroU16, NonZeroU32, NonZeroU64, NonZeroU128, NonZeroUsize,
 };
 
-use deer::{Deserialize as _, Number};
+use deer::{Deserialize, Number};
 use deer_desert::{Token, assert_tokens_error, error};
 use serde::Serialize;
 use serde_json::json;

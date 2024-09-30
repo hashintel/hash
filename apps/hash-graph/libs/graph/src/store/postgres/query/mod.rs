@@ -281,7 +281,7 @@ mod test_helper {
     use hash_graph_store::data_type::DataTypeQueryPath;
 
     use crate::store::postgres::query::{
-        Alias, Expression, Function, PostgresQueryPath as _, WindowStatement,
+        Alias, Expression, Function, PostgresQueryPath, WindowStatement,
     };
 
     pub fn trim_whitespace(string: impl Into<String>) -> String {

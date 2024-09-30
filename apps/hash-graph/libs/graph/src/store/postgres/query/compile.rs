@@ -17,12 +17,12 @@ use crate::store::{
     postgres::query::{
         Alias, AliasedTable, Column, Condition, Distinctness, EqualityOperator, Expression,
         Function, JoinExpression, OrderByExpression, PostgresQueryPath, PostgresRecord,
-        SelectExpression, SelectStatement, Table, Transpile as _, WhereExpression, WindowStatement,
+        SelectExpression, SelectStatement, Table, Transpile, WhereExpression, WindowStatement,
         WithExpression,
         expression::{GroupByExpression, PostgresType},
         statement::FromItem,
         table::{
-            DataTypeEmbeddings, DatabaseColumn as _, EntityEmbeddings, EntityTemporalMetadata,
+            DataTypeEmbeddings, DatabaseColumn, EntityEmbeddings, EntityTemporalMetadata,
             EntityTypeEmbeddings, EntityTypes, JsonField, OntologyIds, OntologyTemporalMetadata,
             PropertyTypeEmbeddings,
         },

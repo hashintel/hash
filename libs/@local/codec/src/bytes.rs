@@ -1,9 +1,9 @@
 use core::marker::PhantomData;
-use std::io::{self, Write as _};
+use std::io::{self, Write};
 
-use bytes::{BufMut as _, BytesMut};
+use bytes::{BufMut, BytesMut};
 use derive_where::derive_where;
-use error_stack::{Report, ResultExt as _};
+use error_stack::{Report, ResultExt};
 use serde::{Serialize, de::DeserializeOwned};
 use tokio_util::codec::{Decoder, Encoder, LinesCodec};
 

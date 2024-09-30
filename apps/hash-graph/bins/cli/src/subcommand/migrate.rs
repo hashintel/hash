@@ -1,9 +1,8 @@
 use authorization::NoAuthorization;
 use clap::Parser;
-use error_stack::{Result, ResultExt as _};
+use error_stack::{Result, ResultExt};
 use graph::store::{
-    DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, StoreMigration as _,
-    StorePool as _,
+    DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, StoreMigration, StorePool,
 };
 use tokio_postgres::NoTls;
 

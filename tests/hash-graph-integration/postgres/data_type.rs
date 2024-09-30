@@ -1,8 +1,8 @@
-use core::str::FromStr as _;
+use core::str::FromStr;
 use std::collections::{HashMap, HashSet};
 
 use graph::store::{
-    BaseUrlAlreadyExists, DataTypeStore as _, EntityStore as _,
+    BaseUrlAlreadyExists, DataTypeStore, EntityStore,
     error::{OntologyTypeIsNotOwned, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
     knowledge::CreateEntityParams,
     ontology::{CreateDataTypeParams, GetDataTypesParams, UpdateDataTypesParams},

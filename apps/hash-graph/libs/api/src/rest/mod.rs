@@ -16,7 +16,7 @@ mod property_type;
 mod web;
 
 use alloc::{borrow::Cow, sync::Arc};
-use core::str::FromStr as _;
+use core::str::FromStr;
 use std::{fs, io};
 
 use async_trait::async_trait;
@@ -25,10 +25,10 @@ use axum::{
     Extension, Json, Router,
     extract::{FromRequestParts, Path},
     http::{StatusCode, request::Parts},
-    response::{IntoResponse as _, Response},
+    response::{IntoResponse, Response},
     routing::get,
 };
-use error_stack::{Report, ResultExt as _};
+use error_stack::{Report, ResultExt};
 use graph::{
     ontology::domain_validator::DomainValidator,
     store::{Store, StorePool, TypeFetcher, error::VersionedUrlAlreadyExists},
@@ -79,7 +79,7 @@ use utoipa::{
 use uuid::Uuid;
 
 use self::{
-    api_resource::RoutedResource as _,
+    api_resource::RoutedResource,
     middleware::span_trace_layer,
     status::{report_to_response, status_to_response},
     utoipa_typedef::{

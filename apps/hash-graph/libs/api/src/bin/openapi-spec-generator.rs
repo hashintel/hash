@@ -1,6 +1,6 @@
 use std::{fs, io};
 
-use error_stack::{Report, ResultExt as _};
+use error_stack::{Report, ResultExt};
 use graph_api::rest::OpenApiDocumentation;
 
 fn main() -> Result<(), Report<io::Error>> {

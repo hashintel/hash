@@ -5,7 +5,7 @@ mod common;
 
 #[allow(clippy::wildcard_imports)]
 use common::*;
-use error_stack::{AttachmentKind, FrameKind, FutureExt as _, Report, ResultExt as _};
+use error_stack::{AttachmentKind, FrameKind, FutureExt, Report, ResultExt};
 
 fn test_messages<E>(report: &Report<E>) {
     assert_eq!(

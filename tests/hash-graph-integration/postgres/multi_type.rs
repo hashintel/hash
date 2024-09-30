@@ -1,9 +1,9 @@
-use core::{assert_matches::assert_matches, str::FromStr as _};
+use core::{assert_matches::assert_matches, str::FromStr};
 use std::collections::HashSet;
 
 use authorization::AuthorizationApi;
 use graph::store::{
-    EntityQuerySorting, EntityStore as _, InsertionError,
+    EntityQuerySorting, EntityStore, InsertionError,
     knowledge::{CreateEntityParams, GetEntitiesParams, PatchEntityParams},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};

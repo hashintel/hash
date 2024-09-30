@@ -3,7 +3,7 @@ use core::{
     task::{Context, Poll, ready},
 };
 
-use futures::{Stream, prelude::stream::StreamExt as _, stream::FusedStream};
+use futures::{Stream, prelude::stream::StreamExt, stream::FusedStream};
 
 #[derive(Debug)]
 enum TerminatedChannelStreamState<T> {

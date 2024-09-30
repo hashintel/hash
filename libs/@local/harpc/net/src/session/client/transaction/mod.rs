@@ -6,9 +6,9 @@ use alloc::sync::Arc;
 use core::ops::ControlFlow;
 
 use bytes::Bytes;
-use futures::{Stream, StreamExt as _, prelude::future::FutureExt as _};
+use futures::{Stream, StreamExt, prelude::future::FutureExt};
 use harpc_wire_protocol::{
-    flags::BitFlagsOp as _,
+    flags::BitFlagsOp,
     request::{Request, id::RequestId, procedure::ProcedureDescriptor, service::ServiceDescriptor},
     response::{
         Response, begin::ResponseBegin, body::ResponseBody, flags::ResponseFlag,

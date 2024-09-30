@@ -91,7 +91,7 @@ mod test {
 
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
-        flags::BitFlagsOp as _,
+        flags::BitFlagsOp,
         request::flags::{RequestFlag, RequestFlags},
     };
 

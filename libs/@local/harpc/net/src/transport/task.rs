@@ -5,13 +5,13 @@ use std::{
     io,
 };
 
-use error_stack::{Result, ResultExt as _};
-use futures::prelude::stream::StreamExt as _;
+use error_stack::{Result, ResultExt};
+use futures::prelude::stream::StreamExt;
 use libp2p::{
     Multiaddr, PeerId, SwarmBuilder,
     core::{transport::ListenerId, upgrade},
     identify,
-    metrics::{self, Metrics, Recorder as _},
+    metrics::{self, Metrics, Recorder},
     noise, ping,
     swarm::{ConnectionId, DialError, SwarmEvent, dial_opts::DialOpts},
     yamux,

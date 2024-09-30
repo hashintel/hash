@@ -110,7 +110,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        Deserialize as _,
+        Deserialize,
         test::{to_json, to_message},
     };
 

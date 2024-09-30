@@ -1,10 +1,10 @@
 use core::marker::PhantomData;
 
-use error_stack::{Report, Result, ResultExt as _};
+use error_stack::{Report, Result, ResultExt};
 
 use crate::{
     Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
-    error::{DeserializeError, ExpectedType, ReceivedType, TypeError, Variant as _, VisitorError},
+    error::{DeserializeError, ExpectedType, ReceivedType, TypeError, Variant, VisitorError},
 };
 
 struct StrVisitor<'a>(PhantomData<fn() -> &'a ()>);

@@ -4,7 +4,7 @@ use core::{
 };
 
 use ariadne::ColorGenerator;
-use error_stack::{Report, Result, TryReportIteratorExt as _, TryReportTupleExt as _};
+use error_stack::{Report, Result, TryReportIteratorExt, TryReportTupleExt};
 use hql_span::{Span, SpanId, storage::SpanStorage, tree::SpanNode};
 
 use crate::{

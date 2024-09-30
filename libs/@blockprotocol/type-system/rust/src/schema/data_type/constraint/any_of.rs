@@ -1,4 +1,4 @@
-use error_stack::{Report, ReportSink, ResultExt as _};
+use error_stack::{Report, ReportSink, ResultExt};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 

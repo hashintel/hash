@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use authorization::{backend::ZanzibarBackend, schema::PropertyTypeRelationAndSubject};
-use error_stack::{Result, ResultExt as _};
+use error_stack::{Result, ResultExt};
 use graph_types::ontology::PropertyTypeId;
-use tokio_postgres::GenericClient as _;
+use tokio_postgres::GenericClient;
 
 use crate::{
     snapshot::WriteBatch,

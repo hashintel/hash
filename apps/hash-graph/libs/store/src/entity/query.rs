@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::{fmt, str::FromStr as _};
+use core::{fmt, str::FromStr};
 
 use serde::{
     Deserialize, Deserializer,

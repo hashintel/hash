@@ -7,7 +7,7 @@ mod common;
 use common::*;
 use error_stack::Result;
 use tracing_error::{ErrorLayer, SpanTrace};
-use tracing_subscriber::layer::SubscriberExt as _;
+use tracing_subscriber::layer::SubscriberExt;
 
 fn install_tracing_subscriber() {
     static ONCE: std::sync::Once = std::sync::Once::new();

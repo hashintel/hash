@@ -1,12 +1,12 @@
 #[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::vec::Vec;
 
-use error_stack::{Report, Result, ResultExt as _};
+use error_stack::{Report, Result, ResultExt};
 
 use crate::{
-    Context, Deserializer, EnumVisitor, IdentifierVisitor, OptionalVisitor, Reflection as _,
+    Context, Deserializer, EnumVisitor, IdentifierVisitor, OptionalVisitor, Reflection,
     StructVisitor, Visitor,
-    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant as _},
+    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
     value::IntoDeserializer,
 };
 

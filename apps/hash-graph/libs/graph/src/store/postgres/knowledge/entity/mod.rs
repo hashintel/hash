@@ -1,7 +1,7 @@
 mod query;
 mod read;
 use alloc::borrow::Cow;
-use core::{borrow::Borrow as _, iter::once, mem};
+use core::{borrow::Borrow, iter::once, mem};
 use std::collections::{HashMap, HashSet};
 
 use authorization::{
@@ -13,8 +13,8 @@ use authorization::{
     },
     zanzibar::{Consistency, Zookie},
 };
-use error_stack::{Report, ReportSink, Result, ResultExt as _, bail};
-use futures::TryStreamExt as _;
+use error_stack::{Report, ReportSink, Result, ResultExt, bail};
+use futures::TryStreamExt;
 use graph_types::{
     Embedding,
     account::{AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
@@ -28,17 +28,17 @@ use graph_types::{
         property::{
             Property, PropertyMetadata, PropertyMetadataObject, PropertyObject, PropertyPath,
             PropertyPathError, PropertyWithMetadata, PropertyWithMetadataObject,
-            PropertyWithMetadataValue, visitor::EntityVisitor as _,
+            PropertyWithMetadataValue, visitor::EntityVisitor,
         },
     },
-    ontology::{DataTypeProvider, EntityTypeId, EntityTypeProvider as _},
+    ontology::{DataTypeProvider, EntityTypeId, EntityTypeProvider},
     owned_by_id::OwnedById,
 };
 use hash_graph_store::{
     entity::EntityQueryPath,
     filter::{Filter, FilterExpression, Parameter},
     subgraph::{
-        Subgraph, SubgraphRecord as _,
+        Subgraph, SubgraphRecord,
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind, SharedEdgeKind},
         identifier::{EntityIdWithInterval, EntityVertexId},
         temporal_axes::{
@@ -53,17 +53,17 @@ use postgres_types::ToSql;
 use serde_json::Value as JsonValue;
 use temporal_versioning::{
     ClosedTemporalBound, DecisionTime, LeftClosedTemporalInterval, LimitedTemporalBound,
-    OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, TemporalTagged as _, Timestamp,
+    OpenTemporalBound, RightBoundedTemporalInterval, TemporalBound, TemporalTagged, Timestamp,
     TransactionTime,
 };
-use tokio_postgres::{GenericClient as _, Row, error::SqlState};
+use tokio_postgres::{GenericClient, Row, error::SqlState};
 use type_system::url::VersionedUrl;
 use uuid::Uuid;
-use validation::{EntityPreprocessor, Validate as _, ValidateEntityComponents};
+use validation::{EntityPreprocessor, Validate, ValidateEntityComponents};
 
 use crate::store::{
     AsClient, EntityStore, InsertionError, PostgresStore, QueryError, StoreCache, UpdateError,
-    crud::{QueryResult as _, Read, ReadPaginated, Sorting as _},
+    crud::{QueryResult, Read, ReadPaginated, Sorting},
     error::{DeletionError, EntityDoesNotExist, RaceConditionOnUpdate},
     knowledge::{
         CountEntitiesParams, CreateEntityParams, EntityQuerySorting, EntityValidationType,

@@ -2,7 +2,7 @@ use core::fmt::Debug;
 
 use axum::{
     Json,
-    response::{IntoResponse as _, Response},
+    response::{IntoResponse, Response},
 };
 use error_stack::{Context, Report};
 use hash_status::{Status, StatusCode};

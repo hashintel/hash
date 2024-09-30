@@ -4,7 +4,7 @@ use core::fmt::{Display, Formatter};
 #[cfg(not(feature = "arbitrary-precision"))]
 use core::ops::Neg;
 
-use error_stack::ResultExt as _;
+use error_stack::ResultExt;
 use num_traits::{FromPrimitive, ToPrimitive};
 use serde::{Serialize, Serializer};
 
@@ -364,7 +364,7 @@ impl Serialize for Number {
     where
         S: Serializer,
     {
-        use serde::ser::SerializeStruct as _;
+        use serde::ser::SerializeStruct;
 
         let mut ser = serializer.serialize_struct(TOKEN, 1)?;
         ser.serialize_field(TOKEN, &self.0)?;

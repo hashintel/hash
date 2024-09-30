@@ -1,4 +1,4 @@
-use core::{fmt, fmt::Write as _};
+use core::{fmt, fmt::Write};
 
 use crate::benches::fmt::{Braced, Color, Colored, Duration, Unit};
 

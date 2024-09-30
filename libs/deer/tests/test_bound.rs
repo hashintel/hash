@@ -7,8 +7,8 @@ use deer::{
     schema::Reference,
 };
 use deer_desert::{Token, assert_tokens, assert_tokens_error, error};
-use error_stack::{ReportSink, Result, ResultExt as _};
-use serde::{Serialize, Serializer, ser::SerializeMap as _};
+use error_stack::{ReportSink, Result, ResultExt};
+use serde::{Serialize, Serializer, ser::SerializeMap};
 use serde_json::json;
 
 struct Properties<const N: usize>([(&'static str, Reference); N]);

@@ -8,9 +8,9 @@ use core::{
 };
 
 use bytes::Bytes;
-use futures::{Sink, Stream, StreamExt as _, stream::FusedStream};
+use futures::{Sink, Stream, StreamExt, stream::FusedStream};
 use harpc_wire_protocol::{
-    flags::BitFlagsOp as _,
+    flags::BitFlagsOp,
     request::{
         Request, begin::RequestBegin, flags::RequestFlag, id::RequestId,
         procedure::ProcedureDescriptor, service::ServiceDescriptor,

@@ -8,7 +8,7 @@
 
 use async_trait::async_trait;
 use error_stack::Result;
-use futures::{Stream, TryStreamExt as _};
+use futures::{Stream, TryStreamExt};
 use hash_graph_store::{
     filter::{Filter, QueryRecord},
     subgraph::{SubgraphRecord, temporal_axes::QueryTemporalAxes},

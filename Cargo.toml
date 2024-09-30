@@ -251,6 +251,7 @@ multiple_inherent_impl = "allow"
 panic = "allow"
 partial_pub_fields = "allow"
 unwrap_in_result = "allow"
+unused_trait_names = "allow" # should be supported by IDEs
 wildcard_enum_match_arm = "allow"
 
 # Consider enabling:

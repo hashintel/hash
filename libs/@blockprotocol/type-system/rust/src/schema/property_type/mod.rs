@@ -123,7 +123,7 @@ impl PropertyValueSchema for OneOfSchema<PropertyValues> {
 
 #[cfg(test)]
 mod tests {
-    use core::str::FromStr as _;
+    use core::str::FromStr;
 
     use serde_json::json;
 

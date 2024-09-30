@@ -10,7 +10,7 @@ use winnow::{
     token::{any, one_of, take_while},
 };
 
-use super::{IntoTextRange as _, string::ParseState};
+use super::{IntoTextRange, string::ParseState};
 use crate::span::Span;
 
 /// Restrictions on the valid symbols that can be used
@@ -165,7 +165,7 @@ mod test {
     use hql_span::storage::SpanStorage;
     use insta::{assert_debug_snapshot, assert_snapshot};
     use winnow::{
-        Located, Parser as _, Stateful,
+        Located, Parser, Stateful,
         error::{ContextError, ErrMode, ParseError},
     };
 

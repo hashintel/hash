@@ -4,7 +4,7 @@ pub mod domain_validator;
 
 use core::fmt;
 
-use error_stack::{Context, Result, ResultExt as _};
+use error_stack::{Context, Result, ResultExt};
 use serde::Deserialize;
 use type_system::url::VersionedUrl;
 

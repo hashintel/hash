@@ -1,5 +1,5 @@
 use alloc::borrow::Cow;
-use core::fmt::{self, Display, Write as _};
+use core::fmt::{self, Display, Write};
 
 use json_number::Number;
 use logos::Logos;

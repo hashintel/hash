@@ -7,11 +7,11 @@ use core::{
 use std::io::{self, ErrorKind};
 
 use bytes::{Bytes, BytesMut};
-use error_stack::{Report, ResultExt as _};
-use futures::{SinkExt as _, Stream, StreamExt as _};
+use error_stack::{Report, ResultExt};
+use futures::{SinkExt, Stream, StreamExt};
 use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
 use harpc_wire_protocol::{
-    flags::BitFlagsOp as _,
+    flags::BitFlagsOp,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{

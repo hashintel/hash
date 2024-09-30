@@ -102,7 +102,7 @@ mod tests {
         knowledge::property::{
             Property, PropertyMetadata, PropertyObject, PropertyProvenance, PropertyWithMetadata,
             PropertyWithMetadataObject, PropertyWithMetadataValue, ValueMetadata,
-            visitor::{EntityVisitor as _, TraversalError},
+            visitor::{EntityVisitor, TraversalError},
         },
         ontology::{
             DataTypeMetadata, DataTypeProvider, DataTypeWithMetadata, EntityTypeProvider,

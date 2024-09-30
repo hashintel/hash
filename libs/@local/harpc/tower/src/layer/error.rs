@@ -7,7 +7,7 @@ use core::{
 use bytes::Bytes;
 use harpc_net::codec::{ErrorEncoder, WireError};
 use harpc_wire_protocol::response::kind::{ErrorCode, ResponseKind};
-use tower::{Layer, Service, ServiceExt as _};
+use tower::{Layer, Service, ServiceExt};
 
 use crate::{
     Extensions,
@@ -165,7 +165,7 @@ pub(crate) mod test {
 
     use crate::{
         Extensions,
-        body::{BodyExt as _, Frame, controlled::Controlled, full::Full},
+        body::{BodyExt, Frame, controlled::Controlled, full::Full},
         either::Either,
         layer::error::HandleErrorLayer,
         request::{self, Request},

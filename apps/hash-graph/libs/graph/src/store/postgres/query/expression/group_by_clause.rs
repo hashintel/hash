@@ -30,7 +30,7 @@ mod tests {
     use hash_graph_store::entity::EntityQueryPath;
 
     use super::*;
-    use crate::store::postgres::query::{Alias, PostgresQueryPath as _};
+    use crate::store::postgres::query::{Alias, PostgresQueryPath};
 
     #[test]
     fn order_one() {

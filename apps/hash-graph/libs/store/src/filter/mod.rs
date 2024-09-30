@@ -2,16 +2,16 @@ mod parameter;
 mod path;
 
 use alloc::borrow::Cow;
-use core::{borrow::Borrow as _, fmt, hash::Hash};
+use core::{borrow::Borrow, fmt, hash::Hash};
 use std::collections::HashMap;
 
 use derive_where::derive_where;
-use error_stack::{Report, ResultExt as _, bail};
+use error_stack::{Report, ResultExt, bail};
 use graph_types::{
     knowledge::entity::{Entity, EntityId},
     ontology::{DataTypeId, DataTypeProvider, DataTypeWithMetadata},
 };
-use serde::{Deserialize, de, de::IntoDeserializer as _};
+use serde::{Deserialize, de, de::IntoDeserializer};
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 
 pub use self::{

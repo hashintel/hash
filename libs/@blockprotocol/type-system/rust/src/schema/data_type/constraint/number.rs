@@ -1,4 +1,4 @@
-use error_stack::{Report, ReportSink, ResultExt as _, bail};
+use error_stack::{Report, ReportSink, ResultExt, bail};
 use serde::{Deserialize, Serialize};
 use serde_json::{Number as JsonNumber, Value as JsonValue, json};
 use thiserror::Error;

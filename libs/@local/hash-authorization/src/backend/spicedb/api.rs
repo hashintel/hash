@@ -1,8 +1,8 @@
 use core::{error::Error, fmt};
 use std::io;
 
-use error_stack::{Report, ResultExt as _};
-use futures::{Stream, StreamExt as _, TryStreamExt as _};
+use error_stack::{Report, ResultExt};
+use futures::{Stream, StreamExt, TryStreamExt};
 use reqwest::Response;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use tokio::time::sleep;

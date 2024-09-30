@@ -1,4 +1,4 @@
-use core::fmt::{self, Write as _};
+use core::fmt::{self, Write};
 
 use crate::store::postgres::query::{Statement, Table, Transpile};
 

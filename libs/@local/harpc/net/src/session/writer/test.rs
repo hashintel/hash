@@ -1,6 +1,6 @@
-use bytes::{Buf as _, Bytes};
+use bytes::{Buf, Bytes};
 use harpc_wire_protocol::{
-    flags::BitFlagsOp as _,
+    flags::BitFlagsOp,
     payload::Payload,
     response::{
         flags::{ResponseFlag, ResponseFlags},

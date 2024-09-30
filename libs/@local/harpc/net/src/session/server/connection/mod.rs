@@ -6,7 +6,7 @@ use alloc::sync::Arc;
 use core::{fmt::Debug, future};
 use std::io;
 
-use futures::{FutureExt as _, Sink, Stream, StreamExt as _, stream};
+use futures::{FutureExt, Sink, Stream, StreamExt, stream};
 use harpc_wire_protocol::{
     request::{Request, body::RequestBody, id::RequestId},
     response::{Response, kind::ResponseKind},

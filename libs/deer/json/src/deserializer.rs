@@ -1,16 +1,16 @@
 use core::ops::Range;
 
 use deer::{
-    Context, Deserialize as _, EnumVisitor, IdentifierVisitor, Number, OptionalVisitor,
-    Reflection as _, StructVisitor, Visitor,
+    Context, Deserialize, EnumVisitor, IdentifierVisitor, Number, OptionalVisitor, Reflection,
+    StructVisitor, Visitor,
     error::{
         DeserializerError, Error, ExpectedLength, ExpectedType, ObjectLengthError, ReceivedType,
-        TypeError, Variant as _,
+        TypeError, Variant,
     },
     schema::Document,
     value::NoneDeserializer,
 };
-use error_stack::{Report, ReportSink, Result, ResultExt as _};
+use error_stack::{Report, ReportSink, Result, ResultExt};
 use justjson::{
     AnyStr,
     parser::{PeekableTokenKind, Token, Tokenizer},

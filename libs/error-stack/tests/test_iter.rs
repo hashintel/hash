@@ -2,7 +2,7 @@
 
 extern crate alloc;
 
-use core::fmt::{Display, Formatter, Write as _};
+use core::fmt::{Display, Formatter, Write};
 
 mod common;
 use error_stack::{Context, Report, report};
