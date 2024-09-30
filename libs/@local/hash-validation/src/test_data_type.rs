@@ -10,6 +10,7 @@ async fn null() {
     validate_data(
         json!(null),
         graph_test_data::data_type::NULL_V1,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -21,6 +22,7 @@ async fn boolean() {
     validate_data(
         json!(true),
         graph_test_data::data_type::BOOLEAN_V1,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -32,6 +34,7 @@ async fn number() {
     validate_data(
         json!(42),
         graph_test_data::data_type::NUMBER_V1,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -50,21 +53,37 @@ async fn integer() {
     }))
     .expect("failed to serialize temperature unit type");
 
-    validate_data(json!(10), &integer_type, ValidateEntityComponents::full())
-        .await
-        .expect("validation failed");
+    validate_data(
+        json!(10),
+        &integer_type,
+        [graph_test_data::data_type::VALUE_V1],
+        ValidateEntityComponents::full(),
+    )
+    .await
+    .expect("validation failed");
 
-    validate_data(json!(-10), &integer_type, ValidateEntityComponents::full())
-        .await
-        .expect("validation failed");
+    validate_data(
+        json!(-10),
+        &integer_type,
+        [graph_test_data::data_type::VALUE_V1],
+        ValidateEntityComponents::full(),
+    )
+    .await
+    .expect("validation failed");
 
-    validate_data(json!(1.0), &integer_type, ValidateEntityComponents::full())
-        .await
-        .expect("validation failed");
+    validate_data(
+        json!(1.0),
+        &integer_type,
+        [graph_test_data::data_type::VALUE_V1],
+        ValidateEntityComponents::full(),
+    )
+    .await
+    .expect("validation failed");
 
     _ = validate_data(
         json!(core::f64::consts::PI),
         &integer_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -73,6 +92,7 @@ async fn integer() {
     _ = validate_data(
         json!("foo"),
         &integer_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -84,6 +104,7 @@ async fn string() {
     validate_data(
         json!("foo"),
         graph_test_data::data_type::TEXT_V1,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -95,6 +116,7 @@ async fn array() {
     validate_data(
         json!([]),
         graph_test_data::data_type::EMPTY_LIST_V1,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -103,6 +125,7 @@ async fn array() {
     _ = validate_data(
         json!(["foo", "bar"]),
         graph_test_data::data_type::EMPTY_LIST_V1,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -117,6 +140,7 @@ async fn object() {
             "baz": "qux"
         }),
         graph_test_data::data_type::OBJECT_V1,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -138,6 +162,7 @@ async fn temperature_unit() {
     validate_data(
         json!("Celsius"),
         &meter_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -146,14 +171,20 @@ async fn temperature_unit() {
     validate_data(
         json!("Fahrenheit"),
         &meter_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
     .expect("validation failed");
 
-    _ = validate_data(json!("foo"), &meter_type, ValidateEntityComponents::full())
-        .await
-        .expect_err("validation succeeded");
+    _ = validate_data(
+        json!("foo"),
+        &meter_type,
+        [graph_test_data::data_type::VALUE_V1],
+        ValidateEntityComponents::full(),
+    )
+    .await
+    .expect_err("validation succeeded");
 }
 
 #[tokio::test]
@@ -168,17 +199,32 @@ async fn meter() {
     }))
     .expect("failed to serialize meter type");
 
-    validate_data(json!(10), &meter_type, ValidateEntityComponents::full())
-        .await
-        .expect("validation failed");
+    validate_data(
+        json!(10),
+        &meter_type,
+        [graph_test_data::data_type::VALUE_V1],
+        ValidateEntityComponents::full(),
+    )
+    .await
+    .expect("validation failed");
 
-    validate_data(json!(0.0), &meter_type, ValidateEntityComponents::full())
-        .await
-        .expect("validation failed");
+    validate_data(
+        json!(0.0),
+        &meter_type,
+        [graph_test_data::data_type::VALUE_V1],
+        ValidateEntityComponents::full(),
+    )
+    .await
+    .expect("validation failed");
 
-    _ = validate_data(json!(-1.0), &meter_type, ValidateEntityComponents::full())
-        .await
-        .expect_err("validation succeeded");
+    _ = validate_data(
+        json!(-1.0),
+        &meter_type,
+        [graph_test_data::data_type::VALUE_V1],
+        ValidateEntityComponents::full(),
+    )
+    .await
+    .expect_err("validation succeeded");
 }
 
 #[tokio::test]
@@ -196,6 +242,7 @@ async fn uri() {
     validate_data(
         json!("localhost:3000"),
         &url_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -204,14 +251,20 @@ async fn uri() {
     validate_data(
         json!("https://blockprotocol.org/types/modules/graph/0.3/schema/data-type"),
         &url_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
     .expect("validation failed");
 
-    _ = validate_data(json!("10"), &url_type, ValidateEntityComponents::full())
-        .await
-        .expect_err("validation succeeded");
+    _ = validate_data(
+        json!("10"),
+        &url_type,
+        [graph_test_data::data_type::VALUE_V1],
+        ValidateEntityComponents::full(),
+    )
+    .await
+    .expect_err("validation succeeded");
 }
 
 #[tokio::test]
@@ -229,6 +282,7 @@ async fn uuid() {
     validate_data(
         json!(Uuid::nil()),
         &uuid_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -237,6 +291,7 @@ async fn uuid() {
     validate_data(
         json!("00000000-0000-0000-0000-000000000000"),
         &uuid_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -245,6 +300,7 @@ async fn uuid() {
     validate_data(
         json!("AC8E0011-84C3-4A7E-872D-1B9F86DB0479"),
         &uuid_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -253,6 +309,7 @@ async fn uuid() {
     validate_data(
         json!("urn:uuid:cc2c0477-2fe7-4eb4-af7b-45bfe7d7bb26"),
         &uuid_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -261,14 +318,20 @@ async fn uuid() {
     validate_data(
         json!("9544f491598e4c238f6bbb8c1f7d05c9"),
         &uuid_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
     .expect("validation failed");
 
-    _ = validate_data(json!("10"), &uuid_type, ValidateEntityComponents::full())
-        .await
-        .expect_err("validation succeeded");
+    _ = validate_data(
+        json!("10"),
+        &uuid_type,
+        [graph_test_data::data_type::VALUE_V1],
+        ValidateEntityComponents::full(),
+    )
+    .await
+    .expect_err("validation succeeded");
 }
 
 #[tokio::test]
@@ -286,6 +349,7 @@ async fn email() {
     validate_data(
         json!("bob@example.com"),
         &mail_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -294,6 +358,7 @@ async fn email() {
     validate_data(
         json!("user.name+tag+sorting@example.com"),
         &mail_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -302,6 +367,7 @@ async fn email() {
     _ = validate_data(
         json!("job!done"),
         &mail_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -320,21 +386,32 @@ async fn zip_code_us() {
     }))
     .expect("failed to serialize zip code type");
 
-    validate_data(json!("12345"), &zip_code, ValidateEntityComponents::full())
-        .await
-        .expect("validation failed");
-
     validate_data(
-        json!("12345-6789"),
+        json!("12345"),
         &zip_code,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
     .expect("validation failed");
 
-    _ = validate_data(json!("1234"), &zip_code, ValidateEntityComponents::full())
-        .await
-        .expect_err("validation succeeded");
+    validate_data(
+        json!("12345-6789"),
+        &zip_code,
+        [graph_test_data::data_type::VALUE_V1],
+        ValidateEntityComponents::full(),
+    )
+    .await
+    .expect("validation failed");
+
+    _ = validate_data(
+        json!("1234"),
+        &zip_code,
+        [graph_test_data::data_type::VALUE_V1],
+        ValidateEntityComponents::full(),
+    )
+    .await
+    .expect_err("validation succeeded");
 }
 
 #[tokio::test]
@@ -352,6 +429,7 @@ async fn ipv4() {
     validate_data(
         json!("127.0.0.1"),
         &ipv4_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -360,6 +438,7 @@ async fn ipv4() {
     validate_data(
         json!("0.0.0.0"),
         &ipv4_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -368,6 +447,7 @@ async fn ipv4() {
     validate_data(
         json!("255.255.255.255"),
         &ipv4_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -376,6 +456,7 @@ async fn ipv4() {
     _ = validate_data(
         json!("255.255.255.256"),
         &ipv4_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -384,6 +465,7 @@ async fn ipv4() {
     _ = validate_data(
         json!("localhost"),
         &ipv4_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -402,17 +484,28 @@ async fn ipv6() {
     }))
     .expect("failed to serialize ipv6 type");
 
-    validate_data(json!("::1"), &ipv6_type, ValidateEntityComponents::full())
-        .await
-        .expect("validation failed");
+    validate_data(
+        json!("::1"),
+        &ipv6_type,
+        [graph_test_data::data_type::VALUE_V1],
+        ValidateEntityComponents::full(),
+    )
+    .await
+    .expect("validation failed");
 
-    validate_data(json!("::"), &ipv6_type, ValidateEntityComponents::full())
-        .await
-        .expect("validation failed");
+    validate_data(
+        json!("::"),
+        &ipv6_type,
+        [graph_test_data::data_type::VALUE_V1],
+        ValidateEntityComponents::full(),
+    )
+    .await
+    .expect("validation failed");
 
     validate_data(
         json!("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
         &ipv6_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -421,6 +514,7 @@ async fn ipv6() {
     _ = validate_data(
         json!("ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff"),
         &ipv6_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -429,6 +523,7 @@ async fn ipv6() {
     _ = validate_data(
         json!("localhost"),
         &ipv6_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -450,6 +545,7 @@ async fn hostname() {
     validate_data(
         json!("localhost"),
         &hostname_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -458,6 +554,7 @@ async fn hostname() {
     validate_data(
         json!("[::1]"),
         &hostname_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -466,6 +563,7 @@ async fn hostname() {
     validate_data(
         json!("127.0.0.1"),
         &hostname_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -474,6 +572,7 @@ async fn hostname() {
     validate_data(
         json!("example.com"),
         &hostname_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -482,6 +581,7 @@ async fn hostname() {
     validate_data(
         json!("subdomain.example.com"),
         &hostname_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -490,6 +590,7 @@ async fn hostname() {
     validate_data(
         json!("subdomain.example.com."),
         &hostname_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -498,6 +599,7 @@ async fn hostname() {
     _ = validate_data(
         json!("localhost:3000"),
         &hostname_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -506,6 +608,7 @@ async fn hostname() {
     _ = validate_data(
         json!("::1"),
         &hostname_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -524,17 +627,32 @@ async fn regex() {
     }))
     .expect("failed to serialize regex type");
 
-    validate_data(json!("^a*$"), &regex_type, ValidateEntityComponents::full())
-        .await
-        .expect("validation failed");
+    validate_data(
+        json!("^a*$"),
+        &regex_type,
+        [graph_test_data::data_type::VALUE_V1],
+        ValidateEntityComponents::full(),
+    )
+    .await
+    .expect("validation failed");
 
-    validate_data(json!("^a+$"), &regex_type, ValidateEntityComponents::full())
-        .await
-        .expect("validation failed");
+    validate_data(
+        json!("^a+$"),
+        &regex_type,
+        [graph_test_data::data_type::VALUE_V1],
+        ValidateEntityComponents::full(),
+    )
+    .await
+    .expect("validation failed");
 
-    _ = validate_data(json!("("), &regex_type, ValidateEntityComponents::full())
-        .await
-        .expect_err("validation succeeded");
+    _ = validate_data(
+        json!("("),
+        &regex_type,
+        [graph_test_data::data_type::VALUE_V1],
+        ValidateEntityComponents::full(),
+    )
+    .await
+    .expect_err("validation succeeded");
 }
 
 #[tokio::test]
@@ -550,17 +668,28 @@ async fn short_string() {
     }))
     .expect("failed to serialize short string type");
 
-    validate_data(json!("foo"), &url_type, ValidateEntityComponents::full())
-        .await
-        .expect("validation failed");
+    validate_data(
+        json!("foo"),
+        &url_type,
+        [graph_test_data::data_type::VALUE_V1],
+        ValidateEntityComponents::full(),
+    )
+    .await
+    .expect("validation failed");
 
-    _ = validate_data(json!(""), &url_type, ValidateEntityComponents::full())
-        .await
-        .expect_err("validation succeeded");
+    _ = validate_data(
+        json!(""),
+        &url_type,
+        [graph_test_data::data_type::VALUE_V1],
+        ValidateEntityComponents::full(),
+    )
+    .await
+    .expect_err("validation succeeded");
 
     _ = validate_data(
         json!("foo bar baz"),
         &url_type,
+        [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
@@ -953,9 +1082,14 @@ async fn date_time() {
 
     let mut failed_formats = Vec::new();
     for format in VALID_FORMATS {
-        if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
-            .await
-            .is_err()
+        if validate_data(
+            json!(format),
+            &url_type,
+            [graph_test_data::data_type::VALUE_V1],
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .is_err()
         {
             failed_formats.push(format);
         }
@@ -965,15 +1099,25 @@ async fn date_time() {
         "failed to validate formats: {failed_formats:#?}"
     );
 
-    _ = validate_data(json!(""), &url_type, ValidateEntityComponents::full())
-        .await
-        .expect_err("validation succeeded");
+    _ = validate_data(
+        json!(""),
+        &url_type,
+        [graph_test_data::data_type::VALUE_V1],
+        ValidateEntityComponents::full(),
+    )
+    .await
+    .expect_err("validation succeeded");
 
     let mut passed_formats = Vec::new();
     for format in INVALID_FORMATS {
-        if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
-            .await
-            .is_ok()
+        if validate_data(
+            json!(format),
+            &url_type,
+            [graph_test_data::data_type::VALUE_V1],
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .is_ok()
         {
             passed_formats.push(format);
         }
@@ -1018,9 +1162,14 @@ async fn date() {
 
     let mut failed_formats = Vec::new();
     for format in VALID_FORMATS {
-        if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
-            .await
-            .is_err()
+        if validate_data(
+            json!(format),
+            &url_type,
+            [graph_test_data::data_type::VALUE_V1],
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .is_err()
         {
             failed_formats.push(format);
         }
@@ -1030,15 +1179,25 @@ async fn date() {
         "failed to validate formats: {failed_formats:#?}"
     );
 
-    _ = validate_data(json!(""), &url_type, ValidateEntityComponents::full())
-        .await
-        .expect_err("validation succeeded");
+    _ = validate_data(
+        json!(""),
+        &url_type,
+        [graph_test_data::data_type::VALUE_V1],
+        ValidateEntityComponents::full(),
+    )
+    .await
+    .expect_err("validation succeeded");
 
     let mut passed_formats = Vec::new();
     for format in INVALID_FORMATS {
-        if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
-            .await
-            .is_ok()
+        if validate_data(
+            json!(format),
+            &url_type,
+            [graph_test_data::data_type::VALUE_V1],
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .is_ok()
         {
             passed_formats.push(format);
         }
@@ -1268,9 +1427,14 @@ async fn time() {
 
     let mut failed_formats = Vec::new();
     for format in VALID_FORMATS {
-        if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
-            .await
-            .is_err()
+        if validate_data(
+            json!(format),
+            &url_type,
+            [graph_test_data::data_type::VALUE_V1],
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .is_err()
         {
             failed_formats.push(format);
         }
@@ -1280,15 +1444,25 @@ async fn time() {
         "failed to validate formats: {failed_formats:#?}"
     );
 
-    _ = validate_data(json!(""), &url_type, ValidateEntityComponents::full())
-        .await
-        .expect_err("validation succeeded");
+    _ = validate_data(
+        json!(""),
+        &url_type,
+        [graph_test_data::data_type::VALUE_V1],
+        ValidateEntityComponents::full(),
+    )
+    .await
+    .expect_err("validation succeeded");
 
     let mut passed_formats = Vec::new();
     for format in INVALID_FORMATS {
-        if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
-            .await
-            .is_ok()
+        if validate_data(
+            json!(format),
+            &url_type,
+            [graph_test_data::data_type::VALUE_V1],
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .is_ok()
         {
             passed_formats.push(format);
         }
@@ -1352,9 +1526,14 @@ async fn duration() {
 
     let mut failed_formats = Vec::new();
     for format in VALID_FORMATS {
-        if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
-            .await
-            .is_err()
+        if validate_data(
+            json!(format),
+            &url_type,
+            [graph_test_data::data_type::VALUE_V1],
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .is_err()
         {
             failed_formats.push(format);
         }
@@ -1364,15 +1543,25 @@ async fn duration() {
         "failed to validate formats: {failed_formats:#?}"
     );
 
-    _ = validate_data(json!(""), &url_type, ValidateEntityComponents::full())
-        .await
-        .expect_err("validation succeeded");
+    _ = validate_data(
+        json!(""),
+        &url_type,
+        [graph_test_data::data_type::VALUE_V1],
+        ValidateEntityComponents::full(),
+    )
+    .await
+    .expect_err("validation succeeded");
 
     let mut passed_formats = Vec::new();
     for format in INVALID_FORMATS {
-        if validate_data(json!(format), &url_type, ValidateEntityComponents::full())
-            .await
-            .is_ok()
+        if validate_data(
+            json!(format),
+            &url_type,
+            [graph_test_data::data_type::VALUE_V1],
+            ValidateEntityComponents::full(),
+        )
+        .await
+        .is_ok()
         {
             passed_formats.push(format);
         }

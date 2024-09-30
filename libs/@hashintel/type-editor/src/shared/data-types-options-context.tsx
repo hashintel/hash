@@ -1,5 +1,4 @@
 import type {
-  ArrayConstraints,
   ArrayItemsSchema,
   ArraySchema,
   DataType,

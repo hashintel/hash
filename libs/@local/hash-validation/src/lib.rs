@@ -418,11 +418,19 @@ mod tests {
     pub(crate) async fn validate_data(
         mut value: JsonValue,
         data_type: &str,
+        data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
     ) -> Result<PropertyWithMetadataValue, Report<[TraversalError]>> {
         install_error_stack_hooks();
 
-        let provider = Provider::new([], [], [], []);
+        let provider = Provider::new(
+            [],
+            [],
+            [],
+            data_types.into_iter().map(|data_type| {
+                serde_json::from_str(data_type).expect("failed to parse data type")
+            }),
+        );
 
         let data_type = generate_data_type_metadata(
             serde_json::from_str(data_type).expect("failed to parse data type"),

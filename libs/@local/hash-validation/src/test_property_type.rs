@@ -12,7 +12,10 @@ use crate::{ValidateEntityComponents, tests::validate_property};
 #[tokio::test]
 async fn address_line_1() {
     let property_types = [];
-    let data_types = [graph_test_data::data_type::TEXT_V1];
+    let data_types = [
+        graph_test_data::data_type::VALUE_V1,
+        graph_test_data::data_type::TEXT_V1,
+    ];
 
     validate_property(
         json!("123 Fake Street"),
@@ -29,7 +32,10 @@ async fn address_line_1() {
 #[tokio::test]
 async fn age() {
     let property_types = [];
-    let data_types = [graph_test_data::data_type::NUMBER_V1];
+    let data_types = [
+        graph_test_data::data_type::VALUE_V1,
+        graph_test_data::data_type::NUMBER_V1,
+    ];
 
     validate_property(
         json!(42),
@@ -46,7 +52,10 @@ async fn age() {
 #[tokio::test]
 async fn blurb() {
     let property_types = [];
-    let data_types = [graph_test_data::data_type::TEXT_V1];
+    let data_types = [
+        graph_test_data::data_type::VALUE_V1,
+        graph_test_data::data_type::TEXT_V1,
+    ];
 
     validate_property(
         json!("blurb"),
@@ -63,7 +72,10 @@ async fn blurb() {
 #[tokio::test]
 async fn city() {
     let property_types = [];
-    let data_types = [graph_test_data::data_type::TEXT_V1];
+    let data_types = [
+        graph_test_data::data_type::VALUE_V1,
+        graph_test_data::data_type::TEXT_V1,
+    ];
 
     validate_property(
         json!("Bielefeld"),
@@ -83,7 +95,10 @@ async fn contact_information() {
         graph_test_data::property_type::EMAIL_V1,
         graph_test_data::property_type::PHONE_NUMBER_V1,
     ];
-    let data_types = [graph_test_data::data_type::TEXT_V1];
+    let data_types = [
+        graph_test_data::data_type::VALUE_V1,
+        graph_test_data::data_type::TEXT_V1,
+    ];
 
     validate_property(
         json! ({
@@ -103,7 +118,10 @@ async fn contact_information() {
 #[tokio::test]
 async fn contrived_information() {
     let property_types = [];
-    let data_types = [graph_test_data::data_type::NUMBER_V1];
+    let data_types = [
+        graph_test_data::data_type::VALUE_V1,
+        graph_test_data::data_type::NUMBER_V1,
+    ];
 
     validate_property(
         json!([12, 34, 56, 78]),
@@ -142,7 +160,10 @@ async fn contrived_information() {
 #[tokio::test]
 async fn email() {
     let property_types = [];
-    let data_types = [graph_test_data::data_type::TEXT_V1];
+    let data_types = [
+        graph_test_data::data_type::VALUE_V1,
+        graph_test_data::data_type::TEXT_V1,
+    ];
 
     validate_property(
         json!("alice@example.com"),
@@ -159,7 +180,10 @@ async fn email() {
 #[tokio::test]
 async fn favorite_film() {
     let property_types = [];
-    let data_types = [graph_test_data::data_type::TEXT_V1];
+    let data_types = [
+        graph_test_data::data_type::VALUE_V1,
+        graph_test_data::data_type::TEXT_V1,
+    ];
 
     validate_property(
         json!("Teletubbies"),
@@ -176,7 +200,10 @@ async fn favorite_film() {
 #[tokio::test]
 async fn favorite_quote() {
     let property_types = [];
-    let data_types = [graph_test_data::data_type::TEXT_V1];
+    let data_types = [
+        graph_test_data::data_type::VALUE_V1,
+        graph_test_data::data_type::TEXT_V1,
+    ];
 
     validate_property(
         json!("hold my beer"),
@@ -193,7 +220,10 @@ async fn favorite_quote() {
 #[tokio::test]
 async fn favorite_song() {
     let property_types = [];
-    let data_types = [graph_test_data::data_type::TEXT_V1];
+    let data_types = [
+        graph_test_data::data_type::VALUE_V1,
+        graph_test_data::data_type::TEXT_V1,
+    ];
 
     validate_property(
         json!("Never gonna give you up"),
@@ -210,7 +240,10 @@ async fn favorite_song() {
 #[tokio::test]
 async fn favorite_hobby() {
     let property_types = [];
-    let data_types = [graph_test_data::data_type::TEXT_V1];
+    let data_types = [
+        graph_test_data::data_type::VALUE_V1,
+        graph_test_data::data_type::TEXT_V1,
+    ];
 
     validate_property(
         json!("Programming in Rust"),
@@ -227,7 +260,10 @@ async fn favorite_hobby() {
 #[tokio::test]
 async fn numbers() {
     let property_types = [];
-    let data_types = [graph_test_data::data_type::NUMBER_V1];
+    let data_types = [
+        graph_test_data::data_type::VALUE_V1,
+        graph_test_data::data_type::NUMBER_V1,
+    ];
 
     validate_property(
         json!([1, 2, 3, 4, 5]),
@@ -244,7 +280,10 @@ async fn numbers() {
 #[tokio::test]
 async fn phone_number() {
     let property_types = [];
-    let data_types = [graph_test_data::data_type::TEXT_V1];
+    let data_types = [
+        graph_test_data::data_type::VALUE_V1,
+        graph_test_data::data_type::TEXT_V1,
+    ];
 
     validate_property(
         json!("+0123456789"),
@@ -261,7 +300,10 @@ async fn phone_number() {
 #[tokio::test]
 async fn postcode() {
     let property_types = [];
-    let data_types = [graph_test_data::data_type::TEXT_V1];
+    let data_types = [
+        graph_test_data::data_type::VALUE_V1,
+        graph_test_data::data_type::TEXT_V1,
+    ];
 
     validate_property(
         json!("12345"),
@@ -278,7 +320,10 @@ async fn postcode() {
 #[tokio::test]
 async fn published_on() {
     let property_types = [];
-    let data_types = [graph_test_data::data_type::TEXT_V1];
+    let data_types = [
+        graph_test_data::data_type::VALUE_V1,
+        graph_test_data::data_type::TEXT_V1,
+    ];
 
     validate_property(
         json!("2021-01-01T00:00:00Z"),
@@ -295,7 +340,10 @@ async fn published_on() {
 #[tokio::test]
 async fn text() {
     let property_types = [];
-    let data_types = [graph_test_data::data_type::TEXT_V1];
+    let data_types = [
+        graph_test_data::data_type::VALUE_V1,
+        graph_test_data::data_type::TEXT_V1,
+    ];
 
     validate_property(
         json!("lorem ipsum"),
@@ -313,6 +361,7 @@ async fn text() {
 async fn user_id() {
     let property_types = [];
     let data_types = [
+        graph_test_data::data_type::VALUE_V1,
         graph_test_data::data_type::TEXT_V1,
         graph_test_data::data_type::NUMBER_V1,
     ];

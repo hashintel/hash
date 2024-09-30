@@ -1,6 +1,5 @@
 /* eslint-disable no-param-reassign */
-import fs from "node:fs";
-import path, { dirname } from "node:path";
+import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type {
@@ -21,7 +20,6 @@ import {
   atLeastOne,
   DATA_TYPE_META_SCHEMA,
   ENTITY_TYPE_META_SCHEMA,
-  extractVersion,
   PROPERTY_TYPE_META_SCHEMA,
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";

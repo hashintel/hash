@@ -30,6 +30,8 @@ impl AnyOfConstraints {
                 .attempt(schema.constraints.validate_value(value))
                 .is_some()
             {
+                // We found a valid schema, so we can return early.
+                let _ = status.finish();
                 return Ok(());
             }
         }

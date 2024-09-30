@@ -490,7 +490,11 @@ where
 
     match passed {
         0 => status.finish(),
-        1 => Ok(()),
+        1 => {
+            // We ignore potential errors here, as we have exactly one successful result.
+            let _ = status.finish();
+            Ok(())
+        }
         _ => {
             status.capture(TraversalError::AmbiguousProperty {
                 actual: PropertyWithMetadata::Value(property.clone()),
@@ -549,7 +553,11 @@ where
 
     match passed {
         0 => status.finish(),
-        1 => Ok(()),
+        1 => {
+            // We ignore potential errors here, as we have exactly one successful result.
+            let _ = status.finish();
+            Ok(())
+        }
         _ => {
             status.capture(TraversalError::AmbiguousProperty {
                 actual: PropertyWithMetadata::Array(array.clone()),
@@ -609,7 +617,11 @@ where
 
     match passed {
         0 => status.finish(),
-        1 => Ok(()),
+        1 => {
+            // We ignore potential errors here, as we have exactly one successful result.
+            let _ = status.finish();
+            Ok(())
+        }
         _ => {
             status.capture(TraversalError::AmbiguousProperty {
                 actual: PropertyWithMetadata::Object(object.clone()),
