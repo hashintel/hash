@@ -266,6 +266,8 @@ where
                         JOIN data_types
                           ON data_types.ontology_id = target_data_type_ontology_id
                         WHERE source_data_type_ontology_id = $1
+                          AND data_types.schema->>'$id'
+                              != 'https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1'
                           AND data_types.schema->>'abstract' = 'false'
                     );
                 ",
