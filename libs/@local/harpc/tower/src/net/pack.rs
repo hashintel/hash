@@ -4,7 +4,7 @@ use core::{
     task::{Context, Poll},
 };
 
-use bytes::{Buf, BufMut, Bytes, BytesMut};
+use bytes::{Buf as _, BufMut as _, Bytes, BytesMut};
 use futures::Stream;
 use harpc_net::session::error::TransactionError;
 use harpc_wire_protocol::response::kind::{ErrorCode, ResponseKind};
@@ -139,7 +139,7 @@ where
 #[cfg(test)]
 mod test {
     use bytes::Bytes;
-    use futures::{StreamExt, stream};
+    use futures::{StreamExt as _, stream};
     use harpc_net::session::error::TransactionError;
     use harpc_wire_protocol::response::kind::{ErrorCode, ResponseKind};
 

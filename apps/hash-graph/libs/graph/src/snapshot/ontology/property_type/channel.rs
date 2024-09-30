@@ -4,9 +4,9 @@ use core::{
 };
 
 use authorization::schema::PropertyTypeRelationAndSubject;
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use futures::{
-    Sink, SinkExt, Stream, StreamExt,
+    Sink, SinkExt as _, Stream, StreamExt as _,
     channel::mpsc::{self, Receiver, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };

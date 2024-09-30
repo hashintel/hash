@@ -12,9 +12,9 @@ use authorization::{
 use graph::{
     Environment, load_env,
     store::{
-        AsClient, BaseUrlAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabasePoolConfig,
-        DatabaseType, EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore,
-        StoreMigration, StorePool,
+        AsClient, BaseUrlAlreadyExists, DataTypeStore as _, DatabaseConnectionInfo,
+        DatabasePoolConfig, DatabaseType, EntityTypeStore as _, PostgresStore, PostgresStorePool,
+        PropertyTypeStore as _, StoreMigration as _, StorePool,
         ontology::{
             CreateDataTypeParams, CreateEntityTypeParams, CreatePropertyTypeParams,
             UpdateDataTypesParams, UpdateEntityTypesParams, UpdatePropertyTypesParams,

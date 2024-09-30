@@ -3,7 +3,7 @@ use std::collections::HashSet;
 
 use authorization::AuthorizationApi;
 use graph::store::{
-    EntityQuerySorting, EntityQuerySortingRecord, EntityStore, NullOrdering, Ordering,
+    EntityQuerySorting, EntityQuerySortingRecord, EntityStore as _, NullOrdering, Ordering,
     knowledge::{CreateEntityParams, GetEntitiesParams, GetEntitiesResponse},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};

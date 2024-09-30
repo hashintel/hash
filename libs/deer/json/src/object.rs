@@ -1,8 +1,8 @@
 use deer::{
     Context, Deserializer as _, FieldVisitor,
-    error::{DeserializerError, Error, ObjectAccessError, ObjectLengthError, Variant},
+    error::{DeserializerError, Error, ObjectAccessError, ObjectLengthError, Variant as _},
 };
-use error_stack::{Report, ReportSink, Result, ResultExt};
+use error_stack::{Report, ReportSink, Result, ResultExt as _};
 use justjson::parser::{PeekableTokenKind, Token};
 
 use crate::{

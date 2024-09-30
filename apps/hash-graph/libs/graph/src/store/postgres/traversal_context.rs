@@ -15,7 +15,9 @@ use hash_graph_store::{
     entity_type::EntityTypeQueryPath,
     filter::{Filter, FilterExpression, ParameterList},
     property_type::PropertyTypeQueryPath,
-    subgraph::{Subgraph, SubgraphRecord, edges::GraphResolveDepths, temporal_axes::VariableAxis},
+    subgraph::{
+        Subgraph, SubgraphRecord as _, edges::GraphResolveDepths, temporal_axes::VariableAxis,
+    },
 };
 use temporal_versioning::RightBoundedTemporalInterval;
 

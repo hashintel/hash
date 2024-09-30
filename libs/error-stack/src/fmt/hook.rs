@@ -456,7 +456,7 @@ mod default {
     #[cfg(any(feature = "backtrace", feature = "spantrace"))]
     use alloc::format;
     #[cfg_attr(feature = "std", allow(unused_imports))]
-    use alloc::string::ToString;
+    use alloc::string::ToString as _;
     use core::{
         panic::Location,
         sync::atomic::{AtomicBool, Ordering},

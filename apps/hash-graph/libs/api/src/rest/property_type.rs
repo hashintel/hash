@@ -3,7 +3,7 @@
 use alloc::sync::Arc;
 
 use authorization::{
-    AuthorizationApi, AuthorizationApiPool,
+    AuthorizationApi as _, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
         PropertyTypeEditorSubject, PropertyTypeOwnerSubject, PropertyTypePermission,
@@ -19,14 +19,14 @@ use axum::{
     response::Response,
     routing::{get, post, put},
 };
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use graph::{
     ontology::{
-        domain_validator::{DomainValidator, ValidateOntologyType},
+        domain_validator::{DomainValidator, ValidateOntologyType as _},
         patch_id_and_parse,
     },
     store::{
-        BaseUrlAlreadyExists, OntologyVersionDoesNotExist, PropertyTypeStore, StorePool,
+        BaseUrlAlreadyExists, OntologyVersionDoesNotExist, PropertyTypeStore as _, StorePool,
         error::VersionedUrlAlreadyExists,
         ontology::{
             ArchivePropertyTypeParams, CreatePropertyTypeParams, GetPropertyTypeSubgraphParams,

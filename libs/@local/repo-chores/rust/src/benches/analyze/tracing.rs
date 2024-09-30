@@ -1,7 +1,7 @@
 use std::{
     fs::File,
     io,
-    io::{BufRead, BufReader},
+    io::{BufRead as _, BufReader},
     path::Path,
 };
 

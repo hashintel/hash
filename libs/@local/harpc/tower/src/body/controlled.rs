@@ -69,7 +69,7 @@ mod test {
     use bytes::Bytes;
 
     use super::Controlled;
-    use crate::body::{Body, BodyState, Frame, SizeHint, full::Full, test::poll_frame_unpin};
+    use crate::body::{Body as _, BodyState, Frame, SizeHint, full::Full, test::poll_frame_unpin};
 
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
     struct Control;

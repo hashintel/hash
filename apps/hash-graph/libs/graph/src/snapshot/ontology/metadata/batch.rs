@@ -1,6 +1,6 @@
 use async_trait::async_trait;
-use error_stack::{Result, ResultExt};
-use tokio_postgres::GenericClient;
+use error_stack::{Result, ResultExt as _};
+use tokio_postgres::GenericClient as _;
 
 use crate::{
     snapshot::WriteBatch,

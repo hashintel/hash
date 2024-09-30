@@ -1,9 +1,9 @@
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt as _};
 
 use crate::{
     ArrayAccess, Context, Deserializer, EnumVisitor, IdentifierVisitor, OptionalVisitor,
-    Reflection, StructVisitor, Visitor,
-    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant},
+    Reflection as _, StructVisitor, Visitor,
+    error::{DeserializerError, ExpectedType, ReceivedType, TypeError, Variant as _},
     schema::visitor::ArraySchema,
     value::EnumUnitDeserializer,
 };

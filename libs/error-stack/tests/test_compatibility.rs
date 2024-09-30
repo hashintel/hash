@@ -10,7 +10,7 @@ use core::error;
 
 #[allow(clippy::wildcard_imports)]
 use common::*;
-use error_stack::IntoReportCompat;
+use error_stack::IntoReportCompat as _;
 #[cfg(all(nightly, feature = "backtrace"))]
 use error_stack::Report;
 

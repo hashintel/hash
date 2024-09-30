@@ -3,10 +3,10 @@ use std::collections::HashMap;
 
 use async_trait::async_trait;
 use authorization::{backend::ZanzibarBackend, schema::DataTypeRelationAndSubject};
-use error_stack::{Result, ResultExt};
+use error_stack::{Result, ResultExt as _};
 use graph_types::ontology::{DataTypeId, DataTypeWithMetadata};
 use hash_graph_store::filter::Filter;
-use tokio_postgres::GenericClient;
+use tokio_postgres::GenericClient as _;
 use type_system::schema::OntologyTypeResolver;
 
 use crate::{

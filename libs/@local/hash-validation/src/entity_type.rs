@@ -1,8 +1,8 @@
-use core::borrow::Borrow;
+use core::borrow::Borrow as _;
 use std::collections::{HashSet, hash_map::RawEntryMut};
 
-use error_stack::{Report, ReportSink, ResultExt};
-use futures::{StreamExt, TryStreamExt, stream};
+use error_stack::{Report, ReportSink, ResultExt as _};
+use futures::{StreamExt as _, TryStreamExt as _, stream};
 use graph_types::{
     knowledge::{
         entity::{Entity, EntityId},

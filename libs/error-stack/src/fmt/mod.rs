@@ -304,7 +304,7 @@ use alloc::collections::VecDeque;
 use alloc::{
     borrow::ToOwned,
     format,
-    string::{String, ToString},
+    string::{String, ToString as _},
     vec,
     vec::Vec,
 };

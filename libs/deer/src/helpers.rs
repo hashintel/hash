@@ -1,5 +1,5 @@
-use error_stack::{Result, ResultExt, TryReportTupleExt};
-use serde::{Serialize, Serializer, ser::SerializeMap};
+use error_stack::{Result, ResultExt as _, TryReportTupleExt as _};
+use serde::{Serialize, Serializer, ser::SerializeMap as _};
 
 use crate::{
     Deserialize, Deserializer, Document, EnumVisitor, FieldVisitor, ObjectAccess, Reflection,

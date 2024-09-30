@@ -6,9 +6,9 @@ use core::{
     time::Duration,
 };
 
-use futures::{SinkExt, StreamExt, sink};
+use futures::{SinkExt as _, StreamExt as _, sink};
 use harpc_wire_protocol::{
-    flags::BitFlagsOp,
+    flags::BitFlagsOp as _,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{

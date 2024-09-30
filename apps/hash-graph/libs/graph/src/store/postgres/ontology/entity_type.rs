@@ -9,8 +9,8 @@ use authorization::{
     },
     zanzibar::{Consistency, Zookie},
 };
-use error_stack::{Report, Result, ResultExt, ensure};
-use futures::{StreamExt, TryStreamExt};
+use error_stack::{Report, Result, ResultExt as _, ensure};
+use futures::{StreamExt as _, TryStreamExt as _};
 use graph_types::{
     Embedding,
     account::{AccountId, EditionArchivedById, EditionCreatedById},
@@ -25,7 +25,7 @@ use hash_graph_store::{
     entity_type::EntityTypeQueryPath,
     filter::{Filter, FilterExpression, ParameterList},
     subgraph::{
-        Subgraph, SubgraphRecord,
+        Subgraph, SubgraphRecord as _,
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
         identifier::{EntityTypeVertexId, GraphElementVertexId, PropertyTypeVertexId},
         temporal_axes::{
@@ -36,10 +36,10 @@ use hash_graph_store::{
 };
 use postgres_types::{Json, ToSql};
 use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
-use tokio_postgres::{GenericClient, Row};
+use tokio_postgres::{GenericClient as _, Row};
 use tracing::instrument;
 use type_system::{
-    Validator,
+    Validator as _,
     schema::{ClosedEntityType, EntityType, EntityTypeValidator},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
@@ -47,7 +47,7 @@ use type_system::{
 use crate::store::{
     AsClient, EntityTypeStore, InsertionError, PostgresStore, QueryError, StoreCache,
     StoreProvider, UpdateError,
-    crud::{QueryResult, Read, ReadPaginated, VersionedUrlSorting},
+    crud::{QueryResult as _, Read, ReadPaginated, VersionedUrlSorting},
     error::DeletionError,
     ontology::{
         ArchiveEntityTypeParams, CountEntityTypesParams, CreateEntityTypeParams,

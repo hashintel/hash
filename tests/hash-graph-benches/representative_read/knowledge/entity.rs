@@ -3,7 +3,7 @@ use alloc::borrow::Cow;
 use authorization::AuthorizationApi;
 use criterion::{BatchSize::SmallInput, Bencher};
 use graph::store::{
-    EntityQuerySorting, EntityStore,
+    EntityQuerySorting, EntityStore as _,
     knowledge::{GetEntitiesParams, GetEntitySubgraphParams},
 };
 use graph_types::{account::AccountId, knowledge::entity::EntityUuid};
@@ -18,7 +18,7 @@ use hash_graph_store::{
         },
     },
 };
-use rand::{prelude::IteratorRandom, thread_rng};
+use rand::{prelude::IteratorRandom as _, thread_rng};
 use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;
 

@@ -1,6 +1,6 @@
 use core::mem::ManuallyDrop;
 
-use deer::Deserialize;
+use deer::Deserialize as _;
 use deer_desert::{Token, assert_tokens};
 use proptest::prelude::*;
 use serde::Serialize;

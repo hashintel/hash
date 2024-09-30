@@ -1,7 +1,7 @@
 use core::marker::PhantomData;
 use std::io;
 
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use harpc_wire_protocol::{
     codec::{Buffer, Decode, Encode},
     request::Request,

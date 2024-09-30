@@ -4,11 +4,11 @@ use async_trait::async_trait;
 use authorization::{
     AuthorizationApi, backend::ZanzibarBackend, schema::EntityTypeRelationAndSubject,
 };
-use error_stack::{Result, ResultExt};
-use futures::TryStreamExt;
+use error_stack::{Result, ResultExt as _};
+use futures::TryStreamExt as _;
 use graph_types::ontology::EntityTypeId;
 use postgres_types::{Json, ToSql};
-use tokio_postgres::GenericClient;
+use tokio_postgres::GenericClient as _;
 use type_system::schema::EntityType;
 
 use crate::{

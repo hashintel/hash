@@ -31,7 +31,7 @@ mod tests {
     use hash_graph_store::data_type::DataTypeQueryPath;
 
     use super::*;
-    use crate::store::postgres::query::{Alias, Function, PostgresQueryPath, WindowStatement};
+    use crate::store::postgres::query::{Alias, Function, PostgresQueryPath as _, WindowStatement};
 
     #[test]
     fn transpile_select_expression() {

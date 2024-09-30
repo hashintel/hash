@@ -1,5 +1,5 @@
 use bytes::{Buf, BufMut};
-use error_stack::{Result, ResultExt};
+use error_stack::{Result, ResultExt as _};
 
 use super::{ResponseBody, flags::ResponseFlags};
 use crate::{
@@ -81,7 +81,7 @@ mod test {
 
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
-        flags::BitFlagsOp,
+        flags::BitFlagsOp as _,
         protocol::{Protocol, ProtocolVersion},
         request::id::test_utils::mock_request_id,
         response::{

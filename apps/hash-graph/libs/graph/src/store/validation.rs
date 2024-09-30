@@ -8,8 +8,8 @@ use authorization::{
     schema::{DataTypePermission, EntityPermission, EntityTypePermission, PropertyTypePermission},
     zanzibar::Consistency,
 };
-use error_stack::{Report, ResultExt, ensure};
-use futures::TryStreamExt;
+use error_stack::{Report, ResultExt as _, ensure};
+use futures::TryStreamExt as _;
 use graph_types::{
     account::AccountId,
     knowledge::entity::{Entity, EntityId},
@@ -26,14 +26,14 @@ use hash_graph_store::{
     },
 };
 use tokio::sync::RwLock;
-use tokio_postgres::GenericClient;
+use tokio_postgres::GenericClient as _;
 use type_system::{
     schema::{ClosedEntityType, ConversionDefinition, ConversionExpression, PropertyType},
     url::{BaseUrl, VersionedUrl},
 };
 use validation::EntityProvider;
 
-use crate::store::{AsClient, PostgresStore, QueryError, crud::Read};
+use crate::store::{AsClient, PostgresStore, QueryError, crud::Read as _};
 
 #[derive(Debug, Clone)]
 enum Access<T> {

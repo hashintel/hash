@@ -64,7 +64,7 @@ mod test {
 
     use bytes::Bytes;
 
-    use crate::body::{Body, BodyState, Frame, SizeHint, full::Full, test::poll_frame_unpin};
+    use crate::body::{Body as _, BodyState, Frame, SizeHint, full::Full, test::poll_frame_unpin};
 
     #[test]
     fn poll_frame() {

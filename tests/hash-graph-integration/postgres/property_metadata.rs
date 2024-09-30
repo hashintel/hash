@@ -1,10 +1,10 @@
 use alloc::borrow::Cow;
-use core::{iter::once, str::FromStr};
+use core::{iter::once, str::FromStr as _};
 use std::collections::{HashMap, HashSet};
 
 use authorization::AuthorizationApi;
 use graph::store::{
-    EntityStore,
+    EntityStore as _,
     knowledge::{CreateEntityParams, PatchEntityParams},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};

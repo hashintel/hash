@@ -10,9 +10,9 @@ use axum::{
 use hyper::header;
 use opentelemetry::{
     propagation::Extractor,
-    trace::{SpanContext, SpanId, TraceContextExt},
+    trace::{SpanContext, SpanId, TraceContextExt as _},
 };
-use opentelemetry_sdk::trace::{IdGenerator, RandomIdGenerator};
+use opentelemetry_sdk::trace::{IdGenerator as _, RandomIdGenerator};
 use tower_http::{
     classify::{ServerErrorsAsFailures, ServerErrorsFailureClass, SharedClassifier},
     trace::{DefaultOnBodyChunk, DefaultOnEos, DefaultOnRequest, TraceLayer},

@@ -2,7 +2,7 @@ use std::collections::HashSet;
 
 use authorization::AuthorizationApi;
 use graph::store::{
-    EntityStore,
+    EntityStore as _,
     knowledge::{CreateEntityParams, PatchEntityParams},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};

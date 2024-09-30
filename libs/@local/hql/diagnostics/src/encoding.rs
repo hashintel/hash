@@ -5,9 +5,9 @@ use core::{
 
 use anstyle::{Ansi256Color, AnsiColor};
 use serde::{
-    Deserialize, Serialize,
+    Deserialize as _, Serialize as _,
     de::{Visitor, value::StrDeserializer},
-    ser::SerializeSeq,
+    ser::SerializeSeq as _,
 };
 use serde_with::{DeserializeAs, SerializeAs};
 

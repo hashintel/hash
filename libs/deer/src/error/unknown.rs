@@ -349,7 +349,7 @@ impl Display for UnknownIdentifierError {
 #[cfg(test)]
 mod tests {
     #[cfg_attr(feature = "std", allow(unused_imports))]
-    use alloc::{borrow::ToOwned, vec};
+    use alloc::{borrow::ToOwned as _, vec};
 
     use error_stack::Report;
     use serde_json::json;

@@ -1,5 +1,5 @@
 use graph::store::{
-    PropertyTypeStore,
+    PropertyTypeStore as _,
     ontology::{CreatePropertyTypeParams, GetPropertyTypesParams, UpdatePropertyTypesParams},
 };
 use graph_test_data::{data_type, property_type};

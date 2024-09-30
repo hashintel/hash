@@ -8,8 +8,8 @@ use authorization::{
     schema::{DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject, WebPermission},
     zanzibar::{Consistency, Zookie},
 };
-use error_stack::{Result, ResultExt};
-use futures::StreamExt;
+use error_stack::{Result, ResultExt as _};
+use futures::StreamExt as _;
 use graph_types::{
     Embedding,
     account::{AccountId, EditionArchivedById, EditionCreatedById},
@@ -23,7 +23,7 @@ use hash_graph_store::{
     data_type::DataTypeQueryPath,
     filter::{Filter, FilterExpression, ParameterList},
     subgraph::{
-        Subgraph, SubgraphRecord,
+        Subgraph, SubgraphRecord as _,
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
         identifier::{DataTypeVertexId, GraphElementVertexId},
         temporal_axes::{
@@ -34,10 +34,10 @@ use hash_graph_store::{
 };
 use postgres_types::{Json, ToSql};
 use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
-use tokio_postgres::{GenericClient, Row};
+use tokio_postgres::{GenericClient as _, Row};
 use tracing::instrument;
 use type_system::{
-    Validator,
+    Validator as _,
     schema::{ConversionDefinition, Conversions, DataTypeValidator, OntologyTypeResolver},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
@@ -45,7 +45,7 @@ use type_system::{
 use crate::store::{
     AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, StoreCache, StoreProvider,
     UpdateError,
-    crud::{QueryResult, Read, ReadPaginated, VersionedUrlSorting},
+    crud::{QueryResult as _, Read as _, ReadPaginated, VersionedUrlSorting},
     error::DeletionError,
     ontology::{
         ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams,

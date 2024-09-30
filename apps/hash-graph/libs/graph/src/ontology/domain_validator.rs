@@ -1,6 +1,6 @@
 use core::fmt;
 
-use error_stack::{Context, ResultExt};
+use error_stack::{Context, ResultExt as _};
 use regex::{Captures, Regex};
 use type_system::schema::{DataType, EntityType, PropertyType};
 

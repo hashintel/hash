@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-use error_stack::{ReportSink, Result, ResultExt};
-use futures::{Stream, TryStreamExt};
+use error_stack::{ReportSink, Result, ResultExt as _};
+use futures::{Stream, TryStreamExt as _};
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},

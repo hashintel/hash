@@ -4,7 +4,7 @@ use authorization::AuthorizationApi;
 use deadpool_postgres::{
     Hook, ManagerConfig, Object, Pool, PoolConfig, PoolError, RecyclingMethod, Timeouts,
 };
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use temporal_client::TemporalClient;
 use tokio_postgres::{
     Client, GenericClient, Socket, Transaction,

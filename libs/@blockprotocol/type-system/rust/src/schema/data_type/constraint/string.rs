@@ -1,11 +1,11 @@
 use core::{
     net::{AddrParseError, Ipv4Addr, Ipv6Addr},
-    str::FromStr,
+    str::FromStr as _,
 };
 use std::{collections::HashSet, sync::OnceLock};
 
 use email_address::EmailAddress;
-use error_stack::{Report, ReportSink, ResultExt, bail};
+use error_stack::{Report, ReportSink, ResultExt as _, bail};
 use iso8601_duration::{Duration, ParseDurationError};
 use regex::Regex;
 use serde::{Deserialize, Serialize};

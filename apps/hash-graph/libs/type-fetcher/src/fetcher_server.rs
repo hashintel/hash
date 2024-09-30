@@ -1,6 +1,6 @@
 use core::time::Duration;
 
-use futures::{StreamExt, TryStreamExt, stream};
+use futures::{StreamExt as _, TryStreamExt as _, stream};
 use reqwest::{
     Client,
     header::{ACCEPT, USER_AGENT},

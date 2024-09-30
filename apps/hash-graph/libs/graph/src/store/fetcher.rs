@@ -12,7 +12,7 @@ use authorization::{
     },
     zanzibar::Consistency,
 };
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt as _};
 use graph_types::{
     account::AccountId,
     knowledge::entity::{Entity, EntityId},

@@ -5,7 +5,7 @@ use core::{
 
 use futures::{
     Stream,
-    prelude::stream::StreamExt,
+    prelude::stream::StreamExt as _,
     ready,
     stream::{SplitSink, SplitStream},
 };
@@ -14,7 +14,7 @@ use libp2p::PeerId;
 use tokio::io::BufStream;
 use tokio_util::{
     codec::Framed,
-    compat::{Compat, FuturesAsyncReadCompatExt},
+    compat::{Compat, FuturesAsyncReadCompatExt as _},
 };
 
 use super::{client::ClientCodec, server::ServerCodec};

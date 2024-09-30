@@ -1,7 +1,7 @@
 use core::time::Duration;
 
 use opentelemetry::{KeyValue, global};
-use opentelemetry_otlp::WithExportConfig;
+use opentelemetry_otlp::WithExportConfig as _;
 use opentelemetry_sdk::{
     Resource,
     propagation::TraceContextPropagator,

@@ -1,11 +1,11 @@
 use core::cmp::{Ordering, Reverse};
 
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt as _};
 
 use crate::{
     Deserialize, Deserializer, Document, Reflection, Schema, Visitor,
     error::{
-        DeserializeError, ExpectedVariant, ReceivedVariant, UnknownVariantError, Variant,
+        DeserializeError, ExpectedVariant, ReceivedVariant, UnknownVariantError, Variant as _,
         VisitorError,
     },
 };

@@ -1,5 +1,5 @@
 #[cfg(any(feature = "std", rust_1_81))]
-use alloc::string::{String, ToString};
+use alloc::string::{String, ToString as _};
 #[cfg(rust_1_81)]
 use core::error::Error;
 #[cfg(nightly)]

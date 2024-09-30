@@ -16,7 +16,7 @@
 #[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{format, vec, vec::Vec};
 
-use serde::{Serialize, Serializer, ser::SerializeMap};
+use serde::{Serialize, Serializer, ser::SerializeMap as _};
 
 use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 

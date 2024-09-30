@@ -1,6 +1,6 @@
 #[cfg(feature = "postgres")]
 use core::error::Error;
-use core::fmt::{self, Write};
+use core::fmt::{self, Write as _};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;

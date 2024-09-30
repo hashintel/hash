@@ -5,7 +5,7 @@
 use core::fmt;
 use std::{error::Error, io};
 
-use error_stack::{FrameKind, Report, ResultExt};
+use error_stack::{FrameKind, Report, ResultExt as _};
 
 fn io_error() -> Result<(), io::Error> {
     Err(io::Error::from(io::ErrorKind::Other))

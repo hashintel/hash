@@ -3,7 +3,7 @@
 use alloc::sync::Arc;
 
 use authorization::{
-    AuthorizationApi, AuthorizationApiPool,
+    AuthorizationApi as _, AuthorizationApiPool,
     backend::ModifyRelationshipOperation,
     schema::{
         AccountGroupMemberSubject, AccountGroupPermission, AccountGroupRelationAndSubject,
@@ -23,7 +23,9 @@ use graph_types::{
     account::{AccountGroupId, AccountId},
     owned_by_id::OwnedById,
 };
-use hash_graph_store::account::{AccountStore, InsertAccountGroupIdParams, InsertAccountIdParams};
+use hash_graph_store::account::{
+    AccountStore as _, InsertAccountGroupIdParams, InsertAccountIdParams,
+};
 use temporal_client::TemporalClient;
 use utoipa::OpenApi;
 

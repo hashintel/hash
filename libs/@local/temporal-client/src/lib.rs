@@ -5,7 +5,7 @@ pub use self::error::{ConfigError, ConnectionError, WorkflowError};
 mod ai;
 mod error;
 
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use temporal_io_client::{Client, ClientOptions, ClientOptionsBuilder, RetryClient};
 use url::Url;
 

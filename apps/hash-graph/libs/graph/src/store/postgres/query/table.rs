@@ -2090,7 +2090,7 @@ mod tests {
     use hash_graph_store::data_type::DataTypeQueryPath;
 
     use super::*;
-    use crate::store::postgres::query::PostgresQueryPath;
+    use crate::store::postgres::query::PostgresQueryPath as _;
 
     #[test]
     fn transpile_table() {

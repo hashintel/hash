@@ -19,7 +19,7 @@ use authorization::{
         WebOwnerSubject, WebPropertyTypeViewerSubject, WebRelationAndSubject, WebSubjectSet,
     },
 };
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt as _};
 use graph_types::{
     account::{AccountGroupId, AccountId, EditionArchivedById},
     ontology::{
@@ -40,7 +40,7 @@ use postgres_types::Json;
 use temporal_client::TemporalClient;
 use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;
-use tokio_postgres::{GenericClient, error::SqlState};
+use tokio_postgres::{GenericClient as _, error::SqlState};
 use type_system::{
     Valid,
     schema::{

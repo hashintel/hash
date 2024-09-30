@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use aws_config::BehaviorVersion;
 use clap::Parser;
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use repo_chores::benches::{
     analyze::BenchmarkAnalysis,
     report::Benchmark,

@@ -5,7 +5,7 @@
 use core::fmt;
 use std::{fs, path::Path};
 
-use error_stack::{Context, Report, ResultExt};
+use error_stack::{Context, Report, ResultExt as _};
 
 pub type Config = String;
 

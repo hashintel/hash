@@ -102,7 +102,7 @@ mod links {
     where
         S: serde::Serializer,
     {
-        use serde::ser::SerializeMap;
+        use serde::ser::SerializeMap as _;
 
         let mut map = serializer.serialize_map(Some(links.len()))?;
         for (url, val) in links {

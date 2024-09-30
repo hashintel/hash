@@ -1,6 +1,6 @@
 use core::ops::{Bound, Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive};
 
-use deer::Deserialize;
+use deer::Deserialize as _;
 use deer_desert::{Token, assert_tokens, assert_tokens_error, error};
 use proptest::prelude::*;
 use serde_json::json;

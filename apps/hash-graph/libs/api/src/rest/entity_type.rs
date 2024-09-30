@@ -4,7 +4,7 @@ use alloc::sync::Arc;
 use std::collections::hash_map;
 
 use authorization::{
-    AuthorizationApi, AuthorizationApiPool,
+    AuthorizationApi as _, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
         EntityTypeEditorSubject, EntityTypeInstantiatorSubject, EntityTypeOwnerSubject,
@@ -20,14 +20,14 @@ use axum::{
     response::Response,
     routing::{get, post, put},
 };
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use graph::{
     ontology::{
-        domain_validator::{DomainValidator, ValidateOntologyType},
+        domain_validator::{DomainValidator, ValidateOntologyType as _},
         patch_id_and_parse,
     },
     store::{
-        EntityTypeStore, StorePool,
+        EntityTypeStore as _, StorePool,
         error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
         ontology::{
             ArchiveEntityTypeParams, CreateEntityTypeParams, GetEntityTypeSubgraphParams,

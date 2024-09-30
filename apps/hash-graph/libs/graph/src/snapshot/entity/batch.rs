@@ -1,16 +1,16 @@
 use async_trait::async_trait;
 use authorization::{AuthorizationApi, backend::ZanzibarBackend, schema::EntityRelationAndSubject};
-use error_stack::{Report, ResultExt};
+use error_stack::{Report, ResultExt as _};
 use graph_types::{
     knowledge::{
         entity::{Entity, EntityUuid},
-        property::{PropertyWithMetadataObject, visitor::EntityVisitor},
+        property::{PropertyWithMetadataObject, visitor::EntityVisitor as _},
     },
-    ontology::EntityTypeProvider,
+    ontology::EntityTypeProvider as _,
 };
 use hash_graph_store::filter::Filter;
-use tokio_postgres::GenericClient;
-use validation::{EntityPreprocessor, Validate, ValidateEntityComponents};
+use tokio_postgres::GenericClient as _;
+use validation::{EntityPreprocessor, Validate as _, ValidateEntityComponents};
 
 use crate::{
     snapshot::WriteBatch,

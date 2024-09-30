@@ -3,7 +3,7 @@
 use core::fmt::Display;
 
 use bytes::{Buf, BufMut};
-use error_stack::{Report, Result, ResultExt};
+use error_stack::{Report, Result, ResultExt as _};
 
 use crate::codec::{Buffer, BufferError, Decode, Encode};
 

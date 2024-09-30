@@ -1,6 +1,6 @@
 use core::{error::Error, fmt};
 
-use serde::{Deserialize, Serialize, Serializer, ser::SerializeStruct};
+use serde::{Deserialize, Serialize, Serializer, ser::SerializeStruct as _};
 
 use crate::{backend::ModifyRelationshipOperation, zanzibar};
 
