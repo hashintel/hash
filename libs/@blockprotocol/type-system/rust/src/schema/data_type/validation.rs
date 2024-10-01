@@ -1,11 +1,12 @@
-use std::collections::HashSet;
+use core::str::FromStr;
+use std::{collections::HashSet, sync::LazyLock};
 
 use serde_json::Value as JsonValue;
 use thiserror::Error;
 
 use crate::{
     Valid, Validator,
-    schema::{ClosedDataType, DataType},
+    schema::{ClosedDataType, DataType, DataTypeReference},
     url::VersionedUrl,
 };
 
@@ -22,9 +23,43 @@ pub enum ValidateDataTypeError {
     CyclicDataTypeReference { data_type_id: VersionedUrl },
     #[error("A data type requires a parent specified in `allOf`")]
     MissingParent,
+    #[error("Only primitive data types can inherit from the value data type")]
+    NonPrimitiveValueInheritance,
 }
 
 pub struct DataTypeValidator;
+
+static VALUE_DATA_TYPE_ID: LazyLock<DataTypeReference> = LazyLock::new(|| DataTypeReference {
+    url: VersionedUrl::from_str(
+        "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1",
+    )
+    .expect("Invalid URL"),
+});
+
+static PRIMITIVE_DATA_TYPE_IDS: LazyLock<HashSet<VersionedUrl>> = LazyLock::new(|| {
+    HashSet::from([
+        VersionedUrl::from_str("https://blockprotocol.org/@blockprotocol/types/data-type/null/v/1")
+            .expect("Invalid URL"),
+        VersionedUrl::from_str(
+            "https://blockprotocol.org/@blockprotocol/types/data-type/boolean/v/1",
+        )
+        .expect("Invalid URL"),
+        VersionedUrl::from_str(
+            "https://blockprotocol.org/@blockprotocol/types/data-type/number/v/1",
+        )
+        .expect("Invalid URL"),
+        VersionedUrl::from_str("https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1")
+            .expect("Invalid URL"),
+        VersionedUrl::from_str(
+            "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/v/1",
+        )
+        .expect("Invalid URL"),
+        VersionedUrl::from_str(
+            "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
+        )
+        .expect("Invalid URL"),
+    ])
+});
 
 impl Validator<DataType> for DataTypeValidator {
     type Error = ValidateDataTypeError;
@@ -33,11 +68,12 @@ impl Validator<DataType> for DataTypeValidator {
         &self,
         value: &'v DataType,
     ) -> Result<&'v Valid<DataType>, Self::Error> {
-        if value.all_of.is_empty()
-            && value.id.base_url.as_str()
-                != "https://blockprotocol.org/@blockprotocol/types/data-type/value/"
-        {
+        if value.all_of.is_empty() && value.id != VALUE_DATA_TYPE_ID.url {
             return Err(ValidateDataTypeError::MissingParent);
+        } else if value.all_of.contains(&*VALUE_DATA_TYPE_ID)
+            && !PRIMITIVE_DATA_TYPE_IDS.contains(&value.id)
+        {
+            return Err(ValidateDataTypeError::NonPrimitiveValueInheritance);
         }
 
         // TODO: Implement validation for data types
