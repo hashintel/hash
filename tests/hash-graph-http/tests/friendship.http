@@ -2226,4 +2226,3 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     });
     client.global.set("person_c_entity_id", response.body.metadata.recordId.entityId);
 %}
-a
