@@ -107,7 +107,6 @@ mod raw {
     use std::collections::HashSet;
 
     use serde::{Deserialize, Serialize};
-    use serde_json::Value as JsonValue;
 
     use super::{DataTypeSchemaTag, DataTypeTag};
     use crate::{
@@ -215,12 +214,6 @@ mod raw {
             common: ValueSchemaMetadata,
             #[serde(flatten)]
             constraints: TupleConstraints,
-        },
-        ArrayConst {
-            r#type: ArrayTypeTag,
-            #[serde(flatten)]
-            common: ValueSchemaMetadata,
-            r#const: [JsonValue; 0],
         },
         AnyOf {
             #[serde(flatten)]
@@ -351,16 +344,6 @@ mod raw {
                     ValueConstraints::Typed(SingleValueConstraints::Array(ArraySchema::Tuple(
                         constraints,
                     ))),
-                ),
-                DataType::ArrayConst {
-                    r#type: _,
-                    common,
-                    r#const,
-                } => (
-                    common,
-                    ValueConstraints::Typed(SingleValueConstraints::Array(ArraySchema::Const {
-                        r#const,
-                    })),
                 ),
                 DataType::AnyOf {
                     common,
@@ -754,6 +737,7 @@ mod tests {
               "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/two-numbers/v/1",
               "title": "Two Numbers",
               "description": "A tuple of two numbers",
+              "allOf": [{ "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1" }],
               "type": "array",
               "abstract": false,
               "items": false,
@@ -777,6 +761,7 @@ mod tests {
               "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/array/v/1",
               "title": "Number List",
               "description": "A list of numbers",
+              "allOf": [{ "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1" }],
               "type": "array",
               "abstract": false,
               "items": { "type": "number" },
@@ -794,11 +779,16 @@ mod tests {
             serde_json::json!({
               "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
               "kind": "dataType",
-              "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1",
+              "description": "A piece of data that can be used to convey information about an attribute, quality or state of something.",
               "title": "Value",
               "description": "A value that can be stored in a graph",
               "anyOf": [
-                { "type": "null" }
+                { "type": "null" },
+                { "type": "boolean" },
+                { "type": "number" },
+                { "type": "string" },
+                { "type": "array" },
+                { "type": "object" }
               ],
               "additional": false
             }),

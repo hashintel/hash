@@ -4,7 +4,6 @@
   "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1",
   "title": "Value",
   "description": "A piece of data that can be used to convey information about an attribute, quality or state of something.",
-  "abstract": false,
   "anyOf": [
     { "type": "null" },
     { "type": "boolean" },

@@ -2684,6 +2684,7 @@ dependencies = [
  "tokio-util",
  "tracing",
  "type-fetcher",
+ "type-system",
  "validation",
 ]
 
@@ -3238,6 +3239,7 @@ version = "0.7.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "923d117408f1e49d914f1a379a309cffe4f18c05cf4e3d12e613a15fc81bd0dd"
 dependencies = [
+ "glob",
  "include_dir_macros",
 ]
 
@@ -7396,9 +7398,12 @@ dependencies = [
 name = "type-fetcher"
 version = "0.0.0"
 dependencies = [
+ "error-stack",
  "futures",
+ "include_dir",
  "reqwest",
  "serde",
+ "serde_json",
  "tarpc",
  "time",
  "tracing",

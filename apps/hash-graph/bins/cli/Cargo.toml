@@ -24,6 +24,7 @@ hash-tracing = { workspace = true, features = ["clap"] }
 temporal-client = { workspace = true }
 test-server = { workspace = true, optional = true }
 type-fetcher = { workspace = true }
+type-system = { workspace = true }
 validation = { workspace = true }
 
 # Third party dependencies

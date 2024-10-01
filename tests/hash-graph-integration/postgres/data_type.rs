@@ -45,7 +45,7 @@ async fn insert() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed([], [], [])
+        .seed([graph_test_data::data_type::VALUE_V1], [], [])
         .await
         .expect("could not seed database");
 
@@ -70,7 +70,7 @@ async fn query() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed([], [], [])
+        .seed([graph_test_data::data_type::VALUE_V1], [], [])
         .await
         .expect("could not seed database");
 
@@ -133,6 +133,7 @@ async fn inheritance() {
         .seed(
             // The order of the data types can be arbitrary
             [
+                graph_test_data::data_type::VALUE_V1,
                 graph_test_data::data_type::LENGTH_V1,
                 graph_test_data::data_type::NUMBER_V1,
                 graph_test_data::data_type::METER_V1,
@@ -175,7 +176,7 @@ async fn inheritance() {
         .expect("could not get data type")
         .data_types
         .len(),
-        2,
+        3,
         "expected two data types"
     );
 
@@ -384,7 +385,7 @@ async fn update() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed([], [], [])
+        .seed([graph_test_data::data_type::VALUE_V1], [], [])
         .await
         .expect("could not seed database");
 
@@ -460,7 +461,7 @@ async fn insert_same_base_url() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed([], [], [])
+        .seed([graph_test_data::data_type::VALUE_V1], [], [])
         .await
         .expect("could not seed database");
 
@@ -560,7 +561,7 @@ async fn wrong_update_order() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed([], [], [])
+        .seed([graph_test_data::data_type::VALUE_V1], [], [])
         .await
         .expect("could not seed database");
 
@@ -639,7 +640,7 @@ async fn update_external_with_owned() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed([], [], [])
+        .seed([graph_test_data::data_type::VALUE_V1], [], [])
         .await
         .expect("could not seed database");
 

@@ -634,7 +634,10 @@ mod tests {
             graph_test_data::property_type::POSTCODE_NUMBER_V1,
             graph_test_data::property_type::CITY_V1,
         ];
-        let data_types = [graph_test_data::data_type::TEXT_V1];
+        let data_types = [
+            graph_test_data::data_type::VALUE_V1,
+            graph_test_data::data_type::TEXT_V1,
+        ];
 
         validate_entity(
             graph_test_data::entity::ADDRESS_V1,
@@ -654,7 +657,10 @@ mod tests {
         let entities = [];
         let entity_types = [];
         let property_types = [graph_test_data::property_type::NAME_V1];
-        let data_types = [graph_test_data::data_type::TEXT_V1];
+        let data_types = [
+            graph_test_data::data_type::VALUE_V1,
+            graph_test_data::data_type::TEXT_V1,
+        ];
 
         validate_entity(
             graph_test_data::entity::BLOCK_V1,
@@ -678,7 +684,10 @@ mod tests {
             graph_test_data::property_type::BLURB_V1,
             graph_test_data::property_type::PUBLISHED_ON_V1,
         ];
-        let data_types = [graph_test_data::data_type::TEXT_V1];
+        let data_types = [
+            graph_test_data::data_type::VALUE_V1,
+            graph_test_data::data_type::TEXT_V1,
+        ];
 
         validate_entity(
             graph_test_data::entity::BOOK_V1,
@@ -718,7 +727,10 @@ mod tests {
         let entities = [];
         let entity_types = [];
         let property_types = [graph_test_data::property_type::NAME_V1];
-        let data_types = [graph_test_data::data_type::TEXT_V1];
+        let data_types = [
+            graph_test_data::data_type::VALUE_V1,
+            graph_test_data::data_type::TEXT_V1,
+        ];
 
         validate_entity(
             graph_test_data::entity::ORGANIZATION_V1,
@@ -738,7 +750,10 @@ mod tests {
         let entities = [];
         let entity_types = [];
         let property_types = [graph_test_data::property_type::TEXT_V1];
-        let data_types = [graph_test_data::data_type::TEXT_V1];
+        let data_types = [
+            graph_test_data::data_type::VALUE_V1,
+            graph_test_data::data_type::TEXT_V1,
+        ];
 
         validate_entity(
             graph_test_data::entity::PAGE_V1,
@@ -774,6 +789,7 @@ mod tests {
             graph_test_data::property_type::AGE_V1,
         ];
         let data_types = [
+            graph_test_data::data_type::VALUE_V1,
             graph_test_data::data_type::TEXT_V1,
             graph_test_data::data_type::NUMBER_V1,
         ];
@@ -820,7 +836,10 @@ mod tests {
         let entities = [];
         let entity_types = [];
         let property_types = [graph_test_data::property_type::NAME_V1];
-        let data_types = [graph_test_data::data_type::TEXT_V1];
+        let data_types = [
+            graph_test_data::data_type::VALUE_V1,
+            graph_test_data::data_type::TEXT_V1,
+        ];
 
         validate_entity(
             graph_test_data::entity::PLAYLIST_V1,
@@ -840,7 +859,10 @@ mod tests {
         let entities = [];
         let entity_types = [];
         let property_types = [graph_test_data::property_type::NAME_V1];
-        let data_types = [graph_test_data::data_type::TEXT_V1];
+        let data_types = [
+            graph_test_data::data_type::VALUE_V1,
+            graph_test_data::data_type::TEXT_V1,
+        ];
 
         validate_entity(
             graph_test_data::entity::SONG_V1,

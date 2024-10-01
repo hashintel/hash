@@ -20,6 +20,8 @@ pub enum ValidateDataTypeError {
     MissingDataType { data_type_id: VersionedUrl },
     #[error("Cyclic data type reference detected for type `{data_type_id}`")]
     CyclicDataTypeReference { data_type_id: VersionedUrl },
+    #[error("A data type requires a parent specified in `allOf`")]
+    MissingParent,
 }
 
 pub struct DataTypeValidator;
@@ -31,6 +33,13 @@ impl Validator<DataType> for DataTypeValidator {
         &self,
         value: &'v DataType,
     ) -> Result<&'v Valid<DataType>, Self::Error> {
+        if value.all_of.is_empty()
+            && value.id.base_url.as_str()
+                != "https://blockprotocol.org/@blockprotocol/types/data-type/value/"
+        {
+            return Err(ValidateDataTypeError::MissingParent);
+        }
+
         // TODO: Implement validation for data types
         //   see https://linear.app/hash/issue/H-2976/validate-ontology-types-on-creation
         Ok(Valid::new_ref_unchecked(value))

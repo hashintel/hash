@@ -41,6 +41,11 @@ let testUser2: User;
 const dataTypeSchema: ConstructDataTypeParams = {
   title: "Text",
   type: "string",
+  allOf: [
+    {
+      $ref: "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+    },
+  ],
 };
 
 beforeAll(async () => {
