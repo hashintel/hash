@@ -719,9 +719,9 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn empty_list() {
+    async fn list() {
         ensure_validation_from_str::<DataType, _>(
-            graph_test_data::data_type::EMPTY_LIST_V1,
+            graph_test_data::data_type::LIST_V1,
             DataTypeValidator,
             JsonEqualityCheck::Yes,
         )
@@ -737,7 +737,7 @@ mod tests {
               "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/two-numbers/v/1",
               "title": "Two Numbers",
               "description": "A tuple of two numbers",
-              "allOf": [{ "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1" }],
+              "allOf": [{ "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/list/v/1" }],
               "type": "array",
               "abstract": false,
               "items": false,
@@ -761,7 +761,7 @@ mod tests {
               "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/array/v/1",
               "title": "Number List",
               "description": "A list of numbers",
-              "allOf": [{ "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1" }],
+              "allOf": [{ "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/list/v/1" }],
               "type": "array",
               "abstract": false,
               "items": { "type": "number" },

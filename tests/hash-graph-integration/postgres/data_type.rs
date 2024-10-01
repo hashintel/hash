@@ -65,7 +65,7 @@ async fn insert() {
 
 #[tokio::test]
 async fn query() {
-    let empty_list_dt: DataType = serde_json::from_str(graph_test_data::data_type::EMPTY_LIST_V1)
+    let list_v1: DataType = serde_json::from_str(graph_test_data::data_type::LIST_V1)
         .expect("could not parse data type representation");
 
     let mut database = DatabaseTestWrapper::new().await;
@@ -75,7 +75,7 @@ async fn query() {
         .expect("could not seed database");
 
     api.create_data_type(api.account_id, CreateDataTypeParams {
-        schema: empty_list_dt.clone(),
+        schema: list_v1.clone(),
         classification: OntologyTypeClassificationMetadata::Owned {
             owned_by_id: OwnedById::new(api.account_id.into_uuid()),
         },
@@ -89,7 +89,7 @@ async fn query() {
 
     let data_types = api
         .get_data_types(api.account_id, GetDataTypesParams {
-            filter: Filter::for_versioned_url(&empty_list_dt.id),
+            filter: Filter::for_versioned_url(&list_v1.id),
             temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                 pinned: PinnedTemporalAxisUnresolved::new(None),
                 variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
@@ -108,7 +108,7 @@ async fn query() {
         1,
         "expected one data type, got {data_types:?}"
     );
-    assert_eq!(data_types[0].schema.id, empty_list_dt.id);
+    assert_eq!(data_types[0].schema.id, list_v1.id);
 }
 
 #[tokio::test]
