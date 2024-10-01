@@ -1,19 +1,17 @@
-use alloc::sync::Arc;
 use std::collections::HashMap;
 
 use async_trait::async_trait;
-use authorization::{backend::ZanzibarBackend, schema::DataTypeRelationAndSubject};
+use authorization::{
+    AuthorizationApi, backend::ZanzibarBackend, schema::DataTypeRelationAndSubject,
+};
 use error_stack::{Result, ResultExt};
-use graph_types::ontology::{DataTypeId, DataTypeWithMetadata};
-use hash_graph_store::filter::Filter;
+use graph_types::ontology::DataTypeId;
 use tokio_postgres::GenericClient;
-use type_system::schema::OntologyTypeResolver;
 
 use crate::{
     snapshot::WriteBatch,
     store::{
-        AsClient, InsertionError, PostgresStore,
-        crud::Read,
+        AsClient, DataTypeStore, InsertionError, PostgresStore,
         postgres::query::rows::{DataTypeConversionsRow, DataTypeEmbeddingRow, DataTypeRow},
     },
 };
@@ -29,7 +27,7 @@ pub enum DataTypeRowBatch {
 impl<C, A> WriteBatch<C, A> for DataTypeRowBatch
 where
     C: AsClient,
-    A: ZanzibarBackend + Send + Sync,
+    A: AuthorizationApi + ZanzibarBackend + Send + Sync,
 {
     async fn begin(postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError> {
         postgres_client
@@ -151,33 +149,9 @@ where
             .await
             .change_context(InsertionError)?;
 
-        let mut ontology_type_resolver = OntologyTypeResolver::default();
-
-        let data_types = Read::<DataTypeWithMetadata>::read_vec(
-            postgres_client,
-            &Filter::All(Vec::new()),
-            None,
-            true,
-        )
-        .await
-        .change_context(InsertionError)?
-        .into_iter()
-        .map(|data_type| {
-            let data_type = Arc::new(data_type.schema);
-            ontology_type_resolver.add_open(Arc::clone(&data_type));
-            data_type
-        })
-        .collect::<Vec<_>>();
-
-        for data_type in &data_types {
-            let schema_metadata = ontology_type_resolver
-                .resolve_data_type_metadata(&data_type.id)
-                .change_context(InsertionError)?;
-
-            postgres_client
-                .insert_data_type_references(DataTypeId::from_url(&data_type.id), &schema_metadata)
-                .await?;
-        }
+        <PostgresStore<C, A> as DataTypeStore>::reindex_cache(postgres_client)
+            .await
+            .change_context(InsertionError)?;
 
         Ok(())
     }

@@ -402,6 +402,10 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
             .update_data_type_embeddings(actor_id, params)
             .await
     }
+
+    async fn reindex_cache(&mut self) -> Result<(), UpdateError> {
+        self.store.reindex_cache().await
+    }
 }
 
 impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {

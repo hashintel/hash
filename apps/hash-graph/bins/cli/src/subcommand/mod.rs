@@ -1,5 +1,6 @@
 mod completions;
 mod migrate;
+mod reindex_cache;
 mod server;
 mod snapshot;
 #[cfg(feature = "test-server")]
@@ -21,7 +22,10 @@ pub use self::{
     snapshot::{SnapshotArgs, snapshot},
     type_fetcher::{TypeFetcherArgs, type_fetcher},
 };
-use crate::error::{GraphError, HealthcheckError};
+use crate::{
+    error::{GraphError, HealthcheckError},
+    subcommand::reindex_cache::{ReindexCacheArgs, reindex_cache},
+};
 
 /// Subcommand for the program.
 #[derive(Debug, clap::Subcommand)]
@@ -36,6 +40,11 @@ pub enum Subcommand {
     Completions(CompletionsArgs),
     /// Snapshot API for the database.
     Snapshot(SnapshotArgs),
+    /// Re-indexes the cache.
+    ///
+    /// This is only needed if the backend was changed in an uncommon way such as schemas being
+    /// updated in place. This is a rare operation and should be avoided if possible.
+    ReindexCache(ReindexCacheArgs),
     /// Test server
     #[cfg(feature = "test-server")]
     TestServer(TestServerArgs),
@@ -69,6 +78,7 @@ impl Subcommand {
                 Ok(())
             }
             Self::Snapshot(args) => block_on(snapshot(args), tracing_config),
+            Self::ReindexCache(args) => block_on(reindex_cache(args), tracing_config),
             #[cfg(feature = "test-server")]
             Self::TestServer(args) => block_on(test_server(args), tracing_config),
         }
