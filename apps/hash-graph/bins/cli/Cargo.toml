@@ -19,6 +19,7 @@ codec = { workspace = true }
 error-stack = { workspace = true }
 graph = { workspace = true, features = ["clap"] }
 graph-api = { workspace = true }
+graph-types = { workspace = true }
 hash-tracing = { workspace = true, features = ["clap"] }
 temporal-client = { workspace = true }
 test-server = { workspace = true, optional = true }

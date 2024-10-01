@@ -15,6 +15,7 @@ use crate::{
     knowledge::property::{
         PropertyWithMetadata, PropertyWithMetadataArray, PropertyWithMetadataObject,
         PropertyWithMetadataValue, ValueMetadata,
+        error::{Actual, Expected},
     },
     ontology::{
         DataTypeProvider, DataTypeWithMetadata, OntologyTypeProvider, PropertyTypeProvider,
@@ -47,10 +48,12 @@ pub enum TraversalError {
     },
     #[error("a value was expected, but the property provided was of type `{actual}`")]
     ExpectedValue { actual: JsonSchemaValueType },
-    #[error("The property provided is ambiguous")]
+    #[error("The property provided is ambiguous, more than one schema passed the validation.")]
     AmbiguousProperty { actual: PropertyWithMetadata },
     #[error("The data type ID was not specified and is ambiguous.")]
     AmbiguousDataType,
+    #[error("Could not find a suitable data type for the property")]
+    DataTypeUnspecified,
 
     #[error(
         "the value provided does not match the data type in the metadata, expected `{expected}` \
@@ -64,6 +67,15 @@ pub enum TraversalError {
     AbstractDataType { id: VersionedUrl },
     #[error("the value provided does not match the constraints of the data type")]
     ConstraintUnfulfilled,
+    #[error("the value provided does not match the data type")]
+    DataTypeUnfulfilled,
+    #[error(
+        "the value provided does not match the property type. Exactly one constraint has to be \
+         fulfilled."
+    )]
+    PropertyTypeUnfulfilled,
+    #[error("the entity provided does not match the entity type")]
+    EntityTypeUnfulfilled,
     #[error("the property `{key}` was required, but not specified")]
     MissingRequiredProperty { key: BaseUrl },
     #[error(
@@ -260,23 +272,31 @@ where
     V: EntityVisitor,
     P: DataTypeProvider + PropertyTypeProvider + Sync,
 {
+    let mut status = ReportSink::new();
     match property {
-        PropertyWithMetadata::Value(value) => {
+        PropertyWithMetadata::Value(value) => status.attempt(
             visitor
                 .visit_one_of_property(&schema.one_of, value, type_provider)
                 .await
-        }
-        PropertyWithMetadata::Array(array) => {
+                .change_context_lazy(|| TraversalError::PropertyTypeUnfulfilled),
+        ),
+        PropertyWithMetadata::Array(array) => status.attempt(
             visitor
                 .visit_one_of_array(&schema.one_of, array, type_provider)
                 .await
-        }
-        PropertyWithMetadata::Object(object) => {
+                .change_context_lazy(|| TraversalError::PropertyTypeUnfulfilled),
+        ),
+        PropertyWithMetadata::Object(object) => status.attempt(
             visitor
                 .visit_one_of_object(&schema.one_of, object, type_provider)
                 .await
-        }
-    }
+                .change_context_lazy(|| TraversalError::PropertyTypeUnfulfilled),
+        ),
+    };
+    status
+        .finish()
+        .attach_lazy(|| Expected::PropertyType(schema.clone()))
+        .attach_lazy(|| Actual::Property(property.clone()))
 }
 
 /// Walks through an array property using the provided schema.
@@ -469,6 +489,9 @@ where
                         type_provider,
                     )
                     .await
+                    .attach_lazy(|| Expected::DataType(data_type.borrow().schema.clone()))
+                    .attach_lazy(|| Actual::Json(property.value.clone()))
+                    .change_context(TraversalError::DataTypeUnfulfilled)
                 {
                     status.append(error);
                 } else {
