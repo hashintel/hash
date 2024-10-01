@@ -4,6 +4,7 @@
     clippy::unwrap_used,
     clippy::empty_enum,
     clippy::todo,
+    unused_variables,
     reason = "non-working example code"
 )]
 
@@ -114,8 +115,8 @@ where
 {
     async fn create_account(
         &self,
-        _: &S,
-        _: CreateAccount,
+        session: &S,
+        payload: CreateAccount,
     ) -> Result<AccountId, Report<AccountError>> {
         todo!()
     }
@@ -129,8 +130,8 @@ where
 {
     async fn create_account(
         &self,
-        _: &S,
-        _: CreateAccount,
+        session: &S,
+        payload: CreateAccount,
     ) -> Result<AccountId, Report<AccountError>> {
         todo!()
     }
