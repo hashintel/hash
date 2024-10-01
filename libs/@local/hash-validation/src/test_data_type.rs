@@ -115,21 +115,21 @@ async fn string() {
 async fn array() {
     validate_data(
         json!([]),
-        graph_test_data::data_type::EMPTY_LIST_V1,
+        graph_test_data::data_type::LIST_V1,
         [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
     .expect("validation failed");
 
-    _ = validate_data(
+    validate_data(
         json!(["foo", "bar"]),
-        graph_test_data::data_type::EMPTY_LIST_V1,
+        graph_test_data::data_type::LIST_V1,
         [graph_test_data::data_type::VALUE_V1],
         ValidateEntityComponents::full(),
     )
     .await
-    .expect_err("validation succeeded");
+    .expect("validation failed");
 }
 
 #[tokio::test]

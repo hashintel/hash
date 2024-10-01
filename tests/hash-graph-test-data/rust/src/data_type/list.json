@@ -1,15 +1,14 @@
 {
   "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
   "kind": "dataType",
-  "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/v/1",
+  "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/list/v/1",
   "allOf": [
     {
       "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1"
     }
   ],
-  "title": "Empty List",
-  "description": "An Empty List",
+  "title": "List",
+  "description": "An ordered list of values",
   "type": "array",
-  "items": false,
   "abstract": false
 }
