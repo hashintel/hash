@@ -27,7 +27,14 @@ const guessDataTypeFromValue = (
 ) => {
   const editorType = guessEditorTypeFromValue(value, expectedTypes);
 
-  const expectedType = expectedTypes.find((type) => type.type === editorType);
+  const expectedType = expectedTypes.find((type) =>
+    "type" in type
+      ? type.type === editorType
+      : /**
+         * @todo H-3374 support anyOf in expected types. also don't need to guess the value any more, use dataTypeId from property metadata
+         */
+        type.anyOf.some((subType) => subType.type === editorType),
+  );
   if (!expectedType) {
     throw new Error(
       `Could not find guessed editor type ${editorType} among expected types ${expectedTypes
@@ -55,7 +62,14 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     const left = rect.x + getCellHorizontalPadding();
 
     const editorType = guessEditorTypeFromValue(value, expectedTypes);
-    const relevantType = expectedTypes.find((type) => type.type === editorType);
+    const relevantType = expectedTypes.find((type) =>
+      "type" in type
+        ? type.type === editorType
+        : /**
+           * @todo H-3374 support anyOf in expected types. also don't need to guess the value any more, use dataTypeId from property metadata
+           */
+          type.anyOf.some((subType) => subType.type === editorType),
+    );
 
     const editorSpec = getEditorSpecs(editorType, relevantType);
 

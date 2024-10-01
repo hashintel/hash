@@ -168,10 +168,10 @@ where
             None => {
                 self.exhausted = true;
 
-                return Some(
+                Some(
                     T::deserialize(NoneDeserializer::new(self.context()))
                         .change_context(ArrayAccessError),
-                );
+                )
             }
             Some(value) => Some(value),
         }

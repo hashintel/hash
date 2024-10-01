@@ -182,6 +182,7 @@ impl<C> ReportSink<C> {
     ///     "I/O error",
     /// )));
     /// ```
+    #[track_caller]
     pub fn append(&mut self, report: impl Into<Report<[C]>>) {
         let report = report.into();
 
@@ -206,6 +207,7 @@ impl<C> ReportSink<C> {
     /// ```
     ///
     /// [`append`]: ReportSink::append
+    #[track_caller]
     pub fn capture(&mut self, error: impl Into<Report<C>>) {
         let report = error.into();
 
@@ -243,6 +245,7 @@ impl<C> ReportSink<C> {
     /// // Any errors are now collected in the sink
     /// # let _result = sink.finish();
     /// ```
+    #[track_caller]
     pub fn attempt<T, R>(&mut self, result: Result<T, R>) -> Option<T>
     where
         R: Into<Report<C>>,

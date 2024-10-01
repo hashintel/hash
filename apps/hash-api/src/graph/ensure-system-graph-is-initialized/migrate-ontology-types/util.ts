@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import type {
   Conversions,
+  DataType,
   DataTypeReference,
   EntityType,
   OneOfSchema,
@@ -33,7 +34,6 @@ import type { PropertyObjectWithMetadata } from "@local/hash-graph-types/entity"
 import type {
   BaseUrl,
   ConstructDataTypeParams,
-  CustomDataType,
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
   PropertyTypeWithMetadata,
@@ -413,7 +413,9 @@ type BaseCreateTypeIfNotExistsParameters = {
 export const generateSystemDataTypeSchema = ({
   dataTypeId,
   ...rest
-}: ConstructDataTypeParams & { dataTypeId: VersionedUrl }): CustomDataType => {
+}: ConstructDataTypeParams & {
+  dataTypeId: VersionedUrl;
+}): DataType => {
   return {
     $id: dataTypeId,
     $schema: DATA_TYPE_META_SCHEMA,

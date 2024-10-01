@@ -1,19 +1,22 @@
+use error_stack::{Report, bail};
 use serde::{Deserialize, Serialize};
+use serde_json::Value as JsonValue;
 
-use crate::schema::DataTypeLabel;
+use crate::schema::{ConstraintError, JsonSchemaValueType};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
-#[serde(rename_all = "camelCase", deny_unknown_fields)]
-pub struct NullSchema {
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-    #[serde(default, skip_serializing_if = "DataTypeLabel::is_empty")]
-    pub label: DataTypeLabel,
+#[serde(rename_all = "camelCase")]
+pub enum NullTypeTag {
+    Null,
+}
 
-    #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub r#const: Option<()>,
-    #[serde(default, skip_serializing_if = "Vec::is_empty")]
-    #[cfg_attr(target_arch = "wasm32", tsify(type = "[null]"))]
-    pub r#enum: Vec<()>,
+pub(crate) fn validate_null_value(value: &JsonValue) -> Result<(), Report<ConstraintError>> {
+    if value.is_null() {
+        Ok(())
+    } else {
+        bail!(ConstraintError::InvalidType {
+            actual: JsonSchemaValueType::from(value),
+            expected: JsonSchemaValueType::Null,
+        });
+    }
 }

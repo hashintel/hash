@@ -232,25 +232,6 @@ where
     }
 
     #[expect(refining_impl_trait)]
-    async fn has_children(&self, data_type: &VersionedUrl) -> Result<bool, Report<QueryError>> {
-        let client = self.store.as_client().client();
-
-        Ok(client
-            .query_one(
-                "
-                    SELECT EXISTS (
-                        SELECT 1 FROM data_type_inherits_from
-                        WHERE target_data_type_ontology_id = $1
-                    );
-                ",
-                &[&DataTypeId::from_url(data_type)],
-            )
-            .await
-            .change_context(QueryError)?
-            .get(0))
-    }
-
-    #[expect(refining_impl_trait)]
     async fn find_conversion(
         &self,
         source_data_type_id: &VersionedUrl,

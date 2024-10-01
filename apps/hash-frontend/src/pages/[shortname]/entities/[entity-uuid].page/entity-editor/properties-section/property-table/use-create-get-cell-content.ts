@@ -124,8 +124,13 @@ export const useCreateGetCellContent = (
             }
 
             if (shouldShowChangeTypeCell) {
-              const currentType = row.expectedTypes.find(
-                (opt) => opt.type === guessedType,
+              const currentType = row.expectedTypes.find((opt) =>
+                "type" in opt
+                  ? opt.type === guessedType
+                  : /**
+                     * @todo H-3374 support anyOf in expected types. also don't need to guess the value any more, use dataTypeId from property metadata
+                     */
+                    opt.anyOf.some((subType) => subType.type === guessedType),
               );
               if (!currentType) {
                 throw new Error(

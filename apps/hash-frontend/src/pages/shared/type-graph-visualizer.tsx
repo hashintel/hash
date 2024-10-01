@@ -1,5 +1,5 @@
 import type { VersionedUrl } from "@blockprotocol/type-system-rs/pkg/type-system";
-import { typedEntries } from "@local/advanced-types/typed-entries";
+import { typedEntries, typedValues } from "@local/advanced-types/typed-entries";
 import type {
   DataTypeWithMetadata,
   EntityTypeWithMetadata,
@@ -48,10 +48,19 @@ export const TypeGraphVisualizer = ({
 
     /**
      * Link types can appear multiple times in the visualization (one per each destination combination).
-     * We need to track all the occurrences of a link type, so that if we encounter a link A which links to a link B,
-     * we can link from link A to all the occurrences of link B.
+     * We need to track all the (a) occurrences of a link type, and (b) nodes which link to it,
+     * so that we can link from all nodes that to all the occurrences of a link type (if any nodes link to a link).
+     *
+     * @todo this doesn't yet handle the case where a _link_ links to a link (rather than another node linking to a
+     *   link) this would involve checking the outgoing 'links' for each link type.
      */
-    const linkNodesByEntityTypeId: Record<VersionedUrl, string[]> = {};
+    const linkNodesByEntityTypeId: Record<
+      VersionedUrl,
+      {
+        instanceIds: string[];
+        sourceIds: string[];
+      }
+    > = {};
 
     for (const { schema } of types) {
       if (schema.kind !== "entityType") {
@@ -66,7 +75,8 @@ export const TypeGraphVisualizer = ({
       const isLink = isSpecialEntityTypeLookup?.[entityTypeId]?.isLink;
       if (isLink) {
         /**
-         * We'll add the links as we process each entity type – this means that any link types which are unused won't appear in the graph.
+         * We'll add the links as we process each entity type – this means that any link types which are unused won't
+         * appear in the graph.
          */
         continue;
       }
@@ -75,7 +85,7 @@ export const TypeGraphVisualizer = ({
         nodeId: entityTypeId,
         color: palette.blue[70],
         label: schema.title,
-        size: 14,
+        size: 18,
       });
 
       addedNodeIds.add(entityTypeId);
@@ -111,37 +121,34 @@ export const TypeGraphVisualizer = ({
             continue;
           }
 
-          nodesToAdd.push({
-            nodeId: linkNodeId,
-            color: palette.common.black,
-            label: linkSchema.title,
-            size: 12,
-          });
-          addedNodeIds.add(linkNodeId);
-
-          linkNodesByEntityTypeId[linkTypeId] ??= [];
-          linkNodesByEntityTypeId[linkTypeId].push(linkNodeId);
+          let isLinkToALink = false;
 
           if (destinationTypeIds) {
             for (const destinationTypeId of destinationTypeIds) {
-              let targetNodeIds: string[] = [destinationTypeId];
-
               if (isSpecialEntityTypeLookup?.[destinationTypeId]?.isLink) {
                 /**
-                 * If the destination is itself a link, we need to account for the multiple places the destination link may appear.
+                 * If the destination is itself a link, we need to account for the multiple places the destination link
+                 * may appear. We won't have the full set until we've gone through all the non-link entity types,
+                 * so we'll need to handle this in a separate loop afterward.
                  */
-                targetNodeIds =
-                  linkNodesByEntityTypeId[destinationTypeId] ?? [];
+                linkNodesByEntityTypeId[destinationTypeId] ??= {
+                  instanceIds: [],
+                  sourceIds: [],
+                };
+                linkNodesByEntityTypeId[destinationTypeId].sourceIds.push(
+                  linkNodeId,
+                );
+
+                isLinkToALink = true;
+                continue;
               }
 
-              for (const targetNodeId of targetNodeIds) {
-                edgesToAdd.push({
-                  edgeId: `${linkNodeId}~${targetNodeId}`,
-                  size: 3,
-                  source: linkNodeId,
-                  target: targetNodeId,
-                });
-              }
+              edgesToAdd.push({
+                edgeId: `${linkNodeId}~${destinationTypeId}`,
+                size: 3,
+                source: linkNodeId,
+                target: destinationTypeId,
+              });
             }
           } else {
             /**
@@ -161,6 +168,20 @@ export const TypeGraphVisualizer = ({
               target: anythingNodeId,
             });
           }
+
+          nodesToAdd.push({
+            nodeId: linkNodeId,
+            color: isLinkToALink ? palette.gray[60] : palette.common.black,
+            label: linkSchema.title,
+            size: 14,
+          });
+          addedNodeIds.add(linkNodeId);
+
+          linkNodesByEntityTypeId[linkTypeId] ??= {
+            instanceIds: [],
+            sourceIds: [],
+          };
+          linkNodesByEntityTypeId[linkTypeId].instanceIds.push(linkNodeId);
         }
 
         edgesToAdd.push({
@@ -169,6 +190,24 @@ export const TypeGraphVisualizer = ({
           source: entityTypeId,
           target: linkNodeId,
         });
+      }
+    }
+
+    /**
+     * For each link, check if anything links to it, and if so link from that thing to all instances of the link
+     */
+    for (const { instanceIds, sourceIds } of typedValues(
+      linkNodesByEntityTypeId,
+    )) {
+      for (const sourceId of sourceIds) {
+        for (const instanceId of instanceIds) {
+          edgesToAdd.push({
+            edgeId: `${sourceId}~${instanceId}`,
+            size: 3,
+            source: sourceId,
+            target: instanceId,
+          });
+        }
       }
     }
 

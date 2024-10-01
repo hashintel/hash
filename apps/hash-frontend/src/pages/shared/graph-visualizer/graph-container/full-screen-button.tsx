@@ -4,6 +4,7 @@ import {
   IconButton,
 } from "@hashintel/design-system";
 
+import { buttonSx } from "./shared/button-styles";
 import { useFullScreen } from "./shared/full-screen";
 
 export const FullScreenButton = () => {
@@ -12,17 +13,7 @@ export const FullScreenButton = () => {
   return (
     <IconButton
       onClick={toggleFullScreen}
-      sx={({ palette }) => ({
-        background: palette.common.white,
-        borderColor: palette.gray[30],
-        borderStyle: "solid",
-        borderWidth: 1,
-        borderRadius: "4px",
-        position: "absolute",
-        top: 8,
-        right: 14,
-        transition: "none",
-      })}
+      sx={[buttonSx, { top: 8, left: 13 }]}
     >
       {isFullScreen ? (
         <ArrowDownLeftAndArrowUpRightToCenterIcon />
