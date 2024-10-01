@@ -920,6 +920,10 @@ where
             .update_data_type_embeddings(actor_id, params)
             .await
     }
+
+    async fn reindex_cache(&mut self) -> Result<(), UpdateError> {
+        self.store.reindex_cache().await
+    }
 }
 
 impl<S, A> PropertyTypeStore for FetchingStore<S, A>
