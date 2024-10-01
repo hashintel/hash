@@ -11,15 +11,6 @@ pub struct Deprecation {
     pub reason: Option<&'static str>,
 }
 
-/// Represents the removal information for a procedure or service.
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct Removal {
-    /// The version at which the procedure/service will be removed.
-    pub version: Version,
-    /// The reason for removal.
-    pub reason: Option<&'static str>,
-}
-
 /// Metadata containing version information for procedures and services.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Metadata {
@@ -28,7 +19,4 @@ pub struct Metadata {
 
     /// The deprecation information for the procedure/service.
     pub deprecation: Option<Deprecation>,
-
-    /// The removal information for the procedure/service.
-    pub removal: Option<Removal>,
 }

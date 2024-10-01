@@ -67,7 +67,6 @@ impl Service for Account {
                 minor: 0x00,
             },
             deprecation: None,
-            removal: None,
         }
     }
 }
@@ -88,7 +87,6 @@ impl Procedure for CreateAccount {
                 minor: 0x00,
             },
             deprecation: None,
-            removal: None,
         }
     }
 }
