@@ -2599,13 +2599,19 @@ dependencies = [
 name = "harpc-server"
 version = "0.0.0"
 dependencies = [
+ "error-stack",
  "frunk",
  "harpc-net",
  "harpc-service",
  "harpc-tower",
  "harpc-types",
  "harpc-wire-protocol",
+ "scc",
  "thiserror",
+ "tokio",
+ "tokio-util",
+ "tower 0.5.1",
+ "tracing",
 ]
 
 [[package]]

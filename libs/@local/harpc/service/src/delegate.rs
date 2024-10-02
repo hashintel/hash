@@ -1,3 +1,4 @@
+use error_stack::Report;
 use harpc_tower::{body::Body, request::Request, response::Response};
 use harpc_wire_protocol::response::kind::ResponseKind;
 
@@ -17,13 +18,16 @@ pub trait ServiceDelegate<S, C> {
     /// The inner service type that this delegate wraps.
     type Service: Service;
 
+    type Error;
+    type Body: Body<Control: AsRef<ResponseKind>>;
+
     /// Handles an incoming request by delegating it to the appropriate method of the inner service.
     fn call<B>(
         &self,
         request: Request<B>,
-        session: &S,
+        session: S,
         codec: &C,
-    ) -> impl Future<Output = Response<impl Body<Control: AsRef<ResponseKind>>>> + Send
+    ) -> impl Future<Output = Result<Response<Self::Body>, Report<Self::Error>>> + Send
     where
         B: Body<Control = !, Error: Send + Sync> + Send + Sync;
 }

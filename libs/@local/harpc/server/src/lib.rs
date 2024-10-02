@@ -1,4 +1,9 @@
-#![feature(never_type)]
+#![feature(never_type, impl_trait_in_assoc_type)]
+
+extern crate alloc;
+
+mod delegate;
+pub mod session;
 
 use frunk::{HCons, HNil};
 use harpc_net::codec::{ErrorEncoder, WireError};
