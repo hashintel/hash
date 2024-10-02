@@ -26,7 +26,7 @@ use graph::{
         patch_id_and_parse,
     },
     store::{
-        BaseUrlAlreadyExists, OntologyVersionDoesNotExist, PropertyTypeStore, StorePool,
+        OntologyVersionDoesNotExist, PropertyTypeStore, StorePool,
         error::VersionedUrlAlreadyExists,
         ontology::{
             ArchivePropertyTypeParams, CreatePropertyTypeParams, GetPropertyTypeSubgraphParams,
@@ -198,24 +198,21 @@ async fn create_property_type<S, A>(
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     domain_validator: Extension<DomainValidator>,
     body: Json<CreatePropertyTypeRequest>,
-) -> Result<Json<ListOrValue<PropertyTypeMetadata>>, StatusCode>
+) -> Result<Json<ListOrValue<PropertyTypeMetadata>>, Response>
 where
     S: StorePool + Send + Sync,
     for<'pool> S::Store<'pool, A::Api<'pool>>: RestApiStore,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
 
     let mut store = store_pool
         .acquire(authorization_api, temporal_client.0)
         .await
-        .map_err(|report| {
-            tracing::error!(error=?report, "Could not acquire store");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+        .map_err(report_to_response)?;
 
     let Json(CreatePropertyTypeRequest {
         schema,
@@ -229,36 +226,25 @@ where
     let mut metadata = store
         .create_property_types(
             actor_id,
-            schema.into_iter().map(|schema| {
-                domain_validator.validate(&schema).map_err(|report| {
-                    tracing::error!(error=?report, id=%schema.id, "Property Type ID failed to validate");
-                    StatusCode::UNPROCESSABLE_ENTITY
-                })?;
+            schema
+                .into_iter()
+                .map(|schema| {
+                    domain_validator
+                        .validate(&schema)
+                        .map_err(report_to_response)?;
 
-                Ok(CreatePropertyTypeParams {
-                    schema,
-                    classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
-                    relationships: relationships.clone(),
-                    conflict_behavior: ConflictBehavior::Fail,
-                    provenance: provenance.clone()
+                    Ok(CreatePropertyTypeParams {
+                        schema,
+                        classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
+                        relationships: relationships.clone(),
+                        conflict_behavior: ConflictBehavior::Fail,
+                        provenance: provenance.clone(),
+                    })
                 })
-            }).collect::<Result<Vec<_>, StatusCode>>()?
+                .collect::<Result<Vec<_>, Response>>()?,
         )
         .await
-        .map_err(|report| {
-            // TODO: consider adding the data type, or at least its URL in the trace
-            tracing::error!(error=?report, "Could not create data types");
-
-            if report.contains::<PermissionAssertion>() {
-                return StatusCode::FORBIDDEN;
-            }
-            if report.contains::<BaseUrlAlreadyExists>() {
-                return StatusCode::CONFLICT;
-            }
-
-            // Insertion/update errors are considered internal server errors.
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+        .map_err(report_to_response)?;
 
     if is_list {
         Ok(Json(ListOrValue::List(metadata)))
@@ -551,7 +537,7 @@ async fn update_property_type<S, A>(
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     body: Json<UpdatePropertyTypeRequest>,
-) -> Result<Json<PropertyTypeMetadata>, StatusCode>
+) -> Result<Json<PropertyTypeMetadata>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -565,25 +551,17 @@ where
 
     type_to_update.version = OntologyTypeVersion::new(type_to_update.version.inner() + 1);
 
-    let property_type = patch_id_and_parse(&type_to_update, schema).map_err(|report| {
-        tracing::error!(error=?report, "Couldn't patch schema and convert to Property Type");
-        StatusCode::UNPROCESSABLE_ENTITY
-        // TODO: We should probably return more information to the client
-        //   see https://linear.app/hash/issue/H-3009
-    })?;
+    let property_type = patch_id_and_parse(&type_to_update, schema).map_err(report_to_response)?;
 
-    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
 
     let mut store = store_pool
         .acquire(authorization_api, temporal_client.0)
         .await
-        .map_err(|report| {
-            tracing::error!(error=?report, "Could not acquire store");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+        .map_err(report_to_response)?;
 
     store
         .update_property_type(actor_id, UpdatePropertyTypesParams {
@@ -592,19 +570,7 @@ where
             provenance,
         })
         .await
-        .map_err(|report| {
-            tracing::error!(error=?report, "Could not update property type");
-
-            if report.contains::<PermissionAssertion>() {
-                return StatusCode::FORBIDDEN;
-            }
-            if report.contains::<OntologyVersionDoesNotExist>() {
-                return StatusCode::NOT_FOUND;
-            }
-
-            // Insertion/update errors are considered internal server errors.
-            StatusCode::INTERNAL_SERVER_ERROR
-        })
+        .map_err(report_to_response)
         .map(Json)
 }
 

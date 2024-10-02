@@ -1,10 +1,12 @@
 use core::fmt::Debug;
 
+use authorization::backend::PermissionAssertion;
 use axum::{
     Json,
     response::{IntoResponse, Response},
 };
 use error_stack::{Context, Report};
+use graph::store::BaseUrlAlreadyExists;
 use hash_status::{Status, StatusCode};
 use serde::Serialize;
 
@@ -35,7 +37,16 @@ where
         .next()
         .copied()
         .or_else(|| report.request_value::<StatusCode>().next())
-        .unwrap_or(StatusCode::Internal);
+        .unwrap_or_else(|| {
+            if report.contains::<PermissionAssertion>() {
+                StatusCode::PermissionDenied
+            } else if report.contains::<BaseUrlAlreadyExists>() {
+                StatusCode::AlreadyExists
+            } else {
+                StatusCode::Unknown
+            }
+        });
+
     // TODO: Currently, this mostly duplicates the error printed below, when more information is
     //       added to the `Report` event consider commenting in this line again.
     // hash_tracing::sentry::capture_report(&report);

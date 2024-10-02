@@ -32,6 +32,7 @@ use hash_graph_store::{
         },
     },
 };
+use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};
 use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use tokio_postgres::{GenericClient, Row};
@@ -496,10 +497,12 @@ where
                         .change_context(InsertionError)?,
                 )
                 .await
+                .attach(StatusCode::InvalidArgument)
                 .change_context(InsertionError)?;
             let schema = data_type_validator
                 .validate_ref(&closed_schema.schema)
                 .await
+                .attach(StatusCode::InvalidArgument)
                 .change_context(InsertionError)?;
             transaction
                 .insert_data_type_with_id(
