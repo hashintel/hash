@@ -1,12 +1,12 @@
 use alloc::sync::Arc;
 use core::cmp;
-use std::collections::{HashMap, hash_map::RawEntryMut};
+use std::collections::{HashMap, hash_map::Entry};
 
 use serde::{Deserialize, Serialize};
 
 use crate::{
     Valid,
-    schema::{DataType, data_type::DataTypeEdge},
+    schema::{DataType, DataTypeId, data_type::DataTypeEdge},
     url::VersionedUrl,
 };
 
@@ -28,23 +28,21 @@ impl ClosedDataType {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct ClosedDataTypeMetadata {
-    pub inheritance_depths: HashMap<VersionedUrl, u32>,
+pub struct DataTypeInheritanceData {
+    pub inheritance_depths: HashMap<DataTypeId, u32>,
 }
 
-impl ClosedDataTypeMetadata {
-    pub fn add_edge(&mut self, edge: DataTypeEdge, target: &VersionedUrl, depth: u32) {
+impl DataTypeInheritanceData {
+    pub fn add_edge(&mut self, edge: DataTypeEdge, target: DataTypeId, depth: u32) {
         match edge {
-            DataTypeEdge::Inheritance => {
-                match self.inheritance_depths.raw_entry_mut().from_key(target) {
-                    RawEntryMut::Occupied(mut entry) => {
-                        *entry.get_mut() = cmp::min(depth, *entry.get());
-                    }
-                    RawEntryMut::Vacant(entry) => {
-                        entry.insert(target.clone(), depth);
-                    }
+            DataTypeEdge::Inheritance => match self.inheritance_depths.entry(target) {
+                Entry::Occupied(mut entry) => {
+                    *entry.get_mut() = cmp::min(depth, *entry.get());
                 }
-            }
+                Entry::Vacant(entry) => {
+                    entry.insert(depth);
+                }
+            },
         }
     }
 }

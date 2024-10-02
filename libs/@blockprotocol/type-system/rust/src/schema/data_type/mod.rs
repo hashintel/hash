@@ -2,7 +2,7 @@ mod constraint;
 mod conversion;
 
 pub use self::{
-    closed::{ClosedDataType, ClosedDataTypeMetadata},
+    closed::{ClosedDataType, DataTypeInheritanceData},
     constraint::{
         AnyOfConstraints, ArrayConstraints, ArraySchema, ArrayTypeTag, ArrayValidationError,
         BooleanTypeTag, ConstraintError, NullTypeTag, NumberConstraints, NumberSchema,
@@ -25,7 +25,7 @@ mod validation;
 
 use alloc::sync::Arc;
 use core::{fmt, mem};
-use std::collections::{HashMap, HashSet, hash_map::RawEntryMut};
+use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, bail};
 use postgres_types::{FromSql, ToSql};
@@ -439,65 +439,72 @@ impl DataType {
 
 #[derive(Debug, Error)]
 pub enum DataTypeResolveError {
+    #[error("The data type ID is unknown")]
+    UnknownDataTypeId,
     #[error("The data types have unresolved references: {}", serde_json::json!(schemas))]
     MissingSchemas { schemas: HashSet<VersionedUrl> },
-    #[error("The closed data type metadata for `{id}` is missing")]
-    MissingClosedDataType { id: VersionedUrl },
+    #[error("The closed data type metadata is missing")]
+    MissingClosedDataType,
+    #[error("Not all schemas are contained in the resolver")]
+    MissingDataTypes,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 struct DataTypeCacheEntry {
     pub data_type: Arc<DataType>,
-    pub metadata: Option<Arc<ClosedDataTypeMetadata>>,
+    pub metadata: Option<Arc<DataTypeInheritanceData>>,
 }
 
 #[derive(Debug, Default)]
 pub struct OntologyTypeResolver {
-    data_types: HashMap<VersionedUrl, DataTypeCacheEntry>,
+    data_types: HashMap<DataTypeId, DataTypeCacheEntry>,
 }
 
 impl OntologyTypeResolver {
-    pub fn add_open(&mut self, data_type: Arc<DataType>) {
+    pub fn add_open(&mut self, data_type_id: DataTypeId, data_type: Arc<DataType>) {
+        debug_assert_eq!(
+            data_type_id,
+            DataTypeId::from_url(&data_type.id),
+            "The data type ID must match the URL"
+        );
         self.data_types
-            .raw_entry_mut()
-            .from_key(&data_type.id)
-            .or_insert_with(|| {
-                (data_type.id.clone(), DataTypeCacheEntry {
-                    data_type,
-                    metadata: None,
-                })
+            .entry(data_type_id)
+            .or_insert_with(|| DataTypeCacheEntry {
+                data_type,
+                metadata: None,
             });
     }
 
-    pub fn add_closed(&mut self, data_type: Arc<DataType>, metadata: Arc<ClosedDataTypeMetadata>) {
-        match self.data_types.raw_entry_mut().from_key(&data_type.id) {
-            RawEntryMut::Vacant(entry) => {
-                entry.insert(data_type.id.clone(), DataTypeCacheEntry {
-                    data_type,
-                    metadata: Some(metadata),
-                });
-            }
-            RawEntryMut::Occupied(mut entry) => {
-                entry.insert(DataTypeCacheEntry {
-                    data_type,
-                    metadata: Some(metadata),
-                });
-            }
-        }
+    pub fn add_closed(
+        &mut self,
+        data_type_id: DataTypeId,
+        data_type: Arc<DataType>,
+        metadata: Arc<DataTypeInheritanceData>,
+    ) {
+        debug_assert_eq!(
+            data_type_id,
+            DataTypeId::from_url(&data_type.id),
+            "The data type ID must match the URL"
+        );
+        self.data_types
+            .insert(DataTypeId::from_url(&data_type.id), DataTypeCacheEntry {
+                data_type,
+                metadata: Some(metadata),
+            });
     }
 
     pub fn update_metadata(
         &mut self,
-        data_type_id: &VersionedUrl,
-        metadata: Arc<ClosedDataTypeMetadata>,
-    ) -> Option<Arc<ClosedDataTypeMetadata>> {
+        data_type_id: DataTypeId,
+        metadata: Arc<DataTypeInheritanceData>,
+    ) -> Option<Arc<DataTypeInheritanceData>> {
         self.data_types
-            .get_mut(data_type_id)
+            .get_mut(&data_type_id)
             .map(|entry| Arc::clone(entry.metadata.insert(metadata)))
     }
 
-    fn get(&self, id: &VersionedUrl) -> Option<&DataTypeCacheEntry> {
-        self.data_types.get(id)
+    fn get(&self, id: DataTypeId) -> Option<&DataTypeCacheEntry> {
+        self.data_types.get(&id)
     }
 
     /// Resolves the metadata for the given data types.
@@ -510,12 +517,10 @@ impl OntologyTypeResolver {
     /// Returns an error if the metadata for any of the data types could not be resolved.
     pub fn resolve_data_type_metadata(
         &mut self,
-        data_type_id: &VersionedUrl,
-    ) -> Result<Arc<ClosedDataTypeMetadata>, Report<DataTypeResolveError>> {
+        data_type_id: DataTypeId,
+    ) -> Result<Arc<DataTypeInheritanceData>, Report<DataTypeResolveError>> {
         let Some(data_type_entry) = self.get(data_type_id) else {
-            bail!(DataTypeResolveError::MissingSchemas {
-                schemas: HashSet::from([data_type_id.clone()]),
-            });
+            bail!(DataTypeResolveError::UnknownDataTypeId);
         };
 
         if let Some(metadata) = &data_type_entry.metadata {
@@ -538,10 +543,10 @@ impl OntologyTypeResolver {
         // We also keep a list of all schemas that we already processed. This is used to prevent
         // infinite loops in the inheritance chain. New values are added to this list as we add new
         // schemas to resolve.
-        let mut processed_schemas = HashSet::from([data_type_id.clone()]);
+        let mut processed_schemas = HashSet::from([data_type_id]);
 
         // The currently closed schema being resolved. This can be used later to resolve
-        let mut in_progress_schema = ClosedDataTypeMetadata {
+        let mut in_progress_schema = DataTypeInheritanceData {
             inheritance_depths: HashMap::new(),
         };
 
@@ -554,17 +559,18 @@ impl OntologyTypeResolver {
                           See https://github.com/rust-lang/rust-clippy/issues/8539"
             )]
             for data_type in data_types_to_resolve.drain(..) {
+                let data_type_id = DataTypeId::from_url(&data_type.id);
                 for (data_type_reference, edge) in data_type.data_type_references() {
-                    if processed_schemas.contains(&data_type_reference.url) {
+                    let data_type_reference_id = DataTypeId::from_url(&data_type_reference.url);
+                    if processed_schemas.contains(&data_type_reference_id) {
                         // We ignore the already processed schemas to prevent infinite loops.
                         continue;
                     }
 
-                    in_progress_schema.add_edge(edge, &data_type_reference.url, current_depth);
-                    processed_schemas.insert(data_type_reference.url.clone());
+                    in_progress_schema.add_edge(edge, data_type_reference_id, current_depth);
+                    processed_schemas.insert(data_type_reference_id);
 
-                    let Some(data_type_entry) = self.data_types.get(&data_type_reference.url)
-                    else {
+                    let Some(data_type_entry) = self.data_types.get(&data_type_reference_id) else {
                         // If the data type is not in the cache, we add it to the list of missing
                         // schemas.
                         missing_schemas.insert(data_type_reference.url.clone());
@@ -574,10 +580,10 @@ impl OntologyTypeResolver {
                     if let Some(metadata) = &data_type_entry.metadata {
                         // If the metadata is already resolved, we can reuse it.
                         for (data_type_ref, depth) in &metadata.inheritance_depths {
-                            if data_type.id != *data_type_ref {
+                            if data_type_id != *data_type_ref {
                                 in_progress_schema.add_edge(
                                     edge,
-                                    data_type_ref,
+                                    *data_type_ref,
                                     *depth + current_depth + 1,
                                 );
                             }
@@ -621,48 +627,33 @@ impl OntologyTypeResolver {
     /// Returns an error if the closed data type could not be resolved.
     pub fn get_closed_data_type(
         &self,
-        data_type_id: &VersionedUrl,
+        data_type_id: DataTypeId,
     ) -> Result<ClosedDataType, Report<DataTypeResolveError>> {
-        let Some(entry) = self.get(data_type_id) else {
-            bail!(DataTypeResolveError::MissingSchemas {
-                schemas: HashSet::from([data_type_id.clone()]),
-            });
+        let Some(data_type_entry) = self.get(data_type_id) else {
+            bail!(DataTypeResolveError::UnknownDataTypeId);
         };
 
-        let metadata =
-            entry
-                .metadata
-                .as_ref()
-                .ok_or_else(|| DataTypeResolveError::MissingClosedDataType {
-                    id: data_type_id.clone(),
-                })?;
+        let metadata = data_type_entry
+            .metadata
+            .as_ref()
+            .ok_or_else(|| DataTypeResolveError::MissingClosedDataType)?;
 
-        let mut missing_schemas = HashSet::new();
-
-        let closed_type = ClosedDataType {
-            schema: Arc::clone(&entry.data_type),
+        Ok(ClosedDataType {
+            schema: Arc::clone(&data_type_entry.data_type),
             definitions: metadata
                 .inheritance_depths
                 .keys()
-                .cloned()
-                .filter_map(|id| {
-                    let Some(definition_entry) = self.get(&id) else {
-                        missing_schemas.insert(id);
-                        return None;
-                    };
-                    Some((id, Arc::clone(&definition_entry.data_type)))
+                .map(|&id| {
+                    let definition_entry = self
+                        .get(id)
+                        .ok_or(DataTypeResolveError::MissingClosedDataType)?;
+                    Ok((
+                        definition_entry.data_type.id.clone(),
+                        Arc::clone(&definition_entry.data_type),
+                    ))
                 })
-                .collect(),
-        };
-
-        missing_schemas
-            .is_empty()
-            .then_some(closed_type)
-            .ok_or_else(|| {
-                Report::from(DataTypeResolveError::MissingSchemas {
-                    schemas: missing_schemas,
-                })
-            })
+                .collect::<Result<_, DataTypeResolveError>>()?,
+        })
     }
 }
 

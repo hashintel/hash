@@ -407,7 +407,7 @@ where
                         .data_type_references()
                         .map(|(reference, _)| DataTypeId::from_url(&reference.url)),
                 );
-                inserted_data_types.push(Arc::new(parameters.schema));
+                inserted_data_types.push((data_type_id, Arc::new(parameters.schema)));
                 data_type_conversions_rows.extend(parameters.conversions.iter().map(
                     |(base_url, conversions)| DataTypeConversionsRow {
                         source_data_type_ontology_id: data_type_id,
@@ -474,27 +474,30 @@ where
                     .data_types,
             )
             .for_each(|data_type| {
-                ontology_type_resolver.add_open(Arc::new(data_type.schema));
+                ontology_type_resolver.add_open(
+                    DataTypeId::from_url(&data_type.schema.id),
+                    Arc::new(data_type.schema),
+                );
             });
 
-        for inserted_data_type in &inserted_data_types {
-            ontology_type_resolver.add_open(Arc::clone(inserted_data_type));
+        for (data_type_id, inserted_data_type) in &inserted_data_types {
+            ontology_type_resolver.add_open(*data_type_id, Arc::clone(inserted_data_type));
         }
         let schema_metadata = inserted_data_types
             .iter()
-            .map(|inserted_data_type| {
+            .map(|(data_type_id, _)| {
                 ontology_type_resolver
-                    .resolve_data_type_metadata(&inserted_data_type.id)
+                    .resolve_data_type_metadata(*data_type_id)
                     .change_context(InsertionError)
             })
             .collect::<Result<Vec<_>, _>>()?;
 
         let data_type_validator = DataTypeValidator;
-        for data_type in &inserted_data_types {
+        for (data_type_id, _) in &inserted_data_types {
             let closed_schema = data_type_validator
                 .validate(
                     ontology_type_resolver
-                        .get_closed_data_type(&data_type.id)
+                        .get_closed_data_type(*data_type_id)
                         .change_context(InsertionError)?,
                 )
                 .await
@@ -512,9 +515,10 @@ where
                 )
                 .await?;
         }
-        for (schema_metadata, data_type) in schema_metadata.iter().zip(&inserted_data_types) {
+        for (schema_metadata, (data_type_id, _)) in schema_metadata.iter().zip(&inserted_data_types)
+        {
             transaction
-                .insert_data_type_references(DataTypeId::from_url(&data_type.id), schema_metadata)
+                .insert_data_type_references(*data_type_id, schema_metadata)
                 .await?;
         }
 
@@ -576,7 +580,7 @@ where
                         &inserted_data_types
                             .iter()
                             .zip(&inserted_data_type_metadata)
-                            .map(|(schema, metadata)| DataTypeWithMetadata {
+                            .map(|((_, schema), metadata)| DataTypeWithMetadata {
                                 schema: (**schema).clone(),
                                 metadata: metadata.clone(),
                             })
@@ -760,6 +764,7 @@ where
                     )?,
             ),
         });
+        let new_ontology_id = DataTypeId::from_url(&params.schema.id);
         self.authorization_api
             .check_data_type_permission(
                 actor_id,
@@ -838,18 +843,21 @@ where
                     .data_types,
             )
             .for_each(|data_type| {
-                ontology_type_resolver.add_open(Arc::new(data_type.schema));
+                ontology_type_resolver.add_open(
+                    DataTypeId::from_url(&data_type.schema.id),
+                    Arc::new(data_type.schema),
+                );
             });
 
-        ontology_type_resolver.add_open(Arc::new(schema.clone().into_inner()));
+        ontology_type_resolver.add_open(new_ontology_id, Arc::new(schema.clone().into_inner()));
         let metadata = ontology_type_resolver
-            .resolve_data_type_metadata(&schema.id)
+            .resolve_data_type_metadata(new_ontology_id)
             .change_context(UpdateError)?;
 
         let closed_schema = data_type_validator
             .validate(
                 ontology_type_resolver
-                    .get_closed_data_type(&schema.id)
+                    .get_closed_data_type(new_ontology_id)
                     .change_context(UpdateError)?,
             )
             .await
@@ -1080,14 +1088,15 @@ where
         .into_iter()
         .map(|data_type| {
             let schema = Arc::new(data_type.schema);
-            ontology_type_resolver.add_open(Arc::clone(&schema));
-            schema
+            let data_type_id = DataTypeId::from_url(&schema.id);
+            ontology_type_resolver.add_open(data_type_id, Arc::clone(&schema));
+            (data_type_id, schema)
         })
         .collect::<Vec<_>>();
 
-        for data_type in &data_types {
+        for (data_type_id, data_type) in &data_types {
             let schema_metadata = ontology_type_resolver
-                .resolve_data_type_metadata(&data_type.id)
+                .resolve_data_type_metadata(*data_type_id)
                 .change_context(UpdateError)?;
 
             transaction

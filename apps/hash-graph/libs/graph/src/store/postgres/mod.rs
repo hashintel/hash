@@ -44,7 +44,7 @@ use tokio_postgres::{GenericClient, error::SqlState};
 use type_system::{
     Valid,
     schema::{
-        ClosedDataTypeMetadata, ClosedEntityType, Conversions, DataType, DataTypeId,
+        ClosedEntityType, Conversions, DataType, DataTypeId, DataTypeInheritanceData,
         DataTypeReference, EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
@@ -459,7 +459,7 @@ where
     pub async fn insert_data_type_references(
         &self,
         ontology_id: DataTypeId,
-        metadata: &ClosedDataTypeMetadata,
+        metadata: &DataTypeInheritanceData,
     ) -> Result<(), InsertionError> {
         for (target, &depth) in &metadata.inheritance_depths {
             self.as_client()
@@ -477,7 +477,7 @@ where
                     ",
                     &[
                         &ontology_id,
-                        &DataTypeId::from_url(target),
+                        target,
                         &i32::try_from(depth).change_context(InsertionError)?,
                     ],
                 )

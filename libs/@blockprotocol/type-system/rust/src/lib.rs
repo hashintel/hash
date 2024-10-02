@@ -1,5 +1,4 @@
 #![feature(extend_one)]
-#![feature(hash_raw_entry)]
 #![expect(unsafe_code)]
 #![cfg_attr(
     target_arch = "wasm32",
