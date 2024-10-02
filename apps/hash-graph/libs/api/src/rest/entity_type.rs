@@ -855,7 +855,7 @@ async fn update_entity_type<S, A>(
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     body: Json<UpdateEntityTypeRequest>,
-) -> Result<Json<EntityTypeMetadata>, StatusCode>
+) -> Result<Json<EntityTypeMetadata>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -871,26 +871,17 @@ where
 
     type_to_update.version = OntologyTypeVersion::new(type_to_update.version.inner() + 1);
 
-    let entity_type = patch_id_and_parse(&type_to_update, schema).map_err(|report| {
-        tracing::error!(error=?report, "Couldn't convert schema to Entity Type");
-        // TODO: Consider an UNPROCESSABLE_ENTITY_TYPE code?
-        StatusCode::UNPROCESSABLE_ENTITY
-        // TODO: We should probably return more information to the client
-        //   see https://linear.app/hash/issue/H-3009
-    })?;
+    let entity_type = patch_id_and_parse(&type_to_update, schema).map_err(report_to_response)?;
 
-    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
 
     let mut store = store_pool
         .acquire(authorization_api, temporal_client.0)
         .await
-        .map_err(|report| {
-            tracing::error!(error=?report, "Could not acquire store");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+        .map_err(report_to_response)?;
 
     store
         .update_entity_type(actor_id, UpdateEntityTypesParams {
@@ -901,19 +892,7 @@ where
             provenance,
         })
         .await
-        .map_err(|report| {
-            tracing::error!(error=?report, "Could not update entity type");
-
-            if report.contains::<PermissionAssertion>() {
-                return StatusCode::FORBIDDEN;
-            }
-            if report.contains::<OntologyVersionDoesNotExist>() {
-                return StatusCode::NOT_FOUND;
-            }
-
-            // Insertion/update errors are considered internal server errors.
-            StatusCode::INTERNAL_SERVER_ERROR
-        })
+        .map_err(report_to_response)
         .map(Json)
 }
 
