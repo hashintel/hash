@@ -23,7 +23,7 @@ use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::{AccountGroupId, AccountId, EditionArchivedById},
     ontology::{
-        DataTypeId, OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
+        OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, OntologyTypeRecordId,
     },
     owned_by_id::OwnedById,
@@ -44,8 +44,8 @@ use tokio_postgres::{GenericClient, error::SqlState};
 use type_system::{
     Valid,
     schema::{
-        ClosedDataTypeMetadata, ClosedEntityType, Conversions, DataType, DataTypeReference,
-        EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
+        ClosedDataTypeMetadata, ClosedEntityType, Conversions, DataType, DataTypeId,
+        DataTypeReference, EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };

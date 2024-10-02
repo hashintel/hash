@@ -15,10 +15,9 @@ use graph_types::{
     Embedding,
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
-        DataTypeId, EntityTypeId, EntityTypeMetadata, EntityTypeWithMetadata,
-        OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
-        OntologyTypeClassificationMetadata, OntologyTypeRecordId, PartialEntityTypeMetadata,
-        PropertyTypeId,
+        EntityTypeId, EntityTypeMetadata, EntityTypeWithMetadata, OntologyEditionProvenance,
+        OntologyProvenance, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
+        OntologyTypeRecordId, PartialEntityTypeMetadata, PropertyTypeId,
     },
 };
 use hash_graph_store::{
@@ -40,7 +39,7 @@ use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
     Validator,
-    schema::{ClosedEntityType, EntityType, EntityTypeValidator},
+    schema::{ClosedEntityType, DataTypeId, EntityType, EntityTypeValidator},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
 

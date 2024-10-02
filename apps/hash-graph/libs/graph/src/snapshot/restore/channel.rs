@@ -13,8 +13,9 @@ use futures::{
 };
 use graph_types::{
     knowledge::entity::EntityUuid,
-    ontology::{DataTypeId, EntityTypeId, PropertyTypeId},
+    ontology::{EntityTypeId, PropertyTypeId},
 };
+use type_system::schema::DataTypeId;
 
 use crate::{
     snapshot::{

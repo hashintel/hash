@@ -22,9 +22,10 @@ use error_stack::Result;
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},
-    ontology::{DataTypeId, EntityTypeId, PropertyTypeId},
+    ontology::{EntityTypeId, PropertyTypeId},
     owned_by_id::OwnedById,
 };
+use type_system::schema::DataTypeId;
 
 use crate::{
     backend::{

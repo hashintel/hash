@@ -14,9 +14,8 @@ use graph_types::{
     Embedding,
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
-        DataTypeId, DataTypeMetadata, DataTypeWithMetadata, OntologyEditionProvenance,
-        OntologyProvenance, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
-        OntologyTypeRecordId,
+        DataTypeMetadata, DataTypeWithMetadata, OntologyEditionProvenance, OntologyProvenance,
+        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
     },
 };
 use hash_graph_store::{
@@ -39,7 +38,9 @@ use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
     Validator,
-    schema::{ConversionDefinition, Conversions, DataTypeValidator, OntologyTypeResolver},
+    schema::{
+        ConversionDefinition, Conversions, DataTypeId, DataTypeValidator, OntologyTypeResolver,
+    },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
 
