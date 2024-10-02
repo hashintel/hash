@@ -519,7 +519,7 @@ where
             .collect::<Result<Vec<_>, _>>()?;
 
         let data_type_validator = DataTypeValidator;
-        for (_, data_type) in &inserted_data_types {
+        for (data_type_id, data_type) in &inserted_data_types {
             // TODO: Validate ontology types on creation
             //   see https://linear.app/hash/issue/H-2976/validate-ontology-types-on-creation
             // let closed_schema = data_type_validator
@@ -537,7 +537,7 @@ where
                 .attach(StatusCode::InvalidArgument)
                 .change_context(InsertionError)?;
             transaction
-                .insert_data_type_with_id(DataTypeId::from_url(&schema.id), schema)
+                .insert_data_type_with_id(&data_type_id, schema)
                 .await?;
         }
         for (schema_metadata, (data_type_id, _)) in schema_metadata.iter().zip(&inserted_data_types)
@@ -1122,7 +1122,7 @@ where
                 .change_context(UpdateError)?;
 
             transaction
-                .insert_data_type_references(DataTypeId::from_url(&data_type.id), &schema_metadata)
+                .insert_data_type_references(*data_type_id, &schema_metadata)
                 .await
                 .change_context(UpdateError)?;
         }
