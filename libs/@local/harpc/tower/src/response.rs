@@ -4,7 +4,7 @@ use harpc_net::session::{error::TransactionError, server::SessionId};
 use harpc_wire_protocol::response::kind::ResponseKind;
 
 use crate::{
-    body::{Body, Frame, controlled::Controlled, full::Full, stream::StreamBody},
+    body::{Body, Frame, boxed::BoxBody, controlled::Controlled, full::Full, stream::StreamBody},
     extensions::Extensions,
 };
 
@@ -94,3 +94,5 @@ where
         }
     }
 }
+
+pub type BoxedResponse<E> = Response<BoxBody<Bytes, ResponseKind, E>>;

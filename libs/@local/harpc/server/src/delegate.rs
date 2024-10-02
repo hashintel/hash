@@ -42,7 +42,9 @@ where
     }
 
     fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
-        let delegate = self.delegate.clone();
+        let clone = self.delegate.clone();
+        let delegate = core::mem::replace(&mut self.delegate, clone);
+
         let session = Arc::clone(&self.session);
         let codec = self.codec.clone();
 
