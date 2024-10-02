@@ -39,7 +39,8 @@ use tracing::instrument;
 use type_system::{
     Validator,
     schema::{
-        ConversionDefinition, Conversions, DataTypeId, DataTypeValidator, OntologyTypeResolver,
+        ConversionDefinition, Conversions, DataTypeId, DataTypeInheritanceData, DataTypeValidator,
+        OntologyTypeResolver,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
@@ -109,6 +110,37 @@ where
                     .copied()
                     .unwrap_or(false)
                     .then_some(data_type)
+            }))
+    }
+
+    async fn get_data_type_inheritance_metadata(
+        &self,
+        data_types: &[DataTypeId],
+    ) -> Result<impl Iterator<Item = (DataTypeId, DataTypeInheritanceData)>, QueryError> {
+        Ok(self
+            .as_client()
+            .query(
+                "
+                    SELECT source_data_type_ontology_id, target_data_type_ontology_ids, depths
+                    FROM data_type_inherits_from_aggregation
+                    WHERE source_data_type_ontology_id = ANY($1)
+                ",
+                &[&data_types],
+            )
+            .await
+            .change_context(QueryError)?
+            .into_iter()
+            .map(|row| {
+                let source: DataTypeId = row.get(0);
+                let targets: Vec<DataTypeId> = row.get(1);
+                let depths: Vec<i32> = row.get(2);
+                (source, DataTypeInheritanceData {
+                    inheritance_depths: targets
+                        .into_iter()
+                        .zip(depths)
+                        .map(|(target, depth)| (target, depth as u32))
+                        .collect(),
+                })
             }))
     }
 
@@ -429,9 +461,13 @@ where
         let mut ontology_type_resolver = OntologyTypeResolver::default();
 
         let required_parent_ids = data_type_reference_ids.into_iter().collect::<Vec<_>>();
-        // TODO: Read the closed schemas directly instead
-        //   see https://linear.app/hash/issue/H-3082/allow-querying-of-closed-data-schema
-        // We need need the parents itself ...
+        let mut parent_inheritance_data = transaction
+            .get_data_type_inheritance_metadata(&required_parent_ids)
+            .await
+            .change_context(InsertionError)
+            .attach_printable("Could not read parent data type inheritance data")?
+            .collect::<HashMap<_, _>>();
+
         transaction
             .get_data_types(actor_id, GetDataTypesParams {
                 filter: Filter::In(
@@ -454,30 +490,20 @@ where
             .attach_printable("Could not read parent data types")?
             .data_types
             .into_iter()
-            .chain(
-                // ... and their parents (recursively)
-                transaction
-                    .get_data_types(actor_id, GetDataTypesParams {
-                        filter: Filter::for_data_type_parents(&required_parent_ids, None),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
-                        include_drafts: false,
-                        after: None,
-                        limit: None,
-                        include_count: false,
-                    })
-                    .await
-                    .change_context(InsertionError)
-                    .attach_printable("Could not read parent data types")?
-                    .data_types,
-            )
-            .for_each(|data_type| {
-                ontology_type_resolver.add_open(
-                    DataTypeId::from_url(&data_type.schema.id),
-                    Arc::new(data_type.schema),
-                );
+            .for_each(|parent| {
+                let parent_id = DataTypeId::from_url(&parent.schema.id);
+                if let Some(inheritance_data) = parent_inheritance_data.remove(&parent_id) {
+                    ontology_type_resolver.add_closed(
+                        parent_id,
+                        Arc::new(parent.schema),
+                        Arc::new(inheritance_data),
+                    );
+                } else {
+                    if !parent.schema.all_of.is_empty() {
+                        tracing::warn!("No inheritance data found for `{}`", parent.schema.id);
+                    }
+                    ontology_type_resolver.add_open(parent_id, Arc::new(parent.schema));
+                }
             });
 
         for (data_type_id, inserted_data_type) in &inserted_data_types {
@@ -493,26 +519,25 @@ where
             .collect::<Result<Vec<_>, _>>()?;
 
         let data_type_validator = DataTypeValidator;
-        for (data_type_id, _) in &inserted_data_types {
-            let closed_schema = data_type_validator
-                .validate(
-                    ontology_type_resolver
-                        .get_closed_data_type(*data_type_id)
-                        .change_context(InsertionError)?,
-                )
-                .await
-                .attach(StatusCode::InvalidArgument)
-                .change_context(InsertionError)?;
+        for (_, data_type) in &inserted_data_types {
+            // TODO: Validate ontology types on creation
+            //   see https://linear.app/hash/issue/H-2976/validate-ontology-types-on-creation
+            // let closed_schema = data_type_validator
+            //     .validate(
+            //         ontology_type_resolver
+            //             .get_closed_data_type(*data_type_id)
+            //             .change_context(InsertionError)?,
+            //     )
+            //     .await
+            //     .attach(StatusCode::InvalidArgument)
+            //     .change_context(InsertionError)?;
             let schema = data_type_validator
-                .validate_ref(&closed_schema.schema)
+                .validate_ref(&**data_type)
                 .await
                 .attach(StatusCode::InvalidArgument)
                 .change_context(InsertionError)?;
             transaction
-                .insert_data_type_with_id(
-                    DataTypeId::from_url(&schema.id),
-                    closed_schema.data_type(),
-                )
+                .insert_data_type_with_id(DataTypeId::from_url(&schema.id), schema)
                 .await?;
         }
         for (schema_metadata, (data_type_id, _)) in schema_metadata.iter().zip(&inserted_data_types)
@@ -798,9 +823,14 @@ where
             .data_type_references()
             .map(|(reference, _)| DataTypeId::from_url(&reference.url))
             .collect::<Vec<_>>();
-        // TODO: Read the closed schemas directly instead
-        //   see https://linear.app/hash/issue/H-3082/allow-querying-of-closed-data-schema
-        // We need need the parents itself ...
+
+        let mut parent_inheritance_data = transaction
+            .get_data_type_inheritance_metadata(&required_parent_ids)
+            .await
+            .change_context(UpdateError)
+            .attach_printable("Could not read parent data type inheritance data")?
+            .collect::<HashMap<_, _>>();
+
         transaction
             .get_data_types(actor_id, GetDataTypesParams {
                 filter: Filter::In(
@@ -823,30 +853,20 @@ where
             .attach_printable("Could not read parent data types")?
             .data_types
             .into_iter()
-            .chain(
-                // ... and their parents (recursively)
-                transaction
-                    .get_data_types(actor_id, GetDataTypesParams {
-                        filter: Filter::for_data_type_parents(&required_parent_ids, None),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
-                        include_drafts: false,
-                        after: None,
-                        limit: None,
-                        include_count: false,
-                    })
-                    .await
-                    .change_context(UpdateError)
-                    .attach_printable("Could not read parent data types")?
-                    .data_types,
-            )
-            .for_each(|data_type| {
-                ontology_type_resolver.add_open(
-                    DataTypeId::from_url(&data_type.schema.id),
-                    Arc::new(data_type.schema),
-                );
+            .for_each(|parent| {
+                let parent_id = DataTypeId::from_url(&parent.schema.id);
+                if let Some(inheritance_data) = parent_inheritance_data.remove(&parent_id) {
+                    ontology_type_resolver.add_closed(
+                        parent_id,
+                        Arc::new(parent.schema),
+                        Arc::new(inheritance_data),
+                    );
+                } else {
+                    if !parent.schema.all_of.is_empty() {
+                        tracing::warn!("No inheritance data found for `{}`", parent.schema.id);
+                    }
+                    ontology_type_resolver.add_open(parent_id, Arc::new(parent.schema));
+                }
             });
 
         ontology_type_resolver.add_open(new_ontology_id, Arc::new(schema.clone().into_inner()));
@@ -854,14 +874,16 @@ where
             .resolve_data_type_metadata(new_ontology_id)
             .change_context(UpdateError)?;
 
-        let closed_schema = data_type_validator
-            .validate(
-                ontology_type_resolver
-                    .get_closed_data_type(new_ontology_id)
-                    .change_context(UpdateError)?,
-            )
-            .await
-            .change_context(UpdateError)?;
+        // TODO: Validate ontology types on creation
+        //   see https://linear.app/hash/issue/H-2976/validate-ontology-types-on-creation
+        // let closed_schema = data_type_validator
+        //     .validate(
+        //         ontology_type_resolver
+        //             .get_closed_data_type(new_ontology_id)
+        //             .change_context(UpdateError)?,
+        //     )
+        //     .await
+        //     .change_context(UpdateError)?;
         let (ontology_id, owned_by_id, temporal_versioning) = transaction
             .update_owned_ontology_id(&schema.id, &provenance.edition)
             .await?;
@@ -869,7 +891,7 @@ where
         let data_type_id = DataTypeId::from(ontology_id);
 
         transaction
-            .insert_data_type_with_id(data_type_id, closed_schema.data_type())
+            .insert_data_type_with_id(data_type_id, schema)
             .await
             .change_context(UpdateError)?;
         transaction

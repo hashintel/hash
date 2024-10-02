@@ -27,7 +27,7 @@ impl ClosedDataType {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct DataTypeInheritanceData {
     pub inheritance_depths: HashMap<DataTypeId, u32>,
 }

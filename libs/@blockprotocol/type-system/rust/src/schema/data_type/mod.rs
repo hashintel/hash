@@ -32,6 +32,7 @@ use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use thiserror::Error;
+#[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 use uuid::Uuid;
 
