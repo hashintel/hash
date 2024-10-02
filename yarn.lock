@@ -7851,15 +7851,15 @@
   resolved "https://registry.yarnpkg.com/@sideway/pinpoint/-/pinpoint-2.0.0.tgz#cff8ffadc372ad29fd3f78277aeb29e632cc70df"
   integrity "sha1-z/j/rcNyrSn9P3gneusp5jLMcN8= sha512-RNiOoTPkptFtSVzQevY/yWtZwf/RxyVnPy/OcA9HBM3MlGDnBEYL5B41H0MTn0Uec8Hi+2qUtTfG2WWZBmMejQ=="
 
-"@sigma/edge-curve@3.0.0-beta.15":
-  version "3.0.0-beta.15"
-  resolved "https://registry.yarnpkg.com/@sigma/edge-curve/-/edge-curve-3.0.0-beta.15.tgz#3dfc5e3ecbad24dd3e088364e9d1c6a40aa31ec9"
-  integrity sha512-q47iu/ISoaK5UGuagMDKJhkO43Aap5aF7AELY/ffWFrAGJ96YSz5PcKfjH9cJ9Ufyrt/gcWK88d5CpSpmEhd3w==
+"@sigma/edge-curve@3.0.0-beta.16":
+  version "3.0.0-beta.16"
+  resolved "https://registry.yarnpkg.com/@sigma/edge-curve/-/edge-curve-3.0.0-beta.16.tgz#d77f067eac602c410c3b26752d33d5accb0a9a6c"
+  integrity sha512-vFFosMG4P+78qMr0U9wWspSElfhuuZn1bWBMQV39QYuV/04+Mc1E2/gWy0vZfVNjtT4LZsMUjpXWv/8ku58g3w==
 
-"@sigma/node-border@3.0.0-beta.6":
-  version "3.0.0-beta.6"
-  resolved "https://registry.yarnpkg.com/@sigma/node-border/-/node-border-3.0.0-beta.6.tgz#f74c40ec593c7a2ec3769f945a58eb427df81420"
-  integrity sha512-uK/KMOssdlFP/3UWw3nh/kOyzxou6bvUnVzV3emDTWAhKZJSxea/yLL9tpOT7NW9u4jDi/86DZsz/9lj4C0ZUw==
+"@sigma/node-border@3.0.0-beta.7":
+  version "3.0.0-beta.7"
+  resolved "https://registry.yarnpkg.com/@sigma/node-border/-/node-border-3.0.0-beta.7.tgz#624e0d0e4b1732c6a4daab65e69a8136b27985dc"
+  integrity sha512-M4ivn9H5BNMZudeQJ63Kfngu4Uwn0QM3qXZeWjDKp/X6c1Bsf44furMf2EmMbBmGYvYS5ummi03CQ33lh//DeQ==
 
 "@sigstore/bundle@^2.3.2":
   version "2.3.2"
@@ -28471,10 +28471,10 @@ siginfo@^2.0.0:
   resolved "https://registry.yarnpkg.com/siginfo/-/siginfo-2.0.0.tgz#32e76c70b79724e3bb567cb9d543eb858ccfaf30"
   integrity sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==
 
-sigma@3.0.0-beta.30:
-  version "3.0.0-beta.30"
-  resolved "https://registry.yarnpkg.com/sigma/-/sigma-3.0.0-beta.30.tgz#96309ccbbcd9875004c4d8904984b7c31e234c94"
-  integrity sha512-jPKJD7GaUaWjohX0B6oeUt1T2W1f7a8Vri7DNxQmOjZN1EgxQchV1QpRxLVIc3ecIx9aTsDoxnB3WxR14elNYA==
+sigma@3.0.0-beta.31:
+  version "3.0.0-beta.31"
+  resolved "https://registry.yarnpkg.com/sigma/-/sigma-3.0.0-beta.31.tgz#f8c32acc51c4a2d75ae5b2c461d888d257313d6f"
+  integrity sha512-BV7wEkK317A+GKDvXC3aQxPPKQN1Q6yOmCXvN0DNF25w5Go/95fNx20x+FsuHfuvtacDRTT25RfQ5PYVutDIaQ==
   dependencies:
     events "^3.3.0"
     graphology-utils "^2.5.2"
