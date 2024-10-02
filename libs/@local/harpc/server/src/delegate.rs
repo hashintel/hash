@@ -6,22 +6,30 @@ use harpc_service::delegate::ServiceDelegate;
 use harpc_tower::{body::Body, request::Request, response::Response};
 use tower::Service;
 
+use crate::session::{Session, SessionStorage};
+
 pub struct DelegateService<D, S, C> {
-    delegate: Arc<D>,
+    delegate: D,
+    session: Arc<SessionStorage<S>>,
+    codec: C,
 }
 
-impl<D> DelegateService<D> {
-    pub fn new(delegate: D) -> Self {
+impl<D, S, C> DelegateService<D, S, C> {
+    pub fn new(delegate: D, session: Arc<SessionStorage<S>>, codec: C) -> Self {
         Self {
-            delegate: Arc::new(delegate),
+            delegate,
+            session,
+            codec,
         }
     }
 }
 
 impl<D, S, C, ReqBody> Service<Request<ReqBody>> for DelegateService<D, S, C>
 where
-    D: ServiceDelegate<S, C>,
-    ReqBody: Body<Control = !>,
+    D: ServiceDelegate<Session<S>, C> + Clone + Send,
+    S: Default + Clone + Send + Sync + 'static,
+    C: Clone + Send + 'static,
+    ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync,
 {
     type Error = Report<D::Error>;
     type Response = Response<D::Body>;
@@ -34,8 +42,15 @@ where
     }
 
     fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
-        let delegate = Arc::clone(&self.delegate);
+        let delegate = self.delegate.clone();
+        let session = Arc::clone(&self.session);
+        let codec = self.codec.clone();
 
-        async move { delegate.call(request, session, codec) }
+        async move {
+            let storage = session;
+            let session = storage.get_or_insert(req.session()).await;
+
+            delegate.call(req, session, codec).await
+        }
     }
 }

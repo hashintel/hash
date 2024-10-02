@@ -2,29 +2,59 @@ use core::time::Duration;
 use std::sync::Arc;
 
 use harpc_net::session::server::{SessionEvent, SessionId};
-use scc::{HashSet, ebr::Guard, hash_index::OccupiedEntry};
+use scc::{HashSet, ebr::Guard, hash_index::Entry};
 use tokio::sync::broadcast;
 use tokio_util::sync::CancellationToken;
 
-pub struct Session<'a, T> {
-    entry: OccupiedEntry<'a, SessionId, T>,
+pub struct Session<T> {
+    storage: Arc<SessionStorage<T>>,
+    key: SessionId,
 }
 
-impl<T> Session<'_, T>
+impl<T> Session<T>
 where
     T: Clone + 'static,
 {
-    pub fn get(&self) -> &T {
-        self.entry.get()
+    /// Get the value of the session.
+    ///
+    /// Returns `None` if the session has been removed.
+    pub fn cloned(&self) -> Option<T> {
+        self.storage
+            .storage
+            .peek_with(&self.key, |_, value| value.clone())
+    }
+
+    /// Get the value of the session or the default value.
+    pub fn cloned_or_default(&self) -> T
+    where
+        T: Default,
+    {
+        self.cloned().unwrap_or_default()
+    }
+
+    pub fn with<U>(&self, closure: impl FnOnce(&T) -> U) -> Option<U>
+    where
+        U: Clone,
+    {
+        self.storage
+            .storage
+            .peek_with(&self.key, |_, value| closure(value))
     }
 
     /// Update the entry.
     ///
-    /// This update won't be reflected in existing instances of the session, only in future ones, to
-    /// persist the change in existing instances, you must use other methods of interior
-    /// mutability, such as, but not limited to, `RwLock`.
-    pub fn update(self, value: T) {
-        self.entry.update(value);
+    /// This is a no-op if the session has been removed.
+    ///
+    /// Other instances of the session may see the updated value after a delay and the value needs
+    /// to be re-acquired.
+    pub async fn update(&self, value: T) {
+        let entry = self.storage.storage.entry_async(self.key).await;
+        match entry {
+            Entry::Occupied(entry) => {
+                entry.update(value);
+            }
+            _ => {}
+        }
     }
 }
 
@@ -37,11 +67,15 @@ impl<T> SessionStorage<T>
 where
     T: Default + Clone + 'static,
 {
-    async fn get_or_insert(&self, session_id: SessionId) -> Session<T> {
+    pub(crate) async fn get_or_insert(self: Arc<Self>, session_id: SessionId) -> Session<T> {
         self.marked.remove_async(&session_id).await;
-        let entry = self.storage.entry_async(session_id).await.or_default();
+        // ensure the entry exists
+        self.storage.entry_async(session_id).await.or_default();
 
-        Session { entry }
+        Session {
+            storage: Arc::clone(&self),
+            key: session_id,
+        }
     }
 }
 

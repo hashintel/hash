@@ -26,7 +26,7 @@ pub trait ServiceDelegate<S, C> {
         &self,
         request: Request<B>,
         session: S,
-        codec: &C,
+        codec: C,
     ) -> impl Future<Output = Result<Response<Self::Body>, Report<Self::Error>>> + Send
     where
         B: Body<Control = !, Error: Send + Sync> + Send + Sync;
