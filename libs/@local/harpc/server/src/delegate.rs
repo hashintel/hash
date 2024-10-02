@@ -15,7 +15,7 @@ pub struct DelegateService<D, S, C> {
 }
 
 impl<D, S, C> DelegateService<D, S, C> {
-    pub fn new(delegate: D, session: Arc<SessionStorage<S>>, codec: C) -> Self {
+    pub const fn new(delegate: D, session: Arc<SessionStorage<S>>, codec: C) -> Self {
         Self {
             delegate,
             session,
