@@ -50,10 +50,8 @@ static PRIMITIVE_DATA_TYPE_IDS: LazyLock<HashSet<VersionedUrl>> = LazyLock::new(
         .expect("Invalid URL"),
         VersionedUrl::from_str("https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1")
             .expect("Invalid URL"),
-        VersionedUrl::from_str(
-            "https://blockprotocol.org/@blockprotocol/types/data-type/list/v/1",
-        )
-        .expect("Invalid URL"),
+        VersionedUrl::from_str("https://blockprotocol.org/@blockprotocol/types/data-type/list/v/1")
+            .expect("Invalid URL"),
         VersionedUrl::from_str(
             "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1",
         )
