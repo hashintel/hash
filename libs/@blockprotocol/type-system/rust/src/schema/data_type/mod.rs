@@ -2,7 +2,7 @@ mod constraint;
 mod conversion;
 
 pub use self::{
-    closed::{ClosedDataType, DataTypeInheritanceData},
+    closed::{ClosedDataType, DataTypeInheritanceData, InheritanceDepth},
     constraint::{
         AnyOfConstraints, ArrayConstraints, ArraySchema, ArrayTypeTag, ArrayValidationError,
         BooleanTypeTag, ConstraintError, NullTypeTag, NumberConstraints, NumberSchema,
@@ -28,6 +28,7 @@ use core::{fmt, mem};
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, bail};
+#[cfg(feature = "postgres")]
 use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
@@ -585,7 +586,7 @@ impl OntologyTypeResolver {
                                 in_progress_schema.add_edge(
                                     edge,
                                     *data_type_ref,
-                                    *depth + current_depth + 1,
+                                    depth.inner() + current_depth + 1,
                                 );
                             }
                         }

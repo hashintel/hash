@@ -27,7 +27,7 @@ postgres-types = { workspace = true, public = true, features = ["derive", "with-
 serde_json = { workspace = true, public = true }
 url = { workspace = true, public = true }
 utoipa = { workspace = true, public = true, features = ["url"], optional = true }
-uuid = { workspace = true, public = true, features = ["std"] }
+uuid = { workspace = true, public = true, features = ["v5", "serde", "std"] }
 
 # Private workspace dependencies
 futures = { workspace = true }

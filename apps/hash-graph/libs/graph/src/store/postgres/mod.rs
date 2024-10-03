@@ -461,7 +461,7 @@ where
         ontology_id: DataTypeId,
         metadata: &DataTypeInheritanceData,
     ) -> Result<(), InsertionError> {
-        for (target, &depth) in &metadata.inheritance_depths {
+        for (target, depth) in &metadata.inheritance_depths {
             self.as_client()
                 .query(
                     "
@@ -475,11 +475,7 @@ where
                             $3
                         );
                     ",
-                    &[
-                        &ontology_id,
-                        target,
-                        &i32::try_from(depth).change_context(InsertionError)?,
-                    ],
+                    &[&ontology_id, target, depth],
                 )
                 .await
                 .change_context(InsertionError)?;

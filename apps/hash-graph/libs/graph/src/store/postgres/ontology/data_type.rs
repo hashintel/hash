@@ -40,7 +40,7 @@ use type_system::{
     Validator,
     schema::{
         ConversionDefinition, Conversions, DataTypeId, DataTypeInheritanceData, DataTypeValidator,
-        OntologyTypeResolver,
+        InheritanceDepth, OntologyTypeResolver,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
@@ -133,13 +133,9 @@ where
             .map(|row| {
                 let source: DataTypeId = row.get(0);
                 let targets: Vec<DataTypeId> = row.get(1);
-                let depths: Vec<i32> = row.get(2);
+                let depths: Vec<InheritanceDepth> = row.get(2);
                 (source, DataTypeInheritanceData {
-                    inheritance_depths: targets
-                        .into_iter()
-                        .zip(depths)
-                        .map(|(target, depth)| (target, depth as u32))
-                        .collect(),
+                    inheritance_depths: targets.into_iter().zip(depths).collect(),
                 })
             }))
     }
@@ -537,7 +533,7 @@ where
                 .attach(StatusCode::InvalidArgument)
                 .change_context(InsertionError)?;
             transaction
-                .insert_data_type_with_id(&data_type_id, schema)
+                .insert_data_type_with_id(*data_type_id, schema)
                 .await?;
         }
         for (schema_metadata, (data_type_id, _)) in schema_metadata.iter().zip(&inserted_data_types)
@@ -1099,7 +1095,7 @@ where
 
         let mut ontology_type_resolver = OntologyTypeResolver::default();
 
-        let data_types = Read::<DataTypeWithMetadata>::read_vec(
+        let data_type_ids = Read::<DataTypeWithMetadata>::read_vec(
             &transaction,
             &Filter::All(Vec::new()),
             None,
@@ -1112,17 +1108,17 @@ where
             let schema = Arc::new(data_type.schema);
             let data_type_id = DataTypeId::from_url(&schema.id);
             ontology_type_resolver.add_open(data_type_id, Arc::clone(&schema));
-            (data_type_id, schema)
+            data_type_id
         })
         .collect::<Vec<_>>();
 
-        for (data_type_id, data_type) in &data_types {
+        for data_type_id in data_type_ids {
             let schema_metadata = ontology_type_resolver
-                .resolve_data_type_metadata(*data_type_id)
+                .resolve_data_type_metadata(data_type_id)
                 .change_context(UpdateError)?;
 
             transaction
-                .insert_data_type_references(*data_type_id, &schema_metadata)
+                .insert_data_type_references(data_type_id, &schema_metadata)
                 .await
                 .change_context(UpdateError)?;
         }

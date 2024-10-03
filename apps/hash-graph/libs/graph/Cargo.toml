@@ -50,7 +50,7 @@ tarpc = { workspace = true, features = ["serde-transport", "serde-transport-json
 time = { workspace = true }
 tracing = { workspace = true }
 utoipa = { workspace = true, features = ["uuid"], optional = true }
-uuid = { workspace = true, features = ["v4", "v5", "serde"] }
+uuid = { workspace = true, features = ["v4", "serde"] }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros"] }
