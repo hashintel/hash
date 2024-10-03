@@ -4,7 +4,7 @@
   "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/2",
   "allOf": [
     {
-      "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1"
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1"
     }
   ],
   "title": "Object",
