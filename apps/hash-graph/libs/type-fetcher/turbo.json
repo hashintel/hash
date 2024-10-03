@@ -4,13 +4,7 @@
     "start": {
       "dependsOn": ["@apps/hash-graph#compile:release"]
     },
-    "start:healthcheck": {
-      "dependsOn": ["@apps/hash-graph#compile:release"]
-    },
     "start:test": {
-      "dependsOn": ["@apps/hash-graph#compile"]
-    },
-    "start:test:healthcheck": {
       "dependsOn": ["@apps/hash-graph#compile"]
     }
   }
