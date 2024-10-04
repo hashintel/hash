@@ -155,6 +155,14 @@ export const renderValueCell: CustomRenderer<ValueCell> = {
     InteractableManager.setInteractablesForCell(args, tooltipInteractables);
   },
   provideEditor: ({ data }) => {
+    if (data.readonly) {
+      return {
+        disableStyling: true,
+        disablePadding: true,
+        editor: ReadonlyPopup,
+      };
+    }
+
     return {
       disableStyling: true,
       disablePadding: true,
