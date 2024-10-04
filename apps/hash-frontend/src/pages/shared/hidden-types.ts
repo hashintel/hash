@@ -3,7 +3,6 @@ import {
   googleEntityTypes,
   systemEntityTypes,
 } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { typedKeys } from "@local/advanced-types/typed-entries";
 
 /**
  * Entity types the user may have entities of that should be excluded from view in the UI

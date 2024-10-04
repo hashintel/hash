@@ -1,8 +1,6 @@
 import { faArrowRight } from "@fortawesome/free-solid-svg-icons";
 import { AlertModal, FontAwesomeIcon } from "@hashintel/design-system";
-import { Box, Stack, Typography } from "@mui/material";
-
-import { Button, Modal } from "../../../../../../shared/ui";
+import { Box, Typography } from "@mui/material";
 import { useMemo } from "react";
 
 export type EntityTypeChangeDetails = {
@@ -79,7 +77,8 @@ const CalloutMessage = ({
   changeSummary: ChangeSummary;
   type: "Update" | "Remove";
 }) => {
-  const messages = [`This ${type === "Update" ? "update" : "removal"} `];
+  const prefix = `This ${type === "Update" ? "update" : "removal"} `;
+  const messages: string[] = [];
 
   if (totalChangeCount === 0) {
     messages.push(
@@ -128,15 +127,17 @@ const CalloutMessage = ({
     }
   }
 
-  const detail = messages.reduce((acc, message, index) => {
-    if (index === 0) {
-      return message;
-    }
-    if (index === messages.length - 1) {
-      return `${acc} and ${message}`;
-    }
-    return `${acc}, ${message}`;
-  }, "");
+  const detail =
+    prefix +
+    messages.reduce((acc, message, index) => {
+      if (index === 0) {
+        return message;
+      }
+      if (index === messages.length - 1) {
+        return `${acc} and ${message}`;
+      }
+      return `${acc}, ${message}`;
+    }, "");
 
   return (
     <Typography
@@ -163,7 +164,7 @@ const CalloutMessage = ({
           : type === "Update"
             ? "Update available"
             : "Removal available"}
-        .
+        {". "}
       </Box>
       {detail}
     </Typography>
@@ -177,10 +178,10 @@ const ModalHeader = ({
 }) => {
   return (
     <>
-      ${proposedChange.type}
-      <strong>${proposedChange.entityTypeTitle}</strong>
-      entity type
-      <strong>${proposedChange.currentVersion}</strong>
+      {proposedChange.type}
+      <strong> {proposedChange.entityTypeTitle}</strong>
+      {" entity type "}
+      <strong>v{proposedChange.currentVersion}</strong>
       {proposedChange.type === "Update" && (
         <>
           <FontAwesomeIcon icon={faArrowRight} sx={{ color: "gray.50" }} />
@@ -208,6 +209,9 @@ export const EntityTypeChangeModal = ({
   propertyChanges,
   open,
 }: EntityTypeChangeModalProps) => {
+  /**
+   * @todo H-3408 – use this summary to show a table of changes, which are blocking, etc.
+   */
   const changeSummary = useMemo<ChangeSummary>(() => {
     const summary: ChangeSummary = {
       blockCount: 0,
@@ -274,12 +278,14 @@ export const EntityTypeChangeModal = ({
 
   return (
     <AlertModal
-      callback={blockCount ? onAccept : undefined}
+      callback={blockCount ? undefined : onAccept}
       calloutMessage={
-        <CalloutMessage
-          changeSummary={changeSummary}
-          type={proposedChange.type}
-        />
+        <strong>Proceed with change?</strong>
+        // @todo H-3408 – uncomment this when changes are calculated by the parent component
+        // <CalloutMessage
+        //   changeSummary={changeSummary}
+        //   type={proposedChange.type}
+        // />
       }
       close={onReject}
       confirmButtonText={`${proposedChange.type} entity type`}
@@ -287,6 +293,13 @@ export const EntityTypeChangeModal = ({
       open={open}
       processing={changeIsProcessing}
       type={blockCount > 0 ? "error" : shouldWarn ? "warning" : "info"}
-    ></AlertModal>
+    >
+      {/* @todo H-3408 – replace this with a proper list of changes */}
+      <Typography variant="smallTextParagraphs" color="gray.80">
+        Updating the type an entity is assigned to may cause property values to
+        be removed, if properties have been removed from the type or if their
+        expected values have changed to be incompatible with existing data.
+      </Typography>
+    </AlertModal>
   );
 };

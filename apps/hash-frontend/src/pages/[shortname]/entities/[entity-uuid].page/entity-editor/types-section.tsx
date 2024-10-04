@@ -53,10 +53,6 @@ export const TypeButton = ({
   >(updateEntityMutation);
 
   const handleUpdateTypes = async (newEntityTypeIds: VersionedUrl[]) => {
-    if (!newerEntityType) {
-      return;
-    }
-
     try {
       setUpdatingTypes(true);
 
@@ -102,6 +98,9 @@ export const TypeButton = ({
         currentVersion: currentEntityType.metadata.recordId.version,
         newVersion: newerEntityType.metadata.recordId.version,
       },
+      /**
+       * @todo H-3408: Calculate and show property/link changes when upgrading entity types
+       */
       linkChanges: [],
       propertyChanges: [],
     });
@@ -119,6 +118,9 @@ export const TypeButton = ({
         entityTypeTitle: currentEntityType.schema.title,
         currentVersion: currentEntityType.metadata.recordId.version,
       },
+      /**
+       * @todo H-3408: Calculate and show property/link changes when removing entity types
+       */
       linkChanges: [],
       propertyChanges: [],
     });

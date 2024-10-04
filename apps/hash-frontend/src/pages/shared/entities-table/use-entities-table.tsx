@@ -89,7 +89,7 @@ export const useEntitiesTable = (params: {
       entities
         .map(({ metadata: { entityTypeIds } }) =>
           entityTypeIds
-            .sort()
+            .toSorted()
             .map((entityTypeId) => extractBaseUrl(entityTypeId))
             .join(","),
         )

@@ -109,6 +109,7 @@ blocks/**/.env
 **/dist
 **/build
 **/target
+**/pkg
 
 # vscode config
 **/.vscode/settings.json
