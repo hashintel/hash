@@ -46,6 +46,7 @@ where
     ResBody: Body<Control: AsRef<ResponseKind>> + Send + Sync + 'static,
 {
     type Error = !;
+    // TODO: do we wanna put the response error into a dyn error?!
     type Response = BoxedResponse<ResBody::Error>;
 
     type Future = impl Future<Output = Result<Self::Response, Self::Error>>;

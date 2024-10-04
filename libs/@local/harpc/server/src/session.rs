@@ -68,6 +68,18 @@ pub struct SessionStorage<T> {
 
 impl<T> SessionStorage<T>
 where
+    T: Clone + 'static,
+{
+    pub(crate) fn new() -> Self {
+        Self {
+            storage: scc::HashIndex::new(),
+            marked: HashSet::new(),
+        }
+    }
+}
+
+impl<T> SessionStorage<T>
+where
     T: Default + Clone + Send + Sync + 'static,
 {
     pub(crate) async fn get_or_insert(self: Arc<Self>, session_id: SessionId) -> Session<T> {

@@ -3,32 +3,9 @@
 extern crate alloc;
 
 mod delegate;
+mod error;
+pub mod router;
 pub mod session;
-
-use frunk::{HCons, HNil};
-use harpc_net::codec::{ErrorEncoder, WireError};
-use harpc_service::{Service, delegate::ServiceDelegate};
-use harpc_tower::{
-    body::{Body, BodyExt},
-    either::Either,
-    request::Request,
-    response::{Parts, Response},
-};
-use harpc_types::{service::ServiceId, version::Version};
-use harpc_wire_protocol::response::kind::{ErrorCode, ResponseKind};
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
-#[error("service by id {service:?} and version {version:?} not found")]
-struct NotFound {
-    service: ServiceId,
-    version: Version,
-}
-
-impl WireError for NotFound {
-    fn code(&self) -> ErrorCode {
-        ErrorCode::NOT_FOUND
-    }
-}
 
 // TODO: Route should integrate into `Layer` and we have a `ServiceDelegate` wrapper for a layer!
 // (this requires a nameable error type tho!)

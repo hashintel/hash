@@ -29,6 +29,7 @@ scc.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 tokio-util.workspace = true
 tracing.workspace = true
+futures.workspace = true
 
 [lints]
 workspace = true
