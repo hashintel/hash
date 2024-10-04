@@ -380,43 +380,49 @@ impl EntityVisitor for EntityPreprocessor {
         // TODO: Remove when the data type ID is forced to be passed
         //   see https://linear.app/hash/issue/H-2800/validate-that-a-data-type-id-is-always-specified
         if property.metadata.data_type_id.is_none() {
+            let mut infer_status = ReportSink::new();
             let mut possible_data_types = HashSet::new();
 
             for values in schema {
                 if let PropertyValues::DataTypeReference(data_type_ref) = values {
-                    let has_children = type_provider
-                        .has_children(&data_type_ref.url)
-                        .await
-                        .change_context_lazy(|| TraversalError::DataTypeRetrieval {
-                            id: data_type_ref.clone(),
-                        })?;
-                    if has_children {
-                        status.capture(TraversalError::AmbiguousDataType);
-                        possible_data_types.clear();
-                        break;
-                    }
+                    let Some(data_type) = infer_status.attempt(
+                        type_provider
+                            .provide_type(&data_type_ref.url)
+                            .await
+                            .change_context_lazy(|| TraversalError::DataTypeRetrieval {
+                                id: data_type_ref.clone(),
+                            }),
+                    ) else {
+                        continue;
+                    };
 
-                    let has_non_abstract_parents = type_provider
-                        .has_non_abstract_parents(&data_type_ref.url)
-                        .await
-                        .change_context_lazy(|| TraversalError::DataTypeRetrieval {
-                            id: data_type_ref.clone(),
-                        })?;
-
-                    if has_non_abstract_parents {
-                        status.capture(TraversalError::AmbiguousDataType);
-                        possible_data_types.clear();
-                        break;
+                    if data_type.borrow().schema.r#abstract {
+                        infer_status.capture(TraversalError::AbstractDataType {
+                            id: data_type_ref.url.clone(),
+                        });
+                        continue;
                     }
 
                     possible_data_types.insert(data_type_ref.url.clone());
                 }
             }
 
+            let inferred_successfully = status
+                .attempt(
+                    infer_status
+                        .finish()
+                        .change_context(TraversalError::DataTypeUnspecified),
+                )
+                .is_some();
+
             // Only if there is really a single valid data type ID, we set it. Note, that this is
             // done before the actual validation step.
-            if possible_data_types.len() == 1 {
-                property.metadata.data_type_id = possible_data_types.into_iter().next();
+            if inferred_successfully {
+                if possible_data_types.len() == 1 {
+                    property.metadata.data_type_id = possible_data_types.into_iter().next();
+                } else {
+                    status.capture(TraversalError::AmbiguousDataType);
+                }
             }
         }
 
@@ -538,8 +544,6 @@ impl EntityVisitor for EntityPreprocessor {
                     status.append(error);
                 }
             }
-        } else {
-            status.capture(TraversalError::AmbiguousDataType);
         }
 
         if let Err(error) = walk_one_of_property_value(self, schema, property, type_provider).await
@@ -630,7 +634,10 @@ mod tests {
             graph_test_data::property_type::POSTCODE_NUMBER_V1,
             graph_test_data::property_type::CITY_V1,
         ];
-        let data_types = [graph_test_data::data_type::TEXT_V1];
+        let data_types = [
+            graph_test_data::data_type::VALUE_V1,
+            graph_test_data::data_type::TEXT_V1,
+        ];
 
         validate_entity(
             graph_test_data::entity::ADDRESS_V1,
@@ -650,7 +657,10 @@ mod tests {
         let entities = [];
         let entity_types = [];
         let property_types = [graph_test_data::property_type::NAME_V1];
-        let data_types = [graph_test_data::data_type::TEXT_V1];
+        let data_types = [
+            graph_test_data::data_type::VALUE_V1,
+            graph_test_data::data_type::TEXT_V1,
+        ];
 
         validate_entity(
             graph_test_data::entity::BLOCK_V1,
@@ -674,7 +684,10 @@ mod tests {
             graph_test_data::property_type::BLURB_V1,
             graph_test_data::property_type::PUBLISHED_ON_V1,
         ];
-        let data_types = [graph_test_data::data_type::TEXT_V1];
+        let data_types = [
+            graph_test_data::data_type::VALUE_V1,
+            graph_test_data::data_type::TEXT_V1,
+        ];
 
         validate_entity(
             graph_test_data::entity::BOOK_V1,
@@ -714,7 +727,10 @@ mod tests {
         let entities = [];
         let entity_types = [];
         let property_types = [graph_test_data::property_type::NAME_V1];
-        let data_types = [graph_test_data::data_type::TEXT_V1];
+        let data_types = [
+            graph_test_data::data_type::VALUE_V1,
+            graph_test_data::data_type::TEXT_V1,
+        ];
 
         validate_entity(
             graph_test_data::entity::ORGANIZATION_V1,
@@ -734,7 +750,10 @@ mod tests {
         let entities = [];
         let entity_types = [];
         let property_types = [graph_test_data::property_type::TEXT_V1];
-        let data_types = [graph_test_data::data_type::TEXT_V1];
+        let data_types = [
+            graph_test_data::data_type::VALUE_V1,
+            graph_test_data::data_type::TEXT_V1,
+        ];
 
         validate_entity(
             graph_test_data::entity::PAGE_V1,
@@ -770,6 +789,7 @@ mod tests {
             graph_test_data::property_type::AGE_V1,
         ];
         let data_types = [
+            graph_test_data::data_type::VALUE_V1,
             graph_test_data::data_type::TEXT_V1,
             graph_test_data::data_type::NUMBER_V1,
         ];
@@ -816,7 +836,10 @@ mod tests {
         let entities = [];
         let entity_types = [];
         let property_types = [graph_test_data::property_type::NAME_V1];
-        let data_types = [graph_test_data::data_type::TEXT_V1];
+        let data_types = [
+            graph_test_data::data_type::VALUE_V1,
+            graph_test_data::data_type::TEXT_V1,
+        ];
 
         validate_entity(
             graph_test_data::entity::PLAYLIST_V1,
@@ -836,7 +859,10 @@ mod tests {
         let entities = [];
         let entity_types = [];
         let property_types = [graph_test_data::property_type::NAME_V1];
-        let data_types = [graph_test_data::data_type::TEXT_V1];
+        let data_types = [
+            graph_test_data::data_type::VALUE_V1,
+            graph_test_data::data_type::TEXT_V1,
+        ];
 
         validate_entity(
             graph_test_data::entity::SONG_V1,

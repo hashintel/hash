@@ -1,12 +1,13 @@
 use std::collections::HashSet;
 
 use error_stack::Report;
-use graph_types::knowledge::property::{PropertyWithMetadata, PropertyWithMetadataObject};
 use serde_json::Value as JsonValue;
 use type_system::{
     schema::{ClosedEntityType, DataType, PropertyType},
     url::VersionedUrl,
 };
+
+use crate::knowledge::property::{PropertyWithMetadata, PropertyWithMetadataObject};
 
 pub fn install_error_stack_hooks() {
     Report::install_debug_hook::<Actual>(|actual, context| match actual {

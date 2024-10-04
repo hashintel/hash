@@ -24,9 +24,10 @@ use crate::util::{StoreWrapper, seed};
 //  See https://linear.app/hash/issue/H-1628
 // WARNING: Careful when reordering these, unfortunately ordering matters here due to
 // interdependencies, it's flakey and a bit hacky
-const SEED_DATA_TYPES: [&str; 6] = [
+const SEED_DATA_TYPES: [&str; 7] = [
+    data_type::VALUE_V1,
     data_type::BOOLEAN_V1,
-    data_type::EMPTY_LIST_V1,
+    data_type::LIST_V1,
     data_type::NULL_V1,
     data_type::NUMBER_V1,
     data_type::OBJECT_V1,

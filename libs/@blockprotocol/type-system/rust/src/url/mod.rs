@@ -295,7 +295,7 @@ mod tests {
 
     #[test]
     fn versioned_url() {
-        let input_str = "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/v/1";
+        let input_str = "https://blockprotocol.org/@blockprotocol/types/data-type/list/v/1";
         let url = VersionedUrl::from_str(input_str).expect("parsing versioned URL failed");
         assert_eq!(&url.to_string(), input_str);
     }

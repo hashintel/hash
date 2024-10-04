@@ -1590,11 +1590,11 @@ export const blockProtocolDataTypes = {
   },
   emptyList: {
     dataTypeId:
-      "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/v/1",
+      "https://blockprotocol.org/@blockprotocol/types/data-type/list/v/1",
     dataTypeBaseUrl:
-      "https://blockprotocol.org/@blockprotocol/types/data-type/empty-list/" as BaseUrl,
-    title: "Empty List",
-    description: "An Empty List",
+      "https://blockprotocol.org/@blockprotocol/types/data-type/list/" as BaseUrl,
+    title: "List",
+    description: "An ordered list of values",
   },
   null: {
     dataTypeId:

@@ -45,7 +45,7 @@ async fn insert() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed([], [], [])
+        .seed([graph_test_data::data_type::VALUE_V1], [], [])
         .await
         .expect("could not seed database");
 
@@ -65,17 +65,17 @@ async fn insert() {
 
 #[tokio::test]
 async fn query() {
-    let empty_list_dt: DataType = serde_json::from_str(graph_test_data::data_type::EMPTY_LIST_V1)
+    let list_v1: DataType = serde_json::from_str(graph_test_data::data_type::LIST_V1)
         .expect("could not parse data type representation");
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed([], [], [])
+        .seed([graph_test_data::data_type::VALUE_V1], [], [])
         .await
         .expect("could not seed database");
 
     api.create_data_type(api.account_id, CreateDataTypeParams {
-        schema: empty_list_dt.clone(),
+        schema: list_v1.clone(),
         classification: OntologyTypeClassificationMetadata::Owned {
             owned_by_id: OwnedById::new(api.account_id.into_uuid()),
         },
@@ -89,7 +89,7 @@ async fn query() {
 
     let data_types = api
         .get_data_types(api.account_id, GetDataTypesParams {
-            filter: Filter::for_versioned_url(&empty_list_dt.id),
+            filter: Filter::for_versioned_url(&list_v1.id),
             temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                 pinned: PinnedTemporalAxisUnresolved::new(None),
                 variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
@@ -108,7 +108,7 @@ async fn query() {
         1,
         "expected one data type, got {data_types:?}"
     );
-    assert_eq!(data_types[0].schema.id, empty_list_dt.id);
+    assert_eq!(data_types[0].schema.id, list_v1.id);
 }
 
 #[tokio::test]
@@ -133,6 +133,7 @@ async fn inheritance() {
         .seed(
             // The order of the data types can be arbitrary
             [
+                graph_test_data::data_type::VALUE_V1,
                 graph_test_data::data_type::LENGTH_V1,
                 graph_test_data::data_type::NUMBER_V1,
                 graph_test_data::data_type::METER_V1,
@@ -175,7 +176,7 @@ async fn inheritance() {
         .expect("could not get data type")
         .data_types
         .len(),
-        2,
+        3,
         "expected two data types"
     );
 
@@ -384,7 +385,7 @@ async fn update() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed([], [], [])
+        .seed([graph_test_data::data_type::VALUE_V1], [], [])
         .await
         .expect("could not seed database");
 
@@ -460,7 +461,7 @@ async fn insert_same_base_url() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed([], [], [])
+        .seed([graph_test_data::data_type::VALUE_V1], [], [])
         .await
         .expect("could not seed database");
 
@@ -560,7 +561,7 @@ async fn wrong_update_order() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed([], [], [])
+        .seed([graph_test_data::data_type::VALUE_V1], [], [])
         .await
         .expect("could not seed database");
 
@@ -639,7 +640,7 @@ async fn update_external_with_owned() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed([], [], [])
+        .seed([graph_test_data::data_type::VALUE_V1], [], [])
         .await
         .expect("could not seed database");
 

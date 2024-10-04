@@ -29,7 +29,7 @@ impl fmt::Display for FetcherError {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum FetchedOntologyType {
     DataType(DataType),

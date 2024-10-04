@@ -32,6 +32,7 @@ use hash_graph_store::{
         },
     },
 };
+use hash_status::StatusCode;
 use postgres_types::{Json, ToSql};
 use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use tokio_postgres::{GenericClient, Row};
@@ -496,10 +497,12 @@ where
                         .change_context(InsertionError)?,
                 )
                 .await
+                .attach(StatusCode::InvalidArgument)
                 .change_context(InsertionError)?;
             let schema = data_type_validator
                 .validate_ref(&closed_schema.schema)
                 .await
+                .attach(StatusCode::InvalidArgument)
                 .change_context(InsertionError)?;
             transaction
                 .insert_data_type_with_id(
@@ -1043,6 +1046,56 @@ where
             )
             .await
             .change_context(UpdateError)?;
+
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn reindex_cache(&mut self) -> Result<(), UpdateError> {
+        tracing::info!("Reindexing data type cache");
+        let transaction = self.transaction().await.change_context(UpdateError)?;
+
+        // We remove the data from the reference tables first
+        transaction
+            .as_client()
+            .simple_query(
+                "
+                    DELETE FROM data_type_inherits_from;
+                ",
+            )
+            .await
+            .change_context(UpdateError)?;
+
+        let mut ontology_type_resolver = OntologyTypeResolver::default();
+
+        let data_types = Read::<DataTypeWithMetadata>::read_vec(
+            &transaction,
+            &Filter::All(Vec::new()),
+            None,
+            true,
+        )
+        .await
+        .change_context(UpdateError)?
+        .into_iter()
+        .map(|data_type| {
+            let schema = Arc::new(data_type.schema);
+            ontology_type_resolver.add_open(Arc::clone(&schema));
+            schema
+        })
+        .collect::<Vec<_>>();
+
+        for data_type in &data_types {
+            let schema_metadata = ontology_type_resolver
+                .resolve_data_type_metadata(&data_type.id)
+                .change_context(UpdateError)?;
+
+            transaction
+                .insert_data_type_references(DataTypeId::from_url(&data_type.id), &schema_metadata)
+                .await
+                .change_context(UpdateError)?;
+        }
+
+        transaction.commit().await.change_context(UpdateError)?;
 
         Ok(())
     }

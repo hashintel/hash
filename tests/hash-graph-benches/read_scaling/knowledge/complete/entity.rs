@@ -81,7 +81,11 @@ async fn seed_db<A: AuthorizationApi>(
     seed(
         &mut transaction,
         account_id,
-        [data_type::TEXT_V1, data_type::NUMBER_V1],
+        [
+            data_type::VALUE_V1,
+            data_type::TEXT_V1,
+            data_type::NUMBER_V1,
+        ],
         [
             property_type::NAME_V1,
             property_type::BLURB_V1,

@@ -24,11 +24,11 @@
   },
   "dependencies": {
     "@apps/hash-graph": "0.0.0-private",
-    "@aws-sdk/client-s3": "3.658.1",
-    "@aws-sdk/client-ses": "3.658.1",
-    "@aws-sdk/credential-provider-node": "3.658.1",
-    "@aws-sdk/s3-presigned-post": "3.658.1",
-    "@aws-sdk/s3-request-presigner": "3.658.1",
+    "@aws-sdk/client-s3": "3.663.0",
+    "@aws-sdk/client-ses": "3.662.0",
+    "@aws-sdk/credential-provider-node": "3.662.0",
+    "@aws-sdk/s3-presigned-post": "3.663.0",
+    "@aws-sdk/s3-request-presigner": "3.663.0",
     "@blockprotocol/core": "0.1.3",
     "@blockprotocol/type-system": "0.1.2-canary.0",
     "@graphql-tools/schema": "8.5.1",
@@ -119,9 +119,9 @@
     "@types/md5": "2.3.5",
     "@types/mime-types": "2.1.4",
     "@types/nodemailer": "6.4.16",
-    "@vitest/coverage-istanbul": "2.1.1",
+    "@vitest/coverage-istanbul": "2.1.2",
     "eslint": "8.57.0",
     "rimraf": "6.0.1",
-    "vitest": "2.1.1"
+    "vitest": "2.1.2"
   }
 }

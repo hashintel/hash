@@ -532,14 +532,6 @@ mod tests {
             unimplemented!()
         }
 
-        async fn has_children(&self, _: &VersionedUrl) -> Result<bool, Report<!>> {
-            unimplemented!()
-        }
-
-        async fn has_non_abstract_parents(&self, _: &VersionedUrl) -> Result<bool, Report<!>> {
-            unimplemented!()
-        }
-
         async fn find_conversion(
             &self,
             _: &VersionedUrl,

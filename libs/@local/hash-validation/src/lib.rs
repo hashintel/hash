@@ -3,8 +3,6 @@
 
 extern crate alloc;
 
-pub mod error;
-
 pub use self::entity_type::{EntityPreprocessor, EntityValidationError};
 
 mod entity_type;
@@ -102,6 +100,7 @@ mod tests {
         knowledge::property::{
             Property, PropertyMetadata, PropertyObject, PropertyProvenance, PropertyWithMetadata,
             PropertyWithMetadataObject, PropertyWithMetadataValue, ValueMetadata,
+            error::install_error_stack_hooks,
             visitor::{EntityVisitor, TraversalError},
         },
         ontology::{
@@ -122,7 +121,6 @@ mod tests {
     use uuid::Uuid;
 
     use super::*;
-    use crate::error::install_error_stack_hooks;
 
     fn generate_data_type_metadata(schema: DataType) -> DataTypeWithMetadata {
         let actor = AccountId::new(Uuid::nil());
@@ -316,22 +314,6 @@ mod tests {
         }
 
         #[expect(refining_impl_trait)]
-        async fn has_children(
-            &self,
-            _data_type: &VersionedUrl,
-        ) -> Result<bool, Report<InvalidDataType>> {
-            Ok(false)
-        }
-
-        #[expect(refining_impl_trait)]
-        async fn has_non_abstract_parents(
-            &self,
-            _data_type: &VersionedUrl,
-        ) -> Result<bool, Report<InvalidDataType>> {
-            Ok(false)
-        }
-
-        #[expect(refining_impl_trait)]
         async fn find_conversion(
             &self,
             _: &VersionedUrl,
@@ -418,11 +400,19 @@ mod tests {
     pub(crate) async fn validate_data(
         mut value: JsonValue,
         data_type: &str,
+        data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
     ) -> Result<PropertyWithMetadataValue, Report<[TraversalError]>> {
         install_error_stack_hooks();
 
-        let provider = Provider::new([], [], [], []);
+        let provider = Provider::new(
+            [],
+            [],
+            [],
+            data_types.into_iter().map(|data_type| {
+                serde_json::from_str(data_type).expect("failed to parse data type")
+            }),
+        );
 
         let data_type = generate_data_type_metadata(
             serde_json::from_str(data_type).expect("failed to parse data type"),

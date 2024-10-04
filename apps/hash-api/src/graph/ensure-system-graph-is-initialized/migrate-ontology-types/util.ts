@@ -1,6 +1,5 @@
 /* eslint-disable no-param-reassign */
-import fs from "node:fs";
-import path, { dirname } from "node:path";
+import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import type {
@@ -21,7 +20,6 @@ import {
   atLeastOne,
   DATA_TYPE_META_SCHEMA,
   ENTITY_TYPE_META_SCHEMA,
-  extractVersion,
   PROPERTY_TYPE_META_SCHEMA,
 } from "@blockprotocol/type-system";
 import { NotFoundError } from "@local/hash-backend-utils/error";
@@ -71,11 +69,6 @@ import {
   versionedUrlFromComponents,
 } from "@local/hash-subgraph/type-system-patch";
 
-import {
-  CACHED_DATA_TYPE_SCHEMAS,
-  CACHED_ENTITY_TYPE_SCHEMAS,
-  CACHED_PROPERTY_TYPE_SCHEMAS,
-} from "../../../seed-data";
 import type { ImpureGraphFunction } from "../../context-types";
 import { getEntities } from "../../knowledge/primitive/entity";
 import {
@@ -116,208 +109,6 @@ export const generateSystemTypeBaseUrl = ({
     webShortname: shortname,
     domain: systemTypeDomain,
   });
-
-export const loadExternalDataTypeIfNotExists: ImpureGraphFunction<
-  {
-    dataTypeId: VersionedUrl;
-    migrationState: MigrationState;
-  },
-  Promise<DataTypeWithMetadata>
-> = async (context, authentication, { dataTypeId, migrationState }) => {
-  const baseUrl = extractBaseUrl(dataTypeId);
-  const versionNumber = extractVersion(dataTypeId);
-
-  migrationState.dataTypeVersions[baseUrl] = versionNumber;
-
-  const existingDataType = await getDataTypeById(context, authentication, {
-    dataTypeId,
-  }).catch((error: Error) => {
-    if (error instanceof NotFoundError) {
-      return null;
-    }
-    throw error;
-  });
-
-  if (existingDataType) {
-    return existingDataType;
-  }
-
-  const cached_file_name = CACHED_DATA_TYPE_SCHEMAS[dataTypeId];
-  if (cached_file_name) {
-    // We need an absolute path to `../../../seed-data`
-    await context.graphApi.loadExternalDataType(authentication.actorId, {
-      schema: JSON.parse(
-        fs.readFileSync(
-          path.join(
-            __dirname,
-            "..",
-            "..",
-            "..",
-            "seed-data",
-            "data_type",
-            cached_file_name,
-          ),
-          "utf8",
-        ),
-      ),
-      relationships: [
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
-      conversions: {},
-    });
-
-    return await getDataTypeById(context, authentication, { dataTypeId });
-  }
-
-  await context.graphApi.loadExternalDataType(authentication.actorId, {
-    dataTypeId,
-  });
-
-  return await getDataTypeById(context, authentication, { dataTypeId });
-};
-
-export const loadExternalPropertyTypeIfNotExists: ImpureGraphFunction<
-  {
-    propertyTypeId: VersionedUrl;
-    migrationState: MigrationState;
-  },
-  Promise<PropertyTypeWithMetadata>
-> = async (context, authentication, { propertyTypeId, migrationState }) => {
-  const baseUrl = extractBaseUrl(propertyTypeId);
-  const versionNumber = extractVersion(propertyTypeId);
-
-  migrationState.propertyTypeVersions[baseUrl] = versionNumber;
-
-  const existingPropertyType = await getPropertyTypeById(
-    context,
-    authentication,
-    {
-      propertyTypeId,
-    },
-  ).catch((error: Error) => {
-    if (error instanceof NotFoundError) {
-      return null;
-    }
-    throw error;
-  });
-
-  if (existingPropertyType) {
-    return existingPropertyType;
-  }
-
-  const cached_file_name = CACHED_PROPERTY_TYPE_SCHEMAS[propertyTypeId];
-  if (cached_file_name) {
-    // We need an absolute path to `../../../seed-data`
-    await context.graphApi.loadExternalPropertyType(authentication.actorId, {
-      schema: JSON.parse(
-        fs.readFileSync(
-          path.join(
-            __dirname,
-            "..",
-            "..",
-            "..",
-            "seed-data",
-            "property_type",
-            cached_file_name,
-          ),
-          "utf8",
-        ),
-      ),
-      relationships: [
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
-    });
-
-    return await getPropertyTypeById(context, authentication, {
-      propertyTypeId,
-    });
-  }
-
-  await context.graphApi.loadExternalPropertyType(authentication.actorId, {
-    propertyTypeId,
-  });
-
-  return await getPropertyTypeById(context, authentication, { propertyTypeId });
-};
-
-export const loadExternalEntityTypeIfNotExists: ImpureGraphFunction<
-  {
-    entityTypeId: VersionedUrl;
-    migrationState: MigrationState;
-  },
-  Promise<EntityTypeWithMetadata>
-> = async (context, authentication, { entityTypeId, migrationState }) => {
-  const baseUrl = extractBaseUrl(entityTypeId);
-  const versionNumber = extractVersion(entityTypeId);
-
-  migrationState.propertyTypeVersions[baseUrl] = versionNumber;
-
-  const existingEntityType = await getEntityTypeById(context, authentication, {
-    entityTypeId,
-  }).catch((error: Error) => {
-    if (error instanceof NotFoundError) {
-      return null;
-    }
-    throw error;
-  });
-
-  if (existingEntityType) {
-    return existingEntityType;
-  }
-
-  const cached_file_name = CACHED_ENTITY_TYPE_SCHEMAS[entityTypeId];
-  if (cached_file_name) {
-    // We need an absolute path to `../../../seed-data`
-    await context.graphApi.loadExternalEntityType(authentication.actorId, {
-      schema: JSON.parse(
-        fs.readFileSync(
-          path.join(
-            __dirname,
-            "..",
-            "..",
-            "..",
-            "seed-data",
-            "entity_type",
-            cached_file_name,
-          ),
-          "utf8",
-        ),
-      ),
-      relationships: [
-        {
-          relation: "viewer",
-          subject: {
-            kind: "public",
-          },
-        },
-        {
-          relation: "instantiator",
-          subject: {
-            kind: "public",
-          },
-        },
-      ],
-    });
-
-    return await getEntityTypeById(context, authentication, { entityTypeId });
-  }
-
-  await context.graphApi.loadExternalEntityType(authentication.actorId, {
-    entityTypeId,
-  });
-
-  return await getEntityTypeById(context, authentication, { entityTypeId });
-};
 
 export type PropertyTypeDefinition = {
   propertyTypeId: VersionedUrl;
