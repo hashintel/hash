@@ -53,6 +53,8 @@ import { TableHeaderToggle } from "./table-header-toggle";
 import type { TableView } from "./table-views";
 import { tableViewIcons } from "./table-views";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
+import type { UrlCellProps } from "./url-cell";
+import { createRenderUrlCell } from "./url-cell";
 
 /**
  * @todo: avoid having to maintain this list, potentially by
@@ -388,6 +390,29 @@ export const EntitiesTable: FunctionComponent<{
           const propertyCellValue = columnId && row[columnId];
 
           if (propertyCellValue) {
+            let isUrl = false;
+            try {
+              const url = new URL(propertyCellValue as string);
+              if (url.protocol === "http:" || url.protocol === "https:") {
+                isUrl = true;
+              }
+            } catch {
+              // not a URL
+            }
+
+            if (isUrl) {
+              return {
+                kind: GridCellKind.Custom,
+                data: {
+                  kind: "url-cell",
+                  url: propertyCellValue as string,
+                } satisfies UrlCellProps,
+                copyData: String(propertyCellValue),
+                allowOverlay: false,
+                readonly: true,
+              };
+            }
+
             return {
               kind: GridCellKind.Text,
               allowOverlay: true,
@@ -755,6 +780,7 @@ export const EntitiesTable: FunctionComponent<{
             createGetCellContent={createGetCellContent}
             customRenderers={[
               createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
+              createRenderUrlCell({ firstColumnLeftPadding: 16 }),
               renderChipCell,
             ]}
             freezeColumns={1}
