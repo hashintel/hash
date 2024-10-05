@@ -221,6 +221,10 @@ winnow = { version = "=0.6.20", default-features = false }
 [profile.dev]
 codegen-backend = "cranelift"
 
+[profile.codecov]
+inherits = "dev"
+codegen-backend = "llvm"
+
 [profile.production]
 inherits = "release"
 lto = "fat"

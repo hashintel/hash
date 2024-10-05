@@ -172,8 +172,8 @@ bench *arguments:
 # Run the test suite and generate a coverage report
 [no-cd]
 coverage *arguments: install-llvm-cov
-  cargo llvm-cov nextest --all-features --all-targets --cargo-profile {{profile}} {{arguments}}
-  cargo llvm-cov --all-features --profile {{profile}} --doc {{arguments}}
+  cargo llvm-cov nextest --all-features --all-targets --cargo-profile codecov {{arguments}}
+  cargo llvm-cov --all-features --profile codecov --doc {{arguments}}
 
 # Run the test suite and optionally generate a coverage report when `$TEST_COVERAGE` is set to `true`
 [no-cd]
