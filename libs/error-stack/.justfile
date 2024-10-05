@@ -30,8 +30,8 @@ coverage *arguments:
   @just install-cargo-nextest
   @just install-llvm-cov
 
-  RUST_BACKTRACE=1 cargo llvm-cov nextest --workspace --all-features --all-targets --cargo-profile {{profile}} {{arguments}}
-  RUST_BACKTRACE=1 cargo llvm-cov --workspace --all-features --profile {{profile}} --doc {{arguments}}
+  RUST_BACKTRACE=1 cargo llvm-cov nextest --workspace --all-features --all-targets --cargo-profile coverage {{arguments}}
+  RUST_BACKTRACE=1 cargo llvm-cov --workspace --all-features --profile coverage --doc {{arguments}}
 
 # Snapshot Tests
 # ==============
