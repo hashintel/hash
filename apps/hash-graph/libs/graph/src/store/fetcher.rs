@@ -2,6 +2,7 @@ use alloc::sync::Arc;
 use core::mem;
 use std::collections::{HashMap, HashSet};
 
+use async_trait::async_trait;
 use authorization::{
     AuthorizationApi,
     schema::{
@@ -50,7 +51,7 @@ use crate::{
     ontology::domain_validator::DomainValidator,
     store::{
         DataTypeStore, EntityStore, EntityTypeStore, InsertionError, PropertyTypeStore, QueryError,
-        StoreError, StorePool, UpdateError, async_trait,
+        StoreError, StorePool, UpdateError,
         crud::{QueryResult, Read, ReadPaginated, Sorting},
         knowledge::{
             CountEntitiesParams, CreateEntityParams, GetEntitiesParams, GetEntitiesResponse,
