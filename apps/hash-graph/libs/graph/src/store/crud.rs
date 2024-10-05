@@ -6,9 +6,8 @@
 //!
 //! [`Store`]: crate::store::Store
 
-use async_trait::async_trait;
 use error_stack::Result;
-use futures::{Stream, TryStreamExt};
+use futures::{Stream, TryFutureExt, TryStreamExt};
 use hash_graph_store::{
     filter::{Filter, QueryRecord},
     subgraph::{SubgraphRecord, temporal_axes::QueryTemporalAxes},
@@ -202,36 +201,33 @@ pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync>: Read<R> {
 /// Read access to a [`Store`].
 ///
 /// [`Store`]: crate::store::Store
-#[async_trait]
 pub trait Read<R: QueryRecord>: Sync {
     type ReadStream: Stream<Item = Result<R, QueryError>> + Send + Sync;
 
-    async fn read(
+    fn read(
         &self,
         filter: &Filter<'_, R>,
         temporal_axes: Option<&QueryTemporalAxes>,
         include_drafts: bool,
-    ) -> Result<Self::ReadStream, QueryError>;
+    ) -> impl Future<Output = Result<Self::ReadStream, QueryError>> + Send;
 
     #[instrument(level = "info", skip(self, filter))]
-    async fn read_vec(
+    fn read_vec(
         &self,
         filter: &Filter<'_, R>,
         temporal_axes: Option<&QueryTemporalAxes>,
         include_drafts: bool,
-    ) -> Result<Vec<R>, QueryError> {
+    ) -> impl Future<Output = Result<Vec<R>, QueryError>> + Send {
         self.read(filter, temporal_axes, include_drafts)
-            .await?
-            .try_collect()
-            .await
+            .and_then(TryStreamExt::try_collect)
     }
 
-    async fn read_one(
+    fn read_one(
         &self,
         filter: &Filter<'_, R>,
         temporal_axes: Option<&QueryTemporalAxes>,
         include_drafts: bool,
-    ) -> Result<R, QueryError>;
+    ) -> impl Future<Output = Result<R, QueryError>> + Send;
 }
 
 // TODO: Add remaining CRUD traits

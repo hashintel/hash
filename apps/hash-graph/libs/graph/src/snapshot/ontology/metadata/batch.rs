@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use error_stack::{Result, ResultExt};
 use tokio_postgres::GenericClient;
 
@@ -20,7 +19,6 @@ pub enum OntologyTypeMetadataRowBatch {
     ExternalMetadata(Vec<OntologyExternalMetadataRow>),
 }
 
-#[async_trait]
 impl<C, A> WriteBatch<C, A> for OntologyTypeMetadataRowBatch
 where
     C: AsClient,
