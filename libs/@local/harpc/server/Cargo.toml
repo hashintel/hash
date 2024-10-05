@@ -15,21 +15,22 @@ publish.workspace = true
 
 # Private workspace dependencies
 harpc-net.workspace = true
-harpc-service = { version = "0.0.0", path = "../service" }
+harpc-service = { workspace = true, public = true }
 harpc-tower.workspace = true
 harpc-types.workspace = true
 harpc-wire-protocol.workspace = true
 
 # Private third-party dependencies
-thiserror.workspace = true
-frunk = "0.4.3"
-tower.workspace = true
 error-stack.workspace = true
+frunk = "0.4.3"
+frunk_core = {version = "0.4.3", public = true}
+futures.workspace = true
 scc.workspace = true
+thiserror.workspace = true
 tokio = { workspace = true, features = ["macros"] }
 tokio-util.workspace = true
+tower = { workspace = true, public = true }
 tracing.workspace = true
-futures.workspace = true
 
 [lints]
 workspace = true

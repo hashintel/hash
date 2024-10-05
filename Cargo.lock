@@ -2601,6 +2601,7 @@ version = "0.0.0"
 dependencies = [
  "error-stack",
  "frunk",
+ "frunk_core",
  "futures",
  "harpc-net",
  "harpc-service",

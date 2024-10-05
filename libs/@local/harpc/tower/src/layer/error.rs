@@ -238,7 +238,7 @@ pub(crate) mod test {
     pub(crate) const BODY: &[u8] = b"hello world";
 
     pub(crate) fn request() -> Request<Full<Bytes>> {
-        Request::from_parts(
+        Request::new(
             request::Parts {
                 service: ServiceDescriptor {
                     id: ServiceId::new(0x00),

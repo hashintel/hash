@@ -1,5 +1,8 @@
 use alloc::sync::Arc;
-use core::task::{Context, Poll, ready};
+use core::{
+    future::{self, Ready},
+    task::{Context, Poll},
+};
 
 use frunk::{HCons, HNil};
 use futures::future::Either;
@@ -11,9 +14,9 @@ use harpc_tower::{
     response::{BoxedResponse, Parts, Response},
 };
 use harpc_types::{service::ServiceId, version::Version};
-use tower::{Layer, Service, ServiceBuilder, ServiceExt, layer::util::Identity, util::BoxService};
+use tower::{Layer, Service, ServiceBuilder, ServiceExt, layer::util::Identity, util::Oneshot};
 
-use crate::{delegate::DelegateService, error::NotFound, session::SessionStorage};
+use crate::{delegate::ServiceDelegateHandler, error::NotFound, session::SessionStorage};
 
 pub struct Handler<S> {
     service: ServiceId,
@@ -26,11 +29,7 @@ pub trait Route<B, C> {
     type ResponseBodyError;
     type Future: Future<Output = Result<BoxedResponse<Self::ResponseBodyError>, !>> + Send;
 
-    // very similar to `ServiceExt`, only difference: we use it to steer the request to the correct
-    // and we cannot fail (the service should no longer have an error!)
-    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<()>;
-
-    fn call(&mut self, request: Request<B>, codec: C) -> Self::Future
+    fn call(&self, request: Request<B>, codec: C) -> Self::Future
     where
         B: Body<Control = !, Error: Send + Sync> + Send + Sync,
         C: ErrorEncoder + Send + Sync;
@@ -38,19 +37,17 @@ pub trait Route<B, C> {
 
 impl<B, C, E, Svc, Tail> Route<B, C> for HCons<Handler<Svc>, Tail>
 where
-    Svc: Service<Request<B>, Response = BoxedResponse<E>, Error = !, Future: Send> + Send + Sync,
+    Svc: Service<Request<B>, Response = BoxedResponse<E>, Error = !, Future: Send>
+        + Clone
+        + Send
+        + Sync,
     Tail: Route<B, C, ResponseBodyError = E> + Send,
+    B: Send,
 {
-    type Future = Either<Svc::Future, Tail::Future>;
+    type Future = Either<Oneshot<Svc, Request<B>>, Tail::Future>;
     type ResponseBodyError = E;
 
-    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<()> {
-        let Ok(()) = ready!(self.head.inner.poll_ready(cx));
-
-        self.tail.poll_ready(cx)
-    }
-
-    fn call(&mut self, request: Request<B>, codec: C) -> Self::Future
+    fn call(&self, request: Request<B>, codec: C) -> Self::Future
     where
         B: Body<Control = !, Error: Send + Sync> + Send + Sync,
         C: ErrorEncoder + Send + Sync,
@@ -60,7 +57,9 @@ where
         if self.head.service == request.service().id
             && requirement.compatible(request.service().version)
         {
-            Either::Left(self.head.inner.call(request))
+            let service = self.head.inner.clone();
+
+            Either::Left(service.oneshot(request))
         } else {
             Either::Right(self.tail.call(request, codec))
         }
@@ -76,11 +75,7 @@ where
 
     type Future = impl Future<Output = Result<BoxedResponse<!>, !>> + Send;
 
-    fn poll_ready(&mut self, _: &mut Context<'_>) -> Poll<()> {
-        Poll::Ready(())
-    }
-
-    fn call(&mut self, request: Request<B>, codec: C) -> Self::Future
+    fn call(&self, request: Request<B>, codec: C) -> Self::Future
     where
         B: Body<Control = !, Error: Send + Sync> + Send + Sync,
         C: ErrorEncoder + Send + Sync,
@@ -97,33 +92,6 @@ where
 
             Ok(Response::from_error(Parts::new(session), error).map_body(BodyExt::boxed))
         }
-    }
-}
-
-struct RouterService<R, C> {
-    routes: R,
-    codec: C,
-}
-
-impl<B, R, C> Service<Request<B>> for RouterService<R, C>
-where
-    R: Route<B, C>,
-    B: Body<Control = !, Error: Send + Sync> + Send + Sync,
-    C: ErrorEncoder + Clone + Send + Sync + 'static,
-{
-    type Error = !;
-    type Response = BoxedResponse<R::ResponseBodyError>;
-
-    type Future = impl Future<Output = Result<Self::Response, Self::Error>> + Send;
-
-    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        self.routes.poll_ready(cx).map(Ok)
-    }
-
-    fn call(&mut self, req: Request<B>) -> Self::Future {
-        let codec = self.codec.clone();
-
-        self.routes.call(req, codec)
     }
 }
 
@@ -148,7 +116,7 @@ where
     }
 }
 
-type ServiceHandler<D, L, S, C> = Handler<<L as Layer<DelegateService<D, S, C>>>::Service>;
+type ServiceHandler<D, L, S, C> = Handler<<L as Layer<ServiceDelegateHandler<D, S, C>>>::Service>;
 
 impl<R, L, S, C> RouterBuilder<R, L, S, C> {
     pub fn with_builder<L2>(
@@ -166,20 +134,25 @@ impl<R, L, S, C> RouterBuilder<R, L, S, C> {
     // The bounds on S and C are not strictly necessary, same with `R: Clone + Send`, but they make
     // construction easier, but not deferring type errors to the latest stage when it all becomes
     // unmanageable.
+    #[expect(
+        clippy::type_complexity,
+        reason = "type complexity due to verification"
+    )]
     pub fn register<D>(
         self,
         delegate: D,
     ) -> RouterBuilder<HCons<ServiceHandler<D, L, S, C>, R>, L, S, C>
     where
         D: ServiceDelegate<S, C> + Clone + Send,
-        L: Layer<DelegateService<D, S, C>>,
+        L: Layer<ServiceDelegateHandler<D, S, C>>,
         S: Default + Clone + Send + Sync + 'static,
         C: Clone + Send + 'static,
     {
         let service_id = <D::Service as harpc_service::Service>::ID;
         let version = <D::Service as harpc_service::Service>::VERSION;
 
-        let service = DelegateService::new(delegate, Arc::clone(&self.session), self.codec.clone());
+        let service =
+            ServiceDelegateHandler::new(delegate, Arc::clone(&self.session), self.codec.clone());
         let service = self.builder.service(service);
 
         RouterBuilder {
@@ -199,43 +172,69 @@ impl<R, L, S, C> RouterBuilder<R, L, S, C> {
 }
 
 impl<R, L, S, C> RouterBuilder<R, L, S, C> {
-    pub fn build<B>(self) -> Router<B, R::ResponseBodyError>
+    pub fn build<B>(self) -> Router<R, C>
     where
         R: Route<B, C> + Send + Sync + 'static,
         B: Body<Control = !, Error: Send + Sync> + Send + Sync + 'static,
         C: ErrorEncoder + Clone + Send + Sync + 'static,
     {
-        let service = RouterService {
-            routes: self.routes,
-            codec: self.codec,
-        };
-
         Router {
-            inner: service.boxed(),
+            routes: Arc::new(self.routes),
+            codec: self.codec,
         }
     }
 }
 
-// TODO: can we somehow erase the `E` type parameter?
-pub struct Router<B, E> {
-    inner: BoxService<Request<B>, BoxedResponse<E>, !>,
+pub struct RouterService<R, C> {
+    routes: Arc<R>,
+    codec: C,
 }
 
-impl<B, E> Service<Request<B>> for Router<B, E>
+impl<B, R, C> Service<Request<B>> for RouterService<R, C>
 where
+    R: Route<B, C>,
     B: Body<Control = !, Error: Send + Sync> + Send + Sync,
-    E: Send + Sync,
+    C: ErrorEncoder + Clone + Send + Sync + 'static,
 {
     type Error = !;
-    type Response = BoxedResponse<E>;
+    type Response = BoxedResponse<R::ResponseBodyError>;
 
     type Future = impl Future<Output = Result<Self::Response, Self::Error>> + Send;
 
-    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        self.inner.poll_ready(cx)
+    fn poll_ready(&mut self, _: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        Poll::Ready(Ok(()))
     }
 
     fn call(&mut self, req: Request<B>) -> Self::Future {
-        self.inner.call(req)
+        let codec = self.codec.clone();
+
+        self.routes.call(req, codec)
     }
 }
+
+pub struct Router<R, C> {
+    routes: Arc<R>,
+    codec: C,
+}
+
+impl<R, C> Service<()> for Router<R, C>
+where
+    C: Clone,
+{
+    type Error = !;
+    type Future = Ready<Result<RouterService<R, C>, !>>;
+    type Response = RouterService<R, C>;
+
+    fn poll_ready(&mut self, _: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        Poll::Ready(Ok(()))
+    }
+
+    fn call(&mut self, (): ()) -> Self::Future {
+        let routes = Arc::clone(&self.routes);
+        let codec = self.codec.clone();
+
+        future::ready(Ok(RouterService { routes, codec }))
+    }
+}
+
+// TODO: boxed variant

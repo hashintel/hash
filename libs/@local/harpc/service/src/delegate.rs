@@ -12,6 +12,10 @@ use crate::Service;
 ///
 /// The implementation is responsible for encoding and decoding the request and response bodies.
 ///
+/// Implementations of this trait should derive or implement `Clone`, and ensure that cloning
+/// is a cheap operation. Every request likely will clone the delegate, meaning any expensive clone
+/// operation will be repeated for each request and add latency.
+///
 /// The caller must verify that the version and service of the incoming request match those of
 /// [`Self::Service`].
 pub trait ServiceDelegate<S, C> {
@@ -21,9 +25,19 @@ pub trait ServiceDelegate<S, C> {
     type Error;
     type Body: Body<Control: AsRef<ResponseKind>>;
 
-    /// Handles an incoming request by delegating it to the appropriate method of the inner service.
+    /// Delegates an incoming request to the appropriate method of the inner service.
+    ///
+    /// This method is responsible for routing the request to the correct handler within
+    /// the inner service based on the request's characteristics.
+    ///
+    /// # Ownership
+    ///
+    /// This method consumes `self`. While not strictly necessary, this design choice
+    /// aligns with the expectations of the tower service implementation and other
+    /// components that may clone the delegate for each request. Long-lived state
+    /// should be kept in a smart pointer, such as an `Arc`.
     fn call<B>(
-        &self,
+        self,
         request: Request<B>,
         session: S,
         codec: C,

@@ -148,7 +148,7 @@ where
     type Service = Account;
 
     async fn call<B>(
-        &self,
+        self,
         request: Request<B>,
         session: &S,
         codec: &C,

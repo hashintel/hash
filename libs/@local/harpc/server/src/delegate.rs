@@ -8,13 +8,13 @@ use tower::Service;
 
 use crate::session::{Session, SessionStorage};
 
-pub struct DelegateService<D, S, C> {
+pub struct ServiceDelegateHandler<D, S, C> {
     delegate: D,
     session: Arc<SessionStorage<S>>,
     codec: C,
 }
 
-impl<D, S, C> DelegateService<D, S, C> {
+impl<D, S, C> ServiceDelegateHandler<D, S, C> {
     pub const fn new(delegate: D, session: Arc<SessionStorage<S>>, codec: C) -> Self {
         Self {
             delegate,
@@ -24,7 +24,7 @@ impl<D, S, C> DelegateService<D, S, C> {
     }
 }
 
-impl<D, S, C, ReqBody> Service<Request<ReqBody>> for DelegateService<D, S, C>
+impl<D, S, C, ReqBody> Service<Request<ReqBody>> for ServiceDelegateHandler<D, S, C>
 where
     D: ServiceDelegate<Session<S>, C> + Clone + Send,
     S: Default + Clone + Send + Sync + 'static,
