@@ -4,3 +4,4 @@ protocol = "sparse"
 [unstable]
 public-dependency = true
 cargo-lints = true
+codegen-backend = true
