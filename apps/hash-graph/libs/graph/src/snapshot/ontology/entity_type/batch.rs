@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use async_trait::async_trait;
 use authorization::{
     AuthorizationApi, backend::ZanzibarBackend, schema::EntityTypeRelationAndSubject,
 };
@@ -33,7 +32,6 @@ pub enum EntityTypeRowBatch {
     Embeddings(Vec<EntityTypeEmbeddingRow<'static>>),
 }
 
-#[async_trait]
 impl<C, A> WriteBatch<C, A> for EntityTypeRowBatch
 where
     C: AsClient,
