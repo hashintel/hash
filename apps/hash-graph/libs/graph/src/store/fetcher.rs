@@ -2,7 +2,6 @@ use alloc::sync::Arc;
 use core::mem;
 use std::collections::{HashMap, HashSet};
 
-use async_trait::async_trait;
 use authorization::{
     AuthorizationApi,
     schema::{
@@ -738,7 +737,6 @@ where
     }
 }
 
-#[async_trait]
 impl<S, A, R> Read<R> for FetchingStore<S, A>
 where
     A: Send + Sync,
