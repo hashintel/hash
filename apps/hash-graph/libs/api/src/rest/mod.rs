@@ -120,17 +120,16 @@ impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
 pub struct PermissionResponse {
     has_permission: bool,
 }
-#[async_trait]
+
 pub trait RestApiStore: Store + TypeFetcher {
-    async fn load_external_type(
+    fn load_external_type(
         &mut self,
         actor_id: AccountId,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
-    ) -> Result<OntologyTypeMetadata, Response>;
+    ) -> impl Future<Output = Result<OntologyTypeMetadata, Response>> + Send;
 }
 
-#[async_trait]
 impl<S> RestApiStore for S
 where
     S: Store + TypeFetcher + Send,
