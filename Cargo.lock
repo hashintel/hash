@@ -4675,9 +4675,9 @@ checksum = "7f6316222b51039f5d61cae27dccf7167ba4d2fe98816e0fe46af8abd27a5ed3"
 
 [[package]]
 name = "orx-concurrent-vec"
-version = "3.0.1"
+version = "3.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e5d660536386afbc2bf4b472ebcae42aab527ba829c63c966ea4a9e000b4ffb3"
+checksum = "0022bc5fba197582938deb1a944d123c9034242a170d98200d0863e0e6b0157a"
 dependencies = [
  "orx-concurrent-option",
  "orx-fixed-vec",
