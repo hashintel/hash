@@ -40,7 +40,7 @@ runs:
         for component in $COMPONENTS; do
           echo "Installing component $component"
           # depending on the toolchain we need to conditionally skip specific components
-          if [[ ! "$$TOOLCHAIN_CHANNEL" =~ $NIGHTLY_TOOLCHAIN ]]; then
+          if [[ ! "$TOOLCHAIN_CHANNEL" =~ $NIGHTLY_TOOLCHAIN ]]; then
             echo "stable toolchain detected"
             # ensure that we only install components that are meant for stable
             if [[ ! $component =~ $NIGHTLY_ONLY ]]; then
