@@ -2383,7 +2383,6 @@ name = "graph"
 version = "0.0.0"
 dependencies = [
  "async-scoped",
- "async-trait",
  "authorization",
  "bytes",
  "clap",
