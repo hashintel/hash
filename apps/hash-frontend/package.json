@@ -135,7 +135,7 @@
     "@types/google.picker": "0.0.42",
     "@types/iframe-resizer": "3.5.13",
     "@types/jsonpath": "0.2.4",
-    "@types/lodash": "4.17.9",
+    "@types/lodash": "4.17.10",
     "@types/papaparse": "5.3.14",
     "@types/react": "18.2.68",
     "@types/react-beautiful-dnd": "13.1.8",
