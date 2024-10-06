@@ -221,8 +221,16 @@ winnow = { version = "=0.6.20", default-features = false }
 [profile.dev]
 codegen-backend = "cranelift"
 
+# We use LLVM for non-workspace crates, mainly due to the lack of AVX2 support in Cranelift
+[profile.dev.package."*"]
+codegen-backend = "llvm"
+
 [profile.test]
 codegen-backend = "cranelift"
+
+# We use LLVM for non-workspace crates, mainly due to the lack of AVX2 support in Cranelift
+[profile.test.package."*"]
+codegen-backend = "llvm"
 
 [profile.coverage]
 inherits = "test"
