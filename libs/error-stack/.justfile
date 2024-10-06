@@ -23,7 +23,7 @@ test *arguments:
 
   RUST_BACKTRACE=1 cargo nextest run --all-features --all-targets --cargo-profile {{profile}} {{arguments}}
   RUST_BACKTRACE=1 cargo nextest run --no-default-features --all-targets --cargo-profile {{profile}} {{arguments}}
-  RUST_BACKTRACE=1 cargo test --profile {{profile}} --all-features --doc {{arguments}}
+  RUST_BACKTRACE=1 cargo test --all-features --doc {{arguments}}
 
 [private]
 coverage *arguments:

@@ -156,8 +156,8 @@ build *arguments:
 # Run the test suite
 [no-cd]
 test *arguments: install-cargo-nextest install-cargo-hack
-  cargo hack --optional-deps --feature-powerset nextest run --cargo-profile {{profile}} {{arguments}}
-  cargo test --profile {{profile}} --all-features --doc
+  cargo hack --optional-deps --feature-powerset nextest run {{arguments}}
+  cargo test --all-features --doc
 
 # Run the test suite with `miri`
 [no-cd]

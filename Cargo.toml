@@ -221,14 +221,11 @@ winnow = { version = "=0.6.20", default-features = false }
 [profile.dev]
 codegen-backend = "cranelift"
 
-# `scc` is using SIMD instructions, which is currently not fully supported by `cranelift`
-[profile.dev.package.scc]
-codegen-backend = "llvm"
-[profile.dev.package.harpc-net]
+[profile.test]
 codegen-backend = "llvm"
 
 [profile.coverage]
-inherits = "dev"
+inherits = "test"
 codegen-backend = "llvm"
 
 [profile.production]
