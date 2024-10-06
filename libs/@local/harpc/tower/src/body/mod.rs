@@ -1,7 +1,6 @@
 pub mod boxed;
 pub mod controlled;
 pub mod empty;
-pub mod error;
 pub mod full;
 pub mod limited;
 pub mod map;

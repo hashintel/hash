@@ -38,3 +38,4 @@ workspace = true
 
 [dev-dependencies]
 graph-types.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

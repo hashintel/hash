@@ -177,10 +177,9 @@ impl<R, L, S, C> RouterBuilder<R, L, S, C> {
 }
 
 impl<R, L, S, C> RouterBuilder<R, L, S, C> {
-    pub fn build<B>(self) -> Router<R, C>
+    pub fn build(self) -> Router<R, C>
     where
-        R: Route<B, C> + Send + Sync + 'static,
-        B: Body<Control = !, Error: Send + Sync> + Send + Sync + 'static,
+        R: Send + Sync + 'static,
         C: ErrorEncoder + Clone + Send + Sync + 'static,
     {
         Router {

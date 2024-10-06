@@ -149,8 +149,8 @@ impl<T, S, C> ServiceDelegate<S, C> for AccountServerDelegate<T>
 where
     T: AccountService<Server<S>> + Send + Sync,
     S: Send + Sync,
-    C: ValueEncoder<AccountId>
-        + ValueDecoder<CreateAccount, Error: Debug>
+    C: ValueEncoder<AccountId, Error = !>
+        + ValueDecoder<CreateAccount, Error = !>
         + Clone
         + Send
         + Sync
@@ -159,7 +159,7 @@ where
     type Error = Report<AccountError>;
     type Service = Account;
 
-    type Body = impl Body<Control: AsRef<ResponseKind>>;
+    type Body = impl Body<Control: AsRef<ResponseKind>, Error = !>;
 
     async fn call<B>(
         self,
@@ -243,17 +243,18 @@ where
     }
 }
 
-fn main() {
+#[tokio::main]
+async fn main() {
     let router = RouterBuilder::new::<()>(NoopCodec)
         .with_builder(|builder| {
             builder
-                .layer(HandleReportLayer::new(NoopCodec))
                 .layer(BoxedResponseLayer::new())
+                .layer(HandleReportLayer::new(NoopCodec))
         })
         .register(AccountServerDelegate {
             service: AccountServiceImpl,
         })
         .build();
 
-    serve(stream::empty(), router);
+    serve(stream::empty(), router).await;
 }
