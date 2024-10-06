@@ -76,23 +76,23 @@ impl<E, S> Layer<S> for HandleErrorLayer<E>
 where
     E: Clone,
 {
-    type Service = HandleError<S, E>;
+    type Service = HandleErrorService<S, E>;
 
     fn layer(&self, inner: S) -> Self::Service {
-        HandleError {
+        HandleErrorService {
             inner,
             encoder: self.encoder.clone(),
         }
     }
 }
 
-pub struct HandleError<S, E> {
+pub struct HandleErrorService<S, E> {
     inner: S,
 
     encoder: E,
 }
 
-impl<S, E, ReqBody, ResBody> Service<Request<ReqBody>> for HandleError<S, E>
+impl<S, E, ReqBody, ResBody> Service<Request<ReqBody>> for HandleErrorService<S, E>
 where
     S: Service<Request<ReqBody>, Response = Response<ResBody>> + Clone + Send,
     S::Error: Into<Box<dyn Error + Send + Sync + 'static>>,

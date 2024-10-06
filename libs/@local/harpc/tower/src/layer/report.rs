@@ -28,23 +28,23 @@ impl<S, E> Layer<S> for HandleReportLayer<E>
 where
     E: Clone,
 {
-    type Service = HandleReport<S, E>;
+    type Service = HandleReportService<S, E>;
 
     fn layer(&self, inner: S) -> Self::Service {
-        HandleReport {
+        HandleReportService {
             inner,
             encoder: self.encoder.clone(),
         }
     }
 }
 
-pub struct HandleReport<S, E> {
+pub struct HandleReportService<S, E> {
     inner: S,
 
     encoder: E,
 }
 
-impl<S, E, C, ReqBody, ResBody> Service<Request<ReqBody>> for HandleReport<S, E>
+impl<S, E, C, ReqBody, ResBody> Service<Request<ReqBody>> for HandleReportService<S, E>
 where
     S: Service<Request<ReqBody>, Error = Report<C>, Response = Response<ResBody>> + Clone + Send,
     E: ErrorEncoder + Clone,

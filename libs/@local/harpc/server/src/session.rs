@@ -1,46 +1,35 @@
 use alloc::sync::Arc;
-use core::time::Duration;
+use core::{sync::atomic::AtomicUsize, time::Duration};
+use std::{collections::HashSet, sync::Mutex};
 
 use harpc_net::session::server::{SessionEvent, SessionId};
-use scc::{HashSet, ebr::Guard, hash_index::Entry};
+use scc::{ebr::Guard, hash_index::Entry};
 use tokio::sync::broadcast;
 use tokio_util::sync::CancellationToken;
 
 pub struct Session<T> {
     storage: Arc<SessionStorage<T>>,
+
     key: SessionId,
+    value: Arc<T>,
 }
 
 impl<T> Session<T>
 where
-    T: Clone + 'static,
+    T: 'static,
 {
     /// Get the value of the session.
-    ///
-    /// Returns `None` if the session has been removed.
     #[must_use]
-    pub fn cloned(&self) -> Option<T> {
-        self.storage
-            .storage
-            .peek_with(&self.key, |_, value| value.clone())
+    pub fn cloned(&self) -> T
+    where
+        T: Clone,
+    {
+        T::clone(&self.value)
     }
 
-    /// Get the value of the session or the default value.
     #[must_use]
-    pub fn cloned_or_default(&self) -> T
-    where
-        T: Default,
-    {
-        self.cloned().unwrap_or_default()
-    }
-
-    pub fn with<U>(&self, closure: impl FnOnce(&T) -> U) -> Option<U>
-    where
-        U: Clone,
-    {
-        self.storage
-            .storage
-            .peek_with(&self.key, |_, value| closure(value))
+    pub fn get(&self) -> &T {
+        &self.value
     }
 
     /// Update the entry.
@@ -53,6 +42,8 @@ where
     where
         T: Send + Sync,
     {
+        let value = Arc::new(value);
+
         let entry = self.storage.storage.entry_async(self.key).await;
 
         if let Entry::Occupied(entry) = entry {
@@ -61,64 +52,146 @@ where
     }
 }
 
+impl<T> AsRef<T> for Session<T> {
+    fn as_ref(&self) -> &T {
+        &self.value
+    }
+}
+
+struct Marked {
+    // we use an std Mutex here, because we do not use the guard across an await point, therefore
+    // an std mutex is faster, smaller and more efficient.
+    inner: Mutex<HashSet<SessionId>>,
+    // SeqCst is not needed as we don't require total ordering across all threads.
+    len: AtomicUsize,
+}
+
+impl Marked {
+    fn new() -> Self {
+        Self {
+            inner: Mutex::new(HashSet::new()),
+            len: AtomicUsize::new(0),
+        }
+    }
+
+    fn is_empty(&self) -> bool {
+        // Acquire ordering ensures that subsequent reads of the `inner` HashSet
+        // will see all modifications made before the len was set to 0.
+        self.len.load(core::sync::atomic::Ordering::Acquire) == 0
+    }
+
+    fn clear(&self) -> HashSet<SessionId> {
+        let set = {
+            let mut set = self.inner.lock().expect("mutex should not be poisoned");
+
+            // clear the set (by taking it) and update the length
+            core::mem::take(&mut *set)
+        };
+
+        // Release ordering ensures that all previous writes to the `inner` HashSet
+        // are visible to other threads that acquire the len after this store.
+        self.len.store(0, core::sync::atomic::Ordering::Release);
+
+        set
+    }
+
+    fn remove(&self, session_id: SessionId) {
+        // we don't need to lock the mutex if the set is empty
+        if self.is_empty() {
+            return;
+        }
+
+        let mut set = self.inner.lock().expect("mutex should not be poisoned");
+
+        if set.remove(&session_id) {
+            // Release ordering ensures that the removal from the HashSet
+            // is visible to other threads that acquire the len after this fetch_sub.
+            self.len.fetch_sub(1, core::sync::atomic::Ordering::Release);
+        }
+    }
+
+    fn insert(&self, sessions: impl IntoIterator<Item = SessionId>) {
+        let mut set = self.inner.lock().expect("mutex should not be poisoned");
+
+        for session_id in sessions {
+            if set.insert(session_id) {
+                // Release ordering ensures that the insertion into the HashSet
+                // is visible to other threads that acquire the len after this fetch_add.
+                self.len.fetch_add(1, core::sync::atomic::Ordering::Release);
+            }
+        }
+    }
+}
+
 pub struct SessionStorage<T> {
-    storage: scc::HashIndex<SessionId, T>,
-    marked: HashSet<SessionId>,
+    storage: scc::HashIndex<SessionId, Arc<T>>,
+    marked: Marked,
 }
 
 impl<T> SessionStorage<T>
 where
-    T: Clone + 'static,
+    T: 'static,
 {
     pub(crate) fn new() -> Self {
         Self {
             storage: scc::HashIndex::new(),
-            marked: HashSet::new(),
+            marked: Marked::new(),
         }
     }
 }
 
 impl<T> SessionStorage<T>
 where
-    T: Default + Clone + Send + Sync + 'static,
+    T: Default + Send + Sync + 'static,
 {
     pub(crate) async fn get_or_insert(self: Arc<Self>, session_id: SessionId) -> Session<T> {
-        self.marked.remove_async(&session_id).await;
-        // ensure the entry exists
-        self.storage.entry_async(session_id).await.or_default();
+        self.marked.remove(session_id);
+
+        // shortcut, which is completely lock-free
+        if let Some(value) = self
+            .storage
+            .peek_with(&session_id, |_, value| Arc::clone(value))
+        {
+            return Session {
+                storage: Arc::clone(&self),
+                key: session_id,
+                value,
+            };
+        }
+
+        let entry = self.storage.entry_async(session_id).await.or_default();
+        let value = Arc::clone(entry.get());
 
         Session {
             storage: Arc::clone(&self),
             key: session_id,
+            value,
         }
     }
 }
 
 impl<T> SessionStorage<T>
 where
-    T: Clone + Send + Sync + 'static,
+    T: Send + Sync + 'static,
 {
     async fn remove(&self, session_id: SessionId) {
         self.storage.remove_async(&session_id).await;
     }
 
-    // important: we're using the sync API for HashSet here on purpose, because `retain_async` needs
-    // a sync predicate
     fn mark_all(&self) {
         let guard = Guard::new();
 
         self.marked.clear();
-        for (session_id, _) in self.storage.iter(&guard) {
-            let _: Result<(), SessionId> = self.marked.insert(*session_id);
-        }
+        let sessions = self.storage.iter(&guard).map(|(session_id, _)| *session_id);
+        self.marked.insert(sessions);
     }
 
     async fn remove_marked(&self) {
-        self.storage
-            .retain_async(|key, _| !self.marked.contains(key))
-            .await;
+        let marked = self.marked.clear();
 
-        self.marked.clear();
+        self.storage
+            .retain_async(|key, _| !marked.contains(key))
+            .await;
     }
 
     fn has_marked(&self) -> bool {
@@ -150,7 +223,7 @@ impl<T> SessionStorageTask<T> {
 
 impl<T> SessionStorageTask<T>
 where
-    T: Clone + Send + Sync + 'static,
+    T: Send + Sync + 'static,
 {
     pub async fn run(mut self, cancel: CancellationToken) {
         loop {

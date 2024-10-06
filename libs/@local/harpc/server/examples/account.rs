@@ -150,8 +150,8 @@ where
     async fn call<B>(
         self,
         request: Request<B>,
-        session: &S,
-        codec: &C,
+        session: S,
+        codec: C,
     ) -> Response<impl Body<Control: AsRef<ResponseKind>>>
     where
         B: Body<Control = !> + Send + Sync,
