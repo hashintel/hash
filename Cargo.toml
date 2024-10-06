@@ -218,6 +218,25 @@ virtue = { version = "=0.0.17", default-features = false }
 walkdir = { version = "=2.5.0", default-features = false }
 winnow = { version = "=0.6.20", default-features = false }
 
+[profile.dev]
+codegen-backend = "cranelift"
+
+# We use LLVM for non-workspace crates, mainly due to the lack of AVX2 support in Cranelift
+[profile.dev.package."*"]
+codegen-backend = "llvm"
+
+[profile.test]
+codegen-backend = "cranelift"
+
+# We use LLVM for non-workspace crates, mainly due to the lack of AVX2 support in Cranelift
+[profile.test.package."*"]
+codegen-backend = "llvm"
+
+# We use `llvm-cov` which requires LLVM`
+[profile.coverage]
+inherits = "test"
+codegen-backend = "llvm"
+
 [profile.production]
 inherits = "release"
 lto = "fat"
