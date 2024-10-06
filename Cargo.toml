@@ -222,7 +222,7 @@ winnow = { version = "=0.6.20", default-features = false }
 codegen-backend = "cranelift"
 
 [profile.test]
-codegen-backend = "llvm"
+codegen-backend = "cranelift"
 
 [profile.coverage]
 inherits = "test"
