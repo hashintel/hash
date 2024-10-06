@@ -1,13 +1,17 @@
 use alloc::sync::Arc;
-use core::task::{Context, Poll};
+use core::{
+    fmt::Debug,
+    task::{Context, Poll},
+};
 
-use error_stack::Report;
 use harpc_service::delegate::ServiceDelegate;
 use harpc_tower::{body::Body, request::Request, response::Response};
 use tower::Service;
 
 use crate::session::{Session, SessionStorage};
 
+#[derive_where::derive_where(Clone; D: Clone, C: Clone)]
+#[derive_where(Debug; D: Debug, S: Debug + 'static, C: Debug)]
 pub struct ServiceDelegateHandler<D, S, C> {
     delegate: D,
     session: Arc<SessionStorage<S>>,
@@ -31,10 +35,10 @@ where
     C: Clone + Send + 'static,
     ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync,
 {
-    type Error = Report<D::Error>;
+    type Error = D::Error;
     type Response = Response<D::Body>;
 
-    type Future = impl Future<Output = Result<Response<D::Body>, Report<D::Error>>> + Send;
+    type Future = impl Future<Output = Result<Response<D::Body>, D::Error>> + Send;
 
     fn poll_ready(&mut self, _: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         // A delegate service is always ready to accept requests.

@@ -2,20 +2,19 @@ use alloc::sync::Arc;
 use core::error::Error;
 
 use bytes::{Buf, Bytes};
-use error_stack::{Context, Report, Result};
+use error_stack::Report;
 use futures::Stream;
 use harpc_wire_protocol::response::kind::ErrorCode;
 
 use crate::session::error::TransactionError;
 
 pub trait ValueEncoder<T>: Sized {
-    type Error: Context;
+    type Error;
 
     fn encode_stream(
-        &self,
-        items: impl Stream<Item = T> + Send + Sync + 'static,
-    ) -> impl Future<Output = impl Stream<Item = Result<Bytes, Self::Error>> + Send + Sync + 'static>
-    + Send;
+        self,
+        items: impl Stream<Item = T> + Send + Sync,
+    ) -> impl Future<Output = impl Stream<Item = Result<Bytes, Self::Error>> + Send + Sync> + Send;
 }
 
 // TODO: WireError is auto trait, using `request_ref` and `request_value`
@@ -61,10 +60,10 @@ where
 pub trait Encoder<T>: ValueEncoder<T> + ErrorEncoder {}
 
 pub trait ValueDecoder<T> {
-    type Error: Context;
+    type Error;
 
     fn decode_stream<B, E>(
-        &self,
+        self,
         items: impl Stream<Item = core::result::Result<B, E>> + Send + Sync,
     ) -> impl Future<Output = impl Stream<Item = Result<T, Self::Error>> + Send + Sync> + Send
     where
@@ -73,7 +72,7 @@ pub trait ValueDecoder<T> {
 
 pub trait ErrorDecoder {
     type Output;
-    type Error: Context;
+    type Error;
 
     /// Decode an error report from a stream of bytes.
     fn decode_report(

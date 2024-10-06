@@ -21,6 +21,7 @@ harpc-types.workspace = true
 harpc-wire-protocol.workspace = true
 
 # Private third-party dependencies
+derive-where.workspace = true
 error-stack.workspace = true
 frunk = "0.4.3"
 frunk_core = {version = "0.4.3", public = true}
@@ -34,3 +35,6 @@ tracing.workspace = true
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+graph-types.workspace = true

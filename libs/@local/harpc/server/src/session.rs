@@ -1,5 +1,5 @@
 use alloc::sync::Arc;
-use core::{sync::atomic::AtomicUsize, time::Duration};
+use core::{fmt::Debug, sync::atomic::AtomicUsize, time::Duration};
 use std::{collections::HashSet, sync::Mutex};
 
 use harpc_net::session::server::{SessionEvent, SessionId};
@@ -58,6 +58,7 @@ impl<T> AsRef<T> for Session<T> {
     }
 }
 
+#[derive(Debug)]
 struct Marked {
     // we use an std Mutex here, because we do not use the guard across an await point, therefore
     // an std mutex is faster, smaller and more efficient.
@@ -123,6 +124,7 @@ impl Marked {
     }
 }
 
+#[derive_where::derive_where(Debug; T: Debug + 'static)]
 pub struct SessionStorage<T> {
     storage: scc::HashIndex<SessionId, Arc<T>>,
     marked: Marked,

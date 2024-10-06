@@ -14,6 +14,7 @@ use crate::{
     response::{Parts, Response},
 };
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct HandleReportLayer<E> {
     encoder: E,
 }
@@ -38,6 +39,7 @@ where
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct HandleReportService<S, E> {
     inner: S,
 

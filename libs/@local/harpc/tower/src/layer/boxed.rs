@@ -10,6 +10,7 @@ use crate::{
     response::{BoxedResponse, Response},
 };
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct BoxedResponseLayer {
     _private: (),
 }
@@ -35,6 +36,7 @@ impl Default for BoxedResponseLayer {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct BoxedResponseService<S> {
     inner: S,
 }

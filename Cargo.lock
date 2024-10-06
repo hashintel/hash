@@ -2599,10 +2599,12 @@ dependencies = [
 name = "harpc-server"
 version = "0.0.0"
 dependencies = [
+ "derive-where",
  "error-stack",
  "frunk",
  "frunk_core",
  "futures",
+ "graph-types",
  "harpc-net",
  "harpc-service",
  "harpc-tower",

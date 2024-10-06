@@ -18,6 +18,7 @@ use tower::{Layer, Service, ServiceBuilder, ServiceExt, layer::util::Identity, u
 
 use crate::{delegate::ServiceDelegateHandler, error::NotFound, session::SessionStorage};
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Handler<S> {
     service: ServiceId,
     version: Version,
@@ -35,6 +36,8 @@ pub trait Route<B, C> {
         C: ErrorEncoder + Send + Sync;
 }
 
+// The clone requirement might seem odd here, but is the same as in axum's router implementation.
+// see: https://docs.rs/axum/latest/src/axum/routing/route.rs.html#45
 impl<B, C, E, Svc, Tail> Route<B, C> for HCons<Handler<Svc>, Tail>
 where
     Svc: Service<Request<B>, Response = BoxedResponse<E>, Error = !, Future: Send>
@@ -102,12 +105,14 @@ pub struct RouterBuilder<R, L, S, C> {
     codec: C,
 }
 
-impl<S, C> RouterBuilder<HNil, Identity, S, C>
-where
-    S: Clone + 'static,
-{
-    pub fn new(codec: C) -> Self {
-        Self {
+impl<C> RouterBuilder<HNil, Identity, (), C> {
+    // S is part of the generics to make it easier to construct the router, but it's not strictly
+    // necessary.
+    pub fn new<S>(codec: C) -> RouterBuilder<HNil, Identity, S, C>
+    where
+        S: 'static,
+    {
+        RouterBuilder {
             routes: HNil,
             builder: ServiceBuilder::new(),
             session: Arc::new(SessionStorage::new()),
@@ -145,7 +150,7 @@ impl<R, L, S, C> RouterBuilder<R, L, S, C> {
     where
         D: ServiceDelegate<S, C> + Clone + Send,
         L: Layer<ServiceDelegateHandler<D, S, C>>,
-        S: Default + Clone + Send + Sync + 'static,
+        S: Default + Send + Sync + 'static,
         C: Clone + Send + 'static,
     {
         let service_id = <D::Service as harpc_service::Service>::ID;

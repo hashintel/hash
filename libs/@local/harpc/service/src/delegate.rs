@@ -1,4 +1,3 @@
-use error_stack::Report;
 use harpc_tower::{body::Body, request::Request, response::Response};
 use harpc_wire_protocol::response::kind::ResponseKind;
 
@@ -41,7 +40,7 @@ pub trait ServiceDelegate<S, C> {
         request: Request<B>,
         session: S,
         codec: C,
-    ) -> impl Future<Output = Result<Response<Self::Body>, Report<Self::Error>>> + Send
+    ) -> impl Future<Output = Result<Response<Self::Body>, Self::Error>> + Send
     where
         B: Body<Control = !, Error: Send + Sync> + Send + Sync;
 }
