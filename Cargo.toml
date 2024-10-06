@@ -232,6 +232,7 @@ codegen-backend = "cranelift"
 [profile.test.package."*"]
 codegen-backend = "llvm"
 
+# We use `llvm-cov` which requires LLVM`
 [profile.coverage]
 inherits = "test"
 codegen-backend = "llvm"
