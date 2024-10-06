@@ -224,6 +224,8 @@ codegen-backend = "cranelift"
 # `scc` is using SIMD instructions, which is currently not fully supported by `cranelift`
 [profile.dev.package.scc]
 codegen-backend = "llvm"
+[profile.dev.package.harpc-net]
+codegen-backend = "llvm"
 
 [profile.coverage]
 inherits = "dev"
