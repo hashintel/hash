@@ -3,16 +3,20 @@ import { SigmaContainer } from "@react-sigma/core";
 import { EdgeCurvedArrowProgram } from "@sigma/edge-curve";
 import { createNodeBorderProgram } from "@sigma/node-border";
 import { MultiDirectedGraph } from "graphology";
-import { memo, useRef, useState } from "react";
+import { memo, useMemo, useRef } from "react";
+import { useLocalstorageState } from "rooks";
 import { EdgeArrowProgram } from "sigma/rendering";
 
+import type { GraphVizConfig } from "./graph-container/config";
 import { Config } from "./graph-container/config";
 import { FullScreenButton } from "./graph-container/full-screen-button";
 import type { GraphLoaderProps } from "./graph-container/graph-data-loader";
 import { GraphDataLoader } from "./graph-container/graph-data-loader";
 import { FullScreenContextProvider } from "./graph-container/shared/full-screen";
 
-export type GraphContainerProps = Omit<GraphLoaderProps, "config">;
+export type GraphContainerProps = Omit<GraphLoaderProps, "config"> & {
+  defaultConfig: GraphVizConfig;
+};
 
 const borderRadii = {
   borderBottomLeftRadius: "8px",
@@ -20,20 +24,51 @@ const borderRadii = {
 };
 
 export const GraphContainer = memo(
-  ({ edges, nodes, onEdgeClick, onNodeClick }: GraphContainerProps) => {
-    const [config, setConfig] = useState<GraphLoaderProps["config"]>({
-      /**
-       * When a node is hovered or clicked, the depth around it to which other nodes will be highlighted
-       */
-      highlightDepth: 4,
-      /**
-       * When a node is hovered or clicked, the links from it that will be followed to highlight neighbors,
-       * i.e. 'All', 'In'wards and 'Out'wards
-       */
-      highlightDirection: "All",
-    });
-
+  ({
+    defaultConfig,
+    edges,
+    nodes,
+    onEdgeClick,
+    onNodeSecondClick,
+  }: GraphContainerProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
+
+    const [config, setConfig] = useLocalstorageState<GraphVizConfig>(
+      `graph-viz-config~${defaultConfig.graphKey}`,
+      defaultConfig,
+    );
+
+    const settings = useMemo(
+      () => ({
+        /**
+         * @see {@link useDefaultSettings} for more settings
+         */
+        /**
+         * These settings need to be set before the graph is rendered.
+         */
+        defaultNodeType: "bordered",
+        edgeProgramClasses: {
+          arrow: EdgeArrowProgram,
+          curved: EdgeCurvedArrowProgram,
+        },
+        nodeProgramClasses: {
+          bordered: createNodeBorderProgram({
+            borders: [
+              {
+                size: { value: 2, mode: "pixels" },
+                color: { attribute: "borderColor" },
+              },
+              { size: { fill: true }, color: { attribute: "color" } },
+            ],
+          }),
+        },
+        /**
+         * This setting is dependent on props, and is easiest to set here.
+         */
+        enableEdgeEvents: !!onEdgeClick,
+      }),
+      [onEdgeClick],
+    );
 
     return (
       <FullScreenContextProvider>
@@ -48,34 +83,7 @@ export const GraphContainer = memo(
         >
           <SigmaContainer
             graph={MultiDirectedGraph}
-            settings={{
-              /**
-               * @see {@link useDefaultSettings} for more settings
-               */
-              /**
-               * These settings need to be set before the graph is rendered.
-               */
-              defaultNodeType: "bordered",
-              edgeProgramClasses: {
-                arrow: EdgeArrowProgram,
-                curved: EdgeCurvedArrowProgram,
-              },
-              nodeProgramClasses: {
-                bordered: createNodeBorderProgram({
-                  borders: [
-                    {
-                      size: { value: 2, mode: "pixels" },
-                      color: { attribute: "borderColor" },
-                    },
-                    { size: { fill: true }, color: { attribute: "color" } },
-                  ],
-                }),
-              },
-              /**
-               * This setting is dependent on props, and is easiest to set here.
-               */
-              enableEdgeEvents: !!onEdgeClick,
-            }}
+            settings={settings}
             style={{ position: "relative", overflow: "hidden", ...borderRadii }}
           >
             <FullScreenButton />
@@ -89,7 +97,7 @@ export const GraphContainer = memo(
               nodes={nodes}
               edges={edges}
               onEdgeClick={onEdgeClick}
-              onNodeClick={onNodeClick}
+              onNodeSecondClick={onNodeSecondClick}
             />
           </SigmaContainer>
         </Box>

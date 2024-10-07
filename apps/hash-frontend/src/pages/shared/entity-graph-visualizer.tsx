@@ -18,6 +18,7 @@ import type {
   GraphVizNode,
 } from "./graph-visualizer";
 import { GraphVisualizer } from "./graph-visualizer";
+import type { GraphVizConfig } from "./graph-visualizer/graph-container/config";
 
 export type EntityForGraph = {
   linkData?: LinkData;
@@ -26,8 +27,22 @@ export type EntityForGraph = {
   properties: PropertyObject;
 };
 
-const maxNodeSize = 32;
-const minNodeSize = 10;
+const defaultConfig = {
+  graphKey: "entity-graph",
+  nodeHighlighting: {
+    depth: 1,
+    direction: "All",
+  },
+  nodeSizing: {
+    mode: "byEdgeCount",
+    min: 10,
+    max: 32,
+    countEdges: "All",
+  },
+  filters: {
+    typeIds: [],
+  },
+} as const satisfies GraphVizConfig;
 
 export const EntityGraphVisualizer = <T extends EntityForGraph>({
   entities,
@@ -83,8 +98,6 @@ export const EntityGraphVisualizer = <T extends EntityForGraph>({
 
     const entityTypeIdToColor = new Map<string, number>();
 
-    const nodeIdToIncomingEdges = new Map<string, number>();
-
     for (const entity of entities ?? []) {
       /**
        * If we have been provided a filter function, check it doesn't filter out the entity
@@ -127,10 +140,8 @@ export const EntityGraphVisualizer = <T extends EntityForGraph>({
         nodeId: entity.metadata.recordId.entityId,
         color,
         borderColor,
-        size: minNodeSize,
+        size: defaultConfig.nodeSizing.min,
       };
-
-      nodeIdToIncomingEdges.set(entity.metadata.recordId.entityId, 0);
     }
 
     for (const linkEntity of linkEntitiesToAdd) {
@@ -156,42 +167,6 @@ export const EntityGraphVisualizer = <T extends EntityForGraph>({
         label: linkEntityType?.schema.title ?? "Unknown",
         size: 1,
       });
-
-      nodeIdToIncomingEdges.set(
-        linkEntity.linkData.rightEntityId,
-        (nodeIdToIncomingEdges.get(linkEntity.linkData.rightEntityId) ?? 0) + 1,
-      );
-    }
-
-    const fewestIncomingEdges = Math.min(...nodeIdToIncomingEdges.values());
-    const mostIncomingEdges = Math.max(...nodeIdToIncomingEdges.values());
-
-    const incomingEdgeRange = mostIncomingEdges - fewestIncomingEdges;
-
-    /**
-     * If incomingEdgeRange is 0, all nodes have the same number of incoming edges
-     */
-    if (incomingEdgeRange > 0) {
-      for (const [nodeId, incomingEdges] of nodeIdToIncomingEdges) {
-        if (!nodesToAddByNodeId[nodeId]) {
-          continue;
-        }
-
-        const relativeEdgeCount = incomingEdges / incomingEdgeRange;
-
-        const maxSizeIncrease = maxNodeSize - minNodeSize;
-
-        /**
-         * Scale the size of the node based on the number of incoming edges within the range of incoming edges
-         */
-        nodesToAddByNodeId[nodeId].size = Math.min(
-          maxNodeSize,
-          Math.max(
-            minNodeSize,
-            relativeEdgeCount * maxSizeIncrease + minNodeSize,
-          ),
-        );
-      }
     }
 
     return {
@@ -208,7 +183,7 @@ export const EntityGraphVisualizer = <T extends EntityForGraph>({
   ]);
 
   const onNodeClick = useCallback<
-    NonNullable<GraphVisualizerProps["onNodeClick"]>
+    NonNullable<GraphVisualizerProps["onNodeSecondClick"]>
   >(
     ({ nodeId, isFullScreen }) => {
       if (isFullScreen) {
@@ -241,9 +216,10 @@ export const EntityGraphVisualizer = <T extends EntityForGraph>({
 
   return (
     <GraphVisualizer
+      defaultConfig={defaultConfig}
       nodes={nodes}
       edges={edges}
-      onNodeClick={onNodeClick}
+      onNodeSecondClick={onNodeClick}
       onEdgeClick={onEdgeClick}
     />
   );

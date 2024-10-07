@@ -112,18 +112,29 @@ export const useDefaultSettings = (state: GraphState) => {
       }
 
       if (state.hoveredNodeId !== node && !state.hoveredNeighborIds.has(node)) {
-        /**
-         * Nodes are always drawn over edges by the library, so anything other than hiding non-highlighted nodes
-         * means that they can obscure the highlighted edges, as is the case here.
-         *
-         * If they are hidden, it is much more jarring when hovering over nodes because of the rest of the graph
-         * fully disappears, so having the 'non-highlighted' nodes remain like this is a UX compromise.
-         */
-        nodeData.color = "rgba(170, 170, 170, 0.7)";
-        nodeData.borderColor = "rgba(170, 170, 170, 0.7)";
-        nodeData.label = "";
+        if (!state.selectedNodeId) {
+          /**
+           * Nodes are always drawn over edges by the library, so anything other than hiding non-highlighted nodes
+           * means that they can obscure the highlighted edges, as is the case here.
+           *
+           * If they are hidden, it is much more jarring when _hovering_ over nodes because of the rest of the graph
+           * fully disappears, so having the 'non-highlighted' nodes remain like this is a UX compromise.
+           */
+          nodeData.color = "rgba(170, 170, 170, 0.7)";
+          nodeData.borderColor = "rgba(170, 170, 170, 0.7)";
+          nodeData.label = "";
+        } else {
+          /**
+           * If the user has clicked on a node, we hide everything else.
+           */
+          nodeData.hidden = true;
+        }
       } else {
         nodeData.forceLabel = true;
+      }
+
+      if (state.selectedNodeId === node || state.hoveredNodeId === node) {
+        nodeData.zIndex = 3;
       }
 
       return nodeData;

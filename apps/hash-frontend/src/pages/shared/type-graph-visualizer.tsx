@@ -218,7 +218,7 @@ export const TypeGraphVisualizer = ({
   }, [isSpecialEntityTypeLookup, palette, types]);
 
   const onNodeClick = useCallback<
-    NonNullable<GraphVisualizerProps["onNodeClick"]>
+    NonNullable<GraphVisualizerProps["onNodeSecondClick"]>
   >(
     ({ nodeId, isFullScreen }) => {
       if (nodeId === anythingNodeId) {
@@ -237,6 +237,19 @@ export const TypeGraphVisualizer = ({
   );
 
   return (
-    <GraphVisualizer onNodeClick={onNodeClick} edges={edges} nodes={nodes} />
+    <GraphVisualizer
+      defaultConfig={{
+        filters: {},
+        graphKey: "type-graph",
+        nodeHighlighting: {
+          direction: "All",
+          depth: 1,
+        },
+        nodeSizing: { mode: "static" },
+      }}
+      onNodeSecondClick={onNodeClick}
+      edges={edges}
+      nodes={nodes}
+    />
   );
 };

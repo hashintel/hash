@@ -3,7 +3,7 @@ import { MultiDirectedGraph } from "graphology";
 import { memo, useEffect, useRef } from "react";
 import type { SigmaNodeEventPayload } from "sigma/types";
 
-import type { GraphConfig } from "./config";
+import type { GraphVizConfig } from "./config";
 import { useFullScreen } from "./shared/full-screen";
 import { useDefaultSettings } from "./shared/settings";
 import type { GraphState } from "./shared/state";
@@ -13,6 +13,7 @@ export type GraphVizNode = {
   borderColor?: string;
   color: string;
   nodeId: string;
+  nodeTypeId?: string;
   label: string;
   size: number;
 };
@@ -26,15 +27,24 @@ export type GraphVizEdge = {
 };
 
 export type GraphLoaderProps = {
-  config: GraphConfig;
+  config: GraphVizConfig;
   edges: GraphVizEdge[];
   nodes: GraphVizNode[];
   onEdgeClick?: (params: { edgeId: string; isFullScreen: boolean }) => void;
-  onNodeClick?: (params: { nodeId: string; isFullScreen: boolean }) => void;
+  onNodeSecondClick?: (params: {
+    nodeId: string;
+    isFullScreen: boolean;
+  }) => void;
 };
 
 export const GraphDataLoader = memo(
-  ({ config, edges, nodes, onNodeClick, onEdgeClick }: GraphLoaderProps) => {
+  ({
+    config,
+    edges,
+    nodes,
+    onNodeSecondClick,
+    onEdgeClick,
+  }: GraphLoaderProps) => {
     /**
      * Hooks provided by the react-sigma library to simplify working with the sigma instance.
      */
@@ -73,12 +83,12 @@ export const GraphDataLoader = memo(
           neighborIds: Set<string> = new Set(),
           depth = 1,
         ) => {
-          if (depth > config.highlightDepth) {
+          if (depth > config.nodeHighlighting.depth) {
             return neighborIds;
           }
 
           let directNeighbors: string[];
-          switch (config.highlightDirection) {
+          switch (config.nodeHighlighting.direction) {
             case "All":
               directNeighbors = sigma.getGraph().neighbors(nodeId);
               break;
@@ -105,7 +115,8 @@ export const GraphDataLoader = memo(
         /**
          * We haven't touched the graph data, so don't need to re-index.
          * An additional optimization would be to supply partialGraph here and only redraw the affected nodes,
-         * but since the nodes whose appearance changes are the NON-highlighted nodes (they disappear), it's probably not worth it
+         * but since the nodes whose appearance changes are the NON-highlighted nodes (they disappear), it's probably
+         * not worth it
          * – they are likely to be the majority anyway, and we'd have to generate an array of them.
          */
         sigma.refresh({ skipIndexation: true });
@@ -126,10 +137,16 @@ export const GraphDataLoader = memo(
           });
         },
         clickNode: (event) => {
-          onNodeClick?.({
-            nodeId: event.node,
-            isFullScreen,
-          });
+          if (graphState.current.selectedNodeId === event.node) {
+            /**
+             * Only active when the node is already selected,
+             * so that the first click performs the graph highlighting functions.
+             */
+            onNodeSecondClick?.({
+              nodeId: event.node,
+              isFullScreen,
+            });
+          }
 
           graphState.current.selectedNodeId = event.node;
           highlightNode(event);
@@ -146,7 +163,15 @@ export const GraphDataLoader = memo(
           removeHighlights();
         },
         enterNode: (event) => {
-          graphState.current.selectedNodeId = null;
+          if (graphState.current.selectedNodeId) {
+            /**
+             * If a user has clicked on a node, don't do anything when hovering other over nodes,
+             * because it makes it harder to click to highlight neighbors and then browse the highlighted graph.
+             * They can click on the background or another node to deselect this one.
+             */
+            return;
+          }
+
           highlightNode(event);
         },
         leaveNode: () => {
@@ -165,7 +190,7 @@ export const GraphDataLoader = memo(
       edges,
       nodes,
       onEdgeClick,
-      onNodeClick,
+      onNodeSecondClick,
       isFullScreen,
       registerEvents,
       sigma,
@@ -174,31 +199,110 @@ export const GraphDataLoader = memo(
     useEffect(() => {
       const graph = new MultiDirectedGraph();
 
+      const nodeIdToEdgeCount: Record<
+        string,
+        { In: number; Out: number; All: number }
+      > = {};
+
+      const seenNodeIds = new Set<string>();
+
       for (const [index, node] of nodes.entries()) {
+        if (
+          config.filters.typeIds?.length &&
+          !config.filters.typeIds.includes(node.nodeTypeId!)
+        ) {
+          continue;
+        }
+
         graph.addNode(node.nodeId, {
           borderColor: node.borderColor ?? node.color,
           color: node.color,
           x: index % 20,
           y: Math.floor(index / 20),
           label: node.label,
-          size: node.size,
+          size:
+            config.nodeSizing.mode === "byEdgeCount"
+              ? config.nodeSizing.min
+              : node.size,
           type: "bordered",
         });
+
+        seenNodeIds.add(node.nodeId);
       }
 
       for (const edge of edges) {
-        graph.addEdgeWithKey(edge.edgeId, edge.source, edge.target, {
+        const { source, target } = edge;
+
+        if (!seenNodeIds.has(source) || !seenNodeIds.has(target)) {
+          continue;
+        }
+
+        graph.addEdgeWithKey(edge.edgeId, source, target, {
           color: "rgba(50, 50, 50, 0.5)",
           label: edge.label,
           size: edge.size,
           type: "curved",
         });
+
+        nodeIdToEdgeCount[source] ??= { In: 0, Out: 0, All: 0 };
+        nodeIdToEdgeCount[source].Out++;
+        nodeIdToEdgeCount[source].All++;
+
+        nodeIdToEdgeCount[target] ??= { In: 0, Out: 0, All: 0 };
+        nodeIdToEdgeCount[target].In++;
+        nodeIdToEdgeCount[target].All++;
+      }
+
+      if (config.nodeSizing.mode === "byEdgeCount") {
+        const countKey = config.nodeSizing.countEdges;
+
+        const countValues = Object.values(nodeIdToEdgeCount).map(
+          (counts) => counts[countKey],
+        );
+
+        const lowestCount = Math.min(...countValues);
+        const highestCount = Math.max(...countValues);
+
+        const range = highestCount - lowestCount;
+
+        if (range === 0 && countValues.length === seenNodeIds.size) {
+          /**
+           * All nodes have the same count, so we don't need to resize any.
+           */
+        } else {
+          const maxNodeSize = config.nodeSizing.max;
+          const minNodeSize = config.nodeSizing.min;
+
+          for (const [nodeId, counts] of Object.entries(nodeIdToEdgeCount)) {
+            const relativeEdgeCount = counts[countKey] / range;
+
+            const maxSizeIncrease = maxNodeSize - minNodeSize;
+
+            const relativeSize = Math.floor(
+              Math.min(
+                maxNodeSize,
+                Math.max(
+                  minNodeSize,
+                  relativeEdgeCount * maxSizeIncrease + minNodeSize,
+                ),
+              ),
+            );
+
+            if (relativeSize !== minNodeSize) {
+              /**
+               * Scale the size of the node based on its count for the edges of interest,
+               * relative to the range of counts across all nodes.
+               */
+              graph.setNodeAttribute(nodeId, "size", relativeSize);
+            }
+          }
+        }
       }
 
       loadGraph(graph);
 
       layout();
-    }, [layout, loadGraph, sigma, nodes, edges]);
+    }, [config, layout, loadGraph, sigma, nodes, edges]);
 
     return null;
   },
