@@ -8,11 +8,10 @@ import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-id
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
-  type EntityRootType,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
-  type Subgraph,
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, useTheme } from "@mui/material";
@@ -54,6 +53,8 @@ import { TableHeaderToggle } from "./table-header-toggle";
 import type { TableView } from "./table-views";
 import { tableViewIcons } from "./table-views";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
+import type { UrlCellProps } from "./url-cell";
+import { createRenderUrlCell } from "./url-cell";
 
 /**
  * @todo: avoid having to maintain this list, potentially by
@@ -221,8 +222,10 @@ export const EntitiesTable: FunctionComponent<{
 
   const [selectedRows, setSelectedRows] = useState<TypeEntitiesRow[]>([]);
 
-  const [selectedEntitySubgraph, setSelectedEntitySubgraph] =
-    useState<Subgraph<EntityRootType> | null>(null);
+  const [selectedEntity, setSelectedEntity] = useState<{
+    entityId: EntityId;
+    subgraph: Subgraph<EntityRootType>;
+  } | null>(null);
 
   const handleEntityClick = useCallback(
     (entityId: EntityId) => {
@@ -235,7 +238,7 @@ export const EntitiesTable: FunctionComponent<{
           );
         }
 
-        setSelectedEntitySubgraph(entitySubgraph);
+        setSelectedEntity({ entityId, subgraph: entitySubgraph });
       }
     },
     [subgraph],
@@ -387,6 +390,29 @@ export const EntitiesTable: FunctionComponent<{
           const propertyCellValue = columnId && row[columnId];
 
           if (propertyCellValue) {
+            let isUrl = false;
+            try {
+              const url = new URL(propertyCellValue as string);
+              if (url.protocol === "http:" || url.protocol === "https:") {
+                isUrl = true;
+              }
+            } catch {
+              // not a URL
+            }
+
+            if (isUrl) {
+              return {
+                kind: GridCellKind.Custom,
+                data: {
+                  kind: "url-cell",
+                  url: propertyCellValue as string,
+                } satisfies UrlCellProps,
+                copyData: String(propertyCellValue),
+                allowOverlay: false,
+                readonly: true,
+              };
+            }
+
             return {
               kind: GridCellKind.Text,
               allowOverlay: true,
@@ -655,11 +681,20 @@ export const EntitiesTable: FunctionComponent<{
           onClose={() => setSelectedEntityTypeId(null)}
         />
       )}
-      {selectedEntitySubgraph ? (
+      {selectedEntity ? (
         <EditEntitySlideOver
+          /*
+            The subgraphWithLinkedEntities can take a long time to load with many entities.
+            We pass the subgraph without linked entities so that there is _some_ data to load into the editor,
+            which will be missing links. passing entityId below means the slideover fetches the entity
+            with its links, so they'll load in shortly.
+            It's unlikely subgraphWithLinkedEntities will be used but if it happens to be available already,
+            it means the links will load in immediately.
+           */
+          entitySubgraph={selectedEntity.subgraph}
+          entityId={selectedEntity.entityId}
           open
-          entitySubgraph={selectedEntitySubgraph}
-          onClose={() => setSelectedEntitySubgraph(null)}
+          onClose={() => setSelectedEntity(null)}
           readonly
           onSubmit={() => {
             throw new Error(`Editing not yet supported from this screen`);
@@ -745,6 +780,7 @@ export const EntitiesTable: FunctionComponent<{
             createGetCellContent={createGetCellContent}
             customRenderers={[
               createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
+              createRenderUrlCell({ firstColumnLeftPadding: 16 }),
               renderChipCell,
             ]}
             freezeColumns={1}

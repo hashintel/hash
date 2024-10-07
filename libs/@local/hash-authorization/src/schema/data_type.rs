@@ -1,7 +1,8 @@
 use core::error::Error;
 
-use graph_types::{ontology::DataTypeId, owned_by_id::OwnedById};
+use graph_types::owned_by_id::OwnedById;
 use serde::{Deserialize, Serialize};
+use type_system::schema::DataTypeId;
 use uuid::Uuid;
 
 use crate::{

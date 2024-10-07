@@ -22,6 +22,11 @@ fn main() {
         exit(1);
     }
 
+    println!("cargo:rustc-check-cfg=cfg(rust_1_80)");
+    if trimmed_rustc_version >= Version::new(1, 80, 0) {
+        println!("cargo:rustc-cfg=rust_1_80");
+    }
+
     println!("cargo:rustc-check-cfg=cfg(rust_1_81)");
     if trimmed_rustc_version >= Version::new(1, 81, 0) {
         println!("cargo:rustc-cfg=rust_1_81");

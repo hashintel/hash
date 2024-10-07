@@ -9,10 +9,13 @@ use derive_where::derive_where;
 use error_stack::{Report, ResultExt, bail};
 use graph_types::{
     knowledge::entity::{Entity, EntityId},
-    ontology::{DataTypeId, DataTypeProvider, DataTypeWithMetadata},
+    ontology::{DataTypeProvider, DataTypeWithMetadata},
 };
 use serde::{Deserialize, de, de::IntoDeserializer};
-use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
+use type_system::{
+    schema::DataTypeId,
+    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+};
 
 pub use self::{
     parameter::{Parameter, ParameterConversionError, ParameterList, ParameterType},

@@ -20,7 +20,6 @@ mod web;
 use core::future::ready;
 
 use async_scoped::TokioScope;
-use async_trait::async_trait;
 use authorization::{
     AuthorizationApi, NoAuthorization,
     backend::ZanzibarBackend,
@@ -42,7 +41,7 @@ use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{Entity, EntityId, EntityUuid},
     ontology::{
-        DataTypeId, DataTypeWithMetadata, EntityTypeId, EntityTypeWithMetadata, PropertyTypeId,
+        DataTypeWithMetadata, EntityTypeId, EntityTypeWithMetadata, PropertyTypeId,
         PropertyTypeWithMetadata,
     },
     owned_by_id::OwnedById,
@@ -52,7 +51,7 @@ use hash_status::StatusCode;
 use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
 use tokio_postgres::error::SqlState;
-use type_system::url::VersionedUrl;
+use type_system::{schema::DataTypeId, url::VersionedUrl};
 
 use crate::{
     snapshot::{
@@ -229,14 +228,18 @@ impl SnapshotEntry {
     }
 }
 
-#[async_trait]
 trait WriteBatch<C, A> {
-    async fn begin(postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError>;
-    async fn write(self, postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError>;
-    async fn commit(
+    fn begin(
+        postgres_client: &mut PostgresStore<C, A>,
+    ) -> impl Future<Output = Result<(), InsertionError>> + Send;
+    fn write(
+        self,
+        postgres_client: &mut PostgresStore<C, A>,
+    ) -> impl Future<Output = Result<(), InsertionError>> + Send;
+    fn commit(
         postgres_client: &mut PostgresStore<C, A>,
         validation: bool,
-    ) -> Result<(), InsertionError>;
+    ) -> impl Future<Output = Result<(), InsertionError>> + Send;
 }
 
 pub struct SnapshotStore<C, A>(PostgresStore<C, A>);

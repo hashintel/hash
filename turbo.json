@@ -42,7 +42,7 @@
     },
     "start:healthcheck": {
       "cache": false,
-      "dependsOn": ["compile:release", "^start:healthcheck"]
+      "dependsOn": ["compile:release"]
     },
 
     "start:test:migrate": {
@@ -56,7 +56,7 @@
     },
     "start:test:healthcheck": {
       "cache": false,
-      "dependsOn": ["compile", "^start:test:healthcheck"]
+      "dependsOn": ["compile"]
     },
 
     // Test commands

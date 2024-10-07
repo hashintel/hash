@@ -1,23 +1,37 @@
-import { useMutation } from "@apollo/client";
-import { ArrowUpRightRegularIcon } from "@hashintel/design-system";
+import { useMutation, useQuery } from "@apollo/client";
+import { ArrowUpRightRegularIcon, Skeleton } from "@hashintel/design-system";
 import {
   mergePropertyObjectAndMetadata,
   patchesFromPropertyObjects,
 } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
+import {
+  currentTimeInstantTemporalAxes,
+  fullOntologyResolveDepths,
+  mapGqlSubgraphFieldsFragmentToSubgraph,
+} from "@local/hash-isomorphic-utils/graph-queries";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
-import { extractOwnedByIdFromEntityId } from "@local/hash-subgraph";
+import {
+  extractOwnedByIdFromEntityId,
+  splitEntityId,
+} from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Drawer, Stack, Typography } from "@mui/material";
 import { useCallback, useMemo, useState } from "react";
 
 import { useUserOrOrgShortnameByOwnedById } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
 import type {
+  GetEntitySubgraphQuery,
+  GetEntitySubgraphQueryVariables,
   UpdateEntityMutation,
   UpdateEntityMutationVariables,
 } from "../../../../graphql/api-types.gen";
-import { updateEntityMutation } from "../../../../graphql/queries/knowledge/entity.queries";
+import {
+  getEntitySubgraphQuery,
+  updateEntityMutation,
+} from "../../../../graphql/queries/knowledge/entity.queries";
 import { Button, Link } from "../../../../shared/ui";
 import { EntityEditor } from "./entity-editor";
 import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
@@ -25,12 +39,24 @@ import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-en
 import { useDraftLinkState } from "./shared/use-draft-link-state";
 
 interface EditEntitySlideOverProps {
+  /**
+   * Hide the link to open the entity in a new tab.
+   */
   hideOpenInNew?: boolean;
   open: boolean;
   onClose: () => void;
   onSubmit: () => void;
   readonly?: boolean;
-  entitySubgraph: Subgraph<EntityRootType>;
+  /**
+   * If you already have a subgraph with the entity, its types and incoming/outgoing links to a depth of 1, provide it.
+   * If you have a subgraph with partial data (e.g. no links), you can provide it along with `entityId`,
+   * and the missing data will be fetched and loaded in when it is available.
+   */
+  entitySubgraph?: Subgraph<EntityRootType>;
+  /**
+   * If you don't already have the required subgraph, pass the entityId and it will be fetched.
+   */
+  entityId?: EntityId;
 }
 
 /**
@@ -42,10 +68,85 @@ export const EditEntitySlideOver = ({
   onClose,
   onSubmit,
   readonly = false,
-  entitySubgraph,
+  entitySubgraph: providedEntitySubgraph,
+  entityId: providedEntityId,
 }: EditEntitySlideOverProps) => {
+  if (!providedEntityId && !providedEntitySubgraph) {
+    throw new Error(
+      "One or both of entityId or entitySubgraph must be provided",
+    );
+  }
+
   const [localEntitySubgraph, setLocalEntitySubgraph] =
-    useState<Subgraph<EntityRootType>>(entitySubgraph);
+    useState<Subgraph<EntityRootType> | null>(providedEntitySubgraph ?? null);
+
+  const [ownedByIdFromProvidedEntityId, entityUuid, draftId] = providedEntityId
+    ? splitEntityId(providedEntityId)
+    : [];
+
+  /**
+   * If the parent component didn't have the entitySubgraph already available,
+   * we need to fetch it and set it in the local state (from where it will be updated if the user uses the editor form).
+   */
+  const { data: fetchedEntitySubgraph } = useQuery<
+    GetEntitySubgraphQuery,
+    GetEntitySubgraphQueryVariables
+  >(getEntitySubgraphQuery, {
+    fetchPolicy: "cache-and-network",
+    onCompleted: (data) => {
+      const subgraph = mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        data.getEntitySubgraph.subgraph,
+      );
+
+      setLocalEntitySubgraph(subgraph);
+    },
+    variables: {
+      request: {
+        filter: {
+          all: [
+            {
+              equal: [{ path: ["uuid"] }, { parameter: entityUuid }],
+            },
+            {
+              equal: [
+                { path: ["ownedById"] },
+                { parameter: ownedByIdFromProvidedEntityId },
+              ],
+            },
+            ...(draftId
+              ? [
+                  {
+                    equal: [{ path: ["draftId"] }, { parameter: draftId }],
+                  },
+                ]
+              : []),
+          ],
+        },
+        temporalAxes: currentTimeInstantTemporalAxes,
+        graphResolveDepths: {
+          ...fullOntologyResolveDepths,
+          hasLeftEntity: { incoming: 1, outgoing: 1 },
+          hasRightEntity: { incoming: 1, outgoing: 1 },
+        },
+        includeDrafts: !!draftId,
+      },
+      includePermissions: false,
+    },
+  });
+
+  const originalEntitySubgraph = useMemo(() => {
+    if (fetchedEntitySubgraph) {
+      return mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
+        fetchedEntitySubgraph.getEntitySubgraph.subgraph,
+      );
+    }
+
+    if (providedEntitySubgraph) {
+      return providedEntitySubgraph;
+    }
+
+    return null;
+  }, [providedEntitySubgraph, fetchedEntitySubgraph]);
 
   const [savingChanges, setSavingChanges] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -59,7 +160,9 @@ export const EditEntitySlideOver = ({
     if (open) {
       setSavingChanges(false);
       setIsDirty(false);
-      setLocalEntitySubgraph(entitySubgraph);
+      if (originalEntitySubgraph) {
+        setLocalEntitySubgraph(originalEntitySubgraph);
+      }
     }
   }
 
@@ -77,7 +180,7 @@ export const EditEntitySlideOver = ({
   >(updateEntityMutation);
 
   const entityLabel = useMemo(
-    () => generateEntityLabel(localEntitySubgraph),
+    () => (localEntitySubgraph ? generateEntityLabel(localEntitySubgraph) : ""),
     [localEntitySubgraph],
   );
 
@@ -92,26 +195,28 @@ export const EditEntitySlideOver = ({
     onClose();
   }, [onClose, resetEntityEditor]);
 
-  const entity = getRoots(localEntitySubgraph)[0];
+  const entity = localEntitySubgraph ? getRoots(localEntitySubgraph)[0] : null;
 
-  if (!entity) {
-    throw new Error(`No root in entity subgraph`);
-  }
-
-  const ownedById = extractOwnedByIdFromEntityId(
-    entity.metadata.recordId.entityId,
-  );
+  const ownedById =
+    ownedByIdFromProvidedEntityId ??
+    (entity
+      ? extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId)
+      : null);
 
   const { shortname: entityOwningShortname } = useUserOrOrgShortnameByOwnedById(
     { ownedById },
   );
 
   const handleSaveChanges = useCallback(async () => {
+    if (!localEntitySubgraph || !originalEntitySubgraph) {
+      throw new Error(`No original entity available`);
+    }
+
     const draftEntity = getRoots(localEntitySubgraph)[0];
-    const oldEntity = getRoots(entitySubgraph)[0];
+    const oldEntity = getRoots(originalEntitySubgraph)[0];
 
     if (!oldEntity) {
-      throw new Error(`No entity provided in entitySubgraph`);
+      throw new Error(`No original entity available in originalEntitySubgraph`);
     }
 
     if (!draftEntity) {
@@ -157,7 +262,7 @@ export const EditEntitySlideOver = ({
     applyDraftLinkEntityChanges,
     draftLinksToArchive,
     draftLinksToCreate,
-    entitySubgraph,
+    originalEntitySubgraph,
     localEntitySubgraph,
     onSubmit,
     resetEntityEditor,
@@ -177,6 +282,7 @@ export const EditEntitySlideOver = ({
           p: 5,
           gap: 6.5,
           maxWidth: 1200,
+          height: "100%",
           width: "calc(100vw - 200px)",
           [theme.breakpoints.down("md")]: {
             width: "100%",
@@ -184,56 +290,70 @@ export const EditEntitySlideOver = ({
         }),
       }}
     >
-      <Stack alignItems="center" direction="row">
-        <Typography variant="h2" color="gray.90" fontWeight="bold">
-          {entityLabel}
-        </Typography>
-        {entityOwningShortname && !hideOpenInNew && (
-          <Link
-            href={generateEntityPath({
-              shortname: entityOwningShortname,
-              entityId: entity.metadata.recordId.entityId,
-              includeDraftId: true,
-            })}
-            target="_blank"
-          >
-            <ArrowUpRightRegularIcon
-              sx={{
-                fill: ({ palette }) => palette.blue[70],
-                fontSize: 20,
-                ml: 0.8,
-              }}
-            />
-          </Link>
-        )}
-      </Stack>
+      {!entity || !localEntitySubgraph ? (
+        <Stack gap={3}>
+          <Skeleton height={60} />
+          <Skeleton height={90} />
+          <Skeleton height={500} />
+        </Stack>
+      ) : (
+        <>
+          <Stack alignItems="center" direction="row">
+            <Typography variant="h2" color="gray.90" fontWeight="bold">
+              {entityLabel}
+            </Typography>
+            {entityOwningShortname && !hideOpenInNew && (
+              <Link
+                href={generateEntityPath({
+                  shortname: entityOwningShortname,
+                  entityId: entity.metadata.recordId.entityId,
+                  includeDraftId: true,
+                })}
+                target="_blank"
+              >
+                <ArrowUpRightRegularIcon
+                  sx={{
+                    fill: ({ palette }) => palette.blue[70],
+                    fontSize: 20,
+                    ml: 0.8,
+                  }}
+                />
+              </Link>
+            )}
+          </Stack>
 
-      <EntityEditor
-        readonly={readonly}
-        onEntityUpdated={null}
-        entitySubgraph={localEntitySubgraph}
-        setEntity={(newEntity) => {
-          setIsDirty(true);
-          updateEntitySubgraphStateByEntity(
-            newEntity,
-            (updatedEntitySubgraphOrFunction) => {
-              setLocalEntitySubgraph((prev) => {
-                const updatedEntitySubgraph =
-                  typeof updatedEntitySubgraphOrFunction === "function"
-                    ? updatedEntitySubgraphOrFunction(prev)
-                    : updatedEntitySubgraphOrFunction;
+          <EntityEditor
+            readonly={readonly}
+            onEntityUpdated={null}
+            entitySubgraph={localEntitySubgraph}
+            setEntity={(newEntity) => {
+              setIsDirty(true);
+              updateEntitySubgraphStateByEntity(
+                newEntity,
+                (updatedEntitySubgraphOrFunction) => {
+                  setLocalEntitySubgraph((prev) => {
+                    if (!prev) {
+                      throw new Error(`No previous subgraph to update`);
+                    }
 
-                return updatedEntitySubgraph ?? prev;
-              });
-            },
-          );
-        }}
-        isDirty={isDirty}
-        draftLinksToCreate={draftLinksToCreate}
-        setDraftLinksToCreate={setDraftLinksToCreate}
-        draftLinksToArchive={draftLinksToArchive}
-        setDraftLinksToArchive={setDraftLinksToArchive}
-      />
+                    const updatedEntitySubgraph =
+                      typeof updatedEntitySubgraphOrFunction === "function"
+                        ? updatedEntitySubgraphOrFunction(prev)
+                        : updatedEntitySubgraphOrFunction;
+
+                    return updatedEntitySubgraph ?? prev;
+                  });
+                },
+              );
+            }}
+            isDirty={isDirty}
+            draftLinksToCreate={draftLinksToCreate}
+            setDraftLinksToCreate={setDraftLinksToCreate}
+            draftLinksToArchive={draftLinksToArchive}
+            setDraftLinksToArchive={setDraftLinksToArchive}
+          />
+        </>
+      )}
 
       {!readonly && (
         <Stack direction="row" gap={3}>

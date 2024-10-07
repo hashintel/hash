@@ -1,12 +1,11 @@
 use std::collections::HashMap;
 
-use async_trait::async_trait;
 use authorization::{
     AuthorizationApi, backend::ZanzibarBackend, schema::DataTypeRelationAndSubject,
 };
 use error_stack::{Result, ResultExt};
-use graph_types::ontology::DataTypeId;
 use tokio_postgres::GenericClient;
+use type_system::schema::DataTypeId;
 
 use crate::{
     snapshot::WriteBatch,
@@ -23,7 +22,6 @@ pub enum DataTypeRowBatch {
     Embeddings(Vec<DataTypeEmbeddingRow<'static>>),
 }
 
-#[async_trait]
 impl<C, A> WriteBatch<C, A> for DataTypeRowBatch
 where
     C: AsClient,

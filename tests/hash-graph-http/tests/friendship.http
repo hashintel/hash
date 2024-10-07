@@ -287,7 +287,7 @@ X-Authenticated-User-Actor-Id: {{account_id}}
     "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
     "kind": "dataType",
     "title": "Meter",
-    "allOf": [{ "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/value/v/1" }],
+    "allOf": [{ "$ref": "http://localhost:3000/@alice/types/data-type/length/v/1" }],
     "type": "number",
     "description": "A unit of length equal to 100 centimeters",
     "minimum": 0

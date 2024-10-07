@@ -156,8 +156,8 @@ build *arguments:
 # Run the test suite
 [no-cd]
 test *arguments: install-cargo-nextest install-cargo-hack
-  cargo hack --optional-deps --feature-powerset nextest run --cargo-profile {{profile}} {{arguments}}
-  cargo test --profile {{profile}} --all-features --doc
+  cargo hack --optional-deps --feature-powerset nextest run {{arguments}}
+  cargo test --all-features --doc
 
 # Run the test suite with `miri`
 [no-cd]
@@ -172,8 +172,8 @@ bench *arguments:
 # Run the test suite and generate a coverage report
 [no-cd]
 coverage *arguments: install-llvm-cov
-  cargo llvm-cov nextest --all-features --all-targets --cargo-profile {{profile}} {{arguments}}
-  cargo llvm-cov --all-features --profile {{profile}} --doc {{arguments}}
+  cargo llvm-cov nextest --all-features --all-targets --cargo-profile coverage {{arguments}}
+  cargo llvm-cov --all-features --profile coverage --doc {{arguments}}
 
 # Run the test suite and optionally generate a coverage report when `$TEST_COVERAGE` is set to `true`
 [no-cd]
