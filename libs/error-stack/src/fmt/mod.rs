@@ -691,7 +691,7 @@ impl Display for LineDisplay<'_> {
 struct Lines(VecDeque<Line>);
 
 impl Lines {
-    fn new() -> Self {
+    const fn new() -> Self {
         Self(VecDeque::new())
     }
 
