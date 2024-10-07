@@ -169,11 +169,13 @@ pub(crate) struct TransactionParts<P> {
     pub permit: P,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TransactionContext {
     id: RequestId,
 
-    peer: PeerId,
+    // The PeerId is 80 bytes in size and completely balloons the size of the context, from `32` to
+    // `104` bytes.
+    peer: Box<PeerId>,
     session: SessionId,
 
     service: ServiceDescriptor,
@@ -187,8 +189,8 @@ impl TransactionContext {
     }
 
     #[must_use]
-    pub const fn peer(&self) -> PeerId {
-        self.peer
+    pub fn peer(&self) -> PeerId {
+        *self.peer
     }
 
     #[must_use]
@@ -243,7 +245,7 @@ impl Transaction {
         let transaction = Self {
             context: TransactionContext {
                 id: permit.id(),
-                peer,
+                peer: Box::new(peer),
                 session,
                 service: body.service,
                 procedure: body.procedure,
@@ -268,8 +270,8 @@ impl Transaction {
     }
 
     #[must_use]
-    pub const fn context(&self) -> TransactionContext {
-        self.context
+    pub const fn context(&self) -> &TransactionContext {
+        &self.context
     }
 
     pub fn into_parts(self) -> (TransactionContext, TransactionSink, TransactionStream) {

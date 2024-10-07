@@ -1,0 +1,17 @@
+{
+  "name": "@rust/harpc-server",
+  "version": "0.0.0-private",
+  "private": true,
+  "license": "AGPL-3",
+  "dependencies": {
+    "@rust/error-stack": "0.5.0",
+    "@rust/harpc-net": "0.0.0-private",
+    "@rust/harpc-service": "0.0.0-private",
+    "@rust/harpc-tower": "0.0.0-private",
+    "@rust/harpc-types": "0.0.0-private",
+    "@rust/harpc-wire-protocol": "0.0.0-private"
+  },
+  "devDependencies": {
+    "@rust/graph-types": "0.0.0-private"
+  }
+}
