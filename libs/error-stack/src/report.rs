@@ -1,24 +1,19 @@
 #[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{boxed::Box, vec, vec::Vec};
-#[cfg(rust_1_81)]
-use core::error::Error;
-use core::{fmt, marker::PhantomData, mem, panic::Location};
+use core::{error::Error, fmt, marker::PhantomData, mem, panic::Location};
 #[cfg(feature = "backtrace")]
 use std::backtrace::{Backtrace, BacktraceStatus};
-#[cfg(all(feature = "std", not(rust_1_81)))]
-use std::error::Error;
 #[cfg(feature = "std")]
 use std::process::ExitCode;
 
 #[cfg(feature = "spantrace")]
 use tracing_error::{SpanTrace, SpanTraceStatus};
 
-#[cfg(any(feature = "std", rust_1_81))]
-use crate::context::SourceContext;
 #[cfg(nightly)]
 use crate::iter::{RequestRef, RequestValue};
 use crate::{
     Context, Frame,
+    context::SourceContext,
     iter::{Frames, FramesMut},
 };
 
@@ -273,7 +268,6 @@ impl<C> Report<C> {
     where
         C: Context,
     {
-        #[cfg(any(feature = "std", rust_1_81))]
         if let Some(mut current_source) = context.__source() {
             // The sources needs to be applied in reversed order, so we buffer them in a vector
             let mut sources = vec![SourceContext::from_error(current_source)];
@@ -460,7 +454,6 @@ impl<C> Report<C> {
 
     /// Converts this `Report` to an [`Error`].
     #[must_use]
-    #[cfg(any(feature = "std", rust_1_81))]
     pub fn into_error(self) -> impl Error + Send + Sync + 'static
     where
         C: 'static,
@@ -470,7 +463,6 @@ impl<C> Report<C> {
 
     /// Returns this `Report` as an [`Error`].
     #[must_use]
-    #[cfg(any(feature = "std", rust_1_81))]
     pub fn as_error(&self) -> &(impl Error + Send + Sync + 'static)
     where
         C: 'static,
@@ -868,28 +860,24 @@ impl<C> Report<[C]> {
     }
 }
 
-#[cfg(any(feature = "std", rust_1_81))]
 impl<C: 'static> From<Report<C>> for Box<dyn Error> {
     fn from(report: Report<C>) -> Self {
         Box::new(report.into_error())
     }
 }
 
-#[cfg(any(feature = "std", rust_1_81))]
 impl<C: 'static> From<Report<C>> for Box<dyn Error + Send> {
     fn from(report: Report<C>) -> Self {
         Box::new(report.into_error())
     }
 }
 
-#[cfg(any(feature = "std", rust_1_81))]
 impl<C: 'static> From<Report<C>> for Box<dyn Error + Sync> {
     fn from(report: Report<C>) -> Self {
         Box::new(report.into_error())
     }
 }
 
-#[cfg(any(feature = "std", rust_1_81))]
 impl<C: 'static> From<Report<C>> for Box<dyn Error + Send + Sync> {
     fn from(report: Report<C>) -> Self {
         Box::new(report.into_error())

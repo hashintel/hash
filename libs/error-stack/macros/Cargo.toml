@@ -3,7 +3,7 @@ name = "error-stack-macros"
 version = "0.0.0-reserved"
 authors = { workspace = true }
 edition = "2021"
-rust-version = "1.63.0"
+rust-version = "1.83.0"
 license = "MIT OR Apache-2.0"
 description = "Macros for the `error-stack` crate"
 documentation = "https://docs.rs/error-stack"

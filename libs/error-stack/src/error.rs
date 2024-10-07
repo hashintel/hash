@@ -1,12 +1,6 @@
-#![cfg(any(feature = "std", rust_1_81))]
-
-#[cfg(rust_1_81)]
-use core::error::Error;
 #[cfg(nightly)]
 use core::error::Request;
-use core::fmt;
-#[cfg(all(feature = "std", not(rust_1_81)))]
-use std::error::Error;
+use core::{error::Error, fmt, ptr};
 
 use crate::Report;
 
@@ -20,7 +14,7 @@ impl<C> ReportError<C> {
 
     pub(crate) const fn from_ref(report: &Report<C>) -> &Self {
         // SAFETY: `ReportError` is a `repr(transparent)` wrapper around `Report`.
-        unsafe { &*(report as *const Report<C>).cast() }
+        unsafe { &*ptr::from_ref(report).cast() }
     }
 }
 
@@ -36,7 +30,6 @@ impl<C> fmt::Display for ReportError<C> {
     }
 }
 
-#[cfg(any(feature = "std", rust_1_81))]
 impl<C> Error for ReportError<C> {
     #[cfg(nightly)]
     fn provide<'a>(&'a self, request: &mut Request<'a>) {
