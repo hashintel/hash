@@ -379,6 +379,7 @@ dependencies = [
  "tokio",
  "tokio-util",
  "tracing",
+ "type-system",
  "utoipa",
  "uuid",
 ]

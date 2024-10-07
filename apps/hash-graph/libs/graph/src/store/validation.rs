@@ -14,7 +14,7 @@ use graph_types::{
     account::AccountId,
     knowledge::entity::{Entity, EntityId},
     ontology::{
-        DataTypeId, DataTypeProvider, DataTypeWithMetadata, EntityTypeId, EntityTypeProvider,
+        DataTypeProvider, DataTypeWithMetadata, EntityTypeId, EntityTypeProvider,
         EntityTypeWithMetadata, OntologyTypeProvider, PropertyTypeId, PropertyTypeProvider,
         PropertyTypeWithMetadata,
     },
@@ -28,7 +28,9 @@ use hash_graph_store::{
 use tokio::sync::RwLock;
 use tokio_postgres::GenericClient;
 use type_system::{
-    schema::{ClosedEntityType, ConversionDefinition, ConversionExpression, PropertyType},
+    schema::{
+        ClosedEntityType, ConversionDefinition, ConversionExpression, DataTypeId, PropertyType,
+    },
     url::{BaseUrl, VersionedUrl},
 };
 use validation::EntityProvider;

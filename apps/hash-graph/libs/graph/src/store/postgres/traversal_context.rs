@@ -5,7 +5,7 @@ use error_stack::Result;
 use graph_types::{
     knowledge::entity::{Entity, EntityEditionId},
     ontology::{
-        DataTypeId, DataTypeWithMetadata, EntityTypeId, EntityTypeWithMetadata, PropertyTypeId,
+        DataTypeWithMetadata, EntityTypeId, EntityTypeWithMetadata, PropertyTypeId,
         PropertyTypeWithMetadata,
     },
 };
@@ -18,6 +18,7 @@ use hash_graph_store::{
     subgraph::{Subgraph, SubgraphRecord, edges::GraphResolveDepths, temporal_axes::VariableAxis},
 };
 use temporal_versioning::RightBoundedTemporalInterval;
+use type_system::schema::DataTypeId;
 
 use crate::store::{AsClient, PostgresStore, QueryError, crud::Read};
 

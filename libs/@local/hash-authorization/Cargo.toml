@@ -17,7 +17,8 @@ futures-core = { workspace = true, public = true }
 
 # Private workspace dependencies
 codec = { workspace = true }
-error-stack = { workspace = true, features = ["unstable"]}
+type-system = { workspace = true }
+error-stack = { workspace = true, features = ["unstable"] }
 
 # Private third-party dependencies
 derive-where = { workspace = true }
@@ -30,7 +31,7 @@ tokio = { workspace = true }
 tokio-util = { workspace = true, features = ["io"] }
 tracing = { workspace = true, features = ["attributes"] }
 utoipa = { workspace = true, optional = true }
-uuid = { workspace = true, default-features = false, features = ["v5"] }
+uuid = { workspace = true, default-features = false }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

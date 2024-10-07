@@ -10,8 +10,7 @@ use futures::{
     channel::mpsc::{self, Receiver, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };
-use graph_types::ontology::DataTypeId;
-use type_system::Valid;
+use type_system::{Valid, schema::DataTypeId};
 
 use crate::{
     snapshot::{
@@ -61,7 +60,7 @@ impl Sink<DataTypeSnapshotRecord> for DataTypeSender {
         mut self: Pin<&mut Self>,
         data_type: DataTypeSnapshotRecord,
     ) -> Result<(), Self::Error> {
-        let ontology_id = DataTypeId::from_record_id(&data_type.metadata.record_id);
+        let ontology_id = DataTypeId::from_url(&data_type.schema.id);
 
         self.metadata
             .start_send_unpin(OntologyTypeMetadata {
