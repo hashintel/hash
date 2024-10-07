@@ -77,7 +77,7 @@ impl<T> From<T> for RefOrBox<'_, T> {
 }
 
 #[cfg(feature = "serde")]
-impl<'a, T> serde::Serialize for RefOrBox<'a, T>
+impl<T> serde::Serialize for RefOrBox<'_, T>
 where
     T: serde::Serialize,
 {
@@ -93,7 +93,7 @@ where
 }
 
 #[cfg(feature = "serde")]
-impl<'a, 'de, T> serde::Deserialize<'de> for RefOrBox<'a, T>
+impl<'de, T> serde::Deserialize<'de> for RefOrBox<'_, T>
 where
     T: serde::Deserialize<'de>,
 {
