@@ -32,7 +32,7 @@ impl Display for Path<'_> {
     }
 }
 
-impl<'arena, 'source> From<Path<'arena>> for ExprKind<'arena, 'source> {
+impl<'arena> From<Path<'arena>> for ExprKind<'arena, '_> {
     fn from(path: Path<'arena>) -> Self {
         Self::Path(path)
     }

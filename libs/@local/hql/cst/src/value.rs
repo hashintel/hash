@@ -21,15 +21,15 @@ pub struct ObjectKey<'source> {
     pub value: Cow<'source, str>,
 }
 
-impl<'source> PartialEq for ObjectKey<'source> {
+impl PartialEq for ObjectKey<'_> {
     fn eq(&self, other: &Self) -> bool {
         self.value == other.value
     }
 }
 
-impl<'source> Eq for ObjectKey<'source> {}
+impl Eq for ObjectKey<'_> {}
 
-impl<'source> Hash for ObjectKey<'source> {
+impl Hash for ObjectKey<'_> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.value.hash(state);
     }

@@ -18,7 +18,7 @@ pub(crate) struct TokenStream<'arena, 'source> {
     pub stack: Option<Vec<jsonptr::Token<'static>>>,
 }
 
-impl<'arena, 'source> TokenStream<'arena, 'source> {
+impl<'source> TokenStream<'_, 'source> {
     pub(crate) fn next_or_err(&mut self) -> Result<Token<'source>, Diagnostic<'static, SpanId>> {
         let Some(token) = self.lexer.advance() else {
             let span = Span {

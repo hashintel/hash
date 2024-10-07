@@ -20,7 +20,7 @@ impl<'de, T: Deserialize<'de>> Deserialize<'de> for Reverse<T> {
 
 struct OrderingVisitor;
 
-impl<'de> Visitor<'de> for OrderingVisitor {
+impl Visitor<'_> for OrderingVisitor {
     type Value = Ordering;
 
     fn expecting(&self) -> Document {

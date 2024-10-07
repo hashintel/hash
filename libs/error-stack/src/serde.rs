@@ -22,7 +22,7 @@ use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
 struct SerializeAttachment<'a>(&'a Frame);
 
-impl<'a> Serialize for SerializeAttachment<'a> {
+impl Serialize for SerializeAttachment<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -50,7 +50,7 @@ impl<'a> Serialize for SerializeAttachment<'a> {
 
 struct SerializeAttachmentList<'a, 'b>(&'a [&'b Frame]);
 
-impl<'a, 'b> Serialize for SerializeAttachmentList<'a, 'b> {
+impl Serialize for SerializeAttachmentList<'_, '_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -77,7 +77,7 @@ struct SerializeContext<'a> {
     sources: &'a [Frame],
 }
 
-impl<'a> Serialize for SerializeContext<'a> {
+impl Serialize for SerializeContext<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
@@ -99,7 +99,7 @@ impl<'a> Serialize for SerializeContext<'a> {
 
 struct SerializeSources<'a>(&'a [Frame]);
 
-impl<'a> Serialize for SerializeSources<'a> {
+impl Serialize for SerializeSources<'_> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,

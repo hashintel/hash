@@ -815,7 +815,7 @@ pub(crate) mod test {
         _marker: PhantomData<fn() -> *const E>,
     }
 
-    impl<'a, 'b, E: Variant> Serialize for SerializeFrame<'a, 'b, E> {
+    impl<E: Variant> Serialize for SerializeFrame<'_, '_, E> {
         fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
             S: Serializer,

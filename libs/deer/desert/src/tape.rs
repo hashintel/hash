@@ -36,7 +36,7 @@ pub(crate) struct Tape<'de> {
     trivia: Trivia,
 }
 
-impl<'de> Tape<'de> {
+impl Tape<'_> {
     // also includes trivia
     fn peek_all_n(&self, n: usize) -> Option<Token> {
         self.tokens.get(n).cloned()

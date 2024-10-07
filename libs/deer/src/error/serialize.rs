@@ -20,7 +20,7 @@ struct Message<'a, 'b, E: Variant> {
     properties: &'b <E::Properties as ErrorProperties>::Value<'a>,
 }
 
-impl<'a, 'b, E: Variant> Display for Message<'a, 'b, E> {
+impl<E: Variant> Display for Message<'_, '_, E> {
     fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         self.context.message(fmt, self.properties)
     }
@@ -45,7 +45,7 @@ impl<'a, E: Variant> SerializeErrorProperties<'a, E> {
     }
 }
 
-impl<'a, E: Variant> Serialize for SerializeErrorProperties<'a, E> {
+impl<E: Variant> Serialize for SerializeErrorProperties<'_, E> {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
         S: Serializer,
