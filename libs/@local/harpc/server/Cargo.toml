@@ -29,7 +29,7 @@ futures.workspace = true
 scc.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["macros"] }
-tokio-util.workspace = true
+tokio-util = { workspace = true, features = ["rt"] }
 tower = { workspace = true, public = true }
 tracing.workspace = true
 

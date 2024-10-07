@@ -7,18 +7,23 @@ use harpc_tower::{
     response::BoxedResponse,
 };
 use tokio::pin;
+use tokio_util::task::TaskTracker;
 use tower::{Service, ServiceExt};
 
 // TODO: do we want `BoxedResponse` to be `!`? or is there a better way of doing this? We could have
 // a body that takes any E and converts it to a `!` error (by adding a `TransactionError` and
 // terminating)
-pub async fn serve<M, S>(stream: impl Stream<Item = Transaction> + Send, mut make_service: M)
+pub async fn serve<M, S>(
+    stream: impl Stream<Item = Transaction> + Send,
+    mut make_service: M,
+) -> TaskTracker
 where
     M: Service<(), Response = S, Error = !, Future: Send> + Send,
     S: Service<Request<RequestBody>, Response = BoxedResponse<!>, Error = !, Future: Send>
         + Send
         + 'static,
 {
+    let tasks = TaskTracker::new();
     pin!(stream);
 
     #[expect(
@@ -33,7 +38,7 @@ where
 
         let Ok(service): Result<S, !> = make_service.call(()).await;
 
-        tokio::spawn(async move {
+        tasks.spawn(async move {
             let Ok(response): Result<BoxedResponse<!>, !> = service.oneshot(request).await;
             let response = response.into_body();
 
@@ -43,4 +48,7 @@ where
             }
         });
     }
+
+    tasks.close();
+    tasks
 }
