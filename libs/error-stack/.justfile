@@ -6,7 +6,7 @@ set fallback
 default:
   @just usage
 
-cargo-hack-groups := '--group-features eyre,hooks --group-features anyhow,serde'
+cargo-hack-groups := '--group-features eyre,hooks --group-features anyhow,serde --group-features futures,unstable'
 profile := env_var_or_default('PROFILE', "dev")
 repo := `git rev-parse --show-toplevel`
 
