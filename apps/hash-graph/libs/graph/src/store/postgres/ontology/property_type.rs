@@ -16,7 +16,7 @@ use graph_types::{
     Embedding,
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
-        DataTypeId, OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
+        OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, OntologyTypeRecordId, PropertyTypeId,
         PropertyTypeMetadata, PropertyTypeWithMetadata,
     },
@@ -36,7 +36,7 @@ use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
     Validator,
-    schema::PropertyTypeValidator,
+    schema::{DataTypeId, PropertyTypeValidator},
     url::{OntologyTypeVersion, VersionedUrl},
 };
 

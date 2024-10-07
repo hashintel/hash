@@ -8,7 +8,7 @@ use graph_types::{
         },
         property::{PropertyMetadataObject, PropertyObject, PropertyProvenance},
     },
-    ontology::{DataTypeId, EntityTypeId, OntologyEditionProvenance, PropertyTypeId},
+    ontology::{EntityTypeId, OntologyEditionProvenance, PropertyTypeId},
     owned_by_id::OwnedById,
 };
 use postgres_types::ToSql;
@@ -16,7 +16,9 @@ use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, Timestamp, T
 use time::OffsetDateTime;
 use type_system::{
     Valid,
-    schema::{ClosedEntityType, ConversionDefinition, DataType, EntityType, PropertyType},
+    schema::{
+        ClosedEntityType, ConversionDefinition, DataType, DataTypeId, EntityType, PropertyType,
+    },
     url::{BaseUrl, OntologyTypeVersion},
 };
 

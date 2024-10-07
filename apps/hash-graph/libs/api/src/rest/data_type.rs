@@ -36,7 +36,7 @@ use graph::{
 };
 use graph_types::{
     ontology::{
-        DataTypeId, DataTypeMetadata, DataTypeWithMetadata, OntologyTemporalMetadata,
+        DataTypeMetadata, DataTypeWithMetadata, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
         ProvidedOntologyEditionProvenance,
     },
@@ -50,7 +50,7 @@ use time::OffsetDateTime;
 use type_system::{
     schema::{
         ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
-        Operator, Variable,
+        DataTypeId, Operator, Variable,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };

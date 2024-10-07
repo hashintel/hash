@@ -5,12 +5,15 @@ use error_stack::{Context, Report, ResultExt, bail};
 use graph_types::{
     Embedding,
     knowledge::entity::EntityEditionId,
-    ontology::{DataTypeId, EntityTypeId, PropertyTypeId},
+    ontology::{EntityTypeId, PropertyTypeId},
 };
 use serde::Deserialize;
 use serde_json::{Number as JsonNumber, Value as JsonValue};
 use temporal_versioning::Timestamp;
-use type_system::url::{OntologyTypeVersion, VersionedUrl};
+use type_system::{
+    schema::DataTypeId,
+    url::{OntologyTypeVersion, VersionedUrl},
+};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Deserialize)]

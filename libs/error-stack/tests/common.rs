@@ -21,10 +21,14 @@ use core::{
 };
 #[cfg(feature = "backtrace")]
 use std::backtrace::Backtrace;
+#[allow(unused_imports)]
+#[cfg(all(rust_1_80, feature = "std"))]
+use std::sync::LazyLock;
 
 use error_stack::{AttachmentKind, Context, Frame, FrameKind, Report, Result};
 #[allow(unused_imports)]
-use once_cell::sync::Lazy;
+#[cfg(not(all(rust_1_80, feature = "std")))]
+use once_cell::sync::Lazy as LazyLock;
 #[cfg(feature = "spantrace")]
 use tracing_error::SpanTrace;
 
@@ -211,7 +215,7 @@ pub fn frame_kinds<E>(report: &Report<E>) -> Vec<FrameKind> {
 
 #[cfg(feature = "backtrace")]
 pub fn supports_backtrace() -> bool {
-    static STATE: Lazy<bool> = Lazy::new(|| {
+    static STATE: LazyLock<bool> = LazyLock::new(|| {
         let bt = std::backtrace::Backtrace::capture();
         bt.status() == std::backtrace::BacktraceStatus::Captured
     });
@@ -221,7 +225,7 @@ pub fn supports_backtrace() -> bool {
 
 #[cfg(feature = "spantrace")]
 pub fn supports_spantrace() -> bool {
-    static STATE: Lazy<bool> = Lazy::new(|| {
+    static STATE: LazyLock<bool> = LazyLock::new(|| {
         let st = tracing_error::SpanTrace::capture();
         st.status() == tracing_error::SpanTraceStatus::CAPTURED
     });

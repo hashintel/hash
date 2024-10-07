@@ -4,8 +4,8 @@ use authorization::{
     AuthorizationApi, backend::ZanzibarBackend, schema::DataTypeRelationAndSubject,
 };
 use error_stack::{Result, ResultExt};
-use graph_types::ontology::DataTypeId;
 use tokio_postgres::GenericClient;
+use type_system::schema::DataTypeId;
 
 use crate::{
     snapshot::WriteBatch,

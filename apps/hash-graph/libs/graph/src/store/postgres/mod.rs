@@ -23,7 +23,7 @@ use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::{AccountGroupId, AccountId, EditionArchivedById},
     ontology::{
-        DataTypeId, OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
+        OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
         OntologyTypeClassificationMetadata, OntologyTypeRecordId,
     },
     owned_by_id::OwnedById,
@@ -44,8 +44,8 @@ use tokio_postgres::{GenericClient, error::SqlState};
 use type_system::{
     Valid,
     schema::{
-        ClosedDataTypeMetadata, ClosedEntityType, Conversions, DataType, DataTypeReference,
-        EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
+        ClosedEntityType, Conversions, DataType, DataTypeId, DataTypeInheritanceData,
+        DataTypeReference, EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
@@ -459,9 +459,9 @@ where
     pub async fn insert_data_type_references(
         &self,
         ontology_id: DataTypeId,
-        metadata: &ClosedDataTypeMetadata,
+        metadata: &DataTypeInheritanceData,
     ) -> Result<(), InsertionError> {
-        for (target, &depth) in &metadata.inheritance_depths {
+        for (target, depth) in &metadata.inheritance_depths {
             self.as_client()
                 .query(
                     "
@@ -475,11 +475,7 @@ where
                             $3
                         );
                     ",
-                    &[
-                        &ontology_id,
-                        &DataTypeId::from_url(target),
-                        &i32::try_from(depth).change_context(InsertionError)?,
-                    ],
+                    &[&ontology_id, target, depth],
                 )
                 .await
                 .change_context(InsertionError)?;

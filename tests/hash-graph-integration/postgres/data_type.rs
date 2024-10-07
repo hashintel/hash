@@ -16,8 +16,7 @@ use graph_types::{
         },
     },
     ontology::{
-        DataTypeId, DataTypeWithMetadata, OntologyTypeClassificationMetadata,
-        ProvidedOntologyEditionProvenance,
+        DataTypeWithMetadata, OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
 };
@@ -32,7 +31,7 @@ use serde_json::json;
 use temporal_versioning::TemporalBound;
 use time::OffsetDateTime;
 use type_system::{
-    schema::DataType,
+    schema::{DataType, DataTypeId},
     url::{BaseUrl, VersionedUrl},
 };
 

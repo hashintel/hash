@@ -10,8 +10,8 @@ use futures::{
     channel::mpsc::{self, Receiver, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };
-use graph_types::ontology::{DataTypeId, PropertyTypeId};
-use type_system::Valid;
+use graph_types::ontology::PropertyTypeId;
+use type_system::{Valid, schema::DataTypeId};
 
 use crate::{
     snapshot::{
