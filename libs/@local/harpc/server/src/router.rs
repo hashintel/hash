@@ -5,7 +5,10 @@ use core::{
 };
 
 use frunk::{HCons, HNil};
-use futures::future::Either;
+use futures::{
+    FutureExt,
+    future::{Either, Map},
+};
 use harpc_net::codec::ErrorEncoder;
 use harpc_service::delegate::ServiceDelegate;
 use harpc_tower::{
@@ -26,9 +29,37 @@ pub struct Handler<S> {
     inner: S,
 }
 
+/// Route requests to the appropriate handler based on the request's service and version.
+///
+/// This is essentially a type-level linked list of handlers, it's boxed equivalent is [`Steer`],
+/// but unlike [`Steer`] it doesn't require the same type for all handlers and a separation of both
+/// the meta information (service id and version) and the actual handler. Unlike [`Steer`], it also
+/// doesn't require `&mut self` access, which allows for more granular cloning.
+///
+/// The reason why we essentially require `Clone`/`Copy` for the handlers is that once the route is
+/// constructed it needs to be available for each request that happens, now, there are multiple ways
+/// to achieve this.
+///
+/// One way would be to simply clone the entire [`Router`] during each request, but that has the
+/// downside of potentially cloning a lot of data that isn't actually required for each request,
+/// making the addition of new handlers slower and slower.
+/// The other solution instead would be to `Mutex` the entire [`Router`], but that would make the
+/// entire [`Router`] essentially single-threaded, which is not ideal.
+///
+/// This takes a middle ground, which is similar in implementation to other tower-based frameworks,
+/// such as axum. The inner routes are stored in an `Arc<T>`, which is cheap to clone, but means we
+/// need to require `&self` during routing. Once a route was chosen, we simply clone the service
+/// (and oneshot) the service. This keeps the cloned data minimal and allows for multi-threading.
+///
+/// The downside is that we're unable to keep any state in a service delegate that's persisted
+/// across invocations. To signal this, `ServiceDelegate` takes `self` and consumes it (even though
+/// it isn't strictly needed), as well as the use of sessions. To store any information across
+/// calls, one must make use of smart pointers, such as `Arc`.
+///
+/// [`Steer`]: https://docs.rs/tower/latest/tower/steer/struct.Steer.html
 pub trait Route<B, C> {
     type ResponseBodyError;
-    type Future: Future<Output = Result<BoxedResponse<Self::ResponseBodyError>, !>> + Send;
+    type Future: Future<Output = BoxedResponse<Self::ResponseBodyError>> + Send;
 
     fn call(&self, request: Request<B>, codec: C) -> Self::Future
     where
@@ -47,7 +78,12 @@ where
     Tail: Route<B, C, ResponseBodyError = E> + Send,
     B: Send,
 {
-    type Future = Either<Oneshot<Svc, Request<B>>, Tail::Future>;
+    // cannot use `impl Future` here, as it would require additional constraints on the associated
+    // type, that are already present on the `call` method.
+    type Future = Either<
+        Map<Oneshot<Svc, Request<B>>, fn(Result<BoxedResponse<E>, !>) -> BoxedResponse<E>>,
+        Tail::Future,
+    >;
     type ResponseBodyError = E;
 
     fn call(&self, request: Request<B>, codec: C) -> Self::Future
@@ -62,7 +98,7 @@ where
         {
             let service = self.head.inner.clone();
 
-            Either::Left(service.oneshot(request))
+            Either::Left(service.oneshot(request).map(|Ok(response)| response))
         } else {
             Either::Right(self.tail.call(request, codec))
         }
@@ -76,7 +112,7 @@ where
 {
     type ResponseBodyError = !;
 
-    type Future = impl Future<Output = Result<BoxedResponse<!>, !>> + Send;
+    type Future = impl Future<Output = BoxedResponse<!>> + Send;
 
     fn call(&self, request: Request<B>, codec: C) -> Self::Future
     where
@@ -93,7 +129,7 @@ where
         async move {
             let error = codec.encode_error(error).await;
 
-            Ok(Response::from_error(Parts::new(session), error).map_body(BodyExt::boxed))
+            Response::from_error(Parts::new(session), error).map_body(BodyExt::boxed)
         }
     }
 }
@@ -212,7 +248,7 @@ where
     fn call(&mut self, req: Request<B>) -> Self::Future {
         let codec = self.codec.clone();
 
-        self.routes.call(req, codec)
+        self.routes.call(req, codec).map(Ok)
     }
 }
 

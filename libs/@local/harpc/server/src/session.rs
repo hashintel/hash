@@ -50,6 +50,23 @@ where
             entry.update(value);
         }
     }
+
+    /// Try to re-acquire the session value.
+    ///
+    /// Returns `true` if the session was re-acquired, `false` if the session was removed.
+    pub fn refresh(&mut self) -> bool {
+        let value = self
+            .storage
+            .storage
+            .peek_with(&self.key, |_, value| Arc::clone(value));
+
+        if let Some(value) = value {
+            self.value = value;
+            true
+        } else {
+            false
+        }
+    }
 }
 
 impl<T> AsRef<T> for Session<T> {
@@ -124,6 +141,19 @@ impl Marked {
     }
 }
 
+/// A storage for session values.
+///
+/// This keeps track of the session values for different sessions of a specific connection.
+///
+/// A typical session can involve values such as the authorization state of the user, the user's
+/// permissions, and other user-specific data.
+///
+/// Because the underlying storage is epoch garbage-collected (to allow for `&self` references to
+/// the session values), the session values are stored as `Arc<T>`.
+/// Values could be stored as `T` instead, but that would mean that a service could potentially
+/// simply lose access to the value if it is removed from the storage during a call, severely
+/// impacting ergnomics.
+/// The underlying storage is lock-free for any read operations.
 #[derive_where::derive_where(Debug; T: Debug + 'static)]
 pub struct SessionStorage<T> {
     storage: scc::HashIndex<SessionId, Arc<T>>,
@@ -201,6 +231,16 @@ where
     }
 }
 
+/// Task to cleanup expired sessions.
+///
+/// `harpc-net` has a broadcast channel on which is notifies any receivers about sessions going
+/// offline, this is used to cleanup the session storage, otherwise we would have essentially a
+/// memory leak, as new sessions would be created, but old sessions wouldn't be removed.
+///
+/// A receiver can lag behind, in that case we have a fallback, in which we mark any session as
+/// "potentially stale" (a flag that is removed once the session is accessed again). Once a certain
+/// about of inactivity has passed (the `sweep_interval`) any session that hasn't been accessed is
+/// removed.
 pub struct SessionStorageTask<T> {
     storage: Arc<SessionStorage<T>>,
     receiver: broadcast::Receiver<SessionEvent>,

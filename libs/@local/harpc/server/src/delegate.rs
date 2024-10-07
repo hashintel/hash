@@ -10,6 +10,19 @@ use tower::Service;
 
 use crate::session::{Session, SessionStorage};
 
+/// Bridge between `harpc-service` and `tower`.
+///
+/// This is a very thin layer between the `harpc-service` and `tower` services. It is responsible
+/// for taking the incoming request, selecting the appropriate session and codec, and then
+/// delegating the request to the inner service (which is cloned).
+///
+/// A concious decision was made not to have `ServiceDelegate` be a `Service`, as it allows for
+/// greater ergonomics, and allows server implementation that are not based on tower in the future.
+/// For example, because of the inherit `oneshot` nature of our tower implementation, having `&mut
+/// self` as a parameter would be more confusing than helpful.
+///
+/// A service delegate has additional information that isn't useful in the context of a tower
+/// service, such as the underlying `harpc-service` that is being delegated to.
 #[derive_where::derive_where(Clone; D: Clone, C: Clone)]
 #[derive_where(Debug; D: Debug, S: Debug + 'static, C: Debug)]
 pub struct ServiceDelegateHandler<D, S, C> {

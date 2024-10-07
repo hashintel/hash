@@ -31,7 +31,7 @@ members = [
     "libs/deer/macros",
     "libs/error-stack",
     "libs/error-stack/macros",
-    "libs/sarif", "libs/@local/harpc/server",
+    "libs/sarif",
 ]
 default-members = [
     "apps/hash-graph/bins/*",
