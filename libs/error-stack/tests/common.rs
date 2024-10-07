@@ -21,10 +21,12 @@ use core::{
 };
 #[cfg(feature = "backtrace")]
 use std::backtrace::Backtrace;
+#[allow(unused_imports)]
 #[cfg(all(rust_1_80, feature = "std"))]
 use std::sync::LazyLock;
 
 use error_stack::{AttachmentKind, Context, Frame, FrameKind, Report, Result};
+#[allow(unused_imports)]
 #[cfg(not(all(rust_1_80, feature = "std")))]
 use once_cell::sync::Lazy as LazyLock;
 #[cfg(feature = "spantrace")]
