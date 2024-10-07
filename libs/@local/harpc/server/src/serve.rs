@@ -23,6 +23,8 @@ where
         + Send
         + 'static,
 {
+    // we're not using a JoinSet here on purpose, a TaskTracker immediately frees the memory from a
+    // task, unlike a JoinSet
     let tasks = TaskTracker::new();
     pin!(stream);
 
