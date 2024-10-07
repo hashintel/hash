@@ -1,22 +1,62 @@
 import type { VersionedUrl } from "@blockprotocol/type-system";
+import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
 
 import type { DereferencedEntityTypesByTypeId } from "../../infer-entities/inference-types.js";
 import { logger } from "../../shared/activity-logger.js";
-import type { LocalEntitySummary } from "./infer-claims-from-text/get-entity-summaries-from-text.js";
-import { getEntitySummariesFromText } from "./infer-claims-from-text/get-entity-summaries-from-text.js";
-import { inferEntityClaimsFromTextAgent } from "./infer-claims-from-text/infer-entity-claims-from-text-agent.js";
-import type { Claim } from "./infer-claims-from-text/types.js";
+import type { LlmParams } from "../../shared/get-llm-response/types.js";
+import type { Claim } from "./claims.js";
+import type { LocalEntitySummary } from "./infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
+import { getEntitySummariesFromText } from "./infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
+import { inferEntityClaimsFromTextAgent } from "./infer-summaries-then-claims-from-text/infer-entity-claims-from-text-agent.js";
 
+/**
+ * A two-step process for extracting claims about entities from text:
+ * 1. Infer a list of named entities relevant to the research brief from the text
+ * 2. Infer claims about each of the discovered entities (as well as any other existingEntitiesOfInterest)
+ */
 export const inferSummariesThenClaimsFromText = async (params: {
+  /**
+   * The content to extract claims from.
+   */
   text: string;
+  /**
+   * The URL the content was retrieved from, which may itself be relevant to the claims.
+   * e.g. if a desired attribute if someone's LinkedIn URL, the URL itself may be relevant.
+   */
   url: string | null;
+  /**
+   * The title of the webpage or document, which may itself provide useful context for entity or claim recognition.
+   */
   title: string | null;
+  /**
+   * The type of content being processed.
+   */
   contentType: "webpage" | "document";
+  /**
+   * Any entities which are already known of, and should be considered in the claim extraction process.
+   * Providing these avoids the entity recognition process identifying duplicate entities which need consolidation
+   * later.
+   */
   existingEntitiesOfInterest: LocalEntitySummary[];
+  /**
+   * All types of entities which are sought as part of the research task.
+   * Even if the specific current goal is to find claims about a particular entity type (e.g. Company),
+   * other entity types may be relevant to the research goal (e.g. linked Persons or Locations).
+   */
   dereferencedEntityTypes: DereferencedEntityTypesByTypeId;
+  /**
+   * The research goal, which helps to cut down on noise in the entity recognition process.
+   */
   goal: string;
+  /**
+   * The identifiers for the worker this agent is operating in.
+   */
+  workerIdentifiers: WorkerIdentifiers;
+  /**
+   * Optional parameters for optimization purposes, allowing to overwrite the model used.
+   */
   testingParams?: {
-    existingEntitySummaries?: LocalEntitySummary[];
+    model?: LlmParams["model"];
   };
 }): Promise<{
   claims: Claim[];
@@ -28,38 +68,22 @@ export const inferSummariesThenClaimsFromText = async (params: {
     url,
     contentType,
     existingEntitiesOfInterest,
-    testingParams,
     dereferencedEntityTypes,
     goal,
+    testingParams,
+    workerIdentifiers,
   } = params;
 
-  const newEntitySummaries: LocalEntitySummary[] =
-    testingParams?.existingEntitySummaries ??
-    (
-      await Promise.all(
-        Object.values(dereferencedEntityTypes)
-          /**
-           * We only extract the entity summaries for entities, not links.
-           */
-          .filter(({ isLink }) => !isLink)
-          .map(async ({ schema }) => {
-            const { entitySummaries: entitySummariesOfType } =
-              await getEntitySummariesFromText({
-                existingSummaries: existingEntitiesOfInterest,
-                text,
-                dereferencedEntityType: schema,
-                relevantEntitiesPrompt: goal,
-              });
-
-            return entitySummariesOfType;
-          }),
-      ).then((unflattenedEntitySummaries) => unflattenedEntitySummaries.flat())
-    ).filter(
-      (newSummary) =>
-        !existingEntitiesOfInterest.some(
-          (inputSummary) => inputSummary.name === newSummary.name,
-        ),
-    );
+  const { entitySummaries: newEntitySummaries } =
+    await getEntitySummariesFromText({
+      existingSummaries: existingEntitiesOfInterest,
+      text,
+      dereferencedEntityTypes: Object.values(dereferencedEntityTypes).map(
+        (type) => type.schema,
+      ),
+      relevantEntitiesPrompt: goal,
+      testingParams,
+    });
 
   const entitySummariesForInferenceByType = [
     ...newEntitySummaries,
@@ -119,6 +143,7 @@ export const inferSummariesThenClaimsFromText = async (params: {
                 url,
                 contentType,
                 dereferencedEntityType,
+                workerIdentifiers,
               });
 
             return claimsForSingleEntity;

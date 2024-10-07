@@ -1,15 +1,17 @@
 use core::iter::once;
 
-use crate::{
-    ontology::DataTypeQueryPath,
-    store::postgres::query::{
-        table::{
-            Column, DataTypeEmbeddings, DataTypes, JsonField, OntologyAdditionalMetadata,
-            OntologyIds, OntologyOwnedMetadata, OntologyTemporalMetadata, ReferenceTable, Relation,
-        },
-        PostgresQueryPath,
-    },
+use hash_graph_store::{
+    data_type::DataTypeQueryPath,
     subgraph::edges::{EdgeDirection, OntologyEdgeKind},
+};
+
+use crate::store::postgres::query::{
+    PostgresQueryPath,
+    table::{
+        Column, DataTypeConversionAggregation, DataTypeEmbeddings, DataTypes, JsonField,
+        OntologyAdditionalMetadata, OntologyIds, OntologyOwnedMetadata, OntologyTemporalMetadata,
+        ReferenceTable, Relation,
+    },
 };
 
 impl PostgresQueryPath for DataTypeQueryPath<'_> {
@@ -50,6 +52,9 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
             .collect(),
             Self::DataTypeEdge { .. } | Self::PropertyTypeEdge { .. } => {
                 unreachable!("Invalid path: {self}")
+            }
+            Self::TargetConversionBaseUrls | Self::FromConversions | Self::IntoConversions => {
+                once(Relation::DataTypeConversions).collect()
             }
         }
     }
@@ -100,6 +105,20 @@ impl PostgresQueryPath for DataTypeQueryPath<'_> {
             Self::EditionProvenance(path) => (
                 Column::OntologyTemporalMetadata(OntologyTemporalMetadata::Provenance),
                 path.as_ref().map(JsonField::JsonPath),
+            ),
+            Self::TargetConversionBaseUrls => (
+                Column::DataTypeConversionAggregation(
+                    DataTypeConversionAggregation::TargetDataTypeBaseUrls,
+                ),
+                None,
+            ),
+            Self::FromConversions => (
+                Column::DataTypeConversionAggregation(DataTypeConversionAggregation::Froms),
+                None,
+            ),
+            Self::IntoConversions => (
+                Column::DataTypeConversionAggregation(DataTypeConversionAggregation::Intos),
+                None,
             ),
         }
     }

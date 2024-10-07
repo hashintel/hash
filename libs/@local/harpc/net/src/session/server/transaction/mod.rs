@@ -4,18 +4,18 @@ mod test;
 use alloc::sync::Arc;
 use core::{
     pin::Pin,
-    task::{ready, Context, Poll},
+    task::{Context, Poll, ready},
 };
 
 use bytes::Bytes;
-use futures::{stream::FusedStream, Sink, Stream, StreamExt};
+use futures::{Sink, Stream, StreamExt, stream::FusedStream};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     request::{
-        begin::RequestBegin, flags::RequestFlag, id::RequestId, procedure::ProcedureDescriptor,
-        service::ServiceDescriptor, Request,
+        Request, begin::RequestBegin, flags::RequestFlag, id::RequestId,
+        procedure::ProcedureDescriptor, service::ServiceDescriptor,
     },
-    response::{kind::ResponseKind, Response},
+    response::{Response, kind::ResponseKind},
 };
 use libp2p::PeerId;
 use tokio::{select, sync::mpsc};
@@ -24,7 +24,7 @@ use tokio_util::{
     task::TaskTracker,
 };
 
-use super::{connection::collection::TransactionPermit, session_id::SessionId, SessionConfig};
+use super::{SessionConfig, connection::collection::TransactionPermit, session_id::SessionId};
 use crate::session::{
     error::TransactionError,
     writer::{ResponseContext, ResponseWriter, WriterOptions},

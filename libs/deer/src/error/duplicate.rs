@@ -6,7 +6,7 @@ use core::{
 };
 
 use crate::{
-    error::{ErrorProperties, ErrorProperty, Id, Location, Namespace, Variant, NAMESPACE},
+    error::{ErrorProperties, ErrorProperty, Id, Location, NAMESPACE, Namespace, Variant},
     id,
 };
 
@@ -20,7 +20,10 @@ impl DuplicateField {
 }
 
 impl ErrorProperty for DuplicateField {
-    type Value<'a> = Option<&'static str> where Self: 'a;
+    type Value<'a>
+        = Option<&'static str>
+    where
+        Self: 'a;
 
     fn key() -> &'static str {
         "field"
@@ -56,8 +59,8 @@ impl Variant for DuplicateFieldError {
 }
 
 impl Display for DuplicateFieldError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("duplicate field")
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        fmt.write_str("duplicate field")
     }
 }
 
@@ -70,7 +73,10 @@ impl DuplicateKey {
 }
 
 impl ErrorProperty for DuplicateKey {
-    type Value<'a> = Option<&'a str> where Self: 'a;
+    type Value<'a>
+        = Option<&'a str>
+    where
+        Self: 'a;
 
     fn key() -> &'static str {
         "key"
@@ -106,8 +112,8 @@ impl Variant for DuplicateKeyError {
 }
 
 impl Display for DuplicateKeyError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("duplicate key")
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        fmt.write_str("duplicate key")
     }
 }
 

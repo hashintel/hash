@@ -1,31 +1,22 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import type { CustomCell, Item, TextCell } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
-import { EntitiesGraphChart } from "@hashintel/block-design-system";
-import { ListRegularIcon } from "@hashintel/design-system";
+import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import {
-  type EntityRootType,
   extractEntityUuidFromEntityId,
   extractOwnedByIdFromEntityId,
-  type Subgraph,
 } from "@local/hash-subgraph";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
-import {
-  Box,
-  ToggleButton,
-  toggleButtonClasses,
-  ToggleButtonGroup,
-  Tooltip,
-  useTheme,
-} from "@mui/material";
+import { Box, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
-import type { FunctionComponent, ReactNode } from "react";
+import type { FunctionComponent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { GridProps } from "../../components/grid/grid";
@@ -40,8 +31,6 @@ import type { CustomIcon } from "../../components/grid/utils/custom-grid-icons";
 import type { ColumnFilter } from "../../components/grid/utils/filtering";
 import { useEntityTypeEntitiesContext } from "../../shared/entity-type-entities-context";
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import { ChartNetworkRegularIcon } from "../../shared/icons/chart-network-regular-icon";
-import { GridSolidIcon } from "../../shared/icons/grid-solid-icon";
 import { HEADER_HEIGHT } from "../../shared/layout/layout-with-header/page-header";
 import type { FilterState } from "../../shared/table-header";
 import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
@@ -57,9 +46,15 @@ import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
 import type { TypeEntitiesRow } from "./entities-table/use-entities-table";
 import { useEntitiesTable } from "./entities-table/use-entities-table";
 import { useGetEntitiesTableAdditionalCsvData } from "./entities-table/use-get-entities-table-additional-csv-data";
+import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
 import { generateEntityRootedSubgraph } from "./subgraphs";
+import { TableHeaderToggle } from "./table-header-toggle";
+import type { TableView } from "./table-views";
+import { tableViewIcons } from "./table-views";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
+import type { UrlCellProps } from "./url-cell";
+import { createRenderUrlCell } from "./url-cell";
 
 /**
  * @todo: avoid having to maintain this list, potentially by
@@ -83,16 +78,6 @@ const allFileEntityTypeBaseUrl = allFileEntityTypeOntologyIds.map(
   ({ entityTypeBaseUrl }) => entityTypeBaseUrl,
 );
 
-const entitiesTableViews = ["Table", "Graph", "Grid"] as const;
-
-type EntityTableView = (typeof entitiesTableViews)[number];
-
-const entitiesTableViewIcons: Record<EntityTableView, ReactNode> = {
-  Table: <ListRegularIcon sx={{ fontSize: 18 }} />,
-  Graph: <ChartNetworkRegularIcon sx={{ fontSize: 18 }} />,
-  Grid: <GridSolidIcon sx={{ fontSize: 14 }} />,
-};
-
 export const EntitiesTable: FunctionComponent<{
   hideEntityTypeVersionColumn?: boolean;
   hidePropertiesColumns?: boolean;
@@ -103,6 +88,7 @@ export const EntitiesTable: FunctionComponent<{
 
   const [filterState, setFilterState] = useState<FilterState>({
     includeGlobal: false,
+    limitToWebs: false,
   });
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
@@ -144,7 +130,7 @@ export const EntitiesTable: FunctionComponent<{
 
   const supportGridView = isDisplayingFilesOnly;
 
-  const [view, setView] = useState<EntityTableView>(
+  const [view, setView] = useState<TableView>(
     isDisplayingFilesOnly ? "Grid" : "Table",
   );
 
@@ -236,8 +222,10 @@ export const EntitiesTable: FunctionComponent<{
 
   const [selectedRows, setSelectedRows] = useState<TypeEntitiesRow[]>([]);
 
-  const [selectedEntitySubgraph, setSelectedEntitySubgraph] =
-    useState<Subgraph<EntityRootType> | null>(null);
+  const [selectedEntity, setSelectedEntity] = useState<{
+    entityId: EntityId;
+    subgraph: Subgraph<EntityRootType>;
+  } | null>(null);
 
   const handleEntityClick = useCallback(
     (entityId: EntityId) => {
@@ -250,7 +238,7 @@ export const EntitiesTable: FunctionComponent<{
           );
         }
 
-        setSelectedEntitySubgraph(entitySubgraph);
+        setSelectedEntity({ entityId, subgraph: entitySubgraph });
       }
     },
     [subgraph],
@@ -358,6 +346,16 @@ export const EntitiesTable: FunctionComponent<{
             const actor =
               columnId === "lastEditedBy" ? row.lastEditedBy : row.createdBy;
 
+            if (actor === "loading") {
+              return {
+                kind: GridCellKind.Text,
+                readonly: true,
+                allowOverlay: false,
+                displayData: "Loading...",
+                data: "Loading...",
+              };
+            }
+
             const actorName = actor ? actor.displayName : undefined;
 
             const actorIcon = actor
@@ -392,6 +390,29 @@ export const EntitiesTable: FunctionComponent<{
           const propertyCellValue = columnId && row[columnId];
 
           if (propertyCellValue) {
+            let isUrl = false;
+            try {
+              const url = new URL(propertyCellValue as string);
+              if (url.protocol === "http:" || url.protocol === "https:") {
+                isUrl = true;
+              }
+            } catch {
+              // not a URL
+            }
+
+            if (isUrl) {
+              return {
+                kind: GridCellKind.Custom,
+                data: {
+                  kind: "url-cell",
+                  url: propertyCellValue as string,
+                } satisfies UrlCellProps,
+                copyData: String(propertyCellValue),
+                allowOverlay: false,
+                readonly: true,
+              };
+            }
+
             return {
               kind: GridCellKind.Text,
               allowOverlay: true,
@@ -497,10 +518,10 @@ export const EntitiesTable: FunctionComponent<{
     const lastEditedBySet = new Set<MinimalActor>();
     const createdBySet = new Set<MinimalActor>();
     for (const row of rows ?? []) {
-      if (row.lastEditedBy) {
+      if (row.lastEditedBy && row.lastEditedBy !== "loading") {
         lastEditedBySet.add(row.lastEditedBy);
       }
-      if (row.createdBy) {
+      if (row.createdBy && row.createdBy !== "loading") {
         createdBySet.add(row.createdBy);
       }
     }
@@ -582,7 +603,7 @@ export const EntitiesTable: FunctionComponent<{
         selectedFilterItemIds: selectedLastEditedByAccountIds,
         setSelectedFilterItemIds: setSelectedLastEditedByAccountIds,
         isRowFiltered: (row) =>
-          row.lastEditedBy
+          row.lastEditedBy && row.lastEditedBy !== "loading"
             ? !selectedLastEditedByAccountIds.includes(
                 row.lastEditedBy.accountId,
               )
@@ -597,7 +618,7 @@ export const EntitiesTable: FunctionComponent<{
         selectedFilterItemIds: selectedCreatedByAccountIds,
         setSelectedFilterItemIds: setSelectedCreatedByAccountIds,
         isRowFiltered: (row) =>
-          row.createdBy
+          row.createdBy && row.createdBy !== "loading"
             ? !selectedCreatedByAccountIds.includes(row.createdBy.accountId)
             : false,
       },
@@ -628,6 +649,30 @@ export const EntitiesTable: FunctionComponent<{
       addPropertiesColumns: hidePropertiesColumns,
     });
 
+  const maximumTableHeight = `calc(100vh - (${
+    HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 179 + tableHeaderHeight
+  }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`;
+
+  const isPrimaryEntity = useCallback(
+    (entity: Entity) =>
+      entityTypeBaseUrl
+        ? extractBaseUrl(entity.metadata.entityTypeId) === entityTypeBaseUrl
+        : entityTypeId
+          ? entityTypeId === entity.metadata.entityTypeId
+          : false,
+    [entityTypeId, entityTypeBaseUrl],
+  );
+
+  const filterEntity = useCallback(
+    (entity: Entity) =>
+      filterState.includeGlobal
+        ? true
+        : internalWebIds.includes(
+            extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId),
+          ),
+    [filterState, internalWebIds],
+  );
+
   return (
     <>
       {selectedEntityTypeId && (
@@ -636,11 +681,20 @@ export const EntitiesTable: FunctionComponent<{
           onClose={() => setSelectedEntityTypeId(null)}
         />
       )}
-      {selectedEntitySubgraph ? (
+      {selectedEntity ? (
         <EditEntitySlideOver
+          /*
+            The subgraphWithLinkedEntities can take a long time to load with many entities.
+            We pass the subgraph without linked entities so that there is _some_ data to load into the editor,
+            which will be missing links. passing entityId below means the slideover fetches the entity
+            with its links, so they'll load in shortly.
+            It's unlikely subgraphWithLinkedEntities will be used but if it happens to be available already,
+            it means the links will load in immediately.
+           */
+          entitySubgraph={selectedEntity.subgraph}
+          entityId={selectedEntity.entityId}
           open
-          entitySubgraph={selectedEntitySubgraph}
-          onClose={() => setSelectedEntitySubgraph(null)}
+          onClose={() => setSelectedEntity(null)}
           readonly
           onSubmit={() => {
             throw new Error(`Editing not yet supported from this screen`);
@@ -665,65 +719,21 @@ export const EntitiesTable: FunctionComponent<{
           currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
           getAdditionalCsvData={getEntitiesTableAdditionalCsvData}
           endAdornment={
-            <ToggleButtonGroup
+            <TableHeaderToggle
               value={view}
-              exclusive
-              onChange={(_, updatedView) => {
-                if (updatedView) {
-                  setView(updatedView);
-                }
-              }}
-              aria-label="view"
-              size="small"
-              sx={{
-                [`.${toggleButtonClasses.root}`]: {
-                  backgroundColor: ({ palette }) => palette.common.white,
-                  "&:not(:last-of-type)": {
-                    borderRightColor: ({ palette }) => palette.gray[20],
-                    borderRightStyle: "solid",
-                    borderRightWidth: 2,
-                  },
-                  "&:hover": {
-                    backgroundColor: ({ palette }) => palette.common.white,
-                    svg: {
-                      color: ({ palette }) => palette.gray[80],
-                    },
-                  },
-                  [`&.${toggleButtonClasses.selected}`]: {
-                    backgroundColor: ({ palette }) => palette.common.white,
-                    svg: {
-                      color: ({ palette }) => palette.gray[90],
-                    },
-                  },
-                  svg: {
-                    transition: ({ transitions }) =>
-                      transitions.create("color"),
-                    color: ({ palette }) => palette.gray[50],
-                  },
-                },
-              }}
-            >
-              {(
+              setValue={setView}
+              options={(
                 [
                   "Table",
                   ...(supportGridView ? (["Grid"] as const) : []),
                   "Graph",
-                ] satisfies EntityTableView[]
-              ).map((viewName) => (
-                <ToggleButton
-                  key={viewName}
-                  disableRipple
-                  value={viewName}
-                  aria-label={viewName}
-                >
-                  <Tooltip title={`${viewName} view`} placement="top">
-                    <Box sx={{ lineHeight: 0 }}>
-                      {entitiesTableViewIcons[viewName]}
-                    </Box>
-                  </Tooltip>
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
+                ] as const satisfies TableView[]
+              ).map((optionValue) => ({
+                icon: tableViewIcons[optionValue],
+                label: `${optionValue} view`,
+                value: optionValue,
+              }))}
+            />
           }
           filterState={filterState}
           setFilterState={setFilterState}
@@ -733,36 +743,15 @@ export const EntitiesTable: FunctionComponent<{
           onBulkActionCompleted={() => setSelectedRows([])}
         />
         {view === "Graph" && subgraph ? (
-          <EntitiesGraphChart
-            entities={entities}
-            isPrimaryEntity={(entity) =>
-              entityTypeBaseUrl
-                ? extractBaseUrl(entity.metadata.entityTypeId) ===
-                  entityTypeBaseUrl
-                : entityTypeId
-                  ? entityTypeId === entity.metadata.entityTypeId
-                  : true
-            }
-            filterEntity={(entity) =>
-              filterState.includeGlobal
-                ? true
-                : internalWebIds.includes(
-                    extractOwnedByIdFromEntityId(
-                      entity.metadata.recordId.entityId,
-                    ),
-                  )
-            }
-            onEntityClick={handleEntityClick}
-            sx={{
-              background: ({ palette }) => palette.common.white,
-              height: `calc(100vh - (${
-                HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 179 + tableHeaderHeight
-              }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`,
-              borderBottomRightRadius: 6,
-              borderBottomLeftRadius: 6,
-            }}
-            subgraphWithTypes={subgraph}
-          />
+          <Box height={maximumTableHeight}>
+            <EntityGraphVisualizer
+              entities={entities}
+              isPrimaryEntity={isPrimaryEntity}
+              filterEntity={filterEntity}
+              onEntityClick={handleEntityClick}
+              subgraphWithTypes={subgraph}
+            />
+          </Box>
         ) : view === "Grid" ? (
           <GridView entities={entities} />
         ) : (
@@ -782,12 +771,7 @@ export const EntitiesTable: FunctionComponent<{
             firstColumnLeftPadding={16}
             height={`
                min(
-                 calc(100vh - (${
-                   HEADER_HEIGHT +
-                   TOP_CONTEXT_BAR_HEIGHT +
-                   179 +
-                   tableHeaderHeight
-                 }px + ${theme.spacing(5)} + ${theme.spacing(5)})),
+                 ${maximumTableHeight},
                 calc(
                  ${gridHeaderHeightWithBorder}px +
                  (${rows?.length ? rows.length : 1} * ${gridRowHeight}px) +
@@ -796,6 +780,7 @@ export const EntitiesTable: FunctionComponent<{
             createGetCellContent={createGetCellContent}
             customRenderers={[
               createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
+              createRenderUrlCell({ firstColumnLeftPadding: 16 }),
               renderChipCell,
             ]}
             freezeColumns={1}

@@ -1,15 +1,14 @@
-use async_trait::async_trait;
 use error_stack::{Result, ResultExt};
 use tokio_postgres::GenericClient;
 
 use crate::{
     snapshot::WriteBatch,
     store::{
+        AsClient, InsertionError, PostgresStore,
         postgres::query::rows::{
             OntologyExternalMetadataRow, OntologyIdRow, OntologyOwnedMetadataRow,
             OntologyTemporalMetadataRow,
         },
-        AsClient, InsertionError, PostgresStore,
     },
 };
 
@@ -20,7 +19,6 @@ pub enum OntologyTypeMetadataRowBatch {
     ExternalMetadata(Vec<OntologyExternalMetadataRow>),
 }
 
-#[async_trait]
 impl<C, A> WriteBatch<C, A> for OntologyTypeMetadataRowBatch
 where
     C: AsClient,

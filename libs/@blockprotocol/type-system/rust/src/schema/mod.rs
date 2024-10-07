@@ -14,19 +14,28 @@ mod object;
 mod one_of;
 
 pub use self::{
-    array::{ArraySchema, ValueOrArray},
+    array::{PropertyArraySchema, PropertyValueArray, ValueOrArray},
     data_type::{
-        ClosedDataType, ClosedDataTypeMetadata, DataType, DataTypeLabel, DataTypeReference,
-        DataTypeValidator, JsonSchemaValueType, OntologyTypeResolver, ValidateDataTypeError,
+        AnyOfConstraints, ArrayConstraints, ArraySchema, ArrayTypeTag, ArrayValidationError,
+        BooleanTypeTag, ClosedDataType, ClosedDataTypeMetadata, ConstraintError,
+        ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
+        DataTypeReference, DataTypeValidator, JsonSchemaValueType, NullTypeTag, NumberConstraints,
+        NumberSchema, NumberTypeTag, NumberValidationError, ObjectTypeTag, OntologyTypeResolver,
+        Operator, SingleValueConstraints, SingleValueSchema, StringConstraints, StringFormat,
+        StringFormatError, StringSchema, StringTypeTag, StringValidationError, TupleConstraints,
+        ValidateDataTypeError, ValueLabel, Variable,
     },
     entity_type::{
         ClosedEntityType, ClosedEntityTypeSchemaData, EntityType, EntityTypeReference,
         EntityTypeValidationError, EntityTypeValidator,
     },
-    object::{ObjectSchema, ObjectSchemaValidationError, ObjectSchemaValidator},
+    object::{
+        ObjectSchemaValidationError, ObjectSchemaValidator, PropertyObjectSchema,
+        PropertyValueObject,
+    },
     one_of::{OneOfSchema, OneOfSchemaValidationError, OneOfSchemaValidator},
     property_type::{
         PropertyType, PropertyTypeReference, PropertyTypeValidationError, PropertyTypeValidator,
-        PropertyValues,
+        PropertyValueSchema, PropertyValues,
     },
 };

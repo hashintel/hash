@@ -1,16 +1,26 @@
 use core::{iter::repeat, str::FromStr};
 use std::collections::HashSet;
 
-use authorization::{schema::WebOwnerSubject, AuthorizationApi, NoAuthorization};
+use authorization::{AuthorizationApi, NoAuthorization, schema::WebOwnerSubject};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion, SamplingMode};
 use criterion_macro::criterion;
-use graph::{
-    store::{
-        account::{InsertAccountIdParams, InsertWebIdParams},
-        knowledge::{CreateEntityParams, GetEntitySubgraphParams},
-        query::Filter,
-        AccountStore, EntityQuerySorting, EntityStore,
+use graph::store::{
+    EntityQuerySorting, EntityStore,
+    knowledge::{CreateEntityParams, GetEntitySubgraphParams},
+};
+use graph_test_data::{data_type, entity, entity_type, property_type};
+use graph_types::{
+    account::AccountId,
+    knowledge::{
+        entity::{Entity, ProvidedEntityEditionProvenance},
+        link::LinkData,
+        property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
     },
+    owned_by_id::OwnedById,
+};
+use hash_graph_store::{
+    account::{AccountStore, InsertAccountIdParams, InsertWebIdParams},
+    filter::Filter,
     subgraph::{
         edges::{EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth},
         temporal_axes::{
@@ -19,23 +29,13 @@ use graph::{
         },
     },
 };
-use graph_test_data::{data_type, entity, entity_type, property_type};
-use graph_types::{
-    account::AccountId,
-    knowledge::{
-        entity::{Entity, ProvidedEntityEditionProvenance},
-        link::LinkData,
-        PropertyObject, PropertyProvenance, PropertyWithMetadataObject,
-    },
-    owned_by_id::OwnedById,
-};
 use rand::{prelude::IteratorRandom, thread_rng};
 use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;
 use type_system::schema::EntityType;
 use uuid::Uuid;
 
-use crate::util::{seed, setup, setup_subscriber, Store, StoreWrapper};
+use crate::util::{Store, StoreWrapper, seed, setup, setup_subscriber};
 
 const DB_NAME: &str = "entity_scale";
 
@@ -71,20 +71,21 @@ async fn seed_db<A: AuthorizationApi>(
         .await
         .expect("could not insert account id");
     transaction
-        .insert_web_id(
-            account_id,
-            InsertWebIdParams {
-                owned_by_id: OwnedById::new(account_id.into_uuid()),
-                owner: WebOwnerSubject::Account { id: account_id },
-            },
-        )
+        .insert_web_id(account_id, InsertWebIdParams {
+            owned_by_id: OwnedById::new(account_id.into_uuid()),
+            owner: WebOwnerSubject::Account { id: account_id },
+        })
         .await
         .expect("could not create web id");
 
     seed(
         &mut transaction,
         account_id,
-        [data_type::TEXT_V1, data_type::NUMBER_V1],
+        [
+            data_type::VALUE_V1,
+            data_type::TEXT_V1,
+            data_type::NUMBER_V1,
+        ],
         [
             property_type::NAME_V1,
             property_type::BLURB_V1,
@@ -193,14 +194,14 @@ async fn seed_db<A: AuthorizationApi>(
 }
 
 pub fn bench_get_entity_by_id<A: AuthorizationApi>(
-    b: &mut Bencher,
+    bencher: &mut Bencher,
     runtime: &Runtime,
     store: &Store<A>,
     actor_id: AccountId,
     entity_metadata_list: &[Entity],
     graph_resolve_depths: GraphResolveDepths,
 ) {
-    b.to_async(runtime).iter_batched(
+    bencher.to_async(runtime).iter_batched(
         || {
             // Each iteration, *before timing*, pick a random entity from the sample to
             // query
@@ -212,27 +213,29 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
         },
         |entity_record_id| async move {
             store
-                .get_entity_subgraph(
-                    actor_id,
-                    GetEntitySubgraphParams {
-                        filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
-                        graph_resolve_depths,
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(
-                                Some(TemporalBound::Unbounded),
-                                None,
-                            ),
-                        },
-                        sorting: EntityQuerySorting {
-                            paths: Vec::new(),
-                            cursor: None,
-                        },
-                        limit: None,
-                        include_count: false,
-                        include_drafts: false,
+                .get_entity_subgraph(actor_id, GetEntitySubgraphParams {
+                    filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
+                    graph_resolve_depths,
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(
+                            Some(TemporalBound::Unbounded),
+                            None,
+                        ),
                     },
-                )
+                    sorting: EntityQuerySorting {
+                        paths: Vec::new(),
+                        cursor: None,
+                    },
+                    limit: None,
+                    conversions: Vec::new(),
+                    include_count: false,
+                    include_drafts: false,
+                    include_web_ids: false,
+                    include_created_by_ids: false,
+                    include_edition_created_by_ids: false,
+                    include_type_ids: false,
+                })
                 .await
                 .expect("failed to read entity from store");
         },
@@ -241,9 +244,9 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
 }
 
 #[criterion]
-fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
+fn bench_scaling_read_entity_zero_depths(crit: &mut Criterion) {
     let group_id = "scaling_read_entity_complete_zero_depth";
-    let mut group = c.benchmark_group(group_id);
+    let mut group = crit.benchmark_group(group_id);
 
     group.sample_size(10);
     group.sampling_mode(SamplingMode::Flat);
@@ -269,10 +272,10 @@ fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new(function_id, &parameter),
             &(account_id, entity_metadata_list),
-            |b, (_account_id, entity_list)| {
+            |bencher, (_account_id, entity_list)| {
                 let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
                 bench_get_entity_by_id(
-                    b,
+                    bencher,
                     &runtime,
                     store,
                     account_id,
@@ -294,9 +297,9 @@ fn bench_scaling_read_entity_zero_depths(c: &mut Criterion) {
 }
 
 #[criterion]
-fn bench_scaling_read_entity_one_depth(c: &mut Criterion) {
+fn bench_scaling_read_entity_one_depth(crit: &mut Criterion) {
     let group_id = "scaling_read_entity_complete_one_depth";
-    let mut group = c.benchmark_group(group_id);
+    let mut group = crit.benchmark_group(group_id);
 
     group.sample_size(10);
     group.sampling_mode(SamplingMode::Flat);
@@ -322,10 +325,10 @@ fn bench_scaling_read_entity_one_depth(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new(function_id, &parameter),
             &(account_id, entity_metadata_list),
-            |b, (_account_id, entity_metadata_list)| {
+            |bencher, (_account_id, entity_metadata_list)| {
                 let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
                 bench_get_entity_by_id(
-                    b,
+                    bencher,
                     &runtime,
                     store,
                     account_id,

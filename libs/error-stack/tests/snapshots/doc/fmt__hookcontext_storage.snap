@@ -1,5 +1,5 @@
 <b>invalid input parameter</b>
-├╴at <i>libs/error-stack/src/fmt/hook.rs:32:14</i>
+├╴at <i>libs/error-stack/src/fmt/hook.rs:33:14</i>
 ├╴backtrace (1)
 ├╴computation for 2 (acc = 2, div = 0.5)
 ╰╴computation for 3 (acc = 5, div = 0.16666667)

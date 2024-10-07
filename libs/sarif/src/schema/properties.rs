@@ -154,8 +154,11 @@ impl<'s> PropertyBag<'s> {
         mut self,
         properties: impl IntoIterator<Item = (impl Into<Cow<'s, str>>, impl Into<serde_json::Value>)>,
     ) -> Self {
-        self.additional
-            .extend(properties.into_iter().map(|(k, v)| (k.into(), v.into())));
+        self.additional.extend(
+            properties
+                .into_iter()
+                .map(|(key, value)| (key.into(), value.into())),
+        );
         self
     }
 

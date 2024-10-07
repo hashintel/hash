@@ -9,7 +9,7 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
     #[track_caller]
     fn into_report(self) -> Result<T, AnyhowError> {
         match self {
-            Ok(t) => Ok(t),
+            Ok(value) => Ok(value),
             Err(anyhow) => {
                 #[cfg(feature = "std")]
                 let sources = anyhow
@@ -19,7 +19,7 @@ impl<T> IntoReportCompat for core::result::Result<T, AnyhowError> {
                     .collect::<alloc::vec::Vec<_>>();
 
                 #[cfg_attr(not(feature = "std"), allow(unused_mut))]
-                let mut report =
+                let mut report: Report<AnyhowError> =
                     Report::from_frame(Frame::from_anyhow(anyhow, alloc::boxed::Box::new([])));
 
                 #[cfg(feature = "std")]

@@ -2,12 +2,9 @@
   "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
   "kind": "dataType",
   "$id": "https://hash.ai/@hash/types/data-type/centimeter/v/2",
+  "allOf": [{ "$ref": "https://hash.ai/@hash/types/data-type/length/v/1" }],
   "title": "Centimeter",
   "description": "A length in centimeters",
   "type": "number",
-  "allOf": [
-    {
-      "$ref": "https://hash.ai/@hash/types/data-type/length/v/1"
-    }
-  ]
+  "abstract": false
 }

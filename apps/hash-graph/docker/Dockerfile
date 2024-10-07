@@ -16,7 +16,7 @@ RUN turbo prune --scope='@apps/hash-graph' --docker && \
         echo > "/app/out/full/$(dirname "$1")/src/lib.rs" &&  \
         echo -e "[package]\nname = \"$(yq ".package.name" -p toml -oy $1)\"" > "/app/out/full/$1" \
       )' _ {} \; && \
-    cp Cargo.toml Cargo.lock /app/out/full/
+    cp -R .cargo Cargo.toml Cargo.lock /app/out/full/
 
 
 FROM node:20.13-alpine AS rust
@@ -35,7 +35,7 @@ RUN apk add --no-cache gcc musl-dev bash protobuf-dev && \
 SHELL ["bash", "-c"]
 
 
-FROM rust as installer
+FROM rust AS installer
 
 WORKDIR /usr/local/src/
 

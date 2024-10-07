@@ -215,8 +215,7 @@ impl<'s> Extend<Run<'s>> for SarifLog<'s> {
     }
 }
 
-#[cfg(test)]
-#[cfg(feature = "serde")]
+#[cfg(all(test, feature = "serde"))]
 pub(crate) mod tests {
     use alloc::borrow::Cow;
 
@@ -226,8 +225,8 @@ pub(crate) mod tests {
     use serde_json::json;
 
     use crate::schema::{
-        tests::validate_schema, ReportingDescriptor, Run, SarifLog, SchemaVersion, Tool,
-        ToolComponent,
+        ReportingDescriptor, Run, SarifLog, SchemaVersion, Tool, ToolComponent,
+        tests::validate_schema,
     };
 
     #[test]

@@ -15,26 +15,26 @@ authors.workspace = true
 autobenches = false
 
 [dev-dependencies]
+# Private workspace dependencies
+authorization = { workspace = true }
 graph = { workspace = true }
 graph-test-data = { workspace = true }
 graph-types = { workspace = true }
-temporal-versioning = { workspace = true }
-authorization = { workspace = true }
+hash-graph-store = { workspace = true }
 repo-chores = { workspace = true }
-
+temporal-versioning = { workspace = true }
 type-system = { workspace = true }
 
-criterion = { version = "0.5.1", features = ["async_tokio", "html_reports"] }
-criterion-macro = "0.4.0"
-futures = { workspace = true }
-rand = "0.8.5"
-serde = { workspace = true, features = ["derive"] }
+# Private third-party dependencies
+criterion = { workspace = true, features = ["async_tokio", "html_reports"] }
+criterion-macro = { workspace = true }
+rand = { workspace = true }
 serde_json = { workspace = true }
 tokio = { workspace = true, features = ["macros"] }
-tokio-postgres = { version = "0.7.10", default-features = false }
-tracing = "0.1.40"
-tracing-flame = "0.2.0"
-tracing-subscriber = "0.3.18"
+tokio-postgres = { workspace = true, default-features = false }
+tracing = { workspace = true }
+tracing-flame = { workspace = true }
+tracing-subscriber = { workspace = true }
 uuid = { workspace = true, features = ["v4", "serde"] }
 
 [lints]
@@ -47,3 +47,7 @@ path = "read_scaling/lib.rs"
 [[bench]]
 name = "representative_read"
 path = "representative_read/lib.rs"
+
+[package.metadata.cargo-shear]
+# Cargo shear does not detect these dependencies
+ignored = ["tokio-postgres", "tracing-subscriber", "repo-chores", "tracing-flame", "tracing"]

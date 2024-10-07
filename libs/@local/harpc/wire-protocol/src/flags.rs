@@ -61,6 +61,7 @@ mod test {
 
     #[enumflags2::bitflags]
     #[derive(Copy, Clone, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    #[expect(clippy::min_ident_chars, reason = "Simple test code")]
     #[repr(u8)]
     enum ExampleFlag {
         A = 1 << 0,

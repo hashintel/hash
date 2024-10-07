@@ -3,7 +3,7 @@ use core::fmt::{self, Display};
 use hql_span::SpanId;
 
 use super::ExprKind;
-use crate::{arena, symbol::Symbol, Spanned};
+use crate::{Spanned, arena, symbol::Symbol};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Path<'arena> {
@@ -19,13 +19,13 @@ impl Spanned for Path<'_> {
 }
 
 impl Display for Path<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         for (i, symbol) in self.segments.iter().enumerate() {
             if i > 0 {
-                f.write_str("::")?;
+                fmt.write_str("::")?;
             }
 
-            Display::fmt(symbol, f)?;
+            Display::fmt(symbol, fmt)?;
         }
 
         Ok(())

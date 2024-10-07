@@ -2,24 +2,24 @@ use alloc::borrow::Cow;
 use std::collections::HashSet;
 
 use authorization::AuthorizationApi;
-use graph::{
-    knowledge::EntityQueryPath,
-    store::{
-        knowledge::{CreateEntityParams, GetEntitiesParams, GetEntitiesResponse},
-        query::{Filter, JsonPath, PathToken},
-        EntityQuerySorting, EntityQuerySortingRecord, EntityStore, NullOrdering, Ordering,
-    },
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
-    },
+use graph::store::{
+    EntityQuerySorting, EntityQuerySortingRecord, EntityStore, NullOrdering, Ordering,
+    knowledge::{CreateEntityParams, GetEntitiesParams, GetEntitiesResponse},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
         entity::{EntityUuid, ProvidedEntityEditionProvenance},
-        PropertyObject, PropertyWithMetadataObject,
+        property::{PropertyObject, PropertyWithMetadataObject},
     },
     owned_by_id::OwnedById,
+};
+use hash_graph_store::{
+    entity::EntityQueryPath,
+    filter::{Filter, JsonPath, PathToken},
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+    },
 };
 use pretty_assertions::assert_eq;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
@@ -62,24 +62,30 @@ async fn test_root_sorting<A: AuthorizationApi>(
             entities: new_entities,
             count,
             cursor: new_cursor,
+            web_ids: _,
+            created_by_ids: _,
+            edition_created_by_ids: _,
+            type_ids: _,
         } = api
-            .get_entities(
-                api.account_id,
-                GetEntitiesParams {
-                    filter: Filter::All(Vec::new()),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
-                    },
-                    sorting: EntityQuerySorting {
-                        paths: sorting_paths.clone(),
-                        cursor: cursor.take(),
-                    },
-                    limit: Some(chunk_size),
-                    include_count: true,
-                    include_drafts: false,
+            .get_entities(api.account_id, GetEntitiesParams {
+                filter: Filter::All(Vec::new()),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
                 },
-            )
+                sorting: EntityQuerySorting {
+                    paths: sorting_paths.clone(),
+                    cursor: cursor.take(),
+                },
+                limit: Some(chunk_size),
+                conversions: Vec::new(),
+                include_count: true,
+                include_drafts: false,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
+            })
             .await
             .expect("could not get entity");
         assert_eq!(count, Some(expected_order.len()));
@@ -115,7 +121,11 @@ async fn insert<A: AuthorizationApi>(
 ) -> DatabaseApi<'_, &mut A> {
     let mut api = database
         .seed(
-            [data_type::TEXT_V1, data_type::NUMBER_V1],
+            [
+                data_type::VALUE_V1,
+                data_type::TEXT_V1,
+                data_type::NUMBER_V1,
+            ],
             [
                 property_type::NAME_V1,
                 property_type::AGE_V1,
@@ -161,22 +171,19 @@ async fn insert<A: AuthorizationApi>(
     for (idx, (entity, type_id)) in entities_properties.into_iter().enumerate() {
         let properties: PropertyObject =
             serde_json::from_str(entity).expect("could not parse entity");
-        api.create_entity(
-            api.account_id,
-            CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
-                entity_uuid: Some(EntityUuid::new(Uuid::from_u128(idx as u128))),
-                decision_time: None,
-                entity_type_ids: HashSet::from([type_id.clone()]),
-                properties: PropertyWithMetadataObject::from_parts(properties.clone(), None)
-                    .expect("could not create property with metadata object"),
-                confidence: None,
-                link_data: None,
-                draft: false,
-                relationships: [],
-                provenance: ProvidedEntityEditionProvenance::default(),
-            },
-        )
+        api.create_entity(api.account_id, CreateEntityParams {
+            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            entity_uuid: Some(EntityUuid::new(Uuid::from_u128(idx as u128))),
+            decision_time: None,
+            entity_type_ids: HashSet::from([type_id.clone()]),
+            properties: PropertyWithMetadataObject::from_parts(properties.clone(), None)
+                .expect("could not create property with metadata object"),
+            confidence: None,
+            link_data: None,
+            draft: false,
+            relationships: [],
+            provenance: ProvidedEntityEditionProvenance::default(),
+        })
         .await
         .expect("could not create entity");
     }

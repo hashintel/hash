@@ -1,7 +1,6 @@
 import { useMutation } from "@apollo/client";
 import {
   AngleRightRegularIcon,
-  InfinityLightIcon,
   PlayIconSolid,
   Select,
 } from "@hashintel/design-system";
@@ -57,13 +56,14 @@ const selectSx: SxProps<Theme> = {
   },
 };
 
-const Divider = () => (
+const Divider = ({ topOffset }: { topOffset?: number }) => (
   <AngleRightRegularIcon
     sx={{
       fill: ({ palette }) => palette.gray[50],
       fontSize: 18,
       mr: 0.5,
       ml: 1,
+      mt: topOffset ?? 0,
     }}
   />
 );
@@ -152,10 +152,12 @@ export const Topbar = ({
   handleRunFlowClicked,
   readonly,
   showRunButton,
+  workerType,
 }: {
   handleRunFlowClicked: () => void;
   readonly?: boolean;
   showRunButton: boolean;
+  workerType: "goal" | "flow";
 }) => {
   const { push } = useRouter();
 
@@ -238,21 +240,17 @@ export const Topbar = ({
             Workers
           </Typography>
         </Link>
-        <Divider />
+        <Divider topOffset={0.1} />
 
-        <InfinityLightIcon
-          sx={{
-            fill: ({ palette }) => palette.gray[60],
-            fontSize: 20,
-            mr: 1,
-          }}
-        />
-        <Link href="/flows" noLinkStyle>
-          <Typography sx={typographySx} variant="smallTextParagraphs">
-            Flows
+        <Link href={`/${workerType}`} noLinkStyle sx={{ mr: 0.5 }}>
+          <Typography
+            sx={{ ...typographySx, textTransform: "capitalize" }}
+            variant="smallTextParagraphs"
+          >
+            {`${workerType}s`}
           </Typography>
         </Link>
-        <Divider />
+        <Divider topOffset={0.1} />
         <Box mr={1}>
           {readonly ? (
             <Typography sx={typographySx} variant="smallTextParagraphs">

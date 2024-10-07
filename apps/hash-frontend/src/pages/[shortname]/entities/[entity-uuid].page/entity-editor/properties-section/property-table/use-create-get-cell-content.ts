@@ -54,7 +54,7 @@ export const useCreateGetCellContent = (
         // create valueCell here, because it's used in two places below
         const valueCell: ValueCell = {
           kind: GridCellKind.Custom,
-          allowOverlay: !readonly,
+          allowOverlay: readonly ? typeof row.value === "string" : true,
           copyData: String(row.value),
           cursor: readonly ? "default" : "pointer",
           data: {
@@ -63,6 +63,7 @@ export const useCreateGetCellContent = (
             showTooltip,
             hideTooltip,
             propertyRow: row,
+            readonly,
           },
         };
 
@@ -124,8 +125,13 @@ export const useCreateGetCellContent = (
             }
 
             if (shouldShowChangeTypeCell) {
-              const currentType = row.expectedTypes.find(
-                (opt) => opt.type === guessedType,
+              const currentType = row.expectedTypes.find((opt) =>
+                "type" in opt
+                  ? opt.type === guessedType
+                  : /**
+                     * @todo H-3374 support anyOf in expected types. also don't need to guess the value any more, use dataTypeId from property metadata
+                     */
+                    opt.anyOf.some((subType) => subType.type === guessedType),
               );
               if (!currentType) {
                 throw new Error(

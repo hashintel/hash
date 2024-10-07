@@ -55,10 +55,10 @@ impl Transpile for WithExpression {
 mod tests {
     use super::*;
     use crate::store::postgres::query::{
+        Alias, Expression, SelectExpression, SelectStatement, WhereExpression,
         expression::{GroupByExpression, OrderByExpression},
         statement::FromItem,
         test_helper::{max_version_expression, trim_whitespace},
-        Alias, Expression, SelectExpression, SelectStatement, WhereExpression,
     };
 
     #[test]
@@ -66,30 +66,27 @@ mod tests {
         let mut with_clause = WithExpression::default();
         assert_eq!(with_clause.transpile_to_string(), "");
 
-        with_clause.add_statement(
-            Table::OntologyIds,
-            SelectStatement {
-                with: WithExpression::default(),
-                distinct: Vec::new(),
-                selects: vec![
-                    SelectExpression::new(Expression::Asterisk, None),
-                    SelectExpression::new(max_version_expression(), Some("latest_version")),
-                ],
-                from: FromItem::Table {
-                    table: Table::OntologyIds,
-                    alias: Some(Alias {
-                        condition_index: 0,
-                        chain_depth: 0,
-                        number: 0,
-                    }),
-                },
-                joins: vec![],
-                where_expression: WhereExpression::default(),
-                order_by_expression: OrderByExpression::default(),
-                group_by_expression: GroupByExpression::default(),
-                limit: None,
+        with_clause.add_statement(Table::OntologyIds, SelectStatement {
+            with: WithExpression::default(),
+            distinct: Vec::new(),
+            selects: vec![
+                SelectExpression::new(Expression::Asterisk, None),
+                SelectExpression::new(max_version_expression(), Some("latest_version")),
+            ],
+            from: FromItem::Table {
+                table: Table::OntologyIds,
+                alias: Some(Alias {
+                    condition_index: 0,
+                    chain_depth: 0,
+                    number: 0,
+                }),
             },
-        );
+            joins: vec![],
+            where_expression: WhereExpression::default(),
+            order_by_expression: OrderByExpression::default(),
+            group_by_expression: GroupByExpression::default(),
+            limit: None,
+        });
 
         assert_eq!(
             trim_whitespace(with_clause.transpile_to_string()),
@@ -99,27 +96,24 @@ mod tests {
             )
         );
 
-        with_clause.add_statement(
-            Table::DataTypes,
-            SelectStatement {
-                with: WithExpression::default(),
-                distinct: Vec::new(),
-                selects: vec![SelectExpression::new(Expression::Asterisk, None)],
-                from: FromItem::Table {
-                    table: Table::DataTypes,
-                    alias: Some(Alias {
-                        condition_index: 3,
-                        chain_depth: 4,
-                        number: 5,
-                    }),
-                },
-                joins: vec![],
-                where_expression: WhereExpression::default(),
-                order_by_expression: OrderByExpression::default(),
-                group_by_expression: GroupByExpression::default(),
-                limit: None,
+        with_clause.add_statement(Table::DataTypes, SelectStatement {
+            with: WithExpression::default(),
+            distinct: Vec::new(),
+            selects: vec![SelectExpression::new(Expression::Asterisk, None)],
+            from: FromItem::Table {
+                table: Table::DataTypes,
+                alias: Some(Alias {
+                    condition_index: 3,
+                    chain_depth: 4,
+                    number: 5,
+                }),
             },
-        );
+            joins: vec![],
+            where_expression: WhereExpression::default(),
+            order_by_expression: OrderByExpression::default(),
+            group_by_expression: GroupByExpression::default(),
+            limit: None,
+        });
 
         assert_eq!(
             trim_whitespace(with_clause.transpile_to_string()),

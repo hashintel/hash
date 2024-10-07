@@ -8,11 +8,11 @@ pub enum SnapshotDumpError {
 }
 
 impl fmt::Display for SnapshotDumpError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Read => write!(f, "could not read a snapshot record"),
-            Self::Query => write!(f, "could not query snapshot records from the store"),
-            Self::Write => write!(f, "could not write a snapshot record into the sink"),
+            Self::Read => write!(fmt, "could not read a snapshot record"),
+            Self::Query => write!(fmt, "could not query snapshot records from the store"),
+            Self::Write => write!(fmt, "could not write a snapshot record into the sink"),
         }
     }
 }
@@ -30,14 +30,14 @@ pub enum SnapshotRestoreError {
 }
 
 impl fmt::Display for SnapshotRestoreError {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Unsupported => write!(f, "The snapshot contains unsupported entries"),
-            Self::MissingMetadata => write!(f, "The snapshot does not contain metadata"),
-            Self::Read => write!(f, "could not read a snapshot entry"),
-            Self::Buffer => write!(f, "could not buffer a snapshot entry"),
-            Self::Write => write!(f, "could not write a snapshot entry into the store"),
-            Self::Validation => write!(f, "could not validate a snapshot entry"),
+            Self::Unsupported => write!(fmt, "The snapshot contains unsupported entries"),
+            Self::MissingMetadata => write!(fmt, "The snapshot does not contain metadata"),
+            Self::Read => write!(fmt, "could not read a snapshot entry"),
+            Self::Buffer => write!(fmt, "could not buffer a snapshot entry"),
+            Self::Write => write!(fmt, "could not write a snapshot entry into the store"),
+            Self::Validation => write!(fmt, "could not validate a snapshot entry"),
         }
     }
 }

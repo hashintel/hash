@@ -4,6 +4,7 @@ use alloc::sync::Arc;
 use std::collections::hash_map;
 
 use authorization::{
+    AuthorizationApi, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
         EntityTypeEditorSubject, EntityTypeInstantiatorSubject, EntityTypeOwnerSubject,
@@ -11,33 +12,33 @@ use authorization::{
         EntityTypeSettingSubject, EntityTypeViewerSubject,
     },
     zanzibar::Consistency,
-    AuthorizationApi, AuthorizationApiPool,
 };
 use axum::{
+    Extension, Router,
     extract::Path,
     http::StatusCode,
     response::Response,
     routing::{get, post, put},
-    Extension, Router,
 };
 use error_stack::{Report, ResultExt};
 use graph::{
     ontology::{
         domain_validator::{DomainValidator, ValidateOntologyType},
-        patch_id_and_parse, EntityTypeQueryToken,
+        patch_id_and_parse,
     },
     store::{
+        EntityTypeStore, StorePool,
         error::{BaseUrlAlreadyExists, OntologyVersionDoesNotExist, VersionedUrlAlreadyExists},
         ontology::{
             ArchiveEntityTypeParams, CreateEntityTypeParams, GetEntityTypeSubgraphParams,
             GetEntityTypesParams, GetEntityTypesResponse, UnarchiveEntityTypeParams,
             UpdateEntityTypeEmbeddingParams, UpdateEntityTypesParams,
         },
-        ConflictBehavior, EntityTypeStore, StorePool,
     },
-    subgraph::identifier::EntityTypeVertexId,
 };
+use graph_type_defs::error::{ErrorInfo, Status, StatusPayloads};
 use graph_types::{
+    account::EditionCreatedById,
     ontology::{
         EntityTypeEmbedding, EntityTypeId, EntityTypeMetadata, EntityTypeWithMetadata,
         OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeMetadata,
@@ -45,6 +46,7 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
+use hash_graph_store::{ConflictBehavior, entity_type::EntityTypeQueryToken};
 use hash_map::HashMap;
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
@@ -55,15 +57,12 @@ use type_system::{
 };
 use utoipa::{OpenApi, ToSchema};
 
-use crate::{
-    error::{ErrorInfo, Status, StatusPayloads},
-    rest::{
-        api_resource::RoutedResource,
-        json::Json,
-        status::{report_to_response, status_to_response},
-        utoipa_typedef::{subgraph::Subgraph, ListOrValue, MaybeListOfEntityType},
-        AuthenticatedUserHeader, PermissionResponse, RestApiStore,
-    },
+use crate::rest::{
+    AuthenticatedUserHeader, PermissionResponse, RestApiStore,
+    api_resource::RoutedResource,
+    json::Json,
+    status::{report_to_response, status_to_response},
+    utoipa_typedef::{ListOrValue, MaybeListOfEntityType, subgraph::Subgraph},
 };
 
 #[derive(OpenApi)]
@@ -162,21 +161,18 @@ impl RoutedResource for EntityTypeResource {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct CreateEntityTypeRequest {
     #[schema(inline)]
     schema: MaybeListOfEntityType,
     owned_by_id: OwnedById,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     label_property: Option<BaseUrl>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     icon: Option<String>,
     relationships: Vec<EntityTypeRelationAndSubject>,
-    #[serde(
-        default,
-        skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
-    )]
+    #[serde(default)]
     provenance: ProvidedOntologyEditionProvenance,
 }
 
@@ -460,7 +456,7 @@ where
                     icon: icon.clone(),
                     label_property: label_property.clone(),
                     conflict_behavior: ConflictBehavior::Fail,
-                    provenance: provenance.clone()
+                    provenance: provenance.clone(),
                 })
             }).collect::<Result<Vec<_>, _>>()?
         )
@@ -533,7 +529,7 @@ where
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema)]
 #[serde(deny_unknown_fields, untagged)]
 enum LoadExternalEntityTypeRequest {
     #[serde(rename_all = "camelCase")]
@@ -541,16 +537,13 @@ enum LoadExternalEntityTypeRequest {
     #[serde(rename_all = "camelCase")]
     Create {
         #[schema(value_type = VAR_ENTITY_TYPE)]
-        schema: EntityType,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        schema: Box<EntityType>,
+        #[serde(default)]
         label_property: Option<BaseUrl>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
+        #[serde(default)]
         icon: Option<String>,
         relationships: Vec<EntityTypeRelationAndSubject>,
-        #[serde(
-            default,
-            skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
-        )]
+        #[serde(default)]
         provenance: Box<ProvidedOntologyEditionProvenance>,
     },
 }
@@ -664,20 +657,17 @@ where
 
             Ok(Json(
                 store
-                    .create_entity_type(
-                        actor_id,
-                        CreateEntityTypeParams {
-                            schema,
-                            label_property,
-                            icon,
-                            classification: OntologyTypeClassificationMetadata::External {
-                                fetched_at: OffsetDateTime::now_utc(),
-                            },
-                            relationships,
-                            conflict_behavior: ConflictBehavior::Fail,
-                            provenance: *provenance,
+                    .create_entity_type(actor_id, CreateEntityTypeParams {
+                        schema: *schema,
+                        label_property,
+                        icon,
+                        classification: OntologyTypeClassificationMetadata::External {
+                            fetched_at: OffsetDateTime::now_utc(),
                         },
-                    )
+                        relationships,
+                        conflict_behavior: ConflictBehavior::Fail,
+                        provenance: *provenance,
+                    })
                     .await
                     .map_err(report_to_response)?,
             ))
@@ -730,15 +720,15 @@ where
         .await
         .map_err(report_to_response)?;
 
-    // Manually deserialize the query from a JSON value to allow borrowed deserialization and better
-    // error reporting.
-    let mut request = GetEntityTypesParams::deserialize(&request).map_err(report_to_response)?;
-    request
-        .filter
-        .convert_parameters()
-        .map_err(report_to_response)?;
     store
-        .get_entity_types(actor_id, request)
+        .get_entity_types(
+            actor_id,
+            // Manually deserialize the query from a JSON value to allow borrowed deserialization
+            // and better error reporting.
+            GetEntityTypesParams::deserialize(&request)
+                .map_err(Report::from)
+                .map_err(report_to_response)?,
+        )
         .await
         .map_err(report_to_response)
         .map(Json)
@@ -748,7 +738,14 @@ where
 #[serde(rename_all = "camelCase")]
 struct GetEntityTypeSubgraphResponse {
     subgraph: Subgraph,
-    cursor: Option<EntityTypeVertexId>,
+    cursor: Option<VersionedUrl>,
+    count: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    web_ids: Option<HashMap<OwnedById, usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    edition_created_by_ids: Option<HashMap<EditionCreatedById, usize>>,
 }
 
 #[utoipa::path(
@@ -795,39 +792,38 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let mut request =
-        GetEntityTypeSubgraphParams::deserialize(&request).map_err(report_to_response)?;
-    request
-        .filter
-        .convert_parameters()
-        .map_err(report_to_response)?;
     store
-        .get_entity_type_subgraph(actor_id, request)
+        .get_entity_type_subgraph(
+            actor_id,
+            GetEntityTypeSubgraphParams::deserialize(&request)
+                .map_err(Report::from)
+                .map_err(report_to_response)?,
+        )
         .await
         .map_err(report_to_response)
         .map(|response| {
             Json(GetEntityTypeSubgraphResponse {
                 subgraph: Subgraph::from(response.subgraph),
                 cursor: response.cursor,
+                count: response.count,
+                web_ids: response.web_ids,
+                edition_created_by_ids: response.edition_created_by_ids,
             })
         })
 }
 
-#[derive(Debug, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 struct UpdateEntityTypeRequest {
     #[schema(value_type = VAR_UPDATE_ENTITY_TYPE)]
     schema: serde_json::Value,
     type_to_update: VersionedUrl,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     label_property: Option<BaseUrl>,
-    #[serde(default, skip_serializing_if = "Option::is_none")]
+    #[serde(default)]
     icon: Option<String>,
     relationships: Vec<EntityTypeRelationAndSubject>,
-    #[serde(
-        default,
-        skip_serializing_if = "ProvidedOntologyEditionProvenance::is_empty"
-    )]
+    #[serde(default)]
     provenance: ProvidedOntologyEditionProvenance,
 }
 
@@ -859,7 +855,7 @@ async fn update_entity_type<S, A>(
     authorization_api_pool: Extension<Arc<A>>,
     temporal_client: Extension<Option<Arc<TemporalClient>>>,
     body: Json<UpdateEntityTypeRequest>,
-) -> Result<Json<EntityTypeMetadata>, StatusCode>
+) -> Result<Json<EntityTypeMetadata>, Response>
 where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
@@ -875,52 +871,28 @@ where
 
     type_to_update.version = OntologyTypeVersion::new(type_to_update.version.inner() + 1);
 
-    let entity_type = patch_id_and_parse(&type_to_update, schema).map_err(|report| {
-        tracing::error!(error=?report, "Couldn't convert schema to Entity Type");
-        // TODO: Consider an UNPROCESSABLE_ENTITY_TYPE code?
-        StatusCode::UNPROCESSABLE_ENTITY
-        // TODO: We should probably return more information to the client
-        //   see https://linear.app/hash/issue/H-3009
-    })?;
+    let entity_type = patch_id_and_parse(&type_to_update, schema).map_err(report_to_response)?;
 
-    let authorization_api = authorization_api_pool.acquire().await.map_err(|error| {
-        tracing::error!(?error, "Could not acquire access to the authorization API");
-        StatusCode::INTERNAL_SERVER_ERROR
-    })?;
+    let authorization_api = authorization_api_pool
+        .acquire()
+        .await
+        .map_err(report_to_response)?;
 
     let mut store = store_pool
         .acquire(authorization_api, temporal_client.0)
         .await
-        .map_err(|report| {
-            tracing::error!(error=?report, "Could not acquire store");
-            StatusCode::INTERNAL_SERVER_ERROR
-        })?;
+        .map_err(report_to_response)?;
 
     store
-        .update_entity_type(
-            actor_id,
-            UpdateEntityTypesParams {
-                schema: entity_type,
-                label_property,
-                icon,
-                relationships,
-                provenance,
-            },
-        )
-        .await
-        .map_err(|report| {
-            tracing::error!(error=?report, "Could not update entity type");
-
-            if report.contains::<PermissionAssertion>() {
-                return StatusCode::FORBIDDEN;
-            }
-            if report.contains::<OntologyVersionDoesNotExist>() {
-                return StatusCode::NOT_FOUND;
-            }
-
-            // Insertion/update errors are considered internal server errors.
-            StatusCode::INTERNAL_SERVER_ERROR
+        .update_entity_type(actor_id, UpdateEntityTypesParams {
+            schema: entity_type,
+            label_property,
+            icon,
+            relationships,
+            provenance,
         })
+        .await
+        .map_err(report_to_response)
         .map(Json)
 }
 

@@ -1,25 +1,25 @@
 use core::{
     pin::Pin,
-    task::{ready, Context, Poll},
+    task::{Context, Poll, ready},
 };
 
 use authorization::schema::EntityTypeRelationAndSubject;
 use error_stack::{Report, ResultExt};
 use futures::{
-    channel::mpsc::{self, Receiver, Sender},
-    stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
+    channel::mpsc::{self, Receiver, Sender},
+    stream::{BoxStream, SelectAll, select_all},
 };
 use graph_types::ontology::{EntityTypeId, PropertyTypeId};
-use type_system::{schema::ClosedEntityType, Valid};
+use type_system::{Valid, schema::ClosedEntityType};
 
 use crate::{
     snapshot::{
-        ontology::{
-            entity_type::batch::EntityTypeRowBatch, metadata::OntologyTypeMetadata,
-            EntityTypeSnapshotRecord, OntologyTypeMetadataSender,
-        },
         SnapshotRestoreError,
+        ontology::{
+            EntityTypeSnapshotRecord, OntologyTypeMetadataSender,
+            entity_type::batch::EntityTypeRowBatch, metadata::OntologyTypeMetadata,
+        },
     },
     store::postgres::query::rows::{
         EntityTypeConstrainsLinkDestinationsOnRow, EntityTypeConstrainsLinksOnRow,
@@ -256,7 +256,7 @@ impl Stream for EntityTypeReceiver {
 /// Create a new [`EntityTypeSender`] and [`EntityTypeReceiver`] pair.
 ///
 /// The `chunk_size` parameter is used to batch the rows into chunks of the given size.
-pub fn entity_type_channel(
+pub(crate) fn entity_type_channel(
     chunk_size: usize,
     metadata_sender: OntologyTypeMetadataSender,
     embedding_rx: Receiver<EntityTypeEmbeddingRow<'static>>,

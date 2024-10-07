@@ -3,5 +3,5 @@ mod channel;
 
 pub use self::{
     batch::OntologyTypeMetadataRowBatch,
-    channel::{ontology_metadata_channel, OntologyTypeMetadata, OntologyTypeMetadataSender},
+    channel::{OntologyTypeMetadata, OntologyTypeMetadataSender, ontology_metadata_channel},
 };

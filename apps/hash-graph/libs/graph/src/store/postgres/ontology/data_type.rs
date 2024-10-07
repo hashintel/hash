@@ -3,64 +3,67 @@ use core::{iter::once, mem};
 use std::collections::{HashMap, HashSet};
 
 use authorization::{
+    AuthorizationApi,
     backend::ModifyRelationshipOperation,
     schema::{DataTypeOwnerSubject, DataTypePermission, DataTypeRelationAndSubject, WebPermission},
     zanzibar::{Consistency, Zookie},
-    AuthorizationApi,
 };
 use error_stack::{Result, ResultExt};
-use futures::FutureExt;
+use futures::StreamExt;
 use graph_types::{
+    Embedding,
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
         DataTypeId, DataTypeMetadata, DataTypeWithMetadata, OntologyEditionProvenance,
         OntologyProvenance, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
         OntologyTypeRecordId,
     },
-    Embedding,
 };
-use postgres_types::{Json, ToSql};
-use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
-use tokio_postgres::{GenericClient, Row};
-use tracing::instrument;
-use type_system::{
-    schema::{DataTypeValidator, OntologyTypeResolver},
-    url::{OntologyTypeVersion, VersionedUrl},
-    Validator,
-};
-
-use crate::{
-    ontology::DataTypeQueryPath,
-    store::{
-        crud::{QueryResult, ReadPaginated, VertexIdSorting},
-        error::DeletionError,
-        ontology::{
-            ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams,
-            GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
-            GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
-            UpdateDataTypesParams,
-        },
-        postgres::{
-            crud::QueryRecordDecode,
-            ontology::{
-                read::OntologyTypeTraversalData, OntologyId,
-                PostgresOntologyTypeClassificationMetadata,
-            },
-            query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
-            TraversalContext,
-        },
-        query::{Filter, FilterExpression, ParameterList},
-        AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, SubgraphRecord,
-        UpdateError,
-    },
+use hash_graph_store::{
+    data_type::DataTypeQueryPath,
+    filter::{Filter, FilterExpression, ParameterList},
     subgraph::{
+        Subgraph, SubgraphRecord,
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
         identifier::{DataTypeVertexId, GraphElementVertexId},
         temporal_axes::{
             PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
             VariableAxis, VariableTemporalAxisUnresolved,
         },
-        Subgraph,
+    },
+};
+use hash_status::StatusCode;
+use postgres_types::{Json, ToSql};
+use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
+use tokio_postgres::{GenericClient, Row};
+use tracing::instrument;
+use type_system::{
+    Validator,
+    schema::{ConversionDefinition, Conversions, DataTypeValidator, OntologyTypeResolver},
+    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+};
+
+use crate::store::{
+    AsClient, DataTypeStore, InsertionError, PostgresStore, QueryError, StoreCache, StoreProvider,
+    UpdateError,
+    crud::{QueryResult, Read, ReadPaginated, VersionedUrlSorting},
+    error::DeletionError,
+    ontology::{
+        ArchiveDataTypeParams, CountDataTypesParams, CreateDataTypeParams,
+        GetDataTypeSubgraphParams, GetDataTypeSubgraphResponse, GetDataTypesParams,
+        GetDataTypesResponse, UnarchiveDataTypeParams, UpdateDataTypeEmbeddingParams,
+        UpdateDataTypesParams,
+    },
+    postgres::{
+        TraversalContext,
+        crud::QueryRecordDecode,
+        ontology::{
+            OntologyId, PostgresOntologyTypeClassificationMetadata, read::OntologyTypeTraversalData,
+        },
+        query::{
+            Distinctness, InsertStatementBuilder, PostgresRecord, ReferenceTable, SelectCompiler,
+            Table, rows::DataTypeConversionsRow,
+        },
     },
 };
 
@@ -108,101 +111,93 @@ where
             }))
     }
 
-    #[expect(clippy::manual_async_fn, reason = "This method is recursive")]
-    fn get_data_types_impl(
+    async fn get_data_types_impl(
         &self,
         actor_id: AccountId,
         params: GetDataTypesParams<'_>,
         temporal_axes: &QueryTemporalAxes,
-    ) -> impl Future<Output = Result<(GetDataTypesResponse, Zookie<'static>), QueryError>> + Send
-    {
-        async move {
-            #[expect(clippy::if_then_some_else_none, reason = "Function is async")]
-            let count = if params.include_count {
-                Some(
-                    self.count_data_types(
-                        actor_id,
-                        CountDataTypesParams {
-                            filter: params.filter.clone(),
-                            temporal_axes: params.temporal_axes.clone(),
-                            include_drafts: params.include_drafts,
-                        },
-                    )
-                    .boxed()
-                    .await?,
-                )
-            } else {
-                None
-            };
+    ) -> Result<(GetDataTypesResponse, Zookie<'static>), QueryError> {
+        #[expect(clippy::if_then_some_else_none, reason = "Function is async")]
+        let count = if params.include_count {
+            Some(
+                self.count_data_types(actor_id, CountDataTypesParams {
+                    filter: params.filter.clone(),
+                    temporal_axes: params.temporal_axes.clone(),
+                    include_drafts: params.include_drafts,
+                })
+                .await?,
+            )
+        } else {
+            None
+        };
 
-            // TODO: Remove again when subgraph logic was revisited
-            //   see https://linear.app/hash/issue/H-297
-            let mut visited_ontology_ids = HashSet::new();
-            let time_axis = temporal_axes.variable_time_axis();
+        // TODO: Remove again when subgraph logic was revisited
+        //   see https://linear.app/hash/issue/H-297
+        let mut visited_ontology_ids = HashSet::new();
 
-            let (data, artifacts) = ReadPaginated::<DataTypeWithMetadata>::read_paginated_vec(
+        let (data, artifacts) =
+            ReadPaginated::<DataTypeWithMetadata, VersionedUrlSorting>::read_paginated_vec(
                 self,
                 &params.filter,
                 Some(temporal_axes),
-                &VertexIdSorting {
+                &VersionedUrlSorting {
                     cursor: params.after,
                 },
                 params.limit,
                 params.include_drafts,
             )
             .await?;
-            let data_types = data
-                .into_iter()
-                .filter_map(|row| {
-                    let data_type = row.decode_record(&artifacts);
-                    let id = DataTypeId::from_url(&data_type.schema.id);
-                    // The records are already sorted by time, so we can just take the first one
-                    visited_ontology_ids.insert(id).then_some((id, data_type))
-                })
-                .collect::<Vec<_>>();
+        let data_types = data
+            .into_iter()
+            .filter_map(|row| {
+                let data_type = row.decode_record(&artifacts);
+                let id = DataTypeId::from_url(&data_type.schema.id);
+                // The records are already sorted by time, so we can just take the first one
+                visited_ontology_ids.insert(id).then_some((id, data_type))
+            })
+            .collect::<Vec<_>>();
 
-            let filtered_ids = data_types
-                .iter()
-                .map(|(data_type_id, _)| *data_type_id)
-                .collect::<Vec<_>>();
+        let filtered_ids = data_types
+            .iter()
+            .map(|(data_type_id, _)| *data_type_id)
+            .collect::<Vec<_>>();
 
-            let (permissions, zookie) = self
-                .authorization_api
-                .check_data_types_permission(
-                    actor_id,
-                    DataTypePermission::View,
-                    filtered_ids,
-                    Consistency::FullyConsistent,
-                )
-                .await
-                .change_context(QueryError)?;
+        let (permissions, zookie) = self
+            .authorization_api
+            .check_data_types_permission(
+                actor_id,
+                DataTypePermission::View,
+                filtered_ids,
+                Consistency::FullyConsistent,
+            )
+            .await
+            .change_context(QueryError)?;
 
-            let data_types = data_types
-                .into_iter()
-                .filter_map(|(id, data_type)| {
-                    permissions
-                        .get(&id)
-                        .copied()
-                        .unwrap_or(false)
-                        .then_some(data_type)
-                })
-                .collect::<Vec<_>>();
+        let data_types = data_types
+            .into_iter()
+            .filter_map(|(id, data_type)| {
+                permissions
+                    .get(&id)
+                    .copied()
+                    .unwrap_or(false)
+                    .then_some(data_type)
+            })
+            .collect::<Vec<_>>();
 
-            Ok((
-                GetDataTypesResponse {
-                    cursor: if params.limit.is_some() {
-                        data_types
-                            .last()
-                            .map(|data_type| data_type.vertex_id(time_axis))
-                    } else {
-                        None
-                    },
-                    data_types,
-                    count,
+        Ok((
+            GetDataTypesResponse {
+                cursor: if params.limit.is_some() {
+                    data_types
+                        .last()
+                        .map(|data_type| data_type.schema.id.clone())
+                } else {
+                    None
                 },
-                zookie,
-            ))
-        }
+                data_types,
+                count,
+            },
+            zookie,
+        ))
     }
 
     /// Internal method to read a [`DataTypeWithMetadata`] into a [`TraversalContext`].
@@ -303,6 +298,7 @@ where
                     DELETE FROM data_type_embeddings;
                     DELETE FROM data_type_inherits_from;
                     DELETE FROM data_type_constrains_values_on;
+                    DELETE FROM data_type_conversions;
                 ",
             )
             .await
@@ -353,6 +349,7 @@ where
         let mut inserted_data_type_metadata = Vec::new();
         let mut inserted_data_types = Vec::new();
         let mut data_type_reference_ids = HashSet::new();
+        let mut data_type_conversions_rows = Vec::new();
 
         for parameters in params {
             let provenance = OntologyProvenance {
@@ -381,13 +378,10 @@ where
                     .assert_permission()
                     .change_context(InsertionError)?;
 
-                relationships.insert((
-                    data_type_id,
-                    DataTypeRelationAndSubject::Owner {
-                        subject: DataTypeOwnerSubject::Web { id: *owned_by_id },
-                        level: 0,
-                    },
-                ));
+                relationships.insert((data_type_id, DataTypeRelationAndSubject::Owner {
+                    subject: DataTypeOwnerSubject::Web { id: *owned_by_id },
+                    level: 0,
+                }));
             }
 
             relationships.extend(
@@ -413,11 +407,20 @@ where
                         .map(|(reference, _)| DataTypeId::from_url(&reference.url)),
                 );
                 inserted_data_types.push(Arc::new(parameters.schema));
+                data_type_conversions_rows.extend(parameters.conversions.iter().map(
+                    |(base_url, conversions)| DataTypeConversionsRow {
+                        source_data_type_ontology_id: data_type_id,
+                        target_data_type_base_url: base_url.clone(),
+                        from: conversions.from.clone(),
+                        into: conversions.to.clone(),
+                    },
+                ));
                 inserted_data_type_metadata.push(DataTypeMetadata {
                     record_id,
                     classification: parameters.classification,
                     temporal_versioning,
                     provenance,
+                    conversions: parameters.conversions,
                 });
             }
         }
@@ -427,41 +430,63 @@ where
         let required_parent_ids = data_type_reference_ids.into_iter().collect::<Vec<_>>();
         // TODO: Read the closed schemas directly instead
         //   see https://linear.app/hash/issue/H-3082/allow-querying-of-closed-data-schema
+        // We need need the parents itself ...
         transaction
-            .get_data_types(
-                actor_id,
-                GetDataTypesParams {
-                    filter: Filter::Any(vec![
-                        // We need need the parents itself ...
-                        Filter::In(
-                            FilterExpression::Path(DataTypeQueryPath::OntologyId),
-                            ParameterList::DataTypeIds(&required_parent_ids),
-                        ),
-                        // ... and their parents (recursively)
-                        Filter::for_data_type_parents(&required_parent_ids, None),
-                    ]),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
+            .get_data_types(actor_id, GetDataTypesParams {
+                filter: Filter::In(
+                    FilterExpression::Path {
+                        path: DataTypeQueryPath::OntologyId,
                     },
-                    include_drafts: false,
-                    after: None,
-                    limit: None,
-                    include_count: false,
+                    ParameterList::DataTypeIds(&required_parent_ids),
+                ),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
                 },
-            )
+                include_drafts: false,
+                after: None,
+                limit: None,
+                include_count: false,
+            })
             .await
             .change_context(InsertionError)
             .attach_printable("Could not read parent data types")?
             .data_types
             .into_iter()
+            .chain(
+                // ... and their parents (recursively)
+                transaction
+                    .get_data_types(actor_id, GetDataTypesParams {
+                        filter: Filter::for_data_type_parents(&required_parent_ids, None),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        },
+                        include_drafts: false,
+                        after: None,
+                        limit: None,
+                        include_count: false,
+                    })
+                    .await
+                    .change_context(InsertionError)
+                    .attach_printable("Could not read parent data types")?
+                    .data_types,
+            )
             .for_each(|data_type| {
                 ontology_type_resolver.add_open(Arc::new(data_type.schema));
             });
 
-        let schema_metadata = ontology_type_resolver
-            .resolve_data_type_metadata(inserted_data_types.iter().cloned())
-            .change_context(InsertionError)?;
+        for inserted_data_type in &inserted_data_types {
+            ontology_type_resolver.add_open(Arc::clone(inserted_data_type));
+        }
+        let schema_metadata = inserted_data_types
+            .iter()
+            .map(|inserted_data_type| {
+                ontology_type_resolver
+                    .resolve_data_type_metadata(&inserted_data_type.id)
+                    .change_context(InsertionError)
+            })
+            .collect::<Result<Vec<_>, _>>()?;
 
         let data_type_validator = DataTypeValidator;
         for data_type in &inserted_data_types {
@@ -472,13 +497,18 @@ where
                         .change_context(InsertionError)?,
                 )
                 .await
+                .attach(StatusCode::InvalidArgument)
                 .change_context(InsertionError)?;
             let schema = data_type_validator
                 .validate_ref(&closed_schema.schema)
                 .await
+                .attach(StatusCode::InvalidArgument)
                 .change_context(InsertionError)?;
             transaction
-                .insert_data_type_with_id(DataTypeId::from_url(&schema.id), &closed_schema)
+                .insert_data_type_with_id(
+                    DataTypeId::from_url(&schema.id),
+                    closed_schema.data_type(),
+                )
                 .await?;
         }
         for (schema_metadata, data_type) in schema_metadata.iter().zip(&inserted_data_types) {
@@ -486,6 +516,17 @@ where
                 .insert_data_type_references(DataTypeId::from_url(&data_type.id), schema_metadata)
                 .await?;
         }
+
+        let (statement, parameters) = InsertStatementBuilder::from_rows(
+            Table::DataTypeConversions,
+            &data_type_conversions_rows,
+        )
+        .compile();
+        transaction
+            .as_client()
+            .query(&statement, &parameters)
+            .await
+            .change_context(InsertionError)?;
 
         #[expect(clippy::needless_collect, reason = "Higher ranked lifetime error")]
         transaction
@@ -505,7 +546,9 @@ where
             .await
             .change_context(InsertionError)?;
 
-        if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
+        if let Err(error) = transaction.commit().await.change_context(InsertionError) {
+            let mut error = error.expand();
+
             if let Err(auth_error) = self
                 .authorization_api
                 .modify_data_type_relations(relationships.into_iter().map(
@@ -520,12 +563,10 @@ where
                 .await
                 .change_context(InsertionError)
             {
-                // TODO: Use `add_child`
-                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
-                error.extend_one(auth_error);
+                error.push(auth_error);
             }
 
-            Err(error)
+            Err(error.change_context(InsertionError))
         } else {
             if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
@@ -551,40 +592,68 @@ where
     async fn get_data_types(
         &self,
         actor_id: AccountId,
-        params: GetDataTypesParams<'_>,
+        mut params: GetDataTypesParams<'_>,
     ) -> Result<GetDataTypesResponse, QueryError> {
+        params
+            .filter
+            .convert_parameters(&StoreProvider {
+                store: self,
+                cache: StoreCache::default(),
+                authorization: Some((actor_id, Consistency::FullyConsistent)),
+            })
+            .await
+            .change_context(QueryError)?;
+
         let temporal_axes = params.temporal_axes.clone().resolve();
         self.get_data_types_impl(actor_id, params, &temporal_axes)
             .await
             .map(|(response, _)| response)
     }
 
+    // TODO: take actor ID into consideration, but currently we don't have any non-public data types
+    //       anyway.
     async fn count_data_types(
         &self,
         actor_id: AccountId,
-        params: CountDataTypesParams<'_>,
+        mut params: CountDataTypesParams<'_>,
     ) -> Result<usize, QueryError> {
-        self.get_data_types(
-            actor_id,
-            GetDataTypesParams {
-                filter: params.filter,
-                temporal_axes: params.temporal_axes,
-                include_drafts: params.include_drafts,
-                after: None,
-                limit: None,
-                include_count: false,
-            },
-        )
-        .await
-        .map(|response| response.data_types.len())
+        params
+            .filter
+            .convert_parameters(&StoreProvider {
+                store: self,
+                cache: StoreCache::default(),
+                authorization: Some((actor_id, Consistency::FullyConsistent)),
+            })
+            .await
+            .change_context(QueryError)?;
+
+        Ok(self
+            .read(
+                &params.filter,
+                Some(&params.temporal_axes.resolve()),
+                params.include_drafts,
+            )
+            .await?
+            .count()
+            .await)
     }
 
     #[tracing::instrument(level = "info", skip(self))]
     async fn get_data_type_subgraph(
         &self,
         actor_id: AccountId,
-        params: GetDataTypeSubgraphParams<'_>,
+        mut params: GetDataTypeSubgraphParams<'_>,
     ) -> Result<GetDataTypeSubgraphResponse, QueryError> {
+        params
+            .filter
+            .convert_parameters(&StoreProvider {
+                store: self,
+                cache: StoreCache::default(),
+                authorization: Some((actor_id, Consistency::FullyConsistent)),
+            })
+            .await
+            .change_context(QueryError)?;
+
         let temporal_axes = params.temporal_axes.clone().resolve();
         let time_axis = temporal_axes.variable_time_axis();
 
@@ -725,43 +794,57 @@ where
             .collect::<Vec<_>>();
         // TODO: Read the closed schemas directly instead
         //   see https://linear.app/hash/issue/H-3082/allow-querying-of-closed-data-schema
+        // We need need the parents itself ...
         transaction
-            .get_data_types(
-                actor_id,
-                GetDataTypesParams {
-                    filter: Filter::Any(vec![
-                        // We need need the parents itself ...
-                        Filter::In(
-                            FilterExpression::Path(DataTypeQueryPath::OntologyId),
-                            ParameterList::DataTypeIds(&required_parent_ids),
-                        ),
-                        // ... and their parents (recursively)
-                        Filter::for_data_type_parents(&required_parent_ids, None),
-                    ]),
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
+            .get_data_types(actor_id, GetDataTypesParams {
+                filter: Filter::In(
+                    FilterExpression::Path {
+                        path: DataTypeQueryPath::OntologyId,
                     },
-                    include_drafts: false,
-                    after: None,
-                    limit: None,
-                    include_count: false,
+                    ParameterList::DataTypeIds(&required_parent_ids),
+                ),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
                 },
-            )
+                include_drafts: false,
+                after: None,
+                limit: None,
+                include_count: false,
+            })
             .await
             .change_context(UpdateError)
             .attach_printable("Could not read parent data types")?
             .data_types
             .into_iter()
+            .chain(
+                // ... and their parents (recursively)
+                transaction
+                    .get_data_types(actor_id, GetDataTypesParams {
+                        filter: Filter::for_data_type_parents(&required_parent_ids, None),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        },
+                        include_drafts: false,
+                        after: None,
+                        limit: None,
+                        include_count: false,
+                    })
+                    .await
+                    .change_context(UpdateError)
+                    .attach_printable("Could not read parent data types")?
+                    .data_types,
+            )
             .for_each(|data_type| {
                 ontology_type_resolver.add_open(Arc::new(data_type.schema));
             });
 
-        let [metadata] = ontology_type_resolver
-            .resolve_data_type_metadata([Arc::new(schema.clone().into_inner())])
-            .change_context(UpdateError)?
-            .try_into()
-            .expect("Expected exactly one closed data type metadata");
+        ontology_type_resolver.add_open(Arc::new(schema.clone().into_inner()));
+        let metadata = ontology_type_resolver
+            .resolve_data_type_metadata(&schema.id)
+            .change_context(UpdateError)?;
+
         let closed_schema = data_type_validator
             .validate(
                 ontology_type_resolver
@@ -777,11 +860,32 @@ where
         let data_type_id = DataTypeId::from(ontology_id);
 
         transaction
-            .insert_data_type_with_id(data_type_id, &closed_schema)
+            .insert_data_type_with_id(data_type_id, closed_schema.data_type())
             .await
             .change_context(UpdateError)?;
         transaction
             .insert_data_type_references(data_type_id, &metadata)
+            .await
+            .change_context(UpdateError)?;
+
+        let data_type_conversions_rows = params
+            .conversions
+            .iter()
+            .map(|(base_url, conversions)| DataTypeConversionsRow {
+                source_data_type_ontology_id: data_type_id,
+                target_data_type_base_url: base_url.clone(),
+                from: conversions.from.clone(),
+                into: conversions.to.clone(),
+            })
+            .collect::<Vec<_>>();
+        let (statement, parameters) = InsertStatementBuilder::from_rows(
+            Table::DataTypeConversions,
+            &data_type_conversions_rows,
+        )
+        .compile();
+        transaction
+            .as_client()
+            .query(&statement, &parameters)
             .await
             .change_context(UpdateError)?;
 
@@ -808,7 +912,9 @@ where
             .await
             .change_context(UpdateError)?;
 
-        if let Err(mut error) = transaction.commit().await.change_context(UpdateError) {
+        if let Err(error) = transaction.commit().await.change_context(UpdateError) {
+            let mut error = error.expand();
+
             if let Err(auth_error) = self
                 .authorization_api
                 .modify_data_type_relations(relationships.into_iter().map(|relation_and_subject| {
@@ -821,29 +927,25 @@ where
                 .await
                 .change_context(UpdateError)
             {
-                // TODO: Use `add_child`
-                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
-                error.extend_one(auth_error);
+                error.push(auth_error);
             }
 
-            Err(error)
+            Err(error.change_context(UpdateError))
         } else {
             let metadata = DataTypeMetadata {
                 record_id: OntologyTypeRecordId::from(params.schema.id.clone()),
                 classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
                 temporal_versioning,
                 provenance,
+                conversions: params.conversions,
             };
 
             if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
-                    .start_update_data_type_embeddings_workflow(
-                        actor_id,
-                        &[DataTypeWithMetadata {
-                            schema: params.schema,
-                            metadata: metadata.clone(),
-                        }],
-                    )
+                    .start_update_data_type_embeddings_workflow(actor_id, &[DataTypeWithMetadata {
+                        schema: params.schema,
+                        metadata: metadata.clone(),
+                    }])
                     .await
                     .change_context(UpdateError)?;
             }
@@ -868,14 +970,11 @@ where
         actor_id: AccountId,
         params: UnarchiveDataTypeParams,
     ) -> Result<OntologyTemporalMetadata, UpdateError> {
-        self.unarchive_ontology_type(
-            &params.data_type_id,
-            &OntologyEditionProvenance {
-                created_by_id: EditionCreatedById::new(actor_id),
-                archived_by_id: None,
-                user_defined: params.provenance,
-            },
-        )
+        self.unarchive_ontology_type(&params.data_type_id, &OntologyEditionProvenance {
+            created_by_id: EditionCreatedById::new(actor_id),
+            archived_by_id: None,
+            user_defined: params.provenance,
+        })
         .await
     }
 
@@ -950,6 +1049,56 @@ where
 
         Ok(())
     }
+
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn reindex_cache(&mut self) -> Result<(), UpdateError> {
+        tracing::info!("Reindexing data type cache");
+        let transaction = self.transaction().await.change_context(UpdateError)?;
+
+        // We remove the data from the reference tables first
+        transaction
+            .as_client()
+            .simple_query(
+                "
+                    DELETE FROM data_type_inherits_from;
+                ",
+            )
+            .await
+            .change_context(UpdateError)?;
+
+        let mut ontology_type_resolver = OntologyTypeResolver::default();
+
+        let data_types = Read::<DataTypeWithMetadata>::read_vec(
+            &transaction,
+            &Filter::All(Vec::new()),
+            None,
+            true,
+        )
+        .await
+        .change_context(UpdateError)?
+        .into_iter()
+        .map(|data_type| {
+            let schema = Arc::new(data_type.schema);
+            ontology_type_resolver.add_open(Arc::clone(&schema));
+            schema
+        })
+        .collect::<Vec<_>>();
+
+        for data_type in &data_types {
+            let schema_metadata = ontology_type_resolver
+                .resolve_data_type_metadata(&data_type.id)
+                .change_context(UpdateError)?;
+
+            transaction
+                .insert_data_type_references(DataTypeId::from_url(&data_type.id), &schema_metadata)
+                .await
+                .change_context(UpdateError)?;
+        }
+
+        transaction.commit().await.change_context(UpdateError)?;
+
+        Ok(())
+    }
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -962,6 +1111,10 @@ pub struct DataTypeRowIndices {
 
     pub edition_provenance: usize,
     pub additional_metadata: usize,
+
+    pub conversion_targets: usize,
+    pub conversion_froms: usize,
+    pub conversion_intos: usize,
 }
 
 impl QueryRecordDecode for DataTypeWithMetadata {
@@ -977,6 +1130,25 @@ impl QueryRecordDecode for DataTypeWithMetadata {
         if let Ok(distance) = row.try_get::<_, f64>("distance") {
             tracing::trace!(%record_id, %distance, "Data type embedding was calculated");
         }
+
+        let conversion_targets: Option<Vec<BaseUrl>> = row.get(indices.conversion_targets);
+        let conversion_froms: Option<Vec<ConversionDefinition>> = row.get(indices.conversion_froms);
+        let conversion_intos: Option<Vec<ConversionDefinition>> = row.get(indices.conversion_intos);
+        let conversions = match (conversion_targets, conversion_froms, conversion_intos) {
+            (Some(targets), Some(froms), Some(intos)) => targets
+                .into_iter()
+                .zip(
+                    froms
+                        .into_iter()
+                        .zip(intos)
+                        .map(|(from, to)| Conversions { from, to }),
+                )
+                .collect(),
+            (None, None, None) => HashMap::new(),
+            _ => unreachable!(
+                "Conversion targets, froms and intos must be either all present or all absent"
+            ),
+        };
 
         Self {
             schema: row.get::<_, Json<_>>(indices.schema).0,
@@ -994,6 +1166,7 @@ impl QueryRecordDecode for DataTypeWithMetadata {
                 provenance: OntologyProvenance {
                     edition: row.get(indices.edition_provenance),
                 },
+                conversions,
             },
         }
     }
@@ -1034,6 +1207,10 @@ impl PostgresRecord for DataTypeWithMetadata {
                 .add_selection_path(&DataTypeQueryPath::EditionProvenance(None)),
             additional_metadata: compiler
                 .add_selection_path(&DataTypeQueryPath::AdditionalMetadata),
+            conversion_targets: compiler
+                .add_selection_path(&DataTypeQueryPath::TargetConversionBaseUrls),
+            conversion_froms: compiler.add_selection_path(&DataTypeQueryPath::FromConversions),
+            conversion_intos: compiler.add_selection_path(&DataTypeQueryPath::IntoConversions),
         }
     }
 }

@@ -2,7 +2,7 @@
 //!
 //! [![crates.io](https://img.shields.io/crates/v/error-stack)][crates.io]
 //! [![libs.rs](https://img.shields.io/badge/libs.rs-error--stack-orange)][libs.rs]
-//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.63.0/nightly-2024-08-05&color=blue)][rust-version]
+//! [![rust-version](https://img.shields.io/static/v1?label=Rust&message=1.63.0/nightly-2024-09-30&color=blue)][rust-version]
 //!
 //! [crates.io]: https://crates.io/crates/error-stack
 //! [libs.rs]: https://lib.rs/crates/error-stack
@@ -253,21 +253,33 @@
 //!
 //! ### Multiple Errors
 //!
-//! [`Report`] supports the combination and propagation of multiple errors natively. This is useful
-//! in cases like parallel processing where multiple errors might happen independently from each
-//! other, in these use-cases you are able to use the implementations of [`Extend`] and
-//! [`extend_one()`] and are able to propagate all errors instead of just a single one.
+//! [`Report`] provides native support for combining and propagating multiple errors. This feature
+//! is particularly useful in scenarios such as parallel processing, where multiple errors might
+//! occur independently. In these cases, you can utilize the [`Extend`] trait implementation and the
+//! [`push()`] method to aggregate and propagate all encountered errors, rather than just a single
+//! one.
 //!
-//! [`extend_one()`]: Report::extend_one
+//! error-stack is designed to be explicit about the presence of single or multiple current
+//! contexts. This distinction is reflected in the generic type parameter:
+//!
+//! - [`Report<C>`] indicates that a single current context is present.
+//! - [`Report<[C]>`] signifies that at least one current context is present, with the possibility
+//!   of multiple contexts.
+//!
+//! You can seamlessly convert between these representations using [`Report::expand`] to transform
+//! a single-context report into a multi-context one. Using [`Report::change_context`] will
+//! transform a [`Report<[C]>`] to a [`Report<C2>`], where `C2` is a new context type.
+//!
+//! [`push()`]: Report::push
 //!
 //! ```rust
 //! # use std::{fs, path::Path};
 //! # use error_stack::Report;
 //! # pub type Config = String;
 //!
-//! fn parse_configs(paths: &[impl AsRef<Path>]) -> Result<Vec<Config>, Report<std::io::Error>> {
+//! fn parse_configs(paths: &[impl AsRef<Path>]) -> Result<Vec<Config>, Report<[std::io::Error]>> {
 //!     let mut configs = Vec::new();
-//!     let mut error: Option<Report<std::io::Error>> = None;
+//!     let mut error: Option<Report<[std::io::Error]>> = None;
 //!
 //!     for path in paths {
 //!         let path = path.as_ref();
@@ -278,9 +290,9 @@
 //!             }
 //!             Err(err) => {
 //!                 if let Some(error) = error.as_mut() {
-//!                     error.extend_one(err.into());
+//!                     error.push(Report::from(err));
 //!                 } else {
-//!                     error = Some(err.into());
+//!                     error = Some(Report::from(err).expand());
 //!                 }
 //!             }
 //!         }
@@ -460,6 +472,8 @@
 //! `serde`        | Enables serialization support for [`Report`]                        | disabled
 //! `anyhow`       | Provides `into_report` to convert [`anyhow::Error`] to [`Report`]   | disabled
 //! `eyre`         | Provides `into_report` to convert [`eyre::Report`] to [`Report`]    | disabled
+//! `futures`      | Enables support for [`Stream`], requires `unstable`                 | disabled
+//! `unstable`     | Enables unstable features, these features are not covered by semver | disabled
 //!
 //!
 //! [`set_debug_hook`]: Report::set_debug_hook
@@ -470,17 +484,22 @@
 //! [`Display`]: core::fmt::Display
 //! [`Debug`]: core::fmt::Debug
 //! [`SpanTrace`]: tracing_error::SpanTrace
+//! [`Stream`]: futures_core::Stream
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(
     nightly,
     feature(error_generic_member_access),
     allow(clippy::incompatible_msrv)
 )]
-#![cfg_attr(all(doc, nightly), feature(doc_auto_cfg))]
+#![cfg_attr(all(nightly, feature = "unstable"), feature(try_trait_v2))]
+#![cfg_attr(all(doc, nightly), feature(doc_auto_cfg, doc_cfg))]
 #![cfg_attr(all(nightly, feature = "std"), feature(backtrace_frames))]
 #![cfg_attr(
     not(miri),
-    doc(test(attr(deny(warnings, clippy::pedantic, clippy::nursery))))
+    doc(test(attr(
+        deny(warnings, clippy::pedantic, clippy::nursery),
+        allow(exported_private_dependencies)
+    )))
 )]
 #![allow(unsafe_code)]
 // This is an error handling library producing Results, not Errors
@@ -499,12 +518,22 @@ mod result;
 
 mod context;
 mod error;
+#[cfg(feature = "unstable")]
+pub mod ext;
 pub mod fmt;
 #[cfg(any(feature = "std", feature = "hooks"))]
 mod hook;
 #[cfg(feature = "serde")]
 mod serde;
+#[cfg(feature = "unstable")]
+mod sink;
 
+#[cfg(all(feature = "unstable", feature = "futures"))]
+pub use self::ext::stream::TryReportStreamExt;
+#[cfg(feature = "unstable")]
+pub use self::ext::{iter::TryReportIteratorExt, tuple::TryReportTupleExt};
+#[cfg(feature = "unstable")]
+pub use self::sink::ReportSink;
 pub use self::{
     compat::IntoReportCompat,
     context::Context,

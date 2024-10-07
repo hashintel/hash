@@ -1,7 +1,7 @@
 use core::ops::{Bound, Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive};
 
 use deer::Deserialize;
-use deer_desert::{assert_tokens, assert_tokens_error, error, Token};
+use deer_desert::{Token, assert_tokens, assert_tokens_error, error};
 use proptest::prelude::*;
 use serde_json::json;
 
@@ -267,13 +267,10 @@ fn range_to_inclusive_object_missing_end_err() {
 #[test]
 fn bound_unbounded() {
     assert_tokens(&Bound::<()>::Unbounded, &[Token::Str("Unbounded")]);
-    assert_tokens(
-        &Bound::<()>::Unbounded,
-        &[
-            Token::Object { length: Some(1) },
-            Token::Str("Unbounded"),
-            Token::Null,
-            Token::ObjectEnd,
-        ],
-    );
+    assert_tokens(&Bound::<()>::Unbounded, &[
+        Token::Object { length: Some(1) },
+        Token::Str("Unbounded"),
+        Token::Null,
+        Token::ObjectEnd,
+    ]);
 }

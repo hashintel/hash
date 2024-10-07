@@ -1,35 +1,33 @@
 use core::{
+    assert_matches::assert_matches,
     iter,
     net::Ipv4Addr,
     sync::atomic::{AtomicU64, Ordering},
     time::Duration,
 };
-use std::assert_matches::assert_matches;
 
-use futures::{sink, SinkExt, StreamExt};
+use futures::{SinkExt, StreamExt, sink};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
-        body::RequestBody, flags::RequestFlags, frame::RequestFrame, header::RequestHeader, Request,
+        Request, body::RequestBody, flags::RequestFlags, frame::RequestFrame, header::RequestHeader,
     },
     response::{
-        body::ResponseBody, flags::ResponseFlags, frame::ResponseFrame, header::ResponseHeader,
-        Response,
+        Response, body::ResponseBody, flags::ResponseFlags, frame::ResponseFrame,
+        header::ResponseHeader,
     },
     test_utils::mock_request_id,
 };
 use libp2p::{
-    core::transport::MemoryTransport, multiaddr, swarm::DialError, Multiaddr, TransportError,
+    Multiaddr, TransportError, core::transport::MemoryTransport, multiaddr, swarm::DialError,
 };
+use libp2p_stream::OpenStreamError;
 use tokio_util::sync::CancellationToken;
 
 use super::{TransportConfig, TransportLayer};
-use crate::transport::{
-    connection::{IncomingConnection, OutgoingConnection},
-    error::OpenStreamError,
-};
+use crate::transport::connection::{IncomingConnection, OutgoingConnection};
 
 static EXAMPLE_REQUEST: Request = Request {
     header: RequestHeader {
@@ -177,7 +175,7 @@ async fn establish_connection() {
             // we just check if we establish connection, so we don't need to do anything
             // with the connection
             drop(sink);
-            let _ = stream.map(Ok).forward(sink::drain()).await;
+            let Ok(()) = stream.map(Ok).forward(sink::drain()).await;
         }
     });
 

@@ -10,8 +10,8 @@ struct CustomError;
 impl Context for CustomError {}
 
 impl core::fmt::Display for CustomError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        f.write_str("Custom Error")
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        fmt.write_str("Custom Error")
     }
 }
 

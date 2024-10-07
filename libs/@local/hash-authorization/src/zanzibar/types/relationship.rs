@@ -1,12 +1,12 @@
 use core::error::Error;
 
 use crate::zanzibar::{
+    Relation,
     types::{
+        LeveledRelation,
         resource::{Resource, ResourceFilter},
         subject::SubjectFilter,
-        LeveledRelation,
     },
-    Relation,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

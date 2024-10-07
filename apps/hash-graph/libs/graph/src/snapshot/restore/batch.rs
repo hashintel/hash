@@ -1,9 +1,9 @@
-use async_trait::async_trait;
-use authorization::{backend::ZanzibarBackend, AuthorizationApi};
+use authorization::{AuthorizationApi, backend::ZanzibarBackend};
 use error_stack::Result;
 
 use crate::{
     snapshot::{
+        WriteBatch,
         entity::EntityRowBatch,
         ontology::{
             DataTypeRowBatch, EntityTypeRowBatch, OntologyTypeMetadataRowBatch,
@@ -11,7 +11,6 @@ use crate::{
         },
         owner::AccountRowBatch,
         web::WebBatch,
-        WriteBatch,
     },
     store::{AsClient, InsertionError, PostgresStore},
 };
@@ -26,7 +25,6 @@ pub enum SnapshotRecordBatch {
     Entities(EntityRowBatch),
 }
 
-#[async_trait]
 impl<C, A> WriteBatch<C, A> for SnapshotRecordBatch
 where
     C: AsClient,

@@ -15,25 +15,24 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
+use hash_graph_store::{
+    data_type::DataTypeQueryPath, entity_type::EntityTypeQueryPath, filter::Parameter,
+    property_type::PropertyTypeQueryPath, subgraph::temporal_axes::QueryTemporalAxes,
+};
 use serde::Deserialize;
 use time::OffsetDateTime;
 use tokio_postgres::{Row, Transaction};
-use type_system::url::BaseUrl;
+use type_system::url::{BaseUrl, VersionedUrl};
 
 pub use self::ontology_id::OntologyId;
-use crate::{
-    ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
-    store::{
-        crud::{Sorting, VertexIdSorting},
-        error::DeletionError,
-        postgres::{
-            crud::QueryRecordDecode,
-            query::{Distinctness, PostgresSorting, SelectCompiler},
-        },
-        query::Parameter,
-        AsClient, Ordering, PostgresStore, SubgraphRecord,
+use crate::store::{
+    AsClient, Ordering, PostgresStore,
+    crud::{Sorting, VersionedUrlSorting},
+    error::DeletionError,
+    postgres::{
+        crud::QueryRecordDecode,
+        query::{Distinctness, PostgresSorting, SelectCompiler},
     },
-    subgraph::temporal_axes::QueryTemporalAxes,
 };
 
 impl<A> PostgresStore<Transaction<'_>, A>
@@ -119,30 +118,29 @@ pub struct VersionedUrlIndices {
     pub base_url: usize,
     pub version: usize,
 }
+impl QueryRecordDecode for VersionedUrlSorting {
+    type Indices = VersionedUrlIndices;
+    type Output = VersionedUrl;
+
+    fn decode(row: &Row, indices: &Self::Indices) -> Self::Output {
+        VersionedUrl {
+            base_url: BaseUrl::new(row.get(indices.base_url))
+                .expect("invalid base URL returned from Postgres"),
+            version: row.get(indices.version),
+        }
+    }
+}
 
 macro_rules! impl_ontology_cursor {
     ($ty:ty, $query_path:ty) => {
-        impl QueryRecordDecode for VertexIdSorting<$ty> {
-            type Indices = VersionedUrlIndices;
-            type Output = <$ty as SubgraphRecord>::VertexId;
-
-            fn decode(row: &Row, indices: &Self::Indices) -> Self::Output {
-                Self::Output {
-                    base_id: BaseUrl::new(row.get(indices.base_url))
-                        .expect("invalid base URL returned from Postgres"),
-                    revision_id: row.get(indices.version),
-                }
-            }
-        }
-
-        impl<'s> PostgresSorting<'s, $ty> for VertexIdSorting<$ty> {
+        impl<'s> PostgresSorting<'s, $ty> for VersionedUrlSorting {
             type CompilationParameters = VersionedUrlCursorParameters<'s>;
             type Error = !;
 
             fn encode(&self) -> Result<Option<Self::CompilationParameters>, Self::Error> {
                 Ok(self.cursor().map(|cursor| VersionedUrlCursorParameters {
-                    base_url: Parameter::Text(Cow::Owned(cursor.base_id.to_string())),
-                    version: Parameter::OntologyTypeVersion(cursor.revision_id),
+                    base_url: Parameter::Text(Cow::Owned(cursor.base_url.to_string())),
+                    version: Parameter::OntologyTypeVersion(cursor.version),
                 }))
             }
 

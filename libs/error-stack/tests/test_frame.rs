@@ -13,7 +13,6 @@ fn opaque_attachment() {
         .attach(AttachmentA(10))
         .attach(AttachmentB(20));
 
-    assert_eq!(report.current_frames().len(), 1);
     let frame = report.frames_mut().next().expect("No frame found");
     let source = frame
         .sources_mut()
@@ -34,12 +33,11 @@ fn opaque_attachment() {
 
 #[test]
 fn sources() {
-    let mut a = create_report().attach(AttachmentA(10));
-    let b = create_report().attach(AttachmentA(20));
-    a.extend_one(b);
-    let mut report = a.attach(AttachmentB(30));
+    let mut report_a = create_report().attach(AttachmentA(10)).expand();
+    let report_b = create_report().attach(AttachmentA(20));
+    report_a.push(report_b);
+    let mut report = report_a.attach(AttachmentB(30));
 
-    assert_eq!(report.current_frames().len(), 1);
     let frame = report.frames_mut().next().expect("No frames");
     assert_eq!(frame.sources().len(), 2);
 
@@ -64,7 +62,6 @@ fn printable_attachment() {
         .attach_printable(PrintableA(10))
         .attach_printable(PrintableB(20));
 
-    assert_eq!(report.current_frames().len(), 1);
     let frame = report.frames_mut().next().expect("No frame found");
     let source = frame
         .sources_mut()
@@ -114,7 +111,7 @@ fn context() {
 #[test]
 fn type_id() {
     let report = create_report().attach(2_u32);
-    let current = &report.current_frames()[0];
+    let current = report.current_frame();
 
     assert_eq!(current.type_id(), TypeId::of::<u32>());
 

@@ -4,19 +4,19 @@ use alloc::sync::Arc;
 use std::collections::HashMap;
 
 use authorization::{
+    AuthorizationApi,
     backend::ZanzibarBackend,
     schema::{
         AccountGroupNamespace, DataTypeNamespace, EntityNamespace, EntityTypeNamespace,
         PropertyTypeNamespace, WebNamespace,
     },
     zanzibar::types::{RelationshipFilter, ResourceFilter},
-    AuthorizationApi,
 };
 use axum::{
+    Extension, Router,
     body::Body,
     response::Response,
     routing::{delete, post},
-    Extension, Router,
 };
 use error_stack::{Context, Report};
 use futures::TryStreamExt;
@@ -24,10 +24,8 @@ use graph::{
     snapshot::SnapshotStore,
     store::{PostgresStorePool, StorePool},
 };
-use graph_api::{
-    error::{ErrorInfo, StatusPayloads},
-    rest::{middleware::span_trace_layer, status::status_to_response},
-};
+use graph_api::rest::{middleware::span_trace_layer, status::status_to_response};
+use graph_type_defs::error::{ErrorInfo, StatusPayloads};
 use graph_types::account::AccountId;
 use hash_status::{Status, StatusCode};
 use tokio::io;

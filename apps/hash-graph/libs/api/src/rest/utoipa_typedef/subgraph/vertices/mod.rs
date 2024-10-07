@@ -1,14 +1,14 @@
 use alloc::collections::BTreeMap;
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::{HashMap, hash_map::Entry};
 
-use graph::subgraph::temporal_axes::VariableAxis;
 use graph_types::knowledge::entity::EntityId;
+use hash_graph_store::subgraph::temporal_axes::VariableAxis;
 use serde::Serialize;
 use temporal_versioning::Timestamp;
 use type_system::url::{BaseUrl, OntologyTypeVersion};
 use utoipa::{
-    openapi::{schema::AdditionalProperties, ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema},
     ToSchema,
+    openapi::{ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema, schema::AdditionalProperties},
 };
 
 pub(crate) use self::vertex::*;
@@ -34,8 +34,8 @@ pub(crate) struct Vertices {
     knowledge_graph: KnowledgeGraphVertices,
 }
 
-impl From<graph::subgraph::vertices::Vertices> for Vertices {
-    fn from(vertices: graph::subgraph::vertices::Vertices) -> Self {
+impl From<hash_graph_store::subgraph::vertices::Vertices> for Vertices {
+    fn from(vertices: hash_graph_store::subgraph::vertices::Vertices) -> Self {
         let data_types = vertices
             .data_types
             .into_iter()

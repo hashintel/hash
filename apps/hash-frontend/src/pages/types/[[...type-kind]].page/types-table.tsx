@@ -45,7 +45,11 @@ import { renderChipCell } from "../../shared/chip-cell";
 import type { TextIconCell } from "../../shared/entities-table/text-icon-cell";
 import { createRenderTextIconCell } from "../../shared/entities-table/text-icon-cell";
 import { TypeSlideOverStack } from "../../shared/entity-type-page/type-slide-over-stack";
+import { TableHeaderToggle } from "../../shared/table-header-toggle";
+import type { TableView } from "../../shared/table-views";
+import { tableViewIcons } from "../../shared/table-views";
 import { TOP_CONTEXT_BAR_HEIGHT } from "../../shared/top-context-bar";
+import { TypeGraphVisualizer } from "../../shared/type-graph-visualizer";
 
 const typesTableColumnIds = [
   "title",
@@ -109,6 +113,8 @@ export const TypesTable: FunctionComponent<{
 }> = ({ types, kind }) => {
   const router = useRouter();
 
+  const [view, setView] = useState<TableView>("Table");
+
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
   const [selectedRows, setSelectedRows] = useState<TypesTableRow[]>([]);
@@ -116,6 +122,7 @@ export const TypesTable: FunctionComponent<{
   const [filterState, setFilterState] = useState<FilterState>({
     includeArchived: false,
     includeGlobal: false,
+    limitToWebs: false,
   });
 
   const [selectedEntityTypeId, setSelectedEntityTypeId] =
@@ -195,68 +202,85 @@ export const TypesTable: FunctionComponent<{
     ];
   }, [authenticatedUser]);
 
+  const filteredTypes = useMemo(() => {
+    const filtered: ((
+      | EntityTypeWithMetadata
+      | PropertyTypeWithMetadata
+      | DataTypeWithMetadata
+    ) & { isExternal: boolean; webShortname?: string; archived: boolean })[] =
+      [];
+
+    for (const type of types ?? []) {
+      const isExternal = isExternalOntologyElementMetadata(type.metadata)
+        ? true
+        : !internalWebIds.includes(type.metadata.ownedById);
+
+      const namespaceOwnedById = isExternalOntologyElementMetadata(
+        type.metadata,
+      )
+        ? undefined
+        : type.metadata.ownedById;
+
+      const webShortname = namespaces?.find(
+        (workspace) => extractOwnedById(workspace) === namespaceOwnedById,
+      )?.shortname;
+
+      const isArchived = isTypeArchived(type);
+
+      if (
+        (filterState.includeGlobal ? true : !isExternal) &&
+        (filterState.includeArchived ? true : !isArchived) &&
+        (filterState.limitToWebs
+          ? webShortname && filterState.limitToWebs.includes(webShortname)
+          : true)
+      ) {
+        filtered.push({
+          ...type,
+          isExternal,
+          webShortname,
+          archived: isArchived,
+        });
+      }
+    }
+
+    return filtered;
+  }, [types, filterState, namespaces, internalWebIds]);
+
   const filteredRows = useMemo<TypesTableRow[] | undefined>(
     () =>
-      types
-        ?.map((type) => {
-          const isExternal = isExternalOntologyElementMetadata(type.metadata)
-            ? true
-            : !internalWebIds.includes(type.metadata.ownedById);
+      filteredTypes.map((type) => {
+        const lastEdited = format(
+          new Date(
+            type.metadata.temporalVersioning.transactionTime.start.limit,
+          ),
+          "yyyy-MM-dd HH:mm",
+        );
 
-          const namespaceOwnedById = isExternalOntologyElementMetadata(
-            type.metadata,
-          )
-            ? undefined
-            : type.metadata.ownedById;
+        const lastEditedBy = actors?.find(
+          ({ accountId }) =>
+            accountId === type.metadata.provenance.edition.createdById,
+        );
 
-          const webShortname = namespaces?.find(
-            (workspace) => extractOwnedById(workspace) === namespaceOwnedById,
-          )?.shortname;
-
-          const lastEdited = format(
-            new Date(
-              type.metadata.temporalVersioning.transactionTime.start.limit,
-            ),
-            "yyyy-MM-dd HH:mm",
-          );
-
-          const lastEditedBy = actors?.find(
-            ({ accountId }) =>
-              accountId === type.metadata.provenance.edition.createdById,
-          );
-
-          return {
-            rowId: type.schema.$id,
-            typeId: type.schema.$id,
-            title: type.schema.title,
-            lastEdited,
-            lastEditedBy,
-            kind:
-              type.schema.kind === "entityType"
-                ? isSpecialEntityTypeLookup?.[type.schema.$id]?.isFile
-                  ? "link-type"
-                  : "entity-type"
-                : type.schema.kind === "propertyType"
-                  ? "property-type"
-                  : "data-type",
-            external: isExternal,
-            webShortname,
-            archived: isTypeArchived(type),
-          } as const;
-        })
-        .filter(
-          ({ external, archived }) =>
-            (filterState.includeGlobal ? true : !external) &&
-            (filterState.includeArchived ? true : !archived),
-        ),
-    [
-      actors,
-      internalWebIds,
-      isSpecialEntityTypeLookup,
-      types,
-      namespaces,
-      filterState,
-    ],
+        return {
+          rowId: type.schema.$id,
+          typeId: type.schema.$id,
+          title: type.schema.title,
+          lastEdited,
+          lastEditedBy,
+          kind:
+            type.schema.kind === "entityType"
+              ? isSpecialEntityTypeLookup?.[type.schema.$id]?.isFile
+                ? "link-type"
+                : "entity-type"
+              : type.schema.kind === "propertyType"
+                ? "property-type"
+                : "data-type",
+          external: type.isExternal,
+          webShortname: type.webShortname,
+          archived: type.archived,
+        } as const;
+      }),
+    [actors, isSpecialEntityTypeLookup, filteredTypes],
   );
 
   const sortRows = useCallback<
@@ -426,6 +450,10 @@ export const TypesTable: FunctionComponent<{
 
   const theme = useTheme();
 
+  const maxTableHeight = `calc(100vh - (${
+    HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + tableHeaderHeight
+  }px + ${theme.spacing(5)}) - ${theme.spacing(5)})`;
+
   const currentlyDisplayedRowsRef = useRef<TypesTableRow[] | null>(null);
 
   return (
@@ -438,6 +466,19 @@ export const TypesTable: FunctionComponent<{
       )}
       <Box>
         <TableHeader
+          endAdornment={
+            <TableHeaderToggle
+              value={view}
+              setValue={setView}
+              options={(["Table", "Graph"] as const satisfies TableView[]).map(
+                (optionValue) => ({
+                  icon: tableViewIcons[optionValue],
+                  label: `${optionValue} view`,
+                  value: optionValue,
+                }),
+              )}
+            />
+          }
           internalWebIds={internalWebIds}
           itemLabelPlural="types"
           items={types}
@@ -451,40 +492,49 @@ export const TypesTable: FunctionComponent<{
           )}
           onBulkActionCompleted={() => setSelectedRows([])}
         />
-        <Grid
-          showSearch={showSearch}
-          onSearchClose={() => setShowSearch(false)}
-          columns={typesTableColumns}
-          dataLoading={!types}
-          rows={filteredRows}
-          enableCheckboxSelection
-          selectedRows={selectedRows}
-          currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
-          onSelectedRowsChange={(updatedSelectedRows) =>
-            setSelectedRows(updatedSelectedRows)
-          }
-          sortable
-          sortRows={sortRows}
-          firstColumnLeftPadding={16}
-          createGetCellContent={createGetCellContent}
-          // define max height if there are lots of rows
-          height={`
+        {view === "Table" ? (
+          <Grid
+            showSearch={showSearch}
+            onSearchClose={() => setShowSearch(false)}
+            columns={typesTableColumns}
+            dataLoading={!types}
+            rows={filteredRows}
+            enableCheckboxSelection
+            selectedRows={selectedRows}
+            currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
+            onSelectedRowsChange={(updatedSelectedRows) =>
+              setSelectedRows(updatedSelectedRows)
+            }
+            sortable
+            sortRows={sortRows}
+            firstColumnLeftPadding={16}
+            createGetCellContent={createGetCellContent}
+            // define max height if there are lots of rows
+            height={`
           min(
-            calc(100vh - (${
-              HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 170 + tableHeaderHeight
-            }px + ${theme.spacing(5)}) - ${theme.spacing(5)}),
+            ${maxTableHeight},
             calc(
               ${gridHeaderHeightWithBorder}px +
-              (${filteredRows?.length ? filteredRows.length : 1} * ${gridRowHeight}px) +
+              (${
+                filteredRows?.length ? filteredRows.length : 1
+              } * ${gridRowHeight}px) +
               ${gridHorizontalScrollbarHeight}px
             )
           )`}
-          customRenderers={[
-            createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
-            renderChipCell,
-          ]}
-          freezeColumns={1}
-        />
+            customRenderers={[
+              createRenderTextIconCell({ firstColumnLeftPadding: 16 }),
+              renderChipCell,
+            ]}
+            freezeColumns={1}
+          />
+        ) : (
+          <Box height={maxTableHeight}>
+            <TypeGraphVisualizer
+              onTypeClick={setSelectedEntityTypeId}
+              types={filteredTypes}
+            />
+          </Box>
+        )}
       </Box>
     </>
   );

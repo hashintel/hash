@@ -1,21 +1,21 @@
 use alloc::collections::BTreeMap;
 use core::hash::Hash;
-use std::collections::{hash_map::Entry, HashMap};
+use std::collections::{HashMap, hash_map::Entry};
 
-use graph::subgraph::{
+use graph_types::knowledge::entity::EntityId;
+use hash_graph_store::subgraph::{
     edges::{KnowledgeGraphEdgeKind, OntologyEdgeKind, OutwardEdge, SharedEdgeKind},
     identifier::{
         DataTypeVertexId, EntityIdWithInterval, EntityTypeVertexId, PropertyTypeVertexId,
     },
     temporal_axes::VariableAxis,
 };
-use graph_types::knowledge::entity::EntityId;
 use serde::Serialize;
 use temporal_versioning::Timestamp;
 use type_system::url::{BaseUrl, OntologyTypeVersion};
 use utoipa::{
-    openapi::{schema::AdditionalProperties, ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema},
     ToSchema,
+    openapi::{ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema, schema::AdditionalProperties},
 };
 
 use super::vertices::OntologyTypeVertexId;
@@ -174,8 +174,8 @@ fn collect_merge<T: Hash + Eq, U: Ord, V>(
     accumulator
 }
 
-impl From<graph::subgraph::edges::Edges> for Edges {
-    fn from(edges: graph::subgraph::edges::Edges) -> Self {
+impl From<hash_graph_store::subgraph::edges::Edges> for Edges {
+    fn from(edges: hash_graph_store::subgraph::edges::Edges) -> Self {
         Self {
             ontology: OntologyRootedEdges(
                 edges
@@ -238,13 +238,13 @@ impl ToSchema<'_> for Edges {
 
 #[cfg(test)]
 mod tests {
-    use graph::subgraph::{
-        edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
-        identifier::{EntityIdWithInterval, EntityTypeVertexId, EntityVertexId},
-    };
     use graph_types::{
         knowledge::entity::{EntityId, EntityUuid},
         owned_by_id::OwnedById,
+    };
+    use hash_graph_store::subgraph::{
+        edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
+        identifier::{EntityIdWithInterval, EntityTypeVertexId, EntityVertexId},
     };
     use temporal_versioning::{
         ClosedTemporalBound, LeftClosedTemporalInterval, OpenTemporalBound, Timestamp,
@@ -265,7 +265,7 @@ mod tests {
             revision_id: Timestamp::now(),
         };
 
-        let mut edges = graph::subgraph::edges::Edges::default();
+        let mut edges = hash_graph_store::subgraph::edges::Edges::default();
 
         // the data used does not matter, what only matters is that we actually merged the data
         edges.entity_to_entity.insert(

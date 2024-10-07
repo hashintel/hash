@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use virtue::{
     parse::Attribute,
     prelude::*,
-    utils::{parse_tagged_attribute, ParsedAttribute},
+    utils::{ParsedAttribute, parse_tagged_attribute},
 };
 
 use crate::input::{QueryBuilderField, QueryBuilderInput, QueryBuilderVariant, Redirect};
@@ -18,7 +18,7 @@ fn parse_body_attributes(attributes: &[ParsedAttribute]) -> Result {
     Ok(())
 }
 
-pub fn parse(input: TokenStream) -> Result<TokenStream> {
+pub(crate) fn parse(input: TokenStream) -> Result<TokenStream> {
     let parse = Parse::new(input)?;
 
     let (_, attributes, body) = parse.into_generator();

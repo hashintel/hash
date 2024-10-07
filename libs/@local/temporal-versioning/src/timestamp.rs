@@ -8,9 +8,9 @@ use derive_where::derive_where;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, ToSql, Type};
 use serde::{Deserialize, Serialize};
-use time::{format_description::well_known::Iso8601, OffsetDateTime};
+use time::{OffsetDateTime, format_description::well_known::Iso8601};
 #[cfg(feature = "utoipa")]
-use utoipa::{openapi, ToSchema};
+use utoipa::{ToSchema, openapi};
 
 use crate::TemporalTagged;
 
@@ -96,10 +96,10 @@ impl<A> Timestamp<A> {
 impl<A> FromStr for Timestamp<A> {
     type Err = time::error::Parse;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
+    fn from_str(timestamp: &str) -> Result<Self, Self::Err> {
         Ok(Self {
             axis: PhantomData,
-            time: OffsetDateTime::parse(s, &Iso8601::PARSING)?,
+            time: OffsetDateTime::parse(timestamp, &Iso8601::PARSING)?,
         })
     }
 }

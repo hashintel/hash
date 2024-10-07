@@ -9,25 +9,28 @@ publish.workspace = true
 authors.workspace = true
 
 [dependencies]
-graph-types.workspace = true
+# Public workspace dependencies
+graph-types = { workspace = true, public = true }
 
+# Public third-party dependencies
+
+# Private workspace dependencies
 error-stack = { workspace = true, features = ["hooks"] }
-type-system.workspace = true
+type-system = { workspace = true }
 
-chrono = { version = "0.4.38", default-features = false, features = ["std"] }
-email_address.workspace = true
-futures.workspace = true
-regex = "1.10.5"
-serde_json.workspace = true
-thiserror = "1.0.61"
-iso8601-duration = "0.2.0"
+# Private third-party dependencies
+futures = { workspace = true }
+regex = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
-url.workspace = true
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+url = { workspace = true }
+utoipa = { workspace = true, optional = true }
 uuid = { workspace = true, features = ["std"] }
-utoipa = { version = "4.2.3", optional = true }
 
 [dev-dependencies]
-graph-test-data.workspace = true
+graph-test-data = { workspace = true }
+temporal-versioning = { workspace = true }
 
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 

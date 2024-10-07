@@ -1,5 +1,5 @@
 use error_stack::{Result, ResultExt};
-use libp2p::{core::transport::ListenerId, Multiaddr, PeerId};
+use libp2p::{Multiaddr, PeerId, core::transport::ListenerId};
 use libp2p_stream::Control;
 use tokio::sync::{mpsc, oneshot};
 

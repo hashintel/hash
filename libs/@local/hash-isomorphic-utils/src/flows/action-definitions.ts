@@ -336,6 +336,12 @@ const actionDefinitionsAsConst = {
         array: true,
         required: true,
       },
+      {
+        payloadKind: "EntityId",
+        name: "highlightedEntities",
+        array: true,
+        required: true,
+      },
     ],
   },
   getWebPageSummary: {

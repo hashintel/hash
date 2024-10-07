@@ -1,35 +1,34 @@
 use alloc::borrow::Cow;
 use core::iter;
+use std::collections::HashMap;
 
 use authorization::schema::{
     DataTypeRelationAndSubject, EntityTypeRelationAndSubject, PropertyTypeRelationAndSubject,
 };
 use error_stack::Result;
 use graph_types::{
-    account::AccountId,
+    Embedding,
+    account::{AccountId, EditionCreatedById},
     ontology::{
         DataTypeMetadata, DataTypeWithMetadata, EntityTypeMetadata, EntityTypeWithMetadata,
         OntologyTemporalMetadata, OntologyTypeClassificationMetadata, PropertyTypeMetadata,
         PropertyTypeWithMetadata, ProvidedOntologyEditionProvenance,
     },
-    Embedding,
+    owned_by_id::OwnedById,
+};
+use hash_graph_store::{
+    ConflictBehavior,
+    filter::Filter,
+    subgraph::{Subgraph, edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{Timestamp, TransactionTime};
 use type_system::{
-    schema::{DataType, EntityType, PropertyType},
+    schema::{Conversions, DataType, EntityType, PropertyType},
     url::{BaseUrl, VersionedUrl},
 };
 
-use crate::{
-    store::{query::Filter, ConflictBehavior, InsertionError, QueryError, UpdateError},
-    subgraph::{
-        edges::GraphResolveDepths,
-        identifier::{DataTypeVertexId, EntityTypeVertexId, PropertyTypeVertexId},
-        temporal_axes::QueryTemporalAxesUnresolved,
-        Subgraph,
-    },
-};
+use crate::store::{InsertionError, QueryError, UpdateError};
 
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -45,6 +44,8 @@ pub struct CreateDataTypeParams<R> {
     pub conflict_behavior: ConflictBehavior,
     #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
     pub provenance: ProvidedOntologyEditionProvenance,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub conversions: HashMap<BaseUrl, Conversions>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -57,7 +58,7 @@ pub struct GetDataTypeSubgraphParams<'p> {
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
     #[serde(default)]
-    pub after: Option<DataTypeVertexId>,
+    pub after: Option<VersionedUrl>,
     #[serde(default)]
     pub limit: Option<usize>,
     #[serde(default)]
@@ -67,7 +68,7 @@ pub struct GetDataTypeSubgraphParams<'p> {
 #[derive(Debug)]
 pub struct GetDataTypeSubgraphResponse {
     pub subgraph: Subgraph,
-    pub cursor: Option<DataTypeVertexId>,
+    pub cursor: Option<VersionedUrl>,
     pub count: Option<usize>,
 }
 
@@ -90,7 +91,7 @@ pub struct GetDataTypesParams<'p> {
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
     #[serde(default)]
-    pub after: Option<DataTypeVertexId>,
+    pub after: Option<VersionedUrl>,
     #[serde(default)]
     pub limit: Option<usize>,
     #[serde(default)]
@@ -102,7 +103,7 @@ pub struct GetDataTypesParams<'p> {
 #[serde(rename_all = "camelCase")]
 pub struct GetDataTypesResponse {
     pub data_types: Vec<DataTypeWithMetadata>,
-    pub cursor: Option<DataTypeVertexId>,
+    pub cursor: Option<VersionedUrl>,
     pub count: Option<usize>,
 }
 
@@ -114,6 +115,8 @@ pub struct UpdateDataTypesParams<R> {
     pub relationships: R,
     #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
     pub provenance: ProvidedOntologyEditionProvenance,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub conversions: HashMap<BaseUrl, Conversions>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -267,6 +270,16 @@ pub trait DataTypeStore {
 
         params: UpdateDataTypeEmbeddingParams<'_>,
     ) -> impl Future<Output = Result<(), UpdateError>> + Send;
+
+    /// Re-indexes the cache for data types.
+    ///
+    /// This is only needed if the schema of a data type has changed in place without bumping
+    /// the version. This is a rare operation and should be avoided if possible.
+    ///
+    /// # Errors
+    ///
+    /// - if re-indexing the cache fails.
+    fn reindex_cache(&mut self) -> impl Future<Output = Result<(), UpdateError>> + Send;
 }
 
 #[derive(Debug, Deserialize)]
@@ -295,7 +308,7 @@ pub struct GetPropertyTypeSubgraphParams<'p> {
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
     #[serde(default)]
-    pub after: Option<PropertyTypeVertexId>,
+    pub after: Option<VersionedUrl>,
     #[serde(default)]
     pub limit: Option<usize>,
     #[serde(default)]
@@ -305,7 +318,7 @@ pub struct GetPropertyTypeSubgraphParams<'p> {
 #[derive(Debug)]
 pub struct GetPropertyTypeSubgraphResponse {
     pub subgraph: Subgraph,
-    pub cursor: Option<PropertyTypeVertexId>,
+    pub cursor: Option<VersionedUrl>,
     pub count: Option<usize>,
 }
 
@@ -328,7 +341,7 @@ pub struct GetPropertyTypesParams<'p> {
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
     #[serde(default)]
-    pub after: Option<PropertyTypeVertexId>,
+    pub after: Option<VersionedUrl>,
     #[serde(default)]
     pub limit: Option<usize>,
     #[serde(default)]
@@ -340,7 +353,7 @@ pub struct GetPropertyTypesParams<'p> {
 #[serde(rename_all = "camelCase")]
 pub struct GetPropertyTypesResponse {
     pub property_types: Vec<PropertyTypeWithMetadata>,
-    pub cursor: Option<PropertyTypeVertexId>,
+    pub cursor: Option<VersionedUrl>,
     pub count: Option<usize>,
 }
 
@@ -529,23 +542,30 @@ pub struct CreateEntityTypeParams<R> {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[expect(clippy::struct_excessive_bools, reason = "Parameter struct")]
 pub struct GetEntityTypeSubgraphParams<'p> {
     #[serde(borrow)]
     pub filter: Filter<'p, EntityTypeWithMetadata>,
     pub graph_resolve_depths: GraphResolveDepths,
     pub temporal_axes: QueryTemporalAxesUnresolved,
-    pub after: Option<EntityTypeVertexId>,
+    pub after: Option<VersionedUrl>,
     pub limit: Option<usize>,
     pub include_drafts: bool,
     #[serde(default)]
     pub include_count: bool,
+    #[serde(default)]
+    pub include_web_ids: bool,
+    #[serde(default)]
+    pub include_edition_created_by_ids: bool,
 }
 
 #[derive(Debug)]
 pub struct GetEntityTypeSubgraphResponse {
     pub subgraph: Subgraph,
-    pub cursor: Option<EntityTypeVertexId>,
+    pub cursor: Option<VersionedUrl>,
     pub count: Option<usize>,
+    pub web_ids: Option<HashMap<OwnedById, usize>>,
+    pub edition_created_by_ids: Option<HashMap<EditionCreatedById, usize>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -561,17 +581,22 @@ pub struct CountEntityTypesParams<'p> {
 #[derive(Debug, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[expect(clippy::struct_excessive_bools, reason = "Parameter struct")]
 pub struct GetEntityTypesParams<'p> {
     #[serde(borrow)]
     pub filter: Filter<'p, EntityTypeWithMetadata>,
     pub temporal_axes: QueryTemporalAxesUnresolved,
     pub include_drafts: bool,
     #[serde(default)]
-    pub after: Option<EntityTypeVertexId>,
+    pub after: Option<VersionedUrl>,
     #[serde(default)]
     pub limit: Option<usize>,
     #[serde(default)]
     pub include_count: bool,
+    #[serde(default)]
+    pub include_web_ids: bool,
+    #[serde(default)]
+    pub include_edition_created_by_ids: bool,
 }
 
 #[derive(Debug, Serialize)]
@@ -579,8 +604,14 @@ pub struct GetEntityTypesParams<'p> {
 #[serde(rename_all = "camelCase")]
 pub struct GetEntityTypesResponse {
     pub entity_types: Vec<EntityTypeWithMetadata>,
-    pub cursor: Option<EntityTypeVertexId>,
+    pub cursor: Option<VersionedUrl>,
     pub count: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub web_ids: Option<HashMap<OwnedById, usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[cfg_attr(feature = "utoipa", schema(nullable = false))]
+    pub edition_created_by_ids: Option<HashMap<EditionCreatedById, usize>>,
 }
 
 #[derive(Debug, Deserialize)]

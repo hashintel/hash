@@ -9,19 +9,26 @@ publish.workspace = true
 authors.workspace = true
 
 [dependencies]
-anstyle = "1.0.8"
-anstyle-yansi = "2.0.1"
-ariadne = "0.4.1"
-error-stack.workspace = true
-hql-span = { path = "../span" }
-serde = { workspace = true, optional = true, features = ["derive"] }
-serde_with = { version = "3.9.0", optional = true, default-features = false, features = ["std", "macros"] }
-text-size = "1.1.1"
-thiserror = "1.0.63"
+# Public workspace dependencies
+hql-span = { workspace = true, public = true }
+error-stack = { workspace = true, public = true, features = ["unstable"]}
+
+# Public third-party dependencies
+anstyle = { workspace = true, public = true }
+ariadne = { workspace = true, public = true }
+serde = { workspace = true, public = true, optional = true, features = ["derive"] }
+text-size = { workspace = true, public = true }
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+anstyle-yansi = { workspace = true }
+serde_with = { workspace = true, features = ["std", "macros"], optional = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 jsonptr = "0.6.0"
-serde_json = "1.0.122"
+serde_json = { workspace = true }
 
 [features]
 serde = ["dep:serde", "dep:serde_with", "hql-span/serde"]

@@ -1,25 +1,25 @@
 use core::{
     pin::Pin,
-    task::{ready, Context, Poll},
+    task::{Context, Poll, ready},
 };
 
 use authorization::schema::PropertyTypeRelationAndSubject;
 use error_stack::{Report, ResultExt};
 use futures::{
-    channel::mpsc::{self, Receiver, Sender},
-    stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
+    channel::mpsc::{self, Receiver, Sender},
+    stream::{BoxStream, SelectAll, select_all},
 };
 use graph_types::ontology::{DataTypeId, PropertyTypeId};
 use type_system::Valid;
 
 use crate::{
     snapshot::{
-        ontology::{
-            metadata::OntologyTypeMetadata, property_type::batch::PropertyTypeRowBatch,
-            OntologyTypeMetadataSender, PropertyTypeSnapshotRecord,
-        },
         SnapshotRestoreError,
+        ontology::{
+            OntologyTypeMetadataSender, PropertyTypeSnapshotRecord, metadata::OntologyTypeMetadata,
+            property_type::batch::PropertyTypeRowBatch,
+        },
     },
     store::postgres::query::rows::{
         PropertyTypeConstrainsPropertiesOnRow, PropertyTypeConstrainsValuesOnRow,
@@ -191,7 +191,7 @@ impl Stream for PropertyTypeReceiver {
 /// Creates a new [`PropertyTypeSender`] and [`PropertyTypeReceiver`] pair.
 ///
 /// The `chunk_size` parameter is used to batch the rows into chunks of the given size.
-pub fn property_type_channel(
+pub(crate) fn property_type_channel(
     chunk_size: usize,
     metadata_sender: OntologyTypeMetadataSender,
     embedding_rx: Receiver<PropertyTypeEmbeddingRow<'static>>,

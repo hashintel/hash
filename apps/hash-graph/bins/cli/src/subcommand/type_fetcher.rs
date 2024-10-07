@@ -1,14 +1,14 @@
 use core::time::Duration;
+use std::collections::HashMap;
 
 use clap::Parser;
 use error_stack::{Result, ResultExt};
-use futures::{future, StreamExt};
+use futures::{StreamExt, future};
 use tarpc::{
     serde_transport::Transport,
     server::{self, Channel},
 };
 use tokio::time::timeout;
-use tokio_serde::formats::Json;
 use type_fetcher::{
     fetcher::{Fetcher, FetcherRequest, FetcherResponse},
     fetcher_server::FetchServer,
@@ -68,7 +68,7 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), GraphError> {
             args.address.type_fetcher_host,
             args.address.type_fetcher_port,
         ),
-        Json::default,
+        tarpc::tokio_serde::formats::Json::default,
     )
     .await
     .change_context(GraphError)?;
@@ -81,10 +81,16 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), GraphError> {
     // The pipeline must be invoked, we do this with `for_each` because it doesn't contain any
     // useful information we would like to store or report on.
     listener
-        .filter_map(|r| future::ready(r.ok()))
+        .filter_map(|result| future::ready(result.ok()))
         .map(server::BaseChannel::with_defaults)
         .map(|channel| {
-            let server = FetchServer { buffer_size: 10 };
+            let mut server = FetchServer {
+                buffer_size: 10,
+                predefined_types: HashMap::new(),
+            };
+            server
+                .load_predefined_types()
+                .expect("should be able to load predefined types");
             channel.execute(server.serve())
         })
         .buffer_unordered(255)
@@ -97,7 +103,7 @@ pub async fn type_fetcher(args: TypeFetcherArgs) -> Result<(), GraphError> {
 async fn healthcheck(address: TypeFetcherAddress) -> Result<(), HealthcheckError> {
     let transport = tarpc::serde_transport::tcp::connect(
         (address.type_fetcher_host, address.type_fetcher_port),
-        Json::default,
+        tarpc::tokio_serde::formats::Json::default,
     );
 
     let _: Transport<_, FetcherRequest, FetcherResponse, _> =

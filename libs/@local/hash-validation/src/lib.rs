@@ -1,32 +1,22 @@
 #![feature(extend_one)]
+#![feature(hash_raw_entry)]
 
-pub mod error;
+extern crate alloc;
 
-pub use self::{
-    data_type::{DataTypeConstraint, DataValidationError},
-    entity_type::EntityValidationError,
-    property_type::PropertyValidationError,
-};
+pub use self::entity_type::{EntityPreprocessor, EntityValidationError};
 
-mod data_type;
 mod entity_type;
 mod property;
-mod property_type;
+mod test_data_type;
+mod test_property_type;
 
 use core::borrow::Borrow;
 
 use error_stack::{Context, Report};
-use graph_types::{
-    knowledge::entity::{Entity, EntityId},
-    ontology::DataTypeId,
-};
+use graph_types::knowledge::entity::{Entity, EntityId};
 use serde::Deserialize;
-use type_system::{
-    schema::{ClosedEntityType, DataType},
-    url::{BaseUrl, VersionedUrl},
-};
 
-trait Schema<V: ?Sized, P: Sync> {
+pub trait Schema<V: ?Sized, P: Sync> {
     type Error: Context;
 
     fn validate_value<'a>(
@@ -34,7 +24,7 @@ trait Schema<V: ?Sized, P: Sync> {
         value: &'a V,
         components: ValidateEntityComponents,
         provider: &'a P,
-    ) -> impl Future<Output = Result<(), Report<Self::Error>>> + Send + 'a;
+    ) -> impl Future<Output = Result<(), Report<[Self::Error]>>> + Send + 'a;
 }
 
 const fn default_true() -> bool {
@@ -90,34 +80,7 @@ pub trait Validate<S, C> {
         schema: &S,
         components: ValidateEntityComponents,
         context: &C,
-    ) -> impl Future<Output = Result<(), Report<Self::Error>>> + Send;
-}
-
-pub trait OntologyTypeProvider<O> {
-    fn provide_type(
-        &self,
-        type_id: &VersionedUrl,
-    ) -> impl Future<Output = Result<impl Borrow<O> + Send, Report<impl Context>>> + Send;
-}
-
-pub trait DataTypeProvider: OntologyTypeProvider<DataType> {
-    fn is_parent_of(
-        &self,
-        child: &VersionedUrl,
-        parent: &BaseUrl,
-    ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
-    fn has_children(
-        &self,
-        data_type: DataTypeId,
-    ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
-}
-
-pub trait EntityTypeProvider: OntologyTypeProvider<ClosedEntityType> {
-    fn is_parent_of(
-        &self,
-        child: &VersionedUrl,
-        parent: &BaseUrl,
-    ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
+    ) -> impl Future<Output = Result<(), Report<[Self::Error]>>> + Send;
 }
 
 pub trait EntityProvider {
@@ -129,24 +92,68 @@ pub trait EntityProvider {
 
 #[cfg(test)]
 mod tests {
+    use alloc::sync::Arc;
     use std::collections::HashMap;
 
-    use graph_types::knowledge::{
-        Property, PropertyObject, PropertyProvenance, PropertyWithMetadata,
-        PropertyWithMetadataObject, ValueMetadata, ValueWithMetadata,
+    use graph_types::{
+        account::{AccountId, EditionCreatedById},
+        knowledge::property::{
+            Property, PropertyMetadata, PropertyObject, PropertyProvenance, PropertyWithMetadata,
+            PropertyWithMetadataObject, PropertyWithMetadataValue, ValueMetadata,
+            error::install_error_stack_hooks,
+            visitor::{EntityVisitor, TraversalError},
+        },
+        ontology::{
+            DataTypeMetadata, DataTypeProvider, DataTypeWithMetadata, EntityTypeProvider,
+            OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
+            OntologyTypeClassificationMetadata, OntologyTypeProvider, OntologyTypeRecordId,
+            PropertyTypeProvider, ProvidedOntologyEditionProvenance,
+        },
+        owned_by_id::OwnedById,
     };
     use serde_json::Value as JsonValue;
+    use temporal_versioning::{ClosedTemporalBound, Interval, OpenTemporalBound, Timestamp};
     use thiserror::Error;
-    use type_system::schema::{DataType, EntityType, PropertyType};
+    use type_system::{
+        schema::{ClosedEntityType, ConversionExpression, DataType, EntityType, PropertyType},
+        url::{BaseUrl, VersionedUrl},
+    };
+    use uuid::Uuid;
 
     use super::*;
-    use crate::error::install_error_stack_hooks;
+
+    fn generate_data_type_metadata(schema: DataType) -> DataTypeWithMetadata {
+        let actor = AccountId::new(Uuid::nil());
+        DataTypeWithMetadata {
+            metadata: DataTypeMetadata {
+                record_id: OntologyTypeRecordId::from(schema.id.clone()),
+                classification: OntologyTypeClassificationMetadata::Owned {
+                    owned_by_id: OwnedById::new(actor.into_uuid()),
+                },
+                temporal_versioning: OntologyTemporalMetadata {
+                    transaction_time: Interval::new(
+                        ClosedTemporalBound::Inclusive(Timestamp::now()),
+                        OpenTemporalBound::Unbounded,
+                    ),
+                },
+                provenance: OntologyProvenance {
+                    edition: OntologyEditionProvenance {
+                        created_by_id: EditionCreatedById::new(actor),
+                        archived_by_id: None,
+                        user_defined: ProvidedOntologyEditionProvenance::default(),
+                    },
+                },
+                conversions: HashMap::default(),
+            },
+            schema,
+        }
+    }
 
     struct Provider {
         entities: HashMap<EntityId, Entity>,
-        entity_types: HashMap<VersionedUrl, ClosedEntityType>,
-        property_types: HashMap<VersionedUrl, PropertyType>,
-        data_types: HashMap<VersionedUrl, DataType>,
+        entity_types: HashMap<VersionedUrl, Arc<ClosedEntityType>>,
+        property_types: HashMap<VersionedUrl, Arc<PropertyType>>,
+        data_types: HashMap<VersionedUrl, Arc<DataTypeWithMetadata>>,
     }
     impl Provider {
         fn new(
@@ -160,14 +167,22 @@ mod tests {
                     .into_iter()
                     .map(|entity| (entity.metadata.record_id.entity_id, entity))
                     .collect(),
-                entity_types: entity_types.into_iter().collect(),
+                entity_types: entity_types
+                    .into_iter()
+                    .map(|(url, schema)| (url, Arc::new(schema)))
+                    .collect(),
                 property_types: property_types
                     .into_iter()
-                    .map(|schema| (schema.id.clone(), schema))
+                    .map(|schema| (schema.id.clone(), Arc::new(schema)))
                     .collect(),
                 data_types: data_types
                     .into_iter()
-                    .map(|schema| (schema.id.clone(), schema))
+                    .map(|schema| {
+                        (
+                            schema.id.clone(),
+                            Arc::new(generate_data_type_metadata(schema)),
+                        )
+                    })
                     .collect(),
             }
         }
@@ -226,40 +241,54 @@ mod tests {
     }
 
     impl OntologyTypeProvider<ClosedEntityType> for Provider {
+        type Value = Arc<ClosedEntityType>;
+
         #[expect(refining_impl_trait)]
         async fn provide_type(
             &self,
             type_id: &VersionedUrl,
-        ) -> Result<&ClosedEntityType, Report<InvalidEntityType>> {
-            self.entity_types.get(type_id).ok_or_else(|| {
-                Report::new(InvalidEntityType {
-                    id: type_id.clone(),
+        ) -> Result<Arc<ClosedEntityType>, Report<InvalidEntityType>> {
+            self.entity_types
+                .get(type_id)
+                .map(Arc::clone)
+                .ok_or_else(|| {
+                    Report::new(InvalidEntityType {
+                        id: type_id.clone(),
+                    })
                 })
-            })
         }
     }
 
     impl OntologyTypeProvider<PropertyType> for Provider {
+        type Value = Arc<PropertyType>;
+
         #[expect(refining_impl_trait)]
         async fn provide_type(
             &self,
             type_id: &VersionedUrl,
-        ) -> Result<&PropertyType, Report<InvalidPropertyType>> {
-            self.property_types.get(type_id).ok_or_else(|| {
-                Report::new(InvalidPropertyType {
-                    id: type_id.clone(),
+        ) -> Result<Arc<PropertyType>, Report<InvalidPropertyType>> {
+            self.property_types
+                .get(type_id)
+                .map(Arc::clone)
+                .ok_or_else(|| {
+                    Report::new(InvalidPropertyType {
+                        id: type_id.clone(),
+                    })
                 })
-            })
         }
     }
 
-    impl OntologyTypeProvider<DataType> for Provider {
+    impl PropertyTypeProvider for Provider {}
+
+    impl OntologyTypeProvider<DataTypeWithMetadata> for Provider {
+        type Value = Arc<DataTypeWithMetadata>;
+
         #[expect(refining_impl_trait)]
         async fn provide_type(
             &self,
             type_id: &VersionedUrl,
-        ) -> Result<&DataType, Report<InvalidDataType>> {
-            self.data_types.get(type_id).ok_or_else(|| {
+        ) -> Result<Arc<DataTypeWithMetadata>, Report<InvalidDataType>> {
+            self.data_types.get(type_id).map(Arc::clone).ok_or_else(|| {
                 Report::new(InvalidDataType {
                     id: type_id.clone(),
                 })
@@ -274,19 +303,23 @@ mod tests {
             child: &VersionedUrl,
             parent: &BaseUrl,
         ) -> Result<bool, Report<InvalidDataType>> {
-            Ok(OntologyTypeProvider::<DataType>::provide_type(self, child)
-                .await?
-                .all_of
-                .iter()
-                .any(|id| id.url.base_url == *parent))
+            Ok(
+                OntologyTypeProvider::<DataTypeWithMetadata>::provide_type(self, child)
+                    .await?
+                    .schema
+                    .all_of
+                    .iter()
+                    .any(|id| id.url.base_url == *parent),
+            )
         }
 
         #[expect(refining_impl_trait)]
-        async fn has_children(
+        async fn find_conversion(
             &self,
-            _data_type: DataTypeId,
-        ) -> Result<bool, Report<InvalidDataType>> {
-            Ok(false)
+            _: &VersionedUrl,
+            _: &VersionedUrl,
+        ) -> Result<Vec<ConversionExpression>, Report<InvalidDataType>> {
+            Ok(Vec::new())
         }
     }
 
@@ -298,7 +331,7 @@ mod tests {
         property_types: impl IntoIterator<Item = &'static str> + Send,
         data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
-    ) -> Result<(), Report<EntityValidationError>> {
+    ) -> Result<PropertyWithMetadataObject, Report<[TraversalError]>> {
         install_error_stack_hooks();
 
         let provider = Provider::new(
@@ -318,22 +351,27 @@ mod tests {
             serde_json::from_str::<EntityType>(entity_type).expect("failed to parse entity type"),
         );
 
-        let properties =
-            serde_json::from_str::<PropertyObject>(entity).expect("failed to read entity string");
+        let mut properties = PropertyWithMetadataObject::from_parts(
+            serde_json::from_str::<PropertyObject>(entity).expect("failed to read entity string"),
+            None,
+        )
+        .expect("failed to create property with metadata");
 
-        PropertyWithMetadataObject::from_parts(properties, None)
-            .expect("failed to create property with metadata")
-            .validate(&entity_type, components, &provider)
-            .await
+        EntityPreprocessor { components }
+            .visit_object(&entity_type, &mut properties, &provider)
+            .await?;
+
+        Ok(properties)
     }
 
     pub(crate) async fn validate_property(
         property: JsonValue,
+        metadata: Option<PropertyMetadata>,
         property_type: &'static str,
         property_types: impl IntoIterator<Item = &'static str> + Send,
         data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
-    ) -> Result<(), Report<PropertyValidationError>> {
+    ) -> Result<PropertyWithMetadata, Report<[TraversalError]>> {
         install_error_stack_hooks();
         let property = Property::deserialize(property).expect("failed to deserialize property");
 
@@ -351,34 +389,46 @@ mod tests {
         let property_type: PropertyType =
             serde_json::from_str(property_type).expect("failed to parse property type");
 
-        let property = PropertyWithMetadata::from_parts(property, None)
+        let mut property = PropertyWithMetadata::from_parts(property, metadata)
             .expect("failed to create property with metadata");
-        property_type
-            .validate_value(&property, components, &provider)
-            .await
+        EntityPreprocessor { components }
+            .visit_property(&property_type, &mut property, &provider)
+            .await?;
+        Ok(property)
     }
 
     pub(crate) async fn validate_data(
-        value: JsonValue,
+        mut value: JsonValue,
         data_type: &str,
+        data_types: impl IntoIterator<Item = &'static str> + Send,
         components: ValidateEntityComponents,
-    ) -> Result<(), Report<DataValidationError>> {
+    ) -> Result<PropertyWithMetadataValue, Report<[TraversalError]>> {
         install_error_stack_hooks();
 
-        let provider = Provider::new([], [], [], []);
+        let provider = Provider::new(
+            [],
+            [],
+            [],
+            data_types.into_iter().map(|data_type| {
+                serde_json::from_str(data_type).expect("failed to parse data type")
+            }),
+        );
 
-        let data_type: DataType =
-            serde_json::from_str(data_type).expect("failed to parse data type");
+        let data_type = generate_data_type_metadata(
+            serde_json::from_str(data_type).expect("failed to parse data type"),
+        );
 
-        ValueWithMetadata {
-            value,
-            metadata: ValueMetadata {
-                data_type_id: None,
-                provenance: PropertyProvenance::default(),
-                confidence: None,
-            },
-        }
-        .validate(&data_type, components, &provider)
-        .await
+        let mut metadata = ValueMetadata {
+            data_type_id: Some(data_type.schema.id.clone()),
+            original_data_type_id: Some(data_type.schema.id.clone()),
+            provenance: PropertyProvenance::default(),
+            confidence: None,
+            canonical: HashMap::default(),
+        };
+
+        EntityPreprocessor { components }
+            .visit_value(&data_type, &mut value, &mut metadata, &provider)
+            .await?;
+        Ok(PropertyWithMetadataValue { value, metadata })
     }
 }

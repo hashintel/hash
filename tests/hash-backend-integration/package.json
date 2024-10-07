@@ -23,26 +23,27 @@
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@local/status": "0.0.0-private",
+    "@rust/graph-type-defs": "0.0.0-private",
     "execa": "5.1.1",
     "fractional-indexing": "2.1.0",
-    "graphql": "16.8.1",
-    "graphql-request": "3.4.0",
+    "graphql": "16.9.0",
+    "graphql-request": "3.7.0",
     "node-fetch": "2.7.0"
   },
   "devDependencies": {
     "@blockprotocol/graph": "0.4.0-canary.0",
-    "@graphql-codegen/cli": "5.0.0",
+    "@graphql-codegen/cli": "5.0.2",
     "@graphql-codegen/introspection": "2.2.3",
-    "@graphql-codegen/typescript": "2.8.7",
-    "@graphql-codegen/typescript-graphql-request": "4.5.8",
-    "@graphql-codegen/typescript-resolvers": "2.7.12",
+    "@graphql-codegen/typescript": "2.8.8",
+    "@graphql-codegen/typescript-graphql-request": "4.5.9",
+    "@graphql-codegen/typescript-resolvers": "2.7.13",
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/node-fetch": "2.6.11",
-    "@vitest/coverage-istanbul": "2.0.5",
+    "@vitest/coverage-istanbul": "2.1.2",
     "eslint": "8.57.0",
     "rimraf": "6.0.1",
-    "typescript": "5.5.4",
-    "vitest": "2.0.5"
+    "typescript": "5.6.2",
+    "vitest": "2.1.2"
   }
 }

@@ -9,17 +9,19 @@ publish.workspace = true
 authors.workspace = true
 
 [dependencies]
-orx-concurrent-vec = "2.2.0"
-serde = { workspace = true, optional = true, features = ["derive"] }
-serde-value = { version = "0.7.0", optional = true }
-sval = "2.13.0"
-text-size = "1.1.1"
+# Public workspace dependencies
+
+# Public third-party dependencies
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+orx-concurrent-vec = { workspace = true }
+serde = { workspace = true, optional = true, features = ["alloc", "derive"] }
+text-size = { workspace = true }
 
 [features]
-serde = ["dep:serde", "dep:serde-value", "text-size/serde"]
+serde = ["dep:serde", "text-size/serde"]
 
 [lints]
 workspace = true
-
-[dev-dependencies]
-serde_json.workspace = true

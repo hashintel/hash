@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use authorization::{backend::ZanzibarBackend, schema::AccountGroupRelationAndSubject};
 use error_stack::{Result, ResultExt};
 use graph_types::account::AccountGroupId;
@@ -6,8 +5,8 @@ use tokio_postgres::GenericClient;
 
 use crate::{
     snapshot::{
-        owner::{AccountGroupRow, AccountRow},
         WriteBatch,
+        owner::{AccountGroupRow, AccountRow},
     },
     store::{AsClient, InsertionError, PostgresStore},
 };
@@ -18,7 +17,6 @@ pub enum AccountRowBatch {
     AccountGroupAccountRelations(Vec<(AccountGroupId, AccountGroupRelationAndSubject)>),
 }
 
-#[async_trait]
 impl<C, A> WriteBatch<C, A> for AccountRowBatch
 where
     C: AsClient,

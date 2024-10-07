@@ -2,7 +2,7 @@ use alloc::borrow::Cow;
 
 use serde::Serialize;
 
-use crate::knowledge::{Property, PropertyPath};
+use crate::knowledge::property::{Property, PropertyPath};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]

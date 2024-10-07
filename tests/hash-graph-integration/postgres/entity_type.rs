@@ -1,22 +1,23 @@
-use graph::{
-    store::{
-        ontology::{CreateEntityTypeParams, GetEntityTypesParams, UpdateEntityTypesParams},
-        query::Filter,
-        ConflictBehavior, EntityTypeStore,
-    },
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
-    },
+use graph::store::{
+    EntityTypeStore,
+    ontology::{CreateEntityTypeParams, GetEntityTypesParams, UpdateEntityTypesParams},
 };
 use graph_test_data::{data_type, entity_type, property_type};
 use graph_types::{
     ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
     owned_by_id::OwnedById,
 };
+use hash_graph_store::{
+    ConflictBehavior,
+    filter::Filter,
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+    },
+};
 use temporal_versioning::TemporalBound;
 use type_system::schema::EntityType;
 
-use crate::{entity_type_relationships, DatabaseTestWrapper};
+use crate::{DatabaseTestWrapper, entity_type_relationships};
 
 #[tokio::test]
 async fn insert() {
@@ -26,7 +27,11 @@ async fn insert() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
         .seed(
-            [data_type::TEXT_V1, data_type::NUMBER_V1],
+            [
+                data_type::VALUE_V1,
+                data_type::TEXT_V1,
+                data_type::NUMBER_V1,
+            ],
             [
                 property_type::NAME_V1,
                 property_type::AGE_V1,
@@ -44,20 +49,17 @@ async fn insert() {
         .await
         .expect("could not seed database");
 
-    api.create_entity_type(
-        api.account_id,
-        CreateEntityTypeParams {
-            schema: person_et,
-            classification: OntologyTypeClassificationMetadata::Owned {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
-            },
-            label_property: None,
-            icon: None,
-            relationships: entity_type_relationships(),
-            conflict_behavior: ConflictBehavior::Fail,
-            provenance: ProvidedOntologyEditionProvenance::default(),
+    api.create_entity_type(api.account_id, CreateEntityTypeParams {
+        schema: person_et,
+        classification: OntologyTypeClassificationMetadata::Owned {
+            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
         },
-    )
+        label_property: None,
+        icon: None,
+        relationships: entity_type_relationships(),
+        conflict_behavior: ConflictBehavior::Fail,
+        provenance: ProvidedOntologyEditionProvenance::default(),
+    })
     .await
     .expect("could not create entity type");
 }
@@ -69,45 +71,42 @@ async fn query() {
 
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
-        .seed([data_type::TEXT_V1], [property_type::NAME_V1], [])
+        .seed(
+            [data_type::VALUE_V1, data_type::TEXT_V1],
+            [property_type::NAME_V1],
+            [],
+        )
         .await
         .expect("could not seed database");
 
-    api.create_entity_type(
-        api.account_id,
-        CreateEntityTypeParams {
-            schema: organization_et.clone(),
-            classification: OntologyTypeClassificationMetadata::Owned {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
-            },
-            label_property: None,
-            icon: None,
-            relationships: entity_type_relationships(),
-            conflict_behavior: ConflictBehavior::Fail,
-            provenance: ProvidedOntologyEditionProvenance::default(),
+    api.create_entity_type(api.account_id, CreateEntityTypeParams {
+        schema: organization_et.clone(),
+        classification: OntologyTypeClassificationMetadata::Owned {
+            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
         },
-    )
+        label_property: None,
+        icon: None,
+        relationships: entity_type_relationships(),
+        conflict_behavior: ConflictBehavior::Fail,
+        provenance: ProvidedOntologyEditionProvenance::default(),
+    })
     .await
     .expect("could not create entity type");
 
     let entity_type = api
-        .get_entity_types(
-            api.account_id,
-            GetEntityTypesParams {
-                filter: Filter::for_versioned_url(&organization_et.id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
-                },
-                after: None,
-                limit: None,
-                include_drafts: false,
-                include_count: false,
+        .get_entity_types(api.account_id, GetEntityTypesParams {
+            filter: Filter::for_versioned_url(&organization_et.id),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
             },
-        )
+            after: None,
+            limit: None,
+            include_drafts: false,
+            include_count: false,
+            include_web_ids: false,
+            include_edition_created_by_ids: false,
+        })
         .await
         .expect("could not get entity type")
         .entity_types
@@ -118,7 +117,6 @@ async fn query() {
 }
 
 #[tokio::test]
-#[expect(clippy::too_many_lines)]
 async fn update() {
     let page_et_v1: EntityType = serde_json::from_str(entity_type::PAGE_V1)
         .expect("could not parse entity type representation");
@@ -129,7 +127,11 @@ async fn update() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
         .seed(
-            [data_type::TEXT_V1, data_type::NUMBER_V1],
+            [
+                data_type::VALUE_V1,
+                data_type::TEXT_V1,
+                data_type::NUMBER_V1,
+            ],
             [
                 property_type::TEXT_V1,
                 property_type::NAME_V1,
@@ -152,54 +154,44 @@ async fn update() {
         .await
         .expect("could not seed database:");
 
-    api.create_entity_type(
-        api.account_id,
-        CreateEntityTypeParams {
-            schema: page_et_v1.clone(),
-            classification: OntologyTypeClassificationMetadata::Owned {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
-            },
-            label_property: None,
-            icon: None,
-            relationships: entity_type_relationships(),
-            conflict_behavior: ConflictBehavior::Fail,
-            provenance: ProvidedOntologyEditionProvenance::default(),
+    api.create_entity_type(api.account_id, CreateEntityTypeParams {
+        schema: page_et_v1.clone(),
+        classification: OntologyTypeClassificationMetadata::Owned {
+            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
         },
-    )
+        label_property: None,
+        icon: None,
+        relationships: entity_type_relationships(),
+        conflict_behavior: ConflictBehavior::Fail,
+        provenance: ProvidedOntologyEditionProvenance::default(),
+    })
     .await
     .expect("could not create entity type");
 
-    api.update_entity_type(
-        api.account_id,
-        UpdateEntityTypesParams {
-            schema: page_et_v2.clone(),
-            label_property: None,
-            icon: None,
-            relationships: entity_type_relationships(),
-            provenance: ProvidedOntologyEditionProvenance::default(),
-        },
-    )
+    api.update_entity_type(api.account_id, UpdateEntityTypesParams {
+        schema: page_et_v2.clone(),
+        label_property: None,
+        icon: None,
+        relationships: entity_type_relationships(),
+        provenance: ProvidedOntologyEditionProvenance::default(),
+    })
     .await
     .expect("could not update entity type");
 
     let returned_page_et_v1 = api
-        .get_entity_types(
-            api.account_id,
-            GetEntityTypesParams {
-                filter: Filter::for_versioned_url(&page_et_v1.id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
-                },
-                after: None,
-                limit: None,
-                include_drafts: false,
-                include_count: false,
+        .get_entity_types(api.account_id, GetEntityTypesParams {
+            filter: Filter::for_versioned_url(&page_et_v1.id),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
             },
-        )
+            after: None,
+            limit: None,
+            include_drafts: false,
+            include_count: false,
+            include_web_ids: false,
+            include_edition_created_by_ids: false,
+        })
         .await
         .expect("could not get entity type")
         .entity_types
@@ -207,23 +199,19 @@ async fn update() {
         .expect("no entity type found");
 
     let returned_page_et_v2 = api
-        .get_entity_types(
-            api.account_id,
-            GetEntityTypesParams {
-                filter: Filter::for_versioned_url(&page_et_v2.id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(
-                        Some(TemporalBound::Unbounded),
-                        None,
-                    ),
-                },
-                after: None,
-                limit: None,
-                include_drafts: false,
-                include_count: false,
+        .get_entity_types(api.account_id, GetEntityTypesParams {
+            filter: Filter::for_versioned_url(&page_et_v2.id),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(Some(TemporalBound::Unbounded), None),
             },
-        )
+            after: None,
+            limit: None,
+            include_drafts: false,
+            include_count: false,
+            include_web_ids: false,
+            include_edition_created_by_ids: false,
+        })
         .await
         .expect("could not get entity type")
         .entity_types

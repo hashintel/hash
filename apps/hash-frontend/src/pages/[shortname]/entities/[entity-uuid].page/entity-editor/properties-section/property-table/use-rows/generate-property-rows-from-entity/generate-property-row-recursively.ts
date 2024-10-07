@@ -10,7 +10,7 @@ import get from "lodash/get";
 
 import {
   isPropertyValueArray,
-  isPropertyValuePropertyObject,
+  isPropertyValueObject,
 } from "../../../../../../../../../lib/typeguards";
 import type { PropertyRow } from "../../types";
 import { getExpectedTypesOfPropertyType } from "./get-expected-types-of-property-type";
@@ -92,7 +92,7 @@ export const generatePropertyRowRecursively = ({
   const children: PropertyRow[] = [];
 
   const firstOneOf = propertyType.oneOf[0];
-  const isFirstOneOfNested = isPropertyValuePropertyObject(firstOneOf);
+  const isFirstOneOfNested = isPropertyValueObject(firstOneOf);
   const isFirstOneOfArray = isPropertyValueArray(firstOneOf);
 
   // if first `oneOf` of property type is nested property, it means it should have children
@@ -142,12 +142,23 @@ export const generatePropertyRowRecursively = ({
     }
   }
 
+  let isSingleUrl = false;
+  if (!isArray && typeof value === "string") {
+    try {
+      const url = new URL(value);
+      isSingleUrl = url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+      // not parseable as URL
+    }
+  }
+
   return {
     rowId,
     title: propertyType.title,
     value,
     expectedTypes,
     isArray,
+    isSingleUrl,
     ...minMaxConfig,
     required,
     depth,

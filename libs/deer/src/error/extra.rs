@@ -8,9 +8,9 @@ use core::{
 use error_stack::Report;
 
 use super::{
-    fmt_fold_fields, ErrorProperties, ErrorProperty, Id, Location, Namespace, Variant, NAMESPACE,
+    ErrorProperties, ErrorProperty, Id, Location, NAMESPACE, Namespace, Variant, fmt_fold_fields,
 };
-use crate::{error::Error, id, ArrayAccess, ObjectAccess};
+use crate::{ArrayAccess, ObjectAccess, error::Error, id};
 
 #[derive(serde::Serialize)]
 pub struct ReceivedKey(String);
@@ -76,8 +76,8 @@ impl Variant for ObjectItemsExtraError {
 }
 
 impl Display for ObjectItemsExtraError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("received unexpected keys")
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        fmt.write_str("received unexpected keys")
     }
 }
 
@@ -135,8 +135,8 @@ impl Variant for ObjectLengthError {
 }
 
 impl Display for ObjectLengthError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("received more items than expected")
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        fmt.write_str("received more items than expected")
     }
 }
 
@@ -238,8 +238,8 @@ impl Variant for ArrayLengthError {
 }
 
 impl Display for ArrayLengthError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("received more items than expected")
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        fmt.write_str("received more items than expected")
     }
 }
 

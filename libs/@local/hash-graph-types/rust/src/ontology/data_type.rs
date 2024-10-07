@@ -1,11 +1,16 @@
+use std::collections::HashMap;
+
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
-use type_system::{schema::DataType, url::VersionedUrl};
+use type_system::{
+    schema::{Conversions, DataType},
+    url::{BaseUrl, VersionedUrl},
+};
 #[cfg(feature = "utoipa")]
 use utoipa::{
-    openapi::{schema, Ref, RefOr, Schema},
     ToSchema,
+    openapi::{ObjectBuilder, Ref, RefOr, Schema, schema},
 };
 use uuid::Uuid;
 
@@ -60,7 +65,7 @@ pub struct PartialDataTypeMetadata {
     pub classification: OntologyTypeClassificationMetadata,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct DataTypeMetadata {
     pub record_id: OntologyTypeRecordId,
@@ -68,6 +73,8 @@ pub struct DataTypeMetadata {
     pub classification: OntologyTypeClassificationMetadata,
     pub temporal_versioning: OntologyTemporalMetadata,
     pub provenance: OntologyProvenance,
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub conversions: HashMap<BaseUrl, Conversions>,
 }
 
 #[cfg(feature = "utoipa")]
@@ -91,6 +98,12 @@ impl ToSchema<'static> for DataTypeMetadata {
                             .required("temporalVersioning")
                             .property("provenance", Ref::from_schema_name("OntologyProvenance"))
                             .required("provenance")
+                            .property(
+                                "conversions",
+                                ObjectBuilder::new().additional_properties(Some(
+                                    Ref::from_schema_name("Conversions"),
+                                )),
+                            )
                             .build(),
                     )
                     .item(
@@ -107,6 +120,12 @@ impl ToSchema<'static> for DataTypeMetadata {
                             .required("temporalVersioning")
                             .property("provenance", Ref::from_schema_name("OntologyProvenance"))
                             .required("provenance")
+                            .property(
+                                "conversions",
+                                ObjectBuilder::new().additional_properties(Some(
+                                    Ref::from_schema_name("Conversions"),
+                                )),
+                            )
                             .build(),
                     )
                     .build(),
@@ -124,7 +143,9 @@ impl OntologyType for DataType {
     }
 
     fn traverse_references(&self) -> Vec<OntologyTypeReference> {
-        vec![]
+        self.data_type_references()
+            .map(|(reference, _)| OntologyTypeReference::DataTypeReference(reference))
+            .collect()
     }
 }
 

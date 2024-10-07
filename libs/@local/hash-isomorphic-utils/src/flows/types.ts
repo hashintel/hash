@@ -235,6 +235,11 @@ export type StepDefinition =
   | ActionStepWithParallelInput
   | ParallelGroupStepDefinition;
 
+/**
+ * A step which spawns multiple parallel branches of steps based on an array input.
+ *
+ * e.g. for each input entity, do X with that entity in a separate branch.
+ */
 export type ParallelGroupStepDefinition = {
   kind: "parallel-group";
   stepId: string;
@@ -263,7 +268,7 @@ export type ParallelGroupStepDefinition = {
      */
     stepId: string;
     /**
-     * The name of the output that will be aggregated in an array from the
+     * The name of the output that will be aggregated in an array from the individual outputs of each parallelized step.
      */
     stepOutputName: string;
   };
@@ -310,10 +315,6 @@ export type FlowDefinition = {
   })[];
 };
 
-/**
- * Flow Step
- */
-
 export type StepInput<P extends Payload = Payload> = {
   inputName: string;
   payload: P;
@@ -359,10 +360,19 @@ export type FlowInternetAccessSettings = {
 };
 
 export type FlowDataSources = {
+  /**
+   * Any files the user decides to include in the flow's context
+   */
   files: { fileEntityIds: EntityId[] };
+  /**
+   * Whether agents in the flow have access to the external internet, e.g. for web searches and for visiting URLs
+   */
   internetAccess: FlowInternetAccessSettings;
 };
 
+/**
+ * A simplified type for a FlowRun used internally in the worker logic.
+ */
 export type LocalFlowRun = {
   name: string;
   flowRunId: EntityUuid;
@@ -377,39 +387,74 @@ export type ProgressLogBase = {
   stepId: string;
 };
 
-export type WorkerType = "Coordinator" | "Subtask" | "Link explorer";
+export type WorkerType = "Coordinator" | "Sub-coordinator" | "Link explorer";
 
+/**
+ * Identifiers for a 'worker' within the flow, which corresponds to an agent.
+ *
+ * Note that this is separate from the Temporal worker – the 'worker' here is a HASH concept for a specific research agent.
+ */
 export type WorkerIdentifiers = {
   workerType: WorkerType;
+  /**
+   * HASH-generated id for the worker
+   */
   workerInstanceId: string;
+  /**
+   * HASH-generated workerInstanceId of the worker that created this one, if any.
+   */
   parentInstanceId: string | null;
+  /**
+   * The identifier a parent worker used when creating this worker in a tool call, if any
+   */
+  toolCallId: string | null;
 };
 
 export type WorkerProgressLogBase = ProgressLogBase & WorkerIdentifiers;
 
+/**
+ * When a worker (agent) decides to stop a worker it has created, this log is created.
+ */
+export type WorkerWasStoppedLog = WorkerProgressLogBase & {
+  explanation: string;
+  type: "WorkerWasStopped";
+};
+
+/**
+ * An internet search query is made.
+ */
 export type QueriedWebLog = WorkerProgressLogBase & {
   explanation: string;
   query: string;
   type: "QueriedWeb";
 };
 
+/**
+ * An agent created a plan
+ */
 export type CreatedPlanLog = WorkerProgressLogBase & {
   plan: string;
   type: "CreatedPlan";
 };
 
+/**
+ * An agent updated a plan
+ */
 export type UpdatedPlanLog = WorkerProgressLogBase & {
   plan: string;
   type: "UpdatedPlan";
 };
 
+/**
+ * An agent visited a web page (e.g. to infer claims from it)
+ */
 export type VisitedWebPageLog = WorkerProgressLogBase & {
   explanation: string;
   webPage: Pick<WebPage, "url" | "title">;
   type: "VisitedWebPage";
 };
 
-export type StartedCoordinatorLog = WorkerProgressLogBase & {
+type StartedCoordinatorLog = WorkerProgressLogBase & {
   attempt: number;
   input: {
     goal: string;
@@ -425,16 +470,21 @@ export type ClosedCoordinatorLog = WorkerProgressLogBase & {
   type: "ClosedCoordinator";
 };
 
-export type StartedSubTaskLog = WorkerProgressLogBase & {
+export type StartedSubCoordinatorLog = WorkerProgressLogBase & {
   explanation: string;
   input: {
     goal: string;
     entityTypeTitles: string[];
   };
-  type: "StartedSubTask";
+  type: "StartedSubCoordinator";
 };
 
-export type ClosedSubTaskLog = WorkerProgressLogBase & {
+export type CoordinatorWaitsForTasksLog = WorkerProgressLogBase & {
+  explanation: string;
+  type: "CoordinatorWaitsForTasks";
+};
+
+export type ClosedSubCoordinatorLog = WorkerProgressLogBase & {
   errorMessage?: string;
   explanation: string;
   goal: string;
@@ -442,7 +492,7 @@ export type ClosedSubTaskLog = WorkerProgressLogBase & {
     claimCount: number;
     entityCount: number;
   };
-  type: "ClosedSubTask";
+  type: "ClosedSubCoordinator";
 };
 
 export type StartedLinkExplorerTaskLog = WorkerProgressLogBase & {
@@ -488,6 +538,7 @@ export type ViewedFile = WorkerProgressLogBase & {
 
 export type ProposedEntityLog = WorkerProgressLogBase & {
   proposedEntity: Omit<ProposedEntity, "provenance">;
+  isUpdateToExistingProposal: boolean;
   type: "ProposedEntity";
 };
 
@@ -502,10 +553,16 @@ export type ActivityFailedLog = ProgressLogBase & {
   type: "ActivityFailed";
 };
 
+/**
+ * The flow was reset to a previous checkpoint
+ */
 export type ResetToCheckpointLog = ProgressLogBase & {
   type: "ResetToCheckpoint";
 };
 
+/**
+ * A checkpoint was created
+ */
 export type CheckpointLog = ProgressLogBase & {
   type: "ResearchActionCheckpoint";
   checkpointId: string;
@@ -517,7 +574,8 @@ export type StepProgressLog =
   | CheckpointLog
   | ClosedCoordinatorLog
   | ClosedLinkExplorerTaskLog
-  | ClosedSubTaskLog
+  | ClosedSubCoordinatorLog
+  | CoordinatorWaitsForTasksLog
   | CreatedPlanLog
   | InferredClaimsFromTextLog
   | PersistedEntityLog
@@ -526,7 +584,8 @@ export type StepProgressLog =
   | ResetToCheckpointLog
   | StartedCoordinatorLog
   | StartedLinkExplorerTaskLog
-  | StartedSubTaskLog
+  | StartedSubCoordinatorLog
+  | WorkerWasStoppedLog
   | UpdatedPlanLog
   | ViewedFile
   | VisitedWebPageLog;
@@ -536,6 +595,7 @@ const flowSignalTypes = [
   "externalInputResponse",
   "logProgress",
   "researchActionCheckpoint",
+  "stopWorker",
 ] as const;
 
 export type FlowSignalType = (typeof flowSignalTypes)[number];

@@ -1,13 +1,13 @@
 use core::str::FromStr;
 use std::collections::HashSet;
 
-use graph::store::{knowledge::CreateEntityParams, EntityStore};
+use graph::store::{EntityStore, knowledge::CreateEntityParams};
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
         entity::{EntityId, EntityUuid, ProvidedEntityEditionProvenance},
         link::LinkData,
-        PropertyObject, PropertyProvenance, PropertyWithMetadataObject,
+        property::{PropertyObject, PropertyProvenance, PropertyWithMetadataObject},
     },
     owned_by_id::OwnedById,
 };
@@ -22,7 +22,11 @@ async fn insert() {
     let mut database = DatabaseTestWrapper::new().await;
     let mut api = database
         .seed(
-            [data_type::TEXT_V1, data_type::NUMBER_V1],
+            [
+                data_type::VALUE_V1,
+                data_type::TEXT_V1,
+                data_type::NUMBER_V1,
+            ],
             [
                 property_type::NAME_V1,
                 property_type::AGE_V1,
@@ -118,10 +122,11 @@ async fn insert() {
     };
 
     let entities = api
-        .create_entities(
-            api.account_id,
-            vec![alice_entity, friendship_entity, bob_entity],
-        )
+        .create_entities(api.account_id, vec![
+            alice_entity,
+            friendship_entity,
+            bob_entity,
+        ])
         .await
         .expect("could not create entity");
 

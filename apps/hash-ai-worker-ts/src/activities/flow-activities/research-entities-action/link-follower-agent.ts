@@ -3,6 +3,7 @@ import { AwsS3StorageProvider } from "@local/hash-backend-utils/file-storage/aws
 import type { SourceProvenance } from "@local/hash-graph-client";
 import { SourceType } from "@local/hash-graph-client";
 import type { WorkerIdentifiers } from "@local/hash-isomorphic-utils/flows/types";
+import { Context } from "@temporalio/activity";
 import dedent from "dedent";
 import { MetadataMode } from "llamaindex";
 
@@ -16,16 +17,17 @@ import {
 } from "../../shared/get-flow-context.js";
 import { logProgress } from "../../shared/log-progress.js";
 import { stringify } from "../../shared/stringify.js";
-import type { LocalEntitySummary } from "../shared/infer-claims-from-text/get-entity-summaries-from-text.js";
-import type { Claim } from "../shared/infer-claims-from-text/types.js";
+import type { Claim } from "../shared/claims.js";
 import { inferSummariesThenClaimsFromText } from "../shared/infer-summaries-then-claims-from-text.js";
-import { deduplicateEntities } from "./deduplicate-entities.js";
+import type { LocalEntitySummary } from "../shared/infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import type { Link } from "./link-follower-agent/choose-relevant-links-from-content.js";
 import { chooseRelevantLinksFromContent } from "./link-follower-agent/choose-relevant-links-from-content.js";
 import { filterAndRankTextChunksAgent } from "./link-follower-agent/filter-and-rank-text-chunks-agent.js";
 import { getLinkFollowerNextToolCalls } from "./link-follower-agent/get-link-follower-next-tool-calls.js";
 import { indexPdfFile } from "./link-follower-agent/llama-index/index-pdf-file.js";
 import { areUrlsEqual } from "./shared/are-urls-equal.js";
+import { checkIfWorkerShouldStop } from "./shared/check-if-worker-should-stop.js";
+import { deduplicateEntities } from "./shared/deduplicate-entities.js";
 
 type ResourceToExplore = {
   url: string;
@@ -41,10 +43,18 @@ type LinkFollowerAgentInput = {
    * whether in their own right or to be linked to from other entities.
    */
   existingEntitiesOfInterest: LocalEntitySummary[];
+  /**
+   * The resource to start the exploration at
+   */
   initialResource: ResourceToExplore;
-  task: string;
+  /**
+   * The goal of the exploration
+   */
+  goal: string;
+  /**
+   * The types of entities which are sought as part of the research task.
+   */
   entityTypes: DereferencedEntityType[];
-  linkEntityTypes?: DereferencedEntityType[];
 };
 
 const isContentAtUrlPdfFile = async (params: { url: string }) => {
@@ -278,13 +288,24 @@ const exploreResource = async (params: {
       sanitizeForLlm: true,
     });
 
+    const notExploredLog = {
+      recordedAt: new Date().toISOString(),
+      stepId,
+      type: "VisitedWebPage",
+      webPage: { url: resource.url, title: "Unknown – could not access" },
+      explanation: resource.reason,
+      ...workerIdentifiers,
+    } as const;
+
     if ("error" in webPage) {
+      logProgress([notExploredLog]);
       return {
         status: "not-explored",
         reason: webPage.error,
         resource,
       };
     } else if (!webPage.htmlContent.trim()) {
+      logProgress([notExploredLog]);
       return {
         status: "not-explored",
         reason: "Could not retrieve web page content",
@@ -308,14 +329,13 @@ const exploreResource = async (params: {
     content = webPage.htmlContent;
   }
 
-  const { task, existingEntitiesOfInterest, entityTypes, linkEntityTypes } =
-    input;
+  const { goal, existingEntitiesOfInterest, entityTypes } = input;
 
   const relevantLinksFromContent = await chooseRelevantLinksFromContent({
     contentUrl: resource.url,
     contentType: isResourcePdfFile ? "text" : "html",
     content,
-    prompt: task,
+    goal,
   }).then((response) => {
     if (response.status === "ok") {
       return response.links;
@@ -325,27 +345,17 @@ const exploreResource = async (params: {
   });
 
   logger.debug(
-    `Extracted relevant ${relevantLinksFromContent.length} links from the content of the resource with URL ${
-      resource.url
-    }`,
+    `Extracted relevant ${relevantLinksFromContent.length} links from the content of the resource with URL ${resource.url}`,
   );
 
-  const dereferencedEntityTypesById = {
-    ...entityTypes.reduce<DereferencedEntityTypesByTypeId>(
+  const dereferencedEntityTypesById =
+    entityTypes.reduce<DereferencedEntityTypesByTypeId>(
       (prev, schema) => ({
         ...prev,
         [schema.$id]: { schema, isLink: false },
       }),
       {},
-    ),
-    ...(linkEntityTypes ?? []).reduce<DereferencedEntityTypesByTypeId>(
-      (prev, schema) => ({
-        ...prev,
-        [schema.$id]: { schema, isLink: true },
-      }),
-      {},
-    ),
-  };
+    );
 
   const {
     claims: inferredClaimsFromContent,
@@ -358,6 +368,7 @@ const exploreResource = async (params: {
     title: resourceTitle ?? null,
     goal: resource.goal,
     dereferencedEntityTypes: dereferencedEntityTypesById,
+    workerIdentifiers,
   });
 
   logProgress([
@@ -423,18 +434,29 @@ const exploreResource = async (params: {
   };
 };
 
+/**
+ * An agent which is given a link to start exploring from, and a research goal. Firstly, from the initial link:
+ * 1. two parallel tasks are created, each of which gets the link and the goal:
+ *   a. extract all the links from the content of the link (dumb logic), and then reduce these to which might be
+ * relevant (agent) b. recognize entities from the content (agent) then infer claims about those entities (agents, one
+ * per entity)
+ * 2. the 'link follower' agent is then given the results of this (claims, entities, possible next links).
+ * 3. It decides which, if any, relevant links to follow next, each of which spawn the work described in (1) in
+ * parallel, and so on.
+ */
 export const linkFollowerAgent = async (params: {
   input: LinkFollowerAgentInput;
   workerIdentifiers: WorkerIdentifiers;
-}): Promise<{
-  status: "ok";
-  inferredClaims: Claim[];
-  exploredResources: ResourceToExplore[];
-  inferredSummaries: LocalEntitySummary[];
-  suggestionForNextSteps: string;
-}> => {
+}): Promise<
+  {
+    inferredClaims: Claim[];
+    exploredResources: ResourceToExplore[];
+    inferredSummaries: LocalEntitySummary[];
+    suggestionForNextSteps: string;
+  } & ({ status: "ok" } | { status: "error"; message: string })
+> => {
   const { input, workerIdentifiers } = params;
-  const { initialResource, existingEntitiesOfInterest, task } = input;
+  const { initialResource, existingEntitiesOfInterest, goal } = input;
 
   const exploredResources: ResourceToExplore[] = [];
 
@@ -450,6 +472,36 @@ export const linkFollowerAgent = async (params: {
       ...allInferredEntitySummaries,
       ...existingEntitiesOfInterest,
     ];
+
+    /**
+     * Prior to exploring more resources, check if we should stop.
+     */
+    const preExploreResourcesStopCheck =
+      await checkIfWorkerShouldStop(workerIdentifiers);
+
+    if (preExploreResourcesStopCheck.shouldStop) {
+      /**
+       * If the activity has been cancelled because the workflow was terminated, this log will have no receiver and won't be picked up.
+       * It will be picked up in cases where the workflow continues (e.g. when only this task has been requested to stop).
+       */
+      logProgress([
+        {
+          explanation: preExploreResourcesStopCheck.explanation,
+          recordedAt: new Date().toISOString(),
+          stepId: Context.current().info.activityId,
+          type: "WorkerWasStopped",
+          ...workerIdentifiers,
+        },
+      ]);
+
+      return {
+        status: "ok",
+        inferredClaims: allInferredClaims,
+        inferredSummaries: allInferredEntitySummaries,
+        suggestionForNextSteps,
+        exploredResources,
+      };
+    }
 
     const exploredResourcesResponses = await Promise.all(
       resourcesToExplore.map((resource) =>
@@ -479,6 +531,17 @@ export const linkFollowerAgent = async (params: {
         logger.debug(
           `Resource at URL ${response.resource.url} not explored: ${response.reason}`,
         );
+
+        if (resourcesToExplore.length === 1) {
+          return {
+            status: "error",
+            message: `Could not explore the resource at URL ${response.resource.url}: ${response.reason}`,
+            inferredClaims: allInferredClaims,
+            inferredSummaries: allInferredEntitySummaries,
+            suggestionForNextSteps,
+            exploredResources,
+          };
+        }
       }
     }
 
@@ -561,8 +624,34 @@ export const linkFollowerAgent = async (params: {
           index,
     );
 
+    /**
+     * Prior to asking the link follower to decide on its next actions, check if we should stop.
+     */
+    const preRequestNextActionsShouldStop =
+      await checkIfWorkerShouldStop(workerIdentifiers);
+
+    if (preRequestNextActionsShouldStop.shouldStop) {
+      logProgress([
+        {
+          explanation: preRequestNextActionsShouldStop.explanation,
+          recordedAt: new Date().toISOString(),
+          stepId: Context.current().info.activityId,
+          type: "WorkerWasStopped",
+          ...workerIdentifiers,
+        },
+      ]);
+
+      return {
+        status: "ok",
+        inferredClaims: allInferredClaims,
+        inferredSummaries: allInferredEntitySummaries,
+        suggestionForNextSteps,
+        exploredResources,
+      };
+    }
+
     const toolCallResponse = await getLinkFollowerNextToolCalls({
-      task,
+      goal,
       entitySummaries: allInferredEntitySummaries,
       claimsGathered: allInferredClaims,
       previouslyVisitedLinks,

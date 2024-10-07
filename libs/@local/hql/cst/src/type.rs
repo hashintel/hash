@@ -1,8 +1,8 @@
-use core::fmt::{self, Display};
+use core::fmt::{self, Display, Write};
 
 use hql_span::SpanId;
 
-use crate::{arena, expr::path::Path, Spanned};
+use crate::{Spanned, arena, expr::path::Path};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TypeKind<'arena> {
@@ -25,43 +25,43 @@ impl Spanned for Type<'_> {
 }
 
 impl Display for TypeKind<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Path(path) => Display::fmt(path, f),
+            Self::Path(path) => Display::fmt(path, fmt),
             Self::Union(types) => {
                 if types.len() > 1 {
-                    f.write_str("(")?;
+                    fmt.write_char('(')?;
                 }
 
                 for (index, ty) in types.into_iter().enumerate() {
                     if index > 0 {
-                        f.write_str(" | ")?;
+                        fmt.write_str(" | ")?;
                     }
 
-                    Display::fmt(ty, f)?;
+                    Display::fmt(ty, fmt)?;
                 }
 
                 if types.len() > 1 {
-                    f.write_str(")")?;
+                    fmt.write_char(')')?;
                 }
 
                 Ok(())
             }
             Self::Intersection(types) => {
                 if types.len() > 1 {
-                    f.write_str("(")?;
+                    fmt.write_char('(')?;
                 }
 
                 for (index, ty) in types.into_iter().enumerate() {
                     if index > 0 {
-                        f.write_str(" & ")?;
+                        fmt.write_str(" & ")?;
                     }
 
-                    Display::fmt(ty, f)?;
+                    Display::fmt(ty, fmt)?;
                 }
 
                 if types.len() > 1 {
-                    f.write_str(")")?;
+                    fmt.write_char(')')?;
                 }
 
                 Ok(())
@@ -71,7 +71,7 @@ impl Display for TypeKind<'_> {
 }
 
 impl Display for Type<'_> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.kind, f)
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.kind, fmt)
     }
 }

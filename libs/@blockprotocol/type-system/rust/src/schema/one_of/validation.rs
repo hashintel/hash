@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use crate::{schema::one_of::OneOfSchema, Valid, Validator};
+use crate::{Valid, Validator, schema::one_of::OneOfSchema};
 
 #[derive(Debug, Error)]
 pub enum OneOfSchemaValidationError {
@@ -38,7 +38,7 @@ mod tests {
     use serde_json::json;
 
     use super::*;
-    use crate::utils::tests::{ensure_failed_validation, ensure_validation, JsonEqualityCheck};
+    use crate::utils::tests::{JsonEqualityCheck, ensure_failed_validation, ensure_validation};
 
     #[tokio::test]
     async fn empty() {

@@ -1,5 +1,6 @@
 mod completions;
 mod migrate;
+mod reindex_cache;
 mod server;
 mod snapshot;
 #[cfg(feature = "test-server")]
@@ -8,20 +9,23 @@ mod type_fetcher;
 
 use core::time::Duration;
 
-use error_stack::{ensure, Result};
-use hash_tracing::{init_tracing, TracingConfig};
+use error_stack::{Result, ensure};
+use hash_tracing::{TracingConfig, init_tracing};
 use tokio::{runtime::Handle, time::sleep};
 
 #[cfg(feature = "test-server")]
-pub use self::test_server::{test_server, TestServerArgs};
+pub use self::test_server::{TestServerArgs, test_server};
 pub use self::{
-    completions::{completions, CompletionsArgs},
-    migrate::{migrate, MigrateArgs},
-    server::{server, ServerArgs},
-    snapshot::{snapshot, SnapshotArgs},
-    type_fetcher::{type_fetcher, TypeFetcherArgs},
+    completions::{CompletionsArgs, completions},
+    migrate::{MigrateArgs, migrate},
+    server::{ServerArgs, server},
+    snapshot::{SnapshotArgs, snapshot},
+    type_fetcher::{TypeFetcherArgs, type_fetcher},
 };
-use crate::error::{GraphError, HealthcheckError};
+use crate::{
+    error::{GraphError, HealthcheckError},
+    subcommand::reindex_cache::{ReindexCacheArgs, reindex_cache},
+};
 
 /// Subcommand for the program.
 #[derive(Debug, clap::Subcommand)]
@@ -36,6 +40,11 @@ pub enum Subcommand {
     Completions(CompletionsArgs),
     /// Snapshot API for the database.
     Snapshot(SnapshotArgs),
+    /// Re-indexes the cache.
+    ///
+    /// This is only needed if the backend was changed in an uncommon way such as schemas being
+    /// updated in place. This is a rare operation and should be avoided if possible.
+    ReindexCache(ReindexCacheArgs),
     /// Test server
     #[cfg(feature = "test-server")]
     TestServer(TestServerArgs),
@@ -69,6 +78,7 @@ impl Subcommand {
                 Ok(())
             }
             Self::Snapshot(args) => block_on(snapshot(args), tracing_config),
+            Self::ReindexCache(args) => block_on(reindex_cache(args), tracing_config),
             #[cfg(feature = "test-server")]
             Self::TestServer(args) => block_on(test_server(args), tracing_config),
         }

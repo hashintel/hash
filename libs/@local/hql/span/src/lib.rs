@@ -1,6 +1,7 @@
 #![feature(never_type)]
 extern crate alloc;
 
+pub mod entry;
 pub mod storage;
 pub mod tree;
 

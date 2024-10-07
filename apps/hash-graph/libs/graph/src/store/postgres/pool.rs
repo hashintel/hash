@@ -1,6 +1,5 @@
 use alloc::sync::Arc;
 
-use async_trait::async_trait;
 use authorization::AuthorizationApi;
 use deadpool_postgres::{
     Hook, ManagerConfig, Object, Pool, PoolConfig, PoolError, RecyclingMethod, Timeouts,
@@ -8,12 +7,12 @@ use deadpool_postgres::{
 use error_stack::{Report, ResultExt};
 use temporal_client::TemporalClient;
 use tokio_postgres::{
-    tls::{MakeTlsConnect, TlsConnect},
     Client, GenericClient, Socket, Transaction,
+    tls::{MakeTlsConnect, TlsConnect},
 };
 
 use crate::store::{
-    config::DatabasePoolConfig, DatabaseConnectionInfo, PostgresStore, StoreError, StorePool,
+    DatabaseConnectionInfo, PostgresStore, StoreError, StorePool, config::DatabasePoolConfig,
 };
 
 pub struct PostgresStorePool {
@@ -80,7 +79,6 @@ impl PostgresStorePool {
     }
 }
 
-#[async_trait]
 impl StorePool for PostgresStorePool {
     type Error = PoolError;
     type Store<'pool, A: AuthorizationApi> = PostgresStore<Object, A>;

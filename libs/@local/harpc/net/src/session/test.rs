@@ -10,7 +10,7 @@ use harpc_wire_protocol::{
     response::kind::ErrorCode,
 };
 use humansize::ISizeFormatter;
-use libp2p::{multiaddr, Multiaddr};
+use libp2p::{Multiaddr, multiaddr};
 use tokio::{sync::Barrier, task::JoinSet, time::Instant};
 use tokio_util::sync::CancellationToken;
 
@@ -18,14 +18,13 @@ use super::{
     client::{self, Connection},
     error::TransactionError,
     server::{
-        self,
+        self, ListenStream,
         transaction::{TransactionSink, TransactionStream},
-        ListenStream,
     },
 };
 use crate::{
     codec::{ErrorEncoder, WireError},
-    transport::{test::memory_address, Transport, TransportConfig, TransportLayer},
+    transport::{Transport, TransportConfig, TransportLayer, test::memory_address},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]

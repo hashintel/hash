@@ -1,18 +1,21 @@
 import "reactflow/dist/style.css";
 
 import { useApolloClient, useMutation } from "@apollo/client";
-import { Skeleton } from "@hashintel/design-system";
+import { IconButton, Skeleton } from "@hashintel/design-system";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { OwnedById } from "@local/hash-graph-types/web";
+import type { OutputNameForAction } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { actionDefinitions } from "@local/hash-isomorphic-utils/flows/action-definitions";
 import { manualBrowserInferenceFlowDefinition } from "@local/hash-isomorphic-utils/flows/browser-plugin-flow-definitions";
 import { generateWorkerRunPath } from "@local/hash-isomorphic-utils/flows/frontend-paths";
+import { goalFlowDefinitionIds } from "@local/hash-isomorphic-utils/flows/goal-flow-definitions";
 import type {
   FlowDefinition as FlowDefinitionType,
   FlowInputs,
   FlowTrigger,
   PersistedEntity,
 } from "@local/hash-isomorphic-utils/flows/types";
-import { Box, Stack } from "@mui/material";
+import { Box, Collapse, Fade, Stack } from "@mui/material";
 import NotFound from "next/dist/client/components/not-found-error";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useState } from "react";
@@ -23,6 +26,7 @@ import type {
   StartFlowMutationVariables,
 } from "../../../graphql/api-types.gen";
 import { startFlowMutation } from "../../../graphql/queries/knowledge/flow.queries";
+import { ArrowRightToLineIcon } from "../../../shared/icons/arrow-right-to-line-icon";
 import { HEADER_HEIGHT } from "../../../shared/layout/layout-with-header/page-header";
 import { defaultBrowserPluginDomains } from "../../goals/new.page/internet-settings";
 import { useFlowDefinitionsContext } from "../../shared/flow-definitions-context";
@@ -213,6 +217,8 @@ export const FlowRunVisualizerSkeleton = () => (
 export const FlowVisualizer = () => {
   const [showDag, setShowDag] = useState(false);
 
+  const [bottomPanelIsCollapsed, setBottomPanelIsCollapsed] = useState(false);
+
   const [logDisplay, setLogDisplay] = useState<LogDisplay>("grouped");
 
   const apolloClient = useApolloClient();
@@ -302,207 +308,225 @@ export const FlowVisualizer = () => {
     return graphsByGroup;
   }, [derivedNodes, derivedEdges, selectedFlowDefinition]);
 
-  const { logs, persistedEntities, proposedEntities } = useMemo<{
-    logs: LocalProgressLog[];
-    persistedEntities: PersistedEntity[];
-    proposedEntities: ProposedEntityOutput[];
-  }>(() => {
-    if (!selectedFlowRun) {
-      return {
-        claimEntityIds: [],
-        logs: [],
-        persistedEntities: [],
-        proposedEntities: [],
-      };
-    }
-
-    const progressLogs: LocalProgressLog[] = [
-      {
-        level: 1,
-        message: "Flow run started",
-        recordedAt: selectedFlowRun.startedAt,
-        stepId: "trigger",
-        type: "StateChange",
-      },
-    ];
-
-    const persisted: PersistedEntity[] = [];
-    const proposed: ProposedEntityOutput[] = [];
-
-    /**
-     * A map between a workerInstanceId and (1) the list of logs associated with that worker, and (2) the id of its parent
-     * This is used to help build the tree of logs grouped by worker, when 'grouped' log display is selected.
-     */
-    const workerIdToLogsAndParent: Record<
-      string,
-      { logs: LocalProgressLog[]; level: number; thread?: LogThread }
-    > = {};
-
-    for (const step of selectedFlowRun.steps) {
-      const outputs = step.outputs?.[0]?.contents?.[0]?.outputs ?? [];
-
-      for (const log of step.logs) {
-        if (
-          logDisplay === "stream" ||
-          !("parentInstanceId" in log) ||
-          !log.parentInstanceId
-        ) {
-          /**
-           * If we're in 'stream' display, or if this log doesn't have a parent worker, it should appear at the top level.
-           */
-          progressLogs.push({
-            ...log,
-            level: 1,
-          });
-
-          if ("workerInstanceId" in log) {
-            /**
-             * If the log has a workerInstanceId, it may have groups of logs nested under it,
-             * so we need to record the fact that any child workers should start a group in the top-level logs array.
-             */
-            workerIdToLogsAndParent[log.workerInstanceId] = {
-              level: 1,
-              logs: progressLogs,
-            };
-          }
-        } else {
-          /**
-           * This log has a parent worker, so we need to group it with its siblings.
-           * We also need to add the group to the parent's logs if it doesn't already exist.
-           */
-          const parentLogList = workerIdToLogsAndParent[log.parentInstanceId];
-          if (!parentLogList) {
-            throw new Error(
-              `No parent log found with id ${log.parentInstanceId}`,
-            );
-          }
-
-          const thisThread = workerIdToLogsAndParent[log.workerInstanceId];
-          if (!thisThread) {
-            let threadLabel: string;
-            if (log.type === "StartedSubTask") {
-              threadLabel = `Sub-task: ${log.input.goal}`;
-            } else if (log.type === "StartedLinkExplorerTask") {
-              threadLabel = `Link explorer: ${log.input.goal}`;
-            } else {
-              throw new Error(
-                `Expect new child worker threads to be started with a StartedSubTask or StartedLinkExplorerTask event, got ${log.type}`,
-              );
-            }
-
-            const newThread = {
-              type: "Thread" as const,
-              label: threadLabel,
-              level: parentLogList.level,
-              threadStartedAt: log.recordedAt,
-              /**
-               * Default to closing the thread at the time the flow run was closed.
-               * If we have a specific, earlier closed event for the thread it will be overwritten when we process that child log.
-               */
-              threadClosedAt: selectedFlowRun.closedAt ?? undefined,
-              closedDueToFlowClosure: !!selectedFlowRun.closedAt,
-              threadWorkerId: log.workerInstanceId,
-              recordedAt: log.recordedAt,
-              logs: [
-                {
-                  level: parentLogList.level + 1,
-                  ...log,
-                },
-              ],
-            };
-
-            parentLogList.logs.push(newThread);
-
-            workerIdToLogsAndParent[log.workerInstanceId] = {
-              logs: newThread.logs,
-              level: newThread.level,
-              thread: newThread,
-            };
-          } else {
-            thisThread.logs.push({
-              level: parentLogList.level + 1,
-              ...log,
-            });
-
-            if (
-              log.type === "ClosedLinkExplorerTask" ||
-              log.type === "ClosedSubTask"
-            ) {
-              thisThread.thread!.threadClosedAt = log.recordedAt;
-              thisThread.thread!.closedDueToFlowClosure = false;
-            }
-          }
-        }
-
-        if (outputs.length === 0) {
-          if (log.type === "ProposedEntity") {
-            proposed.push({
-              ...log.proposedEntity,
-              researchOngoing: !["CANCELLED", "FAILED", "TIMED_OUT"].includes(
-                step.status,
-              ),
-            });
-          }
-          if (log.type === "PersistedEntity" && log.persistedEntity.entity) {
-            persisted.push(log.persistedEntity);
-          }
-        }
+  const { logs, persistedEntities, proposedEntities, relevantEntityIds } =
+    useMemo<{
+      logs: LocalProgressLog[];
+      persistedEntities: PersistedEntity[];
+      proposedEntities: ProposedEntityOutput[];
+      relevantEntityIds: EntityId[];
+    }>(() => {
+      if (!selectedFlowRun) {
+        return {
+          claimEntityIds: [],
+          logs: [],
+          persistedEntities: [],
+          proposedEntities: [],
+          relevantEntityIds: [],
+        };
       }
 
-      for (const output of outputs) {
-        switch (output.payload.kind) {
-          case "ProposedEntity":
-            if (Array.isArray(output.payload.value)) {
-              proposed.push(
-                ...output.payload.value.map((entity) => ({
-                  ...entity,
-                  researchOngoing: false,
-                })),
+      const progressLogs: LocalProgressLog[] = [
+        {
+          level: 1,
+          message: "Flow run started",
+          recordedAt: selectedFlowRun.startedAt,
+          stepId: "trigger",
+          type: "StateChange",
+        },
+      ];
+
+      const persisted: PersistedEntity[] = [];
+      const proposed: ProposedEntityOutput[] = [];
+      const highlightedEntityIds: EntityId[] = [];
+
+      /**
+       * A map between a workerInstanceId and (1) the list of logs associated with that worker, and (2) the id of its parent
+       * This is used to help build the tree of logs grouped by worker, when 'grouped' log display is selected.
+       */
+      const workerIdToLogsAndParent: Record<
+        string,
+        { logs: LocalProgressLog[]; level: number; thread?: LogThread }
+      > = {};
+
+      for (const step of selectedFlowRun.steps) {
+        const outputs = step.outputs?.[0]?.contents?.[0]?.outputs ?? [];
+
+        for (const log of step.logs) {
+          if (
+            logDisplay === "stream" ||
+            !("parentInstanceId" in log) ||
+            !log.parentInstanceId
+          ) {
+            /**
+             * If we're in 'stream' display, or if this log doesn't have a parent worker, it should appear at the top level.
+             */
+            progressLogs.push({
+              ...log,
+              level: 1,
+            });
+
+            if ("workerInstanceId" in log) {
+              /**
+               * If the log has a workerInstanceId, it may have groups of logs nested under it,
+               * so we need to record the fact that any child workers should start a group in the top-level logs array.
+               */
+              workerIdToLogsAndParent[log.workerInstanceId] = {
+                level: 1,
+                logs: progressLogs,
+              };
+            }
+          } else {
+            /**
+             * This log has a parent worker, so we need to group it with its siblings.
+             * We also need to add the group to the parent's logs if it doesn't already exist.
+             */
+            const parentLogList = workerIdToLogsAndParent[log.parentInstanceId];
+            if (!parentLogList) {
+              throw new Error(
+                `No parent log found with id ${log.parentInstanceId}`,
               );
+            }
+
+            const thisThread = workerIdToLogsAndParent[log.workerInstanceId];
+            if (!thisThread) {
+              let threadLabel: string;
+              if (log.type === "StartedSubCoordinator") {
+                threadLabel = `Sub-coordinator: ${log.input.goal}`;
+              } else if (log.type === "StartedLinkExplorerTask") {
+                threadLabel = `Link explorer: ${log.input.goal}`;
+              } else {
+                throw new Error(
+                  `Expect new child worker threads to be started with a StartedSubCoordinator or StartedLinkExplorerTask event, got ${log.type}`,
+                );
+              }
+
+              const newThread = {
+                type: "Thread" as const,
+                label: threadLabel,
+                level: parentLogList.level,
+                threadStartedAt: log.recordedAt,
+                /**
+                 * Default to closing the thread at the time the flow run was closed.
+                 * If we have a specific, earlier closed event for the thread it will be overwritten when we process that child log.
+                 */
+                threadClosedAt: selectedFlowRun.closedAt ?? undefined,
+                closedDueToFlowClosure: !!selectedFlowRun.closedAt,
+                threadWorkerId: log.workerInstanceId,
+                recordedAt: log.recordedAt,
+                logs: [
+                  {
+                    level: parentLogList.level + 1,
+                    ...log,
+                  },
+                ],
+              };
+
+              parentLogList.logs.push(newThread);
+
+              workerIdToLogsAndParent[log.workerInstanceId] = {
+                logs: newThread.logs,
+                level: newThread.level,
+                thread: newThread,
+              };
             } else {
+              thisThread.logs.push({
+                level: parentLogList.level + 1,
+                ...log,
+              });
+
+              if (
+                log.type === "ClosedLinkExplorerTask" ||
+                log.type === "ClosedSubCoordinator"
+              ) {
+                thisThread.thread!.threadClosedAt = log.recordedAt;
+                thisThread.thread!.closedDueToFlowClosure = false;
+              }
+            }
+          }
+
+          if (outputs.length === 0) {
+            if (log.type === "ProposedEntity") {
               proposed.push({
-                ...output.payload.value,
-                researchOngoing: false,
+                ...log.proposedEntity,
+                researchOngoing: !["CANCELLED", "FAILED", "TIMED_OUT"].includes(
+                  step.status,
+                ),
               });
             }
-            break;
-          case "PersistedEntity":
-            if (Array.isArray(output.payload.value)) {
-              persisted.push(...output.payload.value);
-            } else if (output.payload.value.entity) {
-              persisted.push(output.payload.value);
+            if (log.type === "PersistedEntity" && log.persistedEntity.entity) {
+              persisted.push(log.persistedEntity);
             }
-            break;
-          case "PersistedEntities":
-            if (Array.isArray(output.payload.value)) {
-              persisted.push(
-                ...output.payload.value.flatMap(
-                  (innerMap) => innerMap.persistedEntities,
-                ),
-              );
-            } else {
-              persisted.push(...output.payload.value.persistedEntities);
-            }
+          }
+        }
+
+        for (const output of outputs) {
+          switch (output.payload.kind) {
+            case "ProposedEntity":
+              if (Array.isArray(output.payload.value)) {
+                proposed.push(
+                  ...output.payload.value.map((entity) => ({
+                    ...entity,
+                    researchOngoing: false,
+                  })),
+                );
+              } else {
+                proposed.push({
+                  ...output.payload.value,
+                  researchOngoing: false,
+                });
+              }
+              break;
+            case "PersistedEntity":
+              if (Array.isArray(output.payload.value)) {
+                persisted.push(...output.payload.value);
+              } else if (output.payload.value.entity) {
+                persisted.push(output.payload.value);
+              }
+              break;
+            case "PersistedEntities":
+              if (Array.isArray(output.payload.value)) {
+                persisted.push(
+                  ...output.payload.value.flatMap(
+                    (innerMap) => innerMap.persistedEntities,
+                  ),
+                );
+              } else {
+                persisted.push(...output.payload.value.persistedEntities);
+              }
+              break;
+            case "EntityId":
+              if (
+                output.outputName ===
+                ("highlightedEntities" satisfies OutputNameForAction<"researchEntities">)
+              ) {
+                if (Array.isArray(output.payload.value)) {
+                  highlightedEntityIds.push(...output.payload.value);
+                } else {
+                  highlightedEntityIds.push(output.payload.value);
+                }
+              }
+              break;
+          }
         }
       }
-    }
 
-    if (selectedFlowRun.closedAt) {
-      progressLogs.push({
-        level: 1,
-        message: `Flow run closed: ${selectedFlowRun.failureMessage?.toLowerCase() ?? selectedFlowRun.status.toLowerCase()}`,
-        recordedAt: selectedFlowRun.closedAt,
-        stepId: "closure",
-        type: "StateChange",
-      });
-    }
+      if (selectedFlowRun.closedAt) {
+        progressLogs.push({
+          level: 1,
+          message: `Flow run closed: ${selectedFlowRun.failureMessage?.toLowerCase() ?? selectedFlowRun.status.toLowerCase()}`,
+          recordedAt: selectedFlowRun.closedAt,
+          stepId: "closure",
+          type: "StateChange",
+        });
+      }
 
-    return {
-      logs: progressLogs,
-      proposedEntities: proposed,
-      persistedEntities: persisted,
-    };
-  }, [logDisplay, selectedFlowRun]);
+      return {
+        logs: progressLogs,
+        proposedEntities: proposed,
+        persistedEntities: persisted,
+        relevantEntityIds: highlightedEntityIds,
+      };
+    }, [logDisplay, selectedFlowRun]);
 
   const [startFlow] = useMutation<
     StartFlowMutation,
@@ -607,6 +631,10 @@ export const FlowVisualizer = () => {
     selectedFlowDefinition.trigger.triggerDefinitionId === "userTrigger" &&
     !unrunnableDefinitionIds.includes(selectedFlowDefinition.flowDefinitionId);
 
+  const isGoal = goalFlowDefinitionIds.includes(
+    selectedFlowDefinition.flowDefinitionId,
+  );
+
   return (
     <>
       {selectedFlowRun && (
@@ -633,6 +661,7 @@ export const FlowVisualizer = () => {
           <Topbar
             handleRunFlowClicked={handleRunFlowClicked}
             showRunButton={isRunnableFromHere}
+            workerType={isGoal ? "goal" : "flow"}
           />
         </Box>
         <Stack
@@ -672,6 +701,7 @@ export const FlowVisualizer = () => {
                 key={`${flowRunStateKey}-outputs`}
                 persistedEntities={persistedEntities}
                 proposedEntities={proposedEntities}
+                relevantEntityIds={relevantEntityIds}
               />
             ) : (
               <DAG
@@ -683,36 +713,66 @@ export const FlowVisualizer = () => {
           </Stack>
         </Stack>
 
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          sx={({ palette }) => ({
-            background: palette.gray[10],
-            borderTop: `2px solid ${palette.gray[20]}`,
-            height: logHeight,
-            maxHeight: "40%",
-            maxWidth: "100%",
-            px: 3,
-            width: "100%",
-          })}
+        <Collapse
+          collapsedSize={45}
+          in={!bottomPanelIsCollapsed}
+          sx={{ maxHeight: "40%" }}
         >
           <Stack
-            sx={{
-              borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
-              height: "100%",
-              py: 2.5,
-              pr: 3,
-              width: "70%",
-            }}
+            direction="row"
+            justifyContent="space-between"
+            sx={({ palette, transitions }) => ({
+              background: bottomPanelIsCollapsed
+                ? palette.common.white
+                : palette.gray[10],
+              borderTop: `2px solid ${palette.gray[20]}`,
+              height: logHeight,
+              maxHeight: "100%",
+              maxWidth: "100%",
+              px: 3,
+              transition: transitions.create("background", transitionOptions),
+              width: "100%",
+            })}
           >
-            <ActivityLog
-              key={`${flowRunStateKey}-activity-log`}
-              logs={logs}
-              logDisplay={logDisplay}
-              setLogDisplay={setLogDisplay}
-            />
+            <Fade in={!bottomPanelIsCollapsed}>
+              <Stack
+                sx={{
+                  borderRight: ({ palette }) => `1px solid ${palette.gray[20]}`,
+                  height: "100%",
+                  py: 2.5,
+                  pr: 3,
+                  width: "70%",
+                }}
+              >
+                <ActivityLog
+                  key={`${flowRunStateKey}-activity-log`}
+                  logs={logs}
+                  logDisplay={logDisplay}
+                  setLogDisplay={setLogDisplay}
+                />
+              </Stack>
+            </Fade>
+            <Box py={0.5}>
+              <IconButton
+                aria-hidden
+                size="medium"
+                sx={({ palette }) => ({
+                  transform: `rotate(${bottomPanelIsCollapsed ? "90deg" : "270deg"})`,
+
+                  "&:hover": {
+                    backgroundColor: palette.gray[20],
+                    color: palette.gray[60],
+                  },
+                })}
+                onClick={() =>
+                  setBottomPanelIsCollapsed(!bottomPanelIsCollapsed)
+                }
+              >
+                <ArrowRightToLineIcon />
+              </IconButton>
+            </Box>
           </Stack>
-        </Stack>
+        </Collapse>
       </Stack>
     </>
   );

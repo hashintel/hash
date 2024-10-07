@@ -4,7 +4,7 @@ use crate::store::postgres::query::{Expression, Transpile};
 
 /// A [`Filter`], which can be transpiled.
 ///
-/// [`Filter`]: crate::store::query::Filter
+/// [`Filter`]: hash_graph_store::filter::Filter
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Condition {
     All(Vec<Self>),
@@ -150,15 +150,13 @@ mod tests {
     use alloc::borrow::Cow;
 
     use graph_types::ontology::DataTypeWithMetadata;
+    use hash_graph_store::{
+        data_type::DataTypeQueryPath,
+        filter::{Filter, FilterExpression, Parameter},
+    };
     use postgres_types::ToSql;
 
-    use crate::{
-        ontology::DataTypeQueryPath,
-        store::{
-            postgres::query::{SelectCompiler, Transpile},
-            query::{Filter, FilterExpression, Parameter},
-        },
-    };
+    use crate::store::postgres::query::{SelectCompiler, Transpile};
 
     fn test_condition<'p, 'f: 'p>(
         filter: &'f Filter<'p, DataTypeWithMetadata>,
@@ -194,7 +192,9 @@ mod tests {
     fn transpile_null_condition() {
         test_condition(
             &Filter::Equal(
-                Some(FilterExpression::Path(DataTypeQueryPath::Description)),
+                Some(FilterExpression::Path {
+                    path: DataTypeQueryPath::Description,
+                }),
                 None,
             ),
             r#""data_types_0_1_0"."schema"->>'description' IS NULL"#,
@@ -204,7 +204,9 @@ mod tests {
         test_condition(
             &Filter::Equal(
                 None,
-                Some(FilterExpression::Path(DataTypeQueryPath::Description)),
+                Some(FilterExpression::Path {
+                    path: DataTypeQueryPath::Description,
+                }),
             ),
             r#""data_types_0_1_0"."schema"->>'description' IS NULL"#,
             &[],
@@ -214,7 +216,9 @@ mod tests {
 
         test_condition(
             &Filter::NotEqual(
-                Some(FilterExpression::Path(DataTypeQueryPath::Description)),
+                Some(FilterExpression::Path {
+                    path: DataTypeQueryPath::Description,
+                }),
                 None,
             ),
             r#""data_types_0_1_0"."schema"->>'description' IS NOT NULL"#,
@@ -224,7 +228,9 @@ mod tests {
         test_condition(
             &Filter::NotEqual(
                 None,
-                Some(FilterExpression::Path(DataTypeQueryPath::Description)),
+                Some(FilterExpression::Path {
+                    path: DataTypeQueryPath::Description,
+                }),
             ),
             r#""data_types_0_1_0"."schema"->>'description' IS NOT NULL"#,
             &[],
@@ -237,10 +243,15 @@ mod tests {
     fn transpile_all_condition() {
         test_condition(
             &Filter::All(vec![Filter::Equal(
-                Some(FilterExpression::Path(DataTypeQueryPath::VersionedUrl)),
-                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-                )))),
+                Some(FilterExpression::Path {
+                    path: DataTypeQueryPath::VersionedUrl,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed(
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    )),
+                    convert: None,
+                }),
             )]),
             r#"("data_types_0_1_0"."schema"->>'$id' = $1)"#,
             &[&"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
@@ -249,14 +260,24 @@ mod tests {
         test_condition(
             &Filter::All(vec![
                 Filter::Equal(
-                    Some(FilterExpression::Path(DataTypeQueryPath::BaseUrl)),
-                    Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
-                    )))),
+                    Some(FilterExpression::Path {
+                        path: DataTypeQueryPath::BaseUrl,
+                    }),
+                    Some(FilterExpression::Parameter {
+                        parameter: Parameter::Text(Cow::Borrowed(
+                            "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
+                        )),
+                        convert: None,
+                    }),
                 ),
                 Filter::Equal(
-                    Some(FilterExpression::Path(DataTypeQueryPath::Version)),
-                    Some(FilterExpression::Parameter(Parameter::I32(1))),
+                    Some(FilterExpression::Path {
+                        path: DataTypeQueryPath::Version,
+                    }),
+                    Some(FilterExpression::Parameter {
+                        parameter: Parameter::I32(1),
+                        convert: None,
+                    }),
                 ),
             ]),
             r#"("ontology_ids_0_1_0"."base_url" = $1) AND ("ontology_ids_0_1_0"."version" = $2)"#,
@@ -271,10 +292,15 @@ mod tests {
     fn transpile_any_condition() {
         test_condition(
             &Filter::Any(vec![Filter::Equal(
-                Some(FilterExpression::Path(DataTypeQueryPath::VersionedUrl)),
-                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-                )))),
+                Some(FilterExpression::Path {
+                    path: DataTypeQueryPath::VersionedUrl,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed(
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    )),
+                    convert: None,
+                }),
             )]),
             r#"("data_types_0_1_0"."schema"->>'$id' = $1)"#,
             &[&"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
@@ -283,14 +309,24 @@ mod tests {
         test_condition(
             &Filter::Any(vec![
                 Filter::Equal(
-                    Some(FilterExpression::Path(DataTypeQueryPath::BaseUrl)),
-                    Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
-                    )))),
+                    Some(FilterExpression::Path {
+                        path: DataTypeQueryPath::BaseUrl,
+                    }),
+                    Some(FilterExpression::Parameter {
+                        parameter: Parameter::Text(Cow::Borrowed(
+                            "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
+                        )),
+                        convert: None,
+                    }),
                 ),
                 Filter::Equal(
-                    Some(FilterExpression::Path(DataTypeQueryPath::Version)),
-                    Some(FilterExpression::Parameter(Parameter::I32(1))),
+                    Some(FilterExpression::Path {
+                        path: DataTypeQueryPath::Version,
+                    }),
+                    Some(FilterExpression::Parameter {
+                        parameter: Parameter::I32(1),
+                        convert: None,
+                    }),
                 ),
             ]),
             r#"(("ontology_ids_0_1_0"."base_url" = $1) OR ("ontology_ids_0_1_0"."version" = $2))"#,
@@ -305,10 +341,15 @@ mod tests {
     fn transpile_not_condition() {
         test_condition(
             &Filter::Not(Box::new(Filter::Equal(
-                Some(FilterExpression::Path(DataTypeQueryPath::VersionedUrl)),
-                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
-                )))),
+                Some(FilterExpression::Path {
+                    path: DataTypeQueryPath::VersionedUrl,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed(
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    )),
+                    convert: None,
+                }),
             ))),
             r#"NOT("data_types_0_1_0"."schema"->>'$id' = $1)"#,
             &[&"https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1"],
@@ -319,8 +360,12 @@ mod tests {
     fn render_without_parameters() {
         test_condition(
             &Filter::Any(vec![Filter::Equal(
-                Some(FilterExpression::Path(DataTypeQueryPath::Description)),
-                Some(FilterExpression::Path(DataTypeQueryPath::Title)),
+                Some(FilterExpression::Path {
+                    path: DataTypeQueryPath::Description,
+                }),
+                Some(FilterExpression::Path {
+                    path: DataTypeQueryPath::Title,
+                }),
             )]),
             r#"("data_types_0_1_0"."schema"->>'description' = "data_types_0_1_0"."schema"->>'title')"#,
             &[],

@@ -1,7 +1,7 @@
 [package]
 name = "error-stack-macros"
 version = "0.0.0-reserved"
-authors.workspace = true
+authors = { workspace = true }
 edition = "2021"
 rust-version = "1.63.0"
 license = "MIT OR Apache-2.0"
@@ -23,3 +23,6 @@ error-stack = { path = "..", default-features = false }
 
 [lints]
 workspace = true
+
+[package.metadata.cargo-shear]
+ignored = ["error-stack"]

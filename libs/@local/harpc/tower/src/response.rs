@@ -1,9 +1,10 @@
 use bytes::Bytes;
+use futures::{Stream, TryStreamExt, stream::MapOk};
 use harpc_net::session::{error::TransactionError, server::SessionId};
 use harpc_wire_protocol::response::kind::ResponseKind;
 
 use crate::{
-    body::{controlled::Controlled, full::Full, Body},
+    body::{Body, Frame, controlled::Controlled, full::Full, stream::StreamBody},
     extensions::Extensions,
 };
 
@@ -12,6 +13,16 @@ pub struct Parts {
     pub session: SessionId,
 
     pub extensions: Extensions,
+}
+
+impl Parts {
+    #[must_use]
+    pub fn new(session: SessionId) -> Self {
+        Self {
+            session,
+            extensions: Extensions::new(),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -52,10 +63,10 @@ where
         &mut self.head.extensions
     }
 
-    pub fn map_body<B2>(self, f: impl FnOnce(B) -> B2) -> Response<B2> {
+    pub fn map_body<B2>(self, func: impl FnOnce(B) -> B2) -> Response<B2> {
         Response {
             head: self.head,
-            body: f(self.body),
+            body: func(self.body),
         }
     }
 }
@@ -65,6 +76,21 @@ impl Response<Controlled<ResponseKind, Full<Bytes>>> {
         Self {
             head: parts,
             body: Controlled::new(ResponseKind::Err(error.code), Full::new(error.bytes)),
+        }
+    }
+}
+
+impl<S, E> Response<Controlled<ResponseKind, StreamBody<MapOk<S, fn(Bytes) -> Frame<Bytes, !>>>>>
+where
+    S: Stream<Item = Result<Bytes, E>>,
+{
+    pub fn from_ok(parts: Parts, stream: S) -> Self {
+        Self {
+            head: parts,
+            body: Controlled::new(
+                ResponseKind::Ok,
+                StreamBody::new(stream.map_ok(Frame::new_data)),
+            ),
         }
     }
 }

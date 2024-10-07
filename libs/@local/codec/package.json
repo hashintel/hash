@@ -8,6 +8,7 @@
     "lint:clippy": "just clippy"
   },
   "dependencies": {
+    "@rust/error-stack": "0.5.0",
     "@rust/harpc-wire-protocol": "0.0.0-private"
   }
 }

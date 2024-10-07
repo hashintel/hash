@@ -41,7 +41,8 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
   { linearIntegrationEntityId, syncWithWorkspaces },
   graphQLContext,
 ) => {
-  const { dataSources, authentication, temporal, vault } = graphQLContext;
+  const { dataSources, authentication, provenance, temporal, vault } =
+    graphQLContext;
 
   if (!vault) {
     throw new Error("Vault client not available");
@@ -135,6 +136,7 @@ export const syncLinearIntegrationWithWorkspacesMutation: ResolverFn<
         return syncLinearDataWithLinkEntity.archive(
           impureGraphContext.graphApi,
           authentication,
+          provenance,
         );
       },
     ),

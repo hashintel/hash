@@ -27,9 +27,10 @@ import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
   VirtualizedTableRow,
-  VirtualizedTableSort,
 } from "./shared/virtualized-table";
-import { headerHeight, VirtualizedTable } from "./shared/virtualized-table";
+import { VirtualizedTable } from "./shared/virtualized-table";
+import { headerHeight } from "./shared/virtualized-table/header";
+import type { VirtualizedTableSort } from "./shared/virtualized-table/header/sort";
 
 type FieldId = "web" | "name" | "description" | "lastRunStartedAt";
 
@@ -126,7 +127,7 @@ const createRowContent: CreateVirtualizedRowContentFn<FlowSummary> = (
 
 const FlowsPageContent = () => {
   const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
-    field: "name",
+    fieldId: "name",
     direction: "asc",
   });
 
@@ -169,7 +170,7 @@ const FlowsPageContent = () => {
       });
 
     return rowData.sort((a, b) => {
-      const field = sort.field;
+      const field = sort.fieldId;
       const direction = sort.direction === "asc" ? 1 : -1;
 
       if (field === "web") {

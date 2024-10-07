@@ -10,17 +10,23 @@ authors.workspace = true
 description = "RPC service definition to fetch external BP types"
 
 [dependencies]
-type-system = { workspace = true }
+# Public workspace dependencies
+type-system = { workspace = true, public = true }
 
+# Public third-party dependencies
+time = { workspace = true, public = true, features = ["serde", "std"] }
+serde_json = { workspace = true, public = true }
+
+# Private workspace dependencies
+error-stack = { workspace = true }
+
+# Private third-party dependencies
+futures = { workspace = true }
+include_dir = { workspace = true, features = ["glob"] }
+reqwest = { workspace = true, features = ["json"] }
 serde = { workspace = true, features = ["derive"] }
-time = { workspace = true, features = ["serde", "std"] }
+tarpc = { workspace = true, features = ["tokio1"] }
 tracing = { workspace = true }
-
-futures = "0.3.30"
-tarpc = { version = "0.33", features = ["tokio1"] }
-tokio = { workspace = true, features = ["macros"] }
-
-reqwest = { version = "0.12.5", default-features = false, features = ["json", "rustls-tls"] }
 
 [lints]
 workspace = true

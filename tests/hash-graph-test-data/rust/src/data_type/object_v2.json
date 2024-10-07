@@ -2,7 +2,13 @@
   "$schema": "https://blockprotocol.org/types/modules/graph/0.3/schema/data-type",
   "kind": "dataType",
   "$id": "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/2",
+  "allOf": [
+    {
+      "$ref": "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1"
+    }
+  ],
   "title": "Object",
   "description": "An updated plain JSON object with no pre-defined structure",
-  "type": "object"
+  "type": "object",
+  "abstract": false
 }

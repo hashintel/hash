@@ -7,21 +7,23 @@
     "**/target/**",
     "**/dist/**"
   ],
-  "extends": ["config:base"],
+  "extends": ["config:recommended"],
   "hostRules": [
     {
       "matchHost": "api.github.com",
       "maxRetryAfter": 30
     }
   ],
-
   "automerge": true,
   "branchPrefix": "deps/",
+  "configMigration": true,
   "dependencyDashboard": true,
   "dependencyDashboardApproval": true,
   "dependencyDashboardTitle": "🚀 Dependency Updates",
   "dependencyDashboardOSVVulnerabilitySummary": "none",
-  "npm": { "minimumReleaseAge": "3 days" },
+  "npm": {
+    "minimumReleaseAge": "3 days"
+  },
   "postUpdateOptions": ["yarnDedupeFewer"],
   "rebaseWhen": "conflicted",
   "semanticCommits": "disabled",
@@ -29,7 +31,6 @@
   "assigneesFromCodeOwners": true,
   "prConcurrentLimit": 15,
   "branchConcurrentLimit": 0,
-
   "packageRules": [
     {
       "extends": ["packages:linters", "packages:test"],
@@ -44,17 +45,6 @@
       "dependencyDashboardApproval": false,
       "assignees": ["TimDiekmann"],
       "schedule": ["before 2am on saturday"]
-    },
-    {
-      "packageRules": [
-        {
-          "matchPackageNames": [
-            "actions/download-artifact",
-            "actions/upload-artifact"
-          ],
-          "dependencyDashboardApproval": true
-        }
-      ]
     },
     {
       "matchManagers": ["docker-compose", "dockerfile"],
@@ -78,152 +68,175 @@
     },
     {
       "matchDepTypes": ["devDependencies"],
-      "matchPackagePatterns": [
-        "^@vitest/",
-        "^vite-",
-        "vitest$",
-        "lint-staged",
-        "lockfile-lint",
-        "markdownlint-cli",
-        "^prettier",
-        "prettier$",
-        "rimraf",
-        "turbo",
-        "yarn-deduplicate",
-        "@redocly/cli"
-      ],
-      "excludePackageNames": ["prettier-plugin-sql"],
       "dependencyDashboardApproval": false,
-      "assignees": ["TimDiekmann"]
+      "assignees": ["TimDiekmann"],
+      "matchPackageNames": [
+        "/^@vitest//",
+        "/^vite-/",
+        "/vitest$/",
+        "/lint-staged/",
+        "/lockfile-lint/",
+        "/markdownlint-cli/",
+        "/^prettier/",
+        "/prettier$/",
+        "/rimraf/",
+        "/turbo/",
+        "/yarn-deduplicate/",
+        "/@redocly/cli/"
+      ]
     },
     {
       "groupName": "Artillery npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@artilleryio/", "^artillery$", "^artillery-"],
-      "automerge": false
+      "automerge": false,
+      "matchPackageNames": [
+        "/^@artilleryio//",
+        "/^artillery$/",
+        "/^artillery-/"
+      ]
     },
     {
       "groupName": "LLM provider SDK npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@openai/", "^@anthropic-ai/", "groq-sdk"],
       "automerge": false,
       "dependencyDashboardApproval": false,
       "minimumReleaseAge": "0 days",
-      "schedule": ["after 1am"]
+      "schedule": ["after 1am"],
+      "matchPackageNames": ["/^@openai//", "/^@anthropic-ai//", "/groq-sdk/"]
     },
     {
       "groupName": "katex npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["@matejmazur/react-katex", "^katex"]
+      "matchPackageNames": ["/@matejmazur/react-katex/", "/^katex/"]
     },
+    {
+      "groupName": "Ory npm packages",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["/^@ory//"]
+    },
+    {
+      "groupName": "rollup npm packages",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["/^@rollup//", "/^rollup$/"],
+      "dependencyDashboardApproval": false
+    },
+    {
+      "groupName": "sigma npm packages",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["/^@sigma/", "/sigma$/"]
+    },
+    {
+      "groupName": "signia npm packages",
+      "matchManagers": ["npm"],
+      "matchPackageNames": ["/^signia/", "/signia$/"]
+    },
+
     {
       "groupName": "Block Protocol npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": [
-        "^@blockprotocol/",
-        "^block-",
-        "^blockprotocol$",
-        "^create-block-app$",
-        "^mock-block-dock$"
+      "matchPackageNames": [
+        "/^@blockprotocol//",
+        "/^block-/",
+        "/^blockprotocol$/",
+        "/^create-block-app$/",
+        "/^mock-block-dock$/"
       ]
     },
     {
       "groupName": "ESLint npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": [
-        "^@types/eslint",
-        "^@typescript-eslint/",
-        "^eslint-",
-        "eslint$"
-      ],
-      "dependencyDashboardApproval": false
+      "dependencyDashboardApproval": false,
+      "matchPackageNames": [
+        "/^@types/eslint/",
+        "/^@typescript-eslint//",
+        "/^eslint-/",
+        "/eslint$/"
+      ]
     },
     {
       "groupName": "GraphQL npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@graphql/", "^graphql-", "graphql$"]
+      "matchPackageNames": ["/^@graphql//", "/^graphql-/", "/graphql$/"]
     },
     {
       "description": "Exclude tldraw from updates due to non-OSS license in later releases",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@tldraw/"],
-      "enabled": false
+      "enabled": false,
+      "matchPackageNames": ["/^@tldraw//"]
     },
     {
       "automerge": false,
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["typescript"],
       "dependencyDashboardApproval": false,
-      "assignees": ["CiaranMn"]
+      "assignees": ["CiaranMn"],
+      "matchPackageNames": ["/typescript/"]
     },
     {
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["httpyac"],
-      "dependencyDashboardApproval": false
+      "dependencyDashboardApproval": false,
+      "matchPackageNames": ["/httpyac/"]
     },
     {
       "groupName": "Vitest npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@vitest/", "^vitest", "^vite-", "vitest$"],
-      "dependencyDashboardApproval": false
+      "dependencyDashboardApproval": false,
+      "matchPackageNames": ["/^@vitest//", "/^vitest/", "/^vite-/", "/vitest$/"]
     },
     {
       "groupName": "emoji-mart npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@emoji-mart/", "^emoji-mart", "emoji-mart$"]
+      "matchPackageNames": ["/^@emoji-mart//", "/^emoji-mart/", "/emoji-mart$/"]
     },
     {
       "groupName": "Lodash npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@types/lodash", "^lodash", "lodash$"]
+      "matchPackageNames": ["/^@types/lodash/", "/^lodash/", "/lodash$/"]
     },
     {
       "groupName": "OpenTelemetry npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@opentelemetry/"],
-      "assignees": ["TimDiekmann"]
+      "assignees": ["TimDiekmann"],
+      "matchPackageNames": ["/^@opentelemetry//"]
     },
     {
       "groupName": "changesets npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@changesets/"]
+      "matchPackageNames": ["/^@changesets//"]
     },
     {
       "groupName": "Playwright npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@playwright/", "^playwright", "playwright$"],
       "dependencyDashboardApproval": false,
-      "assignees": ["CiaranMn"]
+      "assignees": ["CiaranMn"],
+      "matchPackageNames": ["/^@playwright//", "/^playwright/", "/playwright$/"]
     },
     {
       "groupName": "Prettier npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^prettier", "prettier$"],
-      "excludePackageNames": ["prettier-plugin-sql"],
-      "dependencyDashboardApproval": false
+      "dependencyDashboardApproval": false,
+      "matchPackageNames": ["/^prettier/", "/prettier$/"]
     },
     {
       "groupName": "ProseMirror npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^prosemirror", "prosemirror$"]
+      "matchPackageNames": ["/^prosemirror/", "/prosemirror$/"]
     },
     {
       "groupName": "Sentry npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@sentry/"],
-      "assignees": ["TimDiekmann"]
+      "assignees": ["TimDiekmann"],
+      "matchPackageNames": ["/^@sentry//"]
     },
     {
       "groupName": "Signia npm packages",
       "matchManagers": ["npm"],
-      "matchPackagePatterns": ["^@signia/"]
+      "matchPackageNames": ["/^@signia//"]
     },
     {
-      "matchManagers": ["regex"],
-      "matchDepNames": ["rust"],
-      "matchDepPatterns": ["(R|r)ust(-.+)?"],
+      "matchManagers": ["custom.regex"],
+      "matchDepNames": ["rust", "/(R|r)ust(-.+)?/"],
       "separateMajorMinor": false,
-      "fetchReleaseNotes": false,
+      "fetchChangeLogs": "off",
       "commitMessageExtra": "to nightly-{{newVersion}}",
       "additionalBranchPrefix": "rs/",
       "groupName": "Rust toolchains",
@@ -235,42 +248,51 @@
     },
     {
       "matchManagers": ["cargo"],
-      "matchPackagePatterns": ["^clap[-_]?"],
-      "groupName": "`clap` Rust crates"
+      "groupName": "`clap` Rust crates",
+      "matchPackageNames": ["/^clap[-_]?/"]
     },
     {
       "matchManagers": ["cargo"],
-      "matchPackagePatterns": ["^criterion[-_]?"],
-      "groupName": "`criterion` Rust crates"
+      "groupName": "`tower` Rust crates",
+      "matchPackageNames": ["/^tower[-_]?/"]
     },
     {
       "matchManagers": ["cargo"],
-      "matchPackagePatterns": ["^futures[-_]?"],
-      "groupName": "`futures` Rust crates"
+      "groupName": "`criterion` Rust crates",
+      "matchPackageNames": ["/^criterion[-_]?/"]
     },
     {
       "matchManagers": ["cargo"],
-      "matchPackagePatterns": [
-        "^opentelemetry[-_]?",
-        "^tracing-opentelemetry$"
-      ],
-      "groupName": "`opentelemetry` Rust crates"
+      "groupName": "`futures` Rust crates",
+      "matchPackageNames": ["/^futures[-_]?/"]
     },
     {
       "matchManagers": ["cargo"],
-      "matchPackagePatterns": ["^postgres[-_]?", "^tokio-postgres[-_]?"],
-      "groupName": "`postgres` Rust crates"
+      "groupName": "`opentelemetry` Rust crates",
+      "matchPackageNames": [
+        "/^opentelemetry[-_]?/",
+        "/^tracing-opentelemetry$/"
+      ]
     },
     {
       "matchManagers": ["cargo"],
-      "matchPackagePatterns": ["^serde[-_]?"],
-      "groupName": "`serde` Rust crates"
+      "groupName": "`postgres` Rust crates",
+      "matchPackageNames": ["/^postgres[-_]?/", "/^tokio-postgres[-_]?/"]
     },
     {
       "matchManagers": ["cargo"],
-      "matchPackagePatterns": ["^tracing[-_]?"],
-      "excludePackageNames": ["tracing-opentelemetry"],
-      "groupName": "`tracing` Rust crates"
+      "groupName": "`serde` Rust crates",
+      "matchPackageNames": ["/^serde[-_]?/"]
+    },
+    {
+      "matchManagers": ["cargo"],
+      "groupName": "`tracing` Rust crates",
+      "matchPackageNames": ["/^tracing[-_]?/", "!tracing-opentelemetry"]
+    },
+    {
+      "matchManagers": ["cargo"],
+      "groupName": "`libp2p` Rust crates",
+      "matchPackageNames": ["/^libp2p[-_]?/"]
     },
     {
       "matchManagers": ["cargo"],
@@ -279,8 +301,9 @@
       "enabled": false
     }
   ],
-  "regexManagers": [
+  "customManagers": [
     {
+      "customType": "regex",
       "fileMatch": ["(^|/)rust-toolchain\\.toml?$"],
       "matchStrings": [
         "channel\\s*=\\s*\"nightly-(?<currentValue>\\d+-\\d+-\\d+)\""
@@ -291,6 +314,7 @@
       "versioningTemplate": "regex:(?<major>\\d+)-(?<minor>\\d+)-(?<patch>\\d+)"
     },
     {
+      "customType": "regex",
       "fileMatch": ["(^|/)README\\.md$", "(^|/)src/lib\\.rs$"],
       "matchStrings": [
         "https:\\/\\/img\\.shields\\.io\\/static\\/v1\\?label=Rust\\&message=\\d+\\.\\d+\\.\\d+\\/nightly-(?<currentValue>\\d+-\\d+-\\d+)\\&color=blue"

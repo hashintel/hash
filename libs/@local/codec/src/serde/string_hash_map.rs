@@ -40,8 +40,8 @@ use core::{
 use std::collections::HashMap;
 
 use serde::{
-    de::{self, Deserialize, DeserializeSeed, Deserializer, MapAccess, Visitor},
     Serialize, Serializer,
+    de::{self, Deserialize, DeserializeSeed, Deserializer, MapAccess, Visitor},
 };
 
 use crate::serde::size_hint;
@@ -78,7 +78,7 @@ where
     D: Deserializer<'de>,
 {
     struct KeySeed<K> {
-        k: PhantomData<K>,
+        key: PhantomData<K>,
     }
 
     impl<'de, K> Visitor<'de> for KeySeed<K>
@@ -92,11 +92,11 @@ where
             formatter.write_str("a string")
         }
 
-        fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+        fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
         where
             E: de::Error,
         {
-            K::from_str(v).map_err(de::Error::custom)
+            K::from_str(value).map_err(de::Error::custom)
         }
     }
 
@@ -140,8 +140,10 @@ where
                 size_hint::cautious::<(K, V)>(map.size_hint()),
                 S::default(),
             );
-            while let Some((k, v)) = map.next_entry_seed(KeySeed { k: PhantomData }, PhantomData)? {
-                values.insert(k, v);
+            while let Some((key, value)) =
+                map.next_entry_seed(KeySeed { key: PhantomData }, PhantomData)?
+            {
+                values.insert(key, value);
             }
             Ok(values)
         }

@@ -15,16 +15,13 @@ fn test_messages<E>(report: &Report<E>) {
 }
 
 fn test_kinds<E>(report: &Report<E>) {
-    assert_kinds!(
-        report,
-        [
-            FrameKind::Attachment(AttachmentKind::Opaque(_)),
-            FrameKind::Context(_),
-            FrameKind::Attachment(AttachmentKind::Opaque(_)),
-            FrameKind::Context(_),
-            FrameKind::Context(_)
-        ]
-    );
+    assert_kinds!(report, [
+        FrameKind::Attachment(AttachmentKind::Opaque(_)),
+        FrameKind::Context(_),
+        FrameKind::Attachment(AttachmentKind::Opaque(_)),
+        FrameKind::Context(_),
+        FrameKind::Context(_)
+    ]);
 }
 
 #[test]
@@ -37,6 +34,29 @@ fn attach() {
 
     test_messages(&report);
     test_kinds(&report);
+}
+
+#[test]
+fn buried_duplicate_context_does_not_affect_current_contexts() {
+    let mut root = create_report()
+        .change_context(ContextA(0))
+        .change_context(RootError)
+        .expand();
+    let auxillary = create_report();
+    root.push(auxillary);
+
+    let mut root = root.attach(AttachmentA);
+
+    let shallow = create_report()
+        .attach(AttachmentB)
+        .change_context(ContextB(0))
+        .attach(AttachmentA)
+        .change_context(ContextA(0))
+        .change_context(RootError);
+
+    root.push(shallow);
+
+    assert_eq!(root.current_contexts().count(), 3);
 }
 
 #[test]

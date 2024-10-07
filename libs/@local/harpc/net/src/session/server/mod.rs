@@ -9,13 +9,13 @@ pub mod transaction;
 use alloc::sync::Arc;
 use core::{
     pin::Pin,
-    task::{ready, Context, Poll},
+    task::{Context, Poll, ready},
 };
 
 use error_stack::{Result, ResultExt};
-use futures::{stream::FusedStream, Stream};
+use futures::{Stream, stream::FusedStream};
 use libp2p::Multiaddr;
-use tokio::sync::{broadcast, mpsc, Semaphore};
+use tokio::sync::{Semaphore, broadcast, mpsc};
 use tokio_util::task::TaskTracker;
 
 pub use self::{config::SessionConfig, session_id::SessionId, transaction::Transaction};

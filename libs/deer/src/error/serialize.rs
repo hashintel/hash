@@ -9,8 +9,8 @@ use core::{
 
 use error_stack::{Context, Frame, Report};
 use serde::{
-    ser::{Error as _, SerializeMap},
     Serialize, Serializer,
+    ser::{Error as _, SerializeMap},
 };
 
 use crate::error::{Error, ErrorProperties, Id, Namespace, Variant};
@@ -21,8 +21,8 @@ struct Message<'a, 'b, E: Variant> {
 }
 
 impl<'a, 'b, E: Variant> Display for Message<'a, 'b, E> {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        self.context.message(f, self.properties)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        self.context.message(fmt, self.properties)
     }
 }
 
@@ -134,7 +134,7 @@ struct FrameSplitIterator<'a> {
 }
 
 impl<'a> FrameSplitIterator<'a> {
-    fn new(report: &'a Report<impl Context>) -> Self {
+    fn new(report: &'a Report<[impl Context]>) -> Self {
         let stack = report
             .current_frames()
             .iter()
@@ -198,7 +198,7 @@ fn divide_frames<'a>(
 }
 
 fn serialize_report<S: Serializer>(
-    report: &Report<impl Context>,
+    report: &Report<[impl Context]>,
     serializer: S,
 ) -> Result<S::Ok, S::Error> {
     let frames = FrameSplitIterator::new(report);
@@ -254,10 +254,10 @@ pub(super) fn impl_serialize<'a, E: Variant>(
 ///
 /// These types can then be used to generate a personalized message and will be attached to
 /// `properties` with the predefined key.
-pub struct Export<C: Context>(Report<C>);
+pub struct Export<C: Context>(Report<[C]>);
 
 impl<C: Context> Export<C> {
-    pub(crate) const fn new(report: Report<C>) -> Self {
+    pub(crate) const fn new(report: Report<[C]>) -> Self {
         Self(report)
     }
 }
@@ -282,22 +282,22 @@ mod tests {
     use similar_asserts::assert_serde_eq;
 
     use crate::{
+        Deserialize, Number, Reflection,
         error::{
-            serialize::{divide_frames, FrameSplitIterator},
-            Error, ErrorProperties, ExpectedType, Id, Location, MissingError, Namespace,
-            ReceivedValue, ReportExt, ValueError, Variant, VisitorError, NAMESPACE,
+            Error, ErrorProperties, ExpectedType, Id, Location, MissingError, NAMESPACE, Namespace,
+            ReceivedValue, ReportExt, ValueError, Variant, VisitorError,
+            serialize::{FrameSplitIterator, divide_frames},
         },
         id,
         schema::visitor::StringSchema,
-        Deserialize, Number, Reflection,
     };
 
     #[derive(Debug)]
     struct Printable(&'static str);
 
     impl Display for Printable {
-        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-            f.write_str(self.0)
+        fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+            fmt.write_str(self.0)
         }
     }
 
@@ -305,8 +305,8 @@ mod tests {
     struct Root;
 
     impl Display for Root {
-        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-            f.write_str("Root Error")
+        fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+            fmt.write_str("Root Error")
         }
     }
 
@@ -344,25 +344,24 @@ mod tests {
     /// [A, G]
     /// ```
     #[test]
-    #[expect(clippy::many_single_char_names)]
     fn split() {
-        let f = Report::new(Root).attach_printable(Printable("F"));
-        let e = Report::new(Root).attach_printable(Printable("E"));
-        let mut d = Report::new(Root).attach_printable(Printable("D"));
+        let report_f = Report::new(Root).attach_printable(Printable("F"));
+        let report_e = Report::new(Root).attach_printable(Printable("E"));
+        let mut report_d = Report::new(Root).attach_printable(Printable("D")).expand();
 
-        d.extend_one(e);
+        report_d.push(report_e);
 
-        let mut b = d.attach_printable(Printable("B"));
-        let c = f.attach_printable(Printable("C"));
+        let mut report_b = report_d.attach_printable(Printable("B"));
+        let report_c = report_f.attach_printable(Printable("C"));
 
-        let g = Report::new(Root).attach_printable(Printable("G"));
+        let report_g = Report::new(Root).attach_printable(Printable("G"));
 
-        b.extend_one(c);
-        b.extend_one(g);
+        report_b.push(report_c);
+        report_b.push(report_g);
 
-        let a = b.attach_printable(Printable("A"));
+        let report_a = report_b.attach_printable(Printable("A"));
 
-        let stacks: Vec<_> = FrameSplitIterator::new(&a).collect();
+        let stacks: Vec<_> = FrameSplitIterator::new(&report_a).collect();
 
         assert_stack(&stacks[0], &["A", "B", "D", "Root Error"]);
         assert_stack(&stacks[1], &["A", "B", "E", "Root Error"]);
@@ -371,26 +370,26 @@ mod tests {
     }
 
     #[derive(Debug)]
-    struct Y;
+    struct ErrorY;
 
-    impl Display for Y {
-        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-            f.write_str("Y Error")
+    impl Display for ErrorY {
+        fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+            fmt.write_str("Y Error")
         }
     }
 
-    impl Context for Y {}
+    impl Context for ErrorY {}
 
     #[derive(Debug)]
-    struct Z;
+    struct ErrorZ;
 
-    impl Display for Z {
-        fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
-            f.write_str("Z Error")
+    impl Display for ErrorZ {
+        fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
+            fmt.write_str("Z Error")
         }
     }
 
-    impl Variant for Z {
+    impl Variant for ErrorZ {
         type Properties = ();
 
         const ID: Id = id!["custom"];
@@ -433,40 +432,40 @@ mod tests {
     /// [A, G, Y Error, Z Error, Z Error]
     /// ```
     #[test]
-    #[expect(clippy::many_single_char_names)]
     fn divide_integration() {
-        let mut b = Report::new(Error::new(Z))
+        let mut report_d = Report::new(Error::new(ErrorZ))
             .attach_printable(Printable("D"))
-            .change_context(Error::new(Z))
-            .change_context(Y);
+            .change_context(Error::new(ErrorZ))
+            .change_context(ErrorY)
+            .expand();
 
-        let e = Report::new(Y)
-            .change_context(Error::new(Z))
+        let report_e = Report::new(ErrorY)
+            .change_context(Error::new(ErrorZ))
             .attach_printable(Printable("E"))
-            .change_context(Y);
-        b.extend_one(e);
+            .change_context(ErrorY);
+        report_d.push(report_e);
 
-        let mut b = b.attach_printable(Printable("B"));
+        let mut report_b = report_d.attach_printable(Printable("B"));
 
-        let c = Report::new(Error::new(Z))
+        let report_c = Report::new(Error::new(ErrorZ))
             .attach_printable(Printable("F"))
-            .change_context(Y)
+            .change_context(ErrorY)
             .attach_printable(Printable("C"));
 
-        let g = Report::new(Error::new(Z))
-            .change_context(Error::new(Z))
-            .change_context(Y)
+        let report_g = Report::new(Error::new(ErrorZ))
+            .change_context(Error::new(ErrorZ))
+            .change_context(ErrorY)
             .attach_printable(Printable("G"));
 
-        let h = Report::new(Y).attach_printable(Printable("H"));
+        let report_h = Report::new(ErrorY).attach_printable(Printable("H"));
 
-        b.extend_one(c);
-        b.extend_one(g);
-        b.extend_one(h);
+        report_b.push(report_c);
+        report_b.push(report_g);
+        report_b.push(report_h);
 
-        let a = b.attach_printable(Printable("A"));
+        let report_a = report_b.attach_printable(Printable("A"));
 
-        let split = FrameSplitIterator::new(&a);
+        let split = FrameSplitIterator::new(&report_a);
         let frames = divide_frames(split);
 
         let stacks: Vec<_> = frames.into_iter().collect();
@@ -478,10 +477,9 @@ mod tests {
         // [A, G, Y Error, Z Error]
         // [A, G, Y Error, Z Error, Z Error]
         assert_stack(&stacks[0], &["A", "B", "Y Error", "Z Error"]);
-        assert_stack(
-            &stacks[1],
-            &["A", "B", "Y Error", "Z Error", "D", "Z Error"],
-        );
+        assert_stack(&stacks[1], &[
+            "A", "B", "Y Error", "Z Error", "D", "Z Error",
+        ]);
         assert_stack(&stacks[2], &["A", "B", "Y Error", "E", "Z Error"]);
         assert_stack(&stacks[3], &["A", "C", "Y Error", "F", "Z Error"]);
         assert_stack(&stacks[4], &["A", "G", "Y Error", "Z Error"]);
@@ -490,7 +488,7 @@ mod tests {
 
     #[test]
     fn divide_ignore() {
-        let report = Report::new(Y).attach(Printable("A"));
+        let report = Report::new(ErrorY).attach(Printable("A")).expand();
         let split = FrameSplitIterator::new(&report);
         let frames = divide_frames(split);
 
@@ -499,21 +497,21 @@ mod tests {
 
     #[test]
     fn divide_division() {
-        let report = Report::new(Error::new(Z))
+        let report = Report::new(Error::new(ErrorZ))
             .attach_printable(Printable("A"))
             .attach_printable(Printable("B"))
-            .change_context(Error::new(Z))
+            .change_context(Error::new(ErrorZ))
             .attach_printable(Printable("C"))
-            .attach_printable(Printable("D"));
+            .attach_printable(Printable("D"))
+            .expand();
 
         let split = FrameSplitIterator::new(&report);
         let mut frames = divide_frames(split).into_iter();
 
         assert_stack(&frames.next().expect("first chain"), &["D", "C", "Z Error"]);
-        assert_stack(
-            &frames.next().expect("second chain"),
-            &["D", "C", "Z Error", "B", "A", "Z Error"],
-        );
+        assert_stack(&frames.next().expect("second chain"), &[
+            "D", "C", "Z Error", "B", "A", "Z Error",
+        ]);
     }
 
     #[test]
@@ -562,7 +560,8 @@ mod tests {
         let mut missing = Report::new(Error::new(MissingError))
             .attach(ExpectedType::new(StringSchema::document()))
             .attach(Location::Field("b"))
-            .change_context(VisitorError);
+            .change_context(VisitorError)
+            .expand();
 
         let value = Report::new(Error::new(ValueError))
             .attach(ReceivedValue::new(256_u16))
@@ -570,7 +569,7 @@ mod tests {
             .attach(Location::Field("a"))
             .change_context(VisitorError);
 
-        missing.extend_one(value);
+        missing.push(value);
 
         let report = missing.attach(Location::Array(0));
 

@@ -1,5 +1,3 @@
-use core::convert::identity;
-
 use graph_types::{
     knowledge::{
         entity::{Entity, EntityId, EntityMetadata, EntityProvenance, EntityRecordId, EntityUuid},
@@ -7,164 +5,20 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
-use temporal_versioning::{
-    ClosedTemporalBound, LeftClosedTemporalInterval, TemporalTagged, TimeAxis,
+use hash_graph_store::{
+    entity::EntityQueryPath,
+    subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind},
 };
 use tokio_postgres::Row;
 use tracing::instrument;
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 use uuid::Uuid;
 
-use crate::{
-    knowledge::EntityQueryPath,
-    store::{
-        crud::{Sorting, VertexIdSorting},
-        postgres::{
-            crud::QueryRecordDecode,
-            query::{
-                Distinctness, Expression, Function, PostgresRecord, PostgresSorting,
-                SelectCompiler, Table,
-            },
-        },
-        query::Parameter,
-        NullOrdering, Ordering,
-    },
-    subgraph::{
-        edges::{EdgeDirection, KnowledgeGraphEdgeKind},
-        identifier::EntityVertexId,
-        temporal_axes::{QueryTemporalAxes, VariableAxis},
-    },
+use crate::store::postgres::{
+    crud::QueryRecordDecode,
+    query::{Distinctness, PostgresRecord, SelectCompiler, Table},
 };
 
-#[derive(Debug, Copy, Clone)]
-pub struct EntityVertexIdIndices {
-    pub revision_id: usize,
-    pub entity_uuid: usize,
-    pub draft_id: usize,
-    pub owned_by_id: usize,
-}
-
-pub struct EntityVertexIdCursorParameters<'p> {
-    revision_id: Parameter<'p>,
-    entity_uuid: Parameter<'p>,
-    draft_id: Option<Parameter<'p>>,
-    owned_by_id: Parameter<'p>,
-}
-
-impl QueryRecordDecode for VertexIdSorting<Entity> {
-    type Indices = EntityVertexIdIndices;
-    type Output = EntityVertexId;
-
-    fn decode(row: &Row, indices: &Self::Indices) -> Self::Output {
-        let ClosedTemporalBound::Inclusive(revision_id) = *row
-            .get::<_, LeftClosedTemporalInterval<VariableAxis>>(indices.revision_id)
-            .start();
-        EntityVertexId {
-            base_id: EntityId {
-                owned_by_id: row.get(indices.owned_by_id),
-                entity_uuid: row.get(indices.entity_uuid),
-                draft_id: row.get(indices.draft_id),
-            },
-            revision_id,
-        }
-    }
-}
-
-impl<'s> PostgresSorting<'s, Entity> for VertexIdSorting<Entity> {
-    type CompilationParameters = EntityVertexIdCursorParameters<'static>;
-    type Error = !;
-
-    fn encode(&self) -> Result<Option<Self::CompilationParameters>, Self::Error> {
-        Ok(self.cursor().map(|cursor| EntityVertexIdCursorParameters {
-            owned_by_id: Parameter::Uuid(cursor.base_id.owned_by_id.into_uuid()),
-            entity_uuid: Parameter::Uuid(cursor.base_id.entity_uuid.into_uuid()),
-            draft_id: cursor
-                .base_id
-                .draft_id
-                .map(|draft_id| Parameter::Uuid(draft_id.into_uuid())),
-            revision_id: Parameter::Timestamp(cursor.revision_id.cast()),
-        }))
-    }
-
-    fn compile<'p, 'q: 'p>(
-        &self,
-        compiler: &mut SelectCompiler<'p, 'q, Entity>,
-        parameters: Option<&'p Self::CompilationParameters>,
-        temporal_axes: &QueryTemporalAxes,
-    ) -> Self::Indices {
-        let revision_id_path = match temporal_axes.variable_time_axis() {
-            TimeAxis::TransactionTime => &EntityQueryPath::TransactionTime,
-            TimeAxis::DecisionTime => &EntityQueryPath::DecisionTime,
-        };
-
-        if let Some(parameters) = parameters {
-            // We already had a cursor, add them as parameters:
-            let revision_id_expression = compiler.compile_parameter(&parameters.revision_id).0;
-            let entity_uuid_expression = compiler.compile_parameter(&parameters.entity_uuid).0;
-            let draft_id_expression = parameters
-                .draft_id
-                .as_ref()
-                .map(|draft_id| compiler.compile_parameter(draft_id).0);
-            let owned_by_id_expression = compiler.compile_parameter(&parameters.owned_by_id).0;
-
-            EntityVertexIdIndices {
-                revision_id: compiler.add_cursor_selection(
-                    revision_id_path,
-                    |column| Expression::Function(Function::Lower(Box::new(column))),
-                    Some(revision_id_expression),
-                    Ordering::Descending,
-                    None,
-                ),
-                entity_uuid: compiler.add_cursor_selection(
-                    &EntityQueryPath::Uuid,
-                    identity,
-                    Some(entity_uuid_expression),
-                    Ordering::Ascending,
-                    None,
-                ),
-                draft_id: compiler.add_cursor_selection(
-                    &EntityQueryPath::DraftId,
-                    identity,
-                    draft_id_expression,
-                    Ordering::Ascending,
-                    Some(NullOrdering::First),
-                ),
-                owned_by_id: compiler.add_cursor_selection(
-                    &EntityQueryPath::OwnedById,
-                    identity,
-                    Some(owned_by_id_expression),
-                    Ordering::Ascending,
-                    None,
-                ),
-            }
-        } else {
-            EntityVertexIdIndices {
-                revision_id: compiler.add_distinct_selection_with_ordering(
-                    revision_id_path,
-                    Distinctness::Distinct,
-                    Some((Ordering::Descending, None)),
-                ),
-                entity_uuid: compiler.add_distinct_selection_with_ordering(
-                    &EntityQueryPath::Uuid,
-                    Distinctness::Distinct,
-                    Some((Ordering::Ascending, None)),
-                ),
-                draft_id: compiler.add_distinct_selection_with_ordering(
-                    &EntityQueryPath::DraftId,
-                    Distinctness::Distinct,
-                    Some((Ordering::Ascending, Some(NullOrdering::First))),
-                ),
-                owned_by_id: compiler.add_distinct_selection_with_ordering(
-                    &EntityQueryPath::OwnedById,
-                    Distinctness::Distinct,
-                    Some((Ordering::Ascending, None)),
-                ),
-            }
-        }
-    }
-}
-
-#[derive(Debug, Copy, Clone)]
 pub struct EntityRecordRowIndices {
     pub owned_by_id: usize,
     pub entity_uuid: usize,

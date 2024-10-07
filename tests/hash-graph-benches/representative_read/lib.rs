@@ -45,8 +45,10 @@ use core::str::FromStr;
 use authorization::NoAuthorization;
 use criterion::{BenchmarkId, Criterion, SamplingMode};
 use criterion_macro::criterion;
-use graph::subgraph::edges::{EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth};
 use graph_types::account::AccountId;
+use hash_graph_store::subgraph::edges::{
+    EdgeResolveDepths, GraphResolveDepths, OutgoingEdgeResolveDepth,
+};
 use uuid::Uuid;
 
 use self::seed::setup_and_extract_samples;
@@ -55,7 +57,7 @@ use crate::util::{setup, setup_subscriber};
 const DB_NAME: &str = "representative_read";
 
 #[criterion]
-fn bench_representative_read_entity(c: &mut Criterion) {
+fn bench_representative_read_entity(crit: &mut Criterion) {
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
     let account_id = AccountId::new(
@@ -63,7 +65,7 @@ fn bench_representative_read_entity(c: &mut Criterion) {
     );
 
     let group_id = "representative_read_entity";
-    let mut group = c.benchmark_group(group_id);
+    let mut group = crit.benchmark_group(group_id);
     let (runtime, mut store_wrapper) = setup(DB_NAME, false, false, account_id, NoAuthorization);
 
     let samples = runtime.block_on(setup_and_extract_samples(&mut store_wrapper));
@@ -76,10 +78,10 @@ fn bench_representative_read_entity(c: &mut Criterion) {
             group.bench_with_input(
                 BenchmarkId::new(function_id, &parameter),
                 &(account_id, entity_type_id, entity_uuids),
-                |b, (_account_id, _entity_type_id, entity_uuids)| {
+                |bencher, (_account_id, _entity_type_id, entity_uuids)| {
                     let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
                     knowledge::entity::bench_get_entity_by_id(
-                        b,
+                        bencher,
                         &runtime,
                         store,
                         account_id,
@@ -93,7 +95,7 @@ fn bench_representative_read_entity(c: &mut Criterion) {
 
 #[criterion]
 #[expect(clippy::too_many_lines)]
-fn bench_representative_read_multiple_entities(c: &mut Criterion) {
+fn bench_representative_read_multiple_entities(crit: &mut Criterion) {
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
     let account_id = AccountId::new(
@@ -101,7 +103,7 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
     );
 
     let group_id = "representative_read_multiple_entities";
-    let mut group = c.benchmark_group(group_id);
+    let mut group = crit.benchmark_group(group_id);
     let (runtime, store_wrapper) = setup(DB_NAME, false, false, account_id, NoAuthorization);
     group.sample_size(10);
     group.sampling_mode(SamplingMode::Flat);
@@ -321,10 +323,10 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new(function_id, &parameter),
             &graph_resolve_depth,
-            |b, graph_resolve_depth| {
+            |bencher, graph_resolve_depth| {
                 let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
                 knowledge::entity::bench_get_entities_by_property(
-                    b,
+                    bencher,
                     &runtime,
                     &store_wrapper.store,
                     store_wrapper.account_id,
@@ -375,10 +377,10 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new(function_id, &parameter),
             &graph_resolve_depth,
-            |b, graph_resolve_depth| {
+            |bencher, graph_resolve_depth| {
                 let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
                 knowledge::entity::bench_get_link_by_target_by_property(
-                    b,
+                    bencher,
                     &runtime,
                     &store_wrapper.store,
                     store_wrapper.account_id,
@@ -390,7 +392,7 @@ fn bench_representative_read_multiple_entities(c: &mut Criterion) {
 }
 
 #[criterion]
-fn bench_representative_read_entity_type(c: &mut Criterion) {
+fn bench_representative_read_entity_type(crit: &mut Criterion) {
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
     let account_id = AccountId::new(
@@ -398,7 +400,7 @@ fn bench_representative_read_entity_type(c: &mut Criterion) {
     );
 
     let group_id = "representative_read_entity_type";
-    let mut group = c.benchmark_group(group_id);
+    let mut group = crit.benchmark_group(group_id);
     let (runtime, mut store_wrapper) = setup(DB_NAME, false, false, account_id, NoAuthorization);
 
     let samples = runtime.block_on(setup_and_extract_samples(&mut store_wrapper));
@@ -410,10 +412,10 @@ fn bench_representative_read_entity_type(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new(function_id, &parameter),
             &(account_id, entity_type_ids),
-            |b, (_account_id, entity_type_ids)| {
+            |bencher, (_account_id, entity_type_ids)| {
                 let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
                 ontology::entity_type::bench_get_entity_type_by_id(
-                    b,
+                    bencher,
                     &runtime,
                     store,
                     account_id,

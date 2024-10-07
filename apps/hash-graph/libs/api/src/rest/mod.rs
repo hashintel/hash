@@ -22,16 +22,28 @@ use std::{fs, io};
 use async_trait::async_trait;
 use authorization::AuthorizationApiPool;
 use axum::{
+    Extension, Json, Router,
     extract::{FromRequestParts, Path},
-    http::{request::Parts, StatusCode},
+    http::{StatusCode, request::Parts},
     response::{IntoResponse, Response},
     routing::get,
-    Extension, Json, Router,
 };
 use error_stack::{Report, ResultExt};
 use graph::{
-    ontology::{domain_validator::DomainValidator, Selector},
-    store::{error::VersionedUrlAlreadyExists, Store, StorePool, TypeFetcher},
+    ontology::domain_validator::DomainValidator,
+    store::{Store, StorePool, TypeFetcher, error::VersionedUrlAlreadyExists},
+};
+use graph_types::{
+    account::{AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
+    ontology::{
+        DataTypeMetadata, EntityTypeMetadata, OntologyEditionProvenance, OntologyProvenance,
+        OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeRecordId,
+        OntologyTypeReference, PropertyTypeMetadata, ProvidedOntologyEditionProvenance,
+    },
+    owned_by_id::OwnedById,
+};
+use hash_graph_store::{
+    filter::{ParameterConversion, Selector},
     subgraph::{
         edges::{
             EdgeResolveDepths, GraphResolveDepths, KnowledgeGraphEdgeKind, OntologyEdgeKind,
@@ -47,17 +59,8 @@ use graph::{
         },
     },
 };
-use graph_types::{
-    account::{AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
-    ontology::{
-        DataTypeMetadata, EntityTypeMetadata, OntologyEditionProvenance, OntologyProvenance,
-        OntologyTemporalMetadata, OntologyTypeMetadata, OntologyTypeRecordId,
-        OntologyTypeReference, PropertyTypeMetadata, ProvidedOntologyEditionProvenance,
-    },
-    owned_by_id::OwnedById,
-};
 use hash_status::Status;
-use include_dir::{include_dir, Dir};
+use include_dir::{Dir, include_dir};
 use sentry::integrations::tower::{NewSentryLayer, SentryHttpLayer};
 use serde::Serialize;
 use temporal_client::TemporalClient;
@@ -67,11 +70,11 @@ use temporal_versioning::{
 };
 use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
 use utoipa::{
-    openapi::{
-        self, schema, ArrayBuilder, KnownFormat, Object, ObjectBuilder, OneOfBuilder, Ref, RefOr,
-        Schema, SchemaFormat, SchemaType,
-    },
     Modify, OpenApi, ToSchema,
+    openapi::{
+        self, ArrayBuilder, KnownFormat, Object, ObjectBuilder, OneOfBuilder, Ref, RefOr, Schema,
+        SchemaFormat, SchemaType, schema,
+    },
 };
 use uuid::Uuid;
 
@@ -80,13 +83,13 @@ use self::{
     middleware::span_trace_layer,
     status::{report_to_response, status_to_response},
     utoipa_typedef::{
+        MaybeListOfDataTypeMetadata, MaybeListOfEntityTypeMetadata,
+        MaybeListOfPropertyTypeMetadata,
         subgraph::{
             Edges, KnowledgeGraphOutwardEdge, KnowledgeGraphVertex, KnowledgeGraphVertices,
             OntologyOutwardEdge, OntologyTypeVertexId, OntologyVertex, OntologyVertices, Subgraph,
             Vertex, Vertices,
         },
-        MaybeListOfDataTypeMetadata, MaybeListOfEntityTypeMetadata,
-        MaybeListOfPropertyTypeMetadata,
     },
 };
 
@@ -117,17 +120,16 @@ impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
 pub struct PermissionResponse {
     has_permission: bool,
 }
-#[async_trait]
+
 pub trait RestApiStore: Store + TypeFetcher {
-    async fn load_external_type(
+    fn load_external_type(
         &mut self,
         actor_id: AccountId,
         domain_validator: &DomainValidator,
         reference: OntologyTypeReference<'_>,
-    ) -> Result<OntologyTypeMetadata, Response>;
+    ) -> impl Future<Output = Result<OntologyTypeMetadata, Response>> + Send;
 }
 
-#[async_trait]
 impl<S> RestApiStore for S
 where
     S: Store + TypeFetcher + Send,
@@ -725,7 +727,8 @@ impl Modify for FilterSchemaAddon {
                             ObjectBuilder::new()
                                 .title(Some("ParameterExpression"))
                                 .property("parameter", Any::schema().1)
-                                .required("parameter"),
+                                .required("parameter")
+                                .property("convert", ParameterConversion::schema().1),
                         )
                         .build(),
                 )

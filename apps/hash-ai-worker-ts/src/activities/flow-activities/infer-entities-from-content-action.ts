@@ -67,7 +67,6 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
       graphApiClient,
       entityTypeIds,
       actorId: userAuthentication.actorId,
-      simplifyPropertyKeys: true,
     });
 
   const entityTypes = Object.entries(
@@ -185,7 +184,7 @@ export const inferEntitiesFromContentAction: FlowActionActivity = async ({
         ).reduce<PropertyMetadataObject>(
           (acc, propertyKey) => {
             acc.value[propertyKey] = {
-              metadata: { provenance: { sources: [source] } },
+              metadata: { dataTypeId: null, provenance: { sources: [source] } },
             };
 
             return acc;

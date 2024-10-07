@@ -7,11 +7,12 @@
     "test:unit": "cargo hack nextest run --feature-powerset --all-targets && cargo test --all-features --doc"
   },
   "dependencies": {
-    "@apps/hash-graph-migrations": "0.0.0-private",
     "@blockprotocol/type-system-rs": "0.0.0-private",
     "@rust/authorization": "0.0.0-private",
     "@rust/codec": "0.0.0-private",
+    "@rust/error-stack": "0.5.0",
     "@rust/graph-types": "0.0.0-private",
+    "@rust/hash-graph-store": "0.0.0-private",
     "@rust/hash-status": "0.0.0-private",
     "@rust/temporal-client": "0.0.0-private",
     "@rust/temporal-versioning": "0.0.0-private",
@@ -19,7 +20,6 @@
     "@rust/validation": "0.0.0-private"
   },
   "devDependencies": {
-    "@rust/graph-test-data": "0.0.0-private",
-    "tsx": "4.16.2"
+    "tsx": "4.19.1"
   }
 }

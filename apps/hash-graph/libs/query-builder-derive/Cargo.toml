@@ -12,11 +12,13 @@ authors.workspace = true
 proc-macro = true
 
 [dependencies]
-virtue = "0.0.17"
-syn = "2.0.70"
+# Workspace dependencies
+
+# Third-party dependencies
+virtue = { workspace = true }
 
 [dev-dependencies]
-trybuild = "1.0.97"
+trybuild = { workspace = true }
 
 [lints]
 workspace = true

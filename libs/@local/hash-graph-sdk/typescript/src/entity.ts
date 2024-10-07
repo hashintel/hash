@@ -313,7 +313,9 @@ export const mergePropertiesAndMetadata = (
       // If the keys are not base urls, we treat the object as a value
       return {
         value: property,
-        metadata: {},
+        metadata: {
+          dataTypeId: null,
+        },
       } satisfies PropertyValueWithMetadata;
     }
     if (isObjectMetadata(metadata)) {
@@ -361,7 +363,9 @@ export const mergePropertiesAndMetadata = (
   if (!metadata) {
     return {
       value: property,
-      metadata: {},
+      metadata: {
+        dataTypeId: null,
+      },
     } satisfies PropertyValueWithMetadata;
   }
 
@@ -607,20 +611,38 @@ export class Entity<PropertyMap extends EntityProperties = EntityProperties> {
   public async archive(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
+    provenance: EnforcedEntityEditionProvenance,
   ): Promise<void> {
     await graphAPI.patchEntity(authentication.actorId, {
       entityId: this.entityId,
       archived: true,
+      provenance: {
+        ...provenance,
+        origin: {
+          ...provenance.origin,
+          // @ts-expect-error –– ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
+          type: provenance.origin.type satisfies "migration",
+        },
+      },
     });
   }
 
   public async unarchive(
     graphAPI: GraphApi,
     authentication: AuthenticationContext,
+    provenance: EnforcedEntityEditionProvenance,
   ): Promise<void> {
     await graphAPI.patchEntity(authentication.actorId, {
       entityId: this.entityId,
       archived: false,
+      provenance: {
+        ...provenance,
+        origin: {
+          ...provenance.origin,
+          // @ts-expect-error –– ProvidedEntityEditionProvenanceOriginTypeEnum is not generated correctly in the hash-graph-client
+          type: provenance.origin.type satisfies "migration",
+        },
+      },
     });
   }
 

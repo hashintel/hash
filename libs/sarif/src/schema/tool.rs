@@ -67,14 +67,11 @@ impl<'s> Tool<'s> {
     ///     .with_extension(ToolComponent::new("prettier-plugin-sh"))
     ///     .with_extension(ToolComponent::new("prettier-plugin-sql"));
     ///
-    /// assert_eq!(
-    ///     tool.extensions,
-    ///     vec![
-    ///         ToolComponent::new("prettier-plugin-packagejson"),
-    ///         ToolComponent::new("prettier-plugin-sh"),
-    ///         ToolComponent::new("prettier-plugin-sql"),
-    ///     ]
-    /// );
+    /// assert_eq!(tool.extensions, vec![
+    ///     ToolComponent::new("prettier-plugin-packagejson"),
+    ///     ToolComponent::new("prettier-plugin-sh"),
+    ///     ToolComponent::new("prettier-plugin-sql"),
+    /// ]);
     /// ```
     #[must_use]
     pub fn with_extension(mut self, extension: ToolComponent<'s>) -> Self {
@@ -95,14 +92,11 @@ impl<'s> Tool<'s> {
     ///     ToolComponent::new("prettier-plugin-sql"),
     /// ]);
     ///
-    /// assert_eq!(
-    ///     tool.extensions,
-    ///     vec![
-    ///         ToolComponent::new("prettier-plugin-packagejson"),
-    ///         ToolComponent::new("prettier-plugin-sh"),
-    ///         ToolComponent::new("prettier-plugin-sql"),
-    ///     ]
-    /// );
+    /// assert_eq!(tool.extensions, vec![
+    ///     ToolComponent::new("prettier-plugin-packagejson"),
+    ///     ToolComponent::new("prettier-plugin-sh"),
+    ///     ToolComponent::new("prettier-plugin-sql"),
+    /// ]);
     /// ```
     #[must_use]
     pub fn with_extensions(

@@ -1,4 +1,4 @@
-use deer_desert::{assert_tokens, Token};
+use deer_desert::{Token, assert_tokens};
 
 // cannot use proptest because tokenizer does not yet support borrowed data
 #[test]

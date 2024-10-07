@@ -1,6 +1,5 @@
 use alloc::sync::Arc;
-use core::{num::NonZero, time::Duration};
-use std::assert_matches::assert_matches;
+use core::{assert_matches::assert_matches, num::NonZero, time::Duration};
 
 use bytes::{Bytes, BytesMut};
 use futures::StreamExt;
@@ -9,17 +8,17 @@ use harpc_wire_protocol::{
     payload::Payload,
     protocol::{Protocol, ProtocolVersion},
     request::{
-        begin::RequestBegin, body::RequestBody, flags::RequestFlag, frame::RequestFrame,
-        id::RequestId, Request,
+        Request, begin::RequestBegin, body::RequestBody, flags::RequestFlag, frame::RequestFrame,
+        id::RequestId,
     },
     response::{
+        Response,
         begin::ResponseBegin,
         body::ResponseBody,
         flags::{ResponseFlag, ResponseFlags},
         frame::ResponseFrame,
         header::ResponseHeader,
         kind::{ErrorCode, ResponseKind},
-        Response,
     },
     test_utils::mock_request_id,
 };
@@ -31,7 +30,7 @@ use super::{
     ClientTransactionPermit, ErrorStream, TransactionReceiveTask, TransactionSendTask, ValueStream,
 };
 use crate::session::{
-    client::{config::SessionConfig, transaction::StreamState, TransactionStream},
+    client::{TransactionStream, config::SessionConfig, transaction::StreamState},
     test::Descriptor,
 };
 
@@ -180,7 +179,8 @@ async fn receive_single_response_ok() {
 async fn receive_empty_skipped() {
     let (tx, mut rx, handle) = setup_recv(SessionConfig::default());
 
-    let response = make_response_begin(ResponseFlag::EndOfResponse, ResponseKind::Ok, &[] as &[_]);
+    let response =
+        make_response_begin(ResponseFlag::EndOfResponse, ResponseKind::Ok, &[] as &[_]);
 
     tx.send(response).await.expect("able to send response");
 

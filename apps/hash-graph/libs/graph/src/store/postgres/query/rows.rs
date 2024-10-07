@@ -1,22 +1,23 @@
 use graph_types::{
+    Embedding,
     account::{AccountGroupId, AccountId},
     knowledge::{
+        Confidence,
         entity::{
             DraftId, EntityEditionId, EntityEditionProvenance, EntityUuid, InferredEntityProvenance,
         },
-        Confidence, PropertyMetadataObject, PropertyObject, PropertyProvenance,
+        property::{PropertyMetadataObject, PropertyObject, PropertyProvenance},
     },
     ontology::{DataTypeId, EntityTypeId, OntologyEditionProvenance, PropertyTypeId},
     owned_by_id::OwnedById,
-    Embedding,
 };
 use postgres_types::ToSql;
 use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, Timestamp, TransactionTime};
 use time::OffsetDateTime;
 use type_system::{
-    schema::{ClosedDataType, ClosedEntityType, DataType, EntityType, PropertyType},
-    url::{BaseUrl, OntologyTypeVersion},
     Valid,
+    schema::{ClosedEntityType, ConversionDefinition, DataType, EntityType, PropertyType},
+    url::{BaseUrl, OntologyTypeVersion},
 };
 
 use crate::store::postgres::{ontology::OntologyId, query::Table};
@@ -52,11 +53,19 @@ pub struct DataTypeEmbeddingRow<'e> {
 }
 
 #[derive(Debug, ToSql)]
+#[postgres(name = "data_type_conversions")]
+pub struct DataTypeConversionsRow {
+    pub source_data_type_ontology_id: DataTypeId,
+    pub target_data_type_base_url: BaseUrl,
+    pub from: ConversionDefinition,
+    pub into: ConversionDefinition,
+}
+
+#[derive(Debug, ToSql)]
 #[postgres(name = "data_types")]
 pub struct DataTypeRow {
     pub ontology_id: DataTypeId,
     pub schema: Valid<DataType>,
-    pub closed_schema: Valid<ClosedDataType>,
 }
 
 #[derive(Debug, ToSql)]

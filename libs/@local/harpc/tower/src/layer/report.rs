@@ -7,11 +7,11 @@ use harpc_wire_protocol::response::kind::ResponseKind;
 use tower::{Layer, Service, ServiceExt};
 
 use crate::{
-    body::{controlled::Controlled, full::Full, Body},
+    Extensions,
+    body::{Body, controlled::Controlled, full::Full},
     either::Either,
     request::Request,
     response::{Parts, Response},
-    Extensions,
 };
 
 pub struct HandleReportLayer<E> {
@@ -102,18 +102,18 @@ mod test {
     use tower_test::mock::{self, spawn_with};
 
     use crate::{
-        body::{controlled::Controlled, full::Full, BodyExt, Frame},
+        Extensions,
+        body::{BodyExt, Frame, controlled::Controlled, full::Full},
         either::Either,
         layer::{
             error::{
-                test::{request, GenericError, PlainErrorEncoder, BODY},
                 BoxedError,
+                test::{BODY, GenericError, PlainErrorEncoder, request},
             },
             report::HandleReportLayer,
         },
         request::Request,
         response::{self, Response},
-        Extensions,
     };
 
     #[expect(clippy::type_complexity, reason = "test code")]

@@ -2,7 +2,7 @@ pub use self::{
     array::ArrayMetadata,
     object::{ObjectMetadata, PropertyMetadataObject},
     provenance::PropertyProvenance,
-    value::{ValueMetadata, ValueWithMetadata},
+    value::{PropertyWithMetadataValue, ValueMetadata},
 };
 
 mod array;

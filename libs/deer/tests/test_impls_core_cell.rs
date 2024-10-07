@@ -4,7 +4,7 @@ use core::cell::{Cell, RefCell, UnsafeCell};
 use core::cell::{OnceCell, SyncUnsafeCell};
 
 use deer::{Deserialize, Number};
-use deer_desert::{assert_tokens, assert_tokens_with_assertion, Token};
+use deer_desert::{Token, assert_tokens, assert_tokens_with_assertion};
 use proptest::prelude::*;
 use serde::Serialize;
 use similar_asserts::assert_serde_eq;

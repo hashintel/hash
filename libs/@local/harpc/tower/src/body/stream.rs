@@ -1,6 +1,6 @@
 use core::{
     pin::Pin,
-    task::{ready, Context, Poll},
+    task::{Context, Poll, ready},
 };
 
 use bytes::Buf;
@@ -87,7 +87,7 @@ where
     type Item = Result<Frame<B::Data, B::Control>, B::Error>;
 
     fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
-        return self.project().inner.poll_frame(cx);
+        self.project().inner.poll_frame(cx)
     }
 }
 
@@ -156,41 +156,41 @@ mod test {
 
     use super::{BodyStream, StreamBody};
     use crate::body::{
-        test::{poll_frame_unpin, poll_stream_unpin},
         Body, BodyState, Frame,
+        test::{poll_frame_unpin, poll_stream_unpin},
     };
 
-    const A: &[u8] = b"hello";
-    const B: &[u8] = b"world";
-    const C: &[u8] = b"!";
+    const VAL_A: &[u8] = b"hello";
+    const VAL_B: &[u8] = b"world";
+    const VAL_C: &[u8] = b"!";
 
     #[test]
     fn body_from_stream() {
         let stream = stream::iter([
-            Ok(Frame::Data(Bytes::from_static(A))),
-            Ok(Frame::Data(Bytes::from_static(B))),
-            Ok(Frame::Data(Bytes::from_static(C))),
+            Ok(Frame::Data(Bytes::from_static(VAL_A))),
+            Ok(Frame::Data(Bytes::from_static(VAL_B))),
+            Ok(Frame::Data(Bytes::from_static(VAL_C))),
         ] as [Result<Frame<_, !>, !>; 3]);
         let mut body = StreamBody::new(stream);
 
         let frame = poll_frame_unpin(&mut body);
         assert_eq!(
             frame,
-            Poll::Ready(Some(Ok(Frame::Data(Bytes::from_static(A)))))
+            Poll::Ready(Some(Ok(Frame::Data(Bytes::from_static(VAL_A)))))
         );
         assert_eq!(body.state(), None);
 
         let frame = poll_frame_unpin(&mut body);
         assert_eq!(
             frame,
-            Poll::Ready(Some(Ok(Frame::Data(Bytes::from_static(B)))))
+            Poll::Ready(Some(Ok(Frame::Data(Bytes::from_static(VAL_B)))))
         );
         assert_eq!(body.state(), None);
 
         let frame = poll_frame_unpin(&mut body);
         assert_eq!(
             frame,
-            Poll::Ready(Some(Ok(Frame::Data(Bytes::from_static(C)))))
+            Poll::Ready(Some(Ok(Frame::Data(Bytes::from_static(VAL_C)))))
         );
         assert_eq!(body.state(), None);
 
@@ -202,26 +202,26 @@ mod test {
     #[test]
     fn stream_from_body() {
         let stream = stream::iter([
-            Ok(Frame::Data(Bytes::from_static(A))),
-            Ok(Frame::Data(Bytes::from_static(B))),
-            Ok(Frame::Data(Bytes::from_static(C))),
+            Ok(Frame::Data(Bytes::from_static(VAL_A))),
+            Ok(Frame::Data(Bytes::from_static(VAL_B))),
+            Ok(Frame::Data(Bytes::from_static(VAL_C))),
         ] as [Result<Frame<_, !>, !>; 3]);
         let body = StreamBody::new(stream);
         let mut stream = BodyStream::new(body);
 
         assert_eq!(
             poll_stream_unpin(&mut stream),
-            Poll::Ready(Some(Ok(Frame::Data(Bytes::from_static(A)))))
+            Poll::Ready(Some(Ok(Frame::Data(Bytes::from_static(VAL_A)))))
         );
 
         assert_eq!(
             poll_stream_unpin(&mut stream),
-            Poll::Ready(Some(Ok(Frame::Data(Bytes::from_static(B)))))
+            Poll::Ready(Some(Ok(Frame::Data(Bytes::from_static(VAL_B)))))
         );
 
         assert_eq!(
             poll_stream_unpin(&mut stream),
-            Poll::Ready(Some(Ok(Frame::Data(Bytes::from_static(C)))))
+            Poll::Ready(Some(Ok(Frame::Data(Bytes::from_static(VAL_C)))))
         );
 
         assert_eq!(poll_stream_unpin(&mut stream), Poll::Ready(None));

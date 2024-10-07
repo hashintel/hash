@@ -1,16 +1,17 @@
 use core::iter::once;
 
-use crate::{
-    knowledge::EntityQueryPath,
-    store::postgres::query::{
-        table::{
-            Column, EntityEditions, EntityEmbeddings, EntityHasLeftEntity, EntityHasRightEntity,
-            EntityIds, EntityIsOfTypeIds, EntityTemporalMetadata, JsonField, ReferenceTable,
-            Relation,
-        },
-        PostgresQueryPath,
-    },
+use hash_graph_store::{
+    entity::EntityQueryPath,
+    entity_type::EntityTypeQueryPath,
     subgraph::edges::{EdgeDirection, KnowledgeGraphEdgeKind, SharedEdgeKind},
+};
+
+use crate::store::postgres::query::{
+    PostgresQueryPath,
+    table::{
+        Column, EntityEditions, EntityEmbeddings, EntityHasLeftEntity, EntityHasRightEntity,
+        EntityIds, EntityIsOfTypeIds, EntityTemporalMetadata, JsonField, ReferenceTable, Relation,
+    },
 };
 
 impl PostgresQueryPath for EntityQueryPath<'_> {
@@ -31,6 +32,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 vec![Relation::RightEntity]
             }
             Self::Properties(_)
+            | Self::Label { .. }
             | Self::EditionProvenance(_)
             | Self::Archived
             | Self::EntityConfidence
@@ -87,6 +89,7 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
         }
     }
 
+    #[expect(clippy::too_many_lines)]
     fn terminating_column(&self) -> (Column, Option<JsonField<'_>>) {
         match self {
             Self::OwnedById => (
@@ -155,6 +158,12 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 Column::EntityEditions(EntityEditions::Properties),
                 path.as_ref().map(JsonField::JsonPath),
             ),
+            Self::Label { inheritance_depth } => (
+                Column::EntityEditions(EntityEditions::Properties),
+                Some(JsonField::Label {
+                    inheritance_depth: *inheritance_depth,
+                }),
+            ),
             Self::Provenance(path) => (
                 Column::EntityIds(EntityIds::Provenance),
                 path.as_ref().map(JsonField::JsonPath),
@@ -185,5 +194,13 @@ impl PostgresQueryPath for EntityQueryPath<'_> {
                 None,
             ),
         }
+    }
+
+    fn label_property_path(inheritance_depth: Option<u32>) -> Option<Self> {
+        Some(Self::EntityTypeEdge {
+            edge_kind: SharedEdgeKind::IsOfType,
+            path: EntityTypeQueryPath::LabelProperty,
+            inheritance_depth,
+        })
     }
 }

@@ -15,16 +15,13 @@ fn test_messages<E>(report: &Report<E>) {
 }
 
 fn test_kinds<E>(report: &Report<E>) {
-    assert_kinds!(
-        report,
-        [
-            FrameKind::Attachment(AttachmentKind::Opaque(_)),
-            FrameKind::Attachment(AttachmentKind::Opaque(_)),
-            FrameKind::Attachment(AttachmentKind::Opaque(_)),
-            FrameKind::Attachment(AttachmentKind::Opaque(_)),
-            FrameKind::Context(_)
-        ]
-    );
+    assert_kinds!(report, [
+        FrameKind::Attachment(AttachmentKind::Opaque(_)),
+        FrameKind::Attachment(AttachmentKind::Opaque(_)),
+        FrameKind::Attachment(AttachmentKind::Opaque(_)),
+        FrameKind::Attachment(AttachmentKind::Opaque(_)),
+        FrameKind::Context(_)
+    ]);
 }
 
 #[test]
@@ -37,6 +34,29 @@ fn attach() {
 
     test_messages(&report);
     test_kinds(&report);
+}
+
+#[test]
+fn attach_group() {
+    let mut root = create_report()
+        .attach(PrintableA)
+        .attach(PrintableB(0))
+        .expand();
+    let nested = create_report().attach(AttachmentA).attach(AttachmentB);
+
+    root.push(nested);
+
+    // bury the first error under a couple of attachments
+    let mut root = root
+        .attach_printable(PrintableB(0))
+        .attach_printable(PrintableB(1))
+        .attach_printable(PrintableB(2));
+
+    let shallow = create_report().attach(AttachmentA).attach(AttachmentB);
+
+    root.push(shallow);
+
+    assert_eq!(root.current_contexts().count(), 3);
 }
 
 #[test]

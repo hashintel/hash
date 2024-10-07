@@ -7,11 +7,11 @@ use std::collections::HashSet;
 use error_stack::{Report, ResultExt};
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, ToSql};
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use temporal_versioning::{DecisionTime, LeftClosedTemporalInterval, TransactionTime};
 use type_system::url::{BaseUrl, VersionedUrl};
 #[cfg(feature = "utoipa")]
-use utoipa::{openapi, ToSchema};
+use utoipa::{ToSchema, openapi};
 use uuid::Uuid;
 
 pub use self::{
@@ -23,14 +23,16 @@ pub use self::{
     },
 };
 use crate::{
+    Embedding,
     knowledge::{
+        Confidence,
         link::LinkData,
-        property::{PatchError, PropertyMetadataObject},
-        Confidence, Property, PropertyMetadata, PropertyObject, PropertyPatchOperation,
-        PropertyWithMetadata,
+        property::{
+            PatchError, Property, PropertyMetadata, PropertyMetadataObject, PropertyObject,
+            PropertyPatchOperation, PropertyWithMetadata,
+        },
     },
     owned_by_id::OwnedById,
-    Embedding,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -378,7 +380,9 @@ mod tests {
 
         use type_system::url::BaseUrl;
 
-        use crate::knowledge::{Property, PropertyDiff, PropertyPath, PropertyPathElement};
+        use crate::knowledge::property::{
+            Property, PropertyDiff, PropertyPath, PropertyPathElement,
+        };
 
         macro_rules! property {
             ($($json:tt)+) => {
@@ -420,15 +424,11 @@ mod tests {
         fn value_modified() {
             let old = property!("foo");
             let new = property!("bar");
-            test_diff(
-                &old,
-                &new,
-                [PropertyDiff::Changed {
-                    path: PropertyPath::default(),
-                    old: Cow::Borrowed(&old),
-                    new: Cow::Borrowed(&new),
-                }],
-            );
+            test_diff(&old, &new, [PropertyDiff::Changed {
+                path: PropertyPath::default(),
+                old: Cow::Borrowed(&old),
+                new: Cow::Borrowed(&new),
+            }]);
         }
 
         #[test]
@@ -440,188 +440,160 @@ mod tests {
         fn array_modified() {
             let old = property!(["foo", "bar"]);
             let new = property!(["foo", "baz"]);
-            test_diff(
-                &old,
-                &new,
-                [
-                    PropertyDiff::Changed {
-                        path: once(PropertyPathElement::Index(1)).collect(),
-                        old: Cow::Borrowed(&property!("bar")),
-                        new: Cow::Borrowed(&property!("baz")),
-                    },
-                    PropertyDiff::Changed {
-                        path: PropertyPath::default(),
-                        old: Cow::Borrowed(&old),
-                        new: Cow::Borrowed(&new),
-                    },
-                ],
-            );
+            test_diff(&old, &new, [
+                PropertyDiff::Changed {
+                    path: once(PropertyPathElement::Index(1)).collect(),
+                    old: Cow::Borrowed(&property!("bar")),
+                    new: Cow::Borrowed(&property!("baz")),
+                },
+                PropertyDiff::Changed {
+                    path: PropertyPath::default(),
+                    old: Cow::Borrowed(&old),
+                    new: Cow::Borrowed(&new),
+                },
+            ]);
         }
 
         #[test]
         fn array_added() {
             let old = property!(["foo"]);
             let new = property!(["foo", "bar"]);
-            test_diff(
-                &old,
-                &new,
-                [
-                    PropertyDiff::Added {
-                        path: once(PropertyPathElement::Index(1)).collect(),
-                        added: Cow::Borrowed(&property!("bar")),
-                    },
-                    PropertyDiff::Changed {
-                        path: PropertyPath::default(),
-                        old: Cow::Borrowed(&old),
-                        new: Cow::Borrowed(&new),
-                    },
-                ],
-            );
+            test_diff(&old, &new, [
+                PropertyDiff::Added {
+                    path: once(PropertyPathElement::Index(1)).collect(),
+                    added: Cow::Borrowed(&property!("bar")),
+                },
+                PropertyDiff::Changed {
+                    path: PropertyPath::default(),
+                    old: Cow::Borrowed(&old),
+                    new: Cow::Borrowed(&new),
+                },
+            ]);
         }
 
         #[test]
         fn array_removed() {
             let old = property!(["foo", "bar"]);
             let new = property!(["foo"]);
-            test_diff(
-                &old,
-                &new,
-                [
-                    PropertyDiff::Removed {
-                        path: once(PropertyPathElement::Index(1)).collect(),
-                        removed: Cow::Borrowed(&property!("bar")),
-                    },
-                    PropertyDiff::Changed {
-                        path: PropertyPath::default(),
-                        old: Cow::Borrowed(&old),
-                        new: Cow::Borrowed(&new),
-                    },
-                ],
-            );
+            test_diff(&old, &new, [
+                PropertyDiff::Removed {
+                    path: once(PropertyPathElement::Index(1)).collect(),
+                    removed: Cow::Borrowed(&property!("bar")),
+                },
+                PropertyDiff::Changed {
+                    path: PropertyPath::default(),
+                    old: Cow::Borrowed(&old),
+                    new: Cow::Borrowed(&new),
+                },
+            ]);
         }
 
         #[test]
         fn array_inserted() {
             let old = property!(["foo", "bar"]);
             let new = property!(["foo", "baz", "bar"]);
-            test_diff(
-                &old,
-                &new,
-                [
-                    PropertyDiff::Changed {
-                        path: once(PropertyPathElement::Index(1)).collect(),
-                        old: Cow::Borrowed(&property!("bar")),
-                        new: Cow::Borrowed(&property!("baz")),
-                    },
-                    PropertyDiff::Added {
-                        path: once(PropertyPathElement::Index(2)).collect(),
-                        added: Cow::Borrowed(&property!("bar")),
-                    },
-                    PropertyDiff::Changed {
-                        path: PropertyPath::default(),
-                        old: Cow::Borrowed(&old),
-                        new: Cow::Borrowed(&new),
-                    },
-                ],
-            );
+            test_diff(&old, &new, [
+                PropertyDiff::Changed {
+                    path: once(PropertyPathElement::Index(1)).collect(),
+                    old: Cow::Borrowed(&property!("bar")),
+                    new: Cow::Borrowed(&property!("baz")),
+                },
+                PropertyDiff::Added {
+                    path: once(PropertyPathElement::Index(2)).collect(),
+                    added: Cow::Borrowed(&property!("bar")),
+                },
+                PropertyDiff::Changed {
+                    path: PropertyPath::default(),
+                    old: Cow::Borrowed(&old),
+                    new: Cow::Borrowed(&new),
+                },
+            ]);
         }
 
         #[test]
         fn array_removed_middle() {
             let old = property!(["foo", "bar", "baz"]);
             let new = property!(["foo", "baz"]);
-            test_diff(
-                &old,
-                &new,
-                [
-                    PropertyDiff::Changed {
-                        path: once(PropertyPathElement::Index(1)).collect(),
-                        old: Cow::Borrowed(&property!("bar")),
-                        new: Cow::Borrowed(&property!("baz")),
-                    },
-                    PropertyDiff::Removed {
-                        path: once(PropertyPathElement::Index(2)).collect(),
-                        removed: Cow::Borrowed(&property!("baz")),
-                    },
-                    PropertyDiff::Changed {
-                        path: PropertyPath::default(),
-                        old: Cow::Borrowed(&old),
-                        new: Cow::Borrowed(&new),
-                    },
-                ],
-            );
+            test_diff(&old, &new, [
+                PropertyDiff::Changed {
+                    path: once(PropertyPathElement::Index(1)).collect(),
+                    old: Cow::Borrowed(&property!("bar")),
+                    new: Cow::Borrowed(&property!("baz")),
+                },
+                PropertyDiff::Removed {
+                    path: once(PropertyPathElement::Index(2)).collect(),
+                    removed: Cow::Borrowed(&property!("baz")),
+                },
+                PropertyDiff::Changed {
+                    path: PropertyPath::default(),
+                    old: Cow::Borrowed(&old),
+                    new: Cow::Borrowed(&new),
+                },
+            ]);
         }
 
         #[test]
         fn array_nested_object_value_changed() {
             let old = property!([{create_base_url(0): "bar"}]);
             let new = property!([{create_base_url(0): "baz"}]);
-            test_diff(
-                &old,
-                &new,
-                [
-                    PropertyDiff::Changed {
-                        path: [
-                            PropertyPathElement::Index(0),
-                            PropertyPathElement::Property(Cow::Borrowed(&create_base_url(0))),
-                        ]
-                        .into_iter()
-                        .collect(),
-                        old: Cow::Borrowed(&property!("bar")),
-                        new: Cow::Borrowed(&property!("baz")),
-                    },
-                    PropertyDiff::Changed {
-                        path: once(PropertyPathElement::Index(0)).collect(),
-                        old: Cow::Borrowed(&property!({create_base_url(0): "bar"})),
-                        new: Cow::Borrowed(&property!({create_base_url(0): "baz"})),
-                    },
-                    PropertyDiff::Changed {
-                        path: PropertyPath::default(),
-                        old: Cow::Borrowed(&old),
-                        new: Cow::Borrowed(&new),
-                    },
-                ],
-            );
+            test_diff(&old, &new, [
+                PropertyDiff::Changed {
+                    path: [
+                        PropertyPathElement::Index(0),
+                        PropertyPathElement::Property(Cow::Borrowed(&create_base_url(0))),
+                    ]
+                    .into_iter()
+                    .collect(),
+                    old: Cow::Borrowed(&property!("bar")),
+                    new: Cow::Borrowed(&property!("baz")),
+                },
+                PropertyDiff::Changed {
+                    path: once(PropertyPathElement::Index(0)).collect(),
+                    old: Cow::Borrowed(&property!({create_base_url(0): "bar"})),
+                    new: Cow::Borrowed(&property!({create_base_url(0): "baz"})),
+                },
+                PropertyDiff::Changed {
+                    path: PropertyPath::default(),
+                    old: Cow::Borrowed(&old),
+                    new: Cow::Borrowed(&new),
+                },
+            ]);
         }
 
         #[test]
         fn array_nested_object_key_changed() {
             let old = property!([{ create_base_url(0): "bar" }]);
             let new = property!([{ create_base_url(1): "baz" }]);
-            test_diff(
-                &old,
-                &new,
-                [
-                    PropertyDiff::Removed {
-                        path: [
-                            PropertyPathElement::Index(0),
-                            PropertyPathElement::Property(Cow::Borrowed(&create_base_url(0))),
-                        ]
-                        .into_iter()
-                        .collect(),
-                        removed: Cow::Borrowed(&property!("bar")),
-                    },
-                    PropertyDiff::Added {
-                        path: [
-                            PropertyPathElement::Index(0),
-                            PropertyPathElement::Property(Cow::Borrowed(&create_base_url(1))),
-                        ]
-                        .into_iter()
-                        .collect(),
-                        added: Cow::Borrowed(&property!("baz")),
-                    },
-                    PropertyDiff::Changed {
-                        path: once(PropertyPathElement::Index(0)).collect(),
-                        old: Cow::Borrowed(&property!({ create_base_url(0): "bar" })),
-                        new: Cow::Borrowed(&property!({ create_base_url(1): "baz" })),
-                    },
-                    PropertyDiff::Changed {
-                        path: PropertyPath::default(),
-                        old: Cow::Borrowed(&old),
-                        new: Cow::Borrowed(&new),
-                    },
-                ],
-            );
+            test_diff(&old, &new, [
+                PropertyDiff::Removed {
+                    path: [
+                        PropertyPathElement::Index(0),
+                        PropertyPathElement::Property(Cow::Borrowed(&create_base_url(0))),
+                    ]
+                    .into_iter()
+                    .collect(),
+                    removed: Cow::Borrowed(&property!("bar")),
+                },
+                PropertyDiff::Added {
+                    path: [
+                        PropertyPathElement::Index(0),
+                        PropertyPathElement::Property(Cow::Borrowed(&create_base_url(1))),
+                    ]
+                    .into_iter()
+                    .collect(),
+                    added: Cow::Borrowed(&property!("baz")),
+                },
+                PropertyDiff::Changed {
+                    path: once(PropertyPathElement::Index(0)).collect(),
+                    old: Cow::Borrowed(&property!({ create_base_url(0): "bar" })),
+                    new: Cow::Borrowed(&property!({ create_base_url(1): "baz" })),
+                },
+                PropertyDiff::Changed {
+                    path: PropertyPath::default(),
+                    old: Cow::Borrowed(&old),
+                    new: Cow::Borrowed(&new),
+                },
+            ]);
         }
 
         #[test]
@@ -637,190 +609,166 @@ mod tests {
         fn object_added() {
             let old = property!({});
             let new = property!({ create_base_url(1): "foo" });
-            test_diff(
-                &old,
-                &new,
-                [
-                    PropertyDiff::Added {
-                        path: once(PropertyPathElement::Property(Cow::Borrowed(
-                            &create_base_url(1),
-                        )))
-                        .collect(),
-                        added: Cow::Borrowed(&property!("foo")),
-                    },
-                    PropertyDiff::Changed {
-                        path: PropertyPath::default(),
-                        old: Cow::Borrowed(&old),
-                        new: Cow::Borrowed(&new),
-                    },
-                ],
-            );
+            test_diff(&old, &new, [
+                PropertyDiff::Added {
+                    path: once(PropertyPathElement::Property(Cow::Borrowed(
+                        &create_base_url(1),
+                    )))
+                    .collect(),
+                    added: Cow::Borrowed(&property!("foo")),
+                },
+                PropertyDiff::Changed {
+                    path: PropertyPath::default(),
+                    old: Cow::Borrowed(&old),
+                    new: Cow::Borrowed(&new),
+                },
+            ]);
         }
 
         #[test]
         fn object_nested_object_value_changed() {
             let old = property!({ create_base_url(1): { create_base_url(2): "foo" } });
             let new = property!({ create_base_url(1): { create_base_url(2): "bar" } });
-            test_diff(
-                &old,
-                &new,
-                [
-                    PropertyDiff::Changed {
-                        path: [
-                            PropertyPathElement::Property(Cow::Borrowed(&create_base_url(1))),
-                            PropertyPathElement::Property(Cow::Borrowed(&create_base_url(2))),
-                        ]
-                        .into_iter()
-                        .collect(),
-                        old: Cow::Borrowed(&property!("foo")),
-                        new: Cow::Borrowed(&property!("bar")),
-                    },
-                    PropertyDiff::Changed {
-                        path: once(PropertyPathElement::Property(Cow::Borrowed(
-                            &create_base_url(1),
-                        )))
-                        .collect(),
-                        old: Cow::Borrowed(&property!({ create_base_url(2): "foo" })),
-                        new: Cow::Borrowed(&property!({ create_base_url(2): "bar" })),
-                    },
-                    PropertyDiff::Changed {
-                        path: PropertyPath::default(),
-                        old: Cow::Borrowed(&old),
-                        new: Cow::Borrowed(&new),
-                    },
-                ],
-            );
+            test_diff(&old, &new, [
+                PropertyDiff::Changed {
+                    path: [
+                        PropertyPathElement::Property(Cow::Borrowed(&create_base_url(1))),
+                        PropertyPathElement::Property(Cow::Borrowed(&create_base_url(2))),
+                    ]
+                    .into_iter()
+                    .collect(),
+                    old: Cow::Borrowed(&property!("foo")),
+                    new: Cow::Borrowed(&property!("bar")),
+                },
+                PropertyDiff::Changed {
+                    path: once(PropertyPathElement::Property(Cow::Borrowed(
+                        &create_base_url(1),
+                    )))
+                    .collect(),
+                    old: Cow::Borrowed(&property!({ create_base_url(2): "foo" })),
+                    new: Cow::Borrowed(&property!({ create_base_url(2): "bar" })),
+                },
+                PropertyDiff::Changed {
+                    path: PropertyPath::default(),
+                    old: Cow::Borrowed(&old),
+                    new: Cow::Borrowed(&new),
+                },
+            ]);
         }
 
         #[test]
         fn object_nested_object_key_changed() {
             let old = property!({ create_base_url(1): { create_base_url(3): "foo" } });
             let new = property!({ create_base_url(2): { create_base_url(3): "foo" } });
-            test_diff(
-                &old,
-                &new,
-                [
-                    PropertyDiff::Removed {
-                        path: once(PropertyPathElement::Property(Cow::Borrowed(
-                            &create_base_url(1),
-                        )))
-                        .collect(),
-                        removed: Cow::Borrowed(&property!({ create_base_url(3): "foo" })),
-                    },
-                    PropertyDiff::Added {
-                        path: once(PropertyPathElement::Property(Cow::Borrowed(
-                            &create_base_url(2),
-                        )))
-                        .collect(),
-                        added: Cow::Borrowed(&property!({ create_base_url(3): "foo" })),
-                    },
-                    PropertyDiff::Changed {
-                        path: PropertyPath::default(),
-                        old: Cow::Borrowed(&old),
-                        new: Cow::Borrowed(&new),
-                    },
-                ],
-            );
+            test_diff(&old, &new, [
+                PropertyDiff::Removed {
+                    path: once(PropertyPathElement::Property(Cow::Borrowed(
+                        &create_base_url(1),
+                    )))
+                    .collect(),
+                    removed: Cow::Borrowed(&property!({ create_base_url(3): "foo" })),
+                },
+                PropertyDiff::Added {
+                    path: once(PropertyPathElement::Property(Cow::Borrowed(
+                        &create_base_url(2),
+                    )))
+                    .collect(),
+                    added: Cow::Borrowed(&property!({ create_base_url(3): "foo" })),
+                },
+                PropertyDiff::Changed {
+                    path: PropertyPath::default(),
+                    old: Cow::Borrowed(&old),
+                    new: Cow::Borrowed(&new),
+                },
+            ]);
         }
 
         #[test]
         fn object_nested_object_key_moved() {
             let old = property!({ create_base_url(1): { create_base_url(3): "foo" }, create_base_url(2): {} });
             let new = property!({ create_base_url(2): { create_base_url(3): "foo" }, create_base_url(1): {} });
-            test_diff(
-                &old,
-                &new,
-                [
-                    PropertyDiff::Added {
-                        path: [
-                            PropertyPathElement::Property(Cow::Borrowed(&create_base_url(2))),
-                            PropertyPathElement::Property(Cow::Borrowed(&create_base_url(3))),
-                        ]
-                        .into_iter()
-                        .collect(),
-                        added: Cow::Borrowed(&property!("foo")),
-                    },
-                    PropertyDiff::Removed {
-                        path: [
-                            PropertyPathElement::Property(Cow::Borrowed(&create_base_url(1))),
-                            PropertyPathElement::Property(Cow::Borrowed(&create_base_url(3))),
-                        ]
-                        .into_iter()
-                        .collect(),
-                        removed: Cow::Borrowed(&property!("foo")),
-                    },
-                    PropertyDiff::Changed {
-                        path: once(PropertyPathElement::Property(Cow::Borrowed(
-                            &create_base_url(1),
-                        )))
-                        .collect(),
-                        old: Cow::Borrowed(&property!({ create_base_url(3): "foo" })),
-                        new: Cow::Borrowed(&property!({})),
-                    },
-                    PropertyDiff::Changed {
-                        path: once(PropertyPathElement::Property(Cow::Borrowed(
-                            &create_base_url(2),
-                        )))
-                        .collect(),
-                        old: Cow::Borrowed(&property!({})),
-                        new: Cow::Borrowed(&property!({ create_base_url(3): "foo" })),
-                    },
-                    PropertyDiff::Changed {
-                        path: PropertyPath::default(),
-                        old: Cow::Borrowed(&old),
-                        new: Cow::Borrowed(&new),
-                    },
-                ],
-            );
+            test_diff(&old, &new, [
+                PropertyDiff::Added {
+                    path: [
+                        PropertyPathElement::Property(Cow::Borrowed(&create_base_url(2))),
+                        PropertyPathElement::Property(Cow::Borrowed(&create_base_url(3))),
+                    ]
+                    .into_iter()
+                    .collect(),
+                    added: Cow::Borrowed(&property!("foo")),
+                },
+                PropertyDiff::Removed {
+                    path: [
+                        PropertyPathElement::Property(Cow::Borrowed(&create_base_url(1))),
+                        PropertyPathElement::Property(Cow::Borrowed(&create_base_url(3))),
+                    ]
+                    .into_iter()
+                    .collect(),
+                    removed: Cow::Borrowed(&property!("foo")),
+                },
+                PropertyDiff::Changed {
+                    path: once(PropertyPathElement::Property(Cow::Borrowed(
+                        &create_base_url(1),
+                    )))
+                    .collect(),
+                    old: Cow::Borrowed(&property!({ create_base_url(3): "foo" })),
+                    new: Cow::Borrowed(&property!({})),
+                },
+                PropertyDiff::Changed {
+                    path: once(PropertyPathElement::Property(Cow::Borrowed(
+                        &create_base_url(2),
+                    )))
+                    .collect(),
+                    old: Cow::Borrowed(&property!({})),
+                    new: Cow::Borrowed(&property!({ create_base_url(3): "foo" })),
+                },
+                PropertyDiff::Changed {
+                    path: PropertyPath::default(),
+                    old: Cow::Borrowed(&old),
+                    new: Cow::Borrowed(&new),
+                },
+            ]);
         }
 
         #[test]
         fn object_modified() {
             let old = property!({ create_base_url(1): "foo" });
             let new = property!({ create_base_url(1): "bar" });
-            test_diff(
-                &old,
-                &new,
-                [
-                    PropertyDiff::Changed {
-                        path: once(PropertyPathElement::Property(Cow::Borrowed(
-                            &create_base_url(1),
-                        )))
-                        .collect(),
-                        old: Cow::Borrowed(&property!("foo")),
-                        new: Cow::Borrowed(&property!("bar")),
-                    },
-                    PropertyDiff::Changed {
-                        path: PropertyPath::default(),
-                        old: Cow::Borrowed(&old),
-                        new: Cow::Borrowed(&new),
-                    },
-                ],
-            );
+            test_diff(&old, &new, [
+                PropertyDiff::Changed {
+                    path: once(PropertyPathElement::Property(Cow::Borrowed(
+                        &create_base_url(1),
+                    )))
+                    .collect(),
+                    old: Cow::Borrowed(&property!("foo")),
+                    new: Cow::Borrowed(&property!("bar")),
+                },
+                PropertyDiff::Changed {
+                    path: PropertyPath::default(),
+                    old: Cow::Borrowed(&old),
+                    new: Cow::Borrowed(&new),
+                },
+            ]);
         }
 
         #[test]
         fn object_key_removed() {
             let old = property!({ create_base_url(1): "foo" });
             let new = property!({});
-            test_diff(
-                &old,
-                &new,
-                [
-                    PropertyDiff::Removed {
-                        path: once(PropertyPathElement::Property(Cow::Borrowed(
-                            &create_base_url(1),
-                        )))
-                        .collect(),
-                        removed: Cow::Borrowed(&property!("foo")),
-                    },
-                    PropertyDiff::Changed {
-                        path: PropertyPath::default(),
-                        old: Cow::Borrowed(&old),
-                        new: Cow::Borrowed(&new),
-                    },
-                ],
-            );
+            test_diff(&old, &new, [
+                PropertyDiff::Removed {
+                    path: once(PropertyPathElement::Property(Cow::Borrowed(
+                        &create_base_url(1),
+                    )))
+                    .collect(),
+                    removed: Cow::Borrowed(&property!("foo")),
+                },
+                PropertyDiff::Changed {
+                    path: PropertyPath::default(),
+                    old: Cow::Borrowed(&old),
+                    new: Cow::Borrowed(&new),
+                },
+            ]);
         }
     }
 }

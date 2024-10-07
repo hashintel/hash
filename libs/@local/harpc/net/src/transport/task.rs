@@ -1,19 +1,20 @@
 use alloc::sync::Arc;
 use core::mem;
 use std::{
-    collections::{hash_map::Entry, HashMap},
+    collections::{HashMap, hash_map::Entry},
     io,
 };
 
 use error_stack::{Result, ResultExt};
 use futures::prelude::stream::StreamExt;
 use libp2p::{
+    Multiaddr, PeerId, SwarmBuilder,
     core::{transport::ListenerId, upgrade},
     identify,
     metrics::{self, Metrics, Recorder},
     noise, ping,
-    swarm::{dial_opts::DialOpts, ConnectionId, DialError, SwarmEvent},
-    yamux, Multiaddr, PeerId, SwarmBuilder,
+    swarm::{ConnectionId, DialError, SwarmEvent, dial_opts::DialOpts},
+    yamux,
 };
 use libp2p_stream as stream;
 use stream::Control;
@@ -24,10 +25,10 @@ use tokio::{
 use tokio_util::sync::CancellationToken;
 
 use super::{
+    PROTOCOL_NAME, Transport, TransportConfig,
     behaviour::{TransportBehaviour, TransportBehaviourEvent, TransportSwarm},
     error::TransportError,
     ipc::TransportLayerIpc,
-    Transport, TransportConfig, PROTOCOL_NAME,
 };
 
 type SenderPeerId = oneshot::Sender<core::result::Result<PeerId, DialError>>;

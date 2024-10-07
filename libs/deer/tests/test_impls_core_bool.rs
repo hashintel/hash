@@ -1,4 +1,4 @@
-use deer_desert::{assert_tokens, Token};
+use deer_desert::{Token, assert_tokens};
 
 mod common;
 

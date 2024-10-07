@@ -6,16 +6,19 @@ use std::collections::{HashMap, HashSet};
 use serde::{Deserialize, Serialize, Serializer};
 
 pub use self::validation::{ObjectSchemaValidationError, ObjectSchemaValidator};
-use crate::url::BaseUrl;
+use crate::{
+    schema::{ClosedEntityType, EntityType, PropertyTypeReference, ValueOrArray},
+    url::BaseUrl,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(from = "raw::ObjectSchema<T>")]
-pub struct ObjectSchema<T> {
+#[serde(from = "raw::PropertyValueObject<T>")]
+pub struct PropertyValueObject<T> {
     pub properties: HashMap<BaseUrl, T>,
     pub required: HashSet<BaseUrl>,
 }
 
-impl<T> Serialize for ObjectSchema<T>
+impl<T> Serialize for PropertyValueObject<T>
 where
     for<'a> raw::ObjectSchemaRef<'a, T>: Serialize,
 {
@@ -28,6 +31,48 @@ where
     }
 }
 
+pub trait PropertyObjectSchema {
+    type Value;
+    fn properties(&self) -> &HashMap<BaseUrl, Self::Value>;
+    fn required(&self) -> &HashSet<BaseUrl>;
+}
+
+impl<T> PropertyObjectSchema for PropertyValueObject<T> {
+    type Value = T;
+
+    fn properties(&self) -> &HashMap<BaseUrl, Self::Value> {
+        &self.properties
+    }
+
+    fn required(&self) -> &HashSet<BaseUrl> {
+        &self.required
+    }
+}
+
+impl PropertyObjectSchema for EntityType {
+    type Value = ValueOrArray<PropertyTypeReference>;
+
+    fn properties(&self) -> &HashMap<BaseUrl, Self::Value> {
+        &self.properties
+    }
+
+    fn required(&self) -> &HashSet<BaseUrl> {
+        &self.required
+    }
+}
+
+impl PropertyObjectSchema for ClosedEntityType {
+    type Value = ValueOrArray<PropertyTypeReference>;
+
+    fn properties(&self) -> &HashMap<BaseUrl, Self::Value> {
+        &self.properties
+    }
+
+    fn required(&self) -> &HashSet<BaseUrl> {
+        &self.required
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use core::str::FromStr;
@@ -36,11 +81,11 @@ mod tests {
 
     use super::*;
     use crate::{
-        schema::{object::validation::ObjectSchemaValidator, PropertyTypeReference},
+        schema::{PropertyTypeReference, object::validation::ObjectSchemaValidator},
         url::VersionedUrl,
         utils::tests::{
-            check_repr_serialization_from_value, ensure_failed_deserialization,
-            ensure_failed_validation, ensure_validation, JsonEqualityCheck,
+            JsonEqualityCheck, check_repr_serialization_from_value, ensure_failed_deserialization,
+            ensure_failed_validation, ensure_validation,
         },
     };
 
@@ -56,7 +101,7 @@ mod tests {
                     "https://example.com/property_type/": { "$ref": "https://example.com/property_type/v/1" },
                 }
             }),
-            Some(ObjectSchema {
+            Some(PropertyValueObject {
                 properties: HashMap::from([(url.base_url.clone(), PropertyTypeReference { url })]),
                 required: HashSet::new(),
             }),
@@ -78,7 +123,7 @@ mod tests {
                     "https://example.com/property_type_b/": { "$ref": "https://example.com/property_type_b/v/1" },
                 }
             }),
-            Some(ObjectSchema {
+            Some(PropertyValueObject {
                 properties: HashMap::from([
                     (url_a.base_url.clone(), PropertyTypeReference { url: url_a }),
                     (url_b.base_url.clone(), PropertyTypeReference { url: url_b }),
@@ -95,7 +140,7 @@ mod tests {
         let url_b = VersionedUrl::from_str("https://example.com/property_type_b/v/1")
             .expect("invalid Versioned URL");
 
-        let object_from_json = ensure_validation::<ObjectSchema<PropertyTypeReference>, _>(
+        let object_from_json = ensure_validation::<PropertyValueObject<PropertyTypeReference>, _>(
             json!({
                 "type": "object",
                 "properties": {
@@ -111,24 +156,20 @@ mod tests {
         )
         .await;
 
-        assert_eq!(
-            *object_from_json,
-            ObjectSchema {
-                properties: HashMap::from([
-                    (
-                        url_a.base_url.clone(),
-                        PropertyTypeReference { url: url_a.clone() },
-                    ),
-                    (url_b.base_url.clone(), PropertyTypeReference { url: url_b }),
-                ]),
-                required: HashSet::from([url_a.base_url]),
-            },
-        );
+        assert_eq!(*object_from_json, PropertyValueObject {
+            properties: HashMap::from([
+                (url_a.base_url.clone(), PropertyTypeReference {
+                    url: url_a.clone()
+                },),
+                (url_b.base_url.clone(), PropertyTypeReference { url: url_b }),
+            ]),
+            required: HashSet::from([url_a.base_url]),
+        },);
     }
 
     #[test]
     fn additional_properties() {
-        ensure_failed_deserialization::<ObjectSchema<PropertyTypeReference>>(
+        ensure_failed_deserialization::<PropertyValueObject<PropertyTypeReference>>(
             json!({
                 "type": "object",
                 "properties": {
@@ -147,7 +188,7 @@ mod tests {
         let url_c = BaseUrl::new("https://example.com/property_type_c/".to_owned())
             .expect("failed to create BaseURI");
         matches!(
-            ensure_failed_validation::<ObjectSchema<PropertyTypeReference>, _>(
+            ensure_failed_validation::<PropertyValueObject<PropertyTypeReference>, _>(
                 json!({
                     "type": "object",
                     "properties": {

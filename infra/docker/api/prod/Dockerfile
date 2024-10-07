@@ -14,7 +14,7 @@ RUN turbo prune --scope='@apps/hash-api' --docker && \
         echo > "/app/out/full/$(dirname "$1")/src/lib.rs" &&  \
         echo -e "[package]\nname = \"$(yq ".package.name" -p toml -oy $1)\"" > "/app/out/full/$1" \
       )' _ {} \; && \
-    cp Cargo.toml Cargo.lock /app/out/full/
+    cp -R .cargo Cargo.toml Cargo.lock /app/out/full/
 
 # Turbo isn't aware of our patches by default (it would be if we use Yarn 2+ or pnpm).
 # Therefore we manually add the patches to the pruned output to allow for the patches to be applied.
@@ -72,6 +72,6 @@ RUN apt-get update && \
     install -d -m 0775 -o api -g hash /log
 
 USER api:hash
-ENV NODE_ENV production
+ENV NODE_ENV=production
 
 HEALTHCHECK --interval=5s --timeout=3s --start-period=10s --retries=3 CMD curl -f http://localhost:5001/health-check || exit 1

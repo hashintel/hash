@@ -1,25 +1,28 @@
 use core::{iter::once, str::FromStr};
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
 use authorization::AuthorizationApi;
-use graph::{
-    store::{
-        knowledge::{CreateEntityParams, GetEntitiesParams, PatchEntityParams},
-        query::Filter,
-        EntityQuerySorting, EntityStore,
-    },
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
-    },
+use graph::store::{
+    EntityQuerySorting, EntityStore,
+    knowledge::{CreateEntityParams, GetEntitiesParams, PatchEntityParams},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     knowledge::{
-        entity::ProvidedEntityEditionProvenance, PropertyObject, PropertyPatchOperation,
-        PropertyPathElement, PropertyProvenance, PropertyWithMetadata, PropertyWithMetadataObject,
-        ValueMetadata, ValueWithMetadata,
+        entity::ProvidedEntityEditionProvenance,
+        property::{
+            PropertyObject, PropertyPatchOperation, PropertyPathElement, PropertyProvenance,
+            PropertyWithMetadata, PropertyWithMetadataObject, PropertyWithMetadataValue,
+            ValueMetadata,
+        },
     },
     owned_by_id::OwnedById,
+};
+use hash_graph_store::{
+    filter::Filter,
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+    },
 };
 use pretty_assertions::assert_eq;
 use serde_json::json;
@@ -32,7 +35,11 @@ async fn seed<A: AuthorizationApi>(
 ) -> DatabaseApi<'_, &mut A> {
     database
         .seed(
-            [data_type::TEXT_V1, data_type::NUMBER_V1],
+            [
+                data_type::VALUE_V1,
+                data_type::TEXT_V1,
+                data_type::NUMBER_V1,
+            ],
             [
                 property_type::NAME_V1,
                 property_type::AGE_V1,
@@ -82,83 +89,83 @@ async fn properties_add() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(
-            api.account_id,
-            CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
-                entity_uuid: None,
-                decision_time: None,
-                entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(alice(), None)
-                    .expect("could not create property with metadata object"),
-                confidence: None,
-                link_data: None,
-                draft: false,
-                relationships: [],
-                provenance: ProvidedEntityEditionProvenance::default(),
-            },
-        )
+        .create_entity(api.account_id, CreateEntityParams {
+            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            entity_uuid: None,
+            decision_time: None,
+            entity_type_ids: HashSet::from([person_entity_type_id()]),
+            properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                .expect("could not create property with metadata object"),
+            confidence: None,
+            link_data: None,
+            draft: false,
+            relationships: [],
+            provenance: ProvidedEntityEditionProvenance::default(),
+        })
         .await
         .expect("could not create entity");
     let entity_id = entity.metadata.record_id.entity_id;
 
-    api.patch_entity(
-        api.account_id,
-        PatchEntityParams {
-            entity_id,
-            decision_time: None,
-            entity_type_ids: HashSet::new(),
-            properties: vec![
-                PropertyPatchOperation::Add {
-                    path: once(PropertyPathElement::from(age_property_type_id())).collect(),
-                    property: PropertyWithMetadata::Value(ValueWithMetadata {
-                        value: json!(30),
-                        metadata: ValueMetadata {
-                            confidence: None,
-                            data_type_id: None,
-                            provenance: PropertyProvenance::default(),
-                        },
-                    }),
-                },
-                PropertyPatchOperation::Add {
-                    path: once(PropertyPathElement::from(name_property_type_id())).collect(),
-                    property: PropertyWithMetadata::Value(ValueWithMetadata {
-                        value: json!("Alice Allison"),
-                        metadata: ValueMetadata {
-                            confidence: None,
-                            data_type_id: None,
-                            provenance: PropertyProvenance::default(),
-                        },
-                    }),
-                },
-            ],
-            draft: None,
-            archived: None,
-            confidence: None,
-            provenance: ProvidedEntityEditionProvenance::default(),
-        },
-    )
+    api.patch_entity(api.account_id, PatchEntityParams {
+        entity_id,
+        decision_time: None,
+        entity_type_ids: HashSet::new(),
+        properties: vec![
+            PropertyPatchOperation::Add {
+                path: once(PropertyPathElement::from(age_property_type_id())).collect(),
+                property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
+                    value: json!(30),
+                    metadata: ValueMetadata {
+                        confidence: None,
+                        data_type_id: None,
+                        original_data_type_id: None,
+                        provenance: PropertyProvenance::default(),
+                        canonical: HashMap::default(),
+                    },
+                }),
+            },
+            PropertyPatchOperation::Add {
+                path: once(PropertyPathElement::from(name_property_type_id())).collect(),
+                property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
+                    value: json!("Alice Allison"),
+                    metadata: ValueMetadata {
+                        confidence: None,
+                        data_type_id: None,
+                        original_data_type_id: None,
+                        provenance: PropertyProvenance::default(),
+                        canonical: HashMap::default(),
+                    },
+                }),
+            },
+        ],
+        draft: None,
+        archived: None,
+        confidence: None,
+        provenance: ProvidedEntityEditionProvenance::default(),
+    })
     .await
     .expect("could not patch entity");
 
     let entities = api
-        .get_entities(
-            api.account_id,
-            GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                include_count: false,
-                include_drafts: false,
+        .get_entities(api.account_id, GetEntitiesParams {
+            filter: Filter::for_entity_by_entity_id(entity_id),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
             },
-        )
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: false,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+        })
         .await
         .expect("could not get entity")
         .entities;
@@ -177,62 +184,58 @@ async fn properties_remove() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(
-            api.account_id,
-            CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
-                entity_uuid: None,
-                decision_time: None,
-                entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(alice(), None)
-                    .expect("could not create property with metadata object"),
-                confidence: None,
-                link_data: None,
-                draft: false,
-                relationships: [],
-                provenance: ProvidedEntityEditionProvenance::default(),
-            },
-        )
+        .create_entity(api.account_id, CreateEntityParams {
+            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            entity_uuid: None,
+            decision_time: None,
+            entity_type_ids: HashSet::from([person_entity_type_id()]),
+            properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                .expect("could not create property with metadata object"),
+            confidence: None,
+            link_data: None,
+            draft: false,
+            relationships: [],
+            provenance: ProvidedEntityEditionProvenance::default(),
+        })
         .await
         .expect("could not create entity");
     let entity_id = entity.metadata.record_id.entity_id;
 
-    api.patch_entity(
-        api.account_id,
-        PatchEntityParams {
-            entity_id,
-            decision_time: None,
-            entity_type_ids: HashSet::new(),
-            properties: vec![PropertyPatchOperation::Remove {
-                path: once(PropertyPathElement::from(name_property_type_id())).collect(),
-            }],
-            draft: None,
-            archived: None,
-            confidence: None,
-            provenance: ProvidedEntityEditionProvenance::default(),
-        },
-    )
+    api.patch_entity(api.account_id, PatchEntityParams {
+        entity_id,
+        decision_time: None,
+        entity_type_ids: HashSet::new(),
+        properties: vec![PropertyPatchOperation::Remove {
+            path: once(PropertyPathElement::from(name_property_type_id())).collect(),
+        }],
+        draft: None,
+        archived: None,
+        confidence: None,
+        provenance: ProvidedEntityEditionProvenance::default(),
+    })
     .await
     .expect("could not patch entity");
 
     let entities = api
-        .get_entities(
-            api.account_id,
-            GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                include_count: false,
-                include_drafts: false,
+        .get_entities(api.account_id, GetEntitiesParams {
+            filter: Filter::for_entity_by_entity_id(entity_id),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
             },
-        )
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: false,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+        })
         .await
         .expect("could not get entity")
         .entities;
@@ -249,70 +252,68 @@ async fn properties_replace() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(
-            api.account_id,
-            CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
-                entity_uuid: None,
-                decision_time: None,
-                entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(alice(), None)
-                    .expect("could not create property with metadata object"),
-                confidence: None,
-                link_data: None,
-                draft: false,
-                relationships: [],
-                provenance: ProvidedEntityEditionProvenance::default(),
-            },
-        )
+        .create_entity(api.account_id, CreateEntityParams {
+            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            entity_uuid: None,
+            decision_time: None,
+            entity_type_ids: HashSet::from([person_entity_type_id()]),
+            properties: PropertyWithMetadataObject::from_parts(alice(), None)
+                .expect("could not create property with metadata object"),
+            confidence: None,
+            link_data: None,
+            draft: false,
+            relationships: [],
+            provenance: ProvidedEntityEditionProvenance::default(),
+        })
         .await
         .expect("could not create entity");
     let entity_id = entity.metadata.record_id.entity_id;
 
-    api.patch_entity(
-        api.account_id,
-        PatchEntityParams {
-            entity_id,
-            decision_time: None,
-            entity_type_ids: HashSet::new(),
-            properties: vec![PropertyPatchOperation::Replace {
-                path: once(PropertyPathElement::from(name_property_type_id())).collect(),
-                property: PropertyWithMetadata::Value(ValueWithMetadata {
-                    value: json!("Bob"),
-                    metadata: ValueMetadata {
-                        confidence: None,
-                        data_type_id: None,
-                        provenance: PropertyProvenance::default(),
-                    },
-                }),
-            }],
-            draft: None,
-            archived: None,
-            confidence: None,
-            provenance: ProvidedEntityEditionProvenance::default(),
-        },
-    )
+    api.patch_entity(api.account_id, PatchEntityParams {
+        entity_id,
+        decision_time: None,
+        entity_type_ids: HashSet::new(),
+        properties: vec![PropertyPatchOperation::Replace {
+            path: once(PropertyPathElement::from(name_property_type_id())).collect(),
+            property: PropertyWithMetadata::Value(PropertyWithMetadataValue {
+                value: json!("Bob"),
+                metadata: ValueMetadata {
+                    confidence: None,
+                    data_type_id: None,
+                    original_data_type_id: None,
+                    provenance: PropertyProvenance::default(),
+                    canonical: HashMap::default(),
+                },
+            }),
+        }],
+        draft: None,
+        archived: None,
+        confidence: None,
+        provenance: ProvidedEntityEditionProvenance::default(),
+    })
     .await
     .expect("could not patch entity");
 
     let entities = api
-        .get_entities(
-            api.account_id,
-            GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                include_count: false,
-                include_drafts: false,
+        .get_entities(api.account_id, GetEntitiesParams {
+            filter: Filter::for_entity_by_entity_id(entity_id),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
             },
-        )
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: false,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+        })
         .await
         .expect("could not get entity")
         .entities;
@@ -331,60 +332,56 @@ async fn type_ids() {
     let mut api = seed(&mut database).await;
 
     let entity = api
-        .create_entity(
-            api.account_id,
-            CreateEntityParams {
-                owned_by_id: OwnedById::new(api.account_id.into_uuid()),
-                entity_uuid: None,
-                decision_time: None,
-                entity_type_ids: HashSet::from([person_entity_type_id()]),
-                properties: PropertyWithMetadataObject::from_parts(PropertyObject::empty(), None)
-                    .expect("could not create property with metadata object"),
-                confidence: None,
-                link_data: None,
-                draft: false,
-                relationships: [],
-                provenance: ProvidedEntityEditionProvenance::default(),
-            },
-        )
+        .create_entity(api.account_id, CreateEntityParams {
+            owned_by_id: OwnedById::new(api.account_id.into_uuid()),
+            entity_uuid: None,
+            decision_time: None,
+            entity_type_ids: HashSet::from([person_entity_type_id()]),
+            properties: PropertyWithMetadataObject::from_parts(PropertyObject::empty(), None)
+                .expect("could not create property with metadata object"),
+            confidence: None,
+            link_data: None,
+            draft: false,
+            relationships: [],
+            provenance: ProvidedEntityEditionProvenance::default(),
+        })
         .await
         .expect("could not create entity");
     let entity_id = entity.metadata.record_id.entity_id;
 
-    api.patch_entity(
-        api.account_id,
-        PatchEntityParams {
-            entity_id,
-            decision_time: None,
-            entity_type_ids: HashSet::new(),
-            properties: vec![],
-            draft: None,
-            archived: None,
-            confidence: None,
-            provenance: ProvidedEntityEditionProvenance::default(),
-        },
-    )
+    api.patch_entity(api.account_id, PatchEntityParams {
+        entity_id,
+        decision_time: None,
+        entity_type_ids: HashSet::new(),
+        properties: vec![],
+        draft: None,
+        archived: None,
+        confidence: None,
+        provenance: ProvidedEntityEditionProvenance::default(),
+    })
     .await
     .expect("could not patch entity");
 
     let entities = api
-        .get_entities(
-            api.account_id,
-            GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                include_count: false,
-                include_drafts: false,
+        .get_entities(api.account_id, GetEntitiesParams {
+            filter: Filter::for_entity_by_entity_id(entity_id),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
             },
-        )
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: false,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+        })
         .await
         .expect("could not get entity")
         .entities;
@@ -398,40 +395,39 @@ async fn type_ids() {
         "Entity type ids changed even though none were provided in the patch operation"
     );
 
-    api.patch_entity(
-        api.account_id,
-        PatchEntityParams {
-            entity_id,
-            decision_time: None,
-            entity_type_ids: HashSet::from([person_entity_type_id(), org_entity_type_id()]),
-            properties: vec![],
-            draft: None,
-            archived: None,
-            confidence: None,
-            provenance: ProvidedEntityEditionProvenance::default(),
-        },
-    )
+    api.patch_entity(api.account_id, PatchEntityParams {
+        entity_id,
+        decision_time: None,
+        entity_type_ids: HashSet::from([person_entity_type_id(), org_entity_type_id()]),
+        properties: vec![],
+        draft: None,
+        archived: None,
+        confidence: None,
+        provenance: ProvidedEntityEditionProvenance::default(),
+    })
     .await
     .expect("could not patch entity");
 
     let entities = api
-        .get_entities(
-            api.account_id,
-            GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                include_count: false,
-                include_drafts: false,
+        .get_entities(api.account_id, GetEntitiesParams {
+            filter: Filter::for_entity_by_entity_id(entity_id),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
             },
-        )
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: false,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+        })
         .await
         .expect("could not get entity")
         .entities;
@@ -447,40 +443,39 @@ async fn type_ids() {
         HashSet::from([person_entity_type_id(), org_entity_type_id()]),
     );
 
-    api.patch_entity(
-        api.account_id,
-        PatchEntityParams {
-            entity_id,
-            decision_time: None,
-            entity_type_ids: HashSet::from([person_entity_type_id()]),
-            properties: vec![],
-            draft: None,
-            archived: None,
-            confidence: None,
-            provenance: ProvidedEntityEditionProvenance::default(),
-        },
-    )
+    api.patch_entity(api.account_id, PatchEntityParams {
+        entity_id,
+        decision_time: None,
+        entity_type_ids: HashSet::from([person_entity_type_id()]),
+        properties: vec![],
+        draft: None,
+        archived: None,
+        confidence: None,
+        provenance: ProvidedEntityEditionProvenance::default(),
+    })
     .await
     .expect("could not patch entity");
 
     let entities = api
-        .get_entities(
-            api.account_id,
-            GetEntitiesParams {
-                filter: Filter::for_entity_by_entity_id(entity_id),
-                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                    pinned: PinnedTemporalAxisUnresolved::new(None),
-                    variable: VariableTemporalAxisUnresolved::new(None, None),
-                },
-                sorting: EntityQuerySorting {
-                    paths: Vec::new(),
-                    cursor: None,
-                },
-                limit: None,
-                include_count: false,
-                include_drafts: false,
+        .get_entities(api.account_id, GetEntitiesParams {
+            filter: Filter::for_entity_by_entity_id(entity_id),
+            temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                pinned: PinnedTemporalAxisUnresolved::new(None),
+                variable: VariableTemporalAxisUnresolved::new(None, None),
             },
-        )
+            sorting: EntityQuerySorting {
+                paths: Vec::new(),
+                cursor: None,
+            },
+            limit: None,
+            conversions: Vec::new(),
+            include_count: false,
+            include_drafts: false,
+            include_web_ids: false,
+            include_created_by_ids: false,
+            include_edition_created_by_ids: false,
+            include_type_ids: false,
+        })
         .await
         .expect("could not get entity")
         .entities;

@@ -4,8 +4,8 @@ use core::{
 };
 
 use ariadne::ColorGenerator;
-use error_stack::{Report, Result};
-use hql_span::{storage::SpanStorage, tree::SpanNode, Span, SpanId};
+use error_stack::{Report, Result, TryReportIteratorExt, TryReportTupleExt};
+use hql_span::{Span, SpanId, storage::SpanStorage, tree::SpanNode};
 
 use crate::{
     category::Category,
@@ -16,7 +16,7 @@ use crate::{
     note::Note,
     rob::RefOrBox,
     severity::Severity,
-    span::{absolute_span, AbsoluteDiagnosticSpan, TransformSpan},
+    span::{AbsoluteDiagnosticSpan, TransformSpan, absolute_span},
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -60,7 +60,7 @@ impl<'a> Diagnostic<'a, SpanId> {
     pub fn resolve<S>(
         self,
         storage: &SpanStorage<S>,
-    ) -> Result<Diagnostic<'a, SpanNode<S>>, ResolveError>
+    ) -> Result<Diagnostic<'a, SpanNode<S>>, [ResolveError]>
     where
         S: Span + Clone,
     {
@@ -73,23 +73,13 @@ impl<'a> Diagnostic<'a, SpanId> {
             })
             .transpose();
 
-        let (span, labels) = self
+        let labels: Result<Vec<_>, _> = self
             .labels
             .into_iter()
             .map(|label| label.resolve(storage))
-            .fold(span.map(|node| (node, Vec::new())), |acc, label| {
-                match (acc, label) {
-                    (Ok((span, mut labels)), Ok(label)) => {
-                        labels.push(label);
-                        Ok((span, labels))
-                    }
-                    (Err(mut acc), Err(error)) => {
-                        acc.extend_one(error);
-                        Err(acc)
-                    }
-                    (Err(error), _) | (_, Err(error)) => Err(error),
-                }
-            })?;
+            .try_collect_reports();
+
+        let (span, labels) = (span, labels).try_collect()?;
 
         Ok(Diagnostic {
             category: self.category,
@@ -149,9 +139,9 @@ impl<S> Display for Diagnostic<'_, S>
 where
     S: Display,
 {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(
-            f,
+            fmt,
             "[{}] {}",
             self.severity,
             self.category.as_ref().canonical_name()

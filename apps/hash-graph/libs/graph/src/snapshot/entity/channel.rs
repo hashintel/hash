@@ -1,19 +1,19 @@
 use core::{
     pin::Pin,
-    task::{ready, Context, Poll},
+    task::{Context, Poll, ready},
 };
 
 use authorization::schema::EntityRelationAndSubject;
 use error_stack::{Report, ResultExt};
 use futures::{
-    channel::mpsc::{self, Receiver, Sender},
-    stream::{select_all, BoxStream, SelectAll},
     Sink, SinkExt, Stream, StreamExt,
+    channel::mpsc::{self, Receiver, Sender},
+    stream::{BoxStream, SelectAll, select_all},
 };
 use graph_types::{knowledge::entity::EntityUuid, ontology::EntityTypeId};
 
 use crate::{
-    snapshot::{entity::EntityRowBatch, EntitySnapshotRecord, SnapshotRestoreError},
+    snapshot::{EntitySnapshotRecord, SnapshotRestoreError, entity::EntityRowBatch},
     store::postgres::query::rows::{
         EntityDraftRow, EntityEditionRow, EntityEmbeddingRow, EntityHasLeftEntityRow,
         EntityHasRightEntityRow, EntityIdRow, EntityIsOfTypeRow, EntityTemporalMetadataRow,
@@ -228,7 +228,7 @@ impl Stream for EntityReceiver {
 ///
 /// The `chunk_size` parameter determines the number of rows that are sent in a single
 /// [`EntityRowBatch`].
-pub fn channel(
+pub(crate) fn channel(
     chunk_size: usize,
     relation_rx: Receiver<(EntityUuid, EntityRelationAndSubject)>,
     embedding_rx: Receiver<EntityEmbeddingRow>,

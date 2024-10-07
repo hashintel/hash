@@ -15,11 +15,11 @@
     "envalid": "7.3.1",
     "execa": "5.1.1",
     "fs-extra": "11.1.0",
-    "globby": "11.0.1",
+    "globby": "11.1.0",
     "prettier": "3.3.3",
-    "regex-parser": "2.2.11",
-    "tsx": "4.16.2",
-    "typescript": "5.5.4"
+    "regex-parser": "2.3.0",
+    "tsx": "4.19.1",
+    "typescript": "5.6.2"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",

@@ -74,7 +74,7 @@ pub(crate) mod test {
     use bytes::Bytes;
 
     use super::Decode;
-    use crate::codec::{encode::test::encode_value, Buffer, Encode};
+    use crate::codec::{Buffer, Encode, encode::test::encode_value};
 
     #[track_caller]
     pub(crate) fn decode_value<T>(bytes: impl Into<Bytes>, context: T::Context) -> T

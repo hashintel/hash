@@ -5,10 +5,10 @@ use core::fmt::Debug;
 use std::io::stdout;
 
 use hql_diagnostics::{
-    category::Category, config::ReportConfig, help::Help, label::Label, rob::RefOrBox,
-    severity::Severity, span::DiagnosticSpan, Diagnostic,
+    Diagnostic, category::Category, config::ReportConfig, help::Help, label::Label, rob::RefOrBox,
+    severity::Severity, span::DiagnosticSpan,
 };
-use hql_span::{storage::SpanStorage, Span, SpanId, TextRange};
+use hql_span::{Span, SpanId, TextRange, storage::SpanStorage};
 use jsonptr::PointerBuf;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]

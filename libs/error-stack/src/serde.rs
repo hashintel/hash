@@ -16,7 +16,7 @@
 #[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{format, vec, vec::Vec};
 
-use serde::{ser::SerializeMap, Serialize, Serializer};
+use serde::{Serialize, Serializer, ser::SerializeMap};
 
 use crate::{AttachmentKind, Context, Frame, FrameKind, Report};
 
@@ -149,6 +149,15 @@ impl<C: Context> Serialize for Report<C> {
     where
         S: Serializer,
     {
-        SerializeSources(self.current_frames()).serialize(serializer)
+        SerializeSources(self.current_frames_unchecked()).serialize(serializer)
+    }
+}
+
+impl<C: Context> Serialize for Report<[C]> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        SerializeSources(self.current_frames_unchecked()).serialize(serializer)
     }
 }

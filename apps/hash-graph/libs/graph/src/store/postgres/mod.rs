@@ -7,17 +7,17 @@ pub(crate) mod query;
 mod traversal_context;
 
 use alloc::sync::Arc;
-use core::fmt::Debug;
+use core::{fmt::Debug, hash::Hash};
+use std::collections::HashMap;
 
-use async_trait::async_trait;
 use authorization::{
+    AuthorizationApi,
     backend::ModifyRelationshipOperation,
     schema::{
         AccountGroupAdministratorSubject, AccountGroupRelationAndSubject, WebDataTypeViewerSubject,
         WebEntityCreatorSubject, WebEntityEditorSubject, WebEntityTypeViewerSubject,
         WebOwnerSubject, WebPropertyTypeViewerSubject, WebRelationAndSubject, WebSubjectSet,
     },
-    AuthorizationApi,
 };
 use error_stack::{Report, Result, ResultExt};
 use graph_types::{
@@ -28,17 +28,26 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
+use hash_graph_store::{
+    ConflictBehavior,
+    account::{
+        AccountGroupInsertionError, AccountInsertionError, AccountStore,
+        InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams, QueryWebError,
+        WebInsertionError,
+    },
+};
+use postgres_types::Json;
 use temporal_client::TemporalClient;
 use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;
-use tokio_postgres::{error::SqlState, GenericClient};
+use tokio_postgres::{GenericClient, error::SqlState};
 use type_system::{
+    Valid,
     schema::{
-        ClosedDataType, ClosedDataTypeMetadata, ClosedEntityType, DataTypeReference, EntityType,
-        EntityTypeReference, PropertyType, PropertyTypeReference,
+        ClosedDataTypeMetadata, ClosedEntityType, Conversions, DataType, DataTypeReference,
+        EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
-    Valid,
 };
 
 pub use self::{
@@ -48,13 +57,11 @@ pub use self::{
     traversal_context::TraversalContext,
 };
 use crate::store::{
-    account::{InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams},
+    BaseUrlAlreadyExists, InsertionError, QueryError, StoreError, UpdateError,
     error::{
         DeletionError, OntologyTypeIsNotOwned, OntologyVersionDoesNotExist,
         VersionedUrlAlreadyExists,
     },
-    AccountStore, BaseUrlAlreadyExists, ConflictBehavior, InsertionError, QueryError, StoreError,
-    UpdateError,
 };
 
 /// A Postgres-backed store
@@ -68,6 +75,43 @@ pub struct PostgresStore<C, A> {
 enum OntologyLocation {
     Owned,
     External,
+}
+
+#[derive(Debug)]
+pub struct ResponseCountMap<T> {
+    map: HashMap<T, usize>,
+}
+
+impl<T> Default for ResponseCountMap<T> {
+    fn default() -> Self {
+        Self {
+            map: HashMap::new(),
+        }
+    }
+}
+
+impl<T> ResponseCountMap<T>
+where
+    T: Eq + Hash + Clone,
+{
+    pub fn increment(&mut self, key: &T) {
+        *self
+            .map
+            .raw_entry_mut()
+            .from_key(key)
+            .or_insert(key.clone(), 0)
+            .1 += 1;
+    }
+}
+
+#[expect(
+    clippy::implicit_hasher,
+    reason = "The hasher should not be exposed from `ResponseCountMap`"
+)]
+impl<T> From<ResponseCountMap<T>> for HashMap<T, usize> {
+    fn from(map: ResponseCountMap<T>) -> Self {
+        map.map
+    }
 }
 
 impl<C, A> PostgresStore<C, A>
@@ -98,10 +142,9 @@ where
         match on_conflict {
             ConflictBehavior::Fail => {
                 self.as_client()
-                    .query(
-                        "INSERT INTO base_urls (base_url) VALUES ($1);",
-                        &[&base_url.as_str()],
-                    )
+                    .query("INSERT INTO base_urls (base_url) VALUES ($1);", &[
+                        &base_url.as_str(),
+                    ])
                     .await
                     .map_err(Report::new)
                     .map_err(|report| match report.current_context().code() {
@@ -197,14 +240,11 @@ where
             }
         };
         self.as_client()
-            .query_opt(
-                query,
-                &[
-                    &OntologyId::from_record_id(record_id),
-                    &record_id.base_url.as_str(),
-                    &record_id.version,
-                ],
-            )
+            .query_opt(query, &[
+                &OntologyId::from_record_id(record_id),
+                &record_id.base_url.as_str(),
+                &record_id.version,
+            ])
             .await
             .map_err(Report::new)
             .map_err(|report| match report.current_context().code() {
@@ -393,7 +433,7 @@ where
     async fn insert_data_type_with_id(
         &self,
         ontology_id: DataTypeId,
-        closed_data_type: &Valid<ClosedDataType>,
+        data_type: &Valid<DataType>,
     ) -> Result<Option<OntologyId>, InsertionError> {
         let ontology_id = self
             .as_client()
@@ -401,13 +441,12 @@ where
                 "
                     INSERT INTO data_types (
                         ontology_id,
-                        schema,
-                        closed_schema
-                    ) VALUES ($1, $2, $3)
+                        schema
+                    ) VALUES ($1, $2)
                     ON CONFLICT DO NOTHING
                     RETURNING ontology_id;
                 ",
-                &[&ontology_id, closed_data_type.data_type(), closed_data_type],
+                &[&ontology_id, data_type],
             )
             .await
             .change_context(InsertionError)?
@@ -417,7 +456,7 @@ where
     }
 
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn insert_data_type_references(
+    pub async fn insert_data_type_references(
         &self,
         ontology_id: DataTypeId,
         metadata: &ClosedDataTypeMetadata,
@@ -445,6 +484,41 @@ where
                 .await
                 .change_context(InsertionError)?;
         }
+
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "debug", skip(self))]
+    async fn insert_data_type_conversion(
+        &self,
+        ontology_id: DataTypeId,
+        target_data_type: &BaseUrl,
+        conversions: &Conversions,
+    ) -> Result<(), InsertionError> {
+        self.as_client()
+            .query(
+                r#"
+                    INSERT INTO data_type_conversions (
+                        "source_data_type_ontology_id",
+                        "target_data_type_base_url",
+                        "from",
+                        "into"
+                    ) VALUES (
+                        $1,
+                        $2,
+                        $3,
+                        $4
+                    );
+                "#,
+                &[
+                    &ontology_id,
+                    &target_data_type,
+                    &Json(&conversions.from),
+                    &Json(&conversions.to),
+                ],
+            )
+            .await
+            .change_context(InsertionError)?;
 
         Ok(())
     }
@@ -813,10 +887,9 @@ where
                         .await?;
                     self.create_ontology_owned_metadata(ontology_id, *owned_by_id)
                         .await?;
-                    Ok(Some((
-                        ontology_id,
-                        OntologyTemporalMetadata { transaction_time },
-                    )))
+                    Ok(Some((ontology_id, OntologyTemporalMetadata {
+                        transaction_time,
+                    })))
                 } else {
                     Ok(None)
                 }
@@ -835,10 +908,9 @@ where
                         .await?;
                     self.create_ontology_external_metadata(ontology_id, *fetched_at)
                         .await?;
-                    Ok(Some((
-                        ontology_id,
-                        OntologyTemporalMetadata { transaction_time },
-                    )))
+                    Ok(Some((ontology_id, OntologyTemporalMetadata {
+                        transaction_time,
+                    })))
                 } else {
                     Ok(None)
                 }
@@ -930,11 +1002,9 @@ where
             .await
             .change_context(UpdateError)?;
 
-        Ok((
-            ontology_id,
-            owned_by_id,
-            OntologyTemporalMetadata { transaction_time },
-        ))
+        Ok((ontology_id, owned_by_id, OntologyTemporalMetadata {
+            transaction_time,
+        }))
     }
 
     /// # Errors
@@ -952,21 +1022,19 @@ where
     }
 }
 
-#[async_trait]
 impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn insert_account_id(
         &mut self,
-        _actor_id: AccountId,
+        actor_id: AccountId,
         params: InsertAccountIdParams,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<(), AccountInsertionError> {
         self.as_client()
-            .query(
-                "INSERT INTO accounts (account_id) VALUES ($1);",
-                &[&params.account_id],
-            )
+            .query("INSERT INTO accounts (account_id) VALUES ($1);", &[
+                &params.account_id
+            ])
             .await
-            .change_context(InsertionError)
+            .change_context(AccountInsertionError)
             .attach_printable(params.account_id)?;
         Ok(())
     }
@@ -976,8 +1044,11 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
         &mut self,
         actor_id: AccountId,
         params: InsertAccountGroupIdParams,
-    ) -> Result<(), InsertionError> {
-        let transaction = self.transaction().await.change_context(InsertionError)?;
+    ) -> Result<(), AccountGroupInsertionError> {
+        let transaction = self
+            .transaction()
+            .await
+            .change_context(AccountGroupInsertionError)?;
 
         transaction
             .as_client()
@@ -986,7 +1057,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                 &[&params.account_group_id],
             )
             .await
-            .change_context(InsertionError)
+            .change_context(AccountGroupInsertionError)
             .attach_printable(params.account_group_id)?;
 
         transaction
@@ -1000,9 +1071,15 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                 },
             )])
             .await
-            .change_context(InsertionError)?;
+            .change_context(AccountGroupInsertionError)?;
 
-        if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
+        if let Err(error) = transaction
+            .commit()
+            .await
+            .change_context(AccountGroupInsertionError)
+        {
+            let mut error = error.expand();
+
             if let Err(auth_error) = self
                 .authorization_api
                 .modify_account_group_relations([(
@@ -1014,14 +1091,12 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                     },
                 )])
                 .await
-                .change_context(InsertionError)
+                .change_context(AccountGroupInsertionError)
             {
-                // TODO: Use `add_child`
-                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
-                error.extend_one(auth_error);
+                error.push(auth_error);
             }
 
-            Err(error)
+            Err(error.change_context(AccountGroupInsertionError))
         } else {
             Ok(())
         }
@@ -1030,19 +1105,18 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
     #[tracing::instrument(level = "info", skip(self))]
     async fn insert_web_id(
         &mut self,
-        _actor_id: AccountId,
+        actor_id: AccountId,
         params: InsertWebIdParams,
-    ) -> Result<(), InsertionError> {
-        let transaction = self.transaction().await.change_context(InsertionError)?;
+    ) -> Result<(), WebInsertionError> {
+        let transaction = self.transaction().await.change_context(WebInsertionError)?;
 
         transaction
             .as_client()
-            .query(
-                "INSERT INTO webs (web_id) VALUES ($1);",
-                &[&params.owned_by_id],
-            )
+            .query("INSERT INTO webs (web_id) VALUES ($1);", &[
+                &params.owned_by_id
+            ])
             .await
-            .change_context(InsertionError)
+            .change_context(WebInsertionError)
             .attach_printable(params.owned_by_id)?;
 
         let mut relationships = vec![
@@ -1098,9 +1172,11 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                     }),
             )
             .await
-            .change_context(InsertionError)?;
+            .change_context(WebInsertionError)?;
 
-        if let Err(mut error) = transaction.commit().await.change_context(InsertionError) {
+        if let Err(error) = transaction.commit().await.change_context(WebInsertionError) {
+            let mut error = error.expand();
+
             if let Err(auth_error) = self
                 .authorization_api
                 .modify_web_relations(relationships.into_iter().map(|relation_and_subject| {
@@ -1111,14 +1187,12 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                     )
                 }))
                 .await
-                .change_context(InsertionError)
+                .change_context(WebInsertionError)
             {
-                // TODO: Use `add_child`
-                //   see https://linear.app/hash/issue/GEN-105/add-ability-to-add-child-errors
-                error.extend_one(auth_error);
+                error.push(auth_error);
             }
 
-            Err(error)
+            Err(error.change_context(WebInsertionError))
         } else {
             Ok(())
         }
@@ -1128,7 +1202,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
     async fn identify_owned_by_id(
         &self,
         owned_by_id: OwnedById,
-    ) -> Result<WebOwnerSubject, QueryError> {
+    ) -> Result<WebOwnerSubject, QueryWebError> {
         let row = self
             .as_client()
             .query_one(
@@ -1146,10 +1220,10 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
                 &[&owned_by_id],
             )
             .await
-            .change_context(QueryError)?;
+            .change_context(QueryWebError)?;
 
         match (row.get(0), row.get(1)) {
-            (false, false) => Err(Report::new(QueryError)
+            (false, false) => Err(Report::new(QueryWebError)
                 .attach_printable("Record does not exist")
                 .attach_printable(owned_by_id)),
             (true, false) => Ok(WebOwnerSubject::Account {
@@ -1158,7 +1232,7 @@ impl<C: AsClient, A: AuthorizationApi> AccountStore for PostgresStore<C, A> {
             (false, true) => Ok(WebOwnerSubject::AccountGroup {
                 id: AccountGroupId::new(owned_by_id.into_uuid()),
             }),
-            (true, true) => Err(Report::new(QueryError)
+            (true, true) => Err(Report::new(QueryWebError)
                 .attach_printable("Record exists in both accounts and account_groups")
                 .attach_printable(owned_by_id)),
         }

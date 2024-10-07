@@ -3,6 +3,7 @@
 use alloc::sync::Arc;
 
 use authorization::{
+    AuthorizationApi, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
         WebDataTypeViewerSubject, WebEntityCreatorSubject, WebEntityEditorSubject,
@@ -10,24 +11,24 @@ use authorization::{
         WebPropertyTypeViewerSubject, WebRelationAndSubject,
     },
     zanzibar::Consistency,
-    AuthorizationApi, AuthorizationApiPool,
 };
 use axum::{
+    Extension, Json, Router,
     extract::Path,
     http::StatusCode,
     response::Response,
     routing::{get, post},
-    Extension, Json, Router,
 };
 use error_stack::Report;
-use graph::store::{account::InsertWebIdParams, AccountStore, StorePool};
+use graph::store::StorePool;
 use graph_types::owned_by_id::OwnedById;
+use hash_graph_store::account::{AccountStore, InsertWebIdParams};
 use serde::Deserialize;
 use temporal_client::TemporalClient;
 use utoipa::{OpenApi, ToSchema};
 
 use super::api_resource::RoutedResource;
-use crate::rest::{status::report_to_response, AuthenticatedUserHeader, PermissionResponse};
+use crate::rest::{AuthenticatedUserHeader, PermissionResponse, status::report_to_response};
 
 #[derive(OpenApi)]
 #[openapi(

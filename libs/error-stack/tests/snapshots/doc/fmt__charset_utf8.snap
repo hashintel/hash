@@ -1,5 +1,5 @@
 <b>invalid input parameter</b>
-├╴at <i>libs/error-stack/src/fmt/charset.rs:22:5</i>
+├╴at <i>libs/error-stack/src/fmt/charset.rs:23:5</i>
 ├╴backtrace (1)
 ╰╴📝 oh no, try again
 

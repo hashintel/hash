@@ -13,7 +13,7 @@ mod token;
 
 extern crate alloc;
 
-use deer::{error::DeserializeError, Context, Deserialize};
+use deer::{Context, Deserialize, error::DeserializeError};
 use error_stack::Result;
 
 pub use crate::deserializer::{Deserializer, StackLimit};

@@ -1,16 +1,15 @@
 use alloc::sync::Arc;
 use core::mem;
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 
-use async_trait::async_trait;
 use authorization::{
+    AuthorizationApi,
     schema::{
         DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
         EntityTypeInstantiatorSubject, EntityTypeRelationAndSubject, EntityTypeViewerSubject,
         PropertyTypeRelationAndSubject, PropertyTypeViewerSubject, WebOwnerSubject,
     },
     zanzibar::Consistency,
-    AuthorizationApi,
 };
 use error_stack::{Report, Result, ResultExt};
 use graph_types::{
@@ -24,11 +23,23 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
+use hash_graph_store::{
+    ConflictBehavior,
+    account::{
+        AccountGroupInsertionError, AccountInsertionError, AccountStore,
+        InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams, QueryWebError,
+        WebInsertionError,
+    },
+    filter::{Filter, QueryRecord},
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
+        VariableTemporalAxisUnresolved,
+    },
+};
 use tarpc::context;
 use temporal_client::TemporalClient;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
 use tokio::net::ToSocketAddrs;
-use tokio_serde::formats::Json;
 use type_fetcher::fetcher::{FetchedOntologyType, FetcherClient};
 use type_system::{
     schema::{DataType, EntityType, EntityTypeReference, PropertyType},
@@ -38,7 +49,8 @@ use type_system::{
 use crate::{
     ontology::domain_validator::DomainValidator,
     store::{
-        account::{InsertAccountGroupIdParams, InsertAccountIdParams, InsertWebIdParams},
+        DataTypeStore, EntityStore, EntityTypeStore, InsertionError, PropertyTypeStore, QueryError,
+        StoreError, StorePool, UpdateError,
         crud::{QueryResult, Read, ReadPaginated, Sorting},
         knowledge::{
             CountEntitiesParams, CreateEntityParams, GetEntitiesParams, GetEntitiesResponse,
@@ -57,25 +69,16 @@ use crate::{
             UpdateDataTypeEmbeddingParams, UpdateDataTypesParams, UpdateEntityTypeEmbeddingParams,
             UpdateEntityTypesParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
         },
-        query::Filter,
-        AccountStore, ConflictBehavior, DataTypeStore, EntityStore, EntityTypeStore,
-        InsertionError, PropertyTypeStore, QueryError, QueryRecord, StoreError, StorePool,
-        UpdateError,
-    },
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
-        VariableTemporalAxisUnresolved,
     },
 };
 
-#[async_trait]
 pub trait TypeFetcher {
     /// Fetches the provided type reference and inserts it to the Graph.
-    async fn insert_external_ontology_type(
+    fn insert_external_ontology_type(
         &mut self,
         actor_id: AccountId,
         reference: OntologyTypeReference<'_>,
-    ) -> Result<OntologyTypeMetadata, InsertionError>;
+    ) -> impl Future<Output = Result<OntologyTypeMetadata, InsertionError>> + Send;
 }
 
 #[derive(Clone)]
@@ -113,7 +116,6 @@ where
     }
 }
 
-#[async_trait]
 impl<P, Add> StorePool for FetchingPool<P, Add>
 where
     P: StorePool + Send + Sync,
@@ -199,11 +201,13 @@ where
         A: Send + ToSocketAddrs,
     {
         let connection_info = self.connection_info()?;
-        let transport =
-            tarpc::serde_transport::tcp::connect(&connection_info.address, Json::default)
-                .await
-                .change_context(StoreError)
-                .attach_printable("Could not connect to type fetcher")?;
+        let transport = tarpc::serde_transport::tcp::connect(
+            &connection_info.address,
+            tarpc::tokio_serde::formats::Json::default,
+        )
+        .await
+        .change_context(StoreError)
+        .attach_printable("Could not connect to type fetcher")?;
         Ok(FetcherClient::new(connection_info.config.clone(), transport).spawn())
     }
 
@@ -255,56 +259,49 @@ where
         match ontology_type_reference {
             OntologyTypeReference::DataTypeReference(_) => self
                 .store
-                .get_data_types(
-                    actor_id,
-                    GetDataTypesParams {
-                        filter: Filter::for_versioned_url(url),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
-                        after: None,
-                        limit: None,
-                        include_drafts: true,
-                        include_count: false,
+                .get_data_types(actor_id, GetDataTypesParams {
+                    filter: Filter::for_versioned_url(url),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
-                )
+                    after: None,
+                    limit: None,
+                    include_drafts: true,
+                    include_count: false,
+                })
                 .await
                 .map(|response| !response.data_types.is_empty()),
             OntologyTypeReference::PropertyTypeReference(_) => self
                 .store
-                .get_property_types(
-                    actor_id,
-                    GetPropertyTypesParams {
-                        filter: Filter::for_versioned_url(url),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
-                        after: None,
-                        limit: None,
-                        include_drafts: true,
-                        include_count: false,
+                .get_property_types(actor_id, GetPropertyTypesParams {
+                    filter: Filter::for_versioned_url(url),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
-                )
+                    after: None,
+                    limit: None,
+                    include_drafts: true,
+                    include_count: false,
+                })
                 .await
                 .map(|response| !response.property_types.is_empty()),
             OntologyTypeReference::EntityTypeReference(_) => self
                 .store
-                .get_entity_types(
-                    actor_id,
-                    GetEntityTypesParams {
-                        filter: Filter::for_versioned_url(url),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
-                        after: None,
-                        limit: None,
-                        include_drafts: true,
-                        include_count: false,
+                .get_entity_types(actor_id, GetEntityTypesParams {
+                    filter: Filter::for_versioned_url(url),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
-                )
+                    after: None,
+                    limit: None,
+                    include_drafts: true,
+                    include_count: false,
+                    include_web_ids: false,
+                    include_edition_created_by_ids: false,
+                })
                 .await
                 .map(|response| !response.entity_types.is_empty()),
         }
@@ -448,7 +445,11 @@ where
                         };
 
                         for referenced_ontology_type in self
-                            .collect_external_ontology_types(actor_id, &entity_type, bypassed_types)
+                            .collect_external_ontology_types(
+                                actor_id,
+                                &*entity_type,
+                                bypassed_types,
+                            )
                             .await
                             .change_context(StoreError)?
                         {
@@ -460,7 +461,7 @@ where
 
                         fetched_ontology_types
                             .entity_types
-                            .push((entity_type, metadata));
+                            .push((*entity_type, metadata));
                     }
                 }
             }
@@ -519,6 +520,7 @@ where
                             relationships: DATA_TYPE_RELATIONSHIPS,
                             conflict_behavior: ConflictBehavior::Skip,
                             provenance: ProvidedOntologyEditionProvenance::default(),
+                            conversions: HashMap::new(),
                         }),
                 )
                 .await?;
@@ -605,6 +607,7 @@ where
                                 relationships: DATA_TYPE_RELATIONSHIPS,
                                 conflict_behavior: ConflictBehavior::Skip,
                                 provenance: ProvidedOntologyEditionProvenance::default(),
+                                conversions: HashMap::new(),
                             }),
                     )
                     .await?
@@ -670,7 +673,6 @@ where
     }
 }
 
-#[async_trait]
 impl<S, A> TypeFetcher for FetchingStore<S, A>
 where
     A: ToSocketAddrs + Send + Sync,
@@ -735,7 +737,6 @@ where
     }
 }
 
-#[async_trait]
 impl<S, A, R> Read<R> for FetchingStore<S, A>
 where
     A: Send + Sync,
@@ -765,7 +766,6 @@ where
     }
 }
 
-#[async_trait]
 impl<S, A> AccountStore for FetchingStore<S, A>
 where
     S: AccountStore + Send + Sync,
@@ -775,7 +775,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: InsertAccountIdParams,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<(), AccountInsertionError> {
         self.store.insert_account_id(actor_id, params).await
     }
 
@@ -783,7 +783,7 @@ where
         &mut self,
         actor_id: AccountId,
         params: InsertAccountGroupIdParams,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<(), AccountGroupInsertionError> {
         self.store.insert_account_group_id(actor_id, params).await
     }
 
@@ -791,14 +791,14 @@ where
         &mut self,
         actor_id: AccountId,
         params: InsertWebIdParams,
-    ) -> Result<(), InsertionError> {
+    ) -> Result<(), WebInsertionError> {
         self.store.insert_web_id(actor_id, params).await
     }
 
     async fn identify_owned_by_id(
         &self,
         owned_by_id: OwnedById,
-    ) -> Result<WebOwnerSubject, QueryError> {
+    ) -> Result<WebOwnerSubject, QueryWebError> {
         self.store.identify_owned_by_id(owned_by_id).await
     }
 }
@@ -915,6 +915,10 @@ where
         self.store
             .update_data_type_embeddings(actor_id, params)
             .await
+    }
+
+    async fn reindex_cache(&mut self) -> Result<(), UpdateError> {
+        self.store.reindex_cache().await
     }
 }
 

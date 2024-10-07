@@ -93,6 +93,11 @@ export default withSentryConfig(
             destination: "/signin",
             permanent: true,
           },
+          {
+            source: "/inbox",
+            destination: "/notifications",
+            permanent: false,
+          },
         ];
       },
       async headers() {

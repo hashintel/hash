@@ -3,11 +3,11 @@ use core::{fmt, fmt::Formatter};
 use postgres_types::ToSql;
 
 use crate::store::postgres::query::{
+    Alias, AliasedTable, Column, Expression, Function, OrderByExpression, SelectExpression,
+    SelectStatement, Table, Transpile, WhereExpression, WithExpression,
     expression::{GroupByExpression, PostgresType},
     rows::PostgresRow,
     statement::FromItem,
-    Alias, AliasedTable, Column, Expression, Function, OrderByExpression, SelectExpression,
-    SelectStatement, Table, Transpile, WhereExpression, WithExpression,
 };
 
 #[derive(Debug, PartialEq, Eq, Hash)]

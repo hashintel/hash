@@ -10,11 +10,11 @@ use harpc_wire_protocol::response::kind::{ErrorCode, ResponseKind};
 use tower::{Layer, Service, ServiceExt};
 
 use crate::{
-    body::{controlled::Controlled, full::Full, Body},
+    Extensions,
+    body::{Body, controlled::Controlled, full::Full},
     either::Either,
     request::Request,
     response::{Parts, Response},
-    Extensions,
 };
 
 pub struct BoxedError(Box<dyn Error + Send + Sync + 'static>);
@@ -27,14 +27,14 @@ impl BoxedError {
 }
 
 impl Debug for BoxedError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Debug::fmt(&self.0, f)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        Debug::fmt(&self.0, fmt)
     }
 }
 
 impl Display for BoxedError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.0, f)
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.0, fmt)
     }
 }
 
@@ -43,7 +43,7 @@ impl Error for BoxedError {
         Some(&*self.0)
     }
 
-    fn provide<'a>(&'a self, request: &mut std::error::Request<'a>) {
+    fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
         self.0.provide(request);
     }
 }
@@ -164,12 +164,12 @@ pub(crate) mod test {
     use tower_test::mock::spawn_layer;
 
     use crate::{
-        body::{controlled::Controlled, full::Full, BodyExt, Frame},
+        Extensions,
+        body::{BodyExt, Frame, controlled::Controlled, full::Full},
         either::Either,
         layer::error::HandleErrorLayer,
         request::{self, Request},
         response::{self, Response},
-        Extensions,
     };
 
     #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -224,13 +224,13 @@ pub(crate) mod test {
     }
 
     impl Display for GenericError {
-        fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-            f.write_str("generic error")
+        fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+            fmt.write_str("generic error")
         }
     }
 
     impl Error for GenericError {
-        fn provide<'a>(&'a self, request: &mut std::error::Request<'a>) {
+        fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
             request.provide_value(self.0);
         }
     }

@@ -10,12 +10,12 @@ use uuid::Uuid;
 
 use crate::{
     schema::{
-        error::{InvalidRelationship, InvalidResource},
         PublicAccess,
+        error::{InvalidRelationship, InvalidResource},
     },
     zanzibar::{
-        types::{LeveledRelation, Relationship, RelationshipParts, Resource},
         Permission, Relation,
+        types::{LeveledRelation, Relationship, RelationshipParts, Resource},
     },
 };
 
@@ -252,19 +252,35 @@ impl Relationship for (PropertyTypeId, PropertyTypeRelationAndSubject) {
     type SubjectSet = PropertyTypeSubjectSet;
 
     fn from_parts(parts: RelationshipParts<Self>) -> Result<Self, impl Error> {
-        Ok((
-            parts.resource,
-            match parts.relation.name {
-                PropertyTypeResourceRelation::Owner => match (parts.subject, parts.subject_set) {
-                    (PropertyTypeSubject::Web(id), None) => PropertyTypeRelationAndSubject::Owner {
-                        subject: PropertyTypeOwnerSubject::Web { id },
-                        level: parts.relation.level,
-                    },
-                    (PropertyTypeSubject::Web(_), _) => {
+        Ok((parts.resource, match parts.relation.name {
+            PropertyTypeResourceRelation::Owner => match (parts.subject, parts.subject_set) {
+                (PropertyTypeSubject::Web(id), None) => PropertyTypeRelationAndSubject::Owner {
+                    subject: PropertyTypeOwnerSubject::Web { id },
+                    level: parts.relation.level,
+                },
+                (PropertyTypeSubject::Web(_), _) => {
+                    return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
+                }
+                (
+                    PropertyTypeSubject::Setting(_)
+                    | PropertyTypeSubject::Public
+                    | PropertyTypeSubject::Account(_)
+                    | PropertyTypeSubject::AccountGroup(_),
+                    _,
+                ) => {
+                    return Err(InvalidRelationship::<Self>::invalid_subject(parts));
+                }
+            },
+            PropertyTypeResourceRelation::Setting => PropertyTypeRelationAndSubject::Setting {
+                subject: match (parts.subject, parts.subject_set) {
+                    (PropertyTypeSubject::Setting(id), None) => {
+                        PropertyTypeSettingSubject::Setting { id }
+                    }
+                    (PropertyTypeSubject::Setting(_), _) => {
                         return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
                     }
                     (
-                        PropertyTypeSubject::Setting(_)
+                        PropertyTypeSubject::Web(_)
                         | PropertyTypeSubject::Public
                         | PropertyTypeSubject::Account(_)
                         | PropertyTypeSubject::AccountGroup(_),
@@ -273,71 +289,49 @@ impl Relationship for (PropertyTypeId, PropertyTypeRelationAndSubject) {
                         return Err(InvalidRelationship::<Self>::invalid_subject(parts));
                     }
                 },
-                PropertyTypeResourceRelation::Setting => PropertyTypeRelationAndSubject::Setting {
-                    subject: match (parts.subject, parts.subject_set) {
-                        (PropertyTypeSubject::Setting(id), None) => {
-                            PropertyTypeSettingSubject::Setting { id }
-                        }
-                        (PropertyTypeSubject::Setting(_), _) => {
-                            return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
-                        }
-                        (
-                            PropertyTypeSubject::Web(_)
-                            | PropertyTypeSubject::Public
-                            | PropertyTypeSubject::Account(_)
-                            | PropertyTypeSubject::AccountGroup(_),
-                            _,
-                        ) => {
-                            return Err(InvalidRelationship::<Self>::invalid_subject(parts));
-                        }
-                    },
-                    level: parts.relation.level,
-                },
-                PropertyTypeResourceRelation::Editor => PropertyTypeRelationAndSubject::Editor {
-                    subject: match (parts.subject, parts.subject_set) {
-                        (PropertyTypeSubject::Account(id), None) => {
-                            PropertyTypeEditorSubject::Account { id }
-                        }
-                        (PropertyTypeSubject::AccountGroup(id), Some(set)) => {
-                            PropertyTypeEditorSubject::AccountGroup { id, set }
-                        }
-                        (
-                            PropertyTypeSubject::Account(_) | PropertyTypeSubject::AccountGroup(_),
-                            _,
-                        ) => {
-                            return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
-                        }
-                        (
-                            PropertyTypeSubject::Web(_)
-                            | PropertyTypeSubject::Setting(_)
-                            | PropertyTypeSubject::Public,
-                            _,
-                        ) => {
-                            return Err(InvalidRelationship::<Self>::invalid_subject(parts));
-                        }
-                    },
-                    level: parts.relation.level,
-                },
-                PropertyTypeResourceRelation::Viewer => PropertyTypeRelationAndSubject::Viewer {
-                    subject: match (parts.subject, parts.subject_set) {
-                        (PropertyTypeSubject::Public, None) => PropertyTypeViewerSubject::Public,
-                        (PropertyTypeSubject::Public, _) => {
-                            return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
-                        }
-                        (
-                            PropertyTypeSubject::Web(_)
-                            | PropertyTypeSubject::Setting(_)
-                            | PropertyTypeSubject::Account(_)
-                            | PropertyTypeSubject::AccountGroup(_),
-                            _,
-                        ) => {
-                            return Err(InvalidRelationship::<Self>::invalid_subject(parts));
-                        }
-                    },
-                    level: parts.relation.level,
-                },
+                level: parts.relation.level,
             },
-        ))
+            PropertyTypeResourceRelation::Editor => PropertyTypeRelationAndSubject::Editor {
+                subject: match (parts.subject, parts.subject_set) {
+                    (PropertyTypeSubject::Account(id), None) => {
+                        PropertyTypeEditorSubject::Account { id }
+                    }
+                    (PropertyTypeSubject::AccountGroup(id), Some(set)) => {
+                        PropertyTypeEditorSubject::AccountGroup { id, set }
+                    }
+                    (PropertyTypeSubject::Account(_) | PropertyTypeSubject::AccountGroup(_), _) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
+                    }
+                    (
+                        PropertyTypeSubject::Web(_)
+                        | PropertyTypeSubject::Setting(_)
+                        | PropertyTypeSubject::Public,
+                        _,
+                    ) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject(parts));
+                    }
+                },
+                level: parts.relation.level,
+            },
+            PropertyTypeResourceRelation::Viewer => PropertyTypeRelationAndSubject::Viewer {
+                subject: match (parts.subject, parts.subject_set) {
+                    (PropertyTypeSubject::Public, None) => PropertyTypeViewerSubject::Public,
+                    (PropertyTypeSubject::Public, _) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject_set(parts));
+                    }
+                    (
+                        PropertyTypeSubject::Web(_)
+                        | PropertyTypeSubject::Setting(_)
+                        | PropertyTypeSubject::Account(_)
+                        | PropertyTypeSubject::AccountGroup(_),
+                        _,
+                    ) => {
+                        return Err(InvalidRelationship::<Self>::invalid_subject(parts));
+                    }
+                },
+                level: parts.relation.level,
+            },
+        }))
     }
 
     fn to_parts(&self) -> RelationshipParts<Self> {

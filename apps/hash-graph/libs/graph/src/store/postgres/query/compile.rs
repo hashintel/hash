@@ -2,29 +2,31 @@ use alloc::borrow::Cow;
 use core::iter::once;
 use std::collections::{HashMap, HashSet};
 
+use hash_graph_store::{
+    filter::{
+        Filter, FilterExpression, Parameter, ParameterList, ParameterType, PathToken, QueryRecord,
+    },
+    subgraph::temporal_axes::QueryTemporalAxes,
+};
 use postgres_types::ToSql;
 use temporal_versioning::TimeAxis;
 use tracing::instrument;
 
-use crate::{
-    store::{
-        postgres::query::{
-            expression::{GroupByExpression, PostgresType},
-            statement::FromItem,
-            table::{
-                DataTypeEmbeddings, DatabaseColumn, EntityEmbeddings, EntityTemporalMetadata,
-                EntityTypeEmbeddings, JsonField, OntologyIds, OntologyTemporalMetadata,
-                PropertyTypeEmbeddings,
-            },
-            Alias, AliasedTable, Column, Condition, Distinctness, EqualityOperator, Expression,
-            Function, JoinExpression, OrderByExpression, PostgresQueryPath, PostgresRecord,
-            SelectExpression, SelectStatement, Table, Transpile, WhereExpression, WindowStatement,
-            WithExpression,
+use crate::store::{
+    NullOrdering, Ordering,
+    postgres::query::{
+        Alias, AliasedTable, Column, Condition, Distinctness, EqualityOperator, Expression,
+        Function, JoinExpression, OrderByExpression, PostgresQueryPath, PostgresRecord,
+        SelectExpression, SelectStatement, Table, Transpile, WhereExpression, WindowStatement,
+        WithExpression,
+        expression::{GroupByExpression, PostgresType},
+        statement::FromItem,
+        table::{
+            DataTypeEmbeddings, DatabaseColumn, EntityEmbeddings, EntityTemporalMetadata,
+            EntityTypeEmbeddings, EntityTypes, JsonField, OntologyIds, OntologyTemporalMetadata,
+            PropertyTypeEmbeddings,
         },
-        query::{Filter, FilterExpression, Parameter, ParameterList, ParameterType, PathToken},
-        NullOrdering, Ordering, QueryRecord,
     },
-    subgraph::temporal_axes::QueryTemporalAxes,
 };
 
 // # Lifetime guidance
@@ -326,15 +328,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
             }
 
             let index = self.statement.selects.len() - 1;
-            self.selections.insert(
-                path,
-                PathSelection {
-                    column: expression,
-                    index,
-                    distinctness,
-                    ordering,
-                },
-            );
+            self.selections.insert(path, PathSelection {
+                column: expression,
+                index,
+                distinctness,
+                ordering,
+            });
             index
         }
     }
@@ -435,14 +434,27 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 self.compile_filter_expression(rhs).0,
             ),
             Filter::CosineDistance(lhs, rhs, max) => match (lhs, rhs) {
-                (FilterExpression::Path(path), FilterExpression::Parameter(parameter))
-                | (FilterExpression::Parameter(parameter), FilterExpression::Path(path)) => {
+                (
+                    FilterExpression::Path { path },
+                    FilterExpression::Parameter { parameter, convert },
+                )
+                | (
+                    FilterExpression::Parameter { parameter, convert },
+                    FilterExpression::Path { path },
+                ) => {
                     // We don't support custom sorting yet and limit/cursor implicitly set an order.
                     // We special case the distance function to allow sorting by distance, so we
                     // need to make sure that we don't have a limit or cursor.
                     assert!(
                         self.statement.limit.is_none() && !self.artifacts.uses_cursor,
                         "Cannot use distance function with limit or cursor",
+                    );
+
+                    // `convert` should be `None` as we don't support parameter conversion at this
+                    // stage, yet.
+                    assert!(
+                        convert.is_none(),
+                        "Cannot convert parameter for distance function"
                     );
 
                     let path_alias = self.add_join_statements(path);
@@ -659,9 +671,9 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         };
 
         // Add a WITH expression selecting the partitioned version
-        self.statement.with.add_statement(
-            Table::OntologyIds,
-            SelectStatement {
+        self.statement
+            .with
+            .add_statement(Table::OntologyIds, SelectStatement {
                 with: WithExpression::default(),
                 distinct: Vec::new(),
                 selects: vec![
@@ -691,8 +703,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 order_by_expression: OrderByExpression::default(),
                 group_by_expression: GroupByExpression::default(),
                 limit: None,
-            },
-        );
+            });
 
         let alias = self.add_join_statements(path);
         // Join the table of `path` and compare the version to the latest version
@@ -727,12 +738,18 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         match filter {
             Filter::Equal(lhs, rhs) | Filter::NotEqual(lhs, rhs) => match (lhs, rhs) {
                 (
-                    Some(FilterExpression::Path(path)),
-                    Some(FilterExpression::Parameter(Parameter::Text(parameter))),
+                    Some(FilterExpression::Path { path }),
+                    Some(FilterExpression::Parameter {
+                        parameter: Parameter::Text(parameter),
+                        convert: None,
+                    }),
                 )
                 | (
-                    Some(FilterExpression::Parameter(Parameter::Text(parameter))),
-                    Some(FilterExpression::Path(path)),
+                    Some(FilterExpression::Parameter {
+                        parameter: Parameter::Text(parameter),
+                        convert: None,
+                    }),
+                    Some(FilterExpression::Path { path }),
                 ) => match (path.terminating_column().0, filter, parameter.as_ref()) {
                     (Column::OntologyIds(OntologyIds::Version), Filter::Equal(..), "latest") => {
                         Some(
@@ -803,6 +820,21 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                     PathToken::Field(Cow::Borrowed(field)),
                 ))
             }
+            Some(JsonField::Label { inheritance_depth }) => {
+                if let Some(label_path) =
+                    <R as QueryRecord>::QueryPath::label_property_path(inheritance_depth)
+                {
+                    Expression::Function(Function::JsonExtractPath(vec![
+                        column_expression,
+                        Expression::ColumnReference {
+                            column: Column::EntityTypes(EntityTypes::LabelProperty),
+                            table_alias: Some(self.add_join_statements(&label_path)),
+                        },
+                    ]))
+                } else {
+                    column_expression
+                }
+            }
         }
     }
 
@@ -868,7 +900,7 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
         R::QueryPath<'q>: PostgresQueryPath,
     {
         match expression {
-            FilterExpression::Path(path) => {
+            FilterExpression::Path { path } => {
                 let (column, json_field) = path.terminating_column();
                 let parameter_type = if let Some(JsonField::StaticText(_)) = json_field {
                     ParameterType::Text
@@ -877,7 +909,12 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 };
                 (self.compile_path_column(path), parameter_type)
             }
-            FilterExpression::Parameter(parameter) => self.compile_parameter(parameter),
+            FilterExpression::Parameter { parameter, convert } => {
+                if convert.is_some() {
+                    unimplemented!("Cannot convert parameter at this stage");
+                }
+                self.compile_parameter(parameter)
+            }
         }
     }
 

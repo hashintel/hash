@@ -20,18 +20,18 @@ clippy *arguments:
 [private]
 test *arguments:
   @just install-cargo-nextest
-  @just install-cargo-hack
 
-  RUST_BACKTRACE=1 cargo hack --optional-deps --feature-powerset {{cargo-hack-groups}} nextest run --cargo-profile {{profile}} {{arguments}}
-  RUST_BACKTRACE=1 cargo test --profile {{profile}} --all-features --doc {{arguments}}
+  RUST_BACKTRACE=1 cargo nextest run --all-features --all-targets --cargo-profile {{profile}} {{arguments}}
+  RUST_BACKTRACE=1 cargo nextest run --no-default-features --all-targets --cargo-profile {{profile}} {{arguments}}
+  RUST_BACKTRACE=1 cargo test --all-features --doc {{arguments}}
 
 [private]
 coverage *arguments:
   @just install-cargo-nextest
   @just install-llvm-cov
 
-  RUST_BACKTRACE=1 cargo llvm-cov nextest --workspace --all-features --all-targets --cargo-profile {{profile}} {{arguments}}
-  RUST_BACKTRACE=1 cargo llvm-cov --workspace --all-features --profile {{profile}} --doc {{arguments}}
+  RUST_BACKTRACE=1 cargo llvm-cov nextest --workspace --all-features --all-targets --cargo-profile coverage {{arguments}}
+  RUST_BACKTRACE=1 cargo llvm-cov --workspace --all-features --profile coverage --doc {{arguments}}
 
 # Snapshot Tests
 # ==============

@@ -1,18 +1,18 @@
 use core::{
     fmt::{self, Debug, Formatter},
     hash::Hash,
-    iter::{once, Chain, Once},
+    iter::{Chain, Once, once},
 };
 
+use hash_graph_store::{
+    filter::{JsonPath, ParameterType},
+    subgraph::edges::EdgeDirection,
+};
 use postgres_types::ToSql;
 use temporal_versioning::TimeAxis;
 
-use crate::{
-    store::{
-        postgres::query::{expression::JoinType, Condition, Constant, Expression, Transpile},
-        query::{JsonPath, ParameterType},
-    },
-    subgraph::edges::EdgeDirection,
+use crate::store::postgres::query::{
+    Condition, Constant, Expression, Transpile, expression::JoinType,
 };
 
 /// The name of a [`Table`] in the Postgres database.
@@ -25,6 +25,8 @@ pub enum Table {
     OntologyAdditionalMetadata,
     DataTypes,
     DataTypeEmbeddings,
+    DataTypeConversions,
+    DataTypeConversionAggregation,
     PropertyTypes,
     PropertyTypeEmbeddings,
     EntityTypes,
@@ -352,6 +354,8 @@ impl Table {
             Self::OntologyAdditionalMetadata => "ontology_additional_metadata",
             Self::DataTypes => "data_types",
             Self::DataTypeEmbeddings => "data_type_embeddings",
+            Self::DataTypeConversions => "data_type_conversions",
+            Self::DataTypeConversionAggregation => "data_type_conversion_aggregation",
             Self::PropertyTypes => "property_types",
             Self::PropertyTypeEmbeddings => "property_type_embeddings",
             Self::EntityTypes => "entity_types",
@@ -381,6 +385,7 @@ pub enum JsonField<'p> {
     JsonPath(&'p JsonPath<'p>),
     JsonPathParameter(usize),
     StaticText(&'static str),
+    Label { inheritance_depth: Option<u32> },
 }
 
 impl<'p> JsonField<'p> {
@@ -395,6 +400,7 @@ impl<'p> JsonField<'p> {
             ),
             Self::JsonPathParameter(index) => (JsonField::JsonPathParameter(index), None),
             Self::StaticText(text) => (JsonField::StaticText(text), None),
+            Self::Label { inheritance_depth } => (JsonField::Label { inheritance_depth }, None),
         }
     }
 }
@@ -558,30 +564,6 @@ impl DatabaseColumn for OntologyTemporalMetadata {
     }
 }
 
-fn transpile_json_field(
-    path: JsonField<'static>,
-    name: &'static str,
-    table: &impl Transpile,
-    fmt: &mut fmt::Formatter,
-) -> fmt::Result {
-    match path {
-        JsonField::JsonPath(path) => {
-            write!(fmt, "jsonb_path_query_first(")?;
-            table.transpile(fmt)?;
-            write!(fmt, r#"."{name}", {path})"#)
-        }
-        JsonField::JsonPathParameter(index) => {
-            write!(fmt, "jsonb_path_query_first(")?;
-            table.transpile(fmt)?;
-            write!(fmt, r#"."{name}", ${index}::text::jsonpath)"#)
-        }
-        JsonField::StaticText(field) => {
-            table.transpile(fmt)?;
-            write!(fmt, r#"."{name}"->>'{field}'"#)
-        }
-    }
-}
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum OwnedOntologyMetadata {
     OntologyId,
@@ -632,6 +614,78 @@ impl DatabaseColumn for DataTypes {
         match self {
             Self::OntologyId => "ontology_id",
             Self::Schema => "schema",
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum DataTypeConversions {
+    SourceDataTypeOntologyId,
+    TargetDataTypeBaseUrl,
+    Into,
+    From,
+}
+
+impl DatabaseColumn for DataTypeConversions {
+    fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::SourceDataTypeOntologyId => ParameterType::Uuid,
+            Self::TargetDataTypeBaseUrl => ParameterType::BaseUrl,
+            Self::Into | Self::From => ParameterType::Object,
+        }
+    }
+
+    fn nullable(self) -> bool {
+        match self {
+            Self::SourceDataTypeOntologyId
+            | Self::TargetDataTypeBaseUrl
+            | Self::Into
+            | Self::From => false,
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::SourceDataTypeOntologyId => "source_data_type_ontology_id",
+            Self::TargetDataTypeBaseUrl => "target_data_type_base_url",
+            Self::Into => "into",
+            Self::From => "from",
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum DataTypeConversionAggregation {
+    SourceDataTypeOntologyId,
+    TargetDataTypeBaseUrls,
+    Intos,
+    Froms,
+}
+
+impl DatabaseColumn for DataTypeConversionAggregation {
+    fn parameter_type(self) -> ParameterType {
+        match self {
+            Self::SourceDataTypeOntologyId => ParameterType::Uuid,
+            Self::TargetDataTypeBaseUrls => ParameterType::Vector(Box::new(ParameterType::BaseUrl)),
+            Self::Intos | Self::Froms => ParameterType::Vector(Box::new(ParameterType::Object)),
+        }
+    }
+
+    fn nullable(self) -> bool {
+        match self {
+            Self::SourceDataTypeOntologyId
+            | Self::TargetDataTypeBaseUrls
+            | Self::Intos
+            | Self::Froms => false,
+        }
+    }
+
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::SourceDataTypeOntologyId => "source_data_type_ontology_id",
+            Self::TargetDataTypeBaseUrls => "target_data_type_base_urls",
+            Self::Intos => "intos",
+            Self::Froms => "froms",
         }
     }
 }
@@ -1344,6 +1398,8 @@ pub enum Column {
     DataTypeEmbeddings(DataTypeEmbeddings),
     DataTypeConstrainsValuesOn(DataTypeConstrainsValuesOn),
     DataTypeInheritsFrom(DataTypeInheritsFrom, Option<u32>),
+    DataTypeConversions(DataTypeConversions),
+    DataTypeConversionAggregation(DataTypeConversionAggregation),
     PropertyTypes(PropertyTypes),
     PropertyTypeEmbeddings(PropertyTypeEmbeddings),
     EntityTypes(EntityTypes),
@@ -1524,6 +1580,8 @@ impl Column {
             Self::OntologyAdditionalMetadata(_) => Table::OntologyAdditionalMetadata,
             Self::DataTypes(_) => Table::DataTypes,
             Self::DataTypeEmbeddings(_) => Table::DataTypeEmbeddings,
+            Self::DataTypeConversions(_) => Table::DataTypeConversions,
+            Self::DataTypeConversionAggregation(_) => Table::DataTypeConversionAggregation,
             Self::PropertyTypes(_) => Table::PropertyTypes,
             Self::PropertyTypeEmbeddings(_) => Table::PropertyTypeEmbeddings,
             Self::EntityTypes(_) => Table::EntityTypes,
@@ -1601,6 +1659,8 @@ impl DatabaseColumn for Column {
             Self::DataTypeEmbeddings(column) => column.parameter_type(),
             Self::DataTypeInheritsFrom(column, _) => column.parameter_type(),
             Self::DataTypeConstrainsValuesOn(column) => column.parameter_type(),
+            Self::DataTypeConversions(column) => column.parameter_type(),
+            Self::DataTypeConversionAggregation(column) => column.parameter_type(),
             Self::PropertyTypes(column) => column.parameter_type(),
             Self::PropertyTypeEmbeddings(column) => column.parameter_type(),
             Self::EntityTypes(column) => column.parameter_type(),
@@ -1633,6 +1693,8 @@ impl DatabaseColumn for Column {
             Self::DataTypeEmbeddings(column) => column.nullable(),
             Self::DataTypeInheritsFrom(column, _) => column.nullable(),
             Self::DataTypeConstrainsValuesOn(column) => column.nullable(),
+            Self::DataTypeConversions(column) => column.nullable(),
+            Self::DataTypeConversionAggregation(column) => column.nullable(),
             Self::PropertyTypes(column) => column.nullable(),
             Self::PropertyTypeEmbeddings(column) => column.nullable(),
             Self::EntityTypes(column) => column.nullable(),
@@ -1665,6 +1727,8 @@ impl DatabaseColumn for Column {
             Self::DataTypeEmbeddings(column) => column.as_str(),
             Self::DataTypeInheritsFrom(column, _) => column.as_str(),
             Self::DataTypeConstrainsValuesOn(column) => column.as_str(),
+            Self::DataTypeConversions(column) => column.as_str(),
+            Self::DataTypeConversionAggregation(column) => column.as_str(),
             Self::PropertyTypes(column) => column.as_str(),
             Self::PropertyTypeEmbeddings(column) => column.as_str(),
             Self::EntityTypes(column) => column.as_str(),
@@ -1766,12 +1830,13 @@ pub enum Relation {
     OntologyExternalMetadata,
     OntologyAdditionalMetadata,
     DataTypeIds,
+    DataTypeConversions,
+    DataTypeEmbeddings,
     PropertyTypeIds,
     EntityTypeIds,
     EntityIsOfTypes,
     EntityIds,
     EntityEditions,
-    DataTypeEmbeddings,
     PropertyTypeEmbeddings,
     EntityTypeEmbeddings,
     EntityEmbeddings,
@@ -1891,6 +1956,15 @@ impl Relation {
                 join: Column::DataTypes(DataTypes::OntologyId),
                 join_type: JoinType::Inner,
             }),
+            Self::DataTypeConversions => {
+                ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
+                    on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
+                    join: Column::DataTypeConversionAggregation(
+                        DataTypeConversionAggregation::SourceDataTypeOntologyId,
+                    ),
+                    join_type: JoinType::LeftOuter,
+                })
+            }
             Self::DataTypeEmbeddings => {
                 ForeignKeyJoin::from_reference(ForeignKeyReference::Single {
                     on: Column::OntologyTemporalMetadata(OntologyTemporalMetadata::OntologyId),
@@ -2013,8 +2087,10 @@ impl Relation {
 
 #[cfg(test)]
 mod tests {
+    use hash_graph_store::data_type::DataTypeQueryPath;
+
     use super::*;
-    use crate::{ontology::DataTypeQueryPath, store::postgres::query::PostgresQueryPath};
+    use crate::store::postgres::query::PostgresQueryPath;
 
     #[test]
     fn transpile_table() {

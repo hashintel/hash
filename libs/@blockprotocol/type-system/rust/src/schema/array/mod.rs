@@ -2,15 +2,17 @@ mod raw;
 
 use serde::{Deserialize, Serialize, Serializer};
 
+use crate::schema::{OneOfSchema, PropertyType, PropertyValues};
+
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
-#[serde(from = "raw::ArraySchema<T>")]
-pub struct ArraySchema<T> {
+#[serde(from = "raw::PropertyValueArray<T>")]
+pub struct PropertyValueArray<T> {
     pub items: T,
     pub min_items: Option<usize>,
     pub max_items: Option<usize>,
 }
 
-impl<T> Serialize for ArraySchema<T>
+impl<T> Serialize for PropertyValueArray<T>
 where
     T: Serialize,
 {
@@ -28,5 +30,39 @@ where
 #[serde(untagged)]
 pub enum ValueOrArray<T> {
     Value(T),
-    Array(ArraySchema<T>),
+    Array(PropertyValueArray<T>),
+}
+
+pub trait PropertyArraySchema {
+    fn possibilities(&self) -> &[PropertyValues];
+    fn min_items(&self) -> Option<usize>;
+    fn max_items(&self) -> Option<usize>;
+}
+
+impl PropertyArraySchema for PropertyValueArray<OneOfSchema<PropertyValues>> {
+    fn possibilities(&self) -> &[PropertyValues] {
+        &self.items.possibilities
+    }
+
+    fn min_items(&self) -> Option<usize> {
+        self.min_items
+    }
+
+    fn max_items(&self) -> Option<usize> {
+        self.max_items
+    }
+}
+
+impl PropertyArraySchema for PropertyValueArray<&PropertyType> {
+    fn possibilities(&self) -> &[PropertyValues] {
+        &self.items.one_of
+    }
+
+    fn min_items(&self) -> Option<usize> {
+        self.min_items
+    }
+
+    fn max_items(&self) -> Option<usize> {
+        self.max_items
+    }
 }

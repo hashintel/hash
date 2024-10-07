@@ -1,9 +1,9 @@
 use core::{net::SocketAddr, time::Duration};
 
 use authorization::{
+    AuthorizationApi,
     backend::{SpiceDbOpenApi, ZanzibarBackend},
     zanzibar::ZanzibarClient,
-    AuthorizationApi,
 };
 use clap::Parser;
 use error_stack::{Result, ResultExt};

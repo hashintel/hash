@@ -33,10 +33,10 @@ fn parse_experiment(description: &str) -> Result<Vec<(u64, u64)>, ParseExperimen
 
                 Ok(accum)
             }
-            (Ok(_), Err(err)) => Err(err),
+            (Ok(_), Err(err)) => Err(err.expand()),
             (Err(accum), Ok(_)) => Err(accum),
             (Err(mut accum), Err(err)) => {
-                accum.extend_one(err);
+                accum.push(err);
 
                 Err(accum)
             }
@@ -64,7 +64,7 @@ impl Context for ExperimentError {}
 fn start_experiments(
     experiment_ids: &[usize],
     experiment_descriptions: &[&str],
-) -> Result<Vec<u64>, ExperimentError> {
+) -> Result<Vec<u64>, [ExperimentError]> {
     let experiments = experiment_ids
         .iter()
         .map(|exp_id| {
@@ -79,23 +79,23 @@ fn start_experiments(
 
             let experiments = experiments
                 .into_iter()
-                .map(|(a, b)| move || a * b)
+                .map(|(lhs, rhs)| move || lhs * rhs)
                 .collect::<Vec<_>>();
 
             Ok(experiments)
         })
         .fold(
             Ok(vec![]),
-            |accum: Result<_, ExperimentError>, value| match (accum, value) {
+            |accum, value: Result<_, ExperimentError>| match (accum, value) {
                 (Ok(mut accum), Ok(value)) => {
                     accum.extend(value);
 
                     Ok(accum)
                 }
-                (Ok(_), Err(err)) => Err(err),
+                (Ok(_), Err(err)) => Err(err.expand()),
                 (Err(accum), Ok(_)) => Err(accum),
                 (Err(mut accum), Err(err)) => {
-                    accum.extend_one(err);
+                    accum.push(err);
 
                     Err(accum)
                 }
@@ -106,7 +106,7 @@ fn start_experiments(
     Ok(experiments.iter().map(|experiment| experiment()).collect())
 }
 
-fn main() -> Result<(), ExperimentError> {
+fn main() -> Result<(), [ExperimentError]> {
     let experiment_ids = &[0, 2, 3];
     let experiment_descriptions = &["10", "20", "3o 4a"];
     start_experiments(experiment_ids, experiment_descriptions)?;

@@ -1,9 +1,10 @@
 import type {
-  ArraySchema,
+  DataType,
   EntityType,
-  ObjectSchema,
   OneOfSchema,
   PropertyType,
+  PropertyValueArray,
+  PropertyValueObject,
   PropertyValues,
   ValueOrArray,
   VersionedUrl,
@@ -12,7 +13,6 @@ import { atLeastOne, extractVersion } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
 import type {
   BaseUrl,
-  CustomDataType,
   EntityTypeMetadata,
 } from "@local/hash-graph-types/ontology";
 import type { Subgraph } from "@local/hash-subgraph";
@@ -29,16 +29,16 @@ import {
 
 import { generateSimplifiedTypeId } from "../infer-entities/shared/generate-simplified-type-id.js";
 
-type MinimalDataType = Omit<CustomDataType, "$id" | "$schema" | "kind">;
+type MinimalDataType = Omit<DataType, "$id" | "$schema" | "kind" | "allOf">;
 
-type MinimalPropertyObject = ObjectSchema<
+type MinimalPropertyObject = PropertyValueObject<
   ValueOrArray<DereferencedPropertyType>
 > & { additionalProperties: false };
 
 export type MinimalPropertyTypeValue =
   | MinimalDataType
   | MinimalPropertyObject
-  | ArraySchema<OneOfSchema<MinimalPropertyTypeValue>>;
+  | PropertyValueArray<OneOfSchema<MinimalPropertyTypeValue>>;
 
 export type DereferencedPropertyType = Pick<
   PropertyType,
@@ -46,15 +46,27 @@ export type DereferencedPropertyType = Pick<
 > &
   OneOfSchema<MinimalPropertyTypeValue>;
 
+/**
+ * An entity type with all its dependencies dereferenced and their simplified schemas in-lined.
+ *
+ * If the dereference function is called with `simplifyPropertyKeys` set to `true`, the property keys in the schema
+ * will be simplified from BaseUrls to simple strings. The mapping back to BaseUrls is returned from the function
+ */
 export type DereferencedEntityType<
   PropertyTypeKey extends string | BaseUrl = BaseUrl,
 > = Pick<EntityType, "$id" | "description" | "links" | "required" | "title"> & {
   properties: Record<
     PropertyTypeKey,
-    DereferencedPropertyType | ArraySchema<DereferencedPropertyType>
+    DereferencedPropertyType | PropertyValueArray<DereferencedPropertyType>
   >;
   additionalProperties: false;
 } & Pick<EntityTypeMetadata, "labelProperty">;
+
+export type DereferencedEntityTypeWithSimplifiedKeys = {
+  isLink: boolean;
+  schema: DereferencedEntityType<string>;
+  simplifiedPropertyTypeMappings: Record<string, BaseUrl>;
+};
 
 const dereferencePropertyTypeValue = (params: {
   valueReference: PropertyValues;
@@ -258,6 +270,8 @@ const dereferencePropertyType = (params: {
  * 3. property types and data types which its property types refer to
 
  * Does not dereference 'links', because 'links' is not an expected part of the data object the dereferenced schema describes.
+ *
+ * If called with `simplifyPropertyKeys` set to `true`, the property keys in the schema will be simplified from BaseUrls to simple strings. The mapping back to BaseUrls is returned as simplifiedPropertyTypeMappings.
  *
  * See the associated .test.ts file for example input/output
  */

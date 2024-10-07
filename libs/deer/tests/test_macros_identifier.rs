@@ -1,9 +1,10 @@
 use deer::identifier;
-use deer_desert::{assert_tokens, assert_tokens_error, error, Token};
+use deer_desert::{Token, assert_tokens, assert_tokens_error, error};
 use serde_json::json;
 
 identifier! {
     #[derive(PartialEq, Eq)]
+    #[expect(clippy::min_ident_chars, reason = "We always refer to them by Ident::")]
     pub enum Ident {
         A = "a" | b"a" | 0,
         B = "b" | b"b" | 1,
@@ -13,6 +14,7 @@ identifier! {
 
 identifier! {
     #[derive(PartialEq, Eq)]
+    #[expect(clippy::min_ident_chars, reason = "We always refer to them by IdentSelect::")]
     pub enum IdentSelect {
         A = "a" | _ | _,
         B = _ | b"b" | _,

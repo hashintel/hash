@@ -1,0 +1,11 @@
+---
+source: libs/@local/hql/syntax-jexpr/src/lexer/mod.rs
+expression: "\"hello"
+---
+[31m[jexpr::lexing::invalid-string] Error:[0m Invalid String Literal
+   ╭─[<unknown>:1:1]
+   │
+ 1 │ "hello
+   │       │ 
+   │       ╰─ Unterminated string literal
+───╯

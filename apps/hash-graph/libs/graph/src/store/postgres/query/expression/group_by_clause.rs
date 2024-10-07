@@ -27,11 +27,10 @@ impl Transpile for GroupByExpression {
 
 #[cfg(test)]
 mod tests {
+    use hash_graph_store::entity::EntityQueryPath;
+
     use super::*;
-    use crate::{
-        knowledge::EntityQueryPath,
-        store::postgres::query::{Alias, PostgresQueryPath},
-    };
+    use crate::store::postgres::query::{Alias, PostgresQueryPath};
 
     #[test]
     fn order_one() {

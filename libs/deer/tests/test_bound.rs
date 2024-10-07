@@ -1,13 +1,14 @@
 #![expect(clippy::panic_in_result_fn)]
+#![expect(clippy::min_ident_chars, reason = "Simplifies test cases")]
 
 use deer::{
-    error::{ArrayAccessError, DeserializeError, ObjectAccessError, VisitorError},
-    schema::Reference,
     ArrayAccess, Deserialize, Deserializer, Document, ObjectAccess, Reflection, Schema, Visitor,
+    error::{DeserializeError, VisitorError},
+    schema::Reference,
 };
-use deer_desert::{assert_tokens, assert_tokens_error, error, Token};
-use error_stack::{Result, ResultExt};
-use serde::{ser::SerializeMap, Serialize, Serializer};
+use deer_desert::{Token, assert_tokens, assert_tokens_error, error};
+use error_stack::{ReportSink, Result, ResultExt};
+use serde::{Serialize, Serializer, ser::SerializeMap};
 use serde_json::json;
 
 struct Properties<const N: usize>([(&'static str, Reference); N]);
@@ -61,7 +62,7 @@ impl<'de> Visitor<'de> for ArrayStatsVisitor {
         let mut array = array.into_bound(3).change_context(VisitorError)?;
         let mut stats = ArrayStats { total: 0, some: 0 };
 
-        let mut errors: Result<(), ArrayAccessError> = Ok(());
+        let mut errors = ReportSink::new();
 
         while let Some(value) = array.next::<Option<u8>>() {
             match value {
@@ -72,21 +73,19 @@ impl<'de> Visitor<'de> for ArrayStatsVisitor {
                         stats.some += 1;
                     }
                 }
-                Err(error) => match &mut errors {
-                    Err(errors) => errors.extend_one(error),
-                    errors => *errors = Err(error),
-                },
+                Err(error) => {
+                    errors.append(error);
+                }
             }
         }
 
         let error = array.end();
 
-        match (errors, error) {
-            (Err(errors), Ok(())) | (Ok(()), Err(errors)) => {
-                Err(errors.change_context(VisitorError))
-            }
+        match (errors.finish(), error) {
+            (Err(errors), Ok(())) => Err(errors.change_context(VisitorError)),
+            (Ok(()), Err(errors)) => Err(errors.change_context(VisitorError)),
             (Err(mut errors), Err(error)) => {
-                errors.extend_one(error);
+                errors.push(error);
 
                 Err(errors.change_context(VisitorError))
             }
@@ -107,29 +106,23 @@ impl<'de> Deserialize<'de> for ArrayStats {
 
 #[test]
 fn array_access_ok() {
-    assert_tokens(
-        &ArrayStats { total: 3, some: 3 },
-        &[
-            Token::Array { length: Some(3) },
-            Token::Number(0.into()),
-            Token::Number(0.into()),
-            Token::Number(0.into()),
-            Token::ArrayEnd,
-        ],
-    );
+    assert_tokens(&ArrayStats { total: 3, some: 3 }, &[
+        Token::Array { length: Some(3) },
+        Token::Number(0.into()),
+        Token::Number(0.into()),
+        Token::Number(0.into()),
+        Token::ArrayEnd,
+    ]);
 }
 
 #[test]
 fn array_access_not_enough_ok() {
-    assert_tokens(
-        &ArrayStats { total: 3, some: 2 },
-        &[
-            Token::Array { length: Some(3) },
-            Token::Number(0.into()),
-            Token::Number(0.into()),
-            Token::ArrayEnd,
-        ],
-    );
+    assert_tokens(&ArrayStats { total: 3, some: 2 }, &[
+        Token::Array { length: Some(3) },
+        Token::Number(0.into()),
+        Token::Number(0.into()),
+        Token::ArrayEnd,
+    ]);
 }
 
 #[test]
@@ -275,7 +268,7 @@ impl<'de> Visitor<'de> for ObjectStatsVisitor {
             none: 0,
         };
 
-        let mut errors: Result<(), ObjectAccessError> = Ok(());
+        let mut errors = ReportSink::new();
 
         while let Some(value) = object.next::<Option<&str>, Option<()>>() {
             match value {
@@ -292,21 +285,19 @@ impl<'de> Visitor<'de> for ObjectStatsVisitor {
                         None => stats.none += 1,
                     }
                 }
-                Err(error) => match &mut errors {
-                    Err(errors) => errors.extend_one(error),
-                    errors => *errors = Err(error),
-                },
+                Err(error) => {
+                    errors.append(error);
+                }
             }
         }
 
         let error = object.end();
 
-        match (errors, error) {
-            (Err(errors), Ok(())) | (Ok(()), Err(errors)) => {
-                Err(errors.change_context(VisitorError))
-            }
+        match (errors.finish(), error) {
+            (Err(errors), Ok(())) => Err(errors.change_context(VisitorError)),
+            (Ok(()), Err(errors)) => Err(errors.change_context(VisitorError)),
             (Err(mut errors), Err(error)) => {
-                errors.extend_one(error);
+                errors.push(error);
 
                 Err(errors.change_context(VisitorError))
             }

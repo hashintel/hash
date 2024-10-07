@@ -1,15 +1,44 @@
 use alloc::borrow::Cow;
+use core::{
+    borrow::Borrow,
+    hash::{Hash, Hasher},
+};
 
 use hql_span::SpanId;
 use json_number::Number;
 
-use crate::{arena, Spanned};
+use crate::{Spanned, arena};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Entry<'arena, 'source> {
-    pub key_span: SpanId,
+/// Key of an object
+///
+/// This not only contains the value of the key, but also the span of the key, to properly guard
+/// against duplicate keys at a later stage, indexing is done through value, therefore all
+/// implementations of the key of the notable needed traits ([`PartialEq`], [`Eq`], [`Hash`],
+/// [`Borrow`]) ignore the span.
+#[derive(Debug, Clone)]
+pub struct ObjectKey<'source> {
+    pub span: SpanId,
+    pub value: Cow<'source, str>,
+}
 
-    pub value: Value<'arena, 'source>,
+impl<'source> PartialEq for ObjectKey<'source> {
+    fn eq(&self, other: &Self) -> bool {
+        self.value == other.value
+    }
+}
+
+impl<'source> Eq for ObjectKey<'source> {}
+
+impl<'source> Hash for ObjectKey<'source> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.value.hash(state);
+    }
+}
+
+impl Borrow<str> for ObjectKey<'_> {
+    fn borrow(&self) -> &str {
+        &self.value
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -30,7 +59,7 @@ pub enum ValueKind<'arena, 'source> {
     Array(arena::Vec<'arena, Value<'arena, 'source>>),
 
     /// Represents a JSON object
-    Object(arena::HashMap<'arena, Cow<'source, str>, Entry<'arena, 'source>>),
+    Object(arena::HashMap<'arena, ObjectKey<'source>, Value<'arena, 'source>>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

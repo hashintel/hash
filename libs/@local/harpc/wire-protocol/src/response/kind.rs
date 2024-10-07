@@ -124,12 +124,9 @@ mod test {
 
     #[test]
     fn encode() {
-        assert_encode::<ResponseKind>(
-            &ResponseKind::Ok,
-            expect![[r#"
+        assert_encode::<ResponseKind>(&ResponseKind::Ok, expect![[r#"
                 0x00 0x00
-            "#]],
-        );
+            "#]]);
     }
 
     #[test]

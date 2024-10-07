@@ -9,18 +9,17 @@ use graph_types::{
         PropertyTypeWithMetadata,
     },
 };
+use hash_graph_store::{
+    data_type::DataTypeQueryPath,
+    entity::EntityQueryPath,
+    entity_type::EntityTypeQueryPath,
+    filter::{Filter, FilterExpression, ParameterList},
+    property_type::PropertyTypeQueryPath,
+    subgraph::{Subgraph, SubgraphRecord, edges::GraphResolveDepths, temporal_axes::VariableAxis},
+};
 use temporal_versioning::RightBoundedTemporalInterval;
 
-use crate::{
-    knowledge::EntityQueryPath,
-    ontology::{DataTypeQueryPath, EntityTypeQueryPath, PropertyTypeQueryPath},
-    store::{
-        crud::Read,
-        query::{Filter, FilterExpression, ParameterList},
-        AsClient, PostgresStore, QueryError, SubgraphRecord,
-    },
-    subgraph::{edges::GraphResolveDepths, temporal_axes::VariableAxis, Subgraph},
-};
+use crate::store::{AsClient, PostgresStore, QueryError, crud::Read};
 
 impl<C, A> PostgresStore<C, A>
 where
@@ -36,7 +35,9 @@ where
         for data_type in <Self as Read<DataTypeWithMetadata>>::read_vec(
             self,
             &Filter::<DataTypeWithMetadata>::In(
-                FilterExpression::Path(DataTypeQueryPath::OntologyId),
+                FilterExpression::Path {
+                    path: DataTypeQueryPath::OntologyId,
+                },
                 ParameterList::DataTypeIds(data_type_ids),
             ),
             Some(&subgraph.temporal_axes.resolved),
@@ -62,7 +63,9 @@ where
         for property_type in <Self as Read<PropertyTypeWithMetadata>>::read_vec(
             self,
             &Filter::<PropertyTypeWithMetadata>::In(
-                FilterExpression::Path(PropertyTypeQueryPath::OntologyId),
+                FilterExpression::Path {
+                    path: PropertyTypeQueryPath::OntologyId,
+                },
                 ParameterList::PropertyTypeIds(property_type_ids),
             ),
             Some(&subgraph.temporal_axes.resolved),
@@ -88,7 +91,9 @@ where
         for entity_type in <Self as Read<EntityTypeWithMetadata>>::read_vec(
             self,
             &Filter::<EntityTypeWithMetadata>::In(
-                FilterExpression::Path(EntityTypeQueryPath::OntologyId),
+                FilterExpression::Path {
+                    path: EntityTypeQueryPath::OntologyId,
+                },
                 ParameterList::EntityTypeIds(entity_type_ids),
             ),
             Some(&subgraph.temporal_axes.resolved),
@@ -115,7 +120,9 @@ where
         let entities = <Self as Read<Entity>>::read_vec(
             self,
             &Filter::<Entity>::In(
-                FilterExpression::Path(EntityQueryPath::EditionId),
+                FilterExpression::Path {
+                    path: EntityQueryPath::EditionId,
+                },
                 ParameterList::EntityEditionIds(edition_ids),
             ),
             Some(&subgraph.temporal_axes.resolved),

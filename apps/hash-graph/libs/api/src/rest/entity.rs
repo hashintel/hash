@@ -1,8 +1,10 @@
 //! Web routes for CRU operations on entities.
 
 use alloc::sync::Arc;
+use std::collections::HashMap;
 
 use authorization::{
+    AuthorizationApi, AuthorizationApiPool,
     backend::{ModifyRelationshipOperation, PermissionAssertion},
     schema::{
         EntityAdministratorSubject, EntityEditorSubject, EntityOwnerSubject, EntityPermission,
@@ -10,33 +12,30 @@ use authorization::{
         EntityViewerSubject, WebOwnerSubject,
     },
     zanzibar::Consistency,
-    AuthorizationApi, AuthorizationApiPool,
 };
 use axum::{
+    Extension, Router,
     extract::Path,
     http::StatusCode,
     response::Response,
     routing::{get, post},
-    Extension, Router,
 };
 use error_stack::{Report, ResultExt};
-use graph::{
-    knowledge::{EntityQueryPath, EntityQuerySortingToken, EntityQueryToken},
-    store::{
-        error::{EntityDoesNotExist, RaceConditionOnUpdate},
-        knowledge::{
-            CountEntitiesParams, CreateEntityRequest, DiffEntityParams, DiffEntityResult,
-            GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams, PatchEntityParams,
-            UpdateEntityEmbeddingsParams, ValidateEntityParams,
-        },
-        query::Filter,
-        AccountStore, EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
-        EntityValidationType, NullOrdering, Ordering, StorePool,
+use graph::store::{
+    EntityQueryCursor, EntityQuerySorting, EntityQuerySortingRecord, EntityStore,
+    EntityValidationType, NullOrdering, Ordering, StorePool,
+    error::{EntityDoesNotExist, RaceConditionOnUpdate},
+    knowledge::{
+        CountEntitiesParams, CreateEntityRequest, DiffEntityParams, DiffEntityResult,
+        GetEntitiesParams, GetEntitiesResponse, GetEntitySubgraphParams, PatchEntityParams,
+        QueryConversion, UpdateEntityEmbeddingsParams, ValidateEntityParams,
     },
-    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
 use graph_types::{
+    Embedding,
+    account::{CreatedById, EditionCreatedById},
     knowledge::{
+        Confidence, EntityTypeIdDiff,
         entity::{
             ActorType, Entity, EntityEditionId, EntityEditionProvenance, EntityEmbedding, EntityId,
             EntityMetadata, EntityProvenance, EntityRecordId, EntityTemporalMetadata, EntityUuid,
@@ -44,22 +43,31 @@ use graph_types::{
             SourceProvenance, SourceType,
         },
         link::LinkData,
-        ArrayMetadata, Confidence, EntityTypeIdDiff, ObjectMetadata, Property, PropertyDiff,
-        PropertyMetadata, PropertyMetadataObject, PropertyObject, PropertyPatchOperation,
-        PropertyPath, PropertyPathElement, PropertyProvenance, PropertyWithMetadata,
-        PropertyWithMetadataObject, ValueMetadata,
+        property::{
+            ArrayMetadata, ObjectMetadata, Property, PropertyDiff, PropertyMetadata,
+            PropertyMetadataObject, PropertyObject, PropertyPatchOperation, PropertyPath,
+            PropertyPathElement, PropertyProvenance, PropertyWithMetadata,
+            PropertyWithMetadataArray, PropertyWithMetadataObject, PropertyWithMetadataValue,
+            ValueMetadata,
+        },
     },
     owned_by_id::OwnedById,
-    Embedding,
+};
+use hash_graph_store::{
+    account::AccountStore,
+    entity::{EntityQueryPath, EntityQuerySortingToken, EntityQueryToken},
+    filter::Filter,
+    subgraph::{edges::GraphResolveDepths, temporal_axes::QueryTemporalAxesUnresolved},
 };
 use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
+use type_system::url::VersionedUrl;
 use utoipa::{OpenApi, ToSchema};
 use validation::ValidateEntityComponents;
 
 use crate::rest::{
-    api_resource::RoutedResource, json::Json, status::report_to_response,
-    utoipa_typedef::subgraph::Subgraph, AuthenticatedUserHeader, PermissionResponse,
+    AuthenticatedUserHeader, PermissionResponse, api_resource::RoutedResource, json::Json,
+    status::report_to_response, utoipa_typedef::subgraph::Subgraph,
 };
 
 #[derive(OpenApi)]
@@ -88,6 +96,8 @@ use crate::rest::{
         schemas(
             CreateEntityRequest,
             PropertyWithMetadata,
+            PropertyWithMetadataValue,
+            PropertyWithMetadataArray,
             PropertyWithMetadataObject,
             ValidateEntityParams,
             CountEntitiesParams,
@@ -122,6 +132,7 @@ use crate::rest::{
             EntityQuerySortingToken,
             GetEntitiesResponse,
             GetEntitySubgraphResponse,
+            QueryConversion,
 
             Entity,
             Property,
@@ -248,7 +259,9 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let params = CreateEntityRequest::deserialize(&body).map_err(report_to_response)?;
+    let params = CreateEntityRequest::deserialize(&body)
+        .map_err(Report::from)
+        .map_err(report_to_response)?;
 
     let authorization_api = authorization_api_pool
         .acquire()
@@ -298,7 +311,9 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let params = Vec::<CreateEntityRequest>::deserialize(&body).map_err(report_to_response)?;
+    let params = Vec::<CreateEntityRequest>::deserialize(&body)
+        .map_err(Report::from)
+        .map_err(report_to_response)?;
 
     let authorization_api = authorization_api_pool
         .acquire()
@@ -348,7 +363,9 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    let params = ValidateEntityParams::deserialize(&body).map_err(report_to_response)?;
+    let params = ValidateEntityParams::deserialize(&body)
+        .map_err(Report::from)
+        .map_err(report_to_response)?;
 
     let authorization_api = authorization_api_pool
         .acquire()
@@ -447,21 +464,46 @@ fn generate_sorting_paths(
                 }
             },
             |mut paths| {
-                paths.push(EntityQuerySortingRecord {
-                    path: temporal_axes_sorting_path.clone(),
-                    ordering: Ordering::Descending,
-                    nulls: None,
-                });
-                paths.push(EntityQuerySortingRecord {
-                    path: EntityQueryPath::Uuid,
-                    ordering: Ordering::Ascending,
-                    nulls: None,
-                });
-                paths.push(EntityQuerySortingRecord {
-                    path: EntityQueryPath::OwnedById,
-                    ordering: Ordering::Ascending,
-                    nulls: None,
-                });
+                let mut has_temporal_axis = false;
+                let mut has_uuid = false;
+                let mut has_owned_by_id = false;
+
+                for path in &paths {
+                    if path.path == EntityQueryPath::TransactionTime
+                        || path.path == EntityQueryPath::DecisionTime
+                    {
+                        has_temporal_axis = true;
+                    }
+                    if path.path == EntityQueryPath::Uuid {
+                        has_uuid = true;
+                    }
+                    if path.path == EntityQueryPath::OwnedById {
+                        has_owned_by_id = true;
+                    }
+                }
+
+                if !has_temporal_axis {
+                    paths.push(EntityQuerySortingRecord {
+                        path: temporal_axes_sorting_path.clone(),
+                        ordering: Ordering::Descending,
+                        nulls: None,
+                    });
+                }
+                if !has_uuid {
+                    paths.push(EntityQuerySortingRecord {
+                        path: EntityQueryPath::Uuid,
+                        ordering: Ordering::Ascending,
+                        nulls: None,
+                    });
+                }
+                if !has_owned_by_id {
+                    paths.push(EntityQuerySortingRecord {
+                        path: EntityQueryPath::OwnedById,
+                        ordering: Ordering::Ascending,
+                        nulls: None,
+                    });
+                }
+
                 paths
             },
         )
@@ -477,18 +519,32 @@ fn generate_sorting_paths(
 
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "Parameter struct deserialized from JSON"
+)]
 struct GetEntitiesRequest<'q, 's, 'p> {
     #[serde(borrow)]
     filter: Filter<'q, Entity>,
     temporal_axes: QueryTemporalAxesUnresolved,
     include_drafts: bool,
     limit: Option<usize>,
+    #[serde(borrow, default)]
+    conversions: Vec<QueryConversion<'p>>,
     #[serde(borrow)]
     sorting_paths: Option<Vec<EntityQuerySortingRecord<'p>>>,
     #[serde(borrow)]
     cursor: Option<EntityQueryCursor<'s>>,
     #[serde(default)]
     include_count: bool,
+    #[serde(default)]
+    include_web_ids: bool,
+    #[serde(default)]
+    include_created_by_ids: bool,
+    #[serde(default)]
+    include_edition_created_by_ids: bool,
+    #[serde(default)]
+    include_type_ids: bool,
 }
 
 #[utoipa::path(
@@ -537,35 +593,38 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let mut request = GetEntitiesRequest::deserialize(&request).map_err(report_to_response)?;
-    request
-        .filter
-        .convert_parameters()
+    let request = GetEntitiesRequest::deserialize(&request)
+        .map_err(Report::from)
         .map_err(report_to_response)?;
-
     store
-        .get_entities(
-            actor_id,
-            GetEntitiesParams {
-                filter: request.filter,
-                sorting: generate_sorting_paths(
-                    request.sorting_paths,
-                    request.limit,
-                    request.cursor,
-                    &request.temporal_axes,
-                ),
-                limit: request.limit,
-                include_drafts: request.include_drafts,
-                include_count: request.include_count,
-                temporal_axes: request.temporal_axes,
-            },
-        )
+        .get_entities(actor_id, GetEntitiesParams {
+            filter: request.filter,
+            sorting: generate_sorting_paths(
+                request.sorting_paths,
+                request.limit,
+                request.cursor,
+                &request.temporal_axes,
+            ),
+            limit: request.limit,
+            conversions: request.conversions,
+            include_drafts: request.include_drafts,
+            include_count: request.include_count,
+            temporal_axes: request.temporal_axes,
+            include_web_ids: request.include_web_ids,
+            include_created_by_ids: request.include_created_by_ids,
+            include_edition_created_by_ids: request.include_edition_created_by_ids,
+            include_type_ids: request.include_type_ids,
+        })
         .await
         .map(|response| {
             Json(GetEntitiesResponse {
                 entities: response.entities,
                 cursor: response.cursor.map(EntityQueryCursor::into_owned),
                 count: response.count,
+                web_ids: response.web_ids,
+                created_by_ids: response.created_by_ids,
+                edition_created_by_ids: response.edition_created_by_ids,
+                type_ids: response.type_ids,
             })
         })
         .map_err(report_to_response)
@@ -573,6 +632,10 @@ where
 
 #[derive(Debug, Deserialize, ToSchema)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "Parameter struct deserialized from JSON"
+)]
 struct GetEntitySubgraphRequest<'q, 's, 'p> {
     #[serde(borrow)]
     filter: Filter<'q, Entity>,
@@ -580,12 +643,22 @@ struct GetEntitySubgraphRequest<'q, 's, 'p> {
     temporal_axes: QueryTemporalAxesUnresolved,
     include_drafts: bool,
     limit: Option<usize>,
+    #[serde(borrow, default)]
+    conversions: Vec<QueryConversion<'p>>,
     #[serde(borrow)]
     sorting_paths: Option<Vec<EntityQuerySortingRecord<'p>>>,
     #[serde(borrow)]
     cursor: Option<EntityQueryCursor<'s>>,
     #[serde(default)]
     include_count: bool,
+    #[serde(default)]
+    include_web_ids: bool,
+    #[serde(default)]
+    include_created_by_ids: bool,
+    #[serde(default)]
+    include_edition_created_by_ids: bool,
+    #[serde(default)]
+    include_type_ids: bool,
 }
 
 #[derive(Serialize, ToSchema)]
@@ -595,6 +668,18 @@ struct GetEntitySubgraphResponse<'r> {
     #[serde(borrow)]
     cursor: Option<EntityQueryCursor<'r>>,
     count: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    web_ids: Option<HashMap<OwnedById, usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    created_by_ids: Option<HashMap<CreatedById, usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    edition_created_by_ids: Option<HashMap<EditionCreatedById, usize>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    #[schema(nullable = false)]
+    type_ids: Option<HashMap<VersionedUrl, usize>>,
 }
 
 #[utoipa::path(
@@ -643,37 +728,39 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let mut request =
-        GetEntitySubgraphRequest::deserialize(&request).map_err(report_to_response)?;
-    request
-        .filter
-        .convert_parameters()
+    let request = GetEntitySubgraphRequest::deserialize(&request)
+        .map_err(Report::from)
         .map_err(report_to_response)?;
-
     store
-        .get_entity_subgraph(
-            actor_id,
-            GetEntitySubgraphParams {
-                filter: request.filter,
-                sorting: generate_sorting_paths(
-                    request.sorting_paths,
-                    request.limit,
-                    request.cursor,
-                    &request.temporal_axes,
-                ),
-                limit: request.limit,
-                graph_resolve_depths: request.graph_resolve_depths,
-                include_drafts: request.include_drafts,
-                include_count: request.include_count,
-                temporal_axes: request.temporal_axes,
-            },
-        )
+        .get_entity_subgraph(actor_id, GetEntitySubgraphParams {
+            filter: request.filter,
+            sorting: generate_sorting_paths(
+                request.sorting_paths,
+                request.limit,
+                request.cursor,
+                &request.temporal_axes,
+            ),
+            limit: request.limit,
+            conversions: request.conversions,
+            graph_resolve_depths: request.graph_resolve_depths,
+            include_drafts: request.include_drafts,
+            include_count: request.include_count,
+            temporal_axes: request.temporal_axes,
+            include_web_ids: request.include_web_ids,
+            include_created_by_ids: request.include_created_by_ids,
+            include_edition_created_by_ids: request.include_edition_created_by_ids,
+            include_type_ids: request.include_type_ids,
+        })
         .await
         .map(|response| {
             Json(GetEntitySubgraphResponse {
                 subgraph: response.subgraph.into(),
                 cursor: response.cursor.map(EntityQueryCursor::into_owned),
                 count: response.count,
+                web_ids: response.web_ids,
+                created_by_ids: response.created_by_ids,
+                edition_created_by_ids: response.edition_created_by_ids,
+                type_ids: response.type_ids,
             })
         })
         .map_err(report_to_response)
@@ -723,14 +810,13 @@ where
         .await
         .map_err(report_to_response)?;
 
-    let mut query = CountEntitiesParams::deserialize(&request).map_err(report_to_response)?;
-    query
-        .filter
-        .convert_parameters()
-        .map_err(report_to_response)?;
-
     store
-        .count_entities(actor_id, query)
+        .count_entities(
+            actor_id,
+            CountEntitiesParams::deserialize(&request)
+                .map_err(Report::from)
+                .map_err(report_to_response)?,
+        )
         .await
         .map(Json)
         .map_err(report_to_response)

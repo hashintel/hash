@@ -3,27 +3,27 @@ use alloc::borrow::Cow;
 use error_stack::{Result, ResultExt};
 use futures::{Stream, StreamExt};
 use graph_types::ontology::{EntityTypeId, EntityTypeWithMetadata};
+use hash_graph_store::{
+    entity_type::EntityTypeQueryPath,
+    filter::Filter,
+    subgraph::{
+        edges::GraphResolveDepths,
+        temporal_axes::{QueryTemporalAxes, VariableAxis},
+    },
+};
 use postgres_types::Json;
 use temporal_versioning::RightBoundedTemporalInterval;
 use tokio_postgres::GenericClient;
 use type_system::{schema::ClosedEntityType, url::VersionedUrl};
 
-use crate::{
-    ontology::EntityTypeQueryPath,
-    store::{
-        postgres::{
-            ontology::OntologyId,
-            query::{
-                table::DatabaseColumn, Distinctness, ForeignKeyReference, ReferenceTable,
-                SelectCompiler, Table, Transpile,
-            },
+use crate::store::{
+    AsClient, PostgresStore, QueryError,
+    postgres::{
+        ontology::OntologyId,
+        query::{
+            Distinctness, ForeignKeyReference, ReferenceTable, SelectCompiler, Table, Transpile,
+            table::DatabaseColumn,
         },
-        query::Filter,
-        AsClient, PostgresStore, QueryError,
-    },
-    subgraph::{
-        edges::GraphResolveDepths,
-        temporal_axes::{QueryTemporalAxes, VariableAxis},
     },
 };
 
@@ -161,22 +161,19 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
                     unreachable!("invalid index: {error}")
                 });
                 let right_endpoint_ontology_id = row.get(5);
-                (
+                (right_endpoint_ontology_id, OntologyEdgeTraversal {
+                    left_endpoint: L::from(VersionedUrl {
+                        base_url: row.get(1),
+                        version: row.get(2),
+                    }),
+                    right_endpoint: R::from(VersionedUrl {
+                        base_url: row.get(3),
+                        version: row.get(4),
+                    }),
                     right_endpoint_ontology_id,
-                    OntologyEdgeTraversal {
-                        left_endpoint: L::from(VersionedUrl {
-                            base_url: row.get(1),
-                            version: row.get(2),
-                        }),
-                        right_endpoint: R::from(VersionedUrl {
-                            base_url: row.get(3),
-                            version: row.get(4),
-                        }),
-                        right_endpoint_ontology_id,
-                        resolve_depths: record_ids.resolve_depths[index],
-                        traversal_interval: record_ids.traversal_intervals[index],
-                    },
-                )
+                    resolve_depths: record_ids.resolve_depths[index],
+                    traversal_interval: record_ids.traversal_intervals[index],
+                })
             }))
     }
 }

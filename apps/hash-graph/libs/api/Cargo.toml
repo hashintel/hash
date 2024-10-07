@@ -9,52 +9,52 @@ publish.workspace = true
 authors.workspace = true
 description = "HASH Graph API"
 
-[package.metadata.sync.turborepo]
-extra-dependencies = [
-    { name = "@apps/hash-graph-type-defs", version = "0.0.0-private" },
-]
+[[bin]]
+name = "openapi-spec-generator"
+path = "src/bin/openapi-spec-generator.rs"
 
 [dependencies]
+# Public workspace dependencies
+authorization = { workspace = true, public = true }
+graph = { workspace = true, public = true, features = ["utoipa"] }
+graph-types = { workspace = true, public = true, features = ["utoipa"] }
+hash-graph-store = { workspace = true, features = ["utoipa"] }
+temporal-client = { workspace = true, public = true }
+
+# Public third-party dependencies
+axum = { workspace = true, public = true }
+axum-core = { workspace = true, public = true }
+http = { workspace = true, public = true }
+tower-http = { workspace = true, public = true }
+tracing = { workspace = true, public = true }
+
+# Private workspace dependencies
+error-stack = { workspace = true, features = ["spantrace"] }
+graph-type-defs = { workspace = true }
 hash-status = { workspace = true }
-graph = { workspace = true, features = ["utoipa"] }
-graph-types = { workspace = true, features = ["utoipa"] }
-hash-tracing = { workspace = true }
-temporal-client = { workspace = true }
 temporal-versioning = { workspace = true }
-authorization = { workspace = true }
 type-system = { workspace = true, features = ["utoipa"] }
 validation = { workspace = true, features = ["utoipa"] }
-codec = { workspace = true, optional = true }
 
-async-trait = "0.1.81"
-axum = "0.7.5"
-base64 = "0.22.1"
-bytes = "1.6.0"
-error-stack = { workspace = true }
-futures = { workspace = true }
-http-body-util = "0.1.2"
-hyper = "1.4.1"
-include_dir = "0.7.4"
-mime = "0.3.17"
-opentelemetry = "0.23.0"
-opentelemetry_sdk = { version = "0.23.0", features = ["rt-tokio"] }
-sentry = { version = "0.34.0", features = [
-    "tracing",
-    "tower",
-    "tower-http",
-], default-features = false }
+# Private third-party dependencies
+async-trait = { workspace = true }
+bytes = { workspace = true }
+hyper = { workspace = true }
+include_dir = { workspace = true }
+mime = { workspace = true }
+opentelemetry = { workspace = true }
+opentelemetry_sdk = { workspace = true, features = ["rt-tokio"] }
+sentry = { workspace = true }
 serde = { workspace = true, features = ['derive'] }
 serde_json = { workspace = true }
 time = { workspace = true }
-tokio = { workspace = true, features = ["macros"], optional = true }
-tokio-postgres = { version = "0.7.10", default-features = false, optional = true }
-tokio-util = { workspace = true, features = ["io"], optional = true }
-tower = "0.4.13"
-tower-http = { version = "0.5.2", features = ["trace"] }
-tracing = { workspace = true }
-tracing-opentelemetry = "0.24.0"
-utoipa = "4.2.3"
+tracing-opentelemetry = { workspace = true }
+utoipa = { workspace = true }
 uuid = { workspace = true }
 
 [lints]
 workspace = true
+
+[package.metadata.cargo-shear]
+# Used as public dependency
+ignored = ["axum-core"]

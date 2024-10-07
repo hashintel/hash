@@ -1,32 +1,32 @@
 use core::mem::ManuallyDrop;
-use std::{fs, path::Path};
+use std::{collections::HashMap, fs, path::Path};
 
 use authorization::{
+    AuthorizationApi, NoAuthorization,
     schema::{
         DataTypeRelationAndSubject, DataTypeViewerSubject, EntityTypeInstantiatorSubject,
         EntityTypeRelationAndSubject, EntityTypeViewerSubject, PropertyTypeRelationAndSubject,
         PropertyTypeViewerSubject,
     },
-    AuthorizationApi, NoAuthorization,
 };
 use graph::{
-    load_env,
+    Environment, load_env,
     store::{
+        AsClient, BaseUrlAlreadyExists, DataTypeStore, DatabaseConnectionInfo, DatabasePoolConfig,
+        DatabaseType, EntityTypeStore, PostgresStore, PostgresStorePool, PropertyTypeStore,
+        StoreMigration, StorePool,
         ontology::{
             CreateDataTypeParams, CreateEntityTypeParams, CreatePropertyTypeParams,
             UpdateDataTypesParams, UpdateEntityTypesParams, UpdatePropertyTypesParams,
         },
-        AsClient, BaseUrlAlreadyExists, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo,
-        DatabasePoolConfig, DatabaseType, EntityTypeStore, PostgresStore, PostgresStorePool,
-        PropertyTypeStore, StoreMigration, StorePool,
     },
-    Environment,
 };
 use graph_types::{
     account::AccountId,
     ontology::{OntologyTypeClassificationMetadata, ProvidedOntologyEditionProvenance},
     owned_by_id::OwnedById,
 };
+use hash_graph_store::ConflictBehavior;
 use repo_chores::benches::generate_path;
 use tokio::runtime::Runtime;
 use tokio_postgres::NoTls;
@@ -96,9 +96,9 @@ where
             std::env::var("HASH_GRAPH_PG_PASSWORD").unwrap_or_else(|_| "graph".to_owned());
         let host = std::env::var("HASH_GRAPH_PG_HOST").unwrap_or_else(|_| "localhost".to_owned());
         let port = std::env::var("HASH_GRAPH_PG_PORT")
-            .map(|p| {
-                p.parse::<u16>()
-                    .unwrap_or_else(|_| panic!("{p} is not a valid port"))
+            .map(|port| {
+                port.parse::<u16>()
+                    .unwrap_or_else(|_| panic!("{port} is not a valid port"))
             })
             .unwrap_or(5432);
         let database =
@@ -295,38 +295,34 @@ pub async fn seed<D, P, E, C, A>(
             serde_json::from_str(data_type_str).expect("could not parse data type");
 
         match store
-            .create_data_type(
-                account_id,
-                CreateDataTypeParams {
-                    schema: data_type.clone(),
-                    classification: OntologyTypeClassificationMetadata::Owned {
-                        owned_by_id: OwnedById::new(account_id.into_uuid()),
-                    },
-                    relationships: [DataTypeRelationAndSubject::Viewer {
-                        subject: DataTypeViewerSubject::Public,
-                        level: 0,
-                    }],
-                    conflict_behavior: ConflictBehavior::Fail,
-                    provenance: ProvidedOntologyEditionProvenance::default(),
+            .create_data_type(account_id, CreateDataTypeParams {
+                schema: data_type.clone(),
+                classification: OntologyTypeClassificationMetadata::Owned {
+                    owned_by_id: OwnedById::new(account_id.into_uuid()),
                 },
-            )
+                relationships: [DataTypeRelationAndSubject::Viewer {
+                    subject: DataTypeViewerSubject::Public,
+                    level: 0,
+                }],
+                conflict_behavior: ConflictBehavior::Fail,
+                provenance: ProvidedOntologyEditionProvenance::default(),
+                conversions: HashMap::new(),
+            })
             .await
         {
             Ok(_) => {}
             Err(report) => {
                 if report.contains::<BaseUrlAlreadyExists>() {
                     store
-                        .update_data_type(
-                            account_id,
-                            UpdateDataTypesParams {
-                                schema: data_type,
-                                relationships: [DataTypeRelationAndSubject::Viewer {
-                                    subject: DataTypeViewerSubject::Public,
-                                    level: 0,
-                                }],
-                                provenance: ProvidedOntologyEditionProvenance::default(),
-                            },
-                        )
+                        .update_data_type(account_id, UpdateDataTypesParams {
+                            schema: data_type,
+                            relationships: [DataTypeRelationAndSubject::Viewer {
+                                subject: DataTypeViewerSubject::Public,
+                                level: 0,
+                            }],
+                            provenance: ProvidedOntologyEditionProvenance::default(),
+                            conversions: HashMap::new(),
+                        })
                         .await
                         .expect("failed to update data type");
                 } else {
@@ -341,38 +337,32 @@ pub async fn seed<D, P, E, C, A>(
             serde_json::from_str(property_type_str).expect("could not parse property type");
 
         match store
-            .create_property_type(
-                account_id,
-                CreatePropertyTypeParams {
-                    schema: property_type.clone(),
-                    classification: OntologyTypeClassificationMetadata::Owned {
-                        owned_by_id: OwnedById::new(account_id.into_uuid()),
-                    },
-                    relationships: [PropertyTypeRelationAndSubject::Viewer {
-                        subject: PropertyTypeViewerSubject::Public,
-                        level: 0,
-                    }],
-                    conflict_behavior: ConflictBehavior::Fail,
-                    provenance: ProvidedOntologyEditionProvenance::default(),
+            .create_property_type(account_id, CreatePropertyTypeParams {
+                schema: property_type.clone(),
+                classification: OntologyTypeClassificationMetadata::Owned {
+                    owned_by_id: OwnedById::new(account_id.into_uuid()),
                 },
-            )
+                relationships: [PropertyTypeRelationAndSubject::Viewer {
+                    subject: PropertyTypeViewerSubject::Public,
+                    level: 0,
+                }],
+                conflict_behavior: ConflictBehavior::Fail,
+                provenance: ProvidedOntologyEditionProvenance::default(),
+            })
             .await
         {
             Ok(_) => {}
             Err(report) => {
                 if report.contains::<BaseUrlAlreadyExists>() {
                     store
-                        .update_property_type(
-                            account_id,
-                            UpdatePropertyTypesParams {
-                                schema: property_type,
-                                relationships: [PropertyTypeRelationAndSubject::Viewer {
-                                    subject: PropertyTypeViewerSubject::Public,
-                                    level: 0,
-                                }],
-                                provenance: ProvidedOntologyEditionProvenance::default(),
-                            },
-                        )
+                        .update_property_type(account_id, UpdatePropertyTypesParams {
+                            schema: property_type,
+                            relationships: [PropertyTypeRelationAndSubject::Viewer {
+                                subject: PropertyTypeViewerSubject::Public,
+                                level: 0,
+                            }],
+                            provenance: ProvidedOntologyEditionProvenance::default(),
+                        })
                         .await
                         .expect("failed to update property type");
                 } else {
@@ -387,48 +377,42 @@ pub async fn seed<D, P, E, C, A>(
             serde_json::from_str(entity_type_str).expect("could not parse entity type");
 
         match store
-            .create_entity_type(
-                account_id,
-                CreateEntityTypeParams {
-                    schema: entity_type.clone(),
-                    classification: OntologyTypeClassificationMetadata::Owned {
-                        owned_by_id: OwnedById::new(account_id.into_uuid()),
-                    },
-                    icon: None,
-                    label_property: None,
-                    relationships: [EntityTypeRelationAndSubject::Viewer {
-                        subject: EntityTypeViewerSubject::Public,
-                        level: 0,
-                    }],
-                    conflict_behavior: ConflictBehavior::Fail,
-                    provenance: ProvidedOntologyEditionProvenance::default(),
+            .create_entity_type(account_id, CreateEntityTypeParams {
+                schema: entity_type.clone(),
+                classification: OntologyTypeClassificationMetadata::Owned {
+                    owned_by_id: OwnedById::new(account_id.into_uuid()),
                 },
-            )
+                icon: None,
+                label_property: None,
+                relationships: [EntityTypeRelationAndSubject::Viewer {
+                    subject: EntityTypeViewerSubject::Public,
+                    level: 0,
+                }],
+                conflict_behavior: ConflictBehavior::Fail,
+                provenance: ProvidedOntologyEditionProvenance::default(),
+            })
             .await
         {
             Ok(_) => {}
             Err(report) => {
                 if report.contains::<BaseUrlAlreadyExists>() {
                     store
-                        .update_entity_type(
-                            account_id,
-                            UpdateEntityTypesParams {
-                                schema: entity_type,
-                                icon: None,
-                                label_property: None,
-                                relationships: [
-                                    EntityTypeRelationAndSubject::Viewer {
-                                        subject: EntityTypeViewerSubject::Public,
-                                        level: 0,
-                                    },
-                                    EntityTypeRelationAndSubject::Instantiator {
-                                        subject: EntityTypeInstantiatorSubject::Public,
-                                        level: 0,
-                                    },
-                                ],
-                                provenance: ProvidedOntologyEditionProvenance::default(),
-                            },
-                        )
+                        .update_entity_type(account_id, UpdateEntityTypesParams {
+                            schema: entity_type,
+                            icon: None,
+                            label_property: None,
+                            relationships: [
+                                EntityTypeRelationAndSubject::Viewer {
+                                    subject: EntityTypeViewerSubject::Public,
+                                    level: 0,
+                                },
+                                EntityTypeRelationAndSubject::Instantiator {
+                                    subject: EntityTypeInstantiatorSubject::Public,
+                                    level: 0,
+                                },
+                            ],
+                            provenance: ProvidedOntologyEditionProvenance::default(),
+                        })
                         .await
                         .expect("failed to update entity type");
                 } else {

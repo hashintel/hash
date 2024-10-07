@@ -10,8 +10,6 @@ import type {
   EntityMetadata,
   EntityPermission,
   Filter,
-  GetEntitiesRequest,
-  GetEntitySubgraphRequest,
   GraphResolveDepths,
   ModifyRelationshipOperation,
 } from "@local/hash-graph-client";
@@ -39,6 +37,8 @@ import {
   mapGraphApiSubgraphToSubgraph,
 } from "@local/hash-isomorphic-utils/subgraph-mapping";
 import type {
+  GetEntitiesRequest,
+  GetEntitySubgraphRequest,
   UserPermissions,
   UserPermissionsOnEntities,
 } from "@local/hash-isomorphic-utils/types";
@@ -158,9 +158,7 @@ export const createEntity = async <Properties extends EntityProperties>(
 };
 
 export const getEntities: ImpureGraphFunction<
-  GetEntitiesRequest & {
-    temporalClient?: TemporalClient;
-  },
+  GetEntitiesRequest & { temporalClient?: TemporalClient },
   Promise<Entity[]>
 > = async ({ graphApi }, { actorId }, { temporalClient, ...params }) => {
   await rewriteSemanticFilter(params.filter, temporalClient);

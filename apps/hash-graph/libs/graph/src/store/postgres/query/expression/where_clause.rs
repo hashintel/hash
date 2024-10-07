@@ -1,8 +1,8 @@
 use core::fmt;
 
 use crate::store::{
-    postgres::query::{expression::conditional::Transpiler, Condition, Expression, Transpile},
     NullOrdering, Ordering,
+    postgres::query::{Condition, Expression, Transpile, expression::conditional::Transpiler},
 };
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Hash)]
@@ -123,18 +123,17 @@ mod tests {
     use alloc::borrow::Cow;
 
     use graph_types::ontology::DataTypeWithMetadata;
-
-    use super::*;
-    use crate::{
-        ontology::DataTypeQueryPath,
-        store::{
-            postgres::query::{test_helper::trim_whitespace, SelectCompiler},
-            query::{Filter, FilterExpression, Parameter},
-        },
+    use hash_graph_store::{
+        data_type::DataTypeQueryPath,
+        filter::{Filter, FilterExpression, Parameter},
         subgraph::temporal_axes::QueryTemporalAxesUnresolved,
     };
 
+    use super::*;
+    use crate::store::postgres::query::{SelectCompiler, test_helper::trim_whitespace};
+
     #[test]
+    #[expect(clippy::too_many_lines)]
     fn transpile_where_expression() {
         let temporal_axes = QueryTemporalAxesUnresolved::default().resolve();
         let mut compiler = SelectCompiler::<DataTypeWithMetadata>::new(Some(&temporal_axes), false);
@@ -142,10 +141,13 @@ mod tests {
         assert_eq!(where_clause.transpile_to_string(), "");
 
         let filter_a = Filter::Equal(
-            Some(FilterExpression::Path(DataTypeQueryPath::Version)),
-            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                "latest",
-            )))),
+            Some(FilterExpression::Path {
+                path: DataTypeQueryPath::Version,
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed("latest")),
+                convert: None,
+            }),
         );
         where_clause.add_condition(compiler.compile_filter(&filter_a));
 
@@ -156,14 +158,24 @@ mod tests {
 
         let filter_b = Filter::All(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(DataTypeQueryPath::BaseUrl)),
-                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
-                )))),
+                Some(FilterExpression::Path {
+                    path: DataTypeQueryPath::BaseUrl,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed(
+                        "https://blockprotocol.org/@blockprotocol/types/data-type/text/",
+                    )),
+                    convert: None,
+                }),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(DataTypeQueryPath::Version)),
-                Some(FilterExpression::Parameter(Parameter::I32(1))),
+                Some(FilterExpression::Path {
+                    path: DataTypeQueryPath::Version,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::I32(1),
+                    convert: None,
+                }),
             ),
         ]);
         where_clause.add_condition(compiler.compile_filter(&filter_b));
@@ -178,7 +190,9 @@ mod tests {
         );
 
         let filter_c = Filter::NotEqual(
-            Some(FilterExpression::Path(DataTypeQueryPath::Description)),
+            Some(FilterExpression::Path {
+                path: DataTypeQueryPath::Description,
+            }),
             None,
         );
         where_clause.add_condition(compiler.compile_filter(&filter_c));
@@ -195,16 +209,22 @@ mod tests {
 
         let filter_d = Filter::Any(vec![
             Filter::Equal(
-                Some(FilterExpression::Path(DataTypeQueryPath::Title)),
-                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    "some title",
-                )))),
+                Some(FilterExpression::Path {
+                    path: DataTypeQueryPath::Title,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed("some title")),
+                    convert: None,
+                }),
             ),
             Filter::Equal(
-                Some(FilterExpression::Path(DataTypeQueryPath::Description)),
-                Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                    "some description",
-                )))),
+                Some(FilterExpression::Path {
+                    path: DataTypeQueryPath::Description,
+                }),
+                Some(FilterExpression::Parameter {
+                    parameter: Parameter::Text(Cow::Borrowed("some description")),
+                    convert: None,
+                }),
             ),
         ]);
         where_clause.add_condition(compiler.compile_filter(&filter_d));
@@ -227,15 +247,12 @@ mod tests {
             .map(|parameter| format!("{parameter:?}"))
             .collect::<Vec<_>>();
 
-        assert_eq!(
-            parameters,
-            &[
-                format!("{:?}", temporal_axes.pinned_timestamp()).as_str(),
-                "\"https://blockprotocol.org/@blockprotocol/types/data-type/text/\"",
-                "1",
-                "\"some title\"",
-                "\"some description\""
-            ]
-        );
+        assert_eq!(parameters, &[
+            format!("{:?}", temporal_axes.pinned_timestamp()).as_str(),
+            "\"https://blockprotocol.org/@blockprotocol/types/data-type/text/\"",
+            "1",
+            "\"some title\"",
+            "\"some description\""
+        ]);
     }
 }

@@ -9,9 +9,16 @@ import { expect, test } from "vitest";
 import { getDereferencedEntityTypesActivity } from "../../../get-dereferenced-entity-types-activity.js";
 import { getFlowContext } from "../../../shared/get-flow-context.js";
 import { graphApiClient } from "../../../shared/graph-api-client.js";
-import type { LocalEntitySummary } from "../infer-claims-from-text/get-entity-summaries-from-text.js";
-import type { Claim } from "../infer-claims-from-text/types.js";
+import type { Claim } from "../claims.js";
+import type { LocalEntitySummary } from "../infer-summaries-then-claims-from-text/get-entity-summaries-from-text.js";
 import { proposeEntitiesFromClaims } from "../propose-entities-from-claims.js";
+
+/**
+ * @file These are not 'tests' but rather ways of running specific agents,
+ *       the results of which can be inspected in the logs saved to the file system under get-llm-response/logs/
+ *
+ * NOTE: these tests depend on having run `npx tsx apps/hash-api/src/seed-data/seed-flow-test-types.ts`
+ */
 
 const ownedById = generateUuid();
 
@@ -25,7 +32,7 @@ const ftse350EntitySummaries: LocalEntitySummary[] = [
     summary:
       "HUNTING PLC ORD 25P is a constituent of the FTSE 350 stock market index with a market cap of 614.40 million GBX and saw a recent price change of 20.94%.",
     entityTypeId:
-      "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
+      "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
   },
   {
     localId: generateEntityId("e789a5b9-890b-4a7e-960a-7b18f6abaed1"),
@@ -33,7 +40,7 @@ const ftse350EntitySummaries: LocalEntitySummary[] = [
     summary:
       "KELLER GROUP PLC ORD 10P is listed in the FTSE 350, having a market capitalization of 829.01 million GBX and experiencing an 18.84% price change.",
     entityTypeId:
-      "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
+      "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
   },
   {
     localId: generateEntityId("afb8f86e-ebf6-4078-9991-23f0a70983e2"),
@@ -41,7 +48,7 @@ const ftse350EntitySummaries: LocalEntitySummary[] = [
     summary:
       "INTERNATIONAL DISTRIBUTIONS SERVICE ORD 1P, part of the FTSE 350, has a market cap of 2,600.81 million GBX and a recent price change of 16.95%.",
     entityTypeId:
-      "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
+      "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
   },
   {
     localId: generateEntityId("16b1ac59-5594-4ad5-8f95-cfc279ba4381"),
@@ -49,7 +56,7 @@ const ftse350EntitySummaries: LocalEntitySummary[] = [
     summary:
       "BRITVIC PLC ORD 20P, a FTSE 350 constituent, possesses a market cap of 2,288.97 million GBX with a price change of 10.08%.",
     entityTypeId:
-      "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
+      "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
   },
   {
     localId: generateEntityId("1e1df791-6764-4c9f-9f56-519ecd116806"),
@@ -57,7 +64,7 @@ const ftse350EntitySummaries: LocalEntitySummary[] = [
     summary:
       "EXPERIAN PLC ORD USD0.10, listed in the FTSE 350, has a market capitalization of 31,860.88 million GBX and a 7.90% price change.",
     entityTypeId:
-      "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
+      "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
   },
   {
     localId: generateEntityId("64844a08-e7b6-4449-8dac-df0986840c52"),
@@ -65,7 +72,7 @@ const ftse350EntitySummaries: LocalEntitySummary[] = [
     summary:
       "IMPERIAL BRANDS PLC ORD 10P is a FTSE 350 stock with a market cap of 16,187.35 million GBX, experiencing a 5.30% price change.",
     entityTypeId:
-      "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
+      "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
   },
   {
     localId: generateEntityId("3b5eff7f-46a5-4c2b-b1f7-7b01fb957e68"),
@@ -73,7 +80,7 @@ const ftse350EntitySummaries: LocalEntitySummary[] = [
     summary:
       "SEGRO PLC ORD 10P, a FTSE 350 listed company, has a market cap of 11,996.19 million GBX and a 5.09% change in price.",
     entityTypeId:
-      "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
+      "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
   },
   {
     localId: generateEntityId("c5cb0cff-487f-4805-b58f-84404e382c50"),
@@ -81,7 +88,7 @@ const ftse350EntitySummaries: LocalEntitySummary[] = [
     summary:
       "IP GROUP PLC ORD 2P, included in the FTSE 350, has a market capitalization of 522.51 million GBX and a 4.54% change in price.",
     entityTypeId:
-      "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
+      "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
   },
   {
     localId: generateEntityId("a271bdf9-9be2-49e3-b987-6616e32d571c"),
@@ -89,7 +96,7 @@ const ftse350EntitySummaries: LocalEntitySummary[] = [
     summary:
       "VODAFONE GROUP PLC ORD USD0.20 20/21 is part of the FTSE 350 with a market cap of 19,844.47 million GBX and a 4.01% price change.",
     entityTypeId:
-      "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
+      "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
   },
   {
     localId: generateEntityId("86737639-f13a-45dd-a312-1d7a4e7e1b1e"),
@@ -97,7 +104,7 @@ const ftse350EntitySummaries: LocalEntitySummary[] = [
     summary:
       "REDDE NORTHGATE PLC ORD 50P, a constituent of the FTSE 350, has a market cap of 924.94 million GBX and a 3.92% change in price.",
     entityTypeId:
-      "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
+      "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
   },
   {
     localId: generateEntityId("c1008286-64e8-49de-b86d-0360630a81c7"),
@@ -105,7 +112,7 @@ const ftse350EntitySummaries: LocalEntitySummary[] = [
     summary:
       "A stock market index comprised of 350 high-capitalisation companies listed on the London Stock Exchange.",
     entityTypeId:
-      "https://hash.ai/@ftse/types/entity-type/stock-market-index/v/1",
+      "https://hash.ai/@hash/types/entity-type/stock-market-index/v/1",
   },
 ];
 
@@ -560,20 +567,19 @@ const ftse350Claims = [
   },
 ];
 
-test.skip(
+test(
   "Test proposeEntitiesFromClaims",
   async () => {
     const { userAuthentication } = await getFlowContext();
 
     const dereferencedEntityTypes = await getDereferencedEntityTypesActivity({
       entityTypeIds: [
-        "https://hash.ai/@ftse/types/entity-type/stock-market-constituent/v/1",
-        "https://hash.ai/@ftse/types/entity-type/stock-market-index/v/1",
-        "https://hash.ai/@ftse/types/entity-type/appears-in-index/v/1",
+        "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
+        "https://hash.ai/@hash/types/entity-type/stock-market-index/v/1",
+        "https://hash.ai/@hash/types/entity-type/appears-in-index/v/1",
       ],
       actorId: userAuthentication.actorId,
       graphApiClient,
-      simplifyPropertyKeys: true,
     });
 
     const claims = ftse350Claims.map(
@@ -598,6 +604,7 @@ test.skip(
     const { proposedEntities } = await proposeEntitiesFromClaims({
       entitySummaries: ftse350EntitySummaries,
       existingEntitySummaries: [],
+      existingProposals: [],
       claims,
       dereferencedEntityTypes,
       potentialLinkTargetEntitySummaries: [],
@@ -605,6 +612,7 @@ test.skip(
         workerInstanceId: generateUuid(),
         parentInstanceId: null,
         workerType: "Coordinator",
+        toolCallId: null,
       },
     });
 

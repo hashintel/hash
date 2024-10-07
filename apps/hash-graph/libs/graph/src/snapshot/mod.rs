@@ -20,8 +20,8 @@ mod web;
 use core::future::ready;
 
 use async_scoped::TokioScope;
-use async_trait::async_trait;
 use authorization::{
+    AuthorizationApi, NoAuthorization,
     backend::ZanzibarBackend,
     schema::{
         AccountGroupRelationAndSubject, DataTypeRelationAndSubject, EntityNamespace,
@@ -29,14 +29,13 @@ use authorization::{
         WebRelationAndSubject,
     },
     zanzibar::{
-        types::{RelationshipFilter, ResourceFilter},
         Consistency,
+        types::{RelationshipFilter, ResourceFilter},
     },
-    AuthorizationApi, NoAuthorization,
 };
-use error_stack::{ensure, Context, Report, Result, ResultExt};
+use error_stack::{Context, Report, Result, ResultExt, ensure};
 use futures::{
-    channel::mpsc, stream, Sink, SinkExt, Stream, StreamExt, TryFutureExt, TryStreamExt,
+    Sink, SinkExt, Stream, StreamExt, TryFutureExt, TryStreamExt, channel::mpsc, stream,
 };
 use graph_types::{
     account::{AccountGroupId, AccountId},
@@ -47,6 +46,7 @@ use graph_types::{
     },
     owned_by_id::OwnedById,
 };
+use hash_graph_store::filter::{Filter, QueryRecord};
 use hash_status::StatusCode;
 use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
@@ -61,10 +61,7 @@ use crate::{
         },
         restore::SnapshotRecordBatch,
     },
-    store::{
-        crud::Read, query::Filter, AsClient, InsertionError, PostgresStore, PostgresStorePool,
-        QueryRecord, StorePool,
-    },
+    store::{AsClient, InsertionError, PostgresStore, PostgresStorePool, StorePool, crud::Read},
 };
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -231,14 +228,18 @@ impl SnapshotEntry {
     }
 }
 
-#[async_trait]
 trait WriteBatch<C, A> {
-    async fn begin(postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError>;
-    async fn write(self, postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError>;
-    async fn commit(
+    fn begin(
+        postgres_client: &mut PostgresStore<C, A>,
+    ) -> impl Future<Output = Result<(), InsertionError>> + Send;
+    fn write(
+        self,
+        postgres_client: &mut PostgresStore<C, A>,
+    ) -> impl Future<Output = Result<(), InsertionError>> + Send;
+    fn commit(
         postgres_client: &mut PostgresStore<C, A>,
         validation: bool,
-    ) -> Result<(), InsertionError>;
+    ) -> impl Future<Output = Result<(), InsertionError>> + Send;
 }
 
 pub struct SnapshotStore<C, A>(PostgresStore<C, A>);
@@ -279,10 +280,8 @@ impl PostgresStorePool {
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
-            .query_raw(
-                "SELECT account_id FROM accounts",
-                [] as [&(dyn ToSql + Sync); 0],
-            )
+            .query_raw("SELECT account_id FROM accounts", []
+                as [&(dyn ToSql + Sync); 0])
             .await
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
             .map_ok(|row| Account { id: row.get(0) })
@@ -303,10 +302,8 @@ impl PostgresStorePool {
             .await
             .change_context(SnapshotDumpError::Query)?
             .as_client()
-            .query_raw(
-                "SELECT account_group_id FROM account_groups",
-                [] as [&(dyn ToSql + Sync); 0],
-            )
+            .query_raw("SELECT account_group_id FROM account_groups", []
+                as [&(dyn ToSql + Sync); 0])
             .await
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Query))?
             .map_err(|error| Report::new(error).change_context(SnapshotDumpError::Read))

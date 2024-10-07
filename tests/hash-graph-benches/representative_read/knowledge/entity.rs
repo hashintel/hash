@@ -2,13 +2,14 @@ use alloc::borrow::Cow;
 
 use authorization::AuthorizationApi;
 use criterion::{BatchSize::SmallInput, Bencher};
-use graph::{
-    knowledge::EntityQueryPath,
-    store::{
-        knowledge::{GetEntitiesParams, GetEntitySubgraphParams},
-        query::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
-        EntityQuerySorting, EntityStore,
-    },
+use graph::store::{
+    EntityQuerySorting, EntityStore,
+    knowledge::{GetEntitiesParams, GetEntitySubgraphParams},
+};
+use graph_types::{account::AccountId, knowledge::entity::EntityUuid};
+use hash_graph_store::{
+    entity::EntityQueryPath,
+    filter::{Filter, FilterExpression, JsonPath, Parameter, PathToken},
     subgraph::{
         edges::{EdgeDirection, GraphResolveDepths, KnowledgeGraphEdgeKind},
         temporal_axes::{
@@ -17,7 +18,6 @@ use graph::{
         },
     },
 };
-use graph_types::{account::AccountId, knowledge::entity::EntityUuid};
 use rand::{prelude::IteratorRandom, thread_rng};
 use temporal_versioning::TemporalBound;
 use tokio::runtime::Runtime;
@@ -25,13 +25,13 @@ use tokio::runtime::Runtime;
 use crate::util::Store;
 
 pub fn bench_get_entity_by_id<A: AuthorizationApi>(
-    b: &mut Bencher,
+    bencher: &mut Bencher,
     runtime: &Runtime,
     store: &Store<A>,
     actor_id: AccountId,
     entity_uuids: &[EntityUuid],
 ) {
-    b.to_async(runtime).iter_batched(
+    bencher.to_async(runtime).iter_batched(
         || {
             // Each iteration, *before timing*, pick a random entity from the sample to query
             *entity_uuids
@@ -41,28 +41,33 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
         },
         |entity_uuid| async move {
             let response = store
-                .get_entities(
-                    actor_id,
-                    GetEntitiesParams {
-                        filter: Filter::Equal(
-                            Some(FilterExpression::Path(EntityQueryPath::Uuid)),
-                            Some(FilterExpression::Parameter(Parameter::Uuid(
-                                entity_uuid.into_uuid(),
-                            ))),
-                        ),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
-                        sorting: EntityQuerySorting {
-                            paths: Vec::new(),
-                            cursor: None,
-                        },
-                        limit: None,
-                        include_count: false,
-                        include_drafts: false,
+                .get_entities(actor_id, GetEntitiesParams {
+                    filter: Filter::Equal(
+                        Some(FilterExpression::Path {
+                            path: EntityQueryPath::Uuid,
+                        }),
+                        Some(FilterExpression::Parameter {
+                            parameter: Parameter::Uuid(entity_uuid.into_uuid()),
+                            convert: None,
+                        }),
+                    ),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(None, None),
                     },
-                )
+                    sorting: EntityQuerySorting {
+                        paths: Vec::new(),
+                        cursor: None,
+                    },
+                    limit: None,
+                    conversions: Vec::new(),
+                    include_count: false,
+                    include_drafts: false,
+                    include_web_ids: false,
+                    include_created_by_ids: false,
+                    include_edition_created_by_ids: false,
+                    include_type_ids: false,
+                })
                 .await
                 .expect("failed to read entity from store");
             assert_eq!(response.entities.len(), 1);
@@ -72,48 +77,50 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
 }
 
 pub fn bench_get_entities_by_property<A: AuthorizationApi>(
-    b: &mut Bencher,
+    bencher: &mut Bencher,
     runtime: &Runtime,
     store: &Store<A>,
     actor_id: AccountId,
     graph_resolve_depths: GraphResolveDepths,
 ) {
-    b.to_async(runtime).iter(|| async move {
-        let mut filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::Properties(Some(
-                JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
-                    "https://blockprotocol.org/@alice/types/property-type/name/",
-                ))]),
-            )))),
-            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                "Alice",
-            )))),
+    bencher.to_async(runtime).iter(|| async move {
+        let filter = Filter::Equal(
+            Some(FilterExpression::Path {
+                path: EntityQueryPath::Properties(Some(JsonPath::from_path_tokens(vec![
+                    PathToken::Field(Cow::Borrowed(
+                        "https://blockprotocol.org/@alice/types/property-type/name/",
+                    )),
+                ]))),
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed("Alice")),
+                convert: None,
+            }),
         );
-        filter
-            .convert_parameters()
-            .expect("failed to convert parameters");
         let response = store
-            .get_entity_subgraph(
-                actor_id,
-                GetEntitySubgraphParams {
-                    filter,
-                    graph_resolve_depths,
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
-                    },
-                    sorting: EntityQuerySorting {
-                        paths: Vec::new(),
-                        cursor: None,
-                    },
-                    limit: None,
-                    include_count: false,
-                    include_drafts: false,
+            .get_entity_subgraph(actor_id, GetEntitySubgraphParams {
+                filter,
+                graph_resolve_depths,
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
                 },
-            )
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                conversions: Vec::new(),
+                include_count: false,
+                include_drafts: false,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
+            })
             .await
             .expect("failed to read entity from store");
         assert_eq!(response.subgraph.roots.len(), 100);
@@ -121,52 +128,54 @@ pub fn bench_get_entities_by_property<A: AuthorizationApi>(
 }
 
 pub fn bench_get_link_by_target_by_property<A: AuthorizationApi>(
-    b: &mut Bencher,
+    bencher: &mut Bencher,
     runtime: &Runtime,
     store: &Store<A>,
     actor_id: AccountId,
     graph_resolve_depths: GraphResolveDepths,
 ) {
-    b.to_async(runtime).iter(|| async move {
-        let mut filter = Filter::Equal(
-            Some(FilterExpression::Path(EntityQueryPath::EntityEdge {
-                edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
-                path: Box::new(EntityQueryPath::Properties(Some(
-                    JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
-                        "https://blockprotocol.org/@alice/types/property-type/name/",
-                    ))]),
-                ))),
-                direction: EdgeDirection::Outgoing,
-            })),
-            Some(FilterExpression::Parameter(Parameter::Text(Cow::Borrowed(
-                "Alice",
-            )))),
-        );
-        filter
-            .convert_parameters()
-            .expect("failed to convert parameters");
-        let response = store
-            .get_entity_subgraph(
-                actor_id,
-                GetEntitySubgraphParams {
-                    filter,
-                    graph_resolve_depths,
-                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(
-                            Some(TemporalBound::Unbounded),
-                            None,
-                        ),
-                    },
-                    sorting: EntityQuerySorting {
-                        paths: Vec::new(),
-                        cursor: None,
-                    },
-                    limit: None,
-                    include_count: false,
-                    include_drafts: false,
+    bencher.to_async(runtime).iter(|| async move {
+        let filter = Filter::Equal(
+            Some(FilterExpression::Path {
+                path: EntityQueryPath::EntityEdge {
+                    edge_kind: KnowledgeGraphEdgeKind::HasRightEntity,
+                    path: Box::new(EntityQueryPath::Properties(Some(
+                        JsonPath::from_path_tokens(vec![PathToken::Field(Cow::Borrowed(
+                            "https://blockprotocol.org/@alice/types/property-type/name/",
+                        ))]),
+                    ))),
+                    direction: EdgeDirection::Outgoing,
                 },
-            )
+            }),
+            Some(FilterExpression::Parameter {
+                parameter: Parameter::Text(Cow::Borrowed("Alice")),
+                convert: None,
+            }),
+        );
+        let response = store
+            .get_entity_subgraph(actor_id, GetEntitySubgraphParams {
+                filter,
+                graph_resolve_depths,
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(
+                        Some(TemporalBound::Unbounded),
+                        None,
+                    ),
+                },
+                sorting: EntityQuerySorting {
+                    paths: Vec::new(),
+                    cursor: None,
+                },
+                limit: None,
+                conversions: Vec::new(),
+                include_count: false,
+                include_drafts: false,
+                include_web_ids: false,
+                include_created_by_ids: false,
+                include_edition_created_by_ids: false,
+                include_type_ids: false,
+            })
             .await
             .expect("failed to read entity from store");
         assert_eq!(response.subgraph.roots.len(), 100);

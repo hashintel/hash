@@ -3,35 +3,33 @@
 use alloc::sync::Arc;
 
 use authorization::{
+    AuthorizationApi, AuthorizationApiPool,
     backend::ModifyRelationshipOperation,
     schema::{
         AccountGroupMemberSubject, AccountGroupPermission, AccountGroupRelationAndSubject,
         WebOwnerSubject,
     },
     zanzibar::Consistency,
-    AuthorizationApi, AuthorizationApiPool,
 };
 use axum::{
+    Extension, Router,
     extract::Path,
     http::StatusCode,
     response::Response,
     routing::{get, post},
-    Extension, Router,
 };
-use graph::store::{
-    account::{InsertAccountGroupIdParams, InsertAccountIdParams},
-    AccountStore, StorePool,
-};
+use graph::store::StorePool;
 use graph_types::{
     account::{AccountGroupId, AccountId},
     owned_by_id::OwnedById,
 };
+use hash_graph_store::account::{AccountStore, InsertAccountGroupIdParams, InsertAccountIdParams};
 use temporal_client::TemporalClient;
 use utoipa::OpenApi;
 
 use super::api_resource::RoutedResource;
 use crate::rest::{
-    json::Json, status::report_to_response, AuthenticatedUserHeader, PermissionResponse,
+    AuthenticatedUserHeader, PermissionResponse, json::Json, status::report_to_response,
 };
 
 #[derive(OpenApi)]

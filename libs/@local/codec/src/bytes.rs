@@ -1,13 +1,11 @@
 use core::marker::PhantomData;
 use std::io::{self, Write};
 
+use bytes::{BufMut, BytesMut};
 use derive_where::derive_where;
 use error_stack::{Report, ResultExt};
-use serde::{de::DeserializeOwned, Serialize};
-use tokio_util::{
-    bytes::{BufMut, BytesMut},
-    codec::{Decoder, Encoder, LinesCodec},
-};
+use serde::{Serialize, de::DeserializeOwned};
+use tokio_util::codec::{Decoder, Encoder, LinesCodec};
 
 #[derive_where(Debug, Default, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct JsonLinesEncoder<T> {

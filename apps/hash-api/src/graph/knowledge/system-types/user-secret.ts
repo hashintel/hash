@@ -166,8 +166,12 @@ export const createUserSecret = async <
 
     await Promise.all(
       linkAndSecretPairs.flatMap(({ userSecret, usesUserSecretLink }) => [
-        userSecret.archive(graphApi, managingBotAuthentication),
-        usesUserSecretLink.archive(graphApi, managingBotAuthentication),
+        userSecret.archive(graphApi, managingBotAuthentication, provenance),
+        usesUserSecretLink.archive(
+          graphApi,
+          managingBotAuthentication,
+          provenance,
+        ),
       ]),
     );
   }

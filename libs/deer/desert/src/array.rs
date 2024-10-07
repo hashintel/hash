@@ -1,6 +1,6 @@
 use deer::{
-    error::{ArrayAccessError, ArrayLengthError},
     Context, Deserialize, Deserializer as _,
+    error::{ArrayAccessError, ArrayLengthError},
 };
 use error_stack::{Result, ResultExt};
 

@@ -1,7 +1,7 @@
 use authorization::{
+    AuthorizationApi, NoAuthorization,
     backend::{SpiceDbOpenApi, ZanzibarBackend},
     zanzibar::ZanzibarClient,
-    AuthorizationApi, NoAuthorization,
 };
 use clap::Parser;
 use error_stack::{Report, ResultExt};

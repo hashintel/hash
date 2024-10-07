@@ -1,28 +1,28 @@
 use core::{iter::repeat, str::FromStr};
 use std::collections::HashSet;
 
-use authorization::{schema::WebOwnerSubject, AuthorizationApi, NoAuthorization};
+use authorization::{AuthorizationApi, NoAuthorization, schema::WebOwnerSubject};
 use criterion::{BatchSize::SmallInput, Bencher, BenchmarkId, Criterion};
 use criterion_macro::criterion;
-use graph::{
-    store::{
-        account::{InsertAccountIdParams, InsertWebIdParams},
-        knowledge::{CreateEntityParams, GetEntitiesParams},
-        query::Filter,
-        AccountStore, EntityQuerySorting, EntityStore,
-    },
-    subgraph::temporal_axes::{
-        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
-    },
+use graph::store::{
+    EntityQuerySorting, EntityStore,
+    knowledge::{CreateEntityParams, GetEntitiesParams},
 };
 use graph_test_data::{data_type, entity, entity_type, property_type};
 use graph_types::{
     account::AccountId,
     knowledge::{
         entity::{Entity, ProvidedEntityEditionProvenance},
-        PropertyObject, PropertyWithMetadataObject,
+        property::{PropertyObject, PropertyWithMetadataObject},
     },
     owned_by_id::OwnedById,
+};
+use hash_graph_store::{
+    account::{AccountStore, InsertAccountIdParams, InsertWebIdParams},
+    filter::Filter,
+    subgraph::temporal_axes::{
+        PinnedTemporalAxisUnresolved, QueryTemporalAxesUnresolved, VariableTemporalAxisUnresolved,
+    },
 };
 use rand::{prelude::IteratorRandom, thread_rng};
 use temporal_versioning::TemporalBound;
@@ -30,7 +30,7 @@ use tokio::runtime::Runtime;
 use type_system::schema::EntityType;
 use uuid::Uuid;
 
-use crate::util::{seed, setup, setup_subscriber, Store, StoreWrapper};
+use crate::util::{Store, StoreWrapper, seed, setup, setup_subscriber};
 
 const DB_NAME: &str = "entity_scale";
 
@@ -57,20 +57,21 @@ async fn seed_db<A: AuthorizationApi>(
         .await
         .expect("could not insert account id");
     transaction
-        .insert_web_id(
-            account_id,
-            InsertWebIdParams {
-                owned_by_id: OwnedById::new(account_id.into_uuid()),
-                owner: WebOwnerSubject::Account { id: account_id },
-            },
-        )
+        .insert_web_id(account_id, InsertWebIdParams {
+            owned_by_id: OwnedById::new(account_id.into_uuid()),
+            owner: WebOwnerSubject::Account { id: account_id },
+        })
         .await
         .expect("could not create web id");
 
     seed(
         &mut transaction,
         account_id,
-        [data_type::TEXT_V1, data_type::NUMBER_V1],
+        [
+            data_type::VALUE_V1,
+            data_type::TEXT_V1,
+            data_type::NUMBER_V1,
+        ],
         [
             property_type::NAME_V1,
             property_type::BLURB_V1,
@@ -136,13 +137,13 @@ async fn seed_db<A: AuthorizationApi>(
 }
 
 pub fn bench_get_entity_by_id<A: AuthorizationApi>(
-    b: &mut Bencher,
+    bencher: &mut Bencher,
     runtime: &Runtime,
     store: &Store<A>,
     actor_id: AccountId,
     entity_metadata_list: &[Entity],
 ) {
-    b.to_async(runtime).iter_batched(
+    bencher.to_async(runtime).iter_batched(
         || {
             // Each iteration, *before timing*, pick a random entity from the sample to
             // query
@@ -154,26 +155,28 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
         },
         |entity_record_id| async move {
             store
-                .get_entities(
-                    actor_id,
-                    GetEntitiesParams {
-                        filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(
-                                Some(TemporalBound::Unbounded),
-                                None,
-                            ),
-                        },
-                        sorting: EntityQuerySorting {
-                            paths: Vec::new(),
-                            cursor: None,
-                        },
-                        limit: None,
-                        include_count: false,
-                        include_drafts: false,
+                .get_entities(actor_id, GetEntitiesParams {
+                    filter: Filter::for_entity_by_entity_id(entity_record_id.entity_id),
+                    temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                        pinned: PinnedTemporalAxisUnresolved::new(None),
+                        variable: VariableTemporalAxisUnresolved::new(
+                            Some(TemporalBound::Unbounded),
+                            None,
+                        ),
                     },
-                )
+                    sorting: EntityQuerySorting {
+                        paths: Vec::new(),
+                        cursor: None,
+                    },
+                    limit: None,
+                    conversions: Vec::new(),
+                    include_count: false,
+                    include_drafts: false,
+                    include_web_ids: false,
+                    include_created_by_ids: false,
+                    include_edition_created_by_ids: false,
+                    include_type_ids: false,
+                })
                 .await
                 .expect("failed to read entity from store");
         },
@@ -182,9 +185,9 @@ pub fn bench_get_entity_by_id<A: AuthorizationApi>(
 }
 
 #[criterion]
-fn bench_scaling_read_entity(c: &mut Criterion) {
+fn bench_scaling_read_entity(crit: &mut Criterion) {
     let group_id = "scaling_read_entity_linkless";
-    let mut group = c.benchmark_group(group_id);
+    let mut group = crit.benchmark_group(group_id);
     // We use a hard-coded UUID to keep it consistent across tests so that we can use it as a
     // parameter argument to criterion and get comparison analysis
     let account_id = AccountId::new(
@@ -202,9 +205,9 @@ fn bench_scaling_read_entity(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new(function_id, &parameter),
             &(account_id, entity_uuids),
-            |b, (_account_id, entity_list)| {
+            |bencher, (_account_id, entity_list)| {
                 let _guard = setup_subscriber(group_id, Some(function_id), Some(&parameter));
-                bench_get_entity_by_id(b, &runtime, store, account_id, entity_list);
+                bench_get_entity_by_id(bencher, &runtime, store, account_id, entity_list);
             },
         );
     }

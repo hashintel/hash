@@ -11,9 +11,9 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use type_system::url::BaseUrl;
 
-use crate::knowledge::{
-    property::PropertyPathError, ObjectMetadata, Property, PropertyDiff, PropertyMetadataObject,
-    PropertyPath, PropertyPathElement, PropertyWithMetadata,
+use crate::knowledge::property::{
+    ObjectMetadata, Property, PropertyDiff, PropertyMetadataObject, PropertyPath,
+    PropertyPathElement, PropertyPathError, PropertyWithMetadata,
 };
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -54,7 +54,7 @@ impl PropertyObject {
         &'a self,
         other: &'a Self,
         path: &mut PropertyPath<'a>,
-    ) -> impl Iterator<Item = PropertyDiff<'_>> {
+    ) -> impl Iterator<Item = PropertyDiff<'a>> {
         Property::diff_object(self.properties(), other.properties(), path)
     }
 
@@ -193,12 +193,9 @@ impl PropertyWithMetadataObject {
                 ((base_url.clone(), property), (base_url, metadata))
             })
             .unzip();
-        (
-            PropertyObject::new(properties),
-            PropertyMetadataObject {
-                value: metadata_properties,
-                metadata: self.metadata,
-            },
-        )
+        (PropertyObject::new(properties), PropertyMetadataObject {
+            value: metadata_properties,
+            metadata: self.metadata,
+        })
     }
 }

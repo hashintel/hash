@@ -23,6 +23,10 @@ use core::{
 use bytes::BytesMut;
 use error_stack::Context;
 use graph_types::knowledge::entity::Entity;
+use hash_graph_store::{
+    filter::{ParameterConversionError, QueryRecord},
+    subgraph::temporal_axes::QueryTemporalAxes,
+};
 use postgres_types::{FromSql, IsNull, ToSql, Type, WasNull};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -42,18 +46,13 @@ pub use self::{
     },
     table::{Alias, AliasedTable, Column, ForeignKeyReference, ReferenceTable, Table},
 };
-use crate::{
-    store::{
-        crud::Sorting,
-        knowledge::{EntityQueryCursor, EntityQuerySorting},
-        postgres::{
-            crud::QueryRecordDecode,
-            query::table::{JsonField, Relation},
-        },
-        query::ParameterConversionError,
-        QueryRecord,
+use crate::store::{
+    crud::Sorting,
+    knowledge::{EntityQueryCursor, EntityQuerySorting},
+    postgres::{
+        crud::QueryRecordDecode,
+        query::table::{JsonField, Relation},
     },
-    subgraph::temporal_axes::QueryTemporalAxes,
 };
 
 pub trait PostgresRecord: QueryRecord + QueryRecordDecode<Output = Self> {
@@ -71,12 +70,17 @@ pub trait PostgresRecord: QueryRecord + QueryRecordDecode<Output = Self> {
 }
 
 /// An absolute path inside of a query pointing to an attribute.
-pub trait PostgresQueryPath {
+pub trait PostgresQueryPath: Sized {
     /// Returns a list of [`Relation`]s required to traverse this path.
     fn relations(&self) -> Vec<Relation>;
 
     /// The [`Column`] where this path ends.
     fn terminating_column(&self) -> (Column, Option<JsonField<'_>>);
+
+    #[expect(unused_variables, reason = "No-op")]
+    fn label_property_path(inheritance_depth: Option<u32>) -> Option<Self> {
+        None
+    }
 }
 
 /// Renders the object into a Postgres compatible format.
@@ -274,9 +278,10 @@ where
 
 #[cfg(test)]
 mod test_helper {
-    use crate::{
-        ontology::DataTypeQueryPath,
-        store::postgres::query::{Alias, Expression, Function, PostgresQueryPath, WindowStatement},
+    use hash_graph_store::data_type::DataTypeQueryPath;
+
+    use crate::store::postgres::query::{
+        Alias, Expression, Function, PostgresQueryPath, WindowStatement,
     };
 
     pub fn trim_whitespace(string: impl Into<String>) -> String {

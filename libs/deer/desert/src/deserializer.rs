@@ -2,13 +2,13 @@ use alloc::borrow::ToOwned;
 use core::num::TryFromIntError;
 
 use deer::{
+    Context, EnumVisitor, IdentifierVisitor, OptionalVisitor, StructVisitor, Visitor,
     error::{
         DeserializerError, ExpectedType, ReceivedType, ReceivedValue, TypeError, ValueError,
         Variant,
     },
     helpers::EnumObjectVisitor,
     value::NoneDeserializer,
-    Context, EnumVisitor, IdentifierVisitor, OptionalVisitor, StructVisitor, Visitor,
 };
 use error_stack::{Report, Result, ResultExt};
 use num_traits::ToPrimitive;

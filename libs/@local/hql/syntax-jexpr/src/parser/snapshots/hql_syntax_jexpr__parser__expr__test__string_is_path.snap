@@ -1,0 +1,24 @@
+---
+source: libs/@local/hql/syntax-jexpr/src/parser/expr.rs
+expression: "\"symbol\""
+---
+Expr {
+    kind: Path(
+        Path {
+            segments: [
+                Symbol {
+                    value: "symbol",
+                    span: SpanId(
+                        1,
+                    ),
+                },
+            ],
+            span: SpanId(
+                2,
+            ),
+        },
+    ),
+    span: SpanId(
+        0,
+    ),
+}

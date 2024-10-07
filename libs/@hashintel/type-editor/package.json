@@ -28,26 +28,26 @@
     "clsx": "1.2.1",
     "lodash.memoize": "4.1.2",
     "lodash.uniqueid": "4.0.1",
-    "material-ui-popup-state": "4.0.2",
+    "material-ui-popup-state": "4.1.0",
     "rooks": "7.14.1",
     "setimmediate": "1.0.5"
   },
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
-    "@mui/material": "5.14.11",
-    "@mui/system": "5.14.11",
-    "@types/lodash.memoize": "4.1.7",
-    "@types/lodash.uniqueid": "4.0.7",
+    "@mui/material": "5.16.7",
+    "@mui/system": "5.16.7",
+    "@types/lodash.memoize": "4.1.9",
+    "@types/lodash.uniqueid": "4.0.9",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "react-hook-form": "7.48.2",
-    "typescript": "5.5.4"
+    "react-hook-form": "7.53.0",
+    "typescript": "5.6.2"
   },
   "peerDependencies": {
     "@mui/material": "^5.14.0",
     "@mui/system": "^5.14.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "react-hook-form": "7.46.1"
+    "react-hook-form": "7.53.0"
   }
 }

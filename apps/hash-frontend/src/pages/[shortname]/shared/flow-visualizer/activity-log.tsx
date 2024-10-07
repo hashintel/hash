@@ -41,12 +41,12 @@ import type {
   CreateVirtualizedRowContentFn,
   VirtualizedTableColumn,
   VirtualizedTableRow,
-  VirtualizedTableSort,
 } from "../../../shared/virtualized-table";
 import {
   defaultCellSx,
   VirtualizedTable,
 } from "../../../shared/virtualized-table";
+import type { VirtualizedTableSort } from "../../../shared/virtualized-table/header/sort";
 import { SectionLabel } from "./section-label";
 import { formatTimeTaken } from "./shared/format-time-taken";
 import type { LocalProgressLog, LogDisplay } from "./shared/types";
@@ -99,18 +99,25 @@ const getEntityPrefixFromLog = (log: StepProgressLog): string => {
 
   const isPersistedEntity = "persistedEntity" in log;
 
-  return isPersistedEntity ? "Persisted entity" : "Proposed entity";
+  return isPersistedEntity
+    ? "Persisted entity"
+    : log.isUpdateToExistingProposal
+      ? "Updated proposed entity"
+      : "Proposed entity";
 };
 
-const visitedWebPagePrefix = "Visited ";
 const viewedPdfFilePrefix = "Viewed PDF file at ";
+const visitedWebPagePrefix = "Visited ";
 const queriedWebPrefix = "Searched web for ";
 const startedCoordinatorPrefix = "Started research coordinator with goal ";
 const closedCoordinatorPrefix = "Finished research coordinator with ";
-const startedSubTaskPrefix = "Started sub-task with goal ";
-const closedSubTaskPrefix = "Finished sub-task with ";
-const startedLinkExplorerTaskPrefix = "Started link explorer task with goal ";
-const closedLinkExplorerTaskPrefix = "Finished link explorer task with ";
+const coordinatorWaitsPrefix =
+  "Coordinator is waiting for outstanding tasks to finish.";
+const startedSubCoordinatorPrefix = "Started sub-coordinator with goal ";
+const closedSubCoordinatorPrefix = "Finished sub-coordinator with ";
+const startedLinkExplorerTaskPrefix = "Exploring webpages with goal ";
+const closedLinkExplorerTaskPrefix = "Finished exploring webpages with ";
+const workerWasStoppedTaskPrefix = "Worker was stopped";
 const activityFailedPrefix = "Activity failed: ";
 const checkpointPrefix = "Checkpoint recorded";
 const checkpointResetMessage = "Flow resumed from checkpoint";
@@ -154,11 +161,14 @@ const getRawTextFromLog = (log: LocalProgressLog): string => {
     case "ClosedCoordinator": {
       return `${closedCoordinatorPrefix} ${log.output.entityCount} entities discovered`;
     }
-    case "StartedSubTask": {
-      return `${startedSubTaskPrefix}“${log.input.goal}”`;
+    case "CoordinatorWaitsForTasks": {
+      return coordinatorWaitsPrefix;
     }
-    case "ClosedSubTask": {
-      return `${closedSubTaskPrefix} ${log.output.claimCount} claims and ${log.output.entityCount} entities discovered`;
+    case "StartedSubCoordinator": {
+      return `${startedSubCoordinatorPrefix}“${log.input.goal}”`;
+    }
+    case "ClosedSubCoordinator": {
+      return `${closedSubCoordinatorPrefix} ${log.output.claimCount} claims and ${log.output.entityCount} entities discovered`;
     }
     case "StartedLinkExplorerTask": {
       return `${startedLinkExplorerTaskPrefix}“${log.input.goal}”`;
@@ -169,6 +179,9 @@ const getRawTextFromLog = (log: LocalProgressLog): string => {
     case "InferredClaimsFromText": {
       // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
       return `Inferred ${log.output.claimCount} claims and ${log.output.entityCount} entities from ${log.output.resource.title || log.output.resource.url}`;
+    }
+    case "WorkerWasStopped": {
+      return workerWasStoppedTaskPrefix;
     }
     case "ActivityFailed": {
       return `${activityFailedPrefix}${log.message}`;
@@ -297,7 +310,13 @@ const LogDetail = ({
 
       return (
         <Stack direction="row" alignItems="center" gap={0.5}>
-          {isPersistedEntity ? "Persisted" : "Proposed"} entity{" "}
+          {`${
+            isPersistedEntity
+              ? "Persisted"
+              : log.isUpdateToExistingProposal
+                ? "Updated proposed"
+                : "Proposed"
+          } entity `}
           <strong style={ellipsisOverflow}>{entityLabel}</strong>
         </Stack>
       );
@@ -342,22 +361,25 @@ const LogDetail = ({
         </Stack>
       );
     }
-    case "StartedSubTask": {
+    case "CoordinatorWaitsForTasks": {
+      return <Box>{coordinatorWaitsPrefix}</Box>;
+    }
+    case "StartedSubCoordinator": {
       return (
         <Stack direction="row" alignItems="center" gap={1}>
           <Box sx={ellipsisOverflow}>
-            {startedSubTaskPrefix}
+            {startedSubCoordinatorPrefix}
             <strong>“{log.input.goal}”</strong>
           </Box>
           <ModelTooltip text={log.explanation} />
         </Stack>
       );
     }
-    case "ClosedSubTask": {
+    case "ClosedSubCoordinator": {
       return (
         <Stack direction="row" alignItems="center" gap={1}>
           <Box sx={ellipsisOverflow}>
-            {closedSubTaskPrefix}
+            {closedSubCoordinatorPrefix}
             <strong>{log.output.claimCount} claims</strong> and{" "}
             <strong>{log.output.entityCount}</strong> entities discovered
           </Box>
@@ -384,6 +406,14 @@ const LogDetail = ({
             <strong>{log.output.claimCount} claims</strong> and{" "}
             <strong>{log.output.entityCount}</strong> entities discovered
           </Box>
+        </Stack>
+      );
+    }
+    case "WorkerWasStopped": {
+      return (
+        <Stack direction="row" alignItems="center" gap={0.5}>
+          {workerWasStoppedTaskPrefix}
+          <ModelTooltip text={log.explanation} />
         </Stack>
       );
     }
@@ -599,7 +629,7 @@ const sortLogs = (
   b: LocalProgressLog,
   sort: VirtualizedTableSort<FieldId>,
 ) => {
-  if (sort.field === "time") {
+  if (sort.fieldId === "time") {
     if (a.recordedAt === b.recordedAt) {
       return 0;
     }
@@ -631,7 +661,7 @@ export const ActivityLog = memo(
     setLogDisplay: (display: LogDisplay) => void;
   }) => {
     const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
-      field: "time",
+      fieldId: "time",
       direction: "asc",
     });
 

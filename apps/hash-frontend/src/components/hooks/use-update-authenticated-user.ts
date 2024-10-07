@@ -20,6 +20,7 @@ import { updateEntityMutation } from "../../graphql/queries/knowledge/entity.que
 import { meQuery } from "../../graphql/queries/user.queries";
 import type { User } from "../../lib/user-and-org";
 import { useAuthInfo } from "../../pages/shared/auth-info-context";
+import type { UserPreferences } from "../../shared/use-user-preferences";
 
 type UpdateAuthenticatedUserParams = {
   shortname?: string;
@@ -27,6 +28,7 @@ type UpdateAuthenticatedUserParams = {
   location?: string;
   websiteUrl?: string;
   preferredPronouns?: string;
+  preferences?: UserPreferences;
 };
 
 export const useUpdateAuthenticatedUser = () => {
@@ -87,6 +89,7 @@ export const useUpdateAuthenticatedUser = () => {
           location,
           websiteUrl,
           preferredPronouns,
+          preferences: applicationPreferences,
         } = params;
         for (const [key, value] of typedEntries({
           shortname,
@@ -94,6 +97,7 @@ export const useUpdateAuthenticatedUser = () => {
           location,
           websiteUrl,
           preferredPronouns,
+          applicationPreferences,
         })) {
           if (typeof value !== "undefined") {
             propertyPatches.push({
@@ -107,7 +111,9 @@ export const useUpdateAuthenticatedUser = () => {
                 value,
                 metadata: {
                   dataTypeId:
-                    "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
+                    key === "applicationPreferences"
+                      ? "https://blockprotocol.org/@blockprotocol/types/data-type/object/v/1"
+                      : "https://blockprotocol.org/@blockprotocol/types/data-type/text/v/1",
                 },
               },
             });

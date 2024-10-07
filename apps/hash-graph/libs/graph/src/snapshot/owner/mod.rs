@@ -1,6 +1,6 @@
 pub use self::{
     batch::AccountRowBatch,
-    channel::{channel, OwnerReceiver, OwnerSender},
+    channel::{OwnerReceiver, OwnerSender, channel},
     table::{AccountGroupRow, AccountRow},
 };
 

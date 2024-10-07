@@ -1,3 +1,4 @@
+#![feature(assert_matches)]
 #![expect(
     clippy::missing_panics_doc,
     clippy::missing_errors_doc,
@@ -23,7 +24,10 @@ mod property_metadata;
 mod property_type;
 mod sorting;
 
+use std::collections::HashMap;
+
 use authorization::{
+    AuthorizationApi, NoAuthorization,
     schema::{
         DataTypeRelationAndSubject, DataTypeViewerSubject, EntityRelationAndSubject,
         EntityTypeInstantiatorSubject, EntityTypeRelationAndSubject, EntityTypeSetting,
@@ -32,13 +36,14 @@ use authorization::{
         WebOwnerSubject,
     },
     zanzibar::Consistency,
-    AuthorizationApi, NoAuthorization,
 };
 use error_stack::Result;
 use graph::{
-    load_env,
+    Environment, load_env,
     store::{
-        account::{InsertAccountIdParams, InsertWebIdParams},
+        DataTypeStore, DatabaseConnectionInfo, DatabasePoolConfig, DatabaseType, EntityStore,
+        EntityTypeStore, InsertionError, PostgresStore, PostgresStorePool, PropertyTypeStore,
+        QueryError, StorePool, UpdateError,
         knowledge::{
             CountEntitiesParams, CreateEntityParams, GetEntitiesParams, GetEntitiesResponse,
             GetEntitySubgraphParams, GetEntitySubgraphResponse, PatchEntityParams,
@@ -56,11 +61,7 @@ use graph::{
             UpdateDataTypeEmbeddingParams, UpdateDataTypesParams, UpdateEntityTypeEmbeddingParams,
             UpdateEntityTypesParams, UpdatePropertyTypeEmbeddingParams, UpdatePropertyTypesParams,
         },
-        AccountStore, ConflictBehavior, DataTypeStore, DatabaseConnectionInfo, DatabasePoolConfig,
-        DatabaseType, EntityStore, EntityTypeStore, InsertionError, PostgresStore,
-        PostgresStorePool, PropertyTypeStore, QueryError, StorePool, UpdateError,
     },
-    Environment,
 };
 use graph_types::{
     account::AccountId,
@@ -71,6 +72,10 @@ use graph_types::{
         ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
+};
+use hash_graph_store::{
+    ConflictBehavior,
+    account::{AccountStore, InsertAccountIdParams, InsertWebIdParams},
 };
 use hash_tracing::logging::env_filter;
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
@@ -130,7 +135,9 @@ const fn entity_type_relationships() -> [EntityTypeRelationAndSubject; 3] {
 }
 
 pub fn init_logging() {
-    let _ = tracing_subscriber::fmt()
+    // It's likely that the initialization failed due to a previous initialization attempt. In this
+    // case, we can ignore the error.
+    let _: core::result::Result<_, _> = tracing_subscriber::fmt()
         .with_ansi(true)
         .with_env_filter(env_filter(None))
         .with_file(true)
@@ -149,7 +156,7 @@ impl DatabaseTestWrapper<NoAuthorization> {
             std::env::var("HASH_GRAPH_PG_PASSWORD").unwrap_or_else(|_| "graph".to_owned());
         let host = std::env::var("HASH_GRAPH_PG_HOST").unwrap_or_else(|_| "localhost".to_owned());
         let port = std::env::var("HASH_GRAPH_PG_PORT")
-            .map(|p| p.parse::<u16>().unwrap())
+            .map(|port| port.parse::<u16>().unwrap())
             .unwrap_or(5432);
         let database =
             std::env::var("HASH_GRAPH_PG_DATABASE").unwrap_or_else(|_| "graph".to_owned());
@@ -203,13 +210,10 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
             .await
             .expect("could not insert account id");
         store
-            .insert_web_id(
-                account_id,
-                InsertWebIdParams {
-                    owned_by_id: OwnedById::new(account_id.into_uuid()),
-                    owner: WebOwnerSubject::Account { id: account_id },
-                },
-            )
+            .insert_web_id(account_id, InsertWebIdParams {
+                owned_by_id: OwnedById::new(account_id.into_uuid()),
+                owner: WebOwnerSubject::Account { id: account_id },
+            })
             .await
             .expect("could not create web id");
 
@@ -227,6 +231,7 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                         relationships: data_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
                         provenance: ProvidedOntologyEditionProvenance::default(),
+                        conversions: HashMap::new(),
                     }
                 }),
             )
@@ -307,14 +312,11 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
         params.include_count = true;
 
         let count = self
-            .count_data_types(
-                actor_id,
-                CountDataTypesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
-                },
-            )
+            .count_data_types(actor_id, CountDataTypesParams {
+                filter: params.filter.clone(),
+                temporal_axes: params.temporal_axes.clone(),
+                include_drafts: params.include_drafts,
+            })
             .await?;
 
         let mut response = self.store.get_data_types(actor_id, params).await?;
@@ -342,14 +344,11 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
         params.include_count = true;
 
         let count = self
-            .count_data_types(
-                actor_id,
-                CountDataTypesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
-                },
-            )
+            .count_data_types(actor_id, CountDataTypesParams {
+                filter: params.filter.clone(),
+                temporal_axes: params.temporal_axes.clone(),
+                include_drafts: params.include_drafts,
+            })
             .await?;
 
         let mut response = self.store.get_data_type_subgraph(actor_id, params).await?;
@@ -403,6 +402,10 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
             .update_data_type_embeddings(actor_id, params)
             .await
     }
+
+    async fn reindex_cache(&mut self) -> Result<(), UpdateError> {
+        self.store.reindex_cache().await
+    }
 }
 
 impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
@@ -436,14 +439,11 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
         params.include_count = true;
 
         let count = self
-            .count_property_types(
-                actor_id,
-                CountPropertyTypesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
-                },
-            )
+            .count_property_types(actor_id, CountPropertyTypesParams {
+                filter: params.filter.clone(),
+                temporal_axes: params.temporal_axes.clone(),
+                include_drafts: params.include_drafts,
+            })
             .await?;
 
         let mut response = self.store.get_property_types(actor_id, params).await?;
@@ -472,14 +472,11 @@ impl<A: AuthorizationApi> PropertyTypeStore for DatabaseApi<'_, A> {
         params.include_count = true;
 
         let count = self
-            .count_property_types(
-                actor_id,
-                CountPropertyTypesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
-                },
-            )
+            .count_property_types(actor_id, CountPropertyTypesParams {
+                filter: params.filter.clone(),
+                temporal_axes: params.temporal_axes.clone(),
+                include_drafts: params.include_drafts,
+            })
             .await?;
 
         let mut response = self
@@ -571,14 +568,11 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
         params.include_count = true;
 
         let count = self
-            .count_entity_types(
-                actor_id,
-                CountEntityTypesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
-                },
-            )
+            .count_entity_types(actor_id, CountEntityTypesParams {
+                filter: params.filter.clone(),
+                temporal_axes: params.temporal_axes.clone(),
+                include_drafts: params.include_drafts,
+            })
             .await?;
 
         let mut response = self.store.get_entity_types(actor_id, params).await?;
@@ -606,14 +600,11 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
         params.include_count = true;
 
         let count = self
-            .count_entity_types(
-                actor_id,
-                CountEntityTypesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
-                },
-            )
+            .count_entity_types(actor_id, CountEntityTypesParams {
+                filter: params.filter.clone(),
+                temporal_axes: params.temporal_axes.clone(),
+                include_drafts: params.include_drafts,
+            })
             .await?;
 
         let mut response = self
@@ -709,14 +700,11 @@ where
         params.include_count = true;
 
         let count = self
-            .count_entities(
-                actor_id,
-                CountEntitiesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
-                },
-            )
+            .count_entities(actor_id, CountEntitiesParams {
+                filter: params.filter.clone(),
+                temporal_axes: params.temporal_axes.clone(),
+                include_drafts: params.include_drafts,
+            })
             .await?;
 
         let mut response = self.store.get_entities(actor_id, params).await?;
@@ -744,14 +732,11 @@ where
         params.include_count = true;
 
         let count = self
-            .count_entities(
-                actor_id,
-                CountEntitiesParams {
-                    filter: params.filter.clone(),
-                    temporal_axes: params.temporal_axes.clone(),
-                    include_drafts: params.include_drafts,
-                },
-            )
+            .count_entities(actor_id, CountEntitiesParams {
+                filter: params.filter.clone(),
+                temporal_axes: params.temporal_axes.clone(),
+                include_drafts: params.include_drafts,
+            })
             .await?;
         let mut response = self.store.get_entity_subgraph(actor_id, params).await?;
 

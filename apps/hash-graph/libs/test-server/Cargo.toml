@@ -10,20 +10,27 @@ authors.workspace = true
 description = "HASH Graph test server"
 
 [dependencies]
+# Public workspace dependencies
+
+# Public third-party dependencies
+
+# Private workspace dependencies
 authorization = { workspace = true }
 codec = { workspace = true }
 error-stack = { workspace = true }
 graph = { workspace = true, features = ["utoipa"] }
+graph-api = { workspace = true }
+graph-type-defs = { workspace = true }
 graph-types = { workspace = true, features = ["utoipa"] }
 hash-status = { workspace = true }
-graph-api = { workspace = true }
 
-axum = "0.7.5"
+# Private third-party dependencies
+axum = { workspace = true }
 futures = { workspace = true }
 tokio = { workspace = true, features = ["macros"] }
 tokio-util = { workspace = true, features = ["io"] }
-uuid = { workspace = true }
 tracing = { workspace = true }
+uuid = { workspace = true }
 
 [lints]
 workspace = true

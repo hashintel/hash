@@ -9,12 +9,12 @@ use uuid::Uuid;
 
 use crate::{
     schema::{
-        error::{InvalidRelationship, InvalidResource},
         PublicAccess,
+        error::{InvalidRelationship, InvalidResource},
     },
     zanzibar::{
-        types::{LeveledRelation, Relationship, RelationshipParts, Resource},
         Permission, Relation,
+        types::{LeveledRelation, Relationship, RelationshipParts, Resource},
     },
 };
 
@@ -282,114 +282,104 @@ impl Relationship for (OwnedById, WebRelationAndSubject) {
     type Subject = WebSubject;
     type SubjectSet = WebSubjectSet;
 
-    #[expect(clippy::too_many_lines)]
     fn from_parts(parts: RelationshipParts<Self>) -> Result<Self, impl Error> {
-        Ok((
-            parts.resource,
-            match parts.relation.name {
-                WebResourceRelation::Owner => WebRelationAndSubject::Owner {
-                    subject: match (parts.subject, parts.subject_set) {
-                        (WebSubject::Account(id), None) => WebOwnerSubject::Account { id },
-                        (WebSubject::AccountGroup(id), None) => {
-                            WebOwnerSubject::AccountGroup { id }
-                        }
-                        (WebSubject::Account(_) | WebSubject::AccountGroup(_), Some(_)) => {
-                            return Err(InvalidRelationship::invalid_subject_set(parts));
-                        }
-                        (WebSubject::Public, _) => {
-                            return Err(InvalidRelationship::invalid_subject(parts));
-                        }
-                    },
-                    level: parts.relation.level,
-                },
-                WebResourceRelation::EntityCreator => WebRelationAndSubject::EntityCreator {
-                    subject: match (parts.subject, parts.subject_set) {
-                        (WebSubject::Account(id), None) => WebEntityCreatorSubject::Account { id },
-                        (WebSubject::AccountGroup(id), Some(set)) => {
-                            WebEntityCreatorSubject::AccountGroup { id, set }
-                        }
-                        (WebSubject::Account(_) | WebSubject::AccountGroup(_), _) => {
-                            return Err(InvalidRelationship::invalid_subject_set(parts));
-                        }
-                        (WebSubject::Public, _) => {
-                            return Err(InvalidRelationship::invalid_subject(parts));
-                        }
-                    },
-                    level: parts.relation.level,
-                },
-                WebResourceRelation::EntityEditor => WebRelationAndSubject::EntityEditor {
-                    subject: match (parts.subject, parts.subject_set) {
-                        (WebSubject::Account(id), None) => WebEntityEditorSubject::Account { id },
-                        (WebSubject::AccountGroup(id), Some(set)) => {
-                            WebEntityEditorSubject::AccountGroup { id, set }
-                        }
-                        (WebSubject::Account(_) | WebSubject::AccountGroup(_), _) => {
-                            return Err(InvalidRelationship::invalid_subject_set(parts));
-                        }
-                        (WebSubject::Public, _) => {
-                            return Err(InvalidRelationship::invalid_subject(parts));
-                        }
-                    },
-                    level: parts.relation.level,
-                },
-                WebResourceRelation::EntityViewer => WebRelationAndSubject::EntityViewer {
-                    subject: match (parts.subject, parts.subject_set) {
-                        (WebSubject::Account(id), None) => WebEntityViewerSubject::Account { id },
-                        (WebSubject::AccountGroup(id), Some(set)) => {
-                            WebEntityViewerSubject::AccountGroup { id, set }
-                        }
-                        (WebSubject::Public, None) => WebEntityViewerSubject::Public,
-                        (
-                            WebSubject::Account(_)
-                            | WebSubject::AccountGroup(_)
-                            | WebSubject::Public,
-                            _,
-                        ) => {
-                            return Err(InvalidRelationship::invalid_subject_set(parts));
-                        }
-                    },
-                    level: parts.relation.level,
-                },
-                WebResourceRelation::EntityTypeViewer => WebRelationAndSubject::EntityTypeViewer {
-                    subject: match (parts.subject, parts.subject_set) {
-                        (WebSubject::Public, None) => WebEntityTypeViewerSubject::Public,
-                        (WebSubject::Public, _) => {
-                            return Err(InvalidRelationship::invalid_subject_set(parts));
-                        }
-                        (WebSubject::Account(_) | WebSubject::AccountGroup(_), _) => {
-                            return Err(InvalidRelationship::invalid_subject(parts));
-                        }
-                    },
-                    level: parts.relation.level,
-                },
-                WebResourceRelation::PropertyTypeViewer => {
-                    WebRelationAndSubject::PropertyTypeViewer {
-                        subject: match (parts.subject, parts.subject_set) {
-                            (WebSubject::Public, None) => WebPropertyTypeViewerSubject::Public,
-                            (WebSubject::Public, _) => {
-                                return Err(InvalidRelationship::invalid_subject_set(parts));
-                            }
-                            (WebSubject::Account(_) | WebSubject::AccountGroup(_), _) => {
-                                return Err(InvalidRelationship::invalid_subject(parts));
-                            }
-                        },
-                        level: parts.relation.level,
+        Ok((parts.resource, match parts.relation.name {
+            WebResourceRelation::Owner => WebRelationAndSubject::Owner {
+                subject: match (parts.subject, parts.subject_set) {
+                    (WebSubject::Account(id), None) => WebOwnerSubject::Account { id },
+                    (WebSubject::AccountGroup(id), None) => WebOwnerSubject::AccountGroup { id },
+                    (WebSubject::Account(_) | WebSubject::AccountGroup(_), Some(_)) => {
+                        return Err(InvalidRelationship::invalid_subject_set(parts));
                     }
-                }
-                WebResourceRelation::DataTypeViewer => WebRelationAndSubject::DataTypeViewer {
-                    subject: match (parts.subject, parts.subject_set) {
-                        (WebSubject::Public, None) => WebDataTypeViewerSubject::Public,
-                        (WebSubject::Public, _) => {
-                            return Err(InvalidRelationship::invalid_subject_set(parts));
-                        }
-                        (WebSubject::Account(_) | WebSubject::AccountGroup(_), _) => {
-                            return Err(InvalidRelationship::invalid_subject(parts));
-                        }
-                    },
-                    level: parts.relation.level,
+                    (WebSubject::Public, _) => {
+                        return Err(InvalidRelationship::invalid_subject(parts));
+                    }
                 },
+                level: parts.relation.level,
             },
-        ))
+            WebResourceRelation::EntityCreator => WebRelationAndSubject::EntityCreator {
+                subject: match (parts.subject, parts.subject_set) {
+                    (WebSubject::Account(id), None) => WebEntityCreatorSubject::Account { id },
+                    (WebSubject::AccountGroup(id), Some(set)) => {
+                        WebEntityCreatorSubject::AccountGroup { id, set }
+                    }
+                    (WebSubject::Account(_) | WebSubject::AccountGroup(_), _) => {
+                        return Err(InvalidRelationship::invalid_subject_set(parts));
+                    }
+                    (WebSubject::Public, _) => {
+                        return Err(InvalidRelationship::invalid_subject(parts));
+                    }
+                },
+                level: parts.relation.level,
+            },
+            WebResourceRelation::EntityEditor => WebRelationAndSubject::EntityEditor {
+                subject: match (parts.subject, parts.subject_set) {
+                    (WebSubject::Account(id), None) => WebEntityEditorSubject::Account { id },
+                    (WebSubject::AccountGroup(id), Some(set)) => {
+                        WebEntityEditorSubject::AccountGroup { id, set }
+                    }
+                    (WebSubject::Account(_) | WebSubject::AccountGroup(_), _) => {
+                        return Err(InvalidRelationship::invalid_subject_set(parts));
+                    }
+                    (WebSubject::Public, _) => {
+                        return Err(InvalidRelationship::invalid_subject(parts));
+                    }
+                },
+                level: parts.relation.level,
+            },
+            WebResourceRelation::EntityViewer => WebRelationAndSubject::EntityViewer {
+                subject: match (parts.subject, parts.subject_set) {
+                    (WebSubject::Account(id), None) => WebEntityViewerSubject::Account { id },
+                    (WebSubject::AccountGroup(id), Some(set)) => {
+                        WebEntityViewerSubject::AccountGroup { id, set }
+                    }
+                    (WebSubject::Public, None) => WebEntityViewerSubject::Public,
+                    (
+                        WebSubject::Account(_) | WebSubject::AccountGroup(_) | WebSubject::Public,
+                        _,
+                    ) => {
+                        return Err(InvalidRelationship::invalid_subject_set(parts));
+                    }
+                },
+                level: parts.relation.level,
+            },
+            WebResourceRelation::EntityTypeViewer => WebRelationAndSubject::EntityTypeViewer {
+                subject: match (parts.subject, parts.subject_set) {
+                    (WebSubject::Public, None) => WebEntityTypeViewerSubject::Public,
+                    (WebSubject::Public, _) => {
+                        return Err(InvalidRelationship::invalid_subject_set(parts));
+                    }
+                    (WebSubject::Account(_) | WebSubject::AccountGroup(_), _) => {
+                        return Err(InvalidRelationship::invalid_subject(parts));
+                    }
+                },
+                level: parts.relation.level,
+            },
+            WebResourceRelation::PropertyTypeViewer => WebRelationAndSubject::PropertyTypeViewer {
+                subject: match (parts.subject, parts.subject_set) {
+                    (WebSubject::Public, None) => WebPropertyTypeViewerSubject::Public,
+                    (WebSubject::Public, _) => {
+                        return Err(InvalidRelationship::invalid_subject_set(parts));
+                    }
+                    (WebSubject::Account(_) | WebSubject::AccountGroup(_), _) => {
+                        return Err(InvalidRelationship::invalid_subject(parts));
+                    }
+                },
+                level: parts.relation.level,
+            },
+            WebResourceRelation::DataTypeViewer => WebRelationAndSubject::DataTypeViewer {
+                subject: match (parts.subject, parts.subject_set) {
+                    (WebSubject::Public, None) => WebDataTypeViewerSubject::Public,
+                    (WebSubject::Public, _) => {
+                        return Err(InvalidRelationship::invalid_subject_set(parts));
+                    }
+                    (WebSubject::Account(_) | WebSubject::AccountGroup(_), _) => {
+                        return Err(InvalidRelationship::invalid_subject(parts));
+                    }
+                },
+                level: parts.relation.level,
+            },
+        }))
     }
 
     fn to_parts(&self) -> RelationshipParts<Self> {

@@ -39,6 +39,8 @@ import {
   intervalForTimestamp,
 } from "@local/hash-subgraph/stdlib";
 
+import type { UserPreferences } from "../shared/use-user-preferences";
+
 export const constructMinimalOrg = (params: {
   orgEntity: Entity<Organization>;
 }): MinimalOrg => {
@@ -265,7 +267,6 @@ export type UserServiceAccount = {
 };
 
 export type User = MinimalUser & {
-  joinedAt: Date;
   emails: { address: string; primary: boolean; verified: boolean }[];
   hasAvatar?: {
     linkEntity: LinkEntity;
@@ -280,10 +281,12 @@ export type User = MinimalUser & {
     profileBioEntity: Entity<ProfileBio>;
   };
   hasServiceAccounts: UserServiceAccount[];
+  joinedAt: Date;
   memberOf: {
     linkEntity: Entity<IsMemberOf>;
     org: Org;
   }[];
+  preferences?: UserPreferences;
 };
 
 /**
@@ -481,6 +484,9 @@ export const constructUser = (params: {
     hasServiceAccounts,
     joinedAt,
     memberOf,
+    preferences: userEntity.properties[
+      "https://hash.ai/@hash/types/property-type/application-preferences/"
+    ] as UserPreferences | undefined,
     emails: [
       {
         address: primaryEmailAddress,

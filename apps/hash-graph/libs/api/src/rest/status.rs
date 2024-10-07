@@ -1,10 +1,12 @@
 use core::fmt::Debug;
 
+use authorization::backend::PermissionAssertion;
 use axum::{
-    response::{IntoResponse, Response},
     Json,
+    response::{IntoResponse, Response},
 };
 use error_stack::{Context, Report};
+use graph::store::BaseUrlAlreadyExists;
 use hash_status::{Status, StatusCode};
 use serde::Serialize;
 
@@ -25,7 +27,7 @@ where
     response
 }
 
-pub(crate) fn report_to_response<C>(report: impl Into<Report<C>>) -> Response
+pub(crate) fn report_to_response<C>(report: impl Into<Report<[C]>>) -> Response
 where
     C: Context,
 {
@@ -35,15 +37,22 @@ where
         .next()
         .copied()
         .or_else(|| report.request_value::<StatusCode>().next())
-        .unwrap_or(StatusCode::Internal);
+        .unwrap_or_else(|| {
+            if report.contains::<PermissionAssertion>() {
+                StatusCode::PermissionDenied
+            } else if report.contains::<BaseUrlAlreadyExists>() {
+                StatusCode::AlreadyExists
+            } else {
+                StatusCode::Unknown
+            }
+        });
+
     // TODO: Currently, this mostly duplicates the error printed below, when more information is
     //       added to the `Report` event consider commenting in this line again.
     // hash_tracing::sentry::capture_report(&report);
     tracing::error!(error = ?report, tags.code = ?status_code.to_http_code());
 
-    status_to_response(Status::new(
-        status_code,
-        Some(report.to_string()),
-        vec![report],
-    ))
+    status_to_response(Status::new(status_code, Some(report.to_string()), vec![
+        report,
+    ]))
 }

@@ -6,7 +6,7 @@ use core::{
 };
 
 use super::{
-    fmt_fold_fields, ErrorProperties, ErrorProperty, Id, Location, Namespace, Variant, NAMESPACE,
+    ErrorProperties, ErrorProperty, Id, Location, NAMESPACE, Namespace, Variant, fmt_fold_fields,
 };
 use crate::id;
 
@@ -104,8 +104,8 @@ impl Variant for UnknownFieldError {
 }
 
 impl Display for UnknownFieldError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("received unknown fields")
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        fmt.write_str("received unknown fields")
     }
 }
 
@@ -199,8 +199,8 @@ impl Variant for UnknownVariantError {
 }
 
 impl Display for UnknownVariantError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("received unknown enum variant")
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        fmt.write_str("received unknown enum variant")
     }
 }
 
@@ -229,18 +229,21 @@ pub enum ExpectedIdentifier {
 }
 
 impl Display for ExpectedIdentifier {
-    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> core::fmt::Result {
         match self {
-            Self::U8(value) => Display::fmt(value, f),
-            Self::U64(value) => Display::fmt(value, f),
-            Self::String(value) => Display::fmt(value, f),
-            Self::Bytes(value) => fmt_byte_slice(value, f),
+            Self::U8(value) => Display::fmt(value, fmt),
+            Self::U64(value) => Display::fmt(value, fmt),
+            Self::String(value) => Display::fmt(value, fmt),
+            Self::Bytes(value) => fmt_byte_slice(value, fmt),
         }
     }
 }
 
 impl ErrorProperty for ExpectedIdentifier {
-    type Value<'a> = Vec<&'a Self> where Self: 'a;
+    type Value<'a>
+        = Vec<&'a Self>
+    where
+        Self: 'a;
 
     fn key() -> &'static str {
         "expected"
@@ -263,16 +266,16 @@ pub enum ReceivedIdentifier {
 }
 
 impl Display for ReceivedIdentifier {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
         match self {
-            Self::U8(value) => Display::fmt(value, f),
-            Self::U64(value) => Display::fmt(value, f),
-            Self::String(value) => Display::fmt(value, f),
+            Self::U8(value) => Display::fmt(value, fmt),
+            Self::U64(value) => Display::fmt(value, fmt),
+            Self::String(value) => Display::fmt(value, fmt),
             Self::Bytes(value) => {
                 if let Ok(value) = core::str::from_utf8(value) {
-                    Display::fmt(value, f)
+                    Display::fmt(value, fmt)
                 } else {
-                    fmt_byte_slice(value, f)
+                    fmt_byte_slice(value, fmt)
                 }
             }
         }
@@ -280,7 +283,10 @@ impl Display for ReceivedIdentifier {
 }
 
 impl ErrorProperty for ReceivedIdentifier {
-    type Value<'a> = Vec<&'a Self> where Self: 'a;
+    type Value<'a>
+        = Vec<&'a Self>
+    where
+        Self: 'a;
 
     fn key() -> &'static str {
         "received"
@@ -335,8 +341,8 @@ impl Variant for UnknownIdentifierError {
     }
 }
 impl Display for UnknownIdentifierError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("received unknown identifiers")
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        fmt.write_str("received unknown identifiers")
     }
 }
 

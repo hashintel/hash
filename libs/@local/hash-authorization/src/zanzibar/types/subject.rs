@@ -1,8 +1,8 @@
 use core::error::Error;
 
 use crate::zanzibar::{
-    types::{resource::ResourceFilter, Resource},
     Relation,
+    types::{Resource, resource::ResourceFilter},
 };
 
 pub trait Subject: Sized {

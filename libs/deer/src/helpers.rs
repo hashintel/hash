@@ -1,12 +1,11 @@
-use error_stack::{Result, ResultExt};
-use serde::{ser::SerializeMap, Serialize, Serializer};
+use error_stack::{Result, ResultExt, TryReportTupleExt};
+use serde::{Serialize, Serializer, ser::SerializeMap};
 
 use crate::{
-    error::{DeserializeError, VisitorError},
-    ext::TupleExt,
-    schema::Reference,
     Deserialize, Deserializer, Document, EnumVisitor, FieldVisitor, ObjectAccess, Reflection,
     Schema, Visitor,
+    error::{DeserializeError, VisitorError},
+    schema::Reference,
 };
 
 struct EnumObjectFieldVisitor<T> {
@@ -75,7 +74,7 @@ where
         let end = object.end();
 
         (value, end)
-            .fold_reports()
+            .try_collect()
             .map(|(value, ())| value)
             .change_context(VisitorError)
     }

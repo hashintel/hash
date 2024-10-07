@@ -1,7 +1,7 @@
 use core::cmp::{Ordering, Reverse};
 
 use deer::Deserialize;
-use deer_desert::{assert_tokens, Token};
+use deer_desert::{Token, assert_tokens};
 use proptest::prelude::*;
 use serde::Serialize;
 use similar_asserts::assert_serde_eq;

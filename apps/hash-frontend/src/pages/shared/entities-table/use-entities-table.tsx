@@ -31,9 +31,9 @@ export interface TypeEntitiesRow {
   entityTypeVersion: string;
   archived?: boolean;
   lastEdited: string;
-  lastEditedBy?: MinimalActor;
+  lastEditedBy?: MinimalActor | "loading";
   created: string;
-  createdBy?: MinimalActor;
+  createdBy?: MinimalActor | "loading";
   web: string;
   properties?: {
     [k: string]: string;
@@ -73,7 +73,9 @@ export const useEntitiesTable = (params: {
     [entities],
   );
 
-  const { actors } = useActors({ accountIds: editorActorIds });
+  const { actors, loading: actorsLoading } = useActors({
+    accountIds: editorActorIds,
+  });
 
   const getOwnerForEntity = useGetOwnerForEntity();
 
@@ -203,20 +205,25 @@ export const useEntitiesTable = (params: {
               "yyyy-MM-dd HH:mm",
             );
 
-            const lastEditedBy = actors?.find(
-              ({ accountId }) =>
-                accountId === entity.metadata.provenance.edition.createdById,
-            );
+            const lastEditedBy = actorsLoading
+              ? "loading"
+              : actors?.find(
+                  ({ accountId }) =>
+                    accountId ===
+                    entity.metadata.provenance.edition.createdById,
+                );
 
             const created = format(
               new Date(entity.metadata.provenance.createdAtDecisionTime),
               "yyyy-MM-dd HH:mm",
             );
 
-            const createdBy = actors?.find(
-              ({ accountId }) =>
-                accountId === entity.metadata.provenance.createdById,
-            );
+            const createdBy = actorsLoading
+              ? "loading"
+              : actors?.find(
+                  ({ accountId }) =>
+                    accountId === entity.metadata.provenance.createdById,
+                );
 
             return {
               rowId: entityId,
@@ -256,6 +263,8 @@ export const useEntitiesTable = (params: {
 
     return { columns, rows };
   }, [
+    actors,
+    actorsLoading,
     entities,
     entityTypes,
     getOwnerForEntity,
@@ -266,6 +275,5 @@ export const useEntitiesTable = (params: {
     hidePageArchivedColumn,
     hidePropertiesColumns,
     isViewingPages,
-    actors,
   ]);
 };

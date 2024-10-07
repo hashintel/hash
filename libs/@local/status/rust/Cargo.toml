@@ -13,11 +13,14 @@ authors.workspace = true
 extra-dependencies = [{ name = "@local/status", version = "0.0.0-private" }]
 
 [dependencies]
-error-stack.workspace = true
+# Public workspace dependencies
 
-serde = { workspace = true, features = ["derive"] }
+# Public third-party dependencies
+serde = { workspace = true, public = true, features = ["alloc", "derive"] }
 
-serde_json = { workspace = true }
+# Private workspace dependencies
+
+# Private third-party dependencies
 
 [lints]
 workspace = true

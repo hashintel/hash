@@ -6,15 +6,16 @@
 //!
 //! [`Store`]: crate::store::Store
 
-use async_trait::async_trait;
 use error_stack::Result;
-use futures::{Stream, TryStreamExt};
-use tracing::instrument;
-
-use crate::{
-    store::{query::Filter, QueryError, QueryRecord, SubgraphRecord},
-    subgraph::temporal_axes::QueryTemporalAxes,
+use futures::{Stream, TryFutureExt, TryStreamExt};
+use hash_graph_store::{
+    filter::{Filter, QueryRecord},
+    subgraph::{SubgraphRecord, temporal_axes::QueryTemporalAxes},
 };
+use tracing::instrument;
+use type_system::url::VersionedUrl;
+
+use crate::store::QueryError;
 
 pub trait QueryResult<R, S: Sorting> {
     type Indices: Send;
@@ -31,12 +32,12 @@ pub trait Sorting {
     fn set_cursor(&mut self, cursor: Self::Cursor);
 }
 
-pub struct VertexIdSorting<R: SubgraphRecord> {
-    pub cursor: Option<R::VertexId>,
+pub struct VersionedUrlSorting {
+    pub cursor: Option<VersionedUrl>,
 }
 
-impl<R: SubgraphRecord> Sorting for VertexIdSorting<R> {
-    type Cursor = R::VertexId;
+impl Sorting for VersionedUrlSorting {
+    type Cursor = VersionedUrl;
 
     fn cursor(&self) -> Option<&Self::Cursor> {
         self.cursor.as_ref()
@@ -87,14 +88,14 @@ impl<'f, R: QueryRecord, S> ReadParameter<'f, R, S> {
     }
 }
 
-impl<'f, R: SubgraphRecord, S> ReadParameter<'f, R, S> {
+impl<'f, R: SubgraphRecord + QueryRecord, S> ReadParameter<'f, R, S> {
     #[must_use]
-    pub fn sort_by_vertex_id(self) -> ReadParameter<'f, R, VertexIdSorting<R>> {
+    pub fn sort_by_vertex_id(self) -> ReadParameter<'f, R, VersionedUrlSorting> {
         ReadParameter {
             filters: self.filters,
             temporal_axes: self.temporal_axes,
             include_drafts: self.include_drafts,
-            sorting: Some(VertexIdSorting { cursor: None }),
+            sorting: Some(VersionedUrlSorting { cursor: None }),
             limit: self.limit,
         }
     }
@@ -149,7 +150,7 @@ impl<'f, R: QueryRecord, S: Sorting> ReadParameter<'f, R, S> {
 /// Read access to a [`Store`].
 ///
 /// [`Store`]: crate::store::Store
-pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync = VertexIdSorting<R>>: Read<R> {
+pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync>: Read<R> {
     type QueryResult: QueryResult<R, S> + Send;
 
     type ReadPaginatedStream: Stream<Item = Result<Self::QueryResult, QueryError>> + Send + Sync;
@@ -200,36 +201,33 @@ pub trait ReadPaginated<R: QueryRecord, S: Sorting + Sync = VertexIdSorting<R>>:
 /// Read access to a [`Store`].
 ///
 /// [`Store`]: crate::store::Store
-#[async_trait]
 pub trait Read<R: QueryRecord>: Sync {
     type ReadStream: Stream<Item = Result<R, QueryError>> + Send + Sync;
 
-    async fn read(
+    fn read(
         &self,
         filter: &Filter<'_, R>,
         temporal_axes: Option<&QueryTemporalAxes>,
         include_drafts: bool,
-    ) -> Result<Self::ReadStream, QueryError>;
+    ) -> impl Future<Output = Result<Self::ReadStream, QueryError>> + Send;
 
     #[instrument(level = "info", skip(self, filter))]
-    async fn read_vec(
+    fn read_vec(
         &self,
         filter: &Filter<'_, R>,
         temporal_axes: Option<&QueryTemporalAxes>,
         include_drafts: bool,
-    ) -> Result<Vec<R>, QueryError> {
+    ) -> impl Future<Output = Result<Vec<R>, QueryError>> + Send {
         self.read(filter, temporal_axes, include_drafts)
-            .await?
-            .try_collect()
-            .await
+            .and_then(TryStreamExt::try_collect)
     }
 
-    async fn read_one(
+    fn read_one(
         &self,
         filter: &Filter<'_, R>,
         temporal_axes: Option<&QueryTemporalAxes>,
         include_drafts: bool,
-    ) -> Result<R, QueryError>;
+    ) -> impl Future<Output = Result<R, QueryError>> + Send;
 }
 
 // TODO: Add remaining CRUD traits

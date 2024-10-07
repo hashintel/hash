@@ -6,8 +6,8 @@ use core::{
 };
 
 use super::{
-    r#type::ExpectedType, ErrorProperties, ErrorProperty, Id, Location, Namespace, Variant,
-    NAMESPACE,
+    ErrorProperties, ErrorProperty, Id, Location, NAMESPACE, Namespace, Variant,
+    r#type::ExpectedType,
 };
 use crate::id;
 
@@ -63,8 +63,8 @@ impl Variant for ValueError {
 }
 
 impl Display for ValueError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("received value is of correct type, but does not fit constraints")
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        fmt.write_str("received value is of correct type, but does not fit constraints")
     }
 }
 
@@ -98,8 +98,8 @@ impl Variant for MissingError {
 }
 
 impl Display for MissingError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("unexpected missing value")
+    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
+        fmt.write_str("unexpected missing value")
     }
 }
 
@@ -110,8 +110,8 @@ mod tests {
 
     use super::*;
     use crate::{
-        test::{to_json, to_message},
         Deserialize,
+        test::{to_json, to_message},
     };
 
     #[test]
