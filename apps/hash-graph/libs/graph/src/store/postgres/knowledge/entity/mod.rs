@@ -513,7 +513,10 @@ where
             let num_returned_entities = entities.len();
 
             let (permitted_ids, zookie) = if let Some((permitted_ids, zookie)) = &permissions {
-                (Cow::Borrowed(permitted_ids), Cow::Borrowed(zookie))
+                (
+                    Cow::<HashSet<EntityUuid>>::Borrowed(permitted_ids),
+                    Cow::<Zookie>::Borrowed(zookie),
+                )
             } else {
                 // TODO: The subgraph structure differs from the API interface. At the API the
                 //       vertices are stored in a nested `HashMap` and here it's flattened. We need

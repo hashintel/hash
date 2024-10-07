@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use error_stack::{Report, ResultExt};
 use futures::{Stream, StreamExt, TryStreamExt};
 use hash_graph_store::{filter::Filter, subgraph::temporal_axes::QueryTemporalAxes};
@@ -99,7 +98,6 @@ where
     }
 }
 
-#[async_trait]
 impl<Cl, A, R> Read<R> for PostgresStore<Cl, A>
 where
     Cl: AsClient,

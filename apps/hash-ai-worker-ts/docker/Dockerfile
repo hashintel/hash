@@ -14,7 +14,7 @@ RUN turbo prune --scope='@apps/hash-ai-worker-ts' --docker && \
         echo > "/app/out/full/$(dirname "$1")/src/lib.rs" &&  \
         echo -e "[package]\nname = \"$(yq ".package.name" -p toml -oy $1)\"" > "/app/out/full/$1" \
       )' _ {} \; && \
-    cp Cargo.toml Cargo.lock /app/out/full/
+    cp -R .cargo Cargo.toml Cargo.lock /app/out/full/
 
 # Turbo isn't aware of our patches by default (it would be if we use Yarn 2+ or pnpm).
 # Therefore we manually add the patches to the pruned output to allow for the patches to be applied.

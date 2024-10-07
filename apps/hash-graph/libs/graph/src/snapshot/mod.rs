@@ -20,7 +20,6 @@ mod web;
 use core::future::ready;
 
 use async_scoped::TokioScope;
-use async_trait::async_trait;
 use authorization::{
     AuthorizationApi, NoAuthorization,
     backend::ZanzibarBackend,
@@ -229,14 +228,18 @@ impl SnapshotEntry {
     }
 }
 
-#[async_trait]
 trait WriteBatch<C, A> {
-    async fn begin(postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError>;
-    async fn write(self, postgres_client: &mut PostgresStore<C, A>) -> Result<(), InsertionError>;
-    async fn commit(
+    fn begin(
+        postgres_client: &mut PostgresStore<C, A>,
+    ) -> impl Future<Output = Result<(), InsertionError>> + Send;
+    fn write(
+        self,
+        postgres_client: &mut PostgresStore<C, A>,
+    ) -> impl Future<Output = Result<(), InsertionError>> + Send;
+    fn commit(
         postgres_client: &mut PostgresStore<C, A>,
         validation: bool,
-    ) -> Result<(), InsertionError>;
+    ) -> impl Future<Output = Result<(), InsertionError>> + Send;
 }
 
 pub struct SnapshotStore<C, A>(PostgresStore<C, A>);

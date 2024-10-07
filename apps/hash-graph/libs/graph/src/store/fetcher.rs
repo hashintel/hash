@@ -2,7 +2,6 @@ use alloc::sync::Arc;
 use core::mem;
 use std::collections::{HashMap, HashSet};
 
-use async_trait::async_trait;
 use authorization::{
     AuthorizationApi,
     schema::{
@@ -73,14 +72,13 @@ use crate::{
     },
 };
 
-#[async_trait]
 pub trait TypeFetcher {
     /// Fetches the provided type reference and inserts it to the Graph.
-    async fn insert_external_ontology_type(
+    fn insert_external_ontology_type(
         &mut self,
         actor_id: AccountId,
         reference: OntologyTypeReference<'_>,
-    ) -> Result<OntologyTypeMetadata, InsertionError>;
+    ) -> impl Future<Output = Result<OntologyTypeMetadata, InsertionError>> + Send;
 }
 
 #[derive(Clone)]
@@ -675,7 +673,6 @@ where
     }
 }
 
-#[async_trait]
 impl<S, A> TypeFetcher for FetchingStore<S, A>
 where
     A: ToSocketAddrs + Send + Sync,
@@ -740,7 +737,6 @@ where
     }
 }
 
-#[async_trait]
 impl<S, A, R> Read<R> for FetchingStore<S, A>
 where
     A: Send + Sync,

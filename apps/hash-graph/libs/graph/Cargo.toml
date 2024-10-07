@@ -34,7 +34,6 @@ type-system = { workspace = true, features = ["postgres"] }
 
 # Private third-party dependencies
 async-scoped = { workspace = true, features = ["use-tokio"] }
-async-trait = { workspace = true }
 bytes = { workspace = true }
 clap = { workspace = true, features = ["derive", "env"], optional = true }
 derive-where = { workspace = true }

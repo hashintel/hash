@@ -32,7 +32,7 @@
   "devDependencies": {
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
-    "@types/lodash": "4.17.9",
+    "@types/lodash": "4.17.10",
     "@types/react-dom": "18.0.9",
     "block-scripts": "0.0.14",
     "eslint": "8.57.0",

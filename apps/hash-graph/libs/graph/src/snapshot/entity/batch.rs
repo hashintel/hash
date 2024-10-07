@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use authorization::{AuthorizationApi, backend::ZanzibarBackend, schema::EntityRelationAndSubject};
 use error_stack::{Report, ResultExt};
 use graph_types::{
@@ -36,7 +35,6 @@ pub enum EntityRowBatch {
     Relations(Vec<(EntityUuid, EntityRelationAndSubject)>),
 }
 
-#[async_trait]
 impl<C, A> WriteBatch<C, A> for EntityRowBatch
 where
     C: AsClient,

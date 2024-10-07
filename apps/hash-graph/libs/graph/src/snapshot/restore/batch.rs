@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use authorization::{AuthorizationApi, backend::ZanzibarBackend};
 use error_stack::Result;
 
@@ -26,7 +25,6 @@ pub enum SnapshotRecordBatch {
     Entities(EntityRowBatch),
 }
 
-#[async_trait]
 impl<C, A> WriteBatch<C, A> for SnapshotRecordBatch
 where
     C: AsClient,
