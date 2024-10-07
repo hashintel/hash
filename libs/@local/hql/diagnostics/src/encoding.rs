@@ -152,7 +152,7 @@ impl SerializeAs<anstyle::Color> for Color {
 
 struct ColorVisitor;
 
-impl Visitor<'_> for ColorVisitor {
+impl<'de> Visitor<'de> for ColorVisitor {
     type Value = anstyle::Color;
 
     fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
@@ -190,7 +190,7 @@ impl Visitor<'_> for ColorVisitor {
     }
 }
 
-impl DeserializeAs<'_, anstyle::Color> for Color {
+impl<'de> DeserializeAs<'de, anstyle::Color> for Color {
     fn deserialize_as<D>(deserializer: D) -> Result<anstyle::Color, D::Error>
     where
         D: serde::Deserializer<'de>,
