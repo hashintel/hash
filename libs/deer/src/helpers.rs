@@ -82,7 +82,7 @@ where
 
 struct ExpectNoneVisitor;
 
-impl<'de> Visitor<'de> for ExpectNoneVisitor {
+impl Visitor<'_> for ExpectNoneVisitor {
     type Value = ExpectNone;
 
     fn expecting(&self) -> Document {

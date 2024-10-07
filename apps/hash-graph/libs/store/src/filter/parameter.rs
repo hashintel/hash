@@ -77,7 +77,7 @@ pub enum ParameterList<'p> {
     EntityEditionIds(&'p [EntityEditionId]),
 }
 
-impl<'p> Parameter<'p> {
+impl Parameter<'_> {
     #[must_use]
     pub fn to_owned(&self) -> Parameter<'static> {
         match self {

@@ -101,7 +101,7 @@ impl<'r> Iterator for Frames<'r> {
     }
 }
 
-impl<'r> FusedIterator for Frames<'r> {}
+impl FusedIterator for Frames<'_> {}
 
 impl fmt::Debug for Frames<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -150,7 +150,7 @@ impl<'r> Iterator for FramesMut<'r> {
     }
 }
 
-impl<'r> FusedIterator for FramesMut<'r> {}
+impl FusedIterator for FramesMut<'_> {}
 
 /// Iterator over requested references in the [`Frame`] stack of a [`Report`].
 ///
@@ -188,7 +188,7 @@ where
 }
 
 #[cfg(nightly)]
-impl<'r, T> FusedIterator for RequestRef<'r, T> where T: ?Sized + 'static {}
+impl<T> FusedIterator for RequestRef<'_, T> where T: ?Sized + 'static {}
 
 #[cfg(nightly)]
 impl<T: ?Sized> Clone for RequestRef<'_, T> {
@@ -201,7 +201,7 @@ impl<T: ?Sized> Clone for RequestRef<'_, T> {
 }
 
 #[cfg(nightly)]
-impl<'r, T> fmt::Debug for RequestRef<'r, T>
+impl<T> fmt::Debug for RequestRef<'_, T>
 where
     T: ?Sized + fmt::Debug + 'static,
 {
@@ -234,7 +234,7 @@ impl<'r, T> RequestValue<'r, T> {
 }
 
 #[cfg(nightly)]
-impl<'r, T> Iterator for RequestValue<'r, T>
+impl<T> Iterator for RequestValue<'_, T>
 where
     T: 'static,
 {
@@ -246,7 +246,7 @@ where
 }
 
 #[cfg(nightly)]
-impl<'r, T> FusedIterator for RequestValue<'r, T> where T: 'static {}
+impl<T> FusedIterator for RequestValue<'_, T> where T: 'static {}
 
 #[cfg(nightly)]
 impl<T> Clone for RequestValue<'_, T> {
@@ -259,7 +259,7 @@ impl<T> Clone for RequestValue<'_, T> {
 }
 
 #[cfg(nightly)]
-impl<'r, T> fmt::Debug for RequestValue<'r, T>
+impl<T> fmt::Debug for RequestValue<'_, T>
 where
     T: fmt::Debug + 'static,
 {

@@ -45,8 +45,8 @@ where
     }
 
     #[must_use]
-    pub const fn message(&self) -> &Option<String> {
-        &self.message
+    pub fn message(&self) -> Option<&str> {
+        self.message.as_deref()
     }
 
     #[must_use]

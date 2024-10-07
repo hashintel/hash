@@ -2,7 +2,6 @@
     impl_trait_in_assoc_type,
     never_type,
     type_changing_struct_update,
-    control_flow_enum,
     error_generic_member_access
 )]
 #![cfg_attr(test, feature(noop_waker, assert_matches))]

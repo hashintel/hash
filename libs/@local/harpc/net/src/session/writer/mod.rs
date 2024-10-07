@@ -278,7 +278,7 @@ where
 
 pub(crate) type ResponseWriter<'a> = PacketWriter<'a, Response>;
 
-impl<'a> ResponseWriter<'a> {
+impl ResponseWriter<'_> {
     pub(crate) const fn is_error(&self) -> bool {
         matches!(self.context.kind, ResponseKind::Err(_))
     }

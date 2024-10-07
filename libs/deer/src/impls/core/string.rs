@@ -39,7 +39,7 @@ impl<'de: 'a, 'a> Deserialize<'de> for &'a str {
 
 struct CharVisitor;
 
-impl<'de> Visitor<'de> for CharVisitor {
+impl Visitor<'_> for CharVisitor {
     type Value = char;
 
     fn expecting(&self) -> Document {

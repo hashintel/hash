@@ -100,7 +100,7 @@ impl Reflection for Choice {
 
 struct ChoiceVisitor;
 
-impl<'de> Visitor<'de> for ChoiceVisitor {
+impl Visitor<'_> for ChoiceVisitor {
     type Value = Choice;
 
     fn expecting(&self) -> Document {
@@ -139,7 +139,7 @@ impl Reflection for Null {
 
 struct NullVisitor;
 
-impl<'de> Visitor<'de> for NullVisitor {
+impl Visitor<'_> for NullVisitor {
     type Value = Null;
 
     fn expecting(&self) -> Document {
@@ -327,7 +327,7 @@ impl Reflection for BytesLength {
 
 struct BytesLengthVisitor;
 
-impl<'de> Visitor<'de> for BytesLengthVisitor {
+impl Visitor<'_> for BytesLengthVisitor {
     type Value = BytesLength;
 
     fn expecting(&self) -> Document {
@@ -359,7 +359,7 @@ impl Reflection for ByteBuffer {
 
 struct ByteBufferVisitor;
 
-impl<'de> Visitor<'de> for ByteBufferVisitor {
+impl Visitor<'_> for ByteBufferVisitor {
     type Value = ByteBuffer;
 
     fn expecting(&self) -> Document {
