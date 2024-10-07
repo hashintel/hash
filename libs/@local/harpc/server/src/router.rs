@@ -36,6 +36,8 @@ pub struct Handler<S> {
 /// the meta information (service id and version) and the actual handler. Unlike [`Steer`], it also
 /// doesn't require `&mut self` access, which allows for more granular cloning.
 ///
+/// # Design motivations
+///
 /// The reason why we essentially require `Clone`/`Copy` for the handlers is that once the route is
 /// constructed it needs to be available for each request that happens, now, there are multiple ways
 /// to achieve this.
@@ -56,7 +58,7 @@ pub struct Handler<S> {
 /// it isn't strictly needed), as well as the use of sessions. To store any information across
 /// calls, one must make use of smart pointers, such as `Arc`.
 ///
-/// [`Steer`]: https://docs.rs/tower/latest/tower/steer/struct.Steer.html
+/// [`Steer`]: tower::steer::Steer
 pub trait Route<B, C> {
     type ResponseBodyError;
     type Future: Future<Output = BoxedResponse<Self::ResponseBodyError>> + Send;
