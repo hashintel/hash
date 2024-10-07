@@ -58,7 +58,7 @@ pub struct Handler<S> {
 /// it isn't strictly needed), as well as the use of sessions. To store any information across
 /// calls, one must make use of smart pointers, such as `Arc`.
 ///
-/// [`Steer`]: tower::steer::Steer
+/// [`Steer`]: https://docs.rs/tower/latest/tower/steer/struct.Steer.html
 pub trait Route<B, C> {
     type ResponseBodyError;
     type Future: Future<Output = BoxedResponse<Self::ResponseBodyError>> + Send;
