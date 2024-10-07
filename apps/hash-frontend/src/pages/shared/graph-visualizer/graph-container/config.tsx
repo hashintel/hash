@@ -11,24 +11,53 @@ import { buttonSx } from "./shared/button-styles";
 type Direction = "All" | "In" | "Out";
 
 type DynamicNodeSizing = {
-  min: number;
-  max: number;
   mode: "byEdgeCount";
+  /**
+   * The minimum size of a node.
+   * Nodes will default to this size.
+   * Nodes with the lowest number of relevant edges will be this size.
+   */
+  min: number;
+  /**
+   * The maximum size of a node.
+   * The node with the greatest number of relevant edges will be this size.
+   */
+  max: number;
+  /**
+   * Which edges to count when determining node size.
+   */
   countEdges: Direction;
 };
 
 type StaticNodeSizing = {
+  /**
+   * Don't adjust node sizes – the parent component calling GraphVisualizer is responsible for setting them.
+   */
   mode: "static";
 };
 
 export type GraphVizConfig = {
+  /**
+   * A unique key for the graph, under which the viz settings will be stored in local storage.
+   */
   graphKey: string;
   nodeHighlighting: {
+    /**
+     * When a node is hovered or clicked, the depth around it to which other nodes will be highlighted
+     */
     depth: number;
+    /**
+     * When a node is hovered or clicked, the links from it that will be followed to highlight neighbors,
+     * i.e. 'All', 'In'wards and 'Out'wards
+     */
     direction: Direction;
   };
   nodeSizing: DynamicNodeSizing | StaticNodeSizing;
   filters: {
+    /**
+     * Only show nodes with these `nodeTypeId`s
+     * An empty or missing array will be treated as no type filter.
+     */
     typeIds?: string[];
   };
 };
