@@ -18,7 +18,7 @@ import type {
   GraphVizNode,
 } from "./graph-visualizer";
 import { GraphVisualizer } from "./graph-visualizer";
-import type { GraphVizConfig } from "./graph-visualizer/graph-container/config";
+import type { GraphVizConfig } from "./graph-visualizer/graph-container/shared/config-control";
 
 export type EntityForGraph = {
   linkData?: LinkData;
@@ -71,15 +71,23 @@ export const EntityGraphVisualizer = <T extends EntityForGraph>({
     return [
       {
         color: palette.blue[30],
-        borderColor: palette.blue[40],
+        borderColor: palette.gray[50],
       },
       {
         color: palette.purple[30],
-        borderColor: palette.purple[40],
+        borderColor: palette.gray[50],
       },
       {
         color: palette.green[50],
-        borderColor: palette.green[60],
+        borderColor: palette.gray[50],
+      },
+      {
+        color: palette.red[20],
+        borderColor: palette.gray[50],
+      },
+      {
+        color: palette.yellow[30],
+        borderColor: palette.gray[50],
       },
     ] as const;
   }, [palette]);
