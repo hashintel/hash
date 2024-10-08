@@ -13,7 +13,12 @@ export type RegisterEventsArgs = {
     nodeId: string;
     isFullScreen: boolean;
   }) => void;
-  setGraphState: (key: keyof GraphState, value: any) => void;
+  setConfigPanelOpen: (open: boolean) => void;
+  setFilterPanelOpen: (open: boolean) => void;
+  setGraphState: <K extends keyof GraphState>(
+    key: K,
+    value: GraphState[K],
+  ) => void;
 };
 
 /**
@@ -22,9 +27,11 @@ export type RegisterEventsArgs = {
 export const useEventHandlers = ({
   config,
   graphState,
-  setGraphState,
   onEdgeClick,
   onNodeSecondClick,
+  setConfigPanelOpen,
+  setFilterPanelOpen,
+  setGraphState,
 }: RegisterEventsArgs) => {
   const sigma = useSigma();
 
@@ -108,7 +115,6 @@ export const useEventHandlers = ({
         });
       },
       clickNode: (event) => {
-        console.log("Before", graphState.selectedNodeId);
         if (graphState.selectedNodeId === event.node) {
           /**
            * Only activate the externally-provided onClick when the node is already selected,
@@ -125,19 +131,19 @@ export const useEventHandlers = ({
         }
 
         setGraphState("selectedNodeId", event.node);
-        console.log("After", graphState.selectedNodeId);
         refreshGraphHighlights();
       },
       clickStage: () => {
-        if (!graphState.selectedNodeId) {
-          return;
+        /**
+         * If we click on the background (the 'stage'), deselect the selected node, and close any open panels.
+         */
+        if (graphState.selectedNodeId) {
+          setGraphState("selectedNodeId", null);
+          removeHighlights();
         }
 
-        /**
-         * If we click on the background (the 'stage'), deselect the selected node.
-         */
-        setGraphState("selectedNodeId", null);
-        removeHighlights();
+        setConfigPanelOpen(false);
+        setFilterPanelOpen(false);
       },
       enterNode: (event) => {
         if (graphState.selectedNodeId) {
@@ -166,12 +172,14 @@ export const useEventHandlers = ({
   }, [
     config,
     graphState.selectedNodeId,
-    setGraphState,
+    isFullScreen,
     onEdgeClick,
     onNodeSecondClick,
-    isFullScreen,
     refreshGraphHighlights,
     registerEvents,
+    setConfigPanelOpen,
+    setFilterPanelOpen,
+    setGraphState,
     sigma,
   ]);
 

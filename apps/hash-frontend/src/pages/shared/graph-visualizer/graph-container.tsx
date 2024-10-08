@@ -11,6 +11,7 @@ import type { GraphLoaderProps } from "./graph-container/graph-data-loader";
 import { GraphDataLoader } from "./graph-container/graph-data-loader";
 import type { GraphVizConfig } from "./graph-container/shared/config-control";
 import { ConfigControl } from "./graph-container/shared/config-control";
+import { FilterControl } from "./graph-container/shared/filter-control";
 import { FullScreenContextProvider } from "./graph-container/shared/full-screen-context";
 import { GraphContextProvider } from "./graph-container/shared/graph-context";
 
@@ -116,6 +117,7 @@ export const GraphContainer = memo(
             >
               <FullScreenButton />
               <ConfigControl containerRef={containerRef} />
+              <FilterControl nodes={nodes} />
               <GraphDataLoader
                 nodes={nodes}
                 edges={edges}

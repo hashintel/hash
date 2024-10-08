@@ -1,12 +1,15 @@
 import { GearIcon } from "@hashintel/block-design-system";
 import { IconButton, Select } from "@hashintel/design-system";
-import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
-import type { FunctionComponent, PropsWithChildren, RefObject } from "react";
-import { useRef, useState } from "react";
+import { Box, outlinedInputClasses } from "@mui/material";
+import type { FunctionComponent, RefObject } from "react";
 
-import { ArrowRightToLineIcon } from "../../../../../shared/icons/arrow-right-to-line-icon";
 import { MenuItem } from "../../../../../shared/ui/menu-item";
-import { buttonSx } from "./button-styles";
+import {
+  controlButtonSx,
+  ControlPanel,
+  ControlSectionContainer,
+  ItemLabel,
+} from "./control-components";
 import { useGraphContext } from "./graph-context";
 
 type Direction = "All" | "In" | "Out";
@@ -54,13 +57,6 @@ export type GraphVizConfig = {
     direction: Direction;
   };
   nodeSizing: DynamicNodeSizing | StaticNodeSizing;
-  filters: {
-    /**
-     * Only show nodes with these `nodeTypeId`s
-     * An empty or missing array will be treated as no type filter.
-     */
-    typeIds?: string[];
-  };
 };
 
 const DirectionSelect = ({
@@ -127,195 +123,118 @@ const IntegerInput = ({
   );
 };
 
-const ItemLabel = ({ children }: PropsWithChildren) => (
-  <Typography
-    component="div"
-    sx={{
-      color: ({ palette }) => palette.gray[80],
-      fontSize: 11,
-      fontWeight: 600,
-      letterSpacing: 0.2,
-    }}
-    variant="smallCaps"
-  >
-    {children}
-  </Typography>
-);
-
-const ConfigSectionContainer = ({
-  children,
-  label,
-}: PropsWithChildren<{ label: string }>) => {
-  return (
-    <Stack
-      gap={0.5}
-      sx={{
-        mx: 1,
-        mt: 1.5,
-        border: ({ palette }) => `1px solid ${palette.gray[30]}`,
-        borderRadius: 2,
-        px: 1.5,
-        py: 1,
-      }}
-    >
-      <Typography mt={1.5} variant="smallCaps" sx={{ mt: 0, fontSize: 12 }}>
-        {label}
-      </Typography>
-      <Stack gap={1.2}>{children}</Stack>
-    </Stack>
-  );
-};
-
 const ConfigPanel: FunctionComponent<{
+  /**
+   * We need the ref of the container so that the MUI Select can be told where to render its popup dropdown into.
+   * In full-screen mode, only part of the DOM is rendered, and we need MUI to render into the correct part,
+   * rather than attaching its dropdown to the body. If we don't do this the popup won't show properly in fullscreen.
+   */
   containerRef: RefObject<HTMLDivElement>;
-  config: GraphVizConfig;
-  setConfig: (config: GraphVizConfig) => void;
   open: boolean;
   onClose: () => void;
-}> = ({ containerRef, config, setConfig, open, onClose }) => {
-  const panelRef = useRef<HTMLDivElement>(null);
+}> = ({ containerRef, open, onClose }) => {
+  const { config, setConfig } = useGraphContext();
 
   return (
-    <Box
-      ref={panelRef}
-      sx={{
-        zIndex: 1,
-        position: "absolute",
-        right: 0,
-        top: 0,
-        transform: open ? "translateX(0%)" : "translateX(100%)",
-        maxHeight: ({ spacing }) => `calc(100% - ${spacing(4)})`,
-        transition: ({ transitions }) => transitions.create(["transform"]),
-        py: 1.2,
-        background: ({ palette }) => palette.white,
-        borderWidth: 1,
-        borderColor: ({ palette }) => palette.gray[20],
-        borderStyle: "solid",
-        borderTopWidth: 0,
-        borderRightWidth: 0,
-        borderLeftWidth: 1,
-        borderBottomLeftRadius: 4,
-        boxShadow: ({ boxShadows }) => boxShadows.sm,
-        minWidth: 150,
-        overflowY: "auto",
-      }}
-    >
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        pr={1.8}
-        pl={2}
+    <ControlPanel onClose={onClose} open={open} title="Configuration">
+      <ControlSectionContainer
+        label="Highlights"
+        tooltip="When you hover or click on a node, configure which connected nodes are also shown"
       >
-        <Typography
-          sx={{
-            color: ({ palette }) => palette.gray[90],
-            fontSize: 14,
-            fontWeight: 500,
-          }}
+        <Box>
+          <ItemLabel tooltip="How far from the starting node to highlight. 1 means only immediately connected nodes will be highlighted, 2 includes nodes that those connect to, and so on.">
+            Depth
+          </ItemLabel>
+          <IntegerInput
+            value={config.nodeHighlighting.depth}
+            setValue={(newDepth) => {
+              setConfig({
+                ...config,
+                nodeHighlighting: {
+                  ...config.nodeHighlighting,
+                  depth: newDepth,
+                },
+              });
+            }}
+          />
+        </Box>
+        <Box>
+          <ItemLabel tooltip="Whether to follow incoming links, outgoing links, or all links when deciding which connected nodes to visit">
+            Direction
+          </ItemLabel>
+          <DirectionSelect
+            value={config.nodeHighlighting.direction}
+            setValue={(newDirection) =>
+              setConfig({
+                ...config,
+                nodeHighlighting: {
+                  ...config.nodeHighlighting,
+                  direction: newDirection,
+                },
+              })
+            }
+            containerRef={containerRef}
+          />
+        </Box>
+      </ControlSectionContainer>
+      {config.nodeSizing.mode === "byEdgeCount" && (
+        <ControlSectionContainer
+          label="Sizing"
+          tooltip="Control the size of nodes in the graph, which is based on the number of links to and/or from other nodes they have."
         >
-          Configuration
-        </Typography>
-        <IconButton
-          onClick={() => onClose()}
-          sx={{
-            padding: 0.5,
-            svg: {
-              fontSize: 16,
-              color: ({ palette }) => palette.gray[50],
-            },
-            transform: "rotate(180deg)",
-          }}
-        >
-          <ArrowRightToLineIcon />
-        </IconButton>
-      </Stack>
-      <Box>
-        <ConfigSectionContainer label="Highlights">
           <Box>
-            <ItemLabel>Depth</ItemLabel>
+            <ItemLabel tooltip="The minimum size. Nodes will default to this size.">
+              Min
+            </ItemLabel>
             <IntegerInput
-              value={config.nodeHighlighting.depth}
-              setValue={(newDepth) => {
+              value={config.nodeSizing.min}
+              setValue={(newMin) =>
                 setConfig({
                   ...config,
-                  nodeHighlighting: {
-                    ...config.nodeHighlighting,
-                    depth: newDepth,
+                  nodeSizing: {
+                    ...(config.nodeSizing as DynamicNodeSizing),
+                    min: newMin,
                   },
-                });
-              }}
+                })
+              }
             />
           </Box>
           <Box>
-            <ItemLabel>Direction</ItemLabel>
+            <ItemLabel tooltip="The maximum size.">Max</ItemLabel>
+            <IntegerInput
+              value={config.nodeSizing.max}
+              setValue={(newMax) =>
+                setConfig({
+                  ...config,
+                  nodeSizing: {
+                    ...(config.nodeSizing as DynamicNodeSizing),
+                    max: newMax,
+                  },
+                })
+              }
+            />
+          </Box>
+          <Box>
+            <ItemLabel tooltip="Whether to count incoming links, outgoing links, or all links to/from a node when deciding its size.">
+              Count edges
+            </ItemLabel>
             <DirectionSelect
-              value={config.nodeHighlighting.direction}
+              value={config.nodeSizing.countEdges}
               setValue={(newDirection) =>
                 setConfig({
                   ...config,
-                  nodeHighlighting: {
-                    ...config.nodeHighlighting,
-                    direction: newDirection,
+                  nodeSizing: {
+                    ...(config.nodeSizing as DynamicNodeSizing),
+                    countEdges: newDirection,
                   },
                 })
               }
               containerRef={containerRef}
             />
           </Box>
-        </ConfigSectionContainer>
-        {config.nodeSizing.mode === "byEdgeCount" && (
-          <ConfigSectionContainer label="Sizing">
-            <Box>
-              <ItemLabel>Min</ItemLabel>
-              <IntegerInput
-                value={config.nodeSizing.min}
-                setValue={(newMin) =>
-                  setConfig({
-                    ...config,
-                    nodeSizing: {
-                      ...(config.nodeSizing as DynamicNodeSizing),
-                      min: newMin,
-                    },
-                  })
-                }
-              />
-            </Box>
-            <Box>
-              <ItemLabel>Max</ItemLabel>
-              <IntegerInput
-                value={config.nodeSizing.max}
-                setValue={(newMax) =>
-                  setConfig({
-                    ...config,
-                    nodeSizing: {
-                      ...(config.nodeSizing as DynamicNodeSizing),
-                      max: newMax,
-                    },
-                  })
-                }
-              />
-            </Box>
-            <Box>
-              <ItemLabel>Count edges</ItemLabel>
-              <DirectionSelect
-                value={config.nodeSizing.countEdges}
-                setValue={(newDirection) =>
-                  setConfig({
-                    ...config,
-                    nodeSizing: {
-                      ...(config.nodeSizing as DynamicNodeSizing),
-                      countEdges: newDirection,
-                    },
-                  })
-                }
-                containerRef={containerRef}
-              />
-            </Box>
-          </ConfigSectionContainer>
-        )}
-      </Box>
-    </Box>
+        </ControlSectionContainer>
+      )}
+    </ControlPanel>
   );
 };
 
@@ -324,22 +243,18 @@ export const ConfigControl = ({
 }: {
   containerRef: RefObject<HTMLDivElement>;
 }) => {
-  const [showConfigPanel, setShowConfigPanel] = useState(false);
-
-  const { config, setConfig } = useGraphContext();
+  const { configPanelOpen, setConfigPanelOpen } = useGraphContext();
 
   return (
     <>
       <ConfigPanel
         containerRef={containerRef}
-        config={config}
-        setConfig={setConfig}
-        open={showConfigPanel}
-        onClose={() => setShowConfigPanel(false)}
+        open={configPanelOpen}
+        onClose={() => setConfigPanelOpen(false)}
       />
       <IconButton
-        onClick={() => setShowConfigPanel(true)}
-        sx={[buttonSx, { top: 8, right: 13 }]}
+        onClick={() => setConfigPanelOpen(true)}
+        sx={[controlButtonSx, { position: "absolute", top: 8, right: 46 }]}
       >
         <GearIcon />
       </IconButton>

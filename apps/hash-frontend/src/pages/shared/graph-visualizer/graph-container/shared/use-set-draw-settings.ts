@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { drawRoundRect } from "../../../../../components/grid/utils/draw-round-rect";
 import { useFullScreen } from "./full-screen-context";
 import type { GraphState } from "./state";
+import { useGraphContext } from "./graph-context";
 
 export const labelRenderedSizeThreshold = {
   fullScreen: 12,
@@ -85,18 +86,17 @@ export const useSetDrawSettings = (graphState: GraphState) => {
     sigma.setSetting("nodeReducer", (node, data) => {
       const nodeData = { ...data };
 
-      if (
-        !graphState.selectedNodeId ||
-        !graphState.hoveredNodeId ||
-        !graphState.highlightedNeighborIds
-      ) {
+      nodeData.color =
+        graphState.colorByNodeTypeId?.[nodeData.nodeTypeId] ?? nodeData.color;
+
+      if (!graphState.selectedNodeId && !graphState.hoveredNodeId) {
         return nodeData;
       }
 
       if (
         graphState.selectedNodeId !== node &&
         graphState.hoveredNodeId !== node &&
-        !graphState.highlightedNeighborIds.has(node)
+        !graphState.highlightedNeighborIds?.has(node)
       ) {
         if (!graphState.selectedNodeId) {
           /**
@@ -132,11 +132,7 @@ export const useSetDrawSettings = (graphState: GraphState) => {
     sigma.setSetting("edgeReducer", (edge, data) => {
       const edgeData = { ...data };
 
-      if (
-        !graphState.selectedNodeId ||
-        !graphState.hoveredNodeId ||
-        !graphState.highlightedNeighborIds
-      ) {
+      if (!graphState.selectedNodeId && !graphState.hoveredNodeId) {
         return edgeData;
       }
 
@@ -146,7 +142,7 @@ export const useSetDrawSettings = (graphState: GraphState) => {
       const activeIds = [
         graphState.selectedNodeId,
         graphState.hoveredNodeId,
-        ...graphState.highlightedNeighborIds,
+        ...(graphState.highlightedNeighborIds ?? []),
       ];
 
       let targetIsShown = false;
@@ -171,6 +167,11 @@ export const useSetDrawSettings = (graphState: GraphState) => {
 
       if (sourceIsShown && targetIsShown) {
         edgeData.zIndex = 2;
+        edgeData.size = 4;
+
+        const sourceData = graph.getNodeAttributes(source);
+        edgeData.color = sourceData.color;
+
         edgeData.forceLabel = true;
       } else {
         edgeData.hidden = true;

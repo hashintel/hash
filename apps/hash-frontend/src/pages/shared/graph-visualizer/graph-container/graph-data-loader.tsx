@@ -2,15 +2,16 @@ import { useLoadGraph, useSigma } from "@react-sigma/core";
 import { MultiDirectedGraph } from "graphology";
 import { memo, useEffect } from "react";
 
+import { useGraphContext } from "./shared/graph-context";
 import type { RegisterEventsArgs } from "./shared/use-event-handlers";
 import { useLayout } from "./use-layout";
-import { useGraphContext } from "./shared/graph-context";
 
 export type GraphVizNode = {
   borderColor?: string;
   color: string;
   nodeId: string;
   nodeTypeId?: string;
+  nodeTypeLabel?: string;
   label: string;
   size: number;
 };
@@ -35,7 +36,7 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
   const loadGraph = useLoadGraph();
   const sigma = useSigma();
 
-  const { config } = useGraphContext();
+  const { config, filters } = useGraphContext();
 
   /**
    * Custom hooks for laying out the graph, and registering our node/edge/label draw and event handlers.
@@ -54,18 +55,24 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
 
     for (const [index, node] of nodes.entries()) {
       if (
-        config.filters.typeIds?.length &&
-        !config.filters.typeIds.includes(node.nodeTypeId!)
+        node.nodeTypeId &&
+        filters.includeByNodeTypeId?.[node.nodeTypeId] === false
       ) {
         continue;
       }
 
       graph.addNode(node.nodeId, {
         borderColor: node.borderColor ?? node.color,
+        /**
+         * This color may be overwritten in the reducer {@link useSetDrawSettings}
+         * We don't want this effect depending on the colour options,
+         * because we don't want to lay out the graph again if the colour of nodes change.
+         */
         color: node.color,
         x: index % 20,
         y: Math.floor(index / 20),
         label: node.label,
+        nodeTypeId: node.nodeTypeId,
         size:
           config.nodeSizing.mode === "byEdgeCount"
             ? config.nodeSizing.min
@@ -155,7 +162,11 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
      * Re-rendering the graph without needing to lay it out again is handled in {@link ConfigControl}
      */
     config.nodeSizing,
-    config.filters,
+    /**
+     * We don't include filters.colorByNodeTypeId here because it doesn't affect the layout of the graph.
+     * {@link FilterControl} handles re-rendering the graph when the colours change.
+     */
+    filters.includeByNodeTypeId,
     layout,
     loadGraph,
     sigma,

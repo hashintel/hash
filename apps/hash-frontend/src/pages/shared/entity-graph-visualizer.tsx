@@ -39,9 +39,6 @@ const defaultConfig = {
     max: 32,
     countEdges: "All",
   },
-  filters: {
-    typeIds: [],
-  },
 } as const satisfies GraphVizConfig;
 
 export const EntityGraphVisualizer = <T extends EntityForGraph>({
@@ -143,9 +140,22 @@ export const EntityGraphVisualizer = <T extends EntityForGraph>({
         ? { color: palette.blue[50], borderColor: palette.blue[60] }
         : nodeColors[entityTypeIdToColor.get(entity.metadata.entityTypeId)!]!;
 
+      const entityType = getEntityTypeById(
+        subgraphWithTypes,
+        entity.metadata.entityTypeId,
+      );
+
+      if (!entityType) {
+        throw new Error(
+          `Could not find entity type for ${entity.metadata.entityTypeId}`,
+        );
+      }
+
       nodesToAddByNodeId[entity.metadata.recordId.entityId] = {
         label: generateEntityLabel(subgraphWithTypes, entity),
         nodeId: entity.metadata.recordId.entityId,
+        nodeTypeId: entity.metadata.entityTypeId,
+        nodeTypeLabel: entityType.schema.title,
         color,
         borderColor,
         size: defaultConfig.nodeSizing.min,
