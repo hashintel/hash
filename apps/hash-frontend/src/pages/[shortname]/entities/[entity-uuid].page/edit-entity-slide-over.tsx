@@ -59,9 +59,9 @@ interface EditEntitySlideOverProps {
    */
   entityId?: EntityId;
   /**
-   * If a modal container ref is provided, the modal will be attached to it (defaults to the MUI default, the body)
+   * If a container ref is provided, the slide will be attached to it (defaults to the MUI default, the body)
    */
-  modalContainerRef?: RefObject<HTMLDivElement>;
+  slideContainerRef?: RefObject<HTMLDivElement>;
 }
 
 /**
@@ -69,7 +69,7 @@ interface EditEntitySlideOverProps {
  */
 export const EditEntitySlideOver = ({
   hideOpenInNew,
-  modalContainerRef,
+  slideContainerRef,
   open,
   onClose,
   onSubmit,
@@ -284,7 +284,7 @@ export const EditEntitySlideOver = ({
       onClose={onClose}
       anchor="right"
       ModalProps={{
-        container: modalContainerRef?.current ?? undefined,
+        container: slideContainerRef?.current ?? undefined,
       }}
       PaperProps={{
         sx: (theme) => ({

@@ -92,8 +92,10 @@ export const EntitiesTable: FunctionComponent<{
   });
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
-  const [selectedEntityTypeId, setSelectedEntityTypeId] =
-    useState<VersionedUrl | null>(null);
+  const [selectedEntityType, setSelectedEntityType] = useState<{
+    entityTypeId: VersionedUrl;
+    slideContainerRef?: RefObject<HTMLDivElement>;
+  } | null>(null);
 
   const {
     entityTypeBaseUrl,
@@ -224,7 +226,7 @@ export const EntitiesTable: FunctionComponent<{
 
   const [selectedEntity, setSelectedEntity] = useState<{
     entityId: EntityId;
-    modalContainerRef?: RefObject<HTMLDivElement>;
+    slideContainerRef?: RefObject<HTMLDivElement>;
     subgraph: Subgraph<EntityRootType>;
   } | null>(null);
 
@@ -241,7 +243,7 @@ export const EntitiesTable: FunctionComponent<{
 
         setSelectedEntity({
           entityId,
-          modalContainerRef,
+          slideContainerRef: modalContainerRef,
           subgraph: entitySubgraph,
         });
       }
@@ -317,7 +319,7 @@ export const EntitiesTable: FunctionComponent<{
                   if (columnId === "web") {
                     void router.push(`/${cellValue}`);
                   } else {
-                    setSelectedEntityTypeId(row.entityTypeId);
+                    setSelectedEntityType({ entityTypeId: row.entityTypeId });
                   }
                 },
               },
@@ -680,10 +682,11 @@ export const EntitiesTable: FunctionComponent<{
 
   return (
     <>
-      {selectedEntityTypeId && (
+      {selectedEntityType && (
         <TypeSlideOverStack
-          rootTypeId={selectedEntityTypeId}
-          onClose={() => setSelectedEntityTypeId(null)}
+          rootTypeId={selectedEntityType.entityTypeId}
+          onClose={() => setSelectedEntityType(null)}
+          slideContainerRef={selectedEntityType.slideContainerRef}
         />
       )}
       {selectedEntity ? (
@@ -702,7 +705,7 @@ export const EntitiesTable: FunctionComponent<{
              If we've been given a specific DOM element to contain the modal, pass it here.
              This is for use when attaching to the body is not suitable (e.g. a specific DOM element is full-screened).
            */
-          modalContainerRef={selectedEntity.modalContainerRef}
+          slideContainerRef={selectedEntity.slideContainerRef}
           open
           onClose={() => setSelectedEntity(null)}
           readonly
