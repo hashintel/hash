@@ -5,7 +5,7 @@ import {
 } from "@hashintel/design-system";
 
 import { buttonSx } from "./shared/button-styles";
-import { useFullScreen } from "./shared/full-screen";
+import { useFullScreen } from "./shared/full-screen-context";
 
 export const FullScreenButton = () => {
   const { isFullScreen, toggleFullScreen } = useFullScreen();

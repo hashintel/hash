@@ -4,9 +4,10 @@ import { Box, outlinedInputClasses, Stack, Typography } from "@mui/material";
 import type { FunctionComponent, PropsWithChildren, RefObject } from "react";
 import { useRef, useState } from "react";
 
-import { ArrowRightToLineIcon } from "../../../../shared/icons/arrow-right-to-line-icon";
-import { MenuItem } from "../../../../shared/ui/menu-item";
-import { buttonSx } from "./shared/button-styles";
+import { ArrowRightToLineIcon } from "../../../../../shared/icons/arrow-right-to-line-icon";
+import { MenuItem } from "../../../../../shared/ui/menu-item";
+import { buttonSx } from "./button-styles";
+import { useGraphContext } from "./graph-context";
 
 type Direction = "All" | "In" | "Out";
 
@@ -165,7 +166,7 @@ const ConfigSectionContainer = ({
   );
 };
 
-export const ConfigPanel: FunctionComponent<{
+const ConfigPanel: FunctionComponent<{
   containerRef: RefObject<HTMLDivElement>;
   config: GraphVizConfig;
   setConfig: (config: GraphVizConfig) => void;
@@ -235,15 +236,15 @@ export const ConfigPanel: FunctionComponent<{
             <ItemLabel>Depth</ItemLabel>
             <IntegerInput
               value={config.nodeHighlighting.depth}
-              setValue={(newDepth) =>
+              setValue={(newDepth) => {
                 setConfig({
                   ...config,
                   nodeHighlighting: {
                     ...config.nodeHighlighting,
                     depth: newDepth,
                   },
-                })
-              }
+                });
+              }}
             />
           </Box>
           <Box>
@@ -318,16 +319,14 @@ export const ConfigPanel: FunctionComponent<{
   );
 };
 
-export const Config = ({
+export const ConfigControl = ({
   containerRef,
-  config,
-  setConfig,
 }: {
   containerRef: RefObject<HTMLDivElement>;
-  config: GraphVizConfig;
-  setConfig: (config: GraphVizConfig) => void;
 }) => {
   const [showConfigPanel, setShowConfigPanel] = useState(false);
+
+  const { config, setConfig } = useGraphContext();
 
   return (
     <>

@@ -1,0 +1,179 @@
+import { useRegisterEvents, useSigma } from "@react-sigma/core";
+import { useCallback, useEffect } from "react";
+
+import type { GraphVizConfig } from "./config-control";
+import { useFullScreen } from "./full-screen-context";
+import type { GraphState } from "./state";
+
+export type RegisterEventsArgs = {
+  config: GraphVizConfig;
+  graphState: GraphState;
+  onEdgeClick?: (params: { edgeId: string; isFullScreen: boolean }) => void;
+  onNodeSecondClick?: (params: {
+    nodeId: string;
+    isFullScreen: boolean;
+  }) => void;
+  setGraphState: (key: keyof GraphState, value: any) => void;
+};
+
+/**
+ * Register event handlers for the graph.
+ */
+export const useEventHandlers = ({
+  config,
+  graphState,
+  setGraphState,
+  onEdgeClick,
+  onNodeSecondClick,
+}: RegisterEventsArgs) => {
+  const sigma = useSigma();
+
+  const registerEvents = useRegisterEvents();
+
+  const { isFullScreen } = useFullScreen();
+
+  /**
+   * Highlight the hovered or selected node and its neighbors up to the configured depth.
+   */
+  const refreshGraphHighlights = useCallback(() => {
+    const highlightedNode =
+      graphState.selectedNodeId ?? graphState.hoveredNodeId;
+
+    if (!highlightedNode) {
+      return;
+    }
+
+    const getNeighbors = (
+      nodeId: string,
+      neighborIds: Set<string> = new Set(),
+      depth = 1,
+    ) => {
+      if (depth > config.nodeHighlighting.depth) {
+        return neighborIds;
+      }
+
+      let directNeighbors: string[];
+      switch (config.nodeHighlighting.direction) {
+        case "All":
+          directNeighbors = sigma.getGraph().neighbors(nodeId);
+          break;
+        case "In":
+          directNeighbors = sigma.getGraph().inNeighbors(nodeId);
+          break;
+        case "Out":
+          directNeighbors = sigma.getGraph().outNeighbors(nodeId);
+          break;
+      }
+
+      for (const neighbor of directNeighbors) {
+        neighborIds.add(neighbor);
+        getNeighbors(neighbor, neighborIds, depth + 1);
+      }
+
+      return neighborIds;
+    };
+
+    setGraphState("highlightedNeighborIds", getNeighbors(highlightedNode));
+
+    sigma.setSetting("renderEdgeLabels", true);
+
+    /**
+     * We haven't touched the graph data, so don't need to re-index.
+     * An additional optimization would be to supply partialGraph here and only redraw the affected nodes,
+     * but since the nodes whose appearance changes are the NON-highlighted nodes (they disappear), it's probably
+     * not worth it
+     * – they are likely to be the majority anyway, and we'd have to generate an array of them.
+     */
+    sigma.refresh({ skipIndexation: true });
+  }, [config.nodeHighlighting, graphState, setGraphState, sigma]);
+
+  useEffect(() => {
+    refreshGraphHighlights();
+  }, [refreshGraphHighlights]);
+
+  useEffect(() => {
+    const removeHighlights = () => {
+      setGraphState("hoveredNodeId", null);
+      setGraphState("highlightedNeighborIds", null);
+
+      sigma.setSetting("renderEdgeLabels", false);
+      sigma.refresh({ skipIndexation: true });
+    };
+
+    registerEvents({
+      clickEdge: (event) => {
+        onEdgeClick?.({
+          edgeId: event.edge,
+          isFullScreen,
+        });
+      },
+      clickNode: (event) => {
+        console.log("Before", graphState.selectedNodeId);
+        if (graphState.selectedNodeId === event.node) {
+          /**
+           * Only activate the externally-provided onClick when the node is already selected,
+           * so that the first click performs the graph highlighting functions.
+           *
+           * If we want clicks to be registered externally on the first click at some point
+           * we can provide a prop which configures this behavior (e.g. nodeClickBehavior)
+           */
+          onNodeSecondClick?.({
+            nodeId: event.node,
+            isFullScreen,
+          });
+          return;
+        }
+
+        setGraphState("selectedNodeId", event.node);
+        console.log("After", graphState.selectedNodeId);
+        refreshGraphHighlights();
+      },
+      clickStage: () => {
+        if (!graphState.selectedNodeId) {
+          return;
+        }
+
+        /**
+         * If we click on the background (the 'stage'), deselect the selected node.
+         */
+        setGraphState("selectedNodeId", null);
+        removeHighlights();
+      },
+      enterNode: (event) => {
+        if (graphState.selectedNodeId) {
+          /**
+           * If a user has clicked on a node, don't do anything when hovering other over nodes,
+           * because it makes it harder to click to highlight neighbors and then browse the highlighted graph.
+           * They can click on the background or another node to deselect this one.
+           */
+          return;
+        }
+
+        setGraphState("hoveredNodeId", event.node);
+        refreshGraphHighlights();
+      },
+      leaveNode: () => {
+        if (graphState.selectedNodeId) {
+          /**
+           * If there's a selected node (has been clicked on), we don't want to remove highlights.
+           * The user can click the background or another node to deselect it.
+           */
+          return;
+        }
+        removeHighlights();
+      },
+    });
+  }, [
+    config,
+    graphState.selectedNodeId,
+    setGraphState,
+    onEdgeClick,
+    onNodeSecondClick,
+    isFullScreen,
+    refreshGraphHighlights,
+    registerEvents,
+    sigma,
+  ]);
+
+  return { refreshGraphHighlights };
+};
