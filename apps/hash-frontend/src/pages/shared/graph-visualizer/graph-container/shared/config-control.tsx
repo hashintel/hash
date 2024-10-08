@@ -60,20 +60,25 @@ export type GraphVizConfig = {
 };
 
 const DirectionSelect = ({
-  containerRef,
   value,
   setValue,
 }: {
-  containerRef: RefObject<HTMLDivElement>;
   value: Direction;
   setValue: (value: Direction) => void;
 }) => {
+  /**
+   * We need the ref of the container so that the MUI Select can be told where to render its popup dropdown into.
+   * In full-screen mode, only part of the DOM is rendered, and we need MUI to render into the correct part,
+   * rather than attaching its dropdown to the body. If we don't do this the popup won't show properly in fullscreen.
+   */
+  const { graphContainerRef } = useGraphContext();
+
   return (
     <Select
       value={value}
       onChange={(event) => setValue(event.target.value as Direction)}
       MenuProps={{
-        container: containerRef.current,
+        container: graphContainerRef.current,
       }}
       sx={{
         [`.${outlinedInputClasses.root} .${outlinedInputClasses.input}`]: {
@@ -124,15 +129,9 @@ const IntegerInput = ({
 };
 
 const ConfigPanel: FunctionComponent<{
-  /**
-   * We need the ref of the container so that the MUI Select can be told where to render its popup dropdown into.
-   * In full-screen mode, only part of the DOM is rendered, and we need MUI to render into the correct part,
-   * rather than attaching its dropdown to the body. If we don't do this the popup won't show properly in fullscreen.
-   */
-  containerRef: RefObject<HTMLDivElement>;
   open: boolean;
   onClose: () => void;
-}> = ({ containerRef, open, onClose }) => {
+}> = ({ open, onClose }) => {
   const { config, setConfig } = useGraphContext();
 
   return (
@@ -173,7 +172,6 @@ const ConfigPanel: FunctionComponent<{
                 },
               })
             }
-            containerRef={containerRef}
           />
         </Box>
       </ControlSectionContainer>
@@ -229,7 +227,6 @@ const ConfigPanel: FunctionComponent<{
                   },
                 })
               }
-              containerRef={containerRef}
             />
           </Box>
         </ControlSectionContainer>
@@ -238,17 +235,12 @@ const ConfigPanel: FunctionComponent<{
   );
 };
 
-export const ConfigControl = ({
-  containerRef,
-}: {
-  containerRef: RefObject<HTMLDivElement>;
-}) => {
+export const ConfigControl = () => {
   const { configPanelOpen, setConfigPanelOpen } = useGraphContext();
 
   return (
     <>
       <ConfigPanel
-        containerRef={containerRef}
         open={configPanelOpen}
         onClose={() => setConfigPanelOpen(false)}
       />

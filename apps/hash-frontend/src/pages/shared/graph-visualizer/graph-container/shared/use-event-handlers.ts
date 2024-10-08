@@ -1,4 +1,5 @@
 import { useRegisterEvents, useSigma } from "@react-sigma/core";
+import type { RefObject } from "react";
 import { useCallback, useEffect } from "react";
 
 import type { GraphVizConfig } from "./config-control";
@@ -7,11 +8,17 @@ import type { GraphState } from "./state";
 
 export type RegisterEventsArgs = {
   config: GraphVizConfig;
+  graphContainerRef: RefObject<HTMLDivElement>;
   graphState: GraphState;
   onEdgeClick?: (params: { edgeId: string; isFullScreen: boolean }) => void;
   onNodeSecondClick?: (params: {
     nodeId: string;
-    isFullScreen: boolean;
+    /**
+     * In full-screen mode, only part of the DOM is displayed.
+     * This means that MUI components (and any others) that attach to the body will not be visible.
+     * If this is provided, components should attach any popups/modals to this ref's current element instead.
+     */
+    screenContainerRef?: RefObject<HTMLDivElement>;
   }) => void;
   setConfigPanelOpen: (open: boolean) => void;
   setFilterPanelOpen: (open: boolean) => void;
@@ -26,6 +33,7 @@ export type RegisterEventsArgs = {
  */
 export const useEventHandlers = ({
   config,
+  graphContainerRef,
   graphState,
   onEdgeClick,
   onNodeSecondClick,
@@ -125,7 +133,7 @@ export const useEventHandlers = ({
            */
           onNodeSecondClick?.({
             nodeId: event.node,
-            isFullScreen,
+            screenContainerRef: isFullScreen ? graphContainerRef : undefined,
           });
           return;
         }
@@ -171,6 +179,7 @@ export const useEventHandlers = ({
     });
   }, [
     config,
+    graphContainerRef,
     graphState.selectedNodeId,
     isFullScreen,
     onEdgeClick,

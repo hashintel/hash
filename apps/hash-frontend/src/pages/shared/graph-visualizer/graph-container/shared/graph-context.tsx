@@ -1,4 +1,4 @@
-import type { PropsWithChildren } from "react";
+import type { PropsWithChildren, RefObject } from "react";
 import {
   createContext,
   useCallback,
@@ -12,6 +12,7 @@ import { useLocalstorageState } from "rooks";
 import type { GraphVizConfig } from "./config-control";
 import type { GraphVizFilters } from "./filter-control";
 import type { GraphState } from "./state";
+import type { RegisterEventsArgs } from "./use-event-handlers";
 import { useEventHandlers } from "./use-event-handlers";
 import { useSetDrawSettings } from "./use-set-draw-settings";
 
@@ -20,6 +21,7 @@ export type GraphContextType = {
   configPanelOpen: boolean;
   filters: GraphVizFilters;
   filterPanelOpen: boolean;
+  graphContainerRef: RefObject<HTMLDivElement>;
   graphState: GraphState;
   refreshGraphHighlights: () => void;
   setConfig: (config: GraphVizConfig) => void;
@@ -36,16 +38,13 @@ export const GraphContext = createContext<GraphContextType | null>(null);
 
 export type GraphContextProviderProps = {
   defaultConfig: GraphVizConfig;
-  onEdgeClick?: (params: { edgeId: string; isFullScreen: boolean }) => void;
-  onNodeSecondClick?: (params: {
-    nodeId: string;
-    isFullScreen: boolean;
-  }) => void;
-};
+  graphContainerRef: RefObject<HTMLDivElement>;
+} & Pick<RegisterEventsArgs, "onEdgeClick" | "onNodeSecondClick">;
 
 export const GraphContextProvider = ({
   children,
   defaultConfig,
+  graphContainerRef,
   onEdgeClick,
   onNodeSecondClick,
 }: PropsWithChildren<GraphContextProviderProps>) => {
@@ -90,6 +89,7 @@ export const GraphContextProvider = ({
 
   const { refreshGraphHighlights } = useEventHandlers({
     config,
+    graphContainerRef,
     graphState: graphState.current,
     onEdgeClick,
     onNodeSecondClick,
@@ -104,6 +104,7 @@ export const GraphContextProvider = ({
       configPanelOpen,
       filters,
       filterPanelOpen,
+      graphContainerRef,
       graphState: graphState.current,
       refreshGraphHighlights,
       setConfig,
@@ -117,6 +118,7 @@ export const GraphContextProvider = ({
       configPanelOpen,
       filters,
       filterPanelOpen,
+      graphContainerRef,
       refreshGraphHighlights,
       setConfig,
       setConfigPanelOpen,

@@ -16,7 +16,7 @@ import {
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, RefObject } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { GridProps } from "../../components/grid/grid";
@@ -224,11 +224,12 @@ export const EntitiesTable: FunctionComponent<{
 
   const [selectedEntity, setSelectedEntity] = useState<{
     entityId: EntityId;
+    modalContainerRef?: RefObject<HTMLDivElement>;
     subgraph: Subgraph<EntityRootType>;
   } | null>(null);
 
   const handleEntityClick = useCallback(
-    (entityId: EntityId) => {
+    (entityId: EntityId, modalContainerRef?: RefObject<HTMLDivElement>) => {
       if (subgraph) {
         const entitySubgraph = generateEntityRootedSubgraph(entityId, subgraph);
 
@@ -238,7 +239,11 @@ export const EntitiesTable: FunctionComponent<{
           );
         }
 
-        setSelectedEntity({ entityId, subgraph: entitySubgraph });
+        setSelectedEntity({
+          entityId,
+          modalContainerRef,
+          subgraph: entitySubgraph,
+        });
       }
     },
     [subgraph],
@@ -693,6 +698,11 @@ export const EntitiesTable: FunctionComponent<{
            */
           entitySubgraph={selectedEntity.subgraph}
           entityId={selectedEntity.entityId}
+          /*
+             If we've been given a specific DOM element to contain the modal, pass it here.
+             This is for use when attaching to the body is not suitable (e.g. a specific DOM element is full-screened).
+           */
+          modalContainerRef={selectedEntity.modalContainerRef}
           open
           onClose={() => setSelectedEntity(null)}
           readonly

@@ -10,6 +10,7 @@ import type { Subgraph } from "@local/hash-subgraph";
 import { isEntityId } from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
 import { useTheme } from "@mui/material";
+import type { RefObject } from "react";
 import { useCallback, useMemo } from "react";
 
 import type {
@@ -54,7 +55,10 @@ export const EntityGraphVisualizer = <T extends EntityForGraph>({
    * A function to filter out entities from display. If the function returns false, the entity will not be displayed.
    */
   filterEntity?: (entity: T) => boolean;
-  onEntityClick?: (entityId: EntityId) => void;
+  onEntityClick?: (
+    entityId: EntityId,
+    containerRef?: RefObject<HTMLDivElement>,
+  ) => void;
   onEntityTypeClick?: (entityTypeId: VersionedUrl) => void;
   /**
    * Whether this entity should receive a special highlight.
@@ -203,13 +207,9 @@ export const EntityGraphVisualizer = <T extends EntityForGraph>({
   const onNodeClick = useCallback<
     NonNullable<GraphVisualizerProps["onNodeSecondClick"]>
   >(
-    ({ nodeId, isFullScreen }) => {
-      if (isFullScreen) {
-        return;
-      }
-
+    ({ nodeId, screenContainerRef }) => {
       if (isEntityId(nodeId)) {
-        onEntityClick?.(nodeId);
+        onEntityClick?.(nodeId, screenContainerRef);
       } else {
         onEntityTypeClick?.(nodeId as VersionedUrl);
       }

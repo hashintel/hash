@@ -111,12 +111,13 @@ export const GraphContainer = memo(
             }}
           >
             <GraphContextProvider
+              graphContainerRef={containerRef}
               defaultConfig={defaultConfig}
               onEdgeClick={onEdgeClick}
               onNodeSecondClick={onNodeSecondClick}
             >
               <FullScreenButton />
-              <ConfigControl containerRef={containerRef} />
+              <ConfigControl />
               <FilterControl nodes={nodes} />
               <GraphDataLoader
                 nodes={nodes}

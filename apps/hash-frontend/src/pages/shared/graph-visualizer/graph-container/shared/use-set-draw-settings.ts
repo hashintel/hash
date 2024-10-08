@@ -170,7 +170,9 @@ export const useSetDrawSettings = (graphState: GraphState) => {
         edgeData.size = 4;
 
         const sourceData = graph.getNodeAttributes(source);
-        edgeData.color = sourceData.color;
+        edgeData.color =
+          graphState.colorByNodeTypeId?.[sourceData.nodeTypeId] ??
+          sourceData.color;
 
         edgeData.forceLabel = true;
       } else {
