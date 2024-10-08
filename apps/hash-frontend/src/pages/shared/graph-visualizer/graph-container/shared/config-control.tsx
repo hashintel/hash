@@ -1,7 +1,7 @@
 import { GearIcon } from "@hashintel/block-design-system";
 import { IconButton, Select } from "@hashintel/design-system";
 import { Box, outlinedInputClasses } from "@mui/material";
-import type { FunctionComponent, RefObject } from "react";
+import type { FunctionComponent } from "react";
 
 import { MenuItem } from "../../../../../shared/ui/menu-item";
 import {

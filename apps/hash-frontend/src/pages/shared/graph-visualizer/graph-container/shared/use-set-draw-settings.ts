@@ -5,7 +5,6 @@ import { useEffect } from "react";
 import { drawRoundRect } from "../../../../../components/grid/utils/draw-round-rect";
 import { useFullScreen } from "./full-screen-context";
 import type { GraphState } from "./state";
-import { useGraphContext } from "./graph-context";
 
 export const labelRenderedSizeThreshold = {
   fullScreen: 12,
