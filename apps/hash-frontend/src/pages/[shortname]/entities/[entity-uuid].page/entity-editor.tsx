@@ -72,7 +72,7 @@ export const EntityEditor = (props: EntityEditorProps) => {
 
           <PropertiesSection />
 
-          {isLinkEntity ? null : <LinksSection />}
+          <LinksSection isLinkEntity={!!isLinkEntity} />
 
           {/* <PeersSection /> */}
         </Box>
