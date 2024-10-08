@@ -19,7 +19,7 @@ import {
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, ButtonBase, Slide, Tooltip } from "@mui/material";
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, RefObject } from "react";
 import { useCallback, useMemo, useState } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
@@ -109,6 +109,10 @@ interface TypeSlideOverSlideProps {
   onForward?: () => void;
   onClose: () => void;
   onNavigateToType: (url: VersionedUrl) => void;
+  /**
+   * If a container ref is provided, the slide will be attached to it (defaults to the MUI default, the body)
+   */
+  slideContainerRef?: RefObject<HTMLDivElement>;
   typeUrl: VersionedUrl;
 }
 
@@ -120,6 +124,7 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
   onBack,
   onClose,
   onForward,
+  slideContainerRef,
 }) => {
   const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
 
@@ -185,6 +190,7 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
 
   return (
     <Slide
+      container={slideContainerRef?.current ?? undefined}
       in={open && !animateOut}
       direction="left"
       onClick={(event) => event.stopPropagation()}

@@ -19,6 +19,7 @@ import {
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Drawer, Stack, Typography } from "@mui/material";
+import type { RefObject } from "react";
 import { useCallback, useMemo, useState } from "react";
 
 import { useUserOrOrgShortnameByOwnedById } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
@@ -57,6 +58,10 @@ interface EditEntitySlideOverProps {
    * If you don't already have the required subgraph, pass the entityId and it will be fetched.
    */
   entityId?: EntityId;
+  /**
+   * If a container ref is provided, the slide will be attached to it (defaults to the MUI default, the body)
+   */
+  slideContainerRef?: RefObject<HTMLDivElement>;
 }
 
 /**
@@ -64,6 +69,7 @@ interface EditEntitySlideOverProps {
  */
 export const EditEntitySlideOver = ({
   hideOpenInNew,
+  slideContainerRef,
   open,
   onClose,
   onSubmit,
@@ -277,6 +283,9 @@ export const EditEntitySlideOver = ({
       open={open}
       onClose={onClose}
       anchor="right"
+      ModalProps={{
+        container: slideContainerRef?.current ?? undefined,
+      }}
       PaperProps={{
         sx: (theme) => ({
           p: 5,
