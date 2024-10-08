@@ -42,7 +42,7 @@ const FilterPanel: FunctionComponent<{
     <ControlPanel onClose={onClose} open={open} title="Filters">
       <Box sx={{ pl: 1, pr: 2, pb: 0.5 }}>
         <Box sx={{ pl: 1, mt: 0.8, mb: 0.2 }}>
-          <ItemLabel tooltip="Choose which types of nodes to show in the graph, and their colour">
+          <ItemLabel tooltip="Choose which types of nodes to show in the graph, and their color">
             Nodes
           </ItemLabel>
         </Box>
@@ -86,7 +86,7 @@ export const FilterControl = ({ nodes }: { nodes: GraphVizNode[] }) => {
 
     /**
      * See which of the nodeTypeIds in the data are already represented in the data.
-     * We assume that if it appears in coloursByNodeTypeId, it will also be in includeByNodeTypeId,
+     * We assume that if it appears in colorsByNodeTypeId, it will also be in includeByNodeTypeId,
      * because we set both below when we first see them.
      */
     const typeIdsInFilters = new Set(

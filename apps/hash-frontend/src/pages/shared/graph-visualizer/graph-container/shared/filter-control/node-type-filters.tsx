@@ -124,7 +124,7 @@ export const NodeTypeFilters = ({ typesInData }: CheckboxListProps) => {
                 </Box>
               </Stack>
               <Box
-                aria-label={`Choose colour for ${nodeTypeLabel}`}
+                aria-label={`Choose color for ${nodeTypeLabel}`}
                 component="label"
                 sx={{
                   background: colorByNodeTypeId?.[nodeTypeId],

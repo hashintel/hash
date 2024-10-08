@@ -39,7 +39,7 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
   const { config, filters } = useGraphContext();
 
   /**
-   * Custom hooks for laying out the graph, and registering our node/edge/label draw and event handlers.
+   * Custom hooks for laying out the graph.
    */
   const layout = useLayout();
 
@@ -65,8 +65,8 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
         borderColor: node.borderColor ?? node.color,
         /**
          * This color may be overwritten in the reducer {@link useSetDrawSettings}
-         * We don't want this effect depending on the colour options,
-         * because we don't want to lay out the graph again if the colour of nodes change.
+         * We don't want this effect depending on the color options,
+         * because we don't want to lay out the graph again if the color of nodes change.
          */
         color: node.color,
         x: index % 20,
@@ -164,7 +164,7 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
     config.nodeSizing,
     /**
      * We don't include filters.colorByNodeTypeId here because it doesn't affect the layout of the graph.
-     * {@link FilterControl} handles re-rendering the graph when the colours change.
+     * {@link FilterControl} handles re-rendering the graph when the colors change.
      */
     filters.includeByNodeTypeId,
     layout,

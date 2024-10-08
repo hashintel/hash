@@ -48,9 +48,7 @@ export const GraphContainer = memo(
          * and recreating rapidly it might cause the program to be absent.
          *
          * If you need to make some settings dependent on potentially fast-changing state (e.g. viz config),
-         * memoize nodeProgramClasses separately to those settings.
-         *
-         * @see {@link useDefaultSettings} for settings which depend on other state.
+         * put them in {@link useSetDrawSettings} and {@link useEventHandlers}, or at least memoize nodeProgramClasses separately.
          */
         defaultNodeType: "bordered",
         enableEdgeEvents: !!onEdgeClick,
