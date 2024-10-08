@@ -95,7 +95,7 @@ export const useOrgsWithLinks = ({
     return getRoots(subgraph).map((orgEntity) => {
       if (!isEntityOrgEntity(orgEntity)) {
         throw new Error(
-          `Entity with type ${orgEntity.metadata.entityTypeId} is not an org entity`,
+          `Entity with type(s) ${orgEntity.metadata.entityTypeIds.join(", ")} is not an org entity`,
         );
       }
       return constructOrg({ subgraph, orgEntity });

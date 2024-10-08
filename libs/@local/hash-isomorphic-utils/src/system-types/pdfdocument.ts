@@ -126,7 +126,7 @@ export type {
  * A PDF document.
  */
 export type PDFDocument = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/pdf-document/v/1";
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/pdf-document/v/1"];
   properties: PDFDocumentProperties;
   propertiesWithMetadata: PDFDocumentPropertiesWithMetadata;
 };

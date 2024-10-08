@@ -207,7 +207,7 @@ export const EditableQuickNote: FunctionComponent<{
       variables: {
         entityUpdate: {
           entityId: quickNoteEntity.metadata.recordId.entityId,
-          entityTypeId: systemEntityTypes.quickNote.entityTypeId,
+          entityTypeIds: [systemEntityTypes.quickNote.entityTypeId],
           propertyPatches: [
             {
               op: "add",
@@ -247,7 +247,7 @@ export const EditableQuickNote: FunctionComponent<{
       variables: {
         entityUpdate: {
           entityId: blockCollectionEntityId,
-          entityTypeId: systemEntityTypes.quickNote.entityTypeId,
+          entityTypeIds: [systemEntityTypes.quickNote.entityTypeId],
           propertyPatches: [],
         },
       },

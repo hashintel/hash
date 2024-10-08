@@ -86,7 +86,9 @@ export const processCompleteToolCall = ({
 
   const missingEntityTypes = input.entityTypes.filter(
     ({ $id }) =>
-      !submittedEntities.some(({ entityTypeId }) => entityTypeId === $id),
+      !submittedEntities.some(({ entityTypeIds }) =>
+        entityTypeIds.includes($id),
+      ),
   );
 
   if (missingEntityTypes.length > 0) {
@@ -99,7 +101,9 @@ export const processCompleteToolCall = ({
 
   const missingLinkEntityTypes = input.linkEntityTypes?.filter(
     ({ $id }) =>
-      !submittedEntities.some(({ entityTypeId }) => entityTypeId === $id),
+      !submittedEntities.some(({ entityTypeIds }) =>
+        entityTypeIds.includes($id),
+      ),
   );
 
   if (missingLinkEntityTypes && missingLinkEntityTypes.length > 0) {

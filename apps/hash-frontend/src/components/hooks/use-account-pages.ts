@@ -72,10 +72,10 @@ export const useAccountPages = (
         latestPage.metadata.recordId.entityId,
       );
 
-      const parentLink = pageOutgoingLinks.find(
-        ({ linkEntity }) =>
-          linkEntity[0]!.metadata.entityTypeId ===
+      const parentLink = pageOutgoingLinks.find(({ linkEntity }) =>
+        linkEntity[0]!.metadata.entityTypeIds.includes(
           systemLinkEntityTypes.hasParent.linkEntityTypeId,
+        ),
       );
 
       const parentPage = parentLink?.rightEntity[0] ?? null;
@@ -84,11 +84,11 @@ export const useAccountPages = (
         ...simplifyProperties(latestPage.properties as PageProperties),
         metadata: latestPage.metadata,
         parentPage: parentPage ? { metadata: parentPage.metadata } : null,
-        type:
-          latestPage.metadata.entityTypeId ===
-          systemEntityTypes.canvas.entityTypeId
-            ? "canvas"
-            : "document",
+        type: latestPage.metadata.entityTypeIds.includes(
+          systemEntityTypes.canvas.entityTypeId,
+        )
+          ? "canvas"
+          : "document",
       };
     });
   }, [data]);

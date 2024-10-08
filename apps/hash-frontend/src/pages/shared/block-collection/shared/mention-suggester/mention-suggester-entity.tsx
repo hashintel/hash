@@ -84,7 +84,7 @@ export const MentionSuggesterEntity = forwardRef<
     sortOrder: SortOrder;
     setSortOrder: (sortOrder: SortOrder) => void;
     entitiesSubgraph: Subgraph<EntityRootType>;
-    entityType: EntityTypeWithMetadata;
+    entityTypes: EntityTypeWithMetadata[];
     entity: Entity;
     displayTypeTitle?: boolean;
     displaySubMenu: boolean;
@@ -101,7 +101,7 @@ export const MentionSuggesterEntity = forwardRef<
       entitiesSubgraph,
       entity,
       displayTypeTitle = false,
-      entityType,
+      entityTypes,
       displaySubMenu,
       subMenuIndex,
       subMenuItems,
@@ -122,7 +122,7 @@ export const MentionSuggesterEntity = forwardRef<
       }
     }, [ref]);
 
-    const entityIcon = useEntityIcon({ entity, entityType });
+    const entityIcon = useEntityIcon({ entity, entityTypes });
 
     return (
       <>
@@ -132,11 +132,16 @@ export const MentionSuggesterEntity = forwardRef<
             {generateEntityLabel(entitiesSubgraph, entity)}
           </ListItemPrimaryText>
           <Box display="flex" alignItems="center" gap={1}>
-            {displayTypeTitle ? (
-              <ListItemSecondaryText sx={{ marginLeft: 2 }}>
-                {entityType.schema.title}
-              </ListItemSecondaryText>
-            ) : null}
+            {displayTypeTitle
+              ? entityTypes.map((entityType) => (
+                  <ListItemSecondaryText
+                    key={entityType.schema.$id}
+                    sx={{ marginLeft: 2 }}
+                  >
+                    {entityType.schema.title}
+                  </ListItemSecondaryText>
+                ))
+              : null}
             <Box>
               <IconButton
                 onClick={(event) => {

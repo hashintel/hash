@@ -95,7 +95,8 @@ const parseAndResolveCoordinatorInputs = async (params: {
     graphApiClient,
     entityTypeIds: [
       ...entityTypeIds!,
-      ...(existingEntities?.map(({ metadata }) => metadata.entityTypeId) ?? []),
+      ...(existingEntities?.flatMap(({ metadata }) => metadata.entityTypeIds) ??
+        []),
     ].filter((entityTypeId, index, all) => all.indexOf(entityTypeId) === index),
     actorId: userAuthentication.actorId,
   });
@@ -502,7 +503,7 @@ export const runCoordinatingAgent: FlowActionActivity<{
        */
       propertyMetadata: { value: {} },
       provenance: fileEditionProvenance,
-      entityTypeId,
+      entityTypeIds: [entityTypeId],
       localEntityId: entityIdFromComponents(
         webId,
         generateUuid() as EntityUuid,

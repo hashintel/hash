@@ -42,7 +42,7 @@ const docsTabs: { title: string; href: string }[] = [
     ({ title, titleDerivedFromDirectoryName, href }) => ({
       /**
        * We prefer the title derived from the directory name, so that
-       * for example the the `Simulations` tab can have its first page
+       * for example the `Simulations` tab can have its first page
        * be titled `Overview` in the sidebar.
        */
       title: titleDerivedFromDirectoryName ?? title,

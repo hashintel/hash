@@ -35,7 +35,7 @@ const createNotification = async ({
 
   const targetEntity = await createEntity<Page>(requestContext, {
     draft,
-    entityTypeId: systemEntityTypes.page.entityTypeId,
+    entityTypeIds: [systemEntityTypes.page.entityTypeId],
     ownedById,
     properties: {
       value: {
@@ -61,7 +61,7 @@ const createNotification = async ({
     requestContext,
     {
       draft: false,
-      entityTypeId: systemEntityTypes.graphChangeNotification.entityTypeId,
+      entityTypeIds: [systemEntityTypes.graphChangeNotification.entityTypeId],
       ownedById,
       properties: {
         value: {
@@ -79,7 +79,7 @@ const createNotification = async ({
 
   await createEntity<OccurredInEntity>(requestContext, {
     draft,
-    entityTypeId: systemLinkEntityTypes.occurredInEntity.linkEntityTypeId,
+    entityTypeIds: [systemLinkEntityTypes.occurredInEntity.linkEntityTypeId],
     linkData: {
       leftEntityId: notificationEntity.metadata.recordId.entityId,
       rightEntityId: targetEntity.metadata.recordId.entityId,

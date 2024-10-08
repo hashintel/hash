@@ -282,7 +282,7 @@ export const DestinationEntityTypeSelector = ({
             optionToRenderData={({ $id, title, description }) => ({
               uniqueId: $id,
               icon: <EntityTypeIcon />,
-              typeId: $id,
+              typeIds: [$id],
               title,
               description,
             })}

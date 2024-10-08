@@ -273,7 +273,8 @@ export const gptQueryEntities: RequestHandler<
             },
           );
 
-          const isUser = owningEntity.metadata.entityTypeId.includes("/user/");
+          const isUser =
+            owningEntity.metadata.entityTypeIds[0].includes("/user/");
 
           web = {
             type: isUser ? "User" : "Organization",

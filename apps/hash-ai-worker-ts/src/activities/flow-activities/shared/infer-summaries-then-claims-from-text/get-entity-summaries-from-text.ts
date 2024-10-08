@@ -18,7 +18,7 @@ export type LocalEntitySummary = {
   localId: EntityId;
   name: string;
   summary: string;
-  entityTypeId: VersionedUrl;
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
 };
 
 const toolNames = ["registerEntitySummaries"] as const;
@@ -208,7 +208,7 @@ export const getEntitySummariesFromText = async (params: {
                     dedent(`<ExistingEntity>
                     Name: ${summary.name}
                     Summary: ${summary.summary}
-                    Type: ${summary.entityTypeId}
+                    ${summary.entityTypeIds.length > 1 ? "Types" : "Type"}: ${summary.entityTypeIds.join(", ")}
                   </ExistingEntity>`),
                   )
                   .join("\n")}
@@ -271,7 +271,7 @@ export const getEntitySummariesFromText = async (params: {
           localId: entityId,
           name,
           summary,
-          entityTypeId: type as VersionedUrl,
+          entityTypeIds: [type as VersionedUrl],
         });
       }
     }

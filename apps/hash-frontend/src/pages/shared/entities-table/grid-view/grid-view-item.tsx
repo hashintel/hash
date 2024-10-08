@@ -62,16 +62,17 @@ export const GridViewItem: FunctionComponent<{
   numberOfItems: number;
   index: number;
 }> = ({ entity, numberOfItems, index }) => {
-  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
+  const { includesSpecialEntityTypes } = useEntityTypesContextRequired();
 
   const fileEntity = useMemo(() => {
-    const isFileEntity =
-      isSpecialEntityTypeLookup?.[entity.metadata.entityTypeId]?.isFile;
+    const isFileEntity = includesSpecialEntityTypes?.(
+      entity.metadata.entityTypeIds,
+    ).isFile;
 
     if (isFileEntity) {
       return entity as Entity<FileEntity>;
     }
-  }, [isSpecialEntityTypeLookup, entity]);
+  }, [includesSpecialEntityTypes, entity]);
 
   const { fileName, fileNameWithoutExtension, fileExtension } = useMemo(() => {
     if (fileEntity) {
@@ -97,11 +98,13 @@ export const GridViewItem: FunctionComponent<{
 
   const icon = useMemo(() => {
     if (fileEntity) {
-      const iconByEntityType =
-        entityTypeIdToIcon[extractBaseUrl(fileEntity.metadata.entityTypeId)];
+      let specificIcon: ReactNode;
 
-      if (iconByEntityType) {
-        return iconByEntityType;
+      for (const entityTypeId of fileEntity.metadata.entityTypeIds) {
+        specificIcon = entityTypeIdToIcon[extractBaseUrl(entityTypeId)];
+        if (specificIcon) {
+          return specificIcon;
+        }
       }
 
       const { mimeType } = simplifyProperties(fileEntity.properties);

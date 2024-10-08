@@ -89,8 +89,11 @@ const Page: NextPageWithLayout = () => {
   useEffect(() => {
     if (
       entityFromDb &&
-      extractBaseUrl(entityFromDb.metadata.entityTypeId) ===
-        systemEntityTypes.user.entityTypeBaseUrl
+      entityFromDb.metadata.entityTypeIds.some(
+        (entityTypeId) =>
+          extractBaseUrl(entityTypeId) ===
+          systemEntityTypes.user.entityTypeBaseUrl,
+      )
     ) {
       const { shortname } = simplifyProperties(
         entityFromDb.properties as UserProperties,
@@ -234,7 +237,7 @@ const Page: NextPageWithLayout = () => {
         variables: {
           entityUpdate: {
             entityId: draftEntity.metadata.recordId.entityId,
-            entityTypeId: draftEntity.metadata.entityTypeId,
+            entityTypeIds: draftEntity.metadata.entityTypeIds,
             propertyPatches: patchesFromPropertyObjects({
               oldProperties: entityFromDb?.properties ?? {},
               newProperties: mergePropertyObjectAndMetadata(
@@ -303,9 +306,9 @@ const Page: NextPageWithLayout = () => {
   const isModifyingEntity =
     isDirty || !!draftLinksToCreate.length || !!draftLinksToArchive.length;
 
-  const isQueryEntity =
-    draftEntity.metadata.entityTypeId ===
-    blockProtocolEntityTypes.query.entityTypeId;
+  const isQueryEntity = draftEntity.metadata.entityTypeIds.includes(
+    blockProtocolEntityTypes.query.entityTypeId,
+  );
 
   return (
     <EntityEditorPage

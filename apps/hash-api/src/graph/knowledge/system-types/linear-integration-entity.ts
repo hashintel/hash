@@ -51,13 +51,14 @@ function assertLinearIntegrationEntity(
   entity: Entity,
 ): asserts entity is Entity<LinearIntegrationEntity> {
   if (
-    entity.metadata.entityTypeId !==
-    systemEntityTypes.linearIntegration.entityTypeId
+    !entity.metadata.entityTypeIds.includes(
+      systemEntityTypes.linearIntegration.entityTypeId,
+    )
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
       systemEntityTypes.linearIntegration.entityTypeId,
-      entity.metadata.entityTypeId,
+      entity.metadata.entityTypeIds,
     );
   }
 }
@@ -350,7 +351,9 @@ export const linkIntegrationToWorkspace: ImpureGraphFunction<
         leftEntityId: linearIntegrationEntityId,
         rightEntityId: workspaceEntityId,
       },
-      entityTypeId: systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
+      entityTypeIds: [
+        systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
+      ],
       relationships: [
         ...createDefaultAuthorizationRelationships(authentication),
         {

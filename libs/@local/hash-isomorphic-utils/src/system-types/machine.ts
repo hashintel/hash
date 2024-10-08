@@ -32,7 +32,7 @@ export type {
  * A machine that can perform actions in the system
  */
 export type Machine = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/machine/v/2";
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/machine/v/2"];
   properties: MachineProperties;
   propertiesWithMetadata: MachinePropertiesWithMetadata;
 };

@@ -108,7 +108,7 @@ export const UserProfileInfoForm: FunctionComponent<{
 
       const { data: serviceAccountEntity } = await createEntity({
         data: {
-          entityTypeId: systemEntityTypes[kind].entityTypeId,
+          entityTypeIds: [systemEntityTypes[kind].entityTypeId],
           properties: {
             [systemPropertyTypes.profileUrl.propertyTypeBaseUrl]: profileUrl,
           },
@@ -125,8 +125,9 @@ export const UserProfileInfoForm: FunctionComponent<{
             leftEntityId: userProfile.entity.metadata.recordId.entityId,
             rightEntityId: serviceAccountEntity.metadata.recordId.entityId,
           },
-          entityTypeId:
+          entityTypeIds: [
             systemLinkEntityTypes.hasServiceAccount.linkEntityTypeId,
+          ],
           properties: {},
         },
       });

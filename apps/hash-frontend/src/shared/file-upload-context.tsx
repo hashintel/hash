@@ -509,7 +509,7 @@ export const FileUploadsProvider = ({ children }: PropsWithChildren) => {
       try {
         const { data, errors } = await createEntity({
           variables: {
-            entityTypeId: linkEntityTypeId,
+            entityTypeIds: [linkEntityTypeId],
             linkData: {
               leftEntityId: linkedEntityId,
               rightEntityId: fileEntity.metadata.recordId.entityId,

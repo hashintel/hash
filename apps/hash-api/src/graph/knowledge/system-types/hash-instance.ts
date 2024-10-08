@@ -99,7 +99,7 @@ export const createHashInstance: ImpureGraphFunction<
           },
       },
     },
-    entityTypeId: systemEntityTypes.hashInstance.entityTypeId,
+    entityTypeIds: [systemEntityTypes.hashInstance.entityTypeId],
     relationships: [
       {
         relation: "viewer",

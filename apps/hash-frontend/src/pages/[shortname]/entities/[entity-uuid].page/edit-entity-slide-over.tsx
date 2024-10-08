@@ -244,7 +244,7 @@ export const EditEntitySlideOver = ({
                 undefined,
               ),
             }),
-            entityTypeId: draftEntity.metadata.entityTypeId,
+            entityTypeIds: draftEntity.metadata.entityTypeIds,
           },
         },
       });

@@ -59,7 +59,7 @@ class InteractableManagerClass {
     return {
       ...props,
       hovered,
-      cellRect: rect,
+      cellRect: { ...rect },
       path: drawArgsToCellPath(args),
     };
   }

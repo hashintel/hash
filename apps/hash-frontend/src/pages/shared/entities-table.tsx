@@ -5,7 +5,7 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { gridRowHeight } from "@local/hash-isomorphic-utils/data-grid";
 import { systemEntityTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
-import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
@@ -39,6 +39,7 @@ import { isAiMachineActor } from "../../shared/use-actors";
 import { useEntityTypeEntities } from "../../shared/use-entity-type-entities";
 import { EditEntitySlideOver } from "../[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
 import { useAuthenticatedUser } from "./auth-info-context";
+import type { ChipCellProps } from "./chip-cell";
 import { renderChipCell } from "./chip-cell";
 import { GridView } from "./entities-table/grid-view";
 import type { TextIconCell } from "./entities-table/text-icon-cell";
@@ -172,7 +173,7 @@ export const EntitiesTable: FunctionComponent<{
     () =>
       !!entities?.length &&
       entities.every(({ metadata }) =>
-        isPageEntityTypeId(metadata.entityTypeId),
+        includesPageEntityTypeId(metadata.entityTypeIds),
       ),
     [entities],
   );
@@ -201,7 +202,7 @@ export const EntitiesTable: FunctionComponent<{
               )) &&
           (filterState.includeArchived === undefined ||
           filterState.includeArchived ||
-          !isPageEntityTypeId(entity.metadata.entityTypeId)
+          !includesPageEntityTypeId(entity.metadata.entityTypeIds)
             ? true
             : simplifyProperties(entity.properties as PageProperties)
                 .archived !== true),
@@ -294,7 +295,27 @@ export const EntitiesTable: FunctionComponent<{
                 },
               },
             };
-          } else if (["web", "entityTypeVersion"].includes(columnId)) {
+          } else if (columnId === "entityTypes") {
+            return {
+              kind: GridCellKind.Custom,
+              allowOverlay: false,
+              readonly: true,
+              copyData: row.entityTypes.map((type) => type.title).join(", "),
+              data: {
+                kind: "chip-cell",
+                chips: row.entityTypes.map((value) => ({
+                  text: value.title,
+                  /**
+                   * @todo H-1978: support custom icons in cell renderers, including URLs to SVGs, and emojis
+                   */
+                  icon: undefined,
+                  onClick: () => setSelectedEntityTypeId(value.entityTypeId),
+                })),
+                color: "gray",
+                variant: "filled",
+              } satisfies ChipCellProps,
+            };
+          } else if (columnId === "webId") {
             const cellValue = row[columnId];
             const stringValue = String(cellValue);
 
@@ -309,11 +330,7 @@ export const EntitiesTable: FunctionComponent<{
                 icon: null,
                 value: stringValue,
                 onClick: () => {
-                  if (columnId === "web") {
-                    void router.push(`/${cellValue}`);
-                  } else {
-                    setSelectedEntityTypeId(row.entityTypeId);
-                  }
+                  void router.push(`/${cellValue}`);
                 },
               },
             };
@@ -656,9 +673,11 @@ export const EntitiesTable: FunctionComponent<{
   const isPrimaryEntity = useCallback(
     (entity: Entity) =>
       entityTypeBaseUrl
-        ? extractBaseUrl(entity.metadata.entityTypeId) === entityTypeBaseUrl
+        ? entity.metadata.entityTypeIds.some(
+            (typeId) => extractBaseUrl(typeId) === entityTypeBaseUrl,
+          )
         : entityTypeId
-          ? entityTypeId === entity.metadata.entityTypeId
+          ? entity.metadata.entityTypeIds.includes(entityTypeId)
           : false,
     [entityTypeId, entityTypeBaseUrl],
   );

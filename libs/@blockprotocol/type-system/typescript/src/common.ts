@@ -40,3 +40,13 @@
 export const atLeastOne = <T>(array: T[]): [T, ...T[]] | undefined =>
   // @ts-expect-error –– @see https://github.com/microsoft/TypeScript/issues/29841
   array.length > 0 ? (array satisfies [T, ...T[]]) : undefined;
+
+export const mustHaveAtLeastOne = <T>(array: T[]): [T, ...T[]] => {
+  const arr = atLeastOne(array);
+
+  if (!arr) {
+    throw new Error("Array must have at least one element.");
+  }
+
+  return arr;
+};

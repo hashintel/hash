@@ -23,6 +23,9 @@ export type DraftEntity<Type extends EntityStoreType = EntityStoreType> = {
       entityId: EntityId | null;
       editionId: string;
     };
+    /**
+     * @todo H-2242 do we need to change this for multi-type entities
+     */
     entityTypeId?: VersionedUrl | null;
     temporalVersioning: EntityTemporalVersioningMetadata;
   };

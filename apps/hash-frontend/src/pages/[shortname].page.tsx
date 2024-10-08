@@ -218,8 +218,8 @@ const ProfilePage: NextPageWithLayout = () => {
           return {
             ...tab,
             entities: allPinnedEntities?.filter(({ metadata }) =>
-              entityTypeBaseUrls.includes(
-                extractBaseUrl(metadata.entityTypeId),
+              metadata.entityTypeIds.some((entityTypeId) =>
+                entityTypeBaseUrls.includes(extractBaseUrl(entityTypeId)),
               ),
             ),
             entitiesSubgraph,

@@ -68,8 +68,9 @@ test(
           name: "MOLTEN VENTURES PLC ORD GBP0.01",
           summary:
             "MOLTEN VENTURES PLC is a technology investment company that invests in early-stage technology businesses.",
-          entityTypeId:
+          entityTypeIds: [
             "https://hash.ai/@hash/types/entity-type/stock-market-constituent/v/1",
+          ],
         },
       ],
       potentialObjectEntities: [],
@@ -134,8 +135,9 @@ test(
           localId: generateEntityId("6675a4ca-2282-4823-a4ff-d65d87218ebd"),
           name: "GeForce RTX 4090",
           summary: "The GeForce RTX 4090 is a high-end graphics card.",
-          entityTypeId:
+          entityTypeIds: [
             "https://hash.ai/@hash/types/entity-type/graphics-card/v/1",
+          ],
         },
       ],
       potentialObjectEntities: [],

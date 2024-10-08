@@ -13,7 +13,7 @@ import { queryGraphQlApi } from "../query-graphql-api";
 
 export const updateEntity = <T extends EntityProperties>(params: {
   entityId: EntityId;
-  entityTypeId: T["entityTypeId"];
+  entityTypeIds: T["entityTypeIds"];
   updatedProperties: T["propertiesWithMetadata"];
 }): Promise<Entity<T>> =>
   queryGraphQlApi<UpdateEntityMutation, UpdateEntityMutationVariables>(
@@ -21,7 +21,7 @@ export const updateEntity = <T extends EntityProperties>(params: {
     {
       entityUpdate: {
         entityId: params.entityId,
-        entityTypeId: params.entityTypeId,
+        entityTypeIds: params.entityTypeIds,
         propertyPatches: propertyObjectToPatches(params.updatedProperties),
       },
     },

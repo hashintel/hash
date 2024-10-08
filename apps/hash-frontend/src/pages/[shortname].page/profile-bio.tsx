@@ -86,7 +86,7 @@ export const ProfileBio: FunctionComponent<{
 
     await createEntity({
       data: {
-        entityTypeId: systemLinkEntityTypes.hasBio.linkEntityTypeId,
+        entityTypeIds: [systemLinkEntityTypes.hasBio.linkEntityTypeId],
         linkData: {
           leftEntityId: profile.entity.metadata.recordId.entityId,
           rightEntityId: profileBioEntity.metadata.recordId.entityId,

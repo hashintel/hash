@@ -55,11 +55,15 @@ export type Comment = {
 function assertCommentEntity(
   entity: Entity,
 ): asserts entity is Entity<CommentEntity> {
-  if (entity.metadata.entityTypeId !== systemEntityTypes.comment.entityTypeId) {
+  if (
+    !entity.metadata.entityTypeIds.includes(
+      systemEntityTypes.comment.entityTypeId,
+    )
+  ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
       systemEntityTypes.comment.entityTypeId,
-      entity.metadata.entityTypeId,
+      entity.metadata.entityTypeIds,
     );
   }
 }
@@ -194,14 +198,14 @@ export const createComment: ImpureGraphFunction<
           },
       },
     },
-    entityTypeId: systemEntityTypes.text.entityTypeId,
+    entityTypeIds: [systemEntityTypes.text.entityTypeId],
     relationships,
   });
 
   const commentEntity = await createEntity<CommentEntity>(ctx, authentication, {
     ownedById,
     properties: { value: {} },
-    entityTypeId: systemEntityTypes.comment.entityTypeId,
+    entityTypeIds: [systemEntityTypes.comment.entityTypeId],
     outgoingLinks: [
       {
         ownedById,
@@ -209,7 +213,7 @@ export const createComment: ImpureGraphFunction<
         linkData: {
           rightEntityId: parentEntityId,
         },
-        entityTypeId: systemLinkEntityTypes.hasParent.linkEntityTypeId,
+        entityTypeIds: [systemLinkEntityTypes.hasParent.linkEntityTypeId],
         relationships,
       },
       {
@@ -218,7 +222,7 @@ export const createComment: ImpureGraphFunction<
         linkData: {
           rightEntityId: author.entity.metadata.recordId.entityId,
         },
-        entityTypeId: systemLinkEntityTypes.authoredBy.linkEntityTypeId,
+        entityTypeIds: [systemLinkEntityTypes.authoredBy.linkEntityTypeId],
         relationships,
       },
       /**
@@ -232,7 +236,7 @@ export const createComment: ImpureGraphFunction<
         linkData: {
           rightEntityId: textEntity.metadata.recordId.entityId,
         },
-        entityTypeId: systemLinkEntityTypes.hasText.linkEntityTypeId,
+        entityTypeIds: [systemLinkEntityTypes.hasText.linkEntityTypeId],
         relationships,
       },
     ],
@@ -465,7 +469,9 @@ export const getCommentAncestorBlock: ImpureGraphFunction<
   });
 
   if (
-    parentEntity.metadata.entityTypeId === systemEntityTypes.block.entityTypeId
+    parentEntity.metadata.entityTypeIds.includes(
+      systemEntityTypes.block.entityTypeId,
+    )
   ) {
     // @todo - make sure the entity is really a block
     return getBlockFromEntity({ entity: parentEntity as Block["entity"] });

@@ -31,7 +31,7 @@ export type SelectorAutocompleteOptionProps = {
   icon: ReactNode | null;
   title: string;
   /** the typeId associated with this entity type or entity, displayed as a chip in the option */
-  typeId: VersionedUrl;
+  typeIds: [VersionedUrl, ...VersionedUrl[]];
   draft?: boolean;
 };
 
@@ -49,11 +49,9 @@ export const SelectorAutocompleteOption = ({
   entityProperties,
   icon,
   title,
-  typeId,
+  typeIds,
   draft = false,
 }: SelectorAutocompleteOptionProps) => {
-  const ontology = parseUrlForOntologyChip(typeId);
-
   const optionRef = useRef<HTMLLIElement>(null);
   const [showPreviewPane, setShowPreviewPane] = useState(false);
 
@@ -72,7 +70,7 @@ export const SelectorAutocompleteOption = ({
   const onMouseEnter = () => (imageUrl ? setShowPreviewPane(true) : null);
   const onMouseLeave = () => (imageUrl ? setShowPreviewPane(false) : null);
 
-  const typeTitle = slugToTitleCase(typeId.split("/").slice(-3, -2)[0]);
+  /** @todo H-1978 use the entity type's icon below rather than hardcoding EntityTypeIcon */
 
   return (
     <li
@@ -117,7 +115,11 @@ export const SelectorAutocompleteOption = ({
               )}
             </Stack>
             <Stack direction="row" mt={1}>
-              <Chip color="gray" icon={<EntityTypeIcon />} label={typeTitle} />
+              <Chip
+                color="gray"
+                icon={<EntityTypeIcon />}
+                label={slugToTitleCase(typeIds[0].split("/").slice(-3, -2)[0])}
+              />
             </Stack>
           </Paper>
         </Popper>
@@ -194,29 +196,31 @@ export const SelectorAutocompleteOption = ({
                 </Typography>
               )}
             </Box>
-            <Tooltip title={typeId}>
-              {entityProperties && typeTitle ? (
-                <Chip
-                  icon={<EntityTypeIcon />}
-                  color="gray"
-                  label={typeTitle}
-                  sx={{
-                    ml: 1,
-                  }}
-                />
-              ) : (
-                <OntologyChip
-                  {...ontology}
-                  sx={({ palette }) => ({
-                    border: `1px solid ${palette.gray[30]}`,
-                    flexShrink: 1,
-                    minWidth: 150,
-                    ml: 1.25,
-                    mr: 2,
-                  })}
-                />
-              )}
-            </Tooltip>
+            {typeIds.map((typeId) => (
+              <Tooltip title={typeId} key={typeId}>
+                {entityProperties ? (
+                  <Chip
+                    icon={<EntityTypeIcon />}
+                    color="gray"
+                    label={slugToTitleCase(typeId.split("/").slice(-3, -2)[0])}
+                    sx={{
+                      ml: 1,
+                    }}
+                  />
+                ) : (
+                  <OntologyChip
+                    {...parseUrlForOntologyChip(typeId)}
+                    sx={({ palette }) => ({
+                      border: `1px solid ${palette.gray[30]}`,
+                      flexShrink: 1,
+                      minWidth: 150,
+                      ml: 1.25,
+                      mr: 2,
+                    })}
+                  />
+                )}
+              </Tooltip>
+            ))}
             {draft ? (
               <Chip
                 icon={<FeatherRegularIcon />}

@@ -10,10 +10,6 @@ import type {
 } from "@local/hash-graph-types/entity";
 
 import type { ImpureGraphFunction } from "../../context-types";
-import {
-  getEntityTypeById,
-  isEntityTypeLinkEntityType,
-} from "../../ontology/primitive/entity-type";
 import { getLatestEntityById } from "./entity";
 import { afterCreateEntityHooks } from "./entity/after-create-entity-hooks";
 
@@ -38,31 +34,12 @@ export const createLinkEntity = async <Properties extends EntityProperties>(
   const {
     ownedById,
     linkData,
+    entityTypeIds,
     properties = { value: {} },
     draft = false,
     relationships,
     confidence,
   } = params;
-
-  const linkEntityType = await getEntityTypeById(context, authentication, {
-    entityTypeId: params.entityTypeId,
-  });
-
-  /**
-   * @todo: remove this check once it is made in the Graph API
-   * @see https://linear.app/hash/issue/H-972/validate-links-when-creatingupdating-an-entity-or-links-tofrom-an
-   */
-  if (
-    !(await isEntityTypeLinkEntityType(
-      context,
-      authentication,
-      linkEntityType.schema,
-    ))
-  ) {
-    throw new Error(
-      `Entity type with ID "${linkEntityType.schema.$id}" is not a link entity type.`,
-    );
-  }
 
   const linkEntity = await LinkEntity.create<Properties>(
     context.graphApi,
@@ -70,7 +47,7 @@ export const createLinkEntity = async <Properties extends EntityProperties>(
     {
       ownedById,
       linkData,
-      entityTypeId: linkEntityType.schema.$id,
+      entityTypeIds,
       properties,
       draft,
       relationships,
@@ -80,7 +57,9 @@ export const createLinkEntity = async <Properties extends EntityProperties>(
   );
 
   for (const afterCreateHook of afterCreateEntityHooks) {
-    if (afterCreateHook.entityTypeId === linkEntity.metadata.entityTypeId) {
+    if (
+      linkEntity.metadata.entityTypeIds.includes(afterCreateHook.entityTypeId)
+    ) {
       void afterCreateHook.callback({
         context,
         entity: linkEntity,

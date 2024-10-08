@@ -12,14 +12,14 @@ import { createEntityMutation } from "../graphql/queries/entity.queries";
 import { queryGraphQlApi } from "./query-graphql-api";
 
 export const createEntity = <T extends EntityProperties>(params: {
-  entityTypeId: T["entityTypeId"];
+  entityTypeIds: T["entityTypeIds"];
   properties: T["propertiesWithMetadata"];
   linkData?: LinkData;
 }): Promise<Entity<T>> =>
   queryGraphQlApi<CreateEntityMutation, CreateEntityMutationVariables>(
     createEntityMutation,
     {
-      entityTypeId: params.entityTypeId,
+      entityTypeIds: params.entityTypeIds,
       properties: params.properties,
       linkData: params.linkData,
     },

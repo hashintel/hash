@@ -188,10 +188,10 @@ export const RemoteBlock: FunctionComponent<RemoteBlockProps> = ({
           blockEntity.metadata.recordId.entityId,
         );
 
-        return !outgoingLinks.some(
-          (link) =>
-            link.metadata.entityTypeId ===
+        return !outgoingLinks.some((link) =>
+          link.metadata.entityTypeIds.includes(
             blockProtocolLinkEntityTypes.hasQuery.linkEntityTypeId,
+          ),
         );
       }
     }

@@ -70,7 +70,7 @@ export type InferenceTokenUsage = {
 
 type InferredEntityResultBase = {
   entity?: SerializedEntity | null;
-  entityTypeId: VersionedUrl;
+  entityTypeIds: VersionedUrl[];
   operation: "create" | "update" | "already-exists-as-proposed";
   proposedEntity: ProposedEntity;
   status: "success" | "failure";

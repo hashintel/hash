@@ -90,7 +90,12 @@ export const inferSummariesThenClaimsFromText = async (params: {
     ...existingEntitiesOfInterest,
   ].reduce(
     (prev, currentEntitySummary) => {
-      const { entityTypeId } = currentEntitySummary;
+      const { entityTypeIds } = currentEntitySummary;
+
+      /**
+       * @todo H-2241 support inferring entities with multiple types
+       */
+      const entityTypeId = entityTypeIds[0];
 
       return {
         ...prev,

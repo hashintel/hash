@@ -74,9 +74,10 @@ export const useLinearIntegrations = () => {
                   const linkEntity = linkAndTarget.linkEntity[0]!;
 
                   return (
-                    linkEntity.metadata.entityTypeId ===
-                      systemLinkEntityTypes.syncLinearDataWith
-                        .linkEntityTypeId && !linkEntity.metadata.archived
+                    !linkEntity.metadata.archived &&
+                    linkEntity.metadata.entityTypeIds.includes(
+                      systemLinkEntityTypes.syncLinearDataWith.linkEntityTypeId,
+                    )
                   );
                 })
                 .map((linkAndTarget) => {

@@ -49,7 +49,7 @@ export type UpdateLinearDataWorkflow = (params: {
   apiKey: string;
   authentication: { actorId: AccountId };
   linearId: string;
-  entityTypeId: VersionedUrl;
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
   entity: SerializedEntity;
 }) => Promise<void>;
 

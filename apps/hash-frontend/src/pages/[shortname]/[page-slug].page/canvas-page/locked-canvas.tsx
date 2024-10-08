@@ -56,8 +56,8 @@ export const LockedCanvas = ({ blocks, contents }: CanvasProps) => {
             const blockLoaderProps = {
               blockEntityId:
                 blockEntity.blockChildEntity.metadata.recordId.entityId,
-              blockEntityTypeId:
-                blockEntity.blockChildEntity.metadata.entityTypeId,
+              blockEntityTypeIds:
+                blockEntity.blockChildEntity.metadata.entityTypeIds,
               wrappingEntityId: blockEntity.metadata.recordId.entityId,
               blockMetadata: blocks[blockEntity.componentId]!.meta,
               readonly: false,

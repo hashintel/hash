@@ -98,6 +98,7 @@ export const SelectEntityTypePage = () => {
             >
               {isSelectingType ? (
                 <EntityTypeSelector
+                  excludeLinkTypes
                   onCancel={() => setIsSelectingType(false)}
                   onSelect={async (entityType) => {
                     try {

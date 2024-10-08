@@ -317,7 +317,7 @@ export const createUsageRecord = async (
       entityUuid: usageRecordEntityUuid,
       properties,
       provenance,
-      entityTypeId: systemEntityTypes.usageRecord.entityTypeId,
+      entityTypeIds: [systemEntityTypes.usageRecord.entityTypeId],
       relationships: entityRelationships,
     },
     {
@@ -329,7 +329,7 @@ export const createUsageRecord = async (
         leftEntityId: usageRecordEntityId,
         rightEntityId: serviceFeatureEntity.metadata.recordId.entityId,
       },
-      entityTypeId: systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId,
+      entityTypeIds: [systemLinkEntityTypes.recordsUsageOf.linkEntityTypeId],
       relationships: entityRelationships,
     },
   ]);

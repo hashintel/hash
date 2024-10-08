@@ -47,13 +47,13 @@ export const useBlockProtocolUpdateEntity = (
         };
       }
 
-      const { entityId, entityTypeId, properties } = data;
+      const { entityId, entityTypeIds, properties } = data;
 
       const { data: updateEntityResponseData } = await updateFn({
         variables: {
           entityUpdate: {
             entityId, // @todo-0.3 consider validating that this matches the id format,
-            entityTypeId,
+            entityTypeIds,
             propertyPatches: propertyObjectToPatches(
               mergePropertyObjectAndMetadata(properties, undefined),
             ),

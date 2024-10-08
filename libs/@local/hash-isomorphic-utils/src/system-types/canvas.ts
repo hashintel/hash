@@ -114,7 +114,7 @@ export type {
  * A page in canvas format, with content in a free-form arrangement.
  */
 export type Canvas = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/canvas/v/1";
+  entityTypeIds: ["https://hash.ai/@hash/types/entity-type/canvas/v/1"];
   properties: CanvasProperties;
   propertiesWithMetadata: CanvasPropertiesWithMetadata;
 };
@@ -152,7 +152,9 @@ export type CanvasPropertiesWithMetadata2 = {
  * Something contained at a spatial position by something
  */
 export type HasSpatiallyPositionedContent = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/has-spatially-positioned-content/v/1";
+  entityTypeIds: [
+    "https://hash.ai/@hash/types/entity-type/has-spatially-positioned-content/v/1",
+  ];
   properties: HasSpatiallyPositionedContentProperties;
   propertiesWithMetadata: HasSpatiallyPositionedContentPropertiesWithMetadata;
 };

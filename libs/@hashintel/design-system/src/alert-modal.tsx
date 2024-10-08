@@ -12,7 +12,9 @@ type AlertModalProps = {
   close: () => void;
   confirmButtonText?: string;
   header?: ReactNode;
-  type: "info" | "warning";
+  open?: boolean;
+  processing?: boolean;
+  type: "info" | "warning" | "error";
   contentStyle?: SxProps<Theme>;
 };
 
@@ -24,13 +26,15 @@ export const AlertModal: FunctionComponent<
   close,
   confirmButtonText,
   header,
+  open = true,
+  processing,
   type,
   children,
   contentStyle,
 }) => {
   return (
     <Modal
-      open
+      open={open}
       onClose={close}
       contentStyle={[
         { p: { xs: 0, md: 0 } },
@@ -47,6 +51,8 @@ export const AlertModal: FunctionComponent<
           {callback && (
             <Button
               autoFocus
+              disabled={processing}
+              loading={processing}
               onClick={() => {
                 callback();
                 close();
@@ -59,6 +65,7 @@ export const AlertModal: FunctionComponent<
           )}
           <Button
             autoFocus={!callback}
+            disabled={processing}
             onClick={close}
             variant={callback ? "tertiary" : "primary"}
             size="small"

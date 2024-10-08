@@ -524,7 +524,9 @@ export type {
  * A notification that a user was mentioned somewhere.
  */
 export type MentionNotification = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/mention-notification/v/6";
+  entityTypeIds: [
+    "https://hash.ai/@hash/types/entity-type/mention-notification/v/6",
+  ];
   properties: MentionNotificationProperties;
   propertiesWithMetadata: MentionNotificationPropertiesWithMetadata;
 };
@@ -593,7 +595,9 @@ export type MentionNotificationTriggeredByUserLink = {
  * A comment that something occurred in.
  */
 export type OccurredInComment = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/occurred-in-comment/v/1";
+  entityTypeIds: [
+    "https://hash.ai/@hash/types/entity-type/occurred-in-comment/v/1",
+  ];
   properties: OccurredInCommentProperties;
   propertiesWithMetadata: OccurredInCommentPropertiesWithMetadata;
 };
@@ -626,7 +630,9 @@ export type OccurredInCommentPropertiesWithMetadata2 = {
  * Text that something occurred in.
  */
 export type OccurredInText = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/occurred-in-text/v/1";
+  entityTypeIds: [
+    "https://hash.ai/@hash/types/entity-type/occurred-in-text/v/1",
+  ];
   properties: OccurredInTextProperties;
   propertiesWithMetadata: OccurredInTextPropertiesWithMetadata;
 };

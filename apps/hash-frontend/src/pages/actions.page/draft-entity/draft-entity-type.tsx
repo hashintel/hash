@@ -20,7 +20,7 @@ export const DraftEntityType: FunctionComponent<{
   const entityType = useMemo(() => {
     const entityTypeInSubgraph = getEntityTypeById(
       subgraph,
-      entity.metadata.entityTypeId,
+      entity.metadata.entityTypeIds[0],
     );
 
     if (!entityTypeInSubgraph) {

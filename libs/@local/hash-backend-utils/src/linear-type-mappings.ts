@@ -671,15 +671,15 @@ export const linearTypeMappings = [
 ];
 
 export const getLinearMappingByHashEntityTypeId = (params: {
-  entityTypeId: VersionedUrl;
+  entityTypeIds: [VersionedUrl, ...VersionedUrl[]];
 }): LinearMapping => {
-  const mapping = linearTypeMappings.find(
-    ({ hashEntityTypeId }) => hashEntityTypeId === params.entityTypeId,
+  const mapping = linearTypeMappings.find(({ hashEntityTypeId }) =>
+    params.entityTypeIds.includes(hashEntityTypeId),
   ) as LinearMapping | undefined;
 
   if (!mapping) {
     throw new Error(
-      `Could not find mapping for HASH entity type ID ${params.entityTypeId}`,
+      `Could not find mapping for any of HASH entity type IDs ${params.entityTypeIds.join(", ")}`,
     );
   }
 

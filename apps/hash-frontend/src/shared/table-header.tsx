@@ -171,7 +171,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
   const numberOfUserWebItems = useMemo(
     () =>
       items?.filter(({ metadata }) =>
-        "entityTypeId" in metadata
+        "entityTypeIds" in metadata
           ? internalWebIds.includes(
               extractOwnedByIdFromEntityId(metadata.recordId.entityId),
             )

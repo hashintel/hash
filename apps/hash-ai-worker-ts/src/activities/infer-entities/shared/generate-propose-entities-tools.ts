@@ -76,6 +76,10 @@ export const generateProposeEntitiesTools = (params: {
 
             simplifiedEntityTypeIdMappings = updatedTypeMappings;
 
+            /**
+             * @todo H-2241 support proposing entities with multiple types, or remove this code (used by the browser plugin)
+             *    in favour of propose-entities-from-claims
+             */
             acc[simplifiedEntityTypeId] = {
               type: "array",
               title: `${schema.title} entities to create`,

@@ -28,4 +28,10 @@ export const drawChip = (
     ctx.lineWidth = 1;
     ctx.stroke();
   }
+
+  return {
+    width: chipWidth,
+    height,
+    top: chipTop,
+  };
 };

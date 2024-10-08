@@ -206,7 +206,7 @@ export const setupFileDownloadProxyHandler = (
 
     if (!isFileEntity(fileEntity)) {
       res.status(400).json({
-        error: `Found entity ${fileEntity.metadata.recordId.entityId} is not a file entity – has type ${fileEntity.metadata.entityTypeId}`,
+        error: `Found entity ${fileEntity.metadata.recordId.entityId} is not a file entity – has type(s) ${fileEntity.metadata.entityTypeIds.join(", ")}`,
       });
       return;
     }

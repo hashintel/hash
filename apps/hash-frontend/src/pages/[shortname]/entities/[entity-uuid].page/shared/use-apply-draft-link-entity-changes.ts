@@ -39,7 +39,7 @@ export const useApplyDraftLinkEntityChanges = () => {
       ({ linkEntity, rightEntity }) =>
         createEntity({
           variables: {
-            entityTypeId: linkEntity.metadata.entityTypeId,
+            entityTypeIds: linkEntity.metadata.entityTypeIds,
             // The link should be in the same web as the source entity.
             ownedById: extractOwnedByIdFromEntityId(leftEntityId),
             properties: { value: {} },

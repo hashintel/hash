@@ -32,12 +32,14 @@ export const getHashInstanceFromEntity = ({
   entity: Entity<HASHInstanceEntity>;
 }): HashInstance => {
   if (
-    entity.metadata.entityTypeId !== systemEntityTypes.hashInstance.entityTypeId
+    !entity.metadata.entityTypeIds.includes(
+      systemEntityTypes.hashInstance.entityTypeId,
+    )
   ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
       systemEntityTypes.hashInstance.entityTypeId,
-      entity.metadata.entityTypeId,
+      entity.metadata.entityTypeIds,
     );
   }
 

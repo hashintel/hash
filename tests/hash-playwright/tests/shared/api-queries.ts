@@ -58,7 +58,7 @@ export const createEntity = async <T extends EntityProperties>(
   requestContext: APIRequestContext,
   params: {
     draft: boolean;
-    entityTypeId: T["entityTypeId"];
+    entityTypeIds: T["entityTypeIds"];
     properties: T["propertiesWithMetadata"];
     linkData?: LinkData;
     linkedEntities?: LinkedEntityDefinition[];
@@ -71,7 +71,7 @@ export const createEntity = async <T extends EntityProperties>(
       query: createEntityMutation,
       variables: {
         draft: params.draft,
-        entityTypeId: params.entityTypeId,
+        entityTypeIds: params.entityTypeIds,
         properties: params.properties,
         linkData: params.linkData,
         linkedEntities: params.linkedEntities,

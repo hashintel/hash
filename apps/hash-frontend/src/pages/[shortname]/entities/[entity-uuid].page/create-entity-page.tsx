@@ -70,7 +70,7 @@ export const CreateEntityPage = ({ entityTypeId }: CreateEntityPageProps) => {
       setCreating(true);
       const { data: entity } = await createEntity({
         data: {
-          entityTypeId,
+          entityTypeIds: [entityTypeId],
           properties: overrideProperties ?? draftEntity.properties,
         },
       });

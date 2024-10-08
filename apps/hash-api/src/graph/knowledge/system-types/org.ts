@@ -18,10 +18,7 @@ import type {
 } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { AccountGroupEntityId } from "@local/hash-subgraph";
 import { extractAccountGroupId } from "@local/hash-subgraph";
-import {
-  extractBaseUrl,
-  versionedUrlFromComponents,
-} from "@local/hash-subgraph/type-system-patch";
+import { versionedUrlFromComponents } from "@local/hash-subgraph/type-system-patch";
 
 import {
   createAccountGroup,
@@ -52,12 +49,15 @@ export type Org = {
 function assertOrganizationEntity(
   entity: Entity,
 ): asserts entity is Entity<Organization> {
-  const entityTypeBaseUrl = extractBaseUrl(entity.metadata.entityTypeId);
-  if (entityTypeBaseUrl !== systemEntityTypes.organization.entityTypeBaseUrl) {
+  if (
+    !entity.metadata.entityTypeIds.includes(
+      systemEntityTypes.organization.entityTypeId,
+    )
+  ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
-      systemEntityTypes.organization.entityTypeBaseUrl,
-      entityTypeBaseUrl,
+      systemEntityTypes.organization.entityTypeId,
+      entity.metadata.entityTypeIds,
     );
   }
 }
@@ -164,13 +164,14 @@ export const createOrg: ImpureGraphFunction<
   const entity = await createEntity(ctx, authentication, {
     ownedById: orgAccountGroupId as OwnedById,
     properties,
-    entityTypeId:
+    entityTypeIds: [
       typeof entityTypeVersion === "undefined"
         ? systemEntityTypes.organization.entityTypeId
         : versionedUrlFromComponents(
             systemEntityTypes.organization.entityTypeBaseUrl,
             entityTypeVersion,
           ),
+    ],
     entityUuid: orgAccountGroupId as string as EntityUuid,
     relationships: [
       {

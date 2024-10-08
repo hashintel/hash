@@ -21,7 +21,7 @@ import { GraphVisualizer } from "./graph-visualizer";
 
 export type EntityForGraph = {
   linkData?: LinkData;
-  metadata: Pick<EntityMetadata, "recordId" | "entityTypeId"> &
+  metadata: Pick<EntityMetadata, "recordId" | "entityTypeIds"> &
     Partial<Pick<EntityMetadata, "temporalVersioning">>;
   properties: PropertyObject;
 };
@@ -111,16 +111,18 @@ export const EntityGraphVisualizer = <T extends EntityForGraph>({
 
       const specialHighlight = isPrimaryEntity?.(entity) ?? false;
 
-      if (!entityTypeIdToColor.has(entity.metadata.entityTypeId)) {
+      if (!entityTypeIdToColor.has(entity.metadata.entityTypeIds[0])) {
         entityTypeIdToColor.set(
-          entity.metadata.entityTypeId,
+          entity.metadata.entityTypeIds[0],
           entityTypeIdToColor.size % nodeColors.length,
         );
       }
 
       const { color, borderColor } = specialHighlight
         ? { color: palette.blue[50], borderColor: palette.blue[60] }
-        : nodeColors[entityTypeIdToColor.get(entity.metadata.entityTypeId)!]!;
+        : nodeColors[
+            entityTypeIdToColor.get(entity.metadata.entityTypeIds[0])!
+          ]!;
 
       nodesToAddByNodeId[entity.metadata.recordId.entityId] = {
         label: generateEntityLabel(subgraphWithTypes, entity),
@@ -146,7 +148,7 @@ export const EntityGraphVisualizer = <T extends EntityForGraph>({
 
       const linkEntityType = getEntityTypeById(
         subgraphWithTypes,
-        linkEntity.metadata.entityTypeId,
+        linkEntity.metadata.entityTypeIds[0],
       );
 
       edgesToAdd.push({

@@ -28,8 +28,12 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
    */
   const entitiesWithDependenciesSortedLast = proposedEntities.toSorted(
     (a, b) => {
-      const isAFileEntity = fileEntityTypeIds.includes(a.entityTypeId);
-      const isBFileEntity = fileEntityTypeIds.includes(b.entityTypeId);
+      const isAFileEntity = a.entityTypeIds.some((entityTypeId) =>
+        fileEntityTypeIds.includes(entityTypeId),
+      );
+      const isBFileEntity = b.entityTypeIds.some((entityTypeId) =>
+        fileEntityTypeIds.includes(entityTypeId),
+      );
       if (isAFileEntity && !isBFileEntity) {
         return -1;
       } else if (isBFileEntity && !isAFileEntity) {
@@ -75,7 +79,7 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
   for (const unresolvedEntity of entitiesWithDependenciesSortedLast) {
     const {
       claims,
-      entityTypeId,
+      entityTypeIds,
       localEntityId,
       properties,
       provenance,
@@ -86,7 +90,7 @@ export const persistEntitiesAction: FlowActionActivity = async ({ inputs }) => {
 
     const entityWithResolvedLinks: ProposedEntityWithResolvedLinks = {
       claims,
-      entityTypeId,
+      entityTypeIds,
       localEntityId,
       properties,
       propertyMetadata,

@@ -41,11 +41,13 @@ export type Text = {
 function assertTextEntity(
   entity: Entity,
 ): asserts entity is Entity<TextEntity> {
-  if (entity.metadata.entityTypeId !== systemEntityTypes.text.entityTypeId) {
+  if (
+    !entity.metadata.entityTypeIds.includes(systemEntityTypes.text.entityTypeId)
+  ) {
     throw new EntityTypeMismatchError(
       entity.metadata.recordId.entityId,
       systemEntityTypes.text.entityTypeId,
-      entity.metadata.entityTypeId,
+      entity.metadata.entityTypeIds,
     );
   }
 }

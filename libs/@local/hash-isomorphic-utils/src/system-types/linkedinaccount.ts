@@ -32,7 +32,9 @@ export type {
  * A LinkedIn account.
  */
 export type LinkedInAccount = {
-  entityTypeId: "https://hash.ai/@hash/types/entity-type/linkedin-account/v/1";
+  entityTypeIds: [
+    "https://hash.ai/@hash/types/entity-type/linkedin-account/v/1",
+  ];
   properties: LinkedInAccountProperties;
   propertiesWithMetadata: LinkedInAccountPropertiesWithMetadata;
 };

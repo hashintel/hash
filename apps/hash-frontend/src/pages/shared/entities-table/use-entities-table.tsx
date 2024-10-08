@@ -9,7 +9,7 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
-import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
+import { includesPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
@@ -27,8 +27,11 @@ export interface TypeEntitiesRow {
   entityId: EntityId;
   entity: Entity;
   entityLabel: string;
-  entityTypeId: VersionedUrl;
-  entityTypeVersion: string;
+  entityTypes: {
+    entityTypeId: VersionedUrl;
+    icon?: string;
+    title: string;
+  }[];
   archived?: boolean;
   lastEdited: string;
   lastEditedBy?: MinimalActor | "loading";
@@ -84,7 +87,12 @@ export const useEntitiesTable = (params: {
       !!entities &&
       !!entities.length &&
       entities
-        .map(({ metadata: { entityTypeId } }) => extractBaseUrl(entityTypeId))
+        .map(({ metadata: { entityTypeIds } }) =>
+          entityTypeIds
+            .toSorted()
+            .map((entityTypeId) => extractBaseUrl(entityTypeId))
+            .join(","),
+        )
         .every((value, _i, all) => value === all[0]),
     [entities],
   );
@@ -111,7 +119,7 @@ export const useEntitiesTable = (params: {
       {
         title: entitiesHaveSameType
           ? (entityTypes?.find(
-              ({ $id }) => $id === entities?.[0]?.metadata.entityTypeId,
+              ({ $id }) => $id === entities?.[0]?.metadata.entityTypeIds[0],
             )?.title ?? "Entity")
           : "Entity",
         id: "entityLabel",
@@ -123,7 +131,7 @@ export const useEntitiesTable = (params: {
         : [
             {
               title: "Entity Type Version",
-              id: "entityTypeVersion",
+              id: "entityTypes",
               width: 250,
             },
           ]),
@@ -175,15 +183,9 @@ export const useEntitiesTable = (params: {
         ? entities?.map((entity) => {
             const entityLabel = generateEntityLabel(subgraph, entity);
 
-            const entityType = entityTypes.find(
-              (type) => type.$id === entity.metadata.entityTypeId,
+            const currentEntitysTypes = entityTypes.filter((type) =>
+              entity.metadata.entityTypeIds.includes(type.$id),
             );
-
-            if (!entityType) {
-              throw new Error(
-                `Could not find entity type with id ${entity.metadata.entityTypeId} in subgraph`,
-              );
-            }
 
             const { shortname: entityNamespace } = getOwnerForEntity({
               entityId: entity.metadata.recordId.entityId,
@@ -191,7 +193,9 @@ export const useEntitiesTable = (params: {
 
             const entityId = entity.metadata.recordId.entityId;
 
-            const isPage = isPageEntityTypeId(entity.metadata.entityTypeId);
+            const isPage = includesPageEntityTypeId(
+              entity.metadata.entityTypeIds,
+            );
 
             /**
              * @todo: consider displaying handling this differently for pages, where
@@ -230,8 +234,10 @@ export const useEntitiesTable = (params: {
               entityId,
               entity,
               entityLabel,
-              entityTypeId: entityType.$id,
-              entityTypeVersion: `${entityType.title} v${extractVersion(entityType.$id)}`,
+              entityTypes: currentEntitysTypes.map((entityType) => ({
+                title: `${entityType.title} v${extractVersion(entityType.$id)}`,
+                entityTypeId: entityType.$id,
+              })),
               web: `@${entityNamespace}`,
               archived: isPage
                 ? simplifyProperties(entity.properties as PageProperties)

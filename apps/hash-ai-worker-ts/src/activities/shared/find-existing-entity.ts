@@ -32,29 +32,29 @@ import { getEntityByFilter } from "./get-entity-by-filter.js";
 
 export const findExistingEntity = async ({
   actorId,
-  dereferencedEntityType,
+  dereferencedEntityTypes,
   graphApiClient,
   ownedById,
   proposedEntity,
   includeDrafts,
 }: {
   actorId: AccountId;
-  dereferencedEntityType?: DereferencedEntityType;
+  dereferencedEntityTypes?: DereferencedEntityType[];
   graphApiClient: GraphApi;
   ownedById: OwnedById;
-  proposedEntity: Pick<ProposedEntity, "entityTypeId" | "properties">;
+  proposedEntity: Pick<ProposedEntity, "entityTypeIds" | "properties">;
   includeDrafts: boolean;
 }): Promise<Entity | undefined> => {
-  const entityTypeId = proposedEntity.entityTypeId;
-
-  const entityType: DereferencedEntityType | undefined =
-    dereferencedEntityType ??
+  const entityTypes: DereferencedEntityType[] =
+    dereferencedEntityTypes ??
     (await graphApiClient
       .getEntityTypeSubgraph(actorId, {
         includeDrafts: false,
 
         filter: {
-          equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
+          any: proposedEntity.entityTypeIds.map((entityTypeId) => ({
+            equal: [{ path: ["versionedUrl"] }, { parameter: entityTypeId }],
+          })),
         },
         graphResolveDepths: {
           ...zeroedGraphResolveDepths,
@@ -68,17 +68,22 @@ export const findExistingEntity = async ({
           actorId,
         );
 
-        const foundEntityType = getRoots(subgraph)[0];
+        const foundEntityTypes = getRoots(subgraph);
 
-        if (!foundEntityType) {
-          return;
-        }
+        return foundEntityTypes.map(({ schema }) => {
+          const dereferencedType = dereferenceEntityType({
+            entityTypeId: schema.$id,
+            subgraph,
+          });
 
-        return dereferenceEntityType({ entityTypeId, subgraph }).schema;
+          return dereferencedType.schema;
+        });
       }));
 
-  if (!entityType) {
-    throw new Error(`Could not retrieve EntityType with id ${entityTypeId}`);
+  if (!entityTypes.length) {
+    throw new Error(
+      `Could not retrieve EntityTypes with ids ${proposedEntity.entityTypeIds.join(", ")}`,
+    );
   }
 
   /**
@@ -91,8 +96,8 @@ export const findExistingEntity = async ({
   /** We are going to need the embeddings in both cases, so create these first */
   const { embeddings } = await createEntityEmbeddings({
     entityProperties: proposedEntity.properties,
-    propertyTypes: Object.values(entityType.properties).map(
-      (propertySchema) => ({
+    propertyTypes: entityTypes.flatMap((entityType) =>
+      Object.values(entityType.properties).map((propertySchema) => ({
         title:
           "items" in propertySchema
             ? propertySchema.items.title
@@ -101,7 +106,7 @@ export const findExistingEntity = async ({
           "items" in propertySchema
             ? propertySchema.items.$id
             : propertySchema.$id,
-      }),
+      })),
     ),
   });
 
@@ -115,7 +120,11 @@ export const findExistingEntity = async ({
         },
       ],
     },
-    generateVersionedUrlMatchingFilter(entityTypeId),
+    {
+      any: proposedEntity.entityTypeIds.map((entityTypeId) =>
+        generateVersionedUrlMatchingFilter(entityTypeId),
+      ),
+    },
   ] satisfies AllFilter["all"];
 
   // starting point for a threshold that will get only values which are a semantic match
@@ -124,14 +133,16 @@ export const findExistingEntity = async ({
   /**
    * First find suitable specific properties to match on
    */
-  const labelProperty = entityType.labelProperty;
+  const propertyBaseUrlsToMatchOn: BaseUrl[] = entityTypes.flatMap((type) => {
+    /**
+     * @todo H-3363 account for inherited label properties
+     */
+    const labelProperty = type.labelProperty;
 
-  const propertyBaseUrlsToMatchOn: BaseUrl[] =
-    labelProperty &&
-    entityType.properties[labelProperty] &&
-    proposedEntity.properties[labelProperty]
+    return labelProperty && proposedEntity.properties[labelProperty]
       ? [labelProperty]
       : [];
+  });
 
   const nameProperties = [
     "name",
@@ -141,7 +152,9 @@ export const findExistingEntity = async ({
     "shortname",
     "organization name",
   ];
-  for (const [key, schema] of typedEntries(entityType.properties)) {
+  for (const [key, schema] of entityTypes.flatMap((entityType) =>
+    typedEntries(entityType.properties),
+  )) {
     if (
       nameProperties.includes(
         "items" in schema
