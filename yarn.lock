@@ -16370,10 +16370,10 @@ duration-fns@3.0.2:
   resolved "https://registry.yarnpkg.com/duration-fns/-/duration-fns-3.0.2.tgz#842223e05750b2aa66a28a24f58b611b71a44d96"
   integrity sha512-w82IXh/6aWNHFA0qlQazJYJrZTWieTItuuGTE7YX4cxPaZTWhmVImbsBBiMK1/OhGDgiinuCpJoSFILYLDSKDg==
 
-e2b@0.13.1:
-  version "0.13.1"
-  resolved "https://registry.yarnpkg.com/e2b/-/e2b-0.13.1.tgz#14cd2039005cef230fb31d630e336f72b84876e5"
-  integrity sha512-JHm3FUaGNzErrhbD8YrRLZO5pOPGUSm8b9HeEWqutgPmIgVg8v2x/9/8t0Wepwyzep2zmNU+lVQrEB8HlFNjHQ==
+e2b@0.16.2:
+  version "0.16.2"
+  resolved "https://registry.yarnpkg.com/e2b/-/e2b-0.16.2.tgz#86c920a00b33058694d3d670be5d3083d49767e0"
+  integrity sha512-xKmVK4ipgVQPJ/uyyrfH9LnaawERRWt8U2UZhdhGfzdL/QU/OpBjuhoIbFCv1Uy6qXV4nIiJ6Nw4MBC4HmXf1g==
   dependencies:
     isomorphic-ws "^5.0.0"
     normalize-path "^3.0.0"
