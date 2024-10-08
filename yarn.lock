@@ -24798,10 +24798,10 @@ openai-chat-tokens@0.2.8:
   dependencies:
     js-tiktoken "^1.0.7"
 
-openai@4.55.0, openai@^4.38.0:
-  version "4.55.0"
-  resolved "https://registry.yarnpkg.com/openai/-/openai-4.55.0.tgz#d28b5a0b97214de4a2f018efd4665468e6c1fd94"
-  integrity sha512-BR3TUybzdqNeBMgEFvxgBrFks9FY2NoP2jyTf7LT4UxPv8chevRKSxKezsINVSeQ/QLA12CALR1oco6KVdVpVA==
+openai@4.67.1, openai@^4.38.0:
+  version "4.67.1"
+  resolved "https://registry.yarnpkg.com/openai/-/openai-4.67.1.tgz#ed07c40bf24c5f4108dfb662de1471f0c75e890d"
+  integrity sha512-2YbRFy6qaYRJabK2zLMn4txrB2xBy0KP5g/eoqeSPTT31mIJMnkT75toagvfE555IKa2RdrzJrZwdDsUipsAMw==
   dependencies:
     "@types/node" "^18.11.18"
     "@types/node-fetch" "^2.6.4"
