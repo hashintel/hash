@@ -20,13 +20,14 @@ serde = { workspace = true, public = true }
 proptest = { workspace = true, optional = true }
 test-strategy = { workspace = true, optional = true }
 futures-util = { workspace = true, optional = true }
-serde_json = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true, public = true }
 pin-project-lite = { workspace = true, optional = true }
-memchr.workspace = true
+memchr = { workspace = true, optional = true }
 
 # Private third-party dependencies
 
 [dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 
 [lints]
 workspace = true
@@ -35,4 +36,4 @@ workspace = true
 default = ["json"]
 
 proptest = ["dep:proptest", "dep:test-strategy"]
-json = ["dep:serde_json", "dep:pin-project-lite", "dep:futures-util"]
+json = ["dep:serde_json", "dep:pin-project-lite", "dep:futures-util", "dep:memchr"]

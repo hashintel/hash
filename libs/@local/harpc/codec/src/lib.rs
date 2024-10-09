@@ -12,7 +12,6 @@ use futures_core::Stream;
 
 use crate::{decode::Decoder, encode::Encoder};
 
-pub mod codec;
 pub mod decode;
 pub mod encode;
 pub mod error;
