@@ -169,7 +169,7 @@ mod tests {
     use crate::{decode::Decoder, encode::Encoder, json::JsonCodec};
 
     #[tokio::test]
-    async fn multiple_records_in_single_chunk() {
+    async fn decode_multiple_records_in_single_chunk() {
         let input = stream::once(ready(Result::<_, io::Error>::Ok(Bytes::from_static(
             b"{\"key\": \"value1\"}\x1E{\"key\": \"value2\"}\x1E",
         ))));
@@ -195,7 +195,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn stream_ends_with_partial_record() {
+    async fn decode_stream_ends_with_partial_record() {
         let input = stream::once(ready(Result::<_, io::Error>::Ok(Bytes::from_static(
             b"{\"key\": \"value1\"}\x1E{\"key\": \"val",
         ))));
@@ -213,7 +213,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn stream_ends_with_complete_record() {
+    async fn decode_stream_ends_with_complete_record() {
         let input = stream::once(ready(Result::<_, io::Error>::Ok(Bytes::from_static(
             b"{\"key\": \"value1\"}\x1E",
         ))));
@@ -231,7 +231,41 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn partial_record_completed_in_next_chunk() {
+    async fn decode_stream_ends_with_multiple_complete_records() {
+        let input = stream::once(ready(Result::<_, io::Error>::Ok(Bytes::from_static(
+            b"{\"key\": \"value1\"}\x1E{\"key\": \"value2\"}\x1E{\"key\": \"value3\"}\x1E",
+        ))));
+        let mut decoder = JsonCodec.decode::<serde_json::Value, _, _>(input);
+
+        assert_eq!(
+            decoder
+                .next()
+                .await
+                .expect("should have a value")
+                .expect("should be Ok"),
+            json!({"key": "value1"})
+        );
+        assert_eq!(
+            decoder
+                .next()
+                .await
+                .expect("should have a value")
+                .expect("should be Ok"),
+            json!({"key": "value2"})
+        );
+        assert_eq!(
+            decoder
+                .next()
+                .await
+                .expect("should have a value")
+                .expect("should be Ok"),
+            json!({"key": "value3"})
+        );
+        assert!(decoder.next().await.is_none());
+    }
+
+    #[tokio::test]
+    async fn decode_partial_record_completed_in_next_chunk() {
         let input = stream::iter([
             Result::<_, io::Error>::Ok(Bytes::from_static(b"{\"key\": \"val")),
             Ok(Bytes::from_static(b"ue1\"}\x1E")),
@@ -250,7 +284,34 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn error_in_underlying_stream() {
+    async fn decode_partial_record_completed_in_next_chunk_with_another_record_in_it() {
+        let input = stream::iter([
+            Result::<_, io::Error>::Ok(Bytes::from_static(b"{\"key\": \"val")),
+            Ok(Bytes::from_static(b"ue1\"}\x1E{\"key\": \"value2\"}\x1E")),
+        ]);
+        let mut decoder = JsonCodec.decode::<serde_json::Value, _, _>(input);
+
+        assert_eq!(
+            decoder
+                .next()
+                .await
+                .expect("should have a value")
+                .expect("should be Ok"),
+            json!({"key": "value1"})
+        );
+        assert_eq!(
+            decoder
+                .next()
+                .await
+                .expect("should have a value")
+                .expect("should be Ok"),
+            json!({"key": "value2"})
+        );
+        assert!(decoder.next().await.is_none());
+    }
+
+    #[tokio::test]
+    async fn decode_error_in_underlying_stream() {
         let input = stream::iter([
             Ok(Bytes::from_static(b"{\"key\": \"value1\"}\x1E")),
             Err(io::Error::other("o no!")),
@@ -277,7 +338,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn invalid_json() {
+    async fn decode_invalid_json() {
         let input = stream::once(ready(Result::<_, io::Error>::Ok(Bytes::from_static(
             b"{\"key\": \"value1\"\x1E",
         ))));
