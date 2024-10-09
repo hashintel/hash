@@ -79,7 +79,7 @@
     "md5": "2.3.0",
     "mime-types": "2.1.35",
     "officeparser": "4.1.1",
-    "openai": "4.67.1",
+    "openai": "4.67.3",
     "openai-chat-tokens": "0.2.8",
     "papaparse": "5.4.1",
     "puppeteer": "22.15.0",
