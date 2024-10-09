@@ -41,4 +41,5 @@ workspace = true
 
 [dev-dependencies]
 graph-types.workspace = true
+harpc-codec = { workspace = true, features = ["json"] }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
