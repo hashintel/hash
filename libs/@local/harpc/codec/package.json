@@ -2,5 +2,8 @@
   "name": "@rust/harpc-codec",
   "version": "0.0.0-private",
   "private": true,
-  "license": "AGPL-3"
+  "license": "AGPL-3",
+  "dependencies": {
+    "@rust/error-stack": "0.5.0"
+  }
 }
