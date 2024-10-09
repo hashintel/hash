@@ -45,7 +45,7 @@
     "@opentelemetry/core": "1.26.0",
     "@opentelemetry/exporter-trace-otlp-grpc": "0.53.0",
     "@opentelemetry/instrumentation": "0.53.0",
-    "@opentelemetry/instrumentation-express": "0.42.0",
+    "@opentelemetry/instrumentation-express": "0.43.0",
     "@opentelemetry/instrumentation-graphql": "0.43.0",
     "@opentelemetry/instrumentation-http": "0.53.0",
     "@opentelemetry/resources": "1.26.0",
