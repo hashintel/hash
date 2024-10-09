@@ -1,17 +1,8 @@
-use bytes::Bytes;
-use harpc_wire_protocol::response::kind::ErrorCode;
-
 use crate::codec::WireError;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
 #[error("The session layer has encountered an error, the connection has been closed")]
 pub struct SessionError;
-
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct TransactionError {
-    pub code: ErrorCode,
-    pub bytes: Bytes,
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
 #[error(

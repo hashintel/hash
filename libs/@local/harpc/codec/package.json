@@ -1,0 +1,6 @@
+{
+  "name": "@rust/harpc-codec",
+  "version": "0.0.0-private",
+  "private": true,
+  "license": "AGPL-3"
+}

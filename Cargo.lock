@@ -2594,6 +2594,7 @@ name = "harpc-codec"
 version = "0.0.0"
 dependencies = [
  "bytes",
+ "error-stack",
  "futures-core",
  "futures-util",
  "memchr",

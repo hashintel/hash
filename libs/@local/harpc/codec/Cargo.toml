@@ -10,6 +10,7 @@ publish.workspace = true
 
 [dependencies]
 # Public workspace dependencies
+error-stack = { workspace = true, public = true }
 
 # Public third-party dependencies
 bytes = { workspace = true, public = true }
@@ -34,6 +35,5 @@ workspace = true
 
 [features]
 default = ["json"]
-
 proptest = ["dep:proptest", "dep:test-strategy"]
 json = ["dep:serde_json", "dep:pin-project-lite", "dep:futures-util", "dep:memchr"]
