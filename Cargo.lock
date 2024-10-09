@@ -1762,6 +1762,27 @@ dependencies = [
 ]
 
 [[package]]
+name = "derive_more"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4a9b99b9cbbe49445b21764dc0625032a89b145a2642e67603e1c936f5458d05"
+dependencies = [
+ "derive_more-impl",
+]
+
+[[package]]
+name = "derive_more-impl"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cb7330aeadfbe296029522e6c40f315320aba36fc43a5b3632f3795348f3bd22"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.71",
+ "unicode-xid",
+]
+
+[[package]]
 name = "diatomic-waker"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2613,15 +2634,18 @@ dependencies = [
  "bytes",
  "bytes-utils",
  "codec",
+ "derive_more 1.0.0",
  "error-stack",
  "futures",
  "futures-core",
  "futures-io",
  "futures-sink",
  "futures-util",
+ "harpc-codec",
  "harpc-types",
  "harpc-wire-protocol",
  "humansize",
+ "insta",
  "libp2p",
  "libp2p-core",
  "libp2p-identity",
@@ -2634,6 +2658,7 @@ dependencies = [
  "pin-project-lite",
  "prometheus-client",
  "scc",
+ "serde",
  "tachyonix",
  "test-log",
  "thiserror",
@@ -2648,17 +2673,20 @@ name = "harpc-server"
 version = "0.0.0"
 dependencies = [
  "derive-where",
+ "derive_more 1.0.0",
  "error-stack",
  "frunk",
  "frunk_core",
  "futures",
  "graph-types",
+ "harpc-codec",
  "harpc-net",
  "harpc-service",
  "harpc-tower",
  "harpc-types",
  "harpc-wire-protocol",
  "scc",
+ "serde",
  "thiserror",
  "tokio",
  "tokio-util",
@@ -2687,14 +2715,18 @@ name = "harpc-tower"
 version = "0.0.0"
 dependencies = [
  "bytes",
+ "derive_more 1.0.0",
  "error-stack",
  "futures",
  "futures-core",
+ "harpc-codec",
  "harpc-net",
  "harpc-types",
  "harpc-wire-protocol",
+ "insta",
  "pin-project",
  "pin-project-lite",
+ "serde",
  "thiserror",
  "tokio",
  "tokio-test",
@@ -2710,6 +2742,7 @@ name = "harpc-types"
 version = "0.0.0"
 dependencies = [
  "proptest",
+ "serde",
  "test-strategy",
 ]
 
@@ -6671,7 +6704,7 @@ dependencies = [
  "async-trait",
  "backoff",
  "derive_builder",
- "derive_more",
+ "derive_more 0.99.18",
  "futures",
  "futures-retry",
  "http 0.2.12",
@@ -6698,7 +6731,7 @@ source = "git+https://github.com/temporalio/sdk-core?rev=7e3c23f#7e3c23fd90daae1
 dependencies = [
  "async-trait",
  "derive_builder",
- "derive_more",
+ "derive_more 0.99.18",
  "prost-types",
  "serde",
  "serde_json",
@@ -6717,7 +6750,7 @@ source = "git+https://github.com/temporalio/sdk-core?rev=7e3c23f#7e3c23fd90daae1
 dependencies = [
  "anyhow",
  "base64 0.21.7",
- "derive_more",
+ "derive_more 0.99.18",
  "prost 0.11.9",
  "prost-wkt",
  "prost-wkt-build",
@@ -7600,6 +7633,12 @@ name = "unicode-width"
 version = "0.1.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0336d538f7abc86d282a4189614dfaa90810dfc2c6f6427eaf88e16311dd225d"
+
+[[package]]
+name = "unicode-xid"
+version = "0.2.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ebc1c04c71510c7f702b52b7c350734c9ff1295c464a03335b00bb84fc54f853"
 
 [[package]]
 name = "universal-hash"

@@ -1,6 +1,7 @@
 use bytes::Bytes;
 use futures::{Stream, TryStreamExt, stream::MapOk};
-use harpc_net::session::{error::TransactionError, server::SessionId};
+use harpc_codec::error::EncodedError;
+use harpc_net::session::server::SessionId;
 use harpc_wire_protocol::response::kind::ResponseKind;
 
 use crate::{
@@ -72,17 +73,19 @@ where
 }
 
 impl Response<Controlled<ResponseKind, Full<Bytes>>> {
-    pub fn from_error(parts: Parts, error: TransactionError) -> Self {
+    pub fn from_error(parts: Parts, error: EncodedError) -> Self {
+        let (code, bytes) = error.into_parts();
+
         Self {
             head: parts,
-            body: Controlled::new(ResponseKind::Err(error.code), Full::new(error.bytes)),
+            body: Controlled::new(ResponseKind::Err(code), Full::new(bytes)),
         }
     }
 }
 
-impl<S, E> Response<Controlled<ResponseKind, StreamBody<MapOk<S, fn(Bytes) -> Frame<Bytes, !>>>>>
+impl<S, B, E> Response<Controlled<ResponseKind, StreamBody<MapOk<S, fn(B) -> Frame<B, !>>>>>
 where
-    S: Stream<Item = Result<Bytes, E>>,
+    S: Stream<Item = Result<B, E>>,
 {
     pub fn from_ok(parts: Parts, stream: S) -> Self {
         Self {

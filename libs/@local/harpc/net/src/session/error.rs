@@ -1,11 +1,25 @@
-use crate::codec::WireError;
+use core::error::{Error, Request};
+
+use harpc_codec::error::ErrorCode;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
 #[error("The session layer has encountered an error, the connection has been closed")]
 pub struct SessionError;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
-#[error(
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    derive_more::Display,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+#[display(
     "transaction limit per connection has been reached, the transaction has been dropped. The \
      limit is {limit}"
 )]
@@ -13,51 +27,100 @@ pub struct ConnectionTransactionLimitReachedError {
     pub limit: usize,
 }
 
-impl WireError for ConnectionTransactionLimitReachedError {
-    fn code(&self) -> ErrorCode {
-        ErrorCode::CONNECTION_TRANSACTION_LIMIT_REACHED
+impl Error for ConnectionTransactionLimitReachedError {
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {
+        request.provide_value(ErrorCode::CONNECTION_TRANSACTION_LIMIT_REACHED);
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
-#[error("transaction has been dropped, because it is unable to receive more request packets")]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    derive_more::Display,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+#[display("transaction has been dropped, because it is unable to receive more request packets")]
 pub struct TransactionLaggingError;
 
-impl WireError for TransactionLaggingError {
-    fn code(&self) -> ErrorCode {
-        ErrorCode::TRANSACTION_LAGGING
+impl Error for TransactionLaggingError {
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {
+        request.provide_value(ErrorCode::TRANSACTION_LAGGING);
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
-#[error("transaction has been dropped, because the server is unable to process more transactions")]
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    derive_more::Display,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+#[display(
+    "transaction has been dropped, because the server is unable to process more transactions"
+)]
 pub struct InstanceTransactionLimitReachedError;
 
-impl WireError for InstanceTransactionLimitReachedError {
-    fn code(&self) -> ErrorCode {
-        ErrorCode::INSTANCE_TRANSACTION_LIMIT_REACHED
+impl Error for InstanceTransactionLimitReachedError {
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {
+        request.provide_value(ErrorCode::INSTANCE_TRANSACTION_LIMIT_REACHED);
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
-#[error("session has been clossed")]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    derive_more::Display,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+#[display("session has been closed")]
 pub struct ConnectionClosedError;
 
-impl WireError for ConnectionClosedError {
-    fn code(&self) -> ErrorCode {
-        ErrorCode::CONNECTION_CLOSED
+impl Error for ConnectionClosedError {
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {
+        request.provide_value(ErrorCode::CONNECTION_CLOSED);
     }
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
-#[error(
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    derive_more::Display,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+#[display(
     "The connection is in the graceful shutdown state and no longer accepts any new transactions"
 )]
 pub struct ConnectionGracefulShutdownError;
 
-impl WireError for ConnectionGracefulShutdownError {
-    fn code(&self) -> ErrorCode {
-        ErrorCode::CONNECTION_SHUTDOWN
+impl Error for ConnectionGracefulShutdownError {
+    fn provide<'a>(&'a self, request: &mut Request<'a>) {
+        request.provide_value(ErrorCode::CONNECTION_SHUTDOWN);
     }
 }
 

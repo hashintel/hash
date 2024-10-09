@@ -36,6 +36,7 @@ macro_rules! define {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize))]
 #[cfg_attr(feature = "proptest", derive(test_strategy::Arbitrary))]
 pub struct ErrorCode(NonZero<u16>);
 
@@ -48,6 +49,20 @@ impl ErrorCode {
     #[must_use]
     pub const fn value(self) -> NonZero<u16> {
         self.0
+    }
+}
+
+#[cfg(feature = "serde")]
+impl<'de> serde::Deserialize<'de> for ErrorCode {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let value = u16::deserialize(deserializer)?;
+
+        NonZero::new(value)
+            .map(Self)
+            .ok_or_else(|| serde::de::Error::custom("value must not be 0"))
     }
 }
 
@@ -66,8 +81,12 @@ define! {
         INSTANCE_TRANSACTION_LIMIT_REACHED,
         TRANSACTION_LAGGING
     ],
-    // Generic Errors
+    // Server Tower Errors
     0xFF_10 => [
+        PACK_INVALID_ERROR_TAG
+    ],
+    // Generic Server Errors
+    0xFF_F0 => [
         INTERNAL_SERVER_ERROR
     ]
 }
@@ -84,12 +103,25 @@ pub struct EncodedError {
 }
 
 impl EncodedError {
+    pub fn new(code: ErrorCode, bytes: Bytes) -> Option<Self> {
+        let &first = bytes.first()?;
+
+        kind::Tag::variants()
+            .into_iter()
+            .any(|tag| tag as u8 == first)
+            .then(|| Self { code, bytes })
+    }
+
     pub const fn code(&self) -> ErrorCode {
         self.code
     }
 
     pub const fn bytes(&self) -> &Bytes {
         &self.bytes
+    }
+
+    pub fn into_parts(self) -> (ErrorCode, Bytes) {
+        (self.code, self.bytes)
     }
 }
 
@@ -110,17 +142,30 @@ where
 }
 
 pub mod kind {
+    #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    #[repr(u8)]
+    pub enum Tag {
+        NetworkError = 0x01,
+        Report = 0x02,
+        Recovery = 0xFF,
+    }
+
+    impl Tag {
+        pub(crate) fn variants() -> impl IntoIterator<Item = Self> {
+            [Self::NetworkError, Self::Report, Self::Recovery]
+        }
+    }
+
     pub trait ErrorKind {
-        fn tag() -> u8;
+        fn tag() -> Tag;
     }
 
     pub struct NetworkError {
         _private: (),
     }
-
     impl ErrorKind for NetworkError {
-        fn tag() -> u8 {
-            0x00
+        fn tag() -> Tag {
+            Tag::NetworkError
         }
     }
 
@@ -129,8 +174,8 @@ pub mod kind {
     }
 
     impl ErrorKind for Report {
-        fn tag() -> u8 {
-            0x01
+        fn tag() -> Tag {
+            Tag::Report
         }
     }
 
@@ -139,8 +184,8 @@ pub mod kind {
     }
 
     impl ErrorKind for Recovery {
-        fn tag() -> u8 {
-            0xFF
+        fn tag() -> Tag {
+            Tag::Recovery
         }
     }
 }
@@ -156,7 +201,7 @@ where
 {
     fn new() -> Self {
         let mut buffer = BytesMut::new();
-        buffer.put_u8(T::tag());
+        buffer.put_u8(T::tag() as u8);
 
         Self {
             kind: PhantomData,
@@ -164,6 +209,7 @@ where
         }
     }
 
+    #[must_use]
     pub fn finish(self, code: ErrorCode) -> EncodedError {
         EncodedError {
             code,
@@ -203,7 +249,7 @@ impl<T> Buf for ErrorBuffer<T> {
     }
 
     fn advance(&mut self, cnt: usize) {
-        self.buffer.advance(cnt)
+        self.buffer.advance(cnt);
     }
 
     // These methods are specialized in the underlying `Bytes` implementation, relay them as well
@@ -213,14 +259,21 @@ impl<T> Buf for ErrorBuffer<T> {
     }
 }
 
-#[expect(unsafe_code, reason = "delegating to underlying buffer")]
+#[expect(
+    unsafe_code,
+    reason = "delegating to the underlying `BytesMut` implementation"
+)]
+// SAFETY: we are delegating to the underlying `BytesMut` implementation
 unsafe impl<T> BufMut for ErrorBuffer<T> {
     fn remaining_mut(&self) -> usize {
         self.buffer.remaining_mut()
     }
 
     unsafe fn advance_mut(&mut self, cnt: usize) {
-        unsafe { self.buffer.advance_mut(cnt) }
+        // SAFETY: This is safe, as we are delegating to the underlying `BytesMut` implementation
+        unsafe {
+            self.buffer.advance_mut(cnt);
+        }
     }
 
     fn chunk_mut(&mut self) -> &mut bytes::buf::UninitSlice {
@@ -233,14 +286,14 @@ unsafe impl<T> BufMut for ErrorBuffer<T> {
     where
         Self: Sized,
     {
-        self.buffer.put(src)
+        self.buffer.put(src);
     }
 
     fn put_slice(&mut self, src: &[u8]) {
-        self.buffer.put_slice(src)
+        self.buffer.put_slice(src);
     }
 
     fn put_bytes(&mut self, val: u8, cnt: usize) {
-        self.buffer.put_bytes(val, cnt)
+        self.buffer.put_bytes(val, cnt);
     }
 }

@@ -16,10 +16,11 @@ harpc-net = { workspace = true, public = true }
 futures-core = { workspace = true, public = true }
 tower-layer = { workspace = true, public = true }
 tower-service = { workspace = true, public = true }
+harpc-codec.workspace = true
 
 # Private workspace dependencies
 error-stack = { workspace = true }
-harpc-types = { workspace = true }
+harpc-types = { workspace = true, features = ["serde"] }
 harpc-wire-protocol = { workspace = true }
 
 # Private third-party dependencies
@@ -30,6 +31,8 @@ pin-project-lite = { workspace = true }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["time"] }
 tower = { workspace = true, features = ["util"] }
+serde = { workspace = true, features = ["derive"] }
+derive_more = { version = "1.0.0", features = ["display"] }
 
 [dev-dependencies]
 harpc-net = { workspace = true, features = ["test-utils"] }
@@ -37,6 +40,8 @@ harpc-net = { workspace = true, features = ["test-utils"] }
 tokio-util = { workspace = true, features = ["time"] }
 tower-test = { workspace = true }
 tokio-test = { workspace = true }
+harpc-codec = { workspace = true, features = ["json", "serde"] }
+insta.workspace = true
 
 [lints]
 workspace = true

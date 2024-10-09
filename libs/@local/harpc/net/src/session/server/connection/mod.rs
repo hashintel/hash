@@ -3,10 +3,11 @@ pub(super) mod collection;
 pub(crate) mod test;
 
 use alloc::sync::Arc;
-use core::{fmt::Debug, future};
+use core::{error::Error, fmt::Debug, future};
 use std::io;
 
 use futures::{FutureExt, Sink, Stream, StreamExt, stream};
+use harpc_codec::encode::ErrorEncoder;
 use harpc_wire_protocol::{
     request::{Request, body::RequestBody, id::RequestId},
     response::{Response, kind::ResponseKind},
@@ -25,15 +26,10 @@ use super::{
     session_id::SessionId,
     transaction::{Transaction, TransactionParts},
 };
-use crate::{
-    codec::{ErrorEncoder, WireError},
-    session::{
-        error::{
-            ConnectionGracefulShutdownError, InstanceTransactionLimitReachedError, TransactionError,
-        },
-        gc::ConnectionGarbageCollectorTask,
-        writer::{ResponseContext, ResponseWriter, WriterOptions},
-    },
+use crate::session::{
+    error::{ConnectionGracefulShutdownError, InstanceTransactionLimitReachedError},
+    gc::ConnectionGarbageCollectorTask,
+    writer::{ResponseContext, ResponseWriter, WriterOptions},
 };
 
 struct ConnectionDelegateTask<T> {
@@ -79,13 +75,13 @@ pub(crate) struct ConnectionTask<E> {
 
 impl<E> ConnectionTask<E>
 where
-    E: ErrorEncoder + Send + Sync + 'static,
+    E: ErrorEncoder + Clone + Send + Sync + 'static,
 {
     async fn respond_error<T>(&self, id: RequestId, error: T, tx: &mpsc::Sender<Response>)
     where
-        T: WireError + Send + Sync,
+        T: Error + serde::Serialize + Send + Sync,
     {
-        let TransactionError { code, bytes } = self.encoder.encode_error(error).await;
+        let (code, bytes) = self.encoder.clone().encode_error(error).into_parts();
 
         let mut writer = ResponseWriter::new(
             WriterOptions { no_delay: false },

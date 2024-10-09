@@ -32,6 +32,9 @@ tokio = { workspace = true, features = ["macros"] }
 tokio-util = { workspace = true, features = ["rt"] }
 tower = { workspace = true, public = true }
 tracing.workspace = true
+harpc-codec.workspace = true
+derive_more = { version = "1.0.0", features = ["display"] }
+serde = { workspace = true, features = ["derive"] }
 
 [lints]
 workspace = true

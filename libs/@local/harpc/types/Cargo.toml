@@ -17,10 +17,12 @@ authors.workspace = true
 
 # Private third-party dependencies
 proptest = { workspace = true, optional = true }
+serde = { workspace = true, features = ["derive"], optional = true }
 test-strategy = { workspace = true, optional = true }
 
 [features]
 proptest = ["dep:proptest", "dep:test-strategy"]
+serde = ["dep:serde"]
 
 [lints]
 workspace = true

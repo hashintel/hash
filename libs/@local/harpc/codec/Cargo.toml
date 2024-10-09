@@ -9,8 +9,7 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
-# Public workspace dependencies
-error-stack = { workspace = true, public = true }
+error-stack = { workspace = true, public = true, features = ["serde"] }
 
 # Public third-party dependencies
 bytes = { workspace = true, public = true }
@@ -34,6 +33,6 @@ tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 workspace = true
 
 [features]
-default = ["json"]
 proptest = ["dep:proptest", "dep:test-strategy"]
 json = ["dep:serde_json", "dep:pin-project-lite", "dep:futures-util", "dep:memchr"]
+serde = ["serde/derive"]

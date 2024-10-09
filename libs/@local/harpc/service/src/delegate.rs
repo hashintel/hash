@@ -22,7 +22,10 @@ pub trait ServiceDelegate<S, C> {
     type Service: Service;
 
     type Error;
-    type Body: Body<Control: AsRef<ResponseKind>>;
+
+    type Body<Source>: Body<Control: AsRef<ResponseKind>>
+    where
+        Source: Body<Control = !, Error: Send + Sync> + Send + Sync;
 
     /// Delegates an incoming request to the appropriate method of the inner service.
     ///
@@ -40,7 +43,7 @@ pub trait ServiceDelegate<S, C> {
         request: Request<B>,
         session: S,
         codec: C,
-    ) -> impl Future<Output = Result<Response<Self::Body>, Self::Error>> + Send
+    ) -> impl Future<Output = Result<Response<Self::Body<B>>, Self::Error>> + Send
     where
         B: Body<Control = !, Error: Send + Sync> + Send + Sync;
 }

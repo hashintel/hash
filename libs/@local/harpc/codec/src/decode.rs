@@ -1,5 +1,3 @@
-use core::error::Error;
-
 use bytes::{Buf, Bytes};
 use error_stack::{Context, Report};
 use futures_core::Stream;
@@ -13,8 +11,7 @@ pub trait Decoder {
     ) -> impl Stream<Item = Result<T, Self::Error>> + Send + Sync
     where
         T: serde::de::DeserializeOwned,
-        B: Buf,
-        E: Error;
+        B: Buf;
 }
 
 pub trait ErrorDecoder {

@@ -1,6 +1,5 @@
 use core::{
     error::Error,
-    fmt::Display,
     pin::Pin,
     task::{Context, Poll, ready},
 };
@@ -59,7 +58,6 @@ impl Decoder for JsonCodec {
     where
         T: serde::de::DeserializeOwned,
         B: Buf,
-        E: Error,
     {
         JsonDecoderStream::new(items)
     }
@@ -104,7 +102,6 @@ where
     S: Stream<Item = Result<B, E>>,
     B: Buf,
     T: DeserializeOwned,
-    E: Display,
 {
     type Item = Result<T, serde_json::Error>;
 
@@ -149,7 +146,12 @@ where
                     this.buffer.put(buf);
                     offset
                 }
-                Err(error) => return Poll::Ready(Some(Err(serde_json::Error::custom(error)))),
+                // TODO: we lose quite a bit of information here, any way to retrieve it?
+                Err(_error) => {
+                    return Poll::Ready(Some(Err(serde_json::Error::custom(
+                        "underlying stream returned an error",
+                    ))));
+                }
             };
 
             // look if we found a separator between the offset and the end of the buffer
@@ -162,15 +164,26 @@ where
     }
 }
 
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
+struct JsonError<T> {
+    message: String,
+    details: T,
+}
+
 impl ErrorEncoder for JsonCodec {
     fn encode_error<E>(self, error: E) -> EncodedError
     where
-        E: NetworkError + serde::Serialize,
+        E: Error + serde::Serialize,
     {
+        let code = error.code();
+
         let buffer = ErrorBuffer::error();
         let mut writer = buffer.writer();
 
-        if let Err(error) = serde_json::to_writer(&mut writer, &error) {
+        if let Err(error) = serde_json::to_writer(&mut writer, &JsonError {
+            message: error.to_string(),
+            details: error,
+        }) {
             let mut buffer = ErrorBuffer::recovery();
             let error = error.to_string();
             buffer.put(error.as_bytes());
@@ -178,7 +191,7 @@ impl ErrorEncoder for JsonCodec {
             return buffer.finish(ErrorCode::INTERNAL_SERVER_ERROR);
         };
 
-        writer.into_inner().finish(error.code())
+        writer.into_inner().finish(code)
     }
 
     fn encode_report<C>(self, report: Report<C>) -> EncodedError
@@ -221,7 +234,7 @@ impl ErrorDecoder for JsonCodec {
         let bytes: BytesMut = bytes.collect().await;
         let bytes = bytes.freeze();
 
-        serde_json::from_slice(&bytes)
+        serde_json::from_slice::<JsonError<E>>(&bytes).map(|error| error.details)
     }
 
     async fn decode_report<C>(
@@ -420,7 +433,7 @@ mod tests {
             .await
             .expect("should have a value")
             .expect_err("should be an error");
-        assert_eq!(error.to_string(), "o no!");
+        assert_eq!(error.to_string(), "underlying stream returned an error");
 
         assert!(decoder.next().await.is_none());
     }

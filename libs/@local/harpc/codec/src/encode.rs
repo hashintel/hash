@@ -1,8 +1,10 @@
+use core::error::Error;
+
 use bytes::Buf;
 use error_stack::{Context, Report};
 use futures_core::Stream;
 
-use crate::error::{EncodedError, ErrorBuffer, NetworkError, kind};
+use crate::error::EncodedError;
 
 pub trait Encoder {
     type Buf: Buf;
@@ -29,7 +31,7 @@ pub trait ErrorEncoder {
     /// The tag for a network error is `0x00`.
     fn encode_error<E>(self, error: E) -> EncodedError
     where
-        E: NetworkError + serde::Serialize;
+        E: Error + serde::Serialize;
 
     /// Encode a report.
     ///

@@ -9,6 +9,7 @@ use std::io::{self, ErrorKind};
 use bytes::{Bytes, BytesMut};
 use error_stack::{Report, ResultExt};
 use futures::{SinkExt, Stream, StreamExt};
+use harpc_codec::json::JsonCodec;
 use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
@@ -37,7 +38,7 @@ use super::{
 };
 use crate::{
     macros::non_zero,
-    session::{server::config::ConcurrentConnectionLimit, test::StringEncoder},
+    session::server::config::ConcurrentConnectionLimit,
     transport::{
         TransportLayer,
         connection::OutgoingConnection,
@@ -94,7 +95,7 @@ async fn session_map<T, U>(
     config: SessionConfig,
     address: Multiaddr,
     map_transport: impl FnOnce(&TransportLayer) -> T + Send,
-    map_layer: impl FnOnce(&SessionLayer<StringEncoder>) -> U + Send,
+    map_layer: impl FnOnce(&SessionLayer<JsonCodec>) -> U + Send,
 ) -> (ListenStream, T, U, impl Drop)
 where
     T: Send,
@@ -104,7 +105,7 @@ where
 
     let transport_data = map_transport(&transport);
 
-    let layer = SessionLayer::new(config, transport, StringEncoder);
+    let layer = SessionLayer::new(config, transport, JsonCodec);
 
     let layer_data = map_layer(&layer);
 

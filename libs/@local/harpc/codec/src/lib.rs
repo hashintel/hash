@@ -5,8 +5,6 @@
     impl_trait_in_assoc_type
 )]
 
-use core::error::Error;
-
 use bytes::Buf;
 use futures_core::Stream;
 
@@ -63,7 +61,6 @@ where
     where
         T: serde::de::DeserializeOwned,
         B: Buf,
-        Err: Error,
     {
         self.decoder.decode(items)
     }

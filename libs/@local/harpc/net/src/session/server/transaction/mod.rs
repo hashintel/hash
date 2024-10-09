@@ -9,6 +9,7 @@ use core::{
 
 use bytes::Bytes;
 use futures::{Sink, Stream, StreamExt, stream::FusedStream};
+use harpc_codec::error::EncodedError;
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     request::{
@@ -25,10 +26,7 @@ use tokio_util::{
 };
 
 use super::{SessionConfig, connection::collection::TransactionPermit, session_id::SessionId};
-use crate::session::{
-    error::TransactionError,
-    writer::{ResponseContext, ResponseWriter, WriterOptions},
-};
+use crate::session::writer::{ResponseContext, ResponseWriter, WriterOptions};
 
 pub(crate) trait ServerTransactionPermit: Send + Sync + 'static {
     fn id(&self) -> RequestId;
@@ -41,7 +39,7 @@ struct TransactionSendDelegateTask<P> {
     // TODO: consider switching to `tachyonix` crate for better performance (not yet tested)
     // as well as more predictable buffering behavioud. `PollSender` is prone to just buffer
     // everything before sending, which might not be the best idea in this scenario.
-    rx: mpsc::Receiver<core::result::Result<Bytes, TransactionError>>,
+    rx: mpsc::Receiver<core::result::Result<Bytes, EncodedError>>,
     tx: mpsc::Sender<Response>,
 
     permit: Arc<P>,
@@ -107,7 +105,9 @@ where
                         break;
                     }
                 }
-                Err(TransactionError { code, bytes }) => {
+                Err(error) => {
+                    let (code, bytes) = error.into_parts();
+
                     writer = ResponseWriter::new(
                         WriterOptions {
                             no_delay: self.config.no_delay,
@@ -133,7 +133,7 @@ where
 pub(crate) struct TransactionTask<P> {
     config: SessionConfig,
 
-    response_rx: mpsc::Receiver<Result<Bytes, TransactionError>>,
+    response_rx: mpsc::Receiver<Result<Bytes, EncodedError>>,
     response_tx: mpsc::Sender<Response>,
 
     permit: Arc<P>,
@@ -213,7 +213,7 @@ pub struct Transaction {
     context: TransactionContext,
 
     request: tachyonix::Receiver<Request>,
-    response: mpsc::Sender<Result<Bytes, TransactionError>>,
+    response: mpsc::Sender<Result<Bytes, EncodedError>>,
 
     permit: Arc<TransactionPermit>,
 }
@@ -376,7 +376,7 @@ impl FusedStream for TransactionStream {
     }
 }
 
-type SinkItem = Result<Bytes, TransactionError>;
+type SinkItem = Result<Bytes, EncodedError>;
 
 pin_project_lite::pin_project! {
     #[must_use = "sinks do nothing unless polled"]
