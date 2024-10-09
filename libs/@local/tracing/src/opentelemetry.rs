@@ -1,11 +1,11 @@
 use core::time::Duration;
 
-use opentelemetry::{KeyValue, global};
+use opentelemetry::{KeyValue, global, trace::TracerProvider};
 use opentelemetry_otlp::WithExportConfig;
 use opentelemetry_sdk::{
     Resource,
     propagation::TraceContextPropagator,
-    trace::{RandomIdGenerator, Sampler},
+    trace::{Config, RandomIdGenerator, Sampler},
 };
 use tokio::runtime::Handle;
 use tracing::Subscriber;
@@ -68,7 +68,7 @@ where
     //   - OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT
     //   - OTEL_SPAN_EVENT_COUNT_LIMIT
     //   - OTEL_SPAN_LINK_COUNT_LIMIT
-    let trace_config = opentelemetry_sdk::trace::config()
+    let trace_config = Config::default()
         .with_sampler(Sampler::ParentBased(Box::new(Sampler::TraceIdRatioBased(
             0.1,
         ))))
@@ -81,7 +81,8 @@ where
         .with_exporter(pipeline)
         .with_trace_config(trace_config)
         .install_batch(opentelemetry_sdk::runtime::Tokio)
-        .expect("failed to create OTLP tracer, check configuration values");
+        .expect("failed to create OTLP tracer provider, check configuration values")
+        .tracer("graph");
 
     Some(tracing_opentelemetry::layer().with_tracer(tracer))
 }
