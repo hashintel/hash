@@ -1,4 +1,5 @@
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
@@ -18,6 +19,7 @@ import type { DraftLinkState } from "./shared/use-draft-link-state";
 export interface EntityEditorProps extends DraftLinkState {
   isDirty: boolean;
   entitySubgraph: Subgraph<EntityRootType>;
+  onEntityClick: (entityId: EntityId) => void;
   setEntity: (entity: Entity) => void;
   readonly: boolean;
   onEntityUpdated: ((entity: Entity) => void) | null;

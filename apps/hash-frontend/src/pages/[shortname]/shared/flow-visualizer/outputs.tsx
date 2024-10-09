@@ -571,6 +571,7 @@ export const Outputs = ({
         <EditEntitySlideOver
           entitySubgraph={selectedEntitySubgraph}
           hideOpenInNew={persistedEntities.length === 0}
+          onEntityClick={onEntityClick}
           open={slideOver?.type === "entity"}
           onClose={() => setSlideOver(null)}
           onSubmit={() => {

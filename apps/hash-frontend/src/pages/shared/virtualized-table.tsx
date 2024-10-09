@@ -13,7 +13,10 @@ import type { TableComponents } from "react-virtuoso";
 import { TableVirtuoso } from "react-virtuoso";
 
 import type { ColumnMetadata } from "./virtualized-table/header";
-import { HeaderContent, headerHeight } from "./virtualized-table/header";
+import {
+  HeaderContent,
+  virtualizedTableHeaderHeight,
+} from "./virtualized-table/header";
 import type {
   TableFilterProps,
   VirtualizedTableFilterDefinitionsByFieldId,
@@ -88,7 +91,7 @@ const VirtuosoTableComponents: TableComponents<
         borderSpacing: 0,
         th: {
           ...defaultCellSx,
-          height: headerHeight,
+          height: virtualizedTableHeaderHeight,
         },
       }}
     />

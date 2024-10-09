@@ -23,7 +23,7 @@ import {
   defaultCellSx,
   VirtualizedTable,
 } from "../../../../../shared/virtualized-table";
-import { headerHeight } from "../../../../../shared/virtualized-table/header";
+import { virtualizedTableHeaderHeight } from "../../../../../shared/virtualized-table/header";
 import type { VirtualizedTableSort } from "../../../../../shared/virtualized-table/header/sort";
 import { Provenance } from "./history-table/provenance";
 import { EventDetail } from "./history-table/shared/event-detail";
@@ -301,7 +301,10 @@ export const HistoryTable = ({
 
   const tableHeight = Math.min(
     600,
-    Math.max(headerHeight + historyTableRowHeight * events.length + 2, 400),
+    Math.max(
+      virtualizedTableHeaderHeight + historyTableRowHeight * events.length + 2,
+      400,
+    ),
   );
 
   return (

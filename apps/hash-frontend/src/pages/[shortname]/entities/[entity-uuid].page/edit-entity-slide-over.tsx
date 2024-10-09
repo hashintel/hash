@@ -46,6 +46,10 @@ interface EditEntitySlideOverProps {
   hideOpenInNew?: boolean;
   open: boolean;
   onClose: () => void;
+  onEntityClick: (
+    entityId: EntityId,
+    slideContainerRef?: RefObject<HTMLDivElement>,
+  ) => void;
   onSubmit: () => void;
   readonly?: boolean;
   /**
@@ -72,6 +76,7 @@ export const EditEntitySlideOver = ({
   slideContainerRef,
   open,
   onClose,
+  onEntityClick: incompleteOnEntityClick,
   onSubmit,
   readonly = false,
   entitySubgraph: providedEntitySubgraph,
@@ -278,6 +283,12 @@ export const EditEntitySlideOver = ({
   const submitDisabled =
     !isDirty && !draftLinksToCreate.length && !draftLinksToArchive.length;
 
+  const onEntityClick = useCallback(
+    (entityId: EntityId) =>
+      incompleteOnEntityClick(entityId, slideContainerRef),
+    [incompleteOnEntityClick, slideContainerRef],
+  );
+
   return (
     <Drawer
       open={open}
@@ -299,7 +310,9 @@ export const EditEntitySlideOver = ({
         }),
       }}
     >
-      {!entity || !localEntitySubgraph ? (
+      {!entity ||
+      !localEntitySubgraph ||
+      entity.entityId !== providedEntityId ? (
         <Stack gap={3}>
           <Skeleton height={60} />
           <Skeleton height={90} />
@@ -356,6 +369,7 @@ export const EditEntitySlideOver = ({
               );
             }}
             isDirty={isDirty}
+            onEntityClick={onEntityClick}
             draftLinksToCreate={draftLinksToCreate}
             setDraftLinksToCreate={setDraftLinksToCreate}
             draftLinksToArchive={draftLinksToArchive}
