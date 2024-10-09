@@ -251,6 +251,9 @@ const BlockContextMenu: ForwardRefRenderFunction<
         <EditEntitySlideOver
           open={entityEditorOpen}
           onClose={() => setEntityEditorOpen(false)}
+          onEntityClick={() => {
+            throw new Error(`Not yet implemented – please contact us.`);
+          }}
           entitySubgraph={
             /** @todo add timeProjection & resolvedTimeProjection properly */
             blockSubgraph

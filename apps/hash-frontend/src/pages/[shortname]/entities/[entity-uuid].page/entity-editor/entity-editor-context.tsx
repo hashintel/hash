@@ -20,16 +20,17 @@ interface Props extends EntityEditorProps {
 const EntityEditorContext = createContext<Props | null>(null);
 
 export const EntityEditorContextProvider = ({
-  entitySubgraph,
-  setEntity,
   children,
-  isDirty,
-  onEntityUpdated,
-  draftLinksToCreate,
   draftLinksToArchive,
-  setDraftLinksToCreate,
-  setDraftLinksToArchive,
+  draftLinksToCreate,
+  entitySubgraph,
+  isDirty,
+  onEntityClick,
+  onEntityUpdated,
   readonly,
+  setDraftLinksToArchive,
+  setDraftLinksToCreate,
+  setEntity,
 }: PropsWithChildren<EntityEditorProps>) => {
   const [propertyExpandStatus, setPropertyExpandStatus] =
     useState<TableExpandStatus>({});
@@ -63,30 +64,32 @@ export const EntityEditorContextProvider = ({
 
   const state = useMemo(
     () => ({
-      entitySubgraph,
-      setEntity,
-      isDirty,
-      propertyExpandStatus,
-      togglePropertyExpand,
-      draftLinksToCreate,
-      setDraftLinksToCreate,
       draftLinksToArchive,
-      setDraftLinksToArchive,
+      draftLinksToCreate,
+      entitySubgraph,
+      isDirty,
+      onEntityClick,
       onEntityUpdated,
+      propertyExpandStatus,
       readonly,
+      setDraftLinksToArchive,
+      setDraftLinksToCreate,
+      setEntity,
+      togglePropertyExpand,
     }),
     [
-      entitySubgraph,
-      setEntity,
-      isDirty,
-      propertyExpandStatus,
-      togglePropertyExpand,
-      draftLinksToCreate,
-      setDraftLinksToCreate,
       draftLinksToArchive,
-      setDraftLinksToArchive,
+      draftLinksToCreate,
+      entitySubgraph,
+      isDirty,
+      onEntityClick,
       onEntityUpdated,
+      propertyExpandStatus,
       readonly,
+      setDraftLinksToArchive,
+      setDraftLinksToCreate,
+      setEntity,
+      togglePropertyExpand,
     ],
   );
 
