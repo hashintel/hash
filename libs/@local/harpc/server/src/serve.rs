@@ -47,7 +47,7 @@ where
             let Ok(response): Result<BoxedResponse<!>, !> = service.oneshot(request).await;
             let response = response.into_body();
 
-            // TODO: move the pack creation into the `make_service` or something.
+            // TODO: move the pack creation into the `make_service` service.
             let pack = Pack::new(response, encoder).map(Ok);
             if let Err(error) = pack.forward(sink).await {
                 tracing::error!(?error, "failed to send response");
