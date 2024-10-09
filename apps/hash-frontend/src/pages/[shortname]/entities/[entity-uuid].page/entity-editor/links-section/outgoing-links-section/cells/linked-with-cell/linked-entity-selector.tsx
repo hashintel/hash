@@ -72,7 +72,7 @@ export const LinkedEntitySelector = ({
   entityIdsToFilterOut,
   linkEntityTypeId,
 }: EntitySelectorProps) => {
-  const { entitySubgraph } = useEntityEditor();
+  const { entitySubgraph, readonly } = useEntityEditor();
 
   const entityId = getRoots(entitySubgraph)[0]?.metadata.recordId
     .entityId as EntityId;
@@ -185,6 +185,7 @@ export const LinkedEntitySelector = ({
         onSelect={onSelect}
         className={GRID_CLICK_IGNORE_CLASS}
         open
+        readOnly={readonly}
         PaperComponent={showUploadFileMenu ? FileCreationPane : undefined}
         dropdownProps={{
           creationProps: {

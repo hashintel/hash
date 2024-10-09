@@ -1,13 +1,13 @@
 import {
-  getIncomingLinksForEntity,
+  getIncomingLinkAndSourceEntities,
   getOutgoingLinksForEntity,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
 import { Stack } from "@mui/material";
 
 import { useEntityEditor } from "./entity-editor-context";
-import { OutgoingLinksSection } from "./links-section/outgoing-links-section";
 import { IncomingLinksSection } from "./links-section/incoming-links-section";
+import { OutgoingLinksSection } from "./links-section/outgoing-links-section";
 
 export const LinksSection = ({ isLinkEntity }: { isLinkEntity: boolean }) => {
   const { entitySubgraph } = useEntityEditor();
@@ -22,7 +22,7 @@ export const LinksSection = ({ isLinkEntity }: { isLinkEntity: boolean }) => {
     ],
   );
 
-  const incomingLinks = getIncomingLinksForEntity(
+  const incomingLinksAndSources = getIncomingLinkAndSourceEntities(
     entitySubgraph,
     entity.metadata.recordId.entityId,
     entity.metadata.temporalVersioning[
@@ -31,7 +31,7 @@ export const LinksSection = ({ isLinkEntity }: { isLinkEntity: boolean }) => {
   );
 
   return (
-    <Stack>
+    <Stack gap={6}>
       <OutgoingLinksSection
         isLinkEntity={isLinkEntity}
         key={entity.metadata.recordId.editionId}
@@ -41,7 +41,7 @@ export const LinksSection = ({ isLinkEntity }: { isLinkEntity: boolean }) => {
       <IncomingLinksSection
         isLinkEntity={isLinkEntity}
         key={entity.metadata.recordId.editionId}
-        incomingLinks={incomingLinks}
+        incomingLinksAndSources={incomingLinksAndSources}
       />
     </Stack>
   );

@@ -45,7 +45,7 @@ export const OutgoingLinksSection = ({
 
   return (
     <SectionWrapper
-      title="Links"
+      title="Outgoing Links"
       titleTooltip="The links on an entity are determined by its type. To add a new link to this entity, specify an additional type or edit an existing one."
       titleStartContent={
         <Stack direction="row" spacing={1.5}>

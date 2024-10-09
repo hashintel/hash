@@ -1,21 +1,21 @@
 import { Chip } from "@hashintel/design-system";
-import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { EntityProperties } from "@local/hash-graph-types/entity";
-import { Paper, Stack } from "@mui/material";
+import type { LinkEntityAndLeftEntity } from "@local/hash-subgraph";
+import { Stack } from "@mui/material";
 
 import { SectionWrapper } from "../../../../shared/section-wrapper";
 import { LinksSectionEmptyState } from "../../shared/links-section-empty-state";
+import { IncomingLinksTable } from "./incoming-links-section/incoming-links-table";
 
 interface IncomingLinksSectionProps {
-  incomingLinks: Entity<EntityProperties>[];
+  incomingLinksAndSources: LinkEntityAndLeftEntity[];
   isLinkEntity: boolean;
 }
 
 export const IncomingLinksSection = ({
-  incomingLinks,
+  incomingLinksAndSources,
   isLinkEntity,
 }: IncomingLinksSectionProps) => {
-  if (incomingLinks.length === 0) {
+  if (incomingLinksAndSources.length === 0) {
     if (isLinkEntity) {
       /**
        * We don't show the links tables for link entities unless they have some links already set,
@@ -33,11 +33,11 @@ export const IncomingLinksSection = ({
       titleTooltip="Links from other entities to this entity. These may only be edited on the source entity."
       titleStartContent={
         <Stack direction="row" spacing={1.5}>
-          <Chip size="xs" label={`${incomingLinks.length} links`} />
+          <Chip size="xs" label={`${incomingLinksAndSources.length} links`} />
         </Stack>
       }
     >
-      <Paper sx={{ overflow: "hidden" }}></Paper>
+      <IncomingLinksTable incomingLinksAndSources={incomingLinksAndSources} />
     </SectionWrapper>
   );
 };
