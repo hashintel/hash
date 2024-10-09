@@ -19,6 +19,7 @@ import {
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Drawer, Stack, Typography } from "@mui/material";
+import type { RefObject } from "react";
 import { useCallback, useMemo, useState } from "react";
 
 import { useUserOrOrgShortnameByOwnedById } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
@@ -45,6 +46,10 @@ interface EditEntitySlideOverProps {
   hideOpenInNew?: boolean;
   open: boolean;
   onClose: () => void;
+  onEntityClick: (
+    entityId: EntityId,
+    slideContainerRef?: RefObject<HTMLDivElement>,
+  ) => void;
   onSubmit: () => void;
   readonly?: boolean;
   /**
@@ -57,6 +62,10 @@ interface EditEntitySlideOverProps {
    * If you don't already have the required subgraph, pass the entityId and it will be fetched.
    */
   entityId?: EntityId;
+  /**
+   * If a container ref is provided, the slide will be attached to it (defaults to the MUI default, the body)
+   */
+  slideContainerRef?: RefObject<HTMLDivElement>;
 }
 
 /**
@@ -64,8 +73,10 @@ interface EditEntitySlideOverProps {
  */
 export const EditEntitySlideOver = ({
   hideOpenInNew,
+  slideContainerRef,
   open,
   onClose,
+  onEntityClick: incompleteOnEntityClick,
   onSubmit,
   readonly = false,
   entitySubgraph: providedEntitySubgraph,
@@ -272,11 +283,20 @@ export const EditEntitySlideOver = ({
   const submitDisabled =
     !isDirty && !draftLinksToCreate.length && !draftLinksToArchive.length;
 
+  const onEntityClick = useCallback(
+    (entityId: EntityId) =>
+      incompleteOnEntityClick(entityId, slideContainerRef),
+    [incompleteOnEntityClick, slideContainerRef],
+  );
+
   return (
     <Drawer
       open={open}
       onClose={onClose}
       anchor="right"
+      ModalProps={{
+        container: slideContainerRef?.current ?? undefined,
+      }}
       PaperProps={{
         sx: (theme) => ({
           p: 5,
@@ -290,7 +310,9 @@ export const EditEntitySlideOver = ({
         }),
       }}
     >
-      {!entity || !localEntitySubgraph ? (
+      {!entity ||
+      !localEntitySubgraph ||
+      entity.entityId !== providedEntityId ? (
         <Stack gap={3}>
           <Skeleton height={60} />
           <Skeleton height={90} />
@@ -347,6 +369,7 @@ export const EditEntitySlideOver = ({
               );
             }}
             isDirty={isDirty}
+            onEntityClick={onEntityClick}
             draftLinksToCreate={draftLinksToCreate}
             setDraftLinksToCreate={setDraftLinksToCreate}
             draftLinksToArchive={draftLinksToArchive}

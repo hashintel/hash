@@ -27,7 +27,7 @@ export type LinkRow = {
   })[];
   entitySubgraph: Subgraph<EntityRootType>;
   markLinkAsArchived: (linkEntityId: EntityId) => void;
-  onEntityClick: (params: { entity: Entity }) => void;
+  onEntityClick: (entityId: EntityId) => void;
   retryErroredUpload?: () => void;
 };
 

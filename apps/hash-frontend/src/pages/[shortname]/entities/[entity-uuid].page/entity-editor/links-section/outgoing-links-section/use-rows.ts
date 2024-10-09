@@ -1,8 +1,5 @@
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
-import { generateEntityPath } from "@local/hash-isomorphic-utils/frontend-paths";
-import { extractDraftIdFromEntityId } from "@local/hash-subgraph";
 import {
   getEntityTypeAndParentsById,
   getEntityTypeById,
@@ -10,10 +7,8 @@ import {
   getRoots,
   intervalCompareWithInterval,
 } from "@local/hash-subgraph/stdlib";
-import { useRouter } from "next/router";
-import { useCallback, useMemo } from "react";
+import { useMemo } from "react";
 
-import { useGetOwnerForEntity } from "../../../../../../../components/hooks/use-get-owner-for-entity";
 import { useEntityTypesContextRequired } from "../../../../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { useFileUploads } from "../../../../../../../shared/file-upload-context";
 import { useMarkLinkEntityToArchive } from "../../../shared/use-mark-link-entity-to-archive";
@@ -21,34 +16,14 @@ import { useEntityEditor } from "../../entity-editor-context";
 import type { LinkRow } from "./types";
 
 export const useRows = () => {
-  const router = useRouter();
-  const { entitySubgraph, draftLinksToArchive, draftLinksToCreate } =
-    useEntityEditor();
+  const {
+    entitySubgraph,
+    draftLinksToArchive,
+    draftLinksToCreate,
+    onEntityClick,
+  } = useEntityEditor();
 
   const markLinkEntityToArchive = useMarkLinkEntityToArchive();
-
-  const getOwnerForEntity = useGetOwnerForEntity();
-
-  const onEntityClick = useCallback(
-    (params: { entity: Entity }) => {
-      const { entity } = params;
-
-      const { shortname } = getOwnerForEntity({
-        entityId: entity.metadata.recordId.entityId,
-      });
-
-      void router.push(
-        generateEntityPath({
-          shortname,
-          entityId: entity.metadata.recordId.entityId,
-          includeDraftId: !!extractDraftIdFromEntityId(
-            entity.metadata.recordId.entityId,
-          ),
-        }),
-      );
-    },
-    [getOwnerForEntity, router],
-  );
 
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 

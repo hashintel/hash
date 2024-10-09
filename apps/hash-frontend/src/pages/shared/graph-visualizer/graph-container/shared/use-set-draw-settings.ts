@@ -3,7 +3,7 @@ import { useSigma } from "@react-sigma/core";
 import { useEffect } from "react";
 
 import { drawRoundRect } from "../../../../../components/grid/utils/draw-round-rect";
-import { useFullScreen } from "./full-screen";
+import { useFullScreen } from "./full-screen-context";
 import type { GraphState } from "./state";
 
 export const labelRenderedSizeThreshold = {
@@ -12,35 +12,15 @@ export const labelRenderedSizeThreshold = {
 };
 
 /**
- * See also {@link GraphContainer} for additional settings
+ * See also {@link GraphContainer} for additional settings which aren't expected to change in the graph's lifetime
  */
-export const useDefaultSettings = (state: GraphState) => {
+export const useSetDrawSettings = (graphState: GraphState) => {
   const { palette } = useTheme();
   const sigma = useSigma();
 
   const { isFullScreen } = useFullScreen();
 
   useEffect(() => {
-    sigma.setSetting("labelFont", `"Inter", "Helvetica", "sans-serif"`);
-    sigma.setSetting("labelSize", 12);
-    sigma.setSetting("labelColor", { color: palette.common.black });
-    sigma.setSetting("labelWeight", "400");
-
-    /**
-     * Controls how many labels will be rendered in the given visible area.
-     * Higher density = more labels
-     *
-     * Labels are prioritised for display by node size.
-     */
-    sigma.setSetting("labelDensity", 1);
-
-    /**
-     * Edge labels are only shown on hover, controlled in the event handlers.
-     */
-    sigma.setSetting("edgeLabelColor", { color: "rgba(80, 80, 80, 0.6)" });
-    sigma.setSetting("edgeLabelFont", `"Inter", "Helvetica", "sans-serif"`);
-    sigma.setSetting("edgeLabelSize", 10);
-
     /**
      * Controls what labels will be shown at which zoom levels.
      */
@@ -48,8 +28,6 @@ export const useDefaultSettings = (state: GraphState) => {
       "labelRenderedSizeThreshold",
       labelRenderedSizeThreshold[isFullScreen ? "fullScreen" : "normal"],
     );
-
-    sigma.setSetting("zIndex", true);
 
     /**
      * Provide a custom renderer for node labels.
@@ -107,23 +85,44 @@ export const useDefaultSettings = (state: GraphState) => {
     sigma.setSetting("nodeReducer", (node, data) => {
       const nodeData = { ...data };
 
-      if (!state.hoveredNodeId || !state.hoveredNeighborIds) {
+      nodeData.color =
+        graphState.colorByNodeTypeId?.[nodeData.nodeTypeId] ?? nodeData.color;
+
+      if (!graphState.selectedNodeId && !graphState.hoveredNodeId) {
         return nodeData;
       }
 
-      if (state.hoveredNodeId !== node && !state.hoveredNeighborIds.has(node)) {
-        /**
-         * Nodes are always drawn over edges by the library, so anything other than hiding non-highlighted nodes
-         * means that they can obscure the highlighted edges, as is the case here.
-         *
-         * If they are hidden, it is much more jarring when hovering over nodes because of the rest of the graph
-         * fully disappears, so having the 'non-highlighted' nodes remain like this is a UX compromise.
-         */
-        nodeData.color = "rgba(170, 170, 170, 0.7)";
-        nodeData.borderColor = "rgba(170, 170, 170, 0.7)";
-        nodeData.label = "";
+      if (
+        graphState.selectedNodeId !== node &&
+        graphState.hoveredNodeId !== node &&
+        !graphState.highlightedNeighborIds?.has(node)
+      ) {
+        if (!graphState.selectedNodeId) {
+          /**
+           * Nodes are always drawn over edges by the library, so anything other than hiding non-highlighted nodes
+           * means that they can obscure the highlighted edges, as is the case here.
+           *
+           * If they are hidden, it is much more jarring when _hovering_ over nodes because of the rest of the graph
+           * fully disappears, so having the 'non-highlighted' nodes remain like this is a UX compromise.
+           */
+          nodeData.color = "rgba(170, 170, 170, 0.7)";
+          nodeData.borderColor = "rgba(170, 170, 170, 0.7)";
+          nodeData.label = "";
+        } else {
+          /**
+           * If the user has clicked on a node, we hide everything else.
+           */
+          nodeData.hidden = true;
+        }
       } else {
         nodeData.forceLabel = true;
+      }
+
+      if (
+        graphState.selectedNodeId === node ||
+        graphState.hoveredNodeId === node
+      ) {
+        nodeData.zIndex = 3;
       }
 
       return nodeData;
@@ -132,15 +131,18 @@ export const useDefaultSettings = (state: GraphState) => {
     sigma.setSetting("edgeReducer", (edge, data) => {
       const edgeData = { ...data };
 
-      if (!state.hoveredNodeId || !state.hoveredNeighborIds) {
+      if (!graphState.selectedNodeId && !graphState.hoveredNodeId) {
         return edgeData;
       }
 
       /**
        * If we have highlighted nodes, we only draw the edge if both the source and target are highlighted.
        */
-
-      const activeIds = [state.hoveredNodeId, ...state.hoveredNeighborIds];
+      const activeIds = [
+        graphState.selectedNodeId,
+        graphState.hoveredNodeId,
+        ...(graphState.highlightedNeighborIds ?? []),
+      ];
 
       let targetIsShown = false;
       let sourceIsShown = false;
@@ -164,6 +166,13 @@ export const useDefaultSettings = (state: GraphState) => {
 
       if (sourceIsShown && targetIsShown) {
         edgeData.zIndex = 2;
+        edgeData.size = 4;
+
+        const sourceData = graph.getNodeAttributes(source);
+        edgeData.color =
+          graphState.colorByNodeTypeId?.[sourceData.nodeTypeId] ??
+          sourceData.color;
+
         edgeData.forceLabel = true;
       } else {
         edgeData.hidden = true;
@@ -171,5 +180,5 @@ export const useDefaultSettings = (state: GraphState) => {
 
       return edgeData;
     });
-  }, [isFullScreen, palette, sigma, state]);
+  }, [isFullScreen, palette, sigma, graphState]);
 };

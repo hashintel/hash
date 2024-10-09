@@ -6,6 +6,7 @@ import type {
   PropertyTypeWithMetadata,
 } from "@local/hash-graph-types/ontology";
 import { useTheme } from "@mui/material";
+import type { RefObject } from "react";
 import { useCallback, useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
@@ -18,11 +19,23 @@ import type {
 
 const anythingNodeId = "anything";
 
+const defaultConfig = {
+  graphKey: "type-graph",
+  nodeHighlighting: {
+    direction: "All",
+    depth: 1,
+  },
+  nodeSizing: { mode: "static" },
+} as const;
+
 export const TypeGraphVisualizer = ({
   onTypeClick,
   types,
 }: {
-  onTypeClick: (typeId: VersionedUrl) => void;
+  onTypeClick: (
+    typeId: VersionedUrl,
+    screenContainerRef?: RefObject<HTMLDivElement>,
+  ) => void;
   types: (
     | DataTypeWithMetadata
     | EntityTypeWithMetadata
@@ -38,6 +51,7 @@ export const TypeGraphVisualizer = ({
     const nodesToAdd: GraphVizNode[] = [];
 
     const addedNodeIds = new Set<string>();
+    const addedEdgeIds = new Set<string>();
 
     const anythingNode: GraphVizNode = {
       color: palette.gray[30],
@@ -109,7 +123,7 @@ export const TypeGraphVisualizer = ({
          * The id is therefore based on the link type and the destination types.
          */
         const linkNodeId = `${linkTypeId}~${
-          destinationTypeIds?.join("-") ?? "anything"
+          destinationTypeIds?.sort().join("-") ?? "anything"
         }`;
 
         if (!addedNodeIds.has(linkNodeId)) {
@@ -143,12 +157,16 @@ export const TypeGraphVisualizer = ({
                 continue;
               }
 
-              edgesToAdd.push({
-                edgeId: `${linkNodeId}~${destinationTypeId}`,
-                size: 3,
-                source: linkNodeId,
-                target: destinationTypeId,
-              });
+              const edgeId = `${linkNodeId}~${destinationTypeId}`;
+              if (!addedEdgeIds.has(edgeId)) {
+                edgesToAdd.push({
+                  edgeId: `${linkNodeId}~${destinationTypeId}`,
+                  size: 3,
+                  source: linkNodeId,
+                  target: destinationTypeId,
+                });
+                addedEdgeIds.add(edgeId);
+              }
             }
           } else {
             /**
@@ -184,12 +202,16 @@ export const TypeGraphVisualizer = ({
           linkNodesByEntityTypeId[linkTypeId].instanceIds.push(linkNodeId);
         }
 
-        edgesToAdd.push({
-          edgeId: `${entityTypeId}~${linkNodeId}`,
-          size: 3,
-          source: entityTypeId,
-          target: linkNodeId,
-        });
+        const edgeId = `${entityTypeId}~${linkNodeId}`;
+        if (!addedEdgeIds.has(edgeId)) {
+          edgesToAdd.push({
+            edgeId,
+            size: 3,
+            source: entityTypeId,
+            target: linkNodeId,
+          });
+          addedEdgeIds.add(edgeId);
+        }
       }
     }
 
@@ -218,25 +240,26 @@ export const TypeGraphVisualizer = ({
   }, [isSpecialEntityTypeLookup, palette, types]);
 
   const onNodeClick = useCallback<
-    NonNullable<GraphVisualizerProps["onNodeClick"]>
+    NonNullable<GraphVisualizerProps["onNodeSecondClick"]>
   >(
-    ({ nodeId, isFullScreen }) => {
+    ({ nodeId, screenContainerRef }) => {
       if (nodeId === anythingNodeId) {
-        return;
-      }
-
-      if (isFullScreen) {
         return;
       }
 
       const typeVersionedUrl = nodeId.split("~")[0] as VersionedUrl;
 
-      onTypeClick(typeVersionedUrl);
+      onTypeClick(typeVersionedUrl, screenContainerRef);
     },
     [onTypeClick],
   );
 
   return (
-    <GraphVisualizer onNodeClick={onNodeClick} edges={edges} nodes={nodes} />
+    <GraphVisualizer
+      defaultConfig={defaultConfig}
+      onNodeSecondClick={onNodeClick}
+      edges={edges}
+      nodes={nodes}
+    />
   );
 };

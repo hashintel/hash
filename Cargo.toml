@@ -84,7 +84,7 @@ axum = "0.7.5"
 axum-core = "0.4.3"
 bumpalo = { version = "=3.16.0", default-features = false }
 bytes = "1.6.0"
-clap_builder = { version = "=4.5.19", default-features = false, features = ["std"] }
+clap_builder = { version = "=4.5.20", default-features = false, features = ["std"] }
 criterion = { version = "=0.5.1" }
 deadpool = { version = "=0.12.1", default-features = false }
 deadpool-postgres = { version = "=0.14.0", default-features = false }
@@ -146,8 +146,8 @@ base64 = { version = "=0.22.1", default-features = false }
 bitvec = { version = "=1.0.1", default-features = false }
 bytes-utils = { version = "=0.1.4", default-features = false }
 chrono = { version = "=0.4.38", default-features = false }
-clap = { version = "=4.5.19", features = ["std", "color", "help", "usage", "error-context", "suggestions"] }
-clap_complete = { version = "=4.5.32", default-features = false }
+clap = { version = "=4.5.20", features = ["std", "color", "help", "usage", "error-context", "suggestions"] }
+clap_complete = { version = "=4.5.33", default-features = false }
 coverage-helper = { version = "=0.2.2", default-features = false }
 criterion-macro = { version = "=0.4.0", default-features = false }
 derive-where = { version = "=1.2.7", default-features = false, features = ["nightly"] }
@@ -172,9 +172,9 @@ mimalloc = { version = "=0.1.43", default-features = false }
 mime = { version = "=0.3.17", default-features = false }
 num-traits = { version = "=0.2.19", default-features = false }
 once_cell = { version = "=1.20.2", default-features = false }
-opentelemetry = { version = "=0.23.0", default-features = false }
-opentelemetry-otlp = { version = "=0.16.0", default-features = false }
-opentelemetry_sdk = { version = "=0.23.0", default-features = false }
+opentelemetry = { version = "=0.26.0", default-features = false }
+opentelemetry-otlp = { version = "=0.26.0", default-features = false }
+opentelemetry_sdk = { version = "=0.26.0", default-features = false }
 orx-concurrent-vec = { version = "=3.0.2", default-features = false }
 owo-colors = { version = "=4.1.0", default-features = false }
 paste = { version = "=1.0.15", default-features = false }
@@ -191,7 +191,7 @@ sentry = { version = "=0.34.0", default-features = false, features = ["backtrace
 seq-macro = { version = "=0.3.5", default-features = false }
 serde-value = { version = "=0.7.0", default-features = false }
 serde_plain = { version = "=1.0.2", default-features = false }
-serde_with = { version = "=3.10.0", default-features = false }
+serde_with = { version = "=3.11.0", default-features = false }
 similar-asserts = { version = "=1.6.0", default-features = false }
 spin = { version = "=0.9", default-features = false }
 supports-color = { version = "=3.0.1", default-features = false }
@@ -213,7 +213,7 @@ tower-test = { version = "=0.4.0", default-features = false }
 tracing = { version = "=0.1.40", default-features = false }
 tracing-error = { version = "=0.2.0", default-features = false }
 tracing-flame = { version = "=0.2.0", default-features = false }
-tracing-opentelemetry = { version = "=0.24.0", default-features = false }
+tracing-opentelemetry = { version = "=0.27.0", default-features = false }
 trybuild = { version = "=1.0.99", default-features = false }
 tsify = { version = "=0.4.5", default-features = false }
 unicode-ident = { version = "=1.0.13", default-features = false }

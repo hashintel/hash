@@ -84,7 +84,7 @@ export const createDraftLinkEntity = ({
 export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
   props,
 ) => {
-  const { entitySubgraph, setDraftLinksToCreate } = useEntityEditor();
+  const { entitySubgraph, setDraftLinksToCreate, readonly } = useEntityEditor();
   const markLinkEntityToArchive = useMarkLinkEntityToArchive();
 
   const { value: cell, onFinishedEditing, onChange } = props;
@@ -168,6 +168,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
             return (
               <LinkedEntityListRow
                 key={linkEntityId}
+                entityId={rightEntity.entityId}
                 imageSrc={getImageUrlFromEntityProperties(
                   rightEntity.properties,
                 )}
@@ -193,6 +194,7 @@ export const LinkedEntityListEditor: ProvideEditorComponent<LinkedWithCell> = (
       </Box>
       {!canAddMore && <MaxItemsReached limit={maxItems} />}
       {canAddMore &&
+        !readonly &&
         (addingLink ? (
           <LinkedEntitySelector
             includeDrafts={

@@ -64,7 +64,7 @@
     "@local/tsconfig": "0.0.0-private",
     "@temporalio/workflow": "1.11.2",
     "@types/lodash-es": "4.17.12",
-    "@types/node": "20.16.10",
+    "@types/node": "20.16.11",
     "@types/pluralize": "0.0.33",
     "@vitest/coverage-istanbul": "2.1.2",
     "eslint": "8.57.0",
@@ -72,7 +72,7 @@
     "next": "13.5.5",
     "react": "18.2.0",
     "rimraf": "6.0.1",
-    "typescript": "5.6.2",
+    "typescript": "5.6.3",
     "vitest": "2.1.2"
   }
 }

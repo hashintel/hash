@@ -50,7 +50,7 @@ export const useCreateGetCellContent = () => {
             return {
               kind: GridCellKind.Custom,
               readonly: true,
-              allowOverlay: !readonly,
+              allowOverlay: true,
               /** @todo add copy data */
               copyData: "",
               cursor: readonly ? "default" : "pointer",

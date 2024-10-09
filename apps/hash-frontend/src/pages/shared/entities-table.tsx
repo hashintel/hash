@@ -16,7 +16,7 @@ import {
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, RefObject } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { GridProps } from "../../components/grid/grid";
@@ -92,8 +92,10 @@ export const EntitiesTable: FunctionComponent<{
   });
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
-  const [selectedEntityTypeId, setSelectedEntityTypeId] =
-    useState<VersionedUrl | null>(null);
+  const [selectedEntityType, setSelectedEntityType] = useState<{
+    entityTypeId: VersionedUrl;
+    slideContainerRef?: RefObject<HTMLDivElement>;
+  } | null>(null);
 
   const {
     entityTypeBaseUrl,
@@ -157,6 +159,11 @@ export const EntitiesTable: FunctionComponent<{
     },
   });
 
+  /**
+    The subgraphWithLinkedEntities can take a long time to load with many entities.
+    If absent, we pass the subgraph without linked entities so that there is _some_ data to load into the slideover,
+    which will be missing links until they load in by specifically fetching selectedEntity.entityId
+   */
   const subgraph = subgraphWithLinkedEntities ?? subgraphWithoutLinkedEntities;
 
   const entities = useMemo(
@@ -224,21 +231,20 @@ export const EntitiesTable: FunctionComponent<{
 
   const [selectedEntity, setSelectedEntity] = useState<{
     entityId: EntityId;
+    slideContainerRef?: RefObject<HTMLDivElement>;
     subgraph: Subgraph<EntityRootType>;
   } | null>(null);
 
   const handleEntityClick = useCallback(
-    (entityId: EntityId) => {
+    (entityId: EntityId, modalContainerRef?: RefObject<HTMLDivElement>) => {
       if (subgraph) {
         const entitySubgraph = generateEntityRootedSubgraph(entityId, subgraph);
 
-        if (!entitySubgraph) {
-          throw new Error(
-            `Could not find entity with id ${entityId} in subgraph`,
-          );
-        }
-
-        setSelectedEntity({ entityId, subgraph: entitySubgraph });
+        setSelectedEntity({
+          entityId,
+          slideContainerRef: modalContainerRef,
+          subgraph: entitySubgraph,
+        });
       }
     },
     [subgraph],
@@ -312,7 +318,7 @@ export const EntitiesTable: FunctionComponent<{
                   if (columnId === "web") {
                     void router.push(`/${cellValue}`);
                   } else {
-                    setSelectedEntityTypeId(row.entityTypeId);
+                    setSelectedEntityType({ entityTypeId: row.entityTypeId });
                   }
                 },
               },
@@ -675,10 +681,11 @@ export const EntitiesTable: FunctionComponent<{
 
   return (
     <>
-      {selectedEntityTypeId && (
+      {selectedEntityType && (
         <TypeSlideOverStack
-          rootTypeId={selectedEntityTypeId}
-          onClose={() => setSelectedEntityTypeId(null)}
+          rootTypeId={selectedEntityType.entityTypeId}
+          onClose={() => setSelectedEntityType(null)}
+          slideContainerRef={selectedEntityType.slideContainerRef}
         />
       )}
       {selectedEntity ? (
@@ -693,12 +700,18 @@ export const EntitiesTable: FunctionComponent<{
            */
           entitySubgraph={selectedEntity.subgraph}
           entityId={selectedEntity.entityId}
+          onEntityClick={handleEntityClick}
           open
           onClose={() => setSelectedEntity(null)}
-          readonly
           onSubmit={() => {
             throw new Error(`Editing not yet supported from this screen`);
           }}
+          readonly
+          /*
+             If we've been given a specific DOM element to contain the modal, pass it here.
+             This is for use when attaching to the body is not suitable (e.g. a specific DOM element is full-screened).
+           */
+          slideContainerRef={selectedEntity.slideContainerRef}
         />
       ) : null}
       <Box>
