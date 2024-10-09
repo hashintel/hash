@@ -2593,7 +2593,14 @@ dependencies = [
 name = "harpc-codec"
 version = "0.0.0"
 dependencies = [
+ "bytes",
+ "futures-core",
+ "futures-util",
+ "memchr",
+ "pin-project-lite",
  "proptest",
+ "serde",
+ "serde_json",
  "test-strategy",
 ]
 

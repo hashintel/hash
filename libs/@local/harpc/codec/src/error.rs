@@ -68,11 +68,11 @@ define! {
     ]
 }
 
-pub trait WireError {
+pub trait NetworkError {
     fn code(&self) -> ErrorCode;
 }
 
-impl<T> WireError for T
+impl<T> NetworkError for T
 where
     T: core::error::Error,
 {
