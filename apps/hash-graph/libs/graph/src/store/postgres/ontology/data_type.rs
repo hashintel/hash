@@ -20,12 +20,15 @@ use graph_types::{
 };
 use hash_graph_store::{
     data_type::DataTypeQueryPath,
-    filter::Filter,
+    filter::{Filter, FilterExpression, ParameterList},
     subgraph::{
         Subgraph, SubgraphRecord,
         edges::{EdgeDirection, GraphResolveDepths, OntologyEdgeKind},
         identifier::{DataTypeVertexId, GraphElementVertexId},
-        temporal_axes::{QueryTemporalAxes, VariableAxis},
+        temporal_axes::{
+            PinnedTemporalAxisUnresolved, QueryTemporalAxes, QueryTemporalAxesUnresolved,
+            VariableAxis, VariableTemporalAxisUnresolved,
+        },
     },
 };
 use hash_status::StatusCode;
@@ -113,34 +116,24 @@ where
     async fn get_data_type_inheritance_metadata(
         &self,
         data_types: &[DataTypeId],
-    ) -> Result<impl Iterator<Item = (DataTypeId, DataType, DataTypeResolveData)>, QueryError> {
+    ) -> Result<impl Iterator<Item = (DataTypeId, DataTypeResolveData)>, QueryError> {
         Ok(self
             .as_client()
             .query(
                 "
                     SELECT
                         source_data_type_ontology_id,
-                        source_data_types.schema,
-                        target_ids,
-                        depths,
-                        schemas
+                        array_agg(target_data_type_ontology_id),
+                        array_agg(depth),
+                        array_agg(schema)
                     FROM (
-                        SELECT
-                            source_data_type_ontology_id,
-                            array_agg(target_data_type_ontology_id) AS target_ids,
-                            array_agg(depth) AS depths,
-                            array_agg(schema) AS schemas
-                        FROM (
-                            SELECT *
-                            FROM data_type_inherits_from
-                            JOIN data_types ON target_data_type_ontology_id = ontology_id
-                            WHERE source_data_type_ontology_id = ANY($1)
-                            ORDER BY source_data_type_ontology_id, depth, schema->>'$id'
-                        ) AS subquery
-                        GROUP BY source_data_type_ontology_id
-                    ) AS grouped
-                    JOIN data_types AS source_data_types
-                      ON source_data_type_ontology_id = source_data_types.ontology_id;
+                        SELECT *
+                        FROM data_type_inherits_from
+                        JOIN data_types ON target_data_type_ontology_id = ontology_id
+                        WHERE source_data_type_ontology_id = ANY($1)
+                        ORDER BY source_data_type_ontology_id, depth, schema->>'$id'
+                    ) AS subquery
+                    GROUP BY source_data_type_ontology_id;
                 ",
                 &[&data_types],
             )
@@ -149,10 +142,9 @@ where
             .into_iter()
             .map(|row| {
                 let source_id: DataTypeId = row.get(0);
-                let source_schema: Valid<DataType> = row.get(1);
-                let targets: Vec<DataTypeId> = row.get(2);
-                let depths: Vec<InheritanceDepth> = row.get(3);
-                let schemas: Vec<Valid<DataType>> = row.get(4);
+                let targets: Vec<DataTypeId> = row.get(1);
+                let depths: Vec<InheritanceDepth> = row.get(2);
+                let schemas: Vec<Valid<DataType>> = row.get(3);
 
                 let mut resolve_data = DataTypeResolveData::default();
                 for ((target_id, schema), depth) in targets.into_iter().zip(schemas).zip(depths) {
@@ -164,7 +156,7 @@ where
                     );
                 }
 
-                (source_id, source_schema.into_inner(), resolve_data)
+                (source_id, resolve_data)
             }))
     }
 
@@ -489,17 +481,50 @@ where
         }
 
         let required_parent_ids = data_type_reference_ids.into_iter().collect::<Vec<_>>();
-        transaction
+
+        let mut parent_inheritance_data = transaction
             .get_data_type_inheritance_metadata(&required_parent_ids)
             .await
             .change_context(InsertionError)
             .attach_printable("Could not read parent data type inheritance data")?
-            .for_each(|(data_type_id, data_type, resolve_date)| {
-                ontology_type_resolver.add_closed(
-                    data_type_id,
-                    Arc::new(data_type),
-                    Arc::new(resolve_date),
-                );
+            .collect::<HashMap<_, _>>();
+
+        transaction
+            .get_data_types(actor_id, GetDataTypesParams {
+                filter: Filter::In(
+                    FilterExpression::Path {
+                        path: DataTypeQueryPath::OntologyId,
+                    },
+                    ParameterList::DataTypeIds(&required_parent_ids),
+                ),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                },
+                include_drafts: false,
+                after: None,
+                limit: None,
+                include_count: false,
+            })
+            .await
+            .change_context(InsertionError)
+            .attach_printable("Could not read parent data types")?
+            .data_types
+            .into_iter()
+            .for_each(|parent| {
+                let parent_id = DataTypeId::from_url(&parent.schema.id);
+                if let Some(inheritance_data) = parent_inheritance_data.remove(&parent_id) {
+                    ontology_type_resolver.add_closed(
+                        parent_id,
+                        Arc::new(parent.schema),
+                        Arc::new(inheritance_data),
+                    );
+                } else {
+                    if !parent.schema.all_of.is_empty() {
+                        tracing::warn!("No inheritance data found for `{}`", parent.schema.id);
+                    }
+                    ontology_type_resolver.add_unresolved(parent_id, Arc::new(parent.schema));
+                }
             });
 
         let closed_schemas = inserted_data_types
@@ -818,17 +843,49 @@ where
             .map(|(reference, _)| DataTypeId::from_url(&reference.url))
             .collect::<Vec<_>>();
 
-        transaction
+        let mut parent_inheritance_data = transaction
             .get_data_type_inheritance_metadata(&required_parent_ids)
             .await
             .change_context(UpdateError)
             .attach_printable("Could not read parent data type inheritance data")?
-            .for_each(|(data_type_id, data_type, resolve_data)| {
-                ontology_type_resolver.add_closed(
-                    data_type_id,
-                    Arc::new(data_type),
-                    Arc::new(resolve_data),
-                );
+            .collect::<HashMap<_, _>>();
+
+        transaction
+            .get_data_types(actor_id, GetDataTypesParams {
+                filter: Filter::In(
+                    FilterExpression::Path {
+                        path: DataTypeQueryPath::OntologyId,
+                    },
+                    ParameterList::DataTypeIds(&required_parent_ids),
+                ),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                },
+                include_drafts: false,
+                after: None,
+                limit: None,
+                include_count: false,
+            })
+            .await
+            .change_context(UpdateError)
+            .attach_printable("Could not read parent data types")?
+            .data_types
+            .into_iter()
+            .for_each(|parent| {
+                let parent_id = DataTypeId::from_url(&parent.schema.id);
+                if let Some(inheritance_data) = parent_inheritance_data.remove(&parent_id) {
+                    ontology_type_resolver.add_closed(
+                        parent_id,
+                        Arc::new(parent.schema),
+                        Arc::new(inheritance_data),
+                    );
+                } else {
+                    if !parent.schema.all_of.is_empty() {
+                        tracing::warn!("No inheritance data found for `{}`", parent.schema.id);
+                    }
+                    ontology_type_resolver.add_unresolved(parent_id, Arc::new(parent.schema));
+                }
             });
 
         ontology_type_resolver
