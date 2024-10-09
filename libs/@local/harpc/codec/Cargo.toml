@@ -1,0 +1,28 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "harpc-codec"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+# Public workspace dependencies
+
+# Public third-party dependencies
+
+# Private workspace dependencies
+proptest = { workspace = true, optional = true }
+test-strategy = { workspace = true, optional = true }
+
+# Private third-party dependencies
+
+[dev-dependencies]
+
+[lints]
+workspace = true
+
+[features]
+proptest = ["dep:proptest", "dep:test-strategy"]

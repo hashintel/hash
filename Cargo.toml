@@ -23,6 +23,7 @@ members = [
     "libs/@local/harpc/tower",
     "libs/@local/harpc/service",
     "libs/@local/harpc/server",
+    "libs/@local/harpc/codec",
     "libs/@local/hql/*",
     "libs/antsi",
     "libs/deer",

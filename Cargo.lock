@@ -2590,6 +2590,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "harpc-codec"
+version = "0.0.0"
+dependencies = [
+ "proptest",
+ "test-strategy",
+]
+
+[[package]]
 name = "harpc-net"
 version = "0.0.0"
 dependencies = [
