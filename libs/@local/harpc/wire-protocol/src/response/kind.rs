@@ -2,6 +2,7 @@ use core::num::NonZero;
 
 use bytes::{Buf, BufMut};
 use error_stack::Result;
+use harpc_codec::error::ErrorCode;
 
 use crate::codec::{Buffer, BufferError, Decode, Encode};
 
@@ -26,7 +27,7 @@ impl ResponseKind {
 
 impl From<u16> for ResponseKind {
     fn from(value: u16) -> Self {
-        NonZero::new(value).map_or(Self::Ok, |value| Self::Err(ErrorCode(value)))
+        NonZero::new(value).map_or(Self::Ok, |value| Self::Err(ErrorCode::new(value)))
     }
 }
 
@@ -80,10 +81,11 @@ mod test {
     use core::num::NonZero;
 
     use expect_test::expect;
+    use harpc_codec::error::ErrorCode;
 
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
-        response::kind::{ErrorCode, ResponseKind},
+        response::kind::ResponseKind,
     };
 
     #[test]
@@ -99,13 +101,13 @@ mod test {
 
         assert_decode(
             &[0x00_u8, 0x01] as &[_],
-            &ResponseKind::Err(ErrorCode(NonZero::new(1).expect("infallible"))),
+            &ResponseKind::Err(ErrorCode::new(NonZero::new(1).expect("infallible"))),
             (),
         );
 
         assert_decode(
             &[0x12_u8, 0x34] as &[_],
-            &ResponseKind::Err(ErrorCode(NonZero::new(0x1234).expect("infallible"))),
+            &ResponseKind::Err(ErrorCode::new(NonZero::new(0x1234).expect("infallible"))),
             (),
         );
     }

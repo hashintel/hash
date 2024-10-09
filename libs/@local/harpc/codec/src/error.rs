@@ -37,6 +37,11 @@ pub struct ErrorCode(NonZero<u16>);
 
 impl ErrorCode {
     #[must_use]
+    pub const fn new(value: NonZero<u16>) -> Self {
+        Self(value)
+    }
+
+    #[must_use]
     pub const fn value(self) -> NonZero<u16> {
         self.0
     }
@@ -61,4 +66,20 @@ define! {
     0xFF_10 => [
         INTERNAL_SERVER_ERROR
     ]
+}
+
+pub trait WireError {
+    fn code(&self) -> ErrorCode;
+}
+
+impl<T> WireError for T
+where
+    T: core::error::Error,
+{
+    fn code(&self) -> ErrorCode {
+        core::error::request_ref::<ErrorCode>(self)
+            .copied()
+            .or_else(|| core::error::request_value::<ErrorCode>(self))
+            .unwrap_or(ErrorCode::INTERNAL_SERVER_ERROR)
+    }
 }

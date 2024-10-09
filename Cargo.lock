@@ -2712,6 +2712,7 @@ dependencies = [
  "enumflags2",
  "error-stack",
  "expect-test",
+ "harpc-codec",
  "harpc-types",
  "proptest",
  "similar-asserts",
