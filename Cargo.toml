@@ -171,9 +171,9 @@ mimalloc = { version = "=0.1.43", default-features = false }
 mime = { version = "=0.3.17", default-features = false }
 num-traits = { version = "=0.2.19", default-features = false }
 once_cell = { version = "=1.20.2", default-features = false }
-opentelemetry = { version = "=0.23.0", default-features = false }
-opentelemetry-otlp = { version = "=0.16.0", default-features = false }
-opentelemetry_sdk = { version = "=0.23.0", default-features = false }
+opentelemetry = { version = "=0.26.0", default-features = false }
+opentelemetry-otlp = { version = "=0.26.0", default-features = false }
+opentelemetry_sdk = { version = "=0.26.0", default-features = false }
 orx-concurrent-vec = { version = "=3.0.2", default-features = false }
 owo-colors = { version = "=4.1.0", default-features = false }
 paste = { version = "=1.0.15", default-features = false }
@@ -212,7 +212,7 @@ tower-test = { version = "=0.4.0", default-features = false }
 tracing = { version = "=0.1.40", default-features = false }
 tracing-error = { version = "=0.2.0", default-features = false }
 tracing-flame = { version = "=0.2.0", default-features = false }
-tracing-opentelemetry = { version = "=0.24.0", default-features = false }
+tracing-opentelemetry = { version = "=0.27.0", default-features = false }
 trybuild = { version = "=1.0.99", default-features = false }
 tsify = { version = "=0.4.5", default-features = false }
 unicode-ident = { version = "=1.0.13", default-features = false }
