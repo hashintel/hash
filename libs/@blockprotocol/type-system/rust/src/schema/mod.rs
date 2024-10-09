@@ -18,13 +18,13 @@ pub use self::{
     data_type::{
         AnyOfConstraints, ArrayConstraints, ArraySchema, ArrayTypeTag, ArrayValidationError,
         BooleanTypeTag, ClosedDataType, ConstraintError, ConversionDefinition,
-        ConversionExpression, ConversionValue, Conversions, DataType, DataTypeId,
-        DataTypeInheritanceData, DataTypeReference, DataTypeValidator, InheritanceDepth,
+        ConversionExpression, ConversionValue, Conversions, DataType, DataTypeEdge, DataTypeId,
+        DataTypeReference, DataTypeResolveData, DataTypeValidator, InheritanceDepth,
         JsonSchemaValueType, NullTypeTag, NumberConstraints, NumberSchema, NumberTypeTag,
-        NumberValidationError, ObjectTypeTag, OntologyTypeResolver, Operator,
+        NumberValidationError, ObjectTypeTag, OntologyTypeResolver, Operator, ResolvedDataType,
         SingleValueConstraints, SingleValueSchema, StringConstraints, StringFormat,
         StringFormatError, StringSchema, StringTypeTag, StringValidationError, TupleConstraints,
-        ValidateDataTypeError, ValueLabel, Variable,
+        ValidateDataTypeError, ValueLabel, ValueSchemaMetadata, Variable,
     },
     entity_type::{
         ClosedEntityType, ClosedEntityTypeSchemaData, EntityType, EntityTypeReference,

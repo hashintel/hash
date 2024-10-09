@@ -160,6 +160,7 @@ humansize = { version = "=2.1.3", default-features = false }
 hyper = { version = "=1.4.1", default-features = false }
 include_dir = { version = "=0.7.4", default-features = false }
 insta = { version = "=1.40.0", default-features = false }
+itertools = { version = "0.13.0", default-features = false }
 jsonschema = { version = "=0.21.0", default-features = false }
 justjson = { version = "=0.3.0", default-features = false }
 lexical = { version = "=7.0.2", default-features = false }
@@ -228,7 +229,7 @@ codegen-backend = "cranelift"
 codegen-backend = "llvm"
 
 [profile.test]
-codegen-backend = "cranelift"
+codegen-backend = "llvm"
 
 # We use LLVM for non-workspace crates, mainly due to the lack of AVX2 support in Cranelift
 [profile.test.package."*"]
