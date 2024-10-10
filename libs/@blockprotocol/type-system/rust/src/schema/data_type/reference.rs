@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::url::VersionedUrl;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(deny_unknown_fields)]
 #[repr(transparent)]

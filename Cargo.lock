@@ -7529,6 +7529,7 @@ dependencies = [
  "futures",
  "graph-test-data",
  "iso8601-duration",
+ "itertools 0.13.0",
  "postgres-types",
  "pretty_assertions",
  "regex",
