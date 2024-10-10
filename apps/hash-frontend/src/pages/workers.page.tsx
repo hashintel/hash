@@ -54,7 +54,7 @@ import type {
   VirtualizedTableRow,
 } from "./shared/virtualized-table";
 import { VirtualizedTable } from "./shared/virtualized-table";
-import { headerHeight } from "./shared/virtualized-table/header";
+import { virtualizedTableHeaderHeight } from "./shared/virtualized-table/header";
 import type { VirtualizedTableSort } from "./shared/virtualized-table/header/sort";
 
 type FieldId =
@@ -415,7 +415,7 @@ const WorkersPageContent = () => {
 
   const tableHeight = Math.min(
     600,
-    headerHeight +
+    virtualizedTableHeaderHeight +
       2 + // borders
       (flowRunRows.length
         ? flowRunRows.length * flowTableRowHeight

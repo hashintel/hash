@@ -12,7 +12,7 @@
     "codegen": "redocly bundle -o openapi.bundle.json ../../../../apps/hash-graph/libs/api/openapi/openapi.json && JAVA_OPTS='-Dlog.level=warn' openapi-generator-cli generate && rm openapi.bundle.json && fix-esm-import-path *.ts"
   },
   "dependencies": {
-    "@openapitools/openapi-generator-cli": "2.13.13",
+    "@openapitools/openapi-generator-cli": "2.14.0",
     "axios": "1.7.7"
   },
   "devDependencies": {
@@ -24,6 +24,6 @@
     "eslint": "8.57.0",
     "fix-esm-import-path": "1.10.1",
     "rimraf": "6.0.1",
-    "typescript": "5.6.2"
+    "typescript": "5.6.3"
   }
 }

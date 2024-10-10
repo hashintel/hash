@@ -1,21 +1,16 @@
-import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
-import { Chip, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import {
+  getIncomingLinkAndSourceEntities,
   getOutgoingLinksForEntity,
   getRoots,
 } from "@local/hash-subgraph/stdlib";
-import { Paper, Stack } from "@mui/material";
-import { useState } from "react";
+import { Stack } from "@mui/material";
 
-import { SectionWrapper } from "../../../shared/section-wrapper";
-import { LinksSectionEmptyState } from "../shared/links-section-empty-state";
 import { useEntityEditor } from "./entity-editor-context";
-import { LinkTable } from "./links-section/link-table";
-import { useRows } from "./links-section/link-table/use-rows";
+import { IncomingLinksSection } from "./links-section/incoming-links-section";
+import { OutgoingLinksSection } from "./links-section/outgoing-links-section";
 
-export const LinksSection = () => {
+export const LinksSection = ({ isLinkEntity }: { isLinkEntity: boolean }) => {
   const { entitySubgraph } = useEntityEditor();
-  const [showSearch, setShowSearch] = useState(false);
 
   const entity = getRoots(entitySubgraph)[0]!;
 
@@ -27,38 +22,27 @@ export const LinksSection = () => {
     ],
   );
 
-  const rows = useRows();
-
-  if (rows.length === 0) {
-    return <LinksSectionEmptyState />;
-  }
+  const incomingLinksAndSources = getIncomingLinkAndSourceEntities(
+    entitySubgraph,
+    entity.metadata.recordId.entityId,
+    entity.metadata.temporalVersioning[
+      entitySubgraph.temporalAxes.resolved.variable.axis
+    ],
+  );
 
   return (
-    <SectionWrapper
-      title="Links"
-      titleTooltip="The links on an entity are determined by its type. To add a new link to this entity, specify an additional type or edit an existing one."
-      titleStartContent={
-        <Stack direction="row" spacing={1.5}>
-          <Chip size="xs" label={`${outgoingLinks.length} links`} />
-          <Stack direction="row" spacing={0.5}>
-            <IconButton
-              rounded
-              onClick={() => setShowSearch(true)}
-              sx={{ color: ({ palette }) => palette.gray[60] }}
-            >
-              <FontAwesomeIcon icon={faMagnifyingGlass} />
-            </IconButton>
-          </Stack>
-        </Stack>
-      }
-    >
-      <Paper sx={{ overflow: "hidden" }}>
-        <LinkTable
-          key={entity.metadata.recordId.editionId}
-          onSearchClose={() => setShowSearch(false)}
-          showSearch={showSearch}
-        />
-      </Paper>
-    </SectionWrapper>
+    <Stack gap={6}>
+      <OutgoingLinksSection
+        isLinkEntity={isLinkEntity}
+        key={entity.metadata.recordId.editionId}
+        outgoingLinks={outgoingLinks}
+      />
+
+      <IncomingLinksSection
+        isLinkEntity={isLinkEntity}
+        key={entity.metadata.recordId.editionId}
+        incomingLinksAndSources={incomingLinksAndSources}
+      />
+    </Stack>
   );
 };

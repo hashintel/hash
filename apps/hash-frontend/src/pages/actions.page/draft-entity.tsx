@@ -1,4 +1,5 @@
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Box, Checkbox, Typography } from "@mui/material";
@@ -24,7 +25,8 @@ export const DraftEntity: FunctionComponent<{
 }> = ({ entity, subgraph, selected, toggleSelected }) => {
   const { refetch } = useDraftEntities();
 
-  const [displayEntityModal, setDisplayEntityModal] = useState<boolean>(false);
+  const [displayEntityIdInModal, setDisplayEntityIdInModal] =
+    useState<EntityId | null>(null);
 
   const href = useEntityHref(entity, true);
 
@@ -115,13 +117,18 @@ export const DraftEntity: FunctionComponent<{
           />
           {entityRootedSubgraph ? (
             <EditEntitySlideOver
-              open={displayEntityModal}
+              open={!!displayEntityIdInModal}
+              entityId={displayEntityIdInModal ?? undefined}
               entitySubgraph={entityRootedSubgraph}
-              onClose={() => setDisplayEntityModal(false)}
+              onClose={() => setDisplayEntityIdInModal(null)}
+              onEntityClick={(entityId) => setDisplayEntityIdInModal(entityId)}
               onSubmit={() => {
                 void refetch();
-                setDisplayEntityModal(false);
+                setDisplayEntityIdInModal(null);
               }}
+              readonly={
+                displayEntityIdInModal !== entity.metadata.recordId.entityId
+              }
             />
           ) : null}
           <Link
@@ -136,7 +143,7 @@ export const DraftEntity: FunctionComponent<{
               if (event.metaKey) {
                 return;
               }
-              setDisplayEntityModal(true);
+              setDisplayEntityIdInModal(entity.metadata.recordId.entityId);
               event.preventDefault();
             }}
           >

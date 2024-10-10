@@ -29,7 +29,7 @@ import type {
   VirtualizedTableRow,
 } from "./shared/virtualized-table";
 import { VirtualizedTable } from "./shared/virtualized-table";
-import { headerHeight } from "./shared/virtualized-table/header";
+import { virtualizedTableHeaderHeight } from "./shared/virtualized-table/header";
 import type { VirtualizedTableSort } from "./shared/virtualized-table/header/sort";
 
 type FieldId = "web" | "name" | "description" | "lastRunStartedAt";
@@ -185,7 +185,9 @@ const FlowsPageContent = () => {
 
   const tableHeight = Math.min(
     600,
-    headerHeight + flowTableRowHeight * flowDefinitionRows.length + 2, // account for borders
+    virtualizedTableHeaderHeight +
+      flowTableRowHeight * flowDefinitionRows.length +
+      2, // account for borders
   );
 
   return (

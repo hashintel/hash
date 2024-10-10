@@ -85,7 +85,7 @@ runs:
 
     - name: Upload artifact
       if: ${{ (success() || failure()) && inputs.hash-graph == 'true' }}
-      uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # v4.4.1
+      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
       with:
         name: hash-graph
         path: /tmp/hash-graph.tar
@@ -110,7 +110,7 @@ runs:
 
     - name: Upload artifact
       if: ${{ (success() || failure()) && inputs.hash-ai-worker-ts == 'true' }}
-      uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # v4.4.1
+      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
       with:
         name: hash-ai-worker-ts
         path: /tmp/hash-ai-worker-ts.tar
@@ -135,7 +135,7 @@ runs:
 
     - name: Upload artifact
       if: ${{ (success() || failure()) && inputs.hash-integration-worker == 'true' }}
-      uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # v4.4.1
+      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
       with:
         name: hash-integration-worker
         path: /tmp/hash-integration-worker.tar
@@ -160,7 +160,7 @@ runs:
 
     - name: Upload artifact
       if: ${{ (success() || failure()) && inputs.hash-api == 'true' }}
-      uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # v4.4.1
+      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
       with:
         name: hash-api
         path: /tmp/hash-api.tar
