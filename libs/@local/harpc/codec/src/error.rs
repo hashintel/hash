@@ -22,7 +22,7 @@ macro_rules! non_zero {
 // we use a macro here to define the error codes, as the code is quite repetetive and also error
 // prone, we might not be able to increment values correctly, another problem is that rustfmt will
 // reorder the constants, making keeping tracks of the ids harder than it should be.
-macro_rules! define {
+macro_rules! define_error_code_consts {
     ($($base:literal => [$($name:ident),+]),*) => {
         $(
             impl ErrorCode {
@@ -65,7 +65,7 @@ impl<'de> serde::Deserialize<'de> for ErrorCode {
     }
 }
 
-define! {
+define_error_code_consts! {
     // 0xFE_xx = client errors
     // Initiated by client, but occur on server (tower level)
     0xFE_10 => [
