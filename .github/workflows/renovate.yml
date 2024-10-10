@@ -121,7 +121,7 @@ jobs:
       - name: Compress renovate cache
         run: tar -czvf $cache_archive -C $cache_dir .
 
-      - uses: actions/upload-artifact@604373da6381bf24206979c74d06a550515601b9 # v4
+      - uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4
         if: env.dry_run == 'disabled' && github.event.inputs.repoCache != 'disabled'
         with:
           name: ${{ env.cache_key }}
