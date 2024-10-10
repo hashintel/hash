@@ -1,3 +1,4 @@
+import type { Theme } from "@mui/material";
 import {
   Box,
   Checkbox,
@@ -6,6 +7,7 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import type { SystemStyleObject } from "@mui/system";
 import { useSigma } from "@react-sigma/core";
 
 import { useGraphContext } from "../graph-context";
@@ -13,6 +15,27 @@ import { useGraphContext } from "../graph-context";
 type CheckboxListProps = {
   typesInData: { count: number; nodeTypeLabel: string; nodeTypeId: string }[];
 };
+
+export const filterButtonSx: (theme: Theme) => SystemStyleObject<Theme> = ({
+  palette,
+  transitions,
+}) => ({
+  background: "transparent",
+  border: "none",
+  borderRadius: 1,
+  cursor: "pointer",
+  px: 1,
+  py: 0.5,
+  "& > span": {
+    color: palette.blue[70],
+    fontSize: 12,
+  },
+  "&:hover": {
+    background: palette.blue[20],
+  },
+  transition: transitions.create("background"),
+  visibility: "hidden",
+});
 
 export const NodeTypeFilters = ({ typesInData }: CheckboxListProps) => {
   const { filters, setFilters } = useGraphContext();
@@ -102,23 +125,7 @@ export const NodeTypeFilters = ({ typesInData }: CheckboxListProps) => {
                       },
                     });
                   }}
-                  sx={({ palette, transitions }) => ({
-                    background: "transparent",
-                    border: "none",
-                    borderRadius: 1,
-                    cursor: "pointer",
-                    px: 1,
-                    py: 0.5,
-                    "& > span": {
-                      color: palette.blue[70],
-                      fontSize: 12,
-                    },
-                    "&:hover": {
-                      background: palette.blue[20],
-                    },
-                    transition: transitions.create("background"),
-                    visibility: "hidden",
-                  })}
+                  sx={filterButtonSx}
                 >
                   <Typography component="span">Only</Typography>
                 </Box>
