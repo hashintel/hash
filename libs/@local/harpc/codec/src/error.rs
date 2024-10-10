@@ -8,8 +8,7 @@ macro_rules! non_zero {
     ($n:expr) => {{
         // ensure that the value is not 0, in case it is, panic during compile time
         const {
-            let ones = $n.count_ones() as usize;
-            assert!(ones != 0, "value must not be 0");
+            assert!($n != 0, "value must not be 0");
         }
 
         #[expect(unsafe_code, reason = "checked that it is never 0")]
@@ -28,7 +27,7 @@ macro_rules! define {
         $(
             impl ErrorCode {
                 $(
-                    pub const $name: Self = Self(non_zero!(($base as u16) + ${index(0)}));
+                    pub const $name: Self = Self(non_zero!($base + ${index(0)}));
                 )+
             }
         )*
