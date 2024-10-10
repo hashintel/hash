@@ -6320,10 +6320,10 @@
     chalk "^4"
     fast-levenshtein "^3.0.0"
 
-"@openapitools/openapi-generator-cli@2.13.13":
-  version "2.13.13"
-  resolved "https://registry.yarnpkg.com/@openapitools/openapi-generator-cli/-/openapi-generator-cli-2.13.13.tgz#380fd9556500b558f066a9ee0c46678f7803422b"
-  integrity sha512-uioqbxB6TfiLoOEE3T8kqTn/ffaRzOwS3ATMQnoMvh2lwADKMT6bDLfE3YO3XTEj+HflXcsLXQGK6PLiqa8Mmw==
+"@openapitools/openapi-generator-cli@2.14.0":
+  version "2.14.0"
+  resolved "https://registry.yarnpkg.com/@openapitools/openapi-generator-cli/-/openapi-generator-cli-2.14.0.tgz#016f509e7b13325524039d10d428c793503a4a04"
+  integrity sha512-k+ioQLtXLXgNbhQbp1UOxtaUnnYTWwAPev88hP5qauFA+eq4NyeQGNojknFssXg2x0VT0TUGmU3PZ2DiQ70IVg==
   dependencies:
     "@nestjs/axios" "3.0.3"
     "@nestjs/common" "10.4.3"
