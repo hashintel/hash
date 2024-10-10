@@ -13,12 +13,14 @@ mod array;
 mod object;
 mod one_of;
 
+mod identifier;
+
 pub use self::{
     array::{PropertyArraySchema, PropertyValueArray, ValueOrArray},
     data_type::{
         AnyOfConstraints, ArrayConstraints, ArraySchema, ArrayTypeTag, ArrayValidationError,
         BooleanTypeTag, ClosedDataType, ConstraintError, ConversionDefinition,
-        ConversionExpression, ConversionValue, Conversions, DataType, DataTypeEdge, DataTypeId,
+        ConversionExpression, ConversionValue, Conversions, DataType, DataTypeEdge,
         DataTypeReference, DataTypeResolveData, DataTypeValidator, InheritanceDepth,
         JsonSchemaValueType, NullTypeTag, NumberConstraints, NumberSchema, NumberTypeTag,
         NumberValidationError, ObjectTypeTag, OntologyTypeResolver, Operator, ResolvedDataType,
@@ -30,6 +32,7 @@ pub use self::{
         ClosedEntityType, ClosedEntityTypeSchemaData, EntityType, EntityTypeReference,
         EntityTypeValidationError, EntityTypeValidator,
     },
+    identifier::{DataTypeUuid, EntityTypeUuid, OntologyTypeUuid, PropertyTypeUuid},
     object::{
         ObjectSchemaValidationError, ObjectSchemaValidator, PropertyObjectSchema,
         PropertyValueObject,

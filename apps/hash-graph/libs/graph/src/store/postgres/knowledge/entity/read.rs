@@ -16,14 +16,11 @@ use temporal_versioning::{
 };
 use tokio_postgres::GenericClient;
 use tracing::Instrument;
-use type_system::url::BaseUrl;
+use type_system::{schema::OntologyTypeUuid, url::BaseUrl};
 
 use crate::store::{
     AsClient, PostgresStore, QueryError,
-    postgres::{
-        ontology::OntologyId,
-        query::{ForeignKeyReference, ReferenceTable, Table, Transpile},
-    },
+    postgres::query::{ForeignKeyReference, ReferenceTable, Table, Transpile},
 };
 
 #[derive(Debug)]
@@ -68,7 +65,7 @@ impl EntityEdgeTraversalData {
 pub struct SharedEdgeTraversal {
     pub left_endpoint: EntityVertexId,
     pub right_endpoint: EntityTypeVertexId,
-    pub right_endpoint_ontology_id: OntologyId,
+    pub right_endpoint_ontology_id: OntologyTypeUuid,
     pub resolve_depths: GraphResolveDepths,
     pub traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
 }
@@ -92,7 +89,8 @@ where
         &self,
         traversal_data: &'t EntityEdgeTraversalData,
         depth: Option<u32>,
-    ) -> Result<impl Iterator<Item = (OntologyId, SharedEdgeTraversal)> + 't, QueryError> {
+    ) -> Result<impl Iterator<Item = (OntologyTypeUuid, SharedEdgeTraversal)> + 't, QueryError>
+    {
         let (pinned_axis, variable_axis) = match traversal_data.variable_axis {
             TimeAxis::DecisionTime => ("transaction_time", "decision_time"),
             TimeAxis::TransactionTime => ("decision_time", "transaction_time"),

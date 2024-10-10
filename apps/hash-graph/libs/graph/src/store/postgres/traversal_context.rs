@@ -4,10 +4,7 @@ use std::collections::HashMap;
 use error_stack::Result;
 use graph_types::{
     knowledge::entity::{Entity, EntityEditionId},
-    ontology::{
-        DataTypeWithMetadata, EntityTypeId, EntityTypeWithMetadata, PropertyTypeId,
-        PropertyTypeWithMetadata,
-    },
+    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
 };
 use hash_graph_store::{
     data_type::DataTypeQueryPath,
@@ -18,7 +15,7 @@ use hash_graph_store::{
     subgraph::{Subgraph, SubgraphRecord, edges::GraphResolveDepths, temporal_axes::VariableAxis},
 };
 use temporal_versioning::RightBoundedTemporalInterval;
-use type_system::schema::DataTypeId;
+use type_system::schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid};
 
 use crate::store::{AsClient, PostgresStore, QueryError, crud::Read};
 
@@ -30,7 +27,7 @@ where
     #[tracing::instrument(level = "info", skip(self, data_type_ids, subgraph))]
     async fn read_data_types_by_ids(
         &self,
-        data_type_ids: &[DataTypeId],
+        data_type_ids: &[DataTypeUuid],
         subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
         for data_type in <Self as Read<DataTypeWithMetadata>>::read_vec(
@@ -58,7 +55,7 @@ where
     #[tracing::instrument(level = "info", skip(self, property_type_ids, subgraph))]
     async fn read_property_types_by_ids(
         &self,
-        property_type_ids: &[PropertyTypeId],
+        property_type_ids: &[PropertyTypeUuid],
         subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
         for property_type in <Self as Read<PropertyTypeWithMetadata>>::read_vec(
@@ -86,7 +83,7 @@ where
     #[tracing::instrument(level = "info", skip(self, entity_type_ids, subgraph))]
     async fn read_entity_types_by_ids(
         &self,
-        entity_type_ids: &[EntityTypeId],
+        entity_type_ids: &[EntityTypeUuid],
         subgraph: &mut Subgraph,
     ) -> Result<(), QueryError> {
         for entity_type in <Self as Read<EntityTypeWithMetadata>>::read_vec(
@@ -172,7 +169,7 @@ pub type AddIdReturn<K> = impl Iterator<
 
 pub type AddDataTypeIdReturn = impl Iterator<
     Item = (
-        DataTypeId,
+        DataTypeUuid,
         GraphResolveDepths,
         RightBoundedTemporalInterval<VariableAxis>,
     ),
@@ -180,7 +177,7 @@ pub type AddDataTypeIdReturn = impl Iterator<
 
 pub type AddPropertyTypeIdReturn = impl Iterator<
     Item = (
-        PropertyTypeId,
+        PropertyTypeUuid,
         GraphResolveDepths,
         RightBoundedTemporalInterval<VariableAxis>,
     ),
@@ -188,7 +185,7 @@ pub type AddPropertyTypeIdReturn = impl Iterator<
 
 pub type AddEntityTypeIdReturn = impl Iterator<
     Item = (
-        EntityTypeId,
+        EntityTypeUuid,
         GraphResolveDepths,
         RightBoundedTemporalInterval<VariableAxis>,
     ),
@@ -238,9 +235,9 @@ impl<K: Eq + Hash + Copy> TraversalContextMap<K> {
 
 #[derive(Debug, Default)]
 pub struct TraversalContext {
-    data_types: TraversalContextMap<DataTypeId>,
-    property_types: TraversalContextMap<PropertyTypeId>,
-    entity_types: TraversalContextMap<EntityTypeId>,
+    data_types: TraversalContextMap<DataTypeUuid>,
+    property_types: TraversalContextMap<PropertyTypeUuid>,
+    entity_types: TraversalContextMap<EntityTypeUuid>,
     entities: TraversalContextMap<EntityEditionId>,
 }
 
@@ -292,7 +289,7 @@ impl TraversalContext {
 
     pub fn add_data_type_id(
         &mut self,
-        data_type_id: DataTypeId,
+        data_type_id: DataTypeUuid,
         graph_resolve_depths: GraphResolveDepths,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
     ) -> AddDataTypeIdReturn {
@@ -302,7 +299,7 @@ impl TraversalContext {
 
     pub fn add_property_type_id(
         &mut self,
-        property_type_id: PropertyTypeId,
+        property_type_id: PropertyTypeUuid,
         graph_resolve_depths: GraphResolveDepths,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
     ) -> AddPropertyTypeIdReturn {
@@ -312,7 +309,7 @@ impl TraversalContext {
 
     pub fn add_entity_type_id(
         &mut self,
-        entity_type_id: EntityTypeId,
+        entity_type_id: EntityTypeUuid,
         graph_resolve_depths: GraphResolveDepths,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
     ) -> AddEntityTypeIdReturn {

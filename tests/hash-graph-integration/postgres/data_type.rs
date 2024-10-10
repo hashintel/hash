@@ -31,7 +31,7 @@ use serde_json::json;
 use temporal_versioning::TemporalBound;
 use time::OffsetDateTime;
 use type_system::{
-    schema::{DataType, DataTypeId},
+    schema::{DataType, DataTypeUuid},
     url::{BaseUrl, VersionedUrl},
 };
 
@@ -164,7 +164,7 @@ async fn inheritance() {
     })
     .await
     .expect("could not create data type");
-    let centimeter_id = DataTypeId::from_url(&centimeter_dt_v1.id);
+    let centimeter_id = DataTypeUuid::from_url(&centimeter_dt_v1.id);
 
     assert_eq!(
         api.get_data_types(
