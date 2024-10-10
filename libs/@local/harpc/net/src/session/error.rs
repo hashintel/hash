@@ -81,27 +81,6 @@ impl Error for InstanceTransactionLimitReachedError {
 
 #[derive(
     Debug,
-    Clone,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    derive_more::Display,
-    serde::Serialize,
-    serde::Deserialize,
-)]
-#[display("session has been closed")]
-pub struct ConnectionClosedError;
-
-impl Error for ConnectionClosedError {
-    fn provide<'a>(&'a self, request: &mut Request<'a>) {
-        request.provide_value(ErrorCode::CONNECTION_CLOSED);
-    }
-}
-
-#[derive(
-    Debug,
     Copy,
     Clone,
     PartialEq,

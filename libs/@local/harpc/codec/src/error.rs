@@ -23,10 +23,25 @@ macro_rules! non_zero {
 // prone, we might not be able to increment values correctly, another problem is that rustfmt will
 // reorder the constants, making keeping tracks of the ids harder than it should be.
 macro_rules! define_error_code_consts {
-    ($($base:literal => [$($name:ident),+]),*) => {
+    ($(
+        $(#[$meta:meta])*
+        $base:literal => [$(
+            $(#[$name_meta:meta])*
+            $name:ident
+        ),+]
+    ),*) => {
         $(
+            $(#[$meta])*
             impl ErrorCode {
                 $(
+                    $(#[$name_meta])*
+                    ///
+                    ///
+                    /// **Error Code**: `
+                    #[doc = stringify!($base)]
+                    #[doc = "+"]
+                    #[doc = stringify!(${index(0)})]
+                    #[doc = "`"]
                     pub const $name: Self = Self(non_zero!($base + ${index(0)}));
                 )+
             }
@@ -67,25 +82,54 @@ impl<'de> serde::Deserialize<'de> for ErrorCode {
 
 define_error_code_consts! {
     // 0xFE_xx = client errors
-    // Initiated by client, but occur on server (tower level)
+    /// Errors initiated by the client, but that occur on the server.
+    ///
+    /// These errors are issued on the higher-level tower implementation.
     0xFE_10 => [
-        NOT_FOUND // akin to 404
+        /// The combination of service and version requirement could not be found on the server.
+        ///
+        /// The HTTP equivalent is 404 Not Found.
+        NOT_FOUND
     ],
     // 0xFF_xx = server errors
-    // Server Session Errors
+    /// Errors that occur in a session and are issued by the server.
+    ///
+    /// These errors are issued on the lower-level network layer.
     0xFF_00 => [
-        CONNECTION_CLOSED,
+        /// Server is shutting down.
+        ///
+        /// The server is in the process of shutting down and no longer acceptts new connections.
         CONNECTION_SHUTDOWN,
+        /// Connection transaction limit reached.
+        ///
+        /// The total count of concurrent transaction per connection has been reached.
         CONNECTION_TRANSACTION_LIMIT_REACHED,
+        /// Instance transaction limit reached.
+        ///
+        /// The total count of concurrent transaction per server node has been reached.
         INSTANCE_TRANSACTION_LIMIT_REACHED,
+        /// Transaction is lagging behind.
+        ///
+        /// The client sent too many packets that haven't been processed by the server yet,
+        /// which lead to packets dropping and the transaction being cancelled.
         TRANSACTION_LAGGING
     ],
-    // Server Tower Errors
+    /// Errors that occur due to malformed payloads in the tower layer.
     0xFF_10 => [
+        /// Encoded error encountered an invalid error tag.
+        ///
+        /// The returned payload for an encoded error does not have a valid error tag to distinguish
+        /// between the different error encodings and could therefore not be properly encoded.
+        ///
+        /// This is a fault in the implementation of the server, either in the `codec` or
+        /// the `tower` layer.
         PACK_INVALID_ERROR_TAG
     ],
-    // Generic Server Errors
+    /// Generic server errors.
     0xFF_F0 => [
+        /// An internal server error occurred.
+        ///
+        /// An unknown error occurred on the server.
         INTERNAL_SERVER_ERROR
     ]
 }

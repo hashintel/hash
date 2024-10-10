@@ -194,7 +194,7 @@ supports-color = { version = "=3.0.1", default-features = false }
 supports-unicode = { version = "=3.0.0", default-features = false }
 tachyonix = { version = "=0.3.1", default-features = false }
 tarpc = { version = "=0.33", default-features = false }
-temporal-io-client = { git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }
+temporal-io-client = { package = "temporal-client", git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }
 temporal-io-sdk-core-protos = { package = "temporal-sdk-core-protos", git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }
 test-fuzz = { version = "=6.0.0", default-features = false }
 test-log = { version = "=0.2.16", default-features = false }
