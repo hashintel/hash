@@ -2698,16 +2698,10 @@ dependencies = [
 name = "harpc-service"
 version = "0.0.0"
 dependencies = [
- "error-stack",
  "frunk",
- "futures",
- "graph-types",
- "harpc-net",
  "harpc-tower",
  "harpc-types",
  "harpc-wire-protocol",
- "pin-project-lite",
- "thiserror",
 ]
 
 [[package]]

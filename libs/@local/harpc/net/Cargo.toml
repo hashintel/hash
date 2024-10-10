@@ -53,7 +53,7 @@ harpc-codec = { workspace = true, features = ["json"] }
 harpc-types = { workspace = true }
 harpc-wire-protocol = { workspace = true, features = ["test-utils"] }
 humansize = { workspace = true }
-insta.workspace = true
+insta = { workspace = true }
 test-log = { workspace = true, features = ["trace"] }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 
