@@ -121,7 +121,7 @@
     "uuid": "9.0.1"
   },
   "devDependencies": {
-    "@graphql-codegen/cli": "5.0.2",
+    "@graphql-codegen/cli": "5.0.3",
     "@graphql-codegen/fragment-matcher": "3.3.3",
     "@graphql-codegen/typescript": "2.8.8",
     "@graphql-codegen/typescript-operations": "2.5.13",
