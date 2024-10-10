@@ -17,8 +17,8 @@ use graph_types::{
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
         OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
-        OntologyTypeClassificationMetadata, OntologyTypeRecordId, PropertyTypeId,
-        PropertyTypeMetadata, PropertyTypeWithMetadata,
+        OntologyTypeClassificationMetadata, OntologyTypeRecordId, PropertyTypeMetadata,
+        PropertyTypeWithMetadata,
     },
 };
 use hash_graph_store::{
@@ -36,7 +36,7 @@ use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
     Validator,
-    schema::{DataTypeId, PropertyTypeValidator},
+    schema::{DataTypeId, PropertyTypeId, PropertyTypeValidator},
     url::{OntologyTypeVersion, VersionedUrl},
 };
 

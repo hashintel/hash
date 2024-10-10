@@ -40,9 +40,7 @@ use futures::{
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{Entity, EntityId, EntityUuid},
-    ontology::{
-        DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeId, PropertyTypeWithMetadata,
-    },
+    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
     owned_by_id::OwnedById,
 };
 use hash_graph_store::filter::{Filter, QueryRecord};
@@ -51,7 +49,7 @@ use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
 use tokio_postgres::error::SqlState;
 use type_system::{
-    schema::{DataTypeId, EntityTypeId},
+    schema::{DataTypeId, EntityTypeId, PropertyTypeId},
     url::VersionedUrl,
 };
 

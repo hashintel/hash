@@ -17,7 +17,7 @@ use graph_types::{
     ontology::{
         EntityTypeMetadata, EntityTypeWithMetadata, OntologyEditionProvenance, OntologyProvenance,
         OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
-        PartialEntityTypeMetadata, PropertyTypeId,
+        PartialEntityTypeMetadata,
     },
 };
 use hash_graph_store::{
@@ -39,7 +39,9 @@ use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
     Validator,
-    schema::{ClosedEntityType, DataTypeId, EntityType, EntityTypeId, EntityTypeValidator},
+    schema::{
+        ClosedEntityType, DataTypeId, EntityType, EntityTypeId, EntityTypeValidator, PropertyTypeId,
+    },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
 

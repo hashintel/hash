@@ -2,8 +2,8 @@ use std::collections::HashMap;
 
 use authorization::{backend::ZanzibarBackend, schema::PropertyTypeRelationAndSubject};
 use error_stack::{Result, ResultExt};
-use graph_types::ontology::PropertyTypeId;
 use tokio_postgres::GenericClient;
+use type_system::schema::PropertyTypeId;
 
 use crate::{
     snapshot::WriteBatch,

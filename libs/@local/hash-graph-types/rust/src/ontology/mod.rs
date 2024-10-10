@@ -24,7 +24,7 @@ pub use self::{
         EntityTypeEmbedding, EntityTypeMetadata, EntityTypeWithMetadata, PartialEntityTypeMetadata,
     },
     property_type::{
-        PartialPropertyTypeMetadata, PropertyTypeEmbedding, PropertyTypeId, PropertyTypeMetadata,
+        PartialPropertyTypeMetadata, PropertyTypeEmbedding, PropertyTypeMetadata,
         PropertyTypeWithMetadata,
     },
     provenance::{

@@ -8,7 +8,7 @@ use graph_types::{
         },
         property::{PropertyMetadataObject, PropertyObject, PropertyProvenance},
     },
-    ontology::{OntologyEditionProvenance, PropertyTypeId},
+    ontology::OntologyEditionProvenance,
     owned_by_id::OwnedById,
 };
 use postgres_types::ToSql;
@@ -18,7 +18,7 @@ use type_system::{
     Valid,
     schema::{
         ClosedEntityType, ConversionDefinition, DataType, DataTypeId, EntityType, EntityTypeId,
-        PropertyType,
+        PropertyType, PropertyTypeId,
     },
     url::{BaseUrl, OntologyTypeVersion},
 };
