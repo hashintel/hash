@@ -16,6 +16,20 @@ pub trait Decoder {
 
 pub trait ErrorDecoder {
     type Error;
+    /// Type of recovery information.
+    ///
+    /// # Description
+    ///
+    /// This type represents recovery information used when error encoding fails.
+    /// During error encoding with `serde`, failures can occur. To prevent a complete
+    /// encoding process failure and ensure some error information reaches the user,
+    /// we encode any serialization errors as recovery errors.
+    ///
+    /// Unlike regular error encoding, recovery error encoding is guaranteed to succeed.
+    /// The codec itself, not the user, determines the recovery type, this is often just a simple
+    /// [`Display`] representation of the serialization error.
+    ///
+    /// [`Display`]: core::fmt::Display
     type Recovery;
 
     /// Decodes an error from a stream of bytes.
