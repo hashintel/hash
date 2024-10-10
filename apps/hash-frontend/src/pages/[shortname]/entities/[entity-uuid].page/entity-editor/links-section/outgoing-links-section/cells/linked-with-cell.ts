@@ -159,7 +159,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
             bottom: yCenter + 16,
           },
           onClick: () => {
-            onEntityClick({ entity: rightEntity });
+            onEntityClick(rightEntity.entityId);
           },
         }),
       );
@@ -169,7 +169,6 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
 
     InteractableManager.setInteractablesForCell(args, entityChipInteractables);
 
-    // do not draw delete button if multiple links are allowed
     if (isList) {
       const overflowed = accumulatedLeft > rect.x + rect.width;
 
@@ -186,6 +185,7 @@ export const renderLinkedWithCell: CustomRenderer<LinkedWithCell> = {
       ctx.fillStyle = customColors.blue[70];
       ctx.fillText(text, rect.x + rect.width - textWidth - 10, yCenter);
 
+      // do not draw delete button if multiple links are allowed
       return;
     }
 

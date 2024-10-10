@@ -6,6 +6,7 @@ import {
   EyeSlashIconRegular,
 } from "@hashintel/design-system";
 import type { Entity, LinkEntity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
@@ -21,6 +22,7 @@ import type { BoxProps } from "@mui/material";
 import {
   Box,
   chipClasses,
+  Stack,
   styled,
   Tooltip,
   Typography,
@@ -58,12 +60,21 @@ const stringifyEntityPropertyValue = (value: EntityPropertyValue): string => {
 
 const LeftOrRightEntity: FunctionComponent<{
   entity?: Entity;
+  onEntityClick?: (entityId: EntityId) => void;
   subgraph: Subgraph<EntityRootType>;
   openInNew?: boolean;
   endAdornment?: ReactNode;
   label?: ReactNode;
   sx?: BoxProps["sx"];
-}> = ({ subgraph, entity, endAdornment, sx, label, openInNew }) => {
+}> = ({
+  subgraph,
+  entity,
+  endAdornment,
+  onEntityClick,
+  sx,
+  label,
+  openInNew,
+}) => {
   const entityLabel = useMemo(
     () => (entity ? generateEntityLabel(subgraph, entity) : "Hidden entity"),
     [subgraph, entity],
@@ -133,6 +144,12 @@ const LeftOrRightEntity: FunctionComponent<{
 
   const contentWithLink = href ? (
     <Link
+      onClick={(event) => {
+        if (onEntityClick && entity) {
+          event.preventDefault();
+          onEntityClick(entity.metadata.recordId.entityId);
+        }
+      }}
       openInNew={openInNew}
       href={href}
       noLinkStyle
@@ -182,28 +199,24 @@ const LeftOrRightEntity: FunctionComponent<{
       .flat();
   }, [entity, subgraph, entityType]);
 
-  const outgoingLinksByLinkEntityType = useMemo(() => {
+  const outgoingLinkTypesAndTargetEntities = useMemo(() => {
     if (!entity) {
       return undefined;
     }
 
-    return getOutgoingLinkAndTargetEntities(
+    const outgoingLinksByLinkEntityType = getOutgoingLinkAndTargetEntities(
       subgraph,
       entity.metadata.recordId.entityId,
-    ).reduce<
-      {
+    ).reduce<{
+      [linkEntityTypeId: string]: {
         linkEntityType: EntityTypeWithMetadata;
         rightEntities: Entity[];
-      }[]
-    >(
+      };
+    }>(
       (
         prev,
         {
           linkEntity: linkEntityRevisions,
-          /**
-           * @todo: figure out why this is typed as non-nullable when
-           * it can be nullable.
-           */
           rightEntity: rightEntityRevisions = [],
         },
       ) => {
@@ -221,41 +234,54 @@ const LeftOrRightEntity: FunctionComponent<{
           return prev;
         }
 
-        const linkEntityTypeIndex = prev.findIndex(
-          (grouping) =>
-            grouping.linkEntityType.schema.$id === linkEntityType.schema.$id,
-        );
+        if (prev[linkEntityTypeId]) {
+          const targetAlreadyPresent = prev[
+            linkEntityTypeId
+          ].rightEntities.some(
+            (existingRightEntity) =>
+              existingRightEntity.metadata.recordId.entityId ===
+              rightEntity.metadata.recordId.entityId,
+          );
 
-        return linkEntityTypeIndex < 0
-          ? [
-              ...prev,
-              {
-                linkEntityType,
-                rightEntities: [rightEntity],
-              },
-            ]
-          : [
-              ...prev.slice(0, linkEntityTypeIndex),
-              {
-                linkEntityType,
-                rightEntities: [
-                  ...prev[linkEntityTypeIndex]!.rightEntities,
-                  rightEntity,
-                ],
-              },
-              ...prev.slice(linkEntityTypeIndex + 1),
-            ];
+          if (targetAlreadyPresent) {
+            return prev;
+          }
+
+          return {
+            ...prev,
+            [linkEntityTypeId]: {
+              linkEntityType,
+              rightEntities: [
+                ...prev[linkEntityTypeId].rightEntities,
+                rightEntity,
+              ],
+            },
+          };
+        }
+
+        return {
+          ...prev,
+          [linkEntityTypeId]: {
+            linkEntityType,
+            rightEntities: [rightEntity],
+          },
+        };
       },
-      [],
+      {},
     );
+
+    return Object.values(outgoingLinksByLinkEntityType);
   }, [entity, subgraph]);
 
   const tooltipContent =
     (entityProperties && entityProperties.length > 0) ||
-    (outgoingLinksByLinkEntityType &&
-      outgoingLinksByLinkEntityType.length > 0) ? (
-      <Box>
-        {[...(entityProperties ?? []), ...(outgoingLinksByLinkEntityType ?? [])]
+    (outgoingLinkTypesAndTargetEntities &&
+      outgoingLinkTypesAndTargetEntities.length > 0) ? (
+      <Box sx={{ maxHeight: 300, overflowY: "auto" }}>
+        {[
+          ...(entityProperties ?? []),
+          ...(outgoingLinkTypesAndTargetEntities ?? []),
+        ]
           .sort((a, b) => {
             const aTitle =
               "propertyType" in a
@@ -271,6 +297,7 @@ const LeftOrRightEntity: FunctionComponent<{
           })
           .map((propertyOrOutgoingLink) => (
             <Typography
+              component="div"
               key={
                 "propertyType" in propertyOrOutgoingLink
                   ? propertyOrOutgoingLink.propertyType.schema.$id
@@ -280,6 +307,7 @@ const LeftOrRightEntity: FunctionComponent<{
                 color: ({ palette }) => palette.common.white,
                 marginBottom: 0.5,
               }}
+              variant="smallTextParagraphs"
             >
               <strong>
                 {"propertyType" in propertyOrOutgoingLink
@@ -287,9 +315,16 @@ const LeftOrRightEntity: FunctionComponent<{
                   : propertyOrOutgoingLink.linkEntityType.schema.title}
                 :
               </strong>{" "}
-              {"propertyType" in propertyOrOutgoingLink
-                ? propertyOrOutgoingLink.stringifiedPropertyValue
-                : propertyOrOutgoingLink.rightEntities.map((rightEntity) => {
+              {"propertyType" in propertyOrOutgoingLink ? (
+                propertyOrOutgoingLink.stringifiedPropertyValue
+              ) : (
+                <Stack
+                  direction="row"
+                  columnGap={0.5}
+                  rowGap={0.5}
+                  flexWrap="wrap"
+                >
+                  {propertyOrOutgoingLink.rightEntities.map((rightEntity) => {
                     const rightEntityLabel = generateEntityLabel(
                       subgraph,
                       rightEntity,
@@ -298,26 +333,32 @@ const LeftOrRightEntity: FunctionComponent<{
                     return (
                       <Chip
                         key={rightEntity.metadata.recordId.entityId}
+                        onClick={() =>
+                          onEntityClick?.(
+                            rightEntity.metadata.recordId.entityId,
+                          )
+                        }
                         label={rightEntityLabel}
                         sx={{
                           borderColor: ({ palette }) => palette.gray[30],
+                          cursor: onEntityClick ? "pointer" : "default",
+                          fontSize: 12,
                           [`.${chipClasses.label}`]: {
                             paddingY: 0.25,
-                          },
-                          "&:not(:last-of-type)": {
-                            marginRight: 1,
                           },
                         }}
                       />
                     );
                   })}
+                </Stack>
+              )}
             </Typography>
           ))}
       </Box>
     ) : null;
 
   const contentWithLinkAndTooltip = tooltipContent ? (
-    <Tooltip title={tooltipContent} placement="bottom-start">
+    <Tooltip title={tooltipContent} placement="bottom-start" sx={{ p: 0 }}>
       {contentWithLink}
     </Tooltip>
   ) : (
@@ -367,6 +408,7 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
   leftEntitySx?: BoxProps["sx"];
   rightEntitySx?: BoxProps["sx"];
   displayLabels?: boolean;
+  onEntityClick?: (entityId: EntityId) => void;
   openInNew?: boolean;
 }> = ({
   linkEntity,
@@ -377,6 +419,7 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
   leftEntitySx,
   rightEntitySx,
   displayLabels = false,
+  onEntityClick,
   openInNew = false,
 }) => {
   const { leftEntity, rightEntity, linkEntityType } = useMemo(() => {
@@ -411,6 +454,7 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
     >
       <LeftOrRightEntity
         entity={leftEntity}
+        onEntityClick={onEntityClick}
         subgraph={subgraph}
         endAdornment={leftEntityEndAdornment}
         openInNew={openInNew}
@@ -473,6 +517,7 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
       </Link>
       <LeftOrRightEntity
         entity={rightEntity}
+        onEntityClick={onEntityClick}
         subgraph={subgraph}
         endAdornment={rightEntityEndAdornment}
         sx={rightEntitySx}

@@ -3,7 +3,11 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { TimeInterval } from "@local/hash-graph-types/temporal-versioning";
 
-import type { LinkEntityAndRightEntity, Subgraph } from "../../../main.js";
+import type {
+  LinkEntityAndLeftEntity,
+  LinkEntityAndRightEntity,
+  Subgraph,
+} from "../../../main.js";
 import {
   isHasLeftEntityEdge,
   isHasRightEntityEdge,
@@ -341,4 +345,60 @@ export const getOutgoingLinkAndTargetEntities = <
       };
     },
   ) as LinkAndRightEntities; // @todo consider fixing generics in functions called within
+};
+
+/**
+ * For a given {@link TimeInterval}, get all incoming link {@link Entity} revisions, and their "source" {@link Entity}
+ * revisions (by default this is the "left entity"), from a given {@link Entity}.
+ *
+ * @param subgraph
+ * @param {EntityId} entityId - The ID of the target entity to search for incoming links to
+ * @param {TimeInterval} [interval] - An optional {@link TimeInterval} to constrain the period of time to search across.
+ * If the parameter is omitted then results will default to only returning results that are active in the latest instant
+ *   of time in the {@link Subgraph}
+ */
+export const getIncomingLinkAndSourceEntities = <
+  LinkAndLeftEntities extends
+    LinkEntityAndLeftEntity[] = LinkEntityAndLeftEntity[],
+>(
+  subgraph: Subgraph,
+  entityId: EntityId,
+  interval?: TimeInterval,
+): LinkAndLeftEntities => {
+  const searchInterval =
+    interval ??
+    intervalForTimestamp(
+      subgraph.temporalAxes.resolved.variable.interval.end.limit,
+    );
+
+  const incomingLinkEntities = getIncomingLinksForEntity(
+    subgraph,
+    entityId,
+    searchInterval,
+  );
+  const mappedRevisions = incomingLinkEntities.reduce(
+    (revisionMap, entity) => {
+      const linkEntityId = entity.metadata.recordId.entityId;
+
+      // eslint-disable-next-line no-param-reassign
+      revisionMap[linkEntityId] ??= [];
+      revisionMap[linkEntityId].push(entity);
+
+      return revisionMap;
+    },
+    {} as Record<EntityId, Entity[]>,
+  );
+
+  return typedEntries(mappedRevisions).map(
+    ([linkEntityId, linkEntityRevisions]) => {
+      return {
+        linkEntity: linkEntityRevisions,
+        leftEntity: getLeftEntityForLinkEntity(
+          subgraph,
+          linkEntityId,
+          searchInterval,
+        ),
+      };
+    },
+  ) as LinkAndLeftEntities; // @todo consider fixing generics in functions called within
 };

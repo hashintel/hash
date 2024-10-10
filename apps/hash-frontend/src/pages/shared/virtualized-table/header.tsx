@@ -13,7 +13,7 @@ import { FilterButton } from "./header/filter";
 import type { TableSortProps, VirtualizedTableSort } from "./header/sort";
 import { SortButton } from "./header/sort";
 
-export const headerHeight = 43;
+export const virtualizedTableHeaderHeight = 43;
 
 export type ColumnMetadata = Record<string, unknown>;
 
