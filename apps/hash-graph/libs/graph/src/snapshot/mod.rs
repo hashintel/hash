@@ -41,8 +41,7 @@ use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{Entity, EntityId, EntityUuid},
     ontology::{
-        DataTypeWithMetadata, EntityTypeId, EntityTypeWithMetadata, PropertyTypeId,
-        PropertyTypeWithMetadata,
+        DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeId, PropertyTypeWithMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -51,7 +50,10 @@ use hash_status::StatusCode;
 use postgres_types::ToSql;
 use serde::{Deserialize, Serialize};
 use tokio_postgres::error::SqlState;
-use type_system::{schema::DataTypeId, url::VersionedUrl};
+use type_system::{
+    schema::{DataTypeId, EntityTypeId},
+    url::VersionedUrl,
+};
 
 use crate::{
     snapshot::{

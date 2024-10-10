@@ -40,9 +40,9 @@ use graph_type_defs::error::{ErrorInfo, Status, StatusPayloads};
 use graph_types::{
     account::EditionCreatedById,
     ontology::{
-        EntityTypeEmbedding, EntityTypeId, EntityTypeMetadata, EntityTypeWithMetadata,
-        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeMetadata,
-        OntologyTypeReference, ProvidedOntologyEditionProvenance,
+        EntityTypeEmbedding, EntityTypeMetadata, EntityTypeWithMetadata, OntologyTemporalMetadata,
+        OntologyTypeClassificationMetadata, OntologyTypeMetadata, OntologyTypeReference,
+        ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
 };
@@ -52,7 +52,7 @@ use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use time::OffsetDateTime;
 use type_system::{
-    schema::EntityType,
+    schema::{EntityType, EntityTypeId},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
 use utoipa::{OpenApi, ToSchema};

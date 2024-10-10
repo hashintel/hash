@@ -27,8 +27,8 @@ pub use self::{
         ValidateDataTypeError, ValueLabel, ValueSchemaMetadata, Variable,
     },
     entity_type::{
-        ClosedEntityType, ClosedEntityTypeSchemaData, EntityType, EntityTypeReference,
-        EntityTypeValidationError, EntityTypeValidator,
+        ClosedEntityType, ClosedEntityTypeSchemaData, EntityType, EntityTypeId,
+        EntityTypeReference, EntityTypeValidationError, EntityTypeValidator,
     },
     object::{
         ObjectSchemaValidationError, ObjectSchemaValidator, PropertyObjectSchema,

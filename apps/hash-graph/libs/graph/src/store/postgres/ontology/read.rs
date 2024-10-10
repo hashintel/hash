@@ -2,7 +2,7 @@ use alloc::borrow::Cow;
 
 use error_stack::{Result, ResultExt};
 use futures::{Stream, StreamExt};
-use graph_types::ontology::{EntityTypeId, EntityTypeWithMetadata};
+use graph_types::ontology::EntityTypeWithMetadata;
 use hash_graph_store::{
     entity_type::EntityTypeQueryPath,
     filter::Filter,
@@ -14,7 +14,10 @@ use hash_graph_store::{
 use postgres_types::Json;
 use temporal_versioning::RightBoundedTemporalInterval;
 use tokio_postgres::GenericClient;
-use type_system::{schema::ClosedEntityType, url::VersionedUrl};
+use type_system::{
+    schema::{ClosedEntityType, EntityTypeId},
+    url::VersionedUrl,
+};
 
 use crate::store::{
     AsClient, PostgresStore, QueryError,

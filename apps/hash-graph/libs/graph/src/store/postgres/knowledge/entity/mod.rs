@@ -31,7 +31,7 @@ use graph_types::{
             PropertyWithMetadataValue, visitor::EntityVisitor,
         },
     },
-    ontology::{DataTypeProvider, EntityTypeId, EntityTypeProvider},
+    ontology::{DataTypeProvider, EntityTypeProvider},
     owned_by_id::OwnedById,
 };
 use hash_graph_store::{
@@ -57,7 +57,7 @@ use temporal_versioning::{
     TransactionTime,
 };
 use tokio_postgres::{GenericClient, Row, error::SqlState};
-use type_system::url::VersionedUrl;
+use type_system::{schema::EntityTypeId, url::VersionedUrl};
 use uuid::Uuid;
 use validation::{EntityPreprocessor, Validate, ValidateEntityComponents};
 

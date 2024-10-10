@@ -10,7 +10,8 @@ use futures::{
     channel::mpsc::{self, Receiver, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };
-use graph_types::{knowledge::entity::EntityUuid, ontology::EntityTypeId};
+use graph_types::knowledge::entity::EntityUuid;
+use type_system::schema::EntityTypeId;
 
 use crate::{
     snapshot::{EntitySnapshotRecord, SnapshotRestoreError, entity::EntityRowBatch},
