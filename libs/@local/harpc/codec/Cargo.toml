@@ -9,6 +9,7 @@ license.workspace = true
 publish.workspace = true
 
 [dependencies]
+# Public workspace dependencies
 error-stack = { workspace = true, public = true, features = ["serde"] }
 
 # Public third-party dependencies
