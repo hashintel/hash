@@ -1,6 +1,5 @@
 #![feature(never_type, impl_trait_in_assoc_type)]
 #![expect(
-    dead_code,
     clippy::unwrap_used,
     clippy::empty_enum,
     clippy::todo,
@@ -12,9 +11,9 @@ use core::fmt::Debug;
 
 use error_stack::Report;
 use frunk::HList;
-use futures::{StreamExt, pin_mut, stream};
+use futures::{StreamExt, TryStreamExt, pin_mut, stream};
 use graph_types::account::AccountId;
-use harpc_net::codec::{ErrorEncoder, ValueDecoder, ValueEncoder};
+use harpc_codec::{decode::Decoder, encode::Encoder, json::JsonCodec};
 use harpc_server::{router::RouterBuilder, serve::serve};
 use harpc_service::{
     Service,
@@ -74,6 +73,7 @@ impl Service for Account {
     }
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 struct CreateAccount {
     id: Option<AccountId>,
 }
@@ -125,6 +125,7 @@ where
 }
 
 #[derive(Debug, Clone)]
+#[expect(dead_code, reason = "dummy client")]
 struct AccountServiceClient;
 
 impl<S> AccountService<Client<S>> for AccountServiceClient
@@ -149,26 +150,24 @@ impl<T, S, C> ServiceDelegate<S, C> for AccountServerDelegate<T>
 where
     T: AccountService<Server<S>> + Send + Sync,
     S: Send + Sync,
-    C: ValueEncoder<AccountId, Error = !>
-        + ValueDecoder<CreateAccount, Error = !>
-        + Clone
-        + Send
-        + Sync
-        + 'static,
+    C: Encoder<Error: Debug> + Decoder<Error: Debug> + Clone + Send + Sync + 'static,
 {
     type Error = Report<AccountError>;
     type Service = Account;
 
-    type Body = impl Body<Control: AsRef<ResponseKind>, Error = !>;
+    type Body<Source>
+        = impl Body<Control: AsRef<ResponseKind>, Error = !>
+    where
+        Source: Body<Control = !, Error: Send + Sync> + Send + Sync;
 
     async fn call<B>(
         self,
         request: Request<B>,
         session: S,
         codec: C,
-    ) -> Result<Response<Self::Body>, Self::Error>
+    ) -> Result<Response<Self::Body<B>>, Self::Error>
     where
-        B: Body<Control = !> + Send + Sync,
+        B: Body<Control = !, Error: Send + Sync> + Send + Sync,
     {
         let session_id = request.session();
         let ProcedureDescriptor { id } = request.procedure();
@@ -179,13 +178,15 @@ where
                 let body = request.into_body();
                 let data = body.into_stream().into_data_stream();
 
-                let stream = codec.clone().decode_stream(data).await;
+                let stream = codec.clone().decode(data);
                 pin_mut!(stream);
 
                 let payload = stream.next().await.unwrap().unwrap();
 
                 let account_id = self.service.create_account(&session, payload).await?;
-                let data = codec.encode_stream(stream::iter([account_id])).await;
+                let data = codec
+                    .encode(stream::iter([account_id]))
+                    .map_err(|error| panic!("ignore any error, {error:?}"));
 
                 Ok(Response::from_ok(Parts::new(session_id), data))
             }
@@ -193,68 +194,18 @@ where
     }
 }
 
-#[derive(Debug, Clone)]
-struct NoopCodec;
-
-impl<T> ValueEncoder<T> for NoopCodec {
-    type Error = !;
-
-    async fn encode_stream(
-        self,
-        items: impl stream::Stream<Item = T> + Send + Sync,
-    ) -> impl stream::Stream<Item = Result<tokio_util::bytes::Bytes, Self::Error>> + Send + Sync
-    {
-        items.map(|_| Ok(tokio_util::bytes::Bytes::new()))
-    }
-}
-
-impl ErrorEncoder for NoopCodec {
-    async fn encode_report<C>(
-        &self,
-        report: Report<C>,
-    ) -> harpc_net::session::error::TransactionError {
-        todo!()
-    }
-
-    async fn encode_error<E>(&self, error: E) -> harpc_net::session::error::TransactionError
-    where
-        E: harpc_net::codec::WireError + Send,
-    {
-        todo!()
-    }
-}
-
-impl<T> ValueDecoder<T> for NoopCodec
-where
-    T: Send + Sync,
-{
-    type Error = !;
-
-    #[expect(unreachable_code, reason = "needed for inference")]
-    async fn decode_stream<B, E>(
-        self,
-        items: impl stream::Stream<Item = core::result::Result<B, E>> + Send + Sync,
-    ) -> impl stream::Stream<Item = Result<T, Self::Error>> + Send + Sync
-    where
-        B: tokio_util::bytes::Buf,
-    {
-        todo!("NoopCodec::decode_stream");
-        stream::empty()
-    }
-}
-
 #[tokio::main]
 async fn main() {
-    let router = RouterBuilder::new::<()>(NoopCodec)
+    let router = RouterBuilder::new::<()>(JsonCodec)
         .with_builder(|builder| {
             builder
                 .layer(BoxedResponseLayer::new())
-                .layer(HandleReportLayer::new(NoopCodec))
+                .layer(HandleReportLayer::new(JsonCodec))
         })
         .register(AccountServerDelegate {
             service: AccountServiceImpl,
         })
         .build();
 
-    serve(stream::empty(), router).await;
+    serve(stream::empty(), JsonCodec, router).await;
 }

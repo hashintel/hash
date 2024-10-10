@@ -1,16 +1,29 @@
-use harpc_net::codec::WireError;
-use harpc_types::{service::ServiceId, version::Version};
-use harpc_wire_protocol::response::kind::ErrorCode;
+use core::error::Error;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
-#[error("service by id {service:?} and version {version:?} not found")]
+use harpc_codec::error::ErrorCode;
+use harpc_types::{service::ServiceId, version::Version};
+
+#[derive(
+    Debug,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    PartialOrd,
+    Ord,
+    Hash,
+    derive_more::Display,
+    serde::Serialize,
+    serde::Deserialize,
+)]
+#[display("service by id {service:?} and version {version:?} not found")]
 pub struct NotFound {
     pub service: ServiceId,
     pub version: Version,
 }
 
-impl WireError for NotFound {
-    fn code(&self) -> ErrorCode {
-        ErrorCode::NOT_FOUND
+impl Error for NotFound {
+    fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
+        request.provide_value(ErrorCode::NOT_FOUND);
     }
 }
