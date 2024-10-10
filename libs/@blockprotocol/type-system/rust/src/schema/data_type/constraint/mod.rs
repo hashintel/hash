@@ -7,7 +7,7 @@ mod number;
 mod object;
 mod string;
 
-use error_stack::Report;
+use error_stack::{Report, bail};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
@@ -26,10 +26,13 @@ pub use self::{
 };
 use crate::schema::{
     ValueLabel,
-    data_type::constraint::{
-        array::validate_array_value, boolean::validate_boolean_value, null::validate_null_value,
-        number::validate_number_value, object::validate_object_value,
-        string::validate_string_value,
+    data_type::{
+        closed::ResolveClosedDataTypeError,
+        constraint::{
+            array::validate_array_value, boolean::validate_boolean_value,
+            null::validate_null_value, number::validate_number_value,
+            object::validate_object_value, string::validate_string_value,
+        },
     },
 };
 
@@ -56,6 +59,26 @@ impl ValueConstraints {
             Self::Typed(constraints) => constraints.validate_value(value),
             Self::AnyOf(constraints) => constraints.validate_value(value),
         }
+    }
+
+    /// Combines the current constraints with the provided one.
+    ///
+    /// If the constraints cannot be combined completely, the method will return the remaining
+    /// constraints that could not be combined, otherwise `None`.
+    ///
+    /// # Errors
+    ///
+    /// If the constraints exclude each other, an error is returned.
+    pub fn combine(
+        &mut self,
+        other: Self,
+    ) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
+        Ok(match (self, other) {
+            (Self::Typed(lhs), Self::Typed(rhs)) => lhs.combine(rhs)?.map(Self::Typed),
+            (Self::AnyOf(_), Self::Typed(typed)) => Some(Self::Typed(typed)),
+            (Self::Typed(_), Self::AnyOf(any_of)) => Some(Self::AnyOf(any_of)),
+            (Self::AnyOf(_), Self::AnyOf(rhs)) => Some(Self::AnyOf(rhs)),
+        })
     }
 }
 
@@ -92,6 +115,29 @@ impl SingleValueConstraints {
             Self::Array(array) => validate_array_value(value, array),
             Self::Object => validate_object_value(value),
         }
+    }
+
+    /// Combines the current constraints with the provided one.
+    ///
+    /// If the constraints cannot be combined completely, the method will return the remaining
+    /// constraints that could not be combined, otherwise `None`.
+    ///
+    /// # Errors
+    ///
+    /// If the constraints exclude each other, an error is returned.
+    pub fn combine(
+        &mut self,
+        other: Self,
+    ) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
+        Ok(match (self, other) {
+            (Self::Null, Self::Null)
+            | (Self::Boolean, Self::Boolean)
+            | (Self::Object, Self::Object) => None,
+            (Self::Number(lhs), Self::Number(rhs)) => lhs.combine(rhs)?.map(Self::Number),
+            (Self::String(lhs), Self::String(rhs)) => lhs.combine(rhs)?.map(Self::String),
+            (Self::Array(lhs), Self::Array(rhs)) => lhs.combine(rhs)?.map(Self::Array),
+            _ => bail!(ResolveClosedDataTypeError::IntersectedDifferentTypes),
+        })
     }
 }
 

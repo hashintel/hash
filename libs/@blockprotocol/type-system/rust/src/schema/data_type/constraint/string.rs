@@ -14,7 +14,9 @@ use thiserror::Error;
 use url::{Host, Url};
 use uuid::Uuid;
 
-use crate::schema::{ConstraintError, JsonSchemaValueType};
+use crate::schema::{
+    ConstraintError, JsonSchemaValueType, data_type::closed::ResolveClosedDataTypeError,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -256,6 +258,10 @@ impl StringSchema {
             }
         }
         Ok(())
+    }
+
+    pub fn combine(&mut self, other: Self) -> Result<Option<Self>, ResolveClosedDataTypeError> {
+        Ok(Some(other))
     }
 }
 

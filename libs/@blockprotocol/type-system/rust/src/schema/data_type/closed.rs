@@ -1,15 +1,17 @@
 use alloc::sync::Arc;
+use core::cmp;
 #[cfg(feature = "postgres")]
 use core::error::Error;
-use core::{cmp, iter};
 use std::collections::{HashMap, hash_map::Entry};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
+use error_stack::Report;
 use itertools::Itertools;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize};
+use serde_json::{Value as JsonValue, json};
 use thiserror::Error;
 
 use crate::{
@@ -60,6 +62,16 @@ pub enum ResolveClosedDataTypeError {
     AmbiguousMetadata,
     #[error("No description was found for the schema.")]
     MissingDescription,
+    #[error("The data type constraints intersected to different types.")]
+    IntersectedDifferentTypes,
+    #[error("Conflicting const values: {0:#} and {1:#}")]
+    ConflictingConstValues(JsonValue, JsonValue),
+    #[error("Conflicting enum values, no common values found: {:#} and {:#}", json!(.0), json!(.1))]
+    ConflictingEnumValues(Vec<JsonValue>, Vec<JsonValue>),
+    #[error("The const value is not in the enum values: {0:#} and {:#}", json!(.1))]
+    ConflictingConstEnumValue(JsonValue, Vec<JsonValue>),
+    #[error("Conflicting constraints: {:#} and {:#}", json!(.0), json!(.1))]
+    ConflictingConstraints(ValueConstraints, ValueConstraints),
 }
 
 impl ClosedDataType {
@@ -74,7 +86,7 @@ impl ClosedDataType {
     pub fn from_resolve_data(
         data_type: DataType,
         resolve_data: &DataTypeResolveData,
-    ) -> Result<Self, ResolveClosedDataTypeError> {
+    ) -> Result<Self, Report<ResolveClosedDataTypeError>> {
         let (description, label) = if data_type.description.is_some() || !data_type.label.is_empty()
         {
             (data_type.description, data_type.label)
@@ -91,10 +103,20 @@ impl ClosedDataType {
             title_plural: data_type.title_plural.clone(),
             description: description.ok_or(ResolveClosedDataTypeError::MissingDescription)?,
             label,
-            all_of: iter::once(&data_type.constraints)
-                .chain(resolve_data.constraints())
-                .cloned()
-                .collect(),
+            all_of: resolve_data.constraints().cloned().try_fold(
+                vec![data_type.constraints],
+                |mut acc, constraints| {
+                    let mut remainder = Some(constraints);
+                    for current in &mut acc {
+                        let Some(new) = remainder.take() else { break };
+                        remainder = current.combine(new)?;
+                    }
+                    if let Some(remainder) = remainder {
+                        acc.push(remainder);
+                    }
+                    Ok::<_, Report<ResolveClosedDataTypeError>>(acc)
+                },
+            )?,
             r#abstract: data_type.r#abstract,
         })
     }
@@ -433,11 +455,7 @@ mod tests {
         assert_eq!(integer.r#abstract, defs.integer.r#abstract);
         assert_eq!(
             json!(integer.all_of),
-            json!([
-                defs.integer.constraints,
-                defs.number.constraints,
-                defs.value.constraints
-            ])
+            json!([defs.integer.constraints, defs.value.constraints])
         );
     }
 
@@ -456,11 +474,7 @@ mod tests {
         assert_eq!(unsigned.r#abstract, defs.unsigned.r#abstract);
         assert_eq!(
             json!(unsigned.all_of),
-            json!([
-                defs.unsigned.constraints,
-                defs.number.constraints,
-                defs.value.constraints
-            ])
+            json!([defs.unsigned.constraints, defs.value.constraints])
         );
     }
 
@@ -480,10 +494,12 @@ mod tests {
         assert_eq!(
             json!(unsigned_int.all_of),
             json!([
-                defs.unsigned_int.constraints,
-                defs.unsigned.constraints,
-                defs.integer.constraints,
-                defs.number.constraints,
+                {
+                    "type": "number",
+                    "minimum": 0.0,
+                    "maximum": 4_294_967_295.0,
+                    "multipleOf": 1.0,
+                },
                 defs.value.constraints
             ])
         );
@@ -504,11 +520,7 @@ mod tests {
         assert_eq!(small.r#abstract, defs.small.r#abstract);
         assert_eq!(
             json!(small.all_of),
-            json!([
-                defs.small.constraints,
-                defs.number.constraints,
-                defs.value.constraints
-            ])
+            json!([defs.small.constraints, defs.value.constraints])
         );
     }
 
@@ -537,12 +549,12 @@ mod tests {
         assert_eq!(
             json!(unsigned_small_int.all_of),
             json!([
-                defs.unsigned_small_int.constraints,
-                defs.small.constraints,
-                defs.unsigned_int.constraints,
-                defs.unsigned.constraints,
-                defs.integer.constraints,
-                defs.number.constraints,
+                {
+                    "type": "number",
+                    "minimum": 0.0,
+                    "maximum": 100.0,
+                    "multipleOf": 1.0,
+                },
                 defs.value.constraints
             ])
         );

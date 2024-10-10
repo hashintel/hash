@@ -1,9 +1,12 @@
-use error_stack::{Report, ReportSink, ResultExt, bail};
+use error_stack::{Report, ReportSink, ResultExt, bail, ensure};
 use serde::{Deserialize, Serialize};
 use serde_json::{Number as JsonNumber, Value as JsonValue, json};
 use thiserror::Error;
 
-use crate::schema::{ConstraintError, JsonSchemaValueType};
+use crate::schema::{
+    ConstraintError, JsonSchemaValueType, SingleValueConstraints,
+    data_type::{closed::ResolveClosedDataTypeError, constraint::ValueConstraints},
+};
 
 #[expect(
     clippy::trivially_copy_pass_by_ref,
@@ -153,6 +156,63 @@ impl NumberSchema {
         }
         Ok(())
     }
+
+    pub fn combine(
+        &mut self,
+        other: Self,
+    ) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
+        match (&mut *self, other) {
+            (Self::Constrained(lhs), Self::Constrained(rhs)) => {
+                Ok(lhs.combine(rhs)?.map(Self::Constrained))
+            }
+            (Self::Const { r#const: lhs }, Self::Const { r#const: rhs }) => {
+                if float_eq(*lhs, rhs) {
+                    Ok(None)
+                } else {
+                    bail!(ResolveClosedDataTypeError::ConflictingConstValues(
+                        json!(*lhs),
+                        json!(rhs),
+                    ))
+                }
+            }
+            (Self::Enum { r#enum: lhs }, Self::Enum { r#enum: mut rhs }) => {
+                rhs.retain(|value| lhs.iter().any(|other| float_eq(*value, *other)));
+                ensure!(
+                    !rhs.is_empty(),
+                    ResolveClosedDataTypeError::ConflictingEnumValues(
+                        lhs.iter().map(|val| json!(*val)).collect(),
+                        rhs.iter().map(|val| json!(*val)).collect(),
+                    )
+                );
+                *lhs = rhs;
+                Ok(None)
+            }
+            (Self::Enum { r#enum: lhs }, Self::Const { r#const: rhs }) => {
+                ensure!(
+                    lhs.iter().any(|value| float_eq(*value, rhs)),
+                    ResolveClosedDataTypeError::ConflictingConstEnumValue(
+                        json!(rhs),
+                        lhs.iter().map(|val| json!(*val)).collect(),
+                    )
+                );
+
+                *self = Self::Const { r#const: rhs };
+                Ok(None)
+            }
+            (Self::Const { r#const: lhs }, Self::Enum { r#enum: rhs }) => {
+                ensure!(
+                    rhs.iter().any(|value| float_eq(*value, *lhs)),
+                    ResolveClosedDataTypeError::ConflictingConstEnumValue(
+                        json!(*lhs),
+                        rhs.iter().map(|val| json!(*val)).collect(),
+                    )
+                );
+
+                Ok(None)
+            }
+            _ => todo!(),
+        }
+    }
 }
 
 pub(crate) fn validate_number_value(
@@ -169,7 +229,7 @@ pub(crate) fn validate_number_value(
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NumberConstraints {
@@ -247,6 +307,85 @@ impl NumberConstraints {
 
         status.finish()
     }
+
+    /// Combines the current [`NumberConstraints`] with another one.
+    ///
+    /// Returns the remaining constraints that could not be combined.
+    ///
+    /// # Combined Constraints
+    ///
+    /// - [`minimum`] value is the maximum of the two values.
+    /// - [`exclusive_minimum`] is set to `true` if either of the constraints has it set to `true`.
+    /// - [`maximum`] value is the minimum of the two values.
+    /// - [`exclusive_maximum`] is set to `true` if either of the constraints has it set to `true`.
+    /// - [`multiple_of`] value is the maximum of the two values if they are multiples of each
+    ///   other. If the values are not multiples of each other, the value from `other` will be
+    ///   returned as the remainder.
+    ///
+    /// [`minimum`]: Self::minimum
+    /// [`exclusive_minimum`]: Self::exclusive_minimum
+    /// [`maximum`]: Self::maximum
+    /// [`exclusive_maximum`]: Self::exclusive_maximum
+    /// [`multiple_of`]: Self::multiple_of
+    ///
+    /// # Errors
+    ///
+    /// - [`ConflictingConstraints`] if the constraints exclude each other.
+    ///
+    /// `self` will not be modified if an error is returned.
+    pub fn combine(
+        &mut self,
+        other: Self,
+    ) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
+        let mut remainder = None::<Self>;
+
+        // We use a temporary value to store the combined constraints, and then assign it to self at
+        // the end. This is done to avoid modifying self if the constraints cannot be combined.
+        let value = Self {
+            minimum: match self.minimum.zip(other.minimum) {
+                Some((lhs, rhs)) => Some(if float_less_eq(lhs, rhs) { rhs } else { lhs }),
+                None => self.minimum.or(other.minimum),
+            },
+            exclusive_minimum: self.exclusive_minimum || other.exclusive_minimum,
+            maximum: match self.maximum.zip(other.maximum) {
+                Some((lhs, rhs)) => Some(if float_less_eq(lhs, rhs) { lhs } else { rhs }),
+                None => self.maximum.or(other.maximum),
+            },
+            exclusive_maximum: self.exclusive_maximum || other.exclusive_maximum,
+            multiple_of: match self.multiple_of.zip(other.multiple_of) {
+                Some((lhs, rhs)) if float_multiple_of(lhs, rhs) => Some(lhs),
+                Some((lhs, rhs)) if float_multiple_of(rhs, lhs) => Some(rhs),
+                Some((lhs, rhs)) => {
+                    remainder.get_or_insert_default().multiple_of = Some(rhs);
+                    Some(lhs)
+                }
+                None => self.multiple_of.or(other.multiple_of),
+            },
+        };
+
+        if let Some((minimum, maximum)) = value.minimum.zip(value.maximum) {
+            ensure!(
+                float_less_eq(minimum, maximum),
+                ResolveClosedDataTypeError::ConflictingConstraints(
+                    ValueConstraints::Typed(SingleValueConstraints::Number(
+                        NumberSchema::Constrained(Self {
+                            minimum: Some(minimum),
+                            ..Self::default()
+                        }),
+                    )),
+                    ValueConstraints::Typed(SingleValueConstraints::Number(
+                        NumberSchema::Constrained(Self {
+                            maximum: Some(maximum),
+                            ..Self::default()
+                        }),
+                    )),
+                )
+            );
+        }
+
+        *self = value;
+        Ok(remainder)
+    }
 }
 
 #[cfg(test)]
@@ -305,6 +444,99 @@ mod tests {
         assert!(!float_multiple_of(10.0, 0.0));
         assert!(float_multiple_of(0.0, 5.0));
         assert!(!float_multiple_of(0.1, 0.03));
+        assert!(float_multiple_of(5.0, 5.0));
+    }
+
+    #[test]
+    fn combine_with_non_conflicting_constraints() {
+        let mut constraints1 = NumberConstraints {
+            minimum: Some(1.0),
+            exclusive_minimum: false,
+            maximum: Some(10.0),
+            exclusive_maximum: false,
+            multiple_of: Some(2.0),
+        };
+        let constraints2 = NumberConstraints {
+            minimum: Some(5.0),
+            exclusive_minimum: true,
+            maximum: Some(15.0),
+            exclusive_maximum: true,
+            multiple_of: Some(4.0),
+        };
+
+        let remainder = constraints1
+            .combine(constraints2)
+            .expect("Expected combined constraints");
+        assert!(remainder.is_none());
+        assert_eq!(constraints1.minimum, Some(5.0));
+        assert!(constraints1.exclusive_minimum);
+        assert_eq!(constraints1.maximum, Some(10.0));
+        assert!(constraints1.exclusive_maximum);
+        assert_eq!(constraints1.multiple_of, Some(4.0));
+    }
+
+    #[test]
+    fn combine_with_conflicting_constraints() {
+        let mut constraints1 = NumberConstraints {
+            minimum: Some(6.0),
+            exclusive_minimum: false,
+            maximum: None,
+            exclusive_maximum: false,
+            multiple_of: None,
+        };
+        let constraints2 = NumberConstraints {
+            minimum: None,
+            exclusive_minimum: false,
+            maximum: Some(5.0),
+            exclusive_maximum: false,
+            multiple_of: None,
+        };
+
+        let _: Report<_> = constraints1
+            .combine(constraints2)
+            .expect_err("Expected conflicting constraints");
+    }
+
+    #[test]
+    fn combine_with_no_constraints() {
+        let mut constraints1 = NumberConstraints::default();
+        let constraints2 = NumberConstraints::default();
+
+        let remainder = constraints1
+            .combine(constraints2)
+            .expect("Expected combined constraints");
+        assert!(remainder.is_none());
+        assert_eq!(constraints1.minimum, None);
+        assert!(!constraints1.exclusive_minimum);
+        assert_eq!(constraints1.maximum, None);
+        assert!(!constraints1.exclusive_maximum);
+        assert_eq!(constraints1.multiple_of, None);
+    }
+
+    #[test]
+    fn combine_with_remainder() {
+        let mut constraints1 = NumberConstraints {
+            minimum: Some(1.0),
+            exclusive_minimum: false,
+            maximum: Some(10.0),
+            exclusive_maximum: false,
+            multiple_of: Some(2.0),
+        };
+        let constraints2 = NumberConstraints {
+            minimum: Some(5.0),
+            exclusive_minimum: true,
+            maximum: Some(15.0),
+            exclusive_maximum: true,
+            multiple_of: Some(3.0),
+        };
+
+        let Some(remainder) = constraints1
+            .combine(constraints2)
+            .expect("Expected combined constraints")
+        else {
+            panic!("Expected remainder");
+        };
+        assert_eq!(remainder.multiple_of, Some(3.0));
     }
 
     #[test]

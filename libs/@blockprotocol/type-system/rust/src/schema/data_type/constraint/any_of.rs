@@ -2,7 +2,9 @@ use error_stack::{Report, ReportSink, ResultExt};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
-use crate::schema::{ConstraintError, SingleValueSchema};
+use crate::schema::{
+    ConstraintError, SingleValueSchema, data_type::closed::ResolveClosedDataTypeError,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
