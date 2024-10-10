@@ -50,7 +50,7 @@ use time::OffsetDateTime;
 use type_system::{
     schema::{
         ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
-        DataTypeId, Operator, Variable,
+        DataTypeUuid, Operator, Variable,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
@@ -805,7 +805,7 @@ where
         .0
         .into_iter()
         .map(|request| {
-            let resource = DataTypeId::from_url(&request.resource);
+            let resource = DataTypeUuid::from_url(&request.resource);
             (
                 resource,
                 (request.operation, resource, request.relation_and_subject),
@@ -878,7 +878,7 @@ where
     Ok(Json(
         authorization_api
             .get_data_type_relations(
-                DataTypeId::from_url(&data_type_id),
+                DataTypeUuid::from_url(&data_type_id),
                 Consistency::FullyConsistent,
             )
             .await
@@ -918,7 +918,7 @@ where
             .check_data_type_permission(
                 actor_id,
                 permission,
-                DataTypeId::from_url(&data_type_id),
+                DataTypeUuid::from_url(&data_type_id),
                 Consistency::FullyConsistent,
             )
             .await

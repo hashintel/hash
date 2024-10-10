@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use authorization::{backend::ZanzibarBackend, schema::PropertyTypeRelationAndSubject};
 use error_stack::{Result, ResultExt};
 use tokio_postgres::GenericClient;
-use type_system::schema::PropertyTypeId;
+use type_system::schema::PropertyTypeUuid;
 
 use crate::{
     snapshot::WriteBatch,
@@ -20,7 +20,7 @@ pub enum PropertyTypeRowBatch {
     Schema(Vec<PropertyTypeRow>),
     ConstrainsValues(Vec<PropertyTypeConstrainsValuesOnRow>),
     ConstrainsProperties(Vec<PropertyTypeConstrainsPropertiesOnRow>),
-    Relations(HashMap<PropertyTypeId, Vec<PropertyTypeRelationAndSubject>>),
+    Relations(HashMap<PropertyTypeUuid, Vec<PropertyTypeRelationAndSubject>>),
     Embeddings(Vec<PropertyTypeEmbeddingRow<'static>>),
 }
 

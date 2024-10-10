@@ -5,7 +5,7 @@ use graph_types::{
     owned_by_id::OwnedById,
 };
 use serde::{Deserialize, Serialize};
-use type_system::schema::EntityTypeId;
+use type_system::schema::EntityTypeUuid;
 use uuid::Uuid;
 
 use crate::{
@@ -25,7 +25,7 @@ pub enum EntityTypeNamespace {
     EntityType,
 }
 
-impl Resource for EntityTypeId {
+impl Resource for EntityTypeUuid {
     type Id = Self;
     type Kind = EntityTypeNamespace;
 
@@ -55,7 +55,7 @@ pub enum EntityTypeResourceRelation {
     Instantiator,
 }
 
-impl Relation<EntityTypeId> for EntityTypeResourceRelation {}
+impl Relation<EntityTypeUuid> for EntityTypeResourceRelation {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -66,7 +66,7 @@ pub enum EntityTypePermission {
     Instantiate,
 }
 
-impl Permission<EntityTypeId> for EntityTypePermission {}
+impl Permission<EntityTypeUuid> for EntityTypePermission {}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
@@ -269,9 +269,9 @@ pub enum EntityTypeRelationAndSubject {
     },
 }
 
-impl Relationship for (EntityTypeId, EntityTypeRelationAndSubject) {
+impl Relationship for (EntityTypeUuid, EntityTypeRelationAndSubject) {
     type Relation = EntityTypeResourceRelation;
-    type Resource = EntityTypeId;
+    type Resource = EntityTypeUuid;
     type Subject = EntityTypeSubject;
     type SubjectSet = EntityTypeSubjectSet;
 

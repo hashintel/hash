@@ -15,24 +15,21 @@ use postgres_types::Json;
 use temporal_versioning::RightBoundedTemporalInterval;
 use tokio_postgres::GenericClient;
 use type_system::{
-    schema::{ClosedEntityType, EntityTypeId},
+    schema::{ClosedEntityType, EntityTypeUuid, OntologyTypeUuid},
     url::VersionedUrl,
 };
 
 use crate::store::{
     AsClient, PostgresStore, QueryError,
-    postgres::{
-        ontology::OntologyId,
-        query::{
-            Distinctness, ForeignKeyReference, ReferenceTable, SelectCompiler, Table, Transpile,
-            table::DatabaseColumn,
-        },
+    postgres::query::{
+        Distinctness, ForeignKeyReference, ReferenceTable, SelectCompiler, Table, Transpile,
+        table::DatabaseColumn,
     },
 };
 
 #[derive(Debug, Default)]
 pub struct OntologyTypeTraversalData {
-    ontology_ids: Vec<OntologyId>,
+    ontology_ids: Vec<OntologyTypeUuid>,
     resolve_depths: Vec<GraphResolveDepths>,
     traversal_intervals: Vec<RightBoundedTemporalInterval<VariableAxis>>,
 }
@@ -40,7 +37,7 @@ pub struct OntologyTypeTraversalData {
 impl OntologyTypeTraversalData {
     pub fn push(
         &mut self,
-        ontology_id: OntologyId,
+        ontology_id: OntologyTypeUuid,
         resolve_depth: GraphResolveDepths,
         traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
     ) {
@@ -53,7 +50,7 @@ impl OntologyTypeTraversalData {
 pub struct OntologyEdgeTraversal<L, R> {
     pub left_endpoint: L,
     pub right_endpoint: R,
-    pub right_endpoint_ontology_id: OntologyId,
+    pub right_endpoint_ontology_id: OntologyTypeUuid,
     pub resolve_depths: GraphResolveDepths,
     pub traversal_interval: RightBoundedTemporalInterval<VariableAxis>,
 }
@@ -64,8 +61,10 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
         &self,
         filter: &Filter<'f, EntityTypeWithMetadata>,
         temporal_axes: Option<&'f QueryTemporalAxes>,
-    ) -> Result<impl Stream<Item = Result<(EntityTypeId, ClosedEntityType), QueryError>>, QueryError>
-    {
+    ) -> Result<
+        impl Stream<Item = Result<(EntityTypeUuid, ClosedEntityType), QueryError>>,
+        QueryError,
+    > {
         let mut compiler = SelectCompiler::new(temporal_axes, false);
 
         let ontology_id_index = compiler.add_distinct_selection_with_ordering(
@@ -87,7 +86,7 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
             .map(move |row| {
                 let row = row.change_context(QueryError)?;
                 let Json(schema) = row.get(closed_schema_index);
-                Ok((EntityTypeId::new(row.get(ontology_id_index)), schema))
+                Ok((row.get(ontology_id_index), schema))
             }))
     }
 
@@ -96,7 +95,10 @@ impl<C: AsClient, A: Send + Sync> PostgresStore<C, A> {
         &self,
         record_ids: &'r OntologyTypeTraversalData,
         reference_table: ReferenceTable,
-    ) -> Result<impl Iterator<Item = (OntologyId, OntologyEdgeTraversal<L, R>)> + 'r, QueryError>
+    ) -> Result<
+        impl Iterator<Item = (OntologyTypeUuid, OntologyEdgeTraversal<L, R>)> + 'r,
+        QueryError,
+    >
     where
         L: From<VersionedUrl>,
         R: From<VersionedUrl>,

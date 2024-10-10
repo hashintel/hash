@@ -52,7 +52,7 @@ use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use time::OffsetDateTime;
 use type_system::{
-    schema::{EntityType, EntityTypeId},
+    schema::{EntityType, EntityTypeUuid},
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
 use utoipa::{OpenApi, ToSchema};
@@ -216,7 +216,7 @@ where
         .0
         .into_iter()
         .map(|request| {
-            let resource = EntityTypeId::from_url(&request.resource);
+            let resource = EntityTypeUuid::from_url(&request.resource);
             (
                 resource,
                 (request.operation, resource, request.relation_and_subject),
@@ -289,7 +289,7 @@ where
     Ok(Json(
         authorization_api
             .get_entity_type_relations(
-                EntityTypeId::from_url(&entity_type_id),
+                EntityTypeUuid::from_url(&entity_type_id),
                 Consistency::FullyConsistent,
             )
             .await
@@ -329,7 +329,7 @@ where
             .check_entity_type_permission(
                 actor_id,
                 permission,
-                EntityTypeId::from_url(&entity_type_id),
+                EntityTypeUuid::from_url(&entity_type_id),
                 Consistency::FullyConsistent,
             )
             .await

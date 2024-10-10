@@ -5,7 +5,7 @@ use authorization::{
 };
 use error_stack::{Result, ResultExt};
 use tokio_postgres::GenericClient;
-use type_system::schema::DataTypeId;
+use type_system::schema::DataTypeUuid;
 
 use crate::{
     snapshot::WriteBatch,
@@ -18,7 +18,7 @@ use crate::{
 pub enum DataTypeRowBatch {
     Schema(Vec<DataTypeRow>),
     Conversions(Vec<DataTypeConversionsRow>),
-    Relations(HashMap<DataTypeId, Vec<DataTypeRelationAndSubject>>),
+    Relations(HashMap<DataTypeUuid, Vec<DataTypeRelationAndSubject>>),
     Embeddings(Vec<DataTypeEmbeddingRow<'static>>),
 }
 

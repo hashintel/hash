@@ -57,7 +57,10 @@ use temporal_versioning::{
     TransactionTime,
 };
 use tokio_postgres::{GenericClient, Row, error::SqlState};
-use type_system::{schema::EntityTypeId, url::VersionedUrl};
+use type_system::{
+    schema::{EntityTypeUuid, OntologyTypeUuid},
+    url::VersionedUrl,
+};
 use uuid::Uuid;
 use validation::{EntityPreprocessor, Validate, ValidateEntityComponents};
 
@@ -74,7 +77,6 @@ use crate::store::{
     postgres::{
         ResponseCountMap, TraversalContext,
         knowledge::entity::read::EntityEdgeTraversalData,
-        ontology::OntologyId,
         query::{
             InsertStatementBuilder, ReferenceTable, Table,
             rows::{
@@ -219,7 +221,7 @@ where
                         );
 
                         traversal_context.add_entity_type_id(
-                            EntityTypeId::from(edge.right_endpoint_ontology_id),
+                            EntityTypeUuid::from(edge.right_endpoint_ontology_id),
                             edge.resolve_depths,
                             edge.traversal_interval,
                         )
@@ -742,7 +744,7 @@ where
             });
 
             for entity_type_url in &params.entity_type_ids {
-                let entity_type_id = EntityTypeId::from_url(entity_type_url);
+                let entity_type_id = EntityTypeUuid::from_url(entity_type_url);
                 entity_type_ids.insert(entity_type_id, entity_type_url.clone());
                 entity_is_of_type_rows.push(EntityIsOfTypeRow {
                     entity_edition_id,
@@ -1315,7 +1317,7 @@ where
         let entity_type_ids = params
             .entity_type_ids
             .iter()
-            .map(EntityTypeId::from_url)
+            .map(EntityTypeUuid::from_url)
             .collect::<Vec<_>>();
 
         if !self
@@ -1421,7 +1423,7 @@ where
             for entity_type_id in added_types.chain(removed_types) {
                 has_changed = true;
 
-                let entity_type_id = EntityTypeId::from_url(entity_type_id);
+                let entity_type_id = EntityTypeUuid::from_url(entity_type_id);
                 transaction
                     .authorization_api
                     .check_entity_type_permission(
@@ -1848,7 +1850,7 @@ where
 
         let entity_type_ontology_ids = entity_type_ids
             .iter()
-            .map(|entity_type_id| OntologyId::from(EntityTypeId::from_url(entity_type_id)))
+            .map(|entity_type_id| OntologyTypeUuid::from(EntityTypeUuid::from_url(entity_type_id)))
             .collect::<Vec<_>>();
 
         self.as_client()

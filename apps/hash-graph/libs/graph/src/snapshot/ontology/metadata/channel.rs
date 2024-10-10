@@ -13,15 +13,13 @@ use graph_types::ontology::{
     OntologyProvenance, OntologyTemporalMetadata, OntologyTypeClassificationMetadata,
     OntologyTypeRecordId,
 };
+use type_system::schema::OntologyTypeUuid;
 
 use crate::{
     snapshot::{SnapshotRestoreError, ontology::OntologyTypeMetadataRowBatch},
-    store::postgres::{
-        OntologyId,
-        query::rows::{
-            OntologyExternalMetadataRow, OntologyIdRow, OntologyOwnedMetadataRow,
-            OntologyTemporalMetadataRow,
-        },
+    store::postgres::query::rows::{
+        OntologyExternalMetadataRow, OntologyIdRow, OntologyOwnedMetadataRow,
+        OntologyTemporalMetadataRow,
     },
 };
 
@@ -34,7 +32,7 @@ pub struct OntologyTypeMetadataSender {
 }
 
 pub struct OntologyTypeMetadata {
-    pub ontology_id: OntologyId,
+    pub ontology_id: OntologyTypeUuid,
     pub record_id: OntologyTypeRecordId,
     pub classification: OntologyTypeClassificationMetadata,
     pub temporal_versioning: OntologyTemporalMetadata,

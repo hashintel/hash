@@ -12,7 +12,7 @@ use futures::{
     stream::{BoxStream, SelectAll, select_all},
 };
 use graph_types::knowledge::entity::EntityUuid;
-use type_system::schema::{DataTypeId, EntityTypeId, PropertyTypeId};
+use type_system::schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid};
 
 use crate::{
     snapshot::{
@@ -114,7 +114,7 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
             SnapshotEntry::DataTypeEmbedding(embedding) => self
                 .data_type_embedding
                 .start_send_unpin(DataTypeEmbeddingRow {
-                    ontology_id: DataTypeId::from_url(&embedding.data_type_id),
+                    ontology_id: DataTypeUuid::from_url(&embedding.data_type_id),
                     embedding: embedding.embedding,
                     updated_at_transaction_time: embedding.updated_at_transaction_time,
                 })
@@ -127,7 +127,7 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
             SnapshotEntry::PropertyTypeEmbedding(embedding) => self
                 .property_type_embedding
                 .start_send_unpin(PropertyTypeEmbeddingRow {
-                    ontology_id: PropertyTypeId::from_url(&embedding.property_type_id),
+                    ontology_id: PropertyTypeUuid::from_url(&embedding.property_type_id),
                     embedding: embedding.embedding,
                     updated_at_transaction_time: embedding.updated_at_transaction_time,
                 })
@@ -140,7 +140,7 @@ impl Sink<SnapshotEntry> for SnapshotRecordSender {
             SnapshotEntry::EntityTypeEmbedding(embedding) => self
                 .entity_type_embedding
                 .start_send_unpin(EntityTypeEmbeddingRow {
-                    ontology_id: EntityTypeId::from_url(&embedding.entity_type_id),
+                    ontology_id: EntityTypeUuid::from_url(&embedding.entity_type_id),
                     embedding: embedding.embedding,
                     updated_at_transaction_time: embedding.updated_at_transaction_time,
                 })
