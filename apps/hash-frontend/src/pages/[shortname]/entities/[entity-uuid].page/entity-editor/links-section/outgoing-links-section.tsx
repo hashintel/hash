@@ -15,6 +15,12 @@ import { renderLinkedWithCell } from "./outgoing-links-section/cells/linked-with
 import { linkGridColumns } from "./outgoing-links-section/constants";
 import { useCreateGetCellContent } from "./outgoing-links-section/use-create-get-cell-content";
 import { useRows } from "./outgoing-links-section/use-rows";
+import {
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
+import { useEntityEditor } from "../entity-editor-context";
+import { OutgoingLinksTable } from "./outgoing-links-section/readonly-outgoing-links-table";
 
 interface OutgoingLinksSectionPropsProps {
   isLinkEntity: boolean;
@@ -27,6 +33,8 @@ export const OutgoingLinksSection = ({
 }: OutgoingLinksSectionPropsProps) => {
   const [showSearch, setShowSearch] = useState(false);
 
+  const { entitySubgraph, readonly } = useEntityEditor();
+
   const rows = useRows();
   const createGetCellContent = useCreateGetCellContent();
 
@@ -38,6 +46,18 @@ export const OutgoingLinksSection = ({
      */
     return null;
   }
+
+  const entity = getRoots(entitySubgraph)[0]!;
+
+  const outgoingLinksAndTargets = readonly
+    ? getOutgoingLinkAndTargetEntities(
+        entitySubgraph,
+        entity.metadata.recordId.entityId,
+        entity.metadata.temporalVersioning[
+          entitySubgraph.temporalAxes.resolved.variable.axis
+        ],
+      )
+    : null;
 
   if (rows.length === 0) {
     return <LinksSectionEmptyState direction="Outgoing" />;
@@ -62,24 +82,30 @@ export const OutgoingLinksSection = ({
         </Stack>
       }
     >
-      <Paper sx={{ overflow: "hidden" }}>
-        <Grid
-          columns={linkGridColumns}
-          rows={rows}
-          createGetCellContent={createGetCellContent}
-          dataLoading={false}
-          showSearch={showSearch}
-          onSearchClose={() => setShowSearch(false)}
-          // define max height if there are lots of rows
-          height={rows.length > 10 ? 500 : undefined}
-          customRenderers={[
-            renderLinkCell,
-            renderLinkedWithCell,
-            renderSummaryChipCell,
-            renderChipCell,
-          ]}
+      {readonly ? (
+        <OutgoingLinksTable
+          outgoingLinksAndTargets={outgoingLinksAndTargets!}
         />
-      </Paper>
+      ) : (
+        <Paper sx={{ overflow: "hidden" }}>
+          <Grid
+            columns={linkGridColumns}
+            rows={rows}
+            createGetCellContent={createGetCellContent}
+            dataLoading={false}
+            showSearch={showSearch}
+            onSearchClose={() => setShowSearch(false)}
+            // define max height if there are lots of rows
+            height={rows.length > 10 ? 500 : undefined}
+            customRenderers={[
+              renderLinkCell,
+              renderLinkedWithCell,
+              renderSummaryChipCell,
+              renderChipCell,
+            ]}
+          />
+        </Paper>
+      )}
     </SectionWrapper>
   );
 };
