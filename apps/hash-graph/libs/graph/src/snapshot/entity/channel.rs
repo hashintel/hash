@@ -11,7 +11,7 @@ use futures::{
     stream::{BoxStream, SelectAll, select_all},
 };
 use graph_types::knowledge::entity::EntityUuid;
-use type_system::schema::EntityTypeId;
+use type_system::schema::EntityTypeUuid;
 
 use crate::{
     snapshot::{EntitySnapshotRecord, SnapshotRestoreError, entity::EntityRowBatch},
@@ -108,7 +108,7 @@ impl Sink<EntitySnapshotRecord> for EntitySender {
             self.is_of_type
                 .start_send_unpin(EntityIsOfTypeRow {
                     entity_edition_id: entity.metadata.record_id.edition_id,
-                    entity_type_ontology_id: EntityTypeId::from_url(is_of_type),
+                    entity_type_ontology_id: EntityTypeUuid::from_url(is_of_type),
                 })
                 .change_context(SnapshotRestoreError::Read)
                 .attach_printable("could not send entity type")?;

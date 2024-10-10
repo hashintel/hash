@@ -12,7 +12,7 @@ use futures::{
 };
 use type_system::{
     Valid,
-    schema::{DataTypeId, PropertyTypeId},
+    schema::{DataTypeUuid, PropertyTypeUuid},
 };
 
 use crate::{
@@ -39,7 +39,7 @@ pub struct PropertyTypeSender {
     schema: Sender<PropertyTypeRow>,
     constrains_values: Sender<Vec<PropertyTypeConstrainsValuesOnRow>>,
     constrains_properties: Sender<Vec<PropertyTypeConstrainsPropertiesOnRow>>,
-    relations: Sender<(PropertyTypeId, Vec<PropertyTypeRelationAndSubject>)>,
+    relations: Sender<(PropertyTypeUuid, Vec<PropertyTypeRelationAndSubject>)>,
 }
 
 // This is a direct wrapper around several `Sink<mpsc::Sender>` and `OntologyTypeMetadataSender`
@@ -71,7 +71,7 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
         mut self: Pin<&mut Self>,
         property_type: PropertyTypeSnapshotRecord,
     ) -> Result<(), Self::Error> {
-        let ontology_id = PropertyTypeId::from_url(&property_type.schema.id);
+        let ontology_id = PropertyTypeUuid::from_url(&property_type.schema.id);
 
         self.metadata
             .start_send_unpin(OntologyTypeMetadata {
@@ -89,7 +89,7 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
             .into_iter()
             .map(|data_type_ref| PropertyTypeConstrainsValuesOnRow {
                 source_property_type_ontology_id: ontology_id,
-                target_data_type_ontology_id: DataTypeId::from_url(&data_type_ref.url),
+                target_data_type_ontology_id: DataTypeUuid::from_url(&data_type_ref.url),
             })
             .collect();
         if !values.is_empty() {
@@ -105,7 +105,9 @@ impl Sink<PropertyTypeSnapshotRecord> for PropertyTypeSender {
             .into_iter()
             .map(|property_type_ref| PropertyTypeConstrainsPropertiesOnRow {
                 source_property_type_ontology_id: ontology_id,
-                target_property_type_ontology_id: PropertyTypeId::from_url(&property_type_ref.url),
+                target_property_type_ontology_id: PropertyTypeUuid::from_url(
+                    &property_type_ref.url,
+                ),
             })
             .collect();
         if !properties.is_empty() {

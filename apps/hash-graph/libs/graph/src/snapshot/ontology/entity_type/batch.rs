@@ -7,7 +7,7 @@ use error_stack::{Result, ResultExt};
 use futures::TryStreamExt;
 use postgres_types::{Json, ToSql};
 use tokio_postgres::GenericClient;
-use type_system::schema::{EntityType, EntityTypeId};
+use type_system::schema::{EntityType, EntityTypeUuid};
 
 use crate::{
     snapshot::WriteBatch,
@@ -27,7 +27,7 @@ pub enum EntityTypeRowBatch {
     ConstrainsProperties(Vec<EntityTypeConstrainsPropertiesOnRow>),
     ConstrainsLinks(Vec<EntityTypeConstrainsLinksOnRow>),
     ConstrainsLinkDestinations(Vec<EntityTypeConstrainsLinkDestinationsOnRow>),
-    Relations(HashMap<EntityTypeId, Vec<EntityTypeRelationAndSubject>>),
+    Relations(HashMap<EntityTypeUuid, Vec<EntityTypeRelationAndSubject>>),
     Embeddings(Vec<EntityTypeEmbeddingRow<'static>>),
 }
 
@@ -246,7 +246,7 @@ where
             .into_iter()
             .map(|insertion| {
                 (
-                    EntityTypeId::from_url(&insertion.schema.id).into_uuid(),
+                    EntityTypeUuid::from_url(&insertion.schema.id).into_uuid(),
                     Json(insertion.closed_schema),
                 )
             })

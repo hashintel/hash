@@ -7,7 +7,7 @@ use serde::Deserialize;
 use serde_json::{Number as JsonNumber, Value as JsonValue};
 use temporal_versioning::Timestamp;
 use type_system::{
-    schema::{DataTypeId, EntityTypeId, PropertyTypeId},
+    schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid},
     url::{OntologyTypeVersion, VersionedUrl},
 };
 use uuid::Uuid;
@@ -67,9 +67,9 @@ impl fmt::Display for ParameterType {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ParameterList<'p> {
-    DataTypeIds(&'p [DataTypeId]),
-    PropertyTypeIds(&'p [PropertyTypeId]),
-    EntityTypeIds(&'p [EntityTypeId]),
+    DataTypeIds(&'p [DataTypeUuid]),
+    PropertyTypeIds(&'p [PropertyTypeUuid]),
+    EntityTypeIds(&'p [EntityTypeUuid]),
     EntityEditionIds(&'p [EntityEditionId]),
 }
 

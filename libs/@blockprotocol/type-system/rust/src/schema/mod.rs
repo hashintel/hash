@@ -32,7 +32,7 @@ pub use self::{
         ClosedEntityType, ClosedEntityTypeSchemaData, EntityType, EntityTypeReference,
         EntityTypeValidationError, EntityTypeValidator,
     },
-    identifier::{DataTypeId, EntityTypeId, PropertyTypeId},
+    identifier::{DataTypeUuid, EntityTypeUuid, OntologyTypeUuid, PropertyTypeUuid},
     object::{
         ObjectSchemaValidationError, ObjectSchemaValidator, PropertyObjectSchema,
         PropertyValueObject,
