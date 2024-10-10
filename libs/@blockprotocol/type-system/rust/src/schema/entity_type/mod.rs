@@ -11,12 +11,47 @@ mod validation;
 
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
+#[cfg(feature = "postgres")]
+use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Serialize, Serializer};
+use utoipa::ToSchema;
+use uuid::Uuid;
 
 use crate::{
     schema::{PropertyTypeReference, PropertyValueArray, ValueOrArray, one_of::OneOfSchema},
     url::{BaseUrl, VersionedUrl},
 };
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[cfg_attr(feature = "utoipa", derive(ToSchema))]
+#[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
+#[repr(transparent)]
+pub struct EntityTypeId(Uuid);
+
+impl EntityTypeId {
+    #[must_use]
+    pub const fn new(uuid: Uuid) -> Self {
+        Self(uuid)
+    }
+
+    #[must_use]
+    pub fn from_url(url: &VersionedUrl) -> Self {
+        Self(Uuid::new_v5(
+            &Uuid::NAMESPACE_URL,
+            url.to_string().as_bytes(),
+        ))
+    }
+
+    #[must_use]
+    pub const fn as_uuid(&self) -> &Uuid {
+        &self.0
+    }
+
+    #[must_use]
+    pub const fn into_uuid(self) -> Uuid {
+        self.0
+    }
+}
 
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]

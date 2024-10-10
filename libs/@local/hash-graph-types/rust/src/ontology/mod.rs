@@ -21,8 +21,7 @@ use type_system::{
 pub use self::{
     data_type::{DataTypeMetadata, DataTypeWithMetadata, PartialDataTypeMetadata},
     entity_type::{
-        EntityTypeEmbedding, EntityTypeId, EntityTypeMetadata, EntityTypeWithMetadata,
-        PartialEntityTypeMetadata,
+        EntityTypeEmbedding, EntityTypeMetadata, EntityTypeWithMetadata, PartialEntityTypeMetadata,
     },
     property_type::{
         PartialPropertyTypeMetadata, PropertyTypeEmbedding, PropertyTypeId, PropertyTypeMetadata,

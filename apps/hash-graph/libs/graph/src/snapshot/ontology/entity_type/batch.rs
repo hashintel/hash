@@ -5,10 +5,9 @@ use authorization::{
 };
 use error_stack::{Result, ResultExt};
 use futures::TryStreamExt;
-use graph_types::ontology::EntityTypeId;
 use postgres_types::{Json, ToSql};
 use tokio_postgres::GenericClient;
-use type_system::schema::EntityType;
+use type_system::schema::{EntityType, EntityTypeId};
 
 use crate::{
     snapshot::WriteBatch,

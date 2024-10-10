@@ -11,11 +11,8 @@ use futures::{
     channel::mpsc::{self, Sender, UnboundedReceiver, UnboundedSender},
     stream::{BoxStream, SelectAll, select_all},
 };
-use graph_types::{
-    knowledge::entity::EntityUuid,
-    ontology::{EntityTypeId, PropertyTypeId},
-};
-use type_system::schema::DataTypeId;
+use graph_types::{knowledge::entity::EntityUuid, ontology::PropertyTypeId};
+use type_system::schema::{DataTypeId, EntityTypeId};
 
 use crate::{
     snapshot::{
