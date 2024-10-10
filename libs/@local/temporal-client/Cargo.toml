@@ -20,8 +20,8 @@ error-stack = { workspace = true }
 # Private third-party dependencies
 serde = { workspace = true }
 serde_json = { workspace = true }
-temporal-io-client = { package = "temporal-client", git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }
-temporal-io-sdk-core-protos = { package = "temporal-sdk-core-protos", git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }
+temporal-io-client = { workspace = true }
+temporal-io-sdk-core-protos = { workspace = true }
 thiserror = { workspace = true }
 url = { workspace = true, default-features = false }
 uuid = { workspace = true, features = ["v4"] }
