@@ -15,7 +15,7 @@ use graph_types::{
     knowledge::entity::{Entity, EntityId},
     ontology::{
         DataTypeProvider, DataTypeWithMetadata, EntityTypeProvider, EntityTypeWithMetadata,
-        OntologyTypeProvider, PropertyTypeId, PropertyTypeProvider, PropertyTypeWithMetadata,
+        OntologyTypeProvider, PropertyTypeProvider, PropertyTypeWithMetadata,
     },
 };
 use hash_graph_store::{
@@ -29,7 +29,7 @@ use tokio_postgres::GenericClient;
 use type_system::{
     schema::{
         ClosedEntityType, ConversionDefinition, ConversionExpression, DataTypeId, EntityTypeId,
-        PropertyType,
+        PropertyType, PropertyTypeId,
     },
     url::{BaseUrl, VersionedUrl},
 };

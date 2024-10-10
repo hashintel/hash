@@ -2,10 +2,10 @@ use core::error::Error;
 
 use graph_types::{
     account::{AccountGroupId, AccountId},
-    ontology::PropertyTypeId,
     owned_by_id::OwnedById,
 };
 use serde::{Deserialize, Serialize};
+use type_system::schema::PropertyTypeId;
 use uuid::Uuid;
 
 use crate::{

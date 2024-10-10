@@ -1,9 +1,9 @@
 use core::fmt;
 
-use graph_types::ontology::{OntologyTypeRecordId, PropertyTypeId};
+use graph_types::ontology::OntologyTypeRecordId;
 use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
-use type_system::schema::{DataTypeId, EntityTypeId};
+use type_system::schema::{DataTypeId, EntityTypeId, PropertyTypeId};
 #[cfg(feature = "utoipa")]
 use utoipa::ToSchema;
 use uuid::Uuid;

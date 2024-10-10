@@ -5,11 +5,10 @@ use futures::{Stream, TryStreamExt};
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},
-    ontology::PropertyTypeId,
     owned_by_id::OwnedById,
 };
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use type_system::schema::{DataTypeId, EntityTypeId};
+use type_system::schema::{DataTypeId, EntityTypeId, PropertyTypeId};
 
 use crate::{
     AuthorizationApi,

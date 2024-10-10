@@ -2,12 +2,12 @@ use alloc::borrow::Cow;
 use core::{fmt, mem, str::FromStr};
 
 use error_stack::{Context, Report, ResultExt, bail};
-use graph_types::{Embedding, knowledge::entity::EntityEditionId, ontology::PropertyTypeId};
+use graph_types::{Embedding, knowledge::entity::EntityEditionId};
 use serde::Deserialize;
 use serde_json::{Number as JsonNumber, Value as JsonValue};
 use temporal_versioning::Timestamp;
 use type_system::{
-    schema::{DataTypeId, EntityTypeId},
+    schema::{DataTypeId, EntityTypeId, PropertyTypeId},
     url::{OntologyTypeVersion, VersionedUrl},
 };
 use uuid::Uuid;

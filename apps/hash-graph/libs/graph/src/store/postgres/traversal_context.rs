@@ -4,9 +4,7 @@ use std::collections::HashMap;
 use error_stack::Result;
 use graph_types::{
     knowledge::entity::{Entity, EntityEditionId},
-    ontology::{
-        DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeId, PropertyTypeWithMetadata,
-    },
+    ontology::{DataTypeWithMetadata, EntityTypeWithMetadata, PropertyTypeWithMetadata},
 };
 use hash_graph_store::{
     data_type::DataTypeQueryPath,
@@ -17,7 +15,7 @@ use hash_graph_store::{
     subgraph::{Subgraph, SubgraphRecord, edges::GraphResolveDepths, temporal_axes::VariableAxis},
 };
 use temporal_versioning::RightBoundedTemporalInterval;
-use type_system::schema::{DataTypeId, EntityTypeId};
+use type_system::schema::{DataTypeId, EntityTypeId, PropertyTypeId};
 
 use crate::store::{AsClient, PostgresStore, QueryError, crud::Read};
 

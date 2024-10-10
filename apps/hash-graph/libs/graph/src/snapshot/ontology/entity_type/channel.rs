@@ -10,10 +10,9 @@ use futures::{
     channel::mpsc::{self, Receiver, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };
-use graph_types::ontology::PropertyTypeId;
 use type_system::{
     Valid,
-    schema::{ClosedEntityType, EntityTypeId},
+    schema::{ClosedEntityType, EntityTypeId, PropertyTypeId},
 };
 
 use crate::{

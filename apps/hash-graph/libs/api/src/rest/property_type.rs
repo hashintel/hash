@@ -38,7 +38,7 @@ use graph::{
 use graph_types::{
     ontology::{
         OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeMetadata,
-        OntologyTypeReference, PropertyTypeEmbedding, PropertyTypeId, PropertyTypeMetadata,
+        OntologyTypeReference, PropertyTypeEmbedding, PropertyTypeMetadata,
         PropertyTypeWithMetadata, ProvidedOntologyEditionProvenance,
     },
     owned_by_id::OwnedById,
@@ -49,7 +49,7 @@ use serde::{Deserialize, Serialize};
 use temporal_client::TemporalClient;
 use time::OffsetDateTime;
 use type_system::{
-    schema::PropertyType,
+    schema::{PropertyType, PropertyTypeId},
     url::{OntologyTypeVersion, VersionedUrl},
 };
 use utoipa::{OpenApi, ToSchema};
