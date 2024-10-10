@@ -220,13 +220,9 @@ export const EntityGraphVisualizer = <T extends EntityForGraph>({
   const onEdgeClick = useCallback<
     NonNullable<GraphVisualizerProps["onEdgeClick"]>
   >(
-    ({ edgeId, isFullScreen }) => {
-      if (isFullScreen) {
-        return;
-      }
-
+    ({ edgeId, screenContainerRef }) => {
       if (isEntityId(edgeId)) {
-        onEntityClick?.(edgeId);
+        onEntityClick?.(edgeId, screenContainerRef);
       }
     },
     [onEntityClick],
