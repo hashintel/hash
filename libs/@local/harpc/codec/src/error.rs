@@ -49,8 +49,7 @@ macro_rules! define_error_code_consts {
     };
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(feature = "serde", derive(serde::Serialize))]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize)]
 #[cfg_attr(feature = "proptest", derive(test_strategy::Arbitrary))]
 pub struct ErrorCode(NonZero<u16>);
 
@@ -66,7 +65,6 @@ impl ErrorCode {
     }
 }
 
-#[cfg(feature = "serde")]
 impl<'de> serde::Deserialize<'de> for ErrorCode {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where

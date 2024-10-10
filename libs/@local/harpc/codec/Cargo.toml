@@ -15,7 +15,7 @@ error-stack = { workspace = true, public = true, features = ["serde"] }
 # Public third-party dependencies
 bytes = { workspace = true, public = true }
 futures-core = { workspace = true, public = true }
-serde = { workspace = true, public = true }
+serde = { workspace = true, public = true, features = ["derive"]}
 
 # Private workspace dependencies
 proptest = { workspace = true, optional = true }
@@ -36,4 +36,3 @@ workspace = true
 [features]
 proptest = ["dep:proptest", "dep:test-strategy"]
 json = ["dep:serde_json", "dep:pin-project-lite", "dep:futures-util", "dep:memchr"]
-serde = ["serde/derive"]

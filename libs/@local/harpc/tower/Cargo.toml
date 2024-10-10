@@ -39,7 +39,7 @@ harpc-net = { workspace = true, features = ["test-utils"] }
 tokio-util = { workspace = true, features = ["time"] }
 tower-test = { workspace = true }
 tokio-test = { workspace = true }
-harpc-codec = { workspace = true, features = ["json", "serde"] }
+harpc-codec = { workspace = true, features = ["json"] }
 insta.workspace = true
 
 [lints]
