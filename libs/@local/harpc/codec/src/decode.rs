@@ -18,8 +18,6 @@ pub trait ErrorDecoder {
     type Error;
     /// Type of recovery information.
     ///
-    /// # Description
-    ///
     /// This type represents recovery information used when error encoding fails.
     /// During error encoding with `serde`, failures can occur. To prevent a complete
     /// encoding process failure and ensure some error information reaches the user,
