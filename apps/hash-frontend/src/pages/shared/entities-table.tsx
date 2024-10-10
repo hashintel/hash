@@ -211,7 +211,12 @@ export const EntitiesTable: FunctionComponent<{
           !isPageEntityTypeId(entity.metadata.entityTypeId)
             ? true
             : simplifyProperties(entity.properties as PageProperties)
-                .archived !== true),
+                .archived !== true) &&
+          (filterState.limitToWebs
+            ? filterState.limitToWebs.includes(
+                extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId),
+              )
+            : true),
       ),
     [entities, filterState, internalWebIds],
   );
@@ -758,7 +763,7 @@ export const EntitiesTable: FunctionComponent<{
         {view === "Graph" && subgraph ? (
           <Box height={maximumTableHeight}>
             <EntityGraphVisualizer
-              entities={entities}
+              entities={filteredEntities}
               isPrimaryEntity={isPrimaryEntity}
               filterEntity={filterEntity}
               onEntityClick={handleEntityClick}
