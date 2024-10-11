@@ -897,7 +897,7 @@ where
         let closed_schema = data_type_validator
             .validate(
                 ClosedDataType::from_resolve_data(schema.clone().into_inner(), &resolve_data)
-                    .change_context(InsertionError)?,
+                    .change_context(UpdateError)?,
             )
             .await
             .change_context(UpdateError)?;
