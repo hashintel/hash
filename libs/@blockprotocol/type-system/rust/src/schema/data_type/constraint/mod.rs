@@ -7,7 +7,7 @@ mod number;
 mod object;
 mod string;
 
-use error_stack::Report;
+use error_stack::{Report, bail};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
@@ -24,9 +24,21 @@ pub use self::{
         StringValidationError,
     },
 };
-use crate::schema::ValueLabel;
+use crate::schema::{ValueLabel, data_type::closed::ResolveClosedDataTypeError};
 
-pub trait Constraint<V: ?Sized>: Sized {
+pub trait Constraint: Sized {
+    /// Combines the current constraints with the provided one.
+    ///
+    /// If the constraints cannot be combined completely, the method will return the remaining
+    /// constraints that could not be combined, otherwise `None`.
+    ///
+    /// # Errors
+    ///
+    /// If the constraints exclude each other, an error is returned.
+    fn combine(&mut self, other: Self) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>>;
+}
+
+pub trait ConstraintValidator<V: ?Sized>: Constraint {
     type Error: ?Sized;
 
     /// Checks if the provided value is valid against this constraint.
@@ -61,7 +73,51 @@ pub enum ValueConstraints {
     AnyOf(AnyOfConstraints),
 }
 
-impl Constraint<JsonValue> for ValueConstraints {
+impl ValueConstraints {
+    pub fn fold_intersections(
+        schemas: impl IntoIterator<Item = Self>,
+    ) -> Result<Vec<Self>, Report<ResolveClosedDataTypeError>> {
+        schemas
+            .into_iter()
+            .try_fold(vec![], |mut acc, constraints| {
+                if acc.is_empty() {
+                    acc.push(constraints);
+                    return Ok(acc);
+                }
+
+                let mut remainder = Some(constraints);
+                for current in &mut acc {
+                    let Some(new) = remainder.take() else { break };
+                    remainder = current.combine(new)?;
+                }
+                if let Some(remainder) = remainder {
+                    acc.push(remainder);
+                }
+                Ok::<_, Report<ResolveClosedDataTypeError>>(acc)
+            })
+    }
+}
+
+impl Constraint for ValueConstraints {
+    fn combine(&mut self, other: Self) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
+        Ok(match (self, other) {
+            (Self::Typed(lhs), Self::Typed(rhs)) => lhs.combine(rhs)?.map(Self::Typed),
+            (Self::AnyOf(_), Self::Typed(typed)) => {
+                // TODO: Implement folding for anyOf constraints
+                //   see https://linear.app/hash/issue/H-3430/implement-folding-for-anyof-constraints
+                Some(Self::Typed(typed))
+            }
+            (Self::Typed(_), Self::AnyOf(any_of)) => {
+                // TODO: Implement folding for anyOf constraints
+                //   see https://linear.app/hash/issue/H-3430/implement-folding-for-anyof-constraints
+                Some(Self::AnyOf(any_of))
+            }
+            (Self::AnyOf(lhs), Self::AnyOf(rhs)) => lhs.combine(rhs)?.map(Self::AnyOf),
+        })
+    }
+}
+
+impl ConstraintValidator<JsonValue> for ValueConstraints {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &JsonValue) -> bool {
@@ -91,7 +147,21 @@ pub enum SingleValueConstraints {
     Object(ObjectSchema),
 }
 
-impl Constraint<JsonValue> for SingleValueConstraints {
+impl Constraint for SingleValueConstraints {
+    fn combine(&mut self, other: Self) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
+        Ok(match (self, other) {
+            (Self::Null(lhs), Self::Null(rhs)) => lhs.combine(rhs)?.map(Self::Null),
+            (Self::Boolean(lhs), Self::Boolean(rhs)) => lhs.combine(rhs)?.map(Self::Boolean),
+            (Self::Number(lhs), Self::Number(rhs)) => lhs.combine(rhs)?.map(Self::Number),
+            (Self::String(lhs), Self::String(rhs)) => lhs.combine(rhs)?.map(Self::String),
+            (Self::Array(lhs), Self::Array(rhs)) => lhs.combine(rhs)?.map(Self::Array),
+            (Self::Object(lhs), Self::Object(rhs)) => lhs.combine(rhs)?.map(Self::Object),
+            _ => bail!(ResolveClosedDataTypeError::IntersectedDifferentTypes),
+        })
+    }
+}
+
+impl ConstraintValidator<JsonValue> for SingleValueConstraints {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &JsonValue) -> bool {
@@ -158,7 +228,7 @@ mod tests {
     use error_stack::Frame;
     use serde_json::Value as JsonValue;
 
-    use crate::schema::data_type::constraint::{Constraint, ValueConstraints};
+    use crate::schema::data_type::constraint::{ConstraintValidator, ValueConstraints};
 
     pub(crate) fn read_schema(schema: &JsonValue) -> ValueConstraints {
         let parsed = serde_json::from_value(schema.clone()).expect("Failed to parse schema");

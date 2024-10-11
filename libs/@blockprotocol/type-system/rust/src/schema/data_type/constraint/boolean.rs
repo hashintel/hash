@@ -2,7 +2,10 @@ use error_stack::{Report, bail};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
-use crate::schema::{Constraint, ConstraintError, JsonSchemaValueType};
+use crate::schema::{
+    ConstraintError, ConstraintValidator, JsonSchemaValueType,
+    data_type::{closed::ResolveClosedDataTypeError, constraint::Constraint},
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -16,7 +19,16 @@ pub enum BooleanTypeTag {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct BooleanSchema;
 
-impl Constraint<JsonValue> for BooleanSchema {
+impl Constraint for BooleanSchema {
+    fn combine(
+        &mut self,
+        _other: Self,
+    ) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
+        Ok(None)
+    }
+}
+
+impl ConstraintValidator<JsonValue> for BooleanSchema {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &JsonValue) -> bool {

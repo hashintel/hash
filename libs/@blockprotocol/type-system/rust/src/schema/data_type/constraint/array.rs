@@ -6,7 +6,10 @@ use thiserror::Error;
 
 use crate::schema::{
     ConstraintError, JsonSchemaValueType, NumberSchema, StringSchema, ValueLabel,
-    data_type::constraint::{Constraint, boolean::BooleanSchema},
+    data_type::{
+        closed::ResolveClosedDataTypeError,
+        constraint::{Constraint, ConstraintValidator, boolean::BooleanSchema},
+    },
 };
 
 #[derive(Debug, Error)]
@@ -43,7 +46,18 @@ pub enum ArrayItemConstraints {
     String(StringSchema),
 }
 
-impl Constraint<JsonValue> for ArrayItemConstraints {
+impl Constraint for ArrayItemConstraints {
+    fn combine(&mut self, other: Self) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
+        Ok(match (self, other) {
+            (Self::Boolean(lhs), Self::Boolean(rhs)) => lhs.combine(rhs)?.map(Self::Boolean),
+            (Self::Number(lhs), Self::Number(rhs)) => lhs.combine(rhs)?.map(Self::Number),
+            (Self::String(lhs), Self::String(rhs)) => lhs.combine(rhs)?.map(Self::String),
+            _ => bail!(ResolveClosedDataTypeError::IntersectedDifferentTypes),
+        })
+    }
+}
+
+impl ConstraintValidator<JsonValue> for ArrayItemConstraints {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &JsonValue) -> bool {
@@ -104,7 +118,28 @@ pub enum ArraySchema {
     Tuple(TupleConstraints),
 }
 
-impl Constraint<JsonValue> for ArraySchema {
+impl Constraint for ArraySchema {
+    fn combine(&mut self, other: Self) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
+        Ok(match (self, other) {
+            (Self::Constrained(lhs), Self::Constrained(rhs)) => {
+                lhs.combine(rhs)?.map(Self::Constrained)
+            }
+            (Self::Tuple(_), Self::Constrained(typed)) => {
+                // TODO: Implement folding for array constraints
+                //   see https://linear.app/hash/issue/H-3429/implement-folding-for-array-constraints
+                Some(Self::Constrained(typed))
+            }
+            (Self::Constrained(_), Self::Tuple(any_of)) => {
+                // TODO: Implement folding for array constraints
+                //   see https://linear.app/hash/issue/H-3429/implement-folding-for-array-constraints
+                Some(Self::Tuple(any_of))
+            }
+            (Self::Tuple(lhs), Self::Tuple(rhs)) => lhs.combine(rhs)?.map(Self::Tuple),
+        })
+    }
+}
+
+impl ConstraintValidator<JsonValue> for ArraySchema {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &JsonValue) -> bool {
@@ -127,7 +162,7 @@ impl Constraint<JsonValue> for ArraySchema {
     }
 }
 
-impl Constraint<[JsonValue]> for ArraySchema {
+impl ConstraintValidator<[JsonValue]> for ArraySchema {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &[JsonValue]) -> bool {
@@ -158,7 +193,15 @@ pub struct ArrayConstraints {
     pub items: Option<ArrayItemsSchema>,
 }
 
-impl Constraint<[JsonValue]> for ArrayConstraints {
+impl Constraint for ArrayConstraints {
+    fn combine(&mut self, other: Self) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
+        // TODO: Implement folding for array constraints
+        //   see https://linear.app/hash/issue/H-3429/implement-folding-for-array-constraints
+        Ok(Some(other))
+    }
+}
+
+impl ConstraintValidator<[JsonValue]> for ArrayConstraints {
     type Error = [ArrayValidationError];
 
     fn is_valid(&self, value: &[JsonValue]) -> bool {
@@ -198,7 +241,15 @@ pub struct TupleConstraints {
     pub prefix_items: Vec<ArrayItemsSchema>,
 }
 
-impl Constraint<[JsonValue]> for TupleConstraints {
+impl Constraint for TupleConstraints {
+    fn combine(&mut self, other: Self) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
+        // TODO: Implement folding for array constraints
+        //   see https://linear.app/hash/issue/H-3429/implement-folding-for-array-constraints
+        Ok(Some(other))
+    }
+}
+
+impl ConstraintValidator<[JsonValue]> for TupleConstraints {
     type Error = [ArrayValidationError];
 
     fn is_valid(&self, value: &[JsonValue]) -> bool {

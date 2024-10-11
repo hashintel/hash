@@ -2,7 +2,13 @@ use error_stack::{Report, ReportSink, ResultExt};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
-use crate::schema::{ConstraintError, SingleValueSchema, data_type::constraint::Constraint};
+use crate::schema::{
+    ConstraintError, SingleValueSchema,
+    data_type::{
+        closed::ResolveClosedDataTypeError,
+        constraint::{Constraint, ConstraintValidator},
+    },
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -15,7 +21,15 @@ pub struct AnyOfConstraints {
     pub any_of: Vec<SingleValueSchema>,
 }
 
-impl Constraint<JsonValue> for AnyOfConstraints {
+impl Constraint for AnyOfConstraints {
+    fn combine(&mut self, other: Self) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
+        // TODO: Implement folding for anyOf constraints
+        //   see https://linear.app/hash/issue/H-3430/implement-folding-for-anyof-constraints
+        Ok(Some(other))
+    }
+}
+
+impl ConstraintValidator<JsonValue> for AnyOfConstraints {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &JsonValue) -> bool {
