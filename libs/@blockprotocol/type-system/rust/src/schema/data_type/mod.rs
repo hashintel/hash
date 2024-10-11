@@ -2,7 +2,7 @@ mod constraint;
 mod conversion;
 
 pub use self::{
-    closed::{ClosedDataType, DataTypeInheritanceData, InheritanceDepth},
+    closed::{ClosedDataType, DataTypeResolveData, InheritanceDepth, ResolvedDataType},
     constraint::{
         AnyOfConstraints, ArrayConstraints, ArraySchema, ArrayTypeTag, ArrayValidationError,
         BooleanSchema, BooleanTypeTag, Constraint, ConstraintError, NullSchema, NullTypeTag,
@@ -24,7 +24,7 @@ mod closed;
 mod reference;
 mod validation;
 
-use alloc::sync::Arc;
+use alloc::{collections::BTreeSet, sync::Arc};
 use core::{fmt, mem};
 use std::collections::{HashMap, HashSet};
 
@@ -140,16 +140,34 @@ pub enum DataTypeSchemaTag {
     V3,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
+#[serde(rename_all = "camelCase", deny_unknown_fields)]
+pub struct ValueSchemaMetadata {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub description: Option<String>,
+    #[serde(default, skip_serializing_if = "ValueLabel::is_empty")]
+    pub label: ValueLabel,
+}
+
+impl ValueSchemaMetadata {
+    #[must_use]
+    pub const fn is_empty(&self) -> bool {
+        self.description.is_none() && self.label.is_empty()
+    }
+}
+
 mod raw {
+    use alloc::collections::BTreeSet;
     use std::collections::HashSet;
 
     use serde::{Deserialize, Serialize};
 
-    use super::{DataTypeSchemaTag, DataTypeTag};
+    use super::{DataTypeSchemaTag, DataTypeTag, ValueSchemaMetadata};
     use crate::{
         schema::{
             ArrayTypeTag, BooleanTypeTag, DataTypeReference, NullSchema, NullTypeTag,
-            NumberTypeTag, ObjectTypeTag, StringTypeTag, ValueLabel,
+            NumberTypeTag, ObjectTypeTag, StringTypeTag,
             data_type::constraint::{
                 AnyOfConstraints, ArrayConstraints, ArraySchema, BooleanSchema, NumberConstraints,
                 NumberSchema, ObjectConstraints, ObjectSchema, SingleValueConstraints,
@@ -162,7 +180,7 @@ mod raw {
     #[derive(Serialize, Deserialize)]
     #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
     #[serde(rename_all = "camelCase", deny_unknown_fields)]
-    pub struct ValueSchemaMetadata {
+    pub struct DataTypeBase {
         #[serde(rename = "$schema")]
         schema: DataTypeSchemaTag,
         kind: DataTypeTag,
@@ -171,12 +189,8 @@ mod raw {
         title: String,
         #[serde(default, skip_serializing_if = "Option::is_none")]
         title_plural: Option<String>,
-        #[serde(default, skip_serializing_if = "Option::is_none")]
-        description: Option<String>,
-        #[serde(default, skip_serializing_if = "ValueLabel::is_empty")]
-        label: ValueLabel,
-        #[serde(default, skip_serializing_if = "Vec::is_empty")]
-        all_of: Vec<DataTypeReference>,
+        #[serde(default, skip_serializing_if = "BTreeSet::is_empty")]
+        all_of: BTreeSet<DataTypeReference>,
 
         #[serde(default)]
         r#abstract: bool,
@@ -188,75 +202,99 @@ mod raw {
         Null {
             r#type: NullTypeTag,
             #[serde(flatten)]
-            common: ValueSchemaMetadata,
+            base: DataTypeBase,
+            #[serde(flatten)]
+            metadata: ValueSchemaMetadata,
         },
         Boolean {
             r#type: BooleanTypeTag,
             #[serde(flatten)]
-            common: ValueSchemaMetadata,
+            base: DataTypeBase,
+            #[serde(flatten)]
+            metadata: ValueSchemaMetadata,
         },
         Number {
             r#type: NumberTypeTag,
             #[serde(flatten)]
-            common: ValueSchemaMetadata,
+            base: DataTypeBase,
+            #[serde(flatten)]
+            metadata: ValueSchemaMetadata,
             #[serde(flatten)]
             constraints: NumberConstraints,
         },
         NumberConst {
             r#type: NumberTypeTag,
             #[serde(flatten)]
-            common: ValueSchemaMetadata,
+            base: DataTypeBase,
+            #[serde(flatten)]
+            metadata: ValueSchemaMetadata,
             r#const: f64,
         },
         NumberEnum {
             r#type: NumberTypeTag,
             #[serde(flatten)]
-            common: ValueSchemaMetadata,
+            base: DataTypeBase,
+            #[serde(flatten)]
+            metadata: ValueSchemaMetadata,
             r#enum: Vec<f64>,
         },
         String {
             r#type: StringTypeTag,
             #[serde(flatten)]
-            common: ValueSchemaMetadata,
+            base: DataTypeBase,
+            #[serde(flatten)]
+            metadata: ValueSchemaMetadata,
             #[serde(flatten)]
             constraints: StringConstraints,
         },
         StringConst {
             r#type: StringTypeTag,
             #[serde(flatten)]
-            common: ValueSchemaMetadata,
+            base: DataTypeBase,
+            #[serde(flatten)]
+            metadata: ValueSchemaMetadata,
             r#const: String,
         },
         StringEnum {
             r#type: StringTypeTag,
             #[serde(flatten)]
-            common: ValueSchemaMetadata,
+            base: DataTypeBase,
+            #[serde(flatten)]
+            metadata: ValueSchemaMetadata,
             r#enum: HashSet<String>,
         },
         Object {
             r#type: ObjectTypeTag,
             #[serde(flatten)]
-            common: ValueSchemaMetadata,
+            base: DataTypeBase,
+            #[serde(flatten)]
+            metadata: ValueSchemaMetadata,
             #[serde(flatten)]
             constraints: ObjectConstraints,
         },
         Array {
             r#type: ArrayTypeTag,
             #[serde(flatten)]
-            common: ValueSchemaMetadata,
+            base: DataTypeBase,
+            #[serde(flatten)]
+            metadata: ValueSchemaMetadata,
             #[serde(flatten)]
             constraints: ArrayConstraints,
         },
         Tuple {
             r#type: ArrayTypeTag,
             #[serde(flatten)]
-            common: ValueSchemaMetadata,
+            base: DataTypeBase,
+            #[serde(flatten)]
+            metadata: ValueSchemaMetadata,
             #[serde(flatten)]
             constraints: TupleConstraints,
         },
         AnyOf {
             #[serde(flatten)]
-            common: ValueSchemaMetadata,
+            base: DataTypeBase,
+            #[serde(flatten)]
+            metadata: ValueSchemaMetadata,
             #[serde(flatten)]
             constraints: AnyOfConstraints,
         },
@@ -275,9 +313,11 @@ mod raw {
         enum DataType {
             Schema {
                 #[serde(flatten)]
-                common: ValueSchemaMetadata,
+                common: DataTypeBase,
                 #[serde(flatten)]
                 constraints: ValueConstraints,
+                #[serde(flatten)]
+                metadata: ValueSchemaMetadata,
             },
         }
     }
@@ -291,121 +331,150 @@ mod raw {
                       little benefit."
         )]
         fn from(value: DataType) -> Self {
-            let (common, constraints) = match value {
-                DataType::Null { r#type: _, common } => (
-                    common,
+            let (base, metadata, constraints) = match value {
+                DataType::Null {
+                    r#type: _,
+                    base,
+                    metadata,
+                } => (
+                    base,
+                    metadata,
                     ValueConstraints::Typed(SingleValueConstraints::Null(NullSchema)),
                 ),
-                DataType::Boolean { r#type: _, common } => (
-                    common,
+                DataType::Boolean {
+                    r#type: _,
+                    base,
+                    metadata,
+                } => (
+                    base,
+                    metadata,
                     ValueConstraints::Typed(SingleValueConstraints::Boolean(BooleanSchema)),
                 ),
                 DataType::Number {
                     r#type: _,
-                    common,
+                    base,
+                    metadata,
                     constraints,
                 } => (
-                    common,
+                    base,
+                    metadata,
                     ValueConstraints::Typed(SingleValueConstraints::Number(
                         NumberSchema::Constrained(constraints),
                     )),
                 ),
                 DataType::NumberConst {
                     r#type: _,
-                    common,
+                    base,
+                    metadata,
                     r#const,
                 } => (
-                    common,
+                    base,
+                    metadata,
                     ValueConstraints::Typed(SingleValueConstraints::Number(NumberSchema::Const {
                         r#const,
                     })),
                 ),
                 DataType::NumberEnum {
                     r#type: _,
-                    common,
+                    base,
+                    metadata,
                     r#enum,
                 } => (
-                    common,
+                    base,
+                    metadata,
                     ValueConstraints::Typed(SingleValueConstraints::Number(NumberSchema::Enum {
                         r#enum,
                     })),
                 ),
                 DataType::String {
                     r#type: _,
-                    common,
+                    base,
+                    metadata,
                     constraints,
                 } => (
-                    common,
+                    base,
+                    metadata,
                     ValueConstraints::Typed(SingleValueConstraints::String(
                         StringSchema::Constrained(constraints),
                     )),
                 ),
                 DataType::StringConst {
                     r#type: _,
-                    common,
+                    base,
+                    metadata,
                     r#const,
                 } => (
-                    common,
+                    base,
+                    metadata,
                     ValueConstraints::Typed(SingleValueConstraints::String(StringSchema::Const {
                         r#const,
                     })),
                 ),
                 DataType::StringEnum {
                     r#type: _,
-                    common,
+                    base,
+                    metadata,
                     r#enum,
                 } => (
-                    common,
+                    base,
+                    metadata,
                     ValueConstraints::Typed(SingleValueConstraints::String(StringSchema::Enum {
                         r#enum,
                     })),
                 ),
                 DataType::Object {
                     r#type: _,
-                    common,
+                    base,
+                    metadata,
                     constraints,
                 } => (
-                    common,
+                    base,
+                    metadata,
                     ValueConstraints::Typed(SingleValueConstraints::Object(
                         ObjectSchema::Constrained(constraints),
                     )),
                 ),
                 DataType::Array {
                     r#type: _,
-                    common,
+                    base,
+                    metadata,
                     constraints,
                 } => (
-                    common,
+                    base,
+                    metadata,
                     ValueConstraints::Typed(SingleValueConstraints::Array(
                         ArraySchema::Constrained(constraints),
                     )),
                 ),
                 DataType::Tuple {
                     r#type: _,
-                    common,
+                    base,
+                    metadata,
                     constraints,
                 } => (
-                    common,
+                    base,
+                    metadata,
                     ValueConstraints::Typed(SingleValueConstraints::Array(ArraySchema::Tuple(
                         constraints,
                     ))),
                 ),
                 DataType::AnyOf {
-                    common,
+                    base,
+                    metadata,
                     constraints: any_of,
-                } => (common, ValueConstraints::AnyOf(any_of)),
+                } => (base, metadata, ValueConstraints::AnyOf(any_of)),
             };
 
             Self {
-                schema: common.schema,
-                kind: common.kind,
-                id: common.id,
-                title: common.title,
-                title_plural: common.title_plural,
-                description: common.description,
-                label: common.label,
-                all_of: common.all_of,
-                r#abstract: common.r#abstract,
+                schema: base.schema,
+                kind: base.kind,
+                id: base.id,
+                title: base.title,
+                title_plural: base.title_plural,
+                description: metadata.description,
+                label: metadata.label,
+                all_of: base.all_of,
+                r#abstract: base.r#abstract,
                 constraints,
             }
         }
@@ -427,8 +496,10 @@ pub struct DataType {
     pub description: Option<String>,
     #[serde(default, skip_serializing_if = "ValueLabel::is_empty")]
     pub label: ValueLabel,
-    #[serde(skip_serializing_if = "Vec::is_empty")]
-    pub all_of: Vec<DataTypeReference>,
+    // Lexicographically ordered so we have a deterministic order for inheriting parent
+    // schemas.
+    #[serde(skip_serializing_if = "BTreeSet::is_empty")]
+    pub all_of: BTreeSet<DataTypeReference>,
 
     pub r#abstract: bool,
     #[serde(flatten)]
@@ -460,10 +531,10 @@ pub enum DataTypeResolveError {
     MissingDataTypes,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug)]
 struct DataTypeCacheEntry {
-    pub data_type: Arc<DataType>,
-    pub metadata: Option<Arc<DataTypeInheritanceData>>,
+    data_type: Arc<DataType>,
+    resolve_data: Option<Arc<DataTypeResolveData>>,
 }
 
 #[derive(Debug, Default)]
@@ -472,7 +543,7 @@ pub struct OntologyTypeResolver {
 }
 
 impl OntologyTypeResolver {
-    pub fn add_open(&mut self, data_type_id: DataTypeId, data_type: Arc<DataType>) {
+    pub fn add_unresolved(&mut self, data_type_id: DataTypeId, data_type: Arc<DataType>) {
         debug_assert_eq!(
             data_type_id,
             DataTypeId::from_url(&data_type.id),
@@ -480,9 +551,9 @@ impl OntologyTypeResolver {
         );
         self.data_types
             .entry(data_type_id)
-            .or_insert_with(|| DataTypeCacheEntry {
+            .or_insert(DataTypeCacheEntry {
                 data_type,
-                metadata: None,
+                resolve_data: None,
             });
     }
 
@@ -490,32 +561,25 @@ impl OntologyTypeResolver {
         &mut self,
         data_type_id: DataTypeId,
         data_type: Arc<DataType>,
-        metadata: Arc<DataTypeInheritanceData>,
+        metadata: Arc<DataTypeResolveData>,
     ) {
-        debug_assert_eq!(
-            data_type_id,
-            DataTypeId::from_url(&data_type.id),
-            "The data type ID must match the URL"
-        );
-        self.data_types
-            .insert(DataTypeId::from_url(&data_type.id), DataTypeCacheEntry {
-                data_type,
-                metadata: Some(metadata),
-            });
+        self.data_types.insert(data_type_id, DataTypeCacheEntry {
+            data_type,
+            resolve_data: Some(metadata),
+        });
     }
 
-    pub fn update_metadata(
+    fn close(
         &mut self,
         data_type_id: DataTypeId,
-        metadata: Arc<DataTypeInheritanceData>,
-    ) -> Option<Arc<DataTypeInheritanceData>> {
-        self.data_types
+        metadata: Arc<DataTypeResolveData>,
+    ) -> Result<(), DataTypeResolveError> {
+        let data_type_entry = self
+            .data_types
             .get_mut(&data_type_id)
-            .map(|entry| Arc::clone(entry.metadata.insert(metadata)))
-    }
-
-    fn get(&self, id: DataTypeId) -> Option<&DataTypeCacheEntry> {
-        self.data_types.get(&id)
+            .ok_or(DataTypeResolveError::UnknownDataTypeId)?;
+        data_type_entry.resolve_data = Some(metadata);
+        Ok(())
     }
 
     /// Resolves the metadata for the given data types.
@@ -529,37 +593,27 @@ impl OntologyTypeResolver {
     pub fn resolve_data_type_metadata(
         &mut self,
         data_type_id: DataTypeId,
-    ) -> Result<Arc<DataTypeInheritanceData>, Report<DataTypeResolveError>> {
-        let Some(data_type_entry) = self.get(data_type_id) else {
+    ) -> Result<Arc<DataTypeResolveData>, Report<DataTypeResolveError>> {
+        let Some(data_type_entry) = self.data_types.get(&data_type_id) else {
             bail!(DataTypeResolveError::UnknownDataTypeId);
         };
 
-        if let Some(metadata) = &data_type_entry.metadata {
-            // If the metadata is already resolved, we can return it immediately.
-            return Ok(Arc::clone(metadata));
-        }
+        let data_type = Arc::clone(&data_type_entry.data_type);
 
         // We add all requested types to the cache to ensure that we can resolve all types. The
         // cache will be updated with the resolved metadata. We extract the IDs so that we can
         // resolve the metadata in the correct order.
         // Double buffering is used to avoid unnecessary allocations.
         let mut data_types_to_resolve = Vec::new();
-        let mut next_data_types_to_resolve = vec![Arc::clone(&data_type_entry.data_type)];
+        let mut next_data_types_to_resolve = vec![data_type];
 
         // We keep a list of all schemas that are missing from the cache. If we encounter a schema
         // that is not in the cache, we add it to this list. If we are unable to resolve all
         // schemas, we return an error with this list.
         let mut missing_schemas = HashSet::new();
 
-        // We also keep a list of all schemas that we already processed. This is used to prevent
-        // infinite loops in the inheritance chain. New values are added to this list as we add new
-        // schemas to resolve.
-        let mut processed_schemas = HashSet::from([data_type_id]);
-
         // The currently closed schema being resolved. This can be used later to resolve
-        let mut in_progress_schema = DataTypeInheritanceData {
-            inheritance_depths: HashMap::new(),
-        };
+        let mut in_progress_schema = DataTypeResolveData::default();
 
         let mut current_depth = 0;
         while !next_data_types_to_resolve.is_empty() {
@@ -570,16 +624,8 @@ impl OntologyTypeResolver {
                           See https://github.com/rust-lang/rust-clippy/issues/8539"
             )]
             for data_type in data_types_to_resolve.drain(..) {
-                let data_type_id = DataTypeId::from_url(&data_type.id);
                 for (data_type_reference, edge) in data_type.data_type_references() {
                     let data_type_reference_id = DataTypeId::from_url(&data_type_reference.url);
-                    if processed_schemas.contains(&data_type_reference_id) {
-                        // We ignore the already processed schemas to prevent infinite loops.
-                        continue;
-                    }
-
-                    in_progress_schema.add_edge(edge, data_type_reference_id, current_depth);
-                    processed_schemas.insert(data_type_reference_id);
 
                     let Some(data_type_entry) = self.data_types.get(&data_type_reference_id) else {
                         // If the data type is not in the cache, we add it to the list of missing
@@ -588,21 +634,16 @@ impl OntologyTypeResolver {
                         continue;
                     };
 
-                    if let Some(metadata) = &data_type_entry.metadata {
-                        // If the metadata is already resolved, we can reuse it.
-                        for (data_type_ref, depth) in &metadata.inheritance_depths {
-                            if data_type_id != *data_type_ref {
-                                in_progress_schema.add_edge(
-                                    edge,
-                                    *data_type_ref,
-                                    depth.inner() + current_depth + 1,
-                                );
-                            }
-                        }
+                    in_progress_schema.add_edge(
+                        edge,
+                        Arc::clone(&data_type_entry.data_type),
+                        data_type_reference_id,
+                        current_depth,
+                    );
+
+                    if let Some(resolve_data) = &data_type_entry.resolve_data {
+                        in_progress_schema.extend_edges(current_depth + 1, resolve_data);
                     } else {
-                        // We encountered a schema that we haven't resolved yet. We add it to the
-                        // list of schemas to find and update the inheritance depth of the current
-                        // type.
                         next_data_types_to_resolve.push(Arc::clone(&data_type_entry.data_type));
                     }
                 }
@@ -614,57 +655,14 @@ impl OntologyTypeResolver {
         if missing_schemas.is_empty() {
             // We create the resolved metadata for the current data type and update the cache so
             // that we don't need to resolve it again.
-            Ok(self
-                .update_metadata(data_type_id, Arc::new(in_progress_schema))
-                .unwrap_or_else(|| {
-                    unreachable!(
-                        "The data type was removed from the cache while resolving the metadata"
-                    )
-                }))
+            let in_progress_schema = Arc::new(in_progress_schema);
+            self.close(data_type_id, Arc::clone(&in_progress_schema))?;
+            Ok(in_progress_schema)
         } else {
             Err(Report::from(DataTypeResolveError::MissingSchemas {
                 schemas: missing_schemas,
             }))
         }
-    }
-
-    /// Returns the closed data type for the given data type.
-    ///
-    /// This method returns the closed data type for the given data type. The closed data type
-    /// includes the schema of the data type and all its parents.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the closed data type could not be resolved.
-    pub fn get_closed_data_type(
-        &self,
-        data_type_id: DataTypeId,
-    ) -> Result<ClosedDataType, Report<DataTypeResolveError>> {
-        let Some(data_type_entry) = self.get(data_type_id) else {
-            bail!(DataTypeResolveError::UnknownDataTypeId);
-        };
-
-        let metadata = data_type_entry
-            .metadata
-            .as_ref()
-            .ok_or_else(|| DataTypeResolveError::MissingClosedDataType)?;
-
-        Ok(ClosedDataType {
-            schema: Arc::clone(&data_type_entry.data_type),
-            definitions: metadata
-                .inheritance_depths
-                .keys()
-                .map(|&id| {
-                    let definition_entry = self
-                        .get(id)
-                        .ok_or(DataTypeResolveError::MissingClosedDataType)?;
-                    Ok((
-                        definition_entry.data_type.id.clone(),
-                        Arc::clone(&definition_entry.data_type),
-                    ))
-                })
-                .collect::<Result<_, DataTypeResolveError>>()?,
-        })
     }
 }
 

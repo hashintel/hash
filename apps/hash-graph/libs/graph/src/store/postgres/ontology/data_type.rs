@@ -37,10 +37,10 @@ use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTi
 use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
-    Validator,
+    Valid, Validator,
     schema::{
-        ConversionDefinition, Conversions, DataTypeId, DataTypeInheritanceData, DataTypeValidator,
-        InheritanceDepth, OntologyTypeResolver,
+        ClosedDataType, ConversionDefinition, Conversions, DataType, DataTypeEdge, DataTypeId,
+        DataTypeResolveData, DataTypeValidator, InheritanceDepth, OntologyTypeResolver,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
@@ -116,14 +116,24 @@ where
     async fn get_data_type_inheritance_metadata(
         &self,
         data_types: &[DataTypeId],
-    ) -> Result<impl Iterator<Item = (DataTypeId, DataTypeInheritanceData)>, QueryError> {
+    ) -> Result<impl Iterator<Item = (DataTypeId, DataTypeResolveData)>, QueryError> {
         Ok(self
             .as_client()
             .query(
                 "
-                    SELECT source_data_type_ontology_id, target_data_type_ontology_ids, depths
-                    FROM data_type_inherits_from_aggregation
-                    WHERE source_data_type_ontology_id = ANY($1)
+                    SELECT
+                        source_data_type_ontology_id,
+                        array_agg(target_data_type_ontology_id),
+                        array_agg(depth),
+                        array_agg(schema)
+                    FROM (
+                        SELECT *
+                        FROM data_type_inherits_from
+                        JOIN data_types ON target_data_type_ontology_id = ontology_id
+                        WHERE source_data_type_ontology_id = ANY($1)
+                        ORDER BY source_data_type_ontology_id, depth, schema->>'$id'
+                    ) AS subquery
+                    GROUP BY source_data_type_ontology_id;
                 ",
                 &[&data_types],
             )
@@ -131,12 +141,22 @@ where
             .change_context(QueryError)?
             .into_iter()
             .map(|row| {
-                let source: DataTypeId = row.get(0);
+                let source_id: DataTypeId = row.get(0);
                 let targets: Vec<DataTypeId> = row.get(1);
                 let depths: Vec<InheritanceDepth> = row.get(2);
-                (source, DataTypeInheritanceData {
-                    inheritance_depths: targets.into_iter().zip(depths).collect(),
-                })
+                let schemas: Vec<Valid<DataType>> = row.get(3);
+
+                let mut resolve_data = DataTypeResolveData::default();
+                for ((target_id, schema), depth) in targets.into_iter().zip(schemas).zip(depths) {
+                    resolve_data.add_edge(
+                        DataTypeEdge::Inheritance,
+                        Arc::new(schema.into_inner()),
+                        target_id,
+                        depth.inner(),
+                    );
+                }
+
+                (source_id, resolve_data)
             }))
     }
 
@@ -456,7 +476,12 @@ where
 
         let mut ontology_type_resolver = OntologyTypeResolver::default();
 
+        for (data_type_id, inserted_data_type) in &inserted_data_types {
+            ontology_type_resolver.add_unresolved(*data_type_id, Arc::clone(inserted_data_type));
+        }
+
         let required_parent_ids = data_type_reference_ids.into_iter().collect::<Vec<_>>();
+
         let mut parent_inheritance_data = transaction
             .get_data_type_inheritance_metadata(&required_parent_ids)
             .await
@@ -498,35 +523,26 @@ where
                     if !parent.schema.all_of.is_empty() {
                         tracing::warn!("No inheritance data found for `{}`", parent.schema.id);
                     }
-                    ontology_type_resolver.add_open(parent_id, Arc::new(parent.schema));
+                    ontology_type_resolver.add_unresolved(parent_id, Arc::new(parent.schema));
                 }
             });
 
-        for (data_type_id, inserted_data_type) in &inserted_data_types {
-            ontology_type_resolver.add_open(*data_type_id, Arc::clone(inserted_data_type));
-        }
-        let schema_metadata = inserted_data_types
+        let closed_schemas = inserted_data_types
             .iter()
-            .map(|(data_type_id, _)| {
-                ontology_type_resolver
+            .map(|(data_type_id, data_type)| {
+                let closed_metadata = ontology_type_resolver
                     .resolve_data_type_metadata(*data_type_id)
-                    .change_context(InsertionError)
+                    .change_context(InsertionError)?;
+                let closed_schema =
+                    ClosedDataType::from_resolve_data((**data_type).clone(), &closed_metadata)
+                        .change_context(InsertionError)?;
+
+                Ok((closed_schema, closed_metadata))
             })
             .collect::<Result<Vec<_>, _>>()?;
 
         let data_type_validator = DataTypeValidator;
         for (data_type_id, data_type) in &inserted_data_types {
-            // TODO: Validate ontology types on creation
-            //   see https://linear.app/hash/issue/H-2976/validate-ontology-types-on-creation
-            // let closed_schema = data_type_validator
-            //     .validate(
-            //         ontology_type_resolver
-            //             .get_closed_data_type(*data_type_id)
-            //             .change_context(InsertionError)?,
-            //     )
-            //     .await
-            //     .attach(StatusCode::InvalidArgument)
-            //     .change_context(InsertionError)?;
             let schema = data_type_validator
                 .validate_ref(&**data_type)
                 .await
@@ -536,10 +552,17 @@ where
                 .insert_data_type_with_id(*data_type_id, schema)
                 .await?;
         }
-        for (schema_metadata, (data_type_id, _)) in schema_metadata.iter().zip(&inserted_data_types)
+        for ((closed_schema, closed_metadata), (data_type_id, _)) in
+            closed_schemas.iter().zip(&inserted_data_types)
         {
+            data_type_validator
+                .validate_ref(closed_schema)
+                .await
+                .attach(StatusCode::InvalidArgument)
+                .change_context(InsertionError)?;
+
             transaction
-                .insert_data_type_references(*data_type_id, schema_metadata)
+                .insert_data_type_references(*data_type_id, closed_metadata)
                 .await?;
         }
 
@@ -809,7 +832,7 @@ where
         };
 
         let schema = data_type_validator
-            .validate_ref(&params.schema)
+            .validate(params.schema)
             .await
             .change_context(UpdateError)?;
 
@@ -861,25 +884,23 @@ where
                     if !parent.schema.all_of.is_empty() {
                         tracing::warn!("No inheritance data found for `{}`", parent.schema.id);
                     }
-                    ontology_type_resolver.add_open(parent_id, Arc::new(parent.schema));
+                    ontology_type_resolver.add_unresolved(parent_id, Arc::new(parent.schema));
                 }
             });
 
-        ontology_type_resolver.add_open(new_ontology_id, Arc::new(schema.clone().into_inner()));
-        let metadata = ontology_type_resolver
+        ontology_type_resolver
+            .add_unresolved(new_ontology_id, Arc::new(schema.clone().into_inner()));
+        let resolve_data = ontology_type_resolver
             .resolve_data_type_metadata(new_ontology_id)
             .change_context(UpdateError)?;
 
-        // TODO: Validate ontology types on creation
-        //   see https://linear.app/hash/issue/H-2976/validate-ontology-types-on-creation
-        // let closed_schema = data_type_validator
-        //     .validate(
-        //         ontology_type_resolver
-        //             .get_closed_data_type(new_ontology_id)
-        //             .change_context(UpdateError)?,
-        //     )
-        //     .await
-        //     .change_context(UpdateError)?;
+        let closed_schema = data_type_validator
+            .validate(
+                ClosedDataType::from_resolve_data(schema.clone().into_inner(), &resolve_data)
+                    .change_context(UpdateError)?,
+            )
+            .await
+            .change_context(UpdateError)?;
         let (ontology_id, owned_by_id, temporal_versioning) = transaction
             .update_owned_ontology_id(&schema.id, &provenance.edition)
             .await?;
@@ -887,11 +908,11 @@ where
         let data_type_id = DataTypeId::from(ontology_id);
 
         transaction
-            .insert_data_type_with_id(data_type_id, schema)
+            .insert_data_type_with_id(data_type_id, &schema)
             .await
             .change_context(UpdateError)?;
         transaction
-            .insert_data_type_references(data_type_id, &metadata)
+            .insert_data_type_references(data_type_id, &resolve_data)
             .await
             .change_context(UpdateError)?;
 
@@ -960,7 +981,7 @@ where
             Err(error.change_context(UpdateError))
         } else {
             let metadata = DataTypeMetadata {
-                record_id: OntologyTypeRecordId::from(params.schema.id.clone()),
+                record_id: OntologyTypeRecordId::from(closed_schema.id.clone()),
                 classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
                 temporal_versioning,
                 provenance,
@@ -970,7 +991,7 @@ where
             if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
                     .start_update_data_type_embeddings_workflow(actor_id, &[DataTypeWithMetadata {
-                        schema: params.schema,
+                        schema: schema.into_inner(),
                         metadata: metadata.clone(),
                     }])
                     .await
@@ -1107,7 +1128,7 @@ where
         .map(|data_type| {
             let schema = Arc::new(data_type.schema);
             let data_type_id = DataTypeId::from_url(&schema.id);
-            ontology_type_resolver.add_open(data_type_id, Arc::clone(&schema));
+            ontology_type_resolver.add_unresolved(data_type_id, Arc::clone(&schema));
             data_type_id
         })
         .collect::<Vec<_>>();
