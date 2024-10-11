@@ -204,13 +204,11 @@ pub trait DataTypeStore {
         params: CountDataTypesParams<'_>,
     ) -> impl Future<Output = Result<usize, QueryError>> + Send;
 
-    /// Get the [`DataTypes`] specified by the [`GetDataTypesParams`].
+    /// Get the [`DataType`]s specified by the [`GetDataTypesParams`].
     ///
     /// # Errors
     ///
     /// - if the requested [`DataType`] doesn't exist.
-    ///
-    /// [`DataTypes`]: DataType
     fn get_data_types(
         &self,
         actor_id: AccountId,
