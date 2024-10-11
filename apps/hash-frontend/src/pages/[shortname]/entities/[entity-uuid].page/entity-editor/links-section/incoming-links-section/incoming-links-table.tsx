@@ -9,7 +9,7 @@ import {
   getEntityTypeById,
   getPropertyTypeForEntity,
 } from "@local/hash-subgraph/stdlib";
-import { Box, TableCell, Tooltip } from "@mui/material";
+import { Box, Stack, TableCell, Typography } from "@mui/material";
 import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { ValueChip } from "../../../../../../shared/value-chip";
@@ -30,7 +30,7 @@ import { isValueIncludedInFilter } from "../../../../../../shared/virtualized-ta
 import type { VirtualizedTableSort } from "../../../../../../shared/virtualized-table/header/sort";
 import { useVirtualizedTableFilterState } from "../../../../../../shared/virtualized-table/use-filter-state";
 import { useEntityEditor } from "../../entity-editor-context";
-import { PropertiesTooltipContent } from "../shared/properties-tooltip-content";
+import { PropertiesTooltip } from "../shared/properties-tooltip";
 import {
   linksTableCellSx,
   linksTableFontSize,
@@ -47,13 +47,13 @@ const columns: VirtualizedTableColumn<FieldId>[] = [
     label: "Linked from",
     id: "linkedFrom",
     sortable: true,
-    width: 120,
+    width: 100,
   },
   {
     label: "Link type",
     id: "linkType",
     sortable: true,
-    width: 120,
+    width: 160,
   },
   {
     label: "Linked from type",
@@ -82,19 +82,14 @@ type IncomingLinkRow = {
 };
 
 const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
+  const { entityLabel } = useEntityEditor();
+
   return (
     <>
       <TableCell sx={linksTableCellSx}>
-        <Tooltip
-          title={
-            Object.keys(row.sourceEntityProperties).length > 0 ? (
-              <PropertiesTooltipContent
-                properties={row.sourceEntityProperties}
-              />
-            ) : (
-              "This target entity has no properties"
-            )
-          }
+        <PropertiesTooltip
+          entityType="source entity"
+          properties={row.sourceEntityProperties}
         >
           <Box
             component="button"
@@ -119,24 +114,39 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
               {row.sourceEntityLabel}
             </ValueChip>
           </Box>
-        </Tooltip>
+        </PropertiesTooltip>
+      </TableCell>
+      <TableCell sx={linksTableCellSx}>
+        <Stack direction="row" alignItems="center">
+          <ValueChip
+            showInFull
+            type
+            sx={{
+              fontSize: linksTableFontSize,
+            }}
+          >
+            {row.linkEntityType.title}
+          </ValueChip>
+          <Typography
+            sx={{
+              display: "block",
+              textOverflow: "ellipsis",
+              overflow: "hidden",
+              whiteSpace: "nowrap",
+              fontSize: linksTableFontSize,
+              color: ({ palette }) => palette.gray[50],
+              maxWidth: "100%",
+              ml: 1,
+            }}
+          >
+            {entityLabel}
+          </Typography>
+        </Stack>
       </TableCell>
       <TableCell sx={linksTableCellSx}>
         <ValueChip
           type
           sx={{
-            cursor: "pointer",
-            fontSize: linksTableFontSize,
-          }}
-        >
-          {row.linkEntityType.title}
-        </ValueChip>
-      </TableCell>
-      <TableCell sx={linksTableCellSx}>
-        <ValueChip
-          type
-          sx={{
-            cursor: "pointer",
             fontSize: linksTableFontSize,
           }}
         >
@@ -144,14 +154,9 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
         </ValueChip>
       </TableCell>
       <TableCell sx={linksTableCellSx}>
-        <Tooltip
-          title={
-            Object.keys(row.linkEntityProperties).length > 0 ? (
-              <PropertiesTooltipContent properties={row.linkEntityProperties} />
-            ) : (
-              "This link entity has no properties"
-            )
-          }
+        <PropertiesTooltip
+          entityType="link entity"
+          properties={row.linkEntityProperties}
         >
           <Box
             component="button"
@@ -174,7 +179,7 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
               {row.linkEntityLabel}
             </ValueChip>
           </Box>
-        </Tooltip>
+        </PropertiesTooltip>
       </TableCell>
     </>
   );

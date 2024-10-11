@@ -9,7 +9,7 @@ import {
   getEntityTypeById,
   getPropertyTypeForEntity,
 } from "@local/hash-subgraph/stdlib";
-import { Box, TableCell, Tooltip } from "@mui/material";
+import { Box, TableCell } from "@mui/material";
 import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { ValueChip } from "../../../../../../shared/value-chip";
@@ -30,7 +30,7 @@ import { isValueIncludedInFilter } from "../../../../../../shared/virtualized-ta
 import type { VirtualizedTableSort } from "../../../../../../shared/virtualized-table/header/sort";
 import { useVirtualizedTableFilterState } from "../../../../../../shared/virtualized-table/use-filter-state";
 import { useEntityEditor } from "../../entity-editor-context";
-import { PropertiesTooltipContent } from "../shared/properties-tooltip-content";
+import { PropertiesTooltip } from "../shared/properties-tooltip";
 import {
   linksTableCellSx,
   linksTableFontSize,
@@ -88,7 +88,6 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
         <ValueChip
           type
           sx={{
-            cursor: "pointer",
             fontSize: linksTableFontSize,
           }}
         >
@@ -96,16 +95,9 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
         </ValueChip>
       </TableCell>
       <TableCell sx={linksTableCellSx}>
-        <Tooltip
-          title={
-            Object.keys(row.targetEntityProperties).length > 0 ? (
-              <PropertiesTooltipContent
-                properties={row.targetEntityProperties}
-              />
-            ) : (
-              "This target entity has no properties"
-            )
-          }
+        <PropertiesTooltip
+          entityType="target entity"
+          properties={row.targetEntityProperties}
         >
           <Box
             component="button"
@@ -130,13 +122,12 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
               {row.targetEntityLabel}
             </ValueChip>
           </Box>
-        </Tooltip>
+        </PropertiesTooltip>
       </TableCell>
       <TableCell sx={linksTableCellSx}>
         <ValueChip
           type
           sx={{
-            cursor: "pointer",
             fontSize: linksTableFontSize,
           }}
         >
@@ -144,14 +135,9 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
         </ValueChip>
       </TableCell>
       <TableCell sx={linksTableCellSx}>
-        <Tooltip
-          title={
-            Object.keys(row.linkEntityProperties).length > 0 ? (
-              <PropertiesTooltipContent properties={row.linkEntityProperties} />
-            ) : (
-              "This link entity has no properties"
-            )
-          }
+        <PropertiesTooltip
+          entityType="link entity"
+          properties={row.linkEntityProperties}
         >
           <Box
             component="button"
@@ -174,7 +160,7 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
               {row.linkEntityLabel}
             </ValueChip>
           </Box>
-        </Tooltip>
+        </PropertiesTooltip>
       </TableCell>
     </>
   );
