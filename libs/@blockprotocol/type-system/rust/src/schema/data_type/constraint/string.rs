@@ -224,6 +224,14 @@ pub enum StringSchema {
 impl Constraint<JsonValue> for StringSchema {
     type Error = ConstraintError;
 
+    fn is_valid(&self, value: &JsonValue) -> bool {
+        if let JsonValue::String(string) = value {
+            self.is_valid(string.as_str())
+        } else {
+            false
+        }
+    }
+
     fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
         if let JsonValue::String(string) = value {
             self.validate_value(string.as_str())
@@ -238,6 +246,14 @@ impl Constraint<JsonValue> for StringSchema {
 
 impl Constraint<str> for StringSchema {
     type Error = ConstraintError;
+
+    fn is_valid(&self, value: &str) -> bool {
+        match self {
+            Self::Constrained(constraints) => constraints.is_valid(value),
+            Self::Const { r#const } => value == r#const,
+            Self::Enum { r#enum } => r#enum.contains(value),
+        }
+    }
 
     fn validate_value(&self, value: &str) -> Result<(), Report<ConstraintError>> {
         match self {
@@ -286,6 +302,31 @@ pub struct StringConstraints {
 
 impl Constraint<str> for StringConstraints {
     type Error = [StringValidationError];
+
+    fn is_valid(&self, value: &str) -> bool {
+        if let Some(expected) = self.min_length {
+            if value.len() < expected {
+                return false;
+            }
+        }
+        if let Some(expected) = self.max_length {
+            if value.len() > expected {
+                return false;
+            }
+        }
+        if let Some(expected) = &self.pattern {
+            if !expected.is_match(value) {
+                return false;
+            }
+        }
+        if let Some(expected) = self.format {
+            if expected.validate(value).is_err() {
+                return false;
+            }
+        }
+
+        true
+    }
 
     fn validate_value(&self, value: &str) -> Result<(), Report<[StringValidationError]>> {
         let mut status = ReportSink::new();

@@ -18,6 +18,12 @@ pub struct AnyOfConstraints {
 impl Constraint<JsonValue> for AnyOfConstraints {
     type Error = ConstraintError;
 
+    fn is_valid(&self, value: &JsonValue) -> bool {
+        self.any_of
+            .iter()
+            .any(|schema| schema.constraints.is_valid(value))
+    }
+
     fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
         let mut status = ReportSink::<ConstraintError>::new();
         for schema in &self.any_of {

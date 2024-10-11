@@ -111,6 +111,14 @@ fn float_multiple_of(lhs: f64, rhs: f64) -> bool {
 impl Constraint<JsonValue> for NumberSchema {
     type Error = ConstraintError;
 
+    fn is_valid(&self, value: &JsonValue) -> bool {
+        if let JsonValue::Number(number) = value {
+            self.is_valid(number)
+        } else {
+            false
+        }
+    }
+
     fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
         if let JsonValue::Number(number) = value {
             self.validate_value(number)
@@ -125,6 +133,12 @@ impl Constraint<JsonValue> for NumberSchema {
 
 impl Constraint<JsonNumber> for NumberSchema {
     type Error = ConstraintError;
+
+    fn is_valid(&self, value: &JsonNumber) -> bool {
+        value
+            .as_f64()
+            .map_or(false, |number| self.is_valid(&number))
+    }
 
     fn validate_value(&self, value: &JsonNumber) -> Result<(), Report<ConstraintError>> {
         value.as_f64().map_or_else(
@@ -141,6 +155,14 @@ impl Constraint<JsonNumber> for NumberSchema {
 
 impl Constraint<f64> for NumberSchema {
     type Error = ConstraintError;
+
+    fn is_valid(&self, value: &f64) -> bool {
+        match self {
+            Self::Constrained(constraints) => constraints.is_valid(value),
+            Self::Const { r#const } => float_eq(*value, *r#const),
+            Self::Enum { r#enum } => r#enum.iter().any(|expected| float_eq(*value, *expected)),
+        }
+    }
 
     fn validate_value(&self, value: &f64) -> Result<(), Report<ConstraintError>> {
         match self {
@@ -186,6 +208,32 @@ pub struct NumberConstraints {
 
 impl Constraint<f64> for NumberConstraints {
     type Error = [NumberValidationError];
+
+    fn is_valid(&self, value: &f64) -> bool {
+        if let Some(minimum) = self.minimum {
+            if self.exclusive_minimum && float_less_eq(*value, minimum)
+                || float_less(*value, minimum)
+            {
+                return false;
+            }
+        }
+
+        if let Some(maximum) = self.maximum {
+            if self.exclusive_maximum && float_less_eq(maximum, *value)
+                || float_less(maximum, *value)
+            {
+                return false;
+            }
+        }
+
+        if let Some(expected) = self.multiple_of {
+            if !float_multiple_of(*value, expected) {
+                return false;
+            }
+        }
+
+        true
+    }
 
     fn validate_value(&self, value: &f64) -> Result<(), Report<[NumberValidationError]>> {
         let mut status = ReportSink::new();

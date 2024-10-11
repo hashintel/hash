@@ -38,9 +38,7 @@ pub trait Constraint<V: ?Sized>: Sized {
     ///
     /// [`validate_value`]: Self::validate_value
     #[must_use]
-    fn is_valid(&self, value: &V) -> bool {
-        self.validate_value(value).is_ok()
-    }
+    fn is_valid(&self, value: &V) -> bool;
 
     /// Validates the provided value against this schema.
     ///
@@ -66,6 +64,13 @@ pub enum ValueConstraints {
 impl Constraint<JsonValue> for ValueConstraints {
     type Error = ConstraintError;
 
+    fn is_valid(&self, value: &JsonValue) -> bool {
+        match self {
+            Self::Typed(constraints) => constraints.is_valid(value),
+            Self::AnyOf(constraints) => constraints.is_valid(value),
+        }
+    }
+
     fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
         match self {
             Self::Typed(constraints) => constraints.validate_value(value),
@@ -88,6 +93,17 @@ pub enum SingleValueConstraints {
 
 impl Constraint<JsonValue> for SingleValueConstraints {
     type Error = ConstraintError;
+
+    fn is_valid(&self, value: &JsonValue) -> bool {
+        match self {
+            Self::Null(schema) => schema.is_valid(value),
+            Self::Boolean(schema) => schema.is_valid(value),
+            Self::Number(schema) => schema.is_valid(value),
+            Self::String(schema) => schema.is_valid(value),
+            Self::Array(schema) => schema.is_valid(value),
+            Self::Object(schema) => schema.is_valid(value),
+        }
+    }
 
     fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
         match self {

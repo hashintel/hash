@@ -46,6 +46,14 @@ pub enum ArrayItemConstraints {
 impl Constraint<JsonValue> for ArrayItemConstraints {
     type Error = ConstraintError;
 
+    fn is_valid(&self, value: &JsonValue) -> bool {
+        match self {
+            Self::Boolean(schema) => schema.is_valid(value),
+            Self::Number(schema) => schema.is_valid(value),
+            Self::String(schema) => schema.is_valid(value),
+        }
+    }
+
     fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
         match self {
             Self::Boolean(schema) => schema.validate_value(value),
@@ -99,6 +107,14 @@ pub enum ArraySchema {
 impl Constraint<JsonValue> for ArraySchema {
     type Error = ConstraintError;
 
+    fn is_valid(&self, value: &JsonValue) -> bool {
+        if let JsonValue::Array(array) = value {
+            self.is_valid(array.as_slice())
+        } else {
+            false
+        }
+    }
+
     fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
         if let JsonValue::Array(array) = value {
             self.validate_value(array.as_slice())
@@ -113,6 +129,13 @@ impl Constraint<JsonValue> for ArraySchema {
 
 impl Constraint<[JsonValue]> for ArraySchema {
     type Error = ConstraintError;
+
+    fn is_valid(&self, value: &[JsonValue]) -> bool {
+        match self {
+            Self::Constrained(constraints) => constraints.is_valid(value),
+            Self::Tuple(constraints) => constraints.is_valid(value),
+        }
+    }
 
     fn validate_value(&self, value: &[JsonValue]) -> Result<(), Report<ConstraintError>> {
         match self {
@@ -137,6 +160,12 @@ pub struct ArrayConstraints {
 
 impl Constraint<[JsonValue]> for ArrayConstraints {
     type Error = [ArrayValidationError];
+
+    fn is_valid(&self, value: &[JsonValue]) -> bool {
+        self.items.as_ref().map_or(true, |items| {
+            value.iter().all(|value| items.constraints.is_valid(value))
+        })
+    }
 
     fn validate_value(&self, value: &[JsonValue]) -> Result<(), Report<[ArrayValidationError]>> {
         let mut status = ReportSink::new();
@@ -171,6 +200,19 @@ pub struct TupleConstraints {
 
 impl Constraint<[JsonValue]> for TupleConstraints {
     type Error = [ArrayValidationError];
+
+    fn is_valid(&self, value: &[JsonValue]) -> bool {
+        let num_values = value.len();
+        let num_prefix_items = self.prefix_items.len();
+        if num_values != num_prefix_items {
+            return false;
+        }
+
+        self.prefix_items
+            .iter()
+            .zip(value)
+            .all(|(schema, value)| schema.constraints.is_valid(value))
+    }
 
     fn validate_value(&self, value: &[JsonValue]) -> Result<(), Report<[ArrayValidationError]>> {
         let mut status = ReportSink::new();
