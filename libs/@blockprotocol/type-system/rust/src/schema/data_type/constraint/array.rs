@@ -6,9 +6,12 @@ use thiserror::Error;
 
 use crate::schema::{
     ConstraintError, JsonSchemaValueType, NumberSchema, StringSchema, ValueLabel,
-    data_type::constraint::{
-        boolean::validate_boolean_value, number::validate_number_value,
-        string::validate_string_value,
+    data_type::{
+        closed::ResolveClosedDataTypeError,
+        constraint::{
+            boolean::validate_boolean_value, number::validate_number_value,
+            string::validate_string_value,
+        },
     },
 };
 
@@ -115,6 +118,13 @@ impl ArraySchema {
                 .change_context(ConstraintError::ValueConstraint)?,
         }
         Ok(())
+    }
+
+    pub fn combine(
+        &mut self,
+        other: Self,
+    ) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
+        Ok(Some(other))
     }
 }
 
