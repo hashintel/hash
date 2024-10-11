@@ -5,8 +5,9 @@ pub use self::{
     closed::{ClosedDataType, DataTypeInheritanceData, InheritanceDepth},
     constraint::{
         AnyOfConstraints, ArrayConstraints, ArraySchema, ArrayTypeTag, ArrayValidationError,
-        BooleanTypeTag, ConstraintError, NullTypeTag, NumberConstraints, NumberSchema,
-        NumberTypeTag, NumberValidationError, ObjectTypeTag, SingleValueConstraints,
+        BooleanSchema, BooleanTypeTag, Constraint, ConstraintError, NullSchema, NullTypeTag,
+        NumberConstraints, NumberSchema, NumberTypeTag, NumberValidationError, ObjectConstraints,
+        ObjectSchema, ObjectTypeTag, ObjectValidationError, SingleValueConstraints,
         SingleValueSchema, StringConstraints, StringFormat, StringFormatError, StringSchema,
         StringTypeTag, StringValidationError, TupleConstraints,
     },
@@ -147,12 +148,12 @@ mod raw {
     use super::{DataTypeSchemaTag, DataTypeTag};
     use crate::{
         schema::{
-            ArrayTypeTag, BooleanTypeTag, DataTypeReference, NullTypeTag, NumberTypeTag,
-            ObjectTypeTag, StringTypeTag, ValueLabel,
+            ArrayTypeTag, BooleanTypeTag, DataTypeReference, NullSchema, NullTypeTag,
+            NumberTypeTag, ObjectTypeTag, StringTypeTag, ValueLabel,
             data_type::constraint::{
-                AnyOfConstraints, ArrayConstraints, ArraySchema, NumberConstraints, NumberSchema,
-                SingleValueConstraints, StringConstraints, StringSchema, TupleConstraints,
-                ValueConstraints,
+                AnyOfConstraints, ArrayConstraints, ArraySchema, BooleanSchema, NumberConstraints,
+                NumberSchema, ObjectConstraints, ObjectSchema, SingleValueConstraints,
+                StringConstraints, StringSchema, TupleConstraints, ValueConstraints,
             },
         },
         url::VersionedUrl,
@@ -236,6 +237,8 @@ mod raw {
             r#type: ObjectTypeTag,
             #[serde(flatten)]
             common: ValueSchemaMetadata,
+            #[serde(flatten)]
+            constraints: ObjectConstraints,
         },
         Array {
             r#type: ArrayTypeTag,
@@ -291,11 +294,11 @@ mod raw {
             let (common, constraints) = match value {
                 DataType::Null { r#type: _, common } => (
                     common,
-                    ValueConstraints::Typed(SingleValueConstraints::Null),
+                    ValueConstraints::Typed(SingleValueConstraints::Null(NullSchema)),
                 ),
                 DataType::Boolean { r#type: _, common } => (
                     common,
-                    ValueConstraints::Typed(SingleValueConstraints::Boolean),
+                    ValueConstraints::Typed(SingleValueConstraints::Boolean(BooleanSchema)),
                 ),
                 DataType::Number {
                     r#type: _,
@@ -357,9 +360,15 @@ mod raw {
                         r#enum,
                     })),
                 ),
-                DataType::Object { r#type: _, common } => (
+                DataType::Object {
+                    r#type: _,
                     common,
-                    ValueConstraints::Typed(SingleValueConstraints::Object),
+                    constraints,
+                } => (
+                    common,
+                    ValueConstraints::Typed(SingleValueConstraints::Object(
+                        ObjectSchema::Constrained(constraints),
+                    )),
                 ),
                 DataType::Array {
                     r#type: _,
@@ -656,22 +665,6 @@ impl OntologyTypeResolver {
                 })
                 .collect::<Result<_, DataTypeResolveError>>()?,
         })
-    }
-}
-
-impl DataType {
-    /// Validates the given JSON value against the constraints of this data type.
-    ///
-    /// Returns a [`Report`] of any constraint errors found.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if the JSON value is not a valid instance of the data type.
-    pub fn validate_constraints(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
-        match &self.constraints {
-            ValueConstraints::Typed(typed_schema) => typed_schema.validate_value(value),
-            ValueConstraints::AnyOf(constraints) => constraints.validate_value(value),
-        }
     }
 }
 

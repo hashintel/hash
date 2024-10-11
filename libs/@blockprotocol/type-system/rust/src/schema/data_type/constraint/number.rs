@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{Number as JsonNumber, Value as JsonValue, json};
 use thiserror::Error;
 
-use crate::schema::{ConstraintError, JsonSchemaValueType};
+use crate::schema::{ConstraintError, JsonSchemaValueType, data_type::constraint::Constraint};
 
 #[expect(
     clippy::trivially_copy_pass_by_ref,
@@ -108,64 +108,63 @@ fn float_multiple_of(lhs: f64, rhs: f64) -> bool {
     (quotient - quotient.round()).abs() < f64::EPSILON
 }
 
-impl NumberSchema {
-    /// Validates the provided value against the number schema.
-    ///
-    /// # Errors
-    ///
-    /// - [`InvalidConstValue`] if the value is not equal to the expected value.
-    /// - [`InvalidEnumValue`] if the value is not one of the expected values.
-    /// - [`ValueConstraint`] if the value does not match the expected constraints.
-    ///
-    /// [`InvalidConstValue`]: ConstraintError::InvalidConstValue
-    /// [`InvalidEnumValue`]: ConstraintError::InvalidEnumValue
-    /// [`ValueConstraint`]: ConstraintError::ValueConstraint
-    pub fn validate_value(&self, number: &JsonNumber) -> Result<(), Report<ConstraintError>> {
-        let Some(float) = number.as_f64() else {
-            bail!(
-                Report::new(NumberValidationError::InsufficientPrecision {
-                    actual: number.clone()
-                })
-                .change_context(ConstraintError::ValueConstraint)
-            );
-        };
+impl Constraint<JsonValue> for NumberSchema {
+    type Error = ConstraintError;
 
+    fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
+        if let JsonValue::Number(number) = value {
+            self.validate_value(number)
+        } else {
+            bail!(ConstraintError::InvalidType {
+                actual: JsonSchemaValueType::from(value),
+                expected: JsonSchemaValueType::Number,
+            });
+        }
+    }
+}
+
+impl Constraint<JsonNumber> for NumberSchema {
+    type Error = ConstraintError;
+
+    fn validate_value(&self, value: &JsonNumber) -> Result<(), Report<ConstraintError>> {
+        value.as_f64().map_or_else(
+            || {
+                Err(Report::new(NumberValidationError::InsufficientPrecision {
+                    actual: value.clone(),
+                })
+                .change_context(ConstraintError::ValueConstraint))
+            },
+            |number| self.validate_value(&number),
+        )
+    }
+}
+
+impl Constraint<f64> for NumberSchema {
+    type Error = ConstraintError;
+
+    fn validate_value(&self, value: &f64) -> Result<(), Report<ConstraintError>> {
         match self {
             Self::Constrained(constraints) => constraints
-                .validate_value(float)
+                .validate_value(value)
                 .change_context(ConstraintError::ValueConstraint)?,
             Self::Const { r#const } => {
-                if !float_eq(float, *r#const) {
+                if !float_eq(*value, *r#const) {
                     bail!(ConstraintError::InvalidConstValue {
-                        actual: JsonValue::Number(number.clone()),
+                        actual: json!(*value),
                         expected: json!(*r#const),
                     });
                 }
             }
             Self::Enum { r#enum } => {
-                if !r#enum.iter().any(|expected| float_eq(float, *expected)) {
+                if !r#enum.iter().any(|expected| float_eq(*value, *expected)) {
                     bail!(ConstraintError::InvalidEnumValue {
-                        actual: JsonValue::Number(number.clone()),
+                        actual: json!(*value),
                         expected: r#enum.iter().map(|value| json!(*value)).collect(),
                     });
                 }
             }
         }
         Ok(())
-    }
-}
-
-pub(crate) fn validate_number_value(
-    value: &JsonValue,
-    schema: &NumberSchema,
-) -> Result<(), Report<ConstraintError>> {
-    if let JsonValue::Number(number) = value {
-        schema.validate_value(number)
-    } else {
-        bail!(ConstraintError::InvalidType {
-            actual: JsonSchemaValueType::from(value),
-            expected: JsonSchemaValueType::Number,
-        });
     }
 }
 
@@ -185,36 +184,23 @@ pub struct NumberConstraints {
     pub multiple_of: Option<f64>,
 }
 
-impl NumberConstraints {
-    /// Validates the provided value against the number constraints.
-    ///
-    /// # Errors
-    ///
-    /// - [`Minimum`] if the value is less than the minimum value.
-    /// - [`Maximum`] if the value is greater than the maximum value.
-    /// - [`ExclusiveMinimum`] if the value is less than or equal to the minimum value.
-    /// - [`ExclusiveMaximum`] if the value is greater than or equal to the maximum value.
-    /// - [`MultipleOf`] if the value is not a multiple of the expected value.
-    ///
-    /// [`Minimum`]: NumberValidationError::Minimum
-    /// [`Maximum`]: NumberValidationError::Maximum
-    /// [`ExclusiveMinimum`]: NumberValidationError::ExclusiveMinimum
-    /// [`ExclusiveMaximum`]: NumberValidationError::ExclusiveMaximum
-    /// [`MultipleOf`]: NumberValidationError::MultipleOf
-    pub fn validate_value(&self, number: f64) -> Result<(), Report<[NumberValidationError]>> {
+impl Constraint<f64> for NumberConstraints {
+    type Error = [NumberValidationError];
+
+    fn validate_value(&self, value: &f64) -> Result<(), Report<[NumberValidationError]>> {
         let mut status = ReportSink::new();
 
         if let Some(minimum) = self.minimum {
             if self.exclusive_minimum {
-                if float_less_eq(number, minimum) {
+                if float_less_eq(*value, minimum) {
                     status.capture(NumberValidationError::ExclusiveMinimum {
-                        actual: number,
+                        actual: *value,
                         expected: minimum,
                     });
                 }
-            } else if float_less(number, minimum) {
+            } else if float_less(*value, minimum) {
                 status.capture(NumberValidationError::Minimum {
-                    actual: number,
+                    actual: *value,
                     expected: minimum,
                 });
             }
@@ -222,24 +208,24 @@ impl NumberConstraints {
 
         if let Some(maximum) = self.maximum {
             if self.exclusive_maximum {
-                if float_less_eq(maximum, number) {
+                if float_less_eq(maximum, *value) {
                     status.capture(NumberValidationError::ExclusiveMaximum {
-                        actual: number,
+                        actual: *value,
                         expected: maximum,
                     });
                 }
-            } else if float_less(maximum, number) {
+            } else if float_less(maximum, *value) {
                 status.capture(NumberValidationError::Maximum {
-                    actual: number,
+                    actual: *value,
                     expected: maximum,
                 });
             }
         }
 
         if let Some(expected) = self.multiple_of {
-            if !float_multiple_of(number, expected) {
+            if !float_multiple_of(*value, expected) {
                 status.capture(NumberValidationError::MultipleOf {
-                    actual: number,
+                    actual: *value,
                     expected,
                 });
             }
@@ -414,10 +400,10 @@ mod tests {
             "const": 50.0,
         }));
 
-        check_constraints(&number_schema, &json!(50));
-        check_constraints_error(&number_schema, &json!(10), [
+        check_constraints(&number_schema, &json!(50.0));
+        check_constraints_error(&number_schema, &json!(10.0), [
             ConstraintError::InvalidConstValue {
-                actual: json!(10),
+                actual: json!(10.0),
                 expected: json!(50.0),
             },
         ]);
@@ -430,10 +416,10 @@ mod tests {
             "enum": [20.0, 50.0],
         }));
 
-        check_constraints(&number_schema, &json!(50));
-        check_constraints_error(&number_schema, &json!(10), [
+        check_constraints(&number_schema, &json!(50.0));
+        check_constraints_error(&number_schema, &json!(10.0), [
             ConstraintError::InvalidEnumValue {
-                actual: json!(10),
+                actual: json!(10.0),
                 expected: vec![json!(20.0), json!(50.0)],
             },
         ]);

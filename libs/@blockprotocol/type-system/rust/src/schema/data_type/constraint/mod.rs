@@ -14,24 +14,46 @@ use serde_json::Value as JsonValue;
 pub use self::{
     any_of::AnyOfConstraints,
     array::{ArrayConstraints, ArraySchema, ArrayTypeTag, ArrayValidationError, TupleConstraints},
-    boolean::BooleanTypeTag,
+    boolean::{BooleanSchema, BooleanTypeTag},
     error::ConstraintError,
-    null::NullTypeTag,
+    null::{NullSchema, NullTypeTag},
     number::{NumberConstraints, NumberSchema, NumberTypeTag, NumberValidationError},
-    object::ObjectTypeTag,
+    object::{ObjectConstraints, ObjectSchema, ObjectTypeTag, ObjectValidationError},
     string::{
         StringConstraints, StringFormat, StringFormatError, StringSchema, StringTypeTag,
         StringValidationError,
     },
 };
-use crate::schema::{
-    ValueLabel,
-    data_type::constraint::{
-        array::validate_array_value, boolean::validate_boolean_value, null::validate_null_value,
-        number::validate_number_value, object::validate_object_value,
-        string::validate_string_value,
-    },
-};
+use crate::schema::ValueLabel;
+
+pub trait Constraint<V: ?Sized>: Sized {
+    type Error: ?Sized;
+
+    /// Checks if the provided value is valid against this constraint.
+    ///
+    /// In comparison to [`validate_value`], this method does not return the specific error that
+    /// occurred, but only if the value is valid or not. This can be used to check if a value is
+    /// valid without needing to handle the specific error. This method is faster than
+    /// [`validate_value`] as it does not need to construct a [`Report`].
+    ///
+    /// [`validate_value`]: Self::validate_value
+    #[must_use]
+    fn is_valid(&self, value: &V) -> bool {
+        self.validate_value(value).is_ok()
+    }
+
+    /// Validates the provided value against this schema.
+    ///
+    /// If you only need to check if a value is valid without needing to handle the specific error,
+    /// you should use [`is_valid`] instead.
+    ///
+    /// [`is_valid`]: Self::is_valid
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the value is not valid against the schema.
+    fn validate_value(&self, value: &V) -> Result<(), Report<Self::Error>>;
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -41,17 +63,10 @@ pub enum ValueConstraints {
     AnyOf(AnyOfConstraints),
 }
 
-impl ValueConstraints {
-    /// Forwards the value validation to the appropriate schema.
-    ///
-    /// # Errors
-    ///
-    /// - For [`Typed`] schemas, see [`SingleValueConstraints::validate_value`].
-    /// - For [`AnyOf`] schemas, see [`AnyOfConstraints::validate_value`].
-    ///
-    /// [`Typed`]: Self::Typed
-    /// [`AnyOf`]: Self::AnyOf
-    pub fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
+impl Constraint<JsonValue> for ValueConstraints {
+    type Error = ConstraintError;
+
+    fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
         match self {
             Self::Typed(constraints) => constraints.validate_value(value),
             Self::AnyOf(constraints) => constraints.validate_value(value),
@@ -63,34 +78,25 @@ impl ValueConstraints {
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum SingleValueConstraints {
-    Null,
-    Boolean,
+    Null(NullSchema),
+    Boolean(BooleanSchema),
     Number(NumberSchema),
     String(StringSchema),
     Array(ArraySchema),
-    Object,
+    Object(ObjectSchema),
 }
 
-impl SingleValueConstraints {
-    /// Validates the provided value against the constraints.
-    ///
-    /// # Errors
-    ///
-    /// - [`InvalidType`] if the value does not match the expected type.
-    /// - [`ValueConstraint`] if the value does not match the expected constraints.
-    /// - [`AnyOf`] if the value does not match any of the expected schemas.
-    ///
-    /// [`InvalidType`]: ConstraintError::InvalidType
-    /// [`ValueConstraint`]: ConstraintError::ValueConstraint
-    /// [`AnyOf`]: ConstraintError::AnyOf
-    pub fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
+impl Constraint<JsonValue> for SingleValueConstraints {
+    type Error = ConstraintError;
+
+    fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
         match self {
-            Self::Null => validate_null_value(value),
-            Self::Boolean => validate_boolean_value(value),
-            Self::Number(schema) => validate_number_value(value, schema),
-            Self::String(schema) => validate_string_value(value, schema),
-            Self::Array(array) => validate_array_value(value, array),
-            Self::Object => validate_object_value(value),
+            Self::Null(schema) => schema.validate_value(value),
+            Self::Boolean(schema) => schema.validate_value(value),
+            Self::Number(schema) => schema.validate_value(value),
+            Self::String(schema) => schema.validate_value(value),
+            Self::Array(schema) => schema.validate_value(value),
+            Self::Object(schema) => schema.validate_value(value),
         }
     }
 }
@@ -136,7 +142,7 @@ mod tests {
     use error_stack::Frame;
     use serde_json::Value as JsonValue;
 
-    use crate::schema::data_type::constraint::ValueConstraints;
+    use crate::schema::data_type::constraint::{Constraint, ValueConstraints};
 
     pub(crate) fn read_schema(schema: &JsonValue) -> ValueConstraints {
         let parsed = serde_json::from_value(schema.clone()).expect("Failed to parse schema");
@@ -148,6 +154,7 @@ mod tests {
     }
 
     pub(crate) fn check_constraints(schema: &ValueConstraints, value: &JsonValue) {
+        assert!(schema.is_valid(value));
         schema
             .validate_value(value)
             .expect("Failed to validate value");
@@ -158,6 +165,7 @@ mod tests {
         value: &JsonValue,
         expected_errors: impl IntoIterator<Item = E>,
     ) {
+        assert!(!schema.is_valid(value));
         let err = schema
             .validate_value(value)
             .expect_err("Expected validation error");

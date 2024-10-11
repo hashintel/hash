@@ -2,7 +2,7 @@ use error_stack::{Report, ReportSink, ResultExt};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
-use crate::schema::{ConstraintError, SingleValueSchema};
+use crate::schema::{ConstraintError, SingleValueSchema, data_type::constraint::Constraint};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -15,15 +15,10 @@ pub struct AnyOfConstraints {
     pub any_of: Vec<SingleValueSchema>,
 }
 
-impl AnyOfConstraints {
-    /// Checks if the provided value is valid against any of the schemas in the `any_of` list.
-    ///
-    /// # Errors
-    ///
-    /// - [`AnyOf`] if the value is not valid against any of the schemas.
-    ///
-    /// [`AnyOf`]: ConstraintError::AnyOf
-    pub fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
+impl Constraint<JsonValue> for AnyOfConstraints {
+    type Error = ConstraintError;
+
+    fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
         let mut status = ReportSink::<ConstraintError>::new();
         for schema in &self.any_of {
             if status

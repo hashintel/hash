@@ -14,7 +14,7 @@ use thiserror::Error;
 use url::{Host, Url};
 use uuid::Uuid;
 
-use crate::schema::{ConstraintError, JsonSchemaValueType};
+use crate::schema::{ConstraintError, JsonSchemaValueType, data_type::constraint::Constraint};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -221,35 +221,41 @@ pub enum StringSchema {
     },
 }
 
-impl StringSchema {
-    /// Validates the provided value against the string schema.
-    ///
-    /// # Errors
-    ///
-    /// - [`InvalidConstValue`] if the value is not equal to the expected value.
-    /// - [`InvalidEnumValue`] if the value is not one of the expected values.
-    /// - [`ValueConstraint`] if the value does not match the expected constraints.
-    ///
-    /// [`InvalidConstValue`]: ConstraintError::InvalidConstValue
-    /// [`InvalidEnumValue`]: ConstraintError::InvalidEnumValue
-    /// [`ValueConstraint`]: ConstraintError::ValueConstraint
-    pub fn validate_value(&self, string: &str) -> Result<(), Report<ConstraintError>> {
+impl Constraint<JsonValue> for StringSchema {
+    type Error = ConstraintError;
+
+    fn validate_value(&self, value: &JsonValue) -> Result<(), Report<ConstraintError>> {
+        if let JsonValue::String(string) = value {
+            self.validate_value(string.as_str())
+        } else {
+            bail!(ConstraintError::InvalidType {
+                actual: JsonSchemaValueType::from(value),
+                expected: JsonSchemaValueType::String,
+            });
+        }
+    }
+}
+
+impl Constraint<str> for StringSchema {
+    type Error = ConstraintError;
+
+    fn validate_value(&self, value: &str) -> Result<(), Report<ConstraintError>> {
         match self {
             Self::Constrained(constraints) => constraints
-                .validate_value(string)
+                .validate_value(value)
                 .change_context(ConstraintError::ValueConstraint)?,
             Self::Const { r#const } => {
-                if string != *r#const {
+                if value != *r#const {
                     bail!(ConstraintError::InvalidConstValue {
-                        actual: JsonValue::String(string.to_owned()),
+                        actual: JsonValue::String(value.to_owned()),
                         expected: JsonValue::String(r#const.clone()),
                     });
                 }
             }
             Self::Enum { r#enum } => {
-                if !r#enum.contains(string) {
+                if !r#enum.contains(value) {
                     bail!(ConstraintError::InvalidEnumValue {
-                        actual: JsonValue::String(string.to_owned()),
+                        actual: JsonValue::String(value.to_owned()),
                         expected: r#enum.iter().cloned().map(JsonValue::String).collect(),
                     });
                 }
@@ -278,71 +284,46 @@ pub struct StringConstraints {
     pub format: Option<StringFormat>,
 }
 
-impl StringConstraints {
-    /// Validates the provided value against the string constraints.
-    ///
-    /// # Errors
-    ///
-    /// - [`MinLength`] if the value is shorter than the minimum length.
-    /// - [`MaxLength`] if the value is longer than the maximum length.
-    /// - [`Pattern`] if the value does not match the expected [`Regex`].
-    /// - [`Format`] if the value does not match the expected [`StringFormat`].
-    ///
-    /// [`MinLength`]: StringValidationError::MinLength
-    /// [`MaxLength`]: StringValidationError::MaxLength
-    /// [`Pattern`]: StringValidationError::Pattern
-    /// [`Format`]: StringValidationError::Format
-    pub fn validate_value(&self, string: &str) -> Result<(), Report<[StringValidationError]>> {
+impl Constraint<str> for StringConstraints {
+    type Error = [StringValidationError];
+
+    fn validate_value(&self, value: &str) -> Result<(), Report<[StringValidationError]>> {
         let mut status = ReportSink::new();
 
         if let Some(expected) = self.min_length {
-            if string.len() < expected {
+            if value.len() < expected {
                 status.capture(StringValidationError::MinLength {
-                    actual: string.to_owned(),
+                    actual: value.to_owned(),
                     expected,
                 });
             }
         }
         if let Some(expected) = self.max_length {
-            if string.len() > expected {
+            if value.len() > expected {
                 status.capture(StringValidationError::MaxLength {
-                    actual: string.to_owned(),
+                    actual: value.to_owned(),
                     expected,
                 });
             }
         }
         if let Some(expected) = &self.pattern {
-            if !expected.is_match(string) {
+            if !expected.is_match(value) {
                 status.capture(StringValidationError::Pattern {
-                    actual: string.to_owned(),
+                    actual: value.to_owned(),
                     expected: expected.clone(),
                 });
             }
         }
         if let Some(expected) = self.format {
-            if let Err(error) = expected.validate(string) {
+            if let Err(error) = expected.validate(value) {
                 status.append(error.change_context(StringValidationError::Format {
-                    actual: string.to_owned(),
+                    actual: value.to_owned(),
                     expected,
                 }));
             }
         }
 
         status.finish()
-    }
-}
-
-pub(crate) fn validate_string_value(
-    value: &JsonValue,
-    schema: &StringSchema,
-) -> Result<(), Report<ConstraintError>> {
-    if let JsonValue::String(string) = value {
-        schema.validate_value(string)
-    } else {
-        bail!(ConstraintError::InvalidType {
-            actual: JsonSchemaValueType::from(value),
-            expected: JsonSchemaValueType::String,
-        });
     }
 }
 
