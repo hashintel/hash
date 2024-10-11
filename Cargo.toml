@@ -223,7 +223,7 @@ codegen-backend = "cranelift"
 codegen-backend = "llvm"
 
 [profile.test]
-codegen-backend = "cranelift"
+codegen-backend = "llvm"
 
 # We use LLVM for non-workspace crates, mainly due to the lack of AVX2 support in Cranelift
 [profile.test.package."*"]
