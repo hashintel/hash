@@ -452,11 +452,7 @@ mod tests {
         assert_eq!(integer.r#abstract, defs.integer.r#abstract);
         assert_eq!(
             json!(integer.all_of),
-            json!([
-                defs.integer.constraints,
-                defs.number.constraints,
-                defs.value.constraints
-            ])
+            json!([defs.integer.constraints, defs.value.constraints])
         );
     }
 
@@ -475,11 +471,7 @@ mod tests {
         assert_eq!(unsigned.r#abstract, defs.unsigned.r#abstract);
         assert_eq!(
             json!(unsigned.all_of),
-            json!([
-                defs.unsigned.constraints,
-                defs.number.constraints,
-                defs.value.constraints
-            ])
+            json!([defs.unsigned.constraints, defs.value.constraints])
         );
     }
 
@@ -499,10 +491,12 @@ mod tests {
         assert_eq!(
             json!(unsigned_int.all_of),
             json!([
-                defs.unsigned_int.constraints,
-                defs.unsigned.constraints,
-                defs.integer.constraints,
-                defs.number.constraints,
+                {
+                    "type": "number",
+                    "minimum": 0.0,
+                    "maximum": 4_294_967_295.0,
+                    "multipleOf": 1.0,
+                },
                 defs.value.constraints
             ])
         );
@@ -523,11 +517,7 @@ mod tests {
         assert_eq!(small.r#abstract, defs.small.r#abstract);
         assert_eq!(
             json!(small.all_of),
-            json!([
-                defs.small.constraints,
-                defs.number.constraints,
-                defs.value.constraints
-            ])
+            json!([defs.small.constraints, defs.value.constraints])
         );
     }
 
@@ -556,12 +546,12 @@ mod tests {
         assert_eq!(
             json!(unsigned_small_int.all_of),
             json!([
-                defs.unsigned_small_int.constraints,
-                defs.small.constraints,
-                defs.unsigned_int.constraints,
-                defs.unsigned.constraints,
-                defs.integer.constraints,
-                defs.number.constraints,
+                {
+                    "type": "number",
+                    "minimum": 0.0,
+                    "maximum": 100.0,
+                    "multipleOf": 1.0,
+                },
                 defs.value.constraints
             ])
         );
