@@ -35,7 +35,7 @@
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "@mui/material": "5.16.7",
-    "@sentry/browser": "7.119.1",
+    "@sentry/browser": "7.119.2",
     "bowser": "2.11.0",
     "date-fns": "4.1.0",
     "fractional-indexing": "2.1.0",

@@ -33,7 +33,7 @@
     "@local/hash-graph-sdk": "0.0.0-private",
     "@local/hash-graph-types": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
-    "@sentry/browser": "7.119.1",
+    "@sentry/browser": "7.119.2",
     "@sindresorhus/slugify": "1.1.2",
     "apollo-server-express": "3.9.0",
     "fix-esm-import-path": "1.10.1",
