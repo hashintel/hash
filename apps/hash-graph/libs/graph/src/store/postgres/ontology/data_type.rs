@@ -535,7 +535,7 @@ where
                     .change_context(InsertionError)?;
                 let closed_schema =
                     ClosedDataType::from_resolve_data((**data_type).clone(), &closed_metadata)
-                        .expect("Could not create closed schema");
+                        .change_context(InsertionError)?;
 
                 Ok((closed_schema, closed_metadata))
             })
@@ -897,7 +897,7 @@ where
         let closed_schema = data_type_validator
             .validate(
                 ClosedDataType::from_resolve_data(schema.clone().into_inner(), &resolve_data)
-                    .expect("Could not create closed schema"),
+                    .change_context(InsertionError)?,
             )
             .await
             .change_context(UpdateError)?;
