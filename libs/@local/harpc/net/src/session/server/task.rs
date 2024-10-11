@@ -1,6 +1,7 @@
 use alloc::sync::Arc;
 
 use futures::{FutureExt, StreamExt};
+use harpc_codec::encode::ErrorEncoder;
 use tokio::{
     select,
     sync::{Semaphore, TryAcquireError, broadcast, mpsc},
@@ -12,7 +13,6 @@ use super::{
     session_id::SessionIdProducer, transaction::Transaction,
 };
 use crate::{
-    codec::ErrorEncoder,
     session::server::connection::ConnectionTask,
     transport::{
         TransportLayer,

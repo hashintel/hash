@@ -2,45 +2,9 @@ use core::num::NonZero;
 
 use bytes::{Buf, BufMut};
 use error_stack::Result;
+use harpc_codec::error::ErrorCode;
 
 use crate::codec::{Buffer, BufferError, Decode, Encode};
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(test, derive(test_strategy::Arbitrary))]
-pub struct ErrorCode(NonZero<u16>);
-
-impl ErrorCode {
-    // 0xFF_D0..=0xFF_DF are client layer errors
-    pub const NOT_FOUND: Self = Self(NonZero::new(0xFF_D0).expect("infallible"));
-}
-
-impl ErrorCode {
-    // 0xFF_E0..=0xFF_EF are session layer errors
-    pub const CONNECTION_CLOSED: Self = Self(NonZero::new(0xFF_E0).expect("infallible"));
-    pub const CONNECTION_SHUTDOWN: Self = Self(NonZero::new(0xFF_E1).expect("infallible"));
-    pub const CONNECTION_TRANSACTION_LIMIT_REACHED: Self =
-        Self(NonZero::new(0xFF_E2).expect("infallible"));
-    pub const INSTANCE_TRANSACTION_LIMIT_REACHED: Self =
-        Self(NonZero::new(0xFF_E3).expect("infallible"));
-    pub const TRANSACTION_LAGGING: Self = Self(NonZero::new(0xFF_E4).expect("infallible"));
-}
-
-impl ErrorCode {
-    // 0xFF_F0..=0xFF_FF are generic errors
-    pub const INTERNAL_SERVER_ERROR: Self = Self(NonZero::new(0xFF_F0).expect("infallible"));
-}
-
-impl ErrorCode {
-    #[must_use]
-    pub const fn new(value: NonZero<u16>) -> Self {
-        Self(value)
-    }
-
-    #[must_use]
-    pub const fn value(self) -> NonZero<u16> {
-        self.0
-    }
-}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(test, derive(test_strategy::Arbitrary))]
@@ -63,7 +27,7 @@ impl ResponseKind {
 
 impl From<u16> for ResponseKind {
     fn from(value: u16) -> Self {
-        NonZero::new(value).map_or(Self::Ok, |value| Self::Err(ErrorCode(value)))
+        NonZero::new(value).map_or(Self::Ok, |value| Self::Err(ErrorCode::new(value)))
     }
 }
 
@@ -117,10 +81,11 @@ mod test {
     use core::num::NonZero;
 
     use expect_test::expect;
+    use harpc_codec::error::ErrorCode;
 
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
-        response::kind::{ErrorCode, ResponseKind},
+        response::kind::ResponseKind,
     };
 
     #[test]
@@ -136,13 +101,13 @@ mod test {
 
         assert_decode(
             &[0x00_u8, 0x01] as &[_],
-            &ResponseKind::Err(ErrorCode(NonZero::new(1).expect("infallible"))),
+            &ResponseKind::Err(ErrorCode::new(NonZero::new(1).expect("infallible"))),
             (),
         );
 
         assert_decode(
             &[0x12_u8, 0x34] as &[_],
-            &ResponseKind::Err(ErrorCode(NonZero::new(0x1234).expect("infallible"))),
+            &ResponseKind::Err(ErrorCode::new(NonZero::new(0x1234).expect("infallible"))),
             (),
         );
     }

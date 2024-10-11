@@ -23,6 +23,7 @@ members = [
     "libs/@local/harpc/tower",
     "libs/@local/harpc/service",
     "libs/@local/harpc/server",
+    "libs/@local/harpc/codec",
     "libs/@local/hql/*",
     "libs/antsi",
     "libs/deer",
@@ -59,6 +60,7 @@ harpc-types.path = "libs/@local/harpc/types"
 harpc-wire-protocol.path = "libs/@local/harpc/wire-protocol"
 harpc-tower.path = "libs/@local/harpc/tower"
 harpc-service.path = "libs/@local/harpc/service"
+harpc-codec.path = "libs/@local/harpc/codec"
 hash-graph-store.path = "apps/hash-graph/libs/store"
 hash-status.path = "libs/@local/status/rust"
 hash-tracing.path = "libs/@local/tracing"
@@ -142,10 +144,8 @@ async-scoped = { version = "=0.9.0", default-features = false }
 async-trait = { version = "=0.1.83", default-features = false }
 aws-config = { version = "=1.5.8" }
 aws-sdk-s3 = { version = "=1.54.0", default-features = false }
-base64 = { version = "=0.22.1", default-features = false }
 bitvec = { version = "=1.0.1", default-features = false }
 bytes-utils = { version = "=0.1.4", default-features = false }
-chrono = { version = "=0.4.38", default-features = false }
 clap = { version = "=4.5.20", features = ["std", "color", "help", "usage", "error-context", "suggestions"] }
 clap_complete = { version = "=4.5.33", default-features = false }
 coverage-helper = { version = "=0.2.2", default-features = false }
@@ -155,13 +155,12 @@ dotenv-flow = { version = "=0.16.2", default-features = false }
 expect-test = { version = "=1.5.0", default-features = false }
 futures = { version = "=0.3.31", default-features = false }
 hifijson = { version = "=0.2.2", default-features = false }
-http-body-util = { version = "=0.1.2", default-features = false }
 humansize = { version = "=2.1.3", default-features = false }
 hyper = { version = "=1.4.1", default-features = false }
 include_dir = { version = "=0.7.4", default-features = false }
 insta = { version = "=1.40.0", default-features = false }
 itertools = { version = "0.13.0", default-features = false }
-jsonschema = { version = "=0.21.0", default-features = false }
+jsonschema = { version = "=0.22.3", default-features = false }
 justjson = { version = "=0.3.0", default-features = false }
 lexical = { version = "=7.0.2", default-features = false }
 libp2p = { version = "=0.54.1", default-features = false }
@@ -189,19 +188,15 @@ rustc_version = { version = "=0.4.1", default-features = false }
 scc = { version = "=2.2.0", default-features = false }
 sentry = { version = "=0.34.0", default-features = false, features = ["backtrace", "contexts", "debug-images", "panic", "reqwest", "rustls", "tracing", "tower-http"] }
 seq-macro = { version = "=0.3.5", default-features = false }
-serde-value = { version = "=0.7.0", default-features = false }
 serde_plain = { version = "=1.0.2", default-features = false }
 serde_with = { version = "=3.11.0", default-features = false }
 similar-asserts = { version = "=1.6.0", default-features = false }
-spin = { version = "=0.9", default-features = false }
 supports-color = { version = "=3.0.1", default-features = false }
 supports-unicode = { version = "=3.0.0", default-features = false }
-sval = { version = "=2.13.1", default-features = false }
-syn = { version = "=2.0.79", default-features = false }
 tachyonix = { version = "=0.3.1", default-features = false }
 tarpc = { version = "=0.33", default-features = false }
-temporal-io-client = { git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }
-temporal-io-sdk-core-protos = { git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }
+temporal-io-client = { package = "temporal-client", git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }
+temporal-io-sdk-core-protos = { package = "temporal-sdk-core-protos", git = "https://github.com/temporalio/sdk-core", rev = "7e3c23f" }
 test-fuzz = { version = "=6.0.0", default-features = false }
 test-log = { version = "=0.2.16", default-features = false }
 test-strategy = { version = "=0.4.0", default-features = false }

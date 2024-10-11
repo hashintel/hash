@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
 use core::{
-    future::{self, Ready},
+    future::{self, Ready, ready},
     task::{Context, Poll},
 };
 
@@ -9,7 +9,7 @@ use futures::{
     FutureExt,
     future::{Either, Map},
 };
-use harpc_net::codec::ErrorEncoder;
+use harpc_codec::encode::ErrorEncoder;
 use harpc_service::delegate::ServiceDelegate;
 use harpc_tower::{
     body::{Body, BodyExt},
@@ -128,11 +128,9 @@ where
 
         let session = request.session();
 
-        async move {
-            let error = codec.encode_error(error).await;
+        let error = codec.encode_error(error);
 
-            Response::from_error(Parts::new(session), error).map_body(BodyExt::boxed)
-        }
+        ready(Response::from_error(Parts::new(session), error).map_body(BodyExt::boxed))
     }
 }
 

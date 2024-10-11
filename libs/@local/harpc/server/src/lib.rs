@@ -1,4 +1,4 @@
-#![feature(never_type, impl_trait_in_assoc_type)]
+#![feature(never_type, impl_trait_in_assoc_type, error_generic_member_access)]
 
 extern crate alloc;
 

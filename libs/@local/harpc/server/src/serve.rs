@@ -1,4 +1,5 @@
 use futures::{Stream, StreamExt};
+use harpc_codec::encode::ErrorEncoder;
 use harpc_net::session::server::Transaction;
 use harpc_tower::{
     body::server::request::RequestBody,
@@ -15,6 +16,7 @@ use tower::{Service, ServiceExt};
 // terminating)
 pub async fn serve<M, S>(
     stream: impl Stream<Item = Transaction> + Send,
+    encoder: impl ErrorEncoder + Clone + Send + 'static,
     mut make_service: M,
 ) -> TaskTracker
 where
@@ -39,12 +41,14 @@ where
         let request = Request::new(parts, RequestBody::new(stream));
 
         let Ok(service): Result<S, !> = make_service.call(()).await;
+        let encoder = encoder.clone();
 
         tasks.spawn(async move {
             let Ok(response): Result<BoxedResponse<!>, !> = service.oneshot(request).await;
             let response = response.into_body();
 
-            let pack = Pack::new(response).map(Ok);
+            // TODO: move the pack creation into the `make_service` service.
+            let pack = Pack::new(response, encoder).map(Ok);
             if let Err(error) = pack.forward(sink).await {
                 tracing::error!(?error, "failed to send response");
             }

@@ -14,6 +14,7 @@ use core::{
 
 use error_stack::{Result, ResultExt};
 use futures::{Stream, stream::FusedStream};
+use harpc_codec::encode::ErrorEncoder;
 use libp2p::Multiaddr;
 use tokio::sync::{Semaphore, broadcast, mpsc};
 use tokio_util::task::TaskTracker;
@@ -21,7 +22,7 @@ use tokio_util::task::TaskTracker;
 pub use self::{config::SessionConfig, session_id::SessionId, transaction::Transaction};
 use self::{session_id::SessionIdProducer, task::Task};
 use super::error::SessionError;
-use crate::{codec::ErrorEncoder, transport::TransportLayer};
+use crate::transport::TransportLayer;
 
 // TODO: encoding and decoding layer(?)
 // TODO: timeout layer - needs encoding layer (for error handling), and IPC to cancel a specific

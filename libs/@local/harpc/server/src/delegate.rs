@@ -49,9 +49,9 @@ where
     ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync,
 {
     type Error = D::Error;
-    type Response = Response<D::Body>;
+    type Response = Response<D::Body<ReqBody>>;
 
-    type Future = impl Future<Output = Result<Response<D::Body>, D::Error>> + Send;
+    type Future = impl Future<Output = Result<Response<D::Body<ReqBody>>, D::Error>> + Send;
 
     fn poll_ready(&mut self, _: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         // A delegate service is always ready to accept requests.
