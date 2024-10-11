@@ -34,13 +34,13 @@ export const LinksSection = ({ isLinkEntity }: { isLinkEntity: boolean }) => {
     <Stack gap={6}>
       <OutgoingLinksSection
         isLinkEntity={isLinkEntity}
-        key={entity.metadata.recordId.editionId}
+        key={`outgoing-${entity.metadata.recordId.editionId}`}
         outgoingLinks={outgoingLinks}
       />
 
       <IncomingLinksSection
         isLinkEntity={isLinkEntity}
-        key={entity.metadata.recordId.editionId}
+        key={`incoming-${entity.metadata.recordId.editionId}`}
         incomingLinksAndSources={incomingLinksAndSources}
       />
     </Stack>
