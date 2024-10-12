@@ -1,7 +1,6 @@
 use core::error::Error;
 
-use harpc_codec::error::ErrorCode;
-use harpc_types::{service::ServiceId, version::Version};
+use harpc_types::{error_code::ErrorCode, service::ServiceId, version::Version};
 
 #[derive(
     Debug,

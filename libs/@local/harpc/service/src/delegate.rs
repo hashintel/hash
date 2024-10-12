@@ -1,5 +1,5 @@
 use harpc_tower::{body::Body, request::Request, response::Response};
-use harpc_wire_protocol::response::kind::ResponseKind;
+use harpc_types::response_kind::ResponseKind;
 
 use crate::Service;
 

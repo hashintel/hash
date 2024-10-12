@@ -3,7 +3,7 @@ use core::task::{Context, Poll};
 use bytes::Bytes;
 use error_stack::Report;
 use harpc_codec::encode::ErrorEncoder;
-use harpc_wire_protocol::response::kind::ResponseKind;
+use harpc_types::response_kind::ResponseKind;
 use tower::{Layer, Service, ServiceExt};
 
 use crate::{
@@ -99,8 +99,8 @@ mod test {
 
     use bytes::{Buf, Bytes};
     use error_stack::Report;
-    use harpc_codec::{error::ErrorCode, json::JsonCodec};
-    use harpc_wire_protocol::response::kind::ResponseKind;
+    use harpc_codec::json::JsonCodec;
+    use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
     use insta::assert_snapshot;
     use tokio_test::{assert_pending, assert_ready};
     use tower::{Layer, Service, ServiceExt};

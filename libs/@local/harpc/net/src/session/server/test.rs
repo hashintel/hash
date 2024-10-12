@@ -10,7 +10,11 @@ use bytes::{Bytes, BytesMut};
 use error_stack::{Report, ResultExt};
 use futures::{SinkExt, Stream, StreamExt};
 use harpc_codec::json::JsonCodec;
-use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
+use harpc_types::{
+    procedure::{ProcedureDescriptor, ProcedureId},
+    service::{ServiceDescriptor, ServiceId},
+    version::Version,
+};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     payload::Payload,
@@ -22,8 +26,6 @@ use harpc_wire_protocol::{
         flags::{RequestFlag, RequestFlags},
         frame::RequestFrame,
         header::RequestHeader,
-        procedure::ProcedureDescriptor,
-        service::ServiceDescriptor,
     },
     response::{Response, flags::ResponseFlag},
     test_utils::mock_request_id,

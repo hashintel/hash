@@ -8,12 +8,13 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 use error_stack::Report;
 use futures_core::Stream;
 use futures_util::stream::StreamExt;
+use harpc_types::error_code::ErrorCode;
 use serde::{de::DeserializeOwned, ser::Error as _};
 
 use crate::{
     decode::{Decoder, ErrorDecoder},
     encode::{Encoder, ErrorEncoder},
-    error::{EncodedError, ErrorBuffer, ErrorCode, NetworkError},
+    error::{EncodedError, ErrorBuffer, NetworkError},
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]

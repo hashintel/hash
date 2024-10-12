@@ -5,7 +5,7 @@ use core::{
 
 use bytes::Bytes;
 use harpc_codec::encode::ErrorEncoder;
-use harpc_wire_protocol::response::kind::ResponseKind;
+use harpc_types::response_kind::ResponseKind;
 use tower::{Layer, Service, ServiceExt};
 
 use crate::{
@@ -102,12 +102,14 @@ pub(crate) mod test {
     };
 
     use bytes::{Buf, Bytes};
-    use harpc_codec::{error::ErrorCode, json::JsonCodec};
+    use harpc_codec::json::JsonCodec;
     use harpc_net::test_utils::mock_session_id;
-    use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
-    use harpc_wire_protocol::{
-        request::{procedure::ProcedureDescriptor, service::ServiceDescriptor},
-        response::kind::ResponseKind,
+    use harpc_types::{
+        error_code::ErrorCode,
+        procedure::{ProcedureDescriptor, ProcedureId},
+        response_kind::ResponseKind,
+        service::{ServiceDescriptor, ServiceId},
+        version::Version,
     };
     use insta::assert_snapshot;
     use tokio_test::{assert_pending, assert_ready};

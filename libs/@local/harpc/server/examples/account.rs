@@ -28,8 +28,12 @@ use harpc_tower::{
     request::Request,
     response::{Parts, Response},
 };
-use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
-use harpc_wire_protocol::{request::procedure::ProcedureDescriptor, response::kind::ResponseKind};
+use harpc_types::{
+    procedure::{ProcedureDescriptor, ProcedureId},
+    response_kind::ResponseKind,
+    service::ServiceId,
+    version::Version,
+};
 
 enum AccountProcedureId {
     CreateAccount,

@@ -5,7 +5,6 @@
   "license": "AGPL-3",
   "dependencies": {
     "@rust/harpc-tower": "0.0.0-private",
-    "@rust/harpc-types": "0.0.0-private",
-    "@rust/harpc-wire-protocol": "0.0.0-private"
+    "@rust/harpc-types": "0.0.0-private"
   }
 }

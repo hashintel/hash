@@ -10,13 +10,13 @@ use core::{
 use bytes::Bytes;
 use futures::{Sink, Stream, StreamExt, stream::FusedStream};
 use harpc_codec::error::EncodedError;
+use harpc_types::{
+    procedure::ProcedureDescriptor, response_kind::ResponseKind, service::ServiceDescriptor,
+};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
-    request::{
-        Request, begin::RequestBegin, flags::RequestFlag, id::RequestId,
-        procedure::ProcedureDescriptor, service::ServiceDescriptor,
-    },
-    response::{Response, kind::ResponseKind},
+    request::{Request, begin::RequestBegin, flags::RequestFlag, id::RequestId},
+    response::Response,
 };
 use libp2p::PeerId;
 use tokio::{select, sync::mpsc};

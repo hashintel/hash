@@ -1,5 +1,5 @@
 use harpc_net::session::server::{SessionId, transaction::TransactionContext};
-use harpc_wire_protocol::request::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
+use harpc_types::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
 
 use crate::{body::Body, extensions::Extensions};
 

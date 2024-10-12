@@ -2625,12 +2625,11 @@ dependencies = [
  "error-stack",
  "futures-core",
  "futures-util",
+ "harpc-types",
  "memchr",
  "pin-project-lite",
- "proptest",
  "serde",
  "serde_json",
- "test-strategy",
  "tokio",
 ]
 
@@ -2691,7 +2690,6 @@ dependencies = [
  "harpc-service",
  "harpc-tower",
  "harpc-types",
- "harpc-wire-protocol",
  "scc",
  "serde",
  "thiserror",
@@ -2708,7 +2706,6 @@ dependencies = [
  "frunk",
  "harpc-tower",
  "harpc-types",
- "harpc-wire-protocol",
 ]
 
 [[package]]
@@ -2723,7 +2720,6 @@ dependencies = [
  "harpc-codec",
  "harpc-net",
  "harpc-types",
- "harpc-wire-protocol",
  "insta",
  "pin-project",
  "pin-project-lite",

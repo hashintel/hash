@@ -1,6 +1,6 @@
 use core::error::{Error, Request};
 
-use harpc_codec::error::ErrorCode;
+use harpc_types::error_code::ErrorCode;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
 #[error("The session layer has encountered an error, the connection has been closed")]

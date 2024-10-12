@@ -20,7 +20,6 @@ tower-service = { workspace = true, public = true }
 # Private workspace dependencies
 error-stack = { workspace = true }
 harpc-types = { workspace = true, features = ["serde"] }
-harpc-wire-protocol = { workspace = true }
 harpc-codec = { workspace = true }
 
 # Private third-party dependencies
