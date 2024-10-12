@@ -4,6 +4,7 @@
   "private": true,
   "license": "AGPL-3",
   "dependencies": {
-    "@rust/error-stack": "0.5.0"
+    "@rust/error-stack": "0.5.0",
+    "@rust/harpc-types": "0.0.0-private"
   }
 }

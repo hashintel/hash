@@ -12,9 +12,7 @@
     "@rust/codec": "0.0.0-private",
     "@rust/error-stack": "0.5.0",
     "@rust/harpc-codec": "0.0.0-private",
+    "@rust/harpc-types": "0.0.0-private",
     "@rust/harpc-wire-protocol": "0.0.0-private"
-  },
-  "devDependencies": {
-    "@rust/harpc-types": "0.0.0-private"
   }
 }

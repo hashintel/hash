@@ -7,7 +7,6 @@
     "@rust/error-stack": "0.5.0",
     "@rust/harpc-codec": "0.0.0-private",
     "@rust/harpc-net": "0.0.0-private",
-    "@rust/harpc-types": "0.0.0-private",
-    "@rust/harpc-wire-protocol": "0.0.0-private"
+    "@rust/harpc-types": "0.0.0-private"
   }
 }
