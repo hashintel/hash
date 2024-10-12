@@ -25,7 +25,7 @@ use serde_json::Value as JsonValue;
 use thiserror::Error;
 use type_system::{
     schema::{
-        ClosedEntityType, DataTypeReference, JsonSchemaValueType, PropertyObjectSchema,
+        ClosedEntityType, Constraint, DataTypeReference, JsonSchemaValueType, PropertyObjectSchema,
         PropertyType, PropertyTypeReference, PropertyValueArray, PropertyValueSchema,
         PropertyValues, ValueOrArray,
     },
@@ -278,7 +278,8 @@ impl EntityVisitor for ValueValidator {
         status.attempt(
             data_type
                 .schema
-                .validate_constraints(value)
+                .constraints
+                .validate_value(value)
                 .change_context(TraversalError::ConstraintUnfulfilled),
         );
 

@@ -10,7 +10,10 @@ export type RegisterEventsArgs = {
   config: GraphVizConfig;
   graphContainerRef: RefObject<HTMLDivElement>;
   graphState: GraphState;
-  onEdgeClick?: (params: { edgeId: string; isFullScreen: boolean }) => void;
+  onEdgeClick?: (params: {
+    edgeId: string;
+    screenContainerRef?: RefObject<HTMLDivElement>;
+  }) => void;
   onNodeSecondClick?: (params: {
     nodeId: string;
     /**
@@ -119,7 +122,7 @@ export const useEventHandlers = ({
       clickEdge: (event) => {
         onEdgeClick?.({
           edgeId: event.edge,
-          isFullScreen,
+          screenContainerRef: isFullScreen ? graphContainerRef : undefined,
         });
       },
       clickNode: (event) => {

@@ -2,6 +2,10 @@ import { faMagnifyingGlass } from "@fortawesome/free-solid-svg-icons";
 import { Chip, FontAwesomeIcon, IconButton } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityProperties } from "@local/hash-graph-types/entity";
+import {
+  getOutgoingLinkAndTargetEntities,
+  getRoots,
+} from "@local/hash-subgraph/stdlib";
 import { Paper, Stack } from "@mui/material";
 import { useState } from "react";
 
@@ -9,10 +13,12 @@ import { Grid } from "../../../../../../components/grid/grid";
 import { renderChipCell } from "../../../../../shared/chip-cell";
 import { SectionWrapper } from "../../../../shared/section-wrapper";
 import { LinksSectionEmptyState } from "../../shared/links-section-empty-state";
+import { useEntityEditor } from "../entity-editor-context";
 import { renderSummaryChipCell } from "../shared/summary-chip-cell";
 import { renderLinkCell } from "./outgoing-links-section/cells/link-cell";
 import { renderLinkedWithCell } from "./outgoing-links-section/cells/linked-with-cell";
 import { linkGridColumns } from "./outgoing-links-section/constants";
+import { OutgoingLinksTable } from "./outgoing-links-section/readonly-outgoing-links-table";
 import { useCreateGetCellContent } from "./outgoing-links-section/use-create-get-cell-content";
 import { useRows } from "./outgoing-links-section/use-rows";
 
@@ -27,6 +33,8 @@ export const OutgoingLinksSection = ({
 }: OutgoingLinksSectionPropsProps) => {
   const [showSearch, setShowSearch] = useState(false);
 
+  const { entitySubgraph, readonly } = useEntityEditor();
+
   const rows = useRows();
   const createGetCellContent = useCreateGetCellContent();
 
@@ -39,7 +47,22 @@ export const OutgoingLinksSection = ({
     return null;
   }
 
-  if (rows.length === 0) {
+  const entity = getRoots(entitySubgraph)[0]!;
+
+  const outgoingLinksAndTargets = readonly
+    ? getOutgoingLinkAndTargetEntities(
+        entitySubgraph,
+        entity.metadata.recordId.entityId,
+        entity.metadata.temporalVersioning[
+          entitySubgraph.temporalAxes.resolved.variable.axis
+        ],
+      )
+    : null;
+
+  if (
+    rows.length === 0 ||
+    (readonly && outgoingLinksAndTargets?.length === 0)
+  ) {
     return <LinksSectionEmptyState direction="Outgoing" />;
   }
 
@@ -62,24 +85,30 @@ export const OutgoingLinksSection = ({
         </Stack>
       }
     >
-      <Paper sx={{ overflow: "hidden" }}>
-        <Grid
-          columns={linkGridColumns}
-          rows={rows}
-          createGetCellContent={createGetCellContent}
-          dataLoading={false}
-          showSearch={showSearch}
-          onSearchClose={() => setShowSearch(false)}
-          // define max height if there are lots of rows
-          height={rows.length > 10 ? 500 : undefined}
-          customRenderers={[
-            renderLinkCell,
-            renderLinkedWithCell,
-            renderSummaryChipCell,
-            renderChipCell,
-          ]}
+      {readonly ? (
+        <OutgoingLinksTable
+          outgoingLinksAndTargets={outgoingLinksAndTargets!}
         />
-      </Paper>
+      ) : (
+        <Paper sx={{ overflow: "hidden" }}>
+          <Grid
+            columns={linkGridColumns}
+            rows={rows}
+            createGetCellContent={createGetCellContent}
+            dataLoading={false}
+            showSearch={showSearch}
+            onSearchClose={() => setShowSearch(false)}
+            // define max height if there are lots of rows
+            height={rows.length > 10 ? 500 : undefined}
+            customRenderers={[
+              renderLinkCell,
+              renderLinkedWithCell,
+              renderSummaryChipCell,
+              renderChipCell,
+            ]}
+          />
+        </Paper>
+      )}
     </SectionWrapper>
   );
 };

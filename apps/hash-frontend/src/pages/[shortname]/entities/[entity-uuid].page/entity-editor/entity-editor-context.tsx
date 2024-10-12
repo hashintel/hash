@@ -23,6 +23,7 @@ export const EntityEditorContextProvider = ({
   children,
   draftLinksToArchive,
   draftLinksToCreate,
+  entityLabel,
   entitySubgraph,
   isDirty,
   onEntityClick,
@@ -31,6 +32,7 @@ export const EntityEditorContextProvider = ({
   setDraftLinksToArchive,
   setDraftLinksToCreate,
   setEntity,
+  slideContainerRef,
 }: PropsWithChildren<EntityEditorProps>) => {
   const [propertyExpandStatus, setPropertyExpandStatus] =
     useState<TableExpandStatus>({});
@@ -66,6 +68,7 @@ export const EntityEditorContextProvider = ({
     () => ({
       draftLinksToArchive,
       draftLinksToCreate,
+      entityLabel,
       entitySubgraph,
       isDirty,
       onEntityClick,
@@ -75,11 +78,13 @@ export const EntityEditorContextProvider = ({
       setDraftLinksToArchive,
       setDraftLinksToCreate,
       setEntity,
+      slideContainerRef,
       togglePropertyExpand,
     }),
     [
       draftLinksToArchive,
       draftLinksToCreate,
+      entityLabel,
       entitySubgraph,
       isDirty,
       onEntityClick,
@@ -89,6 +94,7 @@ export const EntityEditorContextProvider = ({
       setDraftLinksToArchive,
       setDraftLinksToCreate,
       setEntity,
+      slideContainerRef,
       togglePropertyExpand,
     ],
   );
