@@ -31,14 +31,8 @@ interface QueryEditorPageProps extends EntityEditorProps {
 }
 
 export const QueryEditorPage = (props: QueryEditorPageProps) => {
-  const {
-    entityLabel,
-    owner,
-    entityUuid,
-    handleSaveQuery,
-    mode,
-    ...entityEditorProps
-  } = props;
+  const { owner, entityUuid, handleSaveQuery, mode, ...entityEditorProps } =
+    props;
 
   const router = useRouter();
 
@@ -82,6 +76,8 @@ export const QueryEditorPage = (props: QueryEditorPageProps) => {
     },
     [queryEntities],
   );
+
+  const { entityLabel } = entityEditorProps;
 
   return (
     <>

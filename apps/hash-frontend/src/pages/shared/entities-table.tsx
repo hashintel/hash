@@ -37,7 +37,6 @@ import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
 import type { MinimalActor } from "../../shared/use-actors";
 import { isAiMachineActor } from "../../shared/use-actors";
 import { useEntityTypeEntities } from "../../shared/use-entity-type-entities";
-import { EditEntitySlideOver } from "../[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { renderChipCell } from "./chip-cell";
 import { GridView } from "./entities-table/grid-view";
@@ -46,6 +45,7 @@ import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
 import type { TypeEntitiesRow } from "./entities-table/use-entities-table";
 import { useEntitiesTable } from "./entities-table/use-entities-table";
 import { useGetEntitiesTableAdditionalCsvData } from "./entities-table/use-get-entities-table-additional-csv-data";
+import { EntityEditorSlideStack } from "./entity-editor-slide-stack";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
 import { generateEntityRootedSubgraph } from "./subgraphs";
@@ -211,7 +211,12 @@ export const EntitiesTable: FunctionComponent<{
           !isPageEntityTypeId(entity.metadata.entityTypeId)
             ? true
             : simplifyProperties(entity.properties as PageProperties)
-                .archived !== true),
+                .archived !== true) &&
+          (filterState.limitToWebs
+            ? filterState.limitToWebs.includes(
+                extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId),
+              )
+            : true),
       ),
     [entities, filterState, internalWebIds],
   );
@@ -656,7 +661,7 @@ export const EntitiesTable: FunctionComponent<{
     });
 
   const maximumTableHeight = `calc(100vh - (${
-    HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 179 + tableHeaderHeight
+    HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 185 + tableHeaderHeight
   }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`;
 
   const isPrimaryEntity = useCallback(
@@ -689,7 +694,7 @@ export const EntitiesTable: FunctionComponent<{
         />
       )}
       {selectedEntity ? (
-        <EditEntitySlideOver
+        <EntityEditorSlideStack
           /*
             The subgraphWithLinkedEntities can take a long time to load with many entities.
             We pass the subgraph without linked entities so that there is _some_ data to load into the editor,
@@ -699,9 +704,7 @@ export const EntitiesTable: FunctionComponent<{
             it means the links will load in immediately.
            */
           entitySubgraph={selectedEntity.subgraph}
-          entityId={selectedEntity.entityId}
-          onEntityClick={handleEntityClick}
-          open
+          rootEntityId={selectedEntity.entityId}
           onClose={() => setSelectedEntity(null)}
           onSubmit={() => {
             throw new Error(`Editing not yet supported from this screen`);
@@ -758,7 +761,7 @@ export const EntitiesTable: FunctionComponent<{
         {view === "Graph" && subgraph ? (
           <Box height={maximumTableHeight}>
             <EntityGraphVisualizer
-              entities={entities}
+              entities={filteredEntities}
               isPrimaryEntity={isPrimaryEntity}
               filterEntity={filterEntity}
               onEntityClick={handleEntityClick}

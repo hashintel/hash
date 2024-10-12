@@ -21,7 +21,6 @@ import { QueryEditorToggle } from "./query-editor-toggle";
 interface EntityEditorPageProps
   extends Omit<EntityEditorProps, "onEntityClick"> {
   entity?: Entity;
-  entityLabel: string;
   editBar: ReactNode;
   owner: string;
   entityUuid: string;
@@ -33,7 +32,6 @@ interface EntityEditorPageProps
 
 export const EntityEditorPage = ({
   entity,
-  entityLabel,
   editBar,
   entityUuid,
   owner,
@@ -46,7 +44,7 @@ export const EntityEditorPage = ({
   const [shouldShowQueryEditor, setShouldShowQueryEditor] = useState(true);
   const { triggerSnackbar } = useSnackbar();
 
-  const { entitySubgraph, onEntityUpdated } = entityEditorProps;
+  const { entityLabel, entitySubgraph, onEntityUpdated } = entityEditorProps;
 
   const [selectedEntity, setSelectedEntity] = useState<{
     entityId: EntityId;
@@ -108,7 +106,6 @@ export const EntityEditorPage = ({
               triggerSnackbar.success("Changes saved successfully");
             }
           }}
-          entityLabel={entityLabel}
           entityUuid={entityUuid}
           owner={owner}
           {...entityEditorProps}

@@ -4,12 +4,12 @@ import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
-import type { LinkEntityAndLeftEntity } from "@local/hash-subgraph";
+import type { LinkEntityAndRightEntity } from "@local/hash-subgraph";
 import {
   getEntityTypeById,
   getPropertyTypeForEntity,
 } from "@local/hash-subgraph/stdlib";
-import { Box, Stack, TableCell, Typography } from "@mui/material";
+import { Box, TableCell } from "@mui/material";
 import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { ValueChip } from "../../../../../../shared/value-chip";
@@ -38,26 +38,26 @@ import {
   maxLinksTableHeight,
 } from "../shared/table-styling";
 
-const fieldIds = ["linkedFrom", "linkType", "linkedFromType", "link"] as const;
+const fieldIds = ["linkType", "linkedTo", "linkedToType", "link"] as const;
 
 type FieldId = (typeof fieldIds)[number];
 
 const columns: VirtualizedTableColumn<FieldId>[] = [
   {
-    label: "Linked from",
-    id: "linkedFrom",
-    sortable: true,
-    width: 100,
-  },
-  {
     label: "Link type",
     id: "linkType",
     sortable: true,
-    width: 160,
+    width: 120,
   },
   {
-    label: "Linked from type",
-    id: "linkedFromType",
+    label: "Linked to",
+    id: "linkedTo",
+    sortable: true,
+    width: 120,
+  },
+  {
+    label: "Linked to type",
+    id: "linkedToType",
     sortable: true,
     width: 120,
   },
@@ -69,11 +69,11 @@ const columns: VirtualizedTableColumn<FieldId>[] = [
   },
 ];
 
-type IncomingLinkRow = {
-  sourceEntity: Entity;
-  sourceEntityLabel: string;
-  sourceEntityProperties: { [propertyTitle: string]: string };
-  sourceEntityType: EntityType;
+type OutgoingLinkRow = {
+  targetEntity: Entity;
+  targetEntityLabel: string;
+  targetEntityProperties: { [propertyTitle: string]: string };
+  targetEntityType: EntityType;
   linkEntity: Entity;
   linkEntityLabel: string;
   linkEntityProperties: { [propertyTitle: string]: string };
@@ -81,20 +81,28 @@ type IncomingLinkRow = {
   onEntityClick: (entityId: EntityId) => void;
 };
 
-const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
-  const { entityLabel } = useEntityEditor();
-
+const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
   return (
     <>
       <TableCell sx={linksTableCellSx}>
+        <ValueChip
+          type
+          sx={{
+            fontSize: linksTableFontSize,
+          }}
+        >
+          {row.linkEntityType.title}
+        </ValueChip>
+      </TableCell>
+      <TableCell sx={linksTableCellSx}>
         <PropertiesTooltip
-          entityType="source entity"
-          properties={row.sourceEntityProperties}
+          entityType="target entity"
+          properties={row.targetEntityProperties}
         >
           <Box
             component="button"
             onClick={() =>
-              row.onEntityClick(row.sourceEntity.metadata.recordId.entityId)
+              row.onEntityClick(row.targetEntity.metadata.recordId.entityId)
             }
             sx={{
               background: "none",
@@ -111,37 +119,10 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
                 fontSize: linksTableFontSize,
               }}
             >
-              {row.sourceEntityLabel}
+              {row.targetEntityLabel}
             </ValueChip>
           </Box>
         </PropertiesTooltip>
-      </TableCell>
-      <TableCell sx={linksTableCellSx}>
-        <Stack direction="row" alignItems="center">
-          <ValueChip
-            showInFull
-            type
-            sx={{
-              fontSize: linksTableFontSize,
-            }}
-          >
-            {row.linkEntityType.title}
-          </ValueChip>
-          <Typography
-            sx={{
-              display: "block",
-              textOverflow: "ellipsis",
-              overflow: "hidden",
-              whiteSpace: "nowrap",
-              fontSize: linksTableFontSize,
-              color: ({ palette }) => palette.gray[50],
-              maxWidth: "100%",
-              ml: 1,
-            }}
-          >
-            {entityLabel}
-          </Typography>
-        </Stack>
       </TableCell>
       <TableCell sx={linksTableCellSx}>
         <ValueChip
@@ -150,7 +131,7 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
             fontSize: linksTableFontSize,
           }}
         >
-          {row.sourceEntityType.title}
+          {row.targetEntityType.title}
         </ValueChip>
       </TableCell>
       <TableCell sx={linksTableCellSx}>
@@ -186,18 +167,18 @@ const TableRow = memo(({ row }: { row: IncomingLinkRow }) => {
 });
 
 const createRowContent: CreateVirtualizedRowContentFn<
-  IncomingLinkRow,
+  OutgoingLinkRow,
   FieldId
 > = (_index, row) => <TableRow row={row.data} />;
 
-type IncomingLinksTableProps = {
-  incomingLinksAndSources: LinkEntityAndLeftEntity[];
+type OutgoingLinksTableProps = {
+  outgoingLinksAndTargets: LinkEntityAndRightEntity[];
 };
 
-export const IncomingLinksTable = memo(
-  ({ incomingLinksAndSources }: IncomingLinksTableProps) => {
+export const OutgoingLinksTable = memo(
+  ({ outgoingLinksAndTargets }: OutgoingLinksTableProps) => {
     const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
-      fieldId: "linkedFrom",
+      fieldId: "linkedTo",
       direction: "asc",
     });
 
@@ -221,9 +202,9 @@ export const IncomingLinksTable = memo(
     }: {
       filterDefinitions: VirtualizedTableFilterDefinitionsByFieldId<FieldId>;
       initialFilterValues: VirtualizedTableFilterValuesByFieldId<FieldId>;
-      unsortedRows: VirtualizedTableRow<IncomingLinkRow>[];
+      unsortedRows: VirtualizedTableRow<OutgoingLinkRow>[];
     } = useMemo(() => {
-      const rowData: VirtualizedTableRow<IncomingLinkRow>[] = [];
+      const rowData: VirtualizedTableRow<OutgoingLinkRow>[] = [];
 
       const filterDefs = {
         linkType: {
@@ -232,13 +213,13 @@ export const IncomingLinksTable = memo(
           options: {} as VirtualizedTableFilterDefinition["options"],
           type: "checkboxes",
         },
-        linkedFrom: {
+        linkedTo: {
           header: "Name",
           initialValue: new Set<string>(),
           options: {} as VirtualizedTableFilterDefinition["options"],
           type: "checkboxes",
         },
-        linkedFromType: {
+        linkedToType: {
           header: "Type",
           initialValue: new Set<string>(),
           options: {} as VirtualizedTableFilterDefinition["options"],
@@ -255,9 +236,9 @@ export const IncomingLinksTable = memo(
       const entityTypesByVersionedUrl: Record<VersionedUrl, EntityType> = {};
 
       for (const {
-        leftEntity: leftEntityRevisions,
+        rightEntity: rightEntityRevisions,
         linkEntity: linkEntityRevisions,
-      } of incomingLinksAndSources) {
+      } of outgoingLinksAndTargets) {
         const linkEntity = linkEntityRevisions[0];
         if (!linkEntity) {
           throw new Error("Expected at least one link revision");
@@ -288,47 +269,53 @@ export const IncomingLinksTable = memo(
         filterDefs.linkType.options[linkEntityTypeId]!.count++;
         filterDefs.linkType.initialValue.add(linkEntityTypeId);
 
-        const leftEntity = leftEntityRevisions[0];
-        if (!leftEntity) {
+        const rightEntity = rightEntityRevisions[0];
+        if (!rightEntity) {
           throw new Error("Expected at least one left entity revision");
         }
 
-        const leftEntityLabel = generateEntityLabel(entitySubgraph, leftEntity);
-        filterDefs.linkedFrom.options[leftEntity.metadata.recordId.entityId] ??=
+        const rightEntityLabel = generateEntityLabel(
+          entitySubgraph,
+          rightEntity,
+        );
+        filterDefs.linkedTo.options[rightEntity.metadata.recordId.entityId] ??=
           {
-            label: leftEntityLabel,
+            label: rightEntityLabel,
             count: 0,
-            value: leftEntity.metadata.recordId.entityId,
+            value: rightEntity.metadata.recordId.entityId,
           };
-        filterDefs.linkedFrom.options[leftEntity.metadata.recordId.entityId]!
+        filterDefs.linkedTo.options[rightEntity.metadata.recordId.entityId]!
           .count++;
-        filterDefs.linkedFrom.initialValue.add(
-          leftEntity.metadata.recordId.entityId,
+        filterDefs.linkedTo.initialValue.add(
+          rightEntity.metadata.recordId.entityId,
         );
 
-        const leftEntityTypeId = leftEntity.metadata.entityTypeId;
-        let leftEntityType = entityTypesByVersionedUrl[leftEntityTypeId];
+        const rightEntityTypeId = rightEntity.metadata.entityTypeId;
+        let rightEntityType = entityTypesByVersionedUrl[rightEntityTypeId];
 
-        if (!leftEntityType) {
-          const foundType = getEntityTypeById(entitySubgraph, leftEntityTypeId);
+        if (!rightEntityType) {
+          const foundType = getEntityTypeById(
+            entitySubgraph,
+            rightEntityTypeId,
+          );
 
           if (!foundType) {
             throw new Error(
-              `Could not find leftEntityType with id ${leftEntityTypeId} in subgraph`,
+              `Could not find rightEntityType with id ${rightEntityTypeId} in subgraph`,
             );
           }
 
-          leftEntityType = foundType.schema;
+          rightEntityType = foundType.schema;
 
-          filterDefs.linkedFromType.options[leftEntityTypeId] ??= {
-            label: leftEntityType.title,
+          filterDefs.linkedToType.options[rightEntityTypeId] ??= {
+            label: rightEntityType.title,
             count: 0,
-            value: leftEntityTypeId,
+            value: rightEntityTypeId,
           };
         }
 
-        filterDefs.linkedFromType.options[leftEntityTypeId]!.count++;
-        filterDefs.linkedFromType.initialValue.add(leftEntityTypeId);
+        filterDefs.linkedToType.options[rightEntityTypeId]!.count++;
+        filterDefs.linkedToType.initialValue.add(rightEntityTypeId);
 
         const linkEntityLabel = generateEntityLabel(entitySubgraph, linkEntity);
         filterDefs.link.options[linkEntity.metadata.recordId.entityId] ??= {
@@ -339,7 +326,7 @@ export const IncomingLinksTable = memo(
         filterDefs.link.options[linkEntity.metadata.recordId.entityId]!.count++;
         filterDefs.link.initialValue.add(linkEntity.metadata.recordId.entityId);
 
-        const linkEntityProperties: IncomingLinkRow["linkEntityProperties"] =
+        const linkEntityProperties: OutgoingLinkRow["linkEntityProperties"] =
           {};
         for (const [propertyBaseUrl, propertyValue] of typedEntries(
           linkEntity.properties,
@@ -353,17 +340,17 @@ export const IncomingLinksTable = memo(
             stringifyPropertyValue(propertyValue);
         }
 
-        const sourceEntityProperties: IncomingLinkRow["sourceEntityProperties"] =
+        const targetEntityProperties: OutgoingLinkRow["targetEntityProperties"] =
           {};
         for (const [propertyBaseUrl, propertyValue] of typedEntries(
-          leftEntity.properties,
+          rightEntity.properties,
         )) {
           const { propertyType } = getPropertyTypeForEntity(
             entitySubgraph,
-            leftEntityTypeId,
+            rightEntityTypeId,
             propertyBaseUrl,
           );
-          sourceEntityProperties[propertyType.title] =
+          targetEntityProperties[propertyType.title] =
             stringifyPropertyValue(propertyValue);
         }
 
@@ -375,10 +362,10 @@ export const IncomingLinksTable = memo(
             linkEntityLabel,
             linkEntityProperties,
             onEntityClick,
-            sourceEntity: leftEntity,
-            sourceEntityLabel: leftEntityLabel,
-            sourceEntityProperties,
-            sourceEntityType: leftEntityType,
+            targetEntity: rightEntity,
+            targetEntityLabel: rightEntityLabel,
+            targetEntityProperties,
+            targetEntityType: rightEntityType,
           },
         });
       }
@@ -396,7 +383,7 @@ export const IncomingLinksTable = memo(
         ) as VirtualizedTableFilterValuesByFieldId<FieldId>,
         unsortedRows: rowData,
       };
-    }, [entitySubgraph, incomingLinksAndSources, onEntityClick]);
+    }, [entitySubgraph, outgoingLinksAndTargets, onEntityClick]);
 
     const [filterValues, setFilterValues] = useVirtualizedTableFilterState({
       defaultFilterValues: initialFilterValues,
@@ -420,23 +407,23 @@ export const IncomingLinksTable = memo(
                   }
                   break;
                 }
-                case "linkedFrom": {
+                case "linkedTo": {
                   if (
                     !isValueIncludedInFilter({
                       currentValue,
                       valueToCheck:
-                        row.data.sourceEntity.metadata.recordId.entityId,
+                        row.data.targetEntity.metadata.recordId.entityId,
                     })
                   ) {
                     return false;
                   }
                   break;
                 }
-                case "linkedFromType": {
+                case "linkedToType": {
                   if (
                     !isValueIncludedInFilter({
                       currentValue,
-                      valueToCheck: row.data.sourceEntity.metadata.entityTypeId,
+                      valueToCheck: row.data.targetEntity.metadata.entityTypeId,
                     })
                   ) {
                     return false;
@@ -472,17 +459,17 @@ export const IncomingLinksTable = memo(
                   ) * direction
                 );
               }
-              case "linkedFromType": {
+              case "linkedToType": {
                 return (
-                  a.data.sourceEntityType.title.localeCompare(
-                    b.data.sourceEntityType.title,
+                  a.data.targetEntityType.title.localeCompare(
+                    b.data.targetEntityType.title,
                   ) * direction
                 );
               }
-              case "linkedFrom": {
+              case "linkedTo": {
                 return (
-                  a.data.sourceEntityLabel.localeCompare(
-                    b.data.sourceEntityLabel,
+                  a.data.targetEntityLabel.localeCompare(
+                    b.data.targetEntityLabel,
                   ) * direction
                 );
               }
