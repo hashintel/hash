@@ -7,11 +7,8 @@ use core::{
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use futures::Stream;
-use harpc_codec::{
-    encode::ErrorEncoder,
-    error::{EncodedError, ErrorCode},
-};
-use harpc_wire_protocol::response::kind::ResponseKind;
+use harpc_codec::{encode::ErrorEncoder, error::EncodedError};
+use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
 
 use crate::body::{Body, Frame};
 
@@ -180,12 +177,8 @@ where
 mod test {
     use bytes::{BufMut, Bytes};
     use futures::{StreamExt, stream};
-    use harpc_codec::{
-        encode::ErrorEncoder,
-        error::{ErrorBuffer, ErrorCode},
-        json::JsonCodec,
-    };
-    use harpc_wire_protocol::response::kind::ResponseKind;
+    use harpc_codec::{encode::ErrorEncoder, error::ErrorBuffer, json::JsonCodec};
+    use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
 
     use crate::{
         body::{Frame, stream::StreamBody},

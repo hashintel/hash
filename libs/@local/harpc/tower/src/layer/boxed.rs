@@ -1,7 +1,7 @@
 use core::task::{Context, Poll};
 
 use bytes::Buf;
-use harpc_wire_protocol::response::kind::ResponseKind;
+use harpc_types::response_kind::ResponseKind;
 use tower::{Layer, Service, ServiceExt};
 
 use crate::{

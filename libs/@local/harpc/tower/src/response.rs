@@ -2,7 +2,7 @@ use bytes::Bytes;
 use futures::{Stream, TryStreamExt, stream::MapOk};
 use harpc_codec::error::EncodedError;
 use harpc_net::session::server::SessionId;
-use harpc_wire_protocol::response::kind::ResponseKind;
+use harpc_types::response_kind::ResponseKind;
 
 use crate::{
     body::{Body, Frame, boxed::BoxBody, controlled::Controlled, full::Full, stream::StreamBody},

@@ -8,9 +8,10 @@ use std::io;
 
 use futures::{FutureExt, Sink, Stream, StreamExt, stream};
 use harpc_codec::encode::ErrorEncoder;
+use harpc_types::response_kind::ResponseKind;
 use harpc_wire_protocol::{
     request::{Request, body::RequestBody, id::RequestId},
-    response::{Response, kind::ResponseKind},
+    response::Response,
 };
 use libp2p::PeerId;
 use tokio::{

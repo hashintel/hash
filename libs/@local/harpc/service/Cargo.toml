@@ -16,7 +16,6 @@ harpc-tower = { workspace = true, public = true }
 
 # Private workspace dependencies
 harpc-types = { workspace = true }
-harpc-wire-protocol = { workspace = true }
 
 # Private third-party dependencies
 frunk = "0.4.3"

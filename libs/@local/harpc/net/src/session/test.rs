@@ -5,8 +5,11 @@ use bytes::Bytes;
 use error_stack::{Report, ResultExt};
 use futures::{prelude::stream, sink::SinkExt, stream::StreamExt};
 use harpc_codec::json::JsonCodec;
-use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
-use harpc_wire_protocol::request::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
+use harpc_types::{
+    procedure::{ProcedureDescriptor, ProcedureId},
+    service::{ServiceDescriptor, ServiceId},
+    version::Version,
+};
 use humansize::ISizeFormatter;
 use libp2p::{Multiaddr, multiaddr};
 use tokio::{sync::Barrier, task::JoinSet, time::Instant};

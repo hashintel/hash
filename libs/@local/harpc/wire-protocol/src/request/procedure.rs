@@ -1,14 +1,8 @@
 use bytes::{Buf, BufMut};
 use error_stack::Result;
-use harpc_types::procedure::ProcedureId;
+use harpc_types::procedure::{ProcedureDescriptor, ProcedureId};
 
 use crate::codec::{Buffer, BufferError, Decode, Encode};
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-#[cfg_attr(test, derive(test_strategy::Arbitrary))]
-pub struct ProcedureDescriptor {
-    pub id: ProcedureId,
-}
 
 impl Encode for ProcedureDescriptor {
     type Error = BufferError;

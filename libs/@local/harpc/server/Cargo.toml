@@ -20,7 +20,6 @@ tower = { workspace = true, public = true }
 harpc-net = { workspace = true }
 harpc-tower = { workspace = true }
 harpc-types = { workspace = true }
-harpc-wire-protocol = { workspace = true }
 
 # Private third-party dependencies
 derive-where = { workspace = true }

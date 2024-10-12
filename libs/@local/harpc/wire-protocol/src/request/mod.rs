@@ -135,7 +135,11 @@ impl Decode for Request {
 mod test {
     #![expect(clippy::needless_raw_strings)]
     use expect_test::expect;
-    use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
+    use harpc_types::{
+        procedure::{ProcedureDescriptor, ProcedureId},
+        service::{ServiceDescriptor, ServiceId},
+        version::Version,
+    };
 
     use super::id::test_utils::mock_request_id;
     use crate::{
@@ -150,8 +154,6 @@ mod test {
             flags::{RequestFlag, RequestFlags},
             frame::RequestFrame,
             header::RequestHeader,
-            procedure::ProcedureDescriptor,
-            service::ServiceDescriptor,
         },
     };
 

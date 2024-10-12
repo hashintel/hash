@@ -3,6 +3,9 @@ mod test;
 
 use bytes::{Buf, Bytes};
 use bytes_utils::SegmentedBuf;
+use harpc_types::{
+    procedure::ProcedureDescriptor, response_kind::ResponseKind, service::ServiceDescriptor,
+};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     payload::Payload,
@@ -15,8 +18,6 @@ use harpc_wire_protocol::{
         frame::RequestFrame,
         header::RequestHeader,
         id::RequestId,
-        procedure::ProcedureDescriptor,
-        service::ServiceDescriptor,
     },
     response::{
         Response,
@@ -25,7 +26,6 @@ use harpc_wire_protocol::{
         flags::{ResponseFlag, ResponseFlags},
         frame::ResponseFrame,
         header::ResponseHeader,
-        kind::ResponseKind,
     },
 };
 use tokio::sync::mpsc;

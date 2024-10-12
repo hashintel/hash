@@ -3,7 +3,7 @@ use core::sync::atomic::{AtomicU8, Ordering};
 
 use bytes::Bytes;
 use futures::{Stream, StreamExt, stream::FusedStream};
-use harpc_codec::error::ErrorCode;
+use harpc_types::error_code::ErrorCode;
 
 use crate::stream::TerminatedChannelStream;
 

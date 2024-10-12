@@ -9,6 +9,7 @@ use std::io;
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use error_stack::Report;
 use futures::{StreamExt, stream};
+use harpc_types::response_kind::ResponseKind;
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     payload::Payload,
@@ -28,7 +29,6 @@ use harpc_wire_protocol::{
         flags::{ResponseFlag, ResponseFlags},
         frame::ResponseFrame,
         header::ResponseHeader,
-        kind::ResponseKind,
     },
     test_utils::mock_request_id,
 };

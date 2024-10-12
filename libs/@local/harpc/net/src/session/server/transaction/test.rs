@@ -2,8 +2,14 @@ use alloc::sync::Arc;
 use core::{num::NonZero, time::Duration};
 
 use bytes::{BufMut, Bytes};
-use harpc_codec::error::{EncodedError, ErrorBuffer, ErrorCode};
-use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
+use harpc_codec::error::{EncodedError, ErrorBuffer};
+use harpc_types::{
+    error_code::ErrorCode,
+    procedure::{ProcedureDescriptor, ProcedureId},
+    response_kind::ResponseKind,
+    service::{ServiceDescriptor, ServiceId},
+    version::Version,
+};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     payload::Payload,
@@ -16,8 +22,6 @@ use harpc_wire_protocol::{
         frame::RequestFrame,
         header::RequestHeader,
         id::RequestId,
-        procedure::ProcedureDescriptor,
-        service::ServiceDescriptor,
     },
     response::{
         Response,
@@ -25,7 +29,6 @@ use harpc_wire_protocol::{
         body::ResponseBody,
         flags::{ResponseFlag, ResponseFlags},
         frame::ResponseFrame,
-        kind::ResponseKind,
     },
     test_utils::mock_request_id,
 };

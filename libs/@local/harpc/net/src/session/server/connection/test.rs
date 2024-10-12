@@ -5,7 +5,8 @@ use std::io;
 
 use bytes::{Buf, Bytes};
 use futures::{StreamExt, prelude::sink::SinkExt};
-use harpc_codec::{error::ErrorCode, json::JsonCodec};
+use harpc_codec::json::JsonCodec;
+use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     payload::Payload,
@@ -22,7 +23,6 @@ use harpc_wire_protocol::{
         flags::{ResponseFlag, ResponseFlags},
         frame::ResponseFrame,
         header::ResponseHeader,
-        kind::ResponseKind,
     },
     test_utils::mock_request_id,
 };
