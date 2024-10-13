@@ -2,6 +2,7 @@ pub mod boxed;
 pub mod controlled;
 pub mod empty;
 pub mod encode_error;
+pub mod encode_report;
 pub mod full;
 pub mod limited;
 pub mod map;
