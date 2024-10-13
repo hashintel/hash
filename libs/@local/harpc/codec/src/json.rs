@@ -5,17 +5,25 @@ use core::{
 };
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
-use error_stack::Report;
+use error_stack::{Report, ResultExt};
 use futures_core::Stream;
 use futures_util::stream::StreamExt;
 use harpc_types::error_code::ErrorCode;
-use serde::{de::DeserializeOwned, ser::Error as _};
+use serde::de::DeserializeOwned;
 
 use crate::{
     decode::{Decoder, ErrorDecoder},
     encode::{Encoder, ErrorEncoder},
     error::{EncodedError, ErrorBuffer, NetworkError},
 };
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, thiserror::Error)]
+pub enum JsonError {
+    #[error("unable to encode JSON value")]
+    Encode,
+    #[error("unable to decode JSON value")]
+    Decode,
+}
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct JsonCodec;
@@ -27,7 +35,7 @@ impl JsonCodec {
 
 impl Encoder for JsonCodec {
     type Buf = Bytes;
-    type Error = serde_json::Error;
+    type Error = Report<JsonError>;
 
     fn encode<T>(
         self,
@@ -40,17 +48,19 @@ impl Encoder for JsonCodec {
             let buf = BytesMut::new();
             let mut writer = buf.writer();
 
-            serde_json::to_writer(&mut writer, &item).map(|()| {
-                let mut buf = writer.into_inner();
-                buf.put_u8(Self::SEPARATOR);
-                buf.freeze()
-            })
+            serde_json::to_writer(&mut writer, &item)
+                .map(|()| {
+                    let mut buf = writer.into_inner();
+                    buf.put_u8(Self::SEPARATOR);
+                    buf.freeze()
+                })
+                .change_context(JsonError::Encode)
         })
     }
 }
 
 impl Decoder for JsonCodec {
-    type Error = serde_json::Error;
+    type Error = Report<JsonError>;
 
     fn decode<T, B, E>(
         self,
@@ -104,13 +114,13 @@ where
     B: Buf,
     T: DeserializeOwned,
 {
-    type Item = Result<T, serde_json::Error>;
+    type Item = Result<T, Report<JsonError>>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         // check if we have a full message in the buffer, in theory multiple messages could be in
         // the buffer at the same time, this guards against that.
         if let Some(value) = Self::poll_item(self.as_mut(), 0) {
-            return Poll::Ready(Some(value));
+            return Poll::Ready(Some(value.change_context(JsonError::Decode)));
         }
 
         loop {
@@ -123,7 +133,7 @@ where
                 // the underlying stream has already returned `None`, we now only flush the
                 // remaining buffer.
                 if let Some(value) = Self::poll_item(self.as_mut(), 0) {
-                    return Poll::Ready(Some(value));
+                    return Poll::Ready(Some(value.change_context(JsonError::Decode)));
                 }
 
                 return Poll::Ready(None);
@@ -135,7 +145,7 @@ where
 
                 // potentially we still have items in the buffer, try to decode them.
                 if let Some(value) = Self::poll_item(self.as_mut(), 0) {
-                    return Poll::Ready(Some(value));
+                    return Poll::Ready(Some(value.change_context(JsonError::Decode)));
                 }
 
                 return Poll::Ready(None);
@@ -148,16 +158,21 @@ where
                     offset
                 }
                 // TODO: we lose quite a bit of information here, any way to retrieve it?
+                // The problem is that we don't know if the underlying error is a report, **or** if
+                // it is a plain error.
+                // in **theory** we could do: `impl Into<Report<C>> + Debug + Display`, but then we
+                // don't know what `C` should be.
                 Err(_error) => {
-                    return Poll::Ready(Some(Err(serde_json::Error::custom(
-                        "underlying stream returned an error",
-                    ))));
+                    // return Poll::Ready(Some(Err(serde_json::Error::custom(
+                    //     "underlying stream returned an error",
+                    // ))));
+                    return Poll::Ready(Some(Err(Report::new(JsonError::Decode))));
                 }
             };
 
             // look if we found a separator between the offset and the end of the buffer
             if let Some(value) = Self::poll_item(self.as_mut(), offset) {
-                return Poll::Ready(Some(value));
+                return Poll::Ready(Some(value.change_context(JsonError::Decode)));
             }
 
             // if not we continue to the next iteration
@@ -166,7 +181,7 @@ where
 }
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
-struct JsonError<T> {
+struct JsonErrorRepr<T> {
     message: String,
     details: T,
 }
@@ -181,7 +196,7 @@ impl ErrorEncoder for JsonCodec {
         let buffer = ErrorBuffer::error();
         let mut writer = buffer.writer();
 
-        if let Err(error) = serde_json::to_writer(&mut writer, &JsonError {
+        if let Err(error) = serde_json::to_writer(&mut writer, &JsonErrorRepr {
             message: error.to_string(),
             details: error,
         }) {
@@ -235,7 +250,7 @@ impl ErrorDecoder for JsonCodec {
         let bytes: BytesMut = bytes.collect().await;
         let bytes = bytes.freeze();
 
-        serde_json::from_slice::<JsonError<E>>(&bytes).map(|error| error.details)
+        serde_json::from_slice::<JsonErrorRepr<E>>(&bytes).map(|error| error.details)
     }
 
     async fn decode_report<C>(
@@ -446,7 +461,7 @@ mod tests {
         ))));
         let mut decoder = JsonCodec.decode::<serde_json::Value, _, _>(input);
 
-        decoder
+        let _report = decoder
             .next()
             .await
             .expect("should have a value")

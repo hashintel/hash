@@ -66,8 +66,7 @@ pub struct Handler<S> {
 ///
 /// [`Steer`]: https://docs.rs/tower/latest/tower/steer/struct.Steer.html
 pub trait Route<B, C> {
-    type ResponseBodyError;
-    type Future: Future<Output = BoxedResponse<Self::ResponseBodyError>> + Send;
+    type Future: Future<Output = BoxedResponse<!>> + Send;
 
     fn call(&self, request: Request<B>, codec: C) -> Self::Future
     where
@@ -77,22 +76,21 @@ pub trait Route<B, C> {
 
 // The clone requirement might seem odd here, but is the same as in axum's router implementation.
 // see: https://docs.rs/axum/latest/src/axum/routing/route.rs.html#45
-impl<B, C, E, Svc, Tail> Route<B, C> for HCons<Handler<Svc>, Tail>
+impl<B, C, Svc, Tail> Route<B, C> for HCons<Handler<Svc>, Tail>
 where
-    Svc: Service<Request<B>, Response = BoxedResponse<E>, Error = !, Future: Send>
+    Svc: Service<Request<B>, Response = BoxedResponse<!>, Error = !, Future: Send>
         + Clone
         + Send
         + Sync,
-    Tail: Route<B, C, ResponseBodyError = E> + Send,
+    Tail: Route<B, C> + Send,
     B: Send,
 {
     // cannot use `impl Future` here, as it would require additional constraints on the associated
     // type, that are already present on the `call` method.
     type Future = Either<
-        Map<Oneshot<Svc, Request<B>>, fn(Result<BoxedResponse<E>, !>) -> BoxedResponse<E>>,
+        Map<Oneshot<Svc, Request<B>>, fn(Result<BoxedResponse<!>, !>) -> BoxedResponse<!>>,
         Tail::Future,
     >;
-    type ResponseBodyError = E;
 
     fn call(&self, request: Request<B>, codec: C) -> Self::Future
     where
@@ -118,8 +116,6 @@ where
     B: Body<Control = !, Error: Send + Sync> + Send + Sync,
     C: ErrorEncoder + Send + Sync,
 {
-    type ResponseBodyError = !;
-
     type Future = impl Future<Output = BoxedResponse<!>> + Send;
 
     fn call(&self, request: Request<B>, codec: C) -> Self::Future
@@ -178,11 +174,11 @@ type ServiceHandler<D, L, S, C> = Handler<<L as Layer<ServiceDelegateHandler<D, 
 impl<R, L, S, C> RouterBuilder<R, L, S, C> {
     pub fn with_builder<L2>(
         self,
-        builder: impl FnOnce(ServiceBuilder<L>) -> ServiceBuilder<L2>,
+        builder: impl FnOnce(ServiceBuilder<L>, &C) -> ServiceBuilder<L2>,
     ) -> RouterBuilder<R, L2, S, C> {
         RouterBuilder {
             routes: self.routes,
-            builder: builder(self.builder),
+            builder: builder(self.builder, &self.codec),
             session: self.session,
             codec: self.codec,
             cancel: self.cancel,
@@ -275,7 +271,7 @@ where
     C: ErrorEncoder + Clone + Send + Sync + 'static,
 {
     type Error = !;
-    type Response = BoxedResponse<R::ResponseBodyError>;
+    type Response = BoxedResponse<!>;
 
     type Future = impl Future<Output = Result<Self::Response, Self::Error>> + Send;
 
