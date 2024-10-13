@@ -4,7 +4,9 @@
     type_changing_struct_update,
     error_generic_member_access
 )]
-#![cfg_attr(test, feature(noop_waker, assert_matches))]
+#![cfg_attr(test, feature(noop_waker, assert_matches, macro_metavar_expr))]
+
+extern crate alloc;
 
 pub use self::extensions::Extensions;
 
@@ -15,6 +17,8 @@ pub mod layer;
 pub mod net;
 pub mod request;
 pub mod response;
+#[cfg(test)]
+pub(crate) mod test;
 
 // TODO: server impl of Transaction -> Request/Response stream
 // TODO: client impl of Transaction -> Request/Response stream

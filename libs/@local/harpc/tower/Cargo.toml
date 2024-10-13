@@ -40,6 +40,7 @@ tower-test = { workspace = true }
 tokio-test = { workspace = true }
 harpc-codec = { workspace = true, features = ["json"] }
 insta.workspace = true
+serde = { workspace = true, features = ["unstable"] }
 
 [lints]
 workspace = true

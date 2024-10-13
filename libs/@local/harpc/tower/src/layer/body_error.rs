@@ -38,26 +38,26 @@ pub struct HandleBodyErrorService<S, E> {
     encoder: E,
 }
 
-impl<S, E, ReqBody, ResBody> Service<Request<ReqBody>> for HandleBodyErrorService<S, E>
-where
-    S: Service<Request<ReqBody>, Response = Response<ResBody>> + Clone + Send,
-    E: ErrorEncoder + Clone,
-    ReqBody: Body<Control = !>,
-    ResBody: Body<Control: AsRef<ResponseKind>>,
-{
-    type Error = S::Error;
-    type Response;
+// impl<S, E, ReqBody, ResBody> Service<Request<ReqBody>> for HandleBodyErrorService<S, E>
+// where
+//     S: Service<Request<ReqBody>, Response = Response<ResBody>> + Clone + Send,
+//     E: ErrorEncoder + Clone,
+//     ReqBody: Body<Control = !>,
+//     ResBody: Body<Control: AsRef<ResponseKind>>,
+// {
+//     type Error = S::Error;
+//     type Response;
 
-    type Future = impl Future<Output = Result<Self::Response, Self::Error>>;
+//     type Future = impl Future<Output = Result<Self::Response, Self::Error>>;
 
-    fn poll_ready(
-        &mut self,
-        cx: &mut std::task::Context<'_>,
-    ) -> std::task::Poll<Result<(), Self::Error>> {
-        todo!()
-    }
+//     fn poll_ready(
+//         &mut self,
+//         cx: &mut std::task::Context<'_>,
+//     ) -> std::task::Poll<Result<(), Self::Error>> {
+//         todo!()
+//     }
 
-    fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
-        todo!()
-    }
-}
+//     fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
+//         todo!()
+//     }
+// }
