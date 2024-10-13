@@ -241,7 +241,7 @@ impl<R, L, S, C> RouterBuilder<R, L, S, C> {
     ///
     /// It is not necessary to spawn the task if the router is spawned, but it is **highly**
     /// recommended, as otherwise sessions will not be cleaned up, which will lead to memory leaks.
-    pub fn background_task<E, St>(&self, stream: St) -> session::Task<S, St>
+    pub fn background_task<St, E>(&self, stream: St) -> session::Task<S, St>
     where
         S: Send + Sync + 'static,
         St: Stream<Item = Result<SessionEvent, E>> + Send + 'static,

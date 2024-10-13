@@ -43,6 +43,12 @@ pub enum SessionEventError {
     Lagged { amount: u64 },
 }
 
+impl From<!> for SessionEventError {
+    fn from(never: !) -> Self {
+        never
+    }
+}
+
 pub struct ListenStream {
     inner: mpsc::Receiver<Transaction>,
 
