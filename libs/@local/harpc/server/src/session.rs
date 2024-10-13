@@ -2,9 +2,10 @@ use alloc::sync::Arc;
 use core::{fmt::Debug, sync::atomic::AtomicUsize, time::Duration};
 use std::{collections::HashSet, sync::Mutex};
 
-use harpc_net::session::server::{SessionEvent, SessionId};
+use futures::{Stream, StreamExt};
+use harpc_net::session::server::{SessionEvent, SessionEventError, SessionId};
 use scc::{ebr::Guard, hash_index::Entry};
-use tokio::sync::broadcast;
+use tokio::pin;
 use tokio_util::sync::CancellationToken;
 
 pub struct Session<T> {
@@ -172,6 +173,12 @@ where
     }
 }
 
+impl<T> SessionStorage<T> {
+    pub(crate) fn task<S>(self: Arc<Self>, stream: S) -> Task<T, S> {
+        Task::new(self, stream)
+    }
+}
+
 impl<T> SessionStorage<T>
 where
     T: Default + Send + Sync + 'static,
@@ -241,58 +248,91 @@ where
 /// "potentially stale" (a flag that is removed once the session is accessed again). Once a certain
 /// about of inactivity has passed (the `sweep_interval`) any session that hasn't been accessed is
 /// removed.
-pub struct SessionStorageTask<T> {
+pub struct Task<T, S> {
     storage: Arc<SessionStorage<T>>,
-    receiver: broadcast::Receiver<SessionEvent>,
+    stream: S,
 
+    cancel: CancellationToken,
     sweep_interval: Duration,
 }
 
-impl<T> SessionStorageTask<T> {
-    pub const fn new(
-        storage: Arc<SessionStorage<T>>,
-        receiver: broadcast::Receiver<SessionEvent>,
-        sweep_interval: Duration,
-    ) -> Self {
+impl<T, S> Task<T, S> {
+    fn new(storage: Arc<SessionStorage<T>>, stream: S) -> Self {
         Self {
             storage,
-            receiver,
-
-            sweep_interval,
+            stream,
+            // Default values
+            cancel: CancellationToken::new(),
+            sweep_interval: Duration::from_secs(60),
         }
+    }
+
+    /// Sets the sweep interval for the task.
+    #[must_use]
+    pub const fn with_sweep_interval(mut self, sweep_interval: Duration) -> Self {
+        self.sweep_interval = sweep_interval;
+        self
+    }
+
+    /// Sets the cancellation token for the task.
+    #[must_use]
+    pub fn with_cancellation_token(mut self, cancel: CancellationToken) -> Self {
+        self.cancel = cancel;
+        self
     }
 }
 
-impl<T> SessionStorageTask<T>
+impl<T, S, E> IntoFuture for Task<T, S>
 where
     T: Send + Sync + 'static,
+    S: Stream<Item = Result<SessionEvent, E>> + Send,
+    E: Into<SessionEventError> + Send,
 {
-    pub async fn run(mut self, cancel: CancellationToken) {
+    type Output = ();
+
+    type IntoFuture = impl Future<Output = ()> + Send;
+
+    fn into_future(self) -> Self::IntoFuture {
+        self.run()
+    }
+}
+
+impl<T, S, E> Task<T, S>
+where
+    T: Send + Sync + 'static,
+    S: Stream<Item = Result<SessionEvent, E>> + Send,
+    E: Into<SessionEventError> + Send,
+{
+    async fn run(self) {
+        pin!(let stream = self.stream;);
+
         loop {
             #[expect(
                 clippy::integer_division_remainder_used,
                 reason = "tokio macro uses remainder internally"
             )]
             let event = tokio::select! {
-                () = cancel.cancelled() => break,
-                event = self.receiver.recv() => event,
+                () = self.cancel.cancelled() => break,
+                event = stream.next() => event,
                 () = tokio::time::sleep(self.sweep_interval), if self.storage.has_marked() => {
                     self.storage.remove_marked().await;
                     continue;
                 }
             };
 
+            let event = event.map(|event| event.map_err(Into::into));
+
             match event {
-                Ok(SessionEvent::SessionDropped { id }) => {
-                    self.storage.remove(id).await;
-                }
-                Err(broadcast::error::RecvError::Closed) => {
-                    tracing::warn!("Session event channel closed, stopping session storage task");
+                None => {
+                    tracing::warn!("Session event stream ended, stopping session storage task");
                     break;
                 }
-                Err(broadcast::error::RecvError::Lagged(_)) => {
+                Some(Ok(SessionEvent::SessionDropped { id })) => {
+                    self.storage.remove(id).await;
+                }
+                Some(Err(SessionEventError::Lagged { .. })) => {
                     tracing::warn!(
-                        "Session event channel lagged, marking existing sessions as potentially \
+                        "Session event stream lagged, marking existing sessions as potentially \
                          removed"
                     );
 

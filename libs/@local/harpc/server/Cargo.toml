@@ -31,7 +31,7 @@ tokio = { workspace = true, features = ["macros"] }
 tokio-util = { workspace = true, features = ["rt"] }
 tracing = { workspace = true }
 harpc-codec = { workspace = true }
-derive_more = { version = "1.0.0", features = ["display"] }
+derive_more = { version = "1.0.0", features = ["display", "error"] }
 serde = { workspace = true, features = ["derive"] }
 
 [lints]

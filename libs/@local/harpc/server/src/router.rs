@@ -6,10 +6,11 @@ use core::{
 
 use frunk::{HCons, HNil};
 use futures::{
-    FutureExt,
+    FutureExt, Stream,
     future::{Either, Map},
 };
 use harpc_codec::encode::ErrorEncoder;
+use harpc_net::session::server::SessionEvent;
 use harpc_service::delegate::ServiceDelegate;
 use harpc_tower::{
     body::{Body, BodyExt},
@@ -17,9 +18,14 @@ use harpc_tower::{
     response::{BoxedResponse, Parts, Response},
 };
 use harpc_types::{service::ServiceId, version::Version};
+use tokio_util::sync::CancellationToken;
 use tower::{Layer, Service, ServiceBuilder, ServiceExt, layer::util::Identity, util::Oneshot};
 
-use crate::{delegate::ServiceDelegateHandler, error::NotFound, session::SessionStorage};
+use crate::{
+    delegate::ServiceDelegateHandler,
+    error::NotFound,
+    session::{self, SessionStorage},
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Handler<S> {
@@ -139,6 +145,7 @@ pub struct RouterBuilder<R, L, S, C> {
     builder: ServiceBuilder<L>,
     session: Arc<SessionStorage<S>>,
     codec: C,
+    cancel: CancellationToken,
 }
 
 impl<C> RouterBuilder<HNil, Identity, (), C> {
@@ -153,7 +160,16 @@ impl<C> RouterBuilder<HNil, Identity, (), C> {
             builder: ServiceBuilder::new(),
             session: Arc::new(SessionStorage::new()),
             codec,
+            cancel: CancellationToken::new(),
         }
+    }
+}
+
+// only allow to set the cancellation token **before** any routes or layers are added.
+impl<S, C> RouterBuilder<HNil, Identity, S, C> {
+    #[must_use]
+    pub fn with_cancellation_token(self, cancel: CancellationToken) -> Self {
+        Self { cancel, ..self }
     }
 }
 
@@ -169,6 +185,7 @@ impl<R, L, S, C> RouterBuilder<R, L, S, C> {
             builder: builder(self.builder),
             session: self.session,
             codec: self.codec,
+            cancel: self.cancel,
         }
     }
 
@@ -208,11 +225,32 @@ impl<R, L, S, C> RouterBuilder<R, L, S, C> {
             builder: self.builder,
             session: self.session,
             codec: self.codec,
+            cancel: self.cancel,
         }
     }
 }
 
 impl<R, L, S, C> RouterBuilder<R, L, S, C> {
+    /// Creates a background task for session storage management.
+    ///
+    /// The returned [`session::Task`] implements `IntoFuture`, allowing it to be
+    /// easily spawned onto an executor. Configuration options such as `sweep_interval`
+    /// can be adjusted via methods on the task before spawning.
+    ///
+    /// # Note
+    ///
+    /// It is not necessary to spawn the task if the router is spawned, but it is **highly**
+    /// recommended, as otherwise sessions will not be cleaned up, which will lead to memory leaks.
+    pub fn background_task<E, St>(&self, stream: St) -> session::Task<S, St>
+    where
+        S: Send + Sync + 'static,
+        St: Stream<Item = Result<SessionEvent, E>> + Send + 'static,
+    {
+        Arc::clone(&self.session)
+            .task(stream)
+            .with_cancellation_token(self.cancel.child_token())
+    }
+
     pub fn build(self) -> Router<R, C>
     where
         R: Send + Sync + 'static,

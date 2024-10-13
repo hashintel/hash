@@ -12,7 +12,7 @@ use core::{
     task::{Context, Poll, ready},
 };
 
-use error_stack::{Result, ResultExt};
+use error_stack::{Report, ResultExt};
 use futures::{Stream, stream::FusedStream};
 use harpc_codec::encode::ErrorEncoder;
 use libp2p::Multiaddr;
@@ -31,6 +31,16 @@ use crate::transport::TransportLayer;
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum SessionEvent {
     SessionDropped { id: SessionId },
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, thiserror::Error)]
+pub enum SessionEventError {
+    /// The receiving stream lagged too far behind. Attempting to receive again will
+    /// return the oldest message still retained by the underlying broadcast channel.
+    ///
+    /// Includes the number of skipped messages.
+    #[error("The receiving stream lagged to far behind, and {amount} messages were dropped.")]
+    Lagged { amount: u64 },
 }
 
 pub struct ListenStream {
@@ -72,6 +82,53 @@ impl Stream for ListenStream {
 }
 
 impl FusedStream for ListenStream {
+    fn is_terminated(&self) -> bool {
+        self.is_finished
+    }
+}
+
+pin_project_lite::pin_project! {
+    // Wrapper around a broadcast, allowing for a more controlled API, and our own error, making the underlying broadcast
+    // channel an implementation detail.
+    pub struct EventStream {
+        #[pin]
+        inner: tokio_stream::wrappers::BroadcastStream<SessionEvent>,
+
+        is_finished: bool,
+    }
+}
+
+impl Stream for EventStream {
+    type Item = Result<SessionEvent, SessionEventError>;
+
+    fn poll_next(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
+        let this = self.project();
+
+        if *this.is_finished {
+            return Poll::Ready(None);
+        }
+
+        // we're purposefully not implementing `From<BroadcastStreamRecvError>` as that would
+        // require us to mark `tokio_stream` as a public dependency, something we want to avoid with
+        // this specifically.
+        match ready!(this.inner.poll_next(cx)) {
+            Some(Ok(event)) => Poll::Ready(Some(Ok(event))),
+            Some(Err(tokio_stream::wrappers::errors::BroadcastStreamRecvError::Lagged(amount))) => {
+                Poll::Ready(Some(Err(SessionEventError::Lagged { amount })))
+            }
+            None => {
+                *this.is_finished = true;
+
+                Poll::Ready(None)
+            }
+        }
+    }
+}
+
+// there is no chance this stream will ever be picked-up again, because receivers are only created
+// from this one sender, and only expose a stream API, and will be alive as long as the task is
+// alive, once all senders are dropped, it indicates that the task has completely shutdown.
+impl FusedStream for EventStream {
     fn is_terminated(&self) -> bool {
         self.is_finished
     }
@@ -119,8 +176,13 @@ where
     }
 
     #[must_use]
-    pub fn events(&self) -> broadcast::Receiver<SessionEvent> {
-        self.events.subscribe()
+    pub fn events(&self) -> EventStream {
+        let receiver = self.events.subscribe();
+
+        EventStream {
+            inner: receiver.into(),
+            is_finished: false,
+        }
     }
 
     #[must_use]
@@ -133,7 +195,7 @@ where
     /// # Errors
     ///
     /// Returns an error if the transport layer fails to listen on the given address.
-    pub async fn listen(self, address: Multiaddr) -> Result<ListenStream, SessionError> {
+    pub async fn listen(self, address: Multiaddr) -> Result<ListenStream, Report<SessionError>> {
         self.transport
             .listen_on(address)
             .await
