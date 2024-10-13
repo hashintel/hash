@@ -1,5 +1,7 @@
 //! Adapted and vendored from `http-body` crate (<https://docs.rs/http-body/latest/src/http_body/size_hint.rs.html>)
 
+use core::ops::Add;
+
 /// A `Body` size hint
 ///
 /// The default implementation returns:
@@ -87,5 +89,19 @@ impl SizeHint {
     pub fn set_exact(&mut self, value: u64) {
         self.lower = value;
         self.upper = Some(value);
+    }
+}
+
+impl Add for SizeHint {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        let lower = self.lower + other.lower;
+        let upper = match (self.upper, other.upper) {
+            (Some(a), Some(b)) => Some(a + b),
+            _ => None,
+        };
+
+        Self { lower, upper }
     }
 }
