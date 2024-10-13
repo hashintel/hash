@@ -1,31 +1,29 @@
-use core::{
-    error::Error,
-    task::{Context, Poll},
-};
+use core::task::{Context, Poll};
 
+use error_stack::Report;
 use futures::TryFutureExt;
 use harpc_codec::encode::ErrorEncoder;
 use harpc_types::response_kind::ResponseKind;
 use tower::{Layer, Service};
 
 use crate::{
-    body::{Body, encode_error::EncodeError},
+    body::{Body, encode_report::EncodeReport},
     request::Request,
     response::Response,
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct HandleBodyErrorLayer<E> {
+pub struct HandleBodyReportLayer<E> {
     encoder: E,
 }
 
-impl<E> HandleBodyErrorLayer<E> {
+impl<E> HandleBodyReportLayer<E> {
     pub const fn new(encoder: E) -> Self {
         Self { encoder }
     }
 }
 
-impl<E, S> Layer<S> for HandleBodyErrorLayer<E>
+impl<E, S> Layer<S> for HandleBodyReportLayer<E>
 where
     E: Clone,
 {
@@ -46,17 +44,18 @@ pub struct HandleBodyErrorService<S, E> {
     encoder: E,
 }
 
-impl<S, E, ReqBody, ResBody> Service<Request<ReqBody>> for HandleBodyErrorService<S, E>
+impl<S, E, C, ReqBody, ResBody> Service<Request<ReqBody>> for HandleBodyErrorService<S, E>
 where
     S: Service<Request<ReqBody>, Response = Response<ResBody>> + Clone + Send,
     E: ErrorEncoder + Clone,
     ReqBody: Body<Control = !>,
     // the extra bounds here are not strictly required, but they help to make the error messages
     // more expressive during compilation
-    ResBody: Body<Control: AsRef<ResponseKind>, Error: Error + serde::Serialize>,
+    ResBody: Body<Control: AsRef<ResponseKind>, Error = Report<C>>,
+    C: error_stack::Context,
 {
     type Error = S::Error;
-    type Response = Response<EncodeError<ResBody, E>>;
+    type Response = Response<EncodeReport<ResBody, E>>;
 
     type Future = impl Future<Output = Result<Self::Response, Self::Error>>;
 
@@ -69,6 +68,6 @@ where
 
         self.inner
             .call(req)
-            .map_ok(|res| res.map_body(|body| EncodeError::new(body, encoder)))
+            .map_ok(|res| res.map_body(|body| EncodeReport::new(body, encoder)))
     }
 }
