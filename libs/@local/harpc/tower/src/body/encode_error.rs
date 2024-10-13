@@ -8,17 +8,52 @@ use bytes::Bytes;
 use harpc_codec::encode::ErrorEncoder;
 use harpc_types::response_kind::ResponseKind;
 
-use super::{Body, Frame, full::Full};
+use super::{Body, full::Full};
 use crate::{
     body::{BodyExt, controlled::Controlled},
     either::Either,
 };
 
 pin_project_lite::pin_project! {
+    #[project = StateProj]
+    enum State<B> {
+        Inner {
+            #[pin]
+            inner: B
+        },
+        Error {
+            inner: Controlled<ResponseKind, Full<Bytes>>
+        }
+    }
+}
+
+pin_project_lite::pin_project! {
+    /// A body that encodes errors using a specified error encoder.
+    ///
+    /// # Behavior
+    ///
+    /// When an error occurs, this body replaces the underlying stream with a controlled stream
+    /// that represents the encoded error.
+    ///
+    /// # Error Handling
+    ///
+    /// Once an error is encountered, this body stops processing the inner body. This is because:
+    ///
+    /// 1. It's impossible to determine if the error occurred mid-way through a structured value.
+    /// 2. There's no reliable way to find a safe point to resume encoding after the error.
+    ///
+    /// # Safety
+    ///
+    /// This approach prevents potential cascading failures that could occur if encoding were to
+    /// continue after an error without proper delimiters or context.
+    ///
+    /// # Note
+    ///
+    /// While this method ensures safe error handling, it means that any data in the inner body
+    /// after an error will not be processed.
     pub struct EncodeError<B, E> {
         #[pin]
-        inner: B,
-        intermediate: Option<Controlled<ResponseKind, Full<Bytes>>>,
+        state: State<B>,
         encoder: E,
     }
 }
@@ -26,37 +61,8 @@ pin_project_lite::pin_project! {
 impl<B, E> EncodeError<B, E> {
     pub const fn new(inner: B, encoder: E) -> Self {
         Self {
-            inner,
+            state: State::Inner { inner },
             encoder,
-            intermediate: None,
-        }
-    }
-
-    fn poll_intermediate(
-        self: Pin<&mut Self>,
-        cx: &mut Context,
-    ) -> Poll<Option<Result<Frame<Either<B::Data, Bytes>, Either<B::Control, ResponseKind>>, !>>>
-    where
-        B: Body,
-    {
-        let this = self.project();
-
-        let Some(intermediate) = this.intermediate else {
-            return Poll::Ready(None);
-        };
-
-        // if we have an intermediate stream, try to poll it.
-        let error = ready!(intermediate.poll_frame_unpin(cx));
-
-        match error {
-            None => {
-                // we have exhausted the error, therefore continue with the inner stream
-                *this.intermediate = None;
-                Poll::Ready(None)
-            }
-            Some(Ok(frame)) => Poll::Ready(Some(Ok(frame
-                .map_data(Either::Right)
-                .map_control(Either::Right)))),
         }
     }
 }
@@ -74,54 +80,57 @@ where
         mut self: Pin<&mut Self>,
         cx: &mut Context,
     ) -> Poll<Option<super::BodyFrameResult<Self>>> {
-        if let Some(value) = ready!(self.as_mut().poll_intermediate(cx)) {
-            return Poll::Ready(Some(value));
-        }
+        loop {
+            let this = self.as_mut().project();
+            let state = this.state.project();
 
-        let this = self.as_mut().project();
-        let frame = ready!(this.inner.poll_frame(cx));
+            let next = match state {
+                StateProj::Inner { inner } => {
+                    let frame = ready!(inner.poll_frame(cx));
 
-        match frame {
-            None => Poll::Ready(None),
-            Some(Ok(frame)) => Poll::Ready(Some(Ok(frame
-                .map_data(Either::Left)
-                .map_control(Either::Left)))),
-            Some(Err(error)) => {
-                let error = this.encoder.clone().encode_error(error);
-                let (code, data) = error.into_parts();
+                    match frame {
+                        None => None,
+                        Some(Ok(frame)) => {
+                            Some(Ok(frame.map_data(Either::Left).map_control(Either::Left)))
+                        }
+                        Some(Err(error)) => {
+                            let error = this.encoder.clone().encode_error(error);
+                            let (code, data) = error.into_parts();
 
-                let inner = Controlled::new(ResponseKind::Err(code), Full::new(data));
-                *this.intermediate = Some(inner);
+                            let inner = Controlled::new(ResponseKind::Err(code), Full::new(data));
+                            self.as_mut().project().state.set(State::Error { inner });
 
-                // this will never return `Poll::Pending` because we just set the intermediate
-                // stream, and it has exactly two frames.
-                let value = self.poll_intermediate(cx);
+                            // next iteration will poll the error stream
+                            continue;
+                        }
+                    }
+                }
+                StateProj::Error { inner } => {
+                    let frame = ready!(inner.poll_frame_unpin(cx));
 
-                // sanity check
-                debug_assert!(value.is_ready());
+                    frame.map(|frame| {
+                        frame.map(|data| data.map_data(Either::Right).map_control(Either::Right))
+                    })
+                }
+            };
 
-                value
-            }
+            return Poll::Ready(next);
         }
     }
 
     fn state(&self) -> Option<super::BodyState> {
-        // we're still in the middle of encoding an error, therefore we're not done yet
-        self.intermediate.as_ref().map_or_else(
-            || self.inner.state(),
-            |intermediate| {
-                // if we're complete, check the inner state (as that one is going to poll next)
-                intermediate.state().and_then(|_| self.inner.state())
-            },
-        )
+        match &self.state {
+            State::Inner { inner } => inner.state(),
+            State::Error { inner } => inner.state(),
+        }
     }
 
     fn size_hint(&self) -> super::SizeHint {
         // we're still in the middle of encoding an error, add the size hint of the error
-        self.intermediate.as_ref().map_or_else(
-            || self.inner.size_hint(),
-            |intermediate| intermediate.size_hint() + self.inner.size_hint(),
-        )
+        match &self.state {
+            State::Inner { inner } => inner.size_hint(),
+            State::Error { inner } => inner.size_hint(),
+        }
     }
 }
 
@@ -132,6 +141,7 @@ mod test {
     use bytes::Bytes;
     use harpc_codec::json::JsonCodec;
     use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
+    use insta::assert_debug_snapshot;
 
     use crate::{
         body::{
@@ -243,19 +253,11 @@ mod test {
 
         // we now have an error, therefore the size hint should include the error
         // `40` is taken from the serialization in the unit test above
-        assert_eq!(
-            body.size_hint(),
-            SizeHint::with_exact(DATA.len() as u64 + 40)
-        );
+        assert_eq!(body.size_hint(), SizeHint::with_exact(40));
 
         let _frame = poll_frame_unpin(&mut body);
 
-        // once finished (2nd poll), we should have the size hint of the data again
-        assert_eq!(body.size_hint(), SizeHint::with_exact(DATA.len() as u64));
-
-        let _frame = poll_frame_unpin(&mut body);
-
-        // once finished (3rd poll), we should have the size hint of the data again
+        // once finished (2nd poll), we've exhausted and should have a size hint of 0
         assert_eq!(body.size_hint(), SizeHint::with_exact(0));
     }
 
@@ -302,11 +304,8 @@ mod test {
         let _frame = poll_frame_unpin(&mut body);
         assert_eq!(body.state(), None);
 
-        // polling the error data frame, but we're not finished yet
-        let _frame = poll_frame_unpin(&mut body);
-        assert_eq!(body.state(), None);
-
-        // polling the data frame
+        // polling the error data frame, we're finished, because we **cannot** continue after an
+        // error
         let _frame = poll_frame_unpin(&mut body);
         assert_eq!(body.state(), Some(BodyState::Complete));
     }
@@ -321,72 +320,49 @@ mod test {
     }
 
     #[test]
-    fn continues_after_error() {
-        let inner = StaticBody::<Bytes, !, TestError>::new([
+    fn does_not_continue_after_error() {
+        let inner = StaticBody::<Bytes, (), TestError>::new([
             Ok(Frame::new_data(Bytes::from_static(b"data1"))),
             Err(TestError),
             Ok(Frame::new_data(Bytes::from_static(b"data2"))),
             Ok(Frame::new_control(())),
             Ok(Frame::new_data(Bytes::from_static(b"data3"))),
         ]);
+        let mut body = EncodeError::new(inner, JsonCodec);
+
+        let frame = poll_frame_unpin(&mut body)
+            .expect("should be ready")
+            .expect("should have an item")
+            .expect("should be a frame");
+        assert_matches!(frame, Frame::Data(data) if *data.inner() == Bytes::from_static(b"data1"));
+
+        let frame = poll_frame_unpin(&mut body)
+            .expect("should be ready")
+            .expect("should have an item")
+            .expect("should be a frame");
+        assert_matches!(
+            frame,
+            Frame::Control(Either::Right(ResponseKind::Err(
+                ErrorCode::INTERNAL_SERVER_ERROR
+            )))
+        );
+
+        let frame = poll_frame_unpin(&mut body)
+            .expect("should be ready")
+            .expect("should have an item")
+            .expect("should be a frame");
+        assert_debug_snapshot!(frame, @r###"
+        Data(
+            Right(
+                b"\x01{\"message\":\"test error\",\"details\":null}",
+            ),
+        )
+        "###);
+
+        assert!(
+            poll_frame_unpin(&mut body)
+                .expect("should be ready")
+                .is_none()
+        );
     }
-
-    // #[test]
-    // fn continues_inner_body_after_error() {
-    //     let test_body = TestBody {
-    //         frames: vec![
-    //             Ok(Frame::new_data(Bytes::from_static(b"data1"))),
-    //             Err(Report::new(TestError)),
-    //             Ok(Frame::new_data(Bytes::from_static(b"data2"))),
-    //             Ok(Frame::new_control(())),
-    //             Ok(Frame::new_data(Bytes::from_static(b"data3"))),
-    //         ],
-    //     };
-    //     let encoder = JsonErrorEncoder;
-    //     let mut encode_error = EncodeError::new(test_body, encoder);
-
-    //     // First data frame
-    //     let frame = poll_frame_unpin(&mut encode_error);
-    //     assert!(
-    //         matches!(frame, Poll::Ready(Some(Ok(Frame::Data(Either::Left(data)))) if data ==
-    // Bytes::from_static(b"data1")))     );
-
-    //     // Error frame (control)
-    //     let frame = poll_frame_unpin(&mut encode_error);
-    //     assert!(matches!(
-    //         frame,
-    //         Poll::Ready(Some(Ok(Frame::Control(Either::Right(ResponseKind::Err(
-    //             _
-    //         ))))))
-    //     ));
-
-    //     // Error frame (data)
-    //     let frame = poll_frame_unpin(&mut encode_error);
-    //     assert!(matches!(
-    //         frame,
-    //         Poll::Ready(Some(Ok(Frame::Data(Either::Right(_)))))
-    //     ));
-
-    //     // Second data frame (should not be lost after error)
-    //     let frame = poll_frame_unpin(&mut encode_error);
-    //     assert!(
-    //         matches!(frame, Poll::Ready(Some(Ok(Frame::Data(Either::Left(data)))) if data ==
-    // Bytes::from_static(b"data2")))     );
-
-    //     // Control frame
-    //     let frame = poll_frame_unpin(&mut encode_error);
-    //     assert!(matches!(
-    //         frame,
-    //         Poll::Ready(Some(Ok(Frame::Control(Either::Left(_)))))
-    //     ));
-
-    //     // Third data frame
-    //     let frame = poll_frame_unpin(&mut encode_error);
-    //     assert!(matches!(frame, Poll::Ready(Some(Ok(Frame::Data(Either::Left(data)))) if data ==
-    // Bytes::from_static(b"data3")));
-
-    //         // End of stream
-    //         let frame = poll_frame_unpin(&mut encode_error);
-    //         assert!(matches!(frame, Poll::Ready(None))));
-    // }
 }

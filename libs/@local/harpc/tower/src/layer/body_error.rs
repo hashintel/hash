@@ -1,10 +1,4 @@
-use core::error::Error;
-
-use harpc_codec::encode::ErrorEncoder;
-use harpc_types::response_kind::ResponseKind;
-use tower::{Layer, Service};
-
-use crate::{body::Body, request::Request, response::Response};
+use tower::Layer;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct HandleBodyErrorLayer<E> {

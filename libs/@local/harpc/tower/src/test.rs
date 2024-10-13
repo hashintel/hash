@@ -15,7 +15,7 @@ pin_project_lite::pin_project! {
 }
 
 impl<D, C, E> StaticBody<D, C, E> {
-    pub fn new(frames: impl IntoIterator<Item = Result<Frame<D, C>, E>>) -> Self {
+    pub(crate) fn new(frames: impl IntoIterator<Item = Result<Frame<D, C>, E>>) -> Self {
         Self {
             frames: frames.into_iter().collect(),
         }
@@ -41,11 +41,7 @@ where
     }
 
     fn state(&self) -> Option<BodyState> {
-        if self.frames.is_empty() {
-            Some(BodyState::Complete)
-        } else {
-            None
-        }
+        self.frames.is_empty().then_some(BodyState::Complete)
     }
 
     fn size_hint(&self) -> SizeHint {
@@ -62,10 +58,8 @@ where
     }
 }
 
-pub trait PollExt {
+pub(crate) trait PollExt {
     type Item;
-
-    fn unwrap(self) -> Self::Item;
 
     fn expect(self, message: impl AsRef<str>) -> Self::Item;
 }
@@ -74,18 +68,10 @@ impl<T> PollExt for Poll<T> {
     type Item = T;
 
     #[track_caller]
-    fn unwrap(self) -> Self::Item {
-        match self {
-            Poll::Ready(val) => val,
-            Poll::Pending => panic!("should be ready"),
-        }
-    }
-
-    #[track_caller]
     fn expect(self, message: impl AsRef<str>) -> Self::Item {
         match self {
-            Poll::Ready(val) => val,
-            Poll::Pending => panic!("{}", message.as_ref()),
+            Self::Ready(val) => val,
+            Self::Pending => panic!("{}", message.as_ref()),
         }
     }
 }

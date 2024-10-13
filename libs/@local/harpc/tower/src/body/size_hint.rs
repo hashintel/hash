@@ -95,10 +95,10 @@ impl SizeHint {
 impl Add for SizeHint {
     type Output = Self;
 
-    fn add(self, other: Self) -> Self {
-        let lower = self.lower + other.lower;
-        let upper = match (self.upper, other.upper) {
-            (Some(a), Some(b)) => Some(a + b),
+    fn add(self, rhs: Self) -> Self {
+        let lower = self.lower + rhs.lower;
+        let upper = match (self.upper, rhs.upper) {
+            (Some(lhs), Some(rhs)) => Some(lhs + rhs),
             _ => None,
         };
 
