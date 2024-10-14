@@ -2679,6 +2679,7 @@ dependencies = [
 name = "harpc-server"
 version = "0.0.0"
 dependencies = [
+ "bytes",
  "derive-where",
  "derive_more 1.0.0",
  "error-stack",

@@ -1,17 +1,15 @@
 use core::future::ready;
 
+use bytes::Bytes;
 use frunk::{HCons, HNil};
-use futures::{
-    FutureExt,
-    future::{Either, Map},
-};
+use futures::FutureExt;
 use harpc_codec::encode::ErrorEncoder;
 use harpc_tower::{
-    body::{Body, BodyExt},
+    body::{Body, controlled::Controlled, full::Full},
     request::Request,
-    response::{BoxedResponse, Parts, Response},
+    response::{Parts, Response},
 };
-use harpc_types::{service::ServiceId, version::Version};
+use harpc_types::{response_kind::ResponseKind, service::ServiceId, version::Version};
 use tower::{Service, ServiceExt, util::Oneshot};
 
 use crate::error::NotFound;
@@ -68,36 +66,41 @@ impl<S> Handler<S> {
 /// calls, one must make use of smart pointers, such as `Arc`.
 ///
 /// [`Steer`]: https://docs.rs/tower/latest/tower/steer/struct.Steer.html
-pub trait Route<B, C> {
-    type Future: Future<Output = BoxedResponse<!>> + Send;
+pub trait Route<ReqBody, C> {
+    type ResponseBody: Body<Control: AsRef<ResponseKind>, Error = !>;
+    type Future: Future<Output = Response<Self::ResponseBody>>;
 
-    fn call(&self, request: Request<B>, codec: C) -> Self::Future
+    fn call(&self, request: Request<ReqBody>, codec: C) -> Self::Future
     where
-        B: Body<Control = !, Error: Send + Sync> + Send + Sync,
+        ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync,
         C: ErrorEncoder + Send + Sync;
 }
 
 // The clone requirement might seem odd here, but is the same as in axum's router implementation.
 // see: https://docs.rs/axum/latest/src/axum/routing/route.rs.html#45
-impl<B, C, Svc, Tail> Route<B, C> for HCons<Handler<Svc>, Tail>
+impl<C, Svc, Tail, ReqBody, ResBody> Route<ReqBody, C> for HCons<Handler<Svc>, Tail>
 where
-    Svc: Service<Request<B>, Response = BoxedResponse<!>, Error = !, Future: Send>
-        + Clone
-        + Send
-        + Sync,
-    Tail: Route<B, C> + Send,
-    B: Send,
+    Svc: Service<Request<ReqBody>, Response = Response<ResBody>, Error = !> + Clone,
+    Tail: Route<ReqBody, C>,
+    ResBody: Body<Control: AsRef<ResponseKind>, Error = !>,
 {
     // cannot use `impl Future` here, as it would require additional constraints on the associated
     // type, that are already present on the `call` method.
-    type Future = Either<
-        Map<Oneshot<Svc, Request<B>>, fn(Result<BoxedResponse<!>, !>) -> BoxedResponse<!>>,
-        Tail::Future,
+    type Future = futures::future::Either<
+        futures::future::Map<
+            Oneshot<Svc, Request<ReqBody>>,
+            fn(Result<Response<ResBody>, !>) -> Response<Self::ResponseBody>,
+        >,
+        futures::future::Map<
+            Tail::Future,
+            fn(Response<Tail::ResponseBody>) -> Response<Self::ResponseBody>,
+        >,
     >;
+    type ResponseBody = harpc_tower::either::Either<ResBody, Tail::ResponseBody>;
 
-    fn call(&self, request: Request<B>, codec: C) -> Self::Future
+    fn call(&self, request: Request<ReqBody>, codec: C) -> Self::Future
     where
-        B: Body<Control = !, Error: Send + Sync> + Send + Sync,
+        ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync,
         C: ErrorEncoder + Send + Sync,
     {
         let requirement = self.head.version.into_requirement();
@@ -107,23 +110,28 @@ where
         {
             let service = self.head.inner.clone();
 
-            Either::Left(service.oneshot(request).map(|Ok(response)| response))
+            futures::future::Either::Left(
+                service
+                    .oneshot(request)
+                    .map(|Ok(response)| response.map_body(harpc_tower::either::Either::Left)),
+            )
         } else {
-            Either::Right(self.tail.call(request, codec))
+            futures::future::Either::Right(
+                self.tail
+                    .call(request, codec)
+                    .map(|response| response.map_body(harpc_tower::either::Either::Right)),
+            )
         }
     }
 }
 
-impl<B, C> Route<B, C> for HNil
-where
-    B: Body<Control = !, Error: Send + Sync> + Send + Sync,
-    C: ErrorEncoder + Send + Sync,
-{
-    type Future = impl Future<Output = BoxedResponse<!>> + Send;
+impl<C, ReqBody> Route<ReqBody, C> for HNil {
+    type Future = core::future::Ready<Response<Self::ResponseBody>>;
+    type ResponseBody = Controlled<ResponseKind, Full<Bytes>>;
 
-    fn call(&self, request: Request<B>, codec: C) -> Self::Future
+    fn call(&self, request: Request<ReqBody>, codec: C) -> Self::Future
     where
-        B: Body<Control = !, Error: Send + Sync> + Send + Sync,
+        ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync,
         C: ErrorEncoder + Send + Sync,
     {
         let error = NotFound {
@@ -135,6 +143,6 @@ where
 
         let error = codec.encode_error(error);
 
-        ready(Response::from_error(Parts::new(session), error).map_body(BodyExt::boxed))
+        ready(Response::from_error(Parts::new(session), error))
     }
 }
