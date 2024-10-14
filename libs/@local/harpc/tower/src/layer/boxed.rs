@@ -2,7 +2,7 @@ use core::task::{Context, Poll};
 
 use bytes::Buf;
 use harpc_types::response_kind::ResponseKind;
-use tower::{Layer, Service, ServiceExt};
+use tower::{Layer, Service};
 
 use crate::{
     body::{Body, BodyExt},

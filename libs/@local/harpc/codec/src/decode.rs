@@ -5,7 +5,7 @@ use futures_core::Stream;
 pub trait Decoder {
     type Error;
 
-    type Output<T, B, E, Input>: Stream<Item = Result<T, Self::Error>>
+    type Output<T, B, E, Input>: Stream<Item = Result<T, Self::Error>> + Send
     where
         T: serde::de::DeserializeOwned,
         B: Buf,

@@ -10,7 +10,7 @@ pub trait Encoder {
     type Buf: Buf;
     type Error;
 
-    type Output<Input>: Stream<Item = Result<Self::Buf, Self::Error>>
+    type Output<Input>: Stream<Item = Result<Self::Buf, Self::Error>> + Send
     where
         Input: Stream + Send;
 

@@ -1,7 +1,7 @@
 use harpc_net::session::server::{SessionId, transaction::TransactionContext};
 use harpc_types::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
 
-use crate::{body::Body, extensions::Extensions};
+use crate::extensions::Extensions;
 
 /// Component parts of a harpc `Request`.
 #[derive(Debug, Clone)]

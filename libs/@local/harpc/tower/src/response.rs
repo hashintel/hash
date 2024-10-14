@@ -5,7 +5,7 @@ use harpc_net::session::server::SessionId;
 use harpc_types::response_kind::ResponseKind;
 
 use crate::{
-    body::{Body, Frame, boxed::BoxBody, controlled::Controlled, full::Full, stream::StreamBody},
+    body::{Frame, boxed::BoxBody, controlled::Controlled, full::Full, stream::StreamBody},
     extensions::Extensions,
 };
 
