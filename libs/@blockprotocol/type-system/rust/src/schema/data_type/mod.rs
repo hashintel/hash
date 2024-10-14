@@ -29,47 +29,14 @@ use core::{fmt, mem};
 use std::collections::{HashMap, HashSet};
 
 use error_stack::{Report, bail};
-#[cfg(feature = "postgres")]
-use postgres_types::{FromSql, ToSql};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use thiserror::Error;
-#[cfg(feature = "utoipa")]
-use utoipa::ToSchema;
-use uuid::Uuid;
 
-use crate::{schema::data_type::constraint::ValueConstraints, url::VersionedUrl};
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(ToSchema))]
-#[cfg_attr(feature = "postgres", derive(FromSql, ToSql), postgres(transparent))]
-#[repr(transparent)]
-pub struct DataTypeId(Uuid);
-
-impl DataTypeId {
-    #[must_use]
-    pub const fn new(uuid: Uuid) -> Self {
-        Self(uuid)
-    }
-
-    #[must_use]
-    pub fn from_url(url: &VersionedUrl) -> Self {
-        Self(Uuid::new_v5(
-            &Uuid::NAMESPACE_URL,
-            url.to_string().as_bytes(),
-        ))
-    }
-
-    #[must_use]
-    pub const fn as_uuid(&self) -> &Uuid {
-        &self.0
-    }
-
-    #[must_use]
-    pub const fn into_uuid(self) -> Uuid {
-        self.0
-    }
-}
+use crate::{
+    schema::{DataTypeUuid, data_type::constraint::ValueConstraints},
+    url::VersionedUrl,
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -539,14 +506,14 @@ struct DataTypeCacheEntry {
 
 #[derive(Debug, Default)]
 pub struct OntologyTypeResolver {
-    data_types: HashMap<DataTypeId, DataTypeCacheEntry>,
+    data_types: HashMap<DataTypeUuid, DataTypeCacheEntry>,
 }
 
 impl OntologyTypeResolver {
-    pub fn add_unresolved(&mut self, data_type_id: DataTypeId, data_type: Arc<DataType>) {
+    pub fn add_unresolved(&mut self, data_type_id: DataTypeUuid, data_type: Arc<DataType>) {
         debug_assert_eq!(
             data_type_id,
-            DataTypeId::from_url(&data_type.id),
+            DataTypeUuid::from_url(&data_type.id),
             "The data type ID must match the URL"
         );
         self.data_types
@@ -559,7 +526,7 @@ impl OntologyTypeResolver {
 
     pub fn add_closed(
         &mut self,
-        data_type_id: DataTypeId,
+        data_type_id: DataTypeUuid,
         data_type: Arc<DataType>,
         metadata: Arc<DataTypeResolveData>,
     ) {
@@ -571,7 +538,7 @@ impl OntologyTypeResolver {
 
     fn close(
         &mut self,
-        data_type_id: DataTypeId,
+        data_type_id: DataTypeUuid,
         metadata: Arc<DataTypeResolveData>,
     ) -> Result<(), DataTypeResolveError> {
         let data_type_entry = self
@@ -592,7 +559,7 @@ impl OntologyTypeResolver {
     /// Returns an error if the metadata for any of the data types could not be resolved.
     pub fn resolve_data_type_metadata(
         &mut self,
-        data_type_id: DataTypeId,
+        data_type_id: DataTypeUuid,
     ) -> Result<Arc<DataTypeResolveData>, Report<DataTypeResolveError>> {
         let Some(data_type_entry) = self.data_types.get(&data_type_id) else {
             bail!(DataTypeResolveError::UnknownDataTypeId);
@@ -625,7 +592,7 @@ impl OntologyTypeResolver {
             )]
             for data_type in data_types_to_resolve.drain(..) {
                 for (data_type_reference, edge) in data_type.data_type_references() {
-                    let data_type_reference_id = DataTypeId::from_url(&data_type_reference.url);
+                    let data_type_reference_id = DataTypeUuid::from_url(&data_type_reference.url);
 
                     let Some(data_type_entry) = self.data_types.get(&data_type_reference_id) else {
                         // If the data type is not in the cache, we add it to the list of missing

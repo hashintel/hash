@@ -15,7 +15,7 @@ use thiserror::Error;
 use crate::{
     Valid,
     schema::{
-        DataType, DataTypeId, ValueLabel,
+        DataType, DataTypeUuid, ValueLabel,
         data_type::{DataTypeEdge, constraint::ValueConstraints},
     },
     url::VersionedUrl,
@@ -150,7 +150,7 @@ impl<'a> FromSql<'a> for InheritanceDepth {
 
 #[derive(Debug, Default, Clone)]
 pub struct DataTypeResolveData {
-    inheritance_depths: HashMap<DataTypeId, (InheritanceDepth, Arc<DataType>)>,
+    inheritance_depths: HashMap<DataTypeUuid, (InheritanceDepth, Arc<DataType>)>,
 }
 
 impl DataTypeResolveData {
@@ -158,7 +158,7 @@ impl DataTypeResolveData {
         &mut self,
         edge: DataTypeEdge,
         target: Arc<DataType>,
-        target_id: DataTypeId,
+        target_id: DataTypeUuid,
         depth: u16,
     ) {
         let depth = InheritanceDepth::new(depth);
@@ -188,7 +188,7 @@ impl DataTypeResolveData {
         }
     }
 
-    pub fn inheritance_depths(&self) -> impl Iterator<Item = (DataTypeId, InheritanceDepth)> {
+    pub fn inheritance_depths(&self) -> impl Iterator<Item = (DataTypeUuid, InheritanceDepth)> {
         self.inheritance_depths
             .iter()
             .map(|(id, (depth, _))| (*id, *depth))
@@ -254,7 +254,7 @@ mod tests {
     use serde_json::json;
 
     use crate::{
-        schema::{ClosedDataType, DataType, DataTypeId, DataTypeValidator, OntologyTypeResolver},
+        schema::{ClosedDataType, DataType, DataTypeUuid, DataTypeValidator, OntologyTypeResolver},
         utils::tests::{JsonEqualityCheck, ensure_validation, ensure_validation_from_str},
     };
 
@@ -572,7 +572,7 @@ mod tests {
             let mut resolver = OntologyTypeResolver::default();
             for definition in &definitions {
                 resolver.add_unresolved(
-                    DataTypeId::from_url(&definition.0.id),
+                    DataTypeUuid::from_url(&definition.0.id),
                     Arc::new(definition.0.clone()),
                 );
             }
@@ -581,7 +581,7 @@ mod tests {
                 let closed = ClosedDataType::from_resolve_data(
                     data_type.clone(),
                     &resolver
-                        .resolve_data_type_metadata(DataTypeId::from_url(&data_type.id))
+                        .resolve_data_type_metadata(DataTypeUuid::from_url(&data_type.id))
                         .unwrap_or_else(|error| {
                             panic!("Failed to resolve {}: {error:?}", data_type.id)
                         }),

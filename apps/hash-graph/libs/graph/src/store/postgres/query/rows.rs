@@ -8,7 +8,7 @@ use graph_types::{
         },
         property::{PropertyMetadataObject, PropertyObject, PropertyProvenance},
     },
-    ontology::{EntityTypeId, OntologyEditionProvenance, PropertyTypeId},
+    ontology::OntologyEditionProvenance,
     owned_by_id::OwnedById,
 };
 use postgres_types::ToSql;
@@ -17,12 +17,13 @@ use time::OffsetDateTime;
 use type_system::{
     Valid,
     schema::{
-        ClosedEntityType, ConversionDefinition, DataType, DataTypeId, EntityType, PropertyType,
+        ClosedEntityType, ConversionDefinition, DataType, DataTypeUuid, EntityType, EntityTypeUuid,
+        OntologyTypeUuid, PropertyType, PropertyTypeUuid,
     },
     url::{BaseUrl, OntologyTypeVersion},
 };
 
-use crate::store::postgres::{ontology::OntologyId, query::Table};
+use crate::store::postgres::query::Table;
 
 pub trait PostgresRow: ToSql + Sized {
     fn table() -> Table;
@@ -49,7 +50,7 @@ pub struct BaseUrlRow {
 #[derive(Debug, ToSql)]
 #[postgres(name = "data_type_embeddings")]
 pub struct DataTypeEmbeddingRow<'e> {
-    pub ontology_id: DataTypeId,
+    pub ontology_id: DataTypeUuid,
     pub embedding: Embedding<'e>,
     pub updated_at_transaction_time: Timestamp<TransactionTime>,
 }
@@ -57,7 +58,7 @@ pub struct DataTypeEmbeddingRow<'e> {
 #[derive(Debug, ToSql)]
 #[postgres(name = "data_type_conversions")]
 pub struct DataTypeConversionsRow {
-    pub source_data_type_ontology_id: DataTypeId,
+    pub source_data_type_ontology_id: DataTypeUuid,
     pub target_data_type_base_url: BaseUrl,
     pub from: ConversionDefinition,
     pub into: ConversionDefinition,
@@ -66,7 +67,7 @@ pub struct DataTypeConversionsRow {
 #[derive(Debug, ToSql)]
 #[postgres(name = "data_types")]
 pub struct DataTypeRow {
-    pub ontology_id: DataTypeId,
+    pub ontology_id: DataTypeUuid,
     pub schema: Valid<DataType>,
 }
 
@@ -147,7 +148,7 @@ pub struct EntityIdRow {
 #[postgres(name = "entity_is_of_type")]
 pub struct EntityIsOfTypeRow {
     pub entity_edition_id: EntityEditionId,
-    pub entity_type_ontology_id: EntityTypeId,
+    pub entity_type_ontology_id: EntityTypeUuid,
 }
 
 #[derive(Debug, ToSql)]
@@ -164,28 +165,28 @@ pub struct EntityTemporalMetadataRow {
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_type_constrains_link_destinations_on")]
 pub struct EntityTypeConstrainsLinkDestinationsOnRow {
-    pub source_entity_type_ontology_id: EntityTypeId,
-    pub target_entity_type_ontology_id: EntityTypeId,
+    pub source_entity_type_ontology_id: EntityTypeUuid,
+    pub target_entity_type_ontology_id: EntityTypeUuid,
 }
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_type_constrains_links_on")]
 pub struct EntityTypeConstrainsLinksOnRow {
-    pub source_entity_type_ontology_id: EntityTypeId,
-    pub target_entity_type_ontology_id: EntityTypeId,
+    pub source_entity_type_ontology_id: EntityTypeUuid,
+    pub target_entity_type_ontology_id: EntityTypeUuid,
 }
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_type_constrains_properties_on")]
 pub struct EntityTypeConstrainsPropertiesOnRow {
-    pub source_entity_type_ontology_id: EntityTypeId,
-    pub target_property_type_ontology_id: PropertyTypeId,
+    pub source_entity_type_ontology_id: EntityTypeUuid,
+    pub target_property_type_ontology_id: PropertyTypeUuid,
 }
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_type_embeddings")]
 pub struct EntityTypeEmbeddingRow<'e> {
-    pub ontology_id: EntityTypeId,
+    pub ontology_id: EntityTypeUuid,
     pub embedding: Embedding<'e>,
     pub updated_at_transaction_time: Timestamp<TransactionTime>,
 }
@@ -193,14 +194,14 @@ pub struct EntityTypeEmbeddingRow<'e> {
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_type_inherits_from")]
 pub struct EntityTypeInheritsFromRow {
-    pub source_entity_type_ontology_id: EntityTypeId,
-    pub target_entity_type_ontology_id: EntityTypeId,
+    pub source_entity_type_ontology_id: EntityTypeUuid,
+    pub target_entity_type_ontology_id: EntityTypeUuid,
 }
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "entity_types")]
 pub struct EntityTypeRow {
-    pub ontology_id: EntityTypeId,
+    pub ontology_id: EntityTypeUuid,
     pub schema: Valid<EntityType>,
     pub closed_schema: Valid<ClosedEntityType>,
     pub label_property: Option<String>,
@@ -210,7 +211,7 @@ pub struct EntityTypeRow {
 #[derive(Debug, ToSql)]
 #[postgres(name = "ontology_ids")]
 pub struct OntologyIdRow {
-    pub ontology_id: OntologyId,
+    pub ontology_id: OntologyTypeUuid,
     pub base_url: BaseUrl,
     pub version: OntologyTypeVersion,
 }
@@ -218,21 +219,21 @@ pub struct OntologyIdRow {
 #[derive(Debug, ToSql)]
 #[postgres(name = "ontology_owned_metadata")]
 pub struct OntologyOwnedMetadataRow {
-    pub ontology_id: OntologyId,
+    pub ontology_id: OntologyTypeUuid,
     pub web_id: OwnedById,
 }
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "ontology_external_metadata")]
 pub struct OntologyExternalMetadataRow {
-    pub ontology_id: OntologyId,
+    pub ontology_id: OntologyTypeUuid,
     pub fetched_at: OffsetDateTime,
 }
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "ontology_temporal_metadata")]
 pub struct OntologyTemporalMetadataRow {
-    pub ontology_id: OntologyId,
+    pub ontology_id: OntologyTypeUuid,
     pub transaction_time: LeftClosedTemporalInterval<TransactionTime>,
     pub provenance: OntologyEditionProvenance,
 }
@@ -240,21 +241,21 @@ pub struct OntologyTemporalMetadataRow {
 #[derive(Debug, ToSql)]
 #[postgres(name = "property_types")]
 pub struct PropertyTypeRow {
-    pub ontology_id: PropertyTypeId,
+    pub ontology_id: PropertyTypeUuid,
     pub schema: Valid<PropertyType>,
 }
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "property_type_constrains_values_on")]
 pub struct PropertyTypeConstrainsValuesOnRow {
-    pub source_property_type_ontology_id: PropertyTypeId,
-    pub target_data_type_ontology_id: DataTypeId,
+    pub source_property_type_ontology_id: PropertyTypeUuid,
+    pub target_data_type_ontology_id: DataTypeUuid,
 }
 
 #[derive(Debug, ToSql)]
 #[postgres(name = "property_type_embeddings")]
 pub struct PropertyTypeEmbeddingRow<'e> {
-    pub ontology_id: PropertyTypeId,
+    pub ontology_id: PropertyTypeUuid,
     pub embedding: Embedding<'e>,
     pub updated_at_transaction_time: Timestamp<TransactionTime>,
 }
@@ -262,8 +263,8 @@ pub struct PropertyTypeEmbeddingRow<'e> {
 #[derive(Debug, ToSql)]
 #[postgres(name = "property_type_constrains_properties_on")]
 pub struct PropertyTypeConstrainsPropertiesOnRow {
-    pub source_property_type_ontology_id: PropertyTypeId,
-    pub target_property_type_ontology_id: PropertyTypeId,
+    pub source_property_type_ontology_id: PropertyTypeUuid,
+    pub target_property_type_ontology_id: PropertyTypeUuid,
 }
 
 #[derive(Debug, ToSql)]
