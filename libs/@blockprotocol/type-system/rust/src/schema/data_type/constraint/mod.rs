@@ -83,7 +83,6 @@ impl ValueConstraints {
         schemas
             .into_iter()
             .try_fold(Vec::<Self>::new(), |folded, constraints| {
-                // let mut new_constraints = Vec::new();
                 let mut next = Some(constraints);
 
                 let mut new_constraints = folded
@@ -94,7 +93,7 @@ impl ValueConstraints {
                             if let Some(remainder) = remainder {
                                 next = Some(remainder);
                             }
-                            Ok::<_, Report<ResolveClosedDataTypeError>>(combined)
+                            Ok::<_, Report<_>>(combined)
                         } else {
                             Ok(existing)
                         }
