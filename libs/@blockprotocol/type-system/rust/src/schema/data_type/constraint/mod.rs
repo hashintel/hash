@@ -132,18 +132,30 @@ impl Constraint for ValueConstraints {
                 .intersection(rhs)
                 .map(|(lhs, rhs)| (Self::Typed(lhs), rhs.map(Self::Typed))),
             (Self::AnyOf(lhs), Self::Typed(rhs)) => {
-                // TODO: Implement folding for anyOf constraints
-                //   see https://linear.app/hash/issue/H-3430/implement-folding-for-anyof-constraints
-                Ok((Self::AnyOf(lhs), Some(Self::Typed(rhs))))
+                let rhs = AnyOfConstraints {
+                    any_of: vec![SingleValueSchema {
+                        constraints: rhs,
+                        description: None,
+                        label: ValueLabel::default(),
+                    }],
+                };
+                lhs.combine(rhs)
+                    .map(|(lhs, rhs)| (Self::from(lhs), rhs.map(Self::from)))
             }
             (Self::Typed(lhs), Self::AnyOf(rhs)) => {
-                // TODO: Implement folding for anyOf constraints
-                //   see https://linear.app/hash/issue/H-3430/implement-folding-for-anyof-constraints
-                Ok((Self::Typed(lhs), Some(Self::AnyOf(rhs))))
+                let lhs = AnyOfConstraints {
+                    any_of: vec![SingleValueSchema {
+                        constraints: lhs,
+                        description: None,
+                        label: ValueLabel::default(),
+                    }],
+                };
+                lhs.combine(rhs)
+                    .map(|(lhs, rhs)| (Self::from(lhs), rhs.map(Self::from)))
             }
             (Self::AnyOf(lhs), Self::AnyOf(rhs)) => lhs
                 .intersection(rhs)
-                .map(|(lhs, rhs)| (Self::AnyOf(lhs), rhs.map(Self::AnyOf))),
+                .map(|(lhs, rhs)| (Self::from(lhs), rhs.map(Self::from))),
         }
     }
 }
