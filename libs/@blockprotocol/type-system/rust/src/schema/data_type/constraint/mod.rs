@@ -82,10 +82,10 @@ impl ValueConstraints {
     ) -> Result<Vec<Self>, Report<ResolveClosedDataTypeError>> {
         schemas
             .into_iter()
-            .try_fold(Vec::<Self>::new(), |folded, constraints| {
+            .try_fold(Vec::<Self>::new(), |mut folded, constraints| {
                 let mut next = Some(constraints);
 
-                let mut new_constraints = folded
+                folded = folded
                     .into_iter()
                     .map(|existing| {
                         if let Some(to_combine) = next.take() {
@@ -101,10 +101,10 @@ impl ValueConstraints {
                     .collect::<Result<Vec<_>, _>>()?;
 
                 if let Some(remainder) = next {
-                    new_constraints.push(remainder);
+                    folded.push(remainder);
                 }
 
-                Ok(new_constraints)
+                Ok(folded)
             })
     }
 }
