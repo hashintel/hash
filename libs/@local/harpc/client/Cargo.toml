@@ -10,15 +10,14 @@ publish.workspace = true
 
 [dependencies]
 bytes.workspace = true
-deadpool.workspace = true
 error-stack.workspace = true
 futures.workspace = true
 harpc-net.workspace = true
 harpc-service.workspace = true
-harpc-tower.workspace = true
+harpc-tower = { workspace = true, public = true }
 multiaddr.workspace = true
 thiserror.workspace = true
-tower.workspace = true
+tower = { workspace = true, public = true }
 
 [lints]
 workspace = true

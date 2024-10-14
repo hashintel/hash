@@ -2622,7 +2622,6 @@ name = "harpc-client"
 version = "0.0.0"
 dependencies = [
  "bytes",
- "deadpool",
  "error-stack",
  "futures",
  "harpc-net",
