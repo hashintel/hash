@@ -41,6 +41,7 @@ pub trait Transport = libp2p::Transport<
     + Unpin
     + 'static;
 
+#[derive(Debug)]
 pub struct TransportLayer {
     id: PeerId,
     ipc: TransportLayerIpc,

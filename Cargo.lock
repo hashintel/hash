@@ -2618,6 +2618,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "harpc-client"
+version = "0.0.0"
+dependencies = [
+ "bytes",
+ "deadpool",
+ "error-stack",
+ "futures",
+ "harpc-net",
+ "harpc-service",
+ "harpc-tower",
+ "multiaddr",
+ "thiserror",
+ "tower 0.5.1",
+]
+
+[[package]]
 name = "harpc-codec"
 version = "0.0.0"
 dependencies = [

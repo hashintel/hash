@@ -54,7 +54,7 @@ pub trait ClientSession {
         request: Request<B>,
     ) -> impl Future<Output = Response<Self::Body>> + Send
     where
-        B: Body<Control = !>;
+        B: Body<Control = !, Error = !> + Send;
 }
 
 /// Role representing the client side of a session.

@@ -244,6 +244,7 @@ pub(crate) struct ConnectionParts<'a> {
     pub cancel: CancellationToken,
 }
 
+#[derive(Debug)]
 pub struct Connection {
     config: SessionConfig,
 
@@ -258,7 +259,6 @@ pub struct Connection {
     _guard: DropGuard,
 }
 
-// TODO: BufferedResponse that will only return the last (valid) response
 impl Connection {
     pub(crate) fn spawn<S, T>(
         ConnectionParts {
