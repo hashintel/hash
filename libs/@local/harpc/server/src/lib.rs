@@ -4,6 +4,7 @@ extern crate alloc;
 
 pub mod delegate;
 pub mod error;
+pub mod route;
 pub mod router;
 pub mod serve;
 pub mod session;

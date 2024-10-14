@@ -1,140 +1,23 @@
 use alloc::sync::Arc;
 use core::{
-    future::{self, Ready, ready},
+    future::{self, Ready},
     task::{Context, Poll},
 };
 
 use frunk::{HCons, HNil};
-use futures::{
-    FutureExt, Stream,
-    future::{Either, Map},
-};
+use futures::{FutureExt, Stream};
 use harpc_codec::encode::ErrorEncoder;
 use harpc_net::session::server::SessionEvent;
 use harpc_service::delegate::ServiceDelegate;
-use harpc_tower::{
-    body::{Body, BodyExt},
-    request::Request,
-    response::{BoxedResponse, Parts, Response},
-};
-use harpc_types::{service::ServiceId, version::Version};
+use harpc_tower::{body::Body, request::Request, response::BoxedResponse};
 use tokio_util::sync::CancellationToken;
-use tower::{Layer, Service, ServiceBuilder, ServiceExt, layer::util::Identity, util::Oneshot};
+use tower::{Layer, Service, ServiceBuilder, layer::util::Identity};
 
 use crate::{
     delegate::ServiceDelegateHandler,
-    error::NotFound,
+    route::{Handler, Route},
     session::{self, SessionStorage},
 };
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
-pub struct Handler<S> {
-    service: ServiceId,
-    version: Version,
-
-    inner: S,
-}
-
-/// Route requests to the appropriate handler based on the request's service and version.
-///
-/// This is essentially a type-level linked list of handlers, it's boxed equivalent is [`Steer`],
-/// but unlike [`Steer`] it doesn't require the same type for all handlers and a separation of both
-/// the meta information (service id and version) and the actual handler. Unlike [`Steer`], it also
-/// doesn't require `&mut self` access, which allows for more granular cloning.
-///
-/// # Design motivations
-///
-/// The reason why we essentially require `Clone`/`Copy` for the handlers is that once the route is
-/// constructed it needs to be available for each request that happens, now, there are multiple ways
-/// to achieve this.
-///
-/// One way would be to simply clone the entire [`Router`] during each request, but that has the
-/// downside of potentially cloning a lot of data that isn't actually required for each request,
-/// making the addition of new handlers slower and slower.
-/// The other solution instead would be to `Mutex` the entire [`Router`], but that would make the
-/// entire [`Router`] essentially single-threaded, which is not ideal.
-///
-/// This takes a middle ground, which is similar in implementation to other tower-based frameworks,
-/// such as axum. The inner routes are stored in an `Arc<T>`, which is cheap to clone, but means we
-/// need to require `&self` during routing. Once a route was chosen, we simply clone the service
-/// (and oneshot) the service. This keeps the cloned data minimal and allows for multi-threading.
-///
-/// The downside is that we're unable to keep any state in a service delegate that's persisted
-/// across invocations. To signal this, `ServiceDelegate` takes `self` and consumes it (even though
-/// it isn't strictly needed), as well as the use of sessions. To store any information across
-/// calls, one must make use of smart pointers, such as `Arc`.
-///
-/// [`Steer`]: https://docs.rs/tower/latest/tower/steer/struct.Steer.html
-pub trait Route<B, C> {
-    type Future: Future<Output = BoxedResponse<!>> + Send;
-
-    fn call(&self, request: Request<B>, codec: C) -> Self::Future
-    where
-        B: Body<Control = !, Error: Send + Sync> + Send + Sync,
-        C: ErrorEncoder + Send + Sync;
-}
-
-// The clone requirement might seem odd here, but is the same as in axum's router implementation.
-// see: https://docs.rs/axum/latest/src/axum/routing/route.rs.html#45
-impl<B, C, Svc, Tail> Route<B, C> for HCons<Handler<Svc>, Tail>
-where
-    Svc: Service<Request<B>, Response = BoxedResponse<!>, Error = !, Future: Send>
-        + Clone
-        + Send
-        + Sync,
-    Tail: Route<B, C> + Send,
-    B: Send,
-{
-    // cannot use `impl Future` here, as it would require additional constraints on the associated
-    // type, that are already present on the `call` method.
-    type Future = Either<
-        Map<Oneshot<Svc, Request<B>>, fn(Result<BoxedResponse<!>, !>) -> BoxedResponse<!>>,
-        Tail::Future,
-    >;
-
-    fn call(&self, request: Request<B>, codec: C) -> Self::Future
-    where
-        B: Body<Control = !, Error: Send + Sync> + Send + Sync,
-        C: ErrorEncoder + Send + Sync,
-    {
-        let requirement = self.head.version.into_requirement();
-
-        if self.head.service == request.service().id
-            && requirement.compatible(request.service().version)
-        {
-            let service = self.head.inner.clone();
-
-            Either::Left(service.oneshot(request).map(|Ok(response)| response))
-        } else {
-            Either::Right(self.tail.call(request, codec))
-        }
-    }
-}
-
-impl<B, C> Route<B, C> for HNil
-where
-    B: Body<Control = !, Error: Send + Sync> + Send + Sync,
-    C: ErrorEncoder + Send + Sync,
-{
-    type Future = impl Future<Output = BoxedResponse<!>> + Send;
-
-    fn call(&self, request: Request<B>, codec: C) -> Self::Future
-    where
-        B: Body<Control = !, Error: Send + Sync> + Send + Sync,
-        C: ErrorEncoder + Send + Sync,
-    {
-        let error = NotFound {
-            service: request.service().id,
-            version: request.service().version,
-        };
-
-        let session = request.session();
-
-        let error = codec.encode_error(error);
-
-        ready(Response::from_error(Parts::new(session), error).map_body(BodyExt::boxed))
-    }
-}
 
 pub struct RouterBuilder<R, L, S, C> {
     routes: R,
@@ -202,20 +85,13 @@ impl<R, L, S, C> RouterBuilder<R, L, S, C> {
         S: Default + Send + Sync + 'static,
         C: Clone + Send + 'static,
     {
-        let service_id = <D::Service as harpc_service::Service>::ID;
-        let version = <D::Service as harpc_service::Service>::VERSION;
-
         let service =
             ServiceDelegateHandler::new(delegate, Arc::clone(&self.session), self.codec.clone());
         let service = self.builder.service(service);
 
         RouterBuilder {
             routes: HCons {
-                head: Handler {
-                    service: service_id,
-                    version,
-                    inner: service,
-                },
+                head: Handler::new::<D::Service>(service),
                 tail: self.routes,
             },
             builder: self.builder,
