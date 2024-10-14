@@ -77,22 +77,35 @@ pub enum ValueConstraints {
 }
 
 impl ValueConstraints {
+    /// Folds multiple constraints into fewer constraints.
+    ///
+    /// This function attempts to combine as many constraints as possible. If two constraints
+    /// cannot be fully merged, they are kept separate.
+    ///
+    /// The algorithm works as follows:
+    /// - It iterattes over all constraints
+    /// - for each constraint, it tries to merge them with the constraints that have already been
+    ///   merged from the previous iterations from left to right
+    /// - if a constraint cannot be fully merged, it is either combined with the next constraint or
+    ///   added to the list of constraints that have already been merged.
+    ///
+    /// # Errors
+    ///
+    /// If two constraints exclude each other, an error is returned.
     pub fn fold_intersections(
         schemas: impl IntoIterator<Item = Self>,
     ) -> Result<Vec<Self>, Report<ResolveClosedDataTypeError>> {
         schemas
             .into_iter()
-            .try_fold(Vec::<Self>::new(), |mut folded, constraints| {
-                let mut next = Some(constraints);
-
+            .map(Some)
+            .try_fold(Vec::<Self>::new(), |mut folded, mut constraints| {
                 folded = folded
                     .into_iter()
                     .map(|existing| {
-                        if let Some(to_combine) = next.take() {
+                        if let Some(to_combine) = constraints.take() {
                             let (combined, remainder) = existing.combine(to_combine)?;
-                            if let Some(remainder) = remainder {
-                                next = Some(remainder);
-                            }
+                            // The remainder is used for the next iteration
+                            constraints = remainder;
                             Ok::<_, Report<_>>(combined)
                         } else {
                             Ok(existing)
@@ -100,7 +113,7 @@ impl ValueConstraints {
                     })
                     .collect::<Result<Vec<_>, _>>()?;
 
-                if let Some(remainder) = next {
+                if let Some(remainder) = constraints {
                     folded.push(remainder);
                 }
 
