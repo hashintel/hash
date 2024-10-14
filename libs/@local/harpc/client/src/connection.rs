@@ -13,7 +13,7 @@ use harpc_tower::{
 };
 use tower::Service;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Connection(Arc<harpc_net::session::client::Connection>);
 
 impl Connection {
