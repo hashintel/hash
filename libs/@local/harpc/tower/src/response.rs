@@ -32,13 +32,15 @@ pub struct Response<B> {
     body: B,
 }
 
-impl<B> Response<B>
-where
-    B: Body<Control: AsRef<ResponseKind>>,
-{
+// we specifically don't have a `B: Body<Control: AsRef<ResponseKind>>` bound here, to allow for
+// requests to carry streams
+impl<B> Response<B> {
     pub const fn from_parts(parts: Parts, body: B) -> Self {
         Self { head: parts, body }
     }
+
+    pub fn into_parts(self) -> (Parts, B) {
+        (self.head, self.body)
 }
 
 impl<B> Response<B> {

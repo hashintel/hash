@@ -35,12 +35,14 @@ where
 {
     type Buf = E::Buf;
     type Error = E::Error;
-
-    fn encode<T>(
-        self,
-        input: impl Stream<Item = T> + Send + Sync,
-    ) -> impl Stream<Item = Result<Self::Buf, Self::Error>> + Send + Sync
+    type Output<Input>
+        = E::Output<Input>
     where
+        Input: Stream + Send;
+
+    fn encode<T, S>(self, input: S) -> Self::Output<S>
+    where
+        S: Stream<Item = T> + Send,
         T: serde::Serialize,
     {
         self.encoder.encode(input)
@@ -53,14 +55,18 @@ where
     D: Decoder,
 {
     type Error = D::Error;
-
-    fn decode<T, B, Err>(
-        self,
-        items: impl Stream<Item = Result<B, Err>> + Send + Sync,
-    ) -> impl Stream<Item = Result<T, Self::Error>> + Send + Sync
+    type Output<T, B, Err, Input>
+        = D::Output<T, B, Err, Input>
     where
         T: serde::de::DeserializeOwned,
         B: Buf,
+        Input: Stream<Item = Result<B, Err>> + Send;
+
+    fn decode<T, B, Err, S>(self, items: S) -> Self::Output<T, B, Err, S>
+    where
+        T: serde::de::DeserializeOwned,
+        B: Buf,
+        S: Stream<Item = Result<B, Err>> + Send,
     {
         self.decoder.decode(items)
     }

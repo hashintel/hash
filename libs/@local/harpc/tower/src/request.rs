@@ -32,12 +32,15 @@ pub struct Request<B> {
     body: B,
 }
 
-impl<B> Request<B>
-where
-    B: Body<Control = !>,
-{
-    pub const fn new(parts: Parts, body: B) -> Self {
+// we specifically don't have a `B: Body<Control = !>` bound here, to allow for requests to carry
+// streams
+impl<B> Request<B> {
+    pub const fn from_parts(parts: Parts, body: B) -> Self {
         Self { head: parts, body }
+    }
+
+    pub fn into_parts(self) -> (Parts, B) {
+        (self.head, self.body)
     }
 
     pub const fn service(&self) -> ServiceDescriptor {

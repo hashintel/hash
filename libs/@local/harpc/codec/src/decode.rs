@@ -5,13 +5,17 @@ use futures_core::Stream;
 pub trait Decoder {
     type Error;
 
-    fn decode<T, B, E>(
-        self,
-        items: impl Stream<Item = Result<B, E>> + Send + Sync,
-    ) -> impl Stream<Item = Result<T, Self::Error>> + Send + Sync
+    type Output<T, B, E, Input>: Stream<Item = Result<T, Self::Error>>
     where
         T: serde::de::DeserializeOwned,
-        B: Buf;
+        B: Buf,
+        Input: Stream<Item = Result<B, E>> + Send;
+
+    fn decode<T, B, E, S>(self, items: S) -> Self::Output<T, B, E, S>
+    where
+        T: serde::de::DeserializeOwned,
+        B: Buf,
+        S: Stream<Item = Result<B, E>> + Send;
 }
 
 pub trait ErrorDecoder {
