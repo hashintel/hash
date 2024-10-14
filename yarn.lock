@@ -24723,10 +24723,10 @@ oembed-providers@1.0.20240830:
   resolved "https://registry.yarnpkg.com/oembed-providers/-/oembed-providers-1.0.20240830.tgz#62c117fecd594b8722ff888245993b75d5012fcc"
   integrity sha512-O2Cqys3Y13125ooqL6ahJCQSt/Q0M0wlz3VkV+KSTf8AxXn20zqd7YUUHKTzdvoGK+bXvbhMc+/KpOi5HqJ/+w==
 
-officeparser@4.1.1:
-  version "4.1.1"
-  resolved "https://registry.yarnpkg.com/officeparser/-/officeparser-4.1.1.tgz#5c08eb3158c0f8d6d85f12e1e6a95b54f590a677"
-  integrity sha512-bOh7l6Bt/caeyU9t+9yGdQF2N30j8puR7PhXmSI/NqssHNnfnTLp1ehpBo4KuIMeOvzhr8mvkXHFpR2qhH1uhg==
+officeparser@4.1.2:
+  version "4.1.2"
+  resolved "https://registry.yarnpkg.com/officeparser/-/officeparser-4.1.2.tgz#7f925d025eb391f0a6fea80e121fe7d2013fc57e"
+  integrity sha512-QWg9cwxOi7fQ0CPho39Rsu10JA4fmHA+mZuZljCIrMcjCrE9bLRDGxKUJMxg4FVaZWoUVW/9dQUyqIBaAFBXIQ==
   dependencies:
     "@xmldom/xmldom" "^0.8.10"
     decompress "^4.2.0"
