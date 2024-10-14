@@ -9,7 +9,12 @@ use futures::{FutureExt, Stream};
 use harpc_codec::encode::ErrorEncoder;
 use harpc_net::session::server::SessionEvent;
 use harpc_service::delegate::ServiceDelegate;
-use harpc_tower::{body::Body, request::Request, response::BoxedResponse};
+use harpc_tower::{
+    body::Body,
+    net::pack::{PackLayer, PackService},
+    request::Request,
+    response::Response,
+};
 use tokio_util::sync::CancellationToken;
 use tower::{Layer, Service, ServiceBuilder, layer::util::Identity};
 
@@ -140,22 +145,22 @@ pub struct RouterService<R, C> {
     codec: C,
 }
 
-impl<B, R, C> Service<Request<B>> for RouterService<R, C>
+impl<R, C, ReqBody> Service<Request<ReqBody>> for RouterService<R, C>
 where
-    R: Route<B, C>,
-    B: Body<Control = !, Error: Send + Sync> + Send + Sync,
+    R: Route<ReqBody, C>,
+    ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync,
     C: ErrorEncoder + Clone + Send + Sync + 'static,
 {
     type Error = !;
-    type Response = BoxedResponse<!>;
+    type Response = Response<R::ResponseBody>;
 
-    type Future = impl Future<Output = Result<Self::Response, Self::Error>> + Send;
+    type Future = impl Future<Output = Result<Self::Response, Self::Error>>;
 
     fn poll_ready(&mut self, _: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         Poll::Ready(Ok(()))
     }
 
-    fn call(&mut self, req: Request<B>) -> Self::Future {
+    fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
         let codec = self.codec.clone();
 
         self.routes.call(req, codec).map(Ok)
@@ -172,8 +177,8 @@ where
     C: Clone,
 {
     type Error = !;
-    type Future = Ready<Result<RouterService<R, C>, !>>;
-    type Response = RouterService<R, C>;
+    type Future = Ready<Result<Self::Response, !>>;
+    type Response = PackService<RouterService<R, C>, C>;
 
     fn poll_ready(&mut self, _: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         Poll::Ready(Ok(()))
@@ -183,7 +188,9 @@ where
         let routes = Arc::clone(&self.routes);
         let codec = self.codec.clone();
 
-        future::ready(Ok(RouterService { routes, codec }))
+        let layer = PackLayer::new(codec.clone());
+
+        future::ready(Ok(layer.layer(RouterService { routes, codec })))
     }
 }
 

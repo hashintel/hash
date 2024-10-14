@@ -1,29 +1,34 @@
+use core::future::poll_fn;
+
+use bytes::Bytes;
 use futures::{Stream, StreamExt};
-use harpc_codec::encode::ErrorEncoder;
+use harpc_codec::error::EncodedError;
 use harpc_net::session::server::Transaction;
 use harpc_tower::{
     body::server::request::RequestBody,
-    net::pack::Pack,
     request::{self, Request},
-    response::BoxedResponse,
 };
 use tokio::pin;
 use tokio_util::task::TaskTracker;
-use tower::{Service, ServiceExt};
+use tower::{MakeService, ServiceExt};
 
 // TODO: do we want `BoxedResponse` to be `!`? or is there a better way of doing this? We could have
 // a body that takes any E and converts it to a `!` error (by adding a `TransactionError` and
 // terminating)
-pub async fn serve<M, S>(
+pub async fn serve<M>(
     stream: impl Stream<Item = Transaction> + Send,
-    encoder: impl ErrorEncoder + Clone + Send + 'static,
     mut make_service: M,
 ) -> TaskTracker
 where
-    M: Service<(), Response = S, Error = !, Future: Send> + Send,
-    S: Service<Request<RequestBody>, Response = BoxedResponse<!>, Error = !, Future: Send>
-        + Send
-        + 'static,
+    M: MakeService<
+            (),
+            Request<RequestBody>,
+            Response: futures::Stream<Item = Result<Bytes, EncodedError>> + Send,
+            Error = !,
+            Service: tower::Service<Request<RequestBody>, Future: Send> + Send + 'static,
+            MakeError = !,
+            Future: Send,
+        > + Send,
 {
     // we're not using a JoinSet here on purpose, a TaskTracker immediately frees the memory from a
     // task, unlike a JoinSet
@@ -40,16 +45,15 @@ where
         let parts = request::Parts::from_transaction(&context);
         let request = Request::new(parts, RequestBody::new(stream));
 
-        let Ok(service): Result<S, !> = make_service.call(()).await;
-        let encoder = encoder.clone();
+        let Ok(()) = poll_fn(|cx| make_service.poll_ready(cx)).await;
+        let Ok(service) = make_service.make_service(()).await;
 
         tasks.spawn(async move {
-            let Ok(response): Result<BoxedResponse<!>, !> = service.oneshot(request).await;
-            let response = response.into_body();
+            let Ok(stream) = service.oneshot(request).await;
+            let stream = stream.map(Ok);
+            pin!(stream);
 
-            // TODO: move the pack creation into the `make_service` service.
-            let pack = Pack::new(response, encoder).map(Ok);
-            if let Err(error) = pack.forward(sink).await {
+            if let Err(error) = stream.forward(sink).await {
                 tracing::error!(?error, "failed to send response");
             }
         });

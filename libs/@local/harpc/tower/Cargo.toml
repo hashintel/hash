@@ -31,7 +31,7 @@ pin-project-lite = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 thiserror = { workspace = true }
 tokio = { workspace = true, features = ["time"] }
-tower = { workspace = true, features = ["make", "util"] }
+tower = { workspace = true, features = ["util"] }
 
 [dev-dependencies]
 harpc-net = { workspace = true, features = ["test-utils"] }
