@@ -47,13 +47,22 @@ pub enum ArrayItemConstraints {
 }
 
 impl Constraint for ArrayItemConstraints {
-    fn combine(&mut self, other: Self) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
-        Ok(match (self, other) {
-            (Self::Boolean(lhs), Self::Boolean(rhs)) => lhs.combine(rhs)?.map(Self::Boolean),
-            (Self::Number(lhs), Self::Number(rhs)) => lhs.combine(rhs)?.map(Self::Number),
-            (Self::String(lhs), Self::String(rhs)) => lhs.combine(rhs)?.map(Self::String),
+    fn combine(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        match (self, other) {
+            (Self::Boolean(lhs), Self::Boolean(rhs)) => lhs
+                .combine(rhs)
+                .map(|(lhs, rhs)| (Self::Boolean(lhs), rhs.map(Self::Boolean))),
+            (Self::Number(lhs), Self::Number(rhs)) => lhs
+                .combine(rhs)
+                .map(|(lhs, rhs)| (Self::Number(lhs), rhs.map(Self::Number))),
+            (Self::String(lhs), Self::String(rhs)) => lhs
+                .combine(rhs)
+                .map(|(lhs, rhs)| (Self::String(lhs), rhs.map(Self::String))),
             _ => bail!(ResolveClosedDataTypeError::IntersectedDifferentTypes),
-        })
+        }
     }
 }
 
@@ -119,22 +128,32 @@ pub enum ArraySchema {
 }
 
 impl Constraint for ArraySchema {
-    fn combine(&mut self, other: Self) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
+    fn combine(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
         Ok(match (self, other) {
             (Self::Constrained(lhs), Self::Constrained(rhs)) => {
-                lhs.combine(rhs)?.map(Self::Constrained)
+                let (combined, remainder) = lhs.combine(rhs)?;
+                (
+                    Self::Constrained(combined),
+                    remainder.map(Self::Constrained),
+                )
             }
-            (Self::Tuple(_), Self::Constrained(typed)) => {
+            (Self::Tuple(lhs), Self::Constrained(rhs)) => {
                 // TODO: Implement folding for array constraints
                 //   see https://linear.app/hash/issue/H-3429/implement-folding-for-array-constraints
-                Some(Self::Constrained(typed))
+                (Self::Tuple(lhs), Some(Self::Constrained(rhs)))
             }
-            (Self::Constrained(_), Self::Tuple(any_of)) => {
+            (Self::Constrained(lhs), Self::Tuple(rhs)) => {
                 // TODO: Implement folding for array constraints
                 //   see https://linear.app/hash/issue/H-3429/implement-folding-for-array-constraints
-                Some(Self::Tuple(any_of))
+                (Self::Constrained(lhs), Some(Self::Tuple(rhs)))
             }
-            (Self::Tuple(lhs), Self::Tuple(rhs)) => lhs.combine(rhs)?.map(Self::Tuple),
+            (Self::Tuple(lhs), Self::Tuple(rhs)) => {
+                let (combined, remainder) = lhs.combine(rhs)?;
+                (Self::Tuple(combined), remainder.map(Self::Tuple))
+            }
         })
     }
 }
@@ -194,10 +213,13 @@ pub struct ArrayConstraints {
 }
 
 impl Constraint for ArrayConstraints {
-    fn combine(&mut self, other: Self) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
+    fn combine(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
         // TODO: Implement folding for array constraints
         //   see https://linear.app/hash/issue/H-3429/implement-folding-for-array-constraints
-        Ok(Some(other))
+        Ok((self, Some(other)))
     }
 }
 
@@ -242,10 +264,13 @@ pub struct TupleConstraints {
 }
 
 impl Constraint for TupleConstraints {
-    fn combine(&mut self, other: Self) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
+    fn combine(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
         // TODO: Implement folding for array constraints
         //   see https://linear.app/hash/issue/H-3429/implement-folding-for-array-constraints
-        Ok(Some(other))
+        Ok((self, Some(other)))
     }
 }
 

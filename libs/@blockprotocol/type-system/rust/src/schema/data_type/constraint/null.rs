@@ -21,10 +21,10 @@ pub struct NullSchema;
 
 impl Constraint for NullSchema {
     fn combine(
-        &mut self,
+        self,
         _other: Self,
-    ) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
-        Ok(None)
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        Ok((self, None))
     }
 }
 

@@ -228,15 +228,22 @@ pub enum StringSchema {
 }
 
 impl Constraint for StringSchema {
-    fn combine(&mut self, other: Self) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
-        match (&mut *self, other) {
+    fn combine(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        Ok(match (self, other) {
             (Self::Constrained(lhs), Self::Constrained(rhs)) => {
-                Ok(lhs.combine(rhs)?.map(Self::Constrained))
+                let (combined, remainder) = lhs.combine(rhs)?;
+                (
+                    Self::Constrained(combined),
+                    remainder.map(Self::Constrained),
+                )
             }
             // TODO: Implement folding for string constraints
             //   see https://linear.app/hash/issue/H-3428/implement-folding-for-string-constraints
-            (_, rhs) => Ok(Some(rhs)),
-        }
+            (lhs, rhs) => (lhs, Some(rhs)),
+        })
     }
 }
 
@@ -319,13 +326,14 @@ pub struct StringConstraints {
     pub format: Option<StringFormat>,
 }
 
-// TODO: Implement folding for string constraints
-//   see https://linear.app/hash/issue/H-3428/implement-folding-for-string-constraints
 impl Constraint for StringConstraints {
-    fn combine(&mut self, other: Self) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
+    fn combine(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
         // TODO: Implement folding for string constraints
         //   see https://linear.app/hash/issue/H-3428/implement-folding-for-string-constraints
-        Ok(Some(other))
+        Ok((self, Some(other)))
     }
 }
 

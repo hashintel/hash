@@ -22,10 +22,13 @@ pub struct AnyOfConstraints {
 }
 
 impl Constraint for AnyOfConstraints {
-    fn combine(&mut self, other: Self) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
+    fn combine(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
         // TODO: Implement folding for anyOf constraints
         //   see https://linear.app/hash/issue/H-3430/implement-folding-for-anyof-constraints
-        Ok(Some(other))
+        Ok((self, Some(other)))
     }
 }
 

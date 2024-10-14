@@ -29,13 +29,16 @@ use crate::schema::{ValueLabel, data_type::closed::ResolveClosedDataTypeError};
 pub trait Constraint: Sized {
     /// Combines the current constraints with the provided one.
     ///
-    /// If the constraints cannot be combined completely, the method will return the remaining
-    /// constraints that could not be combined, otherwise `None`.
+    /// It returns the combination of the two constraints. If they can fully be merged, the second
+    /// value is returned as `None`. If the constraints exclude each other, an error is returned.
     ///
     /// # Errors
     ///
     /// If the constraints exclude each other, an error is returned.
-    fn combine(&mut self, other: Self) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>>;
+    fn combine(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>>;
 }
 
 pub trait ConstraintValidator<V: ?Sized>: Constraint {
@@ -85,35 +88,56 @@ impl ValueConstraints {
                     return Ok(acc);
                 }
 
-                let mut remainder = Some(constraints);
-                for current in &mut acc {
-                    let Some(new) = remainder.take() else { break };
-                    remainder = current.combine(new)?;
+                let mut new_constraints = Vec::new();
+                let mut next = Some(constraints);
+
+                // We try to combine the constraints as much to the left as possible
+                let mut acc = acc.into_iter();
+                while let Some(current) = acc.next() {
+                    let Some(to_combine) = next.take() else {
+                        break;
+                    };
+                    let (combined, remainder) = current.combine(to_combine)?;
+                    new_constraints.push(combined);
+
+                    if let Some(remainder) = remainder {
+                        next = Some(remainder);
+                    } else {
+                        new_constraints.extend(acc);
+                        break;
+                    }
                 }
-                if let Some(remainder) = remainder {
-                    acc.push(remainder);
+                if let Some(remainder) = next {
+                    new_constraints.push(remainder);
                 }
-                Ok::<_, Report<ResolveClosedDataTypeError>>(acc)
+                Ok::<_, Report<ResolveClosedDataTypeError>>(new_constraints)
             })
     }
 }
 
 impl Constraint for ValueConstraints {
-    fn combine(&mut self, other: Self) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
-        Ok(match (self, other) {
-            (Self::Typed(lhs), Self::Typed(rhs)) => lhs.combine(rhs)?.map(Self::Typed),
-            (Self::AnyOf(_), Self::Typed(typed)) => {
+    fn combine(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        match (self, other) {
+            (Self::Typed(lhs), Self::Typed(rhs)) => lhs
+                .combine(rhs)
+                .map(|(lhs, rhs)| (Self::Typed(lhs), rhs.map(Self::Typed))),
+            (Self::AnyOf(lhs), Self::Typed(rhs)) => {
                 // TODO: Implement folding for anyOf constraints
                 //   see https://linear.app/hash/issue/H-3430/implement-folding-for-anyof-constraints
-                Some(Self::Typed(typed))
+                Ok((Self::AnyOf(lhs), Some(Self::Typed(rhs))))
             }
-            (Self::Typed(_), Self::AnyOf(any_of)) => {
+            (Self::Typed(lhs), Self::AnyOf(rhs)) => {
                 // TODO: Implement folding for anyOf constraints
                 //   see https://linear.app/hash/issue/H-3430/implement-folding-for-anyof-constraints
-                Some(Self::AnyOf(any_of))
+                Ok((Self::Typed(lhs), Some(Self::AnyOf(rhs))))
             }
-            (Self::AnyOf(lhs), Self::AnyOf(rhs)) => lhs.combine(rhs)?.map(Self::AnyOf),
-        })
+            (Self::AnyOf(lhs), Self::AnyOf(rhs)) => lhs
+                .combine(rhs)
+                .map(|(lhs, rhs)| (Self::AnyOf(lhs), rhs.map(Self::AnyOf))),
+        }
     }
 }
 
@@ -148,16 +172,31 @@ pub enum SingleValueConstraints {
 }
 
 impl Constraint for SingleValueConstraints {
-    fn combine(&mut self, other: Self) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
-        Ok(match (self, other) {
-            (Self::Null(lhs), Self::Null(rhs)) => lhs.combine(rhs)?.map(Self::Null),
-            (Self::Boolean(lhs), Self::Boolean(rhs)) => lhs.combine(rhs)?.map(Self::Boolean),
-            (Self::Number(lhs), Self::Number(rhs)) => lhs.combine(rhs)?.map(Self::Number),
-            (Self::String(lhs), Self::String(rhs)) => lhs.combine(rhs)?.map(Self::String),
-            (Self::Array(lhs), Self::Array(rhs)) => lhs.combine(rhs)?.map(Self::Array),
-            (Self::Object(lhs), Self::Object(rhs)) => lhs.combine(rhs)?.map(Self::Object),
+    fn combine(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        match (self, other) {
+            (Self::Null(lhs), Self::Null(rhs)) => lhs
+                .combine(rhs)
+                .map(|(lhs, rhs)| (Self::Null(lhs), rhs.map(Self::Null))),
+            (Self::Boolean(lhs), Self::Boolean(rhs)) => lhs
+                .combine(rhs)
+                .map(|(lhs, rhs)| (Self::Boolean(lhs), rhs.map(Self::Boolean))),
+            (Self::Number(lhs), Self::Number(rhs)) => lhs
+                .combine(rhs)
+                .map(|(lhs, rhs)| (Self::Number(lhs), rhs.map(Self::Number))),
+            (Self::String(lhs), Self::String(rhs)) => lhs
+                .combine(rhs)
+                .map(|(lhs, rhs)| (Self::String(lhs), rhs.map(Self::String))),
+            (Self::Array(lhs), Self::Array(rhs)) => lhs
+                .combine(rhs)
+                .map(|(lhs, rhs)| (Self::Array(lhs), rhs.map(Self::Array))),
+            (Self::Object(lhs), Self::Object(rhs)) => lhs
+                .combine(rhs)
+                .map(|(lhs, rhs)| (Self::Object(lhs), rhs.map(Self::Object))),
             _ => bail!(ResolveClosedDataTypeError::IntersectedDifferentTypes),
-        })
+        }
     }
 }
 

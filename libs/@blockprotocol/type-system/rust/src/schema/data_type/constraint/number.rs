@@ -115,15 +115,22 @@ fn float_multiple_of(lhs: f64, rhs: f64) -> bool {
 }
 
 impl Constraint for NumberSchema {
-    fn combine(&mut self, other: Self) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
-        match (&mut *self, other) {
+    fn combine(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        Ok(match (self, other) {
             (Self::Constrained(lhs), Self::Constrained(rhs)) => {
-                Ok(lhs.combine(rhs)?.map(Self::Constrained))
+                let (combined, remainder) = lhs.combine(rhs)?;
+                (
+                    Self::Constrained(combined),
+                    remainder.map(Self::Constrained),
+                )
             }
             // TODO: Implement folding for number constraints
             //   see https://linear.app/hash/issue/H-3427/implement-folding-for-number-constraints
-            (_, rhs) => Ok(Some(rhs)),
-        }
+            (lhs, rhs) => (lhs, Some(rhs)),
+        })
     }
 }
 
@@ -227,10 +234,13 @@ pub struct NumberConstraints {
 }
 
 impl Constraint for NumberConstraints {
-    fn combine(&mut self, other: Self) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
+    fn combine(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
         // TODO: Implement folding for number constraints
         //   see https://linear.app/hash/issue/H-3427/implement-folding-for-number-constraints
-        Ok(Some(other))
+        Ok((self, Some(other)))
     }
 }
 

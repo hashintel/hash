@@ -28,12 +28,19 @@ pub enum ObjectSchema {
 }
 
 impl Constraint for ObjectSchema {
-    fn combine(&mut self, other: Self) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
-        match (&mut *self, other) {
+    fn combine(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        Ok(match (self, other) {
             (Self::Constrained(lhs), Self::Constrained(rhs)) => {
-                Ok(lhs.combine(rhs)?.map(Self::Constrained))
+                let (combined, remainder) = lhs.combine(rhs)?;
+                (
+                    Self::Constrained(combined),
+                    remainder.map(Self::Constrained),
+                )
             }
-        }
+        })
     }
 }
 
@@ -90,10 +97,10 @@ pub struct ObjectConstraints {}
 
 impl Constraint for ObjectConstraints {
     fn combine(
-        &mut self,
+        self,
         _other: Self,
-    ) -> Result<Option<Self>, Report<ResolveClosedDataTypeError>> {
-        Ok(None)
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        Ok((self, None))
     }
 }
 
