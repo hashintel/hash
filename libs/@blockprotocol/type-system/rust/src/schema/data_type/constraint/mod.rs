@@ -82,35 +82,30 @@ impl ValueConstraints {
     ) -> Result<Vec<Self>, Report<ResolveClosedDataTypeError>> {
         schemas
             .into_iter()
-            .try_fold(vec![], |mut acc, constraints| {
-                if acc.is_empty() {
-                    acc.push(constraints);
-                    return Ok(acc);
-                }
-
-                let mut new_constraints = Vec::new();
+            .try_fold(Vec::<Self>::new(), |folded, constraints| {
+                // let mut new_constraints = Vec::new();
                 let mut next = Some(constraints);
 
-                // We try to combine the constraints as much to the left as possible
-                let mut acc = acc.into_iter();
-                while let Some(current) = acc.next() {
-                    let Some(to_combine) = next.take() else {
-                        break;
-                    };
-                    let (combined, remainder) = current.combine(to_combine)?;
-                    new_constraints.push(combined);
+                let mut new_constraints = folded
+                    .into_iter()
+                    .map(|existing| {
+                        if let Some(to_combine) = next.take() {
+                            let (combined, remainder) = existing.combine(to_combine)?;
+                            if let Some(remainder) = remainder {
+                                next = Some(remainder);
+                            }
+                            Ok::<_, Report<ResolveClosedDataTypeError>>(combined)
+                        } else {
+                            Ok(existing)
+                        }
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
 
-                    if let Some(remainder) = remainder {
-                        next = Some(remainder);
-                    } else {
-                        new_constraints.extend(acc);
-                        break;
-                    }
-                }
                 if let Some(remainder) = next {
                     new_constraints.push(remainder);
                 }
-                Ok::<_, Report<ResolveClosedDataTypeError>>(new_constraints)
+
+                Ok(new_constraints)
             })
     }
 }
