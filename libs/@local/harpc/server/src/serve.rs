@@ -12,9 +12,6 @@ use tokio::pin;
 use tokio_util::task::TaskTracker;
 use tower::{MakeService, ServiceExt};
 
-// TODO: do we want `BoxedResponse` to be `!`? or is there a better way of doing this? We could have
-// a body that takes any E and converts it to a `!` error (by adding a `TransactionError` and
-// terminating)
 pub async fn serve<M>(
     stream: impl Stream<Item = Transaction> + Send,
     mut make_service: M,
