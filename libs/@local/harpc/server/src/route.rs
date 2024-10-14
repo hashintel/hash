@@ -65,6 +65,7 @@ impl<S> Handler<S> {
 /// it isn't strictly needed), as well as the use of sessions. To store any information across
 /// calls, one must make use of smart pointers, such as `Arc`.
 ///
+/// [`Router`]: crate::router::Router
 /// [`Steer`]: https://docs.rs/tower/latest/tower/steer/struct.Steer.html
 pub trait Route<ReqBody, C> {
     type ResponseBody: Body<Control: AsRef<ResponseKind>, Error = !>;
