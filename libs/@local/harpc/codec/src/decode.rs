@@ -39,10 +39,7 @@ pub trait ErrorDecoder {
     /// # Errors
     ///
     /// Returns `Self::Error` if decoding fails.
-    fn decode_error<E>(
-        self,
-        bytes: impl Stream<Item = Bytes> + Send + Sync,
-    ) -> impl Future<Output = Result<E, Self::Error>> + Send
+    fn decode_error<E>(self, bytes: Bytes) -> Result<E, Self::Error>
     where
         E: serde::de::DeserializeOwned;
 
@@ -51,10 +48,7 @@ pub trait ErrorDecoder {
     /// # Errors
     ///
     /// Returns `Self::Error` if decoding fails.
-    fn decode_report<C>(
-        self,
-        bytes: impl Stream<Item = Bytes> + Send + Sync,
-    ) -> impl Future<Output = Result<Report<C>, Self::Error>> + Send
+    fn decode_report<C>(self, bytes: Bytes) -> Result<Report<C>, Self::Error>
     where
         C: Context;
 
@@ -63,8 +57,5 @@ pub trait ErrorDecoder {
     /// # Errors
     ///
     /// Returns `Self::Error` if decoding fails.
-    fn decode_recovery(
-        self,
-        bytes: impl Stream<Item = Bytes> + Send + Sync,
-    ) -> impl Future<Output = Self::Recovery> + Send;
+    fn decode_recovery(self, bytes: Bytes) -> Self::Recovery;
 }

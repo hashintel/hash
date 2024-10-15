@@ -246,36 +246,21 @@ impl ErrorDecoder for JsonCodec {
     type Error = serde_json::Error;
     type Recovery = Box<str>;
 
-    async fn decode_error<E>(
-        self,
-        bytes: impl Stream<Item = Bytes> + Send + Sync,
-    ) -> Result<E, Self::Error>
+    fn decode_error<E>(self, bytes: Bytes) -> Result<E, Self::Error>
     where
         E: serde::de::DeserializeOwned,
     {
-        let bytes: BytesMut = bytes.collect().await;
-        let bytes = bytes.freeze();
-
         serde_json::from_slice::<JsonErrorRepr<E>>(&bytes).map(|error| error.details)
     }
 
-    async fn decode_report<C>(
-        self,
-        _: impl Stream<Item = Bytes> + Send + Sync,
-    ) -> Result<Report<C>, Self::Error>
+    fn decode_report<C>(self, _: Bytes) -> Result<Report<C>, Self::Error>
     where
         C: error_stack::Context,
     {
         unimplemented!("unable to deserialize reports")
     }
 
-    async fn decode_recovery(
-        self,
-        bytes: impl Stream<Item = Bytes> + Send + Sync,
-    ) -> Self::Recovery {
-        let bytes: BytesMut = bytes.collect().await;
-        let bytes = bytes.freeze();
-
+    fn decode_recovery(self, bytes: Bytes) -> Self::Recovery {
         Box::from(String::from_utf8_lossy(&bytes))
     }
 }
