@@ -208,8 +208,12 @@ async fn main() {
         })
         .register(AccountServerDelegate {
             service: AccountServiceImpl,
-        })
-        .build();
+        });
+
+    let task = router.background_task::<_, !>(stream::empty());
+    tokio::spawn(task.into_future());
+
+    let router = router.build();
 
     serve(stream::empty(), JsonCodec, router).await;
 }
