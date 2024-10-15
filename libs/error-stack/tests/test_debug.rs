@@ -3,11 +3,11 @@
 #![allow(clippy::std_instead_of_core)]
 mod common;
 
-#[allow(clippy::wildcard_imports)]
 use common::*;
-#[allow(unused_imports)]
-use error_stack::Report;
-use error_stack::fmt::{Charset, ColorMode};
+use error_stack::{
+    Report,
+    fmt::{Charset, ColorMode},
+};
 use insta::assert_snapshot;
 #[cfg(feature = "spantrace")]
 use tracing_error::ErrorLayer;
@@ -50,7 +50,10 @@ fn setup() {
 }
 
 fn snap_suffix() -> String {
-    #[allow(unused_mut)]
+    #[cfg_attr(
+        not(any(feature = "backtrace", feature = "spantrace")),
+        expect(unused_mut)
+    )]
     let mut suffix: Vec<&'static str> = vec![];
 
     #[cfg(feature = "spantrace")]
@@ -259,7 +262,6 @@ mod full {
         panic::Location,
     };
 
-    #[allow(clippy::wildcard_imports)]
     use super::*;
 
     #[test]

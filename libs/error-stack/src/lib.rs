@@ -542,7 +542,7 @@ pub use self::{
 pub use self::{future::FutureExt, result::ResultExt};
 
 #[cfg(test)]
-#[allow(dead_code)]
+#[expect(dead_code)]
 mod tests {
 
     use core::mem;

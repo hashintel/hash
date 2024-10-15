@@ -1,4 +1,3 @@
-#[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{boxed::Box, vec, vec::Vec};
 use core::{error::Error, fmt, marker::PhantomData, mem, panic::Location};
 #[cfg(feature = "backtrace")]
@@ -241,14 +240,14 @@ use crate::{
 /// # }
 /// ```
 #[must_use]
-#[allow(clippy::field_scoped_visibility_modifiers)]
+#[expect(clippy::field_scoped_visibility_modifiers)]
 pub struct Report<C: ?Sized> {
     // The vector is boxed as this implies a memory footprint equal to a single pointer size
     // instead of three pointer sizes. Even for small `Result::Ok` variants, the `Result` would
     // still have at least the size of `Report`, even at the happy path. It's unexpected, that
     // creating or traversing a report will happen in the hot path, so a double indirection is
     // a good trade-off.
-    #[allow(clippy::box_collection)]
+    #[expect(clippy::box_collection)]
     pub(super) frames: Box<Vec<Frame>>,
     _context: PhantomData<fn() -> *const C>,
 }
@@ -263,7 +262,7 @@ impl<C> Report<C> {
     /// [`Backtrace` and `SpanTrace` section]: #backtrace-and-spantrace
     #[inline]
     #[track_caller]
-    #[allow(clippy::missing_panics_doc)] // Reason: No panic possible
+    #[expect(clippy::missing_panics_doc)] // Reason: No panic possible
     pub fn new(context: C) -> Self
     where
         C: Context,
@@ -321,7 +320,6 @@ impl<C> Report<C> {
         #[cfg(all(not(nightly), feature = "spantrace"))]
         let span_trace = Some(SpanTrace::capture());
 
-        #[allow(unused_mut)]
         let mut report = Self {
             frames: Box::new(vec![frame]),
             _context: PhantomData,
@@ -736,7 +734,6 @@ impl<C> Report<[C]> {
     /// error1.push(error2);
     /// error1.push(error3);
     /// ```
-    #[allow(clippy::same_name_method)]
     pub fn push(&mut self, mut report: Report<C>) {
         self.frames.append(&mut report.frames);
     }

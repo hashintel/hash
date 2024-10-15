@@ -12,7 +12,7 @@ pub fn create_report() -> Report<RootError> {
 extern crate alloc;
 
 use core::{any::TypeId, panic::Location};
-#[allow(unused_imports)]
+#[expect(unused_imports)]
 use core::{
     fmt,
     future::Future,
@@ -21,13 +21,14 @@ use core::{
 };
 #[cfg(feature = "backtrace")]
 use std::backtrace::Backtrace;
-#[allow(unused_imports)]
-#[cfg(all(rust_1_80, feature = "std"))]
+#[cfg(all(feature = "std", any(feature = "backtrace", feature = "spantrace")))]
 use std::sync::LazyLock;
 
 use error_stack::{AttachmentKind, Context, Frame, FrameKind, Report, Result};
-#[allow(unused_imports)]
-#[cfg(not(all(rust_1_80, feature = "std")))]
+#[cfg(all(
+    not(feature = "std"),
+    any(feature = "backtrace", feature = "spantrace")
+))]
 use once_cell::sync::Lazy as LazyLock;
 #[cfg(feature = "spantrace")]
 use tracing_error::SpanTrace;
@@ -241,7 +242,7 @@ pub fn remove_builtin_messages<S: AsRef<str>>(
         .filter_map(|message| {
             let message = message.as_ref();
             // Reason: complexity + readability
-            #[allow(clippy::if_then_some_else_none)]
+            #[expect(clippy::if_then_some_else_none)]
             if message != "Location" && message != "Backtrace" && message != "SpanTrace" {
                 Some(message.to_owned())
             } else {
@@ -267,8 +268,10 @@ pub fn remove_builtin_frames<E>(report: &Report<E>) -> impl Iterator<Item = &Fra
 }
 
 /// Conditionally add two new frames to the count, as these are backtrace and spantrace.
-#[allow(unused_mut)]
-#[allow(clippy::missing_const_for_fn)]
+#[cfg_attr(
+    not(any(feature = "backtrace", feature = "spantrace")),
+    expect(clippy::missing_const_for_fn, unused_mut)
+)]
 pub fn expect_count(mut count: usize) -> usize {
     #[cfg(feature = "backtrace")]
     if supports_backtrace() {
@@ -335,7 +338,11 @@ pub fn expect_count(mut count: usize) -> usize {
 /// ```
 ///
 /// This is simplified pseudo-code to illustrate how the macro works.
-#[allow(unused_macros)]
+#[expect(
+    clippy::allow_attributes,
+    reason = "It's not possible to avoid this warning"
+)]
+#[allow(unused_macros, reason = "Only used in some tests")]
 macro_rules! assert_kinds {
     ($report:ident, [
         $($pattern:pat_param),*

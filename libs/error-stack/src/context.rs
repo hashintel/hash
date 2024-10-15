@@ -59,7 +59,7 @@ use crate::Report;
 pub trait Context: fmt::Display + fmt::Debug + Send + Sync + 'static {
     /// Provide values which can then be requested by [`Report`].
     #[cfg(nightly)]
-    #[allow(unused_variables)]
+    #[expect(unused_variables)]
     fn provide<'a>(&'a self, request: &mut Request<'a>) {}
 
     /// Returns the source of the error, if any.
