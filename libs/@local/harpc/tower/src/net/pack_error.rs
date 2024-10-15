@@ -71,6 +71,7 @@ where
     D: ErrorDecoder<Error: Debug> + Clone + Send,
     E: serde::de::DeserializeOwned,
 {
+    #[expect(clippy::type_complexity, reason = "type is complex due to polling")]
     fn poll(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,

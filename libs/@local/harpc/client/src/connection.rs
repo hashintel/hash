@@ -13,12 +13,24 @@ use harpc_tower::{
 };
 use tower::Service;
 
+use crate::TransportLayerGuard;
+
 #[derive(Debug, Clone)]
-pub struct Connection(Arc<harpc_net::session::client::Connection>);
+pub struct Connection {
+    connection: Arc<harpc_net::session::client::Connection>,
+
+    _guard: TransportLayerGuard,
+}
 
 impl Connection {
-    pub(crate) fn new(connection: harpc_net::session::client::Connection) -> Self {
-        Self(Arc::new(connection))
+    pub(crate) fn new(
+        connection: harpc_net::session::client::Connection,
+        guard: TransportLayerGuard,
+    ) -> Self {
+        Self {
+            connection: Arc::new(connection),
+            _guard: guard,
+        }
     }
 }
 

@@ -17,6 +17,8 @@ harpc-service.workspace = true
 harpc-tower = { workspace = true, public = true }
 multiaddr.workspace = true
 thiserror.workspace = true
+tokio-sync = "0.1.8"
+tokio-util.workspace = true
 tower = { workspace = true, public = true }
 
 [lints]
