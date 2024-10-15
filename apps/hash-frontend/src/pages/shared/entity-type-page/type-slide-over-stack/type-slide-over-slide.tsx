@@ -1,9 +1,6 @@
 import type { VersionedUrl } from "@blockprotocol/type-system/slim";
 import {
-  ArrowLeftIcon,
-  ArrowRightIconRegular,
   ArrowUpRightFromSquareRegularIcon,
-  CloseIcon,
   IconButton,
   LoadingSpinner,
   OntologyChip,
@@ -19,13 +16,14 @@ import {
 import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { componentsFromVersionedUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, ButtonBase, Slide, Tooltip } from "@mui/material";
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, RefObject } from "react";
 import { useCallback, useMemo, useState } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { Link } from "../../../../shared/ui";
 import { useRouteNamespace } from "../../../[shortname]/shared/use-route-namespace";
 import { useDataTypesContext } from "../../data-types-context";
+import { SlideBackForwardCloseBar } from "../../shared/slide-back-forward-close-bar";
 import { EntityTypeContext } from "../shared/entity-type-context";
 import { EntityTypeHeader } from "../shared/entity-type-header";
 import { useEntityTypeValue } from "../use-entity-type-value";
@@ -109,6 +107,10 @@ interface TypeSlideOverSlideProps {
   onForward?: () => void;
   onClose: () => void;
   onNavigateToType: (url: VersionedUrl) => void;
+  /**
+   * If a container ref is provided, the slide will be attached to it (defaults to the MUI default, the body)
+   */
+  slideContainerRef?: RefObject<HTMLDivElement>;
   typeUrl: VersionedUrl;
 }
 
@@ -120,6 +122,7 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
   onBack,
   onClose,
   onForward,
+  slideContainerRef,
 }) => {
   const { loading: loadingNamespace, routeNamespace } = useRouteNamespace();
 
@@ -185,6 +188,7 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
 
   return (
     <Slide
+      container={slideContainerRef?.current ?? undefined}
       in={open && !animateOut}
       direction="left"
       onClick={(event) => event.stopPropagation()}
@@ -198,37 +202,14 @@ export const TypeSlideOverSlide: FunctionComponent<TypeSlideOverSlideProps> = ({
           top: 0,
           right: 0,
           overflowY: "auto",
-          zIndex: stackPosition * 10000,
+          zIndex: ({ zIndex }) => zIndex.drawer + 2 + stackPosition,
         }}
       >
-        <Box
-          paddingX={4}
-          paddingY={2}
-          display="flex"
-          justifyContent="space-between"
-        >
-          <Box display="flex" justifyContent="space-between" gap={1}>
-            {(onBack ?? onForward) ? (
-              <Tooltip title="Back" placement="bottom">
-                <IconButton disabled={!onBack} onClick={handleBackClick}>
-                  <ArrowLeftIcon />
-                </IconButton>
-              </Tooltip>
-            ) : null}
-            {onForward ? (
-              <Tooltip title="Forward" placement="bottom">
-                <IconButton onClick={onForward}>
-                  <ArrowRightIconRegular />
-                </IconButton>
-              </Tooltip>
-            ) : null}
-          </Box>
-          <Tooltip title="Close" placement="bottom">
-            <IconButton onClick={onClose}>
-              <CloseIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
+        <SlideBackForwardCloseBar
+          onBack={onBack ? handleBackClick : undefined}
+          onForward={onForward}
+          onClose={onClose}
+        />
         {loadingNamespace || loadingRemoteEntityType || !remoteEntityType ? (
           <Box
             sx={{

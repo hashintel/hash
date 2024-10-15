@@ -1,4 +1,5 @@
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "proptest", derive(test_strategy::Arbitrary))]
 pub struct ProcedureId(u16);
 
@@ -18,4 +19,11 @@ impl ProcedureId {
         // 0xFxxx are reserved for internal use
         self.0 & 0xF000 == 0xF000
     }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "proptest", derive(test_strategy::Arbitrary))]
+pub struct ProcedureDescriptor {
+    pub id: ProcedureId,
 }

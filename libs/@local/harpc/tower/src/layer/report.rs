@@ -2,8 +2,8 @@ use core::task::{Context, Poll};
 
 use bytes::Bytes;
 use error_stack::Report;
-use harpc_net::codec::ErrorEncoder;
-use harpc_wire_protocol::response::kind::ResponseKind;
+use harpc_codec::encode::ErrorEncoder;
+use harpc_types::response_kind::ResponseKind;
 use tower::{Layer, Service, ServiceExt};
 
 use crate::{
@@ -14,6 +14,7 @@ use crate::{
     response::{Parts, Response},
 };
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct HandleReportLayer<E> {
     encoder: E,
 }
@@ -28,23 +29,24 @@ impl<S, E> Layer<S> for HandleReportLayer<E>
 where
     E: Clone,
 {
-    type Service = HandleReport<S, E>;
+    type Service = HandleReportService<S, E>;
 
     fn layer(&self, inner: S) -> Self::Service {
-        HandleReport {
+        HandleReportService {
             inner,
             encoder: self.encoder.clone(),
         }
     }
 }
 
-pub struct HandleReport<S, E> {
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub struct HandleReportService<S, E> {
     inner: S,
 
     encoder: E,
 }
 
-impl<S, E, C, ReqBody, ResBody> Service<Request<ReqBody>> for HandleReport<S, E>
+impl<S, E, C, ReqBody, ResBody> Service<Request<ReqBody>> for HandleReportService<S, E>
 where
     S: Service<Request<ReqBody>, Error = Report<C>, Response = Response<ResBody>> + Clone + Send,
     E: ErrorEncoder + Clone,
@@ -76,7 +78,7 @@ where
             match inner.oneshot(req).await {
                 Ok(response) => Ok(response.map_body(Either::Left)),
                 Err(report) => {
-                    let error = encoder.encode_report(report).await;
+                    let error = encoder.encode_report(report);
 
                     Ok(Response::from_error(
                         Parts {
@@ -94,9 +96,12 @@ where
 
 #[cfg(test)]
 mod test {
-    use bytes::Bytes;
+
+    use bytes::{Buf, Bytes};
     use error_stack::Report;
-    use harpc_wire_protocol::response::kind::{ErrorCode, ResponseKind};
+    use harpc_codec::json::JsonCodec;
+    use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
+    use insta::assert_snapshot;
     use tokio_test::{assert_pending, assert_ready};
     use tower::{Layer, Service, ServiceExt};
     use tower_test::mock::{self, spawn_with};
@@ -106,10 +111,7 @@ mod test {
         body::{BodyExt, Frame, controlled::Controlled, full::Full},
         either::Either,
         layer::{
-            error::{
-                BoxedError,
-                test::{BODY, GenericError, PlainErrorEncoder, request},
-            },
+            error::test::{BODY, BoxedError, GenericError, request},
             report::HandleReportLayer,
         },
         request::Request,
@@ -138,7 +140,7 @@ mod test {
         spawn_with(|service| {
             let service = service.map_err(|error| Report::from(BoxedError::from(error)));
 
-            HandleReportLayer::new(PlainErrorEncoder).layer(service)
+            HandleReportLayer::new(JsonCodec).layer(service)
         })
     }
 
@@ -175,14 +177,23 @@ mod test {
             .into_control()
             .expect("should be data frame")
             .into_inner();
-        assert_eq!(control, ResponseKind::Err(ErrorCode::INTERNAL_SERVER_ERROR));
+        assert_eq!(
+            control,
+            ResponseKind::Err(ErrorCode::INSTANCE_TRANSACTION_LIMIT_REACHED)
+        );
 
         let Ok(frame) = body.frame().await.expect("frame should be present");
-        let data = frame
+        let mut data = frame
             .into_data()
             .expect("should be data frame")
             .into_inner();
-        assert_eq!(data, Bytes::from_static(b"report|generic error" as &[_]));
+
+        let &first = data.first().expect("should be present");
+        assert_eq!(first, 0x01);
+        data.advance(1);
+
+        let output = String::from_utf8(data.to_vec()).expect("should be valid utf8");
+        assert_snapshot!(output, @r###"[{"context":"generic error","attachments":[],"sources":[{"context":"generic error","attachments":[],"sources":[]}]}]"###);
     }
 
     #[tokio::test]

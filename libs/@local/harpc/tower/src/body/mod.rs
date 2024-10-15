@@ -241,15 +241,13 @@ pub trait BodyExt: Body {
         Pin::new(self).poll_frame(cx)
     }
 
-    fn frame(
-        &mut self,
-    ) -> impl Future<Output = Option<Result<Frame<Self::Data, Self::Control>, Self::Error>>>
+    fn frame(&mut self) -> impl Future<Output = Option<BodyFrameResult<Self>>>
     where
         Self: Unpin,
     {
         struct FrameFuture<'a, T: ?Sized>(&'a mut T);
 
-        impl<'a, T: Body + Unpin + ?Sized> Future for FrameFuture<'a, T> {
+        impl<T: Body + Unpin + ?Sized> Future for FrameFuture<'_, T> {
             type Output = Option<Result<Frame<T::Data, T::Control>, T::Error>>;
 
             fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {

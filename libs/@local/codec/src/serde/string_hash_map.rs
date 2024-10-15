@@ -81,7 +81,7 @@ where
         key: PhantomData<K>,
     }
 
-    impl<'de, K> Visitor<'de> for KeySeed<K>
+    impl<K> Visitor<'_> for KeySeed<K>
     where
         K: FromStr,
         K::Err: Display,

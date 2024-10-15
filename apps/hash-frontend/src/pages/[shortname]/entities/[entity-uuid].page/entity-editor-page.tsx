@@ -1,13 +1,16 @@
 import { OntologyChip } from "@hashintel/design-system";
 import type { Entity } from "@local/hash-graph-sdk/entity";
-import type { PropertyObject } from "@local/hash-graph-types/entity";
+import type { EntityId, PropertyObject } from "@local/hash-graph-types/entity";
 import { frontendDomain } from "@local/hash-isomorphic-utils/environment";
 import { blockProtocolPropertyTypes } from "@local/hash-isomorphic-utils/ontology-type-ids";
+import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { NextSeo } from "next-seo";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 import { useSnackbar } from "../../../../components/hooks/use-snackbar";
+import { generateEntityRootedSubgraph } from "../../../shared/subgraphs";
+import { EditEntitySlideOver } from "./edit-entity-slide-over";
 import type { EntityEditorProps } from "./entity-editor";
 import { EntityEditor } from "./entity-editor";
 import { EntityPageWrapper } from "./entity-page-wrapper";
@@ -15,9 +18,9 @@ import { EntityPageHeader } from "./entity-page-wrapper/entity-page-header";
 import { QueryEditorPage } from "./query-editor-page";
 import { QueryEditorToggle } from "./query-editor-toggle";
 
-interface EntityEditorPageProps extends EntityEditorProps {
+interface EntityEditorPageProps
+  extends Omit<EntityEditorProps, "onEntityClick"> {
   entity?: Entity;
-  entityLabel: string;
   editBar: ReactNode;
   owner: string;
   entityUuid: string;
@@ -29,7 +32,6 @@ interface EntityEditorPageProps extends EntityEditorProps {
 
 export const EntityEditorPage = ({
   entity,
-  entityLabel,
   editBar,
   entityUuid,
   owner,
@@ -42,11 +44,46 @@ export const EntityEditorPage = ({
   const [shouldShowQueryEditor, setShouldShowQueryEditor] = useState(true);
   const { triggerSnackbar } = useSnackbar();
 
-  const { entitySubgraph, onEntityUpdated } = entityEditorProps;
+  const { entityLabel, entitySubgraph, onEntityUpdated } = entityEditorProps;
+
+  const [selectedEntity, setSelectedEntity] = useState<{
+    entityId: EntityId;
+    subgraph?: Subgraph<EntityRootType>;
+  } | null>(null);
+
+  const handleEntityClick = useCallback(
+    (entityId: EntityId) => {
+      try {
+        const subgraph = generateEntityRootedSubgraph(entityId, entitySubgraph);
+
+        setSelectedEntity({
+          entityId,
+          subgraph,
+        });
+      } catch (err) {
+        setSelectedEntity({ entityId });
+      }
+    },
+    [entitySubgraph],
+  );
 
   return (
     <>
       <NextSeo title={`${entityLabel} | Entity`} />
+
+      {selectedEntity ? (
+        <EditEntitySlideOver
+          entitySubgraph={selectedEntity.subgraph}
+          entityId={selectedEntity.entityId}
+          onEntityClick={handleEntityClick}
+          open
+          onClose={() => setSelectedEntity(null)}
+          onSubmit={() => {
+            throw new Error(`Editing not yet supported from this screen`);
+          }}
+          readonly
+        />
+      ) : null}
 
       {isQueryEntity && (
         <QueryEditorToggle
@@ -56,6 +93,7 @@ export const EntityEditorPage = ({
       )}
       {isQueryEntity && shouldShowQueryEditor ? (
         <QueryEditorPage
+          onEntityClick={handleEntityClick}
           mode={isDraft ? "create" : "edit"}
           handleSaveQuery={async (value) => {
             const properties = {
@@ -68,7 +106,6 @@ export const EntityEditorPage = ({
               triggerSnackbar.success("Changes saved successfully");
             }
           }}
-          entityLabel={entityLabel}
           entityUuid={entityUuid}
           owner={owner}
           {...entityEditorProps}
@@ -95,7 +132,10 @@ export const EntityEditorPage = ({
           }
         >
           {/* use `satisfies EntityEditorProps` here when satisfies keyword is supported to make this safer */}
-          <EntityEditor {...entityEditorProps} />
+          <EntityEditor
+            {...entityEditorProps}
+            onEntityClick={handleEntityClick}
+          />
         </EntityPageWrapper>
       )}
     </>

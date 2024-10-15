@@ -52,7 +52,7 @@ impl Reflection for AnyArray {
     }
 }
 
-impl<'a> ValueToken<'a> {
+impl ValueToken<'_> {
     pub(crate) fn schema(&self) -> Document {
         match self {
             Self::Null => <() as Deserialize>::reflection(),

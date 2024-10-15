@@ -1,0 +1,36 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "harpc-codec"
+authors.workspace = true
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+# Public workspace dependencies
+error-stack = { workspace = true, public = true, features = ["serde"] }
+harpc-types = { workspace = true, public = true }
+
+# Public third-party dependencies
+bytes = { workspace = true, public = true }
+futures-core = { workspace = true, public = true }
+serde = { workspace = true, public = true, features = ["derive"]}
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+futures-util = { workspace = true, optional = true }
+serde_json = { workspace = true, optional = true, public = true }
+pin-project-lite = { workspace = true, optional = true }
+memchr = { workspace = true, optional = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+
+[lints]
+workspace = true
+
+[features]
+json = ["dep:serde_json", "dep:pin-project-lite", "dep:futures-util", "dep:memchr"]

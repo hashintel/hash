@@ -10,6 +10,7 @@ import type { Subgraph } from "@local/hash-subgraph";
 import { isEntityId } from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
 import { useTheme } from "@mui/material";
+import type { RefObject } from "react";
 import { useCallback, useMemo } from "react";
 
 import type {
@@ -18,6 +19,7 @@ import type {
   GraphVizNode,
 } from "./graph-visualizer";
 import { GraphVisualizer } from "./graph-visualizer";
+import type { GraphVizConfig } from "./graph-visualizer/graph-container/shared/config-control";
 
 export type EntityForGraph = {
   linkData?: LinkData;
@@ -26,8 +28,19 @@ export type EntityForGraph = {
   properties: PropertyObject;
 };
 
-const maxNodeSize = 32;
-const minNodeSize = 10;
+const defaultConfig = {
+  graphKey: "entity-graph",
+  nodeHighlighting: {
+    depth: 1,
+    direction: "All",
+  },
+  nodeSizing: {
+    mode: "byEdgeCount",
+    min: 10,
+    max: 32,
+    countEdges: "All",
+  },
+} as const satisfies GraphVizConfig;
 
 export const EntityGraphVisualizer = <T extends EntityForGraph>({
   entities,
@@ -42,7 +55,10 @@ export const EntityGraphVisualizer = <T extends EntityForGraph>({
    * A function to filter out entities from display. If the function returns false, the entity will not be displayed.
    */
   filterEntity?: (entity: T) => boolean;
-  onEntityClick?: (entityId: EntityId) => void;
+  onEntityClick?: (
+    entityId: EntityId,
+    containerRef?: RefObject<HTMLDivElement>,
+  ) => void;
   onEntityTypeClick?: (entityTypeId: VersionedUrl) => void;
   /**
    * Whether this entity should receive a special highlight.
@@ -56,15 +72,23 @@ export const EntityGraphVisualizer = <T extends EntityForGraph>({
     return [
       {
         color: palette.blue[30],
-        borderColor: palette.blue[40],
+        borderColor: palette.gray[50],
       },
       {
         color: palette.purple[30],
-        borderColor: palette.purple[40],
+        borderColor: palette.gray[50],
       },
       {
         color: palette.green[50],
-        borderColor: palette.green[60],
+        borderColor: palette.gray[50],
+      },
+      {
+        color: palette.red[20],
+        borderColor: palette.gray[50],
+      },
+      {
+        color: palette.yellow[30],
+        borderColor: palette.gray[50],
       },
     ] as const;
   }, [palette]);
@@ -82,8 +106,6 @@ export const EntityGraphVisualizer = <T extends EntityForGraph>({
     })[] = [];
 
     const entityTypeIdToColor = new Map<string, number>();
-
-    const nodeIdToIncomingEdges = new Map<string, number>();
 
     for (const entity of entities ?? []) {
       /**
@@ -122,15 +144,26 @@ export const EntityGraphVisualizer = <T extends EntityForGraph>({
         ? { color: palette.blue[50], borderColor: palette.blue[60] }
         : nodeColors[entityTypeIdToColor.get(entity.metadata.entityTypeId)!]!;
 
+      const entityType = getEntityTypeById(
+        subgraphWithTypes,
+        entity.metadata.entityTypeId,
+      );
+
+      if (!entityType) {
+        throw new Error(
+          `Could not find entity type for ${entity.metadata.entityTypeId}`,
+        );
+      }
+
       nodesToAddByNodeId[entity.metadata.recordId.entityId] = {
         label: generateEntityLabel(subgraphWithTypes, entity),
         nodeId: entity.metadata.recordId.entityId,
+        nodeTypeId: entity.metadata.entityTypeId,
+        nodeTypeLabel: entityType.schema.title,
         color,
         borderColor,
-        size: minNodeSize,
+        size: defaultConfig.nodeSizing.min,
       };
-
-      nodeIdToIncomingEdges.set(entity.metadata.recordId.entityId, 0);
     }
 
     for (const linkEntity of linkEntitiesToAdd) {
@@ -156,42 +189,6 @@ export const EntityGraphVisualizer = <T extends EntityForGraph>({
         label: linkEntityType?.schema.title ?? "Unknown",
         size: 1,
       });
-
-      nodeIdToIncomingEdges.set(
-        linkEntity.linkData.rightEntityId,
-        (nodeIdToIncomingEdges.get(linkEntity.linkData.rightEntityId) ?? 0) + 1,
-      );
-    }
-
-    const fewestIncomingEdges = Math.min(...nodeIdToIncomingEdges.values());
-    const mostIncomingEdges = Math.max(...nodeIdToIncomingEdges.values());
-
-    const incomingEdgeRange = mostIncomingEdges - fewestIncomingEdges;
-
-    /**
-     * If incomingEdgeRange is 0, all nodes have the same number of incoming edges
-     */
-    if (incomingEdgeRange > 0) {
-      for (const [nodeId, incomingEdges] of nodeIdToIncomingEdges) {
-        if (!nodesToAddByNodeId[nodeId]) {
-          continue;
-        }
-
-        const relativeEdgeCount = incomingEdges / incomingEdgeRange;
-
-        const maxSizeIncrease = maxNodeSize - minNodeSize;
-
-        /**
-         * Scale the size of the node based on the number of incoming edges within the range of incoming edges
-         */
-        nodesToAddByNodeId[nodeId].size = Math.min(
-          maxNodeSize,
-          Math.max(
-            minNodeSize,
-            relativeEdgeCount * maxSizeIncrease + minNodeSize,
-          ),
-        );
-      }
     }
 
     return {
@@ -208,15 +205,11 @@ export const EntityGraphVisualizer = <T extends EntityForGraph>({
   ]);
 
   const onNodeClick = useCallback<
-    NonNullable<GraphVisualizerProps["onNodeClick"]>
+    NonNullable<GraphVisualizerProps["onNodeSecondClick"]>
   >(
-    ({ nodeId, isFullScreen }) => {
-      if (isFullScreen) {
-        return;
-      }
-
+    ({ nodeId, screenContainerRef }) => {
       if (isEntityId(nodeId)) {
-        onEntityClick?.(nodeId);
+        onEntityClick?.(nodeId, screenContainerRef);
       } else {
         onEntityTypeClick?.(nodeId as VersionedUrl);
       }
@@ -227,13 +220,9 @@ export const EntityGraphVisualizer = <T extends EntityForGraph>({
   const onEdgeClick = useCallback<
     NonNullable<GraphVisualizerProps["onEdgeClick"]>
   >(
-    ({ edgeId, isFullScreen }) => {
-      if (isFullScreen) {
-        return;
-      }
-
+    ({ edgeId, screenContainerRef }) => {
       if (isEntityId(edgeId)) {
-        onEntityClick?.(edgeId);
+        onEntityClick?.(edgeId, screenContainerRef);
       }
     },
     [onEntityClick],
@@ -241,9 +230,10 @@ export const EntityGraphVisualizer = <T extends EntityForGraph>({
 
   return (
     <GraphVisualizer
+      defaultConfig={defaultConfig}
       nodes={nodes}
       edges={edges}
-      onNodeClick={onNodeClick}
+      onNodeSecondClick={onNodeClick}
       onEdgeClick={onEdgeClick}
     />
   );

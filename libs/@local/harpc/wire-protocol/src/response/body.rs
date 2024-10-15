@@ -96,6 +96,7 @@ impl Decode for ResponseBody {
 mod test {
     #![expect(clippy::needless_raw_strings)]
     use expect_test::expect;
+    use harpc_types::response_kind::ResponseKind;
 
     use crate::{
         codec::test::{assert_codec, assert_decode, assert_encode},
@@ -104,7 +105,6 @@ mod test {
             begin::ResponseBegin,
             body::{ResponseBody, ResponseBodyContext, ResponseVariant},
             frame::ResponseFrame,
-            kind::ResponseKind,
         },
     };
 

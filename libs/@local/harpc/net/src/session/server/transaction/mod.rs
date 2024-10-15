@@ -9,13 +9,14 @@ use core::{
 
 use bytes::Bytes;
 use futures::{Sink, Stream, StreamExt, stream::FusedStream};
+use harpc_codec::error::EncodedError;
+use harpc_types::{
+    procedure::ProcedureDescriptor, response_kind::ResponseKind, service::ServiceDescriptor,
+};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
-    request::{
-        Request, begin::RequestBegin, flags::RequestFlag, id::RequestId,
-        procedure::ProcedureDescriptor, service::ServiceDescriptor,
-    },
-    response::{Response, kind::ResponseKind},
+    request::{Request, begin::RequestBegin, flags::RequestFlag, id::RequestId},
+    response::Response,
 };
 use libp2p::PeerId;
 use tokio::{select, sync::mpsc};
@@ -25,10 +26,7 @@ use tokio_util::{
 };
 
 use super::{SessionConfig, connection::collection::TransactionPermit, session_id::SessionId};
-use crate::session::{
-    error::TransactionError,
-    writer::{ResponseContext, ResponseWriter, WriterOptions},
-};
+use crate::session::writer::{ResponseContext, ResponseWriter, WriterOptions};
 
 pub(crate) trait ServerTransactionPermit: Send + Sync + 'static {
     fn id(&self) -> RequestId;
@@ -41,7 +39,7 @@ struct TransactionSendDelegateTask<P> {
     // TODO: consider switching to `tachyonix` crate for better performance (not yet tested)
     // as well as more predictable buffering behavioud. `PollSender` is prone to just buffer
     // everything before sending, which might not be the best idea in this scenario.
-    rx: mpsc::Receiver<core::result::Result<Bytes, TransactionError>>,
+    rx: mpsc::Receiver<core::result::Result<Bytes, EncodedError>>,
     tx: mpsc::Sender<Response>,
 
     permit: Arc<P>,
@@ -107,7 +105,9 @@ where
                         break;
                     }
                 }
-                Err(TransactionError { code, bytes }) => {
+                Err(error) => {
+                    let (code, bytes) = error.into_parts();
+
                     writer = ResponseWriter::new(
                         WriterOptions {
                             no_delay: self.config.no_delay,
@@ -133,7 +133,7 @@ where
 pub(crate) struct TransactionTask<P> {
     config: SessionConfig,
 
-    response_rx: mpsc::Receiver<Result<Bytes, TransactionError>>,
+    response_rx: mpsc::Receiver<Result<Bytes, EncodedError>>,
     response_tx: mpsc::Sender<Response>,
 
     permit: Arc<P>,
@@ -169,11 +169,13 @@ pub(crate) struct TransactionParts<P> {
     pub permit: P,
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct TransactionContext {
     id: RequestId,
 
-    peer: PeerId,
+    // The PeerId is 80 bytes in size and completely balloons the size of the context, from `32` to
+    // `104` bytes.
+    peer: Box<PeerId>,
     session: SessionId,
 
     service: ServiceDescriptor,
@@ -187,8 +189,8 @@ impl TransactionContext {
     }
 
     #[must_use]
-    pub const fn peer(&self) -> PeerId {
-        self.peer
+    pub fn peer(&self) -> PeerId {
+        *self.peer
     }
 
     #[must_use]
@@ -211,7 +213,7 @@ pub struct Transaction {
     context: TransactionContext,
 
     request: tachyonix::Receiver<Request>,
-    response: mpsc::Sender<Result<Bytes, TransactionError>>,
+    response: mpsc::Sender<Result<Bytes, EncodedError>>,
 
     permit: Arc<TransactionPermit>,
 }
@@ -243,7 +245,7 @@ impl Transaction {
         let transaction = Self {
             context: TransactionContext {
                 id: permit.id(),
-                peer,
+                peer: Box::new(peer),
                 session,
                 service: body.service,
                 procedure: body.procedure,
@@ -268,8 +270,8 @@ impl Transaction {
     }
 
     #[must_use]
-    pub const fn context(&self) -> TransactionContext {
-        self.context
+    pub const fn context(&self) -> &TransactionContext {
+        &self.context
     }
 
     pub fn into_parts(self) -> (TransactionContext, TransactionSink, TransactionStream) {
@@ -374,7 +376,7 @@ impl FusedStream for TransactionStream {
     }
 }
 
-type SinkItem = Result<Bytes, TransactionError>;
+type SinkItem = Result<Bytes, EncodedError>;
 
 pin_project_lite::pin_project! {
     #[must_use = "sinks do nothing unless polled"]

@@ -10,8 +10,10 @@ use futures::{
     channel::mpsc::{self, Receiver, Sender},
     stream::{BoxStream, SelectAll, select_all},
 };
-use graph_types::ontology::{EntityTypeId, PropertyTypeId};
-use type_system::{Valid, schema::ClosedEntityType};
+use type_system::{
+    Valid,
+    schema::{ClosedEntityType, EntityTypeUuid, PropertyTypeUuid},
+};
 
 use crate::{
     snapshot::{
@@ -40,7 +42,7 @@ pub struct EntityTypeSender {
     constrains_properties: Sender<Vec<EntityTypeConstrainsPropertiesOnRow>>,
     constrains_links: Sender<Vec<EntityTypeConstrainsLinksOnRow>>,
     constrains_link_destinations: Sender<Vec<EntityTypeConstrainsLinkDestinationsOnRow>>,
-    relations: Sender<(EntityTypeId, Vec<EntityTypeRelationAndSubject>)>,
+    relations: Sender<(EntityTypeUuid, Vec<EntityTypeRelationAndSubject>)>,
 }
 
 // This is a direct wrapper around several `Sink<mpsc::Sender>` and `OntologyTypeMetadataSender`
@@ -78,7 +80,7 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
         mut self: Pin<&mut Self>,
         entity_type: EntityTypeSnapshotRecord,
     ) -> Result<(), Self::Error> {
-        let ontology_id = EntityTypeId::from_record_id(&entity_type.metadata.record_id);
+        let ontology_id = EntityTypeUuid::from_url(&entity_type.schema.id);
 
         self.metadata
             .start_send_unpin(OntologyTypeMetadata {
@@ -96,7 +98,7 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
             .iter()
             .map(|entity_type_ref| EntityTypeInheritsFromRow {
                 source_entity_type_ontology_id: ontology_id,
-                target_entity_type_ontology_id: EntityTypeId::from_url(&entity_type_ref.url),
+                target_entity_type_ontology_id: EntityTypeUuid::from_url(&entity_type_ref.url),
             })
             .collect();
         if !inherits_from.is_empty() {
@@ -112,7 +114,7 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
             .into_iter()
             .map(|entity_type_ref| EntityTypeConstrainsPropertiesOnRow {
                 source_entity_type_ontology_id: ontology_id,
-                target_property_type_ontology_id: PropertyTypeId::from_url(&entity_type_ref.url),
+                target_property_type_ontology_id: PropertyTypeUuid::from_url(&entity_type_ref.url),
             })
             .collect();
         if !properties.is_empty() {
@@ -129,7 +131,7 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
             .keys()
             .map(|entity_type_ref| EntityTypeConstrainsLinksOnRow {
                 source_entity_type_ontology_id: ontology_id,
-                target_entity_type_ontology_id: EntityTypeId::from_url(&entity_type_ref.url),
+                target_entity_type_ontology_id: EntityTypeUuid::from_url(&entity_type_ref.url),
             })
             .collect();
         if !links.is_empty() {
@@ -145,7 +147,7 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
             .map(
                 |entity_type_ref| EntityTypeConstrainsLinkDestinationsOnRow {
                     source_entity_type_ontology_id: ontology_id,
-                    target_entity_type_ontology_id: EntityTypeId::from_url(&entity_type_ref.url),
+                    target_entity_type_ontology_id: EntityTypeUuid::from_url(&entity_type_ref.url),
                 },
             )
             .collect();

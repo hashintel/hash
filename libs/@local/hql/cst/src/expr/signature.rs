@@ -48,7 +48,7 @@ impl Spanned for Signature<'_> {
     }
 }
 
-impl<'a> Display for Signature<'a> {
+impl Display for Signature<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         if !self.generics.is_empty() {
             fmt.write_char('<')?;
@@ -78,7 +78,7 @@ impl<'a> Display for Signature<'a> {
     }
 }
 
-impl<'arena, 'source> From<Signature<'arena>> for ExprKind<'arena, 'source> {
+impl<'arena> From<Signature<'arena>> for ExprKind<'arena, '_> {
     fn from(signature: Signature<'arena>) -> Self {
         Self::Signature(signature)
     }
@@ -92,13 +92,13 @@ pub struct Generic<'arena> {
     pub span: SpanId,
 }
 
-impl<'arena> Spanned for Generic<'arena> {
+impl Spanned for Generic<'_> {
     fn span(&self) -> SpanId {
         self.span
     }
 }
 
-impl<'a> Display for Generic<'a> {
+impl Display for Generic<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.name, fmt)?;
 
@@ -119,13 +119,13 @@ pub struct Argument<'arena> {
     pub span: SpanId,
 }
 
-impl<'arena> Spanned for Argument<'arena> {
+impl Spanned for Argument<'_> {
     fn span(&self) -> SpanId {
         self.span
     }
 }
 
-impl<'arena> Display for Argument<'arena> {
+impl Display for Argument<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.name, fmt)?;
         fmt.write_str(": ")?;
@@ -140,13 +140,13 @@ pub struct Return<'arena> {
     pub span: SpanId,
 }
 
-impl<'arena> Spanned for Return<'arena> {
+impl Spanned for Return<'_> {
     fn span(&self) -> SpanId {
         self.span
     }
 }
 
-impl<'arena> Display for Return<'arena> {
+impl Display for Return<'_> {
     fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
         Display::fmt(&self.r#type, fmt)
     }

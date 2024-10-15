@@ -23,8 +23,8 @@ use error_stack::{Report, Result, ResultExt};
 use graph_types::{
     account::{AccountGroupId, AccountId, EditionArchivedById},
     ontology::{
-        DataTypeId, OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
-        OntologyTypeClassificationMetadata, OntologyTypeRecordId,
+        OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
+        OntologyTypeClassificationMetadata,
     },
     owned_by_id::OwnedById,
 };
@@ -44,14 +44,14 @@ use tokio_postgres::{GenericClient, error::SqlState};
 use type_system::{
     Valid,
     schema::{
-        ClosedDataTypeMetadata, ClosedEntityType, Conversions, DataType, DataTypeReference,
-        EntityType, EntityTypeReference, PropertyType, PropertyTypeReference,
+        ClosedEntityType, Conversions, DataType, DataTypeReference, DataTypeResolveData,
+        DataTypeUuid, EntityType, EntityTypeReference, OntologyTypeUuid, PropertyType,
+        PropertyTypeReference,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
 
 pub use self::{
-    ontology::OntologyId,
     pool::{AsClient, PostgresStorePool},
     query::CursorField,
     traversal_context::TraversalContext,
@@ -213,9 +213,9 @@ where
 
     async fn create_ontology_id(
         &self,
-        record_id: &OntologyTypeRecordId,
+        ontology_id: &VersionedUrl,
         on_conflict: ConflictBehavior,
-    ) -> Result<Option<OntologyId>, InsertionError> {
+    ) -> Result<Option<OntologyTypeUuid>, InsertionError> {
         let query: &str = match on_conflict {
             ConflictBehavior::Skip => {
                 "
@@ -241,27 +241,27 @@ where
         };
         self.as_client()
             .query_opt(query, &[
-                &OntologyId::from_record_id(record_id),
-                &record_id.base_url.as_str(),
-                &record_id.version,
+                &OntologyTypeUuid::from_url(ontology_id),
+                &ontology_id.base_url.as_str(),
+                &ontology_id.version,
             ])
             .await
             .map_err(Report::new)
             .map_err(|report| match report.current_context().code() {
                 Some(&SqlState::UNIQUE_VIOLATION) => report
                     .change_context(VersionedUrlAlreadyExists)
-                    .attach_printable(VersionedUrl::from(record_id.clone()))
+                    .attach_printable(ontology_id.clone())
                     .change_context(InsertionError),
                 _ => report
                     .change_context(InsertionError)
-                    .attach_printable(VersionedUrl::from(record_id.clone())),
+                    .attach_printable(ontology_id.clone()),
             })
             .map(|optional| optional.map(|row| row.get(0)))
     }
 
     async fn create_ontology_temporal_metadata(
         &self,
-        ontology_id: OntologyId,
+        ontology_id: OntologyTypeUuid,
         provenance: &OntologyEditionProvenance,
     ) -> Result<LeftClosedTemporalInterval<TransactionTime>, InsertionError> {
         let query = "
@@ -382,7 +382,7 @@ where
 
     async fn create_ontology_owned_metadata(
         &self,
-        ontology_id: OntologyId,
+        ontology_id: OntologyTypeUuid,
         owned_by_id: OwnedById,
     ) -> Result<(), InsertionError> {
         let query = "
@@ -402,7 +402,7 @@ where
 
     async fn create_ontology_external_metadata(
         &self,
-        ontology_id: OntologyId,
+        ontology_id: OntologyTypeUuid,
         fetched_at: OffsetDateTime,
     ) -> Result<(), InsertionError> {
         let query = "
@@ -420,7 +420,7 @@ where
         Ok(())
     }
 
-    /// Inserts a [`DataType`] identified by [`OntologyId`], and associated with an
+    /// Inserts a [`DataType`] identified by [`OntologyTypeUuid`], and associated with an
     /// [`OwnedById`], and [`EditionCreatedById`] into the database.
     ///
     /// [`EditionCreatedById`]: graph_types::account::EditionCreatedById
@@ -432,9 +432,9 @@ where
     #[tracing::instrument(level = "debug", skip(self))]
     async fn insert_data_type_with_id(
         &self,
-        ontology_id: DataTypeId,
+        ontology_id: DataTypeUuid,
         data_type: &Valid<DataType>,
-    ) -> Result<Option<OntologyId>, InsertionError> {
+    ) -> Result<Option<OntologyTypeUuid>, InsertionError> {
         let ontology_id = self
             .as_client()
             .query_opt(
@@ -458,10 +458,10 @@ where
     #[tracing::instrument(level = "debug", skip(self))]
     pub async fn insert_data_type_references(
         &self,
-        ontology_id: DataTypeId,
-        metadata: &ClosedDataTypeMetadata,
+        ontology_id: DataTypeUuid,
+        metadata: &DataTypeResolveData,
     ) -> Result<(), InsertionError> {
-        for (target, &depth) in &metadata.inheritance_depths {
+        for (target, depth) in metadata.inheritance_depths() {
             self.as_client()
                 .query(
                     "
@@ -475,11 +475,7 @@ where
                             $3
                         );
                     ",
-                    &[
-                        &ontology_id,
-                        &DataTypeId::from_url(target),
-                        &i32::try_from(depth).change_context(InsertionError)?,
-                    ],
+                    &[&ontology_id, &target, &depth],
                 )
                 .await
                 .change_context(InsertionError)?;
@@ -491,7 +487,7 @@ where
     #[tracing::instrument(level = "debug", skip(self))]
     async fn insert_data_type_conversion(
         &self,
-        ontology_id: DataTypeId,
+        ontology_id: DataTypeUuid,
         target_data_type: &BaseUrl,
         conversions: &Conversions,
     ) -> Result<(), InsertionError> {
@@ -523,7 +519,7 @@ where
         Ok(())
     }
 
-    /// Inserts a [`PropertyType`] identified by [`OntologyId`], and associated with an
+    /// Inserts a [`PropertyType`] identified by [`OntologyTypeUuid`], and associated with an
     /// [`OwnedById`], and [`EditionCreatedById`] into the database.
     ///
     /// [`EditionCreatedById`]: graph_types::account::EditionCreatedById
@@ -534,9 +530,9 @@ where
     #[tracing::instrument(level = "debug", skip(self))]
     async fn insert_property_type_with_id(
         &self,
-        ontology_id: OntologyId,
+        ontology_id: OntologyTypeUuid,
         property_type: &Valid<PropertyType>,
-    ) -> Result<Option<OntologyId>, InsertionError> {
+    ) -> Result<Option<OntologyTypeUuid>, InsertionError> {
         Ok(self
             .as_client()
             .query_opt(
@@ -555,7 +551,7 @@ where
             .map(|row| row.get(0)))
     }
 
-    /// Inserts a [`EntityType`] identified by [`OntologyId`], and associated with an
+    /// Inserts a [`EntityType`] identified by [`OntologyTypeUuid`], and associated with an
     /// [`OwnedById`], [`EditionCreatedById`], and the optional label property, into the database.
     ///
     /// [`EditionCreatedById`]: graph_types::account::EditionCreatedById
@@ -566,12 +562,12 @@ where
     #[tracing::instrument(level = "debug", skip(self))]
     async fn insert_entity_type_with_id(
         &self,
-        ontology_id: OntologyId,
+        ontology_id: OntologyTypeUuid,
         entity_type: &Valid<EntityType>,
         closed_entity_type: &Valid<ClosedEntityType>,
         label_property: Option<&BaseUrl>,
         icon: Option<&str>,
-    ) -> Result<Option<OntologyId>, InsertionError> {
+    ) -> Result<Option<OntologyTypeUuid>, InsertionError> {
         Ok(self
             .as_client()
             .query_opt(
@@ -603,7 +599,7 @@ where
     async fn insert_property_type_references(
         &self,
         property_type: &PropertyType,
-        ontology_id: OntologyId,
+        ontology_id: OntologyTypeUuid,
     ) -> Result<(), InsertionError> {
         for property_type in property_type.property_type_references() {
             self.as_client()
@@ -658,7 +654,7 @@ where
     async fn insert_entity_type_references(
         &self,
         entity_type: &EntityType,
-        ontology_id: OntologyId,
+        ontology_id: OntologyTypeUuid,
     ) -> Result<(), InsertionError> {
         for property_type in entity_type.property_type_references() {
             self.as_client()
@@ -763,7 +759,7 @@ where
     async fn entity_type_reference_ids<'p, I>(
         &self,
         referenced_entity_types: I,
-    ) -> Result<Vec<OntologyId>, QueryError>
+    ) -> Result<Vec<OntologyTypeUuid>, QueryError>
     where
         I: IntoIterator<Item = &'p EntityTypeReference> + Send,
         I::IntoIter: Send,
@@ -780,7 +776,7 @@ where
     async fn property_type_reference_ids<'p, I>(
         &self,
         referenced_property_types: I,
-    ) -> Result<Vec<OntologyId>, QueryError>
+    ) -> Result<Vec<OntologyTypeUuid>, QueryError>
     where
         I: IntoIterator<Item = &'p PropertyTypeReference> + Send,
         I::IntoIter: Send,
@@ -797,7 +793,7 @@ where
     async fn data_type_reference_ids<'p, I>(
         &self,
         referenced_data_types: I,
-    ) -> Result<Vec<OntologyId>, QueryError>
+    ) -> Result<Vec<OntologyTypeUuid>, QueryError>
     where
         I: IntoIterator<Item = &'p DataTypeReference> + Send,
         I::IntoIter: Send,
@@ -810,13 +806,13 @@ where
         Ok(ids)
     }
 
-    /// Fetches the [`OntologyId`] of the specified [`VersionedUrl`].
+    /// Fetches the [`OntologyTypeUuid`] of the specified [`VersionedUrl`].
     ///
     /// # Errors:
     ///
     /// - if the entry referred to by `url` does not exist.
     #[tracing::instrument(level = "debug", skip(self))]
-    async fn ontology_id_by_url(&self, url: &VersionedUrl) -> Result<OntologyId, QueryError> {
+    async fn ontology_id_by_url(&self, url: &VersionedUrl) -> Result<OntologyTypeUuid, QueryError> {
         Ok(self
             .client
             .as_client()
@@ -859,8 +855,8 @@ where
     /// Inserts the specified ontology metadata.
     ///
     /// This first extracts the [`BaseUrl`] from the [`VersionedUrl`] and attempts to insert it into
-    /// the database. It will create a new [`OntologyId`] for this [`VersionedUrl`] and then finally
-    /// inserts the entry.
+    /// the database. It will create a new [`OntologyTypeUuid`] for this [`VersionedUrl`] and then
+    /// finally inserts the entry.
     ///
     /// # Errors
     ///
@@ -871,16 +867,16 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn create_ontology_metadata(
         &self,
-        record_id: &OntologyTypeRecordId,
+        ontology_id: &VersionedUrl,
         classification: &OntologyTypeClassificationMetadata,
         on_conflict: ConflictBehavior,
         provenance: &OntologyProvenance,
-    ) -> Result<Option<(OntologyId, OntologyTemporalMetadata)>, InsertionError> {
+    ) -> Result<Option<(OntologyTypeUuid, OntologyTemporalMetadata)>, InsertionError> {
         match classification {
             OntologyTypeClassificationMetadata::Owned { owned_by_id } => {
-                self.create_base_url(&record_id.base_url, on_conflict, OntologyLocation::Owned)
+                self.create_base_url(&ontology_id.base_url, on_conflict, OntologyLocation::Owned)
                     .await?;
-                let ontology_id = self.create_ontology_id(record_id, on_conflict).await?;
+                let ontology_id = self.create_ontology_id(ontology_id, on_conflict).await?;
                 if let Some(ontology_id) = ontology_id {
                     let transaction_time = self
                         .create_ontology_temporal_metadata(ontology_id, &provenance.edition)
@@ -896,12 +892,12 @@ where
             }
             OntologyTypeClassificationMetadata::External { fetched_at } => {
                 self.create_base_url(
-                    &record_id.base_url,
+                    &ontology_id.base_url,
                     ConflictBehavior::Skip,
                     OntologyLocation::External,
                 )
                 .await?;
-                let ontology_id = self.create_ontology_id(record_id, on_conflict).await?;
+                let ontology_id = self.create_ontology_id(ontology_id, on_conflict).await?;
                 if let Some(ontology_id) = ontology_id {
                     let transaction_time = self
                         .create_ontology_temporal_metadata(ontology_id, &provenance.edition)
@@ -918,8 +914,8 @@ where
         }
     }
 
-    /// Updates the latest version of [`VersionedUrl::base_url`] and creates a new [`OntologyId`]
-    /// for it.
+    /// Updates the latest version of [`VersionedUrl::base_url`] and creates a new
+    /// [`OntologyTypeUuid`] for it.
     ///
     /// # Errors
     ///
@@ -931,7 +927,7 @@ where
         &self,
         url: &VersionedUrl,
         provenance: &OntologyEditionProvenance,
-    ) -> Result<(OntologyId, OwnedById, OntologyTemporalMetadata), UpdateError> {
+    ) -> Result<(OntologyTypeUuid, OwnedById, OntologyTemporalMetadata), UpdateError> {
         let previous_version = OntologyTypeVersion::new(
             url.version
                 .inner()
@@ -986,10 +982,7 @@ where
         };
 
         let ontology_id = self
-            .create_ontology_id(
-                &OntologyTypeRecordId::from(url.clone()),
-                ConflictBehavior::Fail,
-            )
+            .create_ontology_id(url, ConflictBehavior::Fail)
             .await
             .change_context(UpdateError)?
             .expect("ontology id should have been created");

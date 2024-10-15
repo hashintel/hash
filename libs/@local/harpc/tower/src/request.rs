@@ -1,5 +1,5 @@
-use harpc_net::session::server::SessionId;
-use harpc_wire_protocol::request::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
+use harpc_net::session::server::{SessionId, transaction::TransactionContext};
+use harpc_types::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
 
 use crate::{body::Body, extensions::Extensions};
 
@@ -14,6 +14,18 @@ pub struct Parts {
     pub extensions: Extensions,
 }
 
+impl Parts {
+    #[must_use]
+    pub fn from_transaction(context: &TransactionContext) -> Self {
+        Self {
+            service: context.service(),
+            procedure: context.procedure(),
+            session: context.session(),
+            extensions: Extensions::new(),
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct Request<B> {
     head: Parts,
@@ -24,7 +36,7 @@ impl<B> Request<B>
 where
     B: Body<Control = !>,
 {
-    pub const fn from_parts(parts: Parts, body: B) -> Self {
+    pub const fn new(parts: Parts, body: B) -> Self {
         Self { head: parts, body }
     }
 

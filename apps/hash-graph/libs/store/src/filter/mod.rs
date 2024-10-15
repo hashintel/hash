@@ -9,10 +9,13 @@ use derive_where::derive_where;
 use error_stack::{Report, ResultExt, bail};
 use graph_types::{
     knowledge::entity::{Entity, EntityId},
-    ontology::{DataTypeId, DataTypeProvider, DataTypeWithMetadata},
+    ontology::{DataTypeProvider, DataTypeWithMetadata},
 };
 use serde::{Deserialize, de, de::IntoDeserializer};
-use type_system::url::{BaseUrl, OntologyTypeVersion, VersionedUrl};
+use type_system::{
+    schema::DataTypeUuid,
+    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+};
 
 pub use self::{
     parameter::{Parameter, ParameterConversionError, ParameterList, ParameterType},
@@ -159,7 +162,7 @@ where
 impl<'p> Filter<'p, DataTypeWithMetadata> {
     #[must_use]
     pub fn for_data_type_parents(
-        data_type_ids: &'p [DataTypeId],
+        data_type_ids: &'p [DataTypeUuid],
         inheritance_depth: Option<u32>,
     ) -> Self {
         Filter::In(
@@ -180,7 +183,7 @@ impl<'p> Filter<'p, DataTypeWithMetadata> {
         versioned_url: &VersionedUrl,
         inheritance_depth: Option<u32>,
     ) -> Self {
-        let data_type_id = DataTypeId::from_url(versioned_url);
+        let data_type_id = DataTypeUuid::from_url(versioned_url);
         Filter::Equal(
             Some(FilterExpression::Path {
                 path: DataTypeQueryPath::DataTypeEdge {

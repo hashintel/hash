@@ -7,12 +7,15 @@ use core::ops::ControlFlow;
 
 use bytes::Bytes;
 use futures::{Stream, StreamExt, prelude::future::FutureExt};
+use harpc_types::{
+    procedure::ProcedureDescriptor, response_kind::ResponseKind, service::ServiceDescriptor,
+};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
-    request::{Request, id::RequestId, procedure::ProcedureDescriptor, service::ServiceDescriptor},
+    request::{Request, id::RequestId},
     response::{
         Response, begin::ResponseBegin, body::ResponseBody, flags::ResponseFlag,
-        frame::ResponseFrame, kind::ResponseKind,
+        frame::ResponseFrame,
     },
 };
 use tokio::{pin, select, sync::mpsc};

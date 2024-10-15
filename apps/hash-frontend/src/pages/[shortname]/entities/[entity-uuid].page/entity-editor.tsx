@@ -1,7 +1,9 @@
 import type { Entity } from "@local/hash-graph-sdk/entity";
+import type { EntityId } from "@local/hash-graph-types/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
 import { Box } from "@mui/material";
+import type { RefObject } from "react";
 import { useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
@@ -17,10 +19,17 @@ import type { DraftLinkState } from "./shared/use-draft-link-state";
 
 export interface EntityEditorProps extends DraftLinkState {
   isDirty: boolean;
+  entityLabel: string;
   entitySubgraph: Subgraph<EntityRootType>;
+  onEntityClick: (entityId: EntityId) => void;
   setEntity: (entity: Entity) => void;
   readonly: boolean;
   onEntityUpdated: ((entity: Entity) => void) | null;
+  /**
+   * If the editor is loaded inside a slide which is contained in a container other than the body,
+   * the ref to the container. Used to correctly position popups within the editor.
+   */
+  slideContainerRef?: RefObject<HTMLDivElement>;
 }
 
 export const EntityEditor = (props: EntityEditorProps) => {
@@ -72,7 +81,7 @@ export const EntityEditor = (props: EntityEditorProps) => {
 
           <PropertiesSection />
 
-          {isLinkEntity ? null : <LinksSection />}
+          <LinksSection isLinkEntity={!!isLinkEntity} />
 
           {/* <PeersSection /> */}
         </Box>

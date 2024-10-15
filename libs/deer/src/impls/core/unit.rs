@@ -7,7 +7,7 @@ use crate::{
 
 struct UnitVisitor;
 
-impl<'de> Visitor<'de> for UnitVisitor {
+impl Visitor<'_> for UnitVisitor {
     type Value = ();
 
     fn expecting(&self) -> Document {

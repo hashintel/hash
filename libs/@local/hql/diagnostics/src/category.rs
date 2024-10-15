@@ -16,7 +16,7 @@ impl Category<'_> {
     pub fn canonical_id(&self) -> impl Display + '_ {
         struct DisplayCategoryId<'a, 'b>(&'a Category<'b>);
 
-        impl<'a, 'b> Display for DisplayCategoryId<'a, 'b> {
+        impl Display for DisplayCategoryId<'_, '_> {
             fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
                 if let Some(parent) = &self.0.parent {
                     DisplayCategoryId(parent.as_ref()).fmt(fmt)?;
@@ -34,7 +34,7 @@ impl Category<'_> {
     pub fn canonical_name(&self) -> impl Display + '_ {
         struct DisplayCategoryName<'a, 'b>(&'a Category<'b>);
 
-        impl<'a, 'b> Display for DisplayCategoryName<'a, 'b> {
+        impl Display for DisplayCategoryName<'_, '_> {
             fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
                 if let Some(parent) = &self.0.parent {
                     DisplayCategoryName(parent.as_ref()).fmt(fmt)?;

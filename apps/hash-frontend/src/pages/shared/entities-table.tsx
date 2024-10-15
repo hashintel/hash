@@ -16,7 +16,7 @@ import {
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
-import type { FunctionComponent } from "react";
+import type { FunctionComponent, RefObject } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { GridProps } from "../../components/grid/grid";
@@ -37,7 +37,6 @@ import { TableHeader, tableHeaderHeight } from "../../shared/table-header";
 import type { MinimalActor } from "../../shared/use-actors";
 import { isAiMachineActor } from "../../shared/use-actors";
 import { useEntityTypeEntities } from "../../shared/use-entity-type-entities";
-import { EditEntitySlideOver } from "../[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
 import { useAuthenticatedUser } from "./auth-info-context";
 import { renderChipCell } from "./chip-cell";
 import { GridView } from "./entities-table/grid-view";
@@ -46,6 +45,7 @@ import { createRenderTextIconCell } from "./entities-table/text-icon-cell";
 import type { TypeEntitiesRow } from "./entities-table/use-entities-table";
 import { useEntitiesTable } from "./entities-table/use-entities-table";
 import { useGetEntitiesTableAdditionalCsvData } from "./entities-table/use-get-entities-table-additional-csv-data";
+import { EntityEditorSlideStack } from "./entity-editor-slide-stack";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
 import { generateEntityRootedSubgraph } from "./subgraphs";
@@ -92,8 +92,10 @@ export const EntitiesTable: FunctionComponent<{
   });
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
-  const [selectedEntityTypeId, setSelectedEntityTypeId] =
-    useState<VersionedUrl | null>(null);
+  const [selectedEntityType, setSelectedEntityType] = useState<{
+    entityTypeId: VersionedUrl;
+    slideContainerRef?: RefObject<HTMLDivElement>;
+  } | null>(null);
 
   const {
     entityTypeBaseUrl,
@@ -157,6 +159,11 @@ export const EntitiesTable: FunctionComponent<{
     },
   });
 
+  /**
+    The subgraphWithLinkedEntities can take a long time to load with many entities.
+    If absent, we pass the subgraph without linked entities so that there is _some_ data to load into the slideover,
+    which will be missing links until they load in by specifically fetching selectedEntity.entityId
+   */
   const subgraph = subgraphWithLinkedEntities ?? subgraphWithoutLinkedEntities;
 
   const entities = useMemo(
@@ -204,7 +211,12 @@ export const EntitiesTable: FunctionComponent<{
           !isPageEntityTypeId(entity.metadata.entityTypeId)
             ? true
             : simplifyProperties(entity.properties as PageProperties)
-                .archived !== true),
+                .archived !== true) &&
+          (filterState.limitToWebs
+            ? filterState.limitToWebs.includes(
+                extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId),
+              )
+            : true),
       ),
     [entities, filterState, internalWebIds],
   );
@@ -224,21 +236,20 @@ export const EntitiesTable: FunctionComponent<{
 
   const [selectedEntity, setSelectedEntity] = useState<{
     entityId: EntityId;
+    slideContainerRef?: RefObject<HTMLDivElement>;
     subgraph: Subgraph<EntityRootType>;
   } | null>(null);
 
   const handleEntityClick = useCallback(
-    (entityId: EntityId) => {
+    (entityId: EntityId, modalContainerRef?: RefObject<HTMLDivElement>) => {
       if (subgraph) {
         const entitySubgraph = generateEntityRootedSubgraph(entityId, subgraph);
 
-        if (!entitySubgraph) {
-          throw new Error(
-            `Could not find entity with id ${entityId} in subgraph`,
-          );
-        }
-
-        setSelectedEntity({ entityId, subgraph: entitySubgraph });
+        setSelectedEntity({
+          entityId,
+          slideContainerRef: modalContainerRef,
+          subgraph: entitySubgraph,
+        });
       }
     },
     [subgraph],
@@ -312,7 +323,7 @@ export const EntitiesTable: FunctionComponent<{
                   if (columnId === "web") {
                     void router.push(`/${cellValue}`);
                   } else {
-                    setSelectedEntityTypeId(row.entityTypeId);
+                    setSelectedEntityType({ entityTypeId: row.entityTypeId });
                   }
                 },
               },
@@ -650,7 +661,7 @@ export const EntitiesTable: FunctionComponent<{
     });
 
   const maximumTableHeight = `calc(100vh - (${
-    HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 179 + tableHeaderHeight
+    HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 185 + tableHeaderHeight
   }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`;
 
   const isPrimaryEntity = useCallback(
@@ -675,14 +686,15 @@ export const EntitiesTable: FunctionComponent<{
 
   return (
     <>
-      {selectedEntityTypeId && (
+      {selectedEntityType && (
         <TypeSlideOverStack
-          rootTypeId={selectedEntityTypeId}
-          onClose={() => setSelectedEntityTypeId(null)}
+          rootTypeId={selectedEntityType.entityTypeId}
+          onClose={() => setSelectedEntityType(null)}
+          slideContainerRef={selectedEntityType.slideContainerRef}
         />
       )}
       {selectedEntity ? (
-        <EditEntitySlideOver
+        <EntityEditorSlideStack
           /*
             The subgraphWithLinkedEntities can take a long time to load with many entities.
             We pass the subgraph without linked entities so that there is _some_ data to load into the editor,
@@ -692,13 +704,17 @@ export const EntitiesTable: FunctionComponent<{
             it means the links will load in immediately.
            */
           entitySubgraph={selectedEntity.subgraph}
-          entityId={selectedEntity.entityId}
-          open
+          rootEntityId={selectedEntity.entityId}
           onClose={() => setSelectedEntity(null)}
-          readonly
           onSubmit={() => {
             throw new Error(`Editing not yet supported from this screen`);
           }}
+          readonly
+          /*
+             If we've been given a specific DOM element to contain the modal, pass it here.
+             This is for use when attaching to the body is not suitable (e.g. a specific DOM element is full-screened).
+           */
+          slideContainerRef={selectedEntity.slideContainerRef}
         />
       ) : null}
       <Box>
@@ -745,7 +761,7 @@ export const EntitiesTable: FunctionComponent<{
         {view === "Graph" && subgraph ? (
           <Box height={maximumTableHeight}>
             <EntityGraphVisualizer
-              entities={entities}
+              entities={filteredEntities}
               isPrimaryEntity={isPrimaryEntity}
               filterEntity={filterEntity}
               onEntityClick={handleEntityClick}

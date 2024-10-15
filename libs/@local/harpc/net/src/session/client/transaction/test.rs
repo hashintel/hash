@@ -3,6 +3,7 @@ use core::{assert_matches::assert_matches, num::NonZero, time::Duration};
 
 use bytes::{Bytes, BytesMut};
 use futures::StreamExt;
+use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     payload::Payload,
@@ -18,7 +19,6 @@ use harpc_wire_protocol::{
         flags::{ResponseFlag, ResponseFlags},
         frame::ResponseFrame,
         header::ResponseHeader,
-        kind::{ErrorCode, ResponseKind},
     },
     test_utils::mock_request_id,
 };

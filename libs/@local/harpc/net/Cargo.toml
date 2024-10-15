@@ -10,6 +10,8 @@ authors.workspace = true
 
 [dependencies]
 # Public workspace dependencies
+harpc-codec = { workspace = true, public = true }
+
 
 # Public third-party dependencies
 futures-core = { workspace = true, public = true }
@@ -30,30 +32,30 @@ tokio = { workspace = true, public = true, features = ["io-util", "macros"] }
 codec = { workspace = true, features = ["harpc"] }
 error-stack = { workspace = true }
 harpc-wire-protocol = { workspace = true }
+harpc-types = { workspace = true }
 
 # Private third-party dependencies
 bytes = { workspace = true }
 bytes-utils = { workspace = true }
+derive_more = { version = "1.0.0", features = ["display"] }
 futures = { workspace = true }
 libp2p = { workspace = true, features = ["metrics", "macros", "tcp", "noise", "yamux", "ping", "tokio", "identify"] }
 libp2p-stream = { workspace = true }
 pin-project-lite = { workspace = true }
 scc = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
 tachyonix = { workspace = true }
 thiserror = { workspace = true }
 tokio-stream = { workspace = true, features = ["time"] }
-tokio-util = { workspace = true, features = [
-    "codec",
-    "compat",
-    "rt",
-    "tracing",
-] }
+tokio-util = { workspace = true, features = ["codec", "compat", "rt", "tracing"] }
 tracing = { workspace = true }
 
 [dev-dependencies]
+harpc-codec = { workspace = true, features = ["json"] }
 harpc-types = { workspace = true }
 harpc-wire-protocol = { workspace = true, features = ["test-utils"] }
 humansize = { workspace = true }
+insta = { workspace = true }
 test-log = { workspace = true, features = ["trace"] }
 tokio = { workspace = true, features = ["rt-multi-thread"] }
 

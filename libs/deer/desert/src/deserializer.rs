@@ -36,7 +36,7 @@ pub struct Deserializer<'a, 'de> {
     tape: Tape<'de>,
 }
 
-impl<'a, 'de> deer::Deserializer<'de> for &mut Deserializer<'a, 'de> {
+impl<'de> deer::Deserializer<'de> for &mut Deserializer<'_, 'de> {
     forward!(
         deserialize_null,
         deserialize_bool,

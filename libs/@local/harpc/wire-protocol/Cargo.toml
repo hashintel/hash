@@ -12,6 +12,7 @@ authors.workspace = true
 # Public workspace dependencies
 error-stack = { workspace = true, public = true }
 harpc-types = { workspace = true, public = true }
+harpc-codec = { workspace = true, public = true }
 
 # Public third-party dependencies
 bytes = { workspace = true, public = true }

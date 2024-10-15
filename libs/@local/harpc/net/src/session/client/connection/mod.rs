@@ -8,10 +8,8 @@ use alloc::sync::Arc;
 use bytes::Bytes;
 use error_stack::Report;
 use futures::{Sink, Stream, StreamExt, prelude::future::FutureExt};
-use harpc_wire_protocol::{
-    request::{Request, procedure::ProcedureDescriptor, service::ServiceDescriptor},
-    response::Response,
-};
+use harpc_types::{procedure::ProcedureDescriptor, service::ServiceDescriptor};
+use harpc_wire_protocol::{request::Request, response::Response};
 use scc::ebr::Guard;
 use tachyonix::SendTimeoutError;
 use tokio::{

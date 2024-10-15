@@ -15,10 +15,9 @@ use graph_types::{
     Embedding,
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
-        DataTypeId, EntityTypeId, EntityTypeMetadata, EntityTypeWithMetadata,
-        OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
-        OntologyTypeClassificationMetadata, OntologyTypeRecordId, PartialEntityTypeMetadata,
-        PropertyTypeId,
+        EntityTypeMetadata, EntityTypeWithMetadata, OntologyEditionProvenance, OntologyProvenance,
+        OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
+        PartialEntityTypeMetadata,
     },
 };
 use hash_graph_store::{
@@ -40,7 +39,10 @@ use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
     Validator,
-    schema::{ClosedEntityType, EntityType, EntityTypeValidator},
+    schema::{
+        ClosedEntityType, DataTypeUuid, EntityType, EntityTypeUuid, EntityTypeValidator,
+        OntologyTypeUuid, PropertyTypeUuid,
+    },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
 
@@ -58,9 +60,7 @@ use crate::store::{
     postgres::{
         ResponseCountMap, TraversalContext,
         crud::QueryRecordDecode,
-        ontology::{
-            OntologyId, PostgresOntologyTypeClassificationMetadata, read::OntologyTypeTraversalData,
-        },
+        ontology::{PostgresOntologyTypeClassificationMetadata, read::OntologyTypeTraversalData},
         query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
     },
 };
@@ -78,7 +78,7 @@ where
         zookie: &Zookie<'static>,
     ) -> Result<impl Iterator<Item = T>, QueryError>
     where
-        I: Into<EntityTypeId> + Send,
+        I: Into<EntityTypeUuid> + Send,
         T: Send,
         A: AuthorizationApi,
     {
@@ -143,7 +143,7 @@ where
                     edition_created_by_ids
                         .increment(&entity_type.metadata.provenance.edition.created_by_id);
                 }
-                EntityTypeId::from_record_id(&entity_type.metadata.record_id)
+                EntityTypeUuid::from_url(&entity_type.schema.id)
             })
             .try_collect::<Vec<_>>()
             .await?;
@@ -200,7 +200,7 @@ where
             .into_iter()
             .filter_map(|row| {
                 let entity_type = row.decode_record(&artifacts);
-                let id = EntityTypeId::from_url(&entity_type.schema.id);
+                let id = EntityTypeUuid::from_url(&entity_type.schema.id);
                 // The records are already sorted by time, so we can just take the first one
                 visited_ontology_ids.insert(id).then_some((id, entity_type))
             })
@@ -258,7 +258,7 @@ where
     pub(crate) async fn traverse_entity_types(
         &self,
         mut entity_type_queue: Vec<(
-            EntityTypeId,
+            EntityTypeUuid,
             GraphResolveDepths,
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
@@ -287,7 +287,7 @@ where
                         .decrement_depth_for_edge(edge_kind, EdgeDirection::Outgoing)
                     {
                         edges_to_traverse.entry(edge_kind).or_default().push(
-                            OntologyId::from(entity_type_ontology_id),
+                            OntologyTypeUuid::from(entity_type_ontology_id),
                             new_graph_resolve_depths,
                             traversal_interval,
                         );
@@ -324,7 +324,7 @@ where
                         );
 
                         traversal_context.add_property_type_id(
-                            PropertyTypeId::from(edge.right_endpoint_ontology_id),
+                            PropertyTypeUuid::from(edge.right_endpoint_ontology_id),
                             edge.resolve_depths,
                             edge.traversal_interval,
                         )
@@ -377,7 +377,7 @@ where
                             );
 
                             traversal_context.add_entity_type_id(
-                                EntityTypeId::from(edge.right_endpoint_ontology_id),
+                                EntityTypeUuid::from(edge.right_endpoint_ontology_id),
                                 edge.resolve_depths,
                                 edge.traversal_interval,
                             )
@@ -430,7 +430,7 @@ where
             .change_context(DeletionError)?
             .into_iter()
             .filter_map(|row| row.get(0))
-            .collect::<Vec<OntologyId>>();
+            .collect::<Vec<OntologyTypeUuid>>();
 
         transaction.delete_ontology_ids(&entity_types).await?;
 
@@ -441,8 +441,8 @@ where
 
     #[tracing::instrument(level = "debug")]
     fn create_closed_entity_type(
-        entity_type_id: EntityTypeId,
-        available_types: &mut HashMap<EntityTypeId, ClosedEntityType>,
+        entity_type_id: EntityTypeUuid,
+        available_types: &mut HashMap<EntityTypeUuid, ClosedEntityType>,
     ) -> Result<ClosedEntityType, QueryError> {
         let mut current_type = available_types
             .remove(&entity_type_id)
@@ -452,7 +452,7 @@ where
 
         loop {
             for parent in current_type.all_of.clone() {
-                let parent_id = EntityTypeId::from_url(&parent.url);
+                let parent_id = EntityTypeUuid::from_url(&parent.url);
 
                 ensure!(
                     parent_id != entity_type_id,
@@ -494,7 +494,7 @@ where
     ) -> Result<Vec<EntityTypeInsertion>, QueryError> {
         let entity_types = entity_types
             .into_iter()
-            .map(|entity_type| (EntityTypeId::from_url(&entity_type.id), entity_type))
+            .map(|entity_type| (EntityTypeUuid::from_url(&entity_type.id), entity_type))
             .collect::<Vec<_>>();
 
         // We need all types that the provided types inherit from so we can create the closed
@@ -502,7 +502,7 @@ where
         let parent_entity_type_ids = entity_types
             .iter()
             .flat_map(|(_, schema)| &schema.all_of)
-            .map(|reference| EntityTypeId::from_url(&reference.url))
+            .map(|reference| EntityTypeUuid::from_url(&reference.url))
             .collect::<Vec<_>>();
 
         // We read all relevant schemas from the graph
@@ -616,7 +616,7 @@ where
                 closed_schema,
             } = insertion;
 
-            let entity_type_id = EntityTypeId::from_url(&schema.id);
+            let entity_type_id = EntityTypeUuid::from_url(&schema.id);
 
             if let OntologyTypeClassificationMetadata::Owned { owned_by_id } =
                 &metadata.classification
@@ -642,7 +642,7 @@ where
 
             if let Some((ontology_id, temporal_versioning)) = transaction
                 .create_ontology_metadata(
-                    &metadata.record_id,
+                    &schema.id,
                     &metadata.classification,
                     on_conflict,
                     &provenance,
@@ -857,7 +857,7 @@ where
             .iter()
             .map(|entity_type| {
                 (
-                    EntityTypeId::from_url(&entity_type.schema.id),
+                    EntityTypeUuid::from_url(&entity_type.schema.id),
                     GraphElementVertexId::from(entity_type.vertex_id(time_axis)),
                 )
             })
@@ -912,7 +912,7 @@ where
     where
         R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
     {
-        let old_ontology_id = EntityTypeId::from_url(&VersionedUrl {
+        let old_ontology_id = EntityTypeUuid::from_url(&VersionedUrl {
             base_url: params.schema.id.base_url.clone(),
             version: OntologyTypeVersion::new(
                 params
@@ -1002,7 +1002,7 @@ where
             })
             .attach_lazy(|| schema.clone())?;
 
-        let entity_type_id = EntityTypeId::from(ontology_id);
+        let entity_type_id = EntityTypeUuid::from(ontology_id);
         let relationships = params
             .relationships
             .into_iter()
@@ -1106,12 +1106,12 @@ where
         #[derive(Debug, ToSql)]
         #[postgres(name = "entity_type_embeddings")]
         pub struct EntityTypeEmbeddingsRow<'a> {
-            ontology_id: OntologyId,
+            ontology_id: OntologyTypeUuid,
             embedding: Embedding<'a>,
             updated_at_transaction_time: Timestamp<TransactionTime>,
         }
         let entity_type_embeddings = vec![EntityTypeEmbeddingsRow {
-            ontology_id: OntologyId::from(DataTypeId::from_url(&params.entity_type_id)),
+            ontology_id: OntologyTypeUuid::from(DataTypeUuid::from_url(&params.entity_type_id)),
             embedding: params.embedding,
             updated_at_transaction_time: params.updated_at_transaction_time,
         }];

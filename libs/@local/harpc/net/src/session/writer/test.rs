@@ -1,11 +1,9 @@
 use bytes::{Buf, Bytes};
+use harpc_types::response_kind::ResponseKind;
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
     payload::Payload,
-    response::{
-        flags::{ResponseFlag, ResponseFlags},
-        kind::ResponseKind,
-    },
+    response::flags::{ResponseFlag, ResponseFlags},
     test_utils::mock_request_id,
 };
 use tokio::sync::mpsc;

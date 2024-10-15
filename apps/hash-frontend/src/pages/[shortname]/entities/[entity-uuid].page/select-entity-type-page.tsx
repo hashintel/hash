@@ -147,7 +147,7 @@ export const SelectEntityTypePage = () => {
 
         <PropertiesSectionEmptyState />
 
-        <LinksSectionEmptyState />
+        <LinksSectionEmptyState direction="Outgoing" />
 
         {/* <PeersSectionEmptyState /> */}
       </Box>

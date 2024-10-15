@@ -88,37 +88,39 @@ export const ColumnFilterMenu: FunctionComponent<
                 >
                   Filter
                 </Typography>
-                {filterItems?.map(({ id, label }) => {
-                  const checked = selectedFilterItemIds?.includes(id);
+                {filterItems
+                  ?.sort((a, b) => a.label.localeCompare(b.label))
+                  .map(({ id, label }) => {
+                    const checked = selectedFilterItemIds?.includes(id);
 
-                  return (
-                    <MenuItem
-                      key={id}
-                      onClick={() =>
-                        setSelectedFilterItemIds?.(
-                          checked
-                            ? (selectedFilterItemIds?.filter(
-                                (selectedId) => selectedId !== id,
-                              ) ?? [])
-                            : [...(selectedFilterItemIds ?? []), id],
-                        )
-                      }
-                    >
-                      <ListItemIcon>
-                        <Checkbox
-                          sx={{
-                            svg: {
-                              width: 18,
-                              height: 18,
-                            },
-                          }}
-                          checked={checked}
-                        />
-                      </ListItemIcon>
-                      <ListItemText primary={label} />
-                    </MenuItem>
-                  );
-                })}
+                    return (
+                      <MenuItem
+                        key={id}
+                        onClick={() =>
+                          setSelectedFilterItemIds?.(
+                            checked
+                              ? (selectedFilterItemIds?.filter(
+                                  (selectedId) => selectedId !== id,
+                                ) ?? [])
+                              : [...(selectedFilterItemIds ?? []), id],
+                          )
+                        }
+                      >
+                        <ListItemIcon>
+                          <Checkbox
+                            sx={{
+                              svg: {
+                                width: 18,
+                                height: 18,
+                              },
+                            }}
+                            checked={checked}
+                          />
+                        </ListItemIcon>
+                        <ListItemText primary={label} />
+                      </MenuItem>
+                    );
+                  })}
               </Paper>
             </ClickAwayListener>
           </Box>

@@ -85,7 +85,7 @@ impl<'a, B> Buffer<'a, B> {
     }
 }
 
-impl<'a, B> Buffer<'a, B>
+impl<B> Buffer<'_, B>
 where
     B: Buf,
 {
@@ -127,7 +127,7 @@ where
     }
 }
 
-impl<'a, B> Buffer<'a, B>
+impl<B> Buffer<'_, B>
 where
     B: BufMut,
 {

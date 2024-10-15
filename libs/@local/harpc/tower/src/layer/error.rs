@@ -1,12 +1,11 @@
 use core::{
     error::Error,
-    fmt::{self, Debug, Display, Formatter},
     task::{Context, Poll},
 };
 
 use bytes::Bytes;
-use harpc_net::codec::{ErrorEncoder, WireError};
-use harpc_wire_protocol::response::kind::{ErrorCode, ResponseKind};
+use harpc_codec::encode::ErrorEncoder;
+use harpc_types::response_kind::ResponseKind;
 use tower::{Layer, Service, ServiceExt};
 
 use crate::{
@@ -16,51 +15,6 @@ use crate::{
     request::Request,
     response::{Parts, Response},
 };
-
-pub struct BoxedError(Box<dyn Error + Send + Sync + 'static>);
-
-impl BoxedError {
-    #[must_use]
-    pub fn into_inner(self) -> Box<dyn Error + Send + Sync + 'static> {
-        self.0
-    }
-}
-
-impl Debug for BoxedError {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        Debug::fmt(&self.0, fmt)
-    }
-}
-
-impl Display for BoxedError {
-    fn fmt(&self, fmt: &mut Formatter<'_>) -> fmt::Result {
-        Display::fmt(&self.0, fmt)
-    }
-}
-
-impl Error for BoxedError {
-    fn source(&self) -> Option<&(dyn Error + 'static)> {
-        Some(&*self.0)
-    }
-
-    fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
-        self.0.provide(request);
-    }
-}
-
-impl WireError for BoxedError {
-    fn code(&self) -> ErrorCode {
-        core::error::request_value::<ErrorCode>(self)
-            .or_else(|| core::error::request_ref::<ErrorCode>(self).copied())
-            .unwrap_or(ErrorCode::INTERNAL_SERVER_ERROR)
-    }
-}
-
-impl From<Box<dyn Error + Send + Sync + 'static>> for BoxedError {
-    fn from(error: Box<dyn Error + Send + Sync + 'static>) -> Self {
-        Self(error)
-    }
-}
 
 pub struct HandleErrorLayer<E> {
     encoder: E,
@@ -76,26 +30,26 @@ impl<E, S> Layer<S> for HandleErrorLayer<E>
 where
     E: Clone,
 {
-    type Service = HandleError<S, E>;
+    type Service = HandleErrorService<S, E>;
 
     fn layer(&self, inner: S) -> Self::Service {
-        HandleError {
+        HandleErrorService {
             inner,
             encoder: self.encoder.clone(),
         }
     }
 }
 
-pub struct HandleError<S, E> {
+pub struct HandleErrorService<S, E> {
     inner: S,
 
     encoder: E,
 }
 
-impl<S, E, ReqBody, ResBody> Service<Request<ReqBody>> for HandleError<S, E>
+impl<S, E, ReqBody, ResBody> Service<Request<ReqBody>> for HandleErrorService<S, E>
 where
     S: Service<Request<ReqBody>, Response = Response<ResBody>> + Clone + Send,
-    S::Error: Into<Box<dyn Error + Send + Sync + 'static>>,
+    S::Error: Error + serde::Serialize,
     E: ErrorEncoder + Clone,
     ReqBody: Body<Control = !>,
     ResBody: Body<Control: AsRef<ResponseKind>>,
@@ -124,11 +78,7 @@ where
             match inner.oneshot(req).await {
                 Ok(response) => Ok(response.map_body(Either::Left)),
                 Err(error) => {
-                    // this is not ideal, because we lose the error during conversion and need to
-                    // use dynamic dispatch, but there is no other easy way to do this in tower
-                    let error = BoxedError::from(error.into());
-
-                    let error = encoder.encode_error(error).await;
+                    let error = encoder.encode_error(error);
 
                     Ok(Response::from_error(
                         Parts {
@@ -146,22 +96,25 @@ where
 
 #[cfg(test)]
 pub(crate) mod test {
-    use core::{error::Error, fmt::Display};
+    use core::{
+        error::Error,
+        fmt::{self, Debug, Display},
+    };
 
-    use bytes::{Bytes, BytesMut};
-    use error_stack::Report;
-    use harpc_net::{
-        codec::{ErrorEncoder, WireError},
-        session::error::TransactionError,
-        test_utils::mock_session_id,
+    use bytes::{Buf, Bytes};
+    use harpc_codec::json::JsonCodec;
+    use harpc_net::test_utils::mock_session_id;
+    use harpc_types::{
+        error_code::ErrorCode,
+        procedure::{ProcedureDescriptor, ProcedureId},
+        response_kind::ResponseKind,
+        service::{ServiceDescriptor, ServiceId},
+        version::Version,
     };
-    use harpc_types::{procedure::ProcedureId, service::ServiceId, version::Version};
-    use harpc_wire_protocol::{
-        request::{procedure::ProcedureDescriptor, service::ServiceDescriptor},
-        response::kind::{ErrorCode, ResponseKind},
-    };
+    use insta::assert_snapshot;
     use tokio_test::{assert_pending, assert_ready};
-    use tower_test::mock::spawn_layer;
+    use tower::{Layer, ServiceExt};
+    use tower_test::mock::spawn_with;
 
     use crate::{
         Extensions,
@@ -172,49 +125,57 @@ pub(crate) mod test {
         response::{self, Response},
     };
 
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-    pub(crate) struct PlainErrorEncoder;
+    pub(crate) struct BoxedError(Box<dyn Error + Send + Sync + 'static>);
 
-    impl ErrorEncoder for PlainErrorEncoder {
-        async fn encode_report<C>(&self, report: Report<C>) -> TransactionError {
-            let code = report
-                .request_ref::<ErrorCode>()
-                .next()
-                .copied()
-                .unwrap_or(ErrorCode::INTERNAL_SERVER_ERROR);
-
-            let mut bytes = BytesMut::new();
-
-            let display = report.to_string();
-            bytes.extend_from_slice(b"report|");
-            bytes.extend_from_slice(display.as_bytes());
-
-            TransactionError {
-                code,
-                bytes: bytes.freeze(),
-            }
-        }
-
-        async fn encode_error<E>(&self, error: E) -> TransactionError
+    impl serde::Serialize for BoxedError {
+        fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
         where
-            E: WireError + Send,
+            S: serde::Serializer,
         {
-            let code = error.code();
-
-            let mut bytes = BytesMut::new();
-
-            let display = error.to_string();
-            bytes.extend_from_slice(b"plain|");
-            bytes.extend_from_slice(display.as_bytes());
-
-            TransactionError {
-                code,
-                bytes: bytes.freeze(),
-            }
+            serializer.collect_str(&self)
         }
     }
 
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    impl Debug for BoxedError {
+        fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+            Debug::fmt(&self.0, fmt)
+        }
+    }
+
+    impl Display for BoxedError {
+        fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+            Display::fmt(&self.0, fmt)
+        }
+    }
+
+    impl Error for BoxedError {
+        fn source(&self) -> Option<&(dyn Error + 'static)> {
+            Some(&*self.0)
+        }
+
+        fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
+            self.0.provide(request);
+        }
+    }
+
+    impl From<Box<dyn Error + Send + Sync + 'static>> for BoxedError {
+        fn from(error: Box<dyn Error + Send + Sync + 'static>) -> Self {
+            Self(error)
+        }
+    }
+
+    #[derive(
+        Debug,
+        Copy,
+        Clone,
+        PartialEq,
+        Eq,
+        PartialOrd,
+        Ord,
+        Hash,
+        serde::Serialize,
+        serde::Deserialize,
+    )]
     pub(crate) struct GenericError(ErrorCode);
 
     impl GenericError {
@@ -238,7 +199,7 @@ pub(crate) mod test {
     pub(crate) const BODY: &[u8] = b"hello world";
 
     pub(crate) fn request() -> Request<Full<Bytes>> {
-        Request::from_parts(
+        Request::new(
             request::Parts {
                 service: ServiceDescriptor {
                     id: ServiceId::new(0x00),
@@ -259,7 +220,11 @@ pub(crate) mod test {
 
     #[tokio::test]
     async fn handle_error() {
-        let (mut service, mut handle) = spawn_layer(HandleErrorLayer::new(PlainErrorEncoder));
+        let (mut service, mut handle) = spawn_with(|mock| {
+            let mock = mock.map_err(BoxedError::from);
+
+            HandleErrorLayer::new(JsonCodec).layer(mock)
+        });
 
         assert_pending!(handle.poll_request());
         assert_ready!(service.poll_ready()).expect("should be ready");
@@ -292,16 +257,27 @@ pub(crate) mod test {
         assert_eq!(control, ResponseKind::Err(ErrorCode::INTERNAL_SERVER_ERROR));
 
         let Ok(frame) = body.frame().await.expect("frame should be present");
-        let data = frame
+        let mut data = frame
             .into_data()
             .expect("should be data frame")
             .into_inner();
-        assert_eq!(data, Bytes::from_static(b"plain|generic error" as &[_]));
+
+        let &first = data.first().expect("should be present");
+        assert_eq!(first, 0x01);
+        data.advance(1);
+
+        let output = String::from_utf8(data.to_vec()).expect("should be utf-8");
+
+        assert_snapshot!(output, @r###"{"message":"generic error","details":"generic error"}"###);
     }
 
     #[tokio::test]
     async fn passthrough() {
-        let (mut service, mut handle) = spawn_layer(HandleErrorLayer::new(PlainErrorEncoder));
+        let (mut service, mut handle) = spawn_with(|mock| {
+            let mock = mock.map_err(BoxedError::from);
+
+            HandleErrorLayer::new(JsonCodec).layer(mock)
+        });
 
         assert_pending!(handle.poll_request());
         assert_ready!(service.poll_ready()).expect("should be ready");

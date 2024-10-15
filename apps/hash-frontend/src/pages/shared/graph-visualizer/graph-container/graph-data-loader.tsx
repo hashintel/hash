@@ -1,18 +1,17 @@
-import { useLoadGraph, useRegisterEvents, useSigma } from "@react-sigma/core";
+import { useLoadGraph, useSigma } from "@react-sigma/core";
 import { MultiDirectedGraph } from "graphology";
-import { memo, useEffect, useRef } from "react";
-import type { SigmaNodeEventPayload } from "sigma/types";
+import { memo, useEffect } from "react";
 
-import type { GraphConfig } from "./config";
-import { useFullScreen } from "./shared/full-screen";
-import { useDefaultSettings } from "./shared/settings";
-import type { GraphState } from "./shared/state";
+import { useGraphContext } from "./shared/graph-context";
+import type { RegisterEventsArgs } from "./shared/use-event-handlers";
 import { useLayout } from "./use-layout";
 
 export type GraphVizNode = {
   borderColor?: string;
   color: string;
   nodeId: string;
+  nodeTypeId?: string;
+  nodeTypeLabel?: string;
   label: string;
   size: number;
 };
@@ -26,180 +25,154 @@ export type GraphVizEdge = {
 };
 
 export type GraphLoaderProps = {
-  config: GraphConfig;
   edges: GraphVizEdge[];
   nodes: GraphVizNode[];
-  onEdgeClick?: (params: { edgeId: string; isFullScreen: boolean }) => void;
-  onNodeClick?: (params: { nodeId: string; isFullScreen: boolean }) => void;
-};
+} & Pick<RegisterEventsArgs, "onEdgeClick" | "onNodeSecondClick">;
 
-export const GraphDataLoader = memo(
-  ({ config, edges, nodes, onNodeClick, onEdgeClick }: GraphLoaderProps) => {
-    /**
-     * Hooks provided by the react-sigma library to simplify working with the sigma instance.
-     */
-    const loadGraph = useLoadGraph();
-    const registerEvents = useRegisterEvents();
-    const sigma = useSigma();
+export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
+  /**
+   * Hooks provided by the react-sigma library to simplify working with the sigma instance.
+   */
+  const loadGraph = useLoadGraph();
+  const sigma = useSigma();
 
-    /**
-     * Custom hooks for laying out the graph, and handling fullscreen state
-     */
-    const layout = useLayout();
-    const { isFullScreen } = useFullScreen();
+  const { config, filters } = useGraphContext();
 
-    /**
-     * State to track interactions with the graph.
-     * It's drawn in canvas so doesn't need to be in React state
-     * – redrawing the graph is done via sigma.refresh.
-     */
-    const graphState = useRef<GraphState>({
-      hoveredNodeId: null,
-      hoveredNeighborIds: null,
-      selectedNodeId: null,
-    });
+  /**
+   * Custom hooks for laying out the graph.
+   */
+  const layout = useLayout();
 
-    useDefaultSettings(graphState.current);
+  useEffect(() => {
+    const graph = new MultiDirectedGraph();
 
-    useEffect(() => {
-      /**
-       * Highlight a node and its neighbors up to a certain depth.
-       */
-      const highlightNode = (event: SigmaNodeEventPayload) => {
-        graphState.current.hoveredNodeId = event.node;
+    const nodeIdToEdgeCount: Record<
+      string,
+      { In: number; Out: number; All: number }
+    > = {};
 
-        const getNeighbors = (
-          nodeId: string,
-          neighborIds: Set<string> = new Set(),
-          depth = 1,
-        ) => {
-          if (depth > config.highlightDepth) {
-            return neighborIds;
-          }
+    const seenNodeIds = new Set<string>();
 
-          let directNeighbors: string[];
-          switch (config.highlightDirection) {
-            case "All":
-              directNeighbors = sigma.getGraph().neighbors(nodeId);
-              break;
-            case "In":
-              directNeighbors = sigma.getGraph().inNeighbors(nodeId);
-              break;
-            case "Out":
-              directNeighbors = sigma.getGraph().outNeighbors(nodeId);
-              break;
-          }
+    for (const [index, node] of nodes.entries()) {
+      if (
+        node.nodeTypeId &&
+        filters.includeByNodeTypeId?.[node.nodeTypeId] === false
+      ) {
+        continue;
+      }
 
-          for (const neighbor of directNeighbors) {
-            neighborIds.add(neighbor);
-            getNeighbors(neighbor, neighborIds, depth + 1);
-          }
-
-          return neighborIds;
-        };
-
-        graphState.current.hoveredNeighborIds = getNeighbors(event.node);
-
-        sigma.setSetting("renderEdgeLabels", true);
-
+      graph.addNode(node.nodeId, {
+        borderColor: node.borderColor ?? node.color,
         /**
-         * We haven't touched the graph data, so don't need to re-index.
-         * An additional optimization would be to supply partialGraph here and only redraw the affected nodes,
-         * but since the nodes whose appearance changes are the NON-highlighted nodes (they disappear), it's probably not worth it
-         * – they are likely to be the majority anyway, and we'd have to generate an array of them.
+         * This color may be overwritten in the reducer {@link useSetDrawSettings}
+         * We don't want this effect depending on the color options,
+         * because we don't want to lay out the graph again if the color of nodes change.
          */
-        sigma.refresh({ skipIndexation: true });
-      };
-
-      const removeHighlights = () => {
-        graphState.current.hoveredNodeId = null;
-        graphState.current.hoveredNeighborIds = null;
-        sigma.setSetting("renderEdgeLabels", false);
-        sigma.refresh({ skipIndexation: true });
-      };
-
-      registerEvents({
-        clickEdge: (event) => {
-          onEdgeClick?.({
-            edgeId: event.edge,
-            isFullScreen,
-          });
-        },
-        clickNode: (event) => {
-          onNodeClick?.({
-            nodeId: event.node,
-            isFullScreen,
-          });
-
-          graphState.current.selectedNodeId = event.node;
-          highlightNode(event);
-        },
-        clickStage: () => {
-          if (!graphState.current.selectedNodeId) {
-            return;
-          }
-
-          /**
-           * If we click on the background (the 'stage'), deselect the selected node.
-           */
-          graphState.current.selectedNodeId = null;
-          removeHighlights();
-        },
-        enterNode: (event) => {
-          graphState.current.selectedNodeId = null;
-          highlightNode(event);
-        },
-        leaveNode: () => {
-          if (graphState.current.selectedNodeId) {
-            /**
-             * If there's a selected node (has been clicked on), we don't want to remove highlights.
-             * The user can click the background or another node to deselect it.
-             */
-            return;
-          }
-          removeHighlights();
-        },
+        color: node.color,
+        x: index % 20,
+        y: Math.floor(index / 20),
+        label: node.label,
+        nodeTypeId: node.nodeTypeId,
+        size:
+          config.nodeSizing.mode === "byEdgeCount"
+            ? config.nodeSizing.min
+            : node.size,
+        type: "bordered",
       });
-    }, [
-      config,
-      edges,
-      nodes,
-      onEdgeClick,
-      onNodeClick,
-      isFullScreen,
-      registerEvents,
-      sigma,
-    ]);
 
-    useEffect(() => {
-      const graph = new MultiDirectedGraph();
+      seenNodeIds.add(node.nodeId);
+    }
 
-      for (const [index, node] of nodes.entries()) {
-        graph.addNode(node.nodeId, {
-          borderColor: node.borderColor ?? node.color,
-          color: node.color,
-          x: index % 20,
-          y: Math.floor(index / 20),
-          label: node.label,
-          size: node.size,
-          type: "bordered",
-        });
+    for (const edge of edges) {
+      const { source, target } = edge;
+
+      if (!seenNodeIds.has(source) || !seenNodeIds.has(target)) {
+        continue;
       }
 
-      for (const edge of edges) {
-        graph.addEdgeWithKey(edge.edgeId, edge.source, edge.target, {
-          color: "rgba(50, 50, 50, 0.5)",
-          label: edge.label,
-          size: edge.size,
-          type: "curved",
-        });
+      graph.addEdgeWithKey(edge.edgeId, source, target, {
+        color: "rgba(90, 90, 90, 0.5)",
+        label: edge.label,
+        size: edge.size,
+        type: "curved",
+      });
+
+      nodeIdToEdgeCount[source] ??= { In: 0, Out: 0, All: 0 };
+      nodeIdToEdgeCount[source].Out++;
+      nodeIdToEdgeCount[source].All++;
+
+      nodeIdToEdgeCount[target] ??= { In: 0, Out: 0, All: 0 };
+      nodeIdToEdgeCount[target].In++;
+      nodeIdToEdgeCount[target].All++;
+    }
+
+    if (config.nodeSizing.mode === "byEdgeCount") {
+      const countKey = config.nodeSizing.countEdges;
+
+      const countValues = Object.values(nodeIdToEdgeCount).map(
+        (counts) => counts[countKey],
+      );
+
+      const lowestCount = Math.min(...countValues);
+      const highestCount = Math.max(...countValues);
+
+      const range = highestCount - lowestCount;
+
+      if (range === 0 && countValues.length === seenNodeIds.size) {
+        /**
+         * All nodes have the same count, so we don't need to resize any.
+         */
+      } else {
+        const maxNodeSize = config.nodeSizing.max;
+        const minNodeSize = config.nodeSizing.min;
+
+        for (const [nodeId, counts] of Object.entries(nodeIdToEdgeCount)) {
+          const relativeEdgeCount = counts[countKey] / range;
+
+          const maxSizeIncrease = maxNodeSize - minNodeSize;
+
+          const relativeSize = Math.floor(
+            Math.min(
+              maxNodeSize,
+              Math.max(
+                minNodeSize,
+                relativeEdgeCount * maxSizeIncrease + minNodeSize,
+              ),
+            ),
+          );
+
+          if (relativeSize !== minNodeSize) {
+            /**
+             * Scale the size of the node based on its count for the edges of interest,
+             * relative to the range of counts across all nodes.
+             */
+            graph.setNodeAttribute(nodeId, "size", relativeSize);
+          }
+        }
       }
+    }
 
-      loadGraph(graph);
+    loadGraph(graph);
 
-      layout();
-    }, [layout, loadGraph, sigma, nodes, edges]);
+    layout();
+  }, [
+    /**
+     * These are the config options that affect the layout and/or what nodes are included.
+     * We exclude config.nodeHighlighting as it doesn't affect the graph, only what is highlighted on hover/click.
+     * Re-rendering the graph without needing to lay it out again is handled in {@link ConfigControl}
+     */
+    config.nodeSizing,
+    /**
+     * We don't include filters.colorByNodeTypeId here because it doesn't affect the layout of the graph.
+     * {@link FilterControl} handles re-rendering the graph when the colors change.
+     */
+    filters.includeByNodeTypeId,
+    layout,
+    loadGraph,
+    sigma,
+    nodes,
+    edges,
+  ]);
 
-    return null;
-  },
-);
+  return null;
+});

@@ -18,7 +18,8 @@ import {
   splitEntityId,
 } from "@local/hash-subgraph";
 import { getRoots } from "@local/hash-subgraph/stdlib";
-import { Drawer, Stack, Typography } from "@mui/material";
+import { Box, Drawer, Stack, Typography } from "@mui/material";
+import type { RefObject } from "react";
 import { useCallback, useMemo, useState } from "react";
 
 import { useUserOrOrgShortnameByOwnedById } from "../../../../components/hooks/use-user-or-org-shortname-by-owned-by-id";
@@ -33,6 +34,7 @@ import {
   updateEntityMutation,
 } from "../../../../graphql/queries/knowledge/entity.queries";
 import { Button, Link } from "../../../../shared/ui";
+import { SlideBackForwardCloseBar } from "../../../shared/shared/slide-back-forward-close-bar";
 import { EntityEditor } from "./entity-editor";
 import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
 import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-entity-changes";
@@ -44,7 +46,19 @@ interface EditEntitySlideOverProps {
    */
   hideOpenInNew?: boolean;
   open: boolean;
+  /**
+   * If the slide is part of a stack, what happens when the user clicks to go back to the previous slide
+   */
+  onBack?: () => void;
   onClose: () => void;
+  /**
+   * If the slide is part of a stack, what happens when the user clicks to go forward to the next slide
+   */
+  onForward?: () => void;
+  onEntityClick: (
+    entityId: EntityId,
+    slideContainerRef?: RefObject<HTMLDivElement>,
+  ) => void;
   onSubmit: () => void;
   readonly?: boolean;
   /**
@@ -57,6 +71,14 @@ interface EditEntitySlideOverProps {
    * If you don't already have the required subgraph, pass the entityId and it will be fetched.
    */
   entityId?: EntityId;
+  /**
+   * If this slide is part of a stack, the position in the stack (1 being the lowest)
+   */
+  stackPosition?: number;
+  /**
+   * If a container ref is provided, the slide will be attached to it (defaults to the MUI default, the body)
+   */
+  slideContainerRef?: RefObject<HTMLDivElement>;
 }
 
 /**
@@ -64,9 +86,14 @@ interface EditEntitySlideOverProps {
  */
 export const EditEntitySlideOver = ({
   hideOpenInNew,
+  slideContainerRef,
   open,
+  onBack,
   onClose,
+  onForward,
+  onEntityClick: incompleteOnEntityClick,
   onSubmit,
+  stackPosition = 1,
   readonly = false,
   entitySubgraph: providedEntitySubgraph,
   entityId: providedEntityId,
@@ -83,6 +110,16 @@ export const EditEntitySlideOver = ({
   const [ownedByIdFromProvidedEntityId, entityUuid, draftId] = providedEntityId
     ? splitEntityId(providedEntityId)
     : [];
+
+  const [animateOut, setAnimateOut] = useState(false);
+
+  const handleBackClick = useCallback(() => {
+    setAnimateOut(true);
+    setTimeout(() => {
+      setAnimateOut(false);
+      onBack?.();
+    }, 300);
+  }, [setAnimateOut, onBack]);
 
   /**
    * If the parent component didn't have the entitySubgraph already available,
@@ -272,15 +309,27 @@ export const EditEntitySlideOver = ({
   const submitDisabled =
     !isDirty && !draftLinksToCreate.length && !draftLinksToArchive.length;
 
+  const onEntityClick = useCallback(
+    (entityId: EntityId) =>
+      incompleteOnEntityClick(entityId, slideContainerRef),
+    [incompleteOnEntityClick, slideContainerRef],
+  );
+
   return (
     <Drawer
-      open={open}
+      hideBackdrop
+      open={open && !animateOut}
       onClose={onClose}
       anchor="right"
+      ModalProps={{
+        container: slideContainerRef?.current ?? undefined,
+      }}
       PaperProps={{
         sx: (theme) => ({
-          p: 5,
-          gap: 6.5,
+          borderLeft: slideContainerRef
+            ? `1px solid ${theme.palette.gray[30]}`
+            : "none",
+          boxShadow: "none",
           maxWidth: 1200,
           height: "100%",
           width: "calc(100vw - 200px)",
@@ -289,70 +338,83 @@ export const EditEntitySlideOver = ({
           },
         }),
       }}
+      sx={({ zIndex }) => ({ zIndex: zIndex.drawer + 2 + stackPosition })}
     >
-      {!entity || !localEntitySubgraph ? (
-        <Stack gap={3}>
+      {!entity ||
+      !localEntitySubgraph ||
+      entity.entityId !== providedEntityId ? (
+        <Stack gap={3} p={5}>
           <Skeleton height={60} />
           <Skeleton height={90} />
           <Skeleton height={500} />
         </Stack>
       ) : (
-        <>
-          <Stack alignItems="center" direction="row">
-            <Typography variant="h2" color="gray.90" fontWeight="bold">
-              {entityLabel}
-            </Typography>
-            {entityOwningShortname && !hideOpenInNew && (
-              <Link
-                href={generateEntityPath({
-                  shortname: entityOwningShortname,
-                  entityId: entity.metadata.recordId.entityId,
-                  includeDraftId: true,
-                })}
-                target="_blank"
-              >
-                <ArrowUpRightRegularIcon
-                  sx={{
-                    fill: ({ palette }) => palette.blue[70],
-                    fontSize: 20,
-                    ml: 0.8,
-                  }}
-                />
-              </Link>
-            )}
-          </Stack>
-
-          <EntityEditor
-            readonly={readonly}
-            onEntityUpdated={null}
-            entitySubgraph={localEntitySubgraph}
-            setEntity={(newEntity) => {
-              setIsDirty(true);
-              updateEntitySubgraphStateByEntity(
-                newEntity,
-                (updatedEntitySubgraphOrFunction) => {
-                  setLocalEntitySubgraph((prev) => {
-                    if (!prev) {
-                      throw new Error(`No previous subgraph to update`);
-                    }
-
-                    const updatedEntitySubgraph =
-                      typeof updatedEntitySubgraphOrFunction === "function"
-                        ? updatedEntitySubgraphOrFunction(prev)
-                        : updatedEntitySubgraphOrFunction;
-
-                    return updatedEntitySubgraph ?? prev;
-                  });
-                },
-              );
-            }}
-            isDirty={isDirty}
-            draftLinksToCreate={draftLinksToCreate}
-            setDraftLinksToCreate={setDraftLinksToCreate}
-            draftLinksToArchive={draftLinksToArchive}
-            setDraftLinksToArchive={setDraftLinksToArchive}
+        <Box onClick={(event) => event.stopPropagation()}>
+          <SlideBackForwardCloseBar
+            onBack={onBack ? handleBackClick : undefined}
+            onForward={onForward}
+            onClose={onClose}
           />
-        </>
+          <Stack gap={5} px={6} pb={5} pt={1}>
+            <Stack alignItems="center" direction="row">
+              <Typography variant="h2" color="gray.90" fontWeight="bold">
+                {entityLabel}
+              </Typography>
+              {entityOwningShortname && !hideOpenInNew && (
+                <Link
+                  href={generateEntityPath({
+                    shortname: entityOwningShortname,
+                    entityId: entity.metadata.recordId.entityId,
+                    includeDraftId: true,
+                  })}
+                  target="_blank"
+                >
+                  <ArrowUpRightRegularIcon
+                    sx={{
+                      fill: ({ palette }) => palette.blue[70],
+                      fontSize: 20,
+                      ml: 0.8,
+                    }}
+                  />
+                </Link>
+              )}
+            </Stack>
+
+            <EntityEditor
+              readonly={readonly}
+              onEntityUpdated={null}
+              entityLabel={entityLabel}
+              entitySubgraph={localEntitySubgraph}
+              setEntity={(newEntity) => {
+                setIsDirty(true);
+                updateEntitySubgraphStateByEntity(
+                  newEntity,
+                  (updatedEntitySubgraphOrFunction) => {
+                    setLocalEntitySubgraph((prev) => {
+                      if (!prev) {
+                        throw new Error(`No previous subgraph to update`);
+                      }
+
+                      const updatedEntitySubgraph =
+                        typeof updatedEntitySubgraphOrFunction === "function"
+                          ? updatedEntitySubgraphOrFunction(prev)
+                          : updatedEntitySubgraphOrFunction;
+
+                      return updatedEntitySubgraph ?? prev;
+                    });
+                  },
+                );
+              }}
+              isDirty={isDirty}
+              onEntityClick={onEntityClick}
+              draftLinksToCreate={draftLinksToCreate}
+              setDraftLinksToCreate={setDraftLinksToCreate}
+              draftLinksToArchive={draftLinksToArchive}
+              setDraftLinksToArchive={setDraftLinksToArchive}
+              slideContainerRef={slideContainerRef}
+            />
+          </Stack>
+        </Box>
       )}
 
       {!readonly && (
