@@ -22,10 +22,9 @@ use error_stack::Result;
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},
-    ontology::{EntityTypeId, PropertyTypeId},
     owned_by_id::OwnedById,
 };
-use type_system::schema::DataTypeId;
+use type_system::schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid};
 
 use crate::{
     backend::{
@@ -161,7 +160,7 @@ impl AuthorizationApi for NoAuthorization {
         _: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
-                EntityTypeId,
+                EntityTypeUuid,
                 EntityTypeRelationAndSubject,
             ),
             IntoIter: Send,
@@ -174,7 +173,7 @@ impl AuthorizationApi for NoAuthorization {
         &self,
         _: AccountId,
         _: EntityTypePermission,
-        _: EntityTypeId,
+        _: EntityTypeUuid,
         _: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         Ok(CheckResponse {
@@ -187,9 +186,9 @@ impl AuthorizationApi for NoAuthorization {
         &self,
         _: AccountId,
         _: EntityTypePermission,
-        entity_types: impl IntoIterator<Item = EntityTypeId, IntoIter: Send> + Send,
+        entity_types: impl IntoIterator<Item = EntityTypeUuid, IntoIter: Send> + Send,
         _: Consistency<'_>,
-    ) -> Result<(HashMap<EntityTypeId, bool>, Zookie<'static>), CheckError> {
+    ) -> Result<(HashMap<EntityTypeUuid, bool>, Zookie<'static>), CheckError> {
         Ok((
             entity_types
                 .into_iter()
@@ -201,7 +200,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn get_entity_type_relations(
         &self,
-        _: EntityTypeId,
+        _: EntityTypeUuid,
         _: Consistency<'static>,
     ) -> Result<Vec<EntityTypeRelationAndSubject>, ReadError> {
         Ok(Vec::new())
@@ -212,7 +211,7 @@ impl AuthorizationApi for NoAuthorization {
         _: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
-                PropertyTypeId,
+                PropertyTypeUuid,
                 PropertyTypeRelationAndSubject,
             ),
             IntoIter: Send,
@@ -225,7 +224,7 @@ impl AuthorizationApi for NoAuthorization {
         &self,
         _: AccountId,
         _: PropertyTypePermission,
-        _: PropertyTypeId,
+        _: PropertyTypeUuid,
         _: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         Ok(CheckResponse {
@@ -238,9 +237,9 @@ impl AuthorizationApi for NoAuthorization {
         &self,
         _: AccountId,
         _: PropertyTypePermission,
-        property_types: impl IntoIterator<Item = PropertyTypeId, IntoIter: Send> + Send,
+        property_types: impl IntoIterator<Item = PropertyTypeUuid, IntoIter: Send> + Send,
         _: Consistency<'_>,
-    ) -> Result<(HashMap<PropertyTypeId, bool>, Zookie<'static>), CheckError> {
+    ) -> Result<(HashMap<PropertyTypeUuid, bool>, Zookie<'static>), CheckError> {
         Ok((
             property_types
                 .into_iter()
@@ -252,7 +251,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn get_property_type_relations(
         &self,
-        _: PropertyTypeId,
+        _: PropertyTypeUuid,
         _: Consistency<'static>,
     ) -> Result<Vec<PropertyTypeRelationAndSubject>, ReadError> {
         Ok(Vec::new())
@@ -263,7 +262,7 @@ impl AuthorizationApi for NoAuthorization {
         _: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
-                DataTypeId,
+                DataTypeUuid,
                 DataTypeRelationAndSubject,
             ),
             IntoIter: Send,
@@ -276,7 +275,7 @@ impl AuthorizationApi for NoAuthorization {
         &self,
         _: AccountId,
         _: DataTypePermission,
-        _: DataTypeId,
+        _: DataTypeUuid,
         _: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         Ok(CheckResponse {
@@ -289,9 +288,9 @@ impl AuthorizationApi for NoAuthorization {
         &self,
         _: AccountId,
         _: DataTypePermission,
-        data_types: impl IntoIterator<Item = DataTypeId, IntoIter: Send> + Send,
+        data_types: impl IntoIterator<Item = DataTypeUuid, IntoIter: Send> + Send,
         _: Consistency<'_>,
-    ) -> Result<(HashMap<DataTypeId, bool>, Zookie<'static>), CheckError> {
+    ) -> Result<(HashMap<DataTypeUuid, bool>, Zookie<'static>), CheckError> {
         Ok((
             data_types
                 .into_iter()
@@ -303,7 +302,7 @@ impl AuthorizationApi for NoAuthorization {
 
     async fn get_data_type_relations(
         &self,
-        _: DataTypeId,
+        _: DataTypeUuid,
         _: Consistency<'static>,
     ) -> Result<Vec<DataTypeRelationAndSubject>, ReadError> {
         Ok(Vec::new())

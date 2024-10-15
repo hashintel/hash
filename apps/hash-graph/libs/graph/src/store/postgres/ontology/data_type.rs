@@ -39,8 +39,9 @@ use tracing::instrument;
 use type_system::{
     Valid, Validator,
     schema::{
-        ClosedDataType, ConversionDefinition, Conversions, DataType, DataTypeEdge, DataTypeId,
-        DataTypeResolveData, DataTypeValidator, InheritanceDepth, OntologyTypeResolver,
+        ClosedDataType, ConversionDefinition, Conversions, DataType, DataTypeEdge,
+        DataTypeResolveData, DataTypeUuid, DataTypeValidator, InheritanceDepth,
+        OntologyTypeResolver, OntologyTypeUuid,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
@@ -59,9 +60,7 @@ use crate::store::{
     postgres::{
         TraversalContext,
         crud::QueryRecordDecode,
-        ontology::{
-            OntologyId, PostgresOntologyTypeClassificationMetadata, read::OntologyTypeTraversalData,
-        },
+        ontology::{PostgresOntologyTypeClassificationMetadata, read::OntologyTypeTraversalData},
         query::{
             Distinctness, InsertStatementBuilder, PostgresRecord, ReferenceTable, SelectCompiler,
             Table, rows::DataTypeConversionsRow,
@@ -82,7 +81,7 @@ where
         zookie: &Zookie<'static>,
     ) -> Result<impl Iterator<Item = T>, QueryError>
     where
-        I: Into<DataTypeId> + Send,
+        I: Into<DataTypeUuid> + Send,
         T: Send,
     {
         let (ids, data_types): (Vec<_>, Vec<_>) = data_types
@@ -115,8 +114,8 @@ where
 
     async fn get_data_type_inheritance_metadata(
         &self,
-        data_types: &[DataTypeId],
-    ) -> Result<impl Iterator<Item = (DataTypeId, DataTypeResolveData)>, QueryError> {
+        data_types: &[DataTypeUuid],
+    ) -> Result<impl Iterator<Item = (DataTypeUuid, DataTypeResolveData)>, QueryError> {
         Ok(self
             .as_client()
             .query(
@@ -141,8 +140,8 @@ where
             .change_context(QueryError)?
             .into_iter()
             .map(|row| {
-                let source_id: DataTypeId = row.get(0);
-                let targets: Vec<DataTypeId> = row.get(1);
+                let source_id: DataTypeUuid = row.get(0);
+                let targets: Vec<DataTypeUuid> = row.get(1);
                 let depths: Vec<InheritanceDepth> = row.get(2);
                 let schemas: Vec<Valid<DataType>> = row.get(3);
 
@@ -200,7 +199,7 @@ where
             .into_iter()
             .filter_map(|row| {
                 let data_type = row.decode_record(&artifacts);
-                let id = DataTypeId::from_url(&data_type.schema.id);
+                let id = DataTypeUuid::from_url(&data_type.schema.id);
                 // The records are already sorted by time, so we can just take the first one
                 visited_ontology_ids.insert(id).then_some((id, data_type))
             })
@@ -256,7 +255,7 @@ where
     pub(crate) async fn traverse_data_types(
         &self,
         mut data_type_queue: Vec<(
-            DataTypeId,
+            DataTypeUuid,
             GraphResolveDepths,
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
@@ -280,7 +279,7 @@ where
                         .decrement_depth_for_edge(edge_kind, EdgeDirection::Outgoing)
                     {
                         edges_to_traverse.entry(edge_kind).or_default().push(
-                            OntologyId::from(data_type_ontology_id),
+                            OntologyTypeUuid::from(data_type_ontology_id),
                             new_graph_resolve_depths,
                             traversal_interval,
                         );
@@ -323,7 +322,7 @@ where
                             );
 
                             traversal_context.add_data_type_id(
-                                DataTypeId::from(edge.right_endpoint_ontology_id),
+                                DataTypeUuid::from(edge.right_endpoint_ontology_id),
                                 edge.resolve_depths,
                                 edge.traversal_interval,
                             )
@@ -366,7 +365,7 @@ where
             .change_context(DeletionError)?
             .into_iter()
             .filter_map(|row| row.get(0))
-            .collect::<Vec<OntologyId>>();
+            .collect::<Vec<OntologyTypeUuid>>();
 
         transaction.delete_ontology_ids(&data_types).await?;
 
@@ -410,7 +409,7 @@ where
             };
 
             let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());
-            let data_type_id = DataTypeId::from_url(&parameters.schema.id);
+            let data_type_id = DataTypeUuid::from_url(&parameters.schema.id);
             if let OntologyTypeClassificationMetadata::Owned { owned_by_id } =
                 &parameters.classification
             {
@@ -442,7 +441,7 @@ where
 
             if let Some((_ontology_id, temporal_versioning)) = transaction
                 .create_ontology_metadata(
-                    &record_id,
+                    &parameters.schema.id,
                     &parameters.classification,
                     parameters.conflict_behavior,
                     &provenance,
@@ -453,7 +452,7 @@ where
                     parameters
                         .schema
                         .data_type_references()
-                        .map(|(reference, _)| DataTypeId::from_url(&reference.url)),
+                        .map(|(reference, _)| DataTypeUuid::from_url(&reference.url)),
                 );
                 inserted_data_types.push((data_type_id, Arc::new(parameters.schema)));
                 data_type_conversions_rows.extend(parameters.conversions.iter().map(
@@ -512,7 +511,7 @@ where
             .data_types
             .into_iter()
             .for_each(|parent| {
-                let parent_id = DataTypeId::from_url(&parent.schema.id);
+                let parent_id = DataTypeUuid::from_url(&parent.schema.id);
                 if let Some(inheritance_data) = parent_inheritance_data.remove(&parent_id) {
                     ontology_type_resolver.add_closed(
                         parent_id,
@@ -738,7 +737,7 @@ where
             .iter()
             .map(|data_type| {
                 (
-                    DataTypeId::from_url(&data_type.schema.id),
+                    DataTypeUuid::from_url(&data_type.schema.id),
                     GraphElementVertexId::from(data_type.vertex_id(time_axis)),
                 )
             })
@@ -793,7 +792,7 @@ where
     {
         let data_type_validator = DataTypeValidator;
 
-        let old_ontology_id = DataTypeId::from_url(&VersionedUrl {
+        let old_ontology_id = DataTypeUuid::from_url(&VersionedUrl {
             base_url: params.schema.id.base_url.clone(),
             version: OntologyTypeVersion::new(
                 params
@@ -808,7 +807,7 @@ where
                     )?,
             ),
         });
-        let new_ontology_id = DataTypeId::from_url(&params.schema.id);
+        let new_ontology_id = DataTypeUuid::from_url(&params.schema.id);
         self.authorization_api
             .check_data_type_permission(
                 actor_id,
@@ -840,7 +839,7 @@ where
 
         let required_parent_ids = schema
             .data_type_references()
-            .map(|(reference, _)| DataTypeId::from_url(&reference.url))
+            .map(|(reference, _)| DataTypeUuid::from_url(&reference.url))
             .collect::<Vec<_>>();
 
         let mut parent_inheritance_data = transaction
@@ -873,7 +872,7 @@ where
             .data_types
             .into_iter()
             .for_each(|parent| {
-                let parent_id = DataTypeId::from_url(&parent.schema.id);
+                let parent_id = DataTypeUuid::from_url(&parent.schema.id);
                 if let Some(inheritance_data) = parent_inheritance_data.remove(&parent_id) {
                     ontology_type_resolver.add_closed(
                         parent_id,
@@ -905,7 +904,7 @@ where
             .update_owned_ontology_id(&schema.id, &provenance.edition)
             .await?;
 
-        let data_type_id = DataTypeId::from(ontology_id);
+        let data_type_id = DataTypeUuid::from(ontology_id);
 
         transaction
             .insert_data_type_with_id(data_type_id, &schema)
@@ -1035,12 +1034,12 @@ where
         #[derive(Debug, ToSql)]
         #[postgres(name = "data_type_embeddings")]
         pub struct DataTypeEmbeddingsRow<'a> {
-            ontology_id: OntologyId,
+            ontology_id: OntologyTypeUuid,
             embedding: Embedding<'a>,
             updated_at_transaction_time: Timestamp<TransactionTime>,
         }
         let data_type_embeddings = vec![DataTypeEmbeddingsRow {
-            ontology_id: OntologyId::from(DataTypeId::from_url(&params.data_type_id)),
+            ontology_id: OntologyTypeUuid::from(DataTypeUuid::from_url(&params.data_type_id)),
             embedding: params.embedding,
             updated_at_transaction_time: params.updated_at_transaction_time,
         }];
@@ -1127,7 +1126,7 @@ where
         .into_iter()
         .map(|data_type| {
             let schema = Arc::new(data_type.schema);
-            let data_type_id = DataTypeId::from_url(&schema.id);
+            let data_type_id = DataTypeUuid::from_url(&schema.id);
             ontology_type_resolver.add_unresolved(data_type_id, Arc::clone(&schema));
             data_type_id
         })

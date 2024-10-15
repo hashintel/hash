@@ -17,8 +17,8 @@ use graph_types::{
     account::{AccountId, EditionArchivedById, EditionCreatedById},
     ontology::{
         OntologyEditionProvenance, OntologyProvenance, OntologyTemporalMetadata,
-        OntologyTypeClassificationMetadata, OntologyTypeRecordId, PropertyTypeId,
-        PropertyTypeMetadata, PropertyTypeWithMetadata,
+        OntologyTypeClassificationMetadata, OntologyTypeRecordId, PropertyTypeMetadata,
+        PropertyTypeWithMetadata,
     },
 };
 use hash_graph_store::{
@@ -36,7 +36,7 @@ use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
     Validator,
-    schema::{DataTypeId, PropertyTypeValidator},
+    schema::{DataTypeUuid, OntologyTypeUuid, PropertyTypeUuid, PropertyTypeValidator},
     url::{OntologyTypeVersion, VersionedUrl},
 };
 
@@ -54,9 +54,7 @@ use crate::store::{
     postgres::{
         TraversalContext,
         crud::QueryRecordDecode,
-        ontology::{
-            OntologyId, PostgresOntologyTypeClassificationMetadata, read::OntologyTypeTraversalData,
-        },
+        ontology::{PostgresOntologyTypeClassificationMetadata, read::OntologyTypeTraversalData},
         query::{Distinctness, PostgresRecord, ReferenceTable, SelectCompiler, Table},
     },
 };
@@ -74,7 +72,7 @@ where
         zookie: &Zookie<'static>,
     ) -> Result<impl Iterator<Item = T>, QueryError>
     where
-        I: Into<PropertyTypeId> + Send,
+        I: Into<PropertyTypeUuid> + Send,
         T: Send,
     {
         let (ids, property_types): (Vec<_>, Vec<_>) = property_types
@@ -145,7 +143,7 @@ where
             .into_iter()
             .filter_map(|row| {
                 let property_type = row.decode_record(&artifacts);
-                let id = PropertyTypeId::from_url(&property_type.schema.id);
+                let id = PropertyTypeUuid::from_url(&property_type.schema.id);
                 // The records are already sorted by time, so we can just take the first one
                 visited_ontology_ids
                     .insert(id)
@@ -203,7 +201,7 @@ where
     pub(crate) async fn traverse_property_types(
         &self,
         mut property_type_queue: Vec<(
-            PropertyTypeId,
+            PropertyTypeUuid,
             GraphResolveDepths,
             RightBoundedTemporalInterval<VariableAxis>,
         )>,
@@ -230,7 +228,7 @@ where
                         .decrement_depth_for_edge(edge_kind, EdgeDirection::Outgoing)
                     {
                         edges_to_traverse.entry(edge_kind).or_default().push(
-                            OntologyId::from(property_type_ontology_id),
+                            OntologyTypeUuid::from(property_type_ontology_id),
                             new_graph_resolve_depths,
                             traversal_interval,
                         );
@@ -262,7 +260,7 @@ where
                         );
 
                         traversal_context.add_data_type_id(
-                            DataTypeId::from(edge.right_endpoint_ontology_id),
+                            DataTypeUuid::from(edge.right_endpoint_ontology_id),
                             edge.resolve_depths,
                             edge.traversal_interval,
                         )
@@ -294,7 +292,7 @@ where
                         );
 
                         traversal_context.add_property_type_id(
-                            PropertyTypeId::from(edge.right_endpoint_ontology_id),
+                            PropertyTypeUuid::from(edge.right_endpoint_ontology_id),
                             edge.resolve_depths,
                             edge.traversal_interval,
                         )
@@ -344,7 +342,7 @@ where
             .change_context(DeletionError)?
             .into_iter()
             .filter_map(|row| row.get(0))
-            .collect::<Vec<OntologyId>>();
+            .collect::<Vec<OntologyTypeUuid>>();
 
         transaction.delete_ontology_ids(&property_types).await?;
 
@@ -389,7 +387,7 @@ where
             };
 
             let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());
-            let property_type_id = PropertyTypeId::from_url(&parameters.schema.id);
+            let property_type_id = PropertyTypeUuid::from_url(&parameters.schema.id);
             if let OntologyTypeClassificationMetadata::Owned { owned_by_id } =
                 &parameters.classification
             {
@@ -421,7 +419,7 @@ where
 
             if let Some((ontology_id, temporal_versioning)) = transaction
                 .create_ontology_metadata(
-                    &record_id,
+                    &parameters.schema.id,
                     &parameters.classification,
                     parameters.conflict_behavior,
                     &provenance,
@@ -620,7 +618,7 @@ where
             .iter()
             .map(|property_type| {
                 (
-                    PropertyTypeId::from_url(&property_type.schema.id),
+                    PropertyTypeUuid::from_url(&property_type.schema.id),
                     GraphElementVertexId::from(property_type.vertex_id(time_axis)),
                 )
             })
@@ -675,7 +673,7 @@ where
     {
         let property_type_validator = PropertyTypeValidator;
 
-        let old_ontology_id = PropertyTypeId::from_url(&VersionedUrl {
+        let old_ontology_id = PropertyTypeUuid::from_url(&VersionedUrl {
             base_url: params.schema.id.base_url.clone(),
             version: OntologyTypeVersion::new(
                 params
@@ -737,7 +735,7 @@ where
             })
             .attach_lazy(|| params.schema.clone())?;
 
-        let property_type_id = PropertyTypeId::from(ontology_id);
+        let property_type_id = PropertyTypeUuid::from(ontology_id);
         let relationships = params
             .relationships
             .into_iter()
@@ -839,12 +837,12 @@ where
         #[derive(Debug, ToSql)]
         #[postgres(name = "property_type_embeddings")]
         pub struct PropertyTypeEmbeddingsRow<'a> {
-            ontology_id: OntologyId,
+            ontology_id: OntologyTypeUuid,
             embedding: Embedding<'a>,
             updated_at_transaction_time: Timestamp<TransactionTime>,
         }
         let property_type_embeddings = vec![PropertyTypeEmbeddingsRow {
-            ontology_id: OntologyId::from(DataTypeId::from_url(&params.property_type_id)),
+            ontology_id: OntologyTypeUuid::from(DataTypeUuid::from_url(&params.property_type_id)),
             embedding: params.embedding,
             updated_at_transaction_time: params.updated_at_transaction_time,
         }];

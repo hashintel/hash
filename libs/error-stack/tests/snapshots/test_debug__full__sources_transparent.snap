@@ -3,7 +3,7 @@ source: libs/error-stack/tests/test_debug.rs
 expression: "format!(\"{report:?}\")"
 ---
 context A
-├╴at libs/error-stack/tests/test_debug.rs:404:18
+├╴at libs/error-stack/tests/test_debug.rs:406:18
 ├╴1 additional opaque attachment
 │
 ╰┬▶ root error

@@ -10,12 +10,7 @@
 //!
 //! An illustration of the protocol can be seen in the `docs/` folder of the project.
 #![cfg_attr(test, feature(async_fn_track_caller))]
-#![feature(
-    associated_type_defaults,
-    never_type,
-    exhaustive_patterns,
-    const_option
-)]
+#![feature(associated_type_defaults, never_type, exhaustive_patterns)]
 
 pub mod codec;
 pub mod flags;

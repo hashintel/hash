@@ -5,11 +5,10 @@ use futures::{Stream, TryStreamExt};
 use graph_types::{
     account::{AccountGroupId, AccountId},
     knowledge::entity::{EntityId, EntityUuid},
-    ontology::{EntityTypeId, PropertyTypeId},
     owned_by_id::OwnedById,
 };
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
-use type_system::schema::DataTypeId;
+use type_system::schema::{DataTypeUuid, EntityTypeUuid, PropertyTypeUuid};
 
 use crate::{
     AuthorizationApi,
@@ -283,7 +282,7 @@ where
         relationships: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
-                EntityTypeId,
+                EntityTypeUuid,
                 EntityTypeRelationAndSubject,
             ),
             IntoIter: Send,
@@ -306,7 +305,7 @@ where
         &self,
         actor: AccountId,
         permission: EntityTypePermission,
-        entity_type: EntityTypeId,
+        entity_type: EntityTypeUuid,
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         self.backend
@@ -319,9 +318,9 @@ where
         &self,
         actor: AccountId,
         permission: EntityTypePermission,
-        entity_types: impl IntoIterator<Item = EntityTypeId, IntoIter: Send> + Send,
+        entity_types: impl IntoIterator<Item = EntityTypeUuid, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> Result<(HashMap<EntityTypeId, bool>, Zookie<'static>), CheckError> {
+    ) -> Result<(HashMap<EntityTypeUuid, bool>, Zookie<'static>), CheckError> {
         let response = self
             .backend
             .check_permissions(
@@ -358,11 +357,11 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn get_entity_type_relations(
         &self,
-        entity_type: EntityTypeId,
+        entity_type: EntityTypeUuid,
         consistency: Consistency<'static>,
     ) -> Result<Vec<EntityTypeRelationAndSubject>, ReadError> {
         self.backend
-            .read_relations::<(EntityTypeId, EntityTypeRelationAndSubject)>(
+            .read_relations::<(EntityTypeUuid, EntityTypeRelationAndSubject)>(
                 RelationshipFilter::from_resource(entity_type),
                 consistency,
             )
@@ -379,7 +378,7 @@ where
         relationships: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
-                PropertyTypeId,
+                PropertyTypeUuid,
                 PropertyTypeRelationAndSubject,
             ),
             IntoIter: Send,
@@ -404,7 +403,7 @@ where
         &self,
         actor: AccountId,
         permission: PropertyTypePermission,
-        property_type: PropertyTypeId,
+        property_type: PropertyTypeUuid,
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         self.backend
@@ -417,9 +416,9 @@ where
         &self,
         actor: AccountId,
         permission: PropertyTypePermission,
-        property_types: impl IntoIterator<Item = PropertyTypeId, IntoIter: Send> + Send,
+        property_types: impl IntoIterator<Item = PropertyTypeUuid, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> Result<(HashMap<PropertyTypeId, bool>, Zookie<'static>), CheckError> {
+    ) -> Result<(HashMap<PropertyTypeUuid, bool>, Zookie<'static>), CheckError> {
         let response = self
             .backend
             .check_permissions(
@@ -456,11 +455,11 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn get_property_type_relations(
         &self,
-        property_type: PropertyTypeId,
+        property_type: PropertyTypeUuid,
         consistency: Consistency<'static>,
     ) -> Result<Vec<PropertyTypeRelationAndSubject>, ReadError> {
         self.backend
-            .read_relations::<(PropertyTypeId, PropertyTypeRelationAndSubject)>(
+            .read_relations::<(PropertyTypeUuid, PropertyTypeRelationAndSubject)>(
                 RelationshipFilter::from_resource(property_type),
                 consistency,
             )
@@ -477,7 +476,7 @@ where
         relationships: impl IntoIterator<
             Item = (
                 ModifyRelationshipOperation,
-                DataTypeId,
+                DataTypeUuid,
                 DataTypeRelationAndSubject,
             ),
             IntoIter: Send,
@@ -500,7 +499,7 @@ where
         &self,
         actor: AccountId,
         permission: DataTypePermission,
-        data_type: DataTypeId,
+        data_type: DataTypeUuid,
         consistency: Consistency<'_>,
     ) -> Result<CheckResponse, CheckError> {
         self.backend
@@ -513,9 +512,9 @@ where
         &self,
         actor: AccountId,
         permission: DataTypePermission,
-        data_types: impl IntoIterator<Item = DataTypeId, IntoIter: Send> + Send,
+        data_types: impl IntoIterator<Item = DataTypeUuid, IntoIter: Send> + Send,
         consistency: Consistency<'_>,
-    ) -> Result<(HashMap<DataTypeId, bool>, Zookie<'static>), CheckError> {
+    ) -> Result<(HashMap<DataTypeUuid, bool>, Zookie<'static>), CheckError> {
         let response = self
             .backend
             .check_permissions(
@@ -552,11 +551,11 @@ where
     #[tracing::instrument(level = "info", skip(self))]
     async fn get_data_type_relations(
         &self,
-        data_type: DataTypeId,
+        data_type: DataTypeUuid,
         consistency: Consistency<'static>,
     ) -> Result<Vec<DataTypeRelationAndSubject>, ReadError> {
         self.backend
-            .read_relations::<(DataTypeId, DataTypeRelationAndSubject)>(
+            .read_relations::<(DataTypeUuid, DataTypeRelationAndSubject)>(
                 RelationshipFilter::from_resource(data_type),
                 consistency,
             )

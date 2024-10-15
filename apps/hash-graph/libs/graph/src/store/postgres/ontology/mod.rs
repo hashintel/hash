@@ -1,6 +1,5 @@
 mod data_type;
 mod entity_type;
-mod ontology_id;
 mod property_type;
 mod read;
 
@@ -22,9 +21,11 @@ use hash_graph_store::{
 use serde::Deserialize;
 use time::OffsetDateTime;
 use tokio_postgres::{Row, Transaction};
-use type_system::url::{BaseUrl, VersionedUrl};
+use type_system::{
+    schema::OntologyTypeUuid,
+    url::{BaseUrl, VersionedUrl},
+};
 
-pub use self::ontology_id::OntologyId;
 use crate::store::{
     AsClient, Ordering, PostgresStore,
     crud::{Sorting, VersionedUrlSorting},
@@ -42,7 +43,7 @@ where
     #[tracing::instrument(level = "trace", skip(self))]
     pub async fn delete_ontology_ids(
         &self,
-        ontology_ids: &[OntologyId],
+        ontology_ids: &[OntologyTypeUuid],
     ) -> Result<(), Report<DeletionError>> {
         self.as_client()
             .query(

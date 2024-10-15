@@ -2,7 +2,6 @@
 
 mod common;
 
-#[allow(clippy::wildcard_imports)]
 use common::*;
 
 #[test]

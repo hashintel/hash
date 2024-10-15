@@ -7400,12 +7400,12 @@
     require-from-string "^2.0.2"
     uri-js-replace "^1.0.1"
 
-"@redocly/cli@1.25.5":
-  version "1.25.5"
-  resolved "https://registry.yarnpkg.com/@redocly/cli/-/cli-1.25.5.tgz#258f6d23e8298814518ec4d24d023c1e21e3b081"
-  integrity sha512-sFh4A8wqwuig7mF/nYNVIyxSfKKZikWC+uVH6OB1IepYQXNsHFaLAU1VaNI9gS5mMvWmYx5SEuSCVB9LaNFBhw==
+"@redocly/cli@1.25.6":
+  version "1.25.6"
+  resolved "https://registry.yarnpkg.com/@redocly/cli/-/cli-1.25.6.tgz#71533fe95f5a49ba481eb7cd8a2a4f1c053d8b9c"
+  integrity sha512-oA/0a4pee8u0nP8Gme2Zz8CuAPRjvdioWY+6Szp9YjdMNgWEag2LCXBiJdABLqnnUeawPeuzAQkBM/fqMCjsUQ==
   dependencies:
-    "@redocly/openapi-core" "1.25.5"
+    "@redocly/openapi-core" "1.25.6"
     abort-controller "^3.0.0"
     chokidar "^3.5.1"
     colorette "^1.2.0"
@@ -7430,10 +7430,10 @@
   resolved "https://registry.yarnpkg.com/@redocly/config/-/config-0.12.1.tgz#7b905a17d710244550ef826542d0db164d5ace02"
   integrity sha512-RW3rSirfsPdr0uvATijRDU3f55SuZV3m7/ppdTDvGw4IB0cmeZRkFmqTrchxMqWP50Gfg1tpHnjdxUCNo0E2qg==
 
-"@redocly/openapi-core@1.25.5", "@redocly/openapi-core@^1.4.0":
-  version "1.25.5"
-  resolved "https://registry.yarnpkg.com/@redocly/openapi-core/-/openapi-core-1.25.5.tgz#443b1488c8ef1ddcb8f407c3e7dd8cb7b388b427"
-  integrity sha512-BNgXjqesJu4L5f8F73c2hkkH5IdvjYCKYFgIl+m9oNgqGRIPBJjtiEGOx7jkQ6nElN4311z7Z4aTECtklaaHwg==
+"@redocly/openapi-core@1.25.6", "@redocly/openapi-core@^1.4.0":
+  version "1.25.6"
+  resolved "https://registry.yarnpkg.com/@redocly/openapi-core/-/openapi-core-1.25.6.tgz#e5afe8651ed96a88a11c3ccff81b4ab10f55d50c"
+  integrity sha512-6MolUvqYNepxgXts9xRONvX6I1yq63B/hct1zyRrLgWM2QjmFhhS2yCZxELwWZfGO1OmzqutDaqsoFqB+LYJGg==
   dependencies:
     "@redocly/ajv" "^8.11.2"
     "@redocly/config" "^0.12.1"
@@ -24723,10 +24723,10 @@ oembed-providers@1.0.20240830:
   resolved "https://registry.yarnpkg.com/oembed-providers/-/oembed-providers-1.0.20240830.tgz#62c117fecd594b8722ff888245993b75d5012fcc"
   integrity sha512-O2Cqys3Y13125ooqL6ahJCQSt/Q0M0wlz3VkV+KSTf8AxXn20zqd7YUUHKTzdvoGK+bXvbhMc+/KpOi5HqJ/+w==
 
-officeparser@4.1.1:
-  version "4.1.1"
-  resolved "https://registry.yarnpkg.com/officeparser/-/officeparser-4.1.1.tgz#5c08eb3158c0f8d6d85f12e1e6a95b54f590a677"
-  integrity sha512-bOh7l6Bt/caeyU9t+9yGdQF2N30j8puR7PhXmSI/NqssHNnfnTLp1ehpBo4KuIMeOvzhr8mvkXHFpR2qhH1uhg==
+officeparser@4.1.2:
+  version "4.1.2"
+  resolved "https://registry.yarnpkg.com/officeparser/-/officeparser-4.1.2.tgz#7f925d025eb391f0a6fea80e121fe7d2013fc57e"
+  integrity sha512-QWg9cwxOi7fQ0CPho39Rsu10JA4fmHA+mZuZljCIrMcjCrE9bLRDGxKUJMxg4FVaZWoUVW/9dQUyqIBaAFBXIQ==
   dependencies:
     "@xmldom/xmldom" "^0.8.10"
     decompress "^4.2.0"
@@ -27028,10 +27028,10 @@ react-type-animation@3.2.0:
   resolved "https://registry.yarnpkg.com/react-type-animation/-/react-type-animation-3.2.0.tgz#6863d5d60e3beb237f2bd690cceb585402c47e6a"
   integrity sha512-WXTe0i3rRNKjmggPvT5ntye1QBt0ATGbijeW6V3cQe2W0jaMABXXlPPEdtofnS9tM7wSRHchEvI9SUw+0kUohw==
 
-react-virtuoso@4.10.4:
-  version "4.10.4"
-  resolved "https://registry.yarnpkg.com/react-virtuoso/-/react-virtuoso-4.10.4.tgz#856ed415d7071db0c666ce84809bab8bb834f45c"
-  integrity sha512-G/gprhTbK+lzMxoo/iStcZxVEGph/cIhc3WANEpt92RuMw+LiCZOmBfKoeoZOHlm/iyftTrDJhGaTCpxyucnkQ==
+react-virtuoso@4.11.0:
+  version "4.11.0"
+  resolved "https://registry.yarnpkg.com/react-virtuoso/-/react-virtuoso-4.11.0.tgz#634d456c59c582a424da3fba3c44df33fec0073a"
+  integrity sha512-RhIEoFaUx3SP+1zINqB5JbKKdAer8gUDkFtvl+aq7Y7QF4IFacx8GmENfzSnkDL2qiTajddmTiSd10XV1lKP5Q==
 
 react@*, react@18.2.0, "react@^17.0.0 || ^18.2.0", react@^17.0.2, react@^18.2.0:
   version "18.2.0"

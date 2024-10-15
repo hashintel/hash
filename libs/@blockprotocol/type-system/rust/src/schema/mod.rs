@@ -13,16 +13,18 @@ mod array;
 mod object;
 mod one_of;
 
+mod identifier;
+
 pub use self::{
     array::{PropertyArraySchema, PropertyValueArray, ValueOrArray},
     data_type::{
         AnyOfConstraints, ArrayConstraints, ArraySchema, ArrayTypeTag, ArrayValidationError,
         BooleanSchema, BooleanTypeTag, ClosedDataType, Constraint, ConstraintError,
         ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
-        DataTypeEdge, DataTypeId, DataTypeReference, DataTypeResolveData, DataTypeValidator,
-        InheritanceDepth, JsonSchemaValueType, NullSchema, NullTypeTag, NumberConstraints,
-        NumberSchema, NumberTypeTag, NumberValidationError, ObjectConstraints, ObjectSchema,
-        ObjectTypeTag, ObjectValidationError, OntologyTypeResolver, Operator, ResolvedDataType,
+        DataTypeEdge, DataTypeReference, DataTypeResolveData, DataTypeValidator, InheritanceDepth,
+        JsonSchemaValueType, NullSchema, NullTypeTag, NumberConstraints, NumberSchema,
+        NumberTypeTag, NumberValidationError, ObjectConstraints, ObjectSchema, ObjectTypeTag,
+        ObjectValidationError, OntologyTypeResolver, Operator, ResolvedDataType,
         SingleValueConstraints, SingleValueSchema, StringConstraints, StringFormat,
         StringFormatError, StringSchema, StringTypeTag, StringValidationError, TupleConstraints,
         ValidateDataTypeError, ValueLabel, ValueSchemaMetadata, Variable,
@@ -31,6 +33,7 @@ pub use self::{
         ClosedEntityType, ClosedEntityTypeSchemaData, EntityType, EntityTypeReference,
         EntityTypeValidationError, EntityTypeValidator,
     },
+    identifier::{DataTypeUuid, EntityTypeUuid, OntologyTypeUuid, PropertyTypeUuid},
     object::{
         ObjectSchemaValidationError, ObjectSchemaValidator, PropertyObjectSchema,
         PropertyValueObject,
