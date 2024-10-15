@@ -37,7 +37,7 @@ impl Encoder for JsonCodec {
     type Buf = Bytes;
     type Error = Report<JsonError>;
     type Output<Input>
-        = stream::Map<Input, fn(Input::Item) -> Result<Bytes, serde_json::Error>>
+        = stream::Map<Input, fn(Input::Item) -> Result<Bytes, Report<JsonError>>>
     where
         Input: Stream + Send;
 
