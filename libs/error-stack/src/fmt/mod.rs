@@ -583,13 +583,10 @@ enum PreparedInstruction<'a> {
 }
 
 impl Instruction {
-    // Reason: the match arms are the same intentionally, this makes it more clean which variant
-    //  emits which and also keeps it nicely formatted.
     #[expect(
         clippy::match_same_arms,
         reason = "the match arms are the same intentionally, this makes it more clean which \
-                  variant
-    //  emits which and also keeps it nicely formatted."
+                  variant emits which and also keeps it nicely formatted."
     )]
     fn prepare(&self) -> PreparedInstruction {
         match self {

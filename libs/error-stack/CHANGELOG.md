@@ -5,6 +5,7 @@ All notable changes to `error-stack` will be documented in this file.
 ## Planned
 
 - Support for [`defmt`](https://defmt.ferrous-systems.com)
+- Better support for serialization and deserialization of `Report`
 
 ## Unreleased
 
@@ -15,7 +16,7 @@ All notable changes to `error-stack` will be documented in this file.
 
 ### Breaking Changes
 
-- Set the MSRV to 1.83
+- Set the MSRV to 1.83 ([#5333](https://github.com/hashintel/hash/pull/5333))
 - `Extend` is no longer implemented by `Report<C>`, instead it is implemented on `Report<[C]>`, either use `From` or `Report::expand` to convert between `Report<C>` into `Report<[C]>`. ([#5047](https://github.com/hashintel/hash/pull/5047))
 - `extend_one` has been renamed to `push` and is only implemented on `Report<[C]>`. ([#5047](https://github.com/hashintel/hash/pull/5047))
 - `bail!(report,)` has been removed, one must now use `bail!(report)`. This is in preparation for the unstable `bail!` macro that allows to construct `Report<[C]>`. ([#5047](https://github.com/hashintel/hash/pull/5047))
