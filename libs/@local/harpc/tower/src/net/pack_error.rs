@@ -5,7 +5,7 @@ use core::{
 };
 
 use bytes::{Buf, BytesMut};
-use futures::Stream;
+use futures::{Stream, stream};
 use harpc_codec::{decode::ErrorDecoder, error::kind};
 use harpc_types::error_code::ErrorCode;
 
@@ -17,6 +17,7 @@ struct PartialResponseError {
 impl PartialResponseError {
     fn finish<E, D>(self, decoder: D) -> Result<E, D::Error>
     where
+        E: serde::de::DeserializeOwned,
         D: ErrorDecoder,
     {
         let mut buffer = self.bytes.freeze();
@@ -24,9 +25,9 @@ impl PartialResponseError {
 
         let tag = kind::Tag::from_u8(tag).unwrap();
         match tag {
-            kind::Tag::NetworkError => decoder.decode_error(buffer),
-            kind::Tag::Report => decoder.decode_report(buffer),
-            kind::Tag::Recovery => decoder.decode_recovery(buffer),
+            kind::Tag::NetworkError => decoder.decode_error(stream::once(buffer)),
+            kind::Tag::Report => decoder.decode_report(stream::once(buffer)),
+            kind::Tag::Recovery => decoder.decode_recovery(stream::once(buffer)),
         }
     }
 }
