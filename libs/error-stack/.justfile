@@ -21,8 +21,8 @@ clippy *arguments:
 test *arguments:
   @just install-cargo-nextest
 
-  RUST_BACKTRACE=1 cargo nextest run --all-features --all-targets --cargo-profile {{profile}} {{arguments}}
-  RUST_BACKTRACE=1 cargo nextest run --no-default-features --all-targets --cargo-profile {{profile}} {{arguments}}
+  RUST_BACKTRACE=1 cargo nextest run --all-features --all-targets {{arguments}}
+  RUST_BACKTRACE=1 cargo nextest run --no-default-features --all-targets {{arguments}}
   RUST_BACKTRACE=1 cargo test --all-features --doc {{arguments}}
 
 [private]
