@@ -1,41 +1,44 @@
 #![feature(never_type, impl_trait_in_assoc_type)]
 #![expect(
     clippy::unwrap_used,
-    clippy::empty_enum,
     clippy::todo,
     unused_variables,
     reason = "non-working example code"
 )]
 
-use core::fmt::Debug;
+use core::{error::Error, fmt::Debug, future};
 
-use error_stack::Report;
+use bytes::Buf;
+use error_stack::{Report, ResultExt};
 use frunk::HList;
-use futures::{StreamExt, pin_mut, stream};
+use futures::{Stream, StreamExt, pin_mut, stream};
 use graph_types::account::AccountId;
 use harpc_codec::{decode::Decoder, encode::Encoder, json::JsonCodec};
+use harpc_net::session::server::SessionId;
 use harpc_server::{router::RouterBuilder, serve::serve};
 use harpc_service::{
     Service,
     delegate::ServiceDelegate,
     metadata::Metadata,
     procedure::{Procedure, ProcedureIdentifier},
-    role::{Client, ClientSession, Role, Server},
+    role::{Client, Role, Server},
 };
 use harpc_tower::{
+    Extensions,
     body::{Body, BodyExt},
     layer::{
         body_report::HandleBodyReportLayer, boxed::BoxedResponseLayer, report::HandleReportLayer,
     },
-    request::Request,
+    request::{self, Request},
     response::{Parts, Response},
 };
 use harpc_types::{
     procedure::{ProcedureDescriptor, ProcedureId},
     response_kind::ResponseKind,
-    service::ServiceId,
+    service::{ServiceDescriptor, ServiceId},
     version::Version,
 };
+use tower::ServiceExt as _;
 
 enum AccountProcedureId {
     CreateAccount,
@@ -101,7 +104,14 @@ impl Procedure for CreateAccount {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, thiserror::Error)]
-enum AccountError {}
+enum AccountError {
+    #[error("unable to establish connection to server")]
+    Connection,
+    #[error("unable to decode response")]
+    Decode,
+    #[error("expected at least a single response")]
+    ExpectedResponse,
+}
 
 trait AccountService<R>
 where
@@ -134,16 +144,61 @@ where
 #[expect(dead_code, reason = "dummy client")]
 struct AccountServiceClient;
 
-impl<S> AccountService<Client<S>> for AccountServiceClient
+impl<S, E, St, ResData, ResError> AccountService<Client<(S, E)>> for AccountServiceClient
 where
-    S: ClientSession + Send + Sync,
+    S: tower::Service<
+            Request<<E as Encoder>::Output<stream::Once<future::Ready<CreateAccount>>>>,
+            Response = Response<St>,
+            Future: Send,
+            Error: Error + Send + Sync + 'static,
+        > + Clone
+        + Send
+        + Sync,
+    E: Encoder + Decoder<Error: Error + Send + Sync + 'static> + Clone + Send + Sync,
+    St: Stream<Item = Result<ResData, ResError>> + Send + Sync,
+    ResData: Buf,
 {
     async fn create_account(
         &self,
-        session: &S,
+        session: &(S, E),
         payload: CreateAccount,
     ) -> Result<AccountId, Report<AccountError>> {
-        todo!()
+        let (service, codec) = session.clone();
+
+        let body = codec.clone().encode(stream::once(future::ready(payload)));
+
+        let request = Request::from_parts(
+            request::Parts {
+                service: ServiceDescriptor {
+                    id: Account::ID,
+                    version: Account::VERSION,
+                },
+                procedure: ProcedureDescriptor {
+                    id: CreateAccount::ID.into_id(),
+                },
+                session: SessionId::CLIENT,
+                extensions: Extensions::new(),
+            },
+            body,
+        );
+
+        let response = service
+            .oneshot(request)
+            .await
+            .change_context(AccountError::Connection)?;
+
+        let (parts, body) = response.into_parts();
+
+        let data = codec.decode(body);
+        tokio::pin!(data);
+
+        let item = data
+            .next()
+            .await
+            .ok_or_else(|| Report::new(AccountError::ExpectedResponse))?
+            .change_context(AccountError::Decode)?;
+
+        Ok(item)
     }
 }
 

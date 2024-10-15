@@ -7,7 +7,7 @@ pub mod error;
 pub mod route;
 pub mod router;
 pub mod serve;
-pub mod server;
+
 pub mod session;
 
 use core::{
