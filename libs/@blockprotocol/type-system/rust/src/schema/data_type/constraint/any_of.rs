@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
 use crate::schema::{
-    ConstraintError, SingleValueSchema, ValueLabel,
+    ConstraintError, SingleValueSchema,
     data_type::{
         closed::ResolveClosedDataTypeError,
         constraint::{Constraint, ConstraintValidator, ValueConstraints},
@@ -50,7 +50,7 @@ impl Constraint for AnyOfConstraints {
             .into_iter()
             .cartesian_product(other.any_of.clone())
         {
-            let (constraints, remainder) = match lhs.constraints.combine(rhs.constraints) {
+            let (constraints, remainder) = match lhs.intersection(rhs) {
                 Ok((constraints, remainder)) => (constraints, remainder),
                 Err(error) => {
                     errors.push(Err(error));
@@ -58,16 +58,7 @@ impl Constraint for AnyOfConstraints {
                 }
             };
 
-            let (description, label) = if lhs.description.is_none() && lhs.label.is_empty() {
-                (rhs.description, rhs.label)
-            } else {
-                (lhs.description, lhs.label)
-            };
-            combined_constraints.push(SingleValueSchema {
-                description,
-                label,
-                constraints,
-            });
+            combined_constraints.push(constraints);
             if let Some(remainder) = remainder {
                 remainders.push(remainder);
             }
@@ -75,7 +66,6 @@ impl Constraint for AnyOfConstraints {
 
         match combined_constraints.len() {
             0 => {
-                // We now properly capture errors to return it to the caller.
                 let _: Vec<()> = errors
                     .into_iter()
                     .try_collect_reports()
@@ -86,12 +76,8 @@ impl Constraint for AnyOfConstraints {
                 Self {
                     any_of: combined_constraints,
                 },
-                remainders.pop().map(|constraints| Self {
-                    any_of: vec![SingleValueSchema {
-                        constraints,
-                        description: None,
-                        label: ValueLabel::default(),
-                    }],
+                remainders.pop().map(|schema| Self {
+                    any_of: vec![schema],
                 }),
             )),
             _ => {

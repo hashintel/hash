@@ -139,7 +139,7 @@ impl Constraint for ValueConstraints {
                         label: ValueLabel::default(),
                     }],
                 };
-                lhs.combine(rhs)
+                lhs.intersection(rhs)
                     .map(|(lhs, rhs)| (Self::from(lhs), rhs.map(Self::from)))
             }
             (Self::Typed(lhs), Self::AnyOf(rhs)) => {
@@ -150,7 +150,7 @@ impl Constraint for ValueConstraints {
                         label: ValueLabel::default(),
                     }],
                 };
-                lhs.combine(rhs)
+                lhs.intersection(rhs)
                     .map(|(lhs, rhs)| (Self::from(lhs), rhs.map(Self::from)))
             }
             (Self::AnyOf(lhs), Self::AnyOf(rhs)) => lhs
@@ -254,6 +254,33 @@ pub struct SingleValueSchema {
     pub label: ValueLabel,
     #[serde(flatten)]
     pub constraints: SingleValueConstraints,
+}
+
+impl Constraint for SingleValueSchema {
+    fn intersection(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        let (combined, remainder) = self.constraints.intersection(other.constraints)?;
+        let (description, label) = if self.description.is_none() && self.label.is_empty() {
+            (other.description, other.label)
+        } else {
+            (self.description, self.label)
+        };
+
+        Ok((
+            Self {
+                description,
+                label,
+                constraints: combined,
+            },
+            remainder.map(|remainder| Self {
+                constraints: remainder,
+                description: None,
+                label: ValueLabel::default(),
+            }),
+        ))
+    }
 }
 
 #[cfg(target_arch = "wasm32")]
