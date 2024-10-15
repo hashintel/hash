@@ -41,6 +41,7 @@ impl<B> Response<B> {
 
     pub fn into_parts(self) -> (Parts, B) {
         (self.head, self.body)
+    }
 }
 
 impl<B> Response<B> {

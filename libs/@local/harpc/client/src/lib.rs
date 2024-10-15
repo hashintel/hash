@@ -36,7 +36,9 @@ pub enum ClientError {
 /// We cannot drop whenever the last client is dropped because there may still be multiple
 /// connections that are still active.
 #[derive(Debug, Clone)]
-pub(crate) struct TransportLayerGuard(Arc<DropGuard>);
+pub(crate) struct TransportLayerGuard(
+    #[expect(dead_code, reason = "drop guard is only used for dropping")] Arc<DropGuard>,
+);
 
 #[derive(Debug, Clone)]
 pub struct Client {
@@ -46,10 +48,15 @@ pub struct Client {
 }
 
 impl Client {
-    pub async fn new(config: ClientConfig) -> Result<Self, Report<ClientError>> {
+    /// Creates a new `Client` with the given configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns a `ClientError::StartTransportLayer` if unable to start the transport layer.
+    pub fn new(config: ClientConfig) -> Result<Self, Report<ClientError>> {
         let token = CancellationToken::new();
 
-        let transport = TransportLayer::start(config.transport, (), token.clone())
+        let transport = TransportLayer::tcp(config.transport, token.clone())
             .change_context(ClientError::StartTransportLayer)?;
 
         let session = SessionLayer::new(config.session, transport);
