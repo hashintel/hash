@@ -17,7 +17,7 @@ use crate::TransportLayerGuard;
 
 #[derive(Debug, Clone)]
 pub struct Connection {
-    connection: Arc<harpc_net::session::client::Connection>,
+    inner: Arc<harpc_net::session::client::Connection>,
 
     _guard: TransportLayerGuard,
 }
@@ -28,7 +28,7 @@ impl Connection {
         guard: TransportLayerGuard,
     ) -> Self {
         Self {
-            connection: Arc::new(connection),
+            inner: Arc::new(connection),
             _guard: guard,
         }
     }
@@ -48,7 +48,7 @@ where
     }
 
     fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
-        let connection = Arc::clone(&self.0);
+        let connection = Arc::clone(&self.inner);
 
         async move {
             let service = req.service();
