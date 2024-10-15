@@ -241,8 +241,7 @@ pub fn remove_builtin_messages<S: AsRef<str>>(
         .into_iter()
         .filter_map(|message| {
             let message = message.as_ref();
-            // Reason: complexity + readability
-            #[expect(clippy::if_then_some_else_none)]
+            #[expect(clippy::if_then_some_else_none, reason = "complexity + readability")]
             if message != "Location" && message != "Backtrace" && message != "SpanTrace" {
                 Some(message.to_owned())
             } else {

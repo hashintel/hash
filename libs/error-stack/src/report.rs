@@ -262,7 +262,7 @@ impl<C> Report<C> {
     /// [`Backtrace` and `SpanTrace` section]: #backtrace-and-spantrace
     #[inline]
     #[track_caller]
-    #[expect(clippy::missing_panics_doc)] // Reason: No panic possible
+    #[expect(clippy::missing_panics_doc, reason = "No panic possible")]
     pub fn new(context: C) -> Self
     where
         C: Context,
