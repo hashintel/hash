@@ -277,7 +277,7 @@ pub trait DataTypeStore {
     /// # Errors
     ///
     /// - if re-indexing the cache fails.
-    fn reindex_cache(&mut self) -> impl Future<Output = Result<(), UpdateError>> + Send;
+    fn reindex_data_type_cache(&mut self) -> impl Future<Output = Result<(), UpdateError>> + Send;
 }
 
 #[derive(Debug, Deserialize)]
@@ -776,4 +776,15 @@ pub trait EntityTypeStore {
 
         params: UpdateEntityTypeEmbeddingParams<'_>,
     ) -> impl Future<Output = Result<(), UpdateError>> + Send;
+
+    /// Re-indexes the cache for entity types.
+    ///
+    /// This is only needed if the schema of a entity type has changed in place without bumping
+    /// the version. This is a rare operation and should be avoided if possible.
+    ///
+    /// # Errors
+    ///
+    /// - if re-indexing the cache fails.
+    fn reindex_entity_type_cache(&mut self)
+    -> impl Future<Output = Result<(), UpdateError>> + Send;
 }

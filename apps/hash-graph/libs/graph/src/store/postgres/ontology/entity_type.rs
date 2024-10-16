@@ -1,3 +1,4 @@
+use alloc::sync::Arc;
 use core::iter::once;
 use std::collections::{HashMap, HashSet};
 
@@ -9,7 +10,7 @@ use authorization::{
     },
     zanzibar::{Consistency, Zookie},
 };
-use error_stack::{Report, Result, ResultExt, ensure};
+use error_stack::{Result, ResultExt};
 use futures::{StreamExt, TryStreamExt};
 use graph_types::{
     Embedding,
@@ -17,7 +18,6 @@ use graph_types::{
     ontology::{
         EntityTypeMetadata, EntityTypeWithMetadata, OntologyEditionProvenance, OntologyProvenance,
         OntologyTemporalMetadata, OntologyTypeClassificationMetadata, OntologyTypeRecordId,
-        PartialEntityTypeMetadata,
     },
 };
 use hash_graph_store::{
@@ -40,7 +40,7 @@ use tracing::instrument;
 use type_system::{
     Validator,
     schema::{
-        ClosedEntityType, DataTypeUuid, EntityType, EntityTypeUuid, EntityTypeValidator,
+        ClosedEntityType, DataTypeUuid, EntityTypeUuid, EntityTypeValidator, OntologyTypeResolver,
         OntologyTypeUuid, PropertyTypeUuid,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
@@ -438,119 +438,6 @@ where
 
         Ok(())
     }
-
-    #[tracing::instrument(level = "debug")]
-    fn create_closed_entity_type(
-        entity_type_id: EntityTypeUuid,
-        available_types: &mut HashMap<EntityTypeUuid, ClosedEntityType>,
-    ) -> Result<ClosedEntityType, QueryError> {
-        let mut current_type = available_types
-            .remove(&entity_type_id)
-            .ok_or_else(|| Report::new(QueryError))
-            .attach_printable("entity type not available")?;
-        let mut visited_ids = HashSet::from([entity_type_id]);
-
-        loop {
-            for parent in current_type.all_of.clone() {
-                let parent_id = EntityTypeUuid::from_url(&parent.url);
-
-                ensure!(
-                    parent_id != entity_type_id,
-                    Report::new(QueryError).attach_printable("inheritance cycle detected")
-                );
-
-                if visited_ids.contains(&parent_id) {
-                    // This may happen in case of multiple inheritance or cycles. Cycles are
-                    // already checked above, so we can just skip this parent.
-                    current_type.all_of.remove(&parent);
-                    break;
-                }
-
-                current_type.extend_one(
-                    available_types
-                        .get(&parent_id)
-                        .ok_or_else(|| Report::new(QueryError))
-                        .attach_printable("entity type not available")
-                        .attach_printable_lazy(|| parent.url.clone())?
-                        .clone(),
-                );
-
-                visited_ids.insert(parent_id);
-            }
-
-            if current_type.all_of.is_empty() {
-                break;
-            }
-        }
-
-        available_types.insert(entity_type_id, current_type.clone());
-        Ok(current_type)
-    }
-
-    #[tracing::instrument(level = "debug", skip(self, entity_types))]
-    pub(crate) async fn resolve_entity_types(
-        &self,
-        entity_types: impl IntoIterator<Item = EntityType> + Send,
-    ) -> Result<Vec<EntityTypeInsertion>, QueryError> {
-        let entity_types = entity_types
-            .into_iter()
-            .map(|entity_type| (EntityTypeUuid::from_url(&entity_type.id), entity_type))
-            .collect::<Vec<_>>();
-
-        // We need all types that the provided types inherit from so we can create the closed
-        // schemas
-        let parent_entity_type_ids = entity_types
-            .iter()
-            .flat_map(|(_, schema)| &schema.all_of)
-            .map(|reference| EntityTypeUuid::from_url(&reference.url))
-            .collect::<Vec<_>>();
-
-        // We read all relevant schemas from the graph
-        let parent_schemas = self
-            .read_closed_schemas(
-                &Filter::In(
-                    FilterExpression::Path {
-                        path: EntityTypeQueryPath::OntologyId,
-                    },
-                    ParameterList::EntityTypeIds(&parent_entity_type_ids),
-                ),
-                Some(
-                    &QueryTemporalAxesUnresolved::DecisionTime {
-                        pinned: PinnedTemporalAxisUnresolved::new(None),
-                        variable: VariableTemporalAxisUnresolved::new(None, None),
-                    }
-                    .resolve(),
-                ),
-            )
-            .await?
-            .try_collect::<Vec<_>>()
-            .await?;
-
-        // The types we check either come from the graph or are provided by the user
-        let mut available_schemas: HashMap<_, _> = entity_types
-            .iter()
-            .map(|(id, schema)| (*id, ClosedEntityType::from(schema.clone())))
-            .chain(parent_schemas)
-            .collect();
-
-        entity_types
-            .into_iter()
-            .map(|(entity_type_id, schema)| {
-                Ok(EntityTypeInsertion {
-                    schema,
-                    closed_schema: Self::create_closed_entity_type(
-                        entity_type_id,
-                        &mut available_schemas,
-                    )?,
-                })
-            })
-            .collect::<Result<Vec<_>, _>>()
-    }
-}
-
-pub struct EntityTypeInsertion {
-    pub schema: EntityType,
-    pub closed_schema: ClosedEntityType,
 }
 
 impl<C, A> EntityTypeStore for PostgresStore<C, A>
@@ -572,54 +459,24 @@ where
 
         let mut relationships = HashSet::new();
 
-        let mut inserted_ontology_ids = Vec::new();
-        let mut inserted_entity_types = Vec::new();
         let mut inserted_entity_type_metadata = Vec::new();
+        let mut inserted_entity_types = Vec::new();
+        let mut entity_type_reference_ids = Vec::new();
 
-        let validator = EntityTypeValidator;
-
-        let mut schemas = Vec::new();
-        let mut metadatas = Vec::new();
-        for param in params {
+        for parameters in params {
             let provenance = OntologyProvenance {
                 edition: OntologyEditionProvenance {
                     created_by_id: EditionCreatedById::new(actor_id),
                     archived_by_id: None,
-                    user_defined: param.provenance,
+                    user_defined: parameters.provenance,
                 },
             };
 
-            metadatas.push((
-                PartialEntityTypeMetadata {
-                    record_id: OntologyTypeRecordId::from(param.schema.id.clone()),
-                    classification: param.classification,
-                    label_property: param.label_property,
-                    icon: param.icon,
-                },
-                param.conflict_behavior,
-                param.relationships,
-                provenance,
-            ));
-            schemas.push(param.schema);
-        }
-
-        let insertions = transaction
-            .resolve_entity_types(schemas)
-            .await
-            .change_context(InsertionError)?;
-
-        for (insertion, (metadata, on_conflict, requested_relationships, provenance)) in
-            insertions.into_iter().zip(metadatas)
-        {
-            let EntityTypeInsertion {
-                schema,
-                closed_schema,
-            } = insertion;
-
-            let entity_type_id = EntityTypeUuid::from_url(&schema.id);
+            let record_id = OntologyTypeRecordId::from(parameters.schema.id.clone());
+            let entity_type_id = EntityTypeUuid::from_url(&parameters.schema.id);
 
             if let OntologyTypeClassificationMetadata::Owned { owned_by_id } =
-                &metadata.classification
+                &parameters.classification
             {
                 transaction
                     .authorization_api
@@ -640,70 +497,154 @@ where
                 }));
             }
 
-            if let Some((ontology_id, temporal_versioning)) = transaction
+            relationships.extend(
+                parameters
+                    .relationships
+                    .into_iter()
+                    .map(|relation_and_subject| (entity_type_id, relation_and_subject)),
+            );
+
+            if let Some((_ontology_id, temporal_versioning)) = transaction
                 .create_ontology_metadata(
-                    &schema.id,
-                    &metadata.classification,
-                    on_conflict,
+                    &parameters.schema.id,
+                    &parameters.classification,
+                    parameters.conflict_behavior,
                     &provenance,
                 )
                 .await?
             {
-                transaction
-                    .insert_entity_type_with_id(
-                        ontology_id,
-                        validator
-                            .validate_ref(&schema)
-                            .await
-                            .change_context(InsertionError)?,
-                        validator
-                            .validate_ref(&closed_schema)
-                            .await
-                            .change_context(InsertionError)?,
-                        metadata.label_property.as_ref(),
-                        metadata.icon.as_deref(),
-                    )
-                    .await?;
-
-                let metadata = EntityTypeMetadata {
-                    record_id: metadata.record_id,
-                    classification: metadata.classification,
+                entity_type_reference_ids.extend(
+                    parameters
+                        .schema
+                        .entity_type_references()
+                        .map(|(reference, _)| EntityTypeUuid::from_url(&reference.url)),
+                );
+                inserted_entity_types.push((entity_type_id, Arc::new(parameters.schema)));
+                inserted_entity_type_metadata.push(EntityTypeMetadata {
+                    record_id,
+                    classification: parameters.classification,
+                    label_property: parameters.label_property,
+                    icon: parameters.icon,
                     temporal_versioning,
                     provenance,
-                    label_property: metadata.label_property,
-                    icon: metadata.icon,
-                };
-
-                inserted_ontology_ids.push(ontology_id);
-                inserted_entity_types.push(EntityTypeWithMetadata {
-                    schema,
-                    metadata: metadata.clone(),
                 });
-                inserted_entity_type_metadata.push(metadata);
             }
-
-            relationships.extend(
-                requested_relationships
-                    .into_iter()
-                    .map(|relation_and_subject| (entity_type_id, relation_and_subject)),
-            );
         }
 
-        for (ontology_id, entity_type) in inserted_ontology_ids
+        let mut ontology_type_resolver = OntologyTypeResolver::default();
+
+        for (entity_type_id, inserted_entity_type) in &inserted_entity_types {
+            ontology_type_resolver
+                .add_unresolved_entity_type(*entity_type_id, Arc::clone(inserted_entity_type));
+        }
+
+        let required_reference_ids = entity_type_reference_ids.into_iter().collect::<Vec<_>>();
+
+        transaction
+            .get_entity_types(actor_id, GetEntityTypesParams {
+                filter: Filter::In(
+                    FilterExpression::Path {
+                        path: EntityTypeQueryPath::OntologyId,
+                    },
+                    ParameterList::EntityTypeIds(&required_reference_ids),
+                ),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                },
+                include_drafts: false,
+                after: None,
+                limit: None,
+                include_count: false,
+                include_web_ids: false,
+                include_edition_created_by_ids: false,
+            })
+            .await
+            .change_context(InsertionError)
+            .attach_printable("Could not read parent entity types")?
+            .entity_types
             .into_iter()
-            .zip(&inserted_entity_types)
+            .chain(
+                transaction
+                    .get_entity_types(actor_id, GetEntityTypesParams {
+                        filter: Filter::In(
+                            FilterExpression::Path {
+                                path: EntityTypeQueryPath::EntityTypeEdge {
+                                    edge_kind: OntologyEdgeKind::InheritsFrom,
+                                    path: Box::new(EntityTypeQueryPath::OntologyId),
+                                    direction: EdgeDirection::Incoming,
+                                    inheritance_depth: None,
+                                },
+                            },
+                            ParameterList::EntityTypeIds(&required_reference_ids),
+                        ),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        },
+                        include_drafts: false,
+                        after: None,
+                        limit: None,
+                        include_count: false,
+                        include_web_ids: false,
+                        include_edition_created_by_ids: false,
+                    })
+                    .await
+                    .change_context(InsertionError)
+                    .attach_printable("Could not read parent entity types")?
+                    .entity_types,
+            )
+            .for_each(|entity_type| {
+                ontology_type_resolver.add_unresolved_entity_type(
+                    EntityTypeUuid::from_url(&entity_type.schema.id),
+                    Arc::new(entity_type.schema),
+                );
+            });
+
+        let closed_schemas = inserted_entity_types
+            .iter()
+            .map(|(entity_type_id, entity_type)| {
+                let closed_metadata = ontology_type_resolver
+                    .resolve_entity_type_metadata(*entity_type_id)
+                    .change_context(InsertionError)?;
+                let closed_schema =
+                    ClosedEntityType::from_resolve_data((**entity_type).clone(), &closed_metadata);
+
+                Ok((closed_schema, closed_metadata))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        let entity_type_validator = EntityTypeValidator;
+        for (
+            ((entity_type_id, entity_type), entity_type_metadata),
+            (closed_schema, _resolve_data),
+        ) in inserted_entity_types
+            .iter()
+            .zip(&inserted_entity_type_metadata)
+            .zip(&closed_schemas)
         {
             transaction
-                .insert_entity_type_references(&entity_type.schema, ontology_id)
-                .await
-                .change_context(InsertionError)
-                .attach_printable_lazy(|| {
-                    format!(
-                        "could not insert references for entity type: {}",
-                        entity_type.schema.id
-                    )
-                })
-                .attach_lazy(|| entity_type.schema.clone())?;
+                .insert_entity_type_with_id(
+                    *entity_type_id,
+                    entity_type_validator
+                        .validate_ref(&**entity_type)
+                        .await
+                        .change_context(InsertionError)?,
+                    entity_type_validator
+                        .validate_ref(closed_schema)
+                        .await
+                        .change_context(InsertionError)?,
+                    entity_type_metadata.label_property.as_ref(),
+                    entity_type_metadata.icon.as_deref(),
+                )
+                .await?;
+        }
+        for ((_, closed_metadata), (entity_type_id, _)) in
+            closed_schemas.iter().zip(&inserted_entity_types)
+        {
+            transaction
+                .insert_entity_type_references(*entity_type_id, closed_metadata)
+                .await?;
         }
 
         transaction
@@ -744,7 +685,17 @@ where
         } else {
             if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
-                    .start_update_entity_type_embeddings_workflow(actor_id, &inserted_entity_types)
+                    .start_update_entity_type_embeddings_workflow(
+                        actor_id,
+                        &inserted_entity_types
+                            .iter()
+                            .zip(&inserted_entity_type_metadata)
+                            .map(|((_, schema), metadata)| EntityTypeWithMetadata {
+                                schema: (**schema).clone(),
+                                metadata: metadata.clone(),
+                            })
+                            .collect::<Vec<_>>(),
+                    )
                     .await
                     .change_context(InsertionError)?;
             }
@@ -912,6 +863,8 @@ where
     where
         R: IntoIterator<Item = EntityTypeRelationAndSubject> + Send + Sync,
     {
+        let entity_type_validator = EntityTypeValidator;
+
         let old_ontology_id = EntityTypeUuid::from_url(&VersionedUrl {
             base_url: params.schema.id.base_url.clone(),
             version: OntologyTypeVersion::new(
@@ -927,6 +880,7 @@ where
                     )?,
             ),
         });
+        let new_ontology_id = EntityTypeUuid::from_url(&params.schema.id);
         self.authorization_api
             .check_entity_type_permission(
                 actor_id,
@@ -941,9 +895,6 @@ where
 
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
-        let url = &params.schema.id;
-        let record_id = OntologyTypeRecordId::from(url.clone());
-
         let provenance = OntologyProvenance {
             edition: OntologyEditionProvenance {
                 created_by_id: EditionCreatedById::new(actor_id),
@@ -952,57 +903,112 @@ where
             },
         };
 
-        let (ontology_id, owned_by_id, temporal_versioning) = transaction
-            .update_owned_ontology_id(url, &provenance.edition)
-            .await?;
-
-        let mut insertions = transaction
-            .resolve_entity_types([params.schema])
+        let schema = entity_type_validator
+            .validate(params.schema)
             .await
             .change_context(UpdateError)?;
-        let EntityTypeInsertion {
-            schema,
-            closed_schema,
-        } = insertions
-            .pop()
-            .ok_or_else(|| Report::new(UpdateError).attach_printable("entity type not found"))?;
 
-        let validator = EntityTypeValidator;
+        let mut ontology_type_resolver = OntologyTypeResolver::default();
+
+        let required_reference_ids = schema
+            .entity_type_references()
+            .map(|(reference, _)| EntityTypeUuid::from_url(&reference.url))
+            .collect::<Vec<_>>();
+
+        transaction
+            .get_entity_types(actor_id, GetEntityTypesParams {
+                filter: Filter::In(
+                    FilterExpression::Path {
+                        path: EntityTypeQueryPath::OntologyId,
+                    },
+                    ParameterList::EntityTypeIds(&required_reference_ids),
+                ),
+                temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                    pinned: PinnedTemporalAxisUnresolved::new(None),
+                    variable: VariableTemporalAxisUnresolved::new(None, None),
+                },
+                include_drafts: false,
+                after: None,
+                limit: None,
+                include_count: false,
+                include_web_ids: false,
+                include_edition_created_by_ids: false,
+            })
+            .await
+            .change_context(UpdateError)
+            .attach_printable("Could not read parent entity types")?
+            .entity_types
+            .into_iter()
+            .chain(
+                transaction
+                    .get_entity_types(actor_id, GetEntityTypesParams {
+                        filter: Filter::In(
+                            FilterExpression::Path {
+                                path: EntityTypeQueryPath::EntityTypeEdge {
+                                    edge_kind: OntologyEdgeKind::InheritsFrom,
+                                    path: Box::new(EntityTypeQueryPath::OntologyId),
+                                    direction: EdgeDirection::Incoming,
+                                    inheritance_depth: None,
+                                },
+                            },
+                            ParameterList::EntityTypeIds(&required_reference_ids),
+                        ),
+                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
+                            pinned: PinnedTemporalAxisUnresolved::new(None),
+                            variable: VariableTemporalAxisUnresolved::new(None, None),
+                        },
+                        include_drafts: false,
+                        after: None,
+                        limit: None,
+                        include_count: false,
+                        include_web_ids: false,
+                        include_edition_created_by_ids: false,
+                    })
+                    .await
+                    .change_context(UpdateError)
+                    .attach_printable("Could not read parent entity types")?
+                    .entity_types,
+            )
+            .for_each(|entity_type| {
+                ontology_type_resolver.add_unresolved_entity_type(
+                    EntityTypeUuid::from_url(&entity_type.schema.id),
+                    Arc::new(entity_type.schema),
+                );
+            });
+
+        ontology_type_resolver
+            .add_unresolved_entity_type(new_ontology_id, Arc::new(schema.clone().into_inner()));
+        let resolve_data = ontology_type_resolver
+            .resolve_entity_type_metadata(new_ontology_id)
+            .change_context(UpdateError)?;
+
+        let closed_schema = entity_type_validator
+            .validate(ClosedEntityType::from_resolve_data(
+                schema.clone().into_inner(),
+                &resolve_data,
+            ))
+            .await
+            .change_context(UpdateError)?;
+
+        let (_ontology_id, owned_by_id, temporal_versioning) = transaction
+            .update_owned_ontology_id(&schema.id, &provenance.edition)
+            .await?;
 
         transaction
             .insert_entity_type_with_id(
-                ontology_id,
-                validator
-                    .validate_ref(&schema)
-                    .await
-                    .change_context(UpdateError)?,
-                validator
-                    .validate_ref(&closed_schema)
-                    .await
-                    .change_context(UpdateError)?,
+                new_ontology_id,
+                &schema,
+                &closed_schema,
                 params.label_property.as_ref(),
                 params.icon.as_deref(),
             )
             .await
             .change_context(UpdateError)?;
-
-        let metadata = PartialEntityTypeMetadata {
-            record_id,
-            label_property: params.label_property,
-            icon: params.icon,
-            classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
-        };
-
         transaction
-            .insert_entity_type_references(&schema, ontology_id)
+            .insert_entity_type_references(new_ontology_id, &resolve_data)
             .await
-            .change_context(UpdateError)
-            .attach_printable_lazy(|| {
-                format!("could not insert references for entity type: {}", schema.id)
-            })
-            .attach_lazy(|| schema.clone())?;
+            .change_context(UpdateError)?;
 
-        let entity_type_id = EntityTypeUuid::from(ontology_id);
         let relationships = params
             .relationships
             .into_iter()
@@ -1018,7 +1024,7 @@ where
                 |relation_and_subject| {
                     (
                         ModifyRelationshipOperation::Create,
-                        entity_type_id,
+                        new_ontology_id,
                         relation_and_subject,
                     )
                 },
@@ -1035,7 +1041,7 @@ where
                     |relation_and_subject| {
                         (
                             ModifyRelationshipOperation::Delete,
-                            entity_type_id,
+                            new_ontology_id,
                             relation_and_subject,
                         )
                     },
@@ -1049,19 +1055,19 @@ where
             Err(error.change_context(UpdateError))
         } else {
             let metadata = EntityTypeMetadata {
-                record_id: metadata.record_id,
-                classification: metadata.classification,
+                record_id: OntologyTypeRecordId::from(schema.id.clone()),
+                classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
                 temporal_versioning,
                 provenance,
-                label_property: metadata.label_property,
-                icon: metadata.icon,
+                label_property: params.label_property,
+                icon: params.icon,
             };
 
             if let Some(temporal_client) = &self.temporal_client {
                 temporal_client
                     .start_update_entity_type_embeddings_workflow(actor_id, &[
                         EntityTypeWithMetadata {
-                            schema,
+                            schema: schema.into_inner(),
                             metadata: metadata.clone(),
                         },
                     ])
@@ -1165,6 +1171,57 @@ where
             )
             .await
             .change_context(UpdateError)?;
+
+        Ok(())
+    }
+
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn reindex_entity_type_cache(&mut self) -> Result<(), UpdateError> {
+        tracing::info!("Reindexing data type cache");
+        let transaction = self.transaction().await.change_context(UpdateError)?;
+
+        // We remove the data from the reference tables first
+        transaction
+            .as_client()
+            .simple_query(
+                "
+                    DELETE FROM entity_type_inherits_from;
+                ",
+            )
+            .await
+            .change_context(UpdateError)?;
+
+        let mut ontology_type_resolver = OntologyTypeResolver::default();
+
+        let entity_type_ids = Read::<EntityTypeWithMetadata>::read_vec(
+            &transaction,
+            &Filter::All(Vec::new()),
+            None,
+            true,
+        )
+        .await
+        .change_context(UpdateError)?
+        .into_iter()
+        .map(|entity_type| {
+            let schema = Arc::new(entity_type.schema);
+            let entity_type_id = EntityTypeUuid::from_url(&schema.id);
+            ontology_type_resolver.add_unresolved_entity_type(entity_type_id, Arc::clone(&schema));
+            entity_type_id
+        })
+        .collect::<Vec<_>>();
+
+        for entity_type_id in entity_type_ids {
+            let schema_metadata = ontology_type_resolver
+                .resolve_entity_type_metadata(entity_type_id)
+                .change_context(UpdateError)?;
+
+            transaction
+                .insert_entity_type_references(entity_type_id, &schema_metadata)
+                .await
+                .change_context(UpdateError)?;
+        }
+
+        transaction.commit().await.change_context(UpdateError)?;
 
         Ok(())
     }

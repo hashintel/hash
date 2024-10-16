@@ -1,11 +1,15 @@
-use std::collections::{HashMap, HashSet};
+use alloc::sync::Arc;
+use core::{cmp, iter};
+use std::collections::{HashMap, HashSet, hash_map::Entry};
 
+use itertools::Itertools as _;
 use serde::{Deserialize, Serialize};
 
 use crate::{
     schema::{
-        EntityType, EntityTypeReference, PropertyTypeReference, PropertyValueArray, ValueOrArray,
-        entity_type::extend_links, one_of::OneOfSchema,
+        EntityType, EntityTypeReference, EntityTypeToEntityTypeEdge, EntityTypeToPropertyTypeEdge,
+        EntityTypeUuid, InheritanceDepth, PropertyTypeReference, PropertyTypeUuid,
+        PropertyValueArray, ValueOrArray, entity_type::extend_links, one_of::OneOfSchema,
     },
     url::{BaseUrl, VersionedUrl},
 };
@@ -28,6 +32,22 @@ pub struct ClosedEntityType {
     pub links: HashMap<VersionedUrl, PropertyValueArray<Option<OneOfSchema<EntityTypeReference>>>>,
     #[serde(default, skip_serializing_if = "HashSet::is_empty")]
     pub all_of: HashSet<EntityTypeReference>,
+}
+
+impl ClosedEntityType {
+    #[must_use]
+    pub fn from_resolve_data(
+        entity_type: EntityType,
+        resolve_data: &EntityTypeResolveData,
+    ) -> Self {
+        iter::once(entity_type)
+            .chain(
+                resolve_data
+                    .ordered_schemas()
+                    .map(|(_, schema)| schema.clone()),
+            )
+            .collect()
+    }
 }
 
 impl From<EntityType> for ClosedEntityType {
@@ -89,6 +109,151 @@ impl Extend<EntityType> for ClosedEntityType {
         }
 
         self.all_of.retain(|x| !self.schemas.contains_key(&x.url));
+    }
+}
+
+#[derive(Debug, Default, Clone)]
+pub struct EntityTypeResolveData {
+    inheritance_depths: HashMap<EntityTypeUuid, (InheritanceDepth, Arc<EntityType>)>,
+    links: HashMap<EntityTypeUuid, (InheritanceDepth, Arc<EntityType>)>,
+    link_destinations: HashMap<EntityTypeUuid, (InheritanceDepth, Arc<EntityType>)>,
+    properties: HashMap<PropertyTypeUuid, (InheritanceDepth,)>,
+}
+
+impl EntityTypeResolveData {
+    pub fn add_entity_type_edge(
+        &mut self,
+        edge: EntityTypeToEntityTypeEdge,
+        target: Arc<EntityType>,
+        target_id: EntityTypeUuid,
+        depth: u16,
+    ) {
+        let depth = InheritanceDepth::new(depth);
+        match edge {
+            EntityTypeToEntityTypeEdge::Inheritance => {
+                match self.inheritance_depths.entry(target_id) {
+                    Entry::Occupied(mut entry) => {
+                        entry.get_mut().0 = cmp::min(depth, entry.get().0);
+                    }
+                    Entry::Vacant(entry) => {
+                        entry.insert((depth, target));
+                    }
+                }
+            }
+            EntityTypeToEntityTypeEdge::Link => match self.links.entry(target_id) {
+                Entry::Occupied(mut entry) => {
+                    entry.get_mut().0 = cmp::min(depth, entry.get().0);
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert((depth, target));
+                }
+            },
+            EntityTypeToEntityTypeEdge::LinkDestination => {
+                match self.link_destinations.entry(target_id) {
+                    Entry::Occupied(mut entry) => {
+                        entry.get_mut().0 = cmp::min(depth, entry.get().0);
+                    }
+                    Entry::Vacant(entry) => {
+                        entry.insert((depth, target));
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn add_property_type_edge(
+        &mut self,
+        edge: EntityTypeToPropertyTypeEdge,
+        target_id: PropertyTypeUuid,
+        depth: u16,
+    ) {
+        let depth = InheritanceDepth::new(depth);
+        match edge {
+            EntityTypeToPropertyTypeEdge::Property => match self.properties.entry(target_id) {
+                Entry::Occupied(mut entry) => {
+                    entry.get_mut().0 = cmp::min(depth, entry.get().0);
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert((depth,));
+                }
+            },
+        }
+    }
+
+    pub fn extend_edges(&mut self, depth_offset: u16, other: &Self) {
+        for (target_id, (relative_depth, schema)) in &other.inheritance_depths {
+            let absolut_depth = InheritanceDepth::new(relative_depth.inner() + depth_offset);
+            match self.inheritance_depths.entry(*target_id) {
+                Entry::Occupied(mut entry) => {
+                    entry.get_mut().0 = cmp::min(absolut_depth, entry.get().0);
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert((absolut_depth, Arc::clone(schema)));
+                }
+            }
+        }
+        for (target_id, (relative_depth, schema)) in &other.links {
+            let absolut_depth = InheritanceDepth::new(relative_depth.inner() + depth_offset);
+            match self.links.entry(*target_id) {
+                Entry::Occupied(mut entry) => {
+                    entry.get_mut().0 = cmp::min(absolut_depth, entry.get().0);
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert((absolut_depth, Arc::clone(schema)));
+                }
+            }
+        }
+        for (target_id, (relative_depth, schema)) in &other.link_destinations {
+            let absolut_depth = InheritanceDepth::new(relative_depth.inner() + depth_offset);
+            match self.link_destinations.entry(*target_id) {
+                Entry::Occupied(mut entry) => {
+                    entry.get_mut().0 = cmp::min(absolut_depth, entry.get().0);
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert((absolut_depth, Arc::clone(schema)));
+                }
+            }
+        }
+        for (target_id, (relative_depth,)) in &other.properties {
+            let absolut_depth = InheritanceDepth::new(relative_depth.inner() + depth_offset);
+            match self.properties.entry(*target_id) {
+                Entry::Occupied(mut entry) => {
+                    entry.get_mut().0 = cmp::min(absolut_depth, entry.get().0);
+                }
+                Entry::Vacant(entry) => {
+                    entry.insert((absolut_depth,));
+                }
+            }
+        }
+    }
+
+    pub fn inheritance_depths(&self) -> impl Iterator<Item = (EntityTypeUuid, InheritanceDepth)> {
+        self.inheritance_depths
+            .iter()
+            .map(|(id, (depth, _))| (*id, *depth))
+    }
+
+    pub fn links(&self) -> impl Iterator<Item = (EntityTypeUuid, InheritanceDepth)> {
+        self.links.iter().map(|(id, (depth, _))| (*id, *depth))
+    }
+
+    pub fn link_destinations(&self) -> impl Iterator<Item = (EntityTypeUuid, InheritanceDepth)> {
+        self.link_destinations
+            .iter()
+            .map(|(id, (depth, _))| (*id, *depth))
+    }
+
+    pub fn properties(&self) -> impl Iterator<Item = (PropertyTypeUuid, InheritanceDepth)> {
+        self.properties.iter().map(|(id, (depth,))| (*id, *depth))
+    }
+
+    /// Returns an iterator over the schemas ordered by inheritance depth and entity type id.
+    fn ordered_schemas(&self) -> impl Iterator<Item = (InheritanceDepth, &EntityType)> {
+        // TODO: Construct the sorted list on the fly when constructing this struct
+        self.inheritance_depths
+            .iter()
+            .sorted_by_key(|(data_type_id, (depth, _))| (*depth, data_type_id.into_uuid()))
+            .map(|(_, (depth, schema))| (*depth, &**schema))
     }
 }
 
