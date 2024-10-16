@@ -6,7 +6,7 @@
 )]
 
 use bytes::Buf;
-use futures_core::Stream;
+use futures_core::{Stream, TryStream};
 
 use self::{decode::ErrorDecoder, encode::ErrorEncoder};
 use crate::{decode::Decoder, encode::Encoder};
@@ -55,18 +55,16 @@ where
     D: Decoder,
 {
     type Error = D::Error;
-    type Output<T, B, Err, Input>
-        = D::Output<T, B, Err, Input>
+    type Output<T, Input>
+        = D::Output<T, Input>
     where
         T: serde::de::DeserializeOwned,
-        B: Buf,
-        Input: Stream<Item = Result<B, Err>> + Send;
+        Input: TryStream<Ok: Buf> + Send;
 
-    fn decode<T, B, Err, S>(self, items: S) -> Self::Output<T, B, Err, S>
+    fn decode<T, S>(self, items: S) -> Self::Output<T, S>
     where
         T: serde::de::DeserializeOwned,
-        B: Buf,
-        S: Stream<Item = Result<B, Err>> + Send,
+        S: TryStream<Ok: Buf> + Send,
     {
         self.decoder.decode(items)
     }

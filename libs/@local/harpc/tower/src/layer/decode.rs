@@ -58,7 +58,7 @@ where
     T: serde::de::DeserializeOwned,
 {
     type Error = S::Error;
-    type Response = Response<<C as Decoder>::Output<T, ResData, ResError, ResBody>>;
+    type Response = Response<<C as Decoder>::Output<T, ResBody>>;
 
     type Future = impl Future<Output = Result<Self::Response, Self::Error>>;
 

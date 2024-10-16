@@ -6,7 +6,7 @@ use core::{
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use error_stack::{Report, ResultExt};
-use futures_core::Stream;
+use futures_core::{Stream, TryStream};
 use futures_util::stream::{self, StreamExt};
 use harpc_types::error_code::ErrorCode;
 use serde::de::DeserializeOwned;
@@ -63,18 +63,16 @@ impl Encoder for JsonCodec {
 
 impl Decoder for JsonCodec {
     type Error = Report<JsonError>;
-    type Output<T, B, E, Input>
+    type Output<T, Input>
         = JsonDecoderStream<T, Input>
     where
         T: DeserializeOwned,
-        B: Buf,
-        Input: Stream<Item = Result<B, E>> + Send;
+        Input: TryStream<Ok: Buf> + Send;
 
-    fn decode<T, B, E, S>(self, items: S) -> Self::Output<T, B, E, S>
+    fn decode<T, S>(self, items: S) -> Self::Output<T, S>
     where
         T: serde::de::DeserializeOwned,
-        B: Buf,
-        S: Stream<Item = Result<B, E>> + Send,
+        S: TryStream<Ok: Buf> + Send,
     {
         JsonDecoderStream::new(items)
     }
@@ -114,10 +112,9 @@ impl<T, S> JsonDecoderStream<T, S> {
     }
 }
 
-impl<T, S, B, E> Stream for JsonDecoderStream<T, S>
+impl<T, S> Stream for JsonDecoderStream<T, S>
 where
-    S: Stream<Item = Result<B, E>>,
-    B: Buf,
+    S: TryStream<Ok: Buf>,
     T: DeserializeOwned,
 {
     type Item = Result<T, Report<JsonError>>;
@@ -145,7 +142,7 @@ where
                 return Poll::Ready(None);
             };
 
-            let Some(value) = ready!(inner.poll_next(cx)) else {
+            let Some(value) = ready!(inner.try_poll_next(cx)) else {
                 // drop the inner stream, as we're done with it
                 this.inner.set(None);
 
@@ -281,7 +278,7 @@ mod tests {
         let input = stream::once(ready(Result::<_, io::Error>::Ok(Bytes::from_static(
             b"{\"key\": \"value1\"}\x1E{\"key\": \"value2\"}\x1E",
         ))));
-        let mut decoder = JsonCodec.decode::<serde_json::Value, _, _, _>(input);
+        let mut decoder = JsonCodec.decode::<serde_json::Value, _>(input);
 
         assert_eq!(
             decoder
@@ -307,7 +304,7 @@ mod tests {
         let input = stream::once(ready(Result::<_, io::Error>::Ok(Bytes::from_static(
             b"{\"key\": \"value1\"}\x1E{\"key\": \"val",
         ))));
-        let mut decoder = JsonCodec.decode::<serde_json::Value, _, _, _>(input);
+        let mut decoder = JsonCodec.decode::<serde_json::Value, _>(input);
 
         assert_eq!(
             decoder
@@ -325,7 +322,7 @@ mod tests {
         let input = stream::once(ready(Result::<_, io::Error>::Ok(Bytes::from_static(
             b"{\"key\": \"value1\"}\x1E",
         ))));
-        let mut decoder = JsonCodec.decode::<serde_json::Value, _, _, _>(input);
+        let mut decoder = JsonCodec.decode::<serde_json::Value, _>(input);
 
         assert_eq!(
             decoder
@@ -343,7 +340,7 @@ mod tests {
         let input = stream::once(ready(Result::<_, io::Error>::Ok(Bytes::from_static(
             b"{\"key\": \"value1\"}\x1E{\"key\": \"value2\"}\x1E{\"key\": \"value3\"}\x1E",
         ))));
-        let mut decoder = JsonCodec.decode::<serde_json::Value, _, _, _>(input);
+        let mut decoder = JsonCodec.decode::<serde_json::Value, _>(input);
 
         assert_eq!(
             decoder
@@ -378,7 +375,7 @@ mod tests {
             Result::<_, io::Error>::Ok(Bytes::from_static(b"{\"key\": \"val")),
             Ok(Bytes::from_static(b"ue1\"}\x1E")),
         ]);
-        let mut decoder = JsonCodec.decode::<serde_json::Value, _, _, _>(input);
+        let mut decoder = JsonCodec.decode::<serde_json::Value, _>(input);
 
         assert_eq!(
             decoder
@@ -397,7 +394,7 @@ mod tests {
             Result::<_, io::Error>::Ok(Bytes::from_static(b"{\"key\": \"val")),
             Ok(Bytes::from_static(b"ue1\"}\x1E{\"key\": \"value2\"}\x1E")),
         ]);
-        let mut decoder = JsonCodec.decode::<serde_json::Value, _, _, _>(input);
+        let mut decoder = JsonCodec.decode::<serde_json::Value, _>(input);
 
         assert_eq!(
             decoder
@@ -424,7 +421,7 @@ mod tests {
             Ok(Bytes::from_static(b"{\"key\": \"value1\"}\x1E")),
             Err(io::Error::other("o no!")),
         ]);
-        let mut decoder = JsonCodec.decode::<serde_json::Value, _, _, _>(input);
+        let mut decoder = JsonCodec.decode::<serde_json::Value, _>(input);
 
         assert_eq!(
             decoder
@@ -450,7 +447,7 @@ mod tests {
         let input = stream::once(ready(Result::<_, io::Error>::Ok(Bytes::from_static(
             b"{\"key\": \"value1\"\x1E",
         ))));
-        let mut decoder = JsonCodec.decode::<serde_json::Value, _, _, _>(input);
+        let mut decoder = JsonCodec.decode::<serde_json::Value, _>(input);
 
         let _report = decoder
             .next()

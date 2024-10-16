@@ -1,21 +1,19 @@
 use bytes::{Buf, Bytes};
 use error_stack::{Context, Report};
-use futures_core::Stream;
+use futures_core::{Stream, TryStream};
 
 pub trait Decoder {
     type Error;
 
-    type Output<T, B, E, Input>: Stream<Item = Result<T, Self::Error>> + Send
+    type Output<T, Input>: Stream<Item = Result<T, Self::Error>> + Send
     where
         T: serde::de::DeserializeOwned,
-        B: Buf,
-        Input: Stream<Item = Result<B, E>> + Send;
+        Input: TryStream<Ok: Buf> + Send;
 
-    fn decode<T, B, E, S>(self, items: S) -> Self::Output<T, B, E, S>
+    fn decode<T, S>(self, items: S) -> Self::Output<T, S>
     where
         T: serde::de::DeserializeOwned,
-        B: Buf,
-        S: Stream<Item = Result<B, E>> + Send;
+        S: TryStream<Ok: Buf> + Send;
 }
 
 pub trait ErrorDecoder {
