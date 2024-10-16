@@ -1,34 +1,47 @@
 #![feature(never_type, impl_trait_in_assoc_type)]
 #![expect(
     clippy::unwrap_used,
-    clippy::todo,
+    clippy::print_stdout,
+    clippy::use_debug,
     unused_variables,
-    reason = "non-working example code"
+    reason = "example"
 )]
 
-use core::{error::Error, fmt::Debug, future};
+extern crate alloc;
+
+use alloc::vec;
+use core::{error::Error, fmt::Debug, future::ready};
+use std::time::Instant;
 
 use bytes::Buf;
 use error_stack::{Report, ResultExt};
 use frunk::HList;
-use futures::{Stream, StreamExt, pin_mut, stream};
+use futures::{
+    Stream, StreamExt, TryStreamExt, pin_mut,
+    stream::{self},
+};
 use graph_types::account::AccountId;
+use harpc_client::{Client, ClientConfig};
 use harpc_codec::{decode::Decoder, encode::Encoder, json::JsonCodec};
 use harpc_net::session::server::SessionId;
-use harpc_server::{router::RouterBuilder, serve::serve};
+use harpc_server::{Server, ServerConfig, router::RouterBuilder, serve::serve};
 use harpc_service::{
     Service,
     delegate::ServiceDelegate,
     metadata::Metadata,
     procedure::{Procedure, ProcedureIdentifier},
-    role::{Client, Role, Server},
+    role,
 };
 use harpc_tower::{
     Extensions,
-    body::{Body, BodyExt},
+    body::{Body, BodyExt, Frame, stream::StreamBody},
     layer::{
-        body_report::HandleBodyReportLayer, boxed::BoxedResponseLayer, report::HandleReportLayer,
+        body_report::HandleBodyReportLayer,
+        boxed::BoxedResponseLayer,
+        map_body::{MapRequestBodyLayer, MapResponseBodyLayer},
+        report::HandleReportLayer,
     },
+    net::pack_error::PackError,
     request::{self, Request},
     response::{Parts, Response},
 };
@@ -38,7 +51,10 @@ use harpc_types::{
     service::{ServiceDescriptor, ServiceId},
     version::Version,
 };
-use tower::ServiceExt as _;
+use multiaddr::multiaddr;
+use serde::de::IgnoredAny;
+use tower::{ServiceBuilder, ServiceExt as _};
+use uuid::Uuid;
 
 enum AccountProcedureId {
     CreateAccount,
@@ -107,6 +123,8 @@ impl Procedure for CreateAccount {
 enum AccountError {
     #[error("unable to establish connection to server")]
     Connection,
+    #[error("unable to encode request")]
+    Encode,
     #[error("unable to decode response")]
     Decode,
     #[error("expected at least a single response")]
@@ -115,7 +133,7 @@ enum AccountError {
 
 trait AccountService<R>
 where
-    R: Role,
+    R: role::Role,
 {
     fn create_account(
         &self,
@@ -127,7 +145,7 @@ where
 #[derive(Debug, Clone)]
 struct AccountServiceImpl;
 
-impl<S> AccountService<Server<S>> for AccountServiceImpl
+impl<S> AccountService<role::Server<S>> for AccountServiceImpl
 where
     S: Send + Sync,
 {
@@ -136,27 +154,37 @@ where
         session: &S,
         payload: CreateAccount,
     ) -> Result<AccountId, Report<AccountError>> {
-        todo!()
+        Ok(AccountId::new(Uuid::new_v4()))
     }
 }
 
 #[derive(Debug, Clone)]
-#[expect(dead_code, reason = "dummy client")]
 struct AccountServiceClient;
 
-impl<S, E, St, ResData, ResError> AccountService<Client<(S, E)>> for AccountServiceClient
+impl<S, E, St, ServiceError, DecoderError, EncoderError, ResData, ResError>
+    AccountService<role::Client<(S, E)>> for AccountServiceClient
 where
+    // TODO: I want to get rid of the boxed stream here, the problem is just that `Output` has `<Input>`
+    // as a type parameter, therefore cannot parametrize over it, unless we box or duplicate the
+    // trait requirement. both are not great solutions.
     S: tower::Service<
-            Request<<E as Encoder>::Output<stream::Once<future::Ready<CreateAccount>>>>,
+            Request<stream::Iter<vec::IntoIter<Result<Frame<<E as Encoder>::Buf, !>, !>>>>,
             Response = Response<St>,
             Future: Send,
-            Error: Error + Send + Sync + 'static,
+            Error = Report<ServiceError>,
         > + Clone
         + Send
         + Sync,
-    E: Encoder + Decoder<Error: Error + Send + Sync + 'static> + Clone + Send + Sync,
+    E: Encoder<Error = Report<EncoderError>, Buf: Send + 'static>
+        + Decoder<Error = Report<DecoderError>>
+        + Clone
+        + Send
+        + Sync,
     St: Stream<Item = Result<ResData, ResError>> + Send + Sync,
     ResData: Buf,
+    ServiceError: Error + Send + Sync + 'static,
+    DecoderError: Error + Send + Sync + 'static,
+    EncoderError: Error + Send + Sync + 'static,
 {
     async fn create_account(
         &self,
@@ -165,7 +193,35 @@ where
     ) -> Result<AccountId, Report<AccountError>> {
         let (service, codec) = session.clone();
 
-        let body = codec.clone().encode(stream::once(future::ready(payload)));
+        // in theory we could also skip the allocation here, but the problem is that in that case we
+        // would send data that *might* be malformed, or is missing data. Instead of skipping said
+        // data we allocate. In future we might want to instead have something like
+        // tracing::error or a panic instead, but this is sufficient for now.
+        // (more importantly it also opt us out of having a stream as input that we then encode,
+        // which should be fine?)
+        //
+        // In theory we'd need to be able to propagate the error into the transport layer, while
+        // possible we would await yet another challenge, what happens if the transport layer
+        // encounters an error? We can't very well send that error to the server just for us to
+        // return it, the server might already be processing things and now suddenly needs to stop?
+        // So we'd need to panic or filter on the client and would have partially commited data on
+        // the server.
+        // This circumvents the problem because we just return an error early, in the future - if
+        // the need arises - we might want to investigate request cancellation (which should be
+        // possible in the protocol)
+        // That'd allow us to cancel the request but would make response handling *a lot* more
+        // complex.
+        // This isn't a solved problem at all in e.g. rust in general, because there are some things
+        // you can't just cancel. How do you roll back a potentially already commited transaction?
+        // The current hypothesis is that the overhead required for one less allocation simply isn't
+        // worth it, but in the future we might want to revisit this.
+        let body: Vec<_> = codec
+            .clone()
+            .encode(stream::iter([payload]))
+            .map(|item| item.map(Frame::Data).map(Ok))
+            .try_collect()
+            .await
+            .change_context(AccountError::Encode)?;
 
         let request = Request::from_parts(
             request::Parts {
@@ -179,7 +235,7 @@ where
                 session: SessionId::CLIENT,
                 extensions: Extensions::new(),
             },
-            body,
+            stream::iter(body),
         );
 
         let response = service
@@ -209,7 +265,7 @@ struct AccountServerDelegate<T> {
 
 impl<T, S, C> ServiceDelegate<S, C> for AccountServerDelegate<T>
 where
-    T: AccountService<Server<S>> + Send + Sync,
+    T: AccountService<role::Server<S>> + Send + Sync,
     S: Send + Sync,
     C: Encoder<Error: Debug> + Decoder<Error: Debug> + Clone + Send + Sync + 'static,
 {
@@ -253,8 +309,10 @@ where
     }
 }
 
-#[tokio::main]
-async fn main() {
+async fn server() {
+    let server =
+        Server::new(ServerConfig::default(), JsonCodec).expect("should be able to start service");
+
     let router = RouterBuilder::new::<()>(JsonCodec)
         .with_builder(|builder, codec| {
             builder
@@ -266,10 +324,54 @@ async fn main() {
             service: AccountServiceImpl,
         });
 
-    let task = router.background_task::<_, !>(stream::empty());
+    let task = router.background_task(server.events());
     tokio::spawn(task.into_future());
 
     let router = router.build();
 
-    serve(stream::empty(), router).await;
+    serve(
+        server
+            .listen(multiaddr![Ip4([0, 0, 0, 0]), Tcp(10500_u16)])
+            .await
+            .expect("should be able to listen"),
+        router,
+    )
+    .await;
+}
+
+async fn client() {
+    let client = Client::new(ClientConfig::default()).expect("should be able to start service");
+
+    let service = AccountServiceClient;
+
+    let connection = client
+        .connect(multiaddr![Ip4([127, 0, 0, 1]), Tcp(10500_u16)])
+        .await
+        .expect("should be able to connect");
+
+    let connection = ServiceBuilder::new()
+        .layer(MapRequestBodyLayer::new(|req| ready(StreamBody::new(req))))
+        .layer(MapResponseBodyLayer::new(|res| {
+            ready(PackError::<_, _, IgnoredAny>::new(res, JsonCodec))
+        }))
+        .service(connection);
+
+    for _ in 0..16 {
+        let now = Instant::now();
+        let account_id = service
+            .create_account(&(connection.clone(), JsonCodec), CreateAccount { id: None })
+            .await
+            .expect("should be able to create account");
+
+        println!("account_id: {account_id:?}, took: {:?}", now.elapsed());
+    }
+}
+
+#[tokio::main]
+async fn main() {
+    if std::env::args().nth(1) == Some("server".to_owned()) {
+        server().await;
+    } else {
+        client().await;
+    }
 }
