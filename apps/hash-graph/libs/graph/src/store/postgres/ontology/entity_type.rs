@@ -1179,7 +1179,7 @@ where
 
     #[tracing::instrument(level = "info", skip(self))]
     async fn reindex_entity_type_cache(&mut self) -> Result<(), UpdateError> {
-        tracing::info!("Reindexing data type cache");
+        tracing::info!("Reindexing entity type cache");
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
         // We remove the data from the reference tables first

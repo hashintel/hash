@@ -96,18 +96,11 @@ where
             TimeAxis::TransactionTime => ("decision_time", "transaction_time"),
         };
 
-        let table = if depth == Some(0) {
-            "entity_is_of_type"
-        } else {
-            "closed_entity_is_of_type"
-        };
-
-        let where_statement = match depth {
-            Some(depth) if depth != 0 => Cow::Owned(format!(
+        let where_statement = depth.map_or(Cow::Borrowed(""), |depth| {
+            Cow::Owned(format!(
                 "WHERE closed_entity_is_of_type.inheritance_depth <= {depth}"
-            )),
-            _ => Cow::Borrowed(""),
-        };
+            ))
+        });
 
         Ok(self
             .client
@@ -131,11 +124,11 @@ where
                          AND source.web_id = filter.web_id
                          AND source.entity_uuid = filter.entity_uuid
 
-                        JOIN {table}
-                          ON source.entity_edition_id = {table}.entity_edition_id
+                        JOIN closed_entity_is_of_type
+                          ON source.entity_edition_id = closed_entity_is_of_type.entity_edition_id
 
                         JOIN ontology_ids
-                          ON {table}.entity_type_ontology_id = ontology_ids.ontology_id
+                          ON closed_entity_is_of_type.entity_type_ontology_id = ontology_ids.ontology_id
 
                         {where_statement};
                     "#
