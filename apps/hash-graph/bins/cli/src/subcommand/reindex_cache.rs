@@ -2,7 +2,8 @@ use authorization::NoAuthorization;
 use clap::Parser;
 use error_stack::{Report, Result, ResultExt, ensure};
 use graph::store::{
-    DataTypeStore, DatabaseConnectionInfo, DatabasePoolConfig, PostgresStorePool, StorePool,
+    DataTypeStore, DatabaseConnectionInfo, DatabasePoolConfig, EntityTypeStore, PostgresStorePool,
+    StorePool,
 };
 use tokio_postgres::NoTls;
 
@@ -65,7 +66,7 @@ pub async fn reindex_cache(args: ReindexCacheArgs) -> Result<(), GraphError> {
 
     if args.operations.entity_types {
         did_something = true;
-        DataTypeStore::reindex_entity_type_cache(&mut store)
+        EntityTypeStore::reindex_entity_type_cache(&mut store)
             .await
             .change_context(GraphError)
             .map_err(|report| {
