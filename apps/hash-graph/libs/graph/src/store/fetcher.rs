@@ -917,8 +917,8 @@ where
             .await
     }
 
-    async fn reindex_cache(&mut self) -> Result<(), UpdateError> {
-        self.store.reindex_cache().await
+    async fn reindex_data_type_cache(&mut self) -> Result<(), UpdateError> {
+        self.store.reindex_data_type_cache().await
     }
 }
 
@@ -1151,6 +1151,10 @@ where
         self.store
             .update_entity_type_embeddings(actor_id, params)
             .await
+    }
+
+    async fn reindex_entity_type_cache(&mut self) -> Result<(), UpdateError> {
+        self.store.reindex_entity_type_cache().await
     }
 }
 

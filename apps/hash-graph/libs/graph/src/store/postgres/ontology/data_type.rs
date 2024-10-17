@@ -476,13 +476,14 @@ where
         let mut ontology_type_resolver = OntologyTypeResolver::default();
 
         for (data_type_id, inserted_data_type) in &inserted_data_types {
-            ontology_type_resolver.add_unresolved(*data_type_id, Arc::clone(inserted_data_type));
+            ontology_type_resolver
+                .add_unresolved_data_type(*data_type_id, Arc::clone(inserted_data_type));
         }
 
-        let required_parent_ids = data_type_reference_ids.into_iter().collect::<Vec<_>>();
+        let required_reference_ids = data_type_reference_ids.into_iter().collect::<Vec<_>>();
 
         let mut parent_inheritance_data = transaction
-            .get_data_type_inheritance_metadata(&required_parent_ids)
+            .get_data_type_inheritance_metadata(&required_reference_ids)
             .await
             .change_context(InsertionError)
             .attach_printable("Could not read parent data type inheritance data")?
@@ -494,7 +495,7 @@ where
                     FilterExpression::Path {
                         path: DataTypeQueryPath::OntologyId,
                     },
-                    ParameterList::DataTypeIds(&required_parent_ids),
+                    ParameterList::DataTypeIds(&required_reference_ids),
                 ),
                 temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
                     pinned: PinnedTemporalAxisUnresolved::new(None),
@@ -513,7 +514,7 @@ where
             .for_each(|parent| {
                 let parent_id = DataTypeUuid::from_url(&parent.schema.id);
                 if let Some(inheritance_data) = parent_inheritance_data.remove(&parent_id) {
-                    ontology_type_resolver.add_closed(
+                    ontology_type_resolver.add_closed_data_type(
                         parent_id,
                         Arc::new(parent.schema),
                         Arc::new(inheritance_data),
@@ -522,7 +523,8 @@ where
                     if !parent.schema.all_of.is_empty() {
                         tracing::warn!("No inheritance data found for `{}`", parent.schema.id);
                     }
-                    ontology_type_resolver.add_unresolved(parent_id, Arc::new(parent.schema));
+                    ontology_type_resolver
+                        .add_unresolved_data_type(parent_id, Arc::new(parent.schema));
                 }
             });
 
@@ -874,7 +876,7 @@ where
             .for_each(|parent| {
                 let parent_id = DataTypeUuid::from_url(&parent.schema.id);
                 if let Some(inheritance_data) = parent_inheritance_data.remove(&parent_id) {
-                    ontology_type_resolver.add_closed(
+                    ontology_type_resolver.add_closed_data_type(
                         parent_id,
                         Arc::new(parent.schema),
                         Arc::new(inheritance_data),
@@ -883,12 +885,13 @@ where
                     if !parent.schema.all_of.is_empty() {
                         tracing::warn!("No inheritance data found for `{}`", parent.schema.id);
                     }
-                    ontology_type_resolver.add_unresolved(parent_id, Arc::new(parent.schema));
+                    ontology_type_resolver
+                        .add_unresolved_data_type(parent_id, Arc::new(parent.schema));
                 }
             });
 
         ontology_type_resolver
-            .add_unresolved(new_ontology_id, Arc::new(schema.clone().into_inner()));
+            .add_unresolved_data_type(new_ontology_id, Arc::new(schema.clone().into_inner()));
         let resolve_data = ontology_type_resolver
             .resolve_data_type_metadata(new_ontology_id)
             .change_context(UpdateError)?;
@@ -900,18 +903,16 @@ where
             )
             .await
             .change_context(UpdateError)?;
-        let (ontology_id, owned_by_id, temporal_versioning) = transaction
+        let (_ontology_id, owned_by_id, temporal_versioning) = transaction
             .update_owned_ontology_id(&schema.id, &provenance.edition)
             .await?;
 
-        let data_type_id = DataTypeUuid::from(ontology_id);
-
         transaction
-            .insert_data_type_with_id(data_type_id, &schema)
+            .insert_data_type_with_id(new_ontology_id, &schema)
             .await
             .change_context(UpdateError)?;
         transaction
-            .insert_data_type_references(data_type_id, &resolve_data)
+            .insert_data_type_references(new_ontology_id, &resolve_data)
             .await
             .change_context(UpdateError)?;
 
@@ -919,7 +920,7 @@ where
             .conversions
             .iter()
             .map(|(base_url, conversions)| DataTypeConversionsRow {
-                source_data_type_ontology_id: data_type_id,
+                source_data_type_ontology_id: new_ontology_id,
                 target_data_type_base_url: base_url.clone(),
                 from: conversions.from.clone(),
                 into: conversions.to.clone(),
@@ -951,7 +952,7 @@ where
                 |relation_and_subject| {
                     (
                         ModifyRelationshipOperation::Create,
-                        data_type_id,
+                        new_ontology_id,
                         relation_and_subject,
                     )
                 },
@@ -967,7 +968,7 @@ where
                 .modify_data_type_relations(relationships.into_iter().map(|relation_and_subject| {
                     (
                         ModifyRelationshipOperation::Delete,
-                        data_type_id,
+                        new_ontology_id,
                         relation_and_subject,
                     )
                 }))
@@ -1098,7 +1099,7 @@ where
     }
 
     #[tracing::instrument(level = "info", skip(self))]
-    async fn reindex_cache(&mut self) -> Result<(), UpdateError> {
+    async fn reindex_data_type_cache(&mut self) -> Result<(), UpdateError> {
         tracing::info!("Reindexing data type cache");
         let transaction = self.transaction().await.change_context(UpdateError)?;
 
@@ -1127,7 +1128,7 @@ where
         .map(|data_type| {
             let schema = Arc::new(data_type.schema);
             let data_type_id = DataTypeUuid::from_url(&schema.id);
-            ontology_type_resolver.add_unresolved(data_type_id, Arc::clone(&schema));
+            ontology_type_resolver.add_unresolved_data_type(data_type_id, schema);
             data_type_id
         })
         .collect::<Vec<_>>();

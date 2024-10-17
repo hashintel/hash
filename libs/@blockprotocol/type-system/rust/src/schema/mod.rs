@@ -5,6 +5,7 @@
 //! specification, and are used to validate instances of types using [`serde`]. To aid with the
 //! de/serialization, intermediary structs and helpers are defined across various submodules.
 
+mod closed_resolver;
 mod data_type;
 mod entity_type;
 mod property_type;
@@ -17,20 +18,22 @@ mod identifier;
 
 pub use self::{
     array::{PropertyArraySchema, PropertyValueArray, ValueOrArray},
+    closed_resolver::{InheritanceDepth, OntologyTypeResolver},
     data_type::{
         AnyOfConstraints, ArrayConstraints, ArraySchema, ArrayTypeTag, ArrayValidationError,
         BooleanSchema, BooleanTypeTag, ClosedDataType, Constraint, ConstraintError,
         ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
-        DataTypeEdge, DataTypeReference, DataTypeResolveData, DataTypeValidator, InheritanceDepth,
+        DataTypeEdge, DataTypeReference, DataTypeResolveData, DataTypeValidator,
         JsonSchemaValueType, NullSchema, NullTypeTag, NumberConstraints, NumberSchema,
         NumberTypeTag, NumberValidationError, ObjectConstraints, ObjectSchema, ObjectTypeTag,
-        ObjectValidationError, OntologyTypeResolver, Operator, ResolvedDataType,
-        SingleValueConstraints, SingleValueSchema, StringConstraints, StringFormat,
-        StringFormatError, StringSchema, StringTypeTag, StringValidationError, TupleConstraints,
-        ValidateDataTypeError, ValueLabel, ValueSchemaMetadata, Variable,
+        ObjectValidationError, Operator, ResolvedDataType, SingleValueConstraints,
+        SingleValueSchema, StringConstraints, StringFormat, StringFormatError, StringSchema,
+        StringTypeTag, StringValidationError, TupleConstraints, ValidateDataTypeError, ValueLabel,
+        ValueSchemaMetadata, Variable,
     },
     entity_type::{
         ClosedEntityType, ClosedEntityTypeSchemaData, EntityType, EntityTypeReference,
+        EntityTypeResolveData, EntityTypeToEntityTypeEdge, EntityTypeToPropertyTypeEdge,
         EntityTypeValidationError, EntityTypeValidator,
     },
     identifier::{DataTypeUuid, EntityTypeUuid, OntologyTypeUuid, PropertyTypeUuid},
