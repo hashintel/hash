@@ -25,6 +25,7 @@ futures-util = { workspace = true, optional = true }
 serde_json = { workspace = true, optional = true, public = true }
 pin-project-lite = { workspace = true, optional = true }
 memchr = { workspace = true, optional = true }
+thiserror = { workspace = true }
 
 [dev-dependencies]
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

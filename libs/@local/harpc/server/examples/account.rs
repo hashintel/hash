@@ -11,7 +11,7 @@ use core::fmt::Debug;
 
 use error_stack::Report;
 use frunk::HList;
-use futures::{StreamExt, TryStreamExt, pin_mut, stream};
+use futures::{StreamExt, pin_mut, stream};
 use graph_types::account::AccountId;
 use harpc_codec::{decode::Decoder, encode::Encoder, json::JsonCodec};
 use harpc_server::{router::RouterBuilder, serve::serve};
@@ -24,7 +24,9 @@ use harpc_service::{
 };
 use harpc_tower::{
     body::{Body, BodyExt},
-    layer::{boxed::BoxedResponseLayer, report::HandleReportLayer},
+    layer::{
+        body_report::HandleBodyReportLayer, boxed::BoxedResponseLayer, report::HandleReportLayer,
+    },
     request::Request,
     response::{Parts, Response},
 };
@@ -160,7 +162,7 @@ where
     type Service = Account;
 
     type Body<Source>
-        = impl Body<Control: AsRef<ResponseKind>, Error = !>
+        = impl Body<Control: AsRef<ResponseKind>, Error = <C as Encoder>::Error>
     where
         Source: Body<Control = !, Error: Send + Sync> + Send + Sync;
 
@@ -188,9 +190,7 @@ where
                 let payload = stream.next().await.unwrap().unwrap();
 
                 let account_id = self.service.create_account(&session, payload).await?;
-                let data = codec
-                    .encode(stream::iter([account_id]))
-                    .map_err(|error| panic!("ignore any error, {error:?}"));
+                let data = codec.encode(stream::iter([account_id]));
 
                 Ok(Response::from_ok(Parts::new(session_id), data))
             }
@@ -201,15 +201,20 @@ where
 #[tokio::main]
 async fn main() {
     let router = RouterBuilder::new::<()>(JsonCodec)
-        .with_builder(|builder| {
+        .with_builder(|builder, codec| {
             builder
                 .layer(BoxedResponseLayer::new())
-                .layer(HandleReportLayer::new(JsonCodec))
+                .layer(HandleReportLayer::new(*codec))
+                .layer(HandleBodyReportLayer::new(*codec))
         })
         .register(AccountServerDelegate {
             service: AccountServiceImpl,
-        })
-        .build();
+        });
 
-    serve(stream::empty(), JsonCodec, router).await;
+    let task = router.background_task::<_, !>(stream::empty());
+    tokio::spawn(task.into_future());
+
+    let router = router.build();
+
+    serve(stream::empty(), router).await;
 }

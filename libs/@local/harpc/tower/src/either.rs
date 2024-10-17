@@ -109,6 +109,20 @@ where
 }
 
 impl<T> Either<T, T> {
+    pub const fn inner(&self) -> &T {
+        match self {
+            Self::Left(left) => left,
+            Self::Right(right) => right,
+        }
+    }
+
+    pub fn inner_mut(&mut self) -> &mut T {
+        match self {
+            Self::Left(left) => left,
+            Self::Right(right) => right,
+        }
+    }
+
     pub fn into_inner(self) -> T {
         match self {
             Self::Left(left) => left,

@@ -46,7 +46,7 @@ scc = { workspace = true }
 serde = { workspace = true, features = ["derive"] }
 tachyonix = { workspace = true }
 thiserror = { workspace = true }
-tokio-stream = { workspace = true, features = ["time"] }
+tokio-stream = { workspace = true, features = ["time", "sync"] }
 tokio-util = { workspace = true, features = ["codec", "compat", "rt", "tracing"] }
 tracing = { workspace = true }
 

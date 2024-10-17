@@ -13,7 +13,6 @@
 //! }
 //! ```
 
-#[cfg_attr(feature = "std", allow(unused_imports))]
 use alloc::{format, vec, vec::Vec};
 
 use serde::{Serialize, Serializer, ser::SerializeMap};
@@ -29,7 +28,6 @@ impl Serialize for SerializeAttachment<'_> {
     {
         let Self(frame) = self;
 
-        #[allow(clippy::match_same_arms)]
         match frame.kind() {
             FrameKind::Context(_) => {
                 // TODO: for now `Context` is unsupported, upcoming PR will fix via hooks

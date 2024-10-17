@@ -14,7 +14,7 @@ harpc-service = { workspace = true, public = true }
 
 # Public third-party dependencies
 frunk_core = { version = "0.4.3", public = true }
-tower = { workspace = true, public = true }
+tower = { workspace = true, public = true, features = ["make"] }
 
 # Private workspace dependencies
 harpc-net = { workspace = true }
@@ -31,8 +31,9 @@ tokio = { workspace = true, features = ["macros"] }
 tokio-util = { workspace = true, features = ["rt"] }
 tracing = { workspace = true }
 harpc-codec = { workspace = true }
-derive_more = { version = "1.0.0", features = ["display"] }
+derive_more = { version = "1.0.0", features = ["display", "error"] }
 serde = { workspace = true, features = ["derive"] }
+bytes.workspace = true
 
 [lints]
 workspace = true

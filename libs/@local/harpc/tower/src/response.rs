@@ -39,7 +39,9 @@ where
     pub const fn from_parts(parts: Parts, body: B) -> Self {
         Self { head: parts, body }
     }
+}
 
+impl<B> Response<B> {
     pub const fn session(&self) -> SessionId {
         self.head.session
     }
