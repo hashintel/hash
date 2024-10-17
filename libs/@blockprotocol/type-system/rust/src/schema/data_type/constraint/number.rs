@@ -115,13 +115,13 @@ fn float_multiple_of(lhs: f64, rhs: f64) -> bool {
 }
 
 impl Constraint for NumberSchema {
-    fn combine(
+    fn intersection(
         self,
         other: Self,
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
         Ok(match (self, other) {
             (Self::Constrained(lhs), Self::Constrained(rhs)) => {
-                let (combined, remainder) = lhs.combine(rhs)?;
+                let (combined, remainder) = lhs.intersection(rhs)?;
                 (
                     Self::Constrained(combined),
                     remainder.map(Self::Constrained),
@@ -234,7 +234,7 @@ pub struct NumberConstraints {
 }
 
 impl Constraint for NumberConstraints {
-    fn combine(
+    fn intersection(
         self,
         other: Self,
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {

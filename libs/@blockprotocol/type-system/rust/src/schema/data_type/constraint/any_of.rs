@@ -22,7 +22,7 @@ pub struct AnyOfConstraints {
 }
 
 impl Constraint for AnyOfConstraints {
-    fn combine(
+    fn intersection(
         self,
         other: Self,
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {

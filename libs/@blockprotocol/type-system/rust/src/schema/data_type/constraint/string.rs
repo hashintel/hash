@@ -228,13 +228,13 @@ pub enum StringSchema {
 }
 
 impl Constraint for StringSchema {
-    fn combine(
+    fn intersection(
         self,
         other: Self,
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
         Ok(match (self, other) {
             (Self::Constrained(lhs), Self::Constrained(rhs)) => {
-                let (combined, remainder) = lhs.combine(rhs)?;
+                let (combined, remainder) = lhs.intersection(rhs)?;
                 (
                     Self::Constrained(combined),
                     remainder.map(Self::Constrained),
@@ -327,7 +327,7 @@ pub struct StringConstraints {
 }
 
 impl Constraint for StringConstraints {
-    fn combine(
+    fn intersection(
         self,
         other: Self,
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {

@@ -20,7 +20,7 @@ pub enum BooleanTypeTag {
 pub struct BooleanSchema;
 
 impl Constraint for BooleanSchema {
-    fn combine(
+    fn intersection(
         self,
         _other: Self,
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {

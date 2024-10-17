@@ -20,7 +20,7 @@ pub enum NullTypeTag {
 pub struct NullSchema;
 
 impl Constraint for NullSchema {
-    fn combine(
+    fn intersection(
         self,
         _other: Self,
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {

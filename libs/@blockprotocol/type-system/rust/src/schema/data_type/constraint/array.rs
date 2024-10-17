@@ -47,19 +47,19 @@ pub enum ArrayItemConstraints {
 }
 
 impl Constraint for ArrayItemConstraints {
-    fn combine(
+    fn intersection(
         self,
         other: Self,
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
         match (self, other) {
             (Self::Boolean(lhs), Self::Boolean(rhs)) => lhs
-                .combine(rhs)
+                .intersection(rhs)
                 .map(|(lhs, rhs)| (Self::Boolean(lhs), rhs.map(Self::Boolean))),
             (Self::Number(lhs), Self::Number(rhs)) => lhs
-                .combine(rhs)
+                .intersection(rhs)
                 .map(|(lhs, rhs)| (Self::Number(lhs), rhs.map(Self::Number))),
             (Self::String(lhs), Self::String(rhs)) => lhs
-                .combine(rhs)
+                .intersection(rhs)
                 .map(|(lhs, rhs)| (Self::String(lhs), rhs.map(Self::String))),
             _ => bail!(ResolveClosedDataTypeError::IntersectedDifferentTypes),
         }
@@ -128,13 +128,13 @@ pub enum ArraySchema {
 }
 
 impl Constraint for ArraySchema {
-    fn combine(
+    fn intersection(
         self,
         other: Self,
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
         Ok(match (self, other) {
             (Self::Constrained(lhs), Self::Constrained(rhs)) => {
-                let (combined, remainder) = lhs.combine(rhs)?;
+                let (combined, remainder) = lhs.intersection(rhs)?;
                 (
                     Self::Constrained(combined),
                     remainder.map(Self::Constrained),
@@ -151,7 +151,7 @@ impl Constraint for ArraySchema {
                 (Self::Constrained(lhs), Some(Self::Tuple(rhs)))
             }
             (Self::Tuple(lhs), Self::Tuple(rhs)) => {
-                let (combined, remainder) = lhs.combine(rhs)?;
+                let (combined, remainder) = lhs.intersection(rhs)?;
                 (Self::Tuple(combined), remainder.map(Self::Tuple))
             }
         })
@@ -213,7 +213,7 @@ pub struct ArrayConstraints {
 }
 
 impl Constraint for ArrayConstraints {
-    fn combine(
+    fn intersection(
         self,
         other: Self,
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
@@ -264,7 +264,7 @@ pub struct TupleConstraints {
 }
 
 impl Constraint for TupleConstraints {
-    fn combine(
+    fn intersection(
         self,
         other: Self,
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {

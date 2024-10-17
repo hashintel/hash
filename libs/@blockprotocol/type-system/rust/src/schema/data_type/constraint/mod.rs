@@ -35,7 +35,7 @@ pub trait Constraint: Sized {
     /// # Errors
     ///
     /// If the constraints exclude each other, an error is returned.
-    fn combine(
+    fn intersection(
         self,
         other: Self,
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>>;
@@ -83,7 +83,7 @@ impl ValueConstraints {
     /// cannot be fully merged, they are kept separate.
     ///
     /// The algorithm works as follows:
-    /// - It iterattes over all constraints
+    /// - It iterates over all constraints
     /// - for each constraint, it tries to merge them with the constraints that have already been
     ///   merged from the previous iterations from left to right
     /// - if a constraint cannot be fully merged, it is either combined with the next constraint or
@@ -103,7 +103,7 @@ impl ValueConstraints {
                     .into_iter()
                     .map(|existing| {
                         if let Some(to_combine) = constraints.take() {
-                            let (combined, remainder) = existing.combine(to_combine)?;
+                            let (combined, remainder) = existing.intersection(to_combine)?;
                             // The remainder is used for the next iteration
                             constraints = remainder;
                             Ok::<_, Report<_>>(combined)
@@ -123,13 +123,13 @@ impl ValueConstraints {
 }
 
 impl Constraint for ValueConstraints {
-    fn combine(
+    fn intersection(
         self,
         other: Self,
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
         match (self, other) {
             (Self::Typed(lhs), Self::Typed(rhs)) => lhs
-                .combine(rhs)
+                .intersection(rhs)
                 .map(|(lhs, rhs)| (Self::Typed(lhs), rhs.map(Self::Typed))),
             (Self::AnyOf(lhs), Self::Typed(rhs)) => {
                 // TODO: Implement folding for anyOf constraints
@@ -142,7 +142,7 @@ impl Constraint for ValueConstraints {
                 Ok((Self::Typed(lhs), Some(Self::AnyOf(rhs))))
             }
             (Self::AnyOf(lhs), Self::AnyOf(rhs)) => lhs
-                .combine(rhs)
+                .intersection(rhs)
                 .map(|(lhs, rhs)| (Self::AnyOf(lhs), rhs.map(Self::AnyOf))),
         }
     }
@@ -179,28 +179,28 @@ pub enum SingleValueConstraints {
 }
 
 impl Constraint for SingleValueConstraints {
-    fn combine(
+    fn intersection(
         self,
         other: Self,
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
         match (self, other) {
             (Self::Null(lhs), Self::Null(rhs)) => lhs
-                .combine(rhs)
+                .intersection(rhs)
                 .map(|(lhs, rhs)| (Self::Null(lhs), rhs.map(Self::Null))),
             (Self::Boolean(lhs), Self::Boolean(rhs)) => lhs
-                .combine(rhs)
+                .intersection(rhs)
                 .map(|(lhs, rhs)| (Self::Boolean(lhs), rhs.map(Self::Boolean))),
             (Self::Number(lhs), Self::Number(rhs)) => lhs
-                .combine(rhs)
+                .intersection(rhs)
                 .map(|(lhs, rhs)| (Self::Number(lhs), rhs.map(Self::Number))),
             (Self::String(lhs), Self::String(rhs)) => lhs
-                .combine(rhs)
+                .intersection(rhs)
                 .map(|(lhs, rhs)| (Self::String(lhs), rhs.map(Self::String))),
             (Self::Array(lhs), Self::Array(rhs)) => lhs
-                .combine(rhs)
+                .intersection(rhs)
                 .map(|(lhs, rhs)| (Self::Array(lhs), rhs.map(Self::Array))),
             (Self::Object(lhs), Self::Object(rhs)) => lhs
-                .combine(rhs)
+                .intersection(rhs)
                 .map(|(lhs, rhs)| (Self::Object(lhs), rhs.map(Self::Object))),
             _ => bail!(ResolveClosedDataTypeError::IntersectedDifferentTypes),
         }

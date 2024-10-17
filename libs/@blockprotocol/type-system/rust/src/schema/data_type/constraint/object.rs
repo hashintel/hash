@@ -28,13 +28,13 @@ pub enum ObjectSchema {
 }
 
 impl Constraint for ObjectSchema {
-    fn combine(
+    fn intersection(
         self,
         other: Self,
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
         Ok(match (self, other) {
             (Self::Constrained(lhs), Self::Constrained(rhs)) => {
-                let (combined, remainder) = lhs.combine(rhs)?;
+                let (combined, remainder) = lhs.intersection(rhs)?;
                 (
                     Self::Constrained(combined),
                     remainder.map(Self::Constrained),
@@ -96,7 +96,7 @@ impl ConstraintValidator<JsonObject> for ObjectSchema {
 pub struct ObjectConstraints {}
 
 impl Constraint for ObjectConstraints {
-    fn combine(
+    fn intersection(
         self,
         _other: Self,
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
