@@ -38,7 +38,7 @@ use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTi
 use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
-    Validator,
+    Valid, Validator,
     schema::{
         ClosedEntityType, DataTypeUuid, EntityTypeUuid, EntityTypeValidator, OntologyTypeResolver,
         OntologyTypeUuid, PropertyTypeUuid,
@@ -1188,6 +1188,9 @@ where
             .simple_query(
                 "
                     DELETE FROM entity_type_inherits_from;
+                    DELETE FROM entity_type_constrains_links_on;
+                    DELETE FROM entity_type_constrains_link_destinations_on;
+                    DELETE FROM entity_type_constrains_properties_on;
                 ",
             )
             .await
@@ -1208,17 +1211,36 @@ where
             let schema = Arc::new(entity_type.schema);
             let entity_type_id = EntityTypeUuid::from_url(&schema.id);
             ontology_type_resolver.add_unresolved_entity_type(entity_type_id, Arc::clone(&schema));
-            entity_type_id
+            (entity_type_id, schema)
         })
         .collect::<Vec<_>>();
 
-        for entity_type_id in entity_type_ids {
+        for (entity_type_id, schema) in entity_type_ids {
             let schema_metadata = ontology_type_resolver
                 .resolve_entity_type_metadata(entity_type_id)
                 .change_context(UpdateError)?;
 
             transaction
                 .insert_entity_type_references(entity_type_id, &schema_metadata)
+                .await
+                .change_context(UpdateError)?;
+
+            let closed_schema =
+                ClosedEntityType::from_resolve_data((*schema).clone(), &schema_metadata);
+            // TODO: Validate ontology types in snapshots
+            //   see https://linear.app/hash/issue/H-3038
+            let closed_schema = Valid::new_unchecked(closed_schema);
+
+            transaction
+                .as_client()
+                .query(
+                    "
+                        UPDATE entity_types
+                        SET closed_schema = $2
+                        WHERE ontology_id = $1;
+                    ",
+                    &[&entity_type_id, &closed_schema],
+                )
                 .await
                 .change_context(UpdateError)?;
         }

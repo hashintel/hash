@@ -1128,7 +1128,7 @@ where
         .map(|data_type| {
             let schema = Arc::new(data_type.schema);
             let data_type_id = DataTypeUuid::from_url(&schema.id);
-            ontology_type_resolver.add_unresolved_data_type(data_type_id, Arc::clone(&schema));
+            ontology_type_resolver.add_unresolved_data_type(data_type_id, schema);
             data_type_id
         })
         .collect::<Vec<_>>();

@@ -330,6 +330,8 @@ where
                     entity.metadata.properties = metadata;
                 }
 
+                println!("Validating entity {:#}", serde_json::json!(&entity));
+                println!("entity type {:#}", serde_json::json!(&entity_type));
                 entity
                     .validate(
                         &entity_type,

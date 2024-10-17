@@ -71,12 +71,9 @@ impl ReferenceTable {
                     inheritance_depth,
                 ))
             }
-            Self::EntityTypeInheritsFrom { inheritance_depth } => {
-                Some(Column::EntityTypeInheritsFrom(
-                    EntityTypeInheritsFrom::InheritanceDepth,
-                    inheritance_depth,
-                ))
-            }
+            Self::EntityTypeInheritsFrom { inheritance_depth } => Some(
+                Column::EntityTypeInheritsFrom(EntityTypeInheritsFrom::Depth, inheritance_depth),
+            ),
             Self::EntityTypeConstrainsLinksOn { inheritance_depth } => {
                 Some(Column::EntityTypeConstrainsLinksOn(
                     EntityTypeConstrainsLinksOn::InheritanceDepth,
@@ -1284,7 +1281,7 @@ impl DatabaseColumn for EntityTypeConstrainsPropertiesOn {
 pub enum EntityTypeInheritsFrom {
     SourceEntityTypeOntologyId,
     TargetEntityTypeOntologyId,
-    InheritanceDepth,
+    Depth,
 }
 
 impl DatabaseColumn for EntityTypeInheritsFrom {
@@ -1293,7 +1290,7 @@ impl DatabaseColumn for EntityTypeInheritsFrom {
             Self::SourceEntityTypeOntologyId | Self::TargetEntityTypeOntologyId => {
                 ParameterType::Uuid
             }
-            Self::InheritanceDepth => ParameterType::I32,
+            Self::Depth => ParameterType::I32,
         }
     }
 
@@ -1305,7 +1302,7 @@ impl DatabaseColumn for EntityTypeInheritsFrom {
         match self {
             Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id",
             Self::TargetEntityTypeOntologyId => "target_entity_type_ontology_id",
-            Self::InheritanceDepth => "inheritance_depth",
+            Self::Depth => "depth",
         }
     }
 }
