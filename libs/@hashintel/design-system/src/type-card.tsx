@@ -9,6 +9,7 @@ import { CloseIcon } from "./icon-close";
 import { WhiteCard } from "./white-card";
 
 interface TypeCardProps {
+  disableClick?: boolean;
   onDelete?: () => void;
   LinkComponent?: ElementType;
   url: string;
@@ -21,6 +22,7 @@ interface TypeCardProps {
 }
 
 export const TypeCard = ({
+  disableClick,
   onDelete,
   LinkComponent,
   url,
@@ -34,7 +36,7 @@ export const TypeCard = ({
 
   return (
     <WhiteCard
-      href={url}
+      href={disableClick ? undefined : url}
       LinkComponent={LinkComponent}
       onMouseEnter={() => (onDelete ? setHovered(true) : null)}
       onMouseLeave={() => (onDelete ? setHovered(false) : null)}

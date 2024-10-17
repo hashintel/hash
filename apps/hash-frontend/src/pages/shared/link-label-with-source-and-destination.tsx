@@ -35,6 +35,7 @@ import { useGetOwnerForEntity } from "../../components/hooks/use-get-owner-for-e
 import { generateLinkParameters } from "../../shared/generate-link-parameters";
 import { LinkRegularIcon } from "../../shared/icons/link-regular-icon";
 import { Link } from "../../shared/ui";
+import { useEntityEditor } from "../[shortname]/entities/[entity-uuid].page/entity-editor/entity-editor-context";
 
 const ContentTypography = styled(Typography)(({ theme }) => ({
   fontSize: 14,
@@ -422,6 +423,8 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
   onEntityClick,
   openInNew = false,
 }) => {
+  const { disableTypeClick } = useEntityEditor();
+
   const { leftEntity, rightEntity, linkEntityType } = useMemo(() => {
     return {
       linkEntityType: getEntityTypeById(
@@ -439,6 +442,50 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
   const linkEntityTypeVersion = useMemo(
     () => extractVersion(linkEntityType.schema.$id),
     [linkEntityType],
+  );
+
+  const linkTypeInner = (
+    <Box
+      sx={{
+        background: ({ palette }) => palette.gray[5],
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 1,
+        paddingX: 1.5,
+        paddingY: 0.75,
+        borderColor: ({ palette }) => palette.gray[30],
+        borderWidth: 1,
+        borderStyle: "solid",
+        borderLeftWidth: 0,
+        borderRightWidth: 0,
+      }}
+    >
+      <Box display="flex">
+        {linkEntityType.metadata.icon ?? (
+          <LinkRegularIcon
+            sx={{
+              color: ({ palette }) => palette.common.black,
+              fontSize: 16,
+              transition: ({ transitions }) => transitions.create("color"),
+            }}
+          />
+        )}
+      </Box>
+      <ContentTypography>
+        {linkEntityType.schema.title}{" "}
+        <Box
+          component="span"
+          sx={{
+            color: ({ palette }) => palette.gray[50],
+            fontSize: 11,
+            fontWeight: 400,
+          }}
+        >
+          v{linkEntityTypeVersion}
+        </Box>
+      </ContentTypography>
+    </Box>
   );
 
   return (
@@ -461,60 +508,24 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
         label={displayLabels ? "Source entity" : undefined}
         sx={leftEntitySx}
       />
-      <Link
-        openInNew={openInNew}
-        href={generateLinkParameters(linkEntityType.schema.$id).href}
-        noLinkStyle
-        sx={{
-          "&:hover": {
-            [`.${typographyClasses.root}, svg`]: {
-              color: ({ palette }) => palette.blue[70],
-            },
-          },
-        }}
-      >
-        <Box
+      {disableTypeClick ? (
+        <Box>{linkTypeInner}</Box>
+      ) : (
+        <Link
+          openInNew={openInNew}
+          href={generateLinkParameters(linkEntityType.schema.$id).href}
+          noLinkStyle
           sx={{
-            background: ({ palette }) => palette.gray[5],
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 1,
-            paddingX: 1.5,
-            paddingY: 0.75,
-            borderColor: ({ palette }) => palette.gray[30],
-            borderWidth: 1,
-            borderStyle: "solid",
-            borderLeftWidth: 0,
-            borderRightWidth: 0,
+            "&:hover": {
+              [`.${typographyClasses.root}, svg`]: {
+                color: ({ palette }) => palette.blue[70],
+              },
+            },
           }}
         >
-          <Box display="flex">
-            {linkEntityType.metadata.icon ?? (
-              <LinkRegularIcon
-                sx={{
-                  color: ({ palette }) => palette.common.black,
-                  fontSize: 16,
-                  transition: ({ transitions }) => transitions.create("color"),
-                }}
-              />
-            )}
-          </Box>
-          <ContentTypography>
-            {linkEntityType.schema.title}{" "}
-            <Box
-              component="span"
-              sx={{
-                color: ({ palette }) => palette.gray[50],
-                fontSize: 11,
-                fontWeight: 400,
-              }}
-            >
-              v{linkEntityTypeVersion}
-            </Box>
-          </ContentTypography>
-        </Box>
-      </Link>
+          {linkTypeInner}
+        </Link>
+      )}
       <LeftOrRightEntity
         entity={rightEntity}
         onEntityClick={onEntityClick}

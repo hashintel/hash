@@ -5,8 +5,10 @@ import type { FunctionComponent, RefObject } from "react";
 import { useCallback, useState } from "react";
 
 import { EditEntitySlideOver } from "../[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
+import { generateEntityRootedSubgraph } from "./subgraphs";
 
 interface EntityEditorSlideStackProps {
+  disableTypeClick?: boolean;
   /**
    * If you already have a subgraph with the entity, its types and incoming/outgoing links to a depth of 1, provide it.
    * If you have a subgraph with partial data (e.g. no links), you can provide it along with `entityId`,
@@ -33,6 +35,7 @@ interface EntityEditorSlideStackProps {
 export const EntityEditorSlideStack: FunctionComponent<
   EntityEditorSlideStackProps
 > = ({
+  disableTypeClick,
   entitySubgraph,
   hideOpenInNew,
   onClose,
@@ -82,24 +85,31 @@ export const EntityEditorSlideStack: FunctionComponent<
       open={!animateOut}
       sx={{ zIndex: ({ zIndex }) => zIndex.drawer + 2 }}
     >
-      {items.slice(0, currentIndex + 1).map((entityId, index) => (
-        <EditEntitySlideOver
-          entitySubgraph={entitySubgraph}
-          entityId={entityId}
-          hideOpenInNew={hideOpenInNew}
-          // eslint-disable-next-line react/no-array-index-key
-          key={`${index}-${entityId}`}
-          open={!animateOut}
-          onBack={index > 0 ? handleBack : undefined}
-          onClose={handleClose}
-          onEntityClick={handleNavigateToEntity}
-          onForward={index < items.length - 1 ? handleForward : undefined}
-          onSubmit={onSubmit}
-          readonly={readonly}
-          slideContainerRef={slideContainerRef}
-          stackPosition={index + 1}
-        />
-      ))}
+      {items.slice(0, currentIndex + 1).map((entityId, index) => {
+        return (
+          <EditEntitySlideOver
+            disableTypeClick={disableTypeClick}
+            entitySubgraph={
+              entitySubgraph
+                ? generateEntityRootedSubgraph(entityId, entitySubgraph)
+                : undefined
+            }
+            entityId={entityId}
+            hideOpenInNew={hideOpenInNew}
+            // eslint-disable-next-line react/no-array-index-key
+            key={`${index}-${entityId}`}
+            open={!animateOut}
+            onBack={index > 0 ? handleBack : undefined}
+            onClose={handleClose}
+            onEntityClick={handleNavigateToEntity}
+            onForward={index < items.length - 1 ? handleForward : undefined}
+            onSubmit={onSubmit}
+            readonly={readonly}
+            slideContainerRef={slideContainerRef}
+            stackPosition={index + 1}
+          />
+        );
+      })}
     </Backdrop>
   );
 };

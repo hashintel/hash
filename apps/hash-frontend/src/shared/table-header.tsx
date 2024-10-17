@@ -118,6 +118,7 @@ export type GetAdditionalCsvDataFunction = () => Promise<{
 } | null>;
 
 type TableHeaderProps = {
+  hideFilters?: boolean;
   internalWebIds: (AccountId | AccountGroupId)[];
   itemLabelPlural: "entities" | "pages" | "types";
   items?: (
@@ -150,6 +151,7 @@ const commonChipSx = {
 } as const satisfies SxProps<Theme>;
 
 export const TableHeader: FunctionComponent<TableHeaderProps> = ({
+  hideFilters,
   internalWebIds,
   itemLabelPlural,
   items,
@@ -285,7 +287,7 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
             selectedItems={selectedItems}
             onBulkActionCompleted={onBulkActionCompleted}
           />
-        ) : (
+        ) : hideFilters ? null : (
           <>
             <NoMaxWidthTooltip
               title="Visible to you inside your personal web and organizations you belong to"
@@ -368,65 +370,68 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
         ) : null}
       </Box>
       <Box display="flex" alignItems="center" columnGap={1}>
-        <Box
-          sx={{
-            display: "flex",
-            justifyContent: "flex-end",
-            background: ({ palette }) =>
-              displayFilters ||
-              Object.values(filterState).some((value) => value)
-                ? palette.common.white
-                : "transparent",
-            transition: ({ transitions }) => transitions.create("background"),
-            borderRadius: 15,
-          }}
-        >
-          <TableHeaderButton
-            variant="tertiary_quiet"
-            onClick={() => setDisplayFilters(!displayFilters)}
-            startIcon={<FilterListIcon />}
-          >
-            Filter
-          </TableHeaderButton>
+        {!hideFilters && (
           <Box
             sx={{
-              transition: ({ transitions }) => transitions.create("max-width"),
-              maxWidth: displayFilters ? 500 : 0,
-              overflow: "hidden",
+              display: "flex",
+              justifyContent: "flex-end",
+              background: ({ palette }) =>
+                displayFilters ||
+                Object.values(filterState).some((value) => value)
+                  ? palette.common.white
+                  : "transparent",
+              transition: ({ transitions }) => transitions.create("background"),
+              borderRadius: 15,
             }}
           >
-            <Box
-              display="flex"
-              flexWrap="nowrap"
-              alignItems="center"
-              height="100%"
-              paddingRight={2}
+            <TableHeaderButton
+              variant="tertiary_quiet"
+              onClick={() => setDisplayFilters(!displayFilters)}
+              startIcon={<FilterListIcon />}
             >
-              {filterState.includeArchived !== undefined ? (
+              Filter
+            </TableHeaderButton>
+            <Box
+              sx={{
+                transition: ({ transitions }) =>
+                  transitions.create("max-width"),
+                maxWidth: displayFilters ? 500 : 0,
+                overflow: "hidden",
+              }}
+            >
+              <Box
+                display="flex"
+                flexWrap="nowrap"
+                alignItems="center"
+                height="100%"
+                paddingRight={2}
+              >
+                {filterState.includeArchived !== undefined ? (
+                  <CheckboxFilter
+                    label="Include archived"
+                    checked={filterState.includeArchived}
+                    onChange={(checked) =>
+                      setFilterState((prev) => ({
+                        ...prev,
+                        includeArchived: checked,
+                      }))
+                    }
+                  />
+                ) : null}
                 <CheckboxFilter
-                  label="Include archived"
-                  checked={filterState.includeArchived}
+                  label="Include external"
+                  checked={filterState.includeGlobal}
                   onChange={(checked) =>
                     setFilterState((prev) => ({
                       ...prev,
-                      includeArchived: checked,
+                      includeGlobal: checked,
                     }))
                   }
                 />
-              ) : null}
-              <CheckboxFilter
-                label="Include external"
-                checked={filterState.includeGlobal}
-                onChange={(checked) =>
-                  setFilterState((prev) => ({
-                    ...prev,
-                    includeGlobal: checked,
-                  }))
-                }
-              />
+              </Box>
             </Box>
           </Box>
-        </Box>
+        )}
         <ExportToCsvButton generateCsvFile={generateCsvFile} />
         {endAdornment}
       </Box>

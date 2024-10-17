@@ -131,6 +131,10 @@ export const useSetDrawSettings = (graphState: GraphState) => {
     sigma.setSetting("edgeReducer", (edge, data) => {
       const edgeData = { ...data };
 
+      if (edge === graphState.hoveredEdgeId) {
+        edgeData.forceLabel = true;
+      }
+
       if (!graphState.selectedNodeId && !graphState.hoveredNodeId) {
         return edgeData;
       }
@@ -164,16 +168,26 @@ export const useSetDrawSettings = (graphState: GraphState) => {
         }
       }
 
-      if (sourceIsShown && targetIsShown) {
+      const selectedNode = [
+        graphState.selectedNodeId,
+        graphState.hoveredNodeId,
+      ];
+
+      if (
+        /**
+         * @todo we should only hide links which don't link to/from selected node at depth 1
+         */
+        sourceIsShown &&
+        targetIsShown &&
+        (selectedNode.includes(source) || selectedNode.includes(target))
+      ) {
         edgeData.zIndex = 2;
-        edgeData.size = 4;
+        edgeData.size = 3;
 
         const sourceData = graph.getNodeAttributes(source);
         edgeData.color =
           graphState.colorByNodeTypeId?.[sourceData.nodeTypeId] ??
           sourceData.color;
-
-        edgeData.forceLabel = true;
       } else {
         edgeData.hidden = true;
       }

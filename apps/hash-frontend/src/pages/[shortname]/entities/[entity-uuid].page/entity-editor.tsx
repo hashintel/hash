@@ -18,6 +18,7 @@ import { useEntityEditorTab } from "./shared/entity-editor-tabs";
 import type { DraftLinkState } from "./shared/use-draft-link-state";
 
 export interface EntityEditorProps extends DraftLinkState {
+  disableTypeClick?: boolean;
   isDirty: boolean;
   entityLabel: string;
   entitySubgraph: Subgraph<EntityRootType>;
@@ -34,8 +35,6 @@ export interface EntityEditorProps extends DraftLinkState {
 
 export const EntityEditor = (props: EntityEditorProps) => {
   const { entitySubgraph } = props;
-
-  const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
 
   const entity = useMemo(() => {
     const roots = getRoots(entitySubgraph);
@@ -62,10 +61,11 @@ export const EntityEditor = (props: EntityEditorProps) => {
     return rootEntity;
   }, [entitySubgraph]);
 
-  const isLinkEntity = useMemo(
-    () => isSpecialEntityTypeLookup?.[entity.metadata.entityTypeId]?.isLink,
-    [entity, isSpecialEntityTypeLookup],
-  );
+  /**
+   * @todo when we allow starting an empty link entity and choosing the type later, this will need to be updated
+   *    to use isSpecialEntityTypeLookup instead
+   */
+  const isLinkEntity = !!entity.linkData;
 
   const tab = useEntityEditorTab();
 
@@ -81,7 +81,7 @@ export const EntityEditor = (props: EntityEditorProps) => {
 
           <PropertiesSection />
 
-          <LinksSection isLinkEntity={!!isLinkEntity} />
+          <LinksSection isLinkEntity={isLinkEntity} />
 
           {/* <PeersSection /> */}
         </Box>

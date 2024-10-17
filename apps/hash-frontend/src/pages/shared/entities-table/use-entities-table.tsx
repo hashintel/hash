@@ -5,6 +5,7 @@ import type {
 } from "@blockprotocol/type-system";
 import { extractVersion } from "@blockprotocol/type-system";
 import type { SizedGridColumn } from "@glideapps/glide-data-grid";
+import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
@@ -18,9 +19,55 @@ import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { format } from "date-fns";
 import { useMemo } from "react";
 
+import { gridHeaderBaseFont } from "../../../components/grid/grid";
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
 import type { MinimalActor } from "../../../shared/use-actors";
 import { useActors } from "../../../shared/use-actors";
+
+const columnDefinitionsByKey: Record<
+  keyof TypeEntitiesRow,
+  {
+    title: string;
+    id: string;
+    width: number;
+  }
+> = {
+  entityTypeVersion: {
+    title: "Entity Type Version",
+    id: "entityTypeVersion",
+    width: 230,
+  },
+  web: {
+    title: "Web",
+    id: "web",
+    width: 200,
+  },
+  archived: {
+    title: "Archived",
+    id: "archived",
+    width: 200,
+  },
+  lastEdited: {
+    title: "Last Edited",
+    id: "lastEdited",
+    width: 200,
+  },
+  lastEditedBy: {
+    title: "Last Edited By",
+    id: "lastEditedBy",
+    width: 200,
+  },
+  created: {
+    title: "Created",
+    id: "created",
+    width: 200,
+  },
+  createdBy: {
+    title: "Created By",
+    id: "createdBy",
+    width: 200,
+  },
+};
 
 export interface TypeEntitiesRow {
   rowId: string;
@@ -43,13 +90,26 @@ export interface TypeEntitiesRow {
   [key: string]: any;
 }
 
+let canvas: HTMLCanvasElement | undefined = undefined;
+
+const getTextWidth = (text: string) => {
+  canvas ??= document.createElement("canvas");
+
+  const context = canvas.getContext("2d")!;
+
+  context.font = gridHeaderBaseFont;
+
+  const metrics = context.measureText(text);
+  return metrics.width;
+};
+
 export const useEntitiesTable = (params: {
   entities?: Entity[];
   entityTypes?: EntityType[];
   propertyTypes?: PropertyType[];
   subgraph?: Subgraph<EntityRootType>;
+  hideColumns?: (keyof TypeEntitiesRow)[];
   hidePageArchivedColumn?: boolean;
-  hideEntityTypeVersionColumn?: boolean;
   hidePropertiesColumns: boolean;
   isViewingPages?: boolean;
 }) => {
@@ -58,8 +118,8 @@ export const useEntitiesTable = (params: {
     entityTypes,
     propertyTypes,
     subgraph,
+    hideColumns,
     hidePageArchivedColumn = false,
-    hideEntityTypeVersionColumn = false,
     hidePropertiesColumns,
     isViewingPages = false,
   } = params;
@@ -100,7 +160,7 @@ export const useEntitiesTable = (params: {
           propertyColumnsMap.set(propertyTypeBaseUrl, {
             id: propertyTypeBaseUrl,
             title: propertyType.title,
-            width: 200,
+            width: getTextWidth(propertyType.title) + 70,
           });
         }
       }
@@ -115,60 +175,29 @@ export const useEntitiesTable = (params: {
             )?.title ?? "Entity")
           : "Entity",
         id: "entityLabel",
-        width: 252,
+        width: 300,
         grow: 1,
       },
-      ...(hideEntityTypeVersionColumn
-        ? []
-        : [
-            {
-              title: "Entity Type Version",
-              id: "entityTypeVersion",
-              width: 250,
-            },
-          ]),
-      {
-        title: "Web",
-        id: "web",
-        width: 200,
-      },
-      ...(isViewingPages && !hidePageArchivedColumn
-        ? [
-            {
-              title: "Archived",
-              id: "archived",
-              width: 200,
-            },
-          ]
-        : []),
-      {
-        title: "Last Edited",
-        id: "lastEdited",
-        width: 200,
-      },
-      {
-        title: "Last Edited By",
-        id: "lastEditedBy",
-        width: 200,
-      },
-      {
-        title: "Created",
-        id: "created",
-        width: 200,
-      },
-      {
-        title: "Created By",
-        id: "createdBy",
-        width: 200,
-      },
-      /** @todo: uncomment this when we have additional types for entities */
-      // {
-      //   title: "Additional Types",
-      //   id: "additionalTypes",
-      //   width: 250,
-      // },
-      ...(hidePropertiesColumns ? [] : propertyColumns),
     ];
+
+    const columnsToHide = hideColumns ?? [];
+    if (!isViewingPages || hidePageArchivedColumn) {
+      columnsToHide.push("archived");
+    }
+
+    for (const [columnKey, definition] of typedEntries(
+      columnDefinitionsByKey,
+    )) {
+      if (!columnsToHide.includes(columnKey)) {
+        columns.push(definition);
+      }
+    }
+
+    if (!hidePropertiesColumns) {
+      columns.push(
+        ...propertyColumns.sort((a, b) => a.title.localeCompare(b.title)),
+      );
+    }
 
     const rows: TypeEntitiesRow[] | undefined =
       subgraph && entityTypes
@@ -265,15 +294,15 @@ export const useEntitiesTable = (params: {
   }, [
     actors,
     actorsLoading,
+    entitiesHaveSameType,
     entities,
     entityTypes,
     getOwnerForEntity,
-    propertyTypes,
-    subgraph,
-    entitiesHaveSameType,
-    hideEntityTypeVersionColumn,
+    isViewingPages,
+    hideColumns,
     hidePageArchivedColumn,
     hidePropertiesColumns,
-    isViewingPages,
+    propertyTypes,
+    subgraph,
   ]);
 };

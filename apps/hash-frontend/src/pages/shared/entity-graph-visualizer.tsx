@@ -11,7 +11,7 @@ import { isEntityId } from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
 import { useTheme } from "@mui/material";
 import type { RefObject } from "react";
-import { useCallback, useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 
 import type {
   GraphVisualizerProps,
@@ -42,199 +42,180 @@ const defaultConfig = {
   },
 } as const satisfies GraphVizConfig;
 
-export const EntityGraphVisualizer = <T extends EntityForGraph>({
-  entities,
-  filterEntity,
-  isPrimaryEntity,
-  subgraphWithTypes,
-  onEntityClick,
-  onEntityTypeClick,
-}: {
-  entities?: T[];
-  /**
-   * A function to filter out entities from display. If the function returns false, the entity will not be displayed.
-   */
-  filterEntity?: (entity: T) => boolean;
-  onEntityClick?: (
-    entityId: EntityId,
-    containerRef?: RefObject<HTMLDivElement>,
-  ) => void;
-  onEntityTypeClick?: (entityTypeId: VersionedUrl) => void;
-  /**
-   * Whether this entity should receive a special highlight.
-   */
-  isPrimaryEntity?: (entity: T) => boolean;
-  subgraphWithTypes: Subgraph;
-}) => {
-  const { palette } = useTheme();
+export const EntityGraphVisualizer = memo(
+  <T extends EntityForGraph>({
+    entities,
+    isPrimaryEntity,
+    subgraphWithTypes,
+    onEntityClick,
+    onEntityTypeClick,
+  }: {
+    entities?: T[];
+    onEntityClick?: (
+      entityId: EntityId,
+      containerRef?: RefObject<HTMLDivElement>,
+    ) => void;
+    onEntityTypeClick?: (entityTypeId: VersionedUrl) => void;
+    /**
+     * Whether this entity should receive a special highlight.
+     */
+    isPrimaryEntity?: (entity: T) => boolean;
+    subgraphWithTypes: Subgraph;
+  }) => {
+    const { palette } = useTheme();
 
-  const nodeColors = useMemo(() => {
-    return [
-      {
-        color: palette.blue[30],
-        borderColor: palette.gray[50],
-      },
-      {
-        color: palette.purple[30],
-        borderColor: palette.gray[50],
-      },
-      {
-        color: palette.green[50],
-        borderColor: palette.gray[50],
-      },
-      {
-        color: palette.red[20],
-        borderColor: palette.gray[50],
-      },
-      {
-        color: palette.yellow[30],
-        borderColor: palette.gray[50],
-      },
-    ] as const;
-  }, [palette]);
+    const nodeColors = useMemo(() => {
+      return [
+        {
+          color: palette.blue[30],
+          borderColor: palette.gray[50],
+        },
+        {
+          color: palette.purple[30],
+          borderColor: palette.gray[50],
+        },
+        {
+          color: palette.green[50],
+          borderColor: palette.gray[50],
+        },
+        {
+          color: palette.red[20],
+          borderColor: palette.gray[50],
+        },
+        {
+          color: palette.yellow[30],
+          borderColor: palette.gray[50],
+        },
+      ] as const;
+    }, [palette]);
 
-  const { nodes, edges } = useMemo<{
-    nodes: GraphVizNode[];
-    edges: GraphVizEdge[];
-  }>(() => {
-    const nodesToAddByNodeId: Record<string, GraphVizNode> = {};
-    const edgesToAdd: GraphVizEdge[] = [];
+    const { nodes, edges } = useMemo<{
+      nodes: GraphVizNode[];
+      edges: GraphVizEdge[];
+    }>(() => {
+      const nodesToAddByNodeId: Record<string, GraphVizNode> = {};
+      const edgesToAdd: GraphVizEdge[] = [];
 
-    const nonLinkEntitiesIncluded = new Set<EntityId>();
-    const linkEntitiesToAdd: (T & {
-      linkData: NonNullable<T["linkData"]>;
-    })[] = [];
+      const nonLinkEntitiesIncluded = new Set<EntityId>();
+      const linkEntitiesToAdd: (T & {
+        linkData: NonNullable<T["linkData"]>;
+      })[] = [];
 
-    const entityTypeIdToColor = new Map<string, number>();
+      const entityTypeIdToColor = new Map<string, number>();
 
-    for (const entity of entities ?? []) {
-      /**
-       * If we have been provided a filter function, check it doesn't filter out the entity
-       */
-      if (filterEntity) {
-        if (!filterEntity(entity)) {
+      for (const entity of entities ?? []) {
+        if (entity.linkData) {
+          /**
+           * We process links afterwards, because we only want to add them if both source and target are in the graph.
+           */
+          linkEntitiesToAdd.push(
+            entity as T & {
+              linkData: NonNullable<T["linkData"]>;
+            },
+          );
           continue;
         }
-      }
 
-      if (entity.linkData) {
-        /**
-         * We process links afterwards, because we only want to add them if both source and target are in the graph.
-         */
-        linkEntitiesToAdd.push(
-          entity as T & {
-            linkData: NonNullable<T["linkData"]>;
-          },
-        );
-        continue;
-      }
+        nonLinkEntitiesIncluded.add(entity.metadata.recordId.entityId);
 
-      nonLinkEntitiesIncluded.add(entity.metadata.recordId.entityId);
+        const specialHighlight = isPrimaryEntity?.(entity) ?? false;
 
-      const specialHighlight = isPrimaryEntity?.(entity) ?? false;
+        if (!entityTypeIdToColor.has(entity.metadata.entityTypeId)) {
+          entityTypeIdToColor.set(
+            entity.metadata.entityTypeId,
+            entityTypeIdToColor.size % nodeColors.length,
+          );
+        }
 
-      if (!entityTypeIdToColor.has(entity.metadata.entityTypeId)) {
-        entityTypeIdToColor.set(
+        const { color, borderColor } = specialHighlight
+          ? { color: palette.blue[50], borderColor: palette.blue[60] }
+          : nodeColors[entityTypeIdToColor.get(entity.metadata.entityTypeId)!]!;
+
+        const entityType = getEntityTypeById(
+          subgraphWithTypes,
           entity.metadata.entityTypeId,
-          entityTypeIdToColor.size % nodeColors.length,
         );
+
+        if (!entityType) {
+          throw new Error(
+            `Could not find entity type for ${entity.metadata.entityTypeId}`,
+          );
+        }
+
+        nodesToAddByNodeId[entity.metadata.recordId.entityId] = {
+          label: generateEntityLabel(subgraphWithTypes, entity),
+          nodeId: entity.metadata.recordId.entityId,
+          nodeTypeId: entity.metadata.entityTypeId,
+          nodeTypeLabel: entityType.schema.title,
+          color,
+          borderColor,
+          size: defaultConfig.nodeSizing.min,
+        };
       }
 
-      const { color, borderColor } = specialHighlight
-        ? { color: palette.blue[50], borderColor: palette.blue[60] }
-        : nodeColors[entityTypeIdToColor.get(entity.metadata.entityTypeId)!]!;
+      for (const linkEntity of linkEntitiesToAdd) {
+        if (
+          !nonLinkEntitiesIncluded.has(linkEntity.linkData.leftEntityId) ||
+          !nonLinkEntitiesIncluded.has(linkEntity.linkData.rightEntityId)
+        ) {
+          /**
+           * We don't have both sides of this link in the graph.
+           */
+          continue;
+        }
 
-      const entityType = getEntityTypeById(
-        subgraphWithTypes,
-        entity.metadata.entityTypeId,
-      );
-
-      if (!entityType) {
-        throw new Error(
-          `Could not find entity type for ${entity.metadata.entityTypeId}`,
+        const linkEntityType = getEntityTypeById(
+          subgraphWithTypes,
+          linkEntity.metadata.entityTypeId,
         );
+
+        edgesToAdd.push({
+          source: linkEntity.linkData.leftEntityId,
+          target: linkEntity.linkData.rightEntityId,
+          edgeId: linkEntity.metadata.recordId.entityId,
+          label: linkEntityType?.schema.title ?? "Unknown",
+          size: 1,
+        });
       }
 
-      nodesToAddByNodeId[entity.metadata.recordId.entityId] = {
-        label: generateEntityLabel(subgraphWithTypes, entity),
-        nodeId: entity.metadata.recordId.entityId,
-        nodeTypeId: entity.metadata.entityTypeId,
-        nodeTypeLabel: entityType.schema.title,
-        color,
-        borderColor,
-        size: defaultConfig.nodeSizing.min,
+      return {
+        nodes: Object.values(nodesToAddByNodeId),
+        edges: edgesToAdd,
       };
-    }
+    }, [entities, isPrimaryEntity, nodeColors, palette, subgraphWithTypes]);
 
-    for (const linkEntity of linkEntitiesToAdd) {
-      if (
-        !nonLinkEntitiesIncluded.has(linkEntity.linkData.leftEntityId) ||
-        !nonLinkEntitiesIncluded.has(linkEntity.linkData.rightEntityId)
-      ) {
-        /**
-         * We don't have both sides of this link in the graph.
-         */
-        continue;
-      }
+    const onNodeClick = useCallback<
+      NonNullable<GraphVisualizerProps["onNodeSecondClick"]>
+    >(
+      ({ nodeId, screenContainerRef }) => {
+        if (isEntityId(nodeId)) {
+          onEntityClick?.(nodeId, screenContainerRef);
+        } else {
+          onEntityTypeClick?.(nodeId as VersionedUrl);
+        }
+      },
+      [onEntityClick, onEntityTypeClick],
+    );
 
-      const linkEntityType = getEntityTypeById(
-        subgraphWithTypes,
-        linkEntity.metadata.entityTypeId,
-      );
+    const onEdgeClick = useCallback<
+      NonNullable<GraphVisualizerProps["onEdgeClick"]>
+    >(
+      ({ edgeId, screenContainerRef }) => {
+        if (isEntityId(edgeId)) {
+          onEntityClick?.(edgeId, screenContainerRef);
+        }
+      },
+      [onEntityClick],
+    );
 
-      edgesToAdd.push({
-        source: linkEntity.linkData.leftEntityId,
-        target: linkEntity.linkData.rightEntityId,
-        edgeId: linkEntity.metadata.recordId.entityId,
-        label: linkEntityType?.schema.title ?? "Unknown",
-        size: 1,
-      });
-    }
-
-    return {
-      nodes: Object.values(nodesToAddByNodeId),
-      edges: edgesToAdd,
-    };
-  }, [
-    entities,
-    filterEntity,
-    isPrimaryEntity,
-    nodeColors,
-    palette,
-    subgraphWithTypes,
-  ]);
-
-  const onNodeClick = useCallback<
-    NonNullable<GraphVisualizerProps["onNodeSecondClick"]>
-  >(
-    ({ nodeId, screenContainerRef }) => {
-      if (isEntityId(nodeId)) {
-        onEntityClick?.(nodeId, screenContainerRef);
-      } else {
-        onEntityTypeClick?.(nodeId as VersionedUrl);
-      }
-    },
-    [onEntityClick, onEntityTypeClick],
-  );
-
-  const onEdgeClick = useCallback<
-    NonNullable<GraphVisualizerProps["onEdgeClick"]>
-  >(
-    ({ edgeId, screenContainerRef }) => {
-      if (isEntityId(edgeId)) {
-        onEntityClick?.(edgeId, screenContainerRef);
-      }
-    },
-    [onEntityClick],
-  );
-
-  return (
-    <GraphVisualizer
-      defaultConfig={defaultConfig}
-      nodes={nodes}
-      edges={edges}
-      onNodeSecondClick={onNodeClick}
-      onEdgeClick={onEdgeClick}
-    />
-  );
-};
+    return (
+      <GraphVisualizer
+        defaultConfig={defaultConfig}
+        nodes={nodes}
+        edges={edges}
+        onNodeSecondClick={onNodeClick}
+        onEdgeClick={onEdgeClick}
+      />
+    );
+  },
+);

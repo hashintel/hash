@@ -62,6 +62,7 @@ export const GraphContainer = memo(
           arrow: EdgeArrowProgram,
           curved: EdgeCurvedArrowProgram,
         },
+        inertiaRatio: 0,
         labelFont: `"Inter", "Helvetica", "sans-serif"`,
         labelSize: 12,
         labelColor: { color: palette.black },

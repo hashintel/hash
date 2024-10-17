@@ -16,7 +16,7 @@ import {
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { Box, useTheme } from "@mui/material";
 import { useRouter } from "next/router";
-import type { FunctionComponent, RefObject } from "react";
+import type { FunctionComponent, ReactElement, RefObject } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import type { GridProps } from "../../components/grid/grid";
@@ -79,17 +79,36 @@ const allFileEntityTypeBaseUrl = allFileEntityTypeOntologyIds.map(
 );
 
 export const EntitiesTable: FunctionComponent<{
-  hideEntityTypeVersionColumn?: boolean;
+  defaultFilter?: FilterState;
+  defaultView?: TableView;
+  disableEntityOpenInNew?: boolean;
+  disableTypeClick?: boolean;
+  hideFilters?: boolean;
   hidePropertiesColumns?: boolean;
-}> = ({ hideEntityTypeVersionColumn, hidePropertiesColumns = false }) => {
+  hideColumns?: (keyof TypeEntitiesRow)[];
+  LoadingComponent?: ReactElement;
+  maxHeight?: string | number;
+}> = ({
+  defaultFilter,
+  defaultView = "Table",
+  disableEntityOpenInNew,
+  disableTypeClick,
+  hideColumns,
+  hideFilters,
+  hidePropertiesColumns = false,
+  LoadingComponent,
+  maxHeight,
+}) => {
   const router = useRouter();
 
   const { authenticatedUser } = useAuthenticatedUser();
 
-  const [filterState, setFilterState] = useState<FilterState>({
-    includeGlobal: false,
-    limitToWebs: false,
-  });
+  const [filterState, setFilterState] = useState<FilterState>(
+    defaultFilter ?? {
+      includeGlobal: false,
+      limitToWebs: false,
+    },
+  );
   const [showSearch, setShowSearch] = useState<boolean>(false);
 
   const [selectedEntityType, setSelectedEntityType] = useState<{
@@ -105,7 +124,7 @@ export const EntitiesTable: FunctionComponent<{
     hadCachedContent,
     loading,
     propertyTypes,
-    subgraph: subgraphWithoutLinkedEntities,
+    subgraph: subgraphPossiblyWithoutLinks,
   } = useEntityTypeEntitiesContext();
 
   const { isSpecialEntityTypeLookup } = useEntityTypesContextRequired();
@@ -133,16 +152,16 @@ export const EntitiesTable: FunctionComponent<{
   const supportGridView = isDisplayingFilesOnly;
 
   const [view, setView] = useState<TableView>(
-    isDisplayingFilesOnly ? "Grid" : "Table",
+    isDisplayingFilesOnly ? "Grid" : defaultView,
   );
 
   useEffect(() => {
     if (isDisplayingFilesOnly) {
       setView("Grid");
     } else {
-      setView("Table");
+      setView(defaultView);
     }
-  }, [isDisplayingFilesOnly]);
+  }, [defaultView, isDisplayingFilesOnly]);
 
   const { subgraph: subgraphWithLinkedEntities } = useEntityTypeEntities({
     entityTypeBaseUrl,
@@ -164,7 +183,7 @@ export const EntitiesTable: FunctionComponent<{
     If absent, we pass the subgraph without linked entities so that there is _some_ data to load into the slideover,
     which will be missing links until they load in by specifically fetching selectedEntity.entityId
    */
-  const subgraph = subgraphWithLinkedEntities ?? subgraphWithoutLinkedEntities;
+  const subgraph = subgraphWithLinkedEntities ?? subgraphPossiblyWithoutLinks;
 
   const entities = useMemo(
     /**
@@ -226,8 +245,8 @@ export const EntitiesTable: FunctionComponent<{
     entityTypes,
     propertyTypes,
     subgraph,
+    hideColumns,
     hidePageArchivedColumn: !filterState.includeArchived,
-    hideEntityTypeVersionColumn,
     hidePropertiesColumns,
     isViewingPages,
   });
@@ -313,7 +332,10 @@ export const EntitiesTable: FunctionComponent<{
               kind: GridCellKind.Custom,
               allowOverlay: false,
               readonly: true,
-              cursor: "pointer",
+              cursor:
+                columnId === "entityTypeVersion" && disableTypeClick
+                  ? "default"
+                  : "pointer",
               copyData: stringValue,
               data: {
                 kind: "text-icon-cell",
@@ -322,7 +344,7 @@ export const EntitiesTable: FunctionComponent<{
                 onClick: () => {
                   if (columnId === "web") {
                     void router.push(`/${cellValue}`);
-                  } else {
+                  } else if (!disableTypeClick) {
                     setSelectedEntityType({ entityTypeId: row.entityTypeId });
                   }
                 },
@@ -436,7 +458,7 @@ export const EntitiesTable: FunctionComponent<{
 
         return blankCell;
       },
-    [columns, handleEntityClick, router, isViewingPages],
+    [columns, disableTypeClick, handleEntityClick, router, isViewingPages],
   );
 
   const theme = useTheme();
@@ -660,9 +682,11 @@ export const EntitiesTable: FunctionComponent<{
       addPropertiesColumns: hidePropertiesColumns,
     });
 
-  const maximumTableHeight = `calc(100vh - (${
-    HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 185 + tableHeaderHeight
-  }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`;
+  const maximumTableHeight =
+    maxHeight ??
+    `calc(100vh - (${
+      HEADER_HEIGHT + TOP_CONTEXT_BAR_HEIGHT + 185 + tableHeaderHeight
+    }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`;
 
   const isPrimaryEntity = useCallback(
     (entity: Entity) =>
@@ -672,16 +696,6 @@ export const EntitiesTable: FunctionComponent<{
           ? entityTypeId === entity.metadata.entityTypeId
           : false,
     [entityTypeId, entityTypeBaseUrl],
-  );
-
-  const filterEntity = useCallback(
-    (entity: Entity) =>
-      filterState.includeGlobal
-        ? true
-        : internalWebIds.includes(
-            extractOwnedByIdFromEntityId(entity.metadata.recordId.entityId),
-          ),
-    [filterState, internalWebIds],
   );
 
   return (
@@ -704,6 +718,8 @@ export const EntitiesTable: FunctionComponent<{
             it means the links will load in immediately.
            */
           entitySubgraph={selectedEntity.subgraph}
+          disableTypeClick={disableTypeClick}
+          hideOpenInNew={disableEntityOpenInNew}
           rootEntityId={selectedEntity.entityId}
           onClose={() => setSelectedEntity(null)}
           onSubmit={() => {
@@ -719,6 +735,7 @@ export const EntitiesTable: FunctionComponent<{
       ) : null}
       <Box>
         <TableHeader
+          hideFilters={hideFilters}
           internalWebIds={internalWebIds}
           itemLabelPlural={isViewingPages ? "pages" : "entities"}
           items={entities}
@@ -758,12 +775,11 @@ export const EntitiesTable: FunctionComponent<{
           }
           onBulkActionCompleted={() => setSelectedRows([])}
         />
-        {view === "Graph" && subgraph ? (
+        {!subgraph ? null : view === "Graph" ? (
           <Box height={maximumTableHeight}>
             <EntityGraphVisualizer
               entities={filteredEntities}
               isPrimaryEntity={isPrimaryEntity}
-              filterEntity={filterEntity}
               onEntityClick={handleEntityClick}
               subgraphWithTypes={subgraph}
             />

@@ -93,8 +93,6 @@ export const useEventHandlers = ({
 
     setGraphState("highlightedNeighborIds", getNeighbors(highlightedNode));
 
-    sigma.setSetting("renderEdgeLabels", true);
-
     /**
      * We haven't touched the graph data, so don't need to re-index.
      * An additional optimization would be to supply partialGraph here and only redraw the affected nodes,
@@ -114,7 +112,6 @@ export const useEventHandlers = ({
       setGraphState("hoveredNodeId", null);
       setGraphState("highlightedNeighborIds", null);
 
-      sigma.setSetting("renderEdgeLabels", false);
       sigma.refresh({ skipIndexation: true });
     };
 
@@ -141,6 +138,7 @@ export const useEventHandlers = ({
           return;
         }
 
+        setGraphState("hoveredNodeId", event.node);
         setGraphState("selectedNodeId", event.node);
         refreshGraphHighlights();
       },
@@ -178,6 +176,19 @@ export const useEventHandlers = ({
           return;
         }
         removeHighlights();
+      },
+      enterEdge: (event) => {
+        setGraphState("hoveredEdgeId", event.edge);
+
+        sigma.refresh({
+          partialGraph: {
+            edges: [event.edge],
+          },
+          skipIndexation: true,
+        });
+      },
+      leaveEdge: () => {
+        setGraphState("hoveredEdgeId", null);
       },
     });
   }, [

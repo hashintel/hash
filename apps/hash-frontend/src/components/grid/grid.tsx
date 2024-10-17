@@ -79,6 +79,8 @@ const gridHeaderHeight = 42;
 
 export const gridHeaderHeightWithBorder = gridHeaderHeight + 1;
 
+export const gridHeaderBaseFont = "600 14px Inter";
+
 export const gridHorizontalScrollbarHeight = 17;
 
 export const Grid = <T extends GridRow>({
@@ -282,7 +284,7 @@ export const Grid = <T extends GridRow>({
       bgHeaderHovered: palette.white,
       cellHorizontalPadding: getCellHorizontalPadding(),
       baseFontStyle: "500 14px Inter",
-      headerFontStyle: "600 14px Inter",
+      headerFontStyle: gridHeaderBaseFont,
       editorFontSize: "14px",
       fgIconHeader: palette.gray[80],
     }),

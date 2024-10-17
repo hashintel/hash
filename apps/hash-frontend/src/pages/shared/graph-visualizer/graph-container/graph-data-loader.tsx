@@ -91,7 +91,7 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
       }
 
       graph.addEdgeWithKey(edge.edgeId, source, target, {
-        color: "rgba(90, 90, 90, 0.5)",
+        color: "rgba(180, 180, 180, 0.8)",
         label: edge.label,
         size: edge.size,
         type: "curved",

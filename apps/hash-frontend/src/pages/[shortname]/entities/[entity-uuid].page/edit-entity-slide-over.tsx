@@ -42,6 +42,10 @@ import { useDraftLinkState } from "./shared/use-draft-link-state";
 
 interface EditEntitySlideOverProps {
   /**
+   * Whether to stop clicking on types taking any action
+   */
+  disableTypeClick?: boolean;
+  /**
    * Hide the link to open the entity in a new tab.
    */
   hideOpenInNew?: boolean;
@@ -85,6 +89,7 @@ interface EditEntitySlideOverProps {
  * @todo move this to a shared location (it's also used in the Flows output and draft entities views)
  */
 export const EditEntitySlideOver = ({
+  disableTypeClick,
   hideOpenInNew,
   slideContainerRef,
   open,
@@ -121,8 +126,31 @@ export const EditEntitySlideOver = ({
     }, 300);
   }, [setAnimateOut, onBack]);
 
+  const providedSubgraphAlreadyHasLinkedEntities = useMemo(() => {
+    if (!providedEntitySubgraph) {
+      return false;
+    }
+
+    if (
+      providedEntitySubgraph.depths.hasLeftEntity.incoming === 0 ||
+      providedEntitySubgraph.depths.hasLeftEntity.outgoing === 0 ||
+      providedEntitySubgraph.depths.hasRightEntity.incoming === 0 ||
+      providedEntitySubgraph.depths.hasRightEntity.outgoing === 0
+    ) {
+      return false;
+    }
+
+    const roots = getRoots(providedEntitySubgraph);
+    const containsRequestedEntity = roots.some(
+      (root) => root.entityId === providedEntityId,
+    );
+
+    return containsRequestedEntity;
+  }, [providedEntitySubgraph, providedEntityId]);
+
   /**
    * If the parent component didn't have the entitySubgraph already available,
+   * or it doesn't contain links to/from the request entity,
    * we need to fetch it and set it in the local state (from where it will be updated if the user uses the editor form).
    */
   const { data: fetchedEntitySubgraph } = useQuery<
@@ -137,6 +165,7 @@ export const EditEntitySlideOver = ({
 
       setLocalEntitySubgraph(subgraph);
     },
+    skip: providedSubgraphAlreadyHasLinkedEntities,
     variables: {
       request: {
         filter: {
@@ -172,7 +201,7 @@ export const EditEntitySlideOver = ({
   });
 
   const originalEntitySubgraph = useMemo(() => {
-    if (fetchedEntitySubgraph) {
+    if (!providedSubgraphAlreadyHasLinkedEntities && fetchedEntitySubgraph) {
       return mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
         fetchedEntitySubgraph.getEntitySubgraph.subgraph,
       );
@@ -183,7 +212,11 @@ export const EditEntitySlideOver = ({
     }
 
     return null;
-  }, [providedEntitySubgraph, fetchedEntitySubgraph]);
+  }, [
+    providedSubgraphAlreadyHasLinkedEntities,
+    providedEntitySubgraph,
+    fetchedEntitySubgraph,
+  ]);
 
   const [savingChanges, setSavingChanges] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
@@ -381,6 +414,7 @@ export const EditEntitySlideOver = ({
             </Stack>
 
             <EntityEditor
+              disableTypeClick={disableTypeClick}
               readonly={readonly}
               onEntityUpdated={null}
               entityLabel={entityLabel}
