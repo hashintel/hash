@@ -655,7 +655,7 @@ mod tests {
             INNER JOIN "ontology_ids" AS "ontology_ids_0_3_0"
               ON "ontology_ids_0_3_0"."ontology_id" = "ontology_temporal_metadata_0_2_0"."ontology_id"
             WHERE "ontology_temporal_metadata_0_0_0"."transaction_time" @> $1::TIMESTAMPTZ
-              AND "entity_type_inherits_from_0_1_0"."inheritance_depth" <= 0
+              AND "entity_type_inherits_from_0_1_0"."depth" <= 0
               AND "ontology_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "ontology_ids_0_3_0"."base_url" = $2
             "#,

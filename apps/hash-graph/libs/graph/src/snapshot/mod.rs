@@ -875,7 +875,6 @@ where
             }
             found_metadata = true;
 
-            println!("{:#}", serde_json::json!(&metadata));
             ensure!(
                 metadata.block_protocol_module_versions.graph == semver::Version::new(0, 3, 0),
                 SnapshotRestoreError::Unsupported
