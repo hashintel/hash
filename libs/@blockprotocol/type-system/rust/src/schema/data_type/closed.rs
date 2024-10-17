@@ -78,6 +78,8 @@ pub enum ResolveClosedDataTypeError {
     ConflictingConstEnumValue(JsonValue, Vec<JsonValue>),
     #[error("The constraint is unsatisfiable: {}", json!(.0))]
     UnsatisfiableConstraint(ValueConstraints),
+    #[error("The combined constraints results in an empty `anyOf`")]
+    EmptyAnyOf,
 }
 
 impl ClosedDataType {
@@ -431,10 +433,7 @@ mod tests {
         );
         assert_eq!(number.label, defs.number.label);
         assert_eq!(number.r#abstract, defs.number.r#abstract);
-        assert_eq!(
-            json!(number.all_of),
-            json!([defs.number.constraints, defs.value.constraints])
-        );
+        assert_eq!(json!(number.all_of), json!([defs.number.constraints]));
     }
 
     fn check_closed_integer(integer: &ClosedDataType, defs: &DataTypeDefinitions) {
@@ -450,10 +449,7 @@ mod tests {
         );
         assert_eq!(integer.label, defs.number.label);
         assert_eq!(integer.r#abstract, defs.integer.r#abstract);
-        assert_eq!(
-            json!(integer.all_of),
-            json!([defs.integer.constraints, defs.value.constraints])
-        );
+        assert_eq!(json!(integer.all_of), json!([defs.integer.constraints]));
     }
 
     fn check_closed_unsigned(unsigned: &ClosedDataType, defs: &DataTypeDefinitions) {
@@ -469,10 +465,7 @@ mod tests {
         );
         assert_eq!(unsigned.label, defs.number.label);
         assert_eq!(unsigned.r#abstract, defs.unsigned.r#abstract);
-        assert_eq!(
-            json!(unsigned.all_of),
-            json!([defs.unsigned.constraints, defs.value.constraints])
-        );
+        assert_eq!(json!(unsigned.all_of), json!([defs.unsigned.constraints]));
     }
 
     fn check_closed_unsigned_int(unsigned_int: &ClosedDataType, defs: &DataTypeDefinitions) {
@@ -496,8 +489,7 @@ mod tests {
                     "minimum": 0.0,
                     "maximum": 4_294_967_295.0,
                     "multipleOf": 1.0,
-                },
-                defs.value.constraints
+                }
             ])
         );
     }
@@ -515,10 +507,7 @@ mod tests {
         );
         assert_eq!(small.label, defs.small.label);
         assert_eq!(small.r#abstract, defs.small.r#abstract);
-        assert_eq!(
-            json!(small.all_of),
-            json!([defs.small.constraints, defs.value.constraints])
-        );
+        assert_eq!(json!(small.all_of), json!([defs.small.constraints]));
     }
 
     fn check_closed_unsigned_small_int(
@@ -551,8 +540,7 @@ mod tests {
                     "minimum": 0.0,
                     "maximum": 100.0,
                     "multipleOf": 1.0,
-                },
-                defs.value.constraints
+                }
             ])
         );
     }
