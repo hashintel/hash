@@ -1,6 +1,6 @@
 use alloc::sync::Arc;
-use core::error::Error;
 #[cfg(feature = "postgres")]
+use core::error::Error;
 use core::mem;
 use std::collections::{HashMap, HashSet};
 
