@@ -565,6 +565,8 @@ where
             .entity_types
             .into_iter()
             .chain(
+                // TODO: We only need the parent IDs here, but it's expected that this will be
+                //       replaced when reading resolved entity types is implemented.
                 transaction
                     .get_entity_types(actor_id, GetEntityTypesParams {
                         filter: Filter::In(

@@ -316,25 +316,37 @@ impl OntologyTypeResolver {
                     let entity_type_reference_id =
                         EntityTypeUuid::from_url(&entity_type_reference.url);
 
-                    let Some(entity_type_entry) = self.entity_types.get(&entity_type_reference_id)
-                    else {
-                        missing_schemas.insert(entity_type_reference.url.clone());
-                        continue;
-                    };
+                    match edge {
+                        EntityTypeToEntityTypeEdge::Inheritance => {
+                            let Some(entity_type_entry) =
+                                self.entity_types.get(&entity_type_reference_id)
+                            else {
+                                missing_schemas.insert(entity_type_reference.url.clone());
+                                continue;
+                            };
 
-                    in_progress_schema.add_entity_type_edge(
-                        edge,
-                        Arc::clone(&entity_type_entry.entity_type),
-                        entity_type_reference_id,
-                        current_depth,
-                    );
+                            in_progress_schema.add_entity_type_inheritance_edge(
+                                Arc::clone(&entity_type_entry.entity_type),
+                                entity_type_reference_id,
+                                current_depth,
+                            );
 
-                    if edge == EntityTypeToEntityTypeEdge::Inheritance {
-                        if let Some(resolve_data) = &entity_type_entry.resolve_data {
-                            in_progress_schema.extend_edges(current_depth + 1, resolve_data);
-                        } else {
-                            next_entity_types_to_resolve
-                                .push(Arc::clone(&entity_type_entry.entity_type));
+                            if let Some(resolve_data) = &entity_type_entry.resolve_data {
+                                in_progress_schema.extend_edges(current_depth + 1, resolve_data);
+                            } else {
+                                next_entity_types_to_resolve
+                                    .push(Arc::clone(&entity_type_entry.entity_type));
+                            }
+                        }
+                        EntityTypeToEntityTypeEdge::Link => {
+                            in_progress_schema
+                                .add_entity_type_link_edge(entity_type_reference_id, current_depth);
+                        }
+                        EntityTypeToEntityTypeEdge::LinkDestination => {
+                            in_progress_schema.add_entity_type_link_destination_edge(
+                                entity_type_reference_id,
+                                current_depth,
+                            );
                         }
                     }
                 }
