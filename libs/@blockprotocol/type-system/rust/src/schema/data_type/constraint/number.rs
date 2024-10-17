@@ -121,7 +121,7 @@ impl Constraint for NumberSchema {
     ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
         Ok(match (self, other) {
             (Self::Constrained(lhs), Self::Constrained(rhs)) => lhs
-                .intersect(rhs)
+                .intersection(rhs)
                 .map(|(lhs, rhs)| (Self::Constrained(lhs), rhs.map(Self::Constrained)))?,
             (Self::Const { r#const }, Self::Constrained(constraints))
             | (Self::Constrained(constraints), Self::Const { r#const }) => {
@@ -150,7 +150,7 @@ impl Constraint for NumberSchema {
                 match passed[..] {
                     [] => {
                         // We now properly capture errors to return it to the caller.
-                        let _: Vec<()> = r#enum
+                        let () = r#enum
                             .iter()
                             .map(|value| {
                                 constraints.validate_value(value).change_context(
@@ -531,7 +531,7 @@ mod tests {
         };
 
         let (combined, None) = constraints1
-            .intersect(constraints2)
+            .intersection(constraints2)
             .expect("Expected combined constraints")
         else {
             panic!("Expected no remainder")
@@ -561,7 +561,7 @@ mod tests {
         };
 
         let _: Report<_> = constraints1
-            .intersect(constraints2)
+            .intersection(constraints2)
             .expect_err("Expected conflicting constraints");
     }
 
@@ -571,7 +571,7 @@ mod tests {
         let constraints2 = NumberConstraints::default();
 
         let (combined, None) = constraints1
-            .intersect(constraints2)
+            .intersection(constraints2)
             .expect("Could not combine constraints")
         else {
             panic!("Expected combined constraints");
@@ -601,7 +601,7 @@ mod tests {
         };
 
         let (_, Some(remainder)) = constraints1
-            .intersect(constraints2)
+            .intersection(constraints2)
             .expect("Expected combined constraints")
         else {
             panic!("Expected remainder");
