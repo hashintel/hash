@@ -271,10 +271,13 @@ mod tests {
     use core::fmt::Display;
     use std::collections::HashSet;
 
-    use error_stack::Frame;
-    use serde_json::Value as JsonValue;
+    use error_stack::{Frame, Report};
+    use serde_json::{Value as JsonValue, json};
 
-    use crate::schema::data_type::constraint::{ConstraintValidator, ValueConstraints};
+    use crate::schema::data_type::{
+        closed::ResolveClosedDataTypeError,
+        constraint::{ConstraintValidator, ValueConstraints},
+    };
 
     pub(crate) fn read_schema(schema: &JsonValue) -> ValueConstraints {
         let parsed = serde_json::from_value(schema.clone()).expect("Failed to parse schema");
@@ -301,6 +304,54 @@ mod tests {
         let err = schema
             .validate_value(value)
             .expect_err("Expected validation error");
+        let errors = expected_errors
+            .into_iter()
+            .map(|error| error.to_string())
+            .collect::<HashSet<_>>();
+        let actual_errors = err
+            .frames()
+            .filter_map(Frame::downcast_ref::<E>)
+            .map(ToString::to_string)
+            .collect::<HashSet<_>>();
+
+        assert_eq!(errors, actual_errors);
+    }
+
+    pub(crate) fn intersect_schemas(
+        schemas: impl IntoIterator<Item = JsonValue>,
+    ) -> Result<Vec<JsonValue>, Report<ResolveClosedDataTypeError>> {
+        let schemas = schemas
+            .into_iter()
+            .map(|schema| serde_json::from_value(schema).expect("Failed to parse schema"))
+            .collect::<Vec<_>>();
+        ValueConstraints::fold_intersections(schemas).map(|schemas| {
+            schemas
+                .into_iter()
+                .map(|schema| serde_json::to_value(schema).expect("Failed to serialize schema"))
+                .collect()
+        })
+    }
+
+    pub(crate) fn check_schema_intersection(
+        schemas: impl IntoIterator<Item = JsonValue>,
+        expected: impl IntoIterator<Item = JsonValue>,
+    ) {
+        let intersection = intersect_schemas(schemas).expect("Failed to intersect schemas");
+        let expected = expected.into_iter().collect::<Vec<_>>();
+        assert_eq!(
+            intersection,
+            expected,
+            "Schemas do not match: expected: {:#}, actual: {:#}",
+            json!(intersection),
+            json!(expected)
+        );
+    }
+
+    pub(crate) fn check_schema_intersection_error<E: Display + Send + Sync + 'static>(
+        schemas: impl IntoIterator<Item = JsonValue>,
+        expected_errors: impl IntoIterator<Item = E>,
+    ) {
+        let err = intersect_schemas(schemas).expect_err("Intersected invalid schemas");
         let errors = expected_errors
             .into_iter()
             .map(|error| error.to_string())
