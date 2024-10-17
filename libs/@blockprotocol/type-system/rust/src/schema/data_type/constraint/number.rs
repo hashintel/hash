@@ -1,9 +1,15 @@
-use error_stack::{Report, ReportSink, ResultExt, bail};
+use error_stack::{Report, ReportSink, ResultExt, bail, ensure};
 use serde::{Deserialize, Serialize};
 use serde_json::{Number as JsonNumber, Value as JsonValue, json};
 use thiserror::Error;
 
-use crate::schema::{ConstraintError, JsonSchemaValueType, data_type::constraint::Constraint};
+use crate::schema::{
+    ConstraintError, JsonSchemaValueType,
+    data_type::{
+        closed::ResolveClosedDataTypeError,
+        constraint::{Constraint, ConstraintValidator},
+    },
+};
 
 #[expect(
     clippy::trivially_copy_pass_by_ref,
@@ -108,7 +114,27 @@ fn float_multiple_of(lhs: f64, rhs: f64) -> bool {
     (quotient - quotient.round()).abs() < f64::EPSILON
 }
 
-impl Constraint<JsonValue> for NumberSchema {
+impl Constraint for NumberSchema {
+    fn intersection(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        Ok(match (self, other) {
+            (Self::Constrained(lhs), Self::Constrained(rhs)) => {
+                let (combined, remainder) = lhs.intersection(rhs)?;
+                (
+                    Self::Constrained(combined),
+                    remainder.map(Self::Constrained),
+                )
+            }
+            // TODO: Implement folding for number constraints
+            //   see https://linear.app/hash/issue/H-3427/implement-folding-for-number-constraints
+            (lhs, rhs) => (lhs, Some(rhs)),
+        })
+    }
+}
+
+impl ConstraintValidator<JsonValue> for NumberSchema {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &JsonValue) -> bool {
@@ -131,7 +157,7 @@ impl Constraint<JsonValue> for NumberSchema {
     }
 }
 
-impl Constraint<JsonNumber> for NumberSchema {
+impl ConstraintValidator<JsonNumber> for NumberSchema {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &JsonNumber) -> bool {
@@ -153,7 +179,7 @@ impl Constraint<JsonNumber> for NumberSchema {
     }
 }
 
-impl Constraint<f64> for NumberSchema {
+impl ConstraintValidator<f64> for NumberSchema {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &f64) -> bool {
@@ -178,19 +204,20 @@ impl Constraint<f64> for NumberSchema {
                 }
             }
             Self::Enum { r#enum } => {
-                if !r#enum.iter().any(|expected| float_eq(*value, *expected)) {
-                    bail!(ConstraintError::InvalidEnumValue {
+                ensure!(
+                    r#enum.iter().any(|expected| float_eq(*value, *expected)),
+                    ConstraintError::InvalidEnumValue {
                         actual: json!(*value),
                         expected: r#enum.iter().map(|value| json!(*value)).collect(),
-                    });
-                }
+                    }
+                );
             }
         }
         Ok(())
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct NumberConstraints {
@@ -206,7 +233,18 @@ pub struct NumberConstraints {
     pub multiple_of: Option<f64>,
 }
 
-impl Constraint<f64> for NumberConstraints {
+impl Constraint for NumberConstraints {
+    fn intersection(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        // TODO: Implement folding for number constraints
+        //   see https://linear.app/hash/issue/H-3427/implement-folding-for-number-constraints
+        Ok((self, Some(other)))
+    }
+}
+
+impl ConstraintValidator<f64> for NumberConstraints {
     type Error = [NumberValidationError];
 
     fn is_valid(&self, value: &f64) -> bool {

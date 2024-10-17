@@ -25,9 +25,9 @@ use serde_json::Value as JsonValue;
 use thiserror::Error;
 use type_system::{
     schema::{
-        ClosedEntityType, Constraint, DataTypeReference, JsonSchemaValueType, PropertyObjectSchema,
-        PropertyType, PropertyTypeReference, PropertyValueArray, PropertyValueSchema,
-        PropertyValues, ValueOrArray,
+        ClosedEntityType, ConstraintValidator, DataTypeReference, JsonSchemaValueType,
+        PropertyObjectSchema, PropertyType, PropertyTypeReference, PropertyValueArray,
+        PropertyValueSchema, PropertyValues, ValueOrArray,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };

@@ -5,7 +5,10 @@ use thiserror::Error;
 
 type JsonObject = serde_json::Map<String, JsonValue>;
 
-use crate::schema::{Constraint, ConstraintError, JsonSchemaValueType};
+use crate::schema::{
+    ConstraintError, ConstraintValidator, JsonSchemaValueType,
+    data_type::{closed::ResolveClosedDataTypeError, constraint::Constraint},
+};
 
 #[derive(Debug, Error)]
 pub enum ObjectValidationError {}
@@ -24,7 +27,24 @@ pub enum ObjectSchema {
     Constrained(ObjectConstraints),
 }
 
-impl Constraint<JsonValue> for ObjectSchema {
+impl Constraint for ObjectSchema {
+    fn intersection(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        Ok(match (self, other) {
+            (Self::Constrained(lhs), Self::Constrained(rhs)) => {
+                let (combined, remainder) = lhs.intersection(rhs)?;
+                (
+                    Self::Constrained(combined),
+                    remainder.map(Self::Constrained),
+                )
+            }
+        })
+    }
+}
+
+impl ConstraintValidator<JsonValue> for ObjectSchema {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &JsonValue) -> bool {
@@ -47,7 +67,7 @@ impl Constraint<JsonValue> for ObjectSchema {
     }
 }
 
-impl Constraint<JsonObject> for ObjectSchema {
+impl ConstraintValidator<JsonObject> for ObjectSchema {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &JsonObject) -> bool {
@@ -75,7 +95,16 @@ impl Constraint<JsonObject> for ObjectSchema {
 )]
 pub struct ObjectConstraints {}
 
-impl Constraint<JsonObject> for ObjectConstraints {
+impl Constraint for ObjectConstraints {
+    fn intersection(
+        self,
+        _other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        Ok((self, None))
+    }
+}
+
+impl ConstraintValidator<JsonObject> for ObjectConstraints {
     type Error = [ObjectValidationError];
 
     fn is_valid(&self, _value: &JsonObject) -> bool {

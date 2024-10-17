@@ -6,10 +6,12 @@ use std::collections::{HashMap, hash_map::Entry};
 
 #[cfg(feature = "postgres")]
 use bytes::BytesMut;
+use error_stack::{Report, bail};
 use itertools::Itertools;
 #[cfg(feature = "postgres")]
 use postgres_types::{FromSql, IsNull, ToSql, Type};
 use serde::{Deserialize, Serialize};
+use serde_json::{Value as JsonValue, json};
 use thiserror::Error;
 
 use crate::{
@@ -60,6 +62,22 @@ pub enum ResolveClosedDataTypeError {
     AmbiguousMetadata,
     #[error("No description was found for the schema.")]
     MissingDescription,
+    #[error("The data type constraints intersected to different types.")]
+    IntersectedDifferentTypes,
+    #[error("The value {} does not satisfy the constraint: {}", .0, json!(.1))]
+    UnsatisfiedConstraint(JsonValue, ValueConstraints),
+    #[error("The value {0} does not satisfy the constraint")]
+    UnsatisfiedEnumConstraintVariant(JsonValue),
+    #[error("No value satisfy the constraint: {}", json!(.0))]
+    UnsatisfiedEnumConstraint(ValueConstraints),
+    #[error("Conflicting const values: {0} and {1}")]
+    ConflictingConstValues(JsonValue, JsonValue),
+    #[error("Conflicting enum values, no common values found: {} and {}", json!(.0), json!(.1))]
+    ConflictingEnumValues(Vec<JsonValue>, Vec<JsonValue>),
+    #[error("The const value is not in the enum values: {} and {}", .0, json!(.1))]
+    ConflictingConstEnumValue(JsonValue, Vec<JsonValue>),
+    #[error("The constraint is unsatisfiable: {}", json!(.0))]
+    UnsatisfiableConstraint(ValueConstraints),
 }
 
 impl ClosedDataType {
@@ -74,7 +92,7 @@ impl ClosedDataType {
     pub fn from_resolve_data(
         data_type: DataType,
         resolve_data: &DataTypeResolveData,
-    ) -> Result<Self, ResolveClosedDataTypeError> {
+    ) -> Result<Self, Report<ResolveClosedDataTypeError>> {
         let (description, label) = if data_type.description.is_some() || !data_type.label.is_empty()
         {
             (data_type.description, data_type.label)
@@ -91,10 +109,9 @@ impl ClosedDataType {
             title_plural: data_type.title_plural.clone(),
             description: description.ok_or(ResolveClosedDataTypeError::MissingDescription)?,
             label,
-            all_of: iter::once(&data_type.constraints)
-                .chain(resolve_data.constraints())
-                .cloned()
-                .collect(),
+            all_of: ValueConstraints::fold_intersections(
+                iter::once(data_type.constraints).chain(resolve_data.constraints().cloned()),
+            )?,
             r#abstract: data_type.r#abstract,
         })
     }
@@ -209,7 +226,9 @@ impl DataTypeResolveData {
     ///
     /// Returns an error if the metadata is ambiguous. This is the case if two schemas at the same
     /// inheritance depth specify different metadata.
-    pub fn find_metadata_schema(&self) -> Result<Option<&DataType>, ResolveClosedDataTypeError> {
+    pub fn find_metadata_schema(
+        &self,
+    ) -> Result<Option<&DataType>, Report<ResolveClosedDataTypeError>> {
         let mut found_schema_data = None::<(InheritanceDepth, &DataType)>;
         for (depth, stored_schema) in self.ordered_schemas() {
             if stored_schema.description.is_some() || !stored_schema.label.is_empty() {
@@ -222,7 +241,7 @@ impl DataTypeResolveData {
                             if stored_schema.description != found_schema.description
                                 || stored_schema.label != found_schema.label
                             {
-                                return Err(ResolveClosedDataTypeError::AmbiguousMetadata);
+                                bail!(ResolveClosedDataTypeError::AmbiguousMetadata);
                             }
                         }
                         cmp::Ordering::Greater => {
