@@ -40,7 +40,7 @@ where
         let (context, sink, stream) = transaction.into_parts();
 
         let parts = request::Parts::from_transaction(&context);
-        let request = Request::new(parts, RequestBody::new(stream));
+        let request = Request::from_parts(parts, RequestBody::new(stream));
 
         let Ok(()) = poll_fn(|cx| make_service.poll_ready(cx)).await;
         let Ok(service) = make_service.make_service(()).await;

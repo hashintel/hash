@@ -17,12 +17,12 @@ harpc-types = { workspace = true, public = true }
 bytes = { workspace = true, public = true }
 futures-core = { workspace = true, public = true }
 serde = { workspace = true, public = true, features = ["derive"]}
+futures-util = { workspace = true, optional = true, public = true }
+serde_json = { workspace = true, optional = true, public = true }
 
 # Private workspace dependencies
 
 # Private third-party dependencies
-futures-util = { workspace = true, optional = true }
-serde_json = { workspace = true, optional = true, public = true }
 pin-project-lite = { workspace = true, optional = true }
 memchr = { workspace = true, optional = true }
 thiserror = { workspace = true }

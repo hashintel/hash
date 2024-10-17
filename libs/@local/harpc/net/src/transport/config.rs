@@ -8,6 +8,32 @@ use libp2p::{
 
 use crate::macros::non_zero;
 
+/// The configuration for outbound pings.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct PingConfig {
+    /// The timeout of an outbound ping.
+    pub timeout: Duration,
+    /// The duration between outbound pings.
+    pub interval: Duration,
+}
+
+impl From<PingConfig> for ping::Config {
+    fn from(value: PingConfig) -> Self {
+        Self::new()
+            .with_timeout(value.timeout)
+            .with_interval(value.interval)
+    }
+}
+
+impl Default for PingConfig {
+    fn default() -> Self {
+        Self {
+            timeout: Duration::from_secs(20),
+            interval: Duration::from_secs(15),
+        }
+    }
+}
+
 /// Configuration for the Yamux multiplexer protocol.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct YamuxConfig {
@@ -40,7 +66,7 @@ impl Default for YamuxConfig {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Default)]
 pub struct SwarmConfig {
     /// Configures the number of events from the [`NetworkBehaviour`] in
     /// destination to the [`ConnectionHandler`] that can be buffered before
@@ -165,9 +191,10 @@ impl SwarmConfig {
 }
 
 /// Configuration for the transport layer.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct TransportConfig {
     /// Configuration for the ping protocol.
-    pub ping: ping::Config,
+    pub ping: PingConfig,
 
     /// Configuration for the swarm.
     pub swarm: SwarmConfig,
@@ -185,7 +212,7 @@ pub struct TransportConfig {
 impl Default for TransportConfig {
     fn default() -> Self {
         Self {
-            ping: ping::Config::default(),
+            ping: PingConfig::default(),
             swarm: SwarmConfig::default(),
             yamux: YamuxConfig::default(),
             ipc_buffer_size: non_zero!(16),

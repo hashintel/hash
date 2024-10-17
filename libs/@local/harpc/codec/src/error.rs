@@ -68,6 +68,16 @@ pub mod kind {
         pub(crate) fn variants() -> impl IntoIterator<Item = Self> {
             [Self::NetworkError, Self::Report, Self::Recovery]
         }
+
+        #[must_use]
+        pub const fn from_u8(value: u8) -> Option<Self> {
+            match value {
+                0x01 => Some(Self::NetworkError),
+                0x02 => Some(Self::Report),
+                0xFF => Some(Self::Recovery),
+                _ => None,
+            }
+        }
     }
 
     pub trait ErrorKind {

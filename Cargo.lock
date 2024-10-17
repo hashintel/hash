@@ -2618,6 +2618,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "harpc-client"
+version = "0.0.0"
+dependencies = [
+ "bytes",
+ "error-stack",
+ "futures",
+ "harpc-net",
+ "harpc-service",
+ "harpc-tower",
+ "multiaddr",
+ "thiserror",
+ "tokio-util",
+ "tower 0.5.1",
+]
+
+[[package]]
 name = "harpc-codec"
 version = "0.0.0"
 dependencies = [
@@ -2687,11 +2703,13 @@ dependencies = [
  "frunk_core",
  "futures",
  "graph-types",
+ "harpc-client",
  "harpc-codec",
  "harpc-net",
  "harpc-service",
  "harpc-tower",
  "harpc-types",
+ "multiaddr",
  "scc",
  "serde",
  "thiserror",
@@ -2699,6 +2717,7 @@ dependencies = [
  "tokio-util",
  "tower 0.5.1",
  "tracing",
+ "uuid",
 ]
 
 [[package]]

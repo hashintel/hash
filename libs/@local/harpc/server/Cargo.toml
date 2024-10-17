@@ -22,24 +22,27 @@ harpc-tower = { workspace = true }
 harpc-types = { workspace = true }
 
 # Private third-party dependencies
+bytes = { workspace = true }
 derive-where = { workspace = true }
+derive_more = { version = "1.0.0", features = ["display", "error"] }
 error-stack = { workspace = true }
 frunk = "0.4.3"
 futures = { workspace = true }
+harpc-codec = { workspace = true }
+multiaddr = { workspace = true }
 scc = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
 tokio = { workspace = true, features = ["macros"] }
 tokio-util = { workspace = true, features = ["rt"] }
 tracing = { workspace = true }
-harpc-codec = { workspace = true }
-derive_more = { version = "1.0.0", features = ["display", "error"] }
-serde = { workspace = true, features = ["derive"] }
-bytes.workspace = true
 
 [lints]
 workspace = true
 
 [dev-dependencies]
-thiserror = { workspace = true }
 graph-types = { workspace = true }
+harpc-client = { workspace = true }
 harpc-codec = { workspace = true, features = ["json"] }
+thiserror = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+uuid = { workspace = true, features = ["v4"] }
