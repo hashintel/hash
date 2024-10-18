@@ -216,5 +216,5 @@ async fn main() {
 
     let router = router.build();
 
-    serve(stream::empty(), JsonCodec, router).await;
+    serve(stream::empty(), router).await;
 }

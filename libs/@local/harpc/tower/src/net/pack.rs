@@ -6,11 +6,16 @@ use core::{
 };
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
-use futures::Stream;
+use futures::{FutureExt, Stream};
 use harpc_codec::{encode::ErrorEncoder, error::EncodedError};
 use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
+use tower::{Layer, Service};
 
-use crate::body::{Body, Frame};
+use crate::{
+    body::{Body, Frame},
+    request::Request,
+    response::Response,
+};
 
 #[derive(
     Debug,
@@ -56,11 +61,7 @@ pin_project_lite::pin_project! {
     }
 }
 
-impl<B, E> Pack<B, E>
-where
-    B: Body<Control: AsRef<ResponseKind>, Error = !>,
-    E: ErrorEncoder,
-{
+impl<B, E> Pack<B, E> {
     pub const fn new(inner: B, encoder: E) -> Self {
         Self {
             inner,
@@ -170,6 +171,58 @@ where
                 return result;
             }
         }
+    }
+}
+
+pub struct PackLayer<C> {
+    encoder: C,
+}
+
+impl<E> PackLayer<E> {
+    pub const fn new(encoder: E) -> Self {
+        Self { encoder }
+    }
+}
+
+impl<S, E> Layer<S> for PackLayer<E>
+where
+    E: Clone,
+{
+    type Service = PackService<S, E>;
+
+    fn layer(&self, inner: S) -> Self::Service {
+        PackService {
+            inner,
+            encoder: self.encoder.clone(),
+        }
+    }
+}
+
+pub struct PackService<S, E> {
+    inner: S,
+    encoder: E,
+}
+
+impl<S, C, ReqBody, ResBody> Service<Request<ReqBody>> for PackService<S, C>
+where
+    S: Service<Request<ReqBody>, Response = Response<ResBody>>,
+    C: ErrorEncoder + Clone,
+{
+    type Error = S::Error;
+    type Response = Pack<ResBody, C>;
+
+    type Future = impl Future<Output = Result<Self::Response, S::Error>>;
+
+    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx)
+    }
+
+    fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
+        let encoder = self.encoder.clone();
+
+        self.inner
+            .call(req)
+            .map(|result| result.map(|response| Pack::new(response.into_body(), encoder)))
     }
 }
 

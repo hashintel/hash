@@ -14,7 +14,13 @@ use thiserror::Error;
 use url::{Host, Url};
 use uuid::Uuid;
 
-use crate::schema::{ConstraintError, JsonSchemaValueType, data_type::constraint::Constraint};
+use crate::schema::{
+    ConstraintError, JsonSchemaValueType,
+    data_type::{
+        closed::ResolveClosedDataTypeError,
+        constraint::{Constraint, ConstraintValidator},
+    },
+};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[cfg_attr(target_arch = "wasm32", derive(tsify::Tsify))]
@@ -221,7 +227,27 @@ pub enum StringSchema {
     },
 }
 
-impl Constraint<JsonValue> for StringSchema {
+impl Constraint for StringSchema {
+    fn intersection(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        Ok(match (self, other) {
+            (Self::Constrained(lhs), Self::Constrained(rhs)) => {
+                let (combined, remainder) = lhs.intersection(rhs)?;
+                (
+                    Self::Constrained(combined),
+                    remainder.map(Self::Constrained),
+                )
+            }
+            // TODO: Implement folding for string constraints
+            //   see https://linear.app/hash/issue/H-3428/implement-folding-for-string-constraints
+            (lhs, rhs) => (lhs, Some(rhs)),
+        })
+    }
+}
+
+impl ConstraintValidator<JsonValue> for StringSchema {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &JsonValue) -> bool {
@@ -244,7 +270,7 @@ impl Constraint<JsonValue> for StringSchema {
     }
 }
 
-impl Constraint<str> for StringSchema {
+impl ConstraintValidator<str> for StringSchema {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &str) -> bool {
@@ -300,7 +326,18 @@ pub struct StringConstraints {
     pub format: Option<StringFormat>,
 }
 
-impl Constraint<str> for StringConstraints {
+impl Constraint for StringConstraints {
+    fn intersection(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        // TODO: Implement folding for string constraints
+        //   see https://linear.app/hash/issue/H-3428/implement-folding-for-string-constraints
+        Ok((self, Some(other)))
+    }
+}
+
+impl ConstraintValidator<str> for StringConstraints {
     type Error = [StringValidationError];
 
     fn is_valid(&self, value: &str) -> bool {

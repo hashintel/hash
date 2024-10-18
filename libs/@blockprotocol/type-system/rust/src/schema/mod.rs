@@ -21,7 +21,7 @@ pub use self::{
     closed_resolver::{InheritanceDepth, OntologyTypeResolver},
     data_type::{
         AnyOfConstraints, ArrayConstraints, ArraySchema, ArrayTypeTag, ArrayValidationError,
-        BooleanSchema, BooleanTypeTag, ClosedDataType, Constraint, ConstraintError,
+        BooleanSchema, BooleanTypeTag, ClosedDataType, ConstraintError, ConstraintValidator,
         ConversionDefinition, ConversionExpression, ConversionValue, Conversions, DataType,
         DataTypeEdge, DataTypeReference, DataTypeResolveData, DataTypeValidator,
         JsonSchemaValueType, NullSchema, NullTypeTag, NumberConstraints, NumberSchema,

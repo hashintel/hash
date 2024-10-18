@@ -7,7 +7,7 @@ mod number;
 mod object;
 mod string;
 
-use error_stack::Report;
+use error_stack::{Report, bail};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
@@ -24,9 +24,24 @@ pub use self::{
         StringValidationError,
     },
 };
-use crate::schema::ValueLabel;
+use crate::schema::{ValueLabel, data_type::closed::ResolveClosedDataTypeError};
 
-pub trait Constraint<V: ?Sized>: Sized {
+pub trait Constraint: Sized {
+    /// Combines the current constraints with the provided one.
+    ///
+    /// It returns the combination of the two constraints. If they can fully be merged, the second
+    /// value is returned as `None`. If the constraints exclude each other, an error is returned.
+    ///
+    /// # Errors
+    ///
+    /// If the constraints exclude each other, an error is returned.
+    fn intersection(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>>;
+}
+
+pub trait ConstraintValidator<V: ?Sized>: Constraint {
     type Error: ?Sized;
 
     /// Checks if the provided value is valid against this constraint.
@@ -61,7 +76,91 @@ pub enum ValueConstraints {
     AnyOf(AnyOfConstraints),
 }
 
-impl Constraint<JsonValue> for ValueConstraints {
+impl ValueConstraints {
+    /// Folds multiple constraints into fewer constraints.
+    ///
+    /// This function attempts to combine as many constraints as possible. If two constraints
+    /// cannot be fully merged, they are kept separate.
+    ///
+    /// The algorithm works as follows:
+    /// - It iterates over all constraints
+    /// - for each constraint, it tries to merge them with the constraints that have already been
+    ///   merged from the previous iterations from left to right
+    /// - if a constraint cannot be fully merged, it is either combined with the next constraint or
+    ///   added to the list of constraints that have already been merged.
+    ///
+    /// # Errors
+    ///
+    /// If two constraints exclude each other, an error is returned.
+    pub fn fold_intersections(
+        schemas: impl IntoIterator<Item = Self>,
+    ) -> Result<Vec<Self>, Report<ResolveClosedDataTypeError>> {
+        schemas
+            .into_iter()
+            .map(Some)
+            .try_fold(Vec::<Self>::new(), |mut folded, mut constraints| {
+                folded = folded
+                    .into_iter()
+                    .map(|existing| {
+                        if let Some(to_combine) = constraints.take() {
+                            let (combined, remainder) = existing.intersection(to_combine)?;
+                            // The remainder is used for the next iteration
+                            constraints = remainder;
+                            Ok::<_, Report<_>>(combined)
+                        } else {
+                            Ok(existing)
+                        }
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
+
+                if let Some(remainder) = constraints {
+                    folded.push(remainder);
+                }
+
+                Ok(folded)
+            })
+    }
+}
+
+impl Constraint for ValueConstraints {
+    fn intersection(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        match (self, other) {
+            (Self::Typed(lhs), Self::Typed(rhs)) => lhs
+                .intersection(rhs)
+                .map(|(lhs, rhs)| (Self::Typed(lhs), rhs.map(Self::Typed))),
+            (Self::AnyOf(lhs), Self::Typed(rhs)) => {
+                let rhs = AnyOfConstraints {
+                    any_of: vec![SingleValueSchema {
+                        constraints: rhs,
+                        description: None,
+                        label: ValueLabel::default(),
+                    }],
+                };
+                lhs.intersection(rhs)
+                    .map(|(lhs, rhs)| (Self::from(lhs), rhs.map(Self::from)))
+            }
+            (Self::Typed(lhs), Self::AnyOf(rhs)) => {
+                let lhs = AnyOfConstraints {
+                    any_of: vec![SingleValueSchema {
+                        constraints: lhs,
+                        description: None,
+                        label: ValueLabel::default(),
+                    }],
+                };
+                lhs.intersection(rhs)
+                    .map(|(lhs, rhs)| (Self::from(lhs), rhs.map(Self::from)))
+            }
+            (Self::AnyOf(lhs), Self::AnyOf(rhs)) => lhs
+                .intersection(rhs)
+                .map(|(lhs, rhs)| (Self::from(lhs), rhs.map(Self::from))),
+        }
+    }
+}
+
+impl ConstraintValidator<JsonValue> for ValueConstraints {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &JsonValue) -> bool {
@@ -91,7 +190,36 @@ pub enum SingleValueConstraints {
     Object(ObjectSchema),
 }
 
-impl Constraint<JsonValue> for SingleValueConstraints {
+impl Constraint for SingleValueConstraints {
+    fn intersection(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        match (self, other) {
+            (Self::Null(lhs), Self::Null(rhs)) => lhs
+                .intersection(rhs)
+                .map(|(lhs, rhs)| (Self::Null(lhs), rhs.map(Self::Null))),
+            (Self::Boolean(lhs), Self::Boolean(rhs)) => lhs
+                .intersection(rhs)
+                .map(|(lhs, rhs)| (Self::Boolean(lhs), rhs.map(Self::Boolean))),
+            (Self::Number(lhs), Self::Number(rhs)) => lhs
+                .intersection(rhs)
+                .map(|(lhs, rhs)| (Self::Number(lhs), rhs.map(Self::Number))),
+            (Self::String(lhs), Self::String(rhs)) => lhs
+                .intersection(rhs)
+                .map(|(lhs, rhs)| (Self::String(lhs), rhs.map(Self::String))),
+            (Self::Array(lhs), Self::Array(rhs)) => lhs
+                .intersection(rhs)
+                .map(|(lhs, rhs)| (Self::Array(lhs), rhs.map(Self::Array))),
+            (Self::Object(lhs), Self::Object(rhs)) => lhs
+                .intersection(rhs)
+                .map(|(lhs, rhs)| (Self::Object(lhs), rhs.map(Self::Object))),
+            _ => bail!(ResolveClosedDataTypeError::IntersectedDifferentTypes),
+        }
+    }
+}
+
+impl ConstraintValidator<JsonValue> for SingleValueConstraints {
     type Error = ConstraintError;
 
     fn is_valid(&self, value: &JsonValue) -> bool {
@@ -128,6 +256,33 @@ pub struct SingleValueSchema {
     pub constraints: SingleValueConstraints,
 }
 
+impl Constraint for SingleValueSchema {
+    fn intersection(
+        self,
+        other: Self,
+    ) -> Result<(Self, Option<Self>), Report<ResolveClosedDataTypeError>> {
+        let (combined, remainder) = self.constraints.intersection(other.constraints)?;
+        let (description, label) = if self.description.is_none() && self.label.is_empty() {
+            (other.description, other.label)
+        } else {
+            (self.description, self.label)
+        };
+
+        Ok((
+            Self {
+                description,
+                label,
+                constraints: combined,
+            },
+            remainder.map(|remainder| Self {
+                constraints: remainder,
+                description: None,
+                label: ValueLabel::default(),
+            }),
+        ))
+    }
+}
+
 #[cfg(target_arch = "wasm32")]
 #[expect(
     dead_code,
@@ -155,10 +310,13 @@ mod tests {
     use core::fmt::Display;
     use std::collections::HashSet;
 
-    use error_stack::Frame;
-    use serde_json::Value as JsonValue;
+    use error_stack::{Frame, Report};
+    use serde_json::{Value as JsonValue, json};
 
-    use crate::schema::data_type::constraint::{Constraint, ValueConstraints};
+    use crate::schema::data_type::{
+        closed::ResolveClosedDataTypeError,
+        constraint::{ConstraintValidator, ValueConstraints},
+    };
 
     pub(crate) fn read_schema(schema: &JsonValue) -> ValueConstraints {
         let parsed = serde_json::from_value(schema.clone()).expect("Failed to parse schema");
@@ -185,6 +343,54 @@ mod tests {
         let err = schema
             .validate_value(value)
             .expect_err("Expected validation error");
+        let errors = expected_errors
+            .into_iter()
+            .map(|error| error.to_string())
+            .collect::<HashSet<_>>();
+        let actual_errors = err
+            .frames()
+            .filter_map(Frame::downcast_ref::<E>)
+            .map(ToString::to_string)
+            .collect::<HashSet<_>>();
+
+        assert_eq!(errors, actual_errors);
+    }
+
+    pub(crate) fn intersect_schemas(
+        schemas: impl IntoIterator<Item = JsonValue>,
+    ) -> Result<Vec<JsonValue>, Report<ResolveClosedDataTypeError>> {
+        let schemas = schemas
+            .into_iter()
+            .map(|schema| serde_json::from_value(schema).expect("Failed to parse schema"))
+            .collect::<Vec<_>>();
+        ValueConstraints::fold_intersections(schemas).map(|schemas| {
+            schemas
+                .into_iter()
+                .map(|schema| serde_json::to_value(schema).expect("Failed to serialize schema"))
+                .collect()
+        })
+    }
+
+    pub(crate) fn check_schema_intersection(
+        schemas: impl IntoIterator<Item = JsonValue>,
+        expected: impl IntoIterator<Item = JsonValue>,
+    ) {
+        let intersection = intersect_schemas(schemas).expect("Failed to intersect schemas");
+        let expected = expected.into_iter().collect::<Vec<_>>();
+        assert_eq!(
+            intersection,
+            expected,
+            "Schemas do not match: expected: {:#}, actual: {:#}",
+            json!(intersection),
+            json!(expected)
+        );
+    }
+
+    pub(crate) fn check_schema_intersection_error<E: Display + Send + Sync + 'static>(
+        schemas: impl IntoIterator<Item = JsonValue>,
+        expected_errors: impl IntoIterator<Item = E>,
+    ) {
+        let err = intersect_schemas(schemas).expect_err("Intersected invalid schemas");
         let errors = expected_errors
             .into_iter()
             .map(|error| error.to_string())

@@ -5,11 +5,11 @@ pub use self::{
     closed::{ClosedDataType, DataTypeResolveData, ResolvedDataType},
     constraint::{
         AnyOfConstraints, ArrayConstraints, ArraySchema, ArrayTypeTag, ArrayValidationError,
-        BooleanSchema, BooleanTypeTag, Constraint, ConstraintError, NullSchema, NullTypeTag,
-        NumberConstraints, NumberSchema, NumberTypeTag, NumberValidationError, ObjectConstraints,
-        ObjectSchema, ObjectTypeTag, ObjectValidationError, SingleValueConstraints,
-        SingleValueSchema, StringConstraints, StringFormat, StringFormatError, StringSchema,
-        StringTypeTag, StringValidationError, TupleConstraints,
+        BooleanSchema, BooleanTypeTag, ConstraintError, ConstraintValidator, NullSchema,
+        NullTypeTag, NumberConstraints, NumberSchema, NumberTypeTag, NumberValidationError,
+        ObjectConstraints, ObjectSchema, ObjectTypeTag, ObjectValidationError,
+        SingleValueConstraints, SingleValueSchema, StringConstraints, StringFormat,
+        StringFormatError, StringSchema, StringTypeTag, StringValidationError, TupleConstraints,
     },
     conversion::{
         ConversionDefinition, ConversionExpression, ConversionValue, Conversions, Operator,
