@@ -172,21 +172,23 @@ where
                 id: value.left_entity_id,
             })?;
 
-        let left_entity_type = stream::iter(&left_entity.borrow().metadata.entity_type_ids)
-            .then(|entity_type| async {
-                Ok::<_, Report<EntityValidationError>>(
+        let left_entity_type = Self::from_multi_type_closed_schema(
+            stream::iter(&left_entity.borrow().metadata.entity_type_ids)
+                .then(|entity_type_url| async {
                     provider
-                        .provide_type(entity_type)
+                        .provide_type(entity_type_url)
                         .await
-                        .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
-                            ids: left_entity.borrow().metadata.entity_type_ids.clone(),
-                        })?
-                        .borrow()
-                        .clone(),
-                )
-            })
-            .try_collect::<Self>()
-            .await?;
+                        .map(|entity_type| entity_type.borrow().clone())
+                })
+                .try_collect::<Vec<Self>>()
+                .await
+                .change_context_lazy(|| EntityValidationError::EntityRetrieval {
+                    id: value.left_entity_id,
+                })?,
+        )
+        .change_context_lazy(|| EntityValidationError::EntityRetrieval {
+            id: value.left_entity_id,
+        })?;
 
         let right_entity = provider
             .provide_entity(value.right_entity_id)
@@ -195,21 +197,23 @@ where
                 id: value.right_entity_id,
             })?;
 
-        let right_entity_type = stream::iter(&right_entity.borrow().metadata.entity_type_ids)
-            .then(|entity_type| async {
-                Ok::<_, Report<EntityValidationError>>(
+        let right_entity_type = Self::from_multi_type_closed_schema(
+            stream::iter(&right_entity.borrow().metadata.entity_type_ids)
+                .then(|entity_type_url| async {
                     provider
-                        .provide_type(entity_type)
+                        .provide_type(entity_type_url)
                         .await
-                        .change_context_lazy(|| EntityValidationError::EntityTypeRetrieval {
-                            ids: right_entity.borrow().metadata.entity_type_ids.clone(),
-                        })?
-                        .borrow()
-                        .clone(),
-                )
-            })
-            .try_collect::<Self>()
-            .await?;
+                        .map(|entity_type| entity_type.borrow().clone())
+                })
+                .try_collect::<Vec<Self>>()
+                .await
+                .change_context_lazy(|| EntityValidationError::EntityRetrieval {
+                    id: value.right_entity_id,
+                })?,
+        )
+        .change_context_lazy(|| EntityValidationError::EntityRetrieval {
+            id: value.right_entity_id,
+        })?;
 
         // We track that at least one link type was found to avoid reporting an error if no
         // link type was found.

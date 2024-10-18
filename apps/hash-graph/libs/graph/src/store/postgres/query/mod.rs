@@ -284,12 +284,8 @@ mod test_helper {
         Alias, Expression, Function, PostgresQueryPath, WindowStatement,
     };
 
-    pub fn trim_whitespace(string: impl Into<String>) -> String {
-        string
-            .into()
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .join(" ")
+    pub fn trim_whitespace(string: &str) -> String {
+        string.split_whitespace().collect::<Vec<_>>().join(" ")
     }
 
     pub fn max_version_expression() -> Expression {

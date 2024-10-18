@@ -18,7 +18,7 @@ use type_system::{
     Valid,
     schema::{
         ClosedEntityType, ConversionDefinition, DataType, DataTypeUuid, EntityType, EntityTypeUuid,
-        OntologyTypeUuid, PropertyType, PropertyTypeUuid,
+        InheritanceDepth, OntologyTypeUuid, PropertyType, PropertyTypeUuid,
     },
     url::{BaseUrl, OntologyTypeVersion},
 };
@@ -149,6 +149,7 @@ pub struct EntityIdRow {
 pub struct EntityIsOfTypeRow {
     pub entity_edition_id: EntityEditionId,
     pub entity_type_ontology_id: EntityTypeUuid,
+    pub inheritance_depth: InheritanceDepth,
 }
 
 #[derive(Debug, ToSql)]

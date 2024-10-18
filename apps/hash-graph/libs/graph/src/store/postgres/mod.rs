@@ -45,8 +45,8 @@ use type_system::{
     Valid,
     schema::{
         ClosedEntityType, Conversions, DataType, DataTypeReference, DataTypeResolveData,
-        DataTypeUuid, EntityType, EntityTypeReference, OntologyTypeUuid, PropertyType,
-        PropertyTypeReference,
+        DataTypeUuid, EntityType, EntityTypeReference, EntityTypeResolveData, EntityTypeUuid,
+        OntologyTypeUuid, PropertyType, PropertyTypeReference,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
@@ -562,7 +562,7 @@ where
     #[tracing::instrument(level = "debug", skip(self))]
     async fn insert_entity_type_with_id(
         &self,
-        ontology_id: OntologyTypeUuid,
+        ontology_id: EntityTypeUuid,
         entity_type: &Valid<EntityType>,
         closed_entity_type: &Valid<ClosedEntityType>,
         label_property: Option<&BaseUrl>,
@@ -650,105 +650,87 @@ where
         Ok(())
     }
 
-    #[tracing::instrument(level = "debug", skip(self, entity_type))]
+    #[tracing::instrument(level = "debug", skip(self))]
     async fn insert_entity_type_references(
         &self,
-        entity_type: &EntityType,
-        ontology_id: OntologyTypeUuid,
+        entity_type_uuid: EntityTypeUuid,
+        metadata: &EntityTypeResolveData,
     ) -> Result<(), InsertionError> {
-        for property_type in entity_type.property_type_references() {
-            self.as_client()
-                .query_one(
-                    "
-                        INSERT INTO entity_type_constrains_properties_on (
-                            source_entity_type_ontology_id,
-                            target_property_type_ontology_id
-                        ) VALUES (
-                            $1,
-                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version \
-                     = $3)
-                        ) RETURNING source_entity_type_ontology_id;
-                    ",
-                    &[
-                        &ontology_id,
-                        &property_type.url.base_url,
-                        &property_type.url.version,
-                    ],
-                )
-                .await
-                .change_context(InsertionError)?;
-        }
-
-        for inherits_from in &entity_type.all_of {
+        for (target_id, depth) in metadata.inheritance_depths() {
             self.as_client()
                 .query_one(
                     "
                         INSERT INTO entity_type_inherits_from (
                             source_entity_type_ontology_id,
-                            target_entity_type_ontology_id
+                            target_entity_type_ontology_id,
+                            depth
                         ) VALUES (
                             $1,
-                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version \
-                     = $3)
-                        ) RETURNING target_entity_type_ontology_id;
+                            $2,
+                            $3
+                        ) RETURNING source_entity_type_ontology_id;
                     ",
-                    &[
-                        &ontology_id,
-                        &inherits_from.url.base_url,
-                        &inherits_from.url.version,
-                    ],
+                    &[&entity_type_uuid, &target_id, &depth],
                 )
                 .await
                 .change_context(InsertionError)?;
         }
-
-        // TODO: should we check that the `link_entity_type_ref` is a link entity type?
-        for (link_reference, destinations) in entity_type.link_mappings() {
+        for (target_id, depth) in metadata.links() {
             self.as_client()
                 .query_one(
                     "
                         INSERT INTO entity_type_constrains_links_on (
                             source_entity_type_ontology_id,
-                            target_entity_type_ontology_id
+                            target_entity_type_ontology_id,
+                            inheritance_depth
                         ) VALUES (
                             $1,
-                            (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 AND version \
-                     = $3)
-                        ) RETURNING target_entity_type_ontology_id;
+                            $2,
+                            $3
+                        ) RETURNING source_entity_type_ontology_id;
                     ",
-                    &[
-                        &ontology_id,
-                        &link_reference.url.base_url,
-                        &link_reference.url.version,
-                    ],
+                    &[&entity_type_uuid, &target_id, &depth],
                 )
                 .await
                 .change_context(InsertionError)?;
-
-            if let Some(destinations) = destinations {
-                for destination in destinations {
-                    self.as_client()
-                        .query_one(
-                            "
-                                INSERT INTO entity_type_constrains_link_destinations_on (
-                                source_entity_type_ontology_id,
-                                target_entity_type_ontology_id
-                                    ) VALUES (
-                                        $1,
-                                        (SELECT ontology_id FROM ontology_ids WHERE base_url = $2 \
-                             AND version = $3)
-                                    ) RETURNING target_entity_type_ontology_id;
-                            ",
-                            &[
-                                &ontology_id,
-                                &destination.url.base_url,
-                                &destination.url.version,
-                            ],
-                        )
-                        .await
-                        .change_context(InsertionError)?;
-                }
-            }
+        }
+        for (target_id, depth) in metadata.link_destinations() {
+            self.as_client()
+                .query_one(
+                    "
+                        INSERT INTO entity_type_constrains_link_destinations_on (
+                            source_entity_type_ontology_id,
+                            target_entity_type_ontology_id,
+                            inheritance_depth
+                        ) VALUES (
+                            $1,
+                            $2,
+                            $3
+                        ) RETURNING source_entity_type_ontology_id;
+                    ",
+                    &[&entity_type_uuid, &target_id, &depth],
+                )
+                .await
+                .change_context(InsertionError)?;
+        }
+        for (target_id, depth) in metadata.properties() {
+            self.as_client()
+                .query_one(
+                    "
+                        INSERT INTO entity_type_constrains_properties_on (
+                            source_entity_type_ontology_id,
+                            target_property_type_ontology_id,
+                            inheritance_depth
+                        ) VALUES (
+                            $1,
+                            $2,
+                            $3
+                        ) RETURNING source_entity_type_ontology_id;
+                    ",
+                    &[&entity_type_uuid, &target_id, &depth],
+                )
+                .await
+                .change_context(InsertionError)?;
         }
 
         Ok(())
