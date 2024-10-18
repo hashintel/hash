@@ -13,6 +13,8 @@ impl SessionIdProducer {
         self.next += 1;
 
         // never overflows because right before it reaches usize::MAX, it will be reset to 0
+        // `usize::MAX` is reserved for the client, as it is unaware of the session id (it's only
+        // used on the server to track connections)
         if self.next == usize::MAX {
             self.next = 0;
         }
