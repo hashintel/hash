@@ -2,7 +2,7 @@ use core::borrow::Borrow;
 use std::collections::{HashSet, hash_map::RawEntryMut};
 
 use error_stack::{Report, ReportSink, ResultExt};
-use futures::{StreamExt, TryStreamExt, stream};
+use futures::{StreamExt, TryFutureExt, TryStreamExt, stream};
 use graph_types::{
     knowledge::{
         entity::{Entity, EntityId},
@@ -185,7 +185,8 @@ where
                         .clone(),
                 )
             })
-            .try_collect::<Self>()
+            .try_collect::<Vec<Self>>()
+            .map_ok(Self::from_multi_type_closed_schema)
             .await?;
 
         let right_entity = provider
@@ -208,7 +209,8 @@ where
                         .clone(),
                 )
             })
-            .try_collect::<Self>()
+            .try_collect::<Vec<Self>>()
+            .map_ok(Self::from_multi_type_closed_schema)
             .await?;
 
         // We track that at least one link type was found to avoid reporting an error if no

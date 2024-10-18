@@ -610,7 +610,8 @@ where
                     .resolve_entity_type_metadata(*entity_type_id)
                     .change_context(InsertionError)?;
                 let closed_schema =
-                    ClosedEntityType::from_resolve_data((**entity_type).clone(), &closed_metadata);
+                    ClosedEntityType::from_resolve_data((**entity_type).clone(), &closed_metadata)
+                        .change_context(InsertionError)?;
 
                 Ok((closed_schema, closed_metadata))
             })
@@ -985,10 +986,10 @@ where
             .change_context(UpdateError)?;
 
         let closed_schema = entity_type_validator
-            .validate(ClosedEntityType::from_resolve_data(
-                schema.clone().into_inner(),
-                &resolve_data,
-            ))
+            .validate(
+                ClosedEntityType::from_resolve_data(schema.clone().into_inner(), &resolve_data)
+                    .change_context(UpdateError)?,
+            )
             .await
             .change_context(UpdateError)?;
 
@@ -1226,7 +1227,8 @@ where
                 .change_context(UpdateError)?;
 
             let closed_schema =
-                ClosedEntityType::from_resolve_data((*schema).clone(), &schema_metadata);
+                ClosedEntityType::from_resolve_data((*schema).clone(), &schema_metadata)
+                    .change_context(UpdateError)?;
             // TODO: Validate ontology types in snapshots
             //   see https://linear.app/hash/issue/H-3038
             let closed_schema = Valid::new_unchecked(closed_schema);

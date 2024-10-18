@@ -58,7 +58,7 @@ use temporal_versioning::{
 };
 use tokio_postgres::{GenericClient, Row, error::SqlState};
 use type_system::{
-    schema::{EntityTypeUuid, OntologyTypeUuid},
+    schema::{EntityTypeUuid, InheritanceDepth, OntologyTypeUuid},
     url::VersionedUrl,
 };
 use uuid::Uuid;
@@ -662,7 +662,6 @@ where
             .await
             .attach(StatusCode::InvalidArgument)
             .change_context(InsertionError)?;
-            validation_params.push((entity_type, validation_components));
 
             let (properties, property_metadata) = params.properties.into_parts();
 
@@ -749,6 +748,15 @@ where
                 entity_is_of_type_rows.push(EntityIsOfTypeRow {
                     entity_edition_id,
                     entity_type_ontology_id: entity_type_id,
+                    inheritance_depth: InheritanceDepth::new(0),
+                });
+            }
+            for (entity_type_url, (depth, _)) in &entity_type.schemas {
+                let entity_type_id = EntityTypeUuid::from_url(entity_type_url);
+                entity_is_of_type_rows.push(EntityIsOfTypeRow {
+                    entity_edition_id,
+                    entity_type_ontology_id: entity_type_id,
+                    inheritance_depth: InheritanceDepth::new(depth.inner() + 1),
                 });
             }
 
@@ -787,6 +795,8 @@ where
                     properties: property_metadata,
                 },
             });
+
+            validation_params.push((entity_type, validation_components));
 
             let current_num_relationships = relationships.len();
             relationships.extend(
@@ -993,7 +1003,6 @@ where
         for mut params in params {
             let schema = match params.entity_types {
                 EntityValidationType::ClosedSchema(schema) => schema,
-                EntityValidationType::Schema(schemas) => Cow::Owned(schemas.into_iter().collect()),
                 EntityValidationType::Id(entity_type_urls) => Cow::Owned(
                     validator_provider
                         .provide_closed_type(entity_type_urls.as_ref())
@@ -1528,7 +1537,17 @@ where
         let edition_id = transaction
             .insert_entity_edition(
                 archived,
-                &entity_type_ids,
+                entity_type_ids
+                    .iter()
+                    .map(|url| (url, InheritanceDepth::new(0)))
+                    .chain(
+                        entity_type
+                            .schemas
+                            .iter()
+                            .map(|(entity_type_id, (depth, _))| {
+                                (entity_type_id, InheritanceDepth::new(depth.inner() + 1))
+                            }),
+                    ),
                 &properties,
                 params.confidence,
                 &edition_provenance,
@@ -1803,6 +1822,11 @@ where
 
         Ok(())
     }
+
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn reindex_entity_cache(&mut self) -> Result<(), UpdateError> {
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
@@ -1818,11 +1842,11 @@ impl<A> PostgresStore<tokio_postgres::Transaction<'_>, A>
 where
     A: Send + Sync,
 {
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "trace", skip(self, entity_type_ids))]
     async fn insert_entity_edition(
         &self,
         archived: bool,
-        entity_type_ids: &HashSet<VersionedUrl>,
+        entity_type_ids: impl IntoIterator<Item = (&VersionedUrl, InheritanceDepth)> + Send,
         properties: &PropertyObject,
         confidence: Option<Confidence>,
         provenance: &EntityEditionProvenance,
@@ -1848,20 +1872,26 @@ where
             .change_context(InsertionError)?
             .get(0);
 
-        let entity_type_ontology_ids = entity_type_ids
-            .iter()
-            .map(|entity_type_id| OntologyTypeUuid::from(EntityTypeUuid::from_url(entity_type_id)))
-            .collect::<Vec<_>>();
+        let (entity_type_ontology_ids, inheritance_depths): (Vec<_>, Vec<_>) = entity_type_ids
+            .into_iter()
+            .map(|(entity_type_id, depth)| {
+                (
+                    OntologyTypeUuid::from(EntityTypeUuid::from_url(entity_type_id)),
+                    depth,
+                )
+            })
+            .unzip();
 
         self.as_client()
             .query(
                 "
                     INSERT INTO entity_is_of_type (
                         entity_edition_id,
-                        entity_type_ontology_id
-                    ) SELECT $1, UNNEST($2::UUID[]);
+                        entity_type_ontology_id,
+                        inheritance_depth
+                    ) SELECT $1, UNNEST($2::UUID[]), UNNEST($3::Integer[]);
                 ",
-                &[&edition_id, &entity_type_ontology_ids],
+                &[&edition_id, &entity_type_ontology_ids, &inheritance_depths],
             )
             .await
             .change_context(InsertionError)?;

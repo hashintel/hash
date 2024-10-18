@@ -1,9 +1,12 @@
 use alloc::sync::Arc;
-use core::{cmp, iter};
+use core::cmp;
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
+use error_stack::{Report, ensure};
 use itertools::Itertools as _;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
+use thiserror::Error;
 
 use crate::{
     schema::{
@@ -24,91 +27,92 @@ pub struct ClosedEntityTypeSchemaData {
 #[derive(Debug, Default, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct ClosedEntityType {
-    pub schemas: HashMap<VersionedUrl, ClosedEntityTypeSchemaData>,
+    pub schemas: HashMap<VersionedUrl, (InheritanceDepth, ClosedEntityTypeSchemaData)>,
     pub properties: HashMap<BaseUrl, ValueOrArray<PropertyTypeReference>>,
     #[serde(default, skip_serializing_if = "HashSet::is_empty")]
     pub required: HashSet<BaseUrl>,
     #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub links: HashMap<VersionedUrl, PropertyValueArray<Option<OneOfSchema<EntityTypeReference>>>>,
-    #[serde(default, skip_serializing_if = "HashSet::is_empty")]
-    pub all_of: HashSet<EntityTypeReference>,
+}
+
+#[derive(Debug, Error)]
+pub enum ResolveClosedEntityTypeError {
+    #[error(
+        "Resolving the entity type encountered unknown schemas in `allOf`: {}.",
+        json!(.0.iter().map(|reference| &reference.url).collect::<Vec<_>>()),
+    )]
+    UnknownSchemas(HashSet<EntityTypeReference>),
 }
 
 impl ClosedEntityType {
-    #[must_use]
+    pub fn from_multi_type_closed_schema(closed_schemas: impl IntoIterator<Item = Self>) -> Self {
+        let mut properties = HashMap::new();
+        let mut required = HashSet::new();
+        let mut links = HashMap::new();
+        let mut schemas = HashMap::new();
+
+        for schema in closed_schemas {
+            properties.extend(schema.properties);
+            required.extend(schema.required);
+            extend_links(&mut links, schema.links);
+            schemas.extend(schema.schemas);
+        }
+
+        Self {
+            schemas,
+            properties,
+            required,
+            links,
+        }
+    }
+
+    /// Create a closed entity type from an entity type and its resolve data.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the entity type references unknown schemas in `allOf`.
     pub fn from_resolve_data(
         entity_type: EntityType,
         resolve_data: &EntityTypeResolveData,
-    ) -> Self {
-        iter::once(entity_type)
-            .chain(
-                resolve_data
-                    .ordered_schemas()
-                    .map(|(_, schema)| schema.clone()),
-            )
-            .collect()
-    }
-}
+    ) -> Result<Self, Report<ResolveClosedEntityTypeError>> {
+        let mut all_of = entity_type.all_of;
 
-impl From<EntityType> for ClosedEntityType {
-    fn from(entity_type: EntityType) -> Self {
-        Self {
-            schemas: HashMap::from([(entity_type.id, ClosedEntityTypeSchemaData {
-                title: entity_type.title,
-                description: entity_type.description,
-            })]),
+        let mut closed_schema = Self {
+            schemas: HashMap::from([(
+                entity_type.id,
+                (InheritanceDepth::new(0), ClosedEntityTypeSchemaData {
+                    title: entity_type.title,
+                    description: entity_type.description,
+                }),
+            )]),
             properties: entity_type.properties,
             required: entity_type.required,
             links: entity_type.links,
-            all_of: entity_type.all_of.into_iter().collect(),
-        }
-    }
-}
+        };
 
-impl FromIterator<EntityType> for ClosedEntityType {
-    fn from_iter<T: IntoIterator<Item = EntityType>>(iter: T) -> Self {
-        let mut entity_type = Self::default();
-        entity_type.extend(iter);
-        entity_type
-    }
-}
-
-impl FromIterator<Self> for ClosedEntityType {
-    fn from_iter<T: IntoIterator<Item = Self>>(iter: T) -> Self {
-        let mut entity_type = Self::default();
-        entity_type.extend(iter);
-        entity_type
-    }
-}
-
-impl Extend<Self> for ClosedEntityType {
-    fn extend<T: IntoIterator<Item = Self>>(&mut self, iter: T) {
-        for other in iter {
-            self.all_of.extend(other.all_of);
-            self.schemas.extend(other.schemas);
-            self.properties.extend(other.properties);
-            self.required.extend(other.required);
-            extend_links(&mut self.links, other.links);
+        for (depth, entity_type) in resolve_data.ordered_schemas() {
+            all_of.extend(entity_type.all_of.clone());
+            closed_schema.schemas.insert(
+                entity_type.id.clone(),
+                (depth, ClosedEntityTypeSchemaData {
+                    title: entity_type.title.clone(),
+                    description: entity_type.description.clone(),
+                }),
+            );
+            closed_schema
+                .properties
+                .extend(entity_type.properties.clone());
+            closed_schema.required.extend(entity_type.required.clone());
+            extend_links(&mut closed_schema.links, entity_type.links.clone());
+            all_of.remove((&entity_type.id).into());
         }
 
-        self.all_of.retain(|x| !self.schemas.contains_key(&x.url));
-    }
-}
+        ensure!(
+            all_of.is_empty(),
+            ResolveClosedEntityTypeError::UnknownSchemas(all_of)
+        );
 
-impl Extend<EntityType> for ClosedEntityType {
-    fn extend<T: IntoIterator<Item = EntityType>>(&mut self, iter: T) {
-        for other in iter {
-            self.all_of.extend(other.all_of);
-            self.schemas.insert(other.id, ClosedEntityTypeSchemaData {
-                title: other.title,
-                description: other.description,
-            });
-            self.properties.extend(other.properties);
-            self.required.extend(other.required);
-            extend_links(&mut self.links, other.links);
-        }
-
-        self.all_of.retain(|x| !self.schemas.contains_key(&x.url));
+        Ok(closed_schema)
     }
 }
 
@@ -262,24 +266,37 @@ impl EntityTypeResolveData {
 
 #[cfg(test)]
 mod tests {
+    use alloc::sync::Arc;
+
     use crate::{
-        schema::{ClosedEntityType, EntityType},
+        schema::{ClosedEntityType, EntityType, EntityTypeUuid, OntologyTypeResolver},
         url::BaseUrl,
         utils::tests::{JsonEqualityCheck, ensure_serialization_from_str},
     };
 
     #[test]
     fn merge_entity_type() {
+        let mut ontology_type_resolver = OntologyTypeResolver::default();
+
         let building = ensure_serialization_from_str::<EntityType>(
             graph_test_data::entity_type::BUILDING_V1,
             JsonEqualityCheck::Yes,
         );
+        ontology_type_resolver
+            .add_unresolved_entity_type(EntityTypeUuid::from_url(&building.id), Arc::new(building));
+
         let church: EntityType = ensure_serialization_from_str::<EntityType>(
             graph_test_data::entity_type::CHURCH_V1,
             JsonEqualityCheck::Yes,
         );
+        let church_id = EntityTypeUuid::from_url(&church.id);
+        ontology_type_resolver.add_unresolved_entity_type(church_id, Arc::new(church.clone()));
 
-        let closed_church: ClosedEntityType = [building, church].into_iter().collect();
+        let resolved_church = ontology_type_resolver
+            .resolve_entity_type_metadata(church_id)
+            .expect("church not resolved");
+        let closed_church = ClosedEntityType::from_resolve_data(church, &resolved_church)
+            .expect("Could not close church");
 
         assert!(
             closed_church.properties.contains_key(
@@ -297,6 +314,5 @@ mod tests {
                 .expect("invalid url")
             )
         );
-        assert!(closed_church.all_of.is_empty());
     }
 }

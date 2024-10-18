@@ -98,7 +98,7 @@ where
 
         let where_statement = depth.map_or(Cow::Borrowed(""), |depth| {
             Cow::Owned(format!(
-                "WHERE closed_entity_is_of_type.inheritance_depth <= {depth}"
+                "WHERE entity_is_of_type.inheritance_depth <= {depth}"
             ))
         });
 
@@ -124,11 +124,11 @@ where
                          AND source.web_id = filter.web_id
                          AND source.entity_uuid = filter.entity_uuid
 
-                        JOIN closed_entity_is_of_type
-                          ON source.entity_edition_id = closed_entity_is_of_type.entity_edition_id
+                        JOIN entity_is_of_type
+                          ON source.entity_edition_id = entity_is_of_type.entity_edition_id
 
                         JOIN ontology_ids
-                          ON closed_entity_is_of_type.entity_type_ontology_id = ontology_ids.ontology_id
+                          ON entity_is_of_type.entity_type_ontology_id = ontology_ids.ontology_id
 
                         {where_statement};
                     "#

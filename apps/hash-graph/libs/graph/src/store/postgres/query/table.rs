@@ -316,7 +316,7 @@ impl ReferenceTable {
             } => "entity_type_constrains_link_destinations_on",
             Self::EntityIsOfType {
                 inheritance_depth: _,
-            } => "closed_entity_is_of_type",
+            } => "entity_is_of_type",
             Self::EntityHasLeftEntity => "entity_has_left_entity",
             Self::EntityHasRightEntity => "entity_has_right_entity",
         }

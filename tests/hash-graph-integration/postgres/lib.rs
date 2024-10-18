@@ -792,6 +792,10 @@ where
     ) -> Result<(), UpdateError> {
         self.store.update_entity_embeddings(actor_id, params).await
     }
+
+    async fn reindex_entity_cache(&mut self) -> Result<(), UpdateError> {
+        self.store.reindex_entity_cache().await
+    }
 }
 
 #[tokio::test]

@@ -1105,10 +1105,10 @@ mod tests {
             RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_0"
               ON "entity_temporal_metadata_0_2_0"."web_id" = "entity_has_left_entity_0_1_0"."left_web_id"
              AND "entity_temporal_metadata_0_2_0"."entity_uuid" = "entity_has_left_entity_0_1_0"."left_entity_uuid"
-            INNER JOIN "closed_entity_is_of_type" AS "closed_entity_is_of_type_0_3_0"
-              ON "closed_entity_is_of_type_0_3_0"."entity_edition_id" = "entity_temporal_metadata_0_2_0"."entity_edition_id"
+            INNER JOIN "entity_is_of_type" AS "entity_is_of_type_0_3_0"
+              ON "entity_is_of_type_0_3_0"."entity_edition_id" = "entity_temporal_metadata_0_2_0"."entity_edition_id"
             INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_4_0"
-              ON "ontology_temporal_metadata_0_4_0"."ontology_id" = "closed_entity_is_of_type_0_3_0"."entity_type_ontology_id"
+              ON "ontology_temporal_metadata_0_4_0"."ontology_id" = "entity_is_of_type_0_3_0"."entity_type_ontology_id"
             INNER JOIN "ontology_ids" AS "ontology_ids_0_5_0"
               ON "ontology_ids_0_5_0"."ontology_id" = "ontology_temporal_metadata_0_4_0"."ontology_id"
             LEFT OUTER JOIN "entity_has_right_entity" AS "entity_has_right_entity_0_1_0"
@@ -1117,10 +1117,10 @@ mod tests {
             RIGHT OUTER JOIN "entity_temporal_metadata" AS "entity_temporal_metadata_0_2_1"
               ON "entity_temporal_metadata_0_2_1"."web_id" = "entity_has_right_entity_0_1_0"."right_web_id"
              AND "entity_temporal_metadata_0_2_1"."entity_uuid" = "entity_has_right_entity_0_1_0"."right_entity_uuid"
-            INNER JOIN "closed_entity_is_of_type" AS "closed_entity_is_of_type_0_3_1"
-              ON "closed_entity_is_of_type_0_3_1"."entity_edition_id" = "entity_temporal_metadata_0_2_1"."entity_edition_id"
+            INNER JOIN "entity_is_of_type" AS "entity_is_of_type_0_3_1"
+              ON "entity_is_of_type_0_3_1"."entity_edition_id" = "entity_temporal_metadata_0_2_1"."entity_edition_id"
             INNER JOIN "ontology_temporal_metadata" AS "ontology_temporal_metadata_0_4_1"
-              ON "ontology_temporal_metadata_0_4_1"."ontology_id" = "closed_entity_is_of_type_0_3_1"."entity_type_ontology_id"
+              ON "ontology_temporal_metadata_0_4_1"."ontology_id" = "entity_is_of_type_0_3_1"."entity_type_ontology_id"
             INNER JOIN "ontology_ids" AS "ontology_ids_0_5_1"
               ON "ontology_ids_0_5_1"."ontology_id" = "ontology_temporal_metadata_0_4_1"."ontology_id"
             WHERE "entity_temporal_metadata_0_0_0"."draft_id" IS NULL
@@ -1129,12 +1129,12 @@ mod tests {
               AND "entity_temporal_metadata_0_2_0"."draft_id" IS NULL
               AND "entity_temporal_metadata_0_2_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_2_0"."decision_time" && $2
-              AND "closed_entity_is_of_type_0_3_0"."inheritance_depth" <= 0
+              AND "entity_is_of_type_0_3_0"."inheritance_depth" <= 0
               AND "ontology_temporal_metadata_0_4_0"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_2_1"."draft_id" IS NULL
               AND "entity_temporal_metadata_0_2_1"."transaction_time" @> $1::TIMESTAMPTZ
               AND "entity_temporal_metadata_0_2_1"."decision_time" && $2
-              AND "closed_entity_is_of_type_0_3_1"."inheritance_depth" <= 0
+              AND "entity_is_of_type_0_3_1"."inheritance_depth" <= 0
               AND "ontology_temporal_metadata_0_4_1"."transaction_time" @> $1::TIMESTAMPTZ
               AND ("ontology_ids_0_5_0"."base_url" = $3)
               AND ("ontology_ids_0_5_1"."base_url" = $4)
