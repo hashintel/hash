@@ -41,6 +41,7 @@ impl Decode for RequestId {
     }
 }
 
+#[derive(Debug)]
 pub struct RequestIdProducer {
     current: AtomicU32,
 }

@@ -133,7 +133,7 @@ impl TransportTask {
                     PROTOCOL_NAME.to_string(),
                     keys.public(),
                 )),
-                ping: ping::Behaviour::new(config.ping),
+                ping: ping::Behaviour::new(config.ping.into()),
             });
 
         let swarm = swarm

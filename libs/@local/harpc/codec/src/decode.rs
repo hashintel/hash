@@ -1,17 +1,19 @@
 use bytes::{Buf, Bytes};
 use error_stack::{Context, Report};
-use futures_core::Stream;
+use futures_core::{Stream, TryStream};
 
 pub trait Decoder {
     type Error;
 
-    fn decode<T, B, E>(
-        self,
-        items: impl Stream<Item = Result<B, E>> + Send + Sync,
-    ) -> impl Stream<Item = Result<T, Self::Error>> + Send + Sync
+    type Output<T, Input>: Stream<Item = Result<T, Self::Error>> + Send
     where
         T: serde::de::DeserializeOwned,
-        B: Buf;
+        Input: TryStream<Ok: Buf> + Send;
+
+    fn decode<T, S>(self, items: S) -> Self::Output<T, S>
+    where
+        T: serde::de::DeserializeOwned,
+        S: TryStream<Ok: Buf> + Send;
 }
 
 pub trait ErrorDecoder {
@@ -35,10 +37,7 @@ pub trait ErrorDecoder {
     /// # Errors
     ///
     /// Returns `Self::Error` if decoding fails.
-    fn decode_error<E>(
-        self,
-        bytes: impl Stream<Item = Bytes> + Send + Sync,
-    ) -> impl Future<Output = Result<E, Self::Error>> + Send
+    fn decode_error<E>(self, bytes: Bytes) -> Result<E, Self::Error>
     where
         E: serde::de::DeserializeOwned;
 
@@ -47,10 +46,7 @@ pub trait ErrorDecoder {
     /// # Errors
     ///
     /// Returns `Self::Error` if decoding fails.
-    fn decode_report<C>(
-        self,
-        bytes: impl Stream<Item = Bytes> + Send + Sync,
-    ) -> impl Future<Output = Result<Report<C>, Self::Error>> + Send
+    fn decode_report<C>(self, bytes: Bytes) -> Result<Report<C>, Self::Error>
     where
         C: Context;
 
@@ -59,8 +55,5 @@ pub trait ErrorDecoder {
     /// # Errors
     ///
     /// Returns `Self::Error` if decoding fails.
-    fn decode_recovery(
-        self,
-        bytes: impl Stream<Item = Bytes> + Send + Sync,
-    ) -> impl Future<Output = Self::Recovery> + Send;
+    fn decode_recovery(self, bytes: Bytes) -> Self::Recovery;
 }

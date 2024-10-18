@@ -2,7 +2,7 @@ use core::task::{Context, Poll};
 
 use bytes::Buf;
 use harpc_types::response_kind::ResponseKind;
-use tower::{Layer, Service, ServiceExt};
+use tower::{Layer, Service};
 
 use crate::{
     body::{Body, BodyExt},
@@ -43,29 +43,26 @@ pub struct BoxedResponseService<S> {
 
 impl<S, ReqBody, ResBody> Service<Request<ReqBody>> for BoxedResponseService<S>
 where
-    S: Service<Request<ReqBody>, Response = Response<ResBody>, Error = !> + Clone + Send,
+    S: Service<Request<ReqBody>, Response = Response<ResBody>> + Clone + Send,
     ReqBody: Body<Control = !>,
     ResBody: Body<Control: AsRef<ResponseKind>> + Send + Sync + 'static,
 {
-    type Error = !;
-    // TODO: do we wanna put the response error into a dyn error?!
+    type Error = S::Error;
     type Response = BoxedResponse<ResBody::Error>;
 
     type Future = impl Future<Output = Result<Self::Response, Self::Error>>;
 
-    fn poll_ready(&mut self, _: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        // Taken from axum::HandleError
-        // we're always ready because we clone the inner service, therefore it is unused and always
-        // ready
-        Poll::Ready(Ok(()))
+    fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
+        self.inner.poll_ready(cx)
     }
 
     fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
         let clone = self.inner.clone();
-        let inner = core::mem::replace(&mut self.inner, clone);
+        let mut inner = core::mem::replace(&mut self.inner, clone);
 
         async move {
-            let Ok(response) = inner.oneshot(req).await;
+            // oneshot also waits for poll_ready, we do that already in `poll_ready` ourselves
+            let response = inner.call(req).await?;
 
             let response = response.map_body(|body| {
                 body.map_control(|control| *control.as_ref())

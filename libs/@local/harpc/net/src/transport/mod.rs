@@ -13,7 +13,11 @@ use alloc::sync::Arc;
 
 use error_stack::{Result, ResultExt};
 use futures::stream::StreamExt;
-use libp2p::{Multiaddr, PeerId, StreamProtocol, core::transport::ListenerId, metrics};
+use libp2p::{
+    Multiaddr, PeerId, StreamProtocol, core::transport::ListenerId, metrics,
+    tcp::tokio::Transport as TokioTcpTransport,
+};
+use libp2p_core::transport::MemoryTransport;
 use tokio::io::BufStream;
 use tokio_util::{
     codec::Framed, compat::FuturesAsyncReadCompatExt, sync::CancellationToken, task::TaskTracker,
@@ -41,6 +45,7 @@ pub trait Transport = libp2p::Transport<
     + Unpin
     + 'static;
 
+#[derive(Debug)]
 pub struct TransportLayer {
     id: PeerId,
     ipc: TransportLayerIpc,
@@ -85,6 +90,33 @@ impl TransportLayer {
             cancel,
             cancel_task,
         })
+    }
+
+    /// Create a new TCP transport layer.
+    ///
+    /// This is a convenience method that creates a TCP transport and starts the transport layer.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the task fails to start or if the TCP transport cannot be created.
+    pub fn tcp(config: TransportConfig, cancel: CancellationToken) -> Result<Self, TransportError> {
+        let transport = TokioTcpTransport::new(libp2p::tcp::Config::default());
+        Self::start(config, transport, cancel)
+    }
+
+    /// Create a new memory transport layer.
+    ///
+    /// This is a convenience method that creates a memory transport and starts the transport layer.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the task fails to start.
+    pub fn memory(
+        config: TransportConfig,
+        cancel: CancellationToken,
+    ) -> Result<Self, TransportError> {
+        let transport = MemoryTransport::new();
+        Self::start(config, transport, cancel)
     }
 
     pub(crate) fn cancellation_token(&self) -> CancellationToken {
