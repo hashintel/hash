@@ -83,19 +83,14 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
       seenNodeIds.add(node.nodeId);
     }
 
+    const seenEdges = new Set<string>();
+
     for (const edge of edges) {
       const { source, target } = edge;
 
       if (!seenNodeIds.has(source) || !seenNodeIds.has(target)) {
         continue;
       }
-
-      graph.addEdgeWithKey(edge.edgeId, source, target, {
-        color: "rgba(180, 180, 180, 0.8)",
-        label: edge.label,
-        size: edge.size,
-        type: "curved",
-      });
 
       nodeIdToEdgeCount[source] ??= { In: 0, Out: 0, All: 0 };
       nodeIdToEdgeCount[source].Out++;
@@ -104,6 +99,24 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
       nodeIdToEdgeCount[target] ??= { In: 0, Out: 0, All: 0 };
       nodeIdToEdgeCount[target].In++;
       nodeIdToEdgeCount[target].All++;
+
+      const edgeId = `${source}-${target}`;
+      if (seenEdges.has(edgeId)) {
+        /**
+         * Don't draw another edge, it'll be overlapped by the previous one
+         * @todo aggregate number of edges to weight the single edge
+         */
+        continue;
+      }
+
+      seenEdges.add(edgeId);
+
+      graph.addEdgeWithKey(edge.edgeId, source, target, {
+        color: "rgba(180, 180, 180, 0.8)",
+        label: edge.label,
+        size: edge.size,
+        type: "curved",
+      });
     }
 
     if (config.nodeSizing.mode === "byEdgeCount") {

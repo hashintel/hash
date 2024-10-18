@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { drawRoundRect } from "../../../../../components/grid/utils/draw-round-rect";
 import { useFullScreen } from "./full-screen-context";
 import type { GraphState } from "./state";
+import type { GraphVizConfig } from "./config-control";
 
 export const labelRenderedSizeThreshold = {
   fullScreen: 12,
@@ -14,7 +15,10 @@ export const labelRenderedSizeThreshold = {
 /**
  * See also {@link GraphContainer} for additional settings which aren't expected to change in the graph's lifetime
  */
-export const useSetDrawSettings = (graphState: GraphState) => {
+export const useSetDrawSettings = (
+  graphState: GraphState,
+  config: GraphVizConfig,
+) => {
   const { palette } = useTheme();
   const sigma = useSigma();
 
@@ -174,12 +178,14 @@ export const useSetDrawSettings = (graphState: GraphState) => {
       ];
 
       if (
-        /**
-         * @todo we should only hide links which don't link to/from selected node at depth 1
-         */
         sourceIsShown &&
         targetIsShown &&
-        (selectedNode.includes(source) || selectedNode.includes(target))
+        /**
+         * At depth 1 we only want to highlight the edges to/from the selected/hovered node
+         */
+        (config.nodeHighlighting.depth !== 1 ||
+          selectedNode.includes(source) ||
+          selectedNode.includes(target))
       ) {
         edgeData.zIndex = 2;
         edgeData.size = 3;
@@ -194,5 +200,5 @@ export const useSetDrawSettings = (graphState: GraphState) => {
 
       return edgeData;
     });
-  }, [isFullScreen, palette, sigma, graphState]);
+  }, [config.nodeHighlighting.depth, isFullScreen, palette, sigma, graphState]);
 };

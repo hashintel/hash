@@ -15,28 +15,28 @@ import type {
 import type { ColumnSort } from "./sorting";
 
 export const useDrawHeader = <T extends string>(props: {
-  tableId: string;
-  sorts?: ColumnSort<T>[];
-  onSortClick?: (columnKey: T) => void;
   activeSortColumnKey?: T;
+  columns: GridColumn[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   filters?: ColumnFilter<T, any>[];
+  firstColumnLeftPadding?: number;
   onFilterClick?: (
     columnKey: T,
     interactablePosition: InteractablePosition,
   ) => void;
-  columns: GridColumn[];
-  firstColumnLeftPadding?: number;
+  onSortClick?: (columnKey: T) => void;
+  sorts?: ColumnSort<T>[];
+  tableId: string;
 }): DrawHeaderCallback => {
   const {
     activeSortColumnKey,
-    tableId,
-    sorts,
-    filters,
     columns,
+    filters,
     firstColumnLeftPadding,
     onFilterClick,
     onSortClick,
+    sorts,
+    tableId,
   } = props;
 
   const muiTheme = useTheme();

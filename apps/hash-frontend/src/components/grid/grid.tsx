@@ -173,14 +173,14 @@ export const Grid = <T extends GridRow>({
   }, []);
 
   const defaultDrawHeader = useDrawHeader({
-    tableId: tableIdRef.current,
-    sorts,
     activeSortColumnKey: currentSortedColumnKey,
-    onSortClick: handleSortClick,
-    filters: columnFilters,
-    onFilterClick: handleFilterClick,
     columns,
+    filters: columnFilters,
     firstColumnLeftPadding,
+    onFilterClick: handleFilterClick,
+    onSortClick: handleSortClick,
+    sorts,
+    tableId: tableIdRef.current,
   });
 
   const handleHeaderClicked = useCallback(

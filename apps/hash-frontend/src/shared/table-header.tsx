@@ -118,6 +118,7 @@ export type GetAdditionalCsvDataFunction = () => Promise<{
 } | null>;
 
 type TableHeaderProps = {
+  hideExportToCsv?: boolean;
   hideFilters?: boolean;
   internalWebIds: (AccountId | AccountGroupId)[];
   itemLabelPlural: "entities" | "pages" | "types";
@@ -151,20 +152,21 @@ const commonChipSx = {
 } as const satisfies SxProps<Theme>;
 
 export const TableHeader: FunctionComponent<TableHeaderProps> = ({
+  columns,
+  currentlyDisplayedRowsRef,
+  endAdornment,
+  filterState,
+  getAdditionalCsvData,
+  hideExportToCsv,
   hideFilters,
   internalWebIds,
   itemLabelPlural,
   items,
-  selectedItems,
-  filterState,
-  endAdornment,
-  title,
-  columns,
-  currentlyDisplayedRowsRef,
-  getAdditionalCsvData,
-  setFilterState,
-  toggleSearch,
   onBulkActionCompleted,
+  selectedItems,
+  setFilterState,
+  title,
+  toggleSearch,
 }) => {
   const [displayFilters, setDisplayFilters] = useState<boolean>(false);
   const [publicFilterHovered, setPublicFilterHovered] =
@@ -432,7 +434,9 @@ export const TableHeader: FunctionComponent<TableHeaderProps> = ({
             </Box>
           </Box>
         )}
-        <ExportToCsvButton generateCsvFile={generateCsvFile} />
+        {!hideExportToCsv && (
+          <ExportToCsvButton generateCsvFile={generateCsvFile} />
+        )}
         {endAdornment}
       </Box>
     </Box>
