@@ -38,12 +38,23 @@ use crate::store::{
 };
 
 #[derive(Debug, Clone, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
 #[serde(untagged)]
 pub enum EntityValidationType<'a> {
     Id(Cow<'a, HashSet<VersionedUrl>>),
     #[serde(skip)]
     ClosedSchema(Cow<'a, ClosedEntityType>),
+}
+
+#[cfg(feature = "utoipa")]
+impl ToSchema<'_> for EntityValidationType<'_> {
+    fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
+        (
+            "EntityValidationType",
+            Ref::from_schema_name("VersionedUrl")
+                .to_array_builder()
+                .into(),
+        )
+    }
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
@@ -364,6 +375,8 @@ pub trait EntityStore {
     ///   [`EntityType`]
     /// - if the account referred to by `owned_by_id` does not exist
     /// - if an [`EntityUuid`] was supplied and already exists in the store
+    ///
+    /// [`EntityType`]: type_system::schema::EntityType
     fn create_entity<R>(
         &mut self,
         actor_id: AccountId,

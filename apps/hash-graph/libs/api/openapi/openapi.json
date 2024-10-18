@@ -4676,15 +4676,10 @@
         "format": "uuid"
       },
       "EntityValidationType": {
-        "oneOf": [
-          {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/VersionedUrl"
-            },
-            "uniqueItems": true
-          }
-        ]
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/VersionedUrl"
+        }
       },
       "EntityVertexId": {
         "type": "object",
