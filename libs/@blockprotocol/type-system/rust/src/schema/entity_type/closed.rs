@@ -42,28 +42,62 @@ pub enum ResolveClosedEntityTypeError {
         json!(.0.iter().map(|reference| &reference.url).collect::<Vec<_>>()),
     )]
     UnknownSchemas(HashSet<EntityTypeReference>),
+    #[error("Resolving the entity type encountered incompatible property: {0}.")]
+    IncompatibleProperty(BaseUrl),
 }
 
 impl ClosedEntityType {
-    pub fn from_multi_type_closed_schema(closed_schemas: impl IntoIterator<Item = Self>) -> Self {
+    /// Creates a closed entity type from multiple closed entity types.
+    ///
+    /// This results in a closed entity type which is used for entities with multiple types.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the entity types have incompatible properties.
+    pub fn from_multi_type_closed_schema(
+        closed_schemas: impl IntoIterator<Item = Self>,
+    ) -> Result<Self, Report<ResolveClosedEntityTypeError>> {
         let mut properties = HashMap::new();
         let mut required = HashSet::new();
         let mut links = HashMap::new();
         let mut schemas = HashMap::new();
 
         for schema in closed_schemas {
-            properties.extend(schema.properties);
+            for (base_url, property) in schema.properties {
+                match properties.entry(base_url) {
+                    Entry::Occupied(entry) => {
+                        ensure!(
+                            property == *entry.get(),
+                            ResolveClosedEntityTypeError::IncompatibleProperty(entry.key().clone())
+                        );
+                    }
+                    Entry::Vacant(entry) => {
+                        entry.insert(property);
+                    }
+                }
+            }
             required.extend(schema.required);
             extend_links(&mut links, schema.links);
-            schemas.extend(schema.schemas);
+
+            for (url, (depth, schema_data)) in schema.schemas {
+                match schemas.entry(url) {
+                    Entry::Occupied(mut entry) => {
+                        let (existing_depth, _) = entry.get_mut();
+                        *existing_depth = cmp::min(*existing_depth, depth);
+                    }
+                    Entry::Vacant(entry) => {
+                        entry.insert((depth, schema_data));
+                    }
+                }
+            }
         }
 
-        Self {
+        Ok(Self {
             schemas,
             properties,
             required,
             links,
-        }
+        })
     }
 
     /// Create a closed entity type from an entity type and its resolve data.
@@ -94,10 +128,13 @@ impl ClosedEntityType {
             all_of.extend(entity_type.all_of.clone());
             closed_schema.schemas.insert(
                 entity_type.id.clone(),
-                (depth, ClosedEntityTypeSchemaData {
-                    title: entity_type.title.clone(),
-                    description: entity_type.description.clone(),
-                }),
+                (
+                    InheritanceDepth::new(depth.inner() + 1),
+                    ClosedEntityTypeSchemaData {
+                        title: entity_type.title.clone(),
+                        description: entity_type.description.clone(),
+                    },
+                ),
             );
             closed_schema
                 .properties

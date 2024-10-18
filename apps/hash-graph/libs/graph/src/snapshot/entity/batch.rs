@@ -1,20 +1,22 @@
 use authorization::{AuthorizationApi, backend::ZanzibarBackend, schema::EntityRelationAndSubject};
 use error_stack::{Report, ResultExt};
+use futures::{StreamExt as _, TryStreamExt as _, stream};
 use graph_types::{
     knowledge::{
         entity::{Entity, EntityUuid},
         property::{PropertyWithMetadataObject, visitor::EntityVisitor},
     },
-    ontology::EntityTypeProvider,
+    ontology::OntologyTypeProvider,
 };
 use hash_graph_store::filter::Filter;
 use tokio_postgres::GenericClient;
+use type_system::schema::ClosedEntityType;
 use validation::{EntityPreprocessor, Validate, ValidateEntityComponents};
 
 use crate::{
     snapshot::WriteBatch,
     store::{
-        AsClient, InsertionError, PostgresStore, StoreCache, StoreProvider,
+        AsClient, EntityStore, InsertionError, PostgresStore, StoreCache, StoreProvider,
         crud::Read,
         postgres::query::rows::{
             EntityDraftRow, EntityEditionRow, EntityEmbeddingRow, EntityHasLeftEntityRow,
@@ -275,6 +277,11 @@ where
             .await
             .change_context(InsertionError)?;
 
+        postgres_client
+            .reindex_entity_cache()
+            .await
+            .change_context(InsertionError)?;
+
         if validation {
             let entities =
                 Read::<Entity>::read_vec(postgres_client, &Filter::All(Vec::new()), None, true)
@@ -304,10 +311,21 @@ where
                 )
                 .change_context(InsertionError)?;
 
-                let entity_type = validator_provider
-                    .provide_closed_type(&entity.metadata.entity_type_ids)
-                    .await
-                    .change_context(InsertionError)?;
+                let entity_type = ClosedEntityType::from_multi_type_closed_schema(
+                    stream::iter(&entity.metadata.entity_type_ids)
+                        .then(|entity_type_url| async {
+                            OntologyTypeProvider::<ClosedEntityType>::provide_type(
+                                &validator_provider,
+                                entity_type_url,
+                            )
+                            .await
+                            .map(|entity_type| (*entity_type).clone())
+                        })
+                        .try_collect::<Vec<ClosedEntityType>>()
+                        .await
+                        .change_context(InsertionError)?,
+                )
+                .change_context(InsertionError)?;
 
                 EntityPreprocessor {
                     components: validation_components,

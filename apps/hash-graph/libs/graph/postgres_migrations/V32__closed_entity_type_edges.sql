@@ -1,13 +1,22 @@
 ALTER TABLE entity_type_inherits_from
-    ADD COLUMN depth INT;
+    ADD COLUMN depth INT,
+    ADD CONSTRAINT unique_entity_type_inherits_from UNIQUE (source_entity_type_ontology_id, target_entity_type_ontology_id);
 ALTER TABLE entity_is_of_type
-    ADD COLUMN inheritance_depth INT;
+    ADD COLUMN inheritance_depth INT,
+    ADD CONSTRAINT unique_entity_is_of_type UNIQUE (entity_edition_id, entity_type_ontology_id);
 ALTER TABLE entity_type_constrains_links_on
-    ADD COLUMN inheritance_depth INT;
+    ADD COLUMN inheritance_depth INT,
+    ADD CONSTRAINT unique_entity_type_constrains_links_on UNIQUE (source_entity_type_ontology_id, target_entity_type_ontology_id);
 ALTER TABLE entity_type_constrains_link_destinations_on
-    ADD COLUMN inheritance_depth INT;
+    ADD COLUMN inheritance_depth INT,
+    ADD CONSTRAINT unique_entity_type_constrains_link_destinations_on UNIQUE (source_entity_type_ontology_id, target_entity_type_ontology_id);
 ALTER TABLE entity_type_constrains_properties_on
-    ADD COLUMN inheritance_depth INT;
+    ADD COLUMN inheritance_depth INT,
+    ADD CONSTRAINT unique_entity_type_constrains_properties_on UNIQUE (source_entity_type_ontology_id, target_property_type_ontology_id);
+
+-- drive-by: Fix data type tables to enforce only a single parent of the same type
+ALTER TABLE data_type_inherits_from
+    ADD CONSTRAINT unique_data_type_inherits_from UNIQUE (source_data_type_ontology_id, target_data_type_ontology_id);
 
 UPDATE entity_type_inherits_from
     SET depth = 0;
