@@ -403,4 +403,106 @@ mod tests {
 
         assert_eq!(errors, actual_errors);
     }
+
+    #[test]
+    fn intersect_typed_any_of_single() {
+        check_schema_intersection(
+            [
+                json!({
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 8,
+                            "description": "A string with a minimum length of 8 characters",
+                        },
+                        {
+                            "type": "number",
+                            "minimum": 0,
+                            "description": "A number greater than or equal to 0",
+                        },
+                    ]
+                }),
+                json!({
+                    "type": "string",
+                    "maxLength": 10,
+                }),
+            ],
+            [json!({
+                "anyOf": [
+                    {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 10,
+                        "description": "A string with a minimum length of 8 characters",
+                    }
+                ]
+            })],
+        );
+    }
+
+    #[test]
+    fn intersect_typed_any_of_multi() {
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "string",
+                    "maxLength": 10,
+                }),
+                json!({
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 8,
+                        },
+                        {
+                            "type": "string",
+                            "maxLength": 25,
+                        },
+                    ]
+                }),
+            ],
+            [json!({
+                "anyOf": [
+                    {
+                        "type": "string",
+                        "minLength": 8,
+                        "maxLength": 10,
+                    },
+                    {
+                        "type": "string",
+                        "maxLength": 10,
+                    },
+                ]
+            })],
+        );
+
+        check_schema_intersection(
+            [
+                json!({
+                    "type": "string",
+                    "maxLength": 10,
+                }),
+                json!({
+                    "anyOf": [
+                        {
+                            "type": "string",
+                            "minLength": 8,
+                        },
+                        {
+                            "type": "string",
+                            "maxLength": 25,
+                        },
+                    ]
+                }),
+                json!({
+                    "type": "string",
+                    "maxLength": 5,
+                }),
+            ],
+            [json!({
+                "type": "string",
+                "maxLength": 5,
+            })],
+        );
+    }
 }
