@@ -15,6 +15,10 @@ import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-proper
 import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import type { PageProperties } from "@local/hash-isomorphic-utils/system-types/shared";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
+import {
+  getEntityTypeById,
+  getPropertyTypesForEntityType,
+} from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { format } from "date-fns";
 import { useMemo } from "react";
@@ -33,7 +37,7 @@ const columnDefinitionsByKey: Record<
   }
 > = {
   entityTypeVersion: {
-    title: "Entity Type Version",
+    title: "Entity Type",
     id: "entityTypeVersion",
     width: 230,
   },
@@ -149,20 +153,41 @@ export const useEntitiesTable = (params: {
     [entities],
   );
 
+  const usedPropertyTypes = useMemo(() => {
+    if (!entities || !subgraph) {
+      return [];
+    }
+
+    return entities.flatMap((entity) => {
+      const entityType = getEntityTypeById(
+        subgraph,
+        entity.metadata.entityTypeId,
+      );
+
+      if (!entityType) {
+        throw new Error(
+          `Could not find entityType with id ${entity.metadata.entityTypeId} in subgraph`,
+        );
+      }
+
+      return [
+        ...getPropertyTypesForEntityType(entityType.schema, subgraph).values(),
+      ];
+    });
+  }, [entities, subgraph]);
+
   return useMemo(() => {
     const propertyColumnsMap = new Map<string, SizedGridColumn>();
 
-    if (propertyTypes) {
-      for (const propertyType of propertyTypes) {
-        const propertyTypeBaseUrl = extractBaseUrl(propertyType.$id);
+    for (const propertyType of usedPropertyTypes) {
+      const propertyTypeBaseUrl = extractBaseUrl(propertyType.schema.$id);
 
-        if (!propertyColumnsMap.has(propertyTypeBaseUrl)) {
-          propertyColumnsMap.set(propertyTypeBaseUrl, {
-            id: propertyTypeBaseUrl,
-            title: propertyType.title,
-            width: getTextWidth(propertyType.title) + 70,
-          });
-        }
+      if (!propertyColumnsMap.has(propertyTypeBaseUrl)) {
+        propertyColumnsMap.set(propertyTypeBaseUrl, {
+          id: propertyTypeBaseUrl,
+          title: propertyType.schema.title,
+          width: getTextWidth(propertyType.schema.title) + 70,
+        });
       }
     }
     const propertyColumns = Array.from(propertyColumnsMap.values());
@@ -304,5 +329,6 @@ export const useEntitiesTable = (params: {
     hidePropertiesColumns,
     propertyTypes,
     subgraph,
+    usedPropertyTypes,
   ]);
 };
