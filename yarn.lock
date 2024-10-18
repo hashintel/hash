@@ -10926,10 +10926,10 @@
   dependencies:
     "@types/istanbul-lib-report" "*"
 
-"@types/js-yaml@^4.0.0":
-  version "4.0.3"
-  resolved "https://registry.yarnpkg.com/@types/js-yaml/-/js-yaml-4.0.3.tgz#9f33cd6fbf0d5ec575dc8c8fc69c7fec1b4eb200"
-  integrity "sha1-nzPNb78NXsV13IyPxpx/7BtOsgA= sha512-5t9BhoORasuF5uCPr+d5/hdB++zRFUTMIZOzbNkr+jZh3yQht4HYbRDyj9fY8n2TZT30iW9huzav73x4NikqWg=="
+"@types/js-yaml@^4.0.0", "@types/js-yaml@^4.0.5":
+  version "4.0.9"
+  resolved "https://registry.yarnpkg.com/@types/js-yaml/-/js-yaml-4.0.9.tgz#cd82382c4f902fed9691a2ed79ec68c5898af4c2"
+  integrity sha512-k4MGaQl5TGo/iipqb2UDG2UwjXziSWkh0uysQelTlJpX1qGlpUZYm8PnO4DxG1qBomtJUdYJ6qR6xdIah10JLg==
 
 "@types/jsdom@21.1.7":
   version "21.1.7"
@@ -14101,7 +14101,7 @@ chalk@5.2.0:
   resolved "https://registry.yarnpkg.com/chalk/-/chalk-5.2.0.tgz#249623b7d66869c673699fb66d65723e54dfcfb3"
   integrity sha512-ree3Gqw/nazQAPuJJEy+avdl7QfZMcUvmHIKgEZkGL+xOBzRvup5Hxo6LHuMceSxOabuJLJm5Yp/92R9eMmMvA==
 
-chalk@5.3.0, chalk@^5.0.1, chalk@^5.2.0, chalk@^5.3.0, chalk@~5.3.0:
+chalk@5.3.0, chalk@^5.2.0, chalk@^5.3.0, chalk@~5.3.0:
   version "5.3.0"
   resolved "https://registry.yarnpkg.com/chalk/-/chalk-5.3.0.tgz#67c20a7ebef70e7f3970a01f90fa210cb6860385"
   integrity sha512-dLitG79d+GV1Nb/VYcCDFivJeK1hiukt9QjRNVOsUtTy1rR1YJsmpGGTZ3qJos+uw7WmWF4wUwBd9jxjocFC2w==
@@ -14215,18 +14215,20 @@ charenc@0.0.2:
   resolved "https://registry.yarnpkg.com/charenc/-/charenc-0.0.2.tgz#c0a1d2f3a7092e03774bfa83f14c0fc5790a8667"
   integrity "sha1-wKHS86cJLgN3S/qD8UwPxXkKhmc= sha512-yrLQ/yVUFXkzg7EDQsPieE/53+0RlaWTs+wBrvW36cyilJ2SaDWfl4Yj7MtLTXleV9uEKefbAGUPv2/iWSooRA=="
 
-check-dependency-version-consistency@3.0.3:
-  version "3.0.3"
-  resolved "https://registry.yarnpkg.com/check-dependency-version-consistency/-/check-dependency-version-consistency-3.0.3.tgz#8033dc1d1e64eae07a86b14414a396e4f68d1f60"
-  integrity "sha1-gDPcHR5k6uB6hrFEFKOW5PaNH2A= sha512-BmCr4v9xBGCPBTUoJwqaSJV9VqWXxAR983BogbEMU/y3NqwbvFkgpUBNW9YTP79Kv9FIy8X+G/5TU79HpI8C6Q=="
+check-dependency-version-consistency@4.1.0:
+  version "4.1.0"
+  resolved "https://registry.yarnpkg.com/check-dependency-version-consistency/-/check-dependency-version-consistency-4.1.0.tgz#33c2f492b36a8b612a9b6d6ffe94e42ee7f58cd4"
+  integrity sha512-xghkzKgMxpAfeP9OJfVrErtv8BU4h5kHYQyheHC0j0RYRVNWti0qI3+HkFgWBKejq2UE2wOnoWZlvDKFj6jFoA==
   dependencies:
-    chalk "^5.0.1"
-    commander "^9.0.0"
+    "@types/js-yaml" "^4.0.5"
+    chalk "^5.2.0"
+    commander "^10.0.1"
     edit-json-file "^1.7.0"
-    globby "^13.1.1"
-    semver "^7.3.5"
-    table "^6.7.1"
-    type-fest "^2.1.0"
+    globby "^13.1.4"
+    js-yaml "^4.1.0"
+    semver "^7.5.1"
+    table "^6.8.1"
+    type-fest "^3.11.0"
 
 check-error@^2.1.1:
   version "2.1.1"
@@ -14759,11 +14761,6 @@ commander@^6.2.0, commander@^6.2.1:
   version "6.2.1"
   resolved "https://registry.yarnpkg.com/commander/-/commander-6.2.1.tgz#0792eb682dfbc325999bb2b84fddddba110ac73c"
   integrity "sha1-B5LraC37wyWZm7K4T93duhEKxzw= sha512-U7VdrJFnJgo4xjrHpTzu0yrHPGImdsmD95ZlgYSEajAn2JKzDhDTPG9kBTefmObL2w/ngeZnilk+OV9CG3d7UA=="
-
-commander@^9.0.0:
-  version "9.4.1"
-  resolved "https://registry.yarnpkg.com/commander/-/commander-9.4.1.tgz#d1dd8f2ce6faf93147295c0df13c7c21141cfbdd"
-  integrity "sha1-0d2PLOb6+TFHKVwN8Tx8IRQc+90= sha512-5EEkTNyHNGFPD2H+c/dXXfQZYa/scCKasxWcXJaWnNJ99pnQN9Vnmqow+p+PlFPE63Q6mThaZws1T+HxfpgtPw=="
 
 commist@^3.2.0:
   version "3.2.0"
@@ -18810,7 +18807,7 @@ globby@^12.0.2:
     merge2 "^1.4.1"
     slash "^4.0.0"
 
-globby@^13.1.1, globby@^13.1.2:
+globby@^13.1.1, globby@^13.1.2, globby@^13.1.4:
   version "13.2.2"
   resolved "https://registry.yarnpkg.com/globby/-/globby-13.2.2.tgz#63b90b1bf68619c2135475cbd4e71e66aa090592"
   integrity sha512-Y1zNGV+pzQdh7H39l9zgB4PJqjRNqydvdYCDG4HFXM4XuvSaQQlEc91IU1yALL8gUTDomgBAfz3XJdmUS+oo0w==
@@ -28137,7 +28134,7 @@ semver@^6.0.0, semver@^6.1.1, semver@^6.1.2, semver@^6.3.0, semver@^6.3.1:
   resolved "https://registry.yarnpkg.com/semver/-/semver-6.3.1.tgz#556d2ef8689146e46dcea4bfdd095f3434dffcb4"
   integrity sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==
 
-semver@^7.1.1, semver@^7.3.4, semver@^7.3.5, semver@^7.3.7, semver@^7.5.0, semver@^7.5.2, semver@^7.5.3, semver@^7.5.4, semver@^7.6.0, semver@^7.6.3:
+semver@^7.1.1, semver@^7.3.4, semver@^7.3.5, semver@^7.3.7, semver@^7.5.0, semver@^7.5.1, semver@^7.5.2, semver@^7.5.3, semver@^7.5.4, semver@^7.6.0, semver@^7.6.3:
   version "7.6.3"
   resolved "https://registry.yarnpkg.com/semver/-/semver-7.6.3.tgz#980f7b5550bc175fb4dc09403085627f9eb33143"
   integrity sha512-oVekP1cKtI+CTDvHWYFUcMtsK/00wmAEfyqKfNdARm8u1wNVhSgaX7A8d4UuIlUI5e84iEwOhs7ZPYRmzU9U6A==
@@ -29688,10 +29685,10 @@ table-layout@^0.4.3:
     typical "^2.6.1"
     wordwrapjs "^3.0.0"
 
-table@^6.7.1:
-  version "6.8.0"
-  resolved "https://registry.yarnpkg.com/table/-/table-6.8.0.tgz#87e28f14fa4321c3377ba286f07b79b281a3b3ca"
-  integrity "sha1-h+KPFPpDIcM3e6KG8Ht5soGjs8o= sha512-s/fitrbVeEyHKFa7mFdkuQMWlH1Wgw/yEXMt5xACT4ZpzWFluehAxRtUUQKPuWhaLAWhFcVx6w3oC8VKaUfPGA=="
+table@^6.8.1:
+  version "6.8.2"
+  resolved "https://registry.yarnpkg.com/table/-/table-6.8.2.tgz#c5504ccf201213fa227248bdc8c5569716ac6c58"
+  integrity sha512-w2sfv80nrAh2VCbqR5AK27wswXhqcck2AhfnNW76beQXskGZ1V12GwS//yYVa3d3fcvAip2OUnbDAjW2k3v9fA==
   dependencies:
     ajv "^8.0.1"
     lodash.truncate "^4.4.2"
@@ -30516,7 +30513,7 @@ type-check@~0.3.2:
   dependencies:
     prelude-ls "~1.1.2"
 
-type-fest@3.13.1:
+type-fest@3.13.1, type-fest@^3.11.0:
   version "3.13.1"
   resolved "https://registry.yarnpkg.com/type-fest/-/type-fest-3.13.1.tgz#bb744c1f0678bea7543a2d1ec24e83e68e8c8706"
   integrity sha512-tLq3bSNx+xSpwvAJnzrK0Ep5CLNWjvFTOp71URMaAEWBfRb9nnJiBoUe0tF8bI4ZFO3omgBR6NvnbzVUT3Ly4g==
@@ -30561,7 +30558,7 @@ type-fest@^0.8.1:
   resolved "https://registry.yarnpkg.com/type-fest/-/type-fest-0.8.1.tgz#09e249ebde851d3b1e48d27c105444667f17b83d"
   integrity "sha1-CeJJ696FHTseSNJ8EFREZn8XuD0= sha512-4dbzIzqvjtgiM5rw1k5rEHtBANKmdudhGyBEajN01fEyhaAIhsoKNy6y7+IN93IfpFtwY9iqi7kD+xwKhQsNJA=="
 
-type-fest@^2.1.0, type-fest@^2.12.2, type-fest@^2.19.0, type-fest@^2.3.3:
+type-fest@^2.12.2, type-fest@^2.19.0, type-fest@^2.3.3:
   version "2.19.0"
   resolved "https://registry.yarnpkg.com/type-fest/-/type-fest-2.19.0.tgz#88068015bb33036a598b952e55e9311a60fd3a9b"
   integrity "sha1-iAaAFbszA2pZi5UuVekxGmD9Ops= sha512-RAH822pAdBgcNMAfWnCBU3CFZcfZ/i1eZjwFU/dsLKumyuuP3niueg2UAukXYF0E2AAoc82ZSSf9J0WQBinzHA=="
