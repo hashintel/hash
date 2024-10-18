@@ -189,7 +189,7 @@ const FilterPopover = <Filter extends VirtualizedTableFilterDefinition>({
                   key={value}
                   direction="row"
                   alignItems="center"
-                  sx={{ "&:hover > button": { visibility: "visible " } }}
+                  sx={{ "&:hover > button": { visibility: "visible" } }}
                 >
                   <FormControlLabel
                     control={
