@@ -39,7 +39,7 @@ export const GraphContext = createContext<GraphContextType | null>(null);
 export type GraphContextProviderProps = {
   defaultConfig: GraphVizConfig;
   graphContainerRef: RefObject<HTMLDivElement>;
-} & Pick<RegisterEventsArgs, "onEdgeClick" | "onNodeSecondClick">;
+} & Pick<RegisterEventsArgs, "onEdgeClick" | "onNodeSecondClick" | "onRender">;
 
 export const GraphContextProvider = ({
   children,
@@ -47,6 +47,7 @@ export const GraphContextProvider = ({
   graphContainerRef,
   onEdgeClick,
   onNodeSecondClick,
+  onRender,
 }: PropsWithChildren<GraphContextProviderProps>) => {
   const [config, setConfig] = useLocalstorageState<GraphVizConfig>(
     `graph-viz-config~${defaultConfig.graphKey}`,
@@ -73,6 +74,7 @@ export const GraphContextProvider = ({
      * (which we'd have to do if we made them dependent on React state)
      */
     colorByNodeTypeId: filters.colorByNodeTypeId,
+    hoveredEdgeId: null,
     hoveredNodeId: null,
     highlightedNeighborIds: null,
     selectedNodeId: null,
@@ -85,7 +87,7 @@ export const GraphContextProvider = ({
     [],
   );
 
-  useSetDrawSettings(graphState.current);
+  useSetDrawSettings(graphState.current, config);
 
   const { refreshGraphHighlights } = useEventHandlers({
     config,
@@ -93,6 +95,7 @@ export const GraphContextProvider = ({
     graphState: graphState.current,
     onEdgeClick,
     onNodeSecondClick,
+    onRender,
     setConfigPanelOpen,
     setFilterPanelOpen,
     setGraphState,

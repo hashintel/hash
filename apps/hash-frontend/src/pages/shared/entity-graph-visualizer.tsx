@@ -9,9 +9,9 @@ import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entit
 import type { Subgraph } from "@local/hash-subgraph";
 import { isEntityId } from "@local/hash-subgraph";
 import { getEntityTypeById } from "@local/hash-subgraph/stdlib";
-import { useTheme } from "@mui/material";
-import type { RefObject } from "react";
-import { memo, useCallback, useMemo } from "react";
+import { Box, Stack, useTheme } from "@mui/material";
+import type { ReactElement, RefObject } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 
 import type {
   GraphVisualizerProps,
@@ -46,6 +46,7 @@ export const EntityGraphVisualizer = memo(
   <T extends EntityForGraph>({
     entities,
     isPrimaryEntity,
+    loadingComponent,
     subgraphWithTypes,
     onEntityClick,
     onEntityTypeClick,
@@ -60,9 +61,12 @@ export const EntityGraphVisualizer = memo(
      * Whether this entity should receive a special highlight.
      */
     isPrimaryEntity?: (entity: T) => boolean;
+    loadingComponent?: ReactElement;
     subgraphWithTypes: Subgraph;
   }) => {
     const { palette } = useTheme();
+
+    const [loading, setLoading] = useState(true);
 
     const nodeColors = useMemo(() => {
       return [
@@ -208,14 +212,28 @@ export const EntityGraphVisualizer = memo(
       [onEntityClick],
     );
 
+    const onRender = useCallback(() => setLoading(false), []);
+
     return (
-      <GraphVisualizer
-        defaultConfig={defaultConfig}
-        nodes={nodes}
-        edges={edges}
-        onNodeSecondClick={onNodeClick}
-        onEdgeClick={onEdgeClick}
-      />
+      <Box sx={{ height: "100%" }}>
+        {loading && loadingComponent && (
+          <Stack
+            alignItems="center"
+            justifyContent="center"
+            sx={{ height: "100%", width: "100%" }}
+          >
+            <Box>{loadingComponent}</Box>
+          </Stack>
+        )}
+        <GraphVisualizer
+          defaultConfig={defaultConfig}
+          nodes={nodes}
+          edges={edges}
+          onNodeSecondClick={onNodeClick}
+          onEdgeClick={onEdgeClick}
+          onRender={onRender}
+        />
+      </Box>
     );
   },
 );

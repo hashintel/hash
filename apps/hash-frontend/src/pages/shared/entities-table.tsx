@@ -86,8 +86,9 @@ export const EntitiesTable: FunctionComponent<{
   hideFilters?: boolean;
   hidePropertiesColumns?: boolean;
   hideColumns?: (keyof TypeEntitiesRow)[];
-  LoadingComponent?: ReactElement;
+  loadingComponent?: ReactElement;
   maxHeight?: string | number;
+  readonly?: boolean;
 }> = ({
   defaultFilter,
   defaultView = "Table",
@@ -96,8 +97,9 @@ export const EntitiesTable: FunctionComponent<{
   hideColumns,
   hideFilters,
   hidePropertiesColumns = false,
-  LoadingComponent,
+  loadingComponent,
   maxHeight,
+  readonly,
 }) => {
   const router = useRouter();
 
@@ -751,6 +753,7 @@ export const EntitiesTable: FunctionComponent<{
           columns={columns}
           currentlyDisplayedRowsRef={currentlyDisplayedRowsRef}
           getAdditionalCsvData={getEntitiesTableAdditionalCsvData}
+          hideExportToCsv
           endAdornment={
             <TableHeaderToggle
               value={view}
@@ -779,6 +782,7 @@ export const EntitiesTable: FunctionComponent<{
           <Box height={maximumTableHeight}>
             <EntityGraphVisualizer
               entities={filteredEntities}
+              loadingComponent={loadingComponent}
               isPrimaryEntity={isPrimaryEntity}
               onEntityClick={handleEntityClick}
               subgraphWithTypes={subgraph}
@@ -794,7 +798,7 @@ export const EntitiesTable: FunctionComponent<{
             columnFilters={columnFilters}
             dataLoading={loading}
             rows={rows}
-            enableCheckboxSelection
+            enableCheckboxSelection={!readonly}
             selectedRows={selectedRows}
             onSelectedRowsChange={(updatedSelectedRows) =>
               setSelectedRows(updatedSelectedRows)

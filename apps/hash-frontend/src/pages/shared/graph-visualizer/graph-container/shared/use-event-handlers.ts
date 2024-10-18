@@ -14,6 +14,7 @@ export type RegisterEventsArgs = {
     edgeId: string;
     screenContainerRef?: RefObject<HTMLDivElement>;
   }) => void;
+  onRender?: () => void;
   onNodeSecondClick?: (params: {
     nodeId: string;
     /**
@@ -39,6 +40,7 @@ export const useEventHandlers = ({
   graphContainerRef,
   graphState,
   onEdgeClick,
+  onRender,
   onNodeSecondClick,
   setConfigPanelOpen,
   setFilterPanelOpen,
@@ -116,6 +118,9 @@ export const useEventHandlers = ({
     };
 
     registerEvents({
+      afterRender: () => {
+        onRender?.();
+      },
       clickEdge: (event) => {
         onEdgeClick?.({
           edgeId: event.edge,

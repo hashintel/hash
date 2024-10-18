@@ -17,6 +17,7 @@ import { GraphContextProvider } from "./graph-container/shared/graph-context";
 
 export type GraphContainerProps = Omit<GraphLoaderProps, "config"> & {
   defaultConfig: GraphVizConfig;
+  onRender: () => void;
 };
 
 const borderRadii = {
@@ -31,6 +32,7 @@ export const GraphContainer = memo(
     nodes,
     onEdgeClick,
     onNodeSecondClick,
+    onRender,
   }: GraphContainerProps) => {
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -62,7 +64,6 @@ export const GraphContainer = memo(
           arrow: EdgeArrowProgram,
           curved: EdgeCurvedArrowProgram,
         },
-        inertiaRatio: 0,
         labelFont: `"Inter", "Helvetica", "sans-serif"`,
         labelSize: 12,
         labelColor: { color: palette.black },
@@ -84,6 +85,8 @@ export const GraphContainer = memo(
             ],
           }),
         },
+        zoomDuration: 0.05,
+        zoomingRatio: 1.25,
         zIndex: true,
       }),
       [onEdgeClick, palette],
@@ -114,8 +117,9 @@ export const GraphContainer = memo(
               defaultConfig={defaultConfig}
               onEdgeClick={onEdgeClick}
               onNodeSecondClick={onNodeSecondClick}
+              onRender={onRender}
             >
-              <FullScreenButton />
+              {/*<FullScreenButton />*/}
               <ConfigControl />
               <FilterControl nodes={nodes} />
               <GraphDataLoader
