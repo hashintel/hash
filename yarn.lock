@@ -7459,12 +7459,12 @@
     require-from-string "^2.0.2"
     uri-js-replace "^1.0.1"
 
-"@redocly/cli@1.25.6":
-  version "1.25.6"
-  resolved "https://registry.yarnpkg.com/@redocly/cli/-/cli-1.25.6.tgz#71533fe95f5a49ba481eb7cd8a2a4f1c053d8b9c"
-  integrity sha512-oA/0a4pee8u0nP8Gme2Zz8CuAPRjvdioWY+6Szp9YjdMNgWEag2LCXBiJdABLqnnUeawPeuzAQkBM/fqMCjsUQ==
+"@redocly/cli@1.25.7":
+  version "1.25.7"
+  resolved "https://registry.yarnpkg.com/@redocly/cli/-/cli-1.25.7.tgz#18f6992552c524389eab4c8d2d9b60730d4073f5"
+  integrity sha512-JXsx1IEr4l7qjBQ7ry1Xzj6vpg8xjdKBzcuf0J8DP9Jaupc9g5tS5uVFaLupal1h64m1kJpscX7a8TPzKdoeRA==
   dependencies:
-    "@redocly/openapi-core" "1.25.6"
+    "@redocly/openapi-core" "1.25.7"
     abort-controller "^3.0.0"
     chokidar "^3.5.1"
     colorette "^1.2.0"
@@ -7478,7 +7478,7 @@
     pluralize "^8.0.0"
     react "^17.0.0 || ^18.2.0"
     react-dom "^17.0.0 || ^18.2.0"
-    redoc "~2.1.5"
+    redoc "~2.2.0"
     semver "^7.5.2"
     simple-websocket "^9.0.0"
     styled-components "^6.0.7"
@@ -7489,10 +7489,10 @@
   resolved "https://registry.yarnpkg.com/@redocly/config/-/config-0.12.1.tgz#7b905a17d710244550ef826542d0db164d5ace02"
   integrity sha512-RW3rSirfsPdr0uvATijRDU3f55SuZV3m7/ppdTDvGw4IB0cmeZRkFmqTrchxMqWP50Gfg1tpHnjdxUCNo0E2qg==
 
-"@redocly/openapi-core@1.25.6", "@redocly/openapi-core@^1.4.0":
-  version "1.25.6"
-  resolved "https://registry.yarnpkg.com/@redocly/openapi-core/-/openapi-core-1.25.6.tgz#e5afe8651ed96a88a11c3ccff81b4ab10f55d50c"
-  integrity sha512-6MolUvqYNepxgXts9xRONvX6I1yq63B/hct1zyRrLgWM2QjmFhhS2yCZxELwWZfGO1OmzqutDaqsoFqB+LYJGg==
+"@redocly/openapi-core@1.25.7", "@redocly/openapi-core@^1.4.0":
+  version "1.25.7"
+  resolved "https://registry.yarnpkg.com/@redocly/openapi-core/-/openapi-core-1.25.7.tgz#34fb7fb3c2b534aaeb12019e2820af6908b39227"
+  integrity sha512-qidGKk4Bq0Ud0O8gRuXnDSLwVopwrf5+roNvpkvdQPVIHFSYJ5dscJkThdsn7OW8bNqahumQPWWczEh9l93FZw==
   dependencies:
     "@redocly/ajv" "^8.11.2"
     "@redocly/config" "^0.12.1"
@@ -27002,10 +27002,10 @@ redis@4.7.0:
     "@redis/search" "1.2.0"
     "@redis/time-series" "1.1.0"
 
-redoc@~2.1.5:
-  version "2.1.5"
-  resolved "https://registry.yarnpkg.com/redoc/-/redoc-2.1.5.tgz#421307b22036b244171095bfc7ea3cfd419563c8"
-  integrity sha512-POSbVg+7WLf+/5/c6GWLxL7+9t2D+1WlZdLN0a6qaCQc+ih3XYzteRBkXEN5kjrYrRNjdspfxTZkDLN5WV3Tzg==
+redoc@~2.2.0:
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/redoc/-/redoc-2.2.0.tgz#1043812696683f23e4b0fbe66fb50236fbe8b5bb"
+  integrity sha512-52rz/xJtpUBc3Y/GAkaX03czKhQXTxoU7WnkXNzRLuGwiGb/iEO4OgwcgQqtwHWrYNaZXTyqZ4MAVXpi/e1gAg==
   dependencies:
     "@cfaester/enzyme-adapter-react-18" "^0.8.0"
     "@redocly/openapi-core" "^1.4.0"
