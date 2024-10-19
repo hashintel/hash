@@ -57,7 +57,7 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@rollup/plugin-node-resolve": "15.3.0",
-    "@rollup/plugin-typescript": "12.1.0",
+    "@rollup/plugin-typescript": "12.1.1",
     "@rollup/plugin-wasm": "6.2.2",
     "@types/node": "20.16.11",
     "@types/react": "18.2.68",
