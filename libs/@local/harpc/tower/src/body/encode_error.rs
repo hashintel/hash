@@ -5,7 +5,7 @@ use core::{
 };
 
 use bytes::Bytes;
-use harpc_codec::encode::ErrorEncoder;
+use harpc_codec::error::NetworkError;
 use harpc_types::response_kind::ResponseKind;
 
 use super::{Body, full::Full};
@@ -51,26 +51,23 @@ pin_project_lite::pin_project! {
     ///
     /// While this method ensures safe error handling, it means that any data in the inner body
     /// after an error will not be processed.
-    pub struct EncodeError<B, E> {
+    pub struct EncodeError<B> {
         #[pin]
         state: State<B>,
-        encoder: E,
     }
 }
 
-impl<B, E> EncodeError<B, E> {
-    pub const fn new(inner: B, encoder: E) -> Self {
+impl<B> EncodeError<B> {
+    pub const fn new(inner: B) -> Self {
         Self {
             state: State::Inner { inner },
-            encoder,
         }
     }
 }
 
-impl<B, E> Body for EncodeError<B, E>
+impl<B> Body for EncodeError<B>
 where
-    B: Body<Error: Error + serde::Serialize>,
-    E: ErrorEncoder + Clone,
+    B: Body<Error: Error>,
 {
     type Control = Either<B::Control, ResponseKind>;
     type Data = Either<B::Data, Bytes>;
@@ -94,7 +91,7 @@ where
                             Some(Ok(frame.map_data(Either::Left).map_control(Either::Left)))
                         }
                         Some(Err(error)) => {
-                            let error = this.encoder.clone().encode_error(error);
+                            let error = NetworkError::capture_error(&error);
                             let (code, data) = error.into_parts();
 
                             let inner = Controlled::new(ResponseKind::Err(code), Full::new(data));
@@ -139,7 +136,6 @@ mod test {
     use core::assert_matches::assert_matches;
 
     use bytes::Bytes;
-    use harpc_codec::json::JsonCodec;
     use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
     use insta::assert_debug_snapshot;
 
@@ -158,7 +154,7 @@ mod test {
     #[test]
     fn encode_error() {
         let inner = StaticBody::<Bytes, !, TestError>::new([Err(TestError)]);
-        let mut body = EncodeError::new(inner, JsonCodec);
+        let mut body = EncodeError::new(inner);
 
         let frame = poll_frame_unpin(&mut body)
             .expect("should be ready")
@@ -193,7 +189,7 @@ mod test {
     fn passthrough_data() {
         let inner =
             StaticBody::<Bytes, !, !>::new([Ok(Frame::new_data(Bytes::from_static(b"test data")))]);
-        let mut body = EncodeError::new(inner, JsonCodec);
+        let mut body = EncodeError::new(inner);
 
         let frame = poll_frame_unpin(&mut body)
             .expect("should be ready")
@@ -209,7 +205,7 @@ mod test {
     #[test]
     fn passthrough_control() {
         let inner = StaticBody::<Bytes, i32, !>::new([Ok(Frame::new_control(2_i32))]);
-        let mut body = EncodeError::new(inner, JsonCodec);
+        let mut body = EncodeError::new(inner);
 
         let frame = poll_frame_unpin(&mut body)
             .expect("should be ready")
@@ -227,7 +223,7 @@ mod test {
         const DATA: &[u8] = b"test data";
 
         let inner = StaticBody::<Bytes, !, !>::new([Ok(Frame::new_data(Bytes::from_static(DATA)))]);
-        let mut body = EncodeError::new(inner, JsonCodec);
+        let mut body = EncodeError::new(inner);
 
         assert_eq!(body.size_hint(), SizeHint::with_exact(DATA.len() as u64));
 
@@ -244,7 +240,7 @@ mod test {
             Err(TestError),
             Ok(Frame::new_data(Bytes::from_static(DATA))),
         ]);
-        let mut body = EncodeError::new(inner, JsonCodec);
+        let mut body = EncodeError::new(inner);
 
         // no error yet, so the size hint should be the size of the data
         assert_eq!(body.size_hint(), SizeHint::with_exact(DATA.len() as u64));
@@ -265,7 +261,7 @@ mod test {
     fn passthrough_state() {
         let inner =
             StaticBody::<Bytes, !, !>::new([Ok(Frame::new_data(Bytes::from_static(b"test data")))]);
-        let mut body = EncodeError::new(inner, JsonCodec);
+        let mut body = EncodeError::new(inner);
 
         assert_eq!(body.state(), None);
 
@@ -277,7 +273,7 @@ mod test {
     #[test]
     fn state_on_error() {
         let inner = StaticBody::<Bytes, !, TestError>::new([Err(TestError)]);
-        let mut body = EncodeError::new(inner, JsonCodec);
+        let mut body = EncodeError::new(inner);
 
         assert_eq!(body.state(), None);
 
@@ -296,7 +292,7 @@ mod test {
             Err(TestError),
             Ok(Frame::new_data(Bytes::from_static(b"test data"))),
         ]);
-        let mut body = EncodeError::new(inner, JsonCodec);
+        let mut body = EncodeError::new(inner);
 
         assert_eq!(body.state(), None);
 
@@ -313,7 +309,7 @@ mod test {
     #[test]
     fn size_hint_and_state_with_empty_body() {
         let inner = StaticBody::<Bytes, !, !>::new([]);
-        let body = EncodeError::new(inner, JsonCodec);
+        let body = EncodeError::new(inner);
 
         assert_eq!(body.size_hint(), SizeHint::with_exact(0));
         assert_eq!(body.state(), Some(BodyState::Complete));
@@ -328,7 +324,7 @@ mod test {
             Ok(Frame::new_control(())),
             Ok(Frame::new_data(Bytes::from_static(b"data3"))),
         ]);
-        let mut body = EncodeError::new(inner, JsonCodec);
+        let mut body = EncodeError::new(inner);
 
         let frame = poll_frame_unpin(&mut body)
             .expect("should be ready")

@@ -1,5 +1,4 @@
 use core::{
-    error::Error,
     pin::Pin,
     task::{Context, Poll, ready},
 };
@@ -8,14 +7,9 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 use error_stack::{Report, ResultExt};
 use futures_core::{Stream, TryStream};
 use futures_util::stream::{self, StreamExt};
-use harpc_types::error_code::ErrorCode;
 use serde::de::DeserializeOwned;
 
-use crate::{
-    decode::{Decoder, ErrorDecoder},
-    encode::{Encoder, ErrorEncoder},
-    error::{EncodedError, ErrorBuffer, NetworkError},
-};
+use crate::{decode::Decoder, encode::Encoder};
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, thiserror::Error)]
 pub enum JsonError {
@@ -180,85 +174,6 @@ where
 
             // if not we continue to the next iteration
         }
-    }
-}
-
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
-struct JsonErrorRepr<T> {
-    message: String,
-    details: T,
-}
-
-impl ErrorEncoder for JsonCodec {
-    fn encode_error<E>(self, error: E) -> EncodedError
-    where
-        E: Error + serde::Serialize,
-    {
-        let code = error.code();
-
-        let buffer = ErrorBuffer::error();
-        let mut writer = buffer.writer();
-
-        if let Err(error) = serde_json::to_writer(&mut writer, &JsonErrorRepr {
-            message: error.to_string(),
-            details: error,
-        }) {
-            let mut buffer = ErrorBuffer::recovery();
-            let error = error.to_string();
-            buffer.put(error.as_bytes());
-
-            return buffer.finish(ErrorCode::INTERNAL_SERVER_ERROR);
-        };
-
-        writer.into_inner().finish(code)
-    }
-
-    fn encode_report<C>(self, report: Report<C>) -> EncodedError
-    where
-        C: error_stack::Context,
-    {
-        let buffer = ErrorBuffer::error();
-        let mut writer = buffer.writer();
-
-        if let Err(error) = serde_json::to_writer(&mut writer, &report) {
-            let mut buffer = ErrorBuffer::recovery();
-            let error = error.to_string();
-            buffer.put(error.as_bytes());
-
-            return buffer.finish(ErrorCode::INTERNAL_SERVER_ERROR);
-        };
-
-        let code = report
-            .request_ref()
-            .next()
-            .copied()
-            .or_else(|| report.request_value().next())
-            .unwrap_or(ErrorCode::INTERNAL_SERVER_ERROR);
-
-        writer.into_inner().finish(code)
-    }
-}
-
-impl ErrorDecoder for JsonCodec {
-    type Error = serde_json::Error;
-    type Recovery = Box<str>;
-
-    fn decode_error<E>(self, bytes: Bytes) -> Result<E, Self::Error>
-    where
-        E: serde::de::DeserializeOwned,
-    {
-        serde_json::from_slice::<JsonErrorRepr<E>>(&bytes).map(|error| error.details)
-    }
-
-    fn decode_report<C>(self, _: Bytes) -> Result<Report<C>, Self::Error>
-    where
-        C: error_stack::Context,
-    {
-        unimplemented!("unable to deserialize reports")
-    }
-
-    fn decode_recovery(self, bytes: Bytes) -> Self::Recovery {
-        Box::from(String::from_utf8_lossy(&bytes))
     }
 }
 

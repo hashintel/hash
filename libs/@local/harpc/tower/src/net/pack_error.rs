@@ -1,81 +1,79 @@
 use core::{
+    error::Error,
     fmt::Debug,
-    marker::PhantomData,
     ops::ControlFlow,
     pin::Pin,
     task::{Context, Poll},
 };
 
-use bytes::{Buf, BufMut, BytesMut};
+use bytes::{Buf, BufMut, Bytes, BytesMut};
 use futures::Stream;
-use harpc_codec::{decode::ErrorDecoder, error::kind};
+use harpc_codec::error::NetworkError;
 use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
 
 use crate::body::{Body, Frame};
 
+#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
+#[display("incomplete network error returned, message: {bytes:?}")]
+struct DecodeNetworkError {
+    bytes: Bytes,
+}
+
+impl Error for DecodeNetworkError {
+    fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
+        request.provide_value(ErrorCode::PARTIAL_NETWORK_ERROR);
+    }
+}
+
 struct PartialResponseError {
-    _code: ErrorCode,
+    code: ErrorCode,
     bytes: BytesMut,
 }
 
 impl PartialResponseError {
-    fn finish<E, D>(self, decoder: D) -> E
-    where
-        E: serde::de::DeserializeOwned,
-        D: ErrorDecoder<Error: Debug> + Send,
-    {
-        let mut buffer = self.bytes.freeze();
-        let tag = buffer.get_u8();
+    fn finish(self) -> NetworkError {
+        let buffer = self.bytes.freeze();
 
-        let tag = kind::Tag::from_u8(tag).expect("should have a correct tag");
-        match tag {
-            kind::Tag::NetworkError => decoder
-                .decode_error(buffer)
-                .expect("should be able to decode error"),
-            kind::Tag::Report => {
-                unimplemented!("to be reworked");
-            }
-            kind::Tag::Recovery => {
-                unimplemented!("to be reworked");
+        let error = NetworkError::try_from_parts(self.code, buffer);
+        match error {
+            Ok(error) => error,
+            Err(bytes) => {
+                let error = DecodeNetworkError { bytes };
+
+                NetworkError::capture_error(&error)
             }
         }
     }
 }
 
 pin_project_lite::pin_project! {
-    pub struct PackError<B, D, E> {
+    pub struct PackError<B> {
         #[pin]
         body: B,
-        decoder: D,
         error: Option<PartialResponseError>,
         exhausted: bool,
-        _marker: PhantomData<fn() -> *const E>,
     }
 }
 
-impl<B, D, E> PackError<B, D, E> {
-    pub fn new(body: B, decoder: D) -> Self {
+impl<B> PackError<B> {
+    pub const fn new(body: B) -> Self {
         Self {
             body,
-            decoder,
             error: None,
             exhausted: false,
-            _marker: PhantomData,
         }
     }
 }
 
-impl<B, D, E> PackError<B, D, E>
+impl<B> PackError<B>
 where
     B: Body<Control: AsRef<ResponseKind>, Error = !>,
-    D: ErrorDecoder<Error: Debug> + Clone + Send,
-    E: serde::de::DeserializeOwned,
 {
     #[expect(clippy::type_complexity, reason = "type is complex due to polling")]
     fn poll(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
-    ) -> ControlFlow<Poll<Option<Result<B::Data, E>>>> {
+    ) -> ControlFlow<Poll<Option<Result<B::Data, NetworkError>>>> {
         let this = self.project();
         let Poll::Ready(next) = this.body.poll_frame(cx) else {
             // simple propagation
@@ -92,8 +90,7 @@ where
                     return ControlFlow::Break(Poll::Ready(None));
                 };
 
-                let decoder = this.decoder.clone();
-                let error = error.finish::<E, _>(decoder);
+                let error = error.finish();
                 ControlFlow::Break(Poll::Ready(Some(Err(error))))
             }
             Some(Ok(Frame::Data(data))) => {
@@ -112,7 +109,7 @@ where
                         // if we have a previous error, finish said error and return it, otherwise
                         // wait for the next frame to populate it
                         let error = this.error.replace(PartialResponseError {
-                            _code: code,
+                            code,
                             bytes: BytesMut::new(),
                         });
 
@@ -120,8 +117,7 @@ where
                             return ControlFlow::Continue(());
                         };
 
-                        let decoder = this.decoder.clone();
-                        let error = error.finish::<E, _>(decoder);
+                        let error = error.finish();
 
                         ControlFlow::Break(Poll::Ready(Some(Err(error))))
                     }
@@ -134,8 +130,7 @@ where
                             return ControlFlow::Continue(());
                         };
 
-                        let decoder = this.decoder.clone();
-                        let error = error.finish::<E, _>(decoder);
+                        let error = error.finish();
 
                         ControlFlow::Break(Poll::Ready(Some(Err(error))))
                     }
@@ -145,13 +140,11 @@ where
     }
 }
 
-impl<B, D, E> Stream for PackError<B, D, E>
+impl<B> Stream for PackError<B>
 where
     B: Body<Control: AsRef<ResponseKind>, Error = !>,
-    D: ErrorDecoder<Error: Debug> + Clone + Send,
-    E: serde::de::DeserializeOwned,
 {
-    type Item = Result<B::Data, E>;
+    type Item = Result<B::Data, NetworkError>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         if self.exhausted {

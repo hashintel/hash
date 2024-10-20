@@ -5,7 +5,6 @@ use std::io;
 
 use bytes::{Buf, Bytes};
 use futures::{StreamExt, prelude::sink::SinkExt};
-use harpc_codec::json::JsonCodec;
 use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
 use harpc_wire_protocol::{
     flags::BitFlagsOp,
@@ -101,7 +100,7 @@ impl Setup {
             output: output_tx,
             events: events_tx,
             config,
-            encoder: JsonCodec,
+
             _permit: permit,
         };
 

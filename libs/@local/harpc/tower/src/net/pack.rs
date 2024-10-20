@@ -7,7 +7,7 @@ use core::{
 
 use bytes::{Buf, BufMut, Bytes, BytesMut};
 use futures::{FutureExt, Stream};
-use harpc_codec::{encode::ErrorEncoder, error::EncodedError};
+use harpc_codec::error::NetworkError;
 use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
 use tower::{Layer, Service};
 
@@ -17,25 +17,15 @@ use crate::{
     response::Response,
 };
 
-#[derive(
-    Debug,
-    Copy,
-    Clone,
-    PartialEq,
-    Eq,
-    PartialOrd,
-    Ord,
-    Hash,
-    derive_more::Display,
-    serde::Serialize,
-    serde::Deserialize,
-)]
-#[display("invalid error tag")]
-struct InvalidTagError;
+#[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
+#[display("incomplete transaction error returned, message: {bytes:?}")]
+struct DecodeTransactionError {
+    bytes: Bytes,
+}
 
-impl Error for InvalidTagError {
+impl Error for DecodeTransactionError {
     fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
-        request.provide_value(ErrorCode::PACK_INVALID_ERROR_TAG);
+        request.provide_value(ErrorCode::PARTIAL_TRANSACTION_ERROR);
     }
 }
 
@@ -45,27 +35,28 @@ struct PartialTransactionError {
 }
 
 impl PartialTransactionError {
-    fn finish(self, encoder: impl ErrorEncoder) -> EncodedError {
-        EncodedError::new(self.code, self.bytes.freeze())
-            .map_or_else(|| encoder.encode_error(InvalidTagError), |error| error)
+    fn finish(self) -> NetworkError {
+        NetworkError::try_from_parts(self.code, self.bytes.freeze()).unwrap_or_else(|error| {
+            let error = DecodeTransactionError { bytes: error };
+
+            NetworkError::capture_error(&error)
+        })
     }
 }
 
 pin_project_lite::pin_project! {
-    pub struct Pack<B, E> {
+    pub struct Pack<B> {
         #[pin]
         inner: B,
-        encoder: E,
         error: Option<PartialTransactionError>,
         exhausted: bool,
     }
 }
 
-impl<B, E> Pack<B, E> {
-    pub const fn new(inner: B, encoder: E) -> Self {
+impl<B> Pack<B> {
+    pub const fn new(inner: B) -> Self {
         Self {
             inner,
-            encoder,
             error: None,
             exhausted: false,
         }
@@ -76,15 +67,14 @@ impl<B, E> Pack<B, E> {
     }
 }
 
-impl<B, E> Pack<B, E>
+impl<B> Pack<B>
 where
     B: Body<Control: AsRef<ResponseKind>, Error = !>,
-    E: ErrorEncoder + Clone,
 {
     fn poll(
         self: Pin<&mut Self>,
         cx: &mut Context<'_>,
-    ) -> ControlFlow<Poll<Option<Result<Bytes, EncodedError>>>> {
+    ) -> ControlFlow<Poll<Option<Result<Bytes, NetworkError>>>> {
         let this = self.project();
         let Poll::Ready(next) = this.inner.poll_frame(cx) else {
             // simple propagation
@@ -96,10 +86,8 @@ where
                 let error = this.error.take();
                 *this.exhausted = true;
 
-                let encoder = this.encoder.clone();
-
                 ControlFlow::Break(Poll::Ready(
-                    error.map(|error| error.finish(encoder)).map(Err),
+                    error.map(PartialTransactionError::finish).map(Err),
                 ))
             }
             Some(Ok(Frame::Data(data))) => {
@@ -118,7 +106,6 @@ where
             }
             Some(Ok(Frame::Control(control))) => {
                 let kind = *control.as_ref();
-                let encoder = this.encoder.clone();
 
                 match kind {
                     ResponseKind::Err(code) => {
@@ -132,9 +119,7 @@ where
                             .map_or_else(
                                 || ControlFlow::Continue(()),
                                 |active| {
-                                    ControlFlow::Break(Poll::Ready(Some(Err(
-                                        active.finish(encoder)
-                                    ))))
+                                    ControlFlow::Break(Poll::Ready(Some(Err(active.finish()))))
                                 },
                             )
                     }
@@ -143,9 +128,7 @@ where
                         // if we wouldn't do that we would concatenate valid values to the error
                         this.error.take().map_or_else(
                             || ControlFlow::Continue(()),
-                            |error| {
-                                ControlFlow::Break(Poll::Ready(Some(Err(error.finish(encoder)))))
-                            },
+                            |error| ControlFlow::Break(Poll::Ready(Some(Err(error.finish())))),
                         )
                     }
                 }
@@ -154,12 +137,11 @@ where
     }
 }
 
-impl<B, E> Stream for Pack<B, E>
+impl<B> Stream for Pack<B>
 where
     B: Body<Control: AsRef<ResponseKind>, Error = !>,
-    E: ErrorEncoder + Clone,
 {
-    type Item = Result<Bytes, EncodedError>;
+    type Item = Result<Bytes, NetworkError>;
 
     fn poll_next(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Option<Self::Item>> {
         if self.exhausted {
@@ -174,42 +156,39 @@ where
     }
 }
 
-pub struct PackLayer<C> {
-    encoder: C,
+pub struct PackLayer {
+    _private: (),
 }
 
-impl<E> PackLayer<E> {
-    pub const fn new(encoder: E) -> Self {
-        Self { encoder }
+impl PackLayer {
+    #[expect(
+        clippy::new_without_default,
+        reason = "layer construction should be explicit and we might add fields in the future"
+    )]
+    #[must_use]
+    pub const fn new() -> Self {
+        Self { _private: () }
     }
 }
 
-impl<S, E> Layer<S> for PackLayer<E>
-where
-    E: Clone,
-{
-    type Service = PackService<S, E>;
+impl<S> Layer<S> for PackLayer {
+    type Service = PackService<S>;
 
     fn layer(&self, inner: S) -> Self::Service {
-        PackService {
-            inner,
-            encoder: self.encoder.clone(),
-        }
+        PackService { inner }
     }
 }
 
-pub struct PackService<S, E> {
+pub struct PackService<S> {
     inner: S,
-    encoder: E,
 }
 
-impl<S, C, ReqBody, ResBody> Service<Request<ReqBody>> for PackService<S, C>
+impl<S, ReqBody, ResBody> Service<Request<ReqBody>> for PackService<S>
 where
     S: Service<Request<ReqBody>, Response = Response<ResBody>>,
-    C: ErrorEncoder + Clone,
 {
     type Error = S::Error;
-    type Response = Pack<ResBody, C>;
+    type Response = Pack<ResBody>;
 
     type Future = impl Future<Output = Result<Self::Response, S::Error>>;
 
@@ -218,25 +197,39 @@ where
     }
 
     fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
-        let encoder = self.encoder.clone();
-
         self.inner
             .call(req)
-            .map(|result| result.map(|response| Pack::new(response.into_body(), encoder)))
+            .map(|result| result.map(|response| Pack::new(response.into_body())))
     }
 }
 
 #[cfg(test)]
 mod test {
+    use alloc::borrow::Cow;
+    use core::error::Error;
+
     use bytes::{BufMut, Bytes};
     use futures::{StreamExt, stream};
-    use harpc_codec::{encode::ErrorEncoder, error::ErrorBuffer, json::JsonCodec};
+    use harpc_codec::{error::NetworkError, json::JsonCodec};
     use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
 
     use crate::{
         body::{Frame, stream::StreamBody},
-        net::pack::{InvalidTagError, Pack},
+        net::pack::Pack,
     };
+
+    #[derive(Debug, Clone, PartialEq, Eq, derive_more::Display)]
+    #[display("{message}")]
+    struct ExampleError {
+        message: Cow<'static, str>,
+        code: ErrorCode,
+    }
+
+    impl Error for ExampleError {
+        fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
+            request.provide_value(self.code);
+        }
+    }
 
     #[tokio::test]
     async fn trailing_error() {
@@ -246,15 +239,18 @@ mod test {
             Ok(Frame::Control(ResponseKind::Err(
                 ErrorCode::INTERNAL_SERVER_ERROR,
             ))),
-            Ok(Frame::Data(Bytes::from_static(b"\x01world" as &[_]))),
+            Ok(Frame::Data(Bytes::from_static(
+                b"\x00\x00\x00\x05world" as &[_],
+            ))),
         ]);
 
-        let pack = Pack::new(StreamBody::new(iter), JsonCodec);
+        let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
-        let mut buffer = ErrorBuffer::error();
-        buffer.put_slice(b"world");
-        let error = buffer.finish(ErrorCode::INTERNAL_SERVER_ERROR);
+        let error = NetworkError::capture_error(&ExampleError {
+            message: Cow::Borrowed(&"world"),
+            code: ErrorCode::INTERNAL_SERVER_ERROR,
+        });
 
         assert_eq!(values, [
             Ok(Bytes::from_static(b"hello" as &[_])),
@@ -263,7 +259,7 @@ mod test {
     }
 
     #[tokio::test]
-    async fn invalid_error_tag() {
+    async fn invalid_error_too_short() {
         let iter = stream::iter([
             Result::<_, !>::Ok(Frame::Control(ResponseKind::Err(
                 ErrorCode::INTERNAL_SERVER_ERROR,
@@ -272,7 +268,25 @@ mod test {
             Ok(Frame::Data(Bytes::from_static(b"world" as &[_]))),
         ]);
 
-        let pack = Pack::new(StreamBody::new(iter), JsonCodec);
+        let pack = Pack::new(StreamBody::new(iter));
+        let values = pack.collect::<Vec<_>>().await;
+
+        let error = JsonCodec.encode_error(InvalidTagError);
+
+        assert_eq!(values, [Err(error)]);
+    }
+
+    #[tokio::test]
+    async fn invalid_error_too_long() {
+        let iter = stream::iter([
+            Result::<_, !>::Ok(Frame::Control(ResponseKind::Err(
+                ErrorCode::INTERNAL_SERVER_ERROR,
+            ))),
+            Ok(Frame::Data(Bytes::from_static(b"hello " as &[_]))),
+            Ok(Frame::Data(Bytes::from_static(b"world" as &[_]))),
+        ]);
+
+        let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
         let error = JsonCodec.encode_error(InvalidTagError);
@@ -286,16 +300,19 @@ mod test {
             Result::<_, !>::Ok(Frame::Control(ResponseKind::Err(
                 ErrorCode::INTERNAL_SERVER_ERROR,
             ))),
-            Ok(Frame::Data(Bytes::from_static(b"\x01hello " as &[_]))),
+            Ok(Frame::Data(Bytes::from_static(
+                b"\x00\x00\x00\x0Bhello " as &[_],
+            ))),
             Ok(Frame::Data(Bytes::from_static(b"world" as &[_]))),
         ]);
 
-        let pack = Pack::new(StreamBody::new(iter), JsonCodec);
+        let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
-        let mut buffer = ErrorBuffer::error();
-        buffer.put_slice(b"hello world");
-        let error = buffer.finish(ErrorCode::INTERNAL_SERVER_ERROR);
+        let error = NetworkError::capture_error(&ExampleError {
+            message: Cow::Borrowed(&"hello world"),
+            code: ErrorCode::INTERNAL_SERVER_ERROR,
+        });
 
         assert_eq!(values, [Err(error)]);
     }
@@ -306,7 +323,7 @@ mod test {
             Bytes::from_static(b"hello" as &[_]),
         ))]);
 
-        let pack = Pack::new(StreamBody::new(iter), JsonCodec);
+        let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
         assert_eq!(values, [Ok(Bytes::from_static(b"hello" as &[_]))]);
@@ -320,7 +337,7 @@ mod test {
             Ok(Frame::Data(Bytes::from_static(b"world" as &[_]))),
         ]);
 
-        let pack = Pack::new(StreamBody::new(iter), JsonCodec);
+        let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
         assert_eq!(values, [
@@ -343,7 +360,7 @@ mod test {
             Ok(Frame::Data(Bytes::from_static(b"\x01steven" as &[_]))),
         ]);
 
-        let pack = Pack::new(StreamBody::new(iter), JsonCodec);
+        let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
         let mut buffer = ErrorBuffer::error();
@@ -367,7 +384,7 @@ mod test {
             Ok(Frame::Data(Bytes::from_static(b"steven" as &[_]))),
         ]);
 
-        let pack = Pack::new(StreamBody::new(iter), JsonCodec);
+        let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
         assert_eq!(values, [
@@ -389,7 +406,7 @@ mod test {
             Ok(Frame::Data(Bytes::from_static(b"\x01steven" as &[_]))),
         ]);
 
-        let pack = Pack::new(StreamBody::new(iter), JsonCodec);
+        let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
         let mut buffer = ErrorBuffer::error();
@@ -415,7 +432,7 @@ mod test {
             Ok(Frame::Data(Bytes::from_static(b"steven" as &[_]))),
         ]);
 
-        let pack = Pack::new(StreamBody::new(iter), JsonCodec);
+        let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
         let mut buffer = ErrorBuffer::error();
@@ -434,7 +451,7 @@ mod test {
             ResponseKind::Err(ErrorCode::INTERNAL_SERVER_ERROR),
         ))]);
 
-        let pack = Pack::new(StreamBody::new(iter), JsonCodec);
+        let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
         let error = JsonCodec.encode_error(InvalidTagError);

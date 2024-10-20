@@ -3,7 +3,7 @@ use core::future::ready;
 use bytes::Bytes;
 use frunk::{HCons, HNil};
 use futures::FutureExt;
-use harpc_codec::encode::ErrorEncoder;
+use harpc_codec::error::NetworkError;
 use harpc_tower::{
     body::{Body, controlled::Controlled, full::Full},
     request::Request,
@@ -67,22 +67,21 @@ impl<S> Handler<S> {
 ///
 /// [`Router`]: crate::router::Router
 /// [`Steer`]: https://docs.rs/tower/latest/tower/steer/struct.Steer.html
-pub trait Route<ReqBody, C> {
+pub trait Route<ReqBody> {
     type ResponseBody: Body<Control: AsRef<ResponseKind>, Error = !>;
     type Future: Future<Output = Response<Self::ResponseBody>>;
 
-    fn call(&self, request: Request<ReqBody>, codec: C) -> Self::Future
+    fn call(&self, request: Request<ReqBody>) -> Self::Future
     where
-        ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync,
-        C: ErrorEncoder + Send + Sync;
+        ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync;
 }
 
 // The clone requirement might seem odd here, but is the same as in axum's router implementation.
 // see: https://docs.rs/axum/latest/src/axum/routing/route.rs.html#45
-impl<C, Svc, Tail, ReqBody, ResBody> Route<ReqBody, C> for HCons<Handler<Svc>, Tail>
+impl<Svc, Tail, ReqBody, ResBody> Route<ReqBody> for HCons<Handler<Svc>, Tail>
 where
     Svc: Service<Request<ReqBody>, Response = Response<ResBody>, Error = !> + Clone,
-    Tail: Route<ReqBody, C>,
+    Tail: Route<ReqBody>,
     ResBody: Body<Control: AsRef<ResponseKind>, Error = !>,
 {
     // cannot use `impl Future` here, as it would require additional constraints on the associated
@@ -99,10 +98,9 @@ where
     >;
     type ResponseBody = harpc_tower::either::Either<ResBody, Tail::ResponseBody>;
 
-    fn call(&self, request: Request<ReqBody>, codec: C) -> Self::Future
+    fn call(&self, request: Request<ReqBody>) -> Self::Future
     where
         ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync,
-        C: ErrorEncoder + Send + Sync,
     {
         let requirement = self.head.version.into_requirement();
 
@@ -119,21 +117,20 @@ where
         } else {
             futures::future::Either::Right(
                 self.tail
-                    .call(request, codec)
+                    .call(request)
                     .map(|response| response.map_body(harpc_tower::either::Either::Right)),
             )
         }
     }
 }
 
-impl<C, ReqBody> Route<ReqBody, C> for HNil {
+impl<ReqBody> Route<ReqBody> for HNil {
     type Future = core::future::Ready<Response<Self::ResponseBody>>;
     type ResponseBody = Controlled<ResponseKind, Full<Bytes>>;
 
-    fn call(&self, request: Request<ReqBody>, codec: C) -> Self::Future
+    fn call(&self, request: Request<ReqBody>) -> Self::Future
     where
         ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync,
-        C: ErrorEncoder + Send + Sync,
     {
         let error = NotFound {
             service: request.service().id,
@@ -142,7 +139,7 @@ impl<C, ReqBody> Route<ReqBody, C> for HNil {
 
         let session = request.session();
 
-        let error = codec.encode_error(error);
+        let error = NetworkError::capture_error(&error);
 
         ready(Response::from_error(Parts::new(session), error))
     }

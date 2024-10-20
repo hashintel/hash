@@ -4,7 +4,6 @@ use core::{iter, net::Ipv4Addr, time::Duration};
 use bytes::Bytes;
 use error_stack::{Report, ResultExt};
 use futures::{prelude::stream, sink::SinkExt, stream::StreamExt};
-use harpc_codec::json::JsonCodec;
 use harpc_types::{
     procedure::{ProcedureDescriptor, ProcedureId},
     service::{ServiceDescriptor, ServiceId},
@@ -103,13 +102,13 @@ fn server(
     transport_config: TransportConfig,
     session_config: server::SessionConfig,
     transport: impl Transport,
-) -> (server::SessionLayer<JsonCodec>, impl Drop) {
+) -> (server::SessionLayer, impl Drop) {
     let cancel = CancellationToken::new();
 
     let transport_layer = TransportLayer::start(transport_config, transport, cancel.clone())
         .expect("failed to start transport layer");
 
-    let session_layer = server::SessionLayer::new(session_config, transport_layer, JsonCodec);
+    let session_layer = server::SessionLayer::new(session_config, transport_layer);
 
     (session_layer, cancel.drop_guard())
 }

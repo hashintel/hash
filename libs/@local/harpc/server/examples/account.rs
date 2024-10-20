@@ -52,7 +52,6 @@ use harpc_types::{
     version::Version,
 };
 use multiaddr::multiaddr;
-use serde::de::IgnoredAny;
 use tower::{ServiceBuilder, ServiceExt as _};
 use uuid::Uuid;
 
@@ -310,15 +309,14 @@ where
 }
 
 async fn server() {
-    let server =
-        Server::new(ServerConfig::default(), JsonCodec).expect("should be able to start service");
+    let server = Server::new(ServerConfig::default()).expect("should be able to start service");
 
     let router = RouterBuilder::new::<()>(JsonCodec)
-        .with_builder(|builder, codec| {
+        .with_builder(|builder| {
             builder
                 .layer(BoxedResponseLayer::new())
-                .layer(HandleReportLayer::new(*codec))
-                .layer(HandleBodyReportLayer::new(*codec))
+                .layer(HandleReportLayer::new())
+                .layer(HandleBodyReportLayer::new())
         })
         .register(AccountServerDelegate {
             service: AccountServiceImpl,
@@ -351,9 +349,7 @@ async fn client() {
 
     let connection = ServiceBuilder::new()
         .layer(MapRequestBodyLayer::new(|req| ready(StreamBody::new(req))))
-        .layer(MapResponseBodyLayer::new(|res| {
-            ready(PackError::<_, _, IgnoredAny>::new(res, JsonCodec))
-        }))
+        .layer(MapResponseBodyLayer::new(|res| ready(PackError::new(res))))
         .service(connection);
 
     for _ in 0..16 {

@@ -2,7 +2,7 @@ use core::future::poll_fn;
 
 use bytes::Bytes;
 use futures::{Stream, StreamExt};
-use harpc_codec::error::EncodedError;
+use harpc_codec::error::NetworkError;
 use harpc_net::session::server::Transaction;
 use harpc_tower::{
     body::server::request::RequestBody,
@@ -20,7 +20,7 @@ where
     M: MakeService<
             (),
             Request<RequestBody>,
-            Response: futures::Stream<Item = Result<Bytes, EncodedError>> + Send,
+            Response: futures::Stream<Item = Result<Bytes, NetworkError>> + Send,
             Error = !,
             Service: tower::Service<Request<RequestBody>, Future: Send> + Send + 'static,
             MakeError = !,

@@ -1,8 +1,13 @@
-use alloc::sync::Arc;
-use core::{num::NonZero, time::Duration};
+use alloc::{borrow::Cow, sync::Arc};
+use core::{
+    error::Error,
+    fmt::{self, Display},
+    num::NonZero,
+    time::Duration,
+};
 
-use bytes::{BufMut, Bytes};
-use harpc_codec::error::{EncodedError, ErrorBuffer};
+use bytes::Bytes;
+use harpc_codec::error::NetworkError;
 use harpc_types::{
     error_code::ErrorCode,
     procedure::{ProcedureDescriptor, ProcedureId},
@@ -74,7 +79,7 @@ impl ServerTransactionPermit for StaticTransactionPermit {
 fn setup_send(
     no_delay: bool,
 ) -> (
-    mpsc::Sender<Result<Bytes, EncodedError>>,
+    mpsc::Sender<Result<Bytes, NetworkError>>,
     mpsc::Receiver<Response>,
     JoinHandle<()>,
 ) {
@@ -431,15 +436,34 @@ async fn send_delay_empty_bytes() {
     });
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ExampleError {
+    code: ErrorCode,
+    message: Cow<'static, str>,
+}
+
+impl Display for ExampleError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        Display::fmt(&self.message, fmt)
+    }
+}
+
+impl Error for ExampleError {
+    fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
+        request.provide_value(self.code);
+    }
+}
+
 #[tokio::test]
 async fn send_delay_error_immediate() {
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
-    let mut error = ErrorBuffer::error();
-    error.put_slice(&[0, 1, 2, 3, 4, 5, 6, 7]);
-    let error = error.finish(code);
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("immediate delay"),
+        code,
+    });
 
     // send an error message
     let payload = error.bytes().clone();
@@ -482,11 +506,12 @@ async fn send_delay_error_delayed() {
 
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
-    let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(&[0, 1, 2, 3, 4, 5, 6, 7]);
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("delayed error"),
+        code,
+    });
 
     // send an error message
-    let error = buffer.finish(code);
     let payload_err = error.bytes().clone();
 
     bytes_tx
@@ -528,10 +553,11 @@ async fn send_delay_error_multiple() {
     // fully buffered.
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
-    let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(&[1; Payload::MAX_SIZE + 8]);
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Owned("1".repeat(Payload::MAX_SIZE + 8)),
+        code,
+    });
 
-    let error = buffer.finish(code);
     let payload_err = error.bytes().clone();
 
     for _ in 0..4 {
@@ -577,10 +603,11 @@ async fn send_delay_error_interspersed() {
 
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
-    let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(&[1; Payload::MAX_SIZE + 8]);
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Owned("1".repeat(Payload::MAX_SIZE + 8)),
+        code,
+    });
 
-    let error = buffer.finish(code);
     let payload_err = error.bytes().clone();
 
     for _ in 0..4 {
@@ -636,10 +663,11 @@ async fn send_delay_error_interspersed_small() {
 
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
-    let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(&[1; 8]);
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("interspersed delayed errors"),
+        code,
+    });
 
-    let error = buffer.finish(code);
     let payload_err = error.bytes().clone();
 
     for _ in 0..4 {
@@ -680,10 +708,11 @@ async fn send_delay_error_split_large() {
     // if we have a large payload we split it into multiple frames
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
-    let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(&[1; Payload::MAX_SIZE + 8]);
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Owned("1".repeat(Payload::MAX_SIZE + 8)),
+        code,
+    });
 
-    let error = buffer.finish(code);
     let payload_err = error.bytes().clone();
 
     bytes_tx
@@ -973,10 +1002,11 @@ async fn send_no_delay_error_immediate() {
 
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
-    let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(b"error");
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("error"),
+        code,
+    });
 
-    let error = buffer.finish(code);
     let payload_err = error.bytes().clone();
 
     bytes_tx
@@ -1015,9 +1045,11 @@ async fn send_no_delay_error_delayed() {
 
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
-    let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(b"error");
-    let error = buffer.finish(code);
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("error"),
+        code,
+    });
+
     let payload_err = error.bytes().clone();
 
     bytes_tx
@@ -1067,9 +1099,11 @@ async fn send_no_delay_error_multiple() {
 
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
-    let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(b"error");
-    let error = buffer.finish(code);
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("error"),
+        code,
+    });
+
     let payload_err = error.bytes().clone();
 
     bytes_tx
@@ -1122,9 +1156,11 @@ async fn send_no_delay_error_interspersed() {
     let payload_ok = Bytes::from_static(b"ok");
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
-    let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(b"error");
-    let error = buffer.finish(code);
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Borrowed("error"),
+        code,
+    });
+
     let payload_err = error.bytes().clone();
 
     for _ in 0..3 {
@@ -1176,9 +1212,11 @@ async fn send_no_delay_error_split_large() {
 
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
-    let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(&[0; Payload::MAX_SIZE + 8]);
-    let error = buffer.finish(code);
+    let error = NetworkError::capture_error(&ExampleError {
+        message: Cow::Owned("0".repeat(Payload::MAX_SIZE + 8)),
+        code,
+    });
+
     let payload_err = error.bytes().clone();
 
     bytes_tx
