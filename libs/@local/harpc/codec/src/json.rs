@@ -122,12 +122,12 @@ where
 
         loop {
             let mut this = self.as_mut().project();
-            // we use an option here to avoid repeated polling of the inner stream once it has
+            // We use an option here to avoid repeated polling of the inner stream once it has
             // returned `None`, as that would lead to potentially undefined behavior.
             let inner = this.inner.as_mut().as_pin_mut();
 
             let Some(inner) = inner else {
-                // the underlying stream has already returned `None`, we now only flush the
+                // The underlying stream has already returned `None`, we now only flush the
                 // remaining buffer.
                 if let Some(value) = Self::poll_item(self.as_mut(), 0) {
                     return Poll::Ready(Some(value.change_context(JsonError::Decode)));
