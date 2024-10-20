@@ -51,6 +51,10 @@ time = { workspace = true }
 tracing-opentelemetry = { workspace = true }
 utoipa = { workspace = true }
 uuid = { workspace = true }
+harpc-service.workspace = true
+harpc-server.workspace = true
+harpc-types.workspace = true
+frunk = "0.4.3"
 
 [lints]
 workspace = true
