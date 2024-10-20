@@ -11,13 +11,13 @@ publish.workspace = true
 [dependencies]
 # Public workspace dependencies
 harpc-service = { workspace = true, public = true }
+harpc-net = { workspace = true, public = true }
 
 # Public third-party dependencies
 frunk_core = { version = "0.4.3", public = true }
 tower = { workspace = true, public = true, features = ["make"] }
 
 # Private workspace dependencies
-harpc-net = { workspace = true }
 harpc-tower = { workspace = true }
 harpc-types = { workspace = true }
 
