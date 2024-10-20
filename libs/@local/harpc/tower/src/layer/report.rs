@@ -93,10 +93,9 @@ where
 
 #[cfg(test)]
 mod test {
-    use bytes::{Buf, Bytes};
+    use bytes::Bytes;
     use error_stack::Report;
     use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
-    use insta::assert_snapshot;
     use tokio_test::{assert_pending, assert_ready};
     use tower::{Layer, Service, ServiceExt};
     use tower_test::mock::{self, spawn_with};
@@ -178,17 +177,12 @@ mod test {
         );
 
         let Ok(frame) = body.frame().await.expect("frame should be present");
-        let mut data = frame
+        let data = frame
             .into_data()
             .expect("should be data frame")
             .into_inner();
 
-        let &first = data.first().expect("should be present");
-        assert_eq!(first, 0x01);
-        data.advance(1);
-
-        let output = String::from_utf8(data.to_vec()).expect("should be valid utf8");
-        assert_snapshot!(output, @r###"[{"context":"generic error","attachments":[],"sources":[{"context":"generic error","attachments":[],"sources":[]}]}]"###);
+        insta::assert_debug_snapshot!(data, @r###"b"\0\0\0\rgeneric error""###);
     }
 
     #[tokio::test]

@@ -96,7 +96,7 @@ pub(crate) mod test {
         fmt::{self, Debug, Display},
     };
 
-    use bytes::{Buf, Bytes};
+    use bytes::Bytes;
     use harpc_net::test_utils::mock_session_id;
     use harpc_types::{
         error_code::ErrorCode,
@@ -105,7 +105,6 @@ pub(crate) mod test {
         service::{ServiceDescriptor, ServiceId},
         version::Version,
     };
-    use insta::assert_snapshot;
     use tokio_test::{assert_pending, assert_ready};
     use tower::{Layer, ServiceExt};
     use tower_test::mock::spawn_with;
@@ -251,18 +250,12 @@ pub(crate) mod test {
         assert_eq!(control, ResponseKind::Err(ErrorCode::INTERNAL_SERVER_ERROR));
 
         let Ok(frame) = body.frame().await.expect("frame should be present");
-        let mut data = frame
+        let data = frame
             .into_data()
             .expect("should be data frame")
             .into_inner();
 
-        let &first = data.first().expect("should be present");
-        assert_eq!(first, 0x01);
-        data.advance(1);
-
-        let output = String::from_utf8(data.to_vec()).expect("should be utf-8");
-
-        assert_snapshot!(output, @r###"{"message":"generic error","details":"generic error"}"###);
+        insta::assert_debug_snapshot!(data, @r###"b"\0\0\0\rgeneric error""###);
     }
 
     #[tokio::test]

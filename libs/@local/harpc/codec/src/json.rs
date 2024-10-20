@@ -352,7 +352,7 @@ mod tests {
             .await
             .expect("should have a value")
             .expect_err("should be an error");
-        assert_eq!(error.to_string(), "underlying stream returned an error");
+        assert_eq!(error.to_string(), "unable to decode JSON value");
 
         assert!(decoder.next().await.is_none());
     }

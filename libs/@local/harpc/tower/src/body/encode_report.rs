@@ -180,7 +180,7 @@ mod test {
         insta::assert_debug_snapshot!(frame, @r###"
         Data(
             Right(
-                b"\x01[{\"context\":\"test error\",\"attachments\":[],\"sources\":[]}]",
+                b"\0\0\0\ntest error",
             ),
         )
         "###);
@@ -256,8 +256,8 @@ mod test {
         let _frame = poll_frame_unpin(&mut body);
 
         // we now have an error, therefore the size hint should include the error
-        // `40` is taken from the serialization in the unit test above
-        assert_eq!(body.size_hint(), SizeHint::with_exact(57));
+        // `14` is taken from the serialization in the unit test above
+        assert_eq!(body.size_hint(), SizeHint::with_exact(14));
 
         let _frame = poll_frame_unpin(&mut body);
 
@@ -359,7 +359,7 @@ mod test {
         assert_debug_snapshot!(frame, @r###"
         Data(
             Right(
-                b"\x01[{\"context\":\"test error\",\"attachments\":[],\"sources\":[]}]",
+                b"\0\0\0\ntest error",
             ),
         )
         "###);

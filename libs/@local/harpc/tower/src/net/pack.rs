@@ -208,11 +208,12 @@ mod test {
     use alloc::borrow::Cow;
     use core::error::Error;
 
-    use bytes::{BufMut, Bytes};
+    use bytes::Bytes;
     use futures::{StreamExt, stream};
-    use harpc_codec::{error::NetworkError, json::JsonCodec};
+    use harpc_codec::error::NetworkError;
     use harpc_types::{error_code::ErrorCode, response_kind::ResponseKind};
 
+    use super::DecodeTransactionError;
     use crate::{
         body::{Frame, stream::StreamBody},
         net::pack::Pack,
@@ -248,7 +249,7 @@ mod test {
         let values = pack.collect::<Vec<_>>().await;
 
         let error = NetworkError::capture_error(&ExampleError {
-            message: Cow::Borrowed(&"world"),
+            message: Cow::Borrowed("world"),
             code: ErrorCode::INTERNAL_SERVER_ERROR,
         });
 
@@ -264,14 +265,18 @@ mod test {
             Result::<_, !>::Ok(Frame::Control(ResponseKind::Err(
                 ErrorCode::INTERNAL_SERVER_ERROR,
             ))),
-            Ok(Frame::Data(Bytes::from_static(b"hello " as &[_]))),
+            Ok(Frame::Data(Bytes::from_static(
+                b"\x00\x00\x00\xFFhello " as &[_],
+            ))),
             Ok(Frame::Data(Bytes::from_static(b"world" as &[_]))),
         ]);
 
         let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
-        let error = JsonCodec.encode_error(InvalidTagError);
+        let error = NetworkError::capture_error(&DecodeTransactionError {
+            bytes: Bytes::from_static(b"\x00\x00\x00\xFFhello world" as &[_]),
+        });
 
         assert_eq!(values, [Err(error)]);
     }
@@ -282,14 +287,18 @@ mod test {
             Result::<_, !>::Ok(Frame::Control(ResponseKind::Err(
                 ErrorCode::INTERNAL_SERVER_ERROR,
             ))),
-            Ok(Frame::Data(Bytes::from_static(b"hello " as &[_]))),
+            Ok(Frame::Data(Bytes::from_static(
+                b"\x00\x00\x00\x05hello " as &[_],
+            ))),
             Ok(Frame::Data(Bytes::from_static(b"world" as &[_]))),
         ]);
 
         let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
-        let error = JsonCodec.encode_error(InvalidTagError);
+        let error = NetworkError::capture_error(&DecodeTransactionError {
+            bytes: Bytes::from_static(b"\x00\x00\x00\x05hello world" as &[_]),
+        });
 
         assert_eq!(values, [Err(error)]);
     }
@@ -310,7 +319,7 @@ mod test {
         let values = pack.collect::<Vec<_>>().await;
 
         let error = NetworkError::capture_error(&ExampleError {
-            message: Cow::Borrowed(&"hello world"),
+            message: Cow::Borrowed("hello world"),
             code: ErrorCode::INTERNAL_SERVER_ERROR,
         });
 
@@ -352,24 +361,30 @@ mod test {
             Result::<_, !>::Ok(Frame::Control(ResponseKind::Err(
                 ErrorCode::INTERNAL_SERVER_ERROR,
             ))),
-            Ok(Frame::Data(Bytes::from_static(b"\x01hello " as &[_]))),
+            Ok(Frame::Data(Bytes::from_static(
+                b"\x00\x00\x00\x0Bhello " as &[_],
+            ))),
             Ok(Frame::Data(Bytes::from_static(b"world" as &[_]))),
             Ok(Frame::Control(ResponseKind::Err(
                 ErrorCode::INTERNAL_SERVER_ERROR,
             ))),
-            Ok(Frame::Data(Bytes::from_static(b"\x01steven" as &[_]))),
+            Ok(Frame::Data(Bytes::from_static(
+                b"\x00\x00\x00\x06steven" as &[_],
+            ))),
         ]);
 
         let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
-        let mut buffer = ErrorBuffer::error();
-        buffer.put_slice(b"hello world");
-        let error1 = buffer.finish(ErrorCode::INTERNAL_SERVER_ERROR);
+        let error1 = NetworkError::capture_error(&ExampleError {
+            message: Cow::Borrowed("hello world"),
+            code: ErrorCode::INTERNAL_SERVER_ERROR,
+        });
 
-        let mut buffer = ErrorBuffer::error();
-        buffer.put_slice(b"steven");
-        let error2 = buffer.finish(ErrorCode::INTERNAL_SERVER_ERROR);
+        let error2 = NetworkError::capture_error(&ExampleError {
+            message: Cow::Borrowed("steven"),
+            code: ErrorCode::INTERNAL_SERVER_ERROR,
+        });
 
         assert_eq!(values, [Err(error1), Err(error2)]);
     }
@@ -403,15 +418,18 @@ mod test {
             Ok(Frame::Control(ResponseKind::Err(
                 ErrorCode::INTERNAL_SERVER_ERROR,
             ))),
-            Ok(Frame::Data(Bytes::from_static(b"\x01steven" as &[_]))),
+            Ok(Frame::Data(Bytes::from_static(
+                b"\x00\x00\x00\x06steven" as &[_],
+            ))),
         ]);
 
         let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
-        let mut buffer = ErrorBuffer::error();
-        buffer.put_slice(b"steven");
-        let error = buffer.finish(ErrorCode::INTERNAL_SERVER_ERROR);
+        let error = NetworkError::capture_error(&ExampleError {
+            message: Cow::Borrowed("steven"),
+            code: ErrorCode::INTERNAL_SERVER_ERROR,
+        });
 
         assert_eq!(values, [
             Ok(Bytes::from_static(b"hello " as &[_])),
@@ -426,7 +444,9 @@ mod test {
             Result::<_, !>::Ok(Frame::Control(ResponseKind::Err(
                 ErrorCode::INTERNAL_SERVER_ERROR,
             ))),
-            Ok(Frame::Data(Bytes::from_static(b"\x01hello " as &[_]))),
+            Ok(Frame::Data(Bytes::from_static(
+                b"\x00\x00\x00\x0Bhello " as &[_],
+            ))),
             Ok(Frame::Data(Bytes::from_static(b"world" as &[_]))),
             Ok(Frame::Control(ResponseKind::Ok)),
             Ok(Frame::Data(Bytes::from_static(b"steven" as &[_]))),
@@ -435,9 +455,10 @@ mod test {
         let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
-        let mut buffer = ErrorBuffer::error();
-        buffer.put_slice(b"hello world");
-        let error = buffer.finish(ErrorCode::INTERNAL_SERVER_ERROR);
+        let error = NetworkError::capture_error(&ExampleError {
+            message: Cow::Borrowed("hello world"),
+            code: ErrorCode::INTERNAL_SERVER_ERROR,
+        });
 
         assert_eq!(values, [
             Err(error),
@@ -454,7 +475,9 @@ mod test {
         let pack = Pack::new(StreamBody::new(iter));
         let values = pack.collect::<Vec<_>>().await;
 
-        let error = JsonCodec.encode_error(InvalidTagError);
+        let error = NetworkError::capture_error(&DecodeTransactionError {
+            bytes: Bytes::new(),
+        });
 
         assert_eq!(values, [Err(error)]);
     }
