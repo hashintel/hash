@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use alloc::sync::Arc;
 
 use authorization::{AuthorizationApiPool, schema::AccountGroupPermission};
 use error_stack::{Report, ResultExt};
@@ -12,6 +12,8 @@ use temporal_client::TemporalClient;
 use super::{role, session::User};
 use crate::rest::PermissionResponse;
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, derive_more::Display, derive_more::Error)]
+#[display("unable to fullfil account request")]
 pub struct AccountError;
 
 pub trait AccountService<R>

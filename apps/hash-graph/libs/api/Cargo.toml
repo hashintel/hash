@@ -55,6 +55,7 @@ harpc-service.workspace = true
 harpc-server.workspace = true
 harpc-types.workspace = true
 frunk = "0.4.3"
+derive_more = { version = "1.0.0", features = ["display", "error"] }
 
 [lints]
 workspace = true
