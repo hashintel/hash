@@ -122,7 +122,7 @@ regex = { version = "=1.11.0", default-features = false, features = ["perf", "un
 semver = { version = "=1.0.23", default-features = false }
 sentry-types = { version = "=0.34.0", default-features = false }
 serde = { version = "=1.0.210", default-features = false }
-serde_json = { version = "=1.0.128" }
+serde_json = { version = "=1.0.132" }
 text-size = { version = "=1.1.1", default-features = false }
 tokio = { version = "=1.40.0", default-features = false }
 tokio-util = { version = "=0.7.12", default-features = false }
