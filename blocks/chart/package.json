@@ -33,7 +33,7 @@
     "@mui/material": "5.16.7",
     "echarts": "5.5.1",
     "lodash.debounce": "4.0.8",
-    "react-hook-form": "7.53.0"
+    "react-hook-form": "7.53.1"
   },
   "devDependencies": {
     "@emotion/react": "11.13.3",
