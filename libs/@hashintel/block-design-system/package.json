@@ -33,7 +33,7 @@
     "@local/hash-isomorphic-utils": "0.0.0-private",
     "@local/hash-subgraph": "0.0.0-private",
     "lowlight": "2.9.0",
-    "react-syntax-highlighter": "15.5.0",
+    "react-syntax-highlighter": "15.6.1",
     "react-type-animation": "3.2.0"
   },
   "devDependencies": {
