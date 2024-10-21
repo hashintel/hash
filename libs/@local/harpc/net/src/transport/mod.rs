@@ -14,8 +14,7 @@ use alloc::sync::Arc;
 use error_stack::{Result, ResultExt};
 use futures::stream::StreamExt;
 use libp2p::{
-    Multiaddr, PeerId, StreamProtocol, core::transport::ListenerId, metrics,
-    tcp::tokio::Transport as TokioTcpTransport,
+    Multiaddr, PeerId, StreamProtocol, metrics, tcp::tokio::Transport as TokioTcpTransport,
 };
 use libp2p_core::transport::MemoryTransport;
 use tokio::io::BufStream;
@@ -183,7 +182,7 @@ impl TransportLayer {
     ///
     /// If the background task cannot be reached, crashes while processing the request, or the
     /// multiaddr is not supported by the transport.
-    pub async fn listen_on(&self, address: Multiaddr) -> Result<ListenerId, TransportError> {
+    pub async fn listen_on(&self, address: Multiaddr) -> Result<Multiaddr, TransportError> {
         self.ipc
             .listen_on(address)
             .await
