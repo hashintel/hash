@@ -145,12 +145,6 @@ where
             .await
             .expect("should be able to listen on TCP");
 
-        // Give the swarm some time to acquire the external address
-        // This is necessary for CI, as otherwise the tests are a bit flaky.
-        // TODO: Implement waiting for server to be ready
-        //   see https://linear.app/hash/issue/H-2837
-        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
-
         let address = server_ipc
             .external_addresses()
             .await
@@ -308,10 +302,6 @@ async fn echo_concurrent<T>(
             .await
             .expect("should be able to listen on TCP");
 
-        // Give the swarm some time to acquire the external address
-        // This is necessary for CI, as otherwise the tests are a bit flaky.
-        // TODO: `listen_on` should wait until the transport layer has acquired said address.
-        //   see https://linear.app/hash/issue/H-2837
         tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
 
         let address = server_ipc
