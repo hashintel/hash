@@ -65,7 +65,7 @@ export const useEventHandlers = ({
 
     const getNeighbors = (
       nodeId: string,
-      neighborIds: Set<string> = new Set(),
+      neighborIds: NonNullable<GraphState["neighborsByDepth"]> = [],
       depth = 1,
     ) => {
       if (depth > config.nodeHighlighting.depth) {
@@ -86,14 +86,18 @@ export const useEventHandlers = ({
       }
 
       for (const neighbor of directNeighbors) {
-        neighborIds.add(neighbor);
+        const zeroBasedDepth = depth - 1;
+
+        // eslint-disable-next-line no-param-reassign
+        neighborIds[zeroBasedDepth] ??= new Set<string>();
+        neighborIds[zeroBasedDepth].add(neighbor);
         getNeighbors(neighbor, neighborIds, depth + 1);
       }
 
       return neighborIds;
     };
 
-    setGraphState("highlightedNeighborIds", getNeighbors(highlightedNode));
+    setGraphState("neighborsByDepth", getNeighbors(highlightedNode));
 
     /**
      * We haven't touched the graph data, so don't need to re-index.
@@ -112,7 +116,7 @@ export const useEventHandlers = ({
   useEffect(() => {
     const removeHighlights = () => {
       setGraphState("hoveredNodeId", null);
-      setGraphState("highlightedNeighborIds", null);
+      setGraphState("neighborsByDepth", null);
 
       sigma.refresh({ skipIndexation: true });
     };
@@ -203,6 +207,7 @@ export const useEventHandlers = ({
     isFullScreen,
     onEdgeClick,
     onNodeSecondClick,
+    onRender,
     refreshGraphHighlights,
     registerEvents,
     setConfigPanelOpen,

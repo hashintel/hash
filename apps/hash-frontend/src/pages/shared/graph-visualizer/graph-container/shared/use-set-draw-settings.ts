@@ -3,9 +3,9 @@ import { useSigma } from "@react-sigma/core";
 import { useEffect } from "react";
 
 import { drawRoundRect } from "../../../../../components/grid/utils/draw-round-rect";
+import type { GraphVizConfig } from "./config-control";
 import { useFullScreen } from "./full-screen-context";
 import type { GraphState } from "./state";
-import type { GraphVizConfig } from "./config-control";
 
 export const labelRenderedSizeThreshold = {
   fullScreen: 12,
@@ -96,11 +96,13 @@ export const useSetDrawSettings = (
         return nodeData;
       }
 
-      if (
-        graphState.selectedNodeId !== node &&
-        graphState.hoveredNodeId !== node &&
-        !graphState.highlightedNeighborIds?.has(node)
-      ) {
+      const allHighlightedNodes = new Set([
+        graphState.selectedNodeId,
+        graphState.hoveredNodeId,
+        ...(graphState.neighborsByDepth ?? []).flatMap((set) => [...set]),
+      ]);
+
+      if (!allHighlightedNodes.has(node)) {
         if (!graphState.selectedNodeId) {
           /**
            * Nodes are always drawn over edges by the library, so anything other than hiding non-highlighted nodes
@@ -139,18 +141,20 @@ export const useSetDrawSettings = (
         edgeData.forceLabel = true;
       }
 
-      if (!graphState.selectedNodeId && !graphState.hoveredNodeId) {
+      const selectedNode =
+        graphState.selectedNodeId ?? graphState.hoveredNodeId;
+
+      if (!selectedNode) {
         return edgeData;
       }
 
       /**
        * If we have highlighted nodes, we only draw the edge if both the source and target are highlighted.
        */
-      const activeIds = [
-        graphState.selectedNodeId,
-        graphState.hoveredNodeId,
-        ...(graphState.highlightedNeighborIds ?? []),
-      ];
+      const allHighlightedNodes = new Set([
+        selectedNode,
+        ...(graphState.neighborsByDepth ?? []).flatMap((set) => [...set]),
+      ]);
 
       let targetIsShown = false;
       let sourceIsShown = false;
@@ -159,11 +163,11 @@ export const useSetDrawSettings = (
       const source = graph.source(edge);
       const target = graph.target(edge);
 
-      for (const id of activeIds) {
-        if (source === id) {
+      for (const nodeId of allHighlightedNodes) {
+        if (source === nodeId) {
           sourceIsShown = true;
         }
-        if (target === id) {
+        if (target === nodeId) {
           targetIsShown = true;
         }
 
@@ -172,21 +176,40 @@ export const useSetDrawSettings = (
         }
       }
 
-      const selectedNode = [
-        graphState.selectedNodeId,
-        graphState.hoveredNodeId,
-      ];
+      /**
+       * We don't want to highlight edges between nodes which happen to be connected but via an edge
+       * that would not have been followed for the configured traversal depth.
+       * In practice this means ignoring edges from or to the nodes where the traversal ended (depending on traversal direction).
+       */
+      const nodesTraversalPassesThrough = new Set([
+        selectedNode,
+        ...(graphState.neighborsByDepth ?? [])
+          /**
+           * neighborsByDepth is zero-based, e.g. the neighbors at depth 1 are at array position 0
+           */
+          .slice(0, config.nodeHighlighting.depth - 1)
+          .flatMap((set) => [...set]),
+      ]);
 
-      if (
-        sourceIsShown &&
-        targetIsShown &&
-        /**
-         * At depth 1 we only want to highlight the edges to/from the selected/hovered node
-         */
-        (config.nodeHighlighting.depth !== 1 ||
-          selectedNode.includes(source) ||
-          selectedNode.includes(target))
-      ) {
+      let edgeWasFollowedInTraversal = false;
+      switch (config.nodeHighlighting.direction) {
+        case "All": {
+          edgeWasFollowedInTraversal =
+            nodesTraversalPassesThrough.has(source) ||
+            nodesTraversalPassesThrough.has(target);
+          break;
+        }
+        case "In": {
+          edgeWasFollowedInTraversal = nodesTraversalPassesThrough.has(target);
+          break;
+        }
+        case "Out": {
+          edgeWasFollowedInTraversal = nodesTraversalPassesThrough.has(source);
+          break;
+        }
+      }
+
+      if (sourceIsShown && targetIsShown && edgeWasFollowedInTraversal) {
         edgeData.zIndex = 2;
         edgeData.size = 3;
 
@@ -200,5 +223,5 @@ export const useSetDrawSettings = (
 
       return edgeData;
     });
-  }, [config.nodeHighlighting.depth, isFullScreen, palette, sigma, graphState]);
+  }, [config.nodeHighlighting, isFullScreen, palette, sigma, graphState]);
 };
