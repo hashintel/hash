@@ -25,9 +25,11 @@ impl AuthenticationService<role::Server> for AuthenticationServer {
         session: Session<User>,
         actor_id: AccountId,
     ) -> Result<(), Report<AuthenticationError>> {
-        session.update(User {
-            actor_id: Some(actor_id),
-        });
+        session
+            .update(User {
+                actor_id: Some(actor_id),
+            })
+            .await;
 
         Ok(())
     }
