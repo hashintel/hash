@@ -9,7 +9,7 @@ use core::{
 
 use bytes::Bytes;
 use futures::{Sink, Stream, StreamExt, stream::FusedStream};
-use harpc_codec::error::EncodedError;
+use harpc_codec::error::NetworkError;
 use harpc_types::{
     procedure::ProcedureDescriptor, response_kind::ResponseKind, service::ServiceDescriptor,
 };
@@ -37,9 +37,9 @@ struct TransactionSendDelegateTask<P> {
     config: SessionConfig,
 
     // TODO: consider switching to `tachyonix` crate for better performance (not yet tested)
-    // as well as more predictable buffering behavioud. `PollSender` is prone to just buffer
+    // as well as more predictable buffering behavior. `PollSender` is prone to just buffer
     // everything before sending, which might not be the best idea in this scenario.
-    rx: mpsc::Receiver<core::result::Result<Bytes, EncodedError>>,
+    rx: mpsc::Receiver<core::result::Result<Bytes, NetworkError>>,
     tx: mpsc::Sender<Response>,
 
     permit: Arc<P>,
@@ -106,7 +106,8 @@ where
                     }
                 }
                 Err(error) => {
-                    let (code, bytes) = error.into_parts();
+                    let code = error.code();
+                    let bytes = error.into_bytes();
 
                     writer = ResponseWriter::new(
                         WriterOptions {
@@ -133,7 +134,7 @@ where
 pub(crate) struct TransactionTask<P> {
     config: SessionConfig,
 
-    response_rx: mpsc::Receiver<Result<Bytes, EncodedError>>,
+    response_rx: mpsc::Receiver<Result<Bytes, NetworkError>>,
     response_tx: mpsc::Sender<Response>,
 
     permit: Arc<P>,
@@ -213,7 +214,7 @@ pub struct Transaction {
     context: TransactionContext,
 
     request: tachyonix::Receiver<Request>,
-    response: mpsc::Sender<Result<Bytes, EncodedError>>,
+    response: mpsc::Sender<Result<Bytes, NetworkError>>,
 
     permit: Arc<TransactionPermit>,
 }
@@ -376,7 +377,7 @@ impl FusedStream for TransactionStream {
     }
 }
 
-type SinkItem = Result<Bytes, EncodedError>;
+type SinkItem = Result<Bytes, NetworkError>;
 
 pin_project_lite::pin_project! {
     #[must_use = "sinks do nothing unless polled"]

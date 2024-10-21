@@ -4,7 +4,7 @@ use core::{
 };
 
 use bytes::Bytes;
-use harpc_codec::encode::ErrorEncoder;
+use harpc_codec::error::NetworkError;
 use harpc_types::response_kind::ResponseKind;
 use tower::{Layer, Service, ServiceExt};
 
@@ -17,41 +17,37 @@ use crate::{
 };
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct HandleErrorLayer<E> {
-    encoder: E,
+pub struct HandleErrorLayer {
+    _private: (),
 }
 
-impl<E> HandleErrorLayer<E> {
-    pub const fn new(encoder: E) -> Self {
-        Self { encoder }
+impl HandleErrorLayer {
+    #[expect(
+        clippy::new_without_default,
+        reason = "layer construction should be explicit and we might add fields in the future"
+    )]
+    #[must_use]
+    pub const fn new() -> Self {
+        Self { _private: () }
     }
 }
 
-impl<E, S> Layer<S> for HandleErrorLayer<E>
-where
-    E: Clone,
-{
-    type Service = HandleErrorService<S, E>;
+impl<S> Layer<S> for HandleErrorLayer {
+    type Service = HandleErrorService<S>;
 
     fn layer(&self, inner: S) -> Self::Service {
-        HandleErrorService {
-            inner,
-            encoder: self.encoder.clone(),
-        }
+        HandleErrorService { inner }
     }
 }
 
-pub struct HandleErrorService<S, E> {
+pub struct HandleErrorService<S> {
     inner: S,
-
-    encoder: E,
 }
 
-impl<S, E, ReqBody, ResBody> Service<Request<ReqBody>> for HandleErrorService<S, E>
+impl<S, ReqBody, ResBody> Service<Request<ReqBody>> for HandleErrorService<S>
 where
     S: Service<Request<ReqBody>, Response = Response<ResBody>> + Clone + Send,
-    S::Error: Error + serde::Serialize,
-    E: ErrorEncoder + Clone,
+    S::Error: Error,
     ReqBody: Body<Control = !>,
     ResBody: Body<Control: AsRef<ResponseKind>>,
 {
@@ -68,8 +64,6 @@ where
     }
 
     fn call(&mut self, req: Request<ReqBody>) -> Self::Future {
-        let encoder = self.encoder.clone();
-
         let clone = self.inner.clone();
         let inner = core::mem::replace(&mut self.inner, clone);
 
@@ -79,7 +73,7 @@ where
             match inner.oneshot(req).await {
                 Ok(response) => Ok(response.map_body(Either::Left)),
                 Err(error) => {
-                    let error = encoder.encode_error(error);
+                    let error = NetworkError::capture_error(&error);
 
                     Ok(Response::from_error(
                         Parts {
@@ -102,8 +96,7 @@ pub(crate) mod test {
         fmt::{self, Debug, Display},
     };
 
-    use bytes::{Buf, Bytes};
-    use harpc_codec::json::JsonCodec;
+    use bytes::Bytes;
     use harpc_net::test_utils::mock_session_id;
     use harpc_types::{
         error_code::ErrorCode,
@@ -112,7 +105,6 @@ pub(crate) mod test {
         service::{ServiceDescriptor, ServiceId},
         version::Version,
     };
-    use insta::assert_snapshot;
     use tokio_test::{assert_pending, assert_ready};
     use tower::{Layer, ServiceExt};
     use tower_test::mock::spawn_with;
@@ -224,7 +216,7 @@ pub(crate) mod test {
         let (mut service, mut handle) = spawn_with(|mock| {
             let mock = mock.map_err(BoxedError::from);
 
-            HandleErrorLayer::new(JsonCodec).layer(mock)
+            HandleErrorLayer::new().layer(mock)
         });
 
         assert_pending!(handle.poll_request());
@@ -258,18 +250,12 @@ pub(crate) mod test {
         assert_eq!(control, ResponseKind::Err(ErrorCode::INTERNAL_SERVER_ERROR));
 
         let Ok(frame) = body.frame().await.expect("frame should be present");
-        let mut data = frame
+        let data = frame
             .into_data()
             .expect("should be data frame")
             .into_inner();
 
-        let &first = data.first().expect("should be present");
-        assert_eq!(first, 0x01);
-        data.advance(1);
-
-        let output = String::from_utf8(data.to_vec()).expect("should be utf-8");
-
-        assert_snapshot!(output, @r###"{"message":"generic error","details":"generic error"}"###);
+        insta::assert_debug_snapshot!(data, @r###"b"\0\0\0\rgeneric error""###);
     }
 
     #[tokio::test]
@@ -277,7 +263,7 @@ pub(crate) mod test {
         let (mut service, mut handle) = spawn_with(|mock| {
             let mock = mock.map_err(BoxedError::from);
 
-            HandleErrorLayer::new(JsonCodec).layer(mock)
+            HandleErrorLayer::new().layer(mock)
         });
 
         assert_pending!(handle.poll_request());

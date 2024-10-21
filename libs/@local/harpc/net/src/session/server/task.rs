@@ -1,7 +1,6 @@
 use alloc::sync::Arc;
 
 use futures::{FutureExt, StreamExt};
-use harpc_codec::encode::ErrorEncoder;
 use tokio::{
     select,
     sync::{Semaphore, TryAcquireError, broadcast, mpsc},
@@ -20,7 +19,7 @@ use crate::{
     },
 };
 
-pub(crate) struct Task<E> {
+pub(crate) struct Task {
     pub id: SessionIdProducer,
 
     pub config: SessionConfig,
@@ -29,16 +28,12 @@ pub(crate) struct Task<E> {
 
     pub output: mpsc::Sender<Transaction>,
     pub events: broadcast::Sender<SessionEvent>,
-    pub encoder: E,
 
     // significant because of the Drop, if dropped this will stop the task automatically
     pub _transport: TransportLayer,
 }
 
-impl<E> Task<E>
-where
-    E: ErrorEncoder + Clone + Send + Sync + 'static,
-{
+impl Task {
     #[expect(
         clippy::integer_division_remainder_used,
         reason = "required for select! macro"
@@ -110,7 +105,7 @@ where
                 transactions: TransactionCollection::new(self.config, cancel.clone()),
                 output: self.output.clone(),
                 events: self.events.clone(),
-                encoder: self.encoder.clone(),
+
                 _permit: permit,
             };
 

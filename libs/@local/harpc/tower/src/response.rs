@@ -1,6 +1,6 @@
 use bytes::Bytes;
 use futures::{Stream, TryStreamExt, stream::MapOk};
-use harpc_codec::error::EncodedError;
+use harpc_codec::error::NetworkError;
 use harpc_net::session::server::SessionId;
 use harpc_types::response_kind::ResponseKind;
 
@@ -78,7 +78,7 @@ impl<B> Response<B> {
 }
 
 impl Response<Controlled<ResponseKind, Full<Bytes>>> {
-    pub fn from_error(parts: Parts, error: EncodedError) -> Self {
+    pub fn from_error(parts: Parts, error: NetworkError) -> Self {
         let (code, bytes) = error.into_parts();
 
         Self {

@@ -17,7 +17,6 @@ use core::{
 
 use error_stack::{Report, ResultExt};
 use futures::{Stream, StreamExt, stream::FusedStream};
-use harpc_codec::encode::ErrorEncoder;
 use harpc_net::{
     session::server::{EventStream, ListenStream, SessionConfig, SessionLayer, Transaction},
     transport::{TransportConfig, TransportLayer},
@@ -69,28 +68,25 @@ impl FusedStream for TransactionStream {
     }
 }
 
-pub struct Server<E> {
-    session: SessionLayer<E>,
+pub struct Server {
+    session: SessionLayer,
     guard: DropGuard,
 }
 
-impl<E> Server<E>
-where
-    E: ErrorEncoder + Clone + Send + Sync + 'static,
-{
+impl Server {
     /// Creates a new server instance with the given configuration and error encoder.
     ///
     /// # Errors
     ///
     /// This function will return an error if:
     /// - The transport layer fails to start.
-    pub fn new(config: ServerConfig, encoder: E) -> Result<Self, Report<ServerError>> {
+    pub fn new(config: ServerConfig) -> Result<Self, Report<ServerError>> {
         let token = CancellationToken::new();
 
         let transport = TransportLayer::tcp(config.transport, token.clone())
             .change_context(ServerError::StartTransportLayer)?;
 
-        let session = SessionLayer::new(config.session, transport, encoder);
+        let session = SessionLayer::new(config.session, transport);
 
         Ok(Self {
             session,
@@ -99,6 +95,7 @@ where
     }
 
     /// Returns the event stream for this server.
+    #[must_use]
     pub fn events(&self) -> EventStream {
         self.session.events()
     }

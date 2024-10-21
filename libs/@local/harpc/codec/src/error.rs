@@ -1,29 +1,83 @@
-use core::marker::PhantomData;
+use core::{
+    error::Error,
+    fmt::{self, Debug, Display, Write},
+};
 
-use bytes::{Buf, BufMut, Bytes, BytesMut};
+use bytes::{BufMut, Bytes, BytesMut};
+use error_stack::Report;
 use harpc_types::error_code::ErrorCode;
 
-use self::kind::ErrorKind;
+fn error_request_error_code<E>(error: &E) -> ErrorCode
+where
+    E: core::error::Error,
+{
+    core::error::request_ref(error)
+        .copied()
+        .or_else(|| core::error::request_value(error))
+        .unwrap_or(ErrorCode::INTERNAL_SERVER_ERROR)
+}
 
-/// An error that is has been fully encoded and can be sent or received over the network.
-///
-/// Essentially a compiled version of a `NetworkError` or `Report<C>` into it's wire format.
-///
-/// An `EncodedError` is constructed through the `ErrorBuffer`.
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct EncodedError {
+fn report_request_error_code<C>(report: &Report<C>) -> ErrorCode {
+    report
+        .request_ref()
+        .next()
+        .copied()
+        .or_else(|| report.request_value().next())
+        .unwrap_or(ErrorCode::INTERNAL_SERVER_ERROR)
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NetworkError {
     code: ErrorCode,
     bytes: Bytes,
 }
 
-impl EncodedError {
-    pub fn new(code: ErrorCode, bytes: Bytes) -> Option<Self> {
-        let &first = bytes.first()?;
+impl NetworkError {
+    #[expect(
+        clippy::cast_possible_truncation,
+        clippy::big_endian_bytes,
+        reason = "numbers are always encoded in big-endian in our encoding scheme"
+    )]
+    fn capture_display(value: &impl Display) -> Bytes {
+        let mut buffer = BytesMut::new();
+        buffer.put_u32(0);
 
-        kind::Tag::variants()
-            .into_iter()
-            .any(|tag| tag as u8 == first)
-            .then(|| Self { code, bytes })
+        write!(&mut buffer, "{value}").unwrap_or_else(|_error| {
+            unreachable!("`BytesMut` has a capacity of `usize::MAX`");
+        });
+
+        // The length is not necessarily needed if we already have the total message, although it is
+        // absolutely necessary for the `NetworkError` to be able to be deserialized in a streaming
+        // fashion.
+        let length = buffer.len() - 4;
+        debug_assert!(
+            u32::try_from(length).is_ok(),
+            "debug message should be smaller than 4GiB",
+        );
+        let length = length as u32;
+
+        buffer[..4].copy_from_slice(&length.to_be_bytes());
+
+        buffer.freeze()
+    }
+
+    #[must_use]
+    pub fn capture_error<E>(error: &E) -> Self
+    where
+        E: core::error::Error,
+    {
+        Self {
+            code: error_request_error_code(error),
+            bytes: Self::capture_display(error),
+        }
+    }
+
+    #[must_use]
+    pub fn capture_report<C>(report: &Report<C>) -> Self {
+        Self {
+            code: report_request_error_code(report),
+            bytes: Self::capture_display(report),
+        }
     }
 
     pub const fn code(&self) -> ErrorCode {
@@ -34,190 +88,98 @@ impl EncodedError {
         &self.bytes
     }
 
+    pub fn into_bytes(self) -> Bytes {
+        self.bytes
+    }
+
     pub fn into_parts(self) -> (ErrorCode, Bytes) {
         (self.code, self.bytes)
     }
+
+    /// Constructs a `NetworkError` from an `ErrorCode` and `Bytes`.
+    ///
+    /// # Errors
+    ///
+    /// This function will return an error if the length encoded in the first 4 bytes
+    /// of the `bytes` parameter does not match the actual length of the remaining data.
+    #[expect(
+        clippy::big_endian_bytes,
+        clippy::panic_in_result_fn,
+        clippy::missing_panics_doc,
+        reason = "numbers are always encoded in big-endian in our encoding scheme"
+    )]
+    pub fn try_from_parts(code: ErrorCode, bytes: Bytes) -> Result<Self, Bytes> {
+        let slice = bytes.as_ref();
+        if slice.len() < 4 {
+            return Err(bytes);
+        }
+
+        // assert only exists to elide bounds checks and satisfy clippy
+        assert!(slice.len() >= 4);
+
+        let expected_length = u32::from_be_bytes([slice[0], slice[1], slice[2], slice[3]]) as usize;
+        let actual_length = bytes.len() - 4;
+
+        if actual_length != expected_length {
+            return Err(bytes);
+        }
+
+        Ok(Self { code, bytes })
+    }
 }
 
-pub trait NetworkError {
-    fn code(&self) -> ErrorCode;
-}
+impl Display for NetworkError {
+    fn fmt(&self, fmt: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // First 4 bytes are always the length of the message
+        let message = &self.bytes[4..];
 
-impl<T> NetworkError for T
-where
-    T: core::error::Error,
-{
-    fn code(&self) -> ErrorCode {
-        core::error::request_ref::<ErrorCode>(self)
-            .copied()
-            .or_else(|| core::error::request_value::<ErrorCode>(self))
-            .unwrap_or(ErrorCode::INTERNAL_SERVER_ERROR)
-    }
-}
-
-pub mod kind {
-    #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-    #[repr(u8)]
-    pub enum Tag {
-        NetworkError = 0x01,
-        Report = 0x02,
-        Recovery = 0xFF,
-    }
-
-    impl Tag {
-        pub(crate) fn variants() -> impl IntoIterator<Item = Self> {
-            [Self::NetworkError, Self::Report, Self::Recovery]
-        }
-
-        #[must_use]
-        pub const fn from_u8(value: u8) -> Option<Self> {
-            match value {
-                0x01 => Some(Self::NetworkError),
-                0x02 => Some(Self::Report),
-                0xFF => Some(Self::Recovery),
-                _ => None,
-            }
-        }
-    }
-
-    pub trait ErrorKind {
-        fn tag() -> Tag;
-    }
-
-    pub struct NetworkError {
-        _private: (),
-    }
-    impl ErrorKind for NetworkError {
-        fn tag() -> Tag {
-            Tag::NetworkError
-        }
-    }
-
-    pub struct Report {
-        _private: (),
-    }
-
-    impl ErrorKind for Report {
-        fn tag() -> Tag {
-            Tag::Report
-        }
-    }
-
-    pub struct Recovery {
-        _private: (),
-    }
-
-    impl ErrorKind for Recovery {
-        fn tag() -> Tag {
-            Tag::Recovery
+        if let Ok(message) = core::str::from_utf8(message) {
+            Display::fmt(message, fmt)
+        } else {
+            Debug::fmt(&message, fmt)
         }
     }
 }
 
-pub struct ErrorBuffer<T> {
-    kind: PhantomData<fn() -> *const T>,
-    buffer: BytesMut,
-}
-
-impl<T> ErrorBuffer<T>
-where
-    T: ErrorKind,
-{
-    fn new() -> Self {
-        let mut buffer = BytesMut::new();
-        buffer.put_u8(T::tag() as u8);
-
-        Self {
-            kind: PhantomData,
-            buffer,
-        }
-    }
-
-    #[must_use]
-    pub fn finish(self, code: ErrorCode) -> EncodedError {
-        EncodedError {
-            code,
-            bytes: self.buffer.freeze(),
-        }
+impl Error for NetworkError {
+    fn provide<'a>(&'a self, request: &mut core::error::Request<'a>) {
+        request.provide_value(self.code);
     }
 }
 
-impl ErrorBuffer<kind::NetworkError> {
-    #[must_use]
-    pub fn error() -> Self {
-        Self::new()
-    }
-}
+#[cfg(test)]
+mod test {
+    use super::NetworkError;
 
-impl ErrorBuffer<kind::Report> {
-    #[must_use]
-    pub fn report() -> Self {
-        Self::new()
-    }
-}
+    #[derive(Debug, thiserror::Error)]
+    #[error("example message")]
+    struct ExampleError;
 
-impl ErrorBuffer<kind::Recovery> {
-    #[must_use]
-    pub fn recovery() -> Self {
-        Self::new()
-    }
-}
+    #[expect(
+        clippy::big_endian_bytes,
+        reason = "numbers are always encoded in big-endian in our encoding scheme"
+    )]
+    #[test]
+    fn properly_encodes_length() {
+        let error = NetworkError::capture_error(&ExampleError);
+        let value = error.into_bytes();
 
-impl<T> Buf for ErrorBuffer<T> {
-    fn remaining(&self) -> usize {
-        self.buffer.remaining()
+        assert_eq!(value[0..4], 15_u32.to_be_bytes());
+        assert_eq!(value[4..], *b"example message");
     }
 
-    fn chunk(&self) -> &[u8] {
-        self.buffer.chunk()
-    }
+    // if we encode and decode the error, we should get the same error back
+    #[test]
+    fn encode_decode() {
+        let error = NetworkError::capture_error(&ExampleError);
 
-    fn advance(&mut self, cnt: usize) {
-        self.buffer.advance(cnt);
-    }
+        let code = error.code();
+        let value = error.bytes();
 
-    // These methods are specialized in the underlying `Bytes` implementation, relay them as well
+        let decoded =
+            NetworkError::try_from_parts(code, value.clone()).expect("encode/decode should work");
 
-    fn copy_to_bytes(&mut self, len: usize) -> Bytes {
-        self.buffer.copy_to_bytes(len)
-    }
-}
-
-#[expect(
-    unsafe_code,
-    reason = "delegating to the underlying `BytesMut` implementation"
-)]
-// SAFETY: we are delegating to the underlying `BytesMut` implementation
-unsafe impl<T> BufMut for ErrorBuffer<T> {
-    fn remaining_mut(&self) -> usize {
-        self.buffer.remaining_mut()
-    }
-
-    unsafe fn advance_mut(&mut self, cnt: usize) {
-        // SAFETY: This is safe, as we are delegating to the underlying `BytesMut` implementation
-        unsafe {
-            self.buffer.advance_mut(cnt);
-        }
-    }
-
-    fn chunk_mut(&mut self) -> &mut bytes::buf::UninitSlice {
-        self.buffer.chunk_mut()
-    }
-
-    // These methods are specialized in the underlying `BytesMut` implementation, relay them as well
-
-    fn put<B: Buf>(&mut self, src: B)
-    where
-        Self: Sized,
-    {
-        self.buffer.put(src);
-    }
-
-    fn put_slice(&mut self, src: &[u8]) {
-        self.buffer.put_slice(src);
-    }
-
-    fn put_bytes(&mut self, val: u8, cnt: usize) {
-        self.buffer.put_bytes(val, cnt);
+        assert_eq!(decoded.code(), code);
+        assert_eq!(decoded.bytes(), value);
     }
 }

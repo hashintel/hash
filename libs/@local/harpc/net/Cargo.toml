@@ -51,6 +51,7 @@ tokio-util = { workspace = true, features = ["codec", "compat", "rt", "tracing"]
 tracing = { workspace = true }
 
 [dev-dependencies]
+bytes = { workspace = true, features = ["serde"] }
 harpc-codec = { workspace = true, features = ["json"] }
 harpc-types = { workspace = true }
 harpc-wire-protocol = { workspace = true, features = ["test-utils"] }
