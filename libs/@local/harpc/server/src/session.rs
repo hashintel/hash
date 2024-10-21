@@ -79,10 +79,10 @@ impl<T> AsRef<T> for Session<T> {
 
 #[derive(Debug)]
 struct Marked {
-    // we use an std Mutex here, because we do not use the guard across an await point, therefore
-    // an std mutex is faster, smaller and more efficient.
+    // We use a std mutex here, because we do not use the guard across an await point, therefore
+    // a std mutex is faster, smaller and more efficient.
     inner: Mutex<HashSet<SessionId>>,
-    // SeqCst is not needed as we don't require total ordering across all threads.
+    // `SeqCst` is not needed as we don't require total ordering across all threads.
     len: AtomicUsize,
 }
 
@@ -154,7 +154,7 @@ impl Marked {
 /// the session values), the session values are stored as `Arc<T>`.
 /// Values could be stored as `T` instead, but that would mean that a service could potentially
 /// simply lose access to the value if it is removed from the storage during a call, severely
-/// impacting ergnomics.
+/// impacting ergonomics.
 /// The underlying storage is lock-free for any read operations.
 #[derive_where::derive_where(Debug; T: Debug + 'static)]
 pub struct SessionStorage<T> {

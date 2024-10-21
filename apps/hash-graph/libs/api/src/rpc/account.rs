@@ -1,9 +1,20 @@
 use alloc::sync::Arc;
 
-use authorization::{AuthorizationApiPool, schema::AccountGroupPermission};
+use authorization::{
+    AuthorizationApi, AuthorizationApiPool,
+    backend::ModifyRelationshipOperation,
+    schema::{
+        AccountGroupMemberSubject, AccountGroupPermission, AccountGroupRelationAndSubject,
+        WebOwnerSubject,
+    },
+    zanzibar::Consistency,
+};
 use error_stack::{Report, ResultExt};
 use graph::store::StorePool;
-use graph_types::account::{AccountGroupId, AccountId};
+use graph_types::{
+    account::{AccountGroupId, AccountId},
+    owned_by_id::OwnedById,
+};
 use harpc_server::session::Session;
 use harpc_service::role::Role;
 use hash_graph_store::account::{AccountStore, InsertAccountGroupIdParams, InsertAccountIdParams};
@@ -231,23 +242,37 @@ where
     S: StorePool + Send + Sync,
     A: AuthorizationApiPool + Send + Sync,
 {
-    async fn store(&self) -> Result<S::Store<A::Api>, Report<AccountError>> {
-        let authorization_api = self
-            .authorization_api_pool
+    async fn authorization_api(&self) -> Result<A::Api<'_>, Report<AccountError>> {
+        self.authorization_api_pool
             .acquire()
             .await
             .inspect_err(|error| {
                 tracing::error!(?error, "Could not acquire access to the authorization API");
             })
-            .change_context(AccountError)?;
+            .change_context(AccountError)
+    }
+
+    async fn store(&self) -> Result<S::Store<'_, A::Api<'_>>, Report<AccountError>> {
+        let authorization_api = self.authorization_api().await?;
 
         self.store_pool
-            .acquire(authorization_api, temporal_client.0)
+            .acquire(authorization_api, self.temporal_client.clone())
             .await
             .inspect_err(|report| {
                 tracing::error!(error=?report, "Could not acquire store");
             })
             .change_context(AccountError)
+    }
+
+    fn actor(session: Session<User>) -> Result<AccountId, Report<AccountError>> {
+        let &User {
+            actor_id: Some(actor_id),
+        } = session.get()
+        else {
+            todo!("Handle anonymous users")
+        };
+
+        Ok(actor_id)
     }
 }
 
@@ -261,11 +286,13 @@ where
         session: Session<User>,
         params: InsertAccountIdParams,
     ) -> Result<AccountId, Report<AccountError>> {
-        let store = self.store().await?;
+        let actor_id = Self::actor(session)?;
+
+        let mut store = self.store().await?;
 
         let account_id = params.account_id;
         store
-            .insert_account_id(session.get().actor_id, params)
+            .insert_account_id(actor_id, params)
             .await
             .change_context(AccountError)?;
 
@@ -277,10 +304,12 @@ where
         session: Session<User>,
         params: InsertAccountGroupIdParams,
     ) -> Result<AccountGroupId, Report<AccountError>> {
-        let store = self.store().await?;
+        let actor_id = Self::actor(session)?;
+
+        let mut store = self.store().await?;
 
         let account = store
-            .identify_owned_by_id(OwnedById::from(session.get().actor_id))
+            .identify_owned_by_id(OwnedById::from(actor_id))
             .await
             .inspect_err(|report| {
                 tracing::error!(error=?report, "Could not identify account");
@@ -289,7 +318,7 @@ where
 
         if account != (WebOwnerSubject::Account { id: actor_id }) {
             tracing::error!("Account does not exist in the graph");
-            return Err(StatusCode::NOT_FOUND);
+            todo!("Handle account not existing in the graph");
         }
 
         let account_group_id = params.account_group_id;
@@ -310,7 +339,30 @@ where
         account_group_id: AccountGroupId,
         permission: AccountGroupPermission,
     ) -> Result<PermissionResponse, Report<AccountError>> {
-        todo!()
+        let actor_id = Self::actor(session)?;
+
+        let auth = self.authorization_api().await?;
+
+        let check = auth
+            .check_account_group_permission(
+                actor_id,
+                permission,
+                account_group_id,
+                Consistency::FullyConsistent,
+            )
+            .await
+            .inspect_err(|error| {
+                tracing::error!(
+                    ?error,
+                    "Could not check if permission on the account group is granted to the \
+                     specified actor"
+                );
+            })
+            .change_context(AccountError)?;
+
+        Ok(PermissionResponse {
+            has_permission: check.has_permission,
+        })
     }
 
     async fn add_account_group_member(
@@ -319,7 +371,45 @@ where
         account_group_id: AccountGroupId,
         account_id: AccountId,
     ) -> Result<(), Report<AccountError>> {
-        todo!()
+        let actor_id = Self::actor(session)?;
+
+        let mut auth = self.authorization_api().await?;
+
+        let check = auth
+            .check_account_group_permission(
+                actor_id,
+                AccountGroupPermission::AddMember,
+                account_group_id,
+                Consistency::FullyConsistent,
+            )
+            .await
+            .inspect_err(|error| {
+                tracing::error!(
+                    ?error,
+                    "Could not check if account group member can be added"
+                );
+            })
+            .change_context(AccountError)?;
+
+        if !check.has_permission {
+            todo!("Handle permission denied - forbidden")
+        }
+
+        auth.modify_account_group_relations([(
+            ModifyRelationshipOperation::Create,
+            account_group_id,
+            AccountGroupRelationAndSubject::Member {
+                subject: AccountGroupMemberSubject::Account { id: account_id },
+                level: 0,
+            },
+        )])
+        .await
+        .inspect_err(|error| {
+            tracing::error!(?error, "Could not add account group member");
+        })
+        .change_context(AccountError)?;
+
+        Ok(())
     }
 
     async fn remove_account_group_member(
@@ -328,6 +418,44 @@ where
         account_group_id: AccountGroupId,
         account_id: AccountId,
     ) -> Result<(), Report<AccountError>> {
-        todo!()
+        let actor_id = Self::actor(session)?;
+
+        let mut auth = self.authorization_api().await?;
+
+        let check = auth
+            .check_account_group_permission(
+                actor_id,
+                AccountGroupPermission::RemoveMember,
+                account_group_id,
+                Consistency::FullyConsistent,
+            )
+            .await
+            .inspect_err(|error| {
+                tracing::error!(
+                    ?error,
+                    "Could not check if account group member can be removed"
+                );
+            })
+            .change_context(AccountError)?;
+
+        if !check.has_permission {
+            todo!("Handle permission denied - forbidden")
+        }
+
+        auth.modify_account_group_relations([(
+            ModifyRelationshipOperation::Delete,
+            account_group_id,
+            AccountGroupRelationAndSubject::Member {
+                subject: AccountGroupMemberSubject::Account { id: account_id },
+                level: 0,
+            },
+        )])
+        .await
+        .inspect_err(|error| {
+            tracing::error!(?error, "Could not remove account group member");
+        })
+        .change_context(AccountError)?;
+
+        Ok(())
     }
 }

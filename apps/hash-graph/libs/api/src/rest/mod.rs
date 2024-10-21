@@ -118,7 +118,7 @@ impl<S> FromRequestParts<S> for AuthenticatedUserHeader {
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct PermissionResponse {
-    has_permission: bool,
+    pub has_permission: bool,
 }
 
 pub trait RestApiStore: Store + TypeFetcher {
