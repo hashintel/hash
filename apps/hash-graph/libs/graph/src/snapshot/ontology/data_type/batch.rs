@@ -147,7 +147,8 @@ where
             .await
             .change_context(InsertionError)?;
 
-        <PostgresStore<C, A> as DataTypeStore>::reindex_cache(postgres_client)
+        postgres_client
+            .reindex_data_type_cache()
             .await
             .change_context(InsertionError)?;
 

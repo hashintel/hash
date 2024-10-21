@@ -24,10 +24,7 @@ use hash_graph_store::{
 };
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{DecisionTime, Timestamp, TransactionTime};
-use type_system::{
-    schema::{ClosedEntityType, EntityType},
-    url::VersionedUrl,
-};
+use type_system::{schema::ClosedEntityType, url::VersionedUrl};
 #[cfg(feature = "utoipa")]
 use utoipa::{
     ToSchema,
@@ -43,7 +40,6 @@ use crate::store::{
 #[derive(Debug, Clone, Deserialize)]
 #[serde(untagged)]
 pub enum EntityValidationType<'a> {
-    Schema(Vec<EntityType>),
     Id(Cow<'a, HashSet<VersionedUrl>>),
     #[serde(skip)]
     ClosedSchema(Cow<'a, ClosedEntityType>),
@@ -54,13 +50,9 @@ impl ToSchema<'_> for EntityValidationType<'_> {
     fn schema() -> (&'static str, openapi::RefOr<openapi::Schema>) {
         (
             "EntityValidationType",
-            Schema::OneOf(
-                schema::OneOfBuilder::new()
-                    .item(Ref::from_schema_name("VAR_ENTITY_TYPE").to_array_builder())
-                    .item(Ref::from_schema_name("VersionedUrl").to_array_builder())
-                    .build(),
-            )
-            .into(),
+            Ref::from_schema_name("VersionedUrl")
+                .to_array_builder()
+                .into(),
         )
     }
 }
@@ -383,6 +375,8 @@ pub trait EntityStore {
     ///   [`EntityType`]
     /// - if the account referred to by `owned_by_id` does not exist
     /// - if an [`EntityUuid`] was supplied and already exists in the store
+    ///
+    /// [`EntityType`]: type_system::schema::EntityType
     fn create_entity<R>(
         &mut self,
         actor_id: AccountId,
@@ -552,5 +546,17 @@ pub trait EntityStore {
         &mut self,
         actor_id: AccountId,
         params: UpdateEntityEmbeddingsParams<'_>,
+    ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
+
+    /// Re-indexes the cache for entities.
+    ///
+    /// This is only needed if the entity was changed in place without an update procedure. This is
+    /// a rare operation and should be avoided if possible.
+    ///
+    /// # Errors
+    ///
+    /// - if re-indexing the cache fails.
+    fn reindex_entity_cache(
+        &mut self,
     ) -> impl Future<Output = Result<(), Report<UpdateError>>> + Send;
 }

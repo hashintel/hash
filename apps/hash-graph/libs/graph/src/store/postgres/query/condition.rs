@@ -283,7 +283,7 @@ mod tests {
             r#"("ontology_ids_0_1_0"."base_url" = $1) AND ("ontology_ids_0_1_0"."version" = $2)"#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
-                &1,
+                &1_i32,
             ],
         );
     }
@@ -332,7 +332,7 @@ mod tests {
             r#"(("ontology_ids_0_1_0"."base_url" = $1) OR ("ontology_ids_0_1_0"."version" = $2))"#,
             &[
                 &"https://blockprotocol.org/@blockprotocol/types/data-type/text/",
-                &1,
+                &1_i32,
             ],
         );
     }

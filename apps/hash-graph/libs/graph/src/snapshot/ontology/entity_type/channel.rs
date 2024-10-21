@@ -12,7 +12,7 @@ use futures::{
 };
 use type_system::{
     Valid,
-    schema::{ClosedEntityType, EntityTypeUuid, PropertyTypeUuid},
+    schema::{ClosedEntityType, EntityTypeUuid},
 };
 
 use crate::{
@@ -23,11 +23,7 @@ use crate::{
             entity_type::batch::EntityTypeRowBatch, metadata::OntologyTypeMetadata,
         },
     },
-    store::postgres::query::rows::{
-        EntityTypeConstrainsLinkDestinationsOnRow, EntityTypeConstrainsLinksOnRow,
-        EntityTypeConstrainsPropertiesOnRow, EntityTypeEmbeddingRow, EntityTypeInheritsFromRow,
-        EntityTypeRow,
-    },
+    store::postgres::query::rows::{EntityTypeEmbeddingRow, EntityTypeRow},
 };
 
 /// A sink to insert [`EntityTypeSnapshotRecord`]s.
@@ -38,10 +34,6 @@ use crate::{
 pub struct EntityTypeSender {
     metadata: OntologyTypeMetadataSender,
     schema: Sender<EntityTypeRow>,
-    inherits_from: Sender<Vec<EntityTypeInheritsFromRow>>,
-    constrains_properties: Sender<Vec<EntityTypeConstrainsPropertiesOnRow>>,
-    constrains_links: Sender<Vec<EntityTypeConstrainsLinksOnRow>>,
-    constrains_link_destinations: Sender<Vec<EntityTypeConstrainsLinkDestinationsOnRow>>,
     relations: Sender<(EntityTypeUuid, Vec<EntityTypeRelationAndSubject>)>,
 }
 
@@ -57,18 +49,6 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
         ready!(self.schema.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll schema sender")?;
-        ready!(self.inherits_from.poll_ready_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll inherits from edge sender")?;
-        ready!(self.constrains_properties.poll_ready_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll constrains properties edge sender")?;
-        ready!(self.constrains_links.poll_ready_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll constrains links edge sender")?;
-        ready!(self.constrains_link_destinations.poll_ready_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not poll constrains link destinations edge sender")?;
         ready!(self.relations.poll_ready_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not poll relations sender")?;
@@ -92,83 +72,17 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
             })
             .attach_printable("could not send metadata")?;
 
-        let inherits_from: Vec<_> = entity_type
-            .schema
-            .all_of
-            .iter()
-            .map(|entity_type_ref| EntityTypeInheritsFromRow {
-                source_entity_type_ontology_id: ontology_id,
-                target_entity_type_ontology_id: EntityTypeUuid::from_url(&entity_type_ref.url),
-            })
-            .collect();
-        if !inherits_from.is_empty() {
-            self.inherits_from
-                .start_send_unpin(inherits_from)
-                .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send inherits from edge")?;
-        }
-
-        let properties: Vec<_> = entity_type
-            .schema
-            .property_type_references()
-            .into_iter()
-            .map(|entity_type_ref| EntityTypeConstrainsPropertiesOnRow {
-                source_entity_type_ontology_id: ontology_id,
-                target_property_type_ontology_id: PropertyTypeUuid::from_url(&entity_type_ref.url),
-            })
-            .collect();
-        if !properties.is_empty() {
-            self.constrains_properties
-                .start_send_unpin(properties)
-                .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send constrains properties edge")?;
-        }
-
-        // TODO: Add better functions to the `type-system` crate to easier read link mappings
-        let link_mappings = entity_type.schema.link_mappings();
-
-        let links: Vec<_> = link_mappings
-            .keys()
-            .map(|entity_type_ref| EntityTypeConstrainsLinksOnRow {
-                source_entity_type_ontology_id: ontology_id,
-                target_entity_type_ontology_id: EntityTypeUuid::from_url(&entity_type_ref.url),
-            })
-            .collect();
-        if !links.is_empty() {
-            self.constrains_links
-                .start_send_unpin(links)
-                .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send constrains links edge")?;
-        }
-
-        let link_destinations: Vec<_> = link_mappings
-            .into_values()
-            .flat_map(Option::unwrap_or_default)
-            .map(
-                |entity_type_ref| EntityTypeConstrainsLinkDestinationsOnRow {
-                    source_entity_type_ontology_id: ontology_id,
-                    target_entity_type_ontology_id: EntityTypeUuid::from_url(&entity_type_ref.url),
-                },
-            )
-            .collect();
-        if !link_destinations.is_empty() {
-            self.constrains_link_destinations
-                .start_send_unpin(link_destinations)
-                .change_context(SnapshotRestoreError::Read)
-                .attach_printable("could not send constrains link destinations edge")?;
-        }
-
         self.schema
             .start_send_unpin(EntityTypeRow {
                 ontology_id,
                 // TODO: Validate ontology types in snapshots
                 //   see https://linear.app/hash/issue/H-3038
                 schema: Valid::new_unchecked(entity_type.schema.clone()),
-                // The unclosed schema is inserted initially. This will be replaced later by the
-                // closed schema.
+                // An empty schema is inserted initially. This will be replaced later by the closed
+                // schema.
                 // TODO: Validate ontology types in snapshots
                 //   see https://linear.app/hash/issue/H-3038
-                closed_schema: Valid::new_unchecked(ClosedEntityType::from(entity_type.schema)),
+                closed_schema: Valid::new_unchecked(ClosedEntityType::default()),
                 label_property: entity_type
                     .metadata
                     .label_property
@@ -192,18 +106,6 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
         ready!(self.schema.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush schema sender")?;
-        ready!(self.inherits_from.poll_flush_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush inherits from edge sender")?;
-        ready!(self.constrains_properties.poll_flush_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush constrains properties edge sender")?;
-        ready!(self.constrains_links.poll_flush_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush constrains links edge sender")?;
-        ready!(self.constrains_link_destinations.poll_flush_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not flush constrains link destinations edge sender")?;
         ready!(self.relations.poll_flush_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not flush relations sender")?;
@@ -217,18 +119,6 @@ impl Sink<EntityTypeSnapshotRecord> for EntityTypeSender {
         ready!(self.schema.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close schema sender")?;
-        ready!(self.inherits_from.poll_close_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close inherits from edge sender")?;
-        ready!(self.constrains_properties.poll_close_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close constrains properties edge sender")?;
-        ready!(self.constrains_links.poll_close_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close constrains links edge sender")?;
-        ready!(self.constrains_link_destinations.poll_close_unpin(cx))
-            .change_context(SnapshotRestoreError::Read)
-            .attach_printable("could not close constrains link destinations edge sender")?;
         ready!(self.relations.poll_close_unpin(cx))
             .change_context(SnapshotRestoreError::Read)
             .attach_printable("could not close relations sender")?;
@@ -264,21 +154,12 @@ pub(crate) fn entity_type_channel(
     embedding_rx: Receiver<EntityTypeEmbeddingRow<'static>>,
 ) -> (EntityTypeSender, EntityTypeReceiver) {
     let (schema_tx, schema_rx) = mpsc::channel(chunk_size);
-    let (inherits_from_tx, inherits_from_rx) = mpsc::channel(chunk_size);
-    let (constrains_properties_tx, constrains_properties_rx) = mpsc::channel(chunk_size);
-    let (constrains_links_tx, constrains_links_rx) = mpsc::channel(chunk_size);
-    let (constrains_link_destinations_tx, constrains_link_destinations_rx) =
-        mpsc::channel(chunk_size);
     let (relations_tx, relations_rx) = mpsc::channel(chunk_size);
 
     (
         EntityTypeSender {
             metadata: metadata_sender,
             schema: schema_tx,
-            inherits_from: inherits_from_tx,
-            constrains_properties: constrains_properties_tx,
-            constrains_links: constrains_links_tx,
-            constrains_link_destinations: constrains_link_destinations_tx,
             relations: relations_tx,
         },
         EntityTypeReceiver {
@@ -286,34 +167,6 @@ pub(crate) fn entity_type_channel(
                 schema_rx
                     .ready_chunks(chunk_size)
                     .map(EntityTypeRowBatch::Schema)
-                    .boxed(),
-                inherits_from_rx
-                    .ready_chunks(chunk_size)
-                    .map(|values| {
-                        EntityTypeRowBatch::InheritsFrom(values.into_iter().flatten().collect())
-                    })
-                    .boxed(),
-                constrains_properties_rx
-                    .ready_chunks(chunk_size)
-                    .map(|values| {
-                        EntityTypeRowBatch::ConstrainsProperties(
-                            values.into_iter().flatten().collect(),
-                        )
-                    })
-                    .boxed(),
-                constrains_links_rx
-                    .ready_chunks(chunk_size)
-                    .map(|values| {
-                        EntityTypeRowBatch::ConstrainsLinks(values.into_iter().flatten().collect())
-                    })
-                    .boxed(),
-                constrains_link_destinations_rx
-                    .ready_chunks(chunk_size)
-                    .map(|values| {
-                        EntityTypeRowBatch::ConstrainsLinkDestinations(
-                            values.into_iter().flatten().collect(),
-                        )
-                    })
                     .boxed(),
                 relations_rx
                     .ready_chunks(chunk_size)

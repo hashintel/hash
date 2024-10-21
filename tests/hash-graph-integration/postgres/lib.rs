@@ -403,8 +403,8 @@ impl<A: AuthorizationApi> DataTypeStore for DatabaseApi<'_, A> {
             .await
     }
 
-    async fn reindex_cache(&mut self) -> Result<(), UpdateError> {
-        self.store.reindex_cache().await
+    async fn reindex_data_type_cache(&mut self) -> Result<(), UpdateError> {
+        self.store.reindex_entity_type_cache().await
     }
 }
 
@@ -662,6 +662,10 @@ impl<A: AuthorizationApi> EntityTypeStore for DatabaseApi<'_, A> {
             .update_entity_type_embeddings(actor_id, params)
             .await
     }
+
+    async fn reindex_entity_type_cache(&mut self) -> Result<(), UpdateError> {
+        self.store.reindex_entity_type_cache().await
+    }
 }
 
 impl<A> EntityStore for DatabaseApi<'_, A>
@@ -787,6 +791,10 @@ where
         params: UpdateEntityEmbeddingsParams<'_>,
     ) -> Result<(), UpdateError> {
         self.store.update_entity_embeddings(actor_id, params).await
+    }
+
+    async fn reindex_entity_cache(&mut self) -> Result<(), UpdateError> {
+        self.store.reindex_entity_cache().await
     }
 }
 

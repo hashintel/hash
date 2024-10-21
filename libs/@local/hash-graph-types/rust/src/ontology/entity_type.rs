@@ -1,5 +1,3 @@
-use core::iter::once;
-
 use serde::{Deserialize, Serialize};
 use type_system::{
     schema::EntityType,
@@ -119,23 +117,12 @@ impl OntologyType for EntityType {
     }
 
     fn traverse_references(&self) -> Vec<OntologyTypeReference> {
-        self.property_type_references()
-            .into_iter()
-            .map(OntologyTypeReference::PropertyTypeReference)
+        self.entity_type_references()
+            .map(|(reference, _)| OntologyTypeReference::EntityTypeReference(reference))
             .chain(
-                self.all_of
-                    .iter()
-                    .map(OntologyTypeReference::EntityTypeReference),
+                self.property_type_references()
+                    .map(|(reference, _)| OntologyTypeReference::PropertyTypeReference(reference)),
             )
-            .chain(self.link_mappings().into_iter().flat_map(
-                |(link_entity_type, destination_entity_type_constraint)| {
-                    {
-                        once(link_entity_type)
-                            .chain(destination_entity_type_constraint.unwrap_or_default())
-                    }
-                    .map(OntologyTypeReference::EntityTypeReference)
-                },
-            ))
             .collect()
     }
 }

@@ -1,15 +1,9 @@
 use alloc::sync::Arc;
-#[cfg(feature = "postgres")]
-use core::error::Error;
 use core::{cmp, iter};
 use std::collections::{HashMap, hash_map::Entry};
 
-#[cfg(feature = "postgres")]
-use bytes::BytesMut;
 use error_stack::{Report, bail};
-use itertools::Itertools;
-#[cfg(feature = "postgres")]
-use postgres_types::{FromSql, IsNull, ToSql, Type};
+use itertools::Itertools as _;
 use serde::{Deserialize, Serialize};
 use serde_json::{Value as JsonValue, json};
 use thiserror::Error;
@@ -17,7 +11,7 @@ use thiserror::Error;
 use crate::{
     Valid,
     schema::{
-        DataType, DataTypeUuid, ValueLabel,
+        DataType, DataTypeUuid, InheritanceDepth, ValueLabel,
         data_type::{DataTypeEdge, constraint::ValueConstraints},
     },
     url::VersionedUrl,
@@ -124,46 +118,6 @@ impl ResolvedDataType {
     pub fn data_type(&self) -> &Valid<DataType> {
         // Valid closed schemas imply that the schema is valid
         Valid::new_ref_unchecked(&self.schema)
-    }
-}
-
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-#[cfg_attr(feature = "utoipa", derive(utoipa::ToSchema))]
-#[repr(transparent)]
-pub struct InheritanceDepth(u16);
-
-impl InheritanceDepth {
-    #[must_use]
-    pub const fn new(inner: u16) -> Self {
-        Self(inner)
-    }
-
-    #[must_use]
-    pub const fn inner(self) -> u16 {
-        self.0
-    }
-}
-
-#[cfg(feature = "postgres")]
-impl ToSql for InheritanceDepth {
-    postgres_types::accepts!(INT4);
-
-    postgres_types::to_sql_checked!();
-
-    fn to_sql(&self, ty: &Type, out: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>>
-    where
-        Self: Sized,
-    {
-        i32::from(self.0).to_sql(ty, out)
-    }
-}
-
-#[cfg(feature = "postgres")]
-impl<'a> FromSql<'a> for InheritanceDepth {
-    postgres_types::accepts!(INT4);
-
-    fn from_sql(ty: &Type, raw: &'a [u8]) -> Result<Self, Box<dyn Error + Sync + Send>> {
-        Ok(Self::new(i32::from_sql(ty, raw)?.try_into()?))
     }
 }
 
@@ -568,7 +522,7 @@ mod tests {
         for definitions in permutations.iter().permutations(permutations.len()) {
             let mut resolver = OntologyTypeResolver::default();
             for definition in &definitions {
-                resolver.add_unresolved(
+                resolver.add_unresolved_data_type(
                     DataTypeUuid::from_url(&definition.0.id),
                     Arc::new(definition.0.clone()),
                 );

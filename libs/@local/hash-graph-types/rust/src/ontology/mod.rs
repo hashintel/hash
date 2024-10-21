@@ -6,7 +6,6 @@ mod provenance;
 use core::{borrow::Borrow, fmt};
 
 use error_stack::{Context, Report};
-use futures::{StreamExt, TryStreamExt, stream};
 use serde::{Deserialize, Serialize};
 use temporal_versioning::{LeftClosedTemporalInterval, TransactionTime};
 use time::OffsetDateTime;
@@ -198,21 +197,4 @@ pub trait EntityTypeProvider: OntologyTypeProvider<ClosedEntityType> {
         child: &VersionedUrl,
         parent: &BaseUrl,
     ) -> impl Future<Output = Result<bool, Report<impl Context>>> + Send;
-
-    fn provide_closed_type<'a, I>(
-        &self,
-        type_ids: I,
-    ) -> impl Future<Output = Result<ClosedEntityType, Report<impl Context>>> + Send
-    where
-        Self: Sync,
-        I: IntoIterator<Item = &'a VersionedUrl, IntoIter: Send> + Send,
-    {
-        stream::iter(type_ids)
-            .then(|entity_type_url| async {
-                self.provide_type(entity_type_url)
-                    .await
-                    .map(|entity_type| entity_type.borrow().clone())
-            })
-            .try_collect::<ClosedEntityType>()
-    }
 }
