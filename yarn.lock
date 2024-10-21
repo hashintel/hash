@@ -6020,10 +6020,10 @@
     chalk "^4"
     fast-levenshtein "^3.0.0"
 
-"@openapitools/openapi-generator-cli@2.14.0":
-  version "2.14.0"
-  resolved "https://registry.yarnpkg.com/@openapitools/openapi-generator-cli/-/openapi-generator-cli-2.14.0.tgz#016f509e7b13325524039d10d428c793503a4a04"
-  integrity sha512-k+ioQLtXLXgNbhQbp1UOxtaUnnYTWwAPev88hP5qauFA+eq4NyeQGNojknFssXg2x0VT0TUGmU3PZ2DiQ70IVg==
+"@openapitools/openapi-generator-cli@2.14.1":
+  version "2.14.1"
+  resolved "https://registry.yarnpkg.com/@openapitools/openapi-generator-cli/-/openapi-generator-cli-2.14.1.tgz#74babae6544497ce34d8bc59ee876e206a7f09de"
+  integrity sha512-AHh5hcM5HoyLCHYdJesIAa53RGrmoaKw/RnIHpFCdumHEUNzqVmi7rHj0pWs4to1v99vbHE6zWp69WGOaa8rOg==
   dependencies:
     "@nestjs/axios" "3.0.3"
     "@nestjs/common" "10.4.3"
@@ -6037,9 +6037,9 @@
     console.table "0.10.0"
     fs-extra "10.1.0"
     glob "9.3.5"
-    https-proxy-agent "7.0.5"
     inquirer "8.2.6"
     lodash "4.17.21"
+    proxy-agent "6.4.0"
     reflect-metadata "0.1.13"
     rxjs "7.8.1"
     tslib "2.7.0"
@@ -19428,14 +19428,6 @@ https-proxy-agent@5.0.0:
     agent-base "6"
     debug "4"
 
-https-proxy-agent@7.0.5, https-proxy-agent@^7.0.0, https-proxy-agent@^7.0.1, https-proxy-agent@^7.0.2, https-proxy-agent@^7.0.3, https-proxy-agent@^7.0.4, https-proxy-agent@^7.0.5:
-  version "7.0.5"
-  resolved "https://registry.yarnpkg.com/https-proxy-agent/-/https-proxy-agent-7.0.5.tgz#9e8b5013873299e11fab6fd548405da2d6c602b2"
-  integrity sha512-1e4Wqeblerz+tMKPIq2EMGiiWW1dIjZOksyHWSUm1rmuvw/how9hBHZ38lAGj5ID4Ik6EdkOw7NmWPy6LAwalw==
-  dependencies:
-    agent-base "^7.0.2"
-    debug "4"
-
 https-proxy-agent@^4.0.0:
   version "4.0.0"
   resolved "https://registry.yarnpkg.com/https-proxy-agent/-/https-proxy-agent-4.0.0.tgz#702b71fb5520a132a66de1f67541d9e62154d82b"
@@ -19450,6 +19442,14 @@ https-proxy-agent@^5.0.0, https-proxy-agent@^5.0.1:
   integrity "sha1-xZ7yJKBP6LdU89sAY6Jeow0ABdY= sha512-dFcAjpTQFgoLMzC2VwU+C/CbS7uRL0lWmxDITmqm7C+7F0Odmj6s9l6alZc6AELXhrnggM2CeWSXHGOdX2YtwA=="
   dependencies:
     agent-base "6"
+    debug "4"
+
+https-proxy-agent@^7.0.0, https-proxy-agent@^7.0.1, https-proxy-agent@^7.0.2, https-proxy-agent@^7.0.3, https-proxy-agent@^7.0.4, https-proxy-agent@^7.0.5:
+  version "7.0.5"
+  resolved "https://registry.yarnpkg.com/https-proxy-agent/-/https-proxy-agent-7.0.5.tgz#9e8b5013873299e11fab6fd548405da2d6c602b2"
+  integrity sha512-1e4Wqeblerz+tMKPIq2EMGiiWW1dIjZOksyHWSUm1rmuvw/how9hBHZ38lAGj5ID4Ik6EdkOw7NmWPy6LAwalw==
+  dependencies:
+    agent-base "^7.0.2"
     debug "4"
 
 httpyac@6.15.1:
@@ -26037,7 +26037,7 @@ proxy-addr@~2.0.7:
     forwarded "0.2.0"
     ipaddr.js "1.9.1"
 
-proxy-agent@^6.4.0:
+proxy-agent@6.4.0, proxy-agent@^6.4.0:
   version "6.4.0"
   resolved "https://registry.yarnpkg.com/proxy-agent/-/proxy-agent-6.4.0.tgz#b4e2dd51dee2b377748aef8d45604c2d7608652d"
   integrity sha512-u0piLU+nCOHMgGjRbimiXmA9kM/L9EHh3zL81xCdp7m+Y2pHIsnmbdDoEDoAz5geaonNR6q6+yOPQs6n4T6sBQ==
