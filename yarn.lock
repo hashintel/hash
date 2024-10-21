@@ -32227,10 +32227,10 @@ zip-stream@^4.1.0:
     compress-commons "^4.1.2"
     readable-stream "^3.6.0"
 
-zip-webpack-plugin@4.0.1:
-  version "4.0.1"
-  resolved "https://registry.yarnpkg.com/zip-webpack-plugin/-/zip-webpack-plugin-4.0.1.tgz#95f09716ecf73e53d949443017cfb03afe597dd3"
-  integrity sha512-G041Q4qUaog44Ynit6gs4o+o3JIv0WWfOLvc8Q3IxvPfuqd2KBHhpJWAXUB9Cm1JcWHTIOp9vS3oGMWa1p1Ehw==
+zip-webpack-plugin@4.0.2:
+  version "4.0.2"
+  resolved "https://registry.yarnpkg.com/zip-webpack-plugin/-/zip-webpack-plugin-4.0.2.tgz#81bbb67c08ae4819c8ffae054b74c8eddb5593c5"
+  integrity sha512-t7GEF8q8l2zcTtrMes5j6/RpkBgIw8ARZmB5jWNksLua1mNa0bVaIVXOU8cFPXnbcFsHjgrLEyRMvLT1HcUiEA==
   dependencies:
     yazl "^2.5.1"
 
