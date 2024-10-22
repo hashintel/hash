@@ -8,7 +8,6 @@
 use bytes::Buf;
 use futures_core::{Stream, TryStream};
 
-use self::{decode::ErrorDecoder, encode::ErrorEncoder};
 use crate::{decode::Decoder, encode::Encoder};
 
 pub mod decode;
@@ -18,10 +17,8 @@ pub mod error;
 pub mod json;
 
 pub trait Codec: Encoder + Decoder {}
-pub trait ErrorCodec: ErrorEncoder + ErrorDecoder {}
 
 impl<T> Codec for T where T: Encoder + Decoder {}
-impl<T> ErrorCodec for T where T: ErrorEncoder + ErrorDecoder {}
 
 pub struct SplitCodec<E, D> {
     pub encoder: E,

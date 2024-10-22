@@ -9,7 +9,6 @@ use std::io::{self, ErrorKind};
 use bytes::{Bytes, BytesMut};
 use error_stack::{Report, ResultExt};
 use futures::{SinkExt, Stream, StreamExt};
-use harpc_codec::json::JsonCodec;
 use harpc_types::{
     procedure::{ProcedureDescriptor, ProcedureId},
     service::{ServiceDescriptor, ServiceId},
@@ -97,7 +96,7 @@ async fn session_map<T, U>(
     config: SessionConfig,
     address: Multiaddr,
     map_transport: impl FnOnce(&TransportLayer) -> T + Send,
-    map_layer: impl FnOnce(&SessionLayer<JsonCodec>) -> U + Send,
+    map_layer: impl FnOnce(&SessionLayer) -> U + Send,
 ) -> (ListenStream, T, U, impl Drop)
 where
     T: Send,
@@ -107,7 +106,7 @@ where
 
     let transport_data = map_transport(&transport);
 
-    let layer = SessionLayer::new(config, transport, JsonCodec);
+    let layer = SessionLayer::new(config, transport);
 
     let layer_data = map_layer(&layer);
 

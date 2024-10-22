@@ -18,7 +18,6 @@ tower = { workspace = true, public = true }
 # Private workspace dependencies
 error-stack = { workspace = true }
 harpc-net = { workspace = true }
-harpc-service = { workspace = true }
 
 # Private third-party dependencies
 bytes = { workspace = true }
