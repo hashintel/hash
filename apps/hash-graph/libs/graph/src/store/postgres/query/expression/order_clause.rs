@@ -119,7 +119,7 @@ mod tests {
         );
 
         assert_eq!(
-            trim_whitespace(order_by_expression.transpile_to_string()),
+            trim_whitespace(&order_by_expression.transpile_to_string()),
             trim_whitespace(
                 r#"ORDER BY "ontology_ids_1_2_3"."base_url" ASC NULLS FIRST,
                 "ontology_ids_4_5_6"."version" DESC NULLS LAST"#

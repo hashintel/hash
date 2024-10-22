@@ -14,7 +14,7 @@ use authorization::{
     zanzibar::{Consistency, Zookie},
 };
 use error_stack::{Report, ReportSink, Result, ResultExt, bail};
-use futures::TryStreamExt;
+use futures::{StreamExt as _, TryStreamExt, stream};
 use graph_types::{
     Embedding,
     account::{AccountId, CreatedById, EditionArchivedById, EditionCreatedById},
@@ -31,7 +31,7 @@ use graph_types::{
             PropertyWithMetadataValue, visitor::EntityVisitor,
         },
     },
-    ontology::{DataTypeProvider, EntityTypeProvider},
+    ontology::{DataTypeProvider, OntologyTypeProvider},
     owned_by_id::OwnedById,
 };
 use hash_graph_store::{
@@ -58,7 +58,7 @@ use temporal_versioning::{
 };
 use tokio_postgres::{GenericClient, Row, error::SqlState};
 use type_system::{
-    schema::{EntityTypeUuid, OntologyTypeUuid},
+    schema::{ClosedEntityType, EntityTypeUuid, InheritanceDepth, OntologyTypeUuid},
     url::VersionedUrl,
 };
 use uuid::Uuid;
@@ -641,10 +641,21 @@ where
         };
 
         for mut params in params {
-            let entity_type = validator_provider
-                .provide_closed_type(&params.entity_type_ids)
-                .await
-                .change_context(InsertionError)?;
+            let entity_type = ClosedEntityType::from_multi_type_closed_schema(
+                stream::iter(&params.entity_type_ids)
+                    .then(|entity_type_url| async {
+                        OntologyTypeProvider::<ClosedEntityType>::provide_type(
+                            &validator_provider,
+                            entity_type_url,
+                        )
+                        .await
+                        .map(|entity_type| (*entity_type).clone())
+                    })
+                    .try_collect::<Vec<ClosedEntityType>>()
+                    .await
+                    .change_context(InsertionError)?,
+            )
+            .change_context(InsertionError)?;
 
             let validation_components = if params.draft {
                 ValidateEntityComponents {
@@ -662,7 +673,6 @@ where
             .await
             .attach(StatusCode::InvalidArgument)
             .change_context(InsertionError)?;
-            validation_params.push((entity_type, validation_components));
 
             let (properties, property_metadata) = params.properties.into_parts();
 
@@ -743,12 +753,15 @@ where
                 transaction_time: temporal_versioning.transaction_time,
             });
 
-            for entity_type_url in &params.entity_type_ids {
+            for (entity_type_url, (depth, _)) in &entity_type.schemas {
                 let entity_type_id = EntityTypeUuid::from_url(entity_type_url);
-                entity_type_ids.insert(entity_type_id, entity_type_url.clone());
+                if depth.inner() == 0 {
+                    entity_type_ids.insert(entity_type_id, entity_type_url.clone());
+                }
                 entity_is_of_type_rows.push(EntityIsOfTypeRow {
                     entity_edition_id,
                     entity_type_ontology_id: entity_type_id,
+                    inheritance_depth: *depth,
                 });
             }
 
@@ -787,6 +800,8 @@ where
                     properties: property_metadata,
                 },
             });
+
+            validation_params.push((entity_type, validation_components));
 
             let current_num_relationships = relationships.len();
             relationships.extend(
@@ -993,12 +1008,22 @@ where
         for mut params in params {
             let schema = match params.entity_types {
                 EntityValidationType::ClosedSchema(schema) => schema,
-                EntityValidationType::Schema(schemas) => Cow::Owned(schemas.into_iter().collect()),
                 EntityValidationType::Id(entity_type_urls) => Cow::Owned(
-                    validator_provider
-                        .provide_closed_type(entity_type_urls.as_ref())
-                        .await
-                        .change_context(ValidateEntityError)?,
+                    ClosedEntityType::from_multi_type_closed_schema(
+                        stream::iter(entity_type_urls.as_ref())
+                            .then(|entity_type_url| async {
+                                OntologyTypeProvider::<ClosedEntityType>::provide_type(
+                                    &validator_provider,
+                                    entity_type_url,
+                                )
+                                .await
+                                .map(|entity_type| (*entity_type).clone())
+                            })
+                            .try_collect::<Vec<ClosedEntityType>>()
+                            .await
+                            .change_context(ValidateEntityError)?,
+                    )
+                    .change_context(ValidateEntityError)?,
                 ),
             };
 
@@ -1462,10 +1487,21 @@ where
             cache: StoreCache::default(),
             authorization: Some((actor_id, Consistency::FullyConsistent)),
         };
-        let entity_type = validator_provider
-            .provide_closed_type(&entity_type_ids)
-            .await
-            .change_context(UpdateError)?;
+        let entity_type = ClosedEntityType::from_multi_type_closed_schema(
+            stream::iter(&entity_type_ids)
+                .then(|entity_type_url| async {
+                    OntologyTypeProvider::<ClosedEntityType>::provide_type(
+                        &validator_provider,
+                        entity_type_url,
+                    )
+                    .await
+                    .map(|entity_type| (*entity_type).clone())
+                })
+                .try_collect::<Vec<ClosedEntityType>>()
+                .await
+                .change_context(UpdateError)?,
+        )
+        .change_context(UpdateError)?;
 
         let validation_components = if draft {
             ValidateEntityComponents::draft()
@@ -1528,7 +1564,10 @@ where
         let edition_id = transaction
             .insert_entity_edition(
                 archived,
-                &entity_type_ids,
+                entity_type
+                    .schemas
+                    .iter()
+                    .map(|(entity_type_id, (depth, _))| (entity_type_id, *depth)),
                 &properties,
                 params.confidence,
                 &edition_provenance,
@@ -1803,6 +1842,35 @@ where
 
         Ok(())
     }
+
+    #[tracing::instrument(level = "info", skip(self))]
+    async fn reindex_entity_cache(&mut self) -> Result<(), UpdateError> {
+        tracing::info!("Reindexing entity cache");
+        let transaction = self.transaction().await.change_context(UpdateError)?;
+
+        // We remove the data from the reference tables first
+        transaction
+            .as_client()
+            .simple_query(
+                "
+                    DELETE FROM entity_is_of_type WHERE inheritance_depth > 0;
+
+                    INSERT INTO entity_is_of_type
+                    SELECT entity_edition_id,
+                           target_entity_type_ontology_id AS entity_type_ontology_id,
+                           entity_type_inherits_from.depth + 1 AS inheritance_depth
+                      FROM entity_is_of_type
+                      JOIN entity_type_inherits_from
+                        ON entity_type_ontology_id = source_entity_type_ontology_id;
+                ",
+            )
+            .await
+            .change_context(UpdateError)?;
+
+        transaction.commit().await.change_context(UpdateError)?;
+
+        Ok(())
+    }
 }
 
 #[derive(Debug)]
@@ -1818,11 +1886,11 @@ impl<A> PostgresStore<tokio_postgres::Transaction<'_>, A>
 where
     A: Send + Sync,
 {
-    #[tracing::instrument(level = "trace", skip(self))]
+    #[tracing::instrument(level = "trace", skip(self, entity_type_ids))]
     async fn insert_entity_edition(
         &self,
         archived: bool,
-        entity_type_ids: &HashSet<VersionedUrl>,
+        entity_type_ids: impl IntoIterator<Item = (&VersionedUrl, InheritanceDepth)> + Send,
         properties: &PropertyObject,
         confidence: Option<Confidence>,
         provenance: &EntityEditionProvenance,
@@ -1848,20 +1916,26 @@ where
             .change_context(InsertionError)?
             .get(0);
 
-        let entity_type_ontology_ids = entity_type_ids
-            .iter()
-            .map(|entity_type_id| OntologyTypeUuid::from(EntityTypeUuid::from_url(entity_type_id)))
-            .collect::<Vec<_>>();
+        let (entity_type_ontology_ids, inheritance_depths): (Vec<_>, Vec<_>) = entity_type_ids
+            .into_iter()
+            .map(|(entity_type_id, depth)| {
+                (
+                    OntologyTypeUuid::from(EntityTypeUuid::from_url(entity_type_id)),
+                    depth,
+                )
+            })
+            .unzip();
 
         self.as_client()
             .query(
                 "
                     INSERT INTO entity_is_of_type (
                         entity_edition_id,
-                        entity_type_ontology_id
-                    ) SELECT $1, UNNEST($2::UUID[]);
+                        entity_type_ontology_id,
+                        inheritance_depth
+                    ) SELECT $1, UNNEST($2::UUID[]), UNNEST($3::Integer[]);
                 ",
-                &[&edition_id, &entity_type_ontology_ids],
+                &[&edition_id, &entity_type_ontology_ids, &inheritance_depths],
             )
             .await
             .change_context(InsertionError)?;

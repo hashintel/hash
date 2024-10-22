@@ -115,7 +115,10 @@ mod tests {
     use temporal_versioning::{ClosedTemporalBound, Interval, OpenTemporalBound, Timestamp};
     use thiserror::Error;
     use type_system::{
-        schema::{ClosedEntityType, ConversionExpression, DataType, EntityType, PropertyType},
+        schema::{
+            ClosedEntityType, ConversionExpression, DataType, EntityType, EntityTypeUuid,
+            OntologyTypeResolver, PropertyType,
+        },
         url::{BaseUrl, VersionedUrl},
     };
     use uuid::Uuid;
@@ -233,9 +236,9 @@ mod tests {
             Ok(
                 OntologyTypeProvider::<ClosedEntityType>::provide_type(self, child)
                     .await?
-                    .all_of
-                    .iter()
-                    .any(|id| id.url.base_url == *parent),
+                    .schemas
+                    .keys()
+                    .any(|id| id.base_url == *parent),
             )
         }
     }
@@ -334,21 +337,54 @@ mod tests {
     ) -> Result<PropertyWithMetadataObject, Report<[TraversalError]>> {
         install_error_stack_hooks();
 
+        let mut ontology_type_resolver = OntologyTypeResolver::default();
+        let entity_types = entity_types
+            .into_iter()
+            .map(|entity_type| {
+                let entity_type = serde_json::from_str::<EntityType>(entity_type)
+                    .expect("failed to parse entity type");
+                let entity_type_id = EntityTypeUuid::from_url(&entity_type.id);
+                ontology_type_resolver
+                    .add_unresolved_entity_type(entity_type_id, Arc::new(entity_type.clone()));
+                (entity_type_id, entity_type)
+            })
+            .collect::<Vec<_>>();
+
+        let entity_type =
+            serde_json::from_str::<EntityType>(entity_type).expect("failed to parse entity type");
+        let entity_type_uuid = EntityTypeUuid::from_url(&entity_type.id);
+        ontology_type_resolver
+            .add_unresolved_entity_type(entity_type_uuid, Arc::new(entity_type.clone()));
+
+        let resolved_data = ontology_type_resolver
+            .resolve_entity_type_metadata(entity_type_uuid)
+            .expect("entity type not resolved");
+        let closed_entity_type = ClosedEntityType::from_resolve_data(entity_type, &resolved_data)
+            .expect("Could not close entity type");
+
+        let entity_types = entity_types
+            .into_iter()
+            .map(|(entity_type_uuid, entity_type)| {
+                let resolved_data = ontology_type_resolver
+                    .resolve_entity_type_metadata(entity_type_uuid)
+                    .expect("entity type not resolved");
+                let entity_type_id = entity_type.id.clone();
+                let closed_entity_type =
+                    ClosedEntityType::from_resolve_data(entity_type, &resolved_data)
+                        .expect("Could not close church");
+                (entity_type_id, closed_entity_type)
+            })
+            .collect::<Vec<_>>();
+
         let provider = Provider::new(
             entities,
-            entity_types.into_iter().map(|entity_type| {
-                serde_json::from_str(entity_type).expect("failed to parse entity type")
-            }),
+            entity_types,
             property_types.into_iter().map(|property_type| {
                 serde_json::from_str(property_type).expect("failed to parse property type")
             }),
             data_types.into_iter().map(|data_type| {
                 serde_json::from_str(data_type).expect("failed to parse data type")
             }),
-        );
-
-        let entity_type = ClosedEntityType::from(
-            serde_json::from_str::<EntityType>(entity_type).expect("failed to parse entity type"),
         );
 
         let mut properties = PropertyWithMetadataObject::from_parts(
@@ -358,7 +394,7 @@ mod tests {
         .expect("failed to create property with metadata");
 
         EntityPreprocessor { components }
-            .visit_object(&entity_type, &mut properties, &provider)
+            .visit_object(&closed_entity_type, &mut properties, &provider)
             .await?;
 
         Ok(properties)

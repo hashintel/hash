@@ -59,45 +59,37 @@ pub enum ReferenceTable {
 }
 
 impl ReferenceTable {
-    pub fn inheritance_depth_column(self) -> Option<Column> {
+    pub const fn inheritance_depth_column(self) -> Option<Column> {
         match self {
             Self::DataTypeInheritsFrom { inheritance_depth } => Some(Column::DataTypeInheritsFrom(
                 DataTypeInheritsFrom::Depth,
                 inheritance_depth,
             )),
-            Self::EntityTypeConstrainsPropertiesOn { inheritance_depth }
-                if inheritance_depth != Some(0) =>
-            {
+            Self::EntityTypeConstrainsPropertiesOn { inheritance_depth } => {
                 Some(Column::EntityTypeConstrainsPropertiesOn(
                     EntityTypeConstrainsPropertiesOn::InheritanceDepth,
                     inheritance_depth,
                 ))
             }
-            Self::EntityTypeInheritsFrom { inheritance_depth } if inheritance_depth != Some(0) => {
-                Some(Column::EntityTypeInheritsFrom(
-                    EntityTypeInheritsFrom::InheritanceDepth,
-                    inheritance_depth,
-                ))
-            }
-            Self::EntityTypeConstrainsLinksOn { inheritance_depth }
-                if inheritance_depth != Some(0) =>
-            {
+            Self::EntityTypeInheritsFrom { inheritance_depth } => Some(
+                Column::EntityTypeInheritsFrom(EntityTypeInheritsFrom::Depth, inheritance_depth),
+            ),
+            Self::EntityTypeConstrainsLinksOn { inheritance_depth } => {
                 Some(Column::EntityTypeConstrainsLinksOn(
                     EntityTypeConstrainsLinksOn::InheritanceDepth,
                     inheritance_depth,
                 ))
             }
-            Self::EntityTypeConstrainsLinkDestinationsOn { inheritance_depth }
-                if inheritance_depth != Some(0) =>
-            {
+            Self::EntityTypeConstrainsLinkDestinationsOn { inheritance_depth } => {
                 Some(Column::EntityTypeConstrainsLinkDestinationsOn(
                     EntityTypeConstrainsLinkDestinationsOn::InheritanceDepth,
                     inheritance_depth,
                 ))
             }
-            Self::EntityIsOfType { inheritance_depth } if inheritance_depth != Some(0) => Some(
-                Column::EntityIsOfType(EntityIsOfType::InheritanceDepth, inheritance_depth),
-            ),
+            Self::EntityIsOfType { inheritance_depth } => Some(Column::EntityIsOfType(
+                EntityIsOfType::InheritanceDepth,
+                inheritance_depth,
+            )),
             _ => None,
         }
     }
@@ -311,29 +303,20 @@ impl ReferenceTable {
             Self::PropertyTypeConstrainsValuesOn => "property_type_constrains_values_on",
             Self::PropertyTypeConstrainsPropertiesOn => "property_type_constrains_properties_on",
             Self::EntityTypeConstrainsPropertiesOn {
-                inheritance_depth: Some(0),
+                inheritance_depth: _,
             } => "entity_type_constrains_properties_on",
-            Self::EntityTypeConstrainsPropertiesOn { .. } => {
-                "closed_entity_type_constrains_properties_on"
-            }
             Self::EntityTypeInheritsFrom {
-                inheritance_depth: Some(0),
+                inheritance_depth: _,
             } => "entity_type_inherits_from",
-            Self::EntityTypeInheritsFrom { .. } => "closed_entity_type_inherits_from",
             Self::EntityTypeConstrainsLinksOn {
-                inheritance_depth: Some(0),
+                inheritance_depth: _,
             } => "entity_type_constrains_links_on",
-            Self::EntityTypeConstrainsLinksOn { .. } => "closed_entity_type_constrains_links_on",
             Self::EntityTypeConstrainsLinkDestinationsOn {
-                inheritance_depth: Some(0),
+                inheritance_depth: _,
             } => "entity_type_constrains_link_destinations_on",
-            Self::EntityTypeConstrainsLinkDestinationsOn { .. } => {
-                "closed_entity_type_constrains_link_destinations_on"
-            }
             Self::EntityIsOfType {
-                inheritance_depth: Some(0),
+                inheritance_depth: _,
             } => "entity_is_of_type",
-            Self::EntityIsOfType { .. } => "closed_entity_is_of_type",
             Self::EntityHasLeftEntity => "entity_has_left_entity",
             Self::EntityHasRightEntity => "entity_has_right_entity",
         }
@@ -1298,7 +1281,7 @@ impl DatabaseColumn for EntityTypeConstrainsPropertiesOn {
 pub enum EntityTypeInheritsFrom {
     SourceEntityTypeOntologyId,
     TargetEntityTypeOntologyId,
-    InheritanceDepth,
+    Depth,
 }
 
 impl DatabaseColumn for EntityTypeInheritsFrom {
@@ -1307,7 +1290,7 @@ impl DatabaseColumn for EntityTypeInheritsFrom {
             Self::SourceEntityTypeOntologyId | Self::TargetEntityTypeOntologyId => {
                 ParameterType::Uuid
             }
-            Self::InheritanceDepth => ParameterType::I32,
+            Self::Depth => ParameterType::I32,
         }
     }
 
@@ -1319,7 +1302,7 @@ impl DatabaseColumn for EntityTypeInheritsFrom {
         match self {
             Self::SourceEntityTypeOntologyId => "source_entity_type_ontology_id",
             Self::TargetEntityTypeOntologyId => "target_entity_type_ontology_id",
-            Self::InheritanceDepth => "inheritance_depth",
+            Self::Depth => "depth",
         }
     }
 }

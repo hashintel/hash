@@ -917,8 +917,8 @@ where
             .await
     }
 
-    async fn reindex_cache(&mut self) -> Result<(), UpdateError> {
-        self.store.reindex_cache().await
+    async fn reindex_data_type_cache(&mut self) -> Result<(), UpdateError> {
+        self.store.reindex_data_type_cache().await
     }
 }
 
@@ -1152,6 +1152,10 @@ where
             .update_entity_type_embeddings(actor_id, params)
             .await
     }
+
+    async fn reindex_entity_type_cache(&mut self) -> Result<(), UpdateError> {
+        self.store.reindex_entity_type_cache().await
+    }
 }
 
 impl<S, A> EntityStore for FetchingStore<S, A>
@@ -1264,5 +1268,9 @@ where
         params: UpdateEntityEmbeddingsParams<'_>,
     ) -> Result<(), UpdateError> {
         self.store.update_entity_embeddings(actor_id, params).await
+    }
+
+    async fn reindex_entity_cache(&mut self) -> Result<(), UpdateError> {
+        self.store.reindex_entity_cache().await
     }
 }

@@ -1,5 +1,5 @@
 pub use self::{
-    closed::{ClosedEntityType, ClosedEntityTypeSchemaData},
+    closed::{ClosedEntityType, ClosedEntityTypeSchemaData, EntityTypeResolveData},
     reference::EntityTypeReference,
     validation::{EntityTypeValidationError, EntityTypeValidator},
 };
@@ -9,6 +9,7 @@ mod raw;
 mod reference;
 mod validation;
 
+use core::iter;
 use std::collections::{HashMap, HashSet, hash_map::Entry};
 
 use serde::{Deserialize, Serialize, Serializer};
@@ -60,20 +61,58 @@ impl Serialize for EntityType {
     }
 }
 
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum EntityTypeToEntityTypeEdge {
+    Inheritance,
+    Link,
+    LinkDestination,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum EntityTypeToPropertyTypeEdge {
+    Property,
+}
+
 impl EntityType {
-    #[must_use]
-    pub fn property_type_references(&self) -> HashSet<&PropertyTypeReference> {
-        self.properties
-            .values()
-            .map(|property_def| match property_def {
-                ValueOrArray::Value(url) => url,
-                ValueOrArray::Array(array) => &array.items,
-            })
-            .collect()
+    pub fn entity_type_references(
+        &self,
+    ) -> impl Iterator<Item = (&EntityTypeReference, EntityTypeToEntityTypeEdge)> {
+        self.all_of
+            .iter()
+            .map(|reference| (reference, EntityTypeToEntityTypeEdge::Inheritance))
+            .chain(self.links.iter().flat_map(
+                |(link_entity_type, destination_constraint_entity_types)| {
+                    iter::once((link_entity_type.into(), EntityTypeToEntityTypeEdge::Link)).chain(
+                        destination_constraint_entity_types
+                            .items
+                            .iter()
+                            .flat_map(|items| {
+                                items.possibilities.iter().map(|reference| {
+                                    (reference, EntityTypeToEntityTypeEdge::LinkDestination)
+                                })
+                            }),
+                    )
+                },
+            ))
     }
 
-    #[must_use]
-    pub fn link_mappings(&self) -> HashMap<&EntityTypeReference, Option<&[EntityTypeReference]>> {
+    pub fn property_type_references(
+        &self,
+    ) -> impl Iterator<Item = (&PropertyTypeReference, EntityTypeToPropertyTypeEdge)> {
+        self.properties.values().map(|property_def| {
+            (
+                match property_def {
+                    ValueOrArray::Value(url) => url,
+                    ValueOrArray::Array(array) => &array.items,
+                },
+                EntityTypeToPropertyTypeEdge::Property,
+            )
+        })
+    }
+
+    pub fn link_mappings(
+        &self,
+    ) -> impl Iterator<Item = (&EntityTypeReference, Option<&[EntityTypeReference]>)> {
         self.links
             .iter()
             .map(|(link_entity_type, destination_constraint_entity_types)| {
@@ -85,7 +124,6 @@ impl EntityType {
                         .map(|one_of| one_of.possibilities.as_slice()),
                 )
             })
-            .collect()
     }
 }
 
@@ -173,8 +211,11 @@ mod tests {
 
         let property_type_references = entity_type
             .property_type_references()
-            .into_iter()
-            .map(|property_type_ref| property_type_ref.url.clone())
+            .map(
+                |(property_type_ref, EntityTypeToPropertyTypeEdge::Property)| {
+                    property_type_ref.url.clone()
+                },
+            )
             .collect::<HashSet<_>>();
 
         assert_eq!(property_type_references, expected_property_type_references);
@@ -201,7 +242,6 @@ mod tests {
 
         let link_entity_type_references = entity_type
             .link_mappings()
-            .into_iter()
             .map(|(link_entity_type_url, entity_type_ref)| {
                 (
                     link_entity_type_url.url.clone(),
