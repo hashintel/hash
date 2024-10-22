@@ -366,7 +366,7 @@ impl OntologyTypeResolver {
         }
 
         if missing_schemas.is_empty() {
-            // We create the resolved metadata for the current data type and update the cache so
+            // We create the resolved metadata for the current entity type and update the cache so
             // that we don't need to resolve it again.
             let in_progress_schema = Arc::new(in_progress_schema);
             self.close_entity_type(entity_type_id, Arc::clone(&in_progress_schema))?;
