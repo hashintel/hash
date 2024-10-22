@@ -17,10 +17,7 @@ import {
   HeaderContent,
   virtualizedTableHeaderHeight,
 } from "./virtualized-table/header";
-import type {
-  TableFilterProps,
-  VirtualizedTableFilterDefinitionsByFieldId,
-} from "./virtualized-table/header/filter";
+import type { TableFilterProps } from "./virtualized-table/header/filter";
 import type {
   TableSortProps,
   VirtualizedTableSort,
@@ -120,7 +117,6 @@ export type CreateVirtualizedRowContentFn<
 type VirtualizedTableProps<
   D extends Data,
   S extends VirtualizedTableSort,
-  F extends VirtualizedTableFilterDefinitionsByFieldId,
   Id extends FieldId,
   M extends ColumnMetadata,
 > = {
@@ -134,14 +130,13 @@ type VirtualizedTableProps<
   EmptyPlaceholder?: () => ReactElement;
   rows: VirtualizedTableRow<D>[];
 } & TableSortProps<S> &
-  Partial<TableFilterProps<F>>;
+  Partial<TableFilterProps<Id>>;
 
 const heightStyle = { height: "100%" };
 
 export const VirtualizedTable = <
   D extends Data,
   S extends VirtualizedTableSort,
-  F extends VirtualizedTableFilterDefinitionsByFieldId,
   Id extends FieldId,
   M extends ColumnMetadata,
 >({
@@ -155,7 +150,7 @@ export const VirtualizedTable = <
   setFilterValues,
   sort,
   setSort,
-}: VirtualizedTableProps<D, S, F, Id, M>) => {
+}: VirtualizedTableProps<D, S, Id, M>) => {
   const fixedHeaderContent = useCallback(
     () =>
       columns

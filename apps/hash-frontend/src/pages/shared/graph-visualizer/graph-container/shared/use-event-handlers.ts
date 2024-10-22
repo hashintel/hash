@@ -10,12 +10,14 @@ import type {
 import { useFullScreen } from "./full-screen-context";
 import type { GraphState } from "./state";
 
+import { GraphVizEdge } from "./types";
+
 export type RegisterEventsArgs = {
   config: GraphVizConfig<DynamicNodeSizing | StaticNodeSizing>;
   graphContainerRef: RefObject<HTMLDivElement>;
   graphState: GraphState;
   onEdgeClick?: (params: {
-    edgeId: string;
+    edgeData: GraphVizEdge;
     screenContainerRef?: RefObject<HTMLDivElement>;
   }) => void;
   onRender?: () => void;
@@ -134,10 +136,16 @@ export const useEventHandlers = ({
         onRender?.();
       },
       clickEdge: (event) => {
-        onEdgeClick?.({
-          edgeId: event.edge,
-          screenContainerRef: isFullScreen ? graphContainerRef : undefined,
-        });
+        if (onEdgeClick) {
+          const edgeData = sigma
+            .getGraph()
+            .getEdgeAttributes(event.edge) as GraphVizEdge;
+
+          onEdgeClick({
+            edgeData,
+            screenContainerRef: isFullScreen ? graphContainerRef : undefined,
+          });
+        }
       },
       clickNode: (event) => {
         if (graphState.selectedNodeId === event.node) {
@@ -212,6 +220,7 @@ export const useEventHandlers = ({
   }, [
     config,
     graphContainerRef,
+    graphState.highlightedEdgePath,
     graphState.selectedNodeId,
     isFullScreen,
     onEdgeClick,

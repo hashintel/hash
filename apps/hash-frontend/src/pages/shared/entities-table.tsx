@@ -48,7 +48,11 @@ import { useGetEntitiesTableAdditionalCsvData } from "./entities-table/use-get-e
 import { EntityEditorSlideStack } from "./entity-editor-slide-stack";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
-import type { GraphVizFilters } from "./graph-visualizer/graph-container/shared/filter-control";
+import type {
+  DynamicNodeSizing,
+  GraphVizFilters,
+  GraphVizConfig,
+} from "./graph-visualizer";
 import { generateEntityRootedSubgraph } from "./subgraphs";
 import { TableHeaderToggle } from "./table-header-toggle";
 import type { TableView } from "./table-views";
@@ -56,10 +60,7 @@ import { tableViewIcons } from "./table-views";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import type { UrlCellProps } from "./url-cell";
 import { createRenderUrlCell } from "./url-cell";
-import type {
-  DynamicNodeSizing,
-  GraphVizConfig,
-} from "./graph-visualizer/graph-container/shared/config-control";
+import { EntityEditorProps } from "../[shortname]/entities/[entity-uuid].page/entity-editor";
 
 /**
  * @todo: avoid having to maintain this list, potentially by
@@ -266,16 +267,22 @@ export const EntitiesTable: FunctionComponent<{
 
   const [selectedEntity, setSelectedEntity] = useState<{
     entityId: EntityId;
+    options?: Pick<EntityEditorProps, "defaultOutgoingLinkFilters">;
     slideContainerRef?: RefObject<HTMLDivElement>;
     subgraph: Subgraph<EntityRootType>;
   } | null>(null);
 
   const handleEntityClick = useCallback(
-    (entityId: EntityId, modalContainerRef?: RefObject<HTMLDivElement>) => {
+    (
+      entityId: EntityId,
+      modalContainerRef?: RefObject<HTMLDivElement>,
+      options?: Pick<EntityEditorProps, "defaultOutgoingLinkFilters">,
+    ) => {
       if (subgraph) {
         const entitySubgraph = generateEntityRootedSubgraph(entityId, subgraph);
 
         setSelectedEntity({
+          options,
           entityId,
           slideContainerRef: modalContainerRef,
           subgraph: entitySubgraph,
@@ -732,6 +739,10 @@ export const EntitiesTable: FunctionComponent<{
           disableTypeClick={disableTypeClick}
           hideOpenInNew={disableEntityOpenInNew}
           rootEntityId={selectedEntity.entityId}
+          rootEntityOptions={{
+            defaultOutgoingLinkFilters:
+              selectedEntity.options?.defaultOutgoingLinkFilters,
+          }}
           onClose={() => setSelectedEntity(null)}
           onSubmit={() => {
             throw new Error(`Editing not yet supported from this screen`);

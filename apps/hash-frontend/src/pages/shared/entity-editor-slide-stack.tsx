@@ -1,11 +1,12 @@
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Backdrop } from "@mui/material";
-import type { FunctionComponent, RefObject } from "react";
+import { FunctionComponent, RefObject, useMemo } from "react";
 import { useCallback, useState } from "react";
 
 import { EditEntitySlideOver } from "../[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
 import { generateEntityRootedSubgraph } from "./subgraphs";
+import { EntityEditorProps } from "../[shortname]/entities/[entity-uuid].page/entity-editor";
 
 interface EntityEditorSlideStackProps {
   disableTypeClick?: boolean;
@@ -27,6 +28,10 @@ interface EntityEditorSlideStackProps {
    */
   rootEntityId: EntityId;
   /**
+   * Options to pass to the EntityEditor for the root entity
+   */
+  rootEntityOptions?: Pick<EntityEditorProps, "defaultOutgoingLinkFilters">;
+  /**
    * If a container ref is provided, the slide will be attached to it (defaults to the MUI default, the body)
    */
   slideContainerRef?: RefObject<HTMLDivElement>;
@@ -42,6 +47,7 @@ export const EntityEditorSlideStack: FunctionComponent<
   onSubmit,
   readonly,
   rootEntityId,
+  rootEntityOptions,
   slideContainerRef,
 }) => {
   const [animateOut, setAnimateOut] = useState(false);
@@ -79,6 +85,8 @@ export const EntityEditorSlideStack: FunctionComponent<
     }, 200);
   }, [setAnimateOut, setItems, onClose]);
 
+  console.log("Navigating...");
+
   return (
     <Backdrop
       onClick={handleClose}
@@ -107,6 +115,7 @@ export const EntityEditorSlideStack: FunctionComponent<
             readonly={readonly}
             slideContainerRef={slideContainerRef}
             stackPosition={index + 1}
+            {...(rootEntityId === entityId ? rootEntityOptions : {})}
           />
         );
       })}

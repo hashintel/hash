@@ -261,15 +261,12 @@ export type VirtualizedTableFilterDefinitionsByFieldId<
 export type VirtualizedTableFilterValuesByFieldId<Id extends string = string> =
   Record<Id, VirtualizedTableFilterValue>;
 
-export type TableFilterProps<
-  FilterDefinitions extends
-    VirtualizedTableFilterDefinitionsByFieldId = VirtualizedTableFilterDefinitionsByFieldId,
-  FilterValues extends
-    VirtualizedTableFilterValuesByFieldId = VirtualizedTableFilterValuesByFieldId,
-> = {
-  filterDefinitions: FilterDefinitions;
-  filterValues: FilterValues;
-  setFilterValues: (filters: FilterValues) => void;
+export type TableFilterProps<FieldId extends string> = {
+  filterDefinitions: VirtualizedTableFilterDefinitionsByFieldId<FieldId>;
+  filterValues: VirtualizedTableFilterValuesByFieldId<FieldId>;
+  setFilterValues: (
+    filters: VirtualizedTableFilterValuesByFieldId<FieldId>,
+  ) => void;
 };
 
 export const isValueIncludedInFilter = ({
@@ -286,19 +283,14 @@ export const isValueIncludedInFilter = ({
   return currentValue.has(valueToCheck);
 };
 
-export const FilterButton = <
-  ColumnId extends string,
-  FilterDefinitions extends
-    VirtualizedTableFilterDefinitionsByFieldId<ColumnId>,
-  FilterValues extends VirtualizedTableFilterValuesByFieldId<ColumnId>,
->({
+export const FilterButton = <ColumnId extends string>({
   columnId,
   filterDefinitions,
   filterValues,
   setFilterValues,
 }: {
   columnId: ColumnId;
-} & TableFilterProps<FilterDefinitions, FilterValues>) => {
+} & TableFilterProps<ColumnId>) => {
   const filterDefinition = filterDefinitions[columnId];
 
   const buttonRef = useRef<HTMLButtonElement>(null);

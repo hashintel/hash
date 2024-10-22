@@ -6,7 +6,6 @@ import { Box } from "@mui/material";
 import type { RefObject } from "react";
 import { useMemo } from "react";
 
-import { useEntityTypesContextRequired } from "../../../../shared/entity-types-context/hooks/use-entity-types-context-required";
 import { EntityEditorContextProvider } from "./entity-editor/entity-editor-context";
 import { FilePreviewSection } from "./entity-editor/file-preview-section";
 import { HistorySection } from "./entity-editor/history-section";
@@ -16,8 +15,10 @@ import { PropertiesSection } from "./entity-editor/properties-section";
 import { TypesSection } from "./entity-editor/types-section";
 import { useEntityEditorTab } from "./shared/entity-editor-tabs";
 import type { DraftLinkState } from "./shared/use-draft-link-state";
+import type { OutgoingLinksFilterValues } from "./entity-editor/links-section/outgoing-links-section/readonly-outgoing-links-table";
 
 export interface EntityEditorProps extends DraftLinkState {
+  defaultOutgoingLinkFilters?: Partial<OutgoingLinksFilterValues>;
   disableTypeClick?: boolean;
   isDirty: boolean;
   entityLabel: string;

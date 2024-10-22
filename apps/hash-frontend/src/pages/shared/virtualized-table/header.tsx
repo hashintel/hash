@@ -5,10 +5,7 @@ import TableCell from "@mui/material/TableCell";
 import TableRow from "@mui/material/TableRow";
 
 import type { VirtualizedTableColumn } from "../virtualized-table";
-import type {
-  TableFilterProps,
-  VirtualizedTableFilterDefinitionsByFieldId,
-} from "./header/filter";
+import type { TableFilterProps } from "./header/filter";
 import { FilterButton } from "./header/filter";
 import type { TableSortProps, VirtualizedTableSort } from "./header/sort";
 import { SortButton } from "./header/sort";
@@ -19,7 +16,6 @@ export type ColumnMetadata = Record<string, unknown>;
 
 export const HeaderContent = <
   Sort extends VirtualizedTableSort,
-  Filters extends VirtualizedTableFilterDefinitionsByFieldId,
   Id extends string,
   M extends ColumnMetadata,
 >({
@@ -34,7 +30,7 @@ export const HeaderContent = <
   columns: VirtualizedTableColumn<Id, M>[];
   fixedColumns?: number;
 } & TableSortProps<Sort> &
-  Partial<TableFilterProps<Filters>>) => {
+  Partial<TableFilterProps<Id>>) => {
   return (
     <TableRow>
       {columns.map((column, index) => {

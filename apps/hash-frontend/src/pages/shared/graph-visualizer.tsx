@@ -6,13 +6,16 @@ import { memo } from "react";
 import type { GraphContainerProps } from "./graph-visualizer/graph-container";
 import type {
   DynamicNodeSizing,
+  GraphVizConfig,
   StaticNodeSizing,
 } from "./graph-visualizer/graph-container/shared/config-control";
 
+export type { DynamicNodeSizing, GraphVizConfig, StaticNodeSizing };
+export type { GraphVizFilters } from "./graph-visualizer/graph-container/shared/filter-control";
 export type {
   GraphVizEdge,
   GraphVizNode,
-} from "./graph-visualizer/graph-container/graph-data-loader";
+} from "./graph-visualizer/graph-container/shared/types";
 
 export type GraphVisualizerProps<
   NodeSizing extends DynamicNodeSizing | StaticNodeSizing,

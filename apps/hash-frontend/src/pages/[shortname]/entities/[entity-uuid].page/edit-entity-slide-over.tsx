@@ -35,12 +35,14 @@ import {
 } from "../../../../graphql/queries/knowledge/entity.queries";
 import { Button, Link } from "../../../../shared/ui";
 import { SlideBackForwardCloseBar } from "../../../shared/shared/slide-back-forward-close-bar";
+import type { EntityEditorProps } from "./entity-editor";
 import { EntityEditor } from "./entity-editor";
 import { updateEntitySubgraphStateByEntity } from "./shared/update-entity-subgraph-state-by-entity";
 import { useApplyDraftLinkEntityChanges } from "./shared/use-apply-draft-link-entity-changes";
 import { useDraftLinkState } from "./shared/use-draft-link-state";
 
 interface EditEntitySlideOverProps {
+  defaultOutgoingLinkFilters?: EntityEditorProps["defaultOutgoingLinkFilters"];
   /**
    * Whether to stop clicking on types taking any action
    */
@@ -89,6 +91,7 @@ interface EditEntitySlideOverProps {
  * @todo move this to a shared location (it's also used in the Flows output and draft entities views)
  */
 export const EditEntitySlideOver = ({
+  defaultOutgoingLinkFilters,
   disableTypeClick,
   hideOpenInNew,
   slideContainerRef,
@@ -108,6 +111,8 @@ export const EditEntitySlideOver = ({
       "One or both of entityId or entitySubgraph must be provided",
     );
   }
+
+  console.log("Rendering...");
 
   const [localEntitySubgraph, setLocalEntitySubgraph] =
     useState<Subgraph<EntityRootType> | null>(providedEntitySubgraph ?? null);
@@ -201,6 +206,7 @@ export const EditEntitySlideOver = ({
   });
 
   const originalEntitySubgraph = useMemo(() => {
+    console.log("Checking...");
     if (!providedSubgraphAlreadyHasLinkedEntities && fetchedEntitySubgraph) {
       return mapGqlSubgraphFieldsFragmentToSubgraph<EntityRootType>(
         fetchedEntitySubgraph.getEntitySubgraph.subgraph,
@@ -225,6 +231,8 @@ export const EditEntitySlideOver = ({
 
   if (prevOpen !== open) {
     setPrevOpen(open);
+
+    console.log("setting open state");
 
     // reset state before opening modal
     if (open) {
@@ -414,6 +422,7 @@ export const EditEntitySlideOver = ({
             </Stack>
 
             <EntityEditor
+              defaultOutgoingLinkFilters={defaultOutgoingLinkFilters}
               disableTypeClick={disableTypeClick}
               readonly={readonly}
               onEntityUpdated={null}

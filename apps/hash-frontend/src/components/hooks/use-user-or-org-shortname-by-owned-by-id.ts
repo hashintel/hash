@@ -14,6 +14,7 @@ export const useUserOrOrgShortnameByOwnedById = (params: {
   });
 
   const shortname = useMemo(() => {
+    console.log("Updating");
     if (userOrOrg) {
       return simplifyProperties(userOrOrg.properties).shortname;
     }

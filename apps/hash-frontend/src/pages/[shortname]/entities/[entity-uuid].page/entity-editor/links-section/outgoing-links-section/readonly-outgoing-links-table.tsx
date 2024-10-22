@@ -10,7 +10,14 @@ import {
   getPropertyTypeForEntity,
 } from "@local/hash-subgraph/stdlib";
 import { Box, TableCell } from "@mui/material";
-import { memo, useLayoutEffect, useMemo, useRef, useState } from "react";
+import {
+  memo,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import { ValueChip } from "../../../../../../shared/value-chip";
 import type {
@@ -40,9 +47,12 @@ import {
 
 const fieldIds = ["linkType", "linkedTo", "linkedToType", "link"] as const;
 
-type FieldId = (typeof fieldIds)[number];
+type OutgoingLinksFieldId = (typeof fieldIds)[number];
 
-const columns: VirtualizedTableColumn<FieldId>[] = [
+export type OutgoingLinksFilterValues =
+  VirtualizedTableFilterValuesByFieldId<OutgoingLinksFieldId>;
+
+const columns: VirtualizedTableColumn<OutgoingLinksFieldId>[] = [
   {
     label: "Link type",
     id: "linkType",
@@ -168,7 +178,7 @@ const TableRow = memo(({ row }: { row: OutgoingLinkRow }) => {
 
 const createRowContent: CreateVirtualizedRowContentFn<
   OutgoingLinkRow,
-  FieldId
+  OutgoingLinksFieldId
 > = (_index, row) => <TableRow row={row.data} />;
 
 type OutgoingLinksTableProps = {
@@ -177,12 +187,15 @@ type OutgoingLinksTableProps = {
 
 export const OutgoingLinksTable = memo(
   ({ outgoingLinksAndTargets }: OutgoingLinksTableProps) => {
-    const [sort, setSort] = useState<VirtualizedTableSort<FieldId>>({
+    const [sort, setSort] = useState<
+      VirtualizedTableSort<OutgoingLinksFieldId>
+    >({
       fieldId: "linkedTo",
       direction: "asc",
     });
 
-    const { entitySubgraph, onEntityClick } = useEntityEditor();
+    const { defaultOutgoingLinkFilters, entitySubgraph, onEntityClick } =
+      useEntityEditor();
 
     const outputContainerRef = useRef<HTMLDivElement>(null);
     const [outputContainerHeight, setOutputContainerHeight] = useState(400);
@@ -200,8 +213,8 @@ export const OutgoingLinksTable = memo(
       initialFilterValues,
       unsortedRows,
     }: {
-      filterDefinitions: VirtualizedTableFilterDefinitionsByFieldId<FieldId>;
-      initialFilterValues: VirtualizedTableFilterValuesByFieldId<FieldId>;
+      filterDefinitions: VirtualizedTableFilterDefinitionsByFieldId<OutgoingLinksFieldId>;
+      initialFilterValues: VirtualizedTableFilterValuesByFieldId<OutgoingLinksFieldId>;
       unsortedRows: VirtualizedTableRow<OutgoingLinkRow>[];
     } = useMemo(() => {
       const rowData: VirtualizedTableRow<OutgoingLinkRow>[] = [];
@@ -231,7 +244,7 @@ export const OutgoingLinksTable = memo(
           options: {} as VirtualizedTableFilterDefinition["options"],
           type: "checkboxes",
         },
-      } as const satisfies VirtualizedTableFilterDefinitionsByFieldId<FieldId>;
+      } as const satisfies VirtualizedTableFilterDefinitionsByFieldId<OutgoingLinksFieldId>;
 
       const entityTypesByVersionedUrl: Record<VersionedUrl, EntityType> = {};
 
@@ -376,17 +389,28 @@ export const OutgoingLinksTable = memo(
           typedEntries(filterDefs).map(
             ([columnId, filterDef]) =>
               [columnId, filterDef.initialValue] satisfies [
-                FieldId,
+                OutgoingLinksFieldId,
                 VirtualizedTableFilterValue,
               ],
           ),
-        ) as VirtualizedTableFilterValuesByFieldId<FieldId>,
+        ) as OutgoingLinksFilterValues,
         unsortedRows: rowData,
       };
     }, [entitySubgraph, outgoingLinksAndTargets, onEntityClick]);
 
+    const [highlightOutgoingLinks, setHighlightOutgoingLinks] = useState(
+      !!defaultOutgoingLinkFilters,
+    );
+
+    useEffect(() => {
+      setTimeout(() => setHighlightOutgoingLinks(false), 5_000);
+    }, []);
+
     const [filterValues, setFilterValues] = useVirtualizedTableFilterState({
-      defaultFilterValues: initialFilterValues,
+      defaultFilterValues: {
+        ...initialFilterValues,
+        ...(defaultOutgoingLinkFilters ?? {}),
+      },
       filterDefinitions,
     });
 
@@ -492,7 +516,20 @@ export const OutgoingLinksTable = memo(
     );
 
     return (
-      <Box sx={{ height }}>
+      <Box
+        sx={({ palette, transitions }) => ({
+          borderRadius: 2,
+          height,
+          outlineOffset: 3,
+          outline: "2px solid transparent",
+          transition: transitions.create("outline-color", { duration: 500 }),
+          ...(highlightOutgoingLinks
+            ? {
+                outline: `2px solid ${palette.blue[70]}`,
+              }
+            : {}),
+        })}
+      >
         <VirtualizedTable
           columns={columns}
           createRowContent={createRowContent}

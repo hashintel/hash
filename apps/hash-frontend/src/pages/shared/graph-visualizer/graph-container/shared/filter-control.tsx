@@ -4,13 +4,13 @@ import type { FunctionComponent } from "react";
 import { useEffect, useMemo } from "react";
 
 import { FilterLightIcon } from "../../../../../shared/icons/filter-light-icon";
-import type { GraphVizNode } from "../graph-data-loader";
 import { controlButtonSx, ControlPanel, ItemLabel } from "./control-components";
 import {
   filterButtonSx,
   NodeTypeFilters,
 } from "./filter-control/node-type-filters";
 import { useGraphContext } from "./graph-context";
+import type { GraphVizNode } from "./types";
 
 type NodeTypesInData = {
   [nodeTypeId: string]: {
