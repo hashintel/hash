@@ -1,3 +1,8 @@
+-- The inheritance table for entity types now contains recursive inheritance data as well. This is expressed as a depth field,
+-- which is 0 for direct inheritance and increments by 1 for each level of inheritance. This allows us to query for all
+-- inherited properties, links, and link destinations for a given entity type, and to determine the inheritance depth of each.
+-- Other relationships have been updated to include the inheritance depth field as well. For these, `inheritance_depth` is 0 for
+-- direct relationships and increments by 1 for each level of inheritance.
 ALTER TABLE entity_type_inherits_from
     ADD COLUMN depth INT,
     ADD CONSTRAINT unique_entity_type_inherits_from UNIQUE (source_entity_type_ontology_id, target_entity_type_ontology_id);
