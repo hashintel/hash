@@ -151,7 +151,7 @@ async fn send_delay_perfect_buffer() {
 
     // send a message that fits perfectly into the buffer
     // this should not trigger any splitting
-    let payload = Bytes::from_static(&[0; Payload::MAX_SIZE]);
+    let payload = Bytes::from(vec![0; Payload::MAX_SIZE]);
 
     bytes_tx
         .send(Ok(payload.clone()))
@@ -182,7 +182,7 @@ async fn send_delay_split_large() {
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
     // send a large message that needs to be split into multiple parts
-    let payload = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+    let payload = Bytes::from(vec![0; Payload::MAX_SIZE + 8]);
 
     bytes_tx
         .send(Ok(payload.clone()))
@@ -218,7 +218,7 @@ async fn send_delay_split_large_multiple() {
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
     // send a large message that needs to be split into multiple parts
-    let payload = Bytes::from_static(&[0; (Payload::MAX_SIZE * 2) + 8]);
+    let payload = Bytes::from(vec![0; (Payload::MAX_SIZE * 2) + 8]);
 
     bytes_tx
         .send(Ok(payload.clone()))
@@ -293,7 +293,7 @@ async fn send_delay_flush_remaining() {
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
     // send a packet that is to be split into multiple frames
-    let payload = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+    let payload = Bytes::from(vec![0; Payload::MAX_SIZE + 8]);
 
     bytes_tx
         .send(Ok(payload.clone()))
@@ -473,7 +473,7 @@ async fn send_delay_error_delayed() {
 
     // if we send a packet that is too large, we'll split, but when we encounter an error we
     // will discard the remaining messages
-    let payload_ok = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+    let payload_ok = Bytes::from(vec![0; Payload::MAX_SIZE + 8]);
 
     bytes_tx
         .send(Ok(payload_ok.clone()))
@@ -529,7 +529,7 @@ async fn send_delay_error_multiple() {
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
     let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(&[1; Payload::MAX_SIZE + 8]);
+    buffer.put_slice(&vec![1; Payload::MAX_SIZE + 8]);
 
     let error = buffer.finish(code);
     let payload_err = error.bytes().clone();
@@ -573,12 +573,12 @@ async fn send_delay_error_interspersed() {
     // once we have an error message, we no longer send any more messages
     let (bytes_tx, mut response_rx, handle) = setup_send(false);
 
-    let payload_ok = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+    let payload_ok = Bytes::from(vec![0; Payload::MAX_SIZE + 8]);
 
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
     let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(&[1; Payload::MAX_SIZE + 8]);
+    buffer.put_slice(&vec![1; Payload::MAX_SIZE + 8]);
 
     let error = buffer.finish(code);
     let payload_err = error.bytes().clone();
@@ -681,7 +681,7 @@ async fn send_delay_error_split_large() {
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
     let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(&[1; Payload::MAX_SIZE + 8]);
+    buffer.put_slice(&vec![1; Payload::MAX_SIZE + 8]);
 
     let error = buffer.finish(code);
     let payload_err = error.bytes().clone();
@@ -719,7 +719,7 @@ async fn send_delay_error_split_large() {
 async fn send_no_delay_split_large() {
     let (bytes_tx, mut response_rx, handle) = setup_send(true);
 
-    let payload_ok = Bytes::from_static(&[0; Payload::MAX_SIZE + 8]);
+    let payload_ok = Bytes::from(vec![0; Payload::MAX_SIZE + 8]);
 
     bytes_tx
         .send(Ok(payload_ok.clone()))
@@ -768,7 +768,7 @@ async fn send_no_delay_split_large() {
 async fn send_no_delay_split_large_multiple() {
     let (bytes_tx, mut response_rx, handle) = setup_send(true);
 
-    let payload_ok = Bytes::from_static(&[0; (Payload::MAX_SIZE * 2) + 8]);
+    let payload_ok = Bytes::from(vec![0; (Payload::MAX_SIZE * 2) + 8]);
 
     bytes_tx
         .send(Ok(payload_ok.clone()))
@@ -1177,7 +1177,7 @@ async fn send_no_delay_error_split_large() {
     let code = ErrorCode::new(NonZero::new(0xFF_FF).expect("infallible"));
 
     let mut buffer = ErrorBuffer::error();
-    buffer.put_slice(&[0; Payload::MAX_SIZE + 8]);
+    buffer.put_slice(&vec![0; Payload::MAX_SIZE + 8]);
     let error = buffer.finish(code);
     let payload_err = error.bytes().clone();
 

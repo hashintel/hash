@@ -478,7 +478,7 @@ impl<R: QueryRecord> FilterExpression<'_, R> {
     {
         if let Self::Parameter { parameter, convert } = self {
             if let Some(conversion) = convert.take() {
-                let Parameter::F64(mut number) = parameter else {
+                let &mut Parameter::F64(mut number) = parameter else {
                     bail!(ParameterConversionError::InvalidParameterType {
                         actual: ActualParameterType::Parameter(parameter.to_owned()),
                         expected: ParameterType::F64,
