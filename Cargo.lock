@@ -2632,8 +2632,10 @@ name = "harpc-client"
 version = "0.0.0"
 dependencies = [
  "bytes",
+ "derive-where",
  "error-stack",
  "futures",
+ "harpc-codec",
  "harpc-net",
  "harpc-tower",
  "multiaddr",

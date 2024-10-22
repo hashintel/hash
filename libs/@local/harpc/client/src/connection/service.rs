@@ -16,13 +16,13 @@ use tower::Service;
 use crate::TransportLayerGuard;
 
 #[derive(Debug, Clone)]
-pub struct Connection {
+pub struct ConnectionService {
     inner: Arc<harpc_net::session::client::Connection>,
 
     _guard: TransportLayerGuard,
 }
 
-impl Connection {
+impl ConnectionService {
     pub(crate) fn new(
         connection: harpc_net::session::client::Connection,
         guard: TransportLayerGuard,
@@ -34,7 +34,7 @@ impl Connection {
     }
 }
 
-impl<ReqBody> Service<Request<ReqBody>> for Connection
+impl<ReqBody> Service<Request<ReqBody>> for ConnectionService
 where
     ReqBody: Body<Control = !, Error = !> + Send + 'static,
 {

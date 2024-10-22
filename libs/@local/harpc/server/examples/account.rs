@@ -18,10 +18,13 @@ use error_stack::{Report, ResultExt};
 use frunk::HList;
 use futures::{
     Stream, StreamExt, TryStreamExt, pin_mut,
-    stream::{self},
+    stream::{self, BoxStream},
 };
 use graph_types::account::AccountId;
-use harpc_client::{Client, ClientConfig};
+use harpc_client::{
+    Client, ClientConfig,
+    connection::{Connection, default},
+};
 use harpc_codec::{decode::Decoder, encode::Encoder, json::JsonCodec};
 use harpc_net::session::server::SessionId;
 use harpc_server::{Server, ServerConfig, router::RouterBuilder, serve::serve};
@@ -160,37 +163,27 @@ where
 #[derive(Debug, Clone)]
 struct AccountServiceClient;
 
-impl<S, E, St, ServiceError, DecoderError, EncoderError, ResData, ResError>
-    AccountService<role::Client<(S, E)>> for AccountServiceClient
+impl<E, DecoderError, EncoderError>
+    AccountService<role::Client<Connection<default::Default<E::Buf>, E>>> for AccountServiceClient
 where
     // TODO: I want to get rid of the boxed stream here, the problem is just that `Output` has `<Input>`
-    // as a type parameter, therefore cannot parametrize over it, unless we box or duplicate the
+    // as a type parameter, therefore cannot parameterize over it, unless we box or duplicate the
     // trait requirement. both are not great solutions.
-    S: tower::Service<
-            Request<stream::Iter<vec::IntoIter<Result<Frame<<E as Encoder>::Buf, !>, !>>>>,
-            Response = Response<St>,
-            Future: Send,
-            Error = Report<ServiceError>,
-        > + Clone
-        + Send
-        + Sync,
     E: Encoder<Error = Report<EncoderError>, Buf: Send + 'static>
         + Decoder<Error = Report<DecoderError>>
         + Clone
         + Send
         + Sync,
-    St: Stream<Item = Result<ResData, ResError>> + Send + Sync,
-    ResData: Buf,
-    ServiceError: Error + Send + Sync + 'static,
     DecoderError: Error + Send + Sync + 'static,
     EncoderError: Error + Send + Sync + 'static,
 {
     async fn create_account(
         &self,
-        session: &(S, E),
+        session: &Connection<default::Default<E::Buf>, E>,
         payload: CreateAccount,
     ) -> Result<AccountId, Report<AccountError>> {
-        let (service, codec) = session.clone();
+        let codec = session.codec().clone();
+        let connection = session.clone();
 
         // in theory we could also skip the allocation here, but the problem is that in that case we
         // would send data that *might* be malformed, or is missing data. Instead of skipping said
@@ -217,7 +210,6 @@ where
         let body: Vec<_> = codec
             .clone()
             .encode(stream::iter([payload]))
-            .map(|item| item.map(Frame::Data).map(Ok))
             .try_collect()
             .await
             .change_context(AccountError::Encode)?;
@@ -234,10 +226,10 @@ where
                 session: SessionId::CLIENT,
                 extensions: Extensions::new(),
             },
-            stream::iter(body),
+            stream::iter(body).boxed(),
         );
 
-        let response = service
+        let response = connection
             .oneshot(request)
             .await
             .change_context(AccountError::Connection)?;
@@ -338,7 +330,8 @@ async fn server() {
 }
 
 async fn client() {
-    let client = Client::new(ClientConfig::default()).expect("should be able to start service");
+    let client =
+        Client::new(ClientConfig::default(), JsonCodec).expect("should be able to start service");
 
     let service = AccountServiceClient;
 
