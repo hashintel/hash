@@ -1,4 +1,4 @@
-#![feature(never_type, impl_trait_in_assoc_type)]
+#![feature(never_type, impl_trait_in_assoc_type, result_flattening)]
 #![expect(
     clippy::unwrap_used,
     clippy::print_stdout,
@@ -12,9 +12,13 @@ extern crate alloc;
 use core::{error::Error, fmt::Debug};
 use std::time::Instant;
 
-use error_stack::{Report, ResultExt};
+use bytes::{Buf, BufMut, Bytes, BytesMut};
+use error_stack::{FutureExt as _, Report, ResultExt};
 use frunk::HList;
-use futures::{StreamExt, TryStreamExt, pin_mut, stream};
+use futures::{
+    FutureExt, Stream, StreamExt, TryFutureExt, TryStreamExt, pin_mut,
+    stream::{self, BoxStream},
+};
 use graph_types::account::AccountId;
 use harpc_client::{
     Client, ClientConfig,
@@ -154,12 +158,22 @@ where
 #[derive(Debug, Clone)]
 struct AccountServiceClient;
 
-impl<C, DecoderError, EncoderError> AccountService<role::Client<DefaultConnection<C>>>
-    for AccountServiceClient
+impl<Svc, St, C, DecoderError, EncoderError, ServiceError, ResData, ResError>
+    AccountService<role::Client<Connection<Svc, C>>> for AccountServiceClient
 where
     // TODO: I want to get rid of the boxed stream here, the problem is just that `Output` has `<Input>`
     // as a type parameter, therefore cannot parameterize over it, unless we box or duplicate the
     // trait requirement. both are not great solutions.
+    Svc: tower::Service<
+            Request<BoxStream<'static, Bytes>>,
+            Response = Response<St>,
+            Error = Report<ServiceError>,
+            Future: Send,
+        > + Clone
+        + Send
+        + Sync,
+    St: Stream<Item = Result<ResData, ResError>> + Send + Sync,
+    ResData: Buf,
     C: Encoder<Error = Report<EncoderError>, Buf: Send + 'static>
         + Decoder<Error = Report<DecoderError>>
         + Clone
@@ -167,12 +181,13 @@ where
         + Sync,
     DecoderError: Error + Send + Sync + 'static,
     EncoderError: Error + Send + Sync + 'static,
+    ServiceError: Error + Send + Sync + 'static,
 {
-    async fn create_account(
+    fn create_account(
         &self,
-        session: &Connection<default::Default, C>,
+        session: &Connection<Svc, C>,
         payload: CreateAccount,
-    ) -> Result<AccountId, Report<AccountError>> {
+    ) -> impl Future<Output = Result<AccountId, Report<AccountError>>> {
         let codec = session.codec().clone();
         let connection = session.clone();
 
@@ -198,45 +213,56 @@ where
         // you can't just cancel. How do you roll back a potentially already commited transaction?
         // The current hypothesis is that the overhead required for one less allocation simply isn't
         // worth it, but in the future we might want to revisit this.
-        let body: Vec<_> = codec
+        codec
             .clone()
             .encode(stream::iter([payload]))
             .try_collect()
-            .await
-            .change_context(AccountError::Encode)?;
+            .change_context(AccountError::Encode)
+            .map_ok(|bytes: Vec<_>| {
+                let mut x = BytesMut::new();
+                for fragment in bytes {
+                    x.put(fragment);
+                }
+                x.freeze()
+            })
+            .map_ok(|bytes| {
+                Request::from_parts(
+                    request::Parts {
+                        service: ServiceDescriptor {
+                            id: Account::ID,
+                            version: Account::VERSION,
+                        },
+                        procedure: ProcedureDescriptor {
+                            id: CreateAccount::ID.into_id(),
+                        },
+                        session: SessionId::CLIENT,
+                        extensions: Extensions::new(),
+                    },
+                    stream::iter([bytes]).boxed(),
+                )
+            })
+            .and_then(move |request| {
+                connection
+                    .oneshot(request)
+                    .change_context(AccountError::Connection)
+            })
+            .and_then(move |response| {
+                let (parts, body) = response.into_parts();
 
-        let request = Request::from_parts(
-            request::Parts {
-                service: ServiceDescriptor {
-                    id: Account::ID,
-                    version: Account::VERSION,
-                },
-                procedure: ProcedureDescriptor {
-                    id: CreateAccount::ID.into_id(),
-                },
-                session: SessionId::CLIENT,
-                extensions: Extensions::new(),
-            },
-            stream::iter(body),
-        );
+                let data = codec.decode(body);
 
-        let response = connection
-            .oneshot(request)
-            .await
-            .change_context(AccountError::Connection)?;
+                async move {
+                    tokio::pin!(data);
 
-        let (parts, body) = response.into_parts();
+                    let data = data
+                        .next()
+                        .await
+                        .ok_or_else(|| Report::new(AccountError::ExpectedResponse))?
+                        .change_context(AccountError::Decode)?;
 
-        let data = codec.decode(body);
-        tokio::pin!(data);
-
-        let item = data
-            .next()
-            .await
-            .ok_or_else(|| Report::new(AccountError::ExpectedResponse))?
-            .change_context(AccountError::Decode)?;
-
-        Ok(item)
+                    Ok(data)
+                }
+            })
     }
 }
 
