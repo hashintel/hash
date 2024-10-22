@@ -203,7 +203,7 @@ temporal-io-sdk-core-protos = { package = "temporal-sdk-core-protos", git = "htt
 test-fuzz = { version = "=6.0.0", default-features = false }
 test-log = { version = "=0.2.16", default-features = false }
 test-strategy = { version = "=0.4.0", default-features = false }
-thiserror = { version = "=1.0.64", default-features = false }
+thiserror = { version = "=1.0.65", default-features = false }
 tokio-stream = { version = "=0.1.16", default-features = false }
 tokio-test = { version = "=0.4.4", default-features = false }
 tower = { version = "=0.5.1", default-features = false }
