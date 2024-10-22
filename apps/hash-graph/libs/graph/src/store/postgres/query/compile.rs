@@ -826,10 +826,13 @@ impl<'p, 'q: 'p, R: PostgresRecord> SelectCompiler<'p, 'q, R> {
                 {
                     Expression::Function(Function::JsonExtractPath(vec![
                         column_expression,
-                        Expression::ColumnReference {
-                            column: Column::EntityTypes(EntityTypes::LabelProperty),
-                            table_alias: Some(self.add_join_statements(&label_path)),
-                        },
+                        Expression::Function(Function::JsonExtractAsText(
+                            Box::new(Expression::ColumnReference {
+                                column: Column::EntityTypes(EntityTypes::Schema),
+                                table_alias: Some(self.add_join_statements(&label_path)),
+                            }),
+                            PathToken::Field(Cow::Borrowed("labelProperty")),
+                        )),
                     ]))
                 } else {
                     column_expression

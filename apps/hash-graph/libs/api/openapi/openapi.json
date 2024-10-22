@@ -3280,18 +3280,6 @@
           "relationships"
         ],
         "properties": {
-          "icon": {
-            "type": "string",
-            "nullable": true
-          },
-          "labelProperty": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BaseUrl"
-              }
-            ],
-            "nullable": true
-          },
           "ownedById": {
             "$ref": "#/components/schemas/OwnedById"
           },
@@ -4388,12 +4376,6 @@
               "provenance"
             ],
             "properties": {
-              "icon": {
-                "type": "string"
-              },
-              "labelProperty": {
-                "$ref": "#/components/schemas/BaseUrl"
-              },
               "ownedById": {
                 "$ref": "#/components/schemas/OwnedById"
               },
@@ -4420,12 +4402,6 @@
             "properties": {
               "fetchedAt": {
                 "$ref": "#/components/schemas/Timestamp"
-              },
-              "icon": {
-                "type": "string"
-              },
-              "labelProperty": {
-                "$ref": "#/components/schemas/BaseUrl"
               },
               "provenance": {
                 "$ref": "#/components/schemas/OntologyProvenance"
@@ -6053,18 +6029,6 @@
               "relationships"
             ],
             "properties": {
-              "icon": {
-                "type": "string",
-                "nullable": true
-              },
-              "labelProperty": {
-                "allOf": [
-                  {
-                    "$ref": "#/components/schemas/BaseUrl"
-                  }
-                ],
-                "nullable": true
-              },
               "provenance": {
                 "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
               },
@@ -8169,18 +8133,6 @@
           "relationships"
         ],
         "properties": {
-          "icon": {
-            "type": "string",
-            "nullable": true
-          },
-          "labelProperty": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/BaseUrl"
-              }
-            ],
-            "nullable": true
-          },
           "provenance": {
             "$ref": "#/components/schemas/ProvidedOntologyEditionProvenance"
           },

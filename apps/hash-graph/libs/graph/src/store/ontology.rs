@@ -529,8 +529,6 @@ pub trait PropertyTypeStore {
 pub struct CreateEntityTypeParams<R> {
     pub schema: EntityType,
     pub classification: OntologyTypeClassificationMetadata,
-    pub label_property: Option<BaseUrl>,
-    pub icon: Option<String>,
     pub relationships: R,
     pub conflict_behavior: ConflictBehavior,
     #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
@@ -617,8 +615,6 @@ pub struct GetEntityTypesResponse {
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct UpdateEntityTypesParams<R> {
     pub schema: EntityType,
-    pub label_property: Option<BaseUrl>,
-    pub icon: Option<String>,
     pub relationships: R,
     #[serde(default, skip_serializing_if = "UserDefinedProvenanceData::is_empty")]
     pub provenance: ProvidedOntologyEditionProvenance,

@@ -10,10 +10,7 @@ import type { OntologyElementMetadata } from "./metadata.js";
 
 export type EntityTypeWithMetadata = {
   schema: EntityType;
-  metadata: OntologyElementMetadata & {
-    labelProperty?: BaseUrl | null;
-    icon?: string | null;
-  };
+  metadata: OntologyElementMetadata;
 };
 
 export type QueryEntityTypesData = {
