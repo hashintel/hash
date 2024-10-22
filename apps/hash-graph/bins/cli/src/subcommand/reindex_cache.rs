@@ -84,7 +84,7 @@ pub async fn reindex_cache(args: ReindexCacheArgs) -> Result<(), GraphError> {
             .await
             .change_context(GraphError)
             .map_err(|report| {
-                tracing::error!(error = ?report, "Failed to reindex entity type cache");
+                tracing::error!(error = ?report, "Failed to reindex entities cache");
                 report
             })?;
     }
