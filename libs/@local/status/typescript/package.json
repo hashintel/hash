@@ -25,7 +25,7 @@
     "@local/eslint-config": "0.0.0-private",
     "@local/tsconfig": "0.0.0-private",
     "@types/lodash-es": "4.17.12",
-    "@types/node": "20.16.13",
+    "@types/node": "20.16.14",
     "@types/yargs": "17.0.33",
     "eslint": "8.57.0",
     "quicktype": "16.0.43",
