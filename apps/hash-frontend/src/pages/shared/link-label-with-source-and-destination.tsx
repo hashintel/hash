@@ -59,6 +59,21 @@ const stringifyEntityPropertyValue = (value: EntityPropertyValue): string => {
   }
 };
 
+const TypeIcon = ({ icon }: { icon?: string | null }) => {
+  if (!icon) {
+    return <AsteriskRegularIcon sx={{ fontSize: 16 }} />;
+  }
+  if (
+    icon.startsWith("http://") ||
+    icon.startsWith("https://") ||
+    icon.startsWith("/")
+  ) {
+    return <img alt="" src={icon} style={{ width: 16, height: 16 }} />;
+  }
+
+  return icon;
+};
+
 const LeftOrRightEntity: FunctionComponent<{
   entity?: Entity;
   onEntityClick?: (entityId: EntityId) => void;
@@ -133,7 +148,7 @@ const LeftOrRightEntity: FunctionComponent<{
         }}
       >
         {entityType ? (
-          (entityType.metadata.icon ?? <AsteriskRegularIcon />)
+          <TypeIcon icon={entityType.metadata.icon} />
         ) : (
           <EyeSlashIconRegular />
         )}

@@ -5,6 +5,7 @@ import type {
   LinkData,
   PropertyObject,
 } from "@local/hash-graph-types/entity";
+import { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { Subgraph } from "@local/hash-subgraph";
 import { isEntityId } from "@local/hash-subgraph";
@@ -19,7 +20,11 @@ import type {
   GraphVizNode,
 } from "./graph-visualizer";
 import { GraphVisualizer } from "./graph-visualizer";
-import type { GraphVizConfig } from "./graph-visualizer/graph-container/shared/config-control";
+import type {
+  DynamicNodeSizing,
+  GraphVizConfig,
+} from "./graph-visualizer/graph-container/shared/config-control";
+import type { GraphVizFilters } from "./graph-visualizer/graph-container/shared/filter-control";
 
 export type EntityForGraph = {
   linkData?: LinkData;
@@ -28,7 +33,7 @@ export type EntityForGraph = {
   properties: PropertyObject;
 };
 
-const defaultConfig = {
+const fallbackDefaultConfig = {
   graphKey: "entity-graph",
   nodeHighlighting: {
     depth: 1,
@@ -40,10 +45,12 @@ const defaultConfig = {
     max: 32,
     countEdges: "All",
   },
-} as const satisfies GraphVizConfig;
+} as const satisfies GraphVizConfig<DynamicNodeSizing>;
 
 export const EntityGraphVisualizer = memo(
   <T extends EntityForGraph>({
+    defaultConfig: defaultConfigFromProps,
+    defaultFilters,
     entities,
     isPrimaryEntity,
     loadingComponent,
@@ -51,6 +58,8 @@ export const EntityGraphVisualizer = memo(
     onEntityClick,
     onEntityTypeClick,
   }: {
+    defaultConfig?: GraphVizConfig<DynamicNodeSizing>;
+    defaultFilters?: GraphVizFilters;
     entities?: T[];
     onEntityClick?: (
       entityId: EntityId,
@@ -93,6 +102,8 @@ export const EntityGraphVisualizer = memo(
       ] as const;
     }, [palette]);
 
+    const defaultConfig = defaultConfigFromProps ?? fallbackDefaultConfig;
+
     const { nodes, edges } = useMemo<{
       nodes: GraphVizNode[];
       edges: GraphVizEdge[];
@@ -104,6 +115,8 @@ export const EntityGraphVisualizer = memo(
       const linkEntitiesToAdd: (T & {
         linkData: NonNullable<T["linkData"]>;
       })[] = [];
+
+      const entityTypesById: Record<string, EntityTypeWithMetadata> = {};
 
       const entityTypeIdToColor = new Map<string, number>();
 
@@ -135,10 +148,9 @@ export const EntityGraphVisualizer = memo(
           ? { color: palette.blue[50], borderColor: palette.blue[60] }
           : nodeColors[entityTypeIdToColor.get(entity.metadata.entityTypeId)!]!;
 
-        const entityType = getEntityTypeById(
-          subgraphWithTypes,
-          entity.metadata.entityTypeId,
-        );
+        const entityType =
+          entityTypesById[entity.metadata.entityTypeId] ??
+          getEntityTypeById(subgraphWithTypes, entity.metadata.entityTypeId);
 
         if (!entityType) {
           throw new Error(
@@ -146,7 +158,10 @@ export const EntityGraphVisualizer = memo(
           );
         }
 
+        entityTypesById[entity.metadata.entityTypeId] ??= entityType;
+
         nodesToAddByNodeId[entity.metadata.recordId.entityId] = {
+          icon: entityType.metadata.icon ?? undefined,
           label: generateEntityLabel(subgraphWithTypes, entity),
           nodeId: entity.metadata.recordId.entityId,
           nodeTypeId: entity.metadata.entityTypeId,
@@ -186,10 +201,17 @@ export const EntityGraphVisualizer = memo(
         nodes: Object.values(nodesToAddByNodeId),
         edges: edgesToAdd,
       };
-    }, [entities, isPrimaryEntity, nodeColors, palette, subgraphWithTypes]);
+    }, [
+      defaultConfig.nodeSizing,
+      entities,
+      isPrimaryEntity,
+      nodeColors,
+      palette,
+      subgraphWithTypes,
+    ]);
 
     const onNodeClick = useCallback<
-      NonNullable<GraphVisualizerProps["onNodeSecondClick"]>
+      NonNullable<GraphVisualizerProps<DynamicNodeSizing>["onNodeSecondClick"]>
     >(
       ({ nodeId, screenContainerRef }) => {
         if (isEntityId(nodeId)) {
@@ -202,7 +224,7 @@ export const EntityGraphVisualizer = memo(
     );
 
     const onEdgeClick = useCallback<
-      NonNullable<GraphVisualizerProps["onEdgeClick"]>
+      NonNullable<GraphVisualizerProps<DynamicNodeSizing>["onEdgeClick"]>
     >(
       ({ edgeId, screenContainerRef }) => {
         if (isEntityId(edgeId)) {
@@ -227,6 +249,7 @@ export const EntityGraphVisualizer = memo(
         )}
         <GraphVisualizer
           defaultConfig={defaultConfig}
+          defaultFilters={defaultFilters}
           nodes={nodes}
           edges={edges}
           onNodeSecondClick={onNodeClick}

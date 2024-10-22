@@ -1,3 +1,4 @@
+import { customColors } from "@hashintel/design-system/theme";
 import { useLoadGraph, useSigma } from "@react-sigma/core";
 import { MultiDirectedGraph } from "graphology";
 import { memo, useEffect } from "react";
@@ -9,6 +10,7 @@ import { useLayout } from "./use-layout";
 export type GraphVizNode = {
   borderColor?: string;
   color: string;
+  icon?: string;
   nodeId: string;
   nodeTypeId?: string;
   nodeTypeLabel?: string;
@@ -61,6 +63,11 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
         continue;
       }
 
+      const hasUrlImage =
+        !!node.icon?.startsWith("http") ||
+        !!node.icon?.startsWith("https://") ||
+        node.icon?.startsWith("/");
+
       graph.addNode(node.nodeId, {
         borderColor: node.borderColor ?? node.color,
         /**
@@ -71,13 +78,15 @@ export const GraphDataLoader = memo(({ edges, nodes }: GraphLoaderProps) => {
         color: node.color,
         x: index % 20,
         y: Math.floor(index / 20),
+        iconColor: customColors.gray[10],
+        image: node.icon,
         label: node.label,
         nodeTypeId: node.nodeTypeId,
         size:
           config.nodeSizing.mode === "byEdgeCount"
             ? config.nodeSizing.min
             : node.size,
-        type: "bordered",
+        type: hasUrlImage ? "icon" : "bordered",
       });
 
       seenNodeIds.add(node.nodeId);

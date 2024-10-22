@@ -16,6 +16,7 @@ import type {
   GraphVizEdge,
   GraphVizNode,
 } from "./graph-visualizer/graph-container/graph-data-loader";
+import type { StaticNodeSizing } from "./graph-visualizer/graph-container/shared/config-control";
 
 const anythingNodeId = "anything";
 
@@ -240,7 +241,7 @@ export const TypeGraphVisualizer = ({
   }, [isSpecialEntityTypeLookup, palette, types]);
 
   const onNodeClick = useCallback<
-    NonNullable<GraphVisualizerProps["onNodeSecondClick"]>
+    NonNullable<GraphVisualizerProps<StaticNodeSizing>["onNodeSecondClick"]>
   >(
     ({ nodeId, screenContainerRef }) => {
       if (nodeId === anythingNodeId) {

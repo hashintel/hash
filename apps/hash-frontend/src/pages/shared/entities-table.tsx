@@ -48,6 +48,7 @@ import { useGetEntitiesTableAdditionalCsvData } from "./entities-table/use-get-e
 import { EntityEditorSlideStack } from "./entity-editor-slide-stack";
 import { EntityGraphVisualizer } from "./entity-graph-visualizer";
 import { TypeSlideOverStack } from "./entity-type-page/type-slide-over-stack";
+import type { GraphVizFilters } from "./graph-visualizer/graph-container/shared/filter-control";
 import { generateEntityRootedSubgraph } from "./subgraphs";
 import { TableHeaderToggle } from "./table-header-toggle";
 import type { TableView } from "./table-views";
@@ -55,6 +56,10 @@ import { tableViewIcons } from "./table-views";
 import { TOP_CONTEXT_BAR_HEIGHT } from "./top-context-bar";
 import type { UrlCellProps } from "./url-cell";
 import { createRenderUrlCell } from "./url-cell";
+import type {
+  DynamicNodeSizing,
+  GraphVizConfig,
+} from "./graph-visualizer/graph-container/shared/config-control";
 
 /**
  * @todo: avoid having to maintain this list, potentially by
@@ -80,6 +85,8 @@ const allFileEntityTypeBaseUrl = allFileEntityTypeOntologyIds.map(
 
 export const EntitiesTable: FunctionComponent<{
   defaultFilter?: FilterState;
+  defaultGraphConfig: GraphVizConfig<DynamicNodeSizing>;
+  defaultGraphFilters?: GraphVizFilters;
   defaultView?: TableView;
   disableEntityOpenInNew?: boolean;
   disableTypeClick?: boolean;
@@ -91,6 +98,8 @@ export const EntitiesTable: FunctionComponent<{
   readonly?: boolean;
 }> = ({
   defaultFilter,
+  defaultGraphConfig,
+  defaultGraphFilters,
   defaultView = "Table",
   disableEntityOpenInNew,
   disableTypeClick,
@@ -691,7 +700,7 @@ export const EntitiesTable: FunctionComponent<{
     }px + ${theme.spacing(5)} + ${theme.spacing(5)}))`;
 
   const isPrimaryEntity = useCallback(
-    (entity: Entity) =>
+    (entity: { metadata: Pick<Entity["metadata"], "entityTypeId"> }) =>
       entityTypeBaseUrl
         ? extractBaseUrl(entity.metadata.entityTypeId) === entityTypeBaseUrl
         : entityTypeId
@@ -781,6 +790,8 @@ export const EntitiesTable: FunctionComponent<{
         {!subgraph ? null : view === "Graph" ? (
           <Box height={maximumTableHeight}>
             <EntityGraphVisualizer
+              defaultConfig={defaultGraphConfig}
+              defaultFilters={defaultGraphFilters}
               entities={filteredEntities}
               loadingComponent={loadingComponent}
               isPrimaryEntity={isPrimaryEntity}

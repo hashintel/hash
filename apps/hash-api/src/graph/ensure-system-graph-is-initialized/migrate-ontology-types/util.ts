@@ -410,6 +410,7 @@ type LinkDestinationConstraint =
 export type EntityTypeDefinition = {
   allOf?: VersionedUrl[];
   entityTypeId: VersionedUrl;
+  icon?: string;
   title: string;
   description?: string;
   labelProperty?: BaseUrl;
@@ -615,6 +616,7 @@ export const createSystemEntityTypeIfNotExists: ImpureGraphFunction<
         schema: entityTypeSchema,
         webShortname,
         relationships,
+        icon: entityTypeDefinition.icon,
         labelProperty: entityTypeDefinition.labelProperty,
       },
     ).catch((createError) => {

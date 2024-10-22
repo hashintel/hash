@@ -127,6 +127,7 @@ export const TypesSection = () => {
         <TypeCard
           disableClick={disableTypeClick}
           LinkComponent={Link}
+          icon={entityType?.metadata.icon}
           url={entityTypeId}
           title={entityTypeTitle}
           version={currentVersion}
