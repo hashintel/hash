@@ -84,12 +84,11 @@ impl<C> Client<C> {
     /// # Errors
     ///
     /// Returns a `ClientError::Connect` if unable to establish a connection to the server.
-    pub async fn connect<B>(
+    pub async fn connect(
         &self,
         target: Multiaddr,
-    ) -> Result<Connection<default::Default<B>, C>, Report<ClientError>>
+    ) -> Result<Connection<default::Default, C>, Report<ClientError>>
     where
-        B: Buf + 'static,
         C: Clone + Sync,
     {
         let connection = self
@@ -102,13 +101,13 @@ impl<C> Client<C> {
         ))
     }
 
-    pub async fn connect_with<L, B>(
+    pub async fn connect_with<L>(
         &self,
         layer: L,
         target: Multiaddr,
     ) -> Result<Connection<L::Service, C>, Report<ClientError>>
     where
-        L: Layer<ConnectionService, Service: Service<Request<B>>> + Send,
+        L: Layer<ConnectionService> + Send,
         C: Clone + Sync,
     {
         let connection = self.connect_with_service(layer, target).await?;
@@ -116,14 +115,14 @@ impl<C> Client<C> {
         Ok(Connection::new(connection, self.codec.clone()))
     }
 
-    async fn connect_with_service<L, B>(
+    async fn connect_with_service<L>(
         &self,
 
         layer: L,
         target: Multiaddr,
     ) -> Result<<L as Layer<ConnectionService>>::Service, Report<ClientError>>
     where
-        L: Layer<ConnectionService, Service: Service<Request<B>>> + Send,
+        L: Layer<ConnectionService> + Send,
         C: Sync,
     {
         let connection = self

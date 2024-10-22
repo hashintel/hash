@@ -3,7 +3,7 @@ use core::{
     task::{Context, Poll},
 };
 
-use bytes::{Buf, Bytes};
+use bytes::Buf;
 use error_stack::Report;
 use futures::{
     Stream, StreamExt, TryFutureExt, future,
@@ -20,26 +20,21 @@ use tower::{Layer, Service};
 
 use super::service::ConnectionService;
 
-pub(crate) struct DefaultLayer<S> {
-    _marker: PhantomData<fn() -> *const S>,
+pub(crate) struct DefaultLayer {
+    _private: (),
 }
 
-impl<S> DefaultLayer<S> {
+impl DefaultLayer {
     pub(crate) fn new() -> Self {
-        Self {
-            _marker: PhantomData,
-        }
+        Self { _private: () }
     }
 }
 
-impl<S, St> Layer<S> for DefaultLayer<St> {
-    type Service = DefaultService<S, St>;
+impl<S> Layer<S> for DefaultLayer {
+    type Service = DefaultService<S>;
 
     fn layer(&self, inner: S) -> Self::Service {
-        DefaultService {
-            inner,
-            _marker: PhantomData,
-        }
+        DefaultService { inner }
     }
 }
 
@@ -48,13 +43,12 @@ const fn map_buffer<B>(buffer: B) -> Result<Frame<B, !>, !> {
     Ok(Frame::Data(buffer))
 }
 
-#[derive_where::derive_where(Debug, Copy, Clone, PartialEq, Eq, Hash; S)]
-pub struct DefaultService<S, St> {
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub struct DefaultService<S> {
     inner: S,
-    _marker: PhantomData<fn() -> *const St>,
 }
 
-impl<S, St, ResBody> Service<Request<St>> for DefaultService<S, St>
+impl<S, St, ResBody> Service<Request<St>> for DefaultService<S>
 where
     S: Service<
             Request<StreamBody<stream::Map<St, fn(St::Item) -> Result<Frame<St::Item, !>, !>>>>,
@@ -84,20 +78,20 @@ where
     }
 }
 
-#[derive_where::derive_where(Debug, Clone)]
-pub struct Default<B> {
-    inner: DefaultService<ConnectionService, BoxStream<'static, B>>,
+#[derive(Debug, Clone)]
+pub struct Default {
+    inner: DefaultService<ConnectionService>,
 }
 
-impl<B> Default<B> {
-    pub(crate) fn new(inner: DefaultService<ConnectionService, BoxStream<'static, B>>) -> Self {
+impl Default {
+    pub(crate) const fn new(inner: DefaultService<ConnectionService>) -> Self {
         Self { inner }
     }
 }
 
-impl<B> Service<Request<BoxStream<'static, B>>> for Default<B>
+impl<St> Service<Request<St>> for Default
 where
-    B: Buf + Send + 'static,
+    St: Stream<Item: Buf + 'static> + Send + 'static,
 {
     type Error = Report<ConnectionPartiallyClosedError>;
     type Response = Response<PackError<Unpack>>;
@@ -105,10 +99,10 @@ where
     type Future = impl Future<Output = Result<Self::Response, Self::Error>>;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
-        self.inner.poll_ready(cx)
+        <DefaultService<ConnectionService> as Service<harpc_tower::request::Request<St>>>::poll_ready(&mut self.inner, cx)
     }
 
-    fn call(&mut self, req: Request<BoxStream<'static, B>>) -> Self::Future {
+    fn call(&mut self, req: Request<St>) -> Self::Future {
         self.inner.call(req)
     }
 }

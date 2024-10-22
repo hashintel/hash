@@ -9,21 +9,16 @@
 
 extern crate alloc;
 
-use alloc::vec;
-use core::{error::Error, fmt::Debug, future::ready};
+use core::{error::Error, fmt::Debug};
 use std::time::Instant;
 
-use bytes::Buf;
 use error_stack::{Report, ResultExt};
 use frunk::HList;
-use futures::{
-    Stream, StreamExt, TryStreamExt, pin_mut,
-    stream::{self, BoxStream},
-};
+use futures::{StreamExt, TryStreamExt, pin_mut, stream};
 use graph_types::account::AccountId;
 use harpc_client::{
     Client, ClientConfig,
-    connection::{Connection, default},
+    connection::{Connection, DefaultConnection, default},
 };
 use harpc_codec::{decode::Decoder, encode::Encoder, json::JsonCodec};
 use harpc_net::session::server::SessionId;
@@ -37,14 +32,10 @@ use harpc_service::{
 };
 use harpc_tower::{
     Extensions,
-    body::{Body, BodyExt, Frame, stream::StreamBody},
+    body::{Body, BodyExt},
     layer::{
-        body_report::HandleBodyReportLayer,
-        boxed::BoxedResponseLayer,
-        map_body::{MapRequestBodyLayer, MapResponseBodyLayer},
-        report::HandleReportLayer,
+        body_report::HandleBodyReportLayer, boxed::BoxedResponseLayer, report::HandleReportLayer,
     },
-    net::pack_error::PackError,
     request::{self, Request},
     response::{Parts, Response},
 };
@@ -55,7 +46,7 @@ use harpc_types::{
     version::Version,
 };
 use multiaddr::multiaddr;
-use tower::{ServiceBuilder, ServiceExt as _};
+use tower::ServiceExt as _;
 use uuid::Uuid;
 
 enum AccountProcedureId {
@@ -163,13 +154,13 @@ where
 #[derive(Debug, Clone)]
 struct AccountServiceClient;
 
-impl<E, DecoderError, EncoderError>
-    AccountService<role::Client<Connection<default::Default<E::Buf>, E>>> for AccountServiceClient
+impl<C, DecoderError, EncoderError> AccountService<role::Client<DefaultConnection<C>>>
+    for AccountServiceClient
 where
     // TODO: I want to get rid of the boxed stream here, the problem is just that `Output` has `<Input>`
     // as a type parameter, therefore cannot parameterize over it, unless we box or duplicate the
     // trait requirement. both are not great solutions.
-    E: Encoder<Error = Report<EncoderError>, Buf: Send + 'static>
+    C: Encoder<Error = Report<EncoderError>, Buf: Send + 'static>
         + Decoder<Error = Report<DecoderError>>
         + Clone
         + Send
@@ -179,7 +170,7 @@ where
 {
     async fn create_account(
         &self,
-        session: &Connection<default::Default<E::Buf>, E>,
+        session: &Connection<default::Default, C>,
         payload: CreateAccount,
     ) -> Result<AccountId, Report<AccountError>> {
         let codec = session.codec().clone();
@@ -226,7 +217,7 @@ where
                 session: SessionId::CLIENT,
                 extensions: Extensions::new(),
             },
-            stream::iter(body).boxed(),
+            stream::iter(body),
         );
 
         let response = connection
@@ -340,15 +331,10 @@ async fn client() {
         .await
         .expect("should be able to connect");
 
-    let connection = ServiceBuilder::new()
-        .layer(MapRequestBodyLayer::new(|req| ready(StreamBody::new(req))))
-        .layer(MapResponseBodyLayer::new(|res| ready(PackError::new(res))))
-        .service(connection);
-
     for _ in 0..16 {
         let now = Instant::now();
         let account_id = service
-            .create_account(&(connection.clone(), JsonCodec), CreateAccount { id: None })
+            .create_account(&connection, CreateAccount { id: None })
             .await
             .expect("should be able to create account");
 

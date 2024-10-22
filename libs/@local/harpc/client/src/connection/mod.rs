@@ -8,6 +8,8 @@ use tower::Service;
 pub mod default;
 pub mod service;
 
+pub type DefaultConnection<C> = Connection<default::Default, C>;
+
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Connection<S, C> {
     service: S,
