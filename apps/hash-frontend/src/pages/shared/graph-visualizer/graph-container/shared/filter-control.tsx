@@ -45,7 +45,12 @@ const FilterPanel: FunctionComponent<{
   const { filters, setFilters } = useGraphContext();
 
   return (
-    <ControlPanel onClose={onClose} open={open} title="Filters">
+    <ControlPanel
+      onClose={onClose}
+      open={open}
+      position="right"
+      title="Filters"
+    >
       <Box sx={{ pl: 1, pr: 2, pb: 0.5 }}>
         <Stack
           direction="row"

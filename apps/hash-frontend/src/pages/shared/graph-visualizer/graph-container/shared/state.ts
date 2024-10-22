@@ -2,6 +2,11 @@ import type { GraphVizFilters } from "./filter-control";
 
 export type GraphState = {
   colorByNodeTypeId: GraphVizFilters["colorByNodeTypeId"];
+  /**
+   * A path to highlight in the graph, represented by a list of edge ids.
+   * Takes precedence over any other highlighting.
+   */
+  highlightedEdgePath: string[] | null;
   hoveredEdgeId: string | null;
   /**
    * Which node is hovered

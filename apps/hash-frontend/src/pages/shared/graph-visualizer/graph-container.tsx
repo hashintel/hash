@@ -119,7 +119,8 @@ export const GraphContainer = memo(
               onNodeSecondClick={onNodeSecondClick}
               onRender={onRender}
             >
-              {/*<FullScreenButton />*/}
+              {/* <FullScreenButton /> */}
+              <PathFinderControl nodes={nodes} />
               <ConfigControl />
               <FilterControl nodes={nodes} />
               <GraphDataLoader

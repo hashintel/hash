@@ -2,12 +2,16 @@ import { useRegisterEvents, useSigma } from "@react-sigma/core";
 import type { RefObject } from "react";
 import { useCallback, useEffect } from "react";
 
-import type { GraphVizConfig } from "./config-control";
+import type {
+  DynamicNodeSizing,
+  GraphVizConfig,
+  StaticNodeSizing,
+} from "./config-control";
 import { useFullScreen } from "./full-screen-context";
 import type { GraphState } from "./state";
 
 export type RegisterEventsArgs = {
-  config: GraphVizConfig;
+  config: GraphVizConfig<DynamicNodeSizing | StaticNodeSizing>;
   graphContainerRef: RefObject<HTMLDivElement>;
   graphState: GraphState;
   onEdgeClick?: (params: {
@@ -83,6 +87,10 @@ export const useEventHandlers = ({
         case "Out":
           directNeighbors = sigma.getGraph().outNeighbors(nodeId);
           break;
+        default:
+          throw new Error(
+            `Unhandled direction: ${config.nodeHighlighting.direction}`,
+          );
       }
 
       for (const neighbor of directNeighbors) {
@@ -155,8 +163,9 @@ export const useEventHandlers = ({
         /**
          * If we click on the background (the 'stage'), deselect the selected node, and close any open panels.
          */
-        if (graphState.selectedNodeId) {
+        if (graphState.selectedNodeId ?? graphState.highlightedEdgePath) {
           setGraphState("selectedNodeId", null);
+          setGraphState("highlightedEdgePath", null);
           removeHighlights();
         }
 

@@ -14,7 +14,7 @@ import { useGraphContext } from "./graph-context";
 
 type Direction = "All" | "In" | "Out";
 
-type DynamicNodeSizing = {
+export type DynamicNodeSizing = {
   mode: "byEdgeCount";
   /**
    * The minimum size of a node.
@@ -33,14 +33,16 @@ type DynamicNodeSizing = {
   countEdges: Direction;
 };
 
-type StaticNodeSizing = {
+export type StaticNodeSizing = {
   /**
    * Don't adjust node sizes – the parent component calling GraphVisualizer is responsible for setting them.
    */
   mode: "static";
 };
 
-export type GraphVizConfig = {
+export type GraphVizConfig<
+  NodeSizing extends DynamicNodeSizing | StaticNodeSizing,
+> = {
   /**
    * A unique key for the graph, under which the viz settings will be stored in local storage.
    */
@@ -56,7 +58,11 @@ export type GraphVizConfig = {
      */
     direction: Direction;
   };
-  nodeSizing: DynamicNodeSizing | StaticNodeSizing;
+  nodeSizing: NodeSizing;
+  pathfinding?: {
+    startTypeId?: string;
+    endTypeId?: string;
+  };
 };
 
 const DirectionSelect = ({
@@ -135,7 +141,12 @@ const ConfigPanel: FunctionComponent<{
   const { config, setConfig } = useGraphContext();
 
   return (
-    <ControlPanel onClose={onClose} open={open} title="Configuration">
+    <ControlPanel
+      onClose={onClose}
+      open={open}
+      position="right"
+      title="Configuration"
+    >
       <ControlSectionContainer
         label="Highlights"
         tooltip="When you hover or click on a node, configure which connected nodes are also shown"
