@@ -360,7 +360,7 @@ mod tests {
             .resolve_entity_type_metadata(entity_type_uuid)
             .expect("entity type not resolved");
         let closed_entity_type = ClosedEntityType::from_resolve_data(entity_type, &resolved_data)
-            .expect("Could not close church");
+            .expect("Could not close entity type");
 
         let entity_types = entity_types
             .into_iter()
