@@ -120,7 +120,7 @@ mod meta {
             ProcedureRemoveAccountGroupMember
         ];
 
-        const ID: ServiceId = ServiceId::new(0x00);
+        const ID: ServiceId = ServiceId::new(0x01);
         const VERSION: Version = Version {
             major: 0x00,
             minor: 0x00,

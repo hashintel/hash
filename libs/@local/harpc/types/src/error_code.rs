@@ -85,7 +85,11 @@ define_error_code_consts! {
         /// The combination of service and version requirement could not be found on the server.
         ///
         /// The HTTP equivalent is 404 Not Found.
-        NOT_FOUND
+        SERVICE_NOT_FOUND,
+        /// The service was found, but the procedure was not.
+        ///
+        /// The HTTP equivalent is 404 Not Found.
+        PROCEDURE_NOT_FOUND
     ],
     // 0xFF_xx = server errors
     /// Errors that occur in a session and are issued by the server.

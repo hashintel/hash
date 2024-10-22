@@ -12,7 +12,7 @@ use harpc_tower::{
 use harpc_types::{response_kind::ResponseKind, service::ServiceId, version::Version};
 use tower::{Service, ServiceExt as _, util::Oneshot};
 
-use crate::error::NotFound;
+use crate::error::ServiceNotFound;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Handler<S> {
@@ -132,7 +132,7 @@ impl<ReqBody> Route<ReqBody> for HNil {
     where
         ReqBody: Body<Control = !, Error: Send + Sync> + Send + Sync,
     {
-        let error = NotFound {
+        let error = ServiceNotFound {
             service: request.service().id,
             version: request.service().version,
         };

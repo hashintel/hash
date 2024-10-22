@@ -4,7 +4,7 @@ mod session;
 
 mod role {
     use harpc_server::session::Session;
-    pub(crate) use harpc_service::role::Role;
+    pub(crate) use harpc_service::role::{Client, Role};
 
     use super::session::User;
 
