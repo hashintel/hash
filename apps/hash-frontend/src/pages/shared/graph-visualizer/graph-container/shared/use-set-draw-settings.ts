@@ -16,6 +16,31 @@ export const labelRenderedSizeThreshold = {
   normal: 14,
 };
 
+const maxLabelWidth = 100;
+const getCanvasLines = (ctx: CanvasRenderingContext2D, text: string) => {
+  const words = text.split(" ");
+  const lines = [];
+  let currentLine = words[0]!;
+  let maxLineWidth = 0;
+
+  for (let i = 1; i < words.length; i++) {
+    const word = words[i]!;
+    const width = ctx.measureText(`${currentLine} ${word}`).width;
+    if (width < maxLabelWidth) {
+      currentLine += ` ${word}`;
+    } else {
+      maxLineWidth = Math.max(maxLineWidth, ctx.measureText(currentLine).width);
+      lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+
+  maxLineWidth = Math.max(maxLineWidth, ctx.measureText(currentLine).width);
+  lines.push(currentLine);
+
+  return { lines, maxLineWidth };
+};
+
 /**
  * See also {@link GraphContainer} for additional settings which aren't expected to change in the graph's lifetime
  */
@@ -54,6 +79,11 @@ export const useSetDrawSettings = <
         const weight = settings.labelWeight;
 
         context.font = `${weight} ${size}px ${font}`;
+
+        /**
+         * @todo draw the label in multiple lines if it's too long, using the getCanvasLines function above
+         */
+
         const width = context.measureText(data.label).width + 8;
 
         const xYWidthHeight = [
@@ -212,7 +242,8 @@ export const useSetDrawSettings = <
         /**
          * We don't want to highlight edges between nodes which happen to be connected but via an edge
          * that would not have been followed for the configured traversal depth.
-         * In practice this means ignoring edges from or to the nodes where the traversal ended (depending on traversal direction).
+         * In practice this means ignoring edges from or to the nodes where the traversal ended (depending on traversal
+         * direction).
          */
         const nodesTraversalPassesThrough = new Set([
           selectedNode,
@@ -248,8 +279,7 @@ export const useSetDrawSettings = <
       }
 
       if (showEdge) {
-        edgeData.zIndex = 2;
-        edgeData.size = 3;
+        edgeData.zIndex = Math.max(edgeData.size, 2);
 
         const sourceData = graph.getNodeAttributes(source);
         edgeData.color =

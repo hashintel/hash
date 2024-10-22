@@ -10,13 +10,14 @@ import type { RefObject } from "react";
 import { useCallback, useMemo } from "react";
 
 import { useEntityTypesContextRequired } from "../../shared/entity-types-context/hooks/use-entity-types-context-required";
-import type { GraphVisualizerProps } from "./graph-visualizer";
-import { GraphVisualizer } from "./graph-visualizer";
 import type {
+  GraphVisualizerProps,
+  GraphVizConfig,
   GraphVizEdge,
   GraphVizNode,
-} from "./graph-visualizer/graph-container/graph-data-loader";
-import type { StaticNodeSizing } from "./graph-visualizer/graph-container/shared/config-control";
+  StaticNodeSizing,
+} from "./graph-visualizer";
+import { GraphVisualizer } from "./graph-visualizer";
 
 const anythingNodeId = "anything";
 
@@ -27,7 +28,11 @@ const defaultConfig = {
     depth: 1,
   },
   nodeSizing: { mode: "static" },
-} as const;
+  edgeSizing: {
+    min: 3,
+    max: 3,
+  },
+} as const satisfies GraphVizConfig<StaticNodeSizing>;
 
 export const TypeGraphVisualizer = ({
   onTypeClick,

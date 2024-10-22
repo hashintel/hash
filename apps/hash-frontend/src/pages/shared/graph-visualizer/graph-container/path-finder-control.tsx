@@ -6,7 +6,6 @@ import { allSimplePaths } from "graphology-simple-path";
 import type { FunctionComponent } from "react";
 import { useCallback, useMemo, useState } from "react";
 
-import type { GraphVizNode } from "./graph-data-loader";
 import { SimpleAutocomplete } from "./path-finder-control/simple-autocomplete";
 import {
   controlButtonSx,
@@ -15,6 +14,7 @@ import {
   ItemLabel,
 } from "./shared/control-components";
 import { useGraphContext } from "./shared/graph-context";
+import { GraphVizNode } from "./shared/types";
 
 type TypeData = {
   label: string;

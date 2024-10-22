@@ -1,12 +1,16 @@
 import { IconButton } from "@hashintel/design-system";
 import { Box, Stack, type Theme, Tooltip, Typography } from "@mui/material";
 import type { SystemStyleObject } from "@mui/system";
-import type { PropsWithChildren } from "react";
+import type { PropsWithChildren, ReactElement } from "react";
 
 import { ArrowRightToLineIcon } from "../../../../../shared/icons/arrow-right-to-line-icon";
 import { CircleInfoIcon } from "../../../../../shared/icons/circle-info-icon";
 
-export const InfoIconTooltip = ({ tooltip }: { tooltip: string }) => {
+export const InfoIconTooltip = ({
+  tooltip,
+}: {
+  tooltip: string | ReactElement;
+}) => {
   return (
     <Tooltip title={tooltip} placement="top">
       <Box
@@ -26,7 +30,10 @@ export const ItemLabel = ({
   children,
   fontSize = 11,
   tooltip,
-}: PropsWithChildren<{ fontSize?: number; tooltip: string }>) => (
+}: PropsWithChildren<{
+  fontSize?: number;
+  tooltip: string | ReactElement;
+}>) => (
   <Stack alignItems="center" direction="row" gap={0.5}>
     <Typography
       component="div"

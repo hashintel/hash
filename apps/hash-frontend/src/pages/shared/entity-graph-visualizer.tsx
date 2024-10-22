@@ -5,7 +5,7 @@ import type {
   LinkData,
   PropertyObject,
 } from "@local/hash-graph-types/entity";
-import { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
+import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import type { Subgraph } from "@local/hash-subgraph";
 import { isEntityId } from "@local/hash-subgraph";
@@ -14,17 +14,16 @@ import { Box, Stack, useTheme } from "@mui/material";
 import type { ReactElement, RefObject } from "react";
 import { memo, useCallback, useMemo, useState } from "react";
 
+import type { EntityEditorProps } from "../[shortname]/entities/[entity-uuid].page/entity-editor";
 import type {
+  DynamicNodeSizing,
   GraphVisualizerProps,
+  GraphVizConfig,
   GraphVizEdge,
+  GraphVizFilters,
   GraphVizNode,
 } from "./graph-visualizer";
 import { GraphVisualizer } from "./graph-visualizer";
-import type {
-  DynamicNodeSizing,
-  GraphVizConfig,
-} from "./graph-visualizer/graph-container/shared/config-control";
-import type { GraphVizFilters } from "./graph-visualizer/graph-container/shared/filter-control";
 
 export type EntityForGraph = {
   linkData?: LinkData;
@@ -35,6 +34,11 @@ export type EntityForGraph = {
 
 const fallbackDefaultConfig = {
   graphKey: "entity-graph",
+  edgeSizing: {
+    min: 2,
+    max: 5,
+    scale: "Linear",
+  },
   nodeHighlighting: {
     depth: 1,
     direction: "All",
@@ -44,6 +48,7 @@ const fallbackDefaultConfig = {
     min: 10,
     max: 32,
     countEdges: "All",
+    scale: "Linear",
   },
 } as const satisfies GraphVizConfig<DynamicNodeSizing>;
 
@@ -64,6 +69,7 @@ export const EntityGraphVisualizer = memo(
     onEntityClick?: (
       entityId: EntityId,
       containerRef?: RefObject<HTMLDivElement>,
+      options?: Pick<EntityEditorProps, "defaultOutgoingLinkFilters">,
     ) => void;
     onEntityTypeClick?: (entityTypeId: VersionedUrl) => void;
     /**
@@ -120,6 +126,8 @@ export const EntityGraphVisualizer = memo(
 
       const entityTypeIdToColor = new Map<string, number>();
 
+      const linkEntityIdsSeen = new Set<EntityId>();
+
       for (const entity of entities ?? []) {
         if (entity.linkData) {
           /**
@@ -130,6 +138,7 @@ export const EntityGraphVisualizer = memo(
               linkData: NonNullable<T["linkData"]>;
             },
           );
+          linkEntityIdsSeen.add(entity.metadata.recordId.entityId);
           continue;
         }
 
@@ -175,7 +184,12 @@ export const EntityGraphVisualizer = memo(
       for (const linkEntity of linkEntitiesToAdd) {
         if (
           !nonLinkEntitiesIncluded.has(linkEntity.linkData.leftEntityId) ||
-          !nonLinkEntitiesIncluded.has(linkEntity.linkData.rightEntityId)
+          /**
+           * The target may be a link entity or a regular entity.
+           * If we haven't seen either as a target, we don't want to add this link.
+           */
+          (!linkEntityIdsSeen.has(linkEntity.linkData.rightEntityId) &&
+            !nonLinkEntitiesIncluded.has(linkEntity.linkData.rightEntityId))
         ) {
           /**
            * We don't have both sides of this link in the graph.
@@ -192,6 +206,7 @@ export const EntityGraphVisualizer = memo(
           source: linkEntity.linkData.leftEntityId,
           target: linkEntity.linkData.rightEntityId,
           edgeId: linkEntity.metadata.recordId.entityId,
+          edgeTypeId: linkEntity.metadata.entityTypeId,
           label: linkEntityType?.schema.title ?? "Unknown",
           size: 1,
         });
@@ -226,10 +241,13 @@ export const EntityGraphVisualizer = memo(
     const onEdgeClick = useCallback<
       NonNullable<GraphVisualizerProps<DynamicNodeSizing>["onEdgeClick"]>
     >(
-      ({ edgeId, screenContainerRef }) => {
-        if (isEntityId(edgeId)) {
-          onEntityClick?.(edgeId, screenContainerRef);
-        }
+      ({ edgeData, screenContainerRef }) => {
+        onEntityClick?.(edgeData.source as EntityId, screenContainerRef, {
+          defaultOutgoingLinkFilters: {
+            linkedTo: new Set([edgeData.target]),
+            linkType: new Set([edgeData.edgeTypeId!]),
+          },
+        });
       },
       [onEntityClick],
     );
