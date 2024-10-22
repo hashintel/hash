@@ -16,14 +16,11 @@ use bytes::{Buf, BufMut, Bytes, BytesMut};
 use error_stack::{FutureExt as _, Report, ResultExt};
 use frunk::HList;
 use futures::{
-    FutureExt, Stream, StreamExt, TryFutureExt, TryStreamExt, pin_mut,
+    Stream, StreamExt, TryFutureExt, TryStreamExt, pin_mut,
     stream::{self, BoxStream},
 };
 use graph_types::account::AccountId;
-use harpc_client::{
-    Client, ClientConfig,
-    connection::{Connection, DefaultConnection, default},
-};
+use harpc_client::{Client, ClientConfig, connection::Connection};
 use harpc_codec::{decode::Decoder, encode::Encoder, json::JsonCodec};
 use harpc_net::session::server::SessionId;
 use harpc_server::{Server, ServerConfig, router::RouterBuilder, serve::serve};
