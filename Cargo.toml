@@ -124,7 +124,7 @@ sentry-types = { version = "=0.34.0", default-features = false }
 serde = { version = "=1.0.211", default-features = false }
 serde_json = { version = "=1.0.132" }
 text-size = { version = "=1.1.1", default-features = false }
-tokio = { version = "=1.40.0", default-features = false }
+tokio = { version = "=1.41.0", default-features = false }
 tokio-util = { version = "=0.7.12", default-features = false }
 tower-layer = { version = "=0.3.3", default-features = false }
 tower-service = { version = "=0.3.3", default-features = false }
