@@ -29,7 +29,9 @@ export type GraphContextType<
   filterPanelOpen: boolean;
   graphContainerRef: RefObject<HTMLDivElement>;
   graphState: GraphState;
+  pathFinderPanelOpen: boolean;
   refreshGraphHighlights: () => void;
+  searchPanelOpen: boolean;
   setConfig: (config: GraphVizConfig<NodeSizing>) => void;
   setConfigPanelOpen: (open: boolean) => void;
   setFilters: (filters: GraphVizFilters) => void;
@@ -38,6 +40,8 @@ export type GraphContextType<
     key: K,
     value: GraphState[K],
   ) => void;
+  setPathFinderPanelOpen: (open: boolean) => void;
+  setSearchPanelOpen: (open: boolean) => void;
 };
 
 const GraphContext = createContext<GraphContextType<
@@ -75,6 +79,8 @@ export const GraphContextProvider = <
 
   const [configPanelOpen, setConfigPanelOpen] = useState(false);
   const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [searchPanelOpen, setSearchPanelOpen] = useState(false);
+  const [pathFinderPanelOpen, setPathFinderPanelOpen] = useState(false);
 
   /**
    * State to track interactions with the graph.
@@ -111,6 +117,8 @@ export const GraphContextProvider = <
     onRender,
     setConfigPanelOpen,
     setFilterPanelOpen,
+    setPathFinderPanelOpen,
+    setSearchPanelOpen,
     setGraphState,
   });
 
@@ -122,12 +130,16 @@ export const GraphContextProvider = <
       filterPanelOpen,
       graphContainerRef,
       graphState: graphState.current,
+      pathFinderPanelOpen,
       refreshGraphHighlights,
+      searchPanelOpen,
       setConfig,
       setConfigPanelOpen,
       setFilters,
       setFilterPanelOpen,
       setGraphState,
+      setPathFinderPanelOpen,
+      setSearchPanelOpen,
     }),
     [
       config,
@@ -135,11 +147,11 @@ export const GraphContextProvider = <
       filters,
       filterPanelOpen,
       graphContainerRef,
+      pathFinderPanelOpen,
       refreshGraphHighlights,
+      searchPanelOpen,
       setConfig,
-      setConfigPanelOpen,
       setFilters,
-      setFilterPanelOpen,
       setGraphState,
     ],
   );

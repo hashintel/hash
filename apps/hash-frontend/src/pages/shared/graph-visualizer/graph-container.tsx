@@ -20,6 +20,7 @@ import type { GraphVizFilters } from "./graph-container/shared/filter-control";
 import { FilterControl } from "./graph-container/shared/filter-control";
 import { FullScreenContextProvider } from "./graph-container/shared/full-screen-context";
 import { GraphContextProvider } from "./graph-container/shared/graph-context";
+import { SearchControl } from "./graph-container/search-control";
 
 export type GraphContainerProps<
   NodeSizing extends DynamicNodeSizing | StaticNodeSizing,
@@ -81,9 +82,10 @@ export const GraphContainer = memo(
         /**
          * Edge labels are only shown on hover, controlled in the event handlers.
          */
-        edgeLabelColor: { color: "rgba(80, 80, 80, 0.6)" },
+        edgeLabelColor: { color: "rgba(80, 80, 80, 1)" },
         edgeLabelFont: `"Inter", "Helvetica", "sans-serif"`,
-        edgeLabelSize: 10,
+        edgeLabelSize: 11,
+        edgeLabelWeight: "600",
         edgeProgramClasses: {
           arrow: EdgeArrowProgram,
           curved: EdgeCurvedArrowProgram,
@@ -102,6 +104,7 @@ export const GraphContainer = memo(
           bordered,
           icon,
         },
+        renderEdgeLabels: true,
         zoomDuration: 0.05,
         zoomingRatio: 1.25,
         zIndex: true,
@@ -139,6 +142,7 @@ export const GraphContainer = memo(
             >
               {/* <FullScreenButton /> */}
               <PathFinderControl nodes={nodes} />
+              <SearchControl nodes={nodes} />
               <ConfigControl />
               <FilterControl nodes={nodes} />
               <GraphDataLoader

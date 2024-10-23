@@ -1,16 +1,30 @@
 import { Autocomplete } from "@hashintel/design-system";
 import { outlinedInputClasses } from "@mui/material";
+import type { ReactNode, RefObject } from "react";
 
 import { MenuItem } from "../../../../../shared/ui/menu-item";
 
 export const SimpleAutocomplete = <
-  T extends { disabled?: boolean; label: string; valueForSelector: string },
+  T extends {
+    disabled?: boolean;
+    label: string;
+    suffix?: string;
+    valueForSelector: string;
+  },
 >({
+  autoFocus,
+  endAdornment,
+  includeSuffix,
+  inputRef,
   placeholder,
   options,
   setValue,
   value,
 }: {
+  autoFocus?: boolean;
+  endAdornment?: ReactNode;
+  includeSuffix?: boolean;
+  inputRef?: RefObject<HTMLDivElement>;
   placeholder: string;
   options: T[];
   setValue: (value: T | null) => void;
@@ -18,13 +32,12 @@ export const SimpleAutocomplete = <
 }) => {
   return (
     <Autocomplete<T, false, false, false>
-      autoFocus={false}
-      blurOnSelect
+      autoFocus={!!autoFocus}
       componentsProps={{
         paper: {
           sx: {
             p: 0,
-            maxWidth: 600,
+            maxWidth: "90vw",
             minWidth: "100%",
             width: "fit-content",
           },
@@ -37,10 +50,11 @@ export const SimpleAutocomplete = <
           },
         },
       }}
+      disabled={options.length === 0}
       getOptionDisabled={(option) => !!option.disabled}
       inputHeight="auto"
       inputProps={{
-        endAdornment: <div />,
+        endAdornment: endAdornment ?? <div />,
         placeholder,
         sx: () => ({
           height: "auto",
@@ -54,7 +68,7 @@ export const SimpleAutocomplete = <
           },
         }),
       }}
-      disableCloseOnSelect
+      inputRef={inputRef}
       isOptionEqualToValue={(option, selectedValue) =>
         option.valueForSelector === selectedValue.valueForSelector
       }
@@ -75,10 +89,12 @@ export const SimpleAutocomplete = <
             "&:active": {
               color: "inherit",
             },
+            boxShadow: "none !important",
           }}
           value={option.valueForSelector}
         >
-          {option.label}
+          {option.label +
+            (includeSuffix && option.suffix ? ` ${option.suffix}` : "")}
         </MenuItem>
       )}
       value={value}

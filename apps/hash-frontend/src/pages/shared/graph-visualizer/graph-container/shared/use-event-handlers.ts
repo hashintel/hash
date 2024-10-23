@@ -9,8 +9,7 @@ import type {
 } from "./config-control";
 import { useFullScreen } from "./full-screen-context";
 import type { GraphState } from "./state";
-
-import { GraphVizEdge } from "./types";
+import type { GraphVizEdge } from "./types";
 
 export type RegisterEventsArgs = {
   config: GraphVizConfig<DynamicNodeSizing | StaticNodeSizing>;
@@ -32,6 +31,8 @@ export type RegisterEventsArgs = {
   }) => void;
   setConfigPanelOpen: (open: boolean) => void;
   setFilterPanelOpen: (open: boolean) => void;
+  setPathFinderPanelOpen: (open: boolean) => void;
+  setSearchPanelOpen: (open: boolean) => void;
   setGraphState: <K extends keyof GraphState>(
     key: K,
     value: GraphState[K],
@@ -50,6 +51,8 @@ export const useEventHandlers = ({
   onNodeSecondClick,
   setConfigPanelOpen,
   setFilterPanelOpen,
+  setPathFinderPanelOpen,
+  setSearchPanelOpen,
   setGraphState,
 }: RegisterEventsArgs) => {
   const sigma = useSigma();
@@ -179,6 +182,8 @@ export const useEventHandlers = ({
 
         setConfigPanelOpen(false);
         setFilterPanelOpen(false);
+        setPathFinderPanelOpen(false);
+        setSearchPanelOpen(false);
       },
       enterNode: (event) => {
         if (graphState.selectedNodeId) {
@@ -213,8 +218,15 @@ export const useEventHandlers = ({
           skipIndexation: true,
         });
       },
-      leaveEdge: () => {
+      leaveEdge: (event) => {
         setGraphState("hoveredEdgeId", null);
+
+        sigma.refresh({
+          partialGraph: {
+            edges: [event.edge],
+          },
+          skipIndexation: true,
+        });
       },
     });
   }, [
@@ -230,6 +242,8 @@ export const useEventHandlers = ({
     registerEvents,
     setConfigPanelOpen,
     setFilterPanelOpen,
+    setPathFinderPanelOpen,
+    setSearchPanelOpen,
     setGraphState,
     sigma,
   ]);
