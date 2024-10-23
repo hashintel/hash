@@ -2,11 +2,15 @@ cargo-features = ["edition2024"]
 
 [package]
 name = "chonky"
+description = "General-purpose tooling for segmenting, chunking and embedding files"
 version = "0.0.0"
 publish = false
 authors = ["Jesus Fileto <jesus.fileto@yale.edu>", "HASH"]
+keywords = ["segmentation", "extraction", "chunking", "embedding", "llm"]
+categories = ["algorithms"]
+exclude = ["package.json"]
+license-file = "LICENSE.md"
 edition.workspace = true
-license.workspace = true
 
 [dependencies]
 # Public workspace dependencies
