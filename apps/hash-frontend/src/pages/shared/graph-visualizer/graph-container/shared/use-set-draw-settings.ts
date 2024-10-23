@@ -139,13 +139,23 @@ export const useSetDrawSettings = <
       let allHighlightedNodes: Set<string | null>;
       if (graphState.highlightedEdgePath) {
         const graph = sigma.getGraph();
-        allHighlightedNodes = new Set(
-          graphState.highlightedEdgePath.flatMap((edgeId) => {
-            const source = graph.source(edgeId);
-            const target = graph.target(edgeId);
-            return [source, target];
-          }),
-        );
+        try {
+          allHighlightedNodes = new Set(
+            graphState.highlightedEdgePath.flatMap((edgeId) => {
+              const source = graph.source(edgeId);
+              const target = graph.target(edgeId);
+              return [source, target];
+            }),
+          );
+        } catch {
+          /**
+           * Setting the edge size/scale while there's a highlightedEdgePath causes a crash due to source/target of edges not being found
+           * @todo fix it so that this doesn't happen
+           */
+          // eslint-disable-next-line no-param-reassign
+          graphState.highlightedEdgePath = null;
+          return nodeData;
+        }
       } else {
         allHighlightedNodes = new Set([
           graphState.selectedNodeId,
@@ -181,6 +191,7 @@ export const useSetDrawSettings = <
         graphState.hoveredNodeId === node
       ) {
         nodeData.zIndex = 3;
+        nodeData.label = `${nodeData.label} (${nodeData.significance})`;
       }
 
       return nodeData;
@@ -189,19 +200,29 @@ export const useSetDrawSettings = <
     sigma.setSetting("edgeReducer", (edge, data) => {
       const edgeData = { ...data };
 
-      if (edge === graphState.hoveredEdgeId) {
-        /**
-         * @todo fix how this works, renderEdgeLabels needs to be true, but that renders all labels.
-         *    possibly need to set edge labels to nothing instead.
-         */
-        edgeData.forceLabel = true;
-      }
-
       const selectedNode =
         graphState.selectedNodeId ?? graphState.hoveredNodeId;
 
       if (!selectedNode && !graphState.highlightedEdgePath) {
+        /**
+         * If we don't have any node hovered, clicked or any edge highlighted, leave the edge as it is
+         */
         return edgeData;
+      }
+
+      if (edge === graphState.hoveredEdgeId || graphState.highlightedEdgePath) {
+        /**
+         * Show the edge's significance if it is hovered or if it is part of a highlighted path
+         */
+        edgeData.forceLabel = true;
+        edgeData.label = `(${edgeData.significance})`;
+      }
+
+      if (edge === graphState.hoveredEdgeId) {
+        /**
+         * Set a minimum size on hover so it's easier to distinguish and click on
+         */
+        edgeData.size = Math.max(edgeData.size, 5);
       }
 
       const graph = sigma.getGraph();
@@ -279,7 +300,7 @@ export const useSetDrawSettings = <
       }
 
       if (showEdge) {
-        edgeData.zIndex = Math.max(edgeData.size, 2);
+        edgeData.zIndex = Math.max(edgeData.size, 4);
 
         const sourceData = graph.getNodeAttributes(source);
         edgeData.color =
