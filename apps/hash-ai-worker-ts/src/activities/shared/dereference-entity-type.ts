@@ -11,10 +11,7 @@ import type {
 } from "@blockprotocol/type-system";
 import { atLeastOne, extractVersion } from "@blockprotocol/type-system";
 import { typedEntries } from "@local/advanced-types/typed-entries";
-import type {
-  BaseUrl,
-  EntityTypeMetadata,
-} from "@local/hash-graph-types/ontology";
+import type { BaseUrl } from "@local/hash-graph-types/ontology";
 import type { Subgraph } from "@local/hash-subgraph";
 import { linkEntityTypeUrl } from "@local/hash-subgraph";
 import {

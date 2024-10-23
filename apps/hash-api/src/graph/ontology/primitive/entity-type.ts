@@ -16,7 +16,6 @@ import type {
   UpdateEntityTypeRequest,
 } from "@local/hash-graph-client";
 import type {
-  BaseUrl,
   EntityTypeMetadata,
   EntityTypeWithMetadata,
   OntologyTypeRecordId,
