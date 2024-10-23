@@ -172,10 +172,10 @@ where
                 client
                     .execute(
                         &format!(
-                            r#"
+                            "
                             /* CLONE DATABASE TO NEW ONE */
                             CREATE DATABASE {bench_db_name} WITH TEMPLATE {} OWNER {};
-                            "#,
+                            ",
                             source_db_connection_info.database(),
                             bench_db_connection_info.user()
                         ),
@@ -263,9 +263,9 @@ where
                 .as_client()
                 .execute(
                     &format!(
-                        r#"
+                        "
                         DROP DATABASE IF EXISTS {};
-                        "#,
+                        ",
                         self.bench_db_name
                     ),
                     &[],

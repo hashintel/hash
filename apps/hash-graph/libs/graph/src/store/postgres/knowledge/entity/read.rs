@@ -107,7 +107,7 @@ where
             .as_client()
             .query(
                 &format!(
-                    r#"
+                    "
                         SELECT
                              filter.idx,
                              ontology_ids.base_url,
@@ -131,7 +131,7 @@ where
                           ON entity_is_of_type.entity_type_ontology_id = ontology_ids.ontology_id
 
                         {where_statement};
-                    "#
+                    "
                 ),
                 &[
                     &traversal_data.owned_by_ids,
@@ -210,7 +210,7 @@ where
             .as_client()
             .query(
                 &format!(
-                    r#"
+                    "
                         SELECT
                              filter.idx,
                              target.web_id,
@@ -239,7 +239,7 @@ where
                          AND target.{variable_axis} && filter.interval
                          AND target.web_id = {target_1}
                          AND target.entity_uuid = {target_2}
-                    "#
+                    "
                 ),
                 &[
                     &traversal_data.owned_by_ids,
