@@ -10,7 +10,7 @@
 [![documentation](https://img.shields.io/docsrs/chonky)][documentation]
 [![license](https://img.shields.io/static/v1?label=license&message=AGPL-3&color=blue)][license]
 
-[Open issues](https://github.com/hashintel/hash/issues?q=is%3Aissue+is%3Aopen+label%3AA-chonky) / [Discussions](https://github.com/hashintel/hash/discussions?discussions_q=label%3AA-chonky)
+[Open issues](https://github.com/hashintel/hash/issues?q=is%3Aissue+is%3Aopen+label%3A%22area%2Flibs+%3E+chonky%22) / [Discussions](https://github.com/orgs/hashintel/discussions?discussions_q=label%3A%22area%2Flibs+%3E+chonky%22+)
 
 # Chunking and embedding library
 
