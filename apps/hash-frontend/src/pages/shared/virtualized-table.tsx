@@ -195,7 +195,7 @@ export const VirtualizedTable = <
         followOutput="smooth"
         increaseViewportBy={50}
         itemContent={createRowContent}
-        overscan={{ main: 100, reverse: 100 }}
+        overscan={{ main: 200, reverse: 200 }}
         style={heightStyle}
       />
     </Box>

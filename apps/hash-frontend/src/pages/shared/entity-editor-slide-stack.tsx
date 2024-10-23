@@ -2,15 +2,12 @@ import type { EntityId } from "@local/hash-graph-types/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Backdrop } from "@mui/material";
 import type { FunctionComponent, RefObject } from "react";
-import { useMemo } from "react";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
-import {
-  EditEntitySlideOver,
-  EditEntitySlideOverProps,
-} from "../[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
+import type { EditEntitySlideOverProps } from "../[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
+import { EditEntitySlideOver } from "../[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
+import type { EntityEditorProps } from "../[shortname]/entities/[entity-uuid].page/entity-editor";
 import { generateEntityRootedSubgraph } from "./subgraphs";
-import { EntityEditorProps } from "../[shortname]/entities/[entity-uuid].page/entity-editor";
 
 interface EntityEditorSlideStackProps {
   disableTypeClick?: boolean;

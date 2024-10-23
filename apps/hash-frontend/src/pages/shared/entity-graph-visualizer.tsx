@@ -197,17 +197,11 @@ export const EntityGraphVisualizer = memo(
           continue;
         }
 
-        const linkEntityType = getEntityTypeById(
-          subgraphWithTypes,
-          linkEntity.metadata.entityTypeId,
-        );
-
         edgesToAdd.push({
           source: linkEntity.linkData.leftEntityId,
           target: linkEntity.linkData.rightEntityId,
           edgeId: linkEntity.metadata.recordId.entityId,
           edgeTypeId: linkEntity.metadata.entityTypeId,
-          label: linkEntityType?.schema.title ?? "Unknown",
           size: 1,
         });
       }
