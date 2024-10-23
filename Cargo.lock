@@ -1137,6 +1137,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "chonky"
+version = "0.0.0"
+dependencies = [
+ "error-stack",
+]
+
+[[package]]
 name = "chrono"
 version = "0.4.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
