@@ -20,7 +20,7 @@
     "@local/tsconfig": "0.0.0-private",
     "@redocly/cli": "1.25.8",
     "@rust/graph-api": "0.0.0-private",
-    "@types/node": "20.16.14",
+    "@types/node": "20.16.15",
     "eslint": "8.57.0",
     "fix-esm-import-path": "1.10.1",
     "rimraf": "6.0.1",
