@@ -62,7 +62,7 @@
     "@tldraw/primitives": "2.0.0-alpha.12",
     "@tldraw/tldraw": "2.0.0-alpha.12",
     "@tldraw/tlvalidate": "2.0.0-alpha.12",
-    "@types/prismjs": "1.26.4",
+    "@types/prismjs": "1.26.5",
     "axios": "1.7.7",
     "buffer": "6.0.3",
     "clsx": "1.2.1",
