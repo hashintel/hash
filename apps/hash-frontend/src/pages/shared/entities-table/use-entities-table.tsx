@@ -9,6 +9,7 @@ import { typedEntries } from "@local/advanced-types/typed-entries";
 import type { Entity } from "@local/hash-graph-sdk/entity";
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { BaseUrl } from "@local/hash-graph-types/ontology";
+import { OwnedById } from "@local/hash-graph-types/web";
 import { generateEntityLabel } from "@local/hash-isomorphic-utils/generate-entity-label";
 import { isPageEntityTypeId } from "@local/hash-isomorphic-utils/page-entity-type-ids";
 import { simplifyProperties } from "@local/hash-isomorphic-utils/simplify-properties";
@@ -21,7 +22,7 @@ import {
 } from "@local/hash-subgraph/stdlib";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import { format } from "date-fns";
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 
 import { gridHeaderBaseFont } from "../../../components/grid/grid";
 import { useGetOwnerForEntity } from "../../../components/hooks/use-get-owner-for-entity";
@@ -120,7 +121,6 @@ export const useEntitiesTable = (params: {
   const {
     entities,
     entityTypes,
-    propertyTypes,
     subgraph,
     hideColumns,
     hidePageArchivedColumn = false,
@@ -141,7 +141,14 @@ export const useEntitiesTable = (params: {
     accountIds: editorActorIds,
   });
 
-  const getOwnerForEntity = useGetOwnerForEntity();
+  const getOwnerForEntity = useCallback(
+    (_args: { entityId: EntityId }) => ({
+      ownedById: "",
+      shortname: "",
+    }),
+    [],
+  );
+  // const getOwnerForEntity = useGetOwnerForEntity();
 
   const entitiesHaveSameType = useMemo(
     () =>
@@ -327,7 +334,6 @@ export const useEntitiesTable = (params: {
     hideColumns,
     hidePageArchivedColumn,
     hidePropertiesColumns,
-    propertyTypes,
     subgraph,
     usedPropertyTypes,
   ]);
