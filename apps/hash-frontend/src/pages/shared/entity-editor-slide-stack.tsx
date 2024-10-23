@@ -1,10 +1,14 @@
 import type { EntityId } from "@local/hash-graph-types/entity";
 import type { EntityRootType, Subgraph } from "@local/hash-subgraph";
 import { Backdrop } from "@mui/material";
-import { FunctionComponent, RefObject, useMemo } from "react";
+import type { FunctionComponent, RefObject } from "react";
+import { useMemo } from "react";
 import { useCallback, useState } from "react";
 
-import { EditEntitySlideOver } from "../[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
+import {
+  EditEntitySlideOver,
+  EditEntitySlideOverProps,
+} from "../[shortname]/entities/[entity-uuid].page/edit-entity-slide-over";
 import { generateEntityRootedSubgraph } from "./subgraphs";
 import { EntityEditorProps } from "../[shortname]/entities/[entity-uuid].page/entity-editor";
 
@@ -36,6 +40,20 @@ interface EntityEditorSlideStackProps {
    */
   slideContainerRef?: RefObject<HTMLDivElement>;
 }
+
+const Slide = (allProps: EditEntitySlideOverProps) => {
+  const { entitySubgraph: fullSubgraph, ...props } = allProps;
+
+  const entitySubgraph = useMemo(
+    () =>
+      props.entityId && fullSubgraph
+        ? generateEntityRootedSubgraph(props.entityId, fullSubgraph)
+        : undefined,
+    [props.entityId, fullSubgraph],
+  );
+
+  return <EditEntitySlideOver {...props} entitySubgraph={entitySubgraph} />;
+};
 
 export const EntityEditorSlideStack: FunctionComponent<
   EntityEditorSlideStackProps
@@ -85,8 +103,6 @@ export const EntityEditorSlideStack: FunctionComponent<
     }, 200);
   }, [setAnimateOut, setItems, onClose]);
 
-  console.log("Navigating...");
-
   return (
     <Backdrop
       onClick={handleClose}
@@ -95,13 +111,9 @@ export const EntityEditorSlideStack: FunctionComponent<
     >
       {items.slice(0, currentIndex + 1).map((entityId, index) => {
         return (
-          <EditEntitySlideOver
+          <Slide
             disableTypeClick={disableTypeClick}
-            entitySubgraph={
-              entitySubgraph
-                ? generateEntityRootedSubgraph(entityId, entitySubgraph)
-                : undefined
-            }
+            entitySubgraph={entitySubgraph}
             entityId={entityId}
             hideOpenInNew={hideOpenInNew}
             // eslint-disable-next-line react/no-array-index-key
