@@ -34,14 +34,17 @@ use hash_graph_store::{
     },
 };
 use postgres_types::{Json, ToSql};
+use serde::Deserialize as _;
+use serde_json::Value as JsonValue;
 use temporal_versioning::{RightBoundedTemporalInterval, Timestamp, TransactionTime};
 use tokio_postgres::{GenericClient, Row};
 use tracing::instrument;
 use type_system::{
     Valid, Validator,
     schema::{
-        ClosedEntityType, DataTypeUuid, EntityTypeUuid, EntityTypeValidator, OntologyTypeResolver,
-        OntologyTypeUuid, PropertyTypeUuid,
+        ClosedEntityType, DataTypeUuid, EntityType, EntityTypeResolveData,
+        EntityTypeToPropertyTypeEdge, EntityTypeUuid, EntityTypeValidator, InheritanceDepth,
+        OntologyTypeResolver, OntologyTypeUuid, PropertyTypeUuid,
     },
     url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
 };
@@ -107,6 +110,113 @@ where
                     .copied()
                     .unwrap_or(false)
                     .then_some(entity_type)
+            }))
+    }
+
+    async fn get_entity_type_resolve_metadata(
+        &self,
+        entity_types: &[EntityTypeUuid],
+    ) -> Result<
+        impl Iterator<Item = Result<(EntityTypeUuid, EntityTypeResolveData), QueryError>>,
+        QueryError,
+    > {
+        Ok(self
+            .as_client()
+            .query(
+                "
+                    SELECT
+                       	source_entity_type_ontology_id,
+                       	array_agg(edge_kind),
+                       	array_agg(target_ontology_id),
+                       	array_agg(depth),
+                       	array_agg(schema)
+                    FROM (
+                       	SELECT
+                      		source_entity_type_ontology_id,
+                      		target_entity_type_ontology_id AS target_ontology_id,
+                      		schema,
+                      		depth,
+                      		'inheritance' AS edge_kind
+                       	FROM entity_type_inherits_from
+                       	JOIN entity_types ON target_entity_type_ontology_id = ontology_id
+                    UNION
+                       	SELECT
+                      		source_entity_type_ontology_id,
+                      		target_entity_type_ontology_id AS target_ontology_id,
+                      		schema,
+                      		inheritance_depth,
+                      		'link' AS edge_kind
+                       	FROM entity_type_constrains_links_on
+                       	JOIN entity_types ON target_entity_type_ontology_id = ontology_id
+                    UNION
+                       	SELECT
+                      		source_entity_type_ontology_id,
+                      		target_entity_type_ontology_id AS target_ontology_id,
+                      		schema,
+                      		inheritance_depth,
+                      		'link_destination' AS edge_kind
+                       	FROM entity_type_constrains_link_destinations_on
+                       	JOIN entity_types ON target_entity_type_ontology_id = ontology_id
+                    UNION
+                       	SELECT
+                      		source_entity_type_ontology_id,
+                      		target_property_type_ontology_id AS target_ontology_id,
+                      		schema,
+                      		inheritance_depth,
+                      		'property' AS edge_kind
+                       	FROM entity_type_constrains_properties_on
+                       	JOIN property_types ON target_property_type_ontology_id = ontology_id
+                    ) AS subquery
+                    WHERE source_entity_type_ontology_id = ANY($1)
+                    GROUP BY source_entity_type_ontology_id;
+                ",
+                &[&entity_types],
+            )
+            .await
+            .change_context(QueryError)?
+            .into_iter()
+            .map(|row| {
+                let source_id: EntityTypeUuid = row.get(0);
+                let edge_kinds: Vec<String> = row.get(1);
+                let targets: Vec<OntologyTypeUuid> = row.get(2);
+                let depths: Vec<InheritanceDepth> = row.get(3);
+                let schemas: Vec<JsonValue> = row.get(4);
+
+                let mut resolve_data = EntityTypeResolveData::default();
+                for (((edge_kind, target_id), schema), depth) in
+                    edge_kinds.into_iter().zip(targets).zip(schemas).zip(depths)
+                {
+                    match edge_kind.as_str() {
+                        "inheritance" => {
+                            resolve_data.add_entity_type_inheritance_edge(
+                                Arc::new(
+                                    EntityType::deserialize(schema).change_context(QueryError)?,
+                                ),
+                                target_id.into(),
+                                depth.inner(),
+                            );
+                        }
+                        "link" => {
+                            resolve_data.add_entity_type_link_edge(target_id.into(), depth.inner());
+                        }
+                        "link_destination" => {
+                            resolve_data.add_entity_type_link_destination_edge(
+                                target_id.into(),
+                                depth.inner(),
+                            );
+                        }
+                        "property" => {
+                            resolve_data.add_property_type_edge(
+                                EntityTypeToPropertyTypeEdge::Property,
+                                target_id.into(),
+                                depth.inner(),
+                            );
+                        }
+                        _ => unreachable!(),
+                    }
+                }
+
+                Ok((source_id, resolve_data))
             }))
     }
 
@@ -540,6 +650,14 @@ where
 
         let required_reference_ids = entity_type_reference_ids.into_iter().collect::<Vec<_>>();
 
+        let mut resolve_data = transaction
+            .get_entity_type_resolve_metadata(&required_reference_ids)
+            .await
+            .change_context(InsertionError)
+            .attach_printable("Could not read entity type resolve data")?
+            .collect::<Result<HashMap<_, _>, _>>()
+            .change_context(InsertionError)?;
+
         transaction
             .get_entity_types(actor_id, GetEntityTypesParams {
                 filter: Filter::In(
@@ -564,43 +682,18 @@ where
             .attach_printable("Could not read parent entity types")?
             .entity_types
             .into_iter()
-            .chain(
-                // TODO: We only need the parent IDs here, but it's expected that this will be
-                //       replaced when reading resolved entity types is implemented.
-                transaction
-                    .get_entity_types(actor_id, GetEntityTypesParams {
-                        filter: Filter::In(
-                            FilterExpression::Path {
-                                path: EntityTypeQueryPath::EntityTypeEdge {
-                                    edge_kind: OntologyEdgeKind::InheritsFrom,
-                                    path: Box::new(EntityTypeQueryPath::OntologyId),
-                                    direction: EdgeDirection::Incoming,
-                                    inheritance_depth: None,
-                                },
-                            },
-                            ParameterList::EntityTypeIds(&required_reference_ids),
-                        ),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
-                        include_drafts: false,
-                        after: None,
-                        limit: None,
-                        include_count: false,
-                        include_web_ids: false,
-                        include_edition_created_by_ids: false,
-                    })
-                    .await
-                    .change_context(InsertionError)
-                    .attach_printable("Could not read parent entity types")?
-                    .entity_types,
-            )
             .for_each(|entity_type| {
-                ontology_type_resolver.add_unresolved_entity_type(
-                    EntityTypeUuid::from_url(&entity_type.schema.id),
-                    Arc::new(entity_type.schema),
-                );
+                let entity_type_id = EntityTypeUuid::from_url(&entity_type.schema.id);
+                if let Some(resolve_data) = resolve_data.remove(&entity_type_id) {
+                    ontology_type_resolver.add_closed_entity_type(
+                        entity_type_id,
+                        Arc::new(entity_type.schema),
+                        Arc::new(resolve_data),
+                    );
+                } else {
+                    ontology_type_resolver
+                        .add_unresolved_entity_type(entity_type_id, Arc::new(entity_type.schema));
+                }
             });
 
         let closed_schemas = inserted_entity_types
@@ -918,6 +1011,14 @@ where
             .map(|(reference, _)| EntityTypeUuid::from_url(&reference.url))
             .collect::<Vec<_>>();
 
+        let mut resolve_data = transaction
+            .get_entity_type_resolve_metadata(&required_reference_ids)
+            .await
+            .change_context(UpdateError)
+            .attach_printable("Could not read entity type resolve data")?
+            .collect::<Result<HashMap<_, _>, _>>()
+            .change_context(UpdateError)?;
+
         transaction
             .get_entity_types(actor_id, GetEntityTypesParams {
                 filter: Filter::In(
@@ -942,41 +1043,18 @@ where
             .attach_printable("Could not read parent entity types")?
             .entity_types
             .into_iter()
-            .chain(
-                transaction
-                    .get_entity_types(actor_id, GetEntityTypesParams {
-                        filter: Filter::In(
-                            FilterExpression::Path {
-                                path: EntityTypeQueryPath::EntityTypeEdge {
-                                    edge_kind: OntologyEdgeKind::InheritsFrom,
-                                    path: Box::new(EntityTypeQueryPath::OntologyId),
-                                    direction: EdgeDirection::Incoming,
-                                    inheritance_depth: None,
-                                },
-                            },
-                            ParameterList::EntityTypeIds(&required_reference_ids),
-                        ),
-                        temporal_axes: QueryTemporalAxesUnresolved::DecisionTime {
-                            pinned: PinnedTemporalAxisUnresolved::new(None),
-                            variable: VariableTemporalAxisUnresolved::new(None, None),
-                        },
-                        include_drafts: false,
-                        after: None,
-                        limit: None,
-                        include_count: false,
-                        include_web_ids: false,
-                        include_edition_created_by_ids: false,
-                    })
-                    .await
-                    .change_context(UpdateError)
-                    .attach_printable("Could not read parent entity types")?
-                    .entity_types,
-            )
             .for_each(|entity_type| {
-                ontology_type_resolver.add_unresolved_entity_type(
-                    EntityTypeUuid::from_url(&entity_type.schema.id),
-                    Arc::new(entity_type.schema),
-                );
+                let entity_type_id = EntityTypeUuid::from_url(&entity_type.schema.id);
+                if let Some(resolve_data) = resolve_data.remove(&entity_type_id) {
+                    ontology_type_resolver.add_closed_entity_type(
+                        entity_type_id,
+                        Arc::new(entity_type.schema),
+                        Arc::new(resolve_data),
+                    );
+                } else {
+                    ontology_type_resolver
+                        .add_unresolved_entity_type(entity_type_id, Arc::new(entity_type.schema));
+                }
             });
 
         ontology_type_resolver
