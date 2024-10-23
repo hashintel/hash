@@ -159,8 +159,14 @@ impl PostgresQueryPath for EntityTypeQueryPath<'_> {
                 Column::EntityTypes(EntityTypes::Schema),
                 (Some(JsonField::StaticText("required"))),
             ),
-            Self::LabelProperty => (Column::EntityTypes(EntityTypes::LabelProperty), None),
-            Self::Icon => (Column::EntityTypes(EntityTypes::Icon), None),
+            Self::LabelProperty => (
+                Column::EntityTypes(EntityTypes::Schema),
+                Some(JsonField::StaticText("labelProperty")),
+            ),
+            Self::Icon => (
+                Column::EntityTypes(EntityTypes::Schema),
+                Some(JsonField::StaticText("icon")),
+            ),
             Self::EditionProvenance(path) => (
                 Column::OntologyTemporalMetadata(OntologyTemporalMetadata::Provenance),
                 path.as_ref().map(JsonField::JsonPath),

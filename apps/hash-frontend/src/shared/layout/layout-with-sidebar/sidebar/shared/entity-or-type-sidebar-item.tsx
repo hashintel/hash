@@ -1,9 +1,9 @@
+import type { EntityType } from "@blockprotocol/type-system";
 import {
   EntityTypeIcon,
   IconButton,
   LinkTypeIcon,
 } from "@hashintel/design-system";
-import type { EntityTypeWithMetadata } from "@local/hash-graph-types/ontology";
 import { extractBaseUrl } from "@local/hash-subgraph/type-system-patch";
 import type { BoxProps } from "@mui/material";
 import { Box, styled, Tooltip, Typography } from "@mui/material";
@@ -53,14 +53,11 @@ const Container = styled((props: BoxProps & { selected: boolean }) => (
 }));
 
 export const EntityOrTypeSidebarItem: FunctionComponent<{
-  entityType: EntityTypeWithMetadata;
+  entityType: EntityType;
   href?: string;
   variant: "entity" | "entity-type";
 }> = ({ entityType, href, variant }) => {
-  const {
-    metadata: { icon },
-    schema: { title, $id: entityTypeId },
-  } = entityType;
+  const { title, $id: entityTypeId, icon } = entityType;
 
   const entityMenuTriggerRef = useRef(null);
 

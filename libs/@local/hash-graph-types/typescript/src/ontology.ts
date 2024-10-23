@@ -90,17 +90,8 @@ export type ConstructDataTypeParams = DistributiveOmit<
 >;
 
 export type DataTypeMetadata = OntologyElementMetadata;
-
 export type PropertyTypeMetadata = OntologyElementMetadata;
-
-export type EditableOntologyElementMetadata = Pick<
-  EntityTypeWithMetadataBp["metadata"],
-  "icon"
-> & {
-  labelProperty?: BaseUrl | null;
-};
-export type EntityTypeMetadata = EditableOntologyElementMetadata &
-  OntologyElementMetadata;
+export type EntityTypeMetadata = OntologyElementMetadata;
 
 export type DataTypeWithMetadata = Subtype<
   DataTypeWithMetadataBp,

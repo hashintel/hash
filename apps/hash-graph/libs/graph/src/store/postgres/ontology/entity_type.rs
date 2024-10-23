@@ -43,7 +43,7 @@ use type_system::{
         ClosedEntityType, DataTypeUuid, EntityTypeUuid, EntityTypeValidator, OntologyTypeResolver,
         OntologyTypeUuid, PropertyTypeUuid,
     },
-    url::{BaseUrl, OntologyTypeVersion, VersionedUrl},
+    url::{OntologyTypeVersion, VersionedUrl},
 };
 
 use crate::store::{
@@ -523,8 +523,6 @@ where
                 inserted_entity_type_metadata.push(EntityTypeMetadata {
                     record_id,
                     classification: parameters.classification,
-                    label_property: parameters.label_property,
-                    icon: parameters.icon,
                     temporal_versioning,
                     provenance,
                 });
@@ -618,13 +616,8 @@ where
             .collect::<Result<Vec<_>, _>>()?;
 
         let entity_type_validator = EntityTypeValidator;
-        for (
-            ((entity_type_id, entity_type), entity_type_metadata),
-            (closed_schema, _resolve_data),
-        ) in inserted_entity_types
-            .iter()
-            .zip(&inserted_entity_type_metadata)
-            .zip(&closed_schemas)
+        for ((entity_type_id, entity_type), (closed_schema, _resolve_data)) in
+            inserted_entity_types.iter().zip(&closed_schemas)
         {
             transaction
                 .insert_entity_type_with_id(
@@ -637,8 +630,6 @@ where
                         .validate_ref(closed_schema)
                         .await
                         .change_context(InsertionError)?,
-                    entity_type_metadata.label_property.as_ref(),
-                    entity_type_metadata.icon.as_deref(),
                 )
                 .await?;
         }
@@ -998,13 +989,7 @@ where
             .await?;
 
         transaction
-            .insert_entity_type_with_id(
-                new_ontology_id,
-                &schema,
-                &closed_schema,
-                params.label_property.as_ref(),
-                params.icon.as_deref(),
-            )
+            .insert_entity_type_with_id(new_ontology_id, &schema, &closed_schema)
             .await
             .change_context(UpdateError)?;
         transaction
@@ -1062,8 +1047,6 @@ where
                 classification: OntologyTypeClassificationMetadata::Owned { owned_by_id },
                 temporal_versioning,
                 provenance,
-                label_property: params.label_property,
-                icon: params.icon,
             };
 
             if let Some(temporal_client) = &self.temporal_client {
@@ -1263,8 +1246,6 @@ pub struct EntityTypeRowIndices {
 
     pub edition_provenance: usize,
     pub additional_metadata: usize,
-    pub label_property: usize,
-    pub icon: usize,
 }
 
 impl QueryRecordDecode for EntityTypeWithMetadata {
@@ -1297,12 +1278,6 @@ impl QueryRecordDecode for EntityTypeWithMetadata {
                 provenance: OntologyProvenance {
                     edition: row.get(indices.edition_provenance),
                 },
-                label_property: row
-                    .get::<_, Option<String>>(indices.label_property)
-                    .map(BaseUrl::new)
-                    .transpose()
-                    .expect("label property returned from Postgres is not valid"),
-                icon: row.get(indices.icon),
             },
         }
     }
@@ -1343,8 +1318,6 @@ impl PostgresRecord for EntityTypeWithMetadata {
                 .add_selection_path(&EntityTypeQueryPath::EditionProvenance(None)),
             additional_metadata: compiler
                 .add_selection_path(&EntityTypeQueryPath::AdditionalMetadata),
-            label_property: compiler.add_selection_path(&EntityTypeQueryPath::LabelProperty),
-            icon: compiler.add_selection_path(&EntityTypeQueryPath::Icon),
         }
     }
 }

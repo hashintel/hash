@@ -205,8 +205,6 @@ pub struct EntityTypeRow {
     pub ontology_id: EntityTypeUuid,
     pub schema: Valid<EntityType>,
     pub closed_schema: Valid<ClosedEntityType>,
-    pub label_property: Option<String>,
-    pub icon: Option<String>,
 }
 
 #[derive(Debug, ToSql)]

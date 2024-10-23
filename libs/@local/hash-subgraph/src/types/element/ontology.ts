@@ -3,7 +3,6 @@ import { validateBaseUrl } from "@blockprotocol/type-system/slim";
 import type { Brand } from "@local/advanced-types/brand";
 import type {
   DataTypeMetadata,
-  EntityTypeMetadata,
   ExternalOntologyElementMetadata,
   OntologyTypeRecordId,
   OwnedOntologyElementMetadata,
@@ -38,9 +37,9 @@ export const isOntologyTypeRecordId = (
 };
 
 export const isExternalOntologyElementMetadata = (
-  metadata: DataTypeMetadata | EntityTypeMetadata,
+  metadata: DataTypeMetadata,
 ): metadata is ExternalOntologyElementMetadata => "fetchedAt" in metadata;
 
 export const isOwnedOntologyElementMetadata = (
-  metadata: DataTypeMetadata | EntityTypeMetadata,
+  metadata: DataTypeMetadata,
 ): metadata is OwnedOntologyElementMetadata => "ownedById" in metadata;

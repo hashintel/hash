@@ -91,10 +91,7 @@ export const EntityTypeSelector = <Multiple extends boolean = false>({
           );
         });
       }}
-      optionToRenderData={({
-        schema: { $id, title, description },
-        metadata: { icon },
-      }) => ({
+      optionToRenderData={({ schema: { $id, title, description, icon } }) => ({
         uniqueId: $id,
         icon:
           icon ??

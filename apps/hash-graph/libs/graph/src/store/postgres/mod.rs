@@ -565,8 +565,6 @@ where
         ontology_id: EntityTypeUuid,
         entity_type: &Valid<EntityType>,
         closed_entity_type: &Valid<ClosedEntityType>,
-        label_property: Option<&BaseUrl>,
-        icon: Option<&str>,
     ) -> Result<Option<OntologyTypeUuid>, InsertionError> {
         Ok(self
             .as_client()
@@ -575,20 +573,12 @@ where
                     INSERT INTO entity_types (
                         ontology_id,
                         schema,
-                        closed_schema,
-                        label_property,
-                        icon
-                    ) VALUES ($1, $2, $3, $4, $5)
+                        closed_schema
+                    ) VALUES ($1, $2, $3)
                     ON CONFLICT DO NOTHING
                     RETURNING ontology_id;
                 ",
-                &[
-                    &ontology_id,
-                    entity_type,
-                    closed_entity_type,
-                    &label_property,
-                    &icon,
-                ],
+                &[&ontology_id, entity_type, closed_entity_type],
             )
             .await
             .change_context(InsertionError)?

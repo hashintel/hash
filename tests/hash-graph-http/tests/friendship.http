@@ -893,9 +893,9 @@ X-Authenticated-User-Actor-Id: {{account_id}}
           ]
         }
       }
-    }
+    },
+    "labelProperty": "http://localhost:3000/@alice/types/property-type/name/"
   },
-  "labelProperty": "http://localhost:3000/@alice/types/property-type/name/",
   "relationships": [{
     "relation": "setting",
     "subject": {

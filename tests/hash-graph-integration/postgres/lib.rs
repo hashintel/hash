@@ -267,8 +267,6 @@ impl<A: AuthorizationApi> DatabaseTestWrapper<A> {
                         classification: OntologyTypeClassificationMetadata::Owned {
                             owned_by_id: OwnedById::new(account_id.into_uuid()),
                         },
-                        label_property: None,
-                        icon: None,
                         relationships: entity_type_relationships(),
                         conflict_behavior: ConflictBehavior::Skip,
                         provenance: ProvidedOntologyEditionProvenance::default(),

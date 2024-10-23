@@ -132,7 +132,7 @@ const LeftOrRightEntity: FunctionComponent<{
         }}
       >
         {entityType ? (
-          (entityType.metadata.icon ?? <AsteriskRegularIcon />)
+          (entityType.schema.icon ?? <AsteriskRegularIcon />)
         ) : (
           <EyeSlashIconRegular />
         )}
@@ -490,7 +490,7 @@ export const LinkLabelWithSourceAndDestination: FunctionComponent<{
           }}
         >
           <Box display="flex">
-            {linkEntityType.metadata.icon ?? (
+            {linkEntityType.schema.icon ?? (
               <LinkRegularIcon
                 sx={{
                   color: ({ palette }) => palette.common.black,
