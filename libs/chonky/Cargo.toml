@@ -1,0 +1,26 @@
+cargo-features = ["edition2024"]
+
+[package]
+name = "chonky"
+version = "0.0.0"
+publish = false
+authors = ["Jesus Fileto <jesus.fileto@yale.edu>", "HASH"]
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+# Public workspace dependencies
+error-stack = { workspace = true, public = true }
+
+# Public third-party dependencies
+
+# Private workspace dependencies
+
+# Private third-party dependencies
+
+[dev-dependencies]
+
+[features]
+
+[lints]
+workspace = true
