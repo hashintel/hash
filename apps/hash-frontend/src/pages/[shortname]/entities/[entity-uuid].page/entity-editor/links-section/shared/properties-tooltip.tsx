@@ -1,3 +1,4 @@
+import { stringifyPropertyValue } from "@local/hash-isomorphic-utils/stringify-property-value";
 import { Stack, Tooltip, Typography } from "@mui/material";
 import type { ReactElement } from "react";
 
@@ -37,7 +38,7 @@ export const PropertiesTooltip = ({
                   variant="smallTextParagraphs"
                 >
                   <strong>{propertyTitle}: </strong>
-                  {propertyValue}
+                  {stringifyPropertyValue(propertyValue)}
                 </Typography>
               ))}
           </Stack>
